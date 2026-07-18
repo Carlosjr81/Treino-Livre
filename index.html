@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0E0F12" />
+<title>Treino Livre</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #0E0F12; }
+  * { -webkit-tap-highlight-color: transparent; }
+  a { color: #8ECDF5; }
+  select { appearance: none; -webkit-appearance: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="env,react">
+const { useState, useEffect, useRef } = React;
+
+// ---------------- ARMAZENAMENTO ----------------
+const memoria = {};
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return memoria[k] != null ? memoria[k] : null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { memoria[k] = v; } },
+};
+const STORAGE_KEY = "treinolivre:v1";
+
+// ---------------- SOM (Web Audio) ----------------
+let audioCtx = null;
+function beep(freq, dur, vol) {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = "sine";
+    o.frequency.value = freq;
+    g.gain.value = vol || 0.25;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    o.stop(audioCtx.currentTime + dur);
+  } catch (e) {}
+}
+
+// ---------------- GRUPOS MUSCULARES ----------------
+const GRUPOS = [
+  { id: "peito", nome: "Peito", cor: "#FFD60A" },
+  { id: "costas", nome: "Costas", cor: "#8ECDF5" },
+  { id: "pernas", nome: "Pernas", cor: "#F58E8E" },
+  { id: "ombros", nome: "Ombros", cor: "#C7F58E" },
+  { id: "biceps", nome: "Bíceps", cor: "#E5B8FF" },
+  { id: "triceps", nome: "Tríceps", cor: "#FFC9A3" },
+  { id: "abdomen", nome: "Abdômen", cor: "#9AF5D4" },
+  { id: "gluteos", nome: "Glúteos", cor: "#F5D48E" },
+];
+
+const MUSCULOS = {
+  peito: "Peitoral", ombros: "Deltoides (ombros)", biceps: "Bíceps", triceps: "Tríceps",
+  antebraco: "Antebraços", abdomen: "Abdômen", obliquos: "Oblíquos", dorsal: "Dorsais",
+  trapezio: "Trapézio", lombar: "Lombar", quadriceps: "Quadríceps",
+  posteriores: "Posteriores de coxa", adutores: "Adutores", gluteos: "Glúteos", panturrilha: "Panturrilhas",
+};
+
+// ---------------- BIBLIOTECA DE EXERCÍCIOS (conteúdo original) ----------------
+const EXERCICIOS = [
+  { id: "supino-reto", grupo: "peito", nome: "Supino reto com barra", en: "bench press", equip: "Barra e banco", musc: { p: ["peito"], s: ["triceps", "ombros"] }, passos: ["Deite no banco com os pés firmes no chão e a barra alinhada aos olhos.", "Desça a barra controlada até tocar levemente o meio do peito.", "Empurre a barra para cima até estender os cotovelos, sem travar."], dica: "Mantenha as escápulas retraídas durante todo o movimento." },
+  { id: "supino-halteres", grupo: "peito", nome: "Supino reto com halteres", en: "dumbbell bench press", equip: "Halteres e banco", musc: { p: ["peito"], s: ["triceps", "ombros"] }, passos: ["Deite no banco com um halter em cada mão na altura do peito.", "Empurre os halteres para cima até quase se tocarem.", "Desça controlado até a altura do peito."], dica: "Halteres exigem mais estabilidade e dão maior amplitude que a barra." },
+  { id: "supino-inclinado", grupo: "peito", nome: "Supino inclinado com halteres", en: "incline bench press dumbbell", equip: "Halteres e banco inclinado", musc: { p: ["peito"], s: ["ombros", "triceps"] }, passos: ["Ajuste o banco entre 30° e 45° e segure um halter em cada mão.", "Desça os halteres até a altura do peito, cotovelos a ~45° do tronco.", "Suba unindo levemente os halteres no topo."], dica: "Não bata os halteres no topo; mantenha tensão no peitoral." },
+  { id: "supino-declinado", grupo: "peito", nome: "Supino declinado", en: "decline bench press", equip: "Barra e banco declinado", musc: { p: ["peito"], s: ["triceps"] }, passos: ["Deite no banco declinado com os pés presos no apoio.", "Desça a barra até a parte inferior do peito.", "Empurre de volta ao topo controlando a trajetória."], dica: "Enfatiza a porção inferior do peitoral; use amplitude confortável." },
+  { id: "supino-maquina", grupo: "peito", nome: "Supino na máquina", en: "chest press machine", equip: "Máquina", musc: { p: ["peito"], s: ["triceps", "ombros"] }, passos: ["Ajuste o banco para as manoplas ficarem na altura do meio do peito.", "Empurre à frente até quase estender os cotovelos.", "Retorne devagar sem deixar o peso bater."], dica: "Boa opção para iniciantes aprenderem o padrão de empurrar com segurança." },
+  { id: "crucifixo", grupo: "peito", nome: "Crucifixo no banco", en: "dumbbell fly", equip: "Halteres e banco", musc: { p: ["peito"], s: ["ombros"] }, passos: ["Deite com os halteres estendidos acima do peito, cotovelos levemente flexionados.", "Abra os braços em arco até sentir alongar o peitoral.", "Retorne pelo mesmo arco apertando o peito."], dica: "Imagine abraçar uma árvore: o cotovelo não muda de ângulo." },
+  { id: "crucifixo-inclinado", grupo: "peito", nome: "Crucifixo inclinado (fly com giro)", en: "incline dumbbell fly", equip: "Halteres e banco inclinado", musc: { p: ["peito"], s: ["ombros"] }, passos: ["No banco inclinado, abra os braços em arco com halteres.", "Suba fechando o arco; se quiser, gire as palmas no topo.", "Desça alongando o peitoral superior."], dica: "O giro no topo aumenta a contração da porção superior do peito." },
+  { id: "peck-deck", grupo: "peito", nome: "Voador (peck deck)", en: "butterfly machine", equip: "Máquina", musc: { p: ["peito"], s: ["ombros"] }, passos: ["Sente com as costas apoiadas e antebraços ou mãos nos apoios.", "Feche os braços à frente apertando o peitoral.", "Abra devagar até sentir leve alongamento."], dica: "Segure 1 segundo na contração máxima antes de abrir." },
+  { id: "crossover", grupo: "peito", nome: "Crossover na polia", en: "cable crossover", equip: "Polia dupla", musc: { p: ["peito"], s: ["ombros"] }, passos: ["Segure as manoplas com as polias na posição alta.", "Puxe os cabos para frente e para baixo cruzando levemente as mãos.", "Retorne devagar controlando a abertura."], dica: "Incline o tronco levemente à frente e mantenha-o fixo." },
+  { id: "flexao", grupo: "peito", nome: "Flexão de braços", en: "push up", equip: "Peso corporal", musc: { p: ["peito"], s: ["triceps", "ombros", "abdomen"] }, passos: ["Apoie mãos no chão na largura dos ombros, corpo em linha reta.", "Desça o peito até quase tocar o chão.", "Empurre o chão até estender os braços."], dica: "Contraia o abdômen para não deixar o quadril cair." },
+  { id: "paralelas-peito", grupo: "peito", nome: "Mergulho nas paralelas", en: "dips", equip: "Barras paralelas", musc: { p: ["peito", "triceps"], s: ["ombros"] }, passos: ["Suspenda o corpo nas barras com os braços estendidos.", "Incline o tronco à frente e desça flexionando os cotovelos.", "Suba até estender os braços."], dica: "Tronco inclinado foca o peito; tronco reto foca o tríceps." },
+
+  { id: "puxada-frente", grupo: "costas", nome: "Puxada alta frontal", en: "lat pulldown", equip: "Polia alta", musc: { p: ["dorsal"], s: ["biceps", "trapezio"] }, passos: ["Segure a barra com pegada aberta e sente com as coxas travadas.", "Puxe a barra até a parte superior do peito, levando os cotovelos para baixo.", "Retorne controlando até estender os braços."], dica: "Pense em puxar com os cotovelos, não com as mãos." },
+  { id: "puxada-triangulo", grupo: "costas", nome: "Puxada alta com triângulo", en: "close grip lat pulldown", equip: "Polia alta", musc: { p: ["dorsal"], s: ["biceps"] }, passos: ["Segure o triângulo com pegada neutra e fechada.", "Puxe até a altura do peito mantendo o tronco levemente inclinado.", "Suba alongando bem o dorsal."], dica: "A pegada fechada permite maior amplitude na parte final." },
+  { id: "barra-fixa", grupo: "costas", nome: "Barra fixa", en: "pull up", equip: "Barra fixa", musc: { p: ["dorsal"], s: ["biceps", "antebraco"] }, passos: ["Segure a barra com pegada aberta, braços estendidos.", "Puxe o corpo até o queixo passar a barra.", "Desça controlado até estender quase por completo."], dica: "Se estiver difícil, use elástico de assistência ou graviton." },
+  { id: "remada-curvada", grupo: "costas", nome: "Remada curvada com barra", en: "bent over row", equip: "Barra", musc: { p: ["dorsal", "trapezio"], s: ["biceps", "lombar"] }, passos: ["Incline o tronco a ~45° com a coluna neutra e joelhos semiflexionados.", "Puxe a barra em direção ao abdômen.", "Desça controlado até estender os braços."], dica: "Não deixe a lombar arredondar; trave o core." },
+  { id: "remada-baixa", grupo: "costas", nome: "Remada baixa com triângulo", en: "seated cable row", equip: "Polia baixa", musc: { p: ["dorsal"], s: ["biceps", "trapezio"] }, passos: ["Sente com os joelhos semiflexionados e segure o triângulo.", "Puxe até o abdômen mantendo o tronco ereto.", "Volte alongando bem as costas."], dica: "Evite balançar o tronco para gerar impulso." },
+  { id: "remada-unilateral", grupo: "costas", nome: "Remada unilateral (serrote)", en: "one arm dumbbell row", equip: "Halter e banco", musc: { p: ["dorsal"], s: ["biceps", "trapezio"] }, passos: ["Apoie joelho e mão do mesmo lado no banco, costas paralelas ao chão.", "Puxe o halter em direção ao quadril.", "Desça alongando sem girar o tronco."], dica: "Puxe em direção ao bolso, não ao ombro." },
+  { id: "remada-cavalinho", grupo: "costas", nome: "Remada cavalinho", en: "t-bar row", equip: "Barra T ou landmine", musc: { p: ["dorsal", "trapezio"], s: ["biceps", "lombar"] }, passos: ["Posicione-se sobre a barra com o tronco inclinado e coluna neutra.", "Puxe a barra em direção ao abdômen.", "Desça controlado até estender."], dica: "Ótima para carga alta com menos estresse na lombar que a curvada." },
+  { id: "levantamento-terra", grupo: "costas", nome: "Levantamento terra", en: "deadlift", equip: "Barra", musc: { p: ["lombar", "gluteos", "posteriores"], s: ["dorsal", "trapezio", "antebraco", "quadriceps"] }, passos: ["Pés na largura do quadril, barra sobre o meio dos pés.", "Segure a barra, peito alto, e suba estendendo quadril e joelhos juntos.", "Desça empurrando o quadril para trás com a coluna neutra."], dica: "A barra sobe colada às pernas do início ao fim." },
+  { id: "pulldown", grupo: "costas", nome: "Puxada com braços retos (pulldown)", en: "straight arm pulldown", equip: "Polia alta", musc: { p: ["dorsal"], s: ["triceps"] }, passos: ["Em pé, segure a barra com os braços quase estendidos.", "Puxe a barra até as coxas em um arco, sem dobrar os cotovelos.", "Retorne devagar até a altura dos ombros."], dica: "Ótimo para sentir o latíssimo trabalhando isolado." },
+  { id: "hiperextensao", grupo: "costas", nome: "Hiperextensão lombar", en: "back extension", equip: "Banco romano", musc: { p: ["lombar"], s: ["gluteos", "posteriores"] }, passos: ["Apoie o quadril no banco com os pés presos.", "Desça o tronco flexionando o quadril.", "Suba até alinhar o tronco com as pernas, sem passar."], dica: "Movimento controlado; não hiperestenda no topo." },
+  { id: "puxada-supinada", grupo: "costas", nome: "Puxada alta com pegada supinada", en: "reverse grip lat pulldown", equip: "Polia alta", musc: { p: ["dorsal"], s: ["biceps"] }, passos: ["Segure a barra com as palmas viradas para você, na largura dos ombros.", "Puxe a barra até a parte superior do peito.", "Suba controlado alongando o dorsal."], dica: "A pegada supinada envolve mais o bíceps e a parte baixa do dorsal." },
+  { id: "puxada-amplitude", grupo: "costas", nome: "Puxada alta com amplitude total", en: "lat pulldown", equip: "Polia alta", musc: { p: ["dorsal"], s: ["biceps", "trapezio"] }, passos: ["Segure a barra e deixe o corpo alongar totalmente no topo.", "Puxe até o peito levando os cotovelos para baixo.", "Suba devagar até o alongamento completo, deixando as escápulas subirem."], dica: "O alongamento total no topo é o diferencial: não encurte o movimento." },
+  { id: "remada-deltoide", grupo: "costas", nome: "Remada com barra para deltoide posterior", en: "rear delt row", equip: "Barra", musc: { p: ["ombros"], s: ["dorsal", "trapezio", "biceps"] }, passos: ["Incline o tronco com a barra pendurada e pegada bem aberta.", "Puxe a barra em direção ao peito com os cotovelos abertos.", "Desça controlado."], dica: "Cotovelos altos e abertos jogam o trabalho para o deltoide posterior." },
+  { id: "remada-invertida", grupo: "costas", nome: "Remada curvada com pegada invertida", en: "reverse grip bent over row", equip: "Barra", musc: { p: ["dorsal"], s: ["biceps", "trapezio", "lombar"] }, passos: ["Incline o tronco com a coluna neutra e pegada supinada.", "Puxe a barra em direção ao abdômen.", "Desça controlado até estender."], dica: "A pegada invertida enfatiza a parte baixa do dorsal e o bíceps." },
+
+  { id: "agachamento", grupo: "pernas", nome: "Agachamento livre", en: "squat", equip: "Barra", musc: { p: ["quadriceps", "gluteos"], s: ["posteriores", "lombar", "abdomen"] }, passos: ["Apoie a barra no trapézio e pés na largura dos ombros.", "Desça empurrando o quadril para trás até as coxas ficarem paralelas ao chão.", "Suba empurrando o chão com o pé inteiro."], dica: "Joelhos apontam na direção dos pés durante todo o movimento." },
+  { id: "agachamento-smith", grupo: "pernas", nome: "Agachamento no Smith", en: "smith machine squat", equip: "Aparelho Smith", musc: { p: ["quadriceps", "gluteos"], s: ["posteriores"] }, passos: ["Posicione a barra do Smith no trapézio e destrave.", "Desça controlado até as coxas ficarem paralelas ao chão.", "Suba empurrando o chão, sem travar os joelhos."], dica: "Pés levemente à frente da barra deixam o movimento mais confortável." },
+  { id: "agachamento-hack", grupo: "pernas", nome: "Agachamento no hack", en: "hack squat", equip: "Máquina hack", musc: { p: ["quadriceps"], s: ["gluteos"] }, passos: ["Posicione os ombros nos apoios e pés na plataforma.", "Desça até ~90° de joelho ou um pouco abaixo.", "Suba sem travar os joelhos."], dica: "Pés mais à frente na plataforma aliviam os joelhos." },
+  { id: "agachamento-goblet", grupo: "pernas", nome: "Agachamento goblet", en: "goblet squat", equip: "Halter ou kettlebell", musc: { p: ["quadriceps", "gluteos"], s: ["abdomen"] }, passos: ["Segure o peso junto ao peito com as duas mãos.", "Agache mantendo o tronco ereto e cotovelos entre os joelhos.", "Suba empurrando o chão."], dica: "Excelente para aprender a técnica do agachamento." },
+  { id: "agachamento-bulgaro", grupo: "pernas", nome: "Agachamento búlgaro", en: "bulgarian split squat", equip: "Halteres e banco", musc: { p: ["quadriceps", "gluteos"], s: ["posteriores"] }, passos: ["Apoie o peito do pé de trás no banco.", "Desça flexionando a perna da frente até ~90°.", "Suba empurrando com o pé da frente inteiro."], dica: "Passo mais longo foca glúteo; mais curto foca quadríceps." },
+  { id: "leg-press", grupo: "pernas", nome: "Leg press 45°", en: "leg press", equip: "Máquina", musc: { p: ["quadriceps"], s: ["gluteos", "posteriores"] }, passos: ["Posicione os pés na plataforma na largura dos ombros.", "Desça controlado até ~90° de joelho.", "Empurre a plataforma sem travar os joelhos no final."], dica: "Não tire a lombar do encosto ao descer." },
+  { id: "cadeira-extensora", grupo: "pernas", nome: "Cadeira extensora", en: "leg extension", equip: "Máquina", musc: { p: ["quadriceps"], s: [] }, passos: ["Ajuste o rolo na frente dos tornozelos.", "Estenda os joelhos até quase completar.", "Desça controlando a volta."], dica: "Segure 1 segundo no topo para maior ativação do quadríceps." },
+  { id: "mesa-flexora", grupo: "pernas", nome: "Mesa/cadeira flexora", en: "leg curl", equip: "Máquina", musc: { p: ["posteriores"], s: ["panturrilha"] }, passos: ["Posicione o rolo atrás dos tornozelos.", "Flexione os joelhos trazendo o rolo em direção aos glúteos.", "Retorne devagar sem soltar o peso."], dica: "Mantenha o quadril firme no banco durante todo o movimento." },
+  { id: "stiff", grupo: "pernas", nome: "Stiff", en: "stiff leg deadlift", equip: "Barra ou halteres", musc: { p: ["posteriores", "gluteos"], s: ["lombar"] }, passos: ["Em pé, segure o peso à frente das coxas.", "Desça empurrando o quadril para trás com joelhos quase estendidos.", "Suba contraindo posteriores e glúteos."], dica: "Desça só até onde a coluna se mantém neutra." },
+  { id: "afundo", grupo: "pernas", nome: "Afundo com halteres", en: "lunge", equip: "Halteres", musc: { p: ["quadriceps", "gluteos"], s: ["posteriores"] }, passos: ["Dê um passo à frente segurando um halter em cada mão.", "Desça até o joelho de trás quase tocar o chão.", "Empurre com a perna da frente para voltar."], dica: "Tronco ereto; o joelho da frente não precisa passar muito do pé." },
+  { id: "cadeira-adutora", grupo: "pernas", nome: "Cadeira adutora", en: "hip adduction", equip: "Máquina", musc: { p: ["adutores"], s: [] }, passos: ["Sente com as pernas abertas nos suportes.", "Feche as pernas contra a resistência.", "Abra devagar controlando o retorno."], dica: "Trabalha a parte interna da coxa; evite cargas exageradas no início." },
+  { id: "panturrilha", grupo: "pernas", nome: "Panturrilha em pé", en: "standing calf raise", equip: "Máquina ou degrau", musc: { p: ["panturrilha"], s: [] }, passos: ["Apoie a ponta dos pés na plataforma.", "Suba o máximo que conseguir na ponta dos pés.", "Desça alongando bem abaixo da linha do degrau."], dica: "Faça pausa de 1s em cima e embaixo; evite quicar." },
+  { id: "panturrilha-sentado", grupo: "pernas", nome: "Panturrilha sentado", en: "seated calf raise", equip: "Máquina", musc: { p: ["panturrilha"], s: [] }, passos: ["Sente com o apoio sobre as coxas e pontas dos pés na plataforma.", "Eleve os calcanhares o máximo possível.", "Desça alongando devagar."], dica: "Com o joelho dobrado o foco vai para o sóleo." },
+  { id: "panturrilha-leg-press", grupo: "pernas", nome: "Panturrilha no leg press", en: "calf press leg press", equip: "Leg press", musc: { p: ["panturrilha"], s: [] }, passos: ["No leg press, apoie só as pontas dos pés na base da plataforma.", "Empurre com as pontas dos pés estendendo os tornozelos.", "Volte alongando a panturrilha sem soltar o peso."], dica: "Joelhos quase estendidos e movimento só de tornozelo." },
+
+  { id: "desenvolvimento", grupo: "ombros", nome: "Desenvolvimento com halteres", en: "dumbbell shoulder press", equip: "Halteres", musc: { p: ["ombros"], s: ["triceps", "trapezio"] }, passos: ["Sente com os halteres na altura das orelhas, palmas à frente.", "Empurre para cima até quase estender os cotovelos.", "Desça controlado até a altura inicial."], dica: "Não arqueie a lombar; mantenha o core firme." },
+  { id: "desenvolvimento-arnold", grupo: "ombros", nome: "Desenvolvimento Arnold", en: "arnold press", equip: "Halteres", musc: { p: ["ombros"], s: ["triceps"] }, passos: ["Comece com os halteres à frente do rosto, palmas viradas para você.", "Empurre para cima girando as palmas para frente durante a subida.", "Desça desfazendo o giro."], dica: "O giro trabalha as três porções do deltoide no mesmo movimento." },
+  { id: "desenvolvimento-militar", grupo: "ombros", nome: "Desenvolvimento militar", en: "overhead press", equip: "Barra", musc: { p: ["ombros"], s: ["triceps", "abdomen"] }, passos: ["Em pé, segure a barra na altura das clavículas.", "Empurre para cima passando a cabeça levemente à frente no topo.", "Desça controlado até a posição inicial."], dica: "Glúteos e abdômen contraídos evitam compensar com a lombar." },
+  { id: "desenvolvimento-maquina", grupo: "ombros", nome: "Desenvolvimento na máquina", en: "machine shoulder press", equip: "Máquina", musc: { p: ["ombros"], s: ["triceps"] }, passos: ["Ajuste o banco para as manoplas ficarem na altura dos ombros.", "Empurre para cima sem travar os cotovelos.", "Retorne devagar."], dica: "Trajetória guiada: boa para focar carga com segurança." },
+  { id: "elevacao-lateral", grupo: "ombros", nome: "Elevação lateral", en: "lateral raise", equip: "Halteres", musc: { p: ["ombros"], s: ["trapezio"] }, passos: ["Em pé, halteres ao lado do corpo, cotovelos levemente flexionados.", "Eleve os braços até a linha dos ombros.", "Desça devagar resistindo ao peso."], dica: "Suba como se derramasse uma jarra: mindinho levemente para cima." },
+  { id: "elevacao-frontal", grupo: "ombros", nome: "Elevação frontal", en: "front raise", equip: "Halteres ou anilha", musc: { p: ["ombros"], s: ["peito"] }, passos: ["Segure o peso à frente das coxas.", "Eleve à frente até a altura dos ombros.", "Retorne controlando."], dica: "Evite balançar o corpo; menos carga e mais controle." },
+  { id: "crucifixo-inverso", grupo: "ombros", nome: "Crucifixo inverso", en: "reverse fly", equip: "Halteres ou máquina", musc: { p: ["ombros"], s: ["trapezio", "dorsal"] }, passos: ["Incline o tronco à frente com halteres pendurados.", "Abra os braços para os lados apertando as escápulas.", "Volte devagar."], dica: "Foca o deltóide posterior; use carga leve e amplitude completa." },
+  { id: "crucifixo-polia", grupo: "ombros", nome: "Crucifixo invertido na polia (amplitude total)", en: "cable reverse fly", equip: "Polia dupla", musc: { p: ["ombros"], s: ["trapezio", "dorsal"] }, passos: ["Em pé, cruze os cabos segurando a manopla oposta em cada mão.", "Abra os braços para trás na linha dos ombros.", "Volte controlado cruzando os cabos à frente."], dica: "A polia mantém tensão na amplitude toda; capriche na abertura final." },
+  { id: "remada-alta", grupo: "ombros", nome: "Remada alta (erguida)", en: "upright row", equip: "Barra, halteres ou cabo", musc: { p: ["ombros", "trapezio"], s: ["biceps"] }, passos: ["Segure o peso à frente das coxas com pegada na largura dos ombros.", "Puxe em direção ao queixo levando os cotovelos para cima.", "Desça controlado."], dica: "Suba só até a linha do peito se sentir desconforto no ombro." },
+  { id: "face-pull", grupo: "ombros", nome: "Face pull", en: "face pull", equip: "Polia com corda", musc: { p: ["ombros"], s: ["trapezio"] }, passos: ["Ajuste a polia na altura do rosto e segure a corda.", "Puxe em direção ao rosto abrindo os cotovelos para os lados.", "Retorne devagar."], dica: "Excelente para deltóide posterior e saúde dos ombros." },
+  { id: "encolhimento", grupo: "ombros", nome: "Encolhimento de ombros", en: "shrug", equip: "Halteres ou barra", musc: { p: ["trapezio"], s: ["antebraco"] }, passos: ["Segure o peso ao lado do corpo, braços estendidos.", "Eleve os ombros em direção às orelhas.", "Desça alongando o trapézio."], dica: "Não gire os ombros; o movimento é só para cima e para baixo." },
+
+  { id: "rosca-direta", grupo: "biceps", nome: "Rosca direta (barra W)", en: "barbell curl", equip: "Barra ou barra W", musc: { p: ["biceps"], s: ["antebraco"] }, passos: ["Em pé, segure a barra com pegada supinada na largura dos ombros.", "Flexione os cotovelos levando a barra até os ombros.", "Desça controlado até estender."], dica: "Cotovelos colados ao tronco; não balance o corpo." },
+  { id: "rosca-alternada", grupo: "biceps", nome: "Rosca alternada", en: "dumbbell curl", equip: "Halteres", musc: { p: ["biceps"], s: ["antebraco"] }, passos: ["Segure um halter em cada mão ao lado do corpo.", "Suba um braço girando a palma para cima durante a subida.", "Desça e repita com o outro braço."], dica: "No banco inclinado o bíceps trabalha ainda mais alongado." },
+  { id: "rosca-martelo", grupo: "biceps", nome: "Rosca martelo", en: "hammer curl", equip: "Halteres", musc: { p: ["biceps", "antebraco"], s: [] }, passos: ["Segure os halteres com as palmas viradas uma para a outra.", "Flexione os cotovelos mantendo a pegada neutra.", "Desça devagar."], dica: "Trabalha também o antebraço e o braquial." },
+  { id: "rosca-scott", grupo: "biceps", nome: "Rosca no banco Scott", en: "preacher curl", equip: "Banco Scott e barra W", musc: { p: ["biceps"], s: [] }, passos: ["Apoie os braços no banco com as axilas encaixadas no topo.", "Flexione até a contração máxima.", "Desça controlado sem estender totalmente."], dica: "Não solte o peso na descida; é onde mora o estímulo." },
+  { id: "rosca-concentrada", grupo: "biceps", nome: "Rosca concentrada", en: "concentration curl", equip: "Halter e banco", musc: { p: ["biceps"], s: [] }, passos: ["Sentado, apoie o cotovelo na parte interna da coxa.", "Flexione o braço até a contração máxima.", "Desça devagar até quase estender."], dica: "Isolamento total: zero impulso do corpo." },
+  { id: "rosca-polia", grupo: "biceps", nome: "Rosca na polia baixa", en: "cable curl", equip: "Polia baixa", musc: { p: ["biceps"], s: ["antebraco"] }, passos: ["Segure a barra da polia com pegada supinada.", "Flexione os cotovelos até a contração.", "Desça resistindo à tração do cabo."], dica: "A polia mantém tensão constante em toda a amplitude." },
+  { id: "rosca-inversa", grupo: "biceps", nome: "Rosca inversa", en: "reverse curl", equip: "Barra ou barra W", musc: { p: ["antebraco"], s: ["biceps"] }, passos: ["Segure a barra com as palmas viradas para baixo.", "Flexione os cotovelos até a altura do peito.", "Desça controlado."], dica: "Foca antebraços e braquial; use menos carga que na rosca direta." },
+  { id: "rosca-spider", grupo: "biceps", nome: "Rosca inclinada deitada (spider)", en: "spider curl", equip: "Banco inclinado e barra", musc: { p: ["biceps"], s: [] }, passos: ["Deite de bruços no banco inclinado com os braços pendurados.", "Flexione os cotovelos até a contração máxima.", "Desça devagar até quase estender."], dica: "O tronco apoiado elimina qualquer impulso: isolamento puro." },
+  { id: "rosca-polia-alta", grupo: "biceps", nome: "Rosca na polia alta (sobre a cabeça)", en: "overhead cable curl", equip: "Polia dupla alta", musc: { p: ["biceps"], s: [] }, passos: ["Segure as manoplas com os braços abertos na altura dos ombros.", "Flexione os cotovelos trazendo as mãos em direção à cabeça.", "Estenda controlado sem baixar os cotovelos."], dica: "Ótimo para o pico do bíceps; mantenha os cotovelos altos e fixos." },
+
+  { id: "triceps-polia", grupo: "triceps", nome: "Tríceps na polia (puxada alta)", en: "triceps pushdown", equip: "Polia alta com barra", musc: { p: ["triceps"], s: [] }, passos: ["Segure a barra com os cotovelos colados ao tronco.", "Estenda os braços empurrando a barra para baixo.", "Volte até ~90° sem mover os cotovelos."], dica: "Os cotovelos são a dobradiça: só o antebraço se move." },
+  { id: "triceps-corda", grupo: "triceps", nome: "Tríceps corda", en: "rope pushdown", equip: "Polia com corda", musc: { p: ["triceps"], s: [] }, passos: ["Segure a corda com pegada neutra.", "Estenda os braços abrindo a corda no final.", "Retorne controlado."], dica: "A abertura no final aumenta a contração da cabeça lateral." },
+  { id: "triceps-testa", grupo: "triceps", nome: "Tríceps testa", en: "lying triceps extension", equip: "Barra W e banco", musc: { p: ["triceps"], s: [] }, passos: ["Deitado, segure a barra acima do peito.", "Flexione os cotovelos descendo a barra em direção à testa.", "Estenda de volta ao topo."], dica: "Cotovelos apontando para o teto o tempo inteiro." },
+  { id: "triceps-frances", grupo: "triceps", nome: "Tríceps francês (sentado)", en: "overhead triceps extension", equip: "Halter", musc: { p: ["triceps"], s: [] }, passos: ["Segure um halter com as duas mãos acima da cabeça.", "Desça o peso atrás da cabeça flexionando os cotovelos.", "Estenda de volta ao topo."], dica: "Cotovelos apontando para frente, próximos da cabeça." },
+  { id: "triceps-coice", grupo: "triceps", nome: "Tríceps coice (kickback)", en: "triceps kickback", equip: "Halter", musc: { p: ["triceps"], s: [] }, passos: ["Incline o tronco com o cotovelo elevado e colado ao corpo.", "Estenda o antebraço para trás até a extensão total.", "Retorne sem baixar o cotovelo."], dica: "Contração máxima acontece no final; segure 1 segundo." },
+  { id: "supino-fechado", grupo: "triceps", nome: "Supino com pegada fechada", en: "close grip bench press", equip: "Barra e banco", musc: { p: ["triceps"], s: ["peito", "ombros"] }, passos: ["Deite no banco com pegada um pouco mais estreita que os ombros.", "Desça a barra até a parte baixa do peito com cotovelos junto ao corpo.", "Empurre de volta focando o tríceps."], dica: "Composto pesado para tríceps; não feche demais a pegada." },
+  { id: "mergulho-banco", grupo: "triceps", nome: "Mergulho no banco", en: "bench dips", equip: "Banco", musc: { p: ["triceps"], s: ["peito", "ombros"] }, passos: ["Apoie as mãos na borda do banco atrás do corpo.", "Desça flexionando os cotovelos até ~90°.", "Empurre de volta até estender."], dica: "Quanto mais longe os pés, mais difícil fica." },
+  { id: "triceps-invertido", grupo: "triceps", nome: "Tríceps na polia com pegada invertida", en: "reverse grip pushdown", equip: "Polia alta", musc: { p: ["triceps"], s: ["antebraco"] }, passos: ["Segure a barra com as palmas viradas para cima.", "Estenda os braços empurrando para baixo.", "Volte controlado sem mover os cotovelos."], dica: "A pegada invertida enfatiza a cabeça medial do tríceps." },
+
+  { id: "abdominal-supra", grupo: "abdomen", nome: "Abdominal supra", en: "crunch", equip: "Peso corporal", musc: { p: ["abdomen"], s: [] }, passos: ["Deite com os joelhos flexionados e mãos atrás da cabeça.", "Eleve o tronco tirando as escápulas do chão.", "Desça controlado."], dica: "Não puxe o pescoço; olhe para o teto." },
+  { id: "abdominal-infra", grupo: "abdomen", nome: "Abdominal infra na paralela", en: "hanging knee raise", equip: "Paralelas ou barra fixa", musc: { p: ["abdomen"], s: ["obliquos", "antebraco"] }, passos: ["Suspenda o corpo com os antebraços ou mãos apoiados.", "Eleve os joelhos em direção ao peito.", "Desça devagar sem balançar."], dica: "Para dificultar, suba com as pernas estendidas." },
+  { id: "abdominal-obliquo", grupo: "abdomen", nome: "Abdominal oblíquo (bicicleta)", en: "bicycle crunch", equip: "Peso corporal", musc: { p: ["obliquos"], s: ["abdomen"] }, passos: ["Deite e leve o cotovelo em direção ao joelho oposto.", "Alterne os lados em movimento de pedalada.", "Mantenha o ritmo controlado."], dica: "Gire o tronco, não apenas o cotovelo." },
+  { id: "prancha", grupo: "abdomen", nome: "Prancha isométrica", en: "plank", equip: "Peso corporal", musc: { p: ["abdomen"], s: ["obliquos", "lombar", "ombros"] }, passos: ["Apoie antebraços e pontas dos pés no chão.", "Mantenha o corpo em linha reta contraindo abdômen e glúteos.", "Segure pelo tempo definido."], dica: "Se o quadril cair ou subir, encerre a série: qualidade > tempo." },
+  { id: "prancha-lateral", grupo: "abdomen", nome: "Prancha lateral", en: "side plank", equip: "Peso corporal", musc: { p: ["obliquos"], s: ["abdomen", "ombros"] }, passos: ["Apoie um antebraço no chão com o corpo de lado.", "Eleve o quadril até o corpo formar uma linha reta.", "Segure pelo tempo definido e troque o lado."], dica: "Foca os oblíquos; não deixe o quadril ceder." },
+  { id: "elevacao-pernas", grupo: "abdomen", nome: "Elevação de pernas", en: "leg raise", equip: "Peso corporal", musc: { p: ["abdomen"], s: ["quadriceps"] }, passos: ["Deite com as mãos ao lado do corpo.", "Eleve as pernas estendidas até 90°.", "Desça devagar sem tocar o chão."], dica: "Pressione a lombar contra o chão o tempo todo." },
+  { id: "abdominal-polia", grupo: "abdomen", nome: "Abdominal na polia", en: "cable crunch", equip: "Polia alta com corda", musc: { p: ["abdomen"], s: ["obliquos"] }, passos: ["Ajoelhe de frente para a polia segurando a corda junto à cabeça.", "Flexione o tronco levando os cotovelos em direção aos joelhos.", "Suba controlando a volta."], dica: "O movimento vem do abdômen enrolando, não do quadril." },
+
+  { id: "elevacao-pelvica", grupo: "gluteos", nome: "Elevação pélvica", en: "hip thrust", equip: "Barra e banco", musc: { p: ["gluteos"], s: ["posteriores", "lombar"] }, passos: ["Apoie as costas no banco com a barra sobre o quadril.", "Eleve o quadril até o tronco ficar paralelo ao chão.", "Contraia o glúteo no topo e desça controlado."], dica: "Queixo levemente para baixo; não hiperestenda a lombar." },
+  { id: "agachamento-sumo", grupo: "gluteos", nome: "Agachamento sumô", en: "sumo squat", equip: "Halter ou kettlebell", musc: { p: ["gluteos", "adutores"], s: ["quadriceps"] }, passos: ["Pés bem afastados com pontas para fora, peso entre as pernas.", "Desça o quadril mantendo o tronco ereto.", "Suba apertando os glúteos."], dica: "Empurre os joelhos para fora durante toda a descida." },
+  { id: "terra-romeno", grupo: "gluteos", nome: "Peso morto romeno", en: "romanian deadlift", equip: "Barra ou halteres", musc: { p: ["gluteos", "posteriores"], s: ["lombar"] }, passos: ["Em pé, segure o peso à frente das coxas.", "Empurre o quadril para trás descendo o peso pelas pernas.", "Suba contraindo glúteos e posteriores."], dica: "Joelhos semiflexionados e fixos; o movimento é do quadril." },
+  { id: "bom-dia", grupo: "gluteos", nome: "Bom dia", en: "good morning", equip: "Barra", musc: { p: ["gluteos", "posteriores"], s: ["lombar"] }, passos: ["Apoie a barra no trapézio como no agachamento.", "Incline o tronco à frente empurrando o quadril para trás.", "Suba contraindo glúteos e lombar."], dica: "Comece com carga bem leve para dominar a técnica." },
+  { id: "coice-polia", grupo: "gluteos", nome: "Coice na polia (kickback)", en: "glute kickback", equip: "Polia baixa com caneleira", musc: { p: ["gluteos"], s: ["posteriores"] }, passos: ["Prenda a caneleira no tornozelo e apoie as mãos na máquina.", "Estenda a perna para trás contraindo o glúteo.", "Volte controlado sem apoiar o pé."], dica: "Movimento curto e forte; não balance a lombar." },
+  { id: "abducao", grupo: "gluteos", nome: "Cadeira abdutora", en: "hip abduction", equip: "Máquina", musc: { p: ["gluteos"], s: [] }, passos: ["Sente com as pernas apoiadas nos suportes.", "Abra as pernas contra a resistência.", "Feche devagar sem bater o peso."], dica: "Inclinar o tronco à frente aumenta a ativação do glúteo médio." },
+];
+
+// ---------------- FICHAS PADRÃO (rotina semanal que já vem no app) ----------------
+const mkItens = (ids) => ids.map((id) => ({ exercicioId: id, series: 3, reps: 12, obs: "" }));
+const FICHAS_PADRAO = [
+  { id: "padrao-seg", nome: "Segunda - Pernas e Costas", itens: mkItens(["mesa-flexora", "agachamento-sumo", "agachamento-smith", "elevacao-pelvica", "abducao", "panturrilha-sentado", "puxada-frente", "puxada-triangulo", "remada-baixa", "pulldown"]) },
+  { id: "padrao-ter", nome: "Terça - Peito e Tríceps", itens: mkItens(["supino-halteres", "supino-inclinado", "crucifixo", "crucifixo-inclinado", "peck-deck", "triceps-polia", "triceps-coice", "triceps-corda"]) },
+  { id: "padrao-qua", nome: "Quarta - Pernas e Bíceps", itens: mkItens(["cadeira-extensora", "agachamento-hack", "panturrilha-leg-press", "leg-press", "coice-polia", "rosca-direta", "rosca-scott", "rosca-concentrada"]) },
+  { id: "padrao-qui", nome: "Quinta - Costas", itens: mkItens(["puxada-frente", "puxada-triangulo", "puxada-supinada", "crucifixo-polia", "puxada-amplitude", "remada-deltoide", "remada-invertida", "remada-baixa", "remada-unilateral", "pulldown", "crucifixo-inverso"]) },
+  { id: "padrao-sex", nome: "Sexta - Pernas e Ombros", itens: mkItens(["mesa-flexora", "leg-press", "panturrilha-leg-press", "agachamento-bulgaro", "terra-romeno", "cadeira-adutora", "desenvolvimento", "desenvolvimento-arnold", "desenvolvimento-maquina", "elevacao-frontal", "elevacao-lateral", "remada-alta", "encolhimento"]) },
+  { id: "padrao-sab", nome: "Sábado - Bíceps e Tríceps", itens: mkItens(["rosca-direta", "rosca-scott", "triceps-frances", "rosca-alternada", "rosca-spider", "rosca-concentrada", "rosca-martelo", "rosca-polia-alta", "triceps-polia", "triceps-invertido", "triceps-corda"]) },
+];
+
+const grupoPorId = (id) => GRUPOS.find((g) => g.id === id) || { nome: "Outro", cor: "#8A8F98" };
+
+const COR_DIRETO = "#FF453A";
+const COR_INDIRETO = "#FFD60A";
+const COR_MUSCULO = "#262A31";
+
+// ---------------- ESTILOS ----------------
+const S = {
+  app: { minHeight: "100vh", background: "#0E0F12", color: "#F2F0EB", fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif", paddingBottom: 84 },
+  header: { padding: "20px 18px 10px", position: "sticky", top: 0, background: "#0E0F12", zIndex: 5 },
+  logo: { fontSize: 22, fontWeight: 900, letterSpacing: -0.5, textTransform: "uppercase" },
+  faixa: { height: 6, marginTop: 8, background: "repeating-linear-gradient(45deg,#FFD60A 0 12px,#0E0F12 12px 24px)", borderRadius: 3 },
+  card: { background: "#17191E", borderRadius: 14, padding: 16, marginBottom: 12, border: "1px solid #23262D" },
+  label: { fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, color: "#8A8F98", fontWeight: 700 },
+  btn: { background: "#FFD60A", color: "#0E0F12", border: "none", borderRadius: 10, padding: "13px 16px", fontWeight: 800, fontSize: 15, width: "100%", cursor: "pointer" },
+  btnGhost: { background: "transparent", color: "#F2F0EB", border: "1px solid #33363E", borderRadius: 10, padding: "12px 16px", fontWeight: 700, fontSize: 14, width: "100%", cursor: "pointer" },
+  input: { background: "#0E0F12", border: "1px solid #33363E", borderRadius: 10, color: "#F2F0EB", padding: "12px 14px", fontSize: 16, width: "100%", boxSizing: "border-box" },
+  inputMini: { background: "#0E0F12", border: "1px solid #33363E", borderRadius: 8, color: "#F2F0EB", padding: "10px 8px", fontSize: 16, width: "100%", boxSizing: "border-box", textAlign: "center" },
+  voltar: { background: "none", border: "none", color: "#FFD60A", fontWeight: 800, fontSize: 14, padding: 0, cursor: "pointer", marginBottom: 12 },
+  tagCustom: { display: "inline-block", background: "#FFD60A22", color: "#FFD60A", borderRadius: 6, padding: "2px 8px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, marginLeft: 8 },
+};
+
+const abrirVideoDe = (nome) => {
+  const q = encodeURIComponent("como fazer " + nome + " academia execução correta");
+  window.open("https://www.youtube.com/results?search_query=" + q, "_blank");
+};
+
+// ---------------- IMAGENS DO WGER (banco aberto, licença CC BY-SA 4.0) ----------------
+const cacheImg = {};
+async function buscarImagemWger(termo) {
+  const r = await fetch("https://wger.de/api/v2/exercise/search/?language=english&format=json&term=" + encodeURIComponent(termo));
+  const j = await r.json();
+  const sugestoes = j.suggestions || [];
+  const hit = sugestoes.find((s) => s.data && s.data.image) || sugestoes[0];
+  if (!hit || !hit.data) return null;
+  let url = hit.data.image ? "https://wger.de" + hit.data.image : null;
+  if (hit.data.base_id) {
+    try {
+      const r2 = await fetch("https://wger.de/api/v2/exerciseimage/?format=json&exercise_base=" + hit.data.base_id);
+      const j2 = await r2.json();
+      const main = (j2.results || []).find((i) => i.is_main) || (j2.results || [])[0];
+      if (main && main.image) url = main.image;
+    } catch (e) {}
+  }
+  return url;
+}
+
+function ImagemExercicio({ ex }) {
+  const [url, setUrl] = useState(cacheImg[ex.id] !== undefined ? cacheImg[ex.id] : null);
+  const [status, setStatus] = useState(cacheImg[ex.id] !== undefined ? (cacheImg[ex.id] ? "ok" : "erro") : "carregando");
+
+  useEffect(() => {
+    let vivo = true;
+    if (cacheImg[ex.id] !== undefined) {
+      setUrl(cacheImg[ex.id]);
+      setStatus(cacheImg[ex.id] ? "ok" : "erro");
+      return;
+    }
+    (async () => {
+      try {
+        const u = await buscarImagemWger(ex.en || ex.nome);
+        cacheImg[ex.id] = u;
+        if (vivo) { setUrl(u); setStatus(u ? "ok" : "erro"); }
+      } catch (e) {
+        cacheImg[ex.id] = null;
+        if (vivo) setStatus("erro");
+      }
+    })();
+    return () => { vivo = false; };
+  }, [ex.id]);
+
+  if (status === "carregando") {
+    return <div style={{ fontSize: 13, color: "#8A8F98", padding: "8px 0" }}>Carregando imagem de demonstração...</div>;
+  }
+  if (status === "erro" || !url) {
+    return (
+      <div style={{ fontSize: 13, color: "#8A8F98", padding: "8px 0" }}>
+        Sem imagem disponível para este exercício — use o botão de vídeo abaixo.
+      </div>
+    );
+  }
+  return (
+    <div style={{ margin: "4px 0 6px" }}>
+      <div style={{ background: "#FFFFFF", borderRadius: 12, padding: 8, textAlign: "center" }}>
+        <img src={url} alt={"Demonstração: " + ex.nome} style={{ maxWidth: "100%", maxHeight: 240, borderRadius: 8 }}
+          onError={() => { cacheImg[ex.id] = null; setStatus("erro"); }} />
+      </div>
+      <div style={{ fontSize: 11, color: "#8A8F98", marginTop: 6, lineHeight: 1.5 }}>
+        Imagem: comunidade <a href="https://wger.de" target="_blank" rel="noreferrer">wger.de</a> · Licença{" "}
+        <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.pt-br" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- MAPA MUSCULAR (SVG original) ----------------
+function CorpoBase() {
+  return (
+    <g fill="#15171B" stroke="#2A2E36" strokeWidth="1">
+      <circle cx="60" cy="17" r="11" />
+      <rect x="54" y="27" width="12" height="9" rx="3" />
+      <rect x="42" y="35" width="36" height="66" rx="10" />
+      <rect x="26" y="41" width="11" height="66" rx="5" />
+      <rect x="83" y="41" width="11" height="66" rx="5" />
+      <rect x="44" y="99" width="14" height="92" rx="6" />
+      <rect x="62" y="99" width="14" height="92" rx="6" />
+    </g>
+  );
+}
+
+function MapaMuscular({ p = [], s = [] }) {
+  const cor = (id) => (p.includes(id) ? COR_DIRETO : s.includes(id) ? COR_INDIRETO : COR_MUSCULO);
+  const st = (id) => ({ fill: cor(id), stroke: "#0E0F12", strokeWidth: 0.8 });
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
+        <div style={{ textAlign: "center" }}>
+          <svg viewBox="0 0 120 196" width="130" height="212">
+            <CorpoBase />
+            <path d="M48,34 L72,34 L78,42 L42,42 Z" style={st("trapezio")} />
+            <ellipse cx="34" cy="48" rx="8" ry="7" style={st("ombros")} />
+            <ellipse cx="86" cy="48" rx="8" ry="7" style={st("ombros")} />
+            <ellipse cx="51" cy="56" rx="10" ry="9" style={st("peito")} />
+            <ellipse cx="69" cy="56" rx="10" ry="9" style={st("peito")} />
+            <ellipse cx="31" cy="70" rx="5.5" ry="11" style={st("biceps")} />
+            <ellipse cx="89" cy="70" rx="5.5" ry="11" style={st("biceps")} />
+            <ellipse cx="30" cy="95" rx="4.5" ry="12" style={st("antebraco")} />
+            <ellipse cx="90" cy="95" rx="4.5" ry="12" style={st("antebraco")} />
+            <rect x="53" y="67" width="14" height="30" rx="6" style={st("abdomen")} />
+            <rect x="45" y="70" width="6" height="24" rx="3" style={st("obliquos")} />
+            <rect x="69" y="70" width="6" height="24" rx="3" style={st("obliquos")} />
+            <ellipse cx="56" cy="114" rx="3.5" ry="12" style={st("adutores")} />
+            <ellipse cx="64" cy="114" rx="3.5" ry="12" style={st("adutores")} />
+            <ellipse cx="50" cy="136" rx="6.5" ry="23" style={st("quadriceps")} />
+            <ellipse cx="70" cy="136" rx="6.5" ry="23" style={st("quadriceps")} />
+          </svg>
+          <div style={{ ...S.label, fontSize: 10 }}>Frente</div>
+        </div>
+
+        <div style={{ textAlign: "center" }}>
+          <svg viewBox="0 0 120 196" width="130" height="212">
+            <CorpoBase />
+            <path d="M60,32 L78,44 L60,64 L42,44 Z" style={st("trapezio")} />
+            <ellipse cx="34" cy="48" rx="8" ry="7" style={st("ombros")} />
+            <ellipse cx="86" cy="48" rx="8" ry="7" style={st("ombros")} />
+            <ellipse cx="31" cy="70" rx="5.5" ry="11" style={st("triceps")} />
+            <ellipse cx="89" cy="70" rx="5.5" ry="11" style={st("triceps")} />
+            <ellipse cx="30" cy="95" rx="4.5" ry="12" style={st("antebraco")} />
+            <ellipse cx="90" cy="95" rx="4.5" ry="12" style={st("antebraco")} />
+            <path d="M45,52 L58,56 L58,86 L46,73 Z" style={st("dorsal")} />
+            <path d="M75,52 L62,56 L62,86 L74,73 Z" style={st("dorsal")} />
+            <rect x="53" y="86" width="14" height="13" rx="4" style={st("lombar")} />
+            <ellipse cx="52" cy="108" rx="8.5" ry="9" style={st("gluteos")} />
+            <ellipse cx="68" cy="108" rx="8.5" ry="9" style={st("gluteos")} />
+            <ellipse cx="51" cy="137" rx="6.5" ry="20" style={st("posteriores")} />
+            <ellipse cx="69" cy="137" rx="6.5" ry="20" style={st("posteriores")} />
+            <ellipse cx="51" cy="173" rx="5.5" ry="14" style={st("panturrilha")} />
+            <ellipse cx="69" cy="173" rx="5.5" ry="14" style={st("panturrilha")} />
+          </svg>
+          <div style={{ ...S.label, fontSize: 10 }}>Costas</div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center", gap: 18, marginTop: 8 }}>
+        <span style={{ fontSize: 12, color: "#C6C9CF" }}>
+          <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 5, background: COR_DIRETO, marginRight: 6 }} />
+          Trabalha direto
+        </span>
+        <span style={{ fontSize: 12, color: "#C6C9CF" }}>
+          <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 5, background: COR_INDIRETO, marginRight: 6 }} />
+          Auxilia (indireto)
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- GRÁFICO DE EVOLUÇÃO ----------------
+function GraficoEvolucao({ historico, exPorId }) {
+  const idsComDados = [];
+  const vistos = {};
+  historico.forEach((h) => h.itens.forEach((it) => {
+    const temPeso = it.series.some((s) => parseFloat(s.peso) > 0);
+    if (temPeso && !vistos[it.exercicioId] && exPorId(it.exercicioId)) {
+      vistos[it.exercicioId] = true;
+      idsComDados.push(it.exercicioId);
+    }
+  }));
+
+  const [exSel, setExSel] = useState(idsComDados[0] || "");
+  const [metrica, setMetrica] = useState("max");
+
+  useEffect(() => {
+    if ((!exSel || !vistos[exSel]) && idsComDados.length) setExSel(idsComDados[0]);
+  }, [historico.length]);
+
+  if (idsComDados.length === 0) {
+    return (
+      <div style={S.card}>
+        <div style={S.label}>Evolução</div>
+        <div style={{ color: "#8A8F98", fontSize: 14, marginTop: 8 }}>
+          Conclua treinos registrando os pesos para ver seu gráfico de evolução aqui.
+        </div>
+      </div>
+    );
+  }
+
+  const ordenado = [...historico].sort((a, b) => new Date(a.data) - new Date(b.data));
+  const pontos = [];
+  ordenado.forEach((h) => {
+    const it = h.itens.find((x) => x.exercicioId === exSel);
+    if (!it) return;
+    let valor = 0;
+    if (metrica === "max") {
+      it.series.forEach((sr) => { const pz = parseFloat(sr.peso) || 0; if (pz > valor) valor = pz; });
+    } else {
+      it.series.forEach((sr) => { valor += (parseFloat(sr.peso) || 0) * (parseInt(sr.reps) || 0); });
+    }
+    if (valor > 0) pontos.push({ data: new Date(h.data), valor });
+  });
+
+  const W = 320, H = 150, x0 = 34, x1 = 310, y0 = 118, y1 = 16;
+  let svg = null;
+  if (pontos.length >= 2) {
+    const vmin = Math.min(...pontos.map((pt) => pt.valor));
+    const vmax = Math.max(...pontos.map((pt) => pt.valor));
+    const range = vmax - vmin || 1;
+    const px = (i) => x0 + (i / (pontos.length - 1)) * (x1 - x0);
+    const py = (v) => y0 - ((v - vmin) / range) * (y0 - y1);
+    const linha = pontos.map((pt, i) => px(i).toFixed(1) + "," + py(pt.valor).toFixed(1)).join(" ");
+    const fmtData = (d) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    svg = (
+      <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", height: "auto" }}>
+        {[0, 0.5, 1].map((f, i) => (
+          <line key={i} x1={x0} x2={x1} y1={y0 - f * (y0 - y1)} y2={y0 - f * (y0 - y1)} stroke="#23262D" strokeWidth="1" />
+        ))}
+        <text x={x0 - 4} y={y1 + 4} fill="#8A8F98" fontSize="10" textAnchor="end">{vmax}</text>
+        <text x={x0 - 4} y={y0 + 4} fill="#8A8F98" fontSize="10" textAnchor="end">{vmin}</text>
+        <polyline points={linha} fill="none" stroke="#FFD60A" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        {pontos.map((pt, i) => (
+          <circle key={i} cx={px(i)} cy={py(pt.valor)} r="3.5" fill="#FF453A" stroke="#0E0F12" strokeWidth="1" />
+        ))}
+        <text x={x0} y={H - 4} fill="#8A8F98" fontSize="10">{fmtData(pontos[0].data)}</text>
+        <text x={x1} y={H - 4} fill="#8A8F98" fontSize="10" textAnchor="end">{fmtData(pontos[pontos.length - 1].data)}</text>
+      </svg>
+    );
+  }
+
+  const primeiro = pontos[0], ultimo = pontos[pontos.length - 1];
+  const melhor = pontos.length ? Math.max(...pontos.map((pt) => pt.valor)) : 0;
+  const unidade = metrica === "max" ? "kg" : "kg (vol.)";
+
+  return (
+    <div style={S.card}>
+      <div style={{ ...S.label, marginBottom: 10 }}>Evolução do treino</div>
+
+      <select value={exSel} onChange={(e) => setExSel(e.target.value)}
+        style={{ ...S.input, marginBottom: 10, fontWeight: 700 }}>
+        {idsComDados.map((id) => {
+          const e = exPorId(id);
+          return <option key={id} value={id}>{e ? e.nome : id}</option>;
+        })}
+      </select>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        {[["max", "Carga máxima"], ["volume", "Volume total"]].map(([m, nomeM]) => (
+          <button key={m} onClick={() => setMetrica(m)}
+            style={{
+              flex: 1, border: "1px solid", borderColor: metrica === m ? "#FFD60A" : "#33363E",
+              background: metrica === m ? "#FFD60A22" : "transparent",
+              color: metrica === m ? "#FFD60A" : "#8A8F98",
+              borderRadius: 8, padding: "8px 10px", fontWeight: 800, fontSize: 12, cursor: "pointer",
+            }}>
+            {nomeM}
+          </button>
+        ))}
+      </div>
+
+      {pontos.length >= 2 ? (
+        <React.Fragment>
+          {svg}
+          <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
+            <Resumo num={(primeiro ? primeiro.valor : 0) + unidadeCurta(metrica)} txt="início" />
+            <Resumo num={(ultimo ? ultimo.valor : 0) + unidadeCurta(metrica)} txt="último" />
+            <Resumo num={melhor + unidadeCurta(metrica)} txt="recorde" />
+          </div>
+        </React.Fragment>
+      ) : (
+        <div style={{ color: "#8A8F98", fontSize: 13 }}>
+          Registre pelo menos 2 treinos com este exercício para ver a linha de evolução.
+        </div>
+      )}
+    </div>
+  );
+}
+function unidadeCurta(metrica) { return metrica === "max" ? "kg" : ""; }
+
+// ---------------- COMPONENTES ----------------
+function Header({ titulo }) {
+  return (
+    <div style={S.header}>
+      <div style={S.logo}>{titulo}</div>
+      <div style={S.faixa} />
+    </div>
+  );
+}
+
+function Resumo({ num, txt }) {
+  return (
+    <div style={{ flex: 1, textAlign: "center" }}>
+      <div style={{ fontSize: 22, fontWeight: 900, color: "#FFD60A" }}>{num}</div>
+      <div style={{ fontSize: 11, color: "#8A8F98", textTransform: "uppercase", letterSpacing: 0.5 }}>{txt}</div>
+    </div>
+  );
+}
+
+function TelaInicio({ treinos, historico, totalEx, onTreinar, onNovaFicha }) {
+  const ultima = historico[0];
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <div style={{ ...S.card, borderColor: "#FFD60A44" }}>
+        <div style={S.label}>Começar agora</div>
+        <div style={{ fontSize: 18, fontWeight: 800, margin: "6px 0 12px" }}>
+          {treinos.length ? "Escolha sua ficha e bora treinar" : "Monte sua primeira ficha de treino"}
+        </div>
+        {treinos.length ? (
+          treinos.map((t) => (
+            <button key={t.id} style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}>▶ {t.nome}</button>
+          ))
+        ) : (
+          <button style={S.btn} onClick={onNovaFicha}>+ Criar ficha de treino</button>
+        )}
+      </div>
+
+      <div style={S.card}>
+        <div style={S.label}>Resumo</div>
+        <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
+          <Resumo num={historico.length} txt="treinos feitos" />
+          <Resumo num={treinos.length} txt="fichas criadas" />
+          <Resumo num={totalEx} txt="exercícios" />
+        </div>
+      </div>
+
+      {ultima && (
+        <div style={S.card}>
+          <div style={S.label}>Último treino</div>
+          <div style={{ fontWeight: 800, fontSize: 16, marginTop: 6 }}>{ultima.nome}</div>
+          <div style={{ color: "#8A8F98", fontSize: 13, marginTop: 2 }}>
+            {new Date(ultima.data).toLocaleDateString("pt-BR")} · {ultima.duracaoMin} min · {ultima.itens.length} exercícios
+          </div>
+        </div>
+      )}
+
+      <div style={{ ...S.card, borderStyle: "dashed" }}>
+        <div style={S.label}>Créditos</div>
+        <div style={{ fontSize: 13, lineHeight: 1.8, marginTop: 6 }}>
+          <div style={{ fontWeight: 800 }}>App desenvolvido por Carlos Jr</div>
+          <div>
+            Instagram:{" "}
+            <a href="https://instagram.com/carlos.jr.81" target="_blank" rel="noreferrer" style={{ fontWeight: 700 }}>
+              @carlos.jr.81
+            </a>
+          </div>
+        </div>
+        <div style={{ fontSize: 12, color: "#8A8F98", lineHeight: 1.7, marginTop: 10 }}>
+          Imagens de demonstração dos exercícios: banco de dados aberto{" "}
+          <a href="https://wger.de" target="_blank" rel="noreferrer">wger.de</a> e sua comunidade de colaboradores,
+          sob a licença{" "}
+          <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.pt-br" target="_blank" rel="noreferrer">Creative Commons BY-SA 4.0</a>.
+          Textos, dicas e mapa muscular: conteúdo original do app.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CardExercicio({ ex, onAbrir, onExcluir }) {
+  return (
+    <div style={{ ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }} onClick={onAbrir}>
+      <div>
+        <div style={{ fontWeight: 800, fontSize: 16 }}>
+          {ex.nome}
+          {ex.custom && <span style={S.tagCustom}>Meu</span>}
+        </div>
+        <div style={{ color: "#8A8F98", fontSize: 13, marginTop: 2 }}>{ex.equip || "Equipamento livre"}</div>
+      </div>
+      {ex.custom && (
+        <button
+          style={{ background: "none", border: "none", color: "#F58E8E", fontSize: 18, cursor: "pointer", padding: "4px 8px" }}
+          onClick={(e) => { e.stopPropagation(); onExcluir(ex.id); }}>✕</button>
+      )}
+    </div>
+  );
+}
+
+function DetalheExercicio({ ex, onVoltar }) {
+  const g = grupoPorId(ex.grupo);
+  const p = (ex.musc && ex.musc.p) || [];
+  const s = (ex.musc && ex.musc.s) || [];
+  const temMapa = p.length > 0 || s.length > 0;
+
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <button style={S.voltar} onClick={onVoltar}>← Voltar</button>
+      <div style={{ ...S.card, borderLeft: "4px solid " + g.cor }}>
+        <div style={{ ...S.label, color: g.cor }}>{g.nome}{ex.equip ? " · " + ex.equip : ""}</div>
+        <div style={{ fontSize: 22, fontWeight: 900, margin: "6px 0 14px" }}>
+          {ex.nome}
+          {ex.custom && <span style={S.tagCustom}>Meu</span>}
+        </div>
+
+        <ImagemExercicio ex={ex} />
+
+        {temMapa && (
+          <React.Fragment>
+            <div style={{ ...S.label, margin: "14px 0 10px" }}>Músculos trabalhados</div>
+            <MapaMuscular p={p} s={s} />
+            <div style={{ fontSize: 13, lineHeight: 1.6, margin: "12px 0 16px" }}>
+              {p.length > 0 && (
+                <div><span style={{ color: COR_DIRETO, fontWeight: 800 }}>Direto: </span>{p.map((m) => MUSCULOS[m]).join(", ")}</div>
+              )}
+              {s.length > 0 && (
+                <div><span style={{ color: COR_INDIRETO, fontWeight: 800 }}>Indireto: </span>{s.map((m) => MUSCULOS[m]).join(", ")}</div>
+              )}
+            </div>
+          </React.Fragment>
+        )}
+
+        <button style={{ ...S.btnGhost, marginBottom: 16, borderColor: "#FFD60A66", color: "#FFD60A" }} onClick={() => abrirVideoDe(ex.nome)}>
+          ▶ Ver demonstração em vídeo
+        </button>
+
+        {ex.passos && ex.passos.length > 0 && (
+          <React.Fragment>
+            <div style={S.label}>Execução</div>
+            <ol style={{ margin: "8px 0 16px", paddingLeft: 20, lineHeight: 1.6, fontSize: 15 }}>
+              {ex.passos.map((pp, i) => <li key={i} style={{ marginBottom: 6 }}>{pp}</li>)}
+            </ol>
+          </React.Fragment>
+        )}
+        {ex.dica && (
+          <div style={{ background: "#0E0F12", borderRadius: 10, padding: 12, fontSize: 14, lineHeight: 1.5 }}>
+            <span style={{ color: "#FFD60A", fontWeight: 800 }}>Dica: </span>{ex.dica}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicioAberto, setExercicioAberto, onNovoExercicio, onExcluirCustom }) {
+  const [busca, setBusca] = useState("");
+
+  if (exercicioAberto) {
+    const ex = exPorId(exercicioAberto);
+    if (!ex) { setExercicioAberto(null); return null; }
+    return <DetalheExercicio ex={ex} onVoltar={() => setExercicioAberto(null)} />;
+  }
+
+  const buscando = busca.trim().length > 0;
+  const resultados = buscando
+    ? todos.filter((e) => e.nome.toLowerCase().includes(busca.trim().toLowerCase()))
+    : [];
+
+  if (grupoAberto && !buscando) {
+    const g = grupoPorId(grupoAberto);
+    const lista = todos.filter((e) => e.grupo === grupoAberto);
+    return (
+      <div style={{ padding: "0 18px" }}>
+        <button style={S.voltar} onClick={() => setGrupoAberto(null)}>← Grupos</button>
+        <div style={{ fontSize: 24, fontWeight: 900, textTransform: "uppercase", marginBottom: 12, color: g.cor }}>{g.nome}</div>
+        {lista.map((ex) => (
+          <CardExercicio key={ex.id} ex={ex} onAbrir={() => setExercicioAberto(ex.id)} onExcluir={onExcluirCustom} />
+        ))}
+        <button style={{ ...S.btnGhost, marginTop: 4 }} onClick={onNovoExercicio}>+ Criar exercício próprio</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <input style={{ ...S.input, marginBottom: 12 }} placeholder="Buscar em todos os exercícios..."
+        value={busca} onChange={(e) => setBusca(e.target.value)} />
+      <button style={{ ...S.btn, marginBottom: 14 }} onClick={onNovoExercicio}>+ Criar exercício próprio</button>
+
+      {buscando ? (
+        <React.Fragment>
+          <div style={{ ...S.label, marginBottom: 8 }}>{resultados.length} resultado(s)</div>
+          {resultados.map((ex) => (
+            <CardExercicio key={ex.id} ex={ex} onAbrir={() => setExercicioAberto(ex.id)} onExcluir={onExcluirCustom} />
+          ))}
+          {resultados.length === 0 && (
+            <div style={{ ...S.card, textAlign: "center", color: "#8A8F98" }}>
+              Nenhum exercício com esse nome. Toque em "Criar exercício próprio" para adicioná-lo.
+            </div>
+          )}
+        </React.Fragment>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {GRUPOS.map((g) => {
+            const qtd = todos.filter((e) => e.grupo === g.id).length;
+            return (
+              <div key={g.id} onClick={() => setGrupoAberto(g.id)}
+                style={{ ...S.card, marginBottom: 0, cursor: "pointer", borderTop: "4px solid " + g.cor, minHeight: 84, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                <div style={{ fontSize: 17, fontWeight: 900, textTransform: "uppercase" }}>{g.nome}</div>
+                <div style={{ fontSize: 12, color: "#8A8F98" }}>{qtd} exercícios</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FormNovoExercicio({ grupoSugerido, onSalvar, onCancelar, avisar }) {
+  const [nome, setNome] = useState("");
+  const [grupo, setGrupo] = useState(grupoSugerido || "peito");
+  const [equip, setEquip] = useState("");
+  const [passosTxt, setPassosTxt] = useState("");
+  const [dica, setDica] = useState("");
+  const [musc, setMusc] = useState({});
+
+  const cicloMusc = (id) => {
+    setMusc((m) => {
+      const atual = m[id];
+      const novo = { ...m };
+      if (!atual) novo[id] = "p";
+      else if (atual === "p") novo[id] = "s";
+      else delete novo[id];
+      return novo;
+    });
+  };
+
+  const salvar = () => {
+    if (!nome.trim()) { avisar("Digite o nome do exercício."); return; }
+    const passos = passosTxt.split("\n").map((p) => p.trim()).filter(Boolean);
+    const p = Object.keys(musc).filter((k) => musc[k] === "p");
+    const s = Object.keys(musc).filter((k) => musc[k] === "s");
+    onSalvar({
+      id: "custom-" + Date.now(),
+      custom: true,
+      nome: nome.trim(),
+      grupo,
+      equip: equip.trim(),
+      musc: { p, s },
+      passos,
+      dica: dica.trim(),
+    });
+  };
+
+  const p = Object.keys(musc).filter((k) => musc[k] === "p");
+  const s = Object.keys(musc).filter((k) => musc[k] === "s");
+
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <button style={S.voltar} onClick={onCancelar}>← Cancelar</button>
+      <div style={S.card}>
+        <div style={{ ...S.label, marginBottom: 8 }}>Nome do exercício *</div>
+        <input style={S.input} placeholder="Ex.: Remada na barra fixa australiana"
+          value={nome} onChange={(e) => setNome(e.target.value)} />
+
+        <div style={{ ...S.label, margin: "16px 0 8px" }}>Grupo muscular</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {GRUPOS.map((g) => (
+            <button key={g.id} onClick={() => setGrupo(g.id)}
+              style={{
+                border: "1px solid", borderColor: grupo === g.id ? g.cor : "#33363E",
+                background: grupo === g.id ? g.cor + "22" : "transparent",
+                color: grupo === g.id ? g.cor : "#8A8F98",
+                borderRadius: 8, padding: "8px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer",
+              }}>
+              {g.nome}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ ...S.label, margin: "16px 0 4px" }}>Músculos trabalhados (opcional)</div>
+        <div style={{ fontSize: 12, color: "#8A8F98", marginBottom: 8 }}>
+          Toque 1x = direto (vermelho) · 2x = indireto (amarelo) · 3x = remove
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {Object.keys(MUSCULOS).map((id) => {
+            const estado = musc[id];
+            const cor = estado === "p" ? COR_DIRETO : estado === "s" ? COR_INDIRETO : "#8A8F98";
+            return (
+              <button key={id} onClick={() => cicloMusc(id)}
+                style={{
+                  border: "1px solid", borderColor: estado ? cor : "#33363E",
+                  background: estado ? cor + "22" : "transparent",
+                  color: cor, borderRadius: 8, padding: "7px 10px", fontWeight: 700, fontSize: 12, cursor: "pointer",
+                }}>
+                {MUSCULOS[id]}
+              </button>
+            );
+          })}
+        </div>
+        {(p.length > 0 || s.length > 0) && (
+          <div style={{ marginTop: 14 }}>
+            <MapaMuscular p={p} s={s} />
+          </div>
+        )}
+
+        <div style={{ ...S.label, margin: "16px 0 8px" }}>Equipamento (opcional)</div>
+        <input style={S.input} placeholder="Ex.: Halteres, máquina, elástico..."
+          value={equip} onChange={(e) => setEquip(e.target.value)} />
+
+        <div style={{ ...S.label, margin: "16px 0 8px" }}>Como executar (opcional, um passo por linha)</div>
+        <textarea style={{ ...S.input, minHeight: 90, resize: "vertical", fontFamily: "inherit" }}
+          placeholder={"Posicione-se...\nExecute o movimento...\nRetorne controlado..."}
+          value={passosTxt} onChange={(e) => setPassosTxt(e.target.value)} />
+
+        <div style={{ ...S.label, margin: "16px 0 8px" }}>Dica (opcional)</div>
+        <input style={S.input} placeholder="Ex.: Mantenha o core firme"
+          value={dica} onChange={(e) => setDica(e.target.value)} />
+
+        <button style={{ ...S.btn, marginTop: 18 }} onClick={salvar}>Salvar exercício</button>
+      </div>
+    </div>
+  );
+}
+
+function TelaTreinos({ treinos, exPorId, onTreinar, onNova, onEditar, onExcluir, pedirConfirmacao }) {
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <button style={{ ...S.btn, marginBottom: 14 }} onClick={onNova}>+ Nova ficha de treino</button>
+      {treinos.length === 0 && (
+        <div style={{ ...S.card, textAlign: "center", color: "#8A8F98" }}>
+          Nenhuma ficha ainda. Crie a primeira e monte seu treino A/B/C.
+        </div>
+      )}
+      {treinos.map((t) => (
+        <div key={t.id} style={S.card}>
+          <div style={{ fontWeight: 900, fontSize: 18 }}>{t.nome}</div>
+          <div style={{ color: "#8A8F98", fontSize: 13, margin: "4px 0 12px" }}>
+            {t.itens.map((it) => { const e = exPorId(it.exercicioId); return e ? e.nome : null; }).filter(Boolean).join(" · ") || "Sem exercícios"}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={{ ...S.btn, flex: 2 }} onClick={() => onTreinar(t)}>▶ Treinar</button>
+            <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onEditar(t)}>Editar</button>
+            <button style={{ ...S.btnGhost, flex: 1, color: "#F58E8E", borderColor: "#F58E8E55" }}
+              onClick={() => pedirConfirmacao("Excluir esta ficha?", () => onExcluir(t.id))}>Excluir</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }) {
+  const [t, setT] = useState(treinoInicial);
+  const [busca, setBusca] = useState("");
+
+  const salvar = () => {
+    if (!t.nome.trim()) { avisar("Dê um nome para a ficha (ex.: Treino A - Peito e Tríceps)"); return; }
+    onSalvar(t);
+  };
+  const addEx = (id) => setT({ ...t, itens: [...t.itens, { exercicioId: id, series: 3, reps: 12, obs: "" }] });
+  const rmEx = (i) => setT({ ...t, itens: t.itens.filter((_, idx) => idx !== i) });
+  const upItem = (i, campo, val) => setT({ ...t, itens: t.itens.map((it, idx) => (idx === i ? { ...it, [campo]: val } : it)) });
+
+  const filtrados = todos.filter((e) => e.nome.toLowerCase().includes(busca.toLowerCase()));
+  const exPorId = (id) => todos.find((e) => e.id === id);
+
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <button style={S.voltar} onClick={onCancelar}>← Cancelar</button>
+      <input style={{ ...S.input, marginBottom: 14, fontWeight: 800 }} placeholder="Nome da ficha (ex.: Treino A)"
+        value={t.nome} onChange={(e) => setT({ ...t, nome: e.target.value })} />
+
+      <div style={S.label}>Exercícios da ficha</div>
+      <div style={{ margin: "8px 0 16px" }}>
+        {t.itens.length === 0 && <div style={{ color: "#8A8F98", fontSize: 14, padding: "8px 0" }}>Adicione exercícios da lista abaixo.</div>}
+        {t.itens.map((it, i) => {
+          const e = exPorId(it.exercicioId);
+          return (
+            <div key={i} style={{ ...S.card, padding: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontWeight: 800, fontSize: 15, flex: 1 }}>{e ? e.nome : "Exercício removido"}</div>
+                <button style={{ background: "none", border: "none", color: "#F58E8E", fontSize: 18, cursor: "pointer" }} onClick={() => rmEx(i)}>✕</button>
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ ...S.label, fontSize: 10 }}>Séries</div>
+                  <input type="number" style={S.inputMini} value={it.series} min={1}
+                    onChange={(ev) => upItem(i, "series", Math.max(1, parseInt(ev.target.value) || 1))} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ ...S.label, fontSize: 10 }}>Repetições</div>
+                  <input type="number" style={S.inputMini} value={it.reps} min={1}
+                    onChange={(ev) => upItem(i, "reps", Math.max(1, parseInt(ev.target.value) || 1))} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <button style={{ ...S.btn, marginBottom: 18 }} onClick={salvar}>Salvar ficha</button>
+
+      <div style={S.label}>Adicionar exercício</div>
+      <input style={{ ...S.input, margin: "8px 0 10px" }} placeholder="Buscar exercício..."
+        value={busca} onChange={(e) => setBusca(e.target.value)} />
+      {filtrados.map((ex) => (
+        <div key={ex.id} style={{ ...S.card, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>
+              {ex.nome}{ex.custom && <span style={S.tagCustom}>Meu</span>}
+            </div>
+            <div style={{ fontSize: 12, color: grupoPorId(ex.grupo).cor }}>{grupoPorId(ex.grupo).nome}</div>
+          </div>
+          <button style={{ background: "#FFD60A", border: "none", borderRadius: 8, width: 34, height: 34, fontWeight: 900, fontSize: 18, cursor: "pointer" }}
+            onClick={() => addEx(ex.id)}>+</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------- SESSÃO: registro + cronômetro com som + observações + vídeo ----------------
+function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, setSom, onFinalizar, onDescartar, onVoltar, pedirConfirmacao }) {
+  const [fimDescanso, setFimDescanso] = useState(null);
+  const [totalDescanso, setTotalDescanso] = useState(descanso);
+  const [agora, setAgora] = useState(Date.now());
+  const [avisou, setAvisou] = useState(false);
+  const ultimoBipe = useRef(null);
+
+  useEffect(() => {
+    if (!fimDescanso) return;
+    const iv = setInterval(() => setAgora(Date.now()), 250);
+    return () => clearInterval(iv);
+  }, [fimDescanso]);
+
+  const restante = fimDescanso ? Math.max(0, Math.ceil((fimDescanso - agora) / 1000)) : 0;
+  const acabou = fimDescanso && restante === 0;
+
+  // Bipes de contagem regressiva (3, 2, 1)
+  useEffect(() => {
+    if (!fimDescanso || acabou) return;
+    if (restante <= 3 && restante > 0 && ultimoBipe.current !== restante) {
+      ultimoBipe.current = restante;
+      if (som) beep(880, 0.12, 0.25);
+    }
+  }, [restante, fimDescanso, acabou, som]);
+
+  // Som + vibração de finalização
+  useEffect(() => {
+    if (acabou && !avisou) {
+      setAvisou(true);
+      if (som) {
+        beep(660, 0.22, 0.3);
+        setTimeout(() => beep(990, 0.45, 0.3), 240);
+      }
+      try { if (navigator.vibrate) navigator.vibrate([300, 120, 300]); } catch (e) {}
+    }
+  }, [acabou, avisou, som]);
+
+  const iniciarDescanso = () => {
+    setTotalDescanso(descanso);
+    setFimDescanso(Date.now() + descanso * 1000);
+    setAvisou(false);
+    ultimoBipe.current = null;
+    if (som) beep(520, 0.08, 0.15); // clique de início (também "desbloqueia" o áudio no celular)
+  };
+  const mais15 = () => { setFimDescanso((f) => (f ? f + 15000 : Date.now() + 15000)); setTotalDescanso((tt) => tt + 15); setAvisou(false); ultimoBipe.current = null; };
+  const fecharDescanso = () => { setFimDescanso(null); setAvisou(false); ultimoBipe.current = null; };
+
+  const upSerie = (ei, si, campo, val) => {
+    const itens = sessao.itens.map((it, i) =>
+      i !== ei ? it : { ...it, series: it.series.map((s, j) => (j !== si ? s : { ...s, [campo]: val })) }
+    );
+    setSessao({ ...sessao, itens });
+  };
+
+  const upObs = (ei, val) => {
+    const itens = sessao.itens.map((it, i) => (i !== ei ? it : { ...it, obs: val }));
+    setSessao({ ...sessao, itens });
+  };
+
+  const marcarSerie = (ei, si) => {
+    const jaFeita = sessao.itens[ei].series[si].feito;
+    upSerie(ei, si, "feito", !jaFeita);
+    if (!jaFeita) iniciarDescanso();
+  };
+
+  const feitas = sessao.itens.reduce((a, it) => a + it.series.filter((s) => s.feito).length, 0);
+  const total = sessao.itens.reduce((a, it) => a + it.series.length, 0);
+
+  const fmt = (seg) => {
+    const m = Math.floor(seg / 60);
+    const ss = seg % 60;
+    return m + ":" + (ss < 10 ? "0" : "") + ss;
+  };
+
+  const pct = fimDescanso && totalDescanso > 0 ? Math.max(0, Math.min(100, (restante / totalDescanso) * 100)) : 0;
+
+  const btnSom = (
+    <button onClick={() => { setSom(!som); if (!som) beep(700, 0.1, 0.2); }}
+      title={som ? "Desligar som" : "Ligar som"}
+      style={{ width: 42, height: 42, borderRadius: 10, border: "1px solid " + (som ? "#FFD60A66" : "#33363E"), background: som ? "#FFD60A22" : "transparent", fontSize: 18, cursor: "pointer" }}>
+      {som ? "🔊" : "🔇"}
+    </button>
+  );
+
+  return (
+    <div style={{ padding: "0 18px", paddingBottom: fimDescanso ? 120 : 20 }}>
+      <button style={S.voltar} onClick={onVoltar}>← Voltar (o treino continua salvo)</button>
+      <div style={{ ...S.card, borderColor: "#FFD60A44", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={S.label}>Treinando agora</div>
+          <div style={{ fontWeight: 900, fontSize: 18 }}>{sessao.nome}</div>
+        </div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: "#FFD60A" }}>{feitas}/{total}</div>
+      </div>
+
+      {/* Configuração do descanso */}
+      <div style={{ ...S.card, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <div style={S.label}>Descanso entre séries</div>
+          <div style={{ fontSize: 12, color: "#8A8F98", marginTop: 2 }}>Inicia ao marcar uma série ✓</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => setDescanso(Math.max(15, descanso - 15))}
+            style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid #33363E", background: "transparent", color: "#F2F0EB", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>−</button>
+          <div style={{ fontWeight: 900, fontSize: 17, color: "#FFD60A", minWidth: 48, textAlign: "center" }}>{fmt(descanso)}</div>
+          <button onClick={() => setDescanso(Math.min(600, descanso + 15))}
+            style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid #33363E", background: "transparent", color: "#F2F0EB", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>+</button>
+          {btnSom}
+        </div>
+      </div>
+
+      {sessao.itens.map((it, ei) => {
+        const ex = exPorId(it.exercicioId);
+        return (
+          <div key={ei} style={S.card}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 16, flex: 1 }}>{ex ? ex.nome : "Exercício"}</div>
+              <button onClick={() => abrirVideoDe(ex ? ex.nome : "")}
+                title="Ver vídeo de como executar"
+                style={{ border: "1px solid #FFD60A66", background: "#FFD60A15", color: "#FFD60A", borderRadius: 8, padding: "7px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
+                ▶ Vídeo
+              </button>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+              <div style={{ width: 30 }} />
+              <div style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center" }}>Peso (kg)</div>
+              <div style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center" }}>Reps</div>
+              <div style={{ width: 44 }} />
+            </div>
+            {it.series.map((s, si) => (
+              <div key={si} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, opacity: s.feito ? 0.55 : 1 }}>
+                <div style={{ width: 30, fontWeight: 900, color: "#8A8F98", textAlign: "center" }}>{si + 1}</div>
+                <input type="number" inputMode="decimal" placeholder="0" style={{ ...S.inputMini, flex: 1 }} value={s.peso}
+                  onChange={(e) => upSerie(ei, si, "peso", e.target.value)} />
+                <input type="number" inputMode="numeric" style={{ ...S.inputMini, flex: 1 }} value={s.reps}
+                  onChange={(e) => upSerie(ei, si, "reps", e.target.value)} />
+                <button onClick={() => marcarSerie(ei, si)}
+                  style={{ width: 44, height: 42, borderRadius: 8, border: "none", fontWeight: 900, fontSize: 18, cursor: "pointer",
+                    background: s.feito ? "#FFD60A" : "#23262D", color: s.feito ? "#0E0F12" : "#8A8F98" }}>✓</button>
+              </div>
+            ))}
+
+            <input style={{ ...S.input, marginTop: 4, fontSize: 14 }}
+              placeholder="📝 Obs.: altura do banco, altura da polia, pegada..."
+              value={it.obs || ""}
+              onChange={(e) => upObs(ei, e.target.value)} />
+          </div>
+        );
+      })}
+
+      <button style={{ ...S.btn, marginTop: 4 }} onClick={onFinalizar}>Finalizar treino</button>
+      <button style={{ ...S.btnGhost, marginTop: 10, color: "#F58E8E", borderColor: "#F58E8E55" }}
+        onClick={() => pedirConfirmacao("Descartar este treino sem salvar?", onDescartar)}>
+        Descartar
+      </button>
+
+      {/* Barra do cronômetro de descanso */}
+      {fimDescanso && (
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: acabou ? "#173B1E" : "#141519", borderTop: "2px solid " + (acabou ? "#4ADE80" : "#FFD60A"), padding: "12px 18px 18px", zIndex: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ ...S.label, color: acabou ? "#4ADE80" : "#8A8F98" }}>
+                {acabou ? "Descanso concluído!" : "Descansando"}
+              </div>
+              <div style={{ fontSize: 30, fontWeight: 900, color: acabou ? "#4ADE80" : "#FFD60A", fontVariantNumeric: "tabular-nums" }}>
+                {acabou ? "Bora! 💪" : fmt(restante)}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button onClick={() => { setSom(!som); if (!som) beep(700, 0.1, 0.2); }}
+                style={{ width: 40, height: 40, borderRadius: 8, border: "1px solid #33363E", background: "transparent", fontSize: 16, cursor: "pointer" }}>
+                {som ? "🔊" : "🔇"}
+              </button>
+              {!acabou && (
+                <button onClick={mais15}
+                  style={{ border: "1px solid #FFD60A66", background: "transparent", color: "#FFD60A", borderRadius: 8, padding: "10px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+                  +15s
+                </button>
+              )}
+              <button onClick={fecharDescanso}
+                style={{ border: "1px solid #33363E", background: "transparent", color: "#F2F0EB", borderRadius: 8, padding: "10px 14px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+                {acabou ? "OK" : "Pular"}
+              </button>
+            </div>
+          </div>
+          {!acabou && (
+            <div style={{ height: 5, background: "#23262D", borderRadius: 3, marginTop: 10, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: pct + "%", background: restante <= 3 ? "#FF453A" : "#FFD60A", borderRadius: 3, transition: "width 0.25s linear" }} />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TelaHistorico({ historico, exPorId, onExcluir, pedirConfirmacao }) {
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <GraficoEvolucao historico={historico} exPorId={exPorId} />
+
+      {historico.length === 0 && (
+        <div style={{ ...S.card, textAlign: "center", color: "#8A8F98" }}>
+          Seus treinos concluídos aparecem aqui, com as cargas de cada série.
+        </div>
+      )}
+      {historico.map((h) => (
+        <div key={h.id} style={S.card}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div style={{ fontWeight: 900, fontSize: 16, flex: 1 }}>{h.nome}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ color: "#FFD60A", fontWeight: 800, fontSize: 13 }}>{h.duracaoMin} min</div>
+              <button title="Excluir este treino do histórico"
+                onClick={() => pedirConfirmacao("Excluir este treino do histórico? Essa ação não pode ser desfeita.", () => onExcluir(h.id))}
+                style={{ background: "none", border: "1px solid #F58E8E55", color: "#F58E8E", borderRadius: 8, width: 30, height: 30, fontSize: 14, fontWeight: 900, cursor: "pointer" }}>
+                🗑
+              </button>
+            </div>
+          </div>
+          <div style={{ color: "#8A8F98", fontSize: 12, margin: "2px 0 10px" }}>
+            {new Date(h.data).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
+          </div>
+          {h.itens.map((it, i) => {
+            const e = exPorId(it.exercicioId);
+            return (
+              <div key={i} style={{ fontSize: 13, marginBottom: 6, lineHeight: 1.5 }}>
+                <span style={{ fontWeight: 700 }}>{(e ? e.nome : "Exercício")}: </span>
+                <span style={{ color: "#8A8F98" }}>
+                  {it.series.map((s) => (s.peso || 0) + "kg×" + (s.reps || 0)).join("  ·  ")}
+                </span>
+                {it.obs && <div style={{ color: "#C7A94B", fontSize: 12, fontStyle: "italic", marginTop: 2 }}>📝 {it.obs}</div>}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------- APP ----------------
+function TreinoLivre() {
+  const [aba, setAba] = useState("inicio");
+  const [treinos, setTreinos] = useState([]);
+  const [historico, setHistorico] = useState([]);
+  const [customEx, setCustomEx] = useState([]);
+  const [descanso, setDescanso] = useState(90);
+  const [som, setSom] = useState(true);
+  const [carregado, setCarregado] = useState(false);
+
+  const [grupoAberto, setGrupoAberto] = useState(null);
+  const [exercicioAberto, setExercicioAberto] = useState(null);
+  const [editandoTreino, setEditandoTreino] = useState(null);
+  const [sessao, setSessao] = useState(null);
+  const [modal, setModal] = useState(null);
+  const pedirConfirmacao = (msg, onSim) => setModal({ msg, onSim });
+  const avisar = (msg) => setModal({ msg });
+
+  const todos = [...EXERCICIOS, ...customEx];
+  const exPorId = (id) => todos.find((e) => e.id === id);
+
+  useEffect(() => {
+    let tr = [], hi = [], ce = [], de = 90, so = true, seed = false;
+    try {
+      const raw = store.get(STORAGE_KEY);
+      if (raw) {
+        const d = JSON.parse(raw);
+        tr = d.treinos || [];
+        hi = d.historico || [];
+        ce = d.customEx || [];
+        de = d.descanso || 90;
+        so = d.som !== undefined ? d.som : true;
+        seed = !!d.seedV3;
+      }
+    } catch (e) {}
+    // Insere/atualiza as fichas padrão (rotina semanal) uma única vez por versão
+    if (!seed) {
+      tr = tr.filter((t) => String(t.id).indexOf("padrao-") !== 0 && String(t.nome || "").trim().toLowerCase() !== "lucas koba");
+      tr = [...FICHAS_PADRAO, ...tr];
+    }
+    setTreinos(tr); setHistorico(hi); setCustomEx(ce); setDescanso(de); setSom(so);
+    setCarregado(true);
+  }, []);
+
+  useEffect(() => {
+    if (!carregado) return;
+    store.set(STORAGE_KEY, JSON.stringify({ treinos, historico, customEx, descanso, som, seedV3: true }));
+  }, [treinos, historico, customEx, descanso, som, carregado]);
+
+  const comecarSessao = (treino) => {
+    setSessao({
+      treinoId: treino.id,
+      nome: treino.nome,
+      inicio: Date.now(),
+      itens: treino.itens.map((it) => ({
+        exercicioId: it.exercicioId,
+        obs: it.obs || "",
+        series: Array.from({ length: it.series }, () => ({ peso: "", reps: String(it.reps || ""), feito: false })),
+      })),
+    });
+    setAba("sessao");
+  };
+
+  const iniciarSessao = (treino) => {
+    if (!treino.itens.length) { avisar("Esta ficha ainda não tem exercícios. Edite a ficha primeiro."); return; }
+    if (sessao && sessao.treinoId === treino.id) { setAba("sessao"); return; }
+    if (sessao) {
+      pedirConfirmacao("Você já tem um treino em andamento (" + sessao.nome + "). Começar outro vai descartá-lo. Continuar?", () => comecarSessao(treino));
+      return;
+    }
+    comecarSessao(treino);
+  };
+
+  const finalizarSessao = () => {
+    const registro = {
+      id: String(Date.now()),
+      nome: sessao.nome,
+      data: new Date().toISOString(),
+      duracaoMin: Math.max(1, Math.round((Date.now() - sessao.inicio) / 60000)),
+      itens: sessao.itens.map((it) => ({
+        exercicioId: it.exercicioId,
+        obs: it.obs || "",
+        series: it.series.filter((s) => s.feito).map((s) => ({ peso: s.peso, reps: s.reps })),
+      })).filter((it) => it.series.length > 0),
+    };
+    setHistorico([registro, ...historico]);
+    // Salva as observações de volta na ficha (altura do banco, polia etc. ficam guardadas)
+    setTreinos(treinos.map((t) => {
+      if (t.id !== sessao.treinoId) return t;
+      return { ...t, itens: t.itens.map((it, i) => (sessao.itens[i] ? { ...it, obs: sessao.itens[i].obs || "" } : it)) };
+    }));
+    setSessao(null);
+    setAba("historico");
+  };
+
+  const excluirHistorico = (id) => setHistorico(historico.filter((h) => h.id !== id));
+
+  const salvarTreino = (t) => {
+    const existe = treinos.some((x) => x.id === t.id);
+    setTreinos(existe ? treinos.map((x) => (x.id === t.id ? t : x)) : [...treinos, t]);
+    setEditandoTreino(null);
+    setAba("treinos");
+  };
+
+  const salvarCustomEx = (ex) => {
+    setCustomEx([...customEx, ex]);
+    setAba("exercicios");
+    setGrupoAberto(ex.grupo);
+  };
+
+  const excluirCustomEx = (id) => {
+    pedirConfirmacao("Excluir este exercício criado por você? Ele sairá das fichas em que estiver.", () => {
+      setCustomEx((prev) => prev.filter((e) => e.id !== id));
+      setTreinos((prev) => prev.map((t) => ({ ...t, itens: t.itens.filter((it) => it.exercicioId !== id) })));
+    });
+  };
+
+  const abas = [
+    { id: "inicio", nome: "Início", icone: "⌂" },
+    { id: "exercicios", nome: "Exercícios", icone: "💪" },
+    { id: "treinos", nome: "Fichas", icone: "▤" },
+    { id: "historico", nome: "Histórico", icone: "◷" },
+  ];
+  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Minhas fichas", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício" };
+
+  if (!carregado) {
+    return <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>Carregando...</div>;
+  }
+
+  return (
+    <div style={S.app}>
+      <Header titulo={titulos[aba]} />
+      <div style={{ paddingTop: 14 }}>
+        {aba === "inicio" && (
+          <TelaInicio treinos={treinos} historico={historico} totalEx={todos.length}
+            onTreinar={iniciarSessao}
+            onNovaFicha={() => { setEditandoTreino({ id: String(Date.now()), nome: "", itens: [] }); setAba("editarTreino"); }} />
+        )}
+        {aba === "exercicios" && (
+          <TelaExercicios todos={todos} exPorId={exPorId}
+            grupoAberto={grupoAberto} setGrupoAberto={setGrupoAberto}
+            exercicioAberto={exercicioAberto} setExercicioAberto={setExercicioAberto}
+            onNovoExercicio={() => setAba("novoExercicio")}
+            onExcluirCustom={excluirCustomEx} />
+        )}
+        {aba === "novoExercicio" && (
+          <FormNovoExercicio grupoSugerido={grupoAberto} avisar={avisar}
+            onSalvar={salvarCustomEx}
+            onCancelar={() => setAba("exercicios")} />
+        )}
+        {aba === "treinos" && (
+          <TelaTreinos treinos={treinos} exPorId={exPorId} pedirConfirmacao={pedirConfirmacao}
+            onTreinar={iniciarSessao}
+            onNova={() => { setEditandoTreino({ id: String(Date.now()), nome: "", itens: [] }); setAba("editarTreino"); }}
+            onEditar={(t) => { setEditandoTreino(JSON.parse(JSON.stringify(t))); setAba("editarTreino"); }}
+            onExcluir={(id) => setTreinos(treinos.filter((x) => x.id !== id))} />
+        )}
+        {aba === "editarTreino" && editandoTreino && (
+          <TelaEditarTreino key={editandoTreino.id} treinoInicial={editandoTreino} todos={todos} avisar={avisar}
+            onSalvar={salvarTreino}
+            onCancelar={() => { setEditandoTreino(null); setAba("treinos"); }} />
+        )}
+        {aba === "sessao" && sessao && (
+          <TelaSessao sessao={sessao} setSessao={setSessao} exPorId={exPorId} pedirConfirmacao={pedirConfirmacao}
+            descanso={descanso} setDescanso={setDescanso}
+            som={som} setSom={setSom}
+            onFinalizar={finalizarSessao}
+            onVoltar={() => setAba("inicio")}
+            onDescartar={() => { setSessao(null); setAba("inicio"); }} />
+        )}
+        {aba === "historico" && <TelaHistorico historico={historico} exPorId={exPorId} onExcluir={excluirHistorico} pedirConfirmacao={pedirConfirmacao} />}
+      </div>
+
+      {modal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.75)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          onClick={() => setModal(null)}>
+          <div style={{ ...S.card, width: "100%", maxWidth: 340, marginBottom: 0, borderColor: "#33363E" }}
+            onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 15, lineHeight: 1.6, marginBottom: 16 }}>{modal.msg}</div>
+            <div style={{ display: "flex", gap: 10 }}>
+              {modal.onSim ? (
+                <React.Fragment>
+                  <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => setModal(null)}>Cancelar</button>
+                  <button style={{ ...S.btn, flex: 1, background: "#FF453A", color: "#FFFFFF" }}
+                    onClick={() => { const f = modal.onSim; setModal(null); f(); }}>Confirmar</button>
+                </React.Fragment>
+              ) : (
+                <button style={{ ...S.btn, flex: 1 }} onClick={() => setModal(null)}>OK</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sessao && aba !== "sessao" && (
+        <div style={{ position: "fixed", bottom: 68, left: 12, right: 12, zIndex: 15 }}>
+          <button onClick={() => setAba("sessao")}
+            style={{ ...S.btn, boxShadow: "0 4px 16px rgba(0,0,0,0.5)", border: "2px solid #0E0F12" }}>
+            ▶ Continuar treino — {sessao.nome}
+          </button>
+        </div>
+      )}
+
+      {aba !== "sessao" && aba !== "editarTreino" && aba !== "novoExercicio" && (
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#141519", borderTop: "1px solid #23262D", display: "flex", padding: "8px 0 14px", zIndex: 10 }}>
+          {abas.map((a) => (
+            <button key={a.id} onClick={() => { setAba(a.id); setGrupoAberto(null); setExercicioAberto(null); }}
+              style={{ flex: 1, background: "none", border: "none", cursor: "pointer", color: aba === a.id ? "#FFD60A" : "#8A8F98", fontWeight: aba === a.id ? 900 : 600 }}>
+              <div style={{ fontSize: 18 }}>{a.icone}</div>
+              <div style={{ fontSize: 11, marginTop: 2 }}>{a.nome}</div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<TreinoLivre />);
+</script>
+</body>
+</html>

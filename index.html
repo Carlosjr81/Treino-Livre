@@ -27,6 +27,9 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) { memoria[k] = v; } },
 };
 const STORAGE_KEY = "treinolivre:v1";
+const LINK_APP = "https://carlosjr81.github.io/Treino-Livre/";
+// Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
+const NAVEGADOR_INAPP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|; wv\)/i.test(navigator.userAgent || "");
 
 // ---------------- SOM (Web Audio) ----------------
 let audioCtx = null;
@@ -484,10 +487,22 @@ function Resumo({ num, txt }) {
   );
 }
 
-function TelaInicio({ treinos, historico, totalEx, onTreinar, onNovaFicha }) {
+function TelaInicio({ treinos, historico, totalEx, onTreinar, onNovaFicha, onCopiarLink, onExportar, onImportar }) {
   const ultima = historico[0];
   return (
     <div style={{ padding: "0 18px" }}>
+      {NAVEGADOR_INAPP && (
+        <div style={{ ...S.card, borderColor: "#FF453A", background: "#2A1512" }}>
+          <div style={{ ...S.label, color: "#FF453A" }}>⚠ Atenção: seus dados podem não ficar salvos aqui</div>
+          <div style={{ fontSize: 14, lineHeight: 1.6, margin: "8px 0 12px" }}>
+            Você está no navegador interno do Instagram/WhatsApp, que apaga os dados salvos.
+            Para não perder seus treinos, abra o app no <b>Chrome</b>: toque nos <b>⋮</b> (ou <b>···</b>) no
+            canto da tela e escolha <b>"Abrir no navegador externo"</b>.
+          </div>
+          <button style={S.btnGhost} onClick={onCopiarLink}>📋 Copiar link do app</button>
+        </div>
+      )}
+
       <div style={{ ...S.card, borderColor: "#FFD60A44" }}>
         <div style={S.label}>Começar agora</div>
         <div style={{ fontSize: 18, fontWeight: 800, margin: "6px 0 12px" }}>
@@ -520,6 +535,18 @@ function TelaInicio({ treinos, historico, totalEx, onTreinar, onNovaFicha }) {
           </div>
         </div>
       )}
+
+      <div style={S.card}>
+        <div style={S.label}>Seus dados (backup)</div>
+        <div style={{ fontSize: 13, color: "#8A8F98", lineHeight: 1.6, margin: "8px 0 12px" }}>
+          Seus treinos ficam salvos neste aparelho e navegador. Exporte um backup de vez em quando
+          para garantir — dá até pra colar numa conversa sua no WhatsApp e restaurar quando quiser.
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button style={{ ...S.btnGhost, flex: 1 }} onClick={onExportar}>⬆ Exportar dados</button>
+          <button style={{ ...S.btnGhost, flex: 1 }} onClick={onImportar}>⬇ Importar dados</button>
+        </div>
+      </div>
 
       <div style={{ ...S.card, borderStyle: "dashed" }}>
         <div style={S.label}>Créditos</div>
@@ -1144,8 +1171,48 @@ function TreinoLivre() {
   const [editandoTreino, setEditandoTreino] = useState(null);
   const [sessao, setSessao] = useState(null);
   const [modal, setModal] = useState(null);
+  const importRef = useRef("");
   const pedirConfirmacao = (msg, onSim) => setModal({ msg, onSim });
   const avisar = (msg) => setModal({ msg });
+
+  const copiarLink = async () => {
+    try {
+      await navigator.clipboard.writeText(LINK_APP);
+      avisar("Link copiado! Abra o Chrome, cole na barra de endereço e salve o app na tela inicial.");
+    } catch (e) {
+      avisar("Link do app: " + LINK_APP);
+    }
+  };
+
+  const exportarDados = () => {
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, seedV3: true });
+    setModal({
+      msg: "Backup dos seus dados. Toque em Copiar e guarde em local seguro (ex.: cole numa conversa sua no WhatsApp). Para restaurar, use Importar dados.",
+      texto: dados,
+    });
+  };
+
+  const importarDados = () => {
+    importRef.current = "";
+    setModal({
+      msg: "Cole abaixo o código do backup e toque em Confirmar. Isso substitui os dados atuais deste aparelho.",
+      importar: true,
+      onSim: () => {
+        try {
+          const d = JSON.parse(importRef.current);
+          if (!d || (!d.treinos && !d.historico && !d.customEx)) throw new Error("vazio");
+          setTreinos(d.treinos || []);
+          setHistorico(d.historico || []);
+          setCustomEx(d.customEx || []);
+          if (d.descanso) setDescanso(d.descanso);
+          if (d.som !== undefined) setSom(d.som);
+          setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 100);
+        } catch (e) {
+          setTimeout(() => avisar("Não consegui ler esse código. Confira se copiou o backup completo e tente de novo."), 100);
+        }
+      },
+    });
+  };
 
   const todos = [...EXERCICIOS, ...customEx];
   const exPorId = (id) => todos.find((e) => e.id === id);
@@ -1265,6 +1332,9 @@ function TreinoLivre() {
         {aba === "inicio" && (
           <TelaInicio treinos={treinos} historico={historico} totalEx={todos.length}
             onTreinar={iniciarSessao}
+            onCopiarLink={copiarLink}
+            onExportar={exportarDados}
+            onImportar={importarDados}
             onNovaFicha={() => { setEditandoTreino({ id: String(Date.now()), nome: "", itens: [] }); setAba("editarTreino"); }} />
         )}
         {aba === "exercicios" && (
@@ -1308,6 +1378,23 @@ function TreinoLivre() {
           <div style={{ ...S.card, width: "100%", maxWidth: 340, marginBottom: 0, borderColor: "#33363E" }}
             onClick={(e) => e.stopPropagation()}>
             <div style={{ fontSize: 15, lineHeight: 1.6, marginBottom: 16 }}>{modal.msg}</div>
+            {modal.texto && (
+              <React.Fragment>
+                <textarea readOnly value={modal.texto} onFocus={(e) => e.target.select()}
+                  style={{ ...S.input, minHeight: 130, fontSize: 11, marginBottom: 10, fontFamily: "monospace" }} />
+                <button style={{ ...S.btnGhost, marginBottom: 12 }}
+                  onClick={async (e) => {
+                    try { await navigator.clipboard.writeText(modal.texto); e.target.textContent = "✓ Copiado!"; } catch (err) {}
+                  }}>
+                  📋 Copiar
+                </button>
+              </React.Fragment>
+            )}
+            {modal.importar && (
+              <textarea placeholder="Cole o código do backup aqui..."
+                onChange={(e) => { importRef.current = e.target.value; }}
+                style={{ ...S.input, minHeight: 130, fontSize: 11, marginBottom: 12, fontFamily: "monospace" }} />
+            )}
             <div style={{ display: "flex", gap: 10 }}>
               {modal.onSim ? (
                 <React.Fragment>
@@ -1346,6 +1433,13 @@ function TreinoLivre() {
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<TreinoLivre />);
+
+// Modo offline: depois da primeira visita, o app abre mesmo sem internet
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
 </script>
 </body>
 </html>

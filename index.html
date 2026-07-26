@@ -31,6 +31,125 @@ const LINK_APP = "https://carlosjr81.github.io/Treino-Livre/";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 const NAVEGADOR_INAPP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|; wv\)/i.test(navigator.userAgent || "");
 
+// Registra eventos anônimos de uso (apenas contagem, sem dados pessoais)
+function registrarEvento(nome) {
+  try {
+    if (window.goatcounter && window.goatcounter.count) {
+      window.goatcounter.count({ path: nome, title: nome, event: true });
+    }
+  } catch (e) {}
+}
+
+// ---------- GAMIFICAÇÃO ----------
+function diaStr(x) { const dd = new Date(x); return dd.getFullYear() + "-" + (dd.getMonth() + 1) + "-" + dd.getDate(); }
+function calcularEstatisticas(historico) {
+  const dias = {};
+  let volumeTotal = 0;
+  historico.forEach((h) => {
+    dias[diaStr(h.data)] = true;
+    (h.itens || []).forEach((it) => (it.series || []).forEach((s) => {
+      volumeTotal += (parseFloat(s.peso) || 0) * (parseInt(s.reps) || 0);
+    }));
+  });
+  const um = 86400000;
+  let streak = 0;
+  let cursor = new Date();
+  if (!dias[diaStr(cursor)]) cursor = new Date(cursor.getTime() - um);
+  while (dias[diaStr(cursor)]) { streak++; cursor = new Date(cursor.getTime() - um); }
+  const agora = Date.now();
+  let treinosSemana = 0, volumeSemana = 0;
+  historico.forEach((h) => {
+    if (agora - new Date(h.data).getTime() <= 7 * um) {
+      treinosSemana++;
+      (h.itens || []).forEach((it) => (it.series || []).forEach((s) => {
+        volumeSemana += (parseFloat(s.peso) || 0) * (parseInt(s.reps) || 0);
+      }));
+    }
+  });
+  return { total: historico.length, streak, volumeTotal: Math.round(volumeTotal), treinosSemana, volumeSemana: Math.round(volumeSemana) };
+}
+const CONQUISTAS = [
+  { id: "t1", nome: "Primeiro treino", icone: "🥇", cond: (e) => e.total >= 1 },
+  { id: "t5", nome: "5 treinos", icone: "🔥", cond: (e) => e.total >= 5 },
+  { id: "t10", nome: "10 treinos", icone: "💪", cond: (e) => e.total >= 10 },
+  { id: "t25", nome: "25 treinos", icone: "🏅", cond: (e) => e.total >= 25 },
+  { id: "t50", nome: "50 treinos", icone: "🏆", cond: (e) => e.total >= 50 },
+  { id: "t100", nome: "100 treinos", icone: "👑", cond: (e) => e.total >= 100 },
+  { id: "s3", nome: "3 dias seguidos", icone: "⚡", cond: (e) => e.streak >= 3 },
+  { id: "s7", nome: "7 dias seguidos", icone: "🚀", cond: (e) => e.streak >= 7 },
+  { id: "v10", nome: "10 toneladas", icone: "🐘", cond: (e) => e.volumeTotal >= 10000 },
+  { id: "v50", nome: "50 toneladas", icone: "🦖", cond: (e) => e.volumeTotal >= 50000 },
+];
+
+// ---------- IMAGEM PARA STORY (gerada no aparelho) ----------
+function gerarImagemStory(linhas) {
+  const cv = document.createElement("canvas");
+  cv.width = 1080; cv.height = 1920;
+  const c = cv.getContext("2d");
+  c.fillStyle = "#0E0F12"; c.fillRect(0, 0, 1080, 1920);
+  const faixa = (y) => {
+    c.fillStyle = "#FFD60A";
+    for (let x = 40; x < 1000; x += 52) {
+      c.beginPath(); c.moveTo(x, y + 22); c.lineTo(x + 22, y + 22); c.lineTo(x + 44, y); c.lineTo(x + 22, y); c.closePath(); c.fill();
+    }
+  };
+  c.textAlign = "center";
+  c.fillStyle = "#F2F0EB"; c.font = "900 62px sans-serif"; c.fillText("TREINO LIVRE", 540, 130);
+  faixa(165);
+  let y = 380;
+  linhas.forEach((l) => {
+    c.fillStyle = l.cor || "#F2F0EB";
+    c.font = "bold " + (l.tam || 56) + "px sans-serif";
+    c.fillText(l.t, 540, y);
+    y += (l.tam || 56) + (l.esp || 44);
+  });
+  faixa(1680);
+  c.fillStyle = "#FFD60A"; c.font = "bold 42px sans-serif"; c.fillText("carlosjr81.github.io/Treino-Livre", 540, 1780);
+  c.fillStyle = "#8A8F98"; c.font = "30px sans-serif"; c.fillText("App gratuito · por Carlos Jr · @carlos.jr.81", 540, 1840);
+  return new Promise((res) => cv.toBlob(res, "image/png"));
+}
+async function compartilharImagem(blob, texto, avisarFn) {
+  try {
+    const file = new File([blob], "treino-livre.png", { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], text: texto });
+      return;
+    }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "treino-livre.png";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  if (avisarFn) avisarFn("Imagem salva na galeria/downloads! Agora é só postar no story. 💪");
+}
+
+// ---------- MODELOS DO ASSISTENTE DE TREINO ----------
+const SPLITS = {
+  2: [
+    ["Treino A - Corpo superior", ["supino-maquina", "puxada-frente", "desenvolvimento-maquina", "remada-baixa", "rosca-alternada", "triceps-polia", "crucifixo-inverso", "abdominal-supra"]],
+    ["Treino B - Corpo inferior", ["leg-press", "cadeira-extensora", "mesa-flexora", "elevacao-pelvica", "abducao", "panturrilha", "agachamento-goblet", "prancha"]],
+  ],
+  3: [
+    ["Treino A - Peito e Tríceps", ["supino-maquina", "supino-inclinado", "peck-deck", "crossover", "triceps-polia", "triceps-corda", "triceps-frances", "abdominal-supra"]],
+    ["Treino B - Costas e Bíceps", ["puxada-frente", "remada-baixa", "remada-unilateral", "pulldown", "rosca-direta", "rosca-martelo", "rosca-alternada", "prancha"]],
+    ["Treino C - Pernas e Ombros", ["leg-press", "cadeira-extensora", "mesa-flexora", "panturrilha", "desenvolvimento", "elevacao-lateral", "abducao", "elevacao-pelvica"]],
+  ],
+  4: [
+    ["Treino A - Peito e Tríceps", ["supino-reto", "supino-inclinado", "peck-deck", "crossover", "triceps-polia", "triceps-corda", "supino-fechado", "triceps-frances"]],
+    ["Treino B - Costas e Bíceps", ["puxada-frente", "remada-curvada", "remada-baixa", "pulldown", "rosca-direta", "rosca-martelo", "rosca-scott", "rosca-concentrada"]],
+    ["Treino C - Pernas completas", ["agachamento", "leg-press", "cadeira-extensora", "mesa-flexora", "stiff", "cadeira-adutora", "panturrilha", "panturrilha-sentado"]],
+    ["Treino D - Ombros e Abdômen", ["desenvolvimento", "elevacao-lateral", "elevacao-frontal", "crucifixo-inverso", "encolhimento", "abdominal-supra", "prancha", "abdominal-obliquo"]],
+  ],
+  5: [
+    ["Treino A - Peito", ["supino-reto", "supino-inclinado", "crucifixo", "peck-deck", "crossover", "flexao", "supino-maquina", "paralelas-peito"]],
+    ["Treino B - Costas", ["puxada-frente", "remada-curvada", "remada-baixa", "remada-unilateral", "pulldown", "barra-fixa", "puxada-triangulo", "hiperextensao"]],
+    ["Treino C - Pernas", ["agachamento", "leg-press", "cadeira-extensora", "mesa-flexora", "stiff", "cadeira-adutora", "panturrilha", "agachamento-bulgaro"]],
+    ["Treino D - Ombros", ["desenvolvimento", "desenvolvimento-arnold", "elevacao-lateral", "elevacao-frontal", "crucifixo-inverso", "remada-alta", "face-pull", "encolhimento"]],
+    ["Treino E - Braços e Abdômen", ["rosca-direta", "rosca-martelo", "rosca-scott", "triceps-polia", "triceps-corda", "triceps-frances", "abdominal-supra", "prancha"]],
+  ],
+};
+
 // ---------------- SOM (Web Audio) ----------------
 let audioCtx = null;
 function beep(freq, dur, vol) {
@@ -157,6 +276,40 @@ const EXERCICIOS = [
   { id: "bom-dia", grupo: "gluteos", nome: "Bom dia", en: "good morning", equip: "Barra", musc: { p: ["gluteos", "posteriores"], s: ["lombar"] }, passos: ["Apoie a barra no trapézio como no agachamento.", "Incline o tronco à frente empurrando o quadril para trás.", "Suba contraindo glúteos e lombar."], dica: "Comece com carga bem leve para dominar a técnica." },
   { id: "coice-polia", grupo: "gluteos", nome: "Coice na polia (kickback)", en: "glute kickback", equip: "Polia baixa com caneleira", musc: { p: ["gluteos"], s: ["posteriores"] }, passos: ["Prenda a caneleira no tornozelo e apoie as mãos na máquina.", "Estenda a perna para trás contraindo o glúteo.", "Volte controlado sem apoiar o pé."], dica: "Movimento curto e forte; não balance a lombar." },
   { id: "abducao", grupo: "gluteos", nome: "Cadeira abdutora", en: "hip abduction", equip: "Máquina", musc: { p: ["gluteos"], s: [] }, passos: ["Sente com as pernas apoiadas nos suportes.", "Abra as pernas contra a resistência.", "Feche devagar sem bater o peso."], dica: "Inclinar o tronco à frente aumenta a ativação do glúteo médio." },
+
+  // ---- BIBLIOTECA AMPLIADA: clássicos da musculação ----
+  { id: "supino-inclinado-barra", grupo: "peito", nome: "Supino inclinado com barra", en: "incline barbell bench press", equip: "Barra e banco inclinado", musc: { p: ["peito"], s: ["ombros", "triceps"] }, passos: ["Deite no banco inclinado (30-45°) com a barra alinhada à parte alta do peito.", "Desça controlado até tocar levemente o peitoral superior.", "Empurre de volta sem travar os cotovelos."], dica: "Clássico para a porção superior do peito; pegada um pouco mais aberta que os ombros." },
+  { id: "crossover-baixo", grupo: "peito", nome: "Crossover baixo (polia baixa)", en: "low cable fly", equip: "Polia dupla baixa", musc: { p: ["peito"], s: ["ombros"] }, passos: ["Segure as manoplas com as polias na posição baixa.", "Eleve os cabos à frente em arco até a altura do peito.", "Retorne controlado."], dica: "O arco de baixo para cima enfatiza a porção superior do peitoral." },
+  { id: "flexao-declinada", grupo: "peito", nome: "Flexão com pés elevados", en: "decline push up", equip: "Peso corporal e banco", musc: { p: ["peito"], s: ["ombros", "triceps", "abdomen"] }, passos: ["Apoie os pés no banco e as mãos no chão.", "Desça o peito em direção ao chão com o corpo reto.", "Empurre até estender os braços."], dica: "Pés elevados aumentam a dificuldade e o foco na parte superior do peito." },
+  { id: "pullover-halter", grupo: "peito", nome: "Pullover com halter", en: "dumbbell pullover", equip: "Halter e banco", musc: { p: ["peito"], s: ["dorsal", "triceps"] }, passos: ["Deite no banco segurando um halter acima do peito com as duas mãos.", "Desça o peso em arco por trás da cabeça, alongando o tronco.", "Retorne pelo mesmo arco até acima do peito."], dica: "Movimento clássico que trabalha peito e dorsal ao mesmo tempo." },
+
+  { id: "remada-maquina", grupo: "costas", nome: "Remada na máquina", en: "seated row machine", equip: "Máquina", musc: { p: ["dorsal"], s: ["biceps", "trapezio"] }, passos: ["Ajuste o banco com o peito apoiado no suporte.", "Puxe as manoplas levando os cotovelos para trás.", "Retorne controlado alongando as costas."], dica: "O apoio de peito elimina o impulso: ótima para aprender a puxar." },
+  { id: "remada-australiana", grupo: "costas", nome: "Remada australiana (invertida)", en: "inverted row", equip: "Barra baixa ou Smith", musc: { p: ["dorsal"], s: ["biceps", "trapezio", "abdomen"] }, passos: ["Deite sob a barra e segure-a com o corpo reto e calcanhares no chão.", "Puxe o peito até a barra.", "Desça controlado mantendo o corpo alinhado."], dica: "Quanto mais horizontal o corpo, mais difícil fica." },
+  { id: "puxada-unilateral", grupo: "costas", nome: "Puxada unilateral na polia", en: "single arm lat pulldown", equip: "Polia alta", musc: { p: ["dorsal"], s: ["biceps"] }, passos: ["Segure uma manopla na polia alta com um braço.", "Puxe o cotovelo em direção ao quadril.", "Suba alongando bem antes da próxima repetição."], dica: "Trabalhar um lado por vez ajuda a corrigir assimetrias." },
+
+  { id: "agachamento-frontal", grupo: "pernas", nome: "Agachamento frontal", en: "front squat", equip: "Barra", musc: { p: ["quadriceps"], s: ["gluteos", "abdomen", "lombar"] }, passos: ["Apoie a barra na frente dos ombros com os cotovelos altos.", "Agache mantendo o tronco o mais vertical possível.", "Suba empurrando o chão."], dica: "A barra na frente joga o foco para o quadríceps e exige core forte." },
+  { id: "passada", grupo: "pernas", nome: "Passada caminhando", en: "walking lunge", equip: "Halteres", musc: { p: ["quadriceps", "gluteos"], s: ["posteriores", "abdomen"] }, passos: ["Dê um passo à frente e desça até o joelho de trás quase tocar o chão.", "Empurre com a perna da frente e traga a de trás para o próximo passo.", "Alterne as pernas caminhando."], dica: "Passos mais longos ativam mais o glúteo." },
+  { id: "subida-banco", grupo: "pernas", nome: "Subida no banco (step-up)", en: "step up", equip: "Banco e halteres", musc: { p: ["quadriceps", "gluteos"], s: ["posteriores"] }, passos: ["Apoie um pé inteiro no banco.", "Suba empurrando com a perna de cima, sem impulsionar com a de baixo.", "Desça controlado e repita."], dica: "Todo o trabalho vem da perna que está no banco." },
+  { id: "terra-sumo", grupo: "pernas", nome: "Levantamento terra sumô", en: "sumo deadlift", equip: "Barra", musc: { p: ["gluteos", "quadriceps", "adutores"], s: ["lombar", "trapezio", "antebraco"] }, passos: ["Pés bem afastados com pontas para fora e pegada por dentro dos joelhos.", "Suba estendendo quadril e joelhos com o peito alto.", "Desça controlado mantendo a barra próxima ao corpo."], dica: "A postura mais ereta alivia a lombar em relação ao terra convencional." },
+  { id: "agachamento-parede", grupo: "pernas", nome: "Agachamento na parede (isometria)", en: "wall sit", equip: "Peso corporal", musc: { p: ["quadriceps"], s: ["gluteos"] }, passos: ["Apoie as costas na parede e desça até as coxas ficarem paralelas ao chão.", "Mantenha a posição pelo tempo definido.", "Suba deslizando pela parede."], dica: "Excelente para iniciantes criarem resistência de pernas." },
+
+  { id: "elevacao-lateral-cabo", grupo: "ombros", nome: "Elevação lateral na polia", en: "cable lateral raise", equip: "Polia baixa", musc: { p: ["ombros"], s: ["trapezio"] }, passos: ["Fique de lado para a polia baixa e segure a manopla com a mão de fora.", "Eleve o braço até a linha do ombro.", "Desça resistindo à tração do cabo."], dica: "A polia mantém tensão desde o início do movimento." },
+
+  { id: "rosca-21", grupo: "biceps", nome: "Rosca 21", en: "21s bicep curl", equip: "Barra", musc: { p: ["biceps"], s: ["antebraco"] }, passos: ["Faça 7 repetições da posição estendida até a metade.", "Faça 7 repetições da metade até o topo.", "Finalize com 7 repetições completas."], dica: "Técnica clássica de intensidade: use menos carga que na rosca direta." },
+  { id: "rosca-inclinada", grupo: "biceps", nome: "Rosca no banco inclinado", en: "incline dumbbell curl", equip: "Halteres e banco inclinado", musc: { p: ["biceps"], s: [] }, passos: ["Sente no banco inclinado com os braços pendurados atrás da linha do tronco.", "Flexione os cotovelos sem trazê-los à frente.", "Desça alongando totalmente o bíceps."], dica: "O alongamento extra na descida é o diferencial deste exercício." },
+  { id: "rosca-punho", grupo: "biceps", nome: "Rosca de punho (antebraço)", en: "wrist curl", equip: "Barra ou halteres", musc: { p: ["antebraco"], s: [] }, passos: ["Apoie os antebraços nas coxas com as palmas para cima e os punhos livres.", "Flexione os punhos elevando o peso.", "Desça deixando o peso rolar até os dedos."], dica: "Fortalece a pegada: ajuda em todos os exercícios de puxar." },
+
+  { id: "triceps-unilateral", grupo: "triceps", nome: "Tríceps unilateral na polia", en: "single arm tricep pushdown", equip: "Polia alta", musc: { p: ["triceps"], s: [] }, passos: ["Segure a manopla com uma mão e o cotovelo colado ao tronco.", "Estenda o braço até embaixo.", "Retorne controlado sem mover o cotovelo."], dica: "Um braço por vez para corrigir diferenças de força." },
+  { id: "triceps-testa-halteres", grupo: "triceps", nome: "Tríceps testa com halteres", en: "dumbbell skull crusher", equip: "Halteres e banco", musc: { p: ["triceps"], s: [] }, passos: ["Deitado, segure um halter em cada mão acima do peito com pegada neutra.", "Flexione os cotovelos descendo os halteres ao lado da cabeça.", "Estenda de volta ao topo."], dica: "A pegada neutra dos halteres é mais confortável para os cotovelos que a barra." },
+
+  { id: "giro-russo", grupo: "abdomen", nome: "Giro russo", en: "russian twist", equip: "Anilha ou halter", musc: { p: ["obliquos"], s: ["abdomen"] }, passos: ["Sente com o tronco levemente inclinado para trás e pés elevados.", "Gire o tronco levando o peso de um lado ao outro.", "Mantenha o abdômen contraído o tempo todo."], dica: "Gire o tronco inteiro, não apenas os braços." },
+  { id: "abdominal-roda", grupo: "abdomen", nome: "Rollout (roda abdominal)", en: "ab wheel rollout", equip: "Roda abdominal ou barra", musc: { p: ["abdomen"], s: ["obliquos", "lombar", "ombros"] }, passos: ["Ajoelhe segurando a roda no chão à frente dos joelhos.", "Role à frente estendendo o corpo sem deixar o quadril cair.", "Volte contraindo o abdômen."], dica: "Vá só até onde consegue manter a lombar neutra." },
+  { id: "abdominal-declinado", grupo: "abdomen", nome: "Abdominal no banco declinado", en: "decline sit up", equip: "Banco declinado", musc: { p: ["abdomen"], s: ["obliquos"] }, passos: ["Prenda os pés no banco declinado.", "Suba o tronco enrolando a coluna.", "Desça controlado sem relaxar no final."], dica: "Segure uma anilha no peito para progredir na carga." },
+  { id: "escalador", grupo: "abdomen", nome: "Escalador (mountain climber)", en: "mountain climber", equip: "Peso corporal", musc: { p: ["abdomen"], s: ["obliquos", "ombros", "quadriceps"] }, passos: ["Em posição de prancha alta, traga um joelho em direção ao peito.", "Alterne as pernas em ritmo constante.", "Mantenha o quadril baixo e o core firme."], dica: "Também eleva a frequência cardíaca: bom para finalizar o treino." },
+
+  { id: "coice-solo", grupo: "gluteos", nome: "Coice no solo (4 apoios)", en: "quadruped hip extension", equip: "Peso corporal ou caneleira", musc: { p: ["gluteos"], s: ["posteriores"] }, passos: ["Em quatro apoios, mantenha o joelho flexionado a 90°.", "Eleve a perna empurrando o calcanhar para o teto.", "Desça sem apoiar o joelho no chão."], dica: "Contraia o glúteo no topo por 1 segundo em cada repetição." },
+  { id: "ponte-unilateral", grupo: "gluteos", nome: "Elevação pélvica unilateral", en: "single leg hip thrust", equip: "Peso corporal ou banco", musc: { p: ["gluteos"], s: ["posteriores", "abdomen"] }, passos: ["Na posição de elevação pélvica, estenda uma perna à frente.", "Eleve o quadril com a perna de apoio.", "Desça controlado e complete a série antes de trocar."], dica: "Versão avançada: dobra o estímulo em cada glúteo." },
+  { id: "abducao-solo", grupo: "gluteos", nome: "Abdução deitada (solo)", en: "side lying leg raise", equip: "Peso corporal ou caneleira", musc: { p: ["gluteos"], s: [] }, passos: ["Deite de lado com o corpo alinhado.", "Eleve a perna de cima estendida até ~45°.", "Desça controlado sem apoiar totalmente."], dica: "Foca o glúteo médio: importante para estabilidade do quadril." },
 ];
 
 // ---------------- FICHAS PADRÃO (rotina semanal que já vem no app) ----------------
@@ -487,8 +640,11 @@ function Resumo({ num, txt }) {
   );
 }
 
-function TelaInicio({ treinos, historico, totalEx, onTreinar, onNovaFicha, onCopiarLink, onExportar, onImportar }) {
+function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriarPrograma, onAssistente, onStoryProgresso, onDesafiar, onCopiarLink, onExportar, onImportar }) {
   const ultima = historico[0];
+  const est = calcularEstatisticas(historico);
+  const ganhas = CONQUISTAS.filter((c) => c.cond(est));
+  const temFichas = treinos.length > 0;
   return (
     <div style={{ padding: "0 18px" }}>
       {NAVEGADOR_INAPP && (
@@ -506,15 +662,57 @@ function TelaInicio({ treinos, historico, totalEx, onTreinar, onNovaFicha, onCop
       <div style={{ ...S.card, borderColor: "#FFD60A44" }}>
         <div style={S.label}>Começar agora</div>
         <div style={{ fontSize: 18, fontWeight: 800, margin: "6px 0 12px" }}>
-          {treinos.length ? "Escolha sua ficha e bora treinar" : "Monte sua primeira ficha de treino"}
+          {temFichas ? "Escolha sua ficha e bora treinar" : "Vamos montar seu primeiro treino"}
         </div>
-        {treinos.length ? (
-          treinos.map((t) => (
-            <button key={t.id} style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}>▶ {t.nome}</button>
-          ))
+        {temFichas ? (
+          programas.map((p) => {
+            const fichas = treinos.filter((t) => t.programaId === p.id);
+            if (!fichas.length) return null;
+            return (
+              <div key={p.id} style={{ marginBottom: 8 }}>
+                <div style={{ ...S.label, margin: "8px 0 8px" }}>📋 {p.nome}</div>
+                {fichas.map((t) => (
+                  <button key={t.id} style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}>▶ {t.nome}</button>
+                ))}
+              </div>
+            );
+          })
         ) : (
-          <button style={S.btn} onClick={onNovaFicha}>+ Criar ficha de treino</button>
+          <React.Fragment>
+            <button style={{ ...S.btn, marginBottom: 8 }} onClick={onAssistente}>🧭 Montar treino pra mim</button>
+            <button style={S.btnGhost} onClick={onCriarPrograma}>+ Criar treino do zero</button>
+          </React.Fragment>
         )}
+        {temFichas && (
+          <button style={{ ...S.btnGhost, marginTop: 4, color: "#FFD60A", borderColor: "#FFD60A66" }} onClick={onAssistente}>
+            🧭 Montar treino pra mim (assistente)
+          </button>
+        )}
+      </div>
+
+      <div style={{ ...S.card, borderColor: "#FF453A44" }}>
+        <div style={S.label}>Seu progresso</div>
+        <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
+          <Resumo num={"🔥 " + est.streak} txt="dias seguidos" />
+          <Resumo num={est.treinosSemana} txt="treinos na semana" />
+          <Resumo num={est.volumeSemana >= 1000 ? Math.round(est.volumeSemana / 1000) + "t" : est.volumeSemana + "kg"} txt="volume na semana" />
+        </div>
+        <div style={{ ...S.label, margin: "16px 0 8px" }}>Conquistas ({ganhas.length}/{CONQUISTAS.length})</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {CONQUISTAS.map((c) => {
+            const ok = c.cond(est);
+            return (
+              <div key={c.id}
+                style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid " + (ok ? "#FFD60A66" : "#23262D"), background: ok ? "#FFD60A18" : "transparent", fontSize: 12, color: ok ? "#F2F0EB" : "#5A5F68", fontWeight: 700 }}>
+                {c.icone} {c.nome}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button style={{ ...S.btnGhost, flex: 1, color: "#FFD60A", borderColor: "#FFD60A66" }} onClick={onStoryProgresso}>📸 Story</button>
+          <button style={{ ...S.btnGhost, flex: 1 }} onClick={onDesafiar}>⚔️ Desafiar amigo</button>
+        </div>
       </div>
 
       <div style={S.card}>
@@ -817,30 +1015,114 @@ function FormNovoExercicio({ grupoSugerido, onSalvar, onCancelar, avisar }) {
   );
 }
 
-function TelaTreinos({ treinos, exPorId, onTreinar, onNova, onEditar, onExcluir, onCompartilhar, pedirConfirmacao }) {
+function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, onTreinar, onNovaFicha, onEditar, onExcluirFicha, onCompartilharFicha, onNovoPrograma, onRenomearPrograma, onExcluirPrograma, onCompartilharPrograma, onAssistente, pedirConfirmacao }) {
+  // Dentro de um treino: lista de fichas
+  if (progAberto) {
+    const prog = programas.find((p) => p.id === progAberto);
+    if (!prog) { setProgAberto(null); return null; }
+    const fichas = treinos.filter((t) => t.programaId === prog.id);
+    return (
+      <div style={{ padding: "0 18px" }}>
+        <button style={S.voltar} onClick={() => setProgAberto(null)}>← Todos os treinos</button>
+        <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 12 }}>{prog.nome}</div>
+        <button style={{ ...S.btn, marginBottom: 14 }} onClick={() => onNovaFicha(prog.id)}>+ Nova ficha neste treino</button>
+        {fichas.length === 0 && (
+          <div style={{ ...S.card, textAlign: "center", color: "#8A8F98" }}>
+            Nenhuma ficha aqui ainda. Crie a primeira (ex.: Treino A - Peito).
+          </div>
+        )}
+        {fichas.map((t) => (
+          <div key={t.id} style={S.card}>
+            <div style={{ fontWeight: 900, fontSize: 18 }}>{t.nome}</div>
+            <div style={{ color: "#8A8F98", fontSize: 13, margin: "4px 0 12px" }}>
+              {t.itens.map((it) => { const e = exPorId(it.exercicioId); return e ? e.nome : null; }).filter(Boolean).join(" · ") || "Sem exercícios"}
+            </div>
+            <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}>▶ Treinar</button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onEditar(t)}>Editar</button>
+              <button style={{ ...S.btnGhost, flex: 1, color: "#FFD60A", borderColor: "#FFD60A66" }} onClick={() => onCompartilharFicha(t)}>📤 Enviar</button>
+              <button style={{ ...S.btnGhost, flex: 1, color: "#F58E8E", borderColor: "#F58E8E55" }}
+                onClick={() => pedirConfirmacao("Excluir esta ficha?", () => onExcluirFicha(t.id))}>Excluir</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Lista de treinos (programas)
   return (
     <div style={{ padding: "0 18px" }}>
-      <button style={{ ...S.btn, marginBottom: 14 }} onClick={onNova}>+ Nova ficha de treino</button>
-      {treinos.length === 0 && (
+      <button style={{ ...S.btn, marginBottom: 10 }} onClick={onNovoPrograma}>+ Novo treino</button>
+      <button style={{ ...S.btnGhost, marginBottom: 14, color: "#FFD60A", borderColor: "#FFD60A66" }} onClick={onAssistente}>
+        🧭 Montar treino pra mim (assistente)
+      </button>
+      {programas.length === 0 && (
         <div style={{ ...S.card, textAlign: "center", color: "#8A8F98" }}>
-          Nenhuma ficha ainda. Crie a primeira e monte seu treino A/B/C.
+          Crie seu primeiro treino: ele agrupa suas fichas (ex.: "Treino Iniciante" com fichas A, B e C).
         </div>
       )}
-      {treinos.map((t) => (
-        <div key={t.id} style={S.card}>
-          <div style={{ fontWeight: 900, fontSize: 18 }}>{t.nome}</div>
-          <div style={{ color: "#8A8F98", fontSize: 13, margin: "4px 0 12px" }}>
-            {t.itens.map((it) => { const e = exPorId(it.exercicioId); return e ? e.nome : null; }).filter(Boolean).join(" · ") || "Sem exercícios"}
+      {programas.map((p) => {
+        const fichas = treinos.filter((t) => t.programaId === p.id);
+        return (
+          <div key={p.id} style={S.card}>
+            <div style={{ fontWeight: 900, fontSize: 19 }}>📋 {p.nome}</div>
+            <div style={{ color: "#8A8F98", fontSize: 13, margin: "4px 0 12px" }}>
+              {fichas.length} ficha(s){fichas.length ? ": " + fichas.map((f) => f.nome).join(" · ") : ""}
+            </div>
+            <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => setProgAberto(p.id)}>Abrir fichas</button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onRenomearPrograma(p)}>Renomear</button>
+              <button style={{ ...S.btnGhost, flex: 1, color: "#FFD60A", borderColor: "#FFD60A66" }} onClick={() => onCompartilharPrograma(p)}>📤 Enviar</button>
+              <button style={{ ...S.btnGhost, flex: 1, color: "#F58E8E", borderColor: "#F58E8E55" }} onClick={() => onExcluirPrograma(p)}>Excluir</button>
+            </div>
           </div>
-          <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}>▶ Treinar</button>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onEditar(t)}>Editar</button>
-            <button style={{ ...S.btnGhost, flex: 1, color: "#FFD60A", borderColor: "#FFD60A66" }} onClick={() => onCompartilhar(t)}>📤 Enviar</button>
-            <button style={{ ...S.btnGhost, flex: 1, color: "#F58E8E", borderColor: "#F58E8E55" }}
-              onClick={() => pedirConfirmacao("Excluir esta ficha?", () => onExcluir(t.id))}>Excluir</button>
-          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TelaAssistente({ onGerar, onCancelar }) {
+  const [objetivo, setObjetivo] = useState("massa");
+  const [dias, setDias] = useState(3);
+  const [nivel, setNivel] = useState("iniciante");
+  const Chip = ({ ativo, onClick, children }) => (
+    <button onClick={onClick}
+      style={{ border: "1px solid", borderColor: ativo ? "#FFD60A" : "#33363E", background: ativo ? "#FFD60A22" : "transparent", color: ativo ? "#FFD60A" : "#8A8F98", borderRadius: 10, padding: "12px 10px", fontWeight: 800, fontSize: 14, cursor: "pointer", flex: 1 }}>
+      {children}
+    </button>
+  );
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <button style={S.voltar} onClick={onCancelar}>← Voltar</button>
+      <div style={S.card}>
+        <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 4 }}>🧭 Assistente de treino</div>
+        <div style={{ color: "#8A8F98", fontSize: 14, marginBottom: 18 }}>Responda 3 perguntas e eu monto seu treino completo, prontinho para editar.</div>
+
+        <div style={S.label}>1. Qual seu objetivo?</div>
+        <div style={{ display: "flex", gap: 8, margin: "8px 0 16px" }}>
+          <Chip ativo={objetivo === "massa"} onClick={() => setObjetivo("massa")}>💪 Músculo</Chip>
+          <Chip ativo={objetivo === "definir"} onClick={() => setObjetivo("definir")}>🔥 Definição</Chip>
+          <Chip ativo={objetivo === "forca"} onClick={() => setObjetivo("forca")}>🏋 Força</Chip>
         </div>
-      ))}
+
+        <div style={S.label}>2. Quantos dias por semana?</div>
+        <div style={{ display: "flex", gap: 8, margin: "8px 0 16px" }}>
+          {[2, 3, 4, 5].map((nd) => (
+            <Chip key={nd} ativo={dias === nd} onClick={() => setDias(nd)}>{nd}{nd === 5 ? "+" : ""}</Chip>
+          ))}
+        </div>
+
+        <div style={S.label}>3. Qual seu nível?</div>
+        <div style={{ display: "flex", gap: 8, margin: "8px 0 22px" }}>
+          <Chip ativo={nivel === "iniciante"} onClick={() => setNivel("iniciante")}>Iniciante</Chip>
+          <Chip ativo={nivel === "intermediario"} onClick={() => setNivel("intermediario")}>Interm.</Chip>
+          <Chip ativo={nivel === "avancado"} onClick={() => setNivel("avancado")}>Avançado</Chip>
+        </div>
+
+        <button style={S.btn} onClick={() => onGerar(objetivo, dias, nivel)}>⚡ Gerar meu treino</button>
+      </div>
     </div>
   );
 }
@@ -1163,6 +1445,8 @@ function TreinoLivre() {
   const [treinos, setTreinos] = useState([]);
   const [historico, setHistorico] = useState([]);
   const [customEx, setCustomEx] = useState([]);
+  const [programas, setProgramas] = useState([]);
+  const [progAberto, setProgAberto] = useState(null);
   const [descanso, setDescanso] = useState(90);
   const [som, setSom] = useState(true);
   const [carregado, setCarregado] = useState(false);
@@ -1186,7 +1470,7 @@ function TreinoLivre() {
   };
 
   const exportarDados = () => {
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, programas, seedV3: true });
     setModal({
       msg: "Backup dos seus dados. Toque em Copiar e guarde em local seguro (ex.: cole numa conversa sua no WhatsApp). Para restaurar, use Importar dados.",
       texto: dados,
@@ -1205,6 +1489,12 @@ function TreinoLivre() {
           setTreinos(d.treinos || []);
           setHistorico(d.historico || []);
           setCustomEx(d.customEx || []);
+          let pg2 = d.programas || [];
+          if (!pg2.length && (d.treinos || []).length) {
+            pg2 = [{ id: "prog-meus", nome: "Meus Treinos" }];
+            setTreinos((d.treinos || []).map((t) => ({ ...t, programaId: t.programaId || "prog-meus" })));
+          }
+          setProgramas(pg2);
           if (d.descanso) setDescanso(d.descanso);
           if (d.som !== undefined) setSom(d.som);
           setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 100);
@@ -1219,7 +1509,7 @@ function TreinoLivre() {
   const exPorId = (id) => todos.find((e) => e.id === id);
 
   useEffect(() => {
-    let tr = [], hi = [], ce = [], de = 90, so = true, seed = false;
+    let tr = [], hi = [], ce = [], de = 90, so = true, seed = false, pg = null;
     try {
       const raw = store.get(STORAGE_KEY);
       if (raw) {
@@ -1229,6 +1519,7 @@ function TreinoLivre() {
         ce = d.customEx || [];
         de = d.descanso || 90;
         so = d.som !== undefined ? d.som : true;
+        pg = d.programas || null;
         seed = !!d.seedV3;
       }
     } catch (e) {}
@@ -1237,20 +1528,60 @@ function TreinoLivre() {
       tr = tr.filter((t) => String(t.id).indexOf("padrao-") !== 0 && String(t.nome || "").trim().toLowerCase() !== "lucas koba");
       tr = [...FICHAS_PADRAO, ...tr];
     }
-    setTreinos(tr); setHistorico(hi); setCustomEx(ce); setDescanso(de); setSom(so);
+    // ---- Organização: "treinos" (programas) agrupam as fichas ----
+    if (!pg) pg = [];
+    if (tr.some((t) => String(t.id).indexOf("padrao-") === 0) && !pg.some((p) => p.id === "prog-avancado")) {
+      pg.unshift({ id: "prog-avancado", nome: "Treino Avançado" });
+    }
+    tr = tr.map((t) => {
+      if (t.programaId && pg.some((p) => p.id === t.programaId)) return t;
+      if (String(t.id).indexOf("padrao-") === 0) return { ...t, programaId: "prog-avancado" };
+      return { ...t, programaId: "prog-meus" };
+    });
+    if (tr.some((t) => t.programaId === "prog-meus") && !pg.some((p) => p.id === "prog-meus")) {
+      pg.push({ id: "prog-meus", nome: "Meus Treinos" });
+    }
+
+    setTreinos(tr); setHistorico(hi); setCustomEx(ce); setDescanso(de); setSom(so); setProgramas(pg);
     setCarregado(true);
 
-    // Se o app foi aberto por um link de ficha compartilhada, oferece para adicionar
+    // Se o app foi aberto por um link compartilhado (ficha, treino completo ou desafio)
     try {
-      const m = (window.location.hash || "").match(/#ficha=([^&]+)/);
-      if (m) {
-        const p = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+      const hash = window.location.hash || "";
+      const mF = hash.match(/#ficha=([^&]+)/);
+      const mP = hash.match(/#prog=([^&]+)/);
+      const mD = hash.match(/#desafio=([^&]+)/);
+      if (mF || mP || mD) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e2) {}
+      }
+      if (mF) {
+        const p = JSON.parse(decodeURIComponent(escape(atob(mF[1]))));
         if (p && p.n && p.i && p.i.length) {
           setModal({
             msg: 'Você recebeu a ficha de treino "' + p.n + '" com ' + p.i.length + " exercícios. Deseja adicionar às suas fichas?",
             positivo: true,
             onSim: () => aceitarFichaRecebida(p),
+          });
+        }
+      } else if (mP) {
+        const p = JSON.parse(decodeURIComponent(escape(atob(mP[1]))));
+        if (p && p.pn && p.fs && p.fs.length) {
+          setModal({
+            msg: 'Você recebeu o treino completo "' + p.pn + '" com ' + p.fs.length + " ficha(s). Deseja adicionar aos seus treinos?",
+            positivo: true,
+            onSim: () => aceitarProgramaRecebido(p),
+          });
+        }
+      } else if (mD) {
+        const p = JSON.parse(decodeURIComponent(escape(atob(mD[1]))));
+        if (p && p.nm) {
+          const eu = calcularEstatisticas(hi);
+          const naFrente = eu.total > (p.t || 0) || (eu.total === (p.t || 0) && eu.streak >= (p.s || 0));
+          setModal({
+            msg: "⚔️ " + p.nm + " te desafiou!\n\n" +
+              p.nm + ": " + (p.t || 0) + " treinos · " + (p.s || 0) + " dia(s) seguidos · " + Math.round((p.v || 0) / 1000) + "t movidas\n" +
+              "Você: " + eu.total + " treinos · " + eu.streak + " dia(s) seguidos · " + Math.round(eu.volumeTotal / 1000) + "t movidas\n\n" +
+              (naFrente ? "Você está na frente! 🏆 Não deixa a vantagem cair." : "Bora virar esse jogo! 🔥 Escolhe uma ficha e treina hoje."),
           });
         }
       }
@@ -1259,8 +1590,8 @@ function TreinoLivre() {
 
   useEffect(() => {
     if (!carregado) return;
-    store.set(STORAGE_KEY, JSON.stringify({ treinos, historico, customEx, descanso, som, seedV3: true }));
-  }, [treinos, historico, customEx, descanso, som, carregado]);
+    store.set(STORAGE_KEY, JSON.stringify({ treinos, historico, customEx, descanso, som, programas, seedV3: true }));
+  }, [treinos, historico, customEx, descanso, som, programas, carregado]);
 
   const comecarSessao = (treino) => {
     setSessao({
@@ -1306,9 +1637,145 @@ function TreinoLivre() {
     }));
     setSessao(null);
     setAba("historico");
+    const vol = Math.round(registro.itens.reduce((a, it) => a + it.series.reduce((b, s) => b + (parseFloat(s.peso) || 0) * (parseInt(s.reps) || 0), 0), 0));
+    const nSeries = registro.itens.reduce((a, it) => a + it.series.length, 0);
+    registrarEvento("treino-concluido");
+    setTimeout(() => setModal({
+      msg: "Treino concluído! 🎉\n\n" + nSeries + " séries · " + vol.toLocaleString("pt-BR") + " kg de volume · " + registro.duracaoMin + " min",
+      storyTreino: { nome: registro.nome, series: nSeries, volume: vol, duracao: registro.duracaoMin },
+    }), 250);
   };
 
   const excluirHistorico = (id) => setHistorico(historico.filter((h) => h.id !== id));
+
+  // ---- Programas (treinos que agrupam fichas) ----
+  const criarPrograma = () => {
+    importRef.current = "";
+    setModal({ msg: "Nome do novo treino (ex.: Treino Iniciante, Projeto Verão):", prompt: "Nome do treino", positivo: true, labelSim: "Criar", onSim: () => {
+      const nome = (importRef.current || "").trim();
+      if (!nome) { setTimeout(() => avisar("Digite um nome para o treino."), 100); return; }
+      const pid = "prog-" + Date.now();
+      setProgramas((prev) => [...prev, { id: pid, nome: nome }]);
+      setProgAberto(pid);
+      setAba("treinos");
+    } });
+  };
+  const renomearPrograma = (p) => {
+    importRef.current = p.nome;
+    setModal({ msg: "Novo nome do treino:", prompt: "Nome do treino", valor: p.nome, positivo: true, labelSim: "Salvar", onSim: () => {
+      const nome = (importRef.current || "").trim() || p.nome;
+      setProgramas((prev) => prev.map((x) => (x.id === p.id ? { ...x, nome: nome } : x)));
+    } });
+  };
+  const excluirPrograma = (p) => {
+    const qtd = treinos.filter((t) => t.programaId === p.id).length;
+    pedirConfirmacao('Excluir o treino "' + p.nome + '"' + (qtd ? " e suas " + qtd + " ficha(s)?" : "?"), () => {
+      setProgramas((prev) => prev.filter((x) => x.id !== p.id));
+      setTreinos((prev) => prev.filter((t) => t.programaId !== p.id));
+      setProgAberto(null);
+    });
+  };
+  const novaFicha = (progId) => {
+    setEditandoTreino({ id: String(Date.now()), nome: "", programaId: progId, itens: [] });
+    setAba("editarTreino");
+  };
+
+  // ---- Assistente: gera um treino completo em 3 respostas ----
+  const gerarTreinoAssistente = (objetivo, dias, nivel) => {
+    const reps = objetivo === "forca" ? 6 : objetivo === "definir" ? 15 : 10;
+    const series = objetivo === "forca" ? 4 : 3;
+    const qtd = nivel === "iniciante" ? 5 : nivel === "intermediario" ? 6 : 8;
+    const modelo = SPLITS[dias] || SPLITS[3];
+    const nomeObj = objetivo === "forca" ? "Força" : objetivo === "definir" ? "Definição" : "Hipertrofia";
+    registrarEvento("treino-gerado-assistente");
+    const pid = "prog-" + Date.now();
+    setProgramas((prev) => [...prev, { id: pid, nome: "Meu Treino - " + nomeObj + " (" + dias + "x/sem)" }]);
+    const fichas = modelo.map((m, i) => ({
+      id: "gerada-" + Date.now() + "-" + i,
+      nome: m[0],
+      programaId: pid,
+      itens: m[1].slice(0, qtd).map((idEx) => ({ exercicioId: idEx, series: series, reps: reps, obs: "" })),
+    }));
+    setTreinos((prev) => [...fichas, ...prev]);
+    setProgAberto(pid);
+    setAba("treinos");
+    setTimeout(() => avisar("Treino gerado com " + fichas.length + " fichas! Pode editar tudo do seu jeito. 💪"), 150);
+  };
+
+  // ---- Story: imagem do progresso ----
+  const storyProgresso = async () => {
+    const est = calcularEstatisticas(historico);
+    const ganhas = CONQUISTAS.filter((c) => c.cond(est));
+    const blob = await gerarImagemStory([
+      { t: "MEU PROGRESSO 💪", tam: 66, cor: "#FFD60A", esp: 90 },
+      { t: "🔥 " + est.streak + " dia(s) seguidos", tam: 74, esp: 70 },
+      { t: est.total + " treinos concluídos", tam: 56, esp: 70 },
+      { t: (est.volumeTotal >= 1000 ? Math.round(est.volumeTotal / 1000).toLocaleString("pt-BR") + " toneladas" : est.volumeTotal.toLocaleString("pt-BR") + " kg") + " movidas", tam: 56, cor: "#FF453A", esp: 100 },
+      { t: "🏆 " + ganhas.length + " de " + CONQUISTAS.length + " conquistas", tam: 50, cor: "#FFD60A", esp: 70 },
+      { t: ganhas.slice(-5).map((c) => c.icone).join("  ") || "💪", tam: 92, esp: 40 },
+    ]);
+    compartilharImagem(blob, "Meu progresso no Treino Livre 💪 " + LINK_APP, avisar);
+  };
+
+  // ---- Desafio entre amigos ----
+  const desafiarAmigo = () => {
+    importRef.current = "";
+    setModal({ msg: "Digite seu nome (vai aparecer para o amigo desafiado):", prompt: "Seu nome", positivo: true, labelSim: "Continuar", onSim: () => {
+      const nome = ((importRef.current || "").trim() || "Atleta").slice(0, 20);
+      const est = calcularEstatisticas(historico);
+      const payload = { nm: nome, t: est.total, s: est.streak, v: est.volumeTotal, w: est.treinosSemana };
+      const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+      const url = LINK_APP + "#desafio=" + b64;
+      const texto = "⚔️ " + nome + " te desafiou no Treino Livre! " + est.total + " treinos e " + est.streak + " dia(s) seguidos. Aceita o desafio?";
+      setTimeout(async () => {
+        if (navigator.share) {
+          try { await navigator.share({ text: texto, url: url }); return; }
+          catch (e) { if (e && e.name === "AbortError") return; }
+        }
+        setModal({ msg: "Copie e envie o desafio para um amigo:", texto: texto + " " + url });
+      }, 100);
+    } });
+  };
+
+  // ---- Compartilhar um treino completo (programa com todas as fichas) ----
+  const compartilharPrograma = async (p) => {
+    const fichas = treinos.filter((t) => t.programaId === p.id && t.itens.length);
+    if (!fichas.length) { avisar("Este treino ainda não tem fichas com exercícios."); return; }
+    const usados = {};
+    fichas.forEach((f) => f.itens.forEach((it) => { usados[it.exercicioId] = true; }));
+    const custom = customEx.filter((e) => usados[e.id]);
+    const payload = { v: 2, pn: p.nome, fs: fichas.map((f) => ({ n: f.nome, i: f.itens.map((it) => ({ e: it.exercicioId, s: it.series, r: it.reps })) })), x: custom };
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    const url = LINK_APP + "#prog=" + b64;
+    registrarEvento("treino-compartilhado");
+    const texto = 'Te enviei o treino completo "' + p.nome + '" (' + fichas.length + " fichas) no Treino Livre 💪 Toque no link para adicionar:";
+    if (navigator.share) {
+      try { await navigator.share({ text: texto, url: url }); return; }
+      catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    setModal({ msg: "Copie o link e envie. Quem abrir recebe o treino completo:", texto: url });
+  };
+
+  const aceitarProgramaRecebido = (p) => {
+    const novosCustom = (p.x || []).filter((e) => e && e.id && !EXERCICIOS.some((x) => x.id === e.id));
+    setCustomEx((prev) => [...prev, ...novosCustom.filter((e) => !prev.some((x) => x.id === e.id))]);
+    const pid = "prog-" + Date.now();
+    setProgramas((prev) => [...prev, { id: pid, nome: p.pn || "Treino recebido" }]);
+    const idsValidos = {};
+    EXERCICIOS.forEach((e) => { idsValidos[e.id] = true; });
+    customEx.forEach((e) => { idsValidos[e.id] = true; });
+    novosCustom.forEach((e) => { idsValidos[e.id] = true; });
+    const fichas = (p.fs || []).map((f, i) => ({
+      id: "recebida-" + Date.now() + "-" + i,
+      nome: f.n || "Ficha",
+      programaId: pid,
+      itens: (f.i || []).filter((it) => it && idsValidos[it.e]).map((it) => ({ exercicioId: it.e, series: it.s || 3, reps: it.r || 12, obs: "" })),
+    })).filter((f) => f.itens.length);
+    setTreinos((prev) => [...fichas, ...prev]);
+    setProgAberto(pid);
+    setAba("treinos");
+    setTimeout(() => avisar('Treino "' + (p.pn || "recebido") + '" adicionado com ' + fichas.length + " ficha(s)! 💪"), 150);
+  };
 
   // ---- Compartilhar ficha: a ficha inteira viaja dentro do link ----
   const compartilharFicha = async (t) => {
@@ -1322,6 +1789,7 @@ function TreinoLivre() {
     };
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const url = LINK_APP + "#ficha=" + b64;
+    registrarEvento("ficha-compartilhada");
     const texto = 'Te enviei a ficha de treino "' + t.nome + '" no Treino Livre 💪 Toque no link para adicionar:';
     if (navigator.share) {
       try { await navigator.share({ text: texto, url: url }); return; }
@@ -1341,7 +1809,8 @@ function TreinoLivre() {
       .filter((it) => it && idsValidos[it.e])
       .map((it) => ({ exercicioId: it.e, series: it.s || 3, reps: it.r || 12, obs: "" }));
     if (!itens.length) { avisar("Não consegui ler os exercícios desta ficha. Peça para enviarem o link de novo."); return; }
-    setTreinos((prev) => [{ id: "recebida-" + Date.now(), nome: p.n || "Ficha recebida", itens: itens }, ...prev]);
+    setProgramas((prev) => (prev.some((x) => x.id === "prog-meus") ? prev : [...prev, { id: "prog-meus", nome: "Meus Treinos" }]));
+    setTreinos((prev) => [{ id: "recebida-" + Date.now(), nome: p.n || "Ficha recebida", programaId: "prog-meus", itens: itens }, ...prev]);
     setAba("treinos");
     setTimeout(() => avisar('Ficha "' + (p.n || "recebida") + '" adicionada às suas fichas! 💪'), 150);
   };
@@ -1372,7 +1841,7 @@ function TreinoLivre() {
     { id: "treinos", nome: "Fichas", icone: "▤" },
     { id: "historico", nome: "Histórico", icone: "◷" },
   ];
-  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Minhas fichas", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício" };
+  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente" };
 
   if (!carregado) {
     return <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>Carregando...</div>;
@@ -1383,12 +1852,18 @@ function TreinoLivre() {
       <Header titulo={titulos[aba]} />
       <div style={{ paddingTop: 14 }}>
         {aba === "inicio" && (
-          <TelaInicio treinos={treinos} historico={historico} totalEx={todos.length}
+          <TelaInicio programas={programas} treinos={treinos} historico={historico} totalEx={todos.length}
             onTreinar={iniciarSessao}
+            onCriarPrograma={criarPrograma}
+            onAssistente={() => setAba("assistente")}
+            onStoryProgresso={storyProgresso}
+            onDesafiar={desafiarAmigo}
             onCopiarLink={copiarLink}
             onExportar={exportarDados}
-            onImportar={importarDados}
-            onNovaFicha={() => { setEditandoTreino({ id: String(Date.now()), nome: "", itens: [] }); setAba("editarTreino"); }} />
+            onImportar={importarDados} />
+        )}
+        {aba === "assistente" && (
+          <TelaAssistente onGerar={gerarTreinoAssistente} onCancelar={() => setAba("inicio")} />
         )}
         {aba === "exercicios" && (
           <TelaExercicios todos={todos} exPorId={exPorId}
@@ -1403,12 +1878,19 @@ function TreinoLivre() {
             onCancelar={() => setAba("exercicios")} />
         )}
         {aba === "treinos" && (
-          <TelaTreinos treinos={treinos} exPorId={exPorId} pedirConfirmacao={pedirConfirmacao}
+          <TelaTreinos programas={programas} treinos={treinos} exPorId={exPorId}
+            progAberto={progAberto} setProgAberto={setProgAberto}
+            pedirConfirmacao={pedirConfirmacao}
             onTreinar={iniciarSessao}
-            onCompartilhar={compartilharFicha}
-            onNova={() => { setEditandoTreino({ id: String(Date.now()), nome: "", itens: [] }); setAba("editarTreino"); }}
+            onNovaFicha={novaFicha}
             onEditar={(t) => { setEditandoTreino(JSON.parse(JSON.stringify(t))); setAba("editarTreino"); }}
-            onExcluir={(id) => setTreinos(treinos.filter((x) => x.id !== id))} />
+            onExcluirFicha={(id) => setTreinos(treinos.filter((x) => x.id !== id))}
+            onCompartilharFicha={compartilharFicha}
+            onNovoPrograma={criarPrograma}
+            onRenomearPrograma={renomearPrograma}
+            onExcluirPrograma={excluirPrograma}
+            onCompartilharPrograma={compartilharPrograma}
+            onAssistente={() => setAba("assistente")} />
         )}
         {aba === "editarTreino" && editandoTreino && (
           <TelaEditarTreino key={editandoTreino.id} treinoInicial={editandoTreino} todos={todos} avisar={avisar}
@@ -1431,7 +1913,28 @@ function TreinoLivre() {
           onClick={() => setModal(null)}>
           <div style={{ ...S.card, width: "100%", maxWidth: 340, marginBottom: 0, borderColor: "#33363E" }}
             onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontSize: 15, lineHeight: 1.6, marginBottom: 16 }}>{modal.msg}</div>
+            <div style={{ fontSize: 15, lineHeight: 1.6, marginBottom: 16, whiteSpace: "pre-line" }}>{modal.msg}</div>
+            {modal.prompt && (
+              <input placeholder={modal.prompt} defaultValue={modal.valor || ""}
+                onChange={(e) => { importRef.current = e.target.value; }}
+                style={{ ...S.input, marginBottom: 12 }} />
+            )}
+            {modal.storyTreino && (
+              <button style={{ ...S.btn, marginBottom: 10 }} onClick={async () => {
+                const st = modal.storyTreino;
+                setModal(null);
+                const blob = await gerarImagemStory([
+                  { t: "TREINO CONCLUÍDO! 🎉", tam: 64, cor: "#FFD60A", esp: 80 },
+                  { t: st.nome, tam: 50, esp: 110 },
+                  { t: String(st.series), tam: 150, cor: "#FFD60A", esp: 30 },
+                  { t: "séries concluídas", tam: 40, cor: "#8A8F98", esp: 110 },
+                  { t: st.volume.toLocaleString("pt-BR") + " kg", tam: 110, cor: "#FF453A", esp: 30 },
+                  { t: "de volume movido", tam: 40, cor: "#8A8F98", esp: 110 },
+                  { t: "⏱ " + st.duracao + " min de treino", tam: 46, esp: 40 },
+                ]);
+                compartilharImagem(blob, "Treino concluído no Treino Livre! 💪 " + LINK_APP, avisar);
+              }}>📸 Compartilhar no story</button>
+            )}
             {modal.texto && (
               <React.Fragment>
                 <textarea readOnly value={modal.texto} onFocus={(e) => e.target.select()}
@@ -1454,7 +1957,7 @@ function TreinoLivre() {
                 <React.Fragment>
                   <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => setModal(null)}>Cancelar</button>
                   <button style={{ ...S.btn, flex: 1, background: modal.positivo ? "#FFD60A" : "#FF453A", color: modal.positivo ? "#0E0F12" : "#FFFFFF" }}
-                    onClick={() => { const f = modal.onSim; setModal(null); f(); }}>{modal.positivo ? "Adicionar" : "Confirmar"}</button>
+                    onClick={() => { const f = modal.onSim; setModal(null); f(); }}>{modal.labelSim || (modal.positivo ? "Adicionar" : "Confirmar")}</button>
                 </React.Fragment>
               ) : (
                 <button style={{ ...S.btn, flex: 1 }} onClick={() => setModal(null)}>OK</button>
@@ -1475,7 +1978,7 @@ function TreinoLivre() {
 
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#141519", borderTop: "1px solid #23262D", display: "flex", padding: "8px 0", paddingBottom: "calc(14px + env(safe-area-inset-bottom))", zIndex: 10 }}>
         {abas.map((a) => (
-          <button key={a.id} onClick={() => { setAba(a.id); setGrupoAberto(null); setExercicioAberto(null); }}
+          <button key={a.id} onClick={() => { setAba(a.id); setGrupoAberto(null); setExercicioAberto(null); setProgAberto(null); }}
             style={{ flex: 1, background: "none", border: "none", cursor: "pointer", color: aba === a.id ? "#FFD60A" : "#8A8F98", fontWeight: aba === a.id ? 900 : 600 }}>
             <div style={{ fontSize: 18 }}>{a.icone}</div>
             <div style={{ fontSize: 11, marginTop: 2 }}>{a.nome}</div>
@@ -1495,5 +1998,7 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
   });
 }
 </script>
+<!-- Contador de visitas (GoatCounter): só o dono do painel vê os números. Sem cookies, compatível com LGPD. -->
+<script data-goatcounter="https://treinolivre.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </body>
 </html>

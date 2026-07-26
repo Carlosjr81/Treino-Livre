@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v1";
+const CACHE = "treinolivre-v2";
 const ARQUIVOS = [
   "./",
   "./index.html",
@@ -26,6 +26,8 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   const url = new URL(e.request.url);
+  // Contador de visitas: nunca interceptar (precisa chegar ao servidor para contar)
+  if (url.hostname.indexOf("goatcounter") !== -1 || url.hostname === "gc.zgo.at") return;
   const ehApp = e.request.mode === "navigate" || url.pathname.endsWith("index.html");
 
   if (ehApp) {

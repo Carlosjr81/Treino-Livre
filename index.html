@@ -817,7 +817,7 @@ function FormNovoExercicio({ grupoSugerido, onSalvar, onCancelar, avisar }) {
   );
 }
 
-function TelaTreinos({ treinos, exPorId, onTreinar, onNova, onEditar, onExcluir, pedirConfirmacao }) {
+function TelaTreinos({ treinos, exPorId, onTreinar, onNova, onEditar, onExcluir, onCompartilhar, pedirConfirmacao }) {
   return (
     <div style={{ padding: "0 18px" }}>
       <button style={{ ...S.btn, marginBottom: 14 }} onClick={onNova}>+ Nova ficha de treino</button>
@@ -832,9 +832,10 @@ function TelaTreinos({ treinos, exPorId, onTreinar, onNova, onEditar, onExcluir,
           <div style={{ color: "#8A8F98", fontSize: 13, margin: "4px 0 12px" }}>
             {t.itens.map((it) => { const e = exPorId(it.exercicioId); return e ? e.nome : null; }).filter(Boolean).join(" · ") || "Sem exercícios"}
           </div>
+          <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}>▶ Treinar</button>
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={{ ...S.btn, flex: 2 }} onClick={() => onTreinar(t)}>▶ Treinar</button>
             <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onEditar(t)}>Editar</button>
+            <button style={{ ...S.btnGhost, flex: 1, color: "#FFD60A", borderColor: "#FFD60A66" }} onClick={() => onCompartilhar(t)}>📤 Enviar</button>
             <button style={{ ...S.btnGhost, flex: 1, color: "#F58E8E", borderColor: "#F58E8E55" }}
               onClick={() => pedirConfirmacao("Excluir esta ficha?", () => onExcluir(t.id))}>Excluir</button>
           </div>
@@ -1238,6 +1239,22 @@ function TreinoLivre() {
     }
     setTreinos(tr); setHistorico(hi); setCustomEx(ce); setDescanso(de); setSom(so);
     setCarregado(true);
+
+    // Se o app foi aberto por um link de ficha compartilhada, oferece para adicionar
+    try {
+      const m = (window.location.hash || "").match(/#ficha=([^&]+)/);
+      if (m) {
+        const p = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+        try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e2) {}
+        if (p && p.n && p.i && p.i.length) {
+          setModal({
+            msg: 'Você recebeu a ficha de treino "' + p.n + '" com ' + p.i.length + " exercícios. Deseja adicionar às suas fichas?",
+            positivo: true,
+            onSim: () => aceitarFichaRecebida(p),
+          });
+        }
+      }
+    } catch (e) {}
   }, []);
 
   useEffect(() => {
@@ -1292,6 +1309,42 @@ function TreinoLivre() {
   };
 
   const excluirHistorico = (id) => setHistorico(historico.filter((h) => h.id !== id));
+
+  // ---- Compartilhar ficha: a ficha inteira viaja dentro do link ----
+  const compartilharFicha = async (t) => {
+    if (!t.itens.length) { avisar("Esta ficha está vazia. Adicione exercícios antes de enviar."); return; }
+    const custom = customEx.filter((e) => t.itens.some((it) => it.exercicioId === e.id));
+    const payload = {
+      v: 1,
+      n: t.nome,
+      i: t.itens.map((it) => ({ e: it.exercicioId, s: it.series, r: it.reps })),
+      x: custom,
+    };
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    const url = LINK_APP + "#ficha=" + b64;
+    const texto = 'Te enviei a ficha de treino "' + t.nome + '" no Treino Livre 💪 Toque no link para adicionar:';
+    if (navigator.share) {
+      try { await navigator.share({ text: texto, url: url }); return; }
+      catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    setModal({ msg: "Copie o link e envie no WhatsApp. Quem abrir recebe a ficha pronta para adicionar:", texto: url });
+  };
+
+  const aceitarFichaRecebida = (p) => {
+    const novosCustom = (p.x || []).filter((e) => e && e.id && !EXERCICIOS.some((x) => x.id === e.id));
+    setCustomEx((prev) => [...prev, ...novosCustom.filter((e) => !prev.some((x) => x.id === e.id))]);
+    const idsValidos = {};
+    EXERCICIOS.forEach((e) => { idsValidos[e.id] = true; });
+    customEx.forEach((e) => { idsValidos[e.id] = true; });
+    novosCustom.forEach((e) => { idsValidos[e.id] = true; });
+    const itens = (p.i || [])
+      .filter((it) => it && idsValidos[it.e])
+      .map((it) => ({ exercicioId: it.e, series: it.s || 3, reps: it.r || 12, obs: "" }));
+    if (!itens.length) { avisar("Não consegui ler os exercícios desta ficha. Peça para enviarem o link de novo."); return; }
+    setTreinos((prev) => [{ id: "recebida-" + Date.now(), nome: p.n || "Ficha recebida", itens: itens }, ...prev]);
+    setAba("treinos");
+    setTimeout(() => avisar('Ficha "' + (p.n || "recebida") + '" adicionada às suas fichas! 💪'), 150);
+  };
 
   const salvarTreino = (t) => {
     const existe = treinos.some((x) => x.id === t.id);
@@ -1352,6 +1405,7 @@ function TreinoLivre() {
         {aba === "treinos" && (
           <TelaTreinos treinos={treinos} exPorId={exPorId} pedirConfirmacao={pedirConfirmacao}
             onTreinar={iniciarSessao}
+            onCompartilhar={compartilharFicha}
             onNova={() => { setEditandoTreino({ id: String(Date.now()), nome: "", itens: [] }); setAba("editarTreino"); }}
             onEditar={(t) => { setEditandoTreino(JSON.parse(JSON.stringify(t))); setAba("editarTreino"); }}
             onExcluir={(id) => setTreinos(treinos.filter((x) => x.id !== id))} />
@@ -1399,8 +1453,8 @@ function TreinoLivre() {
               {modal.onSim ? (
                 <React.Fragment>
                   <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => setModal(null)}>Cancelar</button>
-                  <button style={{ ...S.btn, flex: 1, background: "#FF453A", color: "#FFFFFF" }}
-                    onClick={() => { const f = modal.onSim; setModal(null); f(); }}>Confirmar</button>
+                  <button style={{ ...S.btn, flex: 1, background: modal.positivo ? "#FFD60A" : "#FF453A", color: modal.positivo ? "#0E0F12" : "#FFFFFF" }}
+                    onClick={() => { const f = modal.onSim; setModal(null); f(); }}>{modal.positivo ? "Adicionar" : "Confirmar"}</button>
                 </React.Fragment>
               ) : (
                 <button style={{ ...S.btn, flex: 1 }} onClick={() => setModal(null)}>OK</button>

@@ -3,15 +3,32 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#000000" />
+<meta name="theme-color" content="#111111" />
 <title>Treino Livre</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 <style>
-  html, body { margin: 0; padding: 0; background: #000000; }
+  :root {
+    --bg: #000000; --bg2: #0A0A0A; --card: #121212;
+    --borda: #262626; --borda2: #363636;
+    --texto: #F2F0EB; --cinza: #A8A8A8; --cinza2: #7C8189;
+    --perigo: #F58E8E; --perigo-borda: #F58E8E55;
+    --aviso-bg: #2A1512; --ok: #4ADE80; --ok-bg: #173B1E;
+    --obs: #C7A94B; --input: #000000;
+  }
+  [data-tema="claro"] {
+    --bg: #FFFFFF; --bg2: #FFFFFF; --card: #FFFFFF;
+    --borda: #DBDBDB; --borda2: #C4C4C4;
+    --texto: #262626; --cinza: #737373; --cinza2: #8A8A8A;
+    --perigo: #C62828; --perigo-borda: #C6282855;
+    --aviso-bg: #FFF1EF; --ok: #1B7F3B; --ok-bg: #E8F7EC;
+    --obs: #8A6D00; --input: #FAFAFA;
+  }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
   * { -webkit-tap-highlight-color: transparent; }
   a { color: #8ECDF5; }
+  [data-tema="claro"] a { color: #00376B; }
   select { appearance: none; -webkit-appearance: none; }
 </style>
 </head>
@@ -86,7 +103,7 @@ function gerarImagemStory(linhas) {
   const cv = document.createElement("canvas");
   cv.width = 1080; cv.height = 1920;
   const c = cv.getContext("2d");
-  c.fillStyle = "#000000"; c.fillRect(0, 0, 1080, 1920);
+  c.fillStyle = "#010101"; c.fillRect(0, 0, 1080, 1920);
   const faixa = (y) => {
     c.fillStyle = "#E1306C";
     for (let x = 40; x < 1000; x += 52) {
@@ -94,18 +111,18 @@ function gerarImagemStory(linhas) {
     }
   };
   c.textAlign = "center";
-  c.fillStyle = "#F2F0EB"; c.font = "900 62px sans-serif"; c.fillText("TREINO LIVRE", 540, 130);
+  c.fillStyle = "#F2F0EC"; c.font = "900 62px sans-serif"; c.fillText("TREINO LIVRE", 540, 130);
   faixa(165);
   let y = 380;
   linhas.forEach((l) => {
-    c.fillStyle = l.cor || "#F2F0EB";
+    c.fillStyle = l.cor || "var(--texto)";
     c.font = "bold " + (l.tam || 56) + "px sans-serif";
     c.fillText(l.t, 540, y);
     y += (l.tam || 56) + (l.esp || 44);
   });
   faixa(1680);
   c.fillStyle = "#E1306C"; c.font = "bold 42px sans-serif"; c.fillText("carlosjr81.github.io/Treino-Livre", 540, 1780);
-  c.fillStyle = "#A8A8A8"; c.font = "30px sans-serif"; c.fillText("App gratuito · por Carlos Jr · @carlos.jr.81", 540, 1840);
+  c.fillStyle = "#A8A8A9"; c.font = "30px sans-serif"; c.fillText("App gratuito · por Carlos Jr · @carlos.jr.81", 540, 1840);
   return new Promise((res) => cv.toBlob(res, "image/png"));
 }
 async function compartilharImagem(blob, texto, avisarFn) {
@@ -170,15 +187,19 @@ function beep(freq, dur, vol) {
 
 // ---------------- GRUPOS MUSCULARES ----------------
 const GRUPOS = [
-  { id: "peito", nome: "Peito", cor: "#E1306C" },
-  { id: "costas", nome: "Costas", cor: "#8ECDF5" },
-  { id: "pernas", nome: "Pernas", cor: "#F58E8E" },
-  { id: "ombros", nome: "Ombros", cor: "#C7F58E" },
-  { id: "biceps", nome: "Bíceps", cor: "#E5B8FF" },
-  { id: "triceps", nome: "Tríceps", cor: "#FFC9A3" },
-  { id: "abdomen", nome: "Abdômen", cor: "#9AF5D4" },
-  { id: "gluteos", nome: "Glúteos", cor: "#F5D48E" },
+  { id: "peito", nome: "Peito", cor: "#FFD86B", corL: "#A9700A" },
+  { id: "costas", nome: "Costas", cor: "#8ECDF5", corL: "#1A6FA3" },
+  { id: "pernas", nome: "Pernas", cor: "#F58E8E", corL: "#C0392B" },
+  { id: "ombros", nome: "Ombros", cor: "#C7F58E", corL: "#4C7A16" },
+  { id: "biceps", nome: "Bíceps", cor: "#E5B8FF", corL: "#7126A8" },
+  { id: "triceps", nome: "Tríceps", cor: "#FFC9A3", corL: "#B25417" },
+  { id: "abdomen", nome: "Abdômen", cor: "#9AF5D4", corL: "#0E7A5F" },
+  { id: "gluteos", nome: "Glúteos", cor: "#F5D48E", corL: "#946110" },
 ];
+
+// Tema atual (definido a cada render) para escolher a versão legível da cor do grupo
+let TEMA_APP = "escuro";
+const corGrupo = (g) => (TEMA_APP === "claro" && g && g.corL ? g.corL : (g && g.cor ? g.cor : "var(--cinza)"));
 
 const MUSCULOS = {
   peito: "Peitoral", ombros: "Deltoides (ombros)", biceps: "Bíceps", triceps: "Tríceps",
@@ -323,26 +344,31 @@ const FICHAS_PADRAO = [
   { id: "padrao-sab", nome: "Sábado - Bíceps e Tríceps", itens: mkItens(["rosca-direta", "rosca-scott", "triceps-frances", "rosca-alternada", "rosca-spider", "rosca-concentrada", "rosca-martelo", "rosca-polia-alta", "triceps-polia", "triceps-invertido", "triceps-corda"]) },
 ];
 
-const grupoPorId = (id) => GRUPOS.find((g) => g.id === id) || { nome: "Outro", cor: "#A8A8A8" };
+const grupoPorId = (id) => GRUPOS.find((g) => g.id === id) || { nome: "Outro", cor: "var(--cinza)" };
 
 const COR_DIRETO = "#FF453B";
 const COR_INDIRETO = "#FFD60B";
 const COR_MUSCULO = "#2A2A2A";
+// Versões legíveis dos rótulos direto/indireto fora do painel escuro
+const corMuscTxt = (tipo) => {
+  if (tipo === "p") return TEMA_APP === "claro" ? "#C62828" : COR_DIRETO;
+  return TEMA_APP === "claro" ? "#8A6D00" : COR_INDIRETO;
+};
 
 // ---------------- ESTILOS ----------------
 const GRAD = "linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)";
 const GRAD_LINHA = "linear-gradient(90deg, #FEDA75, #FA7E1E, #D62976, #962FBF, #4F5BD5)";
 const S = {
-  app: { minHeight: "100vh", background: "#000000", color: "#F2F0EB", fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif", paddingBottom: "calc(96px + env(safe-area-inset-bottom))" },
-  header: { padding: "20px 18px 10px", position: "sticky", top: 0, background: "#000000", zIndex: 5 },
+  app: { minHeight: "100vh", background: "var(--bg)", color: "var(--texto)", fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif", paddingBottom: "calc(96px + env(safe-area-inset-bottom))" },
+  header: { padding: "20px 18px 10px", position: "sticky", top: 0, background: "var(--bg)", zIndex: 5 },
   logo: { fontSize: 27, fontWeight: 900, letterSpacing: -0.5, display: "inline-block", backgroundImage: GRAD, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" },
   faixa: { height: 4, marginTop: 10, background: GRAD_LINHA, borderRadius: 2 },
-  card: { background: "#121212", borderRadius: 18, padding: 16, marginBottom: 12, border: "1px solid #262626" },
-  label: { fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, color: "#A8A8A8", fontWeight: 700 },
+  card: { background: "var(--card)", borderRadius: 18, padding: 16, marginBottom: 12, border: "1px solid var(--borda)" },
+  label: { fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--cinza)", fontWeight: 700 },
   btn: { background: GRAD, color: "#FFFFFF", border: "none", borderRadius: 12, padding: "13px 16px", fontWeight: 800, fontSize: 15, width: "100%", cursor: "pointer" },
-  btnGhost: { background: "transparent", color: "#F2F0EB", border: "1px solid #363636", borderRadius: 12, padding: "12px 16px", fontWeight: 700, fontSize: 14, width: "100%", cursor: "pointer" },
-  input: { background: "#000000", border: "1px solid #363636", borderRadius: 12, color: "#F2F0EB", padding: "12px 14px", fontSize: 16, width: "100%", boxSizing: "border-box" },
-  inputMini: { background: "#000000", border: "1px solid #363636", borderRadius: 10, color: "#F2F0EB", padding: "10px 8px", fontSize: 16, width: "100%", boxSizing: "border-box", textAlign: "center" },
+  btnGhost: { background: "transparent", color: "var(--texto)", border: "1px solid var(--borda2)", borderRadius: 12, padding: "12px 16px", fontWeight: 700, fontSize: 14, width: "100%", cursor: "pointer" },
+  input: { background: "var(--input)", border: "1px solid var(--borda2)", borderRadius: 12, color: "var(--texto)", padding: "12px 14px", fontSize: 16, width: "100%", boxSizing: "border-box" },
+  inputMini: { background: "var(--input)", border: "1px solid var(--borda2)", borderRadius: 10, color: "var(--texto)", padding: "10px 8px", fontSize: 16, width: "100%", boxSizing: "border-box", textAlign: "center" },
   voltar: { background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 14, padding: 0, cursor: "pointer", marginBottom: 12 },
   tagCustom: { display: "inline-block", background: "#E1306C22", color: "#E1306C", borderRadius: 8, padding: "2px 8px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, marginLeft: 8 },
 };
@@ -397,11 +423,11 @@ function ImagemExercicio({ ex }) {
   }, [ex.id]);
 
   if (status === "carregando") {
-    return <div style={{ fontSize: 13, color: "#A8A8A8", padding: "8px 0" }}>Carregando imagem de demonstração...</div>;
+    return <div style={{ fontSize: 13, color: "var(--cinza)", padding: "8px 0" }}>Carregando imagem de demonstração...</div>;
   }
   if (status === "erro" || !url) {
     return (
-      <div style={{ fontSize: 13, color: "#A8A8A8", padding: "8px 0" }}>
+      <div style={{ fontSize: 13, color: "var(--cinza)", padding: "8px 0" }}>
         Sem imagem disponível para este exercício — use o botão de vídeo abaixo.
       </div>
     );
@@ -412,7 +438,7 @@ function ImagemExercicio({ ex }) {
         <img src={url} alt={"Demonstração: " + ex.nome} style={{ maxWidth: "100%", maxHeight: 240, borderRadius: 8 }}
           onError={() => { cacheImg[ex.id] = null; setStatus("erro"); }} />
       </div>
-      <div style={{ fontSize: 11, color: "#A8A8A8", marginTop: 6, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 11, color: "var(--cinza)", marginTop: 6, lineHeight: 1.5 }}>
         Imagem: comunidade <a href="https://wger.de" target="_blank" rel="noreferrer">wger.de</a> · Licença{" "}
         <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.pt-br" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>
       </div>
@@ -423,7 +449,7 @@ function ImagemExercicio({ ex }) {
 // ---------------- MAPA MUSCULAR (SVG original) ----------------
 function CorpoBase() {
   return (
-    <g fill="#121212" stroke="#2E2E2E" strokeWidth="1">
+    <g fill="#131313" stroke="#2E2E2E" strokeWidth="1">
       <circle cx="60" cy="17" r="11" />
       <rect x="54" y="27" width="12" height="9" rx="3" />
       <rect x="42" y="35" width="36" height="66" rx="10" />
@@ -437,11 +463,11 @@ function CorpoBase() {
 
 function MapaMuscular({ p = [], s = [] }) {
   const cor = (id) => (p.includes(id) ? COR_DIRETO : s.includes(id) ? COR_INDIRETO : COR_MUSCULO);
-  const st = (id) => ({ fill: cor(id), stroke: "#000000", strokeWidth: 0.8 });
+  const st = (id) => ({ fill: cor(id), stroke: "#010101", strokeWidth: 0.8 });
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 10, background: "#0B0B0B", borderRadius: "16px 16px 0 0", padding: "10px 6px 4px", borderLeft: "1px solid var(--borda)", borderRight: "1px solid var(--borda)", borderTop: "1px solid var(--borda)" }}>
         <div style={{ textAlign: "center" }}>
           <svg viewBox="0 0 120 196" width="130" height="212">
             <CorpoBase />
@@ -462,7 +488,7 @@ function MapaMuscular({ p = [], s = [] }) {
             <ellipse cx="50" cy="136" rx="6.5" ry="23" style={st("quadriceps")} />
             <ellipse cx="70" cy="136" rx="6.5" ry="23" style={st("quadriceps")} />
           </svg>
-          <div style={{ ...S.label, fontSize: 10 }}>Frente</div>
+          <div style={{ ...S.label, fontSize: 10, color: "#A8A8A8" }}>Frente</div>
         </div>
 
         <div style={{ textAlign: "center" }}>
@@ -485,16 +511,16 @@ function MapaMuscular({ p = [], s = [] }) {
             <ellipse cx="51" cy="173" rx="5.5" ry="14" style={st("panturrilha")} />
             <ellipse cx="69" cy="173" rx="5.5" ry="14" style={st("panturrilha")} />
           </svg>
-          <div style={{ ...S.label, fontSize: 10 }}>Costas</div>
+          <div style={{ ...S.label, fontSize: 10, color: "#A8A8A8" }}>Costas</div>
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", gap: 18, marginTop: 8 }}>
-        <span style={{ fontSize: 12, color: "#C6C9CF" }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 18, marginTop: -6, background: "#0B0B0B", borderRadius: "0 0 16px 16px", borderLeft: "1px solid var(--borda)", borderRight: "1px solid var(--borda)", borderBottom: "1px solid var(--borda)", padding: "0 6px 10px" }}>
+        <span style={{ fontSize: 12, color: "#E8E8E8" }}>
           <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 5, background: COR_DIRETO, marginRight: 6 }} />
           Trabalha direto
         </span>
-        <span style={{ fontSize: 12, color: "#C6C9CF" }}>
+        <span style={{ fontSize: 12, color: "#E8E8E8" }}>
           <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 5, background: COR_INDIRETO, marginRight: 6 }} />
           Auxilia (indireto)
         </span>
@@ -526,7 +552,7 @@ function GraficoEvolucao({ historico, exPorId }) {
     return (
       <div style={S.card}>
         <div style={S.label}>Evolução</div>
-        <div style={{ color: "#A8A8A8", fontSize: 14, marginTop: 8 }}>
+        <div style={{ color: "var(--cinza)", fontSize: 14, marginTop: 8 }}>
           Conclua treinos registrando os pesos para ver seu gráfico de evolução aqui.
         </div>
       </div>
@@ -560,16 +586,16 @@ function GraficoEvolucao({ historico, exPorId }) {
     svg = (
       <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", height: "auto" }}>
         {[0, 0.5, 1].map((f, i) => (
-          <line key={i} x1={x0} x2={x1} y1={y0 - f * (y0 - y1)} y2={y0 - f * (y0 - y1)} stroke="#262626" strokeWidth="1" />
+          <line key={i} x1={x0} x2={x1} y1={y0 - f * (y0 - y1)} y2={y0 - f * (y0 - y1)} stroke="var(--borda)" strokeWidth="1" />
         ))}
-        <text x={x0 - 4} y={y1 + 4} fill="#A8A8A8" fontSize="10" textAnchor="end">{vmax}</text>
-        <text x={x0 - 4} y={y0 + 4} fill="#A8A8A8" fontSize="10" textAnchor="end">{vmin}</text>
+        <text x={x0 - 4} y={y1 + 4} fill="var(--cinza)" fontSize="10" textAnchor="end">{vmax}</text>
+        <text x={x0 - 4} y={y0 + 4} fill="var(--cinza)" fontSize="10" textAnchor="end">{vmin}</text>
         <polyline points={linha} fill="none" stroke="#E1306C" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
         {pontos.map((pt, i) => (
-          <circle key={i} cx={px(i)} cy={py(pt.valor)} r="3.5" fill="#ED4956" stroke="#000000" strokeWidth="1" />
+          <circle key={i} cx={px(i)} cy={py(pt.valor)} r="3.5" fill="#ED4956" stroke="var(--bg)" strokeWidth="1" />
         ))}
-        <text x={x0} y={H - 4} fill="#A8A8A8" fontSize="10">{fmtData(pontos[0].data)}</text>
-        <text x={x1} y={H - 4} fill="#A8A8A8" fontSize="10" textAnchor="end">{fmtData(pontos[pontos.length - 1].data)}</text>
+        <text x={x0} y={H - 4} fill="var(--cinza)" fontSize="10">{fmtData(pontos[0].data)}</text>
+        <text x={x1} y={H - 4} fill="var(--cinza)" fontSize="10" textAnchor="end">{fmtData(pontos[pontos.length - 1].data)}</text>
       </svg>
     );
   }
@@ -594,9 +620,9 @@ function GraficoEvolucao({ historico, exPorId }) {
         {[["max", "Carga máxima"], ["volume", "Volume total"]].map(([m, nomeM]) => (
           <button key={m} onClick={() => setMetrica(m)}
             style={{
-              flex: 1, border: "1px solid", borderColor: metrica === m ? "#E1306C" : "#363636",
+              flex: 1, border: "1px solid", borderColor: metrica === m ? "#E1306C" : "var(--borda2)",
               background: metrica === m ? "#E1306C22" : "transparent",
-              color: metrica === m ? "#E1306C" : "#A8A8A8",
+              color: metrica === m ? "#E1306C" : "var(--cinza)",
               borderRadius: 8, padding: "8px 10px", fontWeight: 800, fontSize: 12, cursor: "pointer",
             }}>
             {nomeM}
@@ -614,7 +640,7 @@ function GraficoEvolucao({ historico, exPorId }) {
           </div>
         </React.Fragment>
       ) : (
-        <div style={{ color: "#A8A8A8", fontSize: 13 }}>
+        <div style={{ color: "var(--cinza)", fontSize: 13 }}>
           Registre pelo menos 2 treinos com este exercício para ver a linha de evolução.
         </div>
       )}
@@ -624,10 +650,16 @@ function GraficoEvolucao({ historico, exPorId }) {
 function unidadeCurta(metrica) { return metrica === "max" ? "kg" : ""; }
 
 // ---------------- COMPONENTES ----------------
-function Header({ titulo }) {
+function Header({ titulo, tema, onTema }) {
   return (
-    <div style={S.header}>
-      <div style={S.logo}>{titulo}</div>
+    <div style={{ ...S.header, position: "sticky" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={S.logo}>{titulo}</div>
+        <button onClick={onTema} title={tema === "escuro" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+          style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", fontSize: 18, cursor: "pointer" }}>
+          {tema === "escuro" ? "☀️" : "🌙"}
+        </button>
+      </div>
       <div style={S.faixa} />
     </div>
   );
@@ -637,7 +669,7 @@ function Resumo({ num, txt }) {
   return (
     <div style={{ flex: 1, textAlign: "center" }}>
       <div style={{ fontSize: 22, fontWeight: 900, color: "#E1306C" }}>{num}</div>
-      <div style={{ fontSize: 11, color: "#A8A8A8", textTransform: "uppercase", letterSpacing: 0.5 }}>{txt}</div>
+      <div style={{ fontSize: 11, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.5 }}>{txt}</div>
     </div>
   );
 }
@@ -650,7 +682,7 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
   return (
     <div style={{ padding: "0 18px" }}>
       {NAVEGADOR_INAPP && (
-        <div style={{ ...S.card, borderColor: "#ED4956", background: "#2A1512" }}>
+        <div style={{ ...S.card, borderColor: "#ED4956", background: "var(--aviso-bg)" }}>
           <div style={{ ...S.label, color: "#ED4956" }}>⚠ Atenção: seus dados podem não ficar salvos aqui</div>
           <div style={{ fontSize: 14, lineHeight: 1.6, margin: "8px 0 12px" }}>
             Você está no navegador interno do Instagram/WhatsApp, que apaga os dados salvos.
@@ -705,7 +737,7 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
             const ok = c.cond(est);
             return (
               <div key={c.id}
-                style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid " + (ok ? "#E1306C66" : "#262626"), background: ok ? "#E1306C18" : "transparent", fontSize: 12, color: ok ? "#F2F0EB" : "#5A5F68", fontWeight: 700 }}>
+                style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid " + (ok ? "#E1306C66" : "var(--borda)"), background: ok ? "#E1306C18" : "transparent", fontSize: 12, color: ok ? "var(--texto)" : "var(--cinza2)", fontWeight: 700 }}>
                 {c.icone} {c.nome}
               </div>
             );
@@ -730,7 +762,7 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
         <div style={S.card}>
           <div style={S.label}>Último treino</div>
           <div style={{ fontWeight: 800, fontSize: 16, marginTop: 6 }}>{ultima.nome}</div>
-          <div style={{ color: "#A8A8A8", fontSize: 13, marginTop: 2 }}>
+          <div style={{ color: "var(--cinza)", fontSize: 13, marginTop: 2 }}>
             {new Date(ultima.data).toLocaleDateString("pt-BR")} · {ultima.duracaoMin} min · {ultima.itens.length} exercícios
           </div>
         </div>
@@ -738,7 +770,7 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
 
       <div style={S.card}>
         <div style={S.label}>Seus dados (backup)</div>
-        <div style={{ fontSize: 13, color: "#A8A8A8", lineHeight: 1.6, margin: "8px 0 12px" }}>
+        <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, margin: "8px 0 12px" }}>
           Seus treinos ficam salvos neste aparelho e navegador. Exporte um backup de vez em quando
           para garantir — dá até pra colar numa conversa sua no WhatsApp e restaurar quando quiser.
         </div>
@@ -759,7 +791,7 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
             </a>
           </div>
         </div>
-        <div style={{ fontSize: 12, color: "#A8A8A8", lineHeight: 1.7, marginTop: 10 }}>
+        <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.7, marginTop: 10 }}>
           Imagens de demonstração dos exercícios: banco de dados aberto{" "}
           <a href="https://wger.de" target="_blank" rel="noreferrer">wger.de</a> e sua comunidade de colaboradores,
           sob a licença{" "}
@@ -779,11 +811,11 @@ function CardExercicio({ ex, onAbrir, onExcluir }) {
           {ex.nome}
           {ex.custom && <span style={S.tagCustom}>Meu</span>}
         </div>
-        <div style={{ color: "#A8A8A8", fontSize: 13, marginTop: 2 }}>{ex.equip || "Equipamento livre"}</div>
+        <div style={{ color: "var(--cinza)", fontSize: 13, marginTop: 2 }}>{ex.equip || "Equipamento livre"}</div>
       </div>
       {ex.custom && (
         <button
-          style={{ background: "none", border: "none", color: "#F58E8E", fontSize: 18, cursor: "pointer", padding: "4px 8px" }}
+          style={{ background: "none", border: "none", color: "var(--perigo)", fontSize: 18, cursor: "pointer", padding: "4px 8px" }}
           onClick={(e) => { e.stopPropagation(); onExcluir(ex.id); }}>✕</button>
       )}
     </div>
@@ -799,8 +831,8 @@ function DetalheExercicio({ ex, onVoltar }) {
   return (
     <div style={{ padding: "0 18px" }}>
       <button style={S.voltar} onClick={onVoltar}>← Voltar</button>
-      <div style={{ ...S.card, borderLeft: "4px solid " + g.cor }}>
-        <div style={{ ...S.label, color: g.cor }}>{g.nome}{ex.equip ? " · " + ex.equip : ""}</div>
+      <div style={{ ...S.card, borderLeft: "4px solid " + corGrupo(g) }}>
+        <div style={{ ...S.label, color: corGrupo(g) }}>{g.nome}{ex.equip ? " · " + ex.equip : ""}</div>
         <div style={{ fontSize: 22, fontWeight: 900, margin: "6px 0 14px" }}>
           {ex.nome}
           {ex.custom && <span style={S.tagCustom}>Meu</span>}
@@ -814,10 +846,10 @@ function DetalheExercicio({ ex, onVoltar }) {
             <MapaMuscular p={p} s={s} />
             <div style={{ fontSize: 13, lineHeight: 1.6, margin: "12px 0 16px" }}>
               {p.length > 0 && (
-                <div><span style={{ color: COR_DIRETO, fontWeight: 800 }}>Direto: </span>{p.map((m) => MUSCULOS[m]).join(", ")}</div>
+                <div><span style={{ color: corMuscTxt("p"), fontWeight: 800 }}>Direto: </span>{p.map((m) => MUSCULOS[m]).join(", ")}</div>
               )}
               {s.length > 0 && (
-                <div><span style={{ color: COR_INDIRETO, fontWeight: 800 }}>Indireto: </span>{s.map((m) => MUSCULOS[m]).join(", ")}</div>
+                <div><span style={{ color: corMuscTxt("s"), fontWeight: 800 }}>Indireto: </span>{s.map((m) => MUSCULOS[m]).join(", ")}</div>
               )}
             </div>
           </React.Fragment>
@@ -836,7 +868,7 @@ function DetalheExercicio({ ex, onVoltar }) {
           </React.Fragment>
         )}
         {ex.dica && (
-          <div style={{ background: "#000000", borderRadius: 10, padding: 12, fontSize: 14, lineHeight: 1.5 }}>
+          <div style={{ background: "var(--bg)", borderRadius: 10, padding: 12, fontSize: 14, lineHeight: 1.5 }}>
             <span style={{ color: "#E1306C", fontWeight: 800 }}>Dica: </span>{ex.dica}
           </div>
         )}
@@ -865,7 +897,7 @@ function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicio
     return (
       <div style={{ padding: "0 18px" }}>
         <button style={S.voltar} onClick={() => setGrupoAberto(null)}>← Grupos</button>
-        <div style={{ fontSize: 24, fontWeight: 900, textTransform: "uppercase", marginBottom: 12, color: g.cor }}>{g.nome}</div>
+        <div style={{ fontSize: 24, fontWeight: 900, textTransform: "uppercase", marginBottom: 12, color: corGrupo(g) }}>{g.nome}</div>
         {lista.map((ex) => (
           <CardExercicio key={ex.id} ex={ex} onAbrir={() => setExercicioAberto(ex.id)} onExcluir={onExcluirCustom} />
         ))}
@@ -887,7 +919,7 @@ function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicio
             <CardExercicio key={ex.id} ex={ex} onAbrir={() => setExercicioAberto(ex.id)} onExcluir={onExcluirCustom} />
           ))}
           {resultados.length === 0 && (
-            <div style={{ ...S.card, textAlign: "center", color: "#A8A8A8" }}>
+            <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
               Nenhum exercício com esse nome. Toque em "Criar exercício próprio" para adicioná-lo.
             </div>
           )}
@@ -899,12 +931,12 @@ function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicio
             return (
               <div key={g.id} onClick={() => setGrupoAberto(g.id)} style={{ cursor: "pointer", textAlign: "center" }}>
                 <div style={{ width: 82, height: 82, margin: "0 auto", borderRadius: "50%", padding: 3, background: "linear-gradient(45deg, #FEDA75, #FA7E1E, #D62976, #962FBF, #4F5BD5)", boxSizing: "border-box" }}>
-                  <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#000000", border: "3px solid #000000", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: g.cor }}>
+                  <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "var(--bg)", border: "3px solid var(--bg)", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: corGrupo(g) }}>
                     {g.nome[0]}
                   </div>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 700, marginTop: 7, color: "#F2F0EB" }}>{g.nome}</div>
-                <div style={{ fontSize: 10, color: "#A8A8A8", marginTop: 1 }}>{qtd} exerc.</div>
+                <div style={{ fontSize: 12, fontWeight: 700, marginTop: 7, color: "var(--texto)" }}>{g.nome}</div>
+                <div style={{ fontSize: 10, color: "var(--cinza)", marginTop: 1 }}>{qtd} exerc.</div>
               </div>
             );
           })}
@@ -966,9 +998,9 @@ function FormNovoExercicio({ grupoSugerido, onSalvar, onCancelar, avisar }) {
           {GRUPOS.map((g) => (
             <button key={g.id} onClick={() => setGrupo(g.id)}
               style={{
-                border: "1px solid", borderColor: grupo === g.id ? g.cor : "#363636",
-                background: grupo === g.id ? g.cor + "22" : "transparent",
-                color: grupo === g.id ? g.cor : "#A8A8A8",
+                border: "1px solid", borderColor: grupo === g.id ? corGrupo(g) : "var(--borda2)",
+                background: grupo === g.id ? corGrupo(g) + "22" : "transparent",
+                color: grupo === g.id ? corGrupo(g) : "var(--cinza)",
                 borderRadius: 8, padding: "8px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer",
               }}>
               {g.nome}
@@ -977,17 +1009,17 @@ function FormNovoExercicio({ grupoSugerido, onSalvar, onCancelar, avisar }) {
         </div>
 
         <div style={{ ...S.label, margin: "16px 0 4px" }}>Músculos trabalhados (opcional)</div>
-        <div style={{ fontSize: 12, color: "#A8A8A8", marginBottom: 8 }}>
+        <div style={{ fontSize: 12, color: "var(--cinza)", marginBottom: 8 }}>
           Toque 1x = direto (vermelho) · 2x = indireto (amarelo) · 3x = remove
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {Object.keys(MUSCULOS).map((id) => {
             const estado = musc[id];
-            const cor = estado === "p" ? COR_DIRETO : estado === "s" ? COR_INDIRETO : "#A8A8A8";
+            const cor = estado ? corMuscTxt(estado) : "var(--cinza)";
             return (
               <button key={id} onClick={() => cicloMusc(id)}
                 style={{
-                  border: "1px solid", borderColor: estado ? cor : "#363636",
+                  border: "1px solid", borderColor: estado ? cor : "var(--borda2)",
                   background: estado ? cor + "22" : "transparent",
                   color: cor, borderRadius: 8, padding: "7px 10px", fontWeight: 700, fontSize: 12, cursor: "pointer",
                 }}>
@@ -1033,21 +1065,21 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
         <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 12 }}>{prog.nome}</div>
         <button style={{ ...S.btn, marginBottom: 14 }} onClick={() => onNovaFicha(prog.id)}>+ Nova ficha neste treino</button>
         {fichas.length === 0 && (
-          <div style={{ ...S.card, textAlign: "center", color: "#A8A8A8" }}>
+          <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
             Nenhuma ficha aqui ainda. Crie a primeira (ex.: Treino A - Peito).
           </div>
         )}
         {fichas.map((t) => (
           <div key={t.id} style={S.card}>
             <div style={{ fontWeight: 900, fontSize: 18 }}>{t.nome}</div>
-            <div style={{ color: "#A8A8A8", fontSize: 13, margin: "4px 0 12px" }}>
+            <div style={{ color: "var(--cinza)", fontSize: 13, margin: "4px 0 12px" }}>
               {t.itens.map((it) => { const e = exPorId(it.exercicioId); return e ? e.nome : null; }).filter(Boolean).join(" · ") || "Sem exercícios"}
             </div>
             <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}>▶ Treinar</button>
             <div style={{ display: "flex", gap: 8 }}>
               <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onEditar(t)}>Editar</button>
               <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66" }} onClick={() => onCompartilharFicha(t)}>📤 Enviar</button>
-              <button style={{ ...S.btnGhost, flex: 1, color: "#F58E8E", borderColor: "#F58E8E55" }}
+              <button style={{ ...S.btnGhost, flex: 1, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}
                 onClick={() => pedirConfirmacao("Excluir esta ficha?", () => onExcluirFicha(t.id))}>Excluir</button>
             </div>
           </div>
@@ -1064,7 +1096,7 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
         🧭 Montar treino pra mim (assistente)
       </button>
       {programas.length === 0 && (
-        <div style={{ ...S.card, textAlign: "center", color: "#A8A8A8" }}>
+        <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
           Crie seu primeiro treino: ele agrupa suas fichas (ex.: "Treino Iniciante" com fichas A, B e C).
         </div>
       )}
@@ -1073,14 +1105,14 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
         return (
           <div key={p.id} style={S.card}>
             <div style={{ fontWeight: 900, fontSize: 19 }}>📋 {p.nome}</div>
-            <div style={{ color: "#A8A8A8", fontSize: 13, margin: "4px 0 12px" }}>
+            <div style={{ color: "var(--cinza)", fontSize: 13, margin: "4px 0 12px" }}>
               {fichas.length} ficha(s){fichas.length ? ": " + fichas.map((f) => f.nome).join(" · ") : ""}
             </div>
             <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => setProgAberto(p.id)}>Abrir fichas</button>
             <div style={{ display: "flex", gap: 8 }}>
               <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onRenomearPrograma(p)}>Renomear</button>
               <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66" }} onClick={() => onCompartilharPrograma(p)}>📤 Enviar</button>
-              <button style={{ ...S.btnGhost, flex: 1, color: "#F58E8E", borderColor: "#F58E8E55" }} onClick={() => onExcluirPrograma(p)}>Excluir</button>
+              <button style={{ ...S.btnGhost, flex: 1, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }} onClick={() => onExcluirPrograma(p)}>Excluir</button>
             </div>
           </div>
         );
@@ -1095,7 +1127,7 @@ function TelaAssistente({ onGerar, onCancelar }) {
   const [nivel, setNivel] = useState("iniciante");
   const Chip = ({ ativo, onClick, children }) => (
     <button onClick={onClick}
-      style={{ border: "1px solid", borderColor: ativo ? "#E1306C" : "#363636", background: ativo ? "#E1306C22" : "transparent", color: ativo ? "#E1306C" : "#A8A8A8", borderRadius: 10, padding: "12px 10px", fontWeight: 800, fontSize: 14, cursor: "pointer", flex: 1 }}>
+      style={{ border: "1px solid", borderColor: ativo ? "#E1306C" : "var(--borda2)", background: ativo ? "#E1306C22" : "transparent", color: ativo ? "#E1306C" : "var(--cinza)", borderRadius: 10, padding: "12px 10px", fontWeight: 800, fontSize: 14, cursor: "pointer", flex: 1 }}>
       {children}
     </button>
   );
@@ -1104,7 +1136,7 @@ function TelaAssistente({ onGerar, onCancelar }) {
       <button style={S.voltar} onClick={onCancelar}>← Voltar</button>
       <div style={S.card}>
         <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 4 }}>🧭 Assistente de treino</div>
-        <div style={{ color: "#A8A8A8", fontSize: 14, marginBottom: 18 }}>Responda 3 perguntas e eu monto seu treino completo, prontinho para editar.</div>
+        <div style={{ color: "var(--cinza)", fontSize: 14, marginBottom: 18 }}>Responda 3 perguntas e eu monto seu treino completo, prontinho para editar.</div>
 
         <div style={S.label}>1. Qual seu objetivo?</div>
         <div style={{ display: "flex", gap: 8, margin: "8px 0 16px" }}>
@@ -1156,14 +1188,14 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
 
       <div style={S.label}>Exercícios da ficha</div>
       <div style={{ margin: "8px 0 16px" }}>
-        {t.itens.length === 0 && <div style={{ color: "#A8A8A8", fontSize: 14, padding: "8px 0" }}>Adicione exercícios da lista abaixo.</div>}
+        {t.itens.length === 0 && <div style={{ color: "var(--cinza)", fontSize: 14, padding: "8px 0" }}>Adicione exercícios da lista abaixo.</div>}
         {t.itens.map((it, i) => {
           const e = exPorId(it.exercicioId);
           return (
             <div key={i} style={{ ...S.card, padding: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ fontWeight: 800, fontSize: 15, flex: 1 }}>{e ? e.nome : "Exercício removido"}</div>
-                <button style={{ background: "none", border: "none", color: "#F58E8E", fontSize: 18, cursor: "pointer" }} onClick={() => rmEx(i)}>✕</button>
+                <button style={{ background: "none", border: "none", color: "var(--perigo)", fontSize: 18, cursor: "pointer" }} onClick={() => rmEx(i)}>✕</button>
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
                 <div style={{ flex: 1 }}>
@@ -1193,7 +1225,7 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
             <div style={{ fontWeight: 700, fontSize: 14 }}>
               {ex.nome}{ex.custom && <span style={S.tagCustom}>Meu</span>}
             </div>
-            <div style={{ fontSize: 12, color: grupoPorId(ex.grupo).cor }}>{grupoPorId(ex.grupo).nome}</div>
+            <div style={{ fontSize: 12, color: corGrupo(grupoPorId(ex.grupo)) }}>{grupoPorId(ex.grupo).nome}</div>
           </div>
           <button style={{ background: GRAD, color: "#FFFFFF", border: "none", borderRadius: 10, width: 34, height: 34, fontWeight: 900, fontSize: 18, cursor: "pointer" }}
             onClick={() => addEx(ex.id)}>+</button>
@@ -1283,7 +1315,7 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
   const btnSom = (
     <button onClick={() => { setSom(!som); if (!som) beep(700, 0.1, 0.2); }}
       title={som ? "Desligar som" : "Ligar som"}
-      style={{ width: 42, height: 42, borderRadius: 10, border: "1px solid " + (som ? "#E1306C66" : "#363636"), background: som ? "#E1306C22" : "transparent", fontSize: 18, cursor: "pointer" }}>
+      style={{ width: 42, height: 42, borderRadius: 10, border: "1px solid " + (som ? "#E1306C66" : "var(--borda2)"), background: som ? "#E1306C22" : "transparent", fontSize: 18, cursor: "pointer" }}>
       {som ? "🔊" : "🔇"}
     </button>
   );
@@ -1303,14 +1335,14 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
       <div style={{ ...S.card, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div style={{ flex: 1 }}>
           <div style={S.label}>Descanso entre séries</div>
-          <div style={{ fontSize: 12, color: "#A8A8A8", marginTop: 2 }}>Inicia ao marcar uma série ✓</div>
+          <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 2 }}>Inicia ao marcar uma série ✓</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={() => setDescanso(Math.max(15, descanso - 15))}
-            style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid #363636", background: "transparent", color: "#F2F0EB", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>−</button>
+            style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>−</button>
           <div style={{ fontWeight: 900, fontSize: 17, color: "#E1306C", minWidth: 48, textAlign: "center" }}>{fmt(descanso)}</div>
           <button onClick={() => setDescanso(Math.min(600, descanso + 15))}
-            style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid #363636", background: "transparent", color: "#F2F0EB", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>+</button>
+            style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>+</button>
           {btnSom}
         </div>
       </div>
@@ -1336,14 +1368,14 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
             </div>
             {it.series.map((s, si) => (
               <div key={si} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, opacity: s.feito ? 0.55 : 1 }}>
-                <div style={{ width: 30, fontWeight: 900, color: "#A8A8A8", textAlign: "center" }}>{si + 1}</div>
+                <div style={{ width: 30, fontWeight: 900, color: "var(--cinza)", textAlign: "center" }}>{si + 1}</div>
                 <input type="number" inputMode="decimal" placeholder="0" style={{ ...S.inputMini, flex: 1 }} value={s.peso}
                   onChange={(e) => upSerie(ei, si, "peso", e.target.value)} />
                 <input type="number" inputMode="numeric" style={{ ...S.inputMini, flex: 1 }} value={s.reps}
                   onChange={(e) => upSerie(ei, si, "reps", e.target.value)} />
                 <button onClick={() => marcarSerie(ei, si)}
                   style={{ width: 44, height: 42, borderRadius: 8, border: "none", fontWeight: 900, fontSize: 18, cursor: "pointer",
-                    background: s.feito ? GRAD : "#262626", color: s.feito ? "#FFFFFF" : "#A8A8A8" }}>✓</button>
+                    background: s.feito ? GRAD : "var(--borda)", color: s.feito ? "#FFFFFF" : "var(--cinza)" }}>✓</button>
               </div>
             ))}
 
@@ -1356,26 +1388,26 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
       })}
 
       <button style={{ ...S.btn, marginTop: 4 }} onClick={onFinalizar}>Finalizar treino</button>
-      <button style={{ ...S.btnGhost, marginTop: 10, color: "#F58E8E", borderColor: "#F58E8E55" }}
+      <button style={{ ...S.btnGhost, marginTop: 10, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}
         onClick={() => pedirConfirmacao("Descartar este treino sem salvar?", onDescartar)}>
         Descartar
       </button>
 
       {/* Barra do cronômetro de descanso */}
       {fimDescanso && (
-        <div style={{ position: "fixed", bottom: "calc(64px + env(safe-area-inset-bottom))", left: 0, right: 0, background: acabou ? "#173B1E" : "#0A0A0A", borderTop: "2px solid " + (acabou ? "#4ADE80" : "#E1306C"), borderBottom: "1px solid #262626", padding: "12px 18px 14px", zIndex: 20 }}>
+        <div style={{ position: "fixed", bottom: "calc(64px + env(safe-area-inset-bottom))", left: 0, right: 0, background: acabou ? "var(--ok-bg)" : "var(--bg2)", borderTop: "2px solid " + (acabou ? "var(--ok)" : "#E1306C"), borderBottom: "1px solid var(--borda)", padding: "12px 18px 14px", zIndex: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <div style={{ ...S.label, color: acabou ? "#4ADE80" : "#A8A8A8" }}>
+              <div style={{ ...S.label, color: acabou ? "var(--ok)" : "var(--cinza)" }}>
                 {acabou ? "Descanso concluído!" : "Descansando"}
               </div>
-              <div style={{ fontSize: 30, fontWeight: 900, color: acabou ? "#4ADE80" : "#E1306C", fontVariantNumeric: "tabular-nums" }}>
+              <div style={{ fontSize: 30, fontWeight: 900, color: acabou ? "var(--ok)" : "#E1306C", fontVariantNumeric: "tabular-nums" }}>
                 {acabou ? "Bora! 💪" : fmt(restante)}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <button onClick={() => { setSom(!som); if (!som) beep(700, 0.1, 0.2); }}
-                style={{ width: 40, height: 40, borderRadius: 8, border: "1px solid #363636", background: "transparent", fontSize: 16, cursor: "pointer" }}>
+                style={{ width: 40, height: 40, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", fontSize: 16, cursor: "pointer" }}>
                 {som ? "🔊" : "🔇"}
               </button>
               {!acabou && (
@@ -1385,13 +1417,13 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
                 </button>
               )}
               <button onClick={fecharDescanso}
-                style={{ border: "1px solid #363636", background: "transparent", color: "#F2F0EB", borderRadius: 8, padding: "10px 14px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+                style={{ border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", borderRadius: 8, padding: "10px 14px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
                 {acabou ? "OK" : "Pular"}
               </button>
             </div>
           </div>
           {!acabou && (
-            <div style={{ height: 5, background: "#262626", borderRadius: 3, marginTop: 10, overflow: "hidden" }}>
+            <div style={{ height: 5, background: "var(--borda)", borderRadius: 3, marginTop: 10, overflow: "hidden" }}>
               <div style={{ height: "100%", width: pct + "%", background: restante <= 3 ? "#ED4956" : "#E1306C", borderRadius: 3, transition: "width 0.25s linear" }} />
             </div>
           )}
@@ -1407,7 +1439,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, pedirConfirmacao }) {
       <GraficoEvolucao historico={historico} exPorId={exPorId} />
 
       {historico.length === 0 && (
-        <div style={{ ...S.card, textAlign: "center", color: "#A8A8A8" }}>
+        <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
           Seus treinos concluídos aparecem aqui, com as cargas de cada série.
         </div>
       )}
@@ -1419,12 +1451,12 @@ function TelaHistorico({ historico, exPorId, onExcluir, pedirConfirmacao }) {
               <div style={{ color: "#E1306C", fontWeight: 800, fontSize: 13 }}>{h.duracaoMin} min</div>
               <button title="Excluir este treino do histórico"
                 onClick={() => pedirConfirmacao("Excluir este treino do histórico? Essa ação não pode ser desfeita.", () => onExcluir(h.id))}
-                style={{ background: "none", border: "1px solid #F58E8E55", color: "#F58E8E", borderRadius: 8, width: 30, height: 30, fontSize: 14, fontWeight: 900, cursor: "pointer" }}>
+                style={{ background: "none", border: "1px solid var(--perigo-borda)", color: "var(--perigo)", borderRadius: 8, width: 30, height: 30, fontSize: 14, fontWeight: 900, cursor: "pointer" }}>
                 🗑
               </button>
             </div>
           </div>
-          <div style={{ color: "#A8A8A8", fontSize: 12, margin: "2px 0 10px" }}>
+          <div style={{ color: "var(--cinza)", fontSize: 12, margin: "2px 0 10px" }}>
             {new Date(h.data).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
           </div>
           {h.itens.map((it, i) => {
@@ -1432,10 +1464,10 @@ function TelaHistorico({ historico, exPorId, onExcluir, pedirConfirmacao }) {
             return (
               <div key={i} style={{ fontSize: 13, marginBottom: 6, lineHeight: 1.5 }}>
                 <span style={{ fontWeight: 700 }}>{(e ? e.nome : "Exercício")}: </span>
-                <span style={{ color: "#A8A8A8" }}>
+                <span style={{ color: "var(--cinza)" }}>
                   {it.series.map((s) => (s.peso || 0) + "kg×" + (s.reps || 0)).join("  ·  ")}
                 </span>
-                {it.obs && <div style={{ color: "#C7A94B", fontSize: 12, fontStyle: "italic", marginTop: 2 }}>📝 {it.obs}</div>}
+                {it.obs && <div style={{ color: "var(--obs)", fontSize: 12, fontStyle: "italic", marginTop: 2 }}>📝 {it.obs}</div>}
               </div>
             );
           })}
@@ -1455,7 +1487,12 @@ function TreinoLivre() {
   const [progAberto, setProgAberto] = useState(null);
   const [descanso, setDescanso] = useState(90);
   const [som, setSom] = useState(true);
+  const [tema, setTema] = useState("escuro");
   const [carregado, setCarregado] = useState(false);
+
+  useEffect(() => {
+    try { document.documentElement.setAttribute("data-tema", tema); } catch (e) {}
+  }, [tema]);
 
   const [grupoAberto, setGrupoAberto] = useState(null);
   const [exercicioAberto, setExercicioAberto] = useState(null);
@@ -1476,7 +1513,7 @@ function TreinoLivre() {
   };
 
   const exportarDados = () => {
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, programas, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, seedV3: true });
     setModal({
       msg: "Backup dos seus dados. Toque em Copiar e guarde em local seguro (ex.: cole numa conversa sua no WhatsApp). Para restaurar, use Importar dados.",
       texto: dados,
@@ -1511,6 +1548,7 @@ function TreinoLivre() {
     });
   };
 
+  TEMA_APP = tema;
   const todos = [...EXERCICIOS, ...customEx];
   const exPorId = (id) => todos.find((e) => e.id === id);
 
@@ -1525,6 +1563,7 @@ function TreinoLivre() {
         ce = d.customEx || [];
         de = d.descanso || 90;
         so = d.som !== undefined ? d.som : true;
+        if (d.tema) setTema(d.tema);
         pg = d.programas || null;
         seed = !!d.seedV3;
       }
@@ -1596,8 +1635,8 @@ function TreinoLivre() {
 
   useEffect(() => {
     if (!carregado) return;
-    store.set(STORAGE_KEY, JSON.stringify({ treinos, historico, customEx, descanso, som, programas, seedV3: true }));
-  }, [treinos, historico, customEx, descanso, som, programas, carregado]);
+    store.set(STORAGE_KEY, JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, seedV3: true }));
+  }, [treinos, historico, customEx, descanso, som, tema, programas, carregado]);
 
   const comecarSessao = (treino) => {
     setSessao({
@@ -1855,7 +1894,7 @@ function TreinoLivre() {
 
   return (
     <div style={S.app}>
-      <Header titulo={titulos[aba]} />
+      <Header titulo={titulos[aba]} tema={tema} onTema={() => setTema(tema === "escuro" ? "claro" : "escuro")} />
       <div style={{ paddingTop: 14 }}>
         {aba === "inicio" && (
           <TelaInicio programas={programas} treinos={treinos} historico={historico} totalEx={todos.length}
@@ -1917,7 +1956,7 @@ function TreinoLivre() {
       {modal && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.75)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
           onClick={() => setModal(null)}>
-          <div style={{ ...S.card, width: "100%", maxWidth: 340, marginBottom: 0, borderColor: "#363636" }}
+          <div style={{ ...S.card, width: "100%", maxWidth: 340, marginBottom: 0, borderColor: "var(--borda2)" }}
             onClick={(e) => e.stopPropagation()}>
             <div style={{ fontSize: 15, lineHeight: 1.6, marginBottom: 16, whiteSpace: "pre-line" }}>{modal.msg}</div>
             {modal.prompt && (
@@ -1931,11 +1970,11 @@ function TreinoLivre() {
                 setModal(null);
                 const blob = await gerarImagemStory([
                   { t: "TREINO CONCLUÍDO! 🎉", tam: 64, cor: "#E1306C", esp: 80 },
-                  { t: st.nome, tam: 50, esp: 110 },
+                  { t: st.nome, tam: 50, cor: "#F2F0EC", esp: 110 },
                   { t: String(st.series), tam: 150, cor: "#E1306C", esp: 30 },
-                  { t: "séries concluídas", tam: 40, cor: "#A8A8A8", esp: 110 },
+                  { t: "séries concluídas", tam: 40, cor: "var(--cinza)", esp: 110 },
                   { t: st.volume.toLocaleString("pt-BR") + " kg", tam: 110, cor: "#ED4956", esp: 30 },
-                  { t: "de volume movido", tam: 40, cor: "#A8A8A8", esp: 110 },
+                  { t: "de volume movido", tam: 40, cor: "var(--cinza)", esp: 110 },
                   { t: "⏱ " + st.duracao + " min de treino", tam: 46, esp: 40 },
                 ]);
                 compartilharImagem(blob, "Treino concluído no Treino Livre! 💪 " + LINK_APP, avisar);
@@ -1976,16 +2015,16 @@ function TreinoLivre() {
       {sessao && aba !== "sessao" && (
         <div style={{ position: "fixed", bottom: "calc(72px + env(safe-area-inset-bottom))", left: 12, right: 12, zIndex: 15 }}>
           <button onClick={() => setAba("sessao")}
-            style={{ ...S.btn, boxShadow: "0 4px 16px rgba(0,0,0,0.5)", border: "2px solid #000000" }}>
+            style={{ ...S.btn, boxShadow: "0 4px 16px rgba(0,0,0,0.5)", border: "2px solid var(--bg)" }}>
             ▶ Continuar treino — {sessao.nome}
           </button>
         </div>
       )}
 
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#0A0A0A", borderTop: "1px solid #262626", display: "flex", padding: "8px 0", paddingBottom: "calc(14px + env(safe-area-inset-bottom))", zIndex: 10 }}>
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--bg2)", borderTop: "1px solid var(--borda)", display: "flex", padding: "8px 0", paddingBottom: "calc(14px + env(safe-area-inset-bottom))", zIndex: 10 }}>
         {abas.map((a) => (
           <button key={a.id} onClick={() => { setAba(a.id); setGrupoAberto(null); setExercicioAberto(null); setProgAberto(null); }}
-            style={{ flex: 1, background: "none", border: "none", cursor: "pointer", color: aba === a.id ? "#E1306C" : "#A8A8A8", fontWeight: aba === a.id ? 900 : 600 }}>
+            style={{ flex: 1, background: "none", border: "none", cursor: "pointer", color: aba === a.id ? "#E1306C" : "var(--cinza)", fontWeight: aba === a.id ? 900 : 600 }}>
             <div style={{ fontSize: 18 }}>{a.icone}</div>
             <div style={{ fontSize: 11, marginTop: 2 }}>{a.nome}</div>
           </button>

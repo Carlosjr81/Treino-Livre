@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#0E0F12" />
+<meta name="theme-color" content="#000000" />
 <title>Treino Livre</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 <style>
-  html, body { margin: 0; padding: 0; background: #0E0F12; }
+  html, body { margin: 0; padding: 0; background: #000000; }
   * { -webkit-tap-highlight-color: transparent; }
   a { color: #8ECDF5; }
   select { appearance: none; -webkit-appearance: none; }
@@ -86,9 +86,9 @@ function gerarImagemStory(linhas) {
   const cv = document.createElement("canvas");
   cv.width = 1080; cv.height = 1920;
   const c = cv.getContext("2d");
-  c.fillStyle = "#0E0F12"; c.fillRect(0, 0, 1080, 1920);
+  c.fillStyle = "#000000"; c.fillRect(0, 0, 1080, 1920);
   const faixa = (y) => {
-    c.fillStyle = "#FFD60A";
+    c.fillStyle = "#E1306C";
     for (let x = 40; x < 1000; x += 52) {
       c.beginPath(); c.moveTo(x, y + 22); c.lineTo(x + 22, y + 22); c.lineTo(x + 44, y); c.lineTo(x + 22, y); c.closePath(); c.fill();
     }
@@ -104,8 +104,8 @@ function gerarImagemStory(linhas) {
     y += (l.tam || 56) + (l.esp || 44);
   });
   faixa(1680);
-  c.fillStyle = "#FFD60A"; c.font = "bold 42px sans-serif"; c.fillText("carlosjr81.github.io/Treino-Livre", 540, 1780);
-  c.fillStyle = "#8A8F98"; c.font = "30px sans-serif"; c.fillText("App gratuito · por Carlos Jr · @carlos.jr.81", 540, 1840);
+  c.fillStyle = "#E1306C"; c.font = "bold 42px sans-serif"; c.fillText("carlosjr81.github.io/Treino-Livre", 540, 1780);
+  c.fillStyle = "#A8A8A8"; c.font = "30px sans-serif"; c.fillText("App gratuito · por Carlos Jr · @carlos.jr.81", 540, 1840);
   return new Promise((res) => cv.toBlob(res, "image/png"));
 }
 async function compartilharImagem(blob, texto, avisarFn) {
@@ -170,7 +170,7 @@ function beep(freq, dur, vol) {
 
 // ---------------- GRUPOS MUSCULARES ----------------
 const GRUPOS = [
-  { id: "peito", nome: "Peito", cor: "#FFD60A" },
+  { id: "peito", nome: "Peito", cor: "#E1306C" },
   { id: "costas", nome: "Costas", cor: "#8ECDF5" },
   { id: "pernas", nome: "Pernas", cor: "#F58E8E" },
   { id: "ombros", nome: "Ombros", cor: "#C7F58E" },
@@ -323,26 +323,28 @@ const FICHAS_PADRAO = [
   { id: "padrao-sab", nome: "Sábado - Bíceps e Tríceps", itens: mkItens(["rosca-direta", "rosca-scott", "triceps-frances", "rosca-alternada", "rosca-spider", "rosca-concentrada", "rosca-martelo", "rosca-polia-alta", "triceps-polia", "triceps-invertido", "triceps-corda"]) },
 ];
 
-const grupoPorId = (id) => GRUPOS.find((g) => g.id === id) || { nome: "Outro", cor: "#8A8F98" };
+const grupoPorId = (id) => GRUPOS.find((g) => g.id === id) || { nome: "Outro", cor: "#A8A8A8" };
 
-const COR_DIRETO = "#FF453A";
-const COR_INDIRETO = "#FFD60A";
-const COR_MUSCULO = "#262A31";
+const COR_DIRETO = "#FF453B";
+const COR_INDIRETO = "#FFD60B";
+const COR_MUSCULO = "#2A2A2A";
 
 // ---------------- ESTILOS ----------------
+const GRAD = "linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)";
+const GRAD_LINHA = "linear-gradient(90deg, #FEDA75, #FA7E1E, #D62976, #962FBF, #4F5BD5)";
 const S = {
-  app: { minHeight: "100vh", background: "#0E0F12", color: "#F2F0EB", fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif", paddingBottom: "calc(96px + env(safe-area-inset-bottom))" },
-  header: { padding: "20px 18px 10px", position: "sticky", top: 0, background: "#0E0F12", zIndex: 5 },
-  logo: { fontSize: 22, fontWeight: 900, letterSpacing: -0.5, textTransform: "uppercase" },
-  faixa: { height: 6, marginTop: 8, background: "repeating-linear-gradient(45deg,#FFD60A 0 12px,#0E0F12 12px 24px)", borderRadius: 3 },
-  card: { background: "#17191E", borderRadius: 14, padding: 16, marginBottom: 12, border: "1px solid #23262D" },
-  label: { fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, color: "#8A8F98", fontWeight: 700 },
-  btn: { background: "#FFD60A", color: "#0E0F12", border: "none", borderRadius: 10, padding: "13px 16px", fontWeight: 800, fontSize: 15, width: "100%", cursor: "pointer" },
-  btnGhost: { background: "transparent", color: "#F2F0EB", border: "1px solid #33363E", borderRadius: 10, padding: "12px 16px", fontWeight: 700, fontSize: 14, width: "100%", cursor: "pointer" },
-  input: { background: "#0E0F12", border: "1px solid #33363E", borderRadius: 10, color: "#F2F0EB", padding: "12px 14px", fontSize: 16, width: "100%", boxSizing: "border-box" },
-  inputMini: { background: "#0E0F12", border: "1px solid #33363E", borderRadius: 8, color: "#F2F0EB", padding: "10px 8px", fontSize: 16, width: "100%", boxSizing: "border-box", textAlign: "center" },
-  voltar: { background: "none", border: "none", color: "#FFD60A", fontWeight: 800, fontSize: 14, padding: 0, cursor: "pointer", marginBottom: 12 },
-  tagCustom: { display: "inline-block", background: "#FFD60A22", color: "#FFD60A", borderRadius: 6, padding: "2px 8px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, marginLeft: 8 },
+  app: { minHeight: "100vh", background: "#000000", color: "#F2F0EB", fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif", paddingBottom: "calc(96px + env(safe-area-inset-bottom))" },
+  header: { padding: "20px 18px 10px", position: "sticky", top: 0, background: "#000000", zIndex: 5 },
+  logo: { fontSize: 27, fontWeight: 900, letterSpacing: -0.5, display: "inline-block", backgroundImage: GRAD, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" },
+  faixa: { height: 4, marginTop: 10, background: GRAD_LINHA, borderRadius: 2 },
+  card: { background: "#121212", borderRadius: 18, padding: 16, marginBottom: 12, border: "1px solid #262626" },
+  label: { fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, color: "#A8A8A8", fontWeight: 700 },
+  btn: { background: GRAD, color: "#FFFFFF", border: "none", borderRadius: 12, padding: "13px 16px", fontWeight: 800, fontSize: 15, width: "100%", cursor: "pointer" },
+  btnGhost: { background: "transparent", color: "#F2F0EB", border: "1px solid #363636", borderRadius: 12, padding: "12px 16px", fontWeight: 700, fontSize: 14, width: "100%", cursor: "pointer" },
+  input: { background: "#000000", border: "1px solid #363636", borderRadius: 12, color: "#F2F0EB", padding: "12px 14px", fontSize: 16, width: "100%", boxSizing: "border-box" },
+  inputMini: { background: "#000000", border: "1px solid #363636", borderRadius: 10, color: "#F2F0EB", padding: "10px 8px", fontSize: 16, width: "100%", boxSizing: "border-box", textAlign: "center" },
+  voltar: { background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 14, padding: 0, cursor: "pointer", marginBottom: 12 },
+  tagCustom: { display: "inline-block", background: "#E1306C22", color: "#E1306C", borderRadius: 8, padding: "2px 8px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, marginLeft: 8 },
 };
 
 const abrirVideoDe = (nome) => {
@@ -395,11 +397,11 @@ function ImagemExercicio({ ex }) {
   }, [ex.id]);
 
   if (status === "carregando") {
-    return <div style={{ fontSize: 13, color: "#8A8F98", padding: "8px 0" }}>Carregando imagem de demonstração...</div>;
+    return <div style={{ fontSize: 13, color: "#A8A8A8", padding: "8px 0" }}>Carregando imagem de demonstração...</div>;
   }
   if (status === "erro" || !url) {
     return (
-      <div style={{ fontSize: 13, color: "#8A8F98", padding: "8px 0" }}>
+      <div style={{ fontSize: 13, color: "#A8A8A8", padding: "8px 0" }}>
         Sem imagem disponível para este exercício — use o botão de vídeo abaixo.
       </div>
     );
@@ -410,7 +412,7 @@ function ImagemExercicio({ ex }) {
         <img src={url} alt={"Demonstração: " + ex.nome} style={{ maxWidth: "100%", maxHeight: 240, borderRadius: 8 }}
           onError={() => { cacheImg[ex.id] = null; setStatus("erro"); }} />
       </div>
-      <div style={{ fontSize: 11, color: "#8A8F98", marginTop: 6, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 11, color: "#A8A8A8", marginTop: 6, lineHeight: 1.5 }}>
         Imagem: comunidade <a href="https://wger.de" target="_blank" rel="noreferrer">wger.de</a> · Licença{" "}
         <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.pt-br" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>
       </div>
@@ -421,7 +423,7 @@ function ImagemExercicio({ ex }) {
 // ---------------- MAPA MUSCULAR (SVG original) ----------------
 function CorpoBase() {
   return (
-    <g fill="#15171B" stroke="#2A2E36" strokeWidth="1">
+    <g fill="#121212" stroke="#2E2E2E" strokeWidth="1">
       <circle cx="60" cy="17" r="11" />
       <rect x="54" y="27" width="12" height="9" rx="3" />
       <rect x="42" y="35" width="36" height="66" rx="10" />
@@ -435,7 +437,7 @@ function CorpoBase() {
 
 function MapaMuscular({ p = [], s = [] }) {
   const cor = (id) => (p.includes(id) ? COR_DIRETO : s.includes(id) ? COR_INDIRETO : COR_MUSCULO);
-  const st = (id) => ({ fill: cor(id), stroke: "#0E0F12", strokeWidth: 0.8 });
+  const st = (id) => ({ fill: cor(id), stroke: "#000000", strokeWidth: 0.8 });
 
   return (
     <div>
@@ -524,7 +526,7 @@ function GraficoEvolucao({ historico, exPorId }) {
     return (
       <div style={S.card}>
         <div style={S.label}>Evolução</div>
-        <div style={{ color: "#8A8F98", fontSize: 14, marginTop: 8 }}>
+        <div style={{ color: "#A8A8A8", fontSize: 14, marginTop: 8 }}>
           Conclua treinos registrando os pesos para ver seu gráfico de evolução aqui.
         </div>
       </div>
@@ -558,16 +560,16 @@ function GraficoEvolucao({ historico, exPorId }) {
     svg = (
       <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", height: "auto" }}>
         {[0, 0.5, 1].map((f, i) => (
-          <line key={i} x1={x0} x2={x1} y1={y0 - f * (y0 - y1)} y2={y0 - f * (y0 - y1)} stroke="#23262D" strokeWidth="1" />
+          <line key={i} x1={x0} x2={x1} y1={y0 - f * (y0 - y1)} y2={y0 - f * (y0 - y1)} stroke="#262626" strokeWidth="1" />
         ))}
-        <text x={x0 - 4} y={y1 + 4} fill="#8A8F98" fontSize="10" textAnchor="end">{vmax}</text>
-        <text x={x0 - 4} y={y0 + 4} fill="#8A8F98" fontSize="10" textAnchor="end">{vmin}</text>
-        <polyline points={linha} fill="none" stroke="#FFD60A" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        <text x={x0 - 4} y={y1 + 4} fill="#A8A8A8" fontSize="10" textAnchor="end">{vmax}</text>
+        <text x={x0 - 4} y={y0 + 4} fill="#A8A8A8" fontSize="10" textAnchor="end">{vmin}</text>
+        <polyline points={linha} fill="none" stroke="#E1306C" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
         {pontos.map((pt, i) => (
-          <circle key={i} cx={px(i)} cy={py(pt.valor)} r="3.5" fill="#FF453A" stroke="#0E0F12" strokeWidth="1" />
+          <circle key={i} cx={px(i)} cy={py(pt.valor)} r="3.5" fill="#ED4956" stroke="#000000" strokeWidth="1" />
         ))}
-        <text x={x0} y={H - 4} fill="#8A8F98" fontSize="10">{fmtData(pontos[0].data)}</text>
-        <text x={x1} y={H - 4} fill="#8A8F98" fontSize="10" textAnchor="end">{fmtData(pontos[pontos.length - 1].data)}</text>
+        <text x={x0} y={H - 4} fill="#A8A8A8" fontSize="10">{fmtData(pontos[0].data)}</text>
+        <text x={x1} y={H - 4} fill="#A8A8A8" fontSize="10" textAnchor="end">{fmtData(pontos[pontos.length - 1].data)}</text>
       </svg>
     );
   }
@@ -592,9 +594,9 @@ function GraficoEvolucao({ historico, exPorId }) {
         {[["max", "Carga máxima"], ["volume", "Volume total"]].map(([m, nomeM]) => (
           <button key={m} onClick={() => setMetrica(m)}
             style={{
-              flex: 1, border: "1px solid", borderColor: metrica === m ? "#FFD60A" : "#33363E",
-              background: metrica === m ? "#FFD60A22" : "transparent",
-              color: metrica === m ? "#FFD60A" : "#8A8F98",
+              flex: 1, border: "1px solid", borderColor: metrica === m ? "#E1306C" : "#363636",
+              background: metrica === m ? "#E1306C22" : "transparent",
+              color: metrica === m ? "#E1306C" : "#A8A8A8",
               borderRadius: 8, padding: "8px 10px", fontWeight: 800, fontSize: 12, cursor: "pointer",
             }}>
             {nomeM}
@@ -612,7 +614,7 @@ function GraficoEvolucao({ historico, exPorId }) {
           </div>
         </React.Fragment>
       ) : (
-        <div style={{ color: "#8A8F98", fontSize: 13 }}>
+        <div style={{ color: "#A8A8A8", fontSize: 13 }}>
           Registre pelo menos 2 treinos com este exercício para ver a linha de evolução.
         </div>
       )}
@@ -634,8 +636,8 @@ function Header({ titulo }) {
 function Resumo({ num, txt }) {
   return (
     <div style={{ flex: 1, textAlign: "center" }}>
-      <div style={{ fontSize: 22, fontWeight: 900, color: "#FFD60A" }}>{num}</div>
-      <div style={{ fontSize: 11, color: "#8A8F98", textTransform: "uppercase", letterSpacing: 0.5 }}>{txt}</div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: "#E1306C" }}>{num}</div>
+      <div style={{ fontSize: 11, color: "#A8A8A8", textTransform: "uppercase", letterSpacing: 0.5 }}>{txt}</div>
     </div>
   );
 }
@@ -648,8 +650,8 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
   return (
     <div style={{ padding: "0 18px" }}>
       {NAVEGADOR_INAPP && (
-        <div style={{ ...S.card, borderColor: "#FF453A", background: "#2A1512" }}>
-          <div style={{ ...S.label, color: "#FF453A" }}>⚠ Atenção: seus dados podem não ficar salvos aqui</div>
+        <div style={{ ...S.card, borderColor: "#ED4956", background: "#2A1512" }}>
+          <div style={{ ...S.label, color: "#ED4956" }}>⚠ Atenção: seus dados podem não ficar salvos aqui</div>
           <div style={{ fontSize: 14, lineHeight: 1.6, margin: "8px 0 12px" }}>
             Você está no navegador interno do Instagram/WhatsApp, que apaga os dados salvos.
             Para não perder seus treinos, abra o app no <b>Chrome</b>: toque nos <b>⋮</b> (ou <b>···</b>) no
@@ -659,7 +661,7 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
         </div>
       )}
 
-      <div style={{ ...S.card, borderColor: "#FFD60A44" }}>
+      <div style={{ ...S.card, borderColor: "#E1306C44" }}>
         <div style={S.label}>Começar agora</div>
         <div style={{ fontSize: 18, fontWeight: 800, margin: "6px 0 12px" }}>
           {temFichas ? "Escolha sua ficha e bora treinar" : "Vamos montar seu primeiro treino"}
@@ -684,13 +686,13 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
           </React.Fragment>
         )}
         {temFichas && (
-          <button style={{ ...S.btnGhost, marginTop: 4, color: "#FFD60A", borderColor: "#FFD60A66" }} onClick={onAssistente}>
+          <button style={{ ...S.btnGhost, marginTop: 4, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onAssistente}>
             🧭 Montar treino pra mim (assistente)
           </button>
         )}
       </div>
 
-      <div style={{ ...S.card, borderColor: "#FF453A44" }}>
+      <div style={{ ...S.card, borderColor: "#ED495644" }}>
         <div style={S.label}>Seu progresso</div>
         <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
           <Resumo num={"🔥 " + est.streak} txt="dias seguidos" />
@@ -703,14 +705,14 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
             const ok = c.cond(est);
             return (
               <div key={c.id}
-                style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid " + (ok ? "#FFD60A66" : "#23262D"), background: ok ? "#FFD60A18" : "transparent", fontSize: 12, color: ok ? "#F2F0EB" : "#5A5F68", fontWeight: 700 }}>
+                style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid " + (ok ? "#E1306C66" : "#262626"), background: ok ? "#E1306C18" : "transparent", fontSize: 12, color: ok ? "#F2F0EB" : "#5A5F68", fontWeight: 700 }}>
                 {c.icone} {c.nome}
               </div>
             );
           })}
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-          <button style={{ ...S.btnGhost, flex: 1, color: "#FFD60A", borderColor: "#FFD60A66" }} onClick={onStoryProgresso}>📸 Story</button>
+          <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onStoryProgresso}>📸 Story</button>
           <button style={{ ...S.btnGhost, flex: 1 }} onClick={onDesafiar}>⚔️ Desafiar amigo</button>
         </div>
       </div>
@@ -728,7 +730,7 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
         <div style={S.card}>
           <div style={S.label}>Último treino</div>
           <div style={{ fontWeight: 800, fontSize: 16, marginTop: 6 }}>{ultima.nome}</div>
-          <div style={{ color: "#8A8F98", fontSize: 13, marginTop: 2 }}>
+          <div style={{ color: "#A8A8A8", fontSize: 13, marginTop: 2 }}>
             {new Date(ultima.data).toLocaleDateString("pt-BR")} · {ultima.duracaoMin} min · {ultima.itens.length} exercícios
           </div>
         </div>
@@ -736,7 +738,7 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
 
       <div style={S.card}>
         <div style={S.label}>Seus dados (backup)</div>
-        <div style={{ fontSize: 13, color: "#8A8F98", lineHeight: 1.6, margin: "8px 0 12px" }}>
+        <div style={{ fontSize: 13, color: "#A8A8A8", lineHeight: 1.6, margin: "8px 0 12px" }}>
           Seus treinos ficam salvos neste aparelho e navegador. Exporte um backup de vez em quando
           para garantir — dá até pra colar numa conversa sua no WhatsApp e restaurar quando quiser.
         </div>
@@ -757,7 +759,7 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
             </a>
           </div>
         </div>
-        <div style={{ fontSize: 12, color: "#8A8F98", lineHeight: 1.7, marginTop: 10 }}>
+        <div style={{ fontSize: 12, color: "#A8A8A8", lineHeight: 1.7, marginTop: 10 }}>
           Imagens de demonstração dos exercícios: banco de dados aberto{" "}
           <a href="https://wger.de" target="_blank" rel="noreferrer">wger.de</a> e sua comunidade de colaboradores,
           sob a licença{" "}
@@ -777,7 +779,7 @@ function CardExercicio({ ex, onAbrir, onExcluir }) {
           {ex.nome}
           {ex.custom && <span style={S.tagCustom}>Meu</span>}
         </div>
-        <div style={{ color: "#8A8F98", fontSize: 13, marginTop: 2 }}>{ex.equip || "Equipamento livre"}</div>
+        <div style={{ color: "#A8A8A8", fontSize: 13, marginTop: 2 }}>{ex.equip || "Equipamento livre"}</div>
       </div>
       {ex.custom && (
         <button
@@ -821,7 +823,7 @@ function DetalheExercicio({ ex, onVoltar }) {
           </React.Fragment>
         )}
 
-        <button style={{ ...S.btnGhost, marginBottom: 16, borderColor: "#FFD60A66", color: "#FFD60A" }} onClick={() => abrirVideoDe(ex.nome)}>
+        <button style={{ ...S.btnGhost, marginBottom: 16, borderColor: "#E1306C66", color: "#E1306C" }} onClick={() => abrirVideoDe(ex.nome)}>
           ▶ Ver demonstração em vídeo
         </button>
 
@@ -834,8 +836,8 @@ function DetalheExercicio({ ex, onVoltar }) {
           </React.Fragment>
         )}
         {ex.dica && (
-          <div style={{ background: "#0E0F12", borderRadius: 10, padding: 12, fontSize: 14, lineHeight: 1.5 }}>
-            <span style={{ color: "#FFD60A", fontWeight: 800 }}>Dica: </span>{ex.dica}
+          <div style={{ background: "#000000", borderRadius: 10, padding: 12, fontSize: 14, lineHeight: 1.5 }}>
+            <span style={{ color: "#E1306C", fontWeight: 800 }}>Dica: </span>{ex.dica}
           </div>
         )}
       </div>
@@ -885,20 +887,24 @@ function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicio
             <CardExercicio key={ex.id} ex={ex} onAbrir={() => setExercicioAberto(ex.id)} onExcluir={onExcluirCustom} />
           ))}
           {resultados.length === 0 && (
-            <div style={{ ...S.card, textAlign: "center", color: "#8A8F98" }}>
+            <div style={{ ...S.card, textAlign: "center", color: "#A8A8A8" }}>
               Nenhum exercício com esse nome. Toque em "Criar exercício próprio" para adicioná-lo.
             </div>
           )}
         </React.Fragment>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14, marginTop: 6 }}>
           {GRUPOS.map((g) => {
             const qtd = todos.filter((e) => e.grupo === g.id).length;
             return (
-              <div key={g.id} onClick={() => setGrupoAberto(g.id)}
-                style={{ ...S.card, marginBottom: 0, cursor: "pointer", borderTop: "4px solid " + g.cor, minHeight: 84, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                <div style={{ fontSize: 17, fontWeight: 900, textTransform: "uppercase" }}>{g.nome}</div>
-                <div style={{ fontSize: 12, color: "#8A8F98" }}>{qtd} exercícios</div>
+              <div key={g.id} onClick={() => setGrupoAberto(g.id)} style={{ cursor: "pointer", textAlign: "center" }}>
+                <div style={{ width: 82, height: 82, margin: "0 auto", borderRadius: "50%", padding: 3, background: "linear-gradient(45deg, #FEDA75, #FA7E1E, #D62976, #962FBF, #4F5BD5)", boxSizing: "border-box" }}>
+                  <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#000000", border: "3px solid #000000", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: g.cor }}>
+                    {g.nome[0]}
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, marginTop: 7, color: "#F2F0EB" }}>{g.nome}</div>
+                <div style={{ fontSize: 10, color: "#A8A8A8", marginTop: 1 }}>{qtd} exerc.</div>
               </div>
             );
           })}
@@ -960,9 +966,9 @@ function FormNovoExercicio({ grupoSugerido, onSalvar, onCancelar, avisar }) {
           {GRUPOS.map((g) => (
             <button key={g.id} onClick={() => setGrupo(g.id)}
               style={{
-                border: "1px solid", borderColor: grupo === g.id ? g.cor : "#33363E",
+                border: "1px solid", borderColor: grupo === g.id ? g.cor : "#363636",
                 background: grupo === g.id ? g.cor + "22" : "transparent",
-                color: grupo === g.id ? g.cor : "#8A8F98",
+                color: grupo === g.id ? g.cor : "#A8A8A8",
                 borderRadius: 8, padding: "8px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer",
               }}>
               {g.nome}
@@ -971,17 +977,17 @@ function FormNovoExercicio({ grupoSugerido, onSalvar, onCancelar, avisar }) {
         </div>
 
         <div style={{ ...S.label, margin: "16px 0 4px" }}>Músculos trabalhados (opcional)</div>
-        <div style={{ fontSize: 12, color: "#8A8F98", marginBottom: 8 }}>
+        <div style={{ fontSize: 12, color: "#A8A8A8", marginBottom: 8 }}>
           Toque 1x = direto (vermelho) · 2x = indireto (amarelo) · 3x = remove
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {Object.keys(MUSCULOS).map((id) => {
             const estado = musc[id];
-            const cor = estado === "p" ? COR_DIRETO : estado === "s" ? COR_INDIRETO : "#8A8F98";
+            const cor = estado === "p" ? COR_DIRETO : estado === "s" ? COR_INDIRETO : "#A8A8A8";
             return (
               <button key={id} onClick={() => cicloMusc(id)}
                 style={{
-                  border: "1px solid", borderColor: estado ? cor : "#33363E",
+                  border: "1px solid", borderColor: estado ? cor : "#363636",
                   background: estado ? cor + "22" : "transparent",
                   color: cor, borderRadius: 8, padding: "7px 10px", fontWeight: 700, fontSize: 12, cursor: "pointer",
                 }}>
@@ -1027,20 +1033,20 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
         <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 12 }}>{prog.nome}</div>
         <button style={{ ...S.btn, marginBottom: 14 }} onClick={() => onNovaFicha(prog.id)}>+ Nova ficha neste treino</button>
         {fichas.length === 0 && (
-          <div style={{ ...S.card, textAlign: "center", color: "#8A8F98" }}>
+          <div style={{ ...S.card, textAlign: "center", color: "#A8A8A8" }}>
             Nenhuma ficha aqui ainda. Crie a primeira (ex.: Treino A - Peito).
           </div>
         )}
         {fichas.map((t) => (
           <div key={t.id} style={S.card}>
             <div style={{ fontWeight: 900, fontSize: 18 }}>{t.nome}</div>
-            <div style={{ color: "#8A8F98", fontSize: 13, margin: "4px 0 12px" }}>
+            <div style={{ color: "#A8A8A8", fontSize: 13, margin: "4px 0 12px" }}>
               {t.itens.map((it) => { const e = exPorId(it.exercicioId); return e ? e.nome : null; }).filter(Boolean).join(" · ") || "Sem exercícios"}
             </div>
             <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}>▶ Treinar</button>
             <div style={{ display: "flex", gap: 8 }}>
               <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onEditar(t)}>Editar</button>
-              <button style={{ ...S.btnGhost, flex: 1, color: "#FFD60A", borderColor: "#FFD60A66" }} onClick={() => onCompartilharFicha(t)}>📤 Enviar</button>
+              <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66" }} onClick={() => onCompartilharFicha(t)}>📤 Enviar</button>
               <button style={{ ...S.btnGhost, flex: 1, color: "#F58E8E", borderColor: "#F58E8E55" }}
                 onClick={() => pedirConfirmacao("Excluir esta ficha?", () => onExcluirFicha(t.id))}>Excluir</button>
             </div>
@@ -1054,11 +1060,11 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
   return (
     <div style={{ padding: "0 18px" }}>
       <button style={{ ...S.btn, marginBottom: 10 }} onClick={onNovoPrograma}>+ Novo treino</button>
-      <button style={{ ...S.btnGhost, marginBottom: 14, color: "#FFD60A", borderColor: "#FFD60A66" }} onClick={onAssistente}>
+      <button style={{ ...S.btnGhost, marginBottom: 14, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onAssistente}>
         🧭 Montar treino pra mim (assistente)
       </button>
       {programas.length === 0 && (
-        <div style={{ ...S.card, textAlign: "center", color: "#8A8F98" }}>
+        <div style={{ ...S.card, textAlign: "center", color: "#A8A8A8" }}>
           Crie seu primeiro treino: ele agrupa suas fichas (ex.: "Treino Iniciante" com fichas A, B e C).
         </div>
       )}
@@ -1067,13 +1073,13 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
         return (
           <div key={p.id} style={S.card}>
             <div style={{ fontWeight: 900, fontSize: 19 }}>📋 {p.nome}</div>
-            <div style={{ color: "#8A8F98", fontSize: 13, margin: "4px 0 12px" }}>
+            <div style={{ color: "#A8A8A8", fontSize: 13, margin: "4px 0 12px" }}>
               {fichas.length} ficha(s){fichas.length ? ": " + fichas.map((f) => f.nome).join(" · ") : ""}
             </div>
             <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => setProgAberto(p.id)}>Abrir fichas</button>
             <div style={{ display: "flex", gap: 8 }}>
               <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onRenomearPrograma(p)}>Renomear</button>
-              <button style={{ ...S.btnGhost, flex: 1, color: "#FFD60A", borderColor: "#FFD60A66" }} onClick={() => onCompartilharPrograma(p)}>📤 Enviar</button>
+              <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66" }} onClick={() => onCompartilharPrograma(p)}>📤 Enviar</button>
               <button style={{ ...S.btnGhost, flex: 1, color: "#F58E8E", borderColor: "#F58E8E55" }} onClick={() => onExcluirPrograma(p)}>Excluir</button>
             </div>
           </div>
@@ -1089,7 +1095,7 @@ function TelaAssistente({ onGerar, onCancelar }) {
   const [nivel, setNivel] = useState("iniciante");
   const Chip = ({ ativo, onClick, children }) => (
     <button onClick={onClick}
-      style={{ border: "1px solid", borderColor: ativo ? "#FFD60A" : "#33363E", background: ativo ? "#FFD60A22" : "transparent", color: ativo ? "#FFD60A" : "#8A8F98", borderRadius: 10, padding: "12px 10px", fontWeight: 800, fontSize: 14, cursor: "pointer", flex: 1 }}>
+      style={{ border: "1px solid", borderColor: ativo ? "#E1306C" : "#363636", background: ativo ? "#E1306C22" : "transparent", color: ativo ? "#E1306C" : "#A8A8A8", borderRadius: 10, padding: "12px 10px", fontWeight: 800, fontSize: 14, cursor: "pointer", flex: 1 }}>
       {children}
     </button>
   );
@@ -1098,7 +1104,7 @@ function TelaAssistente({ onGerar, onCancelar }) {
       <button style={S.voltar} onClick={onCancelar}>← Voltar</button>
       <div style={S.card}>
         <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 4 }}>🧭 Assistente de treino</div>
-        <div style={{ color: "#8A8F98", fontSize: 14, marginBottom: 18 }}>Responda 3 perguntas e eu monto seu treino completo, prontinho para editar.</div>
+        <div style={{ color: "#A8A8A8", fontSize: 14, marginBottom: 18 }}>Responda 3 perguntas e eu monto seu treino completo, prontinho para editar.</div>
 
         <div style={S.label}>1. Qual seu objetivo?</div>
         <div style={{ display: "flex", gap: 8, margin: "8px 0 16px" }}>
@@ -1150,7 +1156,7 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
 
       <div style={S.label}>Exercícios da ficha</div>
       <div style={{ margin: "8px 0 16px" }}>
-        {t.itens.length === 0 && <div style={{ color: "#8A8F98", fontSize: 14, padding: "8px 0" }}>Adicione exercícios da lista abaixo.</div>}
+        {t.itens.length === 0 && <div style={{ color: "#A8A8A8", fontSize: 14, padding: "8px 0" }}>Adicione exercícios da lista abaixo.</div>}
         {t.itens.map((it, i) => {
           const e = exPorId(it.exercicioId);
           return (
@@ -1189,7 +1195,7 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
             </div>
             <div style={{ fontSize: 12, color: grupoPorId(ex.grupo).cor }}>{grupoPorId(ex.grupo).nome}</div>
           </div>
-          <button style={{ background: "#FFD60A", border: "none", borderRadius: 8, width: 34, height: 34, fontWeight: 900, fontSize: 18, cursor: "pointer" }}
+          <button style={{ background: GRAD, color: "#FFFFFF", border: "none", borderRadius: 10, width: 34, height: 34, fontWeight: 900, fontSize: 18, cursor: "pointer" }}
             onClick={() => addEx(ex.id)}>+</button>
         </div>
       ))}
@@ -1277,7 +1283,7 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
   const btnSom = (
     <button onClick={() => { setSom(!som); if (!som) beep(700, 0.1, 0.2); }}
       title={som ? "Desligar som" : "Ligar som"}
-      style={{ width: 42, height: 42, borderRadius: 10, border: "1px solid " + (som ? "#FFD60A66" : "#33363E"), background: som ? "#FFD60A22" : "transparent", fontSize: 18, cursor: "pointer" }}>
+      style={{ width: 42, height: 42, borderRadius: 10, border: "1px solid " + (som ? "#E1306C66" : "#363636"), background: som ? "#E1306C22" : "transparent", fontSize: 18, cursor: "pointer" }}>
       {som ? "🔊" : "🔇"}
     </button>
   );
@@ -1285,26 +1291,26 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
   return (
     <div style={{ padding: "0 18px", paddingBottom: fimDescanso ? 210 : 20 }}>
       <button style={S.voltar} onClick={onVoltar}>← Voltar (o treino continua salvo)</button>
-      <div style={{ ...S.card, borderColor: "#FFD60A44", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ ...S.card, borderColor: "#E1306C44", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <div style={S.label}>Treinando agora</div>
           <div style={{ fontWeight: 900, fontSize: 18 }}>{sessao.nome}</div>
         </div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: "#FFD60A" }}>{feitas}/{total}</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: "#E1306C" }}>{feitas}/{total}</div>
       </div>
 
       {/* Configuração do descanso */}
       <div style={{ ...S.card, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div style={{ flex: 1 }}>
           <div style={S.label}>Descanso entre séries</div>
-          <div style={{ fontSize: 12, color: "#8A8F98", marginTop: 2 }}>Inicia ao marcar uma série ✓</div>
+          <div style={{ fontSize: 12, color: "#A8A8A8", marginTop: 2 }}>Inicia ao marcar uma série ✓</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={() => setDescanso(Math.max(15, descanso - 15))}
-            style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid #33363E", background: "transparent", color: "#F2F0EB", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>−</button>
-          <div style={{ fontWeight: 900, fontSize: 17, color: "#FFD60A", minWidth: 48, textAlign: "center" }}>{fmt(descanso)}</div>
+            style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid #363636", background: "transparent", color: "#F2F0EB", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>−</button>
+          <div style={{ fontWeight: 900, fontSize: 17, color: "#E1306C", minWidth: 48, textAlign: "center" }}>{fmt(descanso)}</div>
           <button onClick={() => setDescanso(Math.min(600, descanso + 15))}
-            style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid #33363E", background: "transparent", color: "#F2F0EB", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>+</button>
+            style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid #363636", background: "transparent", color: "#F2F0EB", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>+</button>
           {btnSom}
         </div>
       </div>
@@ -1317,7 +1323,7 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
               <div style={{ fontWeight: 800, fontSize: 16, flex: 1 }}>{ex ? ex.nome : "Exercício"}</div>
               <button onClick={() => abrirVideoDe(ex ? ex.nome : "")}
                 title="Ver vídeo de como executar"
-                style={{ border: "1px solid #FFD60A66", background: "#FFD60A15", color: "#FFD60A", borderRadius: 8, padding: "7px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
+                style={{ border: "1px solid #E1306C66", background: "#E1306C15", color: "#E1306C", borderRadius: 8, padding: "7px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
                 ▶ Vídeo
               </button>
             </div>
@@ -1330,14 +1336,14 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
             </div>
             {it.series.map((s, si) => (
               <div key={si} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, opacity: s.feito ? 0.55 : 1 }}>
-                <div style={{ width: 30, fontWeight: 900, color: "#8A8F98", textAlign: "center" }}>{si + 1}</div>
+                <div style={{ width: 30, fontWeight: 900, color: "#A8A8A8", textAlign: "center" }}>{si + 1}</div>
                 <input type="number" inputMode="decimal" placeholder="0" style={{ ...S.inputMini, flex: 1 }} value={s.peso}
                   onChange={(e) => upSerie(ei, si, "peso", e.target.value)} />
                 <input type="number" inputMode="numeric" style={{ ...S.inputMini, flex: 1 }} value={s.reps}
                   onChange={(e) => upSerie(ei, si, "reps", e.target.value)} />
                 <button onClick={() => marcarSerie(ei, si)}
                   style={{ width: 44, height: 42, borderRadius: 8, border: "none", fontWeight: 900, fontSize: 18, cursor: "pointer",
-                    background: s.feito ? "#FFD60A" : "#23262D", color: s.feito ? "#0E0F12" : "#8A8F98" }}>✓</button>
+                    background: s.feito ? GRAD : "#262626", color: s.feito ? "#FFFFFF" : "#A8A8A8" }}>✓</button>
               </div>
             ))}
 
@@ -1357,36 +1363,36 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
 
       {/* Barra do cronômetro de descanso */}
       {fimDescanso && (
-        <div style={{ position: "fixed", bottom: "calc(64px + env(safe-area-inset-bottom))", left: 0, right: 0, background: acabou ? "#173B1E" : "#141519", borderTop: "2px solid " + (acabou ? "#4ADE80" : "#FFD60A"), borderBottom: "1px solid #23262D", padding: "12px 18px 14px", zIndex: 20 }}>
+        <div style={{ position: "fixed", bottom: "calc(64px + env(safe-area-inset-bottom))", left: 0, right: 0, background: acabou ? "#173B1E" : "#0A0A0A", borderTop: "2px solid " + (acabou ? "#4ADE80" : "#E1306C"), borderBottom: "1px solid #262626", padding: "12px 18px 14px", zIndex: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <div style={{ ...S.label, color: acabou ? "#4ADE80" : "#8A8F98" }}>
+              <div style={{ ...S.label, color: acabou ? "#4ADE80" : "#A8A8A8" }}>
                 {acabou ? "Descanso concluído!" : "Descansando"}
               </div>
-              <div style={{ fontSize: 30, fontWeight: 900, color: acabou ? "#4ADE80" : "#FFD60A", fontVariantNumeric: "tabular-nums" }}>
+              <div style={{ fontSize: 30, fontWeight: 900, color: acabou ? "#4ADE80" : "#E1306C", fontVariantNumeric: "tabular-nums" }}>
                 {acabou ? "Bora! 💪" : fmt(restante)}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <button onClick={() => { setSom(!som); if (!som) beep(700, 0.1, 0.2); }}
-                style={{ width: 40, height: 40, borderRadius: 8, border: "1px solid #33363E", background: "transparent", fontSize: 16, cursor: "pointer" }}>
+                style={{ width: 40, height: 40, borderRadius: 8, border: "1px solid #363636", background: "transparent", fontSize: 16, cursor: "pointer" }}>
                 {som ? "🔊" : "🔇"}
               </button>
               {!acabou && (
                 <button onClick={mais15}
-                  style={{ border: "1px solid #FFD60A66", background: "transparent", color: "#FFD60A", borderRadius: 8, padding: "10px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+                  style={{ border: "1px solid #E1306C66", background: "transparent", color: "#E1306C", borderRadius: 8, padding: "10px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
                   +15s
                 </button>
               )}
               <button onClick={fecharDescanso}
-                style={{ border: "1px solid #33363E", background: "transparent", color: "#F2F0EB", borderRadius: 8, padding: "10px 14px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+                style={{ border: "1px solid #363636", background: "transparent", color: "#F2F0EB", borderRadius: 8, padding: "10px 14px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
                 {acabou ? "OK" : "Pular"}
               </button>
             </div>
           </div>
           {!acabou && (
-            <div style={{ height: 5, background: "#23262D", borderRadius: 3, marginTop: 10, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: pct + "%", background: restante <= 3 ? "#FF453A" : "#FFD60A", borderRadius: 3, transition: "width 0.25s linear" }} />
+            <div style={{ height: 5, background: "#262626", borderRadius: 3, marginTop: 10, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: pct + "%", background: restante <= 3 ? "#ED4956" : "#E1306C", borderRadius: 3, transition: "width 0.25s linear" }} />
             </div>
           )}
         </div>
@@ -1401,7 +1407,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, pedirConfirmacao }) {
       <GraficoEvolucao historico={historico} exPorId={exPorId} />
 
       {historico.length === 0 && (
-        <div style={{ ...S.card, textAlign: "center", color: "#8A8F98" }}>
+        <div style={{ ...S.card, textAlign: "center", color: "#A8A8A8" }}>
           Seus treinos concluídos aparecem aqui, com as cargas de cada série.
         </div>
       )}
@@ -1410,7 +1416,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, pedirConfirmacao }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div style={{ fontWeight: 900, fontSize: 16, flex: 1 }}>{h.nome}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ color: "#FFD60A", fontWeight: 800, fontSize: 13 }}>{h.duracaoMin} min</div>
+              <div style={{ color: "#E1306C", fontWeight: 800, fontSize: 13 }}>{h.duracaoMin} min</div>
               <button title="Excluir este treino do histórico"
                 onClick={() => pedirConfirmacao("Excluir este treino do histórico? Essa ação não pode ser desfeita.", () => onExcluir(h.id))}
                 style={{ background: "none", border: "1px solid #F58E8E55", color: "#F58E8E", borderRadius: 8, width: 30, height: 30, fontSize: 14, fontWeight: 900, cursor: "pointer" }}>
@@ -1418,7 +1424,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, pedirConfirmacao }) {
               </button>
             </div>
           </div>
-          <div style={{ color: "#8A8F98", fontSize: 12, margin: "2px 0 10px" }}>
+          <div style={{ color: "#A8A8A8", fontSize: 12, margin: "2px 0 10px" }}>
             {new Date(h.data).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
           </div>
           {h.itens.map((it, i) => {
@@ -1426,7 +1432,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, pedirConfirmacao }) {
             return (
               <div key={i} style={{ fontSize: 13, marginBottom: 6, lineHeight: 1.5 }}>
                 <span style={{ fontWeight: 700 }}>{(e ? e.nome : "Exercício")}: </span>
-                <span style={{ color: "#8A8F98" }}>
+                <span style={{ color: "#A8A8A8" }}>
                   {it.series.map((s) => (s.peso || 0) + "kg×" + (s.reps || 0)).join("  ·  ")}
                 </span>
                 {it.obs && <div style={{ color: "#C7A94B", fontSize: 12, fontStyle: "italic", marginTop: 2 }}>📝 {it.obs}</div>}
@@ -1707,11 +1713,11 @@ function TreinoLivre() {
     const est = calcularEstatisticas(historico);
     const ganhas = CONQUISTAS.filter((c) => c.cond(est));
     const blob = await gerarImagemStory([
-      { t: "MEU PROGRESSO 💪", tam: 66, cor: "#FFD60A", esp: 90 },
+      { t: "MEU PROGRESSO 💪", tam: 66, cor: "#E1306C", esp: 90 },
       { t: "🔥 " + est.streak + " dia(s) seguidos", tam: 74, esp: 70 },
       { t: est.total + " treinos concluídos", tam: 56, esp: 70 },
-      { t: (est.volumeTotal >= 1000 ? Math.round(est.volumeTotal / 1000).toLocaleString("pt-BR") + " toneladas" : est.volumeTotal.toLocaleString("pt-BR") + " kg") + " movidas", tam: 56, cor: "#FF453A", esp: 100 },
-      { t: "🏆 " + ganhas.length + " de " + CONQUISTAS.length + " conquistas", tam: 50, cor: "#FFD60A", esp: 70 },
+      { t: (est.volumeTotal >= 1000 ? Math.round(est.volumeTotal / 1000).toLocaleString("pt-BR") + " toneladas" : est.volumeTotal.toLocaleString("pt-BR") + " kg") + " movidas", tam: 56, cor: "#ED4956", esp: 100 },
+      { t: "🏆 " + ganhas.length + " de " + CONQUISTAS.length + " conquistas", tam: 50, cor: "#E1306C", esp: 70 },
       { t: ganhas.slice(-5).map((c) => c.icone).join("  ") || "💪", tam: 92, esp: 40 },
     ]);
     compartilharImagem(blob, "Meu progresso no Treino Livre 💪 " + LINK_APP, avisar);
@@ -1911,7 +1917,7 @@ function TreinoLivre() {
       {modal && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.75)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
           onClick={() => setModal(null)}>
-          <div style={{ ...S.card, width: "100%", maxWidth: 340, marginBottom: 0, borderColor: "#33363E" }}
+          <div style={{ ...S.card, width: "100%", maxWidth: 340, marginBottom: 0, borderColor: "#363636" }}
             onClick={(e) => e.stopPropagation()}>
             <div style={{ fontSize: 15, lineHeight: 1.6, marginBottom: 16, whiteSpace: "pre-line" }}>{modal.msg}</div>
             {modal.prompt && (
@@ -1924,12 +1930,12 @@ function TreinoLivre() {
                 const st = modal.storyTreino;
                 setModal(null);
                 const blob = await gerarImagemStory([
-                  { t: "TREINO CONCLUÍDO! 🎉", tam: 64, cor: "#FFD60A", esp: 80 },
+                  { t: "TREINO CONCLUÍDO! 🎉", tam: 64, cor: "#E1306C", esp: 80 },
                   { t: st.nome, tam: 50, esp: 110 },
-                  { t: String(st.series), tam: 150, cor: "#FFD60A", esp: 30 },
-                  { t: "séries concluídas", tam: 40, cor: "#8A8F98", esp: 110 },
-                  { t: st.volume.toLocaleString("pt-BR") + " kg", tam: 110, cor: "#FF453A", esp: 30 },
-                  { t: "de volume movido", tam: 40, cor: "#8A8F98", esp: 110 },
+                  { t: String(st.series), tam: 150, cor: "#E1306C", esp: 30 },
+                  { t: "séries concluídas", tam: 40, cor: "#A8A8A8", esp: 110 },
+                  { t: st.volume.toLocaleString("pt-BR") + " kg", tam: 110, cor: "#ED4956", esp: 30 },
+                  { t: "de volume movido", tam: 40, cor: "#A8A8A8", esp: 110 },
                   { t: "⏱ " + st.duracao + " min de treino", tam: 46, esp: 40 },
                 ]);
                 compartilharImagem(blob, "Treino concluído no Treino Livre! 💪 " + LINK_APP, avisar);
@@ -1956,7 +1962,7 @@ function TreinoLivre() {
               {modal.onSim ? (
                 <React.Fragment>
                   <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => setModal(null)}>Cancelar</button>
-                  <button style={{ ...S.btn, flex: 1, background: modal.positivo ? "#FFD60A" : "#FF453A", color: modal.positivo ? "#0E0F12" : "#FFFFFF" }}
+                  <button style={{ ...S.btn, flex: 1, background: modal.positivo ? GRAD : "#ED4956", color: "#FFFFFF" }}
                     onClick={() => { const f = modal.onSim; setModal(null); f(); }}>{modal.labelSim || (modal.positivo ? "Adicionar" : "Confirmar")}</button>
                 </React.Fragment>
               ) : (
@@ -1970,16 +1976,16 @@ function TreinoLivre() {
       {sessao && aba !== "sessao" && (
         <div style={{ position: "fixed", bottom: "calc(72px + env(safe-area-inset-bottom))", left: 12, right: 12, zIndex: 15 }}>
           <button onClick={() => setAba("sessao")}
-            style={{ ...S.btn, boxShadow: "0 4px 16px rgba(0,0,0,0.5)", border: "2px solid #0E0F12" }}>
+            style={{ ...S.btn, boxShadow: "0 4px 16px rgba(0,0,0,0.5)", border: "2px solid #000000" }}>
             ▶ Continuar treino — {sessao.nome}
           </button>
         </div>
       )}
 
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#141519", borderTop: "1px solid #23262D", display: "flex", padding: "8px 0", paddingBottom: "calc(14px + env(safe-area-inset-bottom))", zIndex: 10 }}>
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#0A0A0A", borderTop: "1px solid #262626", display: "flex", padding: "8px 0", paddingBottom: "calc(14px + env(safe-area-inset-bottom))", zIndex: 10 }}>
         {abas.map((a) => (
           <button key={a.id} onClick={() => { setAba(a.id); setGrupoAberto(null); setExercicioAberto(null); setProgAberto(null); }}
-            style={{ flex: 1, background: "none", border: "none", cursor: "pointer", color: aba === a.id ? "#FFD60A" : "#8A8F98", fontWeight: aba === a.id ? 900 : 600 }}>
+            style={{ flex: 1, background: "none", border: "none", cursor: "pointer", color: aba === a.id ? "#E1306C" : "#A8A8A8", fontWeight: aba === a.id ? 900 : 600 }}>
             <div style={{ fontSize: 18 }}>{a.icone}</div>
             <div style={{ fontSize: 11, marginTop: 2 }}>{a.nome}</div>
           </button>

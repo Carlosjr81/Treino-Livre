@@ -674,7 +674,7 @@ function Resumo({ num, txt }) {
   );
 }
 
-function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriarPrograma, onAssistente, onStoryProgresso, onDesafiar, onCopiarLink, onExportar, onImportar }) {
+function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onStoryProgresso, onDesafiar, onCopiarLink, onExportar, onImportar }) {
   const ultima = historico[0];
   const est = calcularEstatisticas(historico);
   const ganhas = CONQUISTAS.filter((c) => c.cond(est));
@@ -722,6 +722,9 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
             🧭 Montar treino pra mim (assistente)
           </button>
         )}
+        <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800 }} onClick={onTreinoLivre}>
+          🏋️ Treino livre (montar na hora)
+        </button>
       </div>
 
       <div style={{ ...S.card, borderColor: "#ED495644" }}>
@@ -1053,7 +1056,7 @@ function FormNovoExercicio({ grupoSugerido, onSalvar, onCancelar, avisar }) {
   );
 }
 
-function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, onTreinar, onNovaFicha, onEditar, onExcluirFicha, onCompartilharFicha, onNovoPrograma, onRenomearPrograma, onExcluirPrograma, onCompartilharPrograma, onAssistente, pedirConfirmacao }) {
+function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, onTreinar, onNovaFicha, onEditar, onExcluirFicha, onCompartilharFicha, onNovoPrograma, onRenomearPrograma, onExcluirPrograma, onCompartilharPrograma, onAssistente, onTreinoLivre, pedirConfirmacao }) {
   // Dentro de um treino: lista de fichas
   if (progAberto) {
     const prog = programas.find((p) => p.id === progAberto);
@@ -1092,8 +1095,11 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
   return (
     <div style={{ padding: "0 18px" }}>
       <button style={{ ...S.btn, marginBottom: 10 }} onClick={onNovoPrograma}>+ Novo treino</button>
-      <button style={{ ...S.btnGhost, marginBottom: 14, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onAssistente}>
+      <button style={{ ...S.btnGhost, marginBottom: 10, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onAssistente}>
         🧭 Montar treino pra mim (assistente)
+      </button>
+      <button style={{ ...S.btnGhost, marginBottom: 14, fontWeight: 800 }} onClick={onTreinoLivre}>
+        🏋️ Treino livre (montar na hora)
       </button>
       {programas.length === 0 && (
         <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
@@ -1236,7 +1242,9 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
 }
 
 // ---------------- SESSÃO: registro + cronômetro com som + observações + vídeo ----------------
-function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, setSom, onFinalizar, onDescartar, onVoltar, pedirConfirmacao }) {
+function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, som, setSom, onFinalizar, onDescartar, onVoltar, pedirConfirmacao }) {
+  const [mostrarAdd, setMostrarAdd] = useState(false);
+  const [buscaEx, setBuscaEx] = useState("");
   const [fimDescanso, setFimDescanso] = useState(null);
   const [totalDescanso, setTotalDescanso] = useState(descanso);
   const [agora, setAgora] = useState(Date.now());
@@ -1295,6 +1303,43 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
     setSessao({ ...sessao, itens });
   };
 
+  // Adiciona uma série extra no exercício, repetindo o peso/reps da última
+  const addSerie = (ei) => {
+    const itens = sessao.itens.map((it, i) => {
+      if (i !== ei) return it;
+      const ult = it.series[it.series.length - 1] || { peso: "", reps: "12" };
+      return { ...it, series: [...it.series, { peso: ult.peso || "", reps: ult.reps || "12", feito: false }] };
+    });
+    setSessao({ ...sessao, itens });
+  };
+
+  // Remove a última série (não deixa ficar sem nenhuma)
+  const rmSerie = (ei) => {
+    const itens = sessao.itens.map((it, i) => {
+      if (i !== ei || it.series.length <= 1) return it;
+      return { ...it, series: it.series.slice(0, -1) };
+    });
+    setSessao({ ...sessao, itens });
+  };
+
+  // Adiciona um exercício novo no meio do treino (treino livre)
+  const addExercicio = (idEx) => {
+    setSessao({
+      ...sessao,
+      itens: [...sessao.itens, { exercicioId: idEx, obs: "", series: [{ peso: "", reps: "12", feito: false }] }],
+    });
+    setBuscaEx("");
+    setMostrarAdd(false);
+  };
+
+  // Remove um exercício inteiro do treino
+  const rmExercicio = (ei) => {
+    const ex = exPorId(sessao.itens[ei].exercicioId);
+    pedirConfirmacao("Remover " + (ex ? ex.nome : "este exercício") + " do treino?", () => {
+      setSessao({ ...sessao, itens: sessao.itens.filter((_, i) => i !== ei) });
+    });
+  };
+
   const marcarSerie = (ei, si) => {
     const jaFeita = sessao.itens[ei].series[si].feito;
     upSerie(ei, si, "feito", !jaFeita);
@@ -1347,6 +1392,16 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
         </div>
       </div>
 
+      {sessao.itens.length === 0 && (
+        <div style={{ ...S.card, textAlign: "center" }}>
+          <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>Treino livre 🏋️</div>
+          <div style={{ color: "var(--cinza)", fontSize: 14, lineHeight: 1.6 }}>
+            Vá adicionando os exercícios conforme os aparelhos ficarem livres.
+            Toque em <b>+ Adicionar exercício</b> abaixo para começar.
+          </div>
+        </div>
+      )}
+
       {sessao.itens.map((it, ei) => {
         const ex = exPorId(it.exercicioId);
         return (
@@ -1357,6 +1412,10 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
                 title="Ver vídeo de como executar"
                 style={{ border: "1px solid #E1306C66", background: "#E1306C15", color: "#E1306C", borderRadius: 8, padding: "7px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
                 ▶ Vídeo
+              </button>
+              <button onClick={() => rmExercicio(ei)} title="Remover este exercício do treino"
+                style={{ border: "1px solid var(--perigo-borda)", background: "transparent", color: "var(--perigo)", borderRadius: 8, padding: "7px 10px", fontWeight: 900, fontSize: 13, cursor: "pointer" }}>
+                ✕
               </button>
             </div>
 
@@ -1379,6 +1438,19 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
               </div>
             ))}
 
+            <div style={{ display: "flex", gap: 8, marginTop: 4, marginBottom: 4 }}>
+              <button onClick={() => addSerie(ei)}
+                style={{ ...S.btnGhost, flex: 3, padding: "11px 12px", color: "#E1306C", borderColor: "#E1306C66", fontWeight: 800 }}>
+                + Adicionar série
+              </button>
+              {it.series.length > 1 && (
+                <button onClick={() => rmSerie(ei)} title="Remover a última série"
+                  style={{ ...S.btnGhost, flex: 1, padding: "11px 8px", fontSize: 18, fontWeight: 900 }}>
+                  −
+                </button>
+              )}
+            </div>
+
             <input style={{ ...S.input, marginTop: 4, fontSize: 14 }}
               placeholder="📝 Obs.: altura do banco, altura da polia, pegada..."
               value={it.obs || ""}
@@ -1386,6 +1458,38 @@ function TelaSessao({ sessao, setSessao, exPorId, descanso, setDescanso, som, se
           </div>
         );
       })}
+
+      {mostrarAdd ? (
+        <div style={{ ...S.card, borderColor: "#E1306C66" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={S.label}>Adicionar exercício ao treino</div>
+            <button onClick={() => { setMostrarAdd(false); setBuscaEx(""); }}
+              style={{ background: "none", border: "none", color: "var(--cinza)", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>✕</button>
+          </div>
+          <input autoFocus style={{ ...S.input, marginBottom: 10 }} placeholder="Buscar exercício (ex.: leg press)..."
+            value={buscaEx} onChange={(e) => setBuscaEx(e.target.value)} />
+          <div style={{ maxHeight: 320, overflowY: "auto" }}>
+            {(buscaEx.trim()
+              ? todos.filter((e) => e.nome.toLowerCase().includes(buscaEx.trim().toLowerCase()))
+              : todos
+            ).slice(0, 40).map((e) => (
+              <div key={e.id} onClick={() => addExercicio(e.id)}
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 4px", borderBottom: "1px solid var(--borda)", cursor: "pointer" }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{e.nome}</div>
+                  <div style={{ fontSize: 12, color: corGrupo(grupoPorId(e.grupo)) }}>{grupoPorId(e.grupo).nome}</div>
+                </div>
+                <div style={{ background: GRAD, color: "#FFFFFF", borderRadius: 10, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 18, flexShrink: 0 }}>+</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <button style={{ ...S.btnGhost, marginBottom: 12, color: "#E1306C", borderColor: "#E1306C66", fontWeight: 800 }}
+          onClick={() => setMostrarAdd(true)}>
+          + Adicionar exercício ao treino
+        </button>
+      )}
 
       <button style={{ ...S.btn, marginTop: 4 }} onClick={onFinalizar}>Finalizar treino</button>
       <button style={{ ...S.btnGhost, marginTop: 10, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}
@@ -1662,7 +1766,31 @@ function TreinoLivre() {
     comecarSessao(treino);
   };
 
+  const iniciarTreinoLivre = () => {
+    const comecar = () => {
+      const hoje = new Date().toLocaleDateString("pt-BR", { weekday: "long" });
+      setSessao({
+        treinoId: "livre-" + Date.now(),
+        nome: "Treino livre (" + hoje + ")",
+        inicio: Date.now(),
+        itens: [],
+      });
+      setAba("sessao");
+      registrarEvento("treino-livre-iniciado");
+    };
+    if (sessao) {
+      pedirConfirmacao("Você já tem um treino em andamento (" + sessao.nome + "). Começar um treino livre vai descartá-lo. Continuar?", comecar);
+      return;
+    }
+    comecar();
+  };
+
   const finalizarSessao = () => {
+    const feitas = sessao.itens.reduce((a, it) => a + it.series.filter((s) => s.feito).length, 0);
+    if (!feitas) {
+      avisar("Marque pelo menos uma série com ✓ antes de finalizar o treino.");
+      return;
+    }
     const registro = {
       id: String(Date.now()),
       nome: sessao.nome,
@@ -1901,6 +2029,7 @@ function TreinoLivre() {
             onTreinar={iniciarSessao}
             onCriarPrograma={criarPrograma}
             onAssistente={() => setAba("assistente")}
+            onTreinoLivre={iniciarTreinoLivre}
             onStoryProgresso={storyProgresso}
             onDesafiar={desafiarAmigo}
             onCopiarLink={copiarLink}
@@ -1935,7 +2064,8 @@ function TreinoLivre() {
             onRenomearPrograma={renomearPrograma}
             onExcluirPrograma={excluirPrograma}
             onCompartilharPrograma={compartilharPrograma}
-            onAssistente={() => setAba("assistente")} />
+            onAssistente={() => setAba("assistente")}
+            onTreinoLivre={iniciarTreinoLivre} />
         )}
         {aba === "editarTreino" && editandoTreino && (
           <TelaEditarTreino key={editandoTreino.id} treinoInicial={editandoTreino} todos={todos} avisar={avisar}
@@ -1943,7 +2073,7 @@ function TreinoLivre() {
             onCancelar={() => { setEditandoTreino(null); setAba("treinos"); }} />
         )}
         {aba === "sessao" && sessao && (
-          <TelaSessao sessao={sessao} setSessao={setSessao} exPorId={exPorId} pedirConfirmacao={pedirConfirmacao}
+          <TelaSessao sessao={sessao} setSessao={setSessao} exPorId={exPorId} todos={todos} pedirConfirmacao={pedirConfirmacao}
             descanso={descanso} setDescanso={setDescanso}
             som={som} setSom={setSom}
             onFinalizar={finalizarSessao}

@@ -85,6 +85,158 @@ function calcularEstatisticas(historico) {
   });
   return { total: historico.length, streak, volumeTotal: Math.round(volumeTotal), treinosSemana, volumeSemana: Math.round(volumeSemana) };
 }
+
+// ---------- ESTATÍSTICAS DE UM TREINO ----------
+// Volume = soma de peso x repetições de todas as séries concluídas
+function statsTreino(h) {
+  let volume = 0, series = 0, reps = 0, cargaMax = 0;
+  (h.itens || []).forEach((it) => (it.series || []).forEach((s) => {
+    const p = parseFloat(s.peso) || 0, r = parseInt(s.reps) || 0;
+    volume += p * r; series += 1; reps += r;
+    if (p > cargaMax) cargaMax = p;
+  }));
+  const dur = h.duracaoMin || 0;
+  return {
+    volume: Math.round(volume), series, reps,
+    exercicios: (h.itens || []).length,
+    cargaMax,
+    densidade: dur ? Math.round(volume / dur) : 0,
+    repsPorSerie: series ? Math.round((reps / series) * 10) / 10 : 0,
+  };
+}
+// 1RM estimado pela fórmula de Epley
+function est1RM(peso, reps) {
+  const p = parseFloat(peso) || 0, r = parseInt(reps) || 0;
+  if (!p || !r) return 0;
+  return Math.round(p * (1 + r / 30));
+}
+function melhor1RM(it) {
+  let m = 0;
+  (it.series || []).forEach((s) => { const v = est1RM(s.peso, s.reps); if (v > m) m = v; });
+  return m;
+}
+function volumeItem(it) {
+  let v = 0;
+  (it.series || []).forEach((s) => { v += (parseFloat(s.peso) || 0) * (parseInt(s.reps) || 0); });
+  return Math.round(v);
+}
+function fmtKg(kg) {
+  return Math.round(kg || 0).toLocaleString("pt-BR") + " kg";
+}
+// Versão compacta, para totais acumulados
+function fmtPeso(kg) {
+  const v = Math.round(kg || 0);
+  if (v >= 10000) return (v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " t";
+  return v.toLocaleString("pt-BR") + " kg";
+}
+// Comparações para dar escala ao volume levantado
+const EQUIVALENCIAS = [
+  { kg: 5, nome: "melancias", icone: "🍉" },
+  { kg: 20, nome: "galões de água", icone: "💧" },
+  { kg: 80, nome: "geladeiras", icone: "🧊" },
+  { kg: 150, nome: "motos", icone: "🏍" },
+  { kg: 450, nome: "bois", icone: "🐂" },
+  { kg: 1000, nome: "carros populares", icone: "🚗" },
+  { kg: 5000, nome: "elefantes", icone: "🐘" },
+  { kg: 12000, nome: "ônibus", icone: "🚌" },
+  { kg: 41000, nome: "aviões (Boeing 737)", icone: "✈️" },
+];
+function equivalencia(kg) {
+  if (!kg || kg < 10) return null;
+  let escolhida = EQUIVALENCIAS[0];
+  EQUIVALENCIAS.forEach((e) => { if (kg / e.kg >= 2) escolhida = e; });
+  const qtd = kg / escolhida.kg;
+  const num = qtd >= 10 ? Math.round(qtd).toLocaleString("pt-BR") : (Math.round(qtd * 10) / 10).toLocaleString("pt-BR");
+  return escolhida.icone + " o mesmo que " + num + " " + escolhida.nome;
+}
+// Compara com o treino anterior de mesmo nome
+function compararAnterior(historico, h) {
+  const ord = [...historico].sort((a, b) => new Date(b.data) - new Date(a.data));
+  const idx = ord.findIndex((x) => x.id === h.id);
+  if (idx < 0) return null;
+  const ant = ord.slice(idx + 1).find((x) => x.nome === h.nome);
+  if (!ant) return null;
+  const va = statsTreino(ant).volume;
+  const vh = statsTreino(h).volume;
+  if (!va) return null;
+  return { pct: Math.round(((vh - va) / va) * 100), anterior: va, data: ant.data };
+}
+// Marca recordes pessoais por exercício (carga e volume), ignorando a estreia
+function calcularRecordes(historico) {
+  const ord = [...historico].sort((a, b) => new Date(a.data) - new Date(b.data));
+  const bestPeso = {}, bestVol = {}, out = {};
+  ord.forEach((h) => {
+    out[h.id] = {};
+    (h.itens || []).forEach((it) => {
+      const id = it.exercicioId;
+      let pMax = 0;
+      (it.series || []).forEach((s) => { const p = parseFloat(s.peso) || 0; if (p > pMax) pMax = p; });
+      const vol = volumeItem(it);
+      const estreia = bestPeso[id] === undefined;
+      out[h.id][id] = {
+        peso: !estreia && pMax > 0 && pMax > bestPeso[id],
+        volume: !estreia && vol > 0 && vol > bestVol[id],
+      };
+      if (estreia || pMax > bestPeso[id]) bestPeso[id] = pMax;
+      if (estreia || vol > bestVol[id]) bestVol[id] = vol;
+    });
+  });
+  return out;
+}
+function contarRecordesNovos(historico, registro) {
+  const bestPeso = {};
+  historico.forEach((h) => (h.itens || []).forEach((it) => {
+    let pMax = 0;
+    (it.series || []).forEach((s) => { const p = parseFloat(s.peso) || 0; if (p > pMax) pMax = p; });
+    if (bestPeso[it.exercicioId] === undefined || pMax > bestPeso[it.exercicioId]) bestPeso[it.exercicioId] = pMax;
+  }));
+  let n = 0;
+  (registro.itens || []).forEach((it) => {
+    let pMax = 0;
+    (it.series || []).forEach((s) => { const p = parseFloat(s.peso) || 0; if (p > pMax) pMax = p; });
+    if (bestPeso[it.exercicioId] !== undefined && pMax > bestPeso[it.exercicioId]) n += 1;
+  });
+  return n;
+}
+// Volume por grupo muscular (usa o grupo principal do exercício)
+function volumePorGrupo(historico, exPorId, desdeMs) {
+  const acc = {};
+  historico.forEach((h) => {
+    if (desdeMs && new Date(h.data).getTime() < desdeMs) return;
+    (h.itens || []).forEach((it) => {
+      const e = exPorId(it.exercicioId);
+      const g = e ? e.grupo : "outros";
+      acc[g] = (acc[g] || 0) + volumeItem(it);
+    });
+  });
+  return Object.keys(acc)
+    .map((g) => ({ id: g, nome: (GRUPOS.find((x) => x.id === g) || {}).nome || "Outros", volume: acc[g] }))
+    .filter((x) => x.volume > 0)
+    .sort((a, b) => b.volume - a.volume);
+}
+// Agrupa o volume por semana (semanas começando na segunda-feira)
+function segundaDaSemana(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  const dow = (x.getDay() + 6) % 7;
+  x.setDate(x.getDate() - dow);
+  return x;
+}
+function volumeSemanal(historico, nSemanas) {
+  const base = segundaDaSemana(new Date());
+  const semanas = [];
+  for (let i = nSemanas - 1; i >= 0; i--) {
+    const ini = new Date(base.getTime() - i * 7 * 86400000);
+    semanas.push({ ini, volume: 0, treinos: 0 });
+  }
+  historico.forEach((h) => {
+    const ini = segundaDaSemana(h.data).getTime();
+    const alvo = semanas.find((s) => s.ini.getTime() === ini);
+    if (alvo) { alvo.volume += statsTreino(h).volume; alvo.treinos += 1; }
+  });
+  return semanas;
+}
+
 const CONQUISTAS = [
   { id: "t1", nome: "Primeiro treino", icone: "🥇", cond: (e) => e.total >= 1 },
   { id: "t5", nome: "5 treinos", icone: "🔥", cond: (e) => e.total >= 5 },
@@ -115,7 +267,7 @@ function gerarImagemStory(linhas) {
   faixa(165);
   let y = 380;
   linhas.forEach((l) => {
-    c.fillStyle = l.cor || "var(--texto)";
+    c.fillStyle = l.cor || "#F2F0EC";
     c.font = "bold " + (l.tam || 56) + "px sans-serif";
     c.fillText(l.t, 540, y);
     y += (l.tam || 56) + (l.esp || 44);
@@ -139,6 +291,26 @@ async function compartilharImagem(blob, texto, avisarFn) {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
   if (avisarFn) avisarFn("Imagem salva na galeria/downloads! Agora é só postar no story. 💪");
+}
+
+// Monta as linhas da imagem de story de um treino concluído
+// Concordância de número, para os textos não saírem como "recorde(s)"
+function plural(n, singular, pluralTxt) { return n === 1 ? singular : pluralTxt; }
+
+function linhasStoryTreino(d) {
+  const eq = equivalencia(d.volume);
+  const l = [
+    { t: "TREINO CONCLUÍDO! 🎉", tam: 58, cor: "#E1306C", esp: 70 },
+    { t: d.nome, tam: 44, cor: "#F2F0EC", esp: 100 },
+    { t: fmtKg(d.volume), tam: 108, cor: "#ED4956", esp: 18 },
+    { t: "de volume total", tam: 36, cor: "#A8A8A9", esp: 80 },
+  ];
+  if (eq) l.push({ t: eq, tam: 32, cor: "#7C8189", esp: 95 });
+  l.push({ t: d.series + " " + plural(d.series, "série", "séries") + " · " + d.reps + " " + plural(d.reps, "repetição", "repetições"), tam: 46, esp: 60 });
+  l.push({ t: "⏱ " + d.duracao + " min · " + d.densidade + " kg/min", tam: 40, cor: "#A8A8A9", esp: 60 });
+  if (d.cargaMax) l.push({ t: "🏋️ carga máxima " + d.cargaMax + " kg", tam: 40, cor: "#A8A8A9", esp: 60 });
+  if (d.recordes > 0) l.push({ t: "🏆 " + d.recordes + " " + plural(d.recordes, "novo recorde pessoal!", "novos recordes pessoais!"), tam: 44, cor: "#E1306C", esp: 40 });
+  return l;
 }
 
 // ---------- MODELOS DO ASSISTENTE DE TREINO ----------
@@ -529,6 +701,199 @@ function MapaMuscular({ p = [], s = [] }) {
   );
 }
 
+// ---------------- ESTATÍSTICAS: TONELAGEM SEMANAL ----------------
+function GraficoSemanal({ historico }) {
+  const semanas = volumeSemanal(historico, 8);
+  const vmax = Math.max(...semanas.map((s) => s.volume), 1);
+  const W = 320, H = 130, base = 104, larg = 26;
+  const passo = (W - 20) / semanas.length;
+  const media = Math.round(semanas.reduce((a, s) => a + s.volume, 0) / semanas.length);
+  return (
+    <div style={S.card}>
+      <div style={S.label}>Tonelagem por semana</div>
+      <div style={{ color: "var(--cinza)", fontSize: 12, margin: "4px 0 12px" }}>
+        Últimas 8 semanas · média de {fmtPeso(media)} por semana
+      </div>
+      <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", height: "auto" }}>
+        <line x1="10" x2={W - 10} y1={base} y2={base} stroke="var(--borda)" strokeWidth="1" />
+        {semanas.map((s, i) => {
+          const alt = s.volume ? Math.max(3, (s.volume / vmax) * 82) : 0;
+          const x = 10 + i * passo + (passo - larg) / 2;
+          const atual = i === semanas.length - 1;
+          return (
+            <g key={i}>
+              {alt > 0 && (
+                <rect x={x} y={base - alt} width={larg} height={alt} rx="5"
+                  fill={atual ? "#E1306C" : "#E1306C66"} />
+              )}
+              {s.volume > 0 && (
+                <text x={x + larg / 2} y={base - alt - 5} fill="var(--cinza)" fontSize="9" textAnchor="middle">
+                  {s.volume >= 1000 ? Math.round(s.volume / 1000) + "t" : s.volume}
+                </text>
+              )}
+              <text x={x + larg / 2} y={base + 14} fill="var(--cinza2)" fontSize="9" textAnchor="middle">
+                {s.ini.getDate() + "/" + (s.ini.getMonth() + 1)}
+              </text>
+              <text x={x + larg / 2} y={base + 25} fill="var(--cinza2)" fontSize="8" textAnchor="middle">
+                {s.treinos ? s.treinos + "x" : ""}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+// ---------------- ESTATÍSTICAS: VOLUME POR MÚSCULO ----------------
+function VolumeMusculos({ historico, exPorId }) {
+  const [dias, setDias] = useState(30);
+  const desde = dias ? Date.now() - dias * 86400000 : 0;
+  const lista = volumePorGrupo(historico, exPorId, desde);
+  const total = lista.reduce((a, x) => a + x.volume, 0);
+  const vmax = lista.length ? lista[0].volume : 1;
+  return (
+    <div style={S.card}>
+      <div style={S.label}>Volume por músculo</div>
+      <div style={{ display: "flex", gap: 8, margin: "10px 0 14px" }}>
+        {[[7, "7 dias"], [30, "30 dias"], [0, "Sempre"]].map(([d, nome]) => (
+          <button key={d} onClick={() => setDias(d)}
+            style={{
+              flex: 1, border: "1px solid", borderColor: dias === d ? "#E1306C" : "var(--borda2)",
+              background: dias === d ? "#E1306C22" : "transparent",
+              color: dias === d ? "#E1306C" : "var(--cinza)",
+              borderRadius: 8, padding: "8px 6px", fontWeight: 800, fontSize: 12, cursor: "pointer",
+            }}>
+            {nome}
+          </button>
+        ))}
+      </div>
+      {lista.length === 0 ? (
+        <div style={{ color: "var(--cinza)", fontSize: 13 }}>
+          Nenhum treino registrado nesse período. Conclua um treino para ver a divisão por músculo.
+        </div>
+      ) : (
+        lista.map((g) => {
+          const cor = corGrupo(GRUPOS.find((x) => x.id === g.id));
+          const pct = total ? Math.round((g.volume / total) * 100) : 0;
+          return (
+            <div key={g.id} style={{ marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                <span style={{ fontWeight: 700 }}>{g.nome}</span>
+                <span style={{ color: "var(--cinza)" }}>{fmtPeso(g.volume)} · {pct}%</span>
+              </div>
+              <div style={{ height: 8, borderRadius: 4, background: "var(--borda)" }}>
+                <div style={{ height: 8, borderRadius: 4, width: Math.max(3, (g.volume / vmax) * 100) + "%", background: cor }} />
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+// ---------------- ESTATÍSTICAS: CALENDÁRIO DO MÊS ----------------
+function CalendarioTreinos({ historico }) {
+  const [desl, setDesl] = useState(0);
+  const hoje = new Date();
+  const ref = new Date(hoje.getFullYear(), hoje.getMonth() + desl, 1);
+  const porDia = {};
+  historico.forEach((h) => {
+    const d = new Date(h.data);
+    if (d.getMonth() === ref.getMonth() && d.getFullYear() === ref.getFullYear()) {
+      porDia[d.getDate()] = (porDia[d.getDate()] || 0) + statsTreino(h).volume;
+    }
+  });
+  const vmax = Math.max(...Object.keys(porDia).map((k) => porDia[k]), 1);
+  const nDias = new Date(ref.getFullYear(), ref.getMonth() + 1, 0).getDate();
+  const inicio = (new Date(ref.getFullYear(), ref.getMonth(), 1).getDay() + 6) % 7;
+  const celulas = [];
+  for (let i = 0; i < inicio; i++) celulas.push(null);
+  for (let d = 1; d <= nDias; d++) celulas.push(d);
+  const treinosMes = Object.keys(porDia).length;
+  return (
+    <div style={S.card}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <button onClick={() => setDesl(desl - 1)} aria-label="Mês anterior"
+          style={{ background: "none", border: "none", color: "#E1306C", fontSize: 20, fontWeight: 900, cursor: "pointer", padding: "0 8px" }}>‹</button>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontWeight: 900, fontSize: 14, textTransform: "capitalize" }}>
+            {ref.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+          </div>
+          <div style={{ color: "var(--cinza)", fontSize: 11 }}>{treinosMes} {plural(treinosMes, "dia", "dias")} de treino</div>
+        </div>
+        <button onClick={() => setDesl(Math.min(0, desl + 1))} disabled={desl >= 0} aria-label="Mês seguinte"
+          style={{ background: "none", border: "none", color: desl >= 0 ? "var(--borda2)" : "#E1306C", fontSize: 20, fontWeight: 900, cursor: desl >= 0 ? "default" : "pointer", padding: "0 8px" }}>›</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginTop: 12 }}>
+        {["S", "T", "Q", "Q", "S", "S", "D"].map((d, i) => (
+          <div key={i} style={{ textAlign: "center", fontSize: 10, color: "var(--cinza2)", fontWeight: 700 }}>{d}</div>
+        ))}
+        {celulas.map((d, i) => {
+          if (d === null) return <div key={i} />;
+          const vol = porDia[d];
+          const intens = vol ? 0.3 + (vol / vmax) * 0.7 : 0;
+          const ehHoje = desl === 0 && d === hoje.getDate();
+          return (
+            <div key={i} title={vol ? fmtPeso(vol) : ""}
+              style={{
+                aspectRatio: "1", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 11, fontWeight: vol ? 900 : 500,
+                background: vol ? "rgba(225,48,108," + intens + ")" : "var(--input)",
+                color: vol ? "#FFFFFF" : "var(--cinza2)",
+                border: ehHoje ? "1.5px solid #E1306C" : "1px solid var(--borda)",
+              }}>
+              {d}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------- ESTATÍSTICAS: NÚMEROS GERAIS ----------------
+function NumerosGerais({ historico }) {
+  const est = calcularEstatisticas(historico);
+  let minutos = 0, series = 0, reps = 0;
+  historico.forEach((h) => {
+    minutos += h.duracaoMin || 0;
+    const s = statsTreino(h);
+    series += s.series; reps += s.reps;
+  });
+  const semanas = volumeSemanal(historico, 8).filter((s) => s.treinos > 0).length || 1;
+  const eq = equivalencia(est.volumeTotal);
+  const itens = [
+    ["Treinos", est.total],
+    ["Horas", (Math.round((minutos / 60) * 10) / 10).toLocaleString("pt-BR")],
+    ["Séries", series.toLocaleString("pt-BR")],
+    ["Repetições", reps.toLocaleString("pt-BR")],
+    ["Volume total", fmtPeso(est.volumeTotal)],
+    ["Sequência", est.streak + " " + plural(est.streak, "dia", "dias")],
+    ["Média/semana", (Math.round((est.total / semanas) * 10) / 10).toLocaleString("pt-BR") + " treinos"],
+    ["Esta semana", fmtPeso(est.volumeSemana)],
+  ];
+  return (
+    <div style={S.card}>
+      <div style={{ ...S.label, marginBottom: 12 }}>Seus números</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {itens.map(([nome, val]) => (
+          <div key={nome} style={{ background: "var(--input)", border: "1px solid var(--borda)", borderRadius: 12, padding: "10px 12px" }}>
+            <div style={{ fontSize: 18, fontWeight: 900, color: "#E1306C" }}>{val}</div>
+            <div style={{ fontSize: 10, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.5 }}>{nome}</div>
+          </div>
+        ))}
+      </div>
+      {eq && (
+        <div style={{ marginTop: 12, fontSize: 12, color: "var(--cinza)", textAlign: "center" }}>
+          Você já moveu {fmtPeso(est.volumeTotal)} — {eq}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------------- GRÁFICO DE EVOLUÇÃO ----------------
 function GraficoEvolucao({ historico, exPorId }) {
   const idsComDados = [];
@@ -567,6 +932,8 @@ function GraficoEvolucao({ historico, exPorId }) {
     let valor = 0;
     if (metrica === "max") {
       it.series.forEach((sr) => { const pz = parseFloat(sr.peso) || 0; if (pz > valor) valor = pz; });
+    } else if (metrica === "1rm") {
+      valor = melhor1RM(it);
     } else {
       it.series.forEach((sr) => { valor += (parseFloat(sr.peso) || 0) * (parseInt(sr.reps) || 0); });
     }
@@ -617,7 +984,7 @@ function GraficoEvolucao({ historico, exPorId }) {
       </select>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {[["max", "Carga máxima"], ["volume", "Volume total"]].map(([m, nomeM]) => (
+        {[["max", "Carga máx."], ["volume", "Volume"], ["1rm", "1RM estim."]].map(([m, nomeM]) => (
           <button key={m} onClick={() => setMetrica(m)}
             style={{
               flex: 1, border: "1px solid", borderColor: metrica === m ? "#E1306C" : "var(--borda2)",
@@ -638,6 +1005,11 @@ function GraficoEvolucao({ historico, exPorId }) {
             <Resumo num={(ultimo ? ultimo.valor : 0) + unidadeCurta(metrica)} txt="último" />
             <Resumo num={melhor + unidadeCurta(metrica)} txt="recorde" />
           </div>
+          {metrica === "1rm" && (
+            <div style={{ color: "var(--cinza2)", fontSize: 11, marginTop: 10, lineHeight: 1.4 }}>
+              1RM estimado é a carga máxima que você levantaria em uma única repetição, calculada a partir das suas séries (fórmula de Epley). Serve para comparar treinos com repetições diferentes.
+            </div>
+          )}
         </React.Fragment>
       ) : (
         <div style={{ color: "var(--cinza)", fontSize: 13 }}>
@@ -647,7 +1019,7 @@ function GraficoEvolucao({ historico, exPorId }) {
     </div>
   );
 }
-function unidadeCurta(metrica) { return metrica === "max" ? "kg" : ""; }
+function unidadeCurta(metrica) { return metrica === "volume" ? "" : "kg"; }
 
 // ---------------- COMPONENTES ----------------
 function Header({ titulo, tema, onTema }) {
@@ -767,6 +1139,8 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
           <div style={{ fontWeight: 800, fontSize: 16, marginTop: 6 }}>{ultima.nome}</div>
           <div style={{ color: "var(--cinza)", fontSize: 13, marginTop: 2 }}>
             {new Date(ultima.data).toLocaleDateString("pt-BR")} · {ultima.duracaoMin} min · {ultima.itens.length} exercícios
+            <br />
+            {fmtKg(statsTreino(ultima).volume)} de volume · {statsTreino(ultima).series} séries
           </div>
         </div>
       )}
@@ -1537,45 +1911,170 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
   );
 }
 
-function TelaHistorico({ historico, exPorId, onExcluir, pedirConfirmacao }) {
+function MiniStat({ valor, nome, cor }) {
+  return (
+    <div style={{ flex: "1 1 60px", minWidth: 60 }}>
+      <div style={{ fontSize: 15, fontWeight: 900, color: cor || "var(--texto)" }}>{valor}</div>
+      <div style={{ fontSize: 9, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.5 }}>{nome}</div>
+    </div>
+  );
+}
+
+function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, pedirConfirmacao }) {
+  const [aberto, setAberto] = useState(false);
+  const st = statsTreino(h);
+  const pr = recordes[h.id] || {};
+  const nPR = Object.keys(pr).filter((k) => pr[k].peso || pr[k].volume).length;
+  const grupos = {};
+  h.itens.forEach((it) => {
+    const e = exPorId(it.exercicioId);
+    const g = e ? e.grupo : null;
+    if (g) grupos[g] = (grupos[g] || 0) + volumeItem(it);
+  });
+  const listaGrupos = Object.keys(grupos).filter((g) => grupos[g] > 0).sort((a, b) => grupos[b] - grupos[a]);
+  const totalG = listaGrupos.reduce((a, g) => a + grupos[g], 0) || 1;
+
+  return (
+    <div style={S.card}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ fontWeight: 900, fontSize: 16, flex: 1 }}>{h.nome}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ color: "#E1306C", fontWeight: 800, fontSize: 13 }}>{h.duracaoMin} min</div>
+          <button title="Excluir este treino do histórico"
+            onClick={() => pedirConfirmacao("Excluir este treino do histórico? Essa ação não pode ser desfeita.", () => onExcluir(h.id))}
+            style={{ background: "none", border: "1px solid var(--perigo-borda)", color: "var(--perigo)", borderRadius: 8, width: 30, height: 30, fontSize: 14, fontWeight: 900, cursor: "pointer" }}>
+            🗑
+          </button>
+        </div>
+      </div>
+      <div style={{ color: "var(--cinza)", fontSize: 12, margin: "2px 0 12px" }}>
+        {new Date(h.data).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
+      </div>
+
+      {/* Números do treino */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, background: "var(--input)", border: "1px solid var(--borda)", borderRadius: 12, padding: "12px 14px" }}>
+        {st.volume > 0 && <MiniStat valor={fmtKg(st.volume)} nome="volume" cor="#E1306C" />}
+        <MiniStat valor={st.series} nome="séries" />
+        <MiniStat valor={st.reps} nome="reps" />
+        <MiniStat valor={st.exercicios} nome="exercícios" />
+        {st.cargaMax > 0 && <MiniStat valor={st.cargaMax + "kg"} nome="carga máx." />}
+        {st.densidade > 0 && <MiniStat valor={st.densidade + " kg/min"} nome="densidade" />}
+      </div>
+
+      {/* Comparação e recordes */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+        {comparacao && (
+          <span style={{
+            fontSize: 11, fontWeight: 800, borderRadius: 8, padding: "4px 8px",
+            background: comparacao.pct >= 0 ? "var(--ok-bg)" : "var(--aviso-bg)",
+            color: comparacao.pct >= 0 ? "var(--ok)" : "var(--perigo)",
+          }}>
+            {(comparacao.pct >= 0 ? "▲ +" : "▼ ") + comparacao.pct + "% de volume vs. treino anterior"}
+          </span>
+        )}
+        {nPR > 0 && (
+          <span style={{ fontSize: 11, fontWeight: 800, borderRadius: 8, padding: "4px 8px", background: "#E1306C22", color: "#E1306C" }}>
+            🏆 {nPR} {plural(nPR, "recorde pessoal", "recordes pessoais")}
+          </span>
+        )}
+      </div>
+
+      {/* Divisão por músculo */}
+      {listaGrupos.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", background: "var(--borda)" }}>
+            {listaGrupos.map((g) => (
+              <div key={g} style={{ width: (grupos[g] / totalG) * 100 + "%", background: corGrupo(GRUPOS.find((x) => x.id === g)) }} />
+            ))}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
+            {listaGrupos.map((g) => {
+              const info = GRUPOS.find((x) => x.id === g);
+              return (
+                <span key={g} style={{ fontSize: 10, color: "var(--cinza)" }}>
+                  <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: corGrupo(info), marginRight: 4 }} />
+                  {(info ? info.nome : g) + " " + Math.round((grupos[g] / totalG) * 100) + "%"}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Séries */}
+      <button onClick={() => setAberto(!aberto)}
+        style={{ background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 12, padding: "12px 0 4px", cursor: "pointer" }}>
+        {aberto ? "▲ Ocultar séries" : "▼ Ver séries de cada exercício"}
+      </button>
+
+      {aberto && h.itens.map((it, i) => {
+        const e = exPorId(it.exercicioId);
+        const p = pr[it.exercicioId] || {};
+        const rm = melhor1RM(it);
+        return (
+          <div key={i} style={{ fontSize: 13, marginBottom: 8, lineHeight: 1.5 }}>
+            <span style={{ fontWeight: 700 }}>{(e ? e.nome : "Exercício")}: </span>
+            <span style={{ color: "var(--cinza)" }}>
+              {it.series.map((s) => (s.peso || 0) + "kg×" + (s.reps || 0)).join("  ·  ")}
+            </span>
+            {(p.peso || p.volume) && <span style={{ marginLeft: 4 }} title="Recorde pessoal">🏆</span>}
+            {volumeItem(it) > 0 && (
+              <div style={{ color: "var(--cinza2)", fontSize: 11 }}>
+                {fmtKg(volumeItem(it))} de volume{rm ? " · 1RM estim. " + rm + "kg" : ""}
+              </div>
+            )}
+            {it.obs && <div style={{ color: "var(--obs)", fontSize: 12, fontStyle: "italic", marginTop: 2 }}>📝 {it.obs}</div>}
+          </div>
+        );
+      })}
+
+      <button onClick={() => onStory(h)} style={{ ...S.btnGhost, marginTop: 10, color: "#E1306C", borderColor: "#E1306C66", fontSize: 13, padding: "10px 14px" }}>
+        📸 Gerar imagem para o story
+      </button>
+    </div>
+  );
+}
+
+function TelaHistorico({ historico, exPorId, onExcluir, onStory, pedirConfirmacao }) {
+  const [secao, setSecao] = useState("treinos");
+  const recordes = calcularRecordes(historico);
+
   return (
     <div style={{ padding: "0 18px" }}>
-      <GraficoEvolucao historico={historico} exPorId={exPorId} />
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        {[["treinos", "📋 Treinos"], ["stats", "📊 Estatísticas"]].map(([s, nome]) => (
+          <button key={s} onClick={() => setSecao(s)}
+            style={{
+              flex: 1, border: "1px solid", borderColor: secao === s ? "#E1306C" : "var(--borda2)",
+              background: secao === s ? "#E1306C22" : "transparent",
+              color: secao === s ? "#E1306C" : "var(--cinza)",
+              borderRadius: 10, padding: "11px 10px", fontWeight: 800, fontSize: 13, cursor: "pointer",
+            }}>
+            {nome}
+          </button>
+        ))}
+      </div>
 
       {historico.length === 0 && (
         <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
-          Seus treinos concluídos aparecem aqui, com as cargas de cada série.
+          Seus treinos concluídos aparecem aqui, com volume, séries e recordes de cada exercício.
         </div>
       )}
-      {historico.map((h) => (
-        <div key={h.id} style={S.card}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div style={{ fontWeight: 900, fontSize: 16, flex: 1 }}>{h.nome}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ color: "#E1306C", fontWeight: 800, fontSize: 13 }}>{h.duracaoMin} min</div>
-              <button title="Excluir este treino do histórico"
-                onClick={() => pedirConfirmacao("Excluir este treino do histórico? Essa ação não pode ser desfeita.", () => onExcluir(h.id))}
-                style={{ background: "none", border: "1px solid var(--perigo-borda)", color: "var(--perigo)", borderRadius: 8, width: 30, height: 30, fontSize: 14, fontWeight: 900, cursor: "pointer" }}>
-                🗑
-              </button>
-            </div>
-          </div>
-          <div style={{ color: "var(--cinza)", fontSize: 12, margin: "2px 0 10px" }}>
-            {new Date(h.data).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
-          </div>
-          {h.itens.map((it, i) => {
-            const e = exPorId(it.exercicioId);
-            return (
-              <div key={i} style={{ fontSize: 13, marginBottom: 6, lineHeight: 1.5 }}>
-                <span style={{ fontWeight: 700 }}>{(e ? e.nome : "Exercício")}: </span>
-                <span style={{ color: "var(--cinza)" }}>
-                  {it.series.map((s) => (s.peso || 0) + "kg×" + (s.reps || 0)).join("  ·  ")}
-                </span>
-                {it.obs && <div style={{ color: "var(--obs)", fontSize: 12, fontStyle: "italic", marginTop: 2 }}>📝 {it.obs}</div>}
-              </div>
-            );
-          })}
-        </div>
+
+      {secao === "stats" && historico.length > 0 && (
+        <React.Fragment>
+          <NumerosGerais historico={historico} />
+          <GraficoSemanal historico={historico} />
+          <VolumeMusculos historico={historico} exPorId={exPorId} />
+          <CalendarioTreinos historico={historico} />
+          <GraficoEvolucao historico={historico} exPorId={exPorId} />
+        </React.Fragment>
+      )}
+
+      {secao === "treinos" && historico.map((h) => (
+        <CardTreino key={h.id} h={h} exPorId={exPorId} recordes={recordes}
+          comparacao={compararAnterior(historico, h)}
+          onExcluir={onExcluir} onStory={onStory} pedirConfirmacao={pedirConfirmacao} />
       ))}
     </div>
   );
@@ -1810,12 +2309,23 @@ function TreinoLivre() {
     }));
     setSessao(null);
     setAba("historico");
-    const vol = Math.round(registro.itens.reduce((a, it) => a + it.series.reduce((b, s) => b + (parseFloat(s.peso) || 0) * (parseInt(s.reps) || 0), 0), 0));
-    const nSeries = registro.itens.reduce((a, it) => a + it.series.length, 0);
+    const st = statsTreino(registro);
+    const nRec = contarRecordesNovos(historico, registro);
+    const comp = compararAnterior([registro, ...historico], registro);
     registrarEvento("treino-concluido");
+    let msg = "Treino concluído! 🎉\n\n";
+    if (st.volume > 0) msg += "🏋️ " + fmtKg(st.volume) + " de volume total\n";
+    msg += st.series + " " + plural(st.series, "série", "séries") + " · " + st.reps + " " + plural(st.reps, "repetição", "repetições") + " · " + st.exercicios + " " + plural(st.exercicios, "exercício", "exercícios") + "\n";
+    msg += "⏱ " + registro.duracaoMin + " min";
+    if (st.densidade > 0) msg += " · " + st.densidade + " kg/min · carga máx. " + st.cargaMax + " kg";
+    if (comp) msg += "\n" + (comp.pct >= 0 ? "▲ +" : "▼ ") + comp.pct + "% de volume vs. o treino anterior";
+    if (nRec > 0) msg += "\n🏆 " + nRec + " " + plural(nRec, "recorde pessoal batido", "recordes pessoais batidos") + "!";
     setTimeout(() => setModal({
-      msg: "Treino concluído! 🎉\n\n" + nSeries + " séries · " + vol.toLocaleString("pt-BR") + " kg de volume · " + registro.duracaoMin + " min",
-      storyTreino: { nome: registro.nome, series: nSeries, volume: vol, duracao: registro.duracaoMin },
+      msg: msg,
+      storyTreino: {
+        nome: registro.nome, series: st.series, reps: st.reps, volume: st.volume,
+        duracao: registro.duracaoMin, densidade: st.densidade, cargaMax: st.cargaMax, recordes: nRec,
+      },
     }), 250);
   };
 
@@ -1873,6 +2383,18 @@ function TreinoLivre() {
     setProgAberto(pid);
     setAba("treinos");
     setTimeout(() => avisar("Treino gerado com " + fichas.length + " fichas! Pode editar tudo do seu jeito. 💪"), 150);
+  };
+
+  // ---- Story: imagem de um treino do histórico ----
+  const storyDeTreino = async (h) => {
+    const st = statsTreino(h);
+    const anteriores = historico.filter((x) => new Date(x.data) < new Date(h.data));
+    const nRec = contarRecordesNovos(anteriores, h);
+    const blob = await gerarImagemStory(linhasStoryTreino({
+      nome: h.nome, series: st.series, reps: st.reps, volume: st.volume,
+      duracao: h.duracaoMin, densidade: st.densidade, cargaMax: st.cargaMax, recordes: nRec,
+    }));
+    compartilharImagem(blob, "Treino concluído no Treino Livre! 💪 " + LINK_APP, avisar);
   };
 
   // ---- Story: imagem do progresso ----
@@ -2080,7 +2602,7 @@ function TreinoLivre() {
             onVoltar={() => setAba("inicio")}
             onDescartar={() => { setSessao(null); setAba("inicio"); }} />
         )}
-        {aba === "historico" && <TelaHistorico historico={historico} exPorId={exPorId} onExcluir={excluirHistorico} pedirConfirmacao={pedirConfirmacao} />}
+        {aba === "historico" && <TelaHistorico historico={historico} exPorId={exPorId} onExcluir={excluirHistorico} onStory={storyDeTreino} pedirConfirmacao={pedirConfirmacao} />}
       </div>
 
       {modal && (
@@ -2098,15 +2620,7 @@ function TreinoLivre() {
               <button style={{ ...S.btn, marginBottom: 10 }} onClick={async () => {
                 const st = modal.storyTreino;
                 setModal(null);
-                const blob = await gerarImagemStory([
-                  { t: "TREINO CONCLUÍDO! 🎉", tam: 64, cor: "#E1306C", esp: 80 },
-                  { t: st.nome, tam: 50, cor: "#F2F0EC", esp: 110 },
-                  { t: String(st.series), tam: 150, cor: "#E1306C", esp: 30 },
-                  { t: "séries concluídas", tam: 40, cor: "var(--cinza)", esp: 110 },
-                  { t: st.volume.toLocaleString("pt-BR") + " kg", tam: 110, cor: "#ED4956", esp: 30 },
-                  { t: "de volume movido", tam: 40, cor: "var(--cinza)", esp: 110 },
-                  { t: "⏱ " + st.duracao + " min de treino", tam: 46, esp: 40 },
-                ]);
+                const blob = await gerarImagemStory(linhasStoryTreino(st));
                 compartilharImagem(blob, "Treino concluído no Treino Livre! 💪 " + LINK_APP, avisar);
               }}>📸 Compartilhar no story</button>
             )}

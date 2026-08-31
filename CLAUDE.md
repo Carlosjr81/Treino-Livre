@@ -62,10 +62,13 @@ Tudo num único registro em `localStorage["treinolivre:v1"]`:
 ```js
 {
   programas: [{ id, nome }],                    // agrupam fichas
-  treinos:   [{ id, nome, programaId, itens: [{ uid, exercicioId, series, reps, obs }] }],
+  treinos:   [{ id, nome, programaId, itens: [{ uid, exercicioId, series, reps, obs, descanso, conjunto }] }],
   historico: [{ id, nome, data, duracaoMin, itens: [{ exercicioId, obs, series: [{ peso, reps }] }] }],
   customEx:  [{ id: "custom-…", custom: true, nome, grupo, equip, musc, passos, dica }],
-  sessao:    { treinoId, nome, inicio, itens: [{ uid, exercicioId, obs, sugerido, series: [{ peso, reps, feito }] }] } | null,
+  medidas:   [{ id, data, peso, cintura, peito, braco, coxa, quadril }],
+  sessao:    { treinoId, nome, inicio, itens: [{ uid, exercicioId, obs, descanso, conjunto, sugerido, series: [{ peso, reps, feito }] }] } | null,
+  lembrete:  { ativo, hora: "18:00", dias: [1,2,3,4,5] },   // 0 = domingo
+  ultimoBackup: 1725100000000,
   descanso: 90, som: true, tema: "escuro", meta: 3, seedV3: true
 }
 ```
@@ -85,6 +88,11 @@ Regras importantes:
 - **O backup exportado não leva `sessao`** de propósito.
 - **`uid` nos itens** existe para o React ter chave estável. Sem ele, remover um
   exercício do meio da lista desloca os campos de peso/reps dos seguintes.
+- **`conjunto`** liga itens *vizinhos* num bi-set/tri-set. É um id compartilhado;
+  itens separados na lista com o mesmo id não formam conjunto, porque a checagem
+  olha só o vizinho de cima e o de baixo.
+- **`descanso` no item** vence o descanso geral. `null` significa "usa o geral".
+  O valor ajustado durante o treino volta para a ficha ao finalizar, junto das obs.
 
 ## Imagens de demonstração
 
@@ -145,6 +153,40 @@ compartilhados por aí precisam continuar abrindo.
 - **Wake Lock durante o descanso** — sem isso o navegador suspende o áudio com o
   celular no bolso e o aviso de fim nunca toca.
 
+## Treino em andamento
+
+- **Miniatura + demonstração** — cada exercício da sessão mostra a figura ao lado
+  do nome; tocar abre `ModalDemonstracao` por cima, com imagem, músculos, passos,
+  dica e botão de vídeo. Antes era preciso sair do treino para consultar isso.
+- **Substituir exercício** (`alternativasPara` / `substituirExercicio`) — para
+  quando o aparelho está ocupado. Lista o mesmo grupo muscular, com os de mesmo
+  equipamento primeiro, e exclui os que já estão no treino. As séries são
+  mantidas em quantidade; a carga volta a ser sugerida a partir do histórico.
+- **Bi-set e tri-set** — itens vizinhos com o mesmo `conjunto` ganham borda e
+  rótulo, e o descanso só dispara depois da série do **último** do grupo.
+  No editor de ficha, o botão "juntar com o de baixo" liga e desliga.
+- **Descanso por exercício** — controle na própria linha do exercício, além do
+  seletor no editor de ficha.
+
+## Corpo, backup e lembretes
+
+- **Medidas** (`TelaCorpo`) — peso e cinco circunferências, com gráfico por
+  campo. É o que dá motivo para abrir o app fora do dia de treino.
+- **Corrigir treino** (`TelaEditarHistorico`) — edita séries, obs, nome e
+  duração de um treino já concluído. Recordes, conquistas e nível saem do
+  histórico, então se ajustam sozinhos. Antes, um peso errado só tinha a saída
+  de apagar o treino inteiro.
+- **Backup em arquivo** — `baixarBackup` gera um `.json` via Blob e marca
+  `ultimoBackup`; `restaurarDeArquivo` lê de volta por `<input type="file">`.
+  O texto copiável continua existindo como alternativa. `avisoBackup` mostra um
+  cartão vermelho quando há 5+ treinos e nenhum backup, ou mais de 30 dias sem.
+- **Lembretes** — sem servidor não existe push de verdade. O que há é:
+  (a) verificação a cada 30 s enquanto o app está aberto e (b) `periodicSync`
+  no service worker, que só o Android com o app instalado atende. A configuração
+  vai para o cache `treinolivre-config`, porque o service worker não enxerga o
+  `localStorage`. **O `activate` do `sw.js` precisa preservar esse cache** ao
+  limpar versões antigas, senão o lembrete morre a cada atualização.
+
 ## Como testar
 
 Não há suíte automatizada. O `file://` não serve: o preview vira `data:` e o
@@ -162,6 +204,9 @@ Roteiro mínimo depois de mexer no app:
 5. Refazer a mesma ficha — a carga deve vir preenchida e sugerir subir.
 6. Exportar e importar backup.
 7. Abrir com `#ficha=` para conferir o recebimento por link.
+8. Agrupar dois exercícios em bi-set e conferir que o descanso só começa depois
+   do segundo.
+9. Baixar o backup em arquivo e restaurá-lo.
 
 ## Convenções
 

@@ -673,6 +673,39 @@ function beep(freq, dur, vol) {
   } catch (e) {}
 }
 
+// ---------------- LEMBRETES DE TREINO ----------------
+// Sem servidor não existe push de verdade. O que funciona é: (a) avisar enquanto
+// o app está aberto e (b) no Android, com o app instalado, pedir ao sistema uma
+// verificação periódica em segundo plano (periodicSync). Nos aparelhos que não
+// suportam, o lembrete só aparece quando o app é aberto.
+const CACHE_CONFIG = "treinolivre-config";
+async function guardarConfigLembrete(cfg) {
+  try {
+    const c = await caches.open(CACHE_CONFIG);
+    await c.put("/config-lembrete", new Response(JSON.stringify(cfg), { headers: { "Content-Type": "application/json" } }));
+  } catch (e) {}
+}
+async function pedirVerificacaoPeriodica(ativo) {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (!reg.periodicSync) return false;
+    if (!ativo) { await reg.periodicSync.unregister("lembrete-treino").catch(() => {}); return false; }
+    const st = await navigator.permissions.query({ name: "periodic-background-sync" });
+    if (st.state !== "granted") return false;
+    await reg.periodicSync.register("lembrete-treino", { minInterval: 6 * 3600 * 1000 });
+    return true;
+  } catch (e) { return false; }
+}
+const DIAS_SEMANA = [
+  { n: 0, curto: "D", nome: "domingo" },
+  { n: 1, curto: "S", nome: "segunda" },
+  { n: 2, curto: "T", nome: "terça" },
+  { n: 3, curto: "Q", nome: "quarta" },
+  { n: 4, curto: "Q", nome: "quinta" },
+  { n: 5, curto: "S", nome: "sexta" },
+  { n: 6, curto: "S", nome: "sábado" },
+];
+
 // ---------------- MANTER A TELA LIGADA NO DESCANSO ----------------
 // Com o celular no bolso a tela apaga, o navegador suspende o áudio e o aviso de
 // "descanso concluído" nunca toca. A trava de tela resolve isso justamente no
@@ -1538,6 +1571,84 @@ function CronometroSessao({ inicio }) {
   );
 }
 
+// ---------------- MINIATURA E DEMONSTRAÇÃO DO EXERCÍCIO ----------------
+// A miniatura ao lado do nome deixa claro qual aparelho é, sem precisar sair
+// da tela de treino. Tocar nela abre a execução completa por cima da sessão.
+function MiniaturaExercicio({ ex, tamanho = 54, onAbrir }) {
+  const url = ex ? IMAGENS_WGER[ex.id] : null;
+  const g = ex ? grupoPorId(ex.grupo) : null;
+  const conteudo = url
+    ? <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", background: "#FFFFFF" }} />
+    : <span aria-hidden="true" style={{ fontSize: tamanho * 0.42, fontWeight: 900, color: corGrupo(g) }}>{ex ? ex.nome[0] : "?"}</span>;
+  const estilo = {
+    width: tamanho, height: tamanho, borderRadius: 12, overflow: "hidden", flexShrink: 0,
+    border: "1px solid var(--borda2)", background: url ? "#FFFFFF" : "var(--input)",
+    display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+  };
+  if (!onAbrir) return <div style={estilo} aria-hidden="true">{conteudo}</div>;
+  return (
+    <button type="button" onClick={onAbrir} style={{ ...estilo, cursor: "pointer" }}
+      aria-label={"Ver como executar " + (ex ? ex.nome : "o exercício")}>
+      {conteudo}
+    </button>
+  );
+}
+
+function ModalDemonstracao({ ex, onFechar }) {
+  useEffect(() => {
+    const aoTeclar = (e) => { if (e.key === "Escape") onFechar(); };
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, [onFechar]);
+  if (!ex) return null;
+  const g = grupoPorId(ex.grupo);
+  const p = (ex.musc && ex.musc.p) || [];
+  const s = (ex.musc && ex.musc.s) || [];
+  return (
+    <div onClick={onFechar}
+      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.75)", zIndex: 45, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div role="dialog" aria-modal="true" aria-label={"Como executar " + ex.nome} onClick={(e) => e.stopPropagation()}
+        style={{ background: "var(--card)", borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTop: "1px solid var(--borda2)", width: "100%", maxWidth: 520, maxHeight: "88vh", overflowY: "auto", padding: "8px 18px calc(24px + env(safe-area-inset-bottom))" }}>
+        <div style={{ width: 42, height: 4, borderRadius: 2, background: "var(--borda2)", margin: "8px auto 14px" }} aria-hidden="true" />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ ...S.label, color: corGrupo(g) }}>{g.nome}{ex.equip ? " · " + ex.equip : ""}</div>
+            <div style={{ fontSize: 20, fontWeight: 900, margin: "4px 0 0" }}>{ex.nome}</div>
+          </div>
+          <button onClick={onFechar} aria-label="Fechar"
+            style={{ background: "none", border: "none", color: "var(--cinza)", fontSize: 24, fontWeight: 900, cursor: "pointer", lineHeight: 1, padding: 0 }}>×</button>
+        </div>
+
+        <div style={{ marginTop: 12 }}><ImagemExercicio ex={ex} /></div>
+
+        {(p.length > 0 || s.length > 0) && (
+          <div style={{ fontSize: 13, lineHeight: 1.6, margin: "10px 0 4px" }}>
+            {p.length > 0 && <div><span style={{ color: corMuscTxt("p"), fontWeight: 800 }}>Direto: </span>{p.map((m) => MUSCULOS[m]).join(", ")}</div>}
+            {s.length > 0 && <div><span style={{ color: corMuscTxt("s"), fontWeight: 800 }}>Indireto: </span>{s.map((m) => MUSCULOS[m]).join(", ")}</div>}
+          </div>
+        )}
+
+        {ex.passos && ex.passos.length > 0 && (
+          <React.Fragment>
+            <div style={{ ...S.label, marginTop: 14 }}>Execução</div>
+            <ol style={{ margin: "8px 0 12px", paddingLeft: 20, lineHeight: 1.6, fontSize: 15 }}>
+              {ex.passos.map((pp, i) => <li key={i} style={{ marginBottom: 6 }}>{pp}</li>)}
+            </ol>
+          </React.Fragment>
+        )}
+        {ex.dica && (
+          <div style={{ background: "var(--bg)", borderRadius: 10, padding: 12, fontSize: 14, lineHeight: 1.5 }}>
+            <span style={{ color: "#E1306C", fontWeight: 800 }}>Dica: </span>{ex.dica}
+          </div>
+        )}
+        <button style={{ ...S.btnGhost, marginTop: 14, borderColor: "#E1306C66", color: "#E1306C" }} onClick={() => abrirVideoDe(ex.nome)}>
+          ▶ Ver demonstração em vídeo
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ---------------- NÍVEL DO ATLETA ----------------
 function CartaoNivel({ est }) {
   const n = nivelDe(est);
@@ -1645,6 +1756,94 @@ function OQueTreinarHoje({ historico, exPorId, onAbrirGrupo }) {
   );
 }
 
+// ---------------- LEMBRETE DE TREINO ----------------
+function CartaoLembrete({ lembrete, setLembrete, avisar }) {
+  const suportaNotificacao = typeof Notification !== "undefined";
+  const [permissao, setPermissao] = useState(suportaNotificacao ? Notification.permission : "unsupported");
+
+  const ligar = async () => {
+    if (!suportaNotificacao) {
+      avisar("Este navegador não permite avisos. O lembrete vai aparecer dentro do app quando você abrir.");
+      setLembrete({ ...lembrete, ativo: true });
+      return;
+    }
+    let p = Notification.permission;
+    if (p === "default") p = await Notification.requestPermission();
+    setPermissao(p);
+    if (p !== "granted") {
+      avisar("Você não autorizou os avisos. Para receber lembretes, libere as notificações do Treino Livre nas configurações do navegador.");
+      return;
+    }
+    setLembrete({ ...lembrete, ativo: true });
+    registrarEvento("lembrete-ativado");
+  };
+
+  const alternarDia = (n) => {
+    const dias = lembrete.dias.includes(n) ? lembrete.dias.filter((d) => d !== n) : [...lembrete.dias, n].sort();
+    setLembrete({ ...lembrete, dias });
+  };
+
+  return (
+    <div style={S.card}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={S.label}>🔔 Lembrete de treino</div>
+          <div style={{ fontSize: 13, color: "var(--cinza)", marginTop: 4, lineHeight: 1.5 }}>
+            {lembrete.ativo ? "Ligado para " + lembrete.hora : "Um empurrão nos dias que você escolher."}
+          </div>
+        </div>
+        <button onClick={() => (lembrete.ativo ? setLembrete({ ...lembrete, ativo: false }) : ligar())}
+          aria-pressed={lembrete.ativo} aria-label={lembrete.ativo ? "Desligar o lembrete" : "Ligar o lembrete"}
+          style={{
+            width: 54, height: 30, borderRadius: 15, flexShrink: 0, cursor: "pointer", position: "relative",
+            border: "1px solid " + (lembrete.ativo ? "#E1306C" : "var(--borda2)"),
+            background: lembrete.ativo ? GRAD : "var(--input)", transition: "background .2s",
+          }}>
+          <span aria-hidden="true" style={{
+            position: "absolute", top: 3, left: lembrete.ativo ? 27 : 3, width: 22, height: 22,
+            borderRadius: "50%", background: "#FFFFFF", transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.3)",
+          }} />
+        </button>
+      </div>
+
+      {lembrete.ativo && (
+        <React.Fragment>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
+            <span style={{ fontSize: 13, color: "var(--cinza)" }}>Horário</span>
+            <input type="time" value={lembrete.hora} aria-label="Horário do lembrete"
+              onChange={(e) => setLembrete({ ...lembrete, hora: e.target.value || "18:00" })}
+              style={{ ...S.input, width: "auto", flex: "0 0 auto", padding: "9px 12px", fontWeight: 800 }} />
+          </div>
+          <div style={{ ...S.label, fontSize: 10, margin: "14px 0 8px" }}>Dias</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {DIAS_SEMANA.map((d) => {
+              const on = lembrete.dias.includes(d.n);
+              return (
+                <button key={d.n} onClick={() => alternarDia(d.n)} aria-pressed={on}
+                  aria-label={(on ? "Desmarcar " : "Marcar ") + d.nome}
+                  style={{
+                    flex: 1, aspectRatio: "1", borderRadius: 10, cursor: "pointer", fontWeight: 900, fontSize: 13,
+                    border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"),
+                    background: on ? "#E1306C22" : "transparent",
+                    color: on ? "#E1306C" : "var(--cinza)",
+                  }}>
+                  {d.curto}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 12, lineHeight: 1.5 }}>
+            {permissao === "granted"
+              ? "Com o app instalado no Android, o aviso pode chegar mesmo fechado. Em outros aparelhos ele aparece quando você abre o app."
+              : "Sem autorização de notificação, o lembrete só aparece dentro do app."}
+            {" "}O aviso não vem se você já treinou naquele dia.
+          </div>
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
 // ---------------- CONQUISTAS POR CATEGORIA ----------------
 function PainelConquistas({ est, onStory }) {
   const [aberto, setAberto] = useState(false);
@@ -1715,7 +1914,10 @@ function PainelConquistas({ est, onStory }) {
   );
 }
 
-function TelaInicio({ programas, treinos, historico, totalEx, meta, setMeta, exPorId, onAbrirGrupo, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onStoryProgresso, onDesafiar, onCopiarLink, onExportar, onImportar, onInstalar }) {
+function TelaInicio({ programas, treinos, historico, totalEx, meta, setMeta, exPorId, onAbrirGrupo,
+  lembrete, setLembrete, avisar, ultimoBackup, avisoBackup, onBaixarBackup, onRestaurarArquivo,
+  onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onStoryProgresso, onDesafiar, onCopiarLink,
+  onExportar, onImportar, onInstalar }) {
   const ultima = historico[0];
   // O cálculo varre o histórico inteiro e apura recordes: memoizado para não
   // repetir isso a cada toque na tela.
@@ -1743,6 +1945,14 @@ function TelaInicio({ programas, treinos, historico, totalEx, meta, setMeta, exP
             e funciona na academia mesmo sem internet.
           </div>
           <button style={S.btn} onClick={onInstalar}>Instalar app</button>
+        </div>
+      )}
+
+      {avisoBackup && (
+        <div style={{ ...S.card, borderColor: "#ED4956", background: "var(--aviso-bg)" }}>
+          <div style={{ ...S.label, color: "#ED4956" }}>⚠ Faça um backup</div>
+          <div style={{ fontSize: 14, lineHeight: 1.6, margin: "8px 0 12px" }}>{avisoBackup}</div>
+          <button style={S.btn} onClick={onBaixarBackup}>⬇ Baixar backup agora</button>
         </div>
       )}
 
@@ -1822,15 +2032,25 @@ function TelaInicio({ programas, treinos, historico, totalEx, meta, setMeta, exP
         </div>
       )}
 
+      <CartaoLembrete lembrete={lembrete} setLembrete={setLembrete} avisar={avisar} />
+
       <div style={S.card}>
         <div style={S.label}>Seus dados (backup)</div>
         <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, margin: "8px 0 12px" }}>
-          Seus treinos ficam salvos neste aparelho e navegador. Exporte um backup de vez em quando
-          para garantir — dá até pra colar numa conversa sua no WhatsApp e restaurar quando quiser.
+          Seus treinos ficam salvos <b>somente neste aparelho</b>. Limpar os dados do site,
+          trocar de celular ou desinstalar sem backup apaga tudo — e não há como recuperar.
         </div>
+        <button style={{ ...S.btn, marginBottom: 8 }} onClick={onBaixarBackup}>⬇ Baixar backup (arquivo)</button>
         <div style={{ display: "flex", gap: 10 }}>
-          <button style={{ ...S.btnGhost, flex: 1 }} onClick={onExportar}>⬆ Exportar dados</button>
-          <button style={{ ...S.btnGhost, flex: 1 }} onClick={onImportar}>⬇ Importar dados</button>
+          <button style={{ ...S.btnGhost, flex: 1 }} onClick={onRestaurarArquivo}>⬆ Restaurar de arquivo</button>
+          <button style={{ ...S.btnGhost, flex: 1 }} onClick={onExportar}>📋 Copiar texto</button>
+        </div>
+        <button style={{ ...S.btnGhost, marginTop: 8, fontSize: 13 }} onClick={onImportar}>Colar texto de backup</button>
+        <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 10, lineHeight: 1.5 }}>
+          {ultimoBackup
+            ? "Último backup: " + new Date(ultimoBackup).toLocaleDateString("pt-BR") + "."
+            : "Você ainda não fez nenhum backup."}
+          {" "}Guarde o arquivo no Google Drive, no e-mail ou numa conversa sua no WhatsApp.
         </div>
       </div>
 
@@ -2245,6 +2465,40 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
   const addEx = (id) => setT({ ...t, itens: [...t.itens, { uid: novoUid(), exercicioId: id, series: 3, reps: 12, obs: "" }] });
   const rmEx = (i) => setT({ ...t, itens: t.itens.filter((_, idx) => idx !== i) });
   const upItem = (i, campo, val) => setT({ ...t, itens: t.itens.map((it, idx) => (idx === i ? { ...it, [campo]: val } : it)) });
+  // Reordenar: bi-set só faz sentido entre exercícios vizinhos, então mover
+  // itens de lugar é o que permite montar o conjunto que a pessoa quer.
+  const moverItem = (i, delta) => {
+    const j = i + delta;
+    if (j < 0 || j >= t.itens.length) return;
+    const copia = [...t.itens];
+    const tmp = copia[i]; copia[i] = copia[j]; copia[j] = tmp;
+    setT({ ...t, itens: copia });
+  };
+  // Liga/desliga o agrupamento deste item com o de baixo (bi-set / tri-set)
+  const alternarConjunto = (i) => {
+    if (i >= t.itens.length - 1) return;
+    const a = t.itens[i], b = t.itens[i + 1];
+    const juntos = a.conjunto && a.conjunto === b.conjunto;
+    const copia = [...t.itens];
+    if (juntos) {
+      // desfaz só a ligação com o de baixo; quem vem depois continua junto do b
+      const idAntigo = a.conjunto;
+      const novoId = "cj" + novoUid();
+      for (let k = i + 1; k < copia.length && copia[k].conjunto === idAntigo; k++) {
+        copia[k] = { ...copia[k], conjunto: novoId };
+      }
+      // se o de cima ficou sozinho no conjunto, limpa a marca
+      const aindaTem = copia.some((x, k) => k !== i && x.conjunto === idAntigo);
+      if (!aindaTem) copia[i] = { ...copia[i], conjunto: null };
+      const bSozinho = copia.filter((x) => x.conjunto === novoId).length < 2;
+      if (bSozinho) copia.forEach((x, k) => { if (x.conjunto === novoId) copia[k] = { ...x, conjunto: null }; });
+    } else {
+      const id = a.conjunto || b.conjunto || "cj" + novoUid();
+      copia[i] = { ...a, conjunto: id };
+      copia[i + 1] = { ...b, conjunto: id };
+    }
+    setT({ ...t, itens: copia });
+  };
 
   const filtrados = todos.filter((e) => e.nome.toLowerCase().includes(busca.toLowerCase()));
   const exPorId = (id) => todos.find((e) => e.id === id);
@@ -2262,10 +2516,27 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
         {t.itens.map((it, i) => {
           const e = exPorId(it.exercicioId);
           const nomeEx = e ? e.nome : "Exercício removido";
+          const proximo = t.itens[i + 1];
+          const juntoComProximo = !!(it.conjunto && proximo && proximo.conjunto === it.conjunto);
+          const juntoComAnterior = !!(it.conjunto && i > 0 && t.itens[i - 1].conjunto === it.conjunto);
           return (
-            <div key={it.uid || i} style={{ ...S.card, padding: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ fontWeight: 800, fontSize: 15, flex: 1 }}>{nomeEx}</div>
+            <div key={it.uid || i}
+              style={{
+                ...S.card, padding: 12,
+                ...(it.conjunto ? { borderLeft: "3px solid #E1306C", marginBottom: juntoComProximo ? 4 : 12 } : {}),
+              }}>
+              {it.conjunto && !juntoComAnterior && (
+                <div style={{ ...S.label, color: "#E1306C", fontSize: 10, marginBottom: 8 }}>
+                  ⛓ {t.itens.filter((x) => x.conjunto === it.conjunto).length >= 3 ? "Tri-set" : "Bi-set"}
+                </div>
+              )}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <MiniaturaExercicio ex={e} tamanho={40} />
+                <div style={{ fontWeight: 800, fontSize: 15, flex: 1, minWidth: 0 }}>{nomeEx}</div>
+                <button aria-label={"Mover " + nomeEx + " para cima"} disabled={i === 0} onClick={() => moverItem(i, -1)}
+                  style={{ background: "none", border: "1px solid var(--borda2)", borderRadius: 7, width: 28, height: 28, color: i === 0 ? "var(--borda2)" : "var(--texto)", fontSize: 13, cursor: i === 0 ? "default" : "pointer" }}>▲</button>
+                <button aria-label={"Mover " + nomeEx + " para baixo"} disabled={i === t.itens.length - 1} onClick={() => moverItem(i, 1)}
+                  style={{ background: "none", border: "1px solid var(--borda2)", borderRadius: 7, width: 28, height: 28, color: i === t.itens.length - 1 ? "var(--borda2)" : "var(--texto)", fontSize: 13, cursor: "pointer" }}>▼</button>
                 <button aria-label={"Tirar " + nomeEx + " da ficha"}
                   style={{ background: "none", border: "none", color: "var(--perigo)", fontSize: 18, cursor: "pointer" }} onClick={() => rmEx(i)}>✕</button>
               </div>
@@ -2282,7 +2553,30 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
                     aria-label={"Número de repetições de " + nomeEx}
                     onChange={(ev) => upItem(i, "reps", Math.max(1, parseInt(ev.target.value) || 1))} />
                 </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ ...S.label, fontSize: 10 }}>Descanso</div>
+                  <select style={{ ...S.inputMini, padding: "10px 4px" }} value={it.descanso || 0}
+                    aria-label={"Descanso de " + nomeEx}
+                    onChange={(ev) => upItem(i, "descanso", parseInt(ev.target.value) || null)}>
+                    <option value={0}>geral</option>
+                    {[30, 45, 60, 90, 120, 150, 180, 240].map((sg) => (
+                      <option key={sg} value={sg}>{Math.floor(sg / 60)}:{sg % 60 < 10 ? "0" : ""}{sg % 60}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
+              {i < t.itens.length - 1 && (
+                <button onClick={() => alternarConjunto(i)} aria-pressed={juntoComProximo}
+                  style={{
+                    marginTop: 10, width: "100%", padding: "8px 10px", borderRadius: 9, cursor: "pointer",
+                    border: "1px solid " + (juntoComProximo ? "#E1306C" : "var(--borda2)"),
+                    background: juntoComProximo ? "#E1306C18" : "transparent",
+                    color: juntoComProximo ? "#E1306C" : "var(--cinza)",
+                    fontWeight: 800, fontSize: 12,
+                  }}>
+                  {juntoComProximo ? "⛓ em conjunto com o de baixo — toque para separar" : "⛓ juntar com o de baixo (bi-set)"}
+                </button>
+              )}
             </div>
           );
         })}
@@ -2334,6 +2628,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   const prFestejado = useRef({});
 
   const [mostrarAdd, setMostrarAdd] = useState(false);
+  const [demo, setDemo] = useState(null);        // exercício aberto na demonstração
+  const [trocando, setTrocando] = useState(null); // índice do exercício sendo substituído
   const [buscaEx, setBuscaEx] = useState("");
   const [fimDescanso, setFimDescanso] = useState(null);
   const [totalDescanso, setTotalDescanso] = useState(descanso);
@@ -2389,9 +2685,19 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     };
   }, [fimDescanso, acabou]);
 
-  const iniciarDescanso = () => {
-    setTotalDescanso(descanso);
-    setFimDescanso(Date.now() + descanso * 1000);
+  // Cada exercício pode ter seu próprio descanso: 45s numa rosca e 3min num
+  // agachamento não são a mesma coisa. Sem valor próprio, vale o descanso geral.
+  const descansoDe = (it) => (it && it.descanso ? it.descanso : descanso);
+  const mudarDescansoDe = (ei, delta) => {
+    const atual = descansoDe(sessao.itens[ei]);
+    const novo = Math.max(15, Math.min(600, atual + delta));
+    setSessao({ ...sessao, itens: sessao.itens.map((it, i) => (i === ei ? { ...it, descanso: novo } : it)) });
+  };
+
+  const iniciarDescanso = (segundos) => {
+    const seg = segundos || descanso;
+    setTotalDescanso(seg);
+    setFimDescanso(Date.now() + seg * 1000);
     setAvisou(false);
     ultimoBipe.current = null;
     if (som) beep(520, 0.08, 0.15); // clique de início (também "desbloqueia" o áudio no celular)
@@ -2454,13 +2760,46 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     });
   };
 
+  // Aparelho ocupado? Troca o exercício por outro do mesmo grupo, preferindo
+  // os que usam o mesmo equipamento, e mantém a estrutura de séries.
+  const alternativasPara = (idEx) => {
+    const ex = exPorId(idEx);
+    if (!ex) return [];
+    const jaNoTreino = {};
+    sessao.itens.forEach((it) => { jaNoTreino[it.exercicioId] = true; });
+    const mesmoEquip = (e) => (e.equip || "").toLowerCase() === (ex.equip || "").toLowerCase();
+    return todos
+      .filter((e) => e.grupo === ex.grupo && e.id !== idEx && !jaNoTreino[e.id])
+      .sort((a, b) => (mesmoEquip(b) ? 1 : 0) - (mesmoEquip(a) ? 1 : 0) || a.nome.localeCompare(b.nome));
+  };
+  const substituirExercicio = (ei, novoId) => {
+    const item = sessao.itens[ei];
+    const sug = sugerirCarga(historico, novoId, parseInt(item.series[0] && item.series[0].reps) || 12);
+    setSessao({
+      ...sessao,
+      itens: sessao.itens.map((it, i) => (i !== ei ? it : {
+        ...it,
+        exercicioId: novoId,
+        obs: "",
+        sugerido: sug || null,
+        // as séries são mantidas em quantidade, mas o peso passa a ser o do exercício novo
+        series: it.series.map((s) => ({ peso: sug ? String(sug.peso) : "", reps: s.reps, feito: false })),
+      })),
+    });
+    setTrocando(null);
+  };
+
   const marcarSerie = (ei, si) => {
     const item = sessao.itens[ei];
     const serie = item.series[si];
     const jaFeita = serie.feito;
     upSerie(ei, si, "feito", !jaFeita);
     if (jaFeita) return;
-    iniciarDescanso();
+    // Em bi-set/tri-set não se descansa no meio: o cronômetro só começa depois
+    // da série do último exercício do conjunto.
+    const seguinte = sessao.itens[ei + 1];
+    const noMeioDoConjunto = !!(item.conjunto && seguinte && seguinte.conjunto === item.conjunto);
+    if (!noMeioDoConjunto) iniciarDescanso(descansoDe(item));
 
     // Recorde de carga batido nesta série? Festeja na hora, não no fim do treino.
     const rec = recordes[item.exercicioId];
@@ -2558,22 +2897,79 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         const ex = exPorId(it.exercicioId);
         const rec = recordes[it.exercicioId];
         const ult = ultimas[it.exercicioId];
+        // Bi-set / tri-set: itens vizinhos com o mesmo "conjunto" sao feitos juntos
+        const anterior = sessao.itens[ei - 1];
+        const proximo = sessao.itens[ei + 1];
+        const noConjunto = !!it.conjunto;
+        const abreConjunto = noConjunto && (!anterior || anterior.conjunto !== it.conjunto);
+        const fechaConjunto = noConjunto && (!proximo || proximo.conjunto !== it.conjunto);
+        const tamConjunto = noConjunto ? sessao.itens.filter((x) => x.conjunto === it.conjunto).length : 0;
         return (
-          <div key={it.uid || ei} style={S.card}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
-              <div style={{ fontWeight: 800, fontSize: 16, flex: 1 }}>{ex ? ex.nome : "Exercício"}</div>
-              <button onClick={() => abrirVideoDe(ex ? ex.nome : "")}
-                title="Ver vídeo de como executar"
-                aria-label={"Ver vídeo de como executar " + (ex ? ex.nome : "o exercício")}
-                style={{ border: "1px solid #E1306C66", background: "#E1306C15", color: "#E1306C", borderRadius: 8, padding: "7px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
-                ▶ Vídeo
+          <div key={it.uid || ei}
+            style={{
+              ...S.card,
+              ...(noConjunto ? {
+                borderLeft: "3px solid #E1306C",
+                borderTopLeftRadius: abreConjunto ? 18 : 4,
+                borderBottomLeftRadius: fechaConjunto ? 18 : 4,
+                marginBottom: fechaConjunto ? 12 : 4,
+              } : {}),
+            }}>
+            {abreConjunto && (
+              <div style={{ ...S.label, color: "#E1306C", marginBottom: 10 }}>
+                ⛓ {tamConjunto >= 3 ? "Tri-set" : "Bi-set"} — sem descanso entre eles
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <MiniaturaExercicio ex={ex} onAbrir={() => setDemo(ex)} />
+              <button type="button" onClick={() => setDemo(ex)}
+                aria-label={"Ver como executar " + (ex ? ex.nome : "o exercício")}
+                style={{ flex: 1, minWidth: 0, textAlign: "left", background: "none", border: "none", padding: 0, font: "inherit", color: "var(--texto)", cursor: "pointer" }}>
+                <span style={{ display: "block", fontWeight: 800, fontSize: 16, lineHeight: 1.25 }}>{ex ? ex.nome : "Exercício"}</span>
+                <span style={{ display: "block", fontSize: 11, color: "var(--cinza)", marginTop: 3 }}>
+                  {(ex && ex.equip ? ex.equip + " · " : "")}<span style={{ color: "#E1306C", fontWeight: 700 }}>ver execução ›</span>
+                </span>
+              </button>
+              <button onClick={() => setTrocando(trocando === ei ? null : ei)}
+                title="Trocar por outro exercício" aria-expanded={trocando === ei}
+                aria-label={"Trocar " + (ex ? ex.nome : "este exercício") + " por outro"}
+                style={{ border: "1px solid var(--borda2)", background: trocando === ei ? "#E1306C22" : "transparent", color: trocando === ei ? "#E1306C" : "var(--texto)", borderRadius: 8, padding: "7px 9px", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
+                ⇄
               </button>
               <button onClick={() => rmExercicio(ei)} title="Remover este exercício do treino"
                 aria-label={"Remover " + (ex ? ex.nome : "este exercício") + " do treino"}
-                style={{ border: "1px solid var(--perigo-borda)", background: "transparent", color: "var(--perigo)", borderRadius: 8, padding: "7px 10px", fontWeight: 900, fontSize: 13, cursor: "pointer" }}>
+                style={{ border: "1px solid var(--perigo-borda)", background: "transparent", color: "var(--perigo)", borderRadius: 8, padding: "7px 9px", fontWeight: 900, fontSize: 13, cursor: "pointer" }}>
                 ✕
               </button>
             </div>
+
+            {/* Painel de substituicao: alternativas do mesmo grupo muscular */}
+            {trocando === ei && (
+              <div style={{ border: "1px solid #E1306C66", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+                <div style={{ ...S.label, marginBottom: 4 }}>Trocar por outro do mesmo grupo</div>
+                <div style={{ fontSize: 12, color: "var(--cinza)", marginBottom: 10, lineHeight: 1.5 }}>
+                  Os do mesmo equipamento aparecem primeiro. As séries continuam; só a carga volta a ser sugerida.
+                </div>
+                <div style={{ maxHeight: 260, overflowY: "auto" }}>
+                  {alternativasPara(it.exercicioId).slice(0, 24).map((alt) => (
+                    <button key={alt.id} type="button" onClick={() => substituirExercicio(ei, alt.id)}
+                      aria-label={"Substituir por " + alt.nome}
+                      style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, textAlign: "left", font: "inherit", color: "var(--texto)", background: "none", border: "none", borderBottom: "1px solid var(--borda)", padding: "8px 2px", cursor: "pointer" }}>
+                      <MiniaturaExercicio ex={alt} tamanho={38} />
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 14, fontWeight: 700 }}>{alt.nome}</span>
+                        <span style={{ display: "block", fontSize: 11, color: "var(--cinza)" }}>{alt.equip || "Equipamento livre"}</span>
+                      </span>
+                      <span aria-hidden="true" style={{ color: "#E1306C", fontWeight: 900 }}>⇄</span>
+                    </button>
+                  ))}
+                  {alternativasPara(it.exercicioId).length === 0 && (
+                    <div style={{ fontSize: 13, color: "var(--cinza)" }}>Não há outro exercício deste grupo fora do treino.</div>
+                  )}
+                </div>
+                <button style={{ ...S.btnGhost, marginTop: 10 }} onClick={() => setTrocando(null)}>Cancelar</button>
+              </div>
+            )}
 
             {/* Referência do exercício: recorde, como foi da última vez e a carga sugerida */}
             {(rec || ult || it.sugerido) && (
@@ -2595,6 +2991,19 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 )}
               </div>
             )}
+
+            {/* Descanso deste exercicio, independente do geral */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+              <span style={{ fontSize: 11, color: "var(--cinza)" }}>⏱ descanso</span>
+              <button onClick={() => mudarDescansoDe(ei, -15)} aria-label={"Diminuir o descanso de " + (ex ? ex.nome : "este exercício")}
+                style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 14, cursor: "pointer", lineHeight: 1 }}>−</button>
+              <span style={{ fontSize: 12, fontWeight: 900, color: it.descanso ? "#E1306C" : "var(--cinza)", minWidth: 40, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+                {fmt(descansoDe(it))}
+              </span>
+              <button onClick={() => mudarDescansoDe(ei, 15)} aria-label={"Aumentar o descanso de " + (ex ? ex.nome : "este exercício")}
+                style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 14, cursor: "pointer", lineHeight: 1 }}>+</button>
+              {!it.descanso && <span style={{ fontSize: 10, color: "var(--cinza2)" }}>(geral)</span>}
+            </div>
 
             <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
               <div style={{ width: 30 }} />
@@ -2726,6 +3135,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           )}
         </div>
       )}
+
+      <ModalDemonstracao ex={demo} onFechar={() => setDemo(null)} />
     </div>
   );
 }
@@ -2739,7 +3150,7 @@ function MiniStat({ valor, nome, cor }) {
   );
 }
 
-function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, pedirConfirmacao }) {
+function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEditar, pedirConfirmacao }) {
   const [aberto, setAberto] = useState(false);
   const st = statsTreino(h);
   const pr = recordes[h.id] || {};
@@ -2847,21 +3258,289 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, pedi
         );
       })}
 
-      <button onClick={() => onStory(h)} style={{ ...S.btnGhost, marginTop: 10, color: "#E1306C", borderColor: "#E1306C66", fontSize: 13, padding: "10px 14px" }}>
-        📸 Gerar imagem para o story
-      </button>
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <button onClick={() => onStory(h)} style={{ ...S.btnGhost, flex: 2, color: "#E1306C", borderColor: "#E1306C66", fontSize: 13, padding: "10px 12px" }}>
+          📸 Story
+        </button>
+        <button onClick={() => onEditar(h)} aria-label={"Corrigir o treino " + h.nome}
+          style={{ ...S.btnGhost, flex: 1, fontSize: 13, padding: "10px 12px" }}>
+          ✎ Corrigir
+        </button>
+      </div>
     </div>
   );
 }
 
-function TelaHistorico({ historico, exPorId, onExcluir, onStory, pedirConfirmacao }) {
+// ---------------- CORRIGIR UM TREINO DO HISTÓRICO ----------------
+// Antes, um peso digitado errado só tinha uma saída: apagar o treino inteiro.
+function TelaEditarHistorico({ registro, exPorId, onSalvar, onCancelar, avisar }) {
+  const [r, setR] = useState(() => JSON.parse(JSON.stringify(registro)));
+
+  const upSerie = (ei, si, campo, val) => setR({
+    ...r,
+    itens: r.itens.map((it, i) => (i !== ei ? it : {
+      ...it, series: it.series.map((s, j) => (j !== si ? s : { ...s, [campo]: val })),
+    })),
+  });
+  const rmSerie = (ei, si) => setR({
+    ...r,
+    itens: r.itens.map((it, i) => (i !== ei ? it : { ...it, series: it.series.filter((unused, j) => j !== si) })),
+  });
+  const addSerie = (ei) => setR({
+    ...r,
+    itens: r.itens.map((it, i) => {
+      if (i !== ei) return it;
+      const ult = it.series[it.series.length - 1] || { peso: "", reps: "12" };
+      return { ...it, series: [...it.series, { peso: ult.peso, reps: ult.reps }] };
+    }),
+  });
+  const rmItem = (ei) => setR({ ...r, itens: r.itens.filter((unused, i) => i !== ei) });
+  const upObs = (ei, val) => setR({ ...r, itens: r.itens.map((it, i) => (i === ei ? { ...it, obs: val } : it)) });
+
+  const salvar = () => {
+    const limpo = {
+      ...r,
+      nome: (r.nome || "").trim() || "Treino",
+      duracaoMin: Math.max(1, Math.min(300, parseInt(r.duracaoMin) || 1)),
+      itens: r.itens.filter((it) => (it.series || []).length > 0),
+    };
+    if (!limpo.itens.length) { avisar("Um treino precisa de pelo menos um exercício com uma série. Para remover tudo, apague o treino no histórico."); return; }
+    onSalvar(limpo);
+  };
+
+  const st = statsTreino(r);
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <button style={S.voltar} onClick={onCancelar}>← Cancelar</button>
+      <div style={{ ...S.card, borderColor: "#E1306C44" }}>
+        <div style={S.label}>Corrigindo o treino de {new Date(r.data).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</div>
+        <div style={{ ...S.label, fontSize: 10, margin: "12px 0 6px" }}>Nome</div>
+        <input style={S.input} value={r.nome} aria-label="Nome do treino"
+          onChange={(e) => setR({ ...r, nome: e.target.value })} />
+        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Duração (min)</div>
+            <input type="number" min={1} style={S.inputMini} value={r.duracaoMin} aria-label="Duração em minutos"
+              onChange={(e) => setR({ ...r, duracaoMin: e.target.value })} />
+          </div>
+          <div style={{ flex: 2 }}>
+            <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Volume recalculado</div>
+            <div style={{ fontWeight: 900, fontSize: 17, color: "#E1306C", padding: "10px 0" }}>{fmtKg(st.volume)}</div>
+          </div>
+        </div>
+      </div>
+
+      {r.itens.map((it, ei) => {
+        const ex = exPorId(it.exercicioId);
+        const nomeEx = ex ? ex.nome : "Exercício";
+        return (
+          <div key={ei} style={S.card}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <MiniaturaExercicio ex={ex} tamanho={40} />
+              <div style={{ fontWeight: 800, fontSize: 15, flex: 1, minWidth: 0 }}>{nomeEx}</div>
+              <button onClick={() => rmItem(ei)} aria-label={"Remover " + nomeEx + " deste treino"}
+                style={{ border: "1px solid var(--perigo-borda)", background: "transparent", color: "var(--perigo)", borderRadius: 8, padding: "6px 9px", fontWeight: 900, fontSize: 13, cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+              <div style={{ width: 26 }} />
+              <div style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center" }}>Peso (kg)</div>
+              <div style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center" }}>Reps</div>
+              <div style={{ width: 36 }} />
+            </div>
+            {it.series.map((s, si) => (
+              <div key={si} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                <div style={{ width: 26, fontWeight: 900, color: "var(--cinza)", textAlign: "center" }}>{si + 1}</div>
+                <input type="number" inputMode="decimal" style={{ ...S.inputMini, flex: 1 }} value={s.peso}
+                  aria-label={"Peso da série " + (si + 1) + " de " + nomeEx}
+                  onChange={(e) => upSerie(ei, si, "peso", e.target.value)} />
+                <input type="number" inputMode="numeric" style={{ ...S.inputMini, flex: 1 }} value={s.reps}
+                  aria-label={"Repetições da série " + (si + 1) + " de " + nomeEx}
+                  onChange={(e) => upSerie(ei, si, "reps", e.target.value)} />
+                <button onClick={() => rmSerie(ei, si)} aria-label={"Remover a série " + (si + 1) + " de " + nomeEx}
+                  style={{ width: 36, height: 40, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--perigo)", fontWeight: 900, cursor: "pointer" }}>−</button>
+              </div>
+            ))}
+            <button onClick={() => addSerie(ei)}
+              style={{ ...S.btnGhost, padding: "9px 12px", color: "#E1306C", borderColor: "#E1306C66", fontWeight: 800, marginTop: 2 }}>
+              + Adicionar série
+            </button>
+            <input style={{ ...S.input, marginTop: 8, fontSize: 14 }} value={it.obs || ""}
+              placeholder="📝 Observação" aria-label={"Observação sobre " + nomeEx}
+              onChange={(e) => upObs(ei, e.target.value)} />
+          </div>
+        );
+      })}
+
+      <button style={S.btn} onClick={salvar}>Salvar correções</button>
+      <div style={{ fontSize: 11, color: "var(--cinza2)", margin: "10px 0 4px", lineHeight: 1.5 }}>
+        Recordes, conquistas e nível são recalculados a partir do histórico, então se ajustam sozinhos.
+      </div>
+    </div>
+  );
+}
+
+// ---------------- CORPO: PESO E MEDIDAS ----------------
+// Dá um motivo para abrir o app fora do dia de treino, e é o dado que a pessoa
+// realmente quer cruzar com a tonelagem levantada.
+const CAMPOS_MEDIDA = [
+  { id: "peso", nome: "Peso", unidade: "kg", passo: "0.1" },
+  { id: "cintura", nome: "Cintura", unidade: "cm", passo: "0.5" },
+  { id: "peito", nome: "Peito", unidade: "cm", passo: "0.5" },
+  { id: "braco", nome: "Braço", unidade: "cm", passo: "0.5" },
+  { id: "coxa", nome: "Coxa", unidade: "cm", passo: "0.5" },
+  { id: "quadril", nome: "Quadril", unidade: "cm", passo: "0.5" },
+];
+
+function GraficoMedida({ medidas, campo, unidade }) {
+  const pontos = [...medidas]
+    .filter((m) => parseFloat(m[campo]) > 0)
+    .sort((a, b) => new Date(a.data) - new Date(b.data))
+    .map((m) => ({ data: new Date(m.data), valor: parseFloat(m[campo]) }));
+  if (pontos.length < 2) {
+    return (
+      <div style={{ fontSize: 13, color: "var(--cinza)", padding: "6px 0" }}>
+        Registre pelo menos 2 medições para ver a linha de evolução.
+      </div>
+    );
+  }
+  const W = 320, H = 140, x0 = 40, x1 = 310, y0 = 108, y1 = 14;
+  const vals = pontos.map((p) => p.valor);
+  const vmin = Math.min(...vals), vmax = Math.max(...vals);
+  const faixa = vmax - vmin || 1;
+  const px = (i) => x0 + (i / (pontos.length - 1)) * (x1 - x0);
+  const py = (v) => y0 - ((v - vmin) / faixa) * (y0 - y1);
+  const linha = pontos.map((p, i) => px(i).toFixed(1) + "," + py(p.valor).toFixed(1)).join(" ");
+  const fmtData = (d) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const variacao = Math.round((pontos[pontos.length - 1].valor - pontos[0].valor) * 10) / 10;
+  return (
+    <React.Fragment>
+      <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", height: "auto" }} aria-hidden="true">
+        {[0, 0.5, 1].map((f, i) => (
+          <line key={i} x1={x0} x2={x1} y1={y0 - f * (y0 - y1)} y2={y0 - f * (y0 - y1)} stroke="var(--borda)" strokeWidth="1" />
+        ))}
+        <text x={x0 - 5} y={y1 + 4} fill="var(--cinza)" fontSize="10" textAnchor="end">{fmtNum(vmax)}</text>
+        <text x={x0 - 5} y={y0 + 4} fill="var(--cinza)" fontSize="10" textAnchor="end">{fmtNum(vmin)}</text>
+        <polyline points={linha} fill="none" stroke="#E1306C" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        {pontos.map((p, i) => (
+          <circle key={i} cx={px(i)} cy={py(p.valor)} r="3.5" fill="#ED4956" stroke="var(--bg)" strokeWidth="1" />
+        ))}
+        <text x={x0} y={H - 3} fill="var(--cinza)" fontSize="10">{fmtData(pontos[0].data)}</text>
+        <text x={x1} y={H - 3} fill="var(--cinza)" fontSize="10" textAnchor="end">{fmtData(pontos[pontos.length - 1].data)}</text>
+      </svg>
+      <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+        <Resumo num={fmtNum(pontos[0].valor) + unidade} txt="primeira" />
+        <Resumo num={fmtNum(pontos[pontos.length - 1].valor) + unidade} txt="agora" />
+        <Resumo num={(variacao > 0 ? "+" : "") + fmtNum(variacao) + unidade} txt="variação" />
+      </div>
+    </React.Fragment>
+  );
+}
+
+function TelaCorpo({ medidas, historico, onSalvar, onExcluir, pedirConfirmacao, avisar }) {
+  const [form, setForm] = useState({});
+  const [campoGrafico, setCampoGrafico] = useState("peso");
+
+  const ordenadas = [...medidas].sort((a, b) => new Date(b.data) - new Date(a.data));
+  const ultima = ordenadas[0];
+
+  const salvar = () => {
+    const algum = CAMPOS_MEDIDA.some((c) => parseFloat(form[c.id]) > 0);
+    if (!algum) { avisar("Preencha pelo menos um campo para registrar a medição."); return; }
+    const registro = { id: "md" + Date.now(), data: new Date().toISOString() };
+    CAMPOS_MEDIDA.forEach((c) => {
+      const v = parseFloat(form[c.id]);
+      if (v > 0) registro[c.id] = v;
+    });
+    onSalvar(registro);
+    setForm({});
+  };
+
+  const info = CAMPOS_MEDIDA.find((c) => c.id === campoGrafico) || CAMPOS_MEDIDA[0];
+  const temAlgum = medidas.some((m) => parseFloat(m[campoGrafico]) > 0);
+
+  return (
+    <React.Fragment>
+      <div style={{ ...S.card, borderColor: "#8134AF55" }}>
+        <div style={S.label}>Nova medição</div>
+        <div style={{ fontSize: 12, color: "var(--cinza)", margin: "6px 0 12px", lineHeight: 1.5 }}>
+          Preencha só o que quiser acompanhar. Medidas de fita em centímetros, sempre no mesmo ponto e de manhã, para comparar direito.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {CAMPOS_MEDIDA.map((c) => (
+            <div key={c.id}>
+              <div style={{ ...S.label, fontSize: 10, marginBottom: 5 }}>{c.nome} ({c.unidade})</div>
+              <input type="number" inputMode="decimal" step={c.passo} style={S.inputMini}
+                placeholder={ultima && ultima[c.id] ? String(ultima[c.id]) : "—"}
+                aria-label={c.nome + " em " + c.unidade}
+                value={form[c.id] || ""}
+                onChange={(e) => setForm({ ...form, [c.id]: e.target.value })} />
+            </div>
+          ))}
+        </div>
+        <button style={{ ...S.btn, marginTop: 16 }} onClick={salvar}>Registrar medição de hoje</button>
+      </div>
+
+      {medidas.length > 0 && (
+        <div style={S.card}>
+          <div style={{ ...S.label, marginBottom: 10 }}>Evolução</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+            {CAMPOS_MEDIDA.filter((c) => medidas.some((m) => parseFloat(m[c.id]) > 0)).map((c) => (
+              <button key={c.id} onClick={() => setCampoGrafico(c.id)}
+                style={{
+                  border: "1px solid", borderColor: campoGrafico === c.id ? "#E1306C" : "var(--borda2)",
+                  background: campoGrafico === c.id ? "#E1306C22" : "transparent",
+                  color: campoGrafico === c.id ? "#E1306C" : "var(--cinza)",
+                  borderRadius: 8, padding: "7px 11px", fontWeight: 800, fontSize: 12, cursor: "pointer",
+                }}>
+                {c.nome}
+              </button>
+            ))}
+          </div>
+          {temAlgum
+            ? <GraficoMedida medidas={medidas} campo={campoGrafico} unidade={info.unidade} />
+            : <div style={{ fontSize: 13, color: "var(--cinza)" }}>Nenhum registro de {info.nome.toLowerCase()} ainda.</div>}
+        </div>
+      )}
+
+      {medidas.length > 0 && (
+        <div style={S.card}>
+          <div style={{ ...S.label, marginBottom: 10 }}>Histórico de medições</div>
+          {ordenadas.map((m) => (
+            <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--borda)" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 800 }}>
+                  {new Date(m.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 2, lineHeight: 1.5 }}>
+                  {CAMPOS_MEDIDA.filter((c) => m[c.id]).map((c) => c.nome + " " + fmtNum(m[c.id]) + c.unidade).join(" · ")}
+                </div>
+              </div>
+              <button onClick={() => pedirConfirmacao("Excluir esta medição?", () => onExcluir(m.id))}
+                aria-label="Excluir esta medição"
+                style={{ background: "none", border: "1px solid var(--perigo-borda)", color: "var(--perigo)", borderRadius: 8, width: 30, height: 30, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>🗑</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {medidas.length === 0 && (
+        <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)", fontSize: 14, lineHeight: 1.6 }}>
+          Registre seu peso e suas medidas de tempo em tempo para ver a evolução ao lado do que você levanta.
+        </div>
+      )}
+    </React.Fragment>
+  );
+}
+
+function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedirConfirmacao,
+  medidas, onSalvarMedida, onExcluirMedida, avisar }) {
   const [secao, setSecao] = useState("treinos");
-  const recordes = calcularRecordes(historico);
+  const recordes = useMemo(() => calcularRecordes(historico), [historico]);
 
   return (
     <div style={{ padding: "0 18px" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {[["treinos", "📋 Treinos"], ["stats", "📊 Estatísticas"]].map(([s, nome]) => (
+        {[["treinos", "📋 Treinos"], ["stats", "📊 Números"], ["corpo", "📏 Corpo"]].map(([s, nome]) => (
           <button key={s} onClick={() => setSecao(s)}
             style={{
               flex: 1, border: "1px solid", borderColor: secao === s ? "#E1306C" : "var(--borda2)",
@@ -2874,10 +3553,15 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, pedirConfirmaca
         ))}
       </div>
 
-      {historico.length === 0 && (
+      {historico.length === 0 && secao !== "corpo" && (
         <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
           Seus treinos concluídos aparecem aqui, com volume, séries e recordes de cada exercício.
         </div>
+      )}
+
+      {secao === "corpo" && (
+        <TelaCorpo medidas={medidas} historico={historico} avisar={avisar}
+          onSalvar={onSalvarMedida} onExcluir={onExcluirMedida} pedirConfirmacao={pedirConfirmacao} />
       )}
 
       {secao === "stats" && historico.length > 0 && (
@@ -2893,7 +3577,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, pedirConfirmaca
       {secao === "treinos" && historico.map((h) => (
         <CardTreino key={h.id} h={h} exPorId={exPorId} recordes={recordes}
           comparacao={compararAnterior(historico, h)}
-          onExcluir={onExcluir} onStory={onStory} pedirConfirmacao={pedirConfirmacao} />
+          onExcluir={onExcluir} onStory={onStory} onEditar={onEditar} pedirConfirmacao={pedirConfirmacao} />
       ))}
     </div>
   );
@@ -2911,7 +3595,12 @@ function TreinoLivre() {
   const [som, setSom] = useState(true);
   const [tema, setTema] = useState("escuro");
   const [meta, setMeta] = useState(3);
+  const [medidas, setMedidas] = useState([]);
+  const [lembrete, setLembrete] = useState({ ativo: false, hora: "18:00", dias: [1, 2, 3, 4, 5] });
+  const [ultimoBackup, setUltimoBackup] = useState(null);
+  const [editandoHistorico, setEditandoHistorico] = useState(null);
   const [festa, setFesta] = useState(null);
+  const arquivoRef = useRef(null);
   const [carregado, setCarregado] = useState(false);
 
   const celebrar = useCallback((dados) => setFesta(dados), []);
@@ -2975,7 +3664,7 @@ function TreinoLivre() {
   const exportarDados = () => {
     // O backup não leva a sessão em andamento de propósito: restaurar num outro
     // aparelho um treino pela metade só confundiria.
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, seedV3: true });
     setModal({
       msg: "Backup dos seus dados. Toque em Copiar e guarde em local seguro (ex.: cole numa conversa sua no WhatsApp). Para restaurar, use Importar dados.",
       texto: dados,
@@ -3007,6 +3696,8 @@ function TreinoLivre() {
           if (d.som !== undefined) setSom(d.som);
           if (d.tema) setTema(d.tema);
           if (d.meta) setMeta(d.meta);
+          if (d.medidas) setMedidas(d.medidas);
+          if (d.lembrete) setLembrete(d.lembrete);
           setSessao(null);
           setAba("inicio");
           setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 100);
@@ -3030,6 +3721,7 @@ function TreinoLivre() {
 
   useEffect(() => {
     let tr = [], hi = [], ce = [], de = 90, so = true, seed = false, pg = null, ss = null, mt = 3;
+    let md = [], lb = null, ub = null;
     try {
       const raw = store.get(STORAGE_KEY);
       if (raw) {
@@ -3043,6 +3735,9 @@ function TreinoLivre() {
         pg = d.programas || null;
         seed = !!d.seedV3;
         if (d.meta) mt = d.meta;
+        md = d.medidas || [];
+        if (d.lembrete) lb = d.lembrete;
+        ub = d.ultimoBackup || null;
         // Retoma o treino que ficou pela metade (app fechado, página recarregada,
         // bateria acabou). Passadas 12 horas presumimos que aquele treino não volta.
         if (d.sessao && d.sessao.inicio && Date.now() - d.sessao.inicio < 12 * 3600000) {
@@ -3070,6 +3765,8 @@ function TreinoLivre() {
     }
 
     setTreinos(tr); setHistorico(hi); setCustomEx(ce); setDescanso(de); setSom(so); setProgramas(pg); setMeta(mt);
+    setMedidas(md); setUltimoBackup(ub);
+    if (lb) setLembrete({ ativo: !!lb.ativo, hora: lb.hora || "18:00", dias: Array.isArray(lb.dias) ? lb.dias : [1, 2, 3, 4, 5] });
     if (ss) { setSessao(ss); setAba("sessao"); }
     setCarregado(true);
 
@@ -3127,10 +3824,10 @@ function TreinoLivre() {
   const dadosRef = useRef("");
   useEffect(() => {
     if (!carregado) return;
-    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, seedV3: true });
+    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, lembrete, ultimoBackup, seedV3: true });
     const t = setTimeout(() => store.set(STORAGE_KEY, dadosRef.current), 400);
     return () => clearTimeout(t);
-  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, carregado]);
+  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, lembrete, ultimoBackup, carregado]);
 
   // Fechou o app ou trocou de aba no meio do treino? Grava na hora, sem esperar o respiro.
   useEffect(() => {
@@ -3143,6 +3840,46 @@ function TreinoLivre() {
       window.removeEventListener("pagehide", gravarJa);
     };
   }, []);
+
+  // Mantém a configuração do lembrete onde o service worker consegue ler, e pede
+  // ao sistema a verificação periódica (só o Android com o app instalado atende).
+  useEffect(() => {
+    if (!carregado) return;
+    const ultimoTreino = historico.length
+      ? [...historico].sort((a, b) => new Date(b.data) - new Date(a.data))[0].data
+      : null;
+    guardarConfigLembrete({ ...lembrete, ultimoTreino });
+    if ("serviceWorker" in navigator) pedirVerificacaoPeriodica(lembrete.ativo);
+  }, [carregado, lembrete, historico]);
+
+  // Aviso enquanto o app está aberto: confere de meio em meio minuto se chegou a
+  // hora, se hoje é dia e se o treino ainda não aconteceu.
+  useEffect(() => {
+    if (!carregado || !lembrete.ativo) return;
+    const conferir = () => {
+      const agora = new Date();
+      if (!lembrete.dias.includes(agora.getDay())) return;
+      const partes = String(lembrete.hora || "18:00").split(":");
+      const alvo = new Date();
+      alvo.setHours(parseInt(partes[0]) || 18, parseInt(partes[1]) || 0, 0, 0);
+      if (agora < alvo) return;
+      const chave = "treinolivre:lembrou:" + diaStr(agora);
+      if (store.get(chave)) return;
+      if (historico.some((x) => diaStr(x.data) === diaStr(agora))) return;
+      store.set(chave, "1");
+      const texto = "Seus músculos já descansaram. Escolhe uma ficha e vamos. 💪";
+      try {
+        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+          new Notification("Hora do treino!", { body: texto, icon: "icon-192.png", badge: "icon-192.png", tag: "treino-livre-lembrete" });
+          return;
+        }
+      } catch (e) {}
+      avisar("🔔 Hora do treino!\n\n" + texto);
+    };
+    conferir();
+    const iv = setInterval(conferir, 30000);
+    return () => clearInterval(iv);
+  }, [carregado, lembrete, historico]);
 
   const comecarSessao = (treino) => {
     setSessao({
@@ -3158,6 +3895,8 @@ function TreinoLivre() {
           uid: novoUid(),
           exercicioId: it.exercicioId,
           obs: it.obs || "",
+          conjunto: it.conjunto || null,   // bi-set/tri-set definido na ficha
+          descanso: it.descanso || null,   // descanso próprio deste exercício
           sugerido: sug || null,
           series: Array.from({ length: it.series }, () => ({
             peso: sug ? String(sug.peso) : "",
@@ -3222,16 +3961,22 @@ function TreinoLivre() {
     // Salva as observações de volta na ficha (altura do banco, polia etc. ficam guardadas).
     // Casa pelo exercício, e não pela posição: dá para adicionar e remover exercícios
     // durante o treino, o que desalinharia os índices e gravaria a obs no lugar errado.
-    const obsPorEx = {};
-    sessao.itens.forEach((it) => { obsPorEx[it.exercicioId] = it.obs || ""; });
+    const obsPorEx = {}, descansoPorEx = {};
+    sessao.itens.forEach((it) => {
+      obsPorEx[it.exercicioId] = it.obs || "";
+      if (it.descanso) descansoPorEx[it.exercicioId] = it.descanso;
+    });
     setTreinos(treinos.map((t) => {
       if (t.id !== sessao.treinoId) return t;
       return {
         ...t,
-        itens: t.itens.map((it) =>
-          Object.prototype.hasOwnProperty.call(obsPorEx, it.exercicioId)
-            ? { ...it, obs: obsPorEx[it.exercicioId] }
-            : it),
+        itens: t.itens.map((it) => {
+          if (!Object.prototype.hasOwnProperty.call(obsPorEx, it.exercicioId)) return it;
+          const novo = { ...it, obs: obsPorEx[it.exercicioId] };
+          // o descanso ajustado durante o treino fica valendo para as próximas vezes
+          if (descansoPorEx[it.exercicioId]) novo.descanso = descansoPorEx[it.exercicioId];
+          return novo;
+        }),
       };
     }));
     setSessao(null);
@@ -3279,6 +4024,98 @@ function TreinoLivre() {
     } else {
       setTimeout(abrirResumo, 250);
     }
+  };
+
+  // ---- backup em arquivo: um toque, e o arquivo vai para o Downloads ----
+  const baixarBackup = () => {
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, seedV3: true });
+    try {
+      const blob = new Blob([dados], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "treino-livre-" + new Date().toISOString().slice(0, 10) + ".json";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setUltimoBackup(Date.now());
+      registrarEvento("backup-baixado");
+      avisar("Backup salvo nos seus downloads. Guarde no Google Drive ou envie para você mesmo — é a sua garantia se perder o aparelho.");
+    } catch (e) {
+      avisar("Não consegui gerar o arquivo neste navegador. Use \"Copiar texto\" e guarde o código.");
+    }
+  };
+
+  const restaurarDeArquivo = () => { if (arquivoRef.current) arquivoRef.current.click(); };
+  const aoEscolherArquivo = (ev) => {
+    const arq = ev.target.files && ev.target.files[0];
+    ev.target.value = "";
+    if (!arq) return;
+    const leitor = new FileReader();
+    leitor.onload = () => {
+      try {
+        const d = JSON.parse(String(leitor.result));
+        if (!d || (!d.treinos && !d.historico && !d.customEx)) throw new Error("vazio");
+        pedirConfirmacao(
+          "Restaurar o backup de " + arq.name + "?\n\n" +
+            (d.historico || []).length + " treinos no histórico e " + (d.treinos || []).length + " fichas.\n" +
+            "Isso substitui os dados atuais deste aparelho.",
+          () => {
+            let fichas = d.treinos || [];
+            let pg2 = d.programas || [];
+            if (!pg2.length && fichas.length) {
+              pg2 = [{ id: "prog-meus", nome: "Meus Treinos" }];
+              fichas = fichas.map((t) => ({ ...t, programaId: t.programaId || "prog-meus" }));
+            }
+            setTreinos(fichas);
+            setHistorico(d.historico || []);
+            setCustomEx(d.customEx || []);
+            setProgramas(pg2);
+            setMedidas(d.medidas || []);
+            if (d.descanso) setDescanso(d.descanso);
+            if (d.som !== undefined) setSom(d.som);
+            if (d.tema) setTema(d.tema);
+            if (d.meta) setMeta(d.meta);
+            if (d.lembrete) setLembrete(d.lembrete);
+            setSessao(null);
+            setAba("inicio");
+            setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 120);
+          }
+        );
+      } catch (e) {
+        avisar("Não consegui ler esse arquivo. Escolha o .json que o próprio app gerou.");
+      }
+    };
+    leitor.onerror = () => avisar("Não consegui abrir o arquivo.");
+    leitor.readAsText(arq);
+  };
+
+  // Aviso de backup pendente: aparece quando há o que perder e faz tempo que não se salva.
+  const avisoBackup = useMemo(() => {
+    if (historico.length < 5) return null;
+    const dias = ultimoBackup ? Math.floor((Date.now() - ultimoBackup) / 86400000) : null;
+    if (dias === null) {
+      return "Você já tem " + historico.length + " treinos registrados e nenhum backup. Se limpar os dados do navegador ou trocar de celular, tudo isso se perde.";
+    }
+    if (dias >= 30) {
+      return "Seu último backup foi há " + dias + " dias. Vale baixar um novo para não perder o que veio depois.";
+    }
+    return null;
+  }, [historico.length, ultimoBackup]);
+
+  // ---- medidas do corpo ----
+  const salvarMedida = (reg) => {
+    setMedidas((prev) => [...prev, reg]);
+    registrarEvento("medida-registrada");
+    setTimeout(() => avisar("Medição registrada! Repita a cada 2 ou 4 semanas para a linha ficar útil."), 120);
+  };
+  const excluirMedida = (id) => setMedidas((prev) => prev.filter((m) => m.id !== id));
+
+  // ---- correcao de um treino do historico ----
+  const salvarHistoricoEditado = (reg) => {
+    setHistorico((prev) => prev.map((x) => (x.id === reg.id ? reg : x)));
+    setEditandoHistorico(null);
+    setAba("historico");
+    setTimeout(() => avisar("Treino corrigido. Recordes e estatísticas já refletem a mudança."), 120);
   };
 
   // Excluir do histórico agora dá alguns segundos de arrependimento antes de sumir de vez
@@ -3508,7 +4345,7 @@ function TreinoLivre() {
     { id: "treinos", nome: "Fichas", icone: "▤" },
     { id: "historico", nome: "Histórico", icone: "◷" },
   ];
-  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente" };
+  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente", editarHistorico: "Corrigir treino" };
 
   if (!carregado) {
     return <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>Carregando...</div>;
@@ -3521,6 +4358,9 @@ function TreinoLivre() {
         {aba === "inicio" && (
           <TelaInicio programas={programas} treinos={treinos} historico={historico} totalEx={todos.length}
             meta={meta} setMeta={setMeta} exPorId={exPorId}
+            lembrete={lembrete} setLembrete={setLembrete} avisar={avisar}
+            ultimoBackup={ultimoBackup} avisoBackup={avisoBackup}
+            onBaixarBackup={baixarBackup} onRestaurarArquivo={restaurarDeArquivo}
             onAbrirGrupo={(g) => { setGrupoAberto(g); setExercicioAberto(null); setAba("exercicios"); }}
             onTreinar={iniciarSessao}
             onCriarPrograma={criarPrograma}
@@ -3578,7 +4418,17 @@ function TreinoLivre() {
             onVoltar={() => setAba("inicio")}
             onDescartar={() => { setSessao(null); setAba("inicio"); }} />
         )}
-        {aba === "historico" && <TelaHistorico historico={historico} exPorId={exPorId} onExcluir={excluirHistorico} onStory={storyDeTreino} pedirConfirmacao={pedirConfirmacao} />}
+        {aba === "historico" && (
+          <TelaHistorico historico={historico} exPorId={exPorId}
+            onExcluir={excluirHistorico} onStory={storyDeTreino} pedirConfirmacao={pedirConfirmacao}
+            onEditar={(hh) => { setEditandoHistorico(hh); setAba("editarHistorico"); }}
+            medidas={medidas} onSalvarMedida={salvarMedida} onExcluirMedida={excluirMedida} avisar={avisar} />
+        )}
+        {aba === "editarHistorico" && editandoHistorico && (
+          <TelaEditarHistorico key={editandoHistorico.id} registro={editandoHistorico} exPorId={exPorId} avisar={avisar}
+            onSalvar={salvarHistoricoEditado}
+            onCancelar={() => { setEditandoHistorico(null); setAba("historico"); }} />
+        )}
       </div>
 
       {modal && (
@@ -3638,6 +4488,10 @@ function TreinoLivre() {
           </div>
         </div>
       )}
+
+      {/* Escondido: só existe para o botão "Restaurar de arquivo" abrir o seletor */}
+      <input ref={arquivoRef} type="file" accept="application/json,.json" onChange={aoEscolherArquivo}
+        style={{ display: "none" }} tabIndex={-1} aria-hidden="true" />
 
       <Celebracao festa={festa} onFechar={fecharFesta} />
 

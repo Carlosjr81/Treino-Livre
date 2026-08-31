@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v3";
+const CACHE = "treinolivre-v4";
 const ARQUIVOS = [
   "./",
   "./index.html",
@@ -29,7 +29,9 @@ self.addEventListener("install", (e) => {
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      // "treinolivre-config" guarda a configuracao do lembrete e precisa sobreviver
+      // a troca de versao, senao o aviso morre a cada atualizacao do app.
+      .then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== "treinolivre-config").map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -73,4 +75,62 @@ self.addEventListener("fetch", (e) => {
       })
     );
   }
+});
+
+// ---------------- LEMBRETE DE TREINO ----------------
+// O app guarda a configuracao num cache que o service worker consegue ler.
+// No Android com o app instalado, o sistema acorda o worker de tempos em tempos
+// (periodicSync) e entao o lembrete chega mesmo com o app fechado. Onde nao ha
+// suporte, o aviso so aparece quando o app e aberto -- e isso e o esperado.
+const CACHE_CONFIG = "treinolivre-config";
+
+async function verificarLembrete() {
+  try {
+    const c = await caches.open(CACHE_CONFIG);
+    const r = await c.match("/config-lembrete");
+    if (!r) return;
+    const cfg = await r.json();
+    if (!cfg || !cfg.ativo || !Array.isArray(cfg.dias)) return;
+
+    const agora = new Date();
+    if (cfg.dias.indexOf(agora.getDay()) < 0) return;
+
+    const partes = String(cfg.hora || "18:00").split(":");
+    const alvo = new Date();
+    alvo.setHours(parseInt(partes[0]) || 18, parseInt(partes[1]) || 0, 0, 0);
+    if (agora < alvo) return;
+
+    const hoje = agora.toDateString();
+    // ja treinou hoje? entao nao insiste
+    if (cfg.ultimoTreino && new Date(cfg.ultimoTreino).toDateString() === hoje) return;
+    // ja avisou hoje?
+    const marca = await c.match("/lembrete-enviado");
+    if (marca && (await marca.text()) === hoje) return;
+    await c.put("/lembrete-enviado", new Response(hoje));
+
+    await self.registration.showNotification("Hora do treino!", {
+      body: "Seus musculos ja descansaram. Escolhe uma ficha e vamos.",
+      icon: "./icon-192.png",
+      badge: "./icon-192.png",
+      tag: "treino-livre-lembrete",
+      data: { url: "./" },
+    });
+  } catch (e) {}
+}
+
+self.addEventListener("periodicsync", (e) => {
+  if (e.tag === "lembrete-treino") e.waitUntil(verificarLembrete());
+});
+
+// Tocar no aviso abre o app que ja estiver aberto, em vez de uma aba nova
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((lista) => {
+      for (const cliente of lista) {
+        if (cliente.url.indexOf(self.registration.scope) === 0 && "focus" in cliente) return cliente.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow("./");
+    })
+  );
 });

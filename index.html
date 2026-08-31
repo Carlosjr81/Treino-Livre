@@ -5,37 +5,109 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#111111" />
 <title>Treino Livre</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<meta name="description" content="Monte suas fichas, registre séries e cargas e acompanhe sua evolução na academia. Gratuito, funciona offline e sem cadastro." />
+
+<!-- Instalação como app (PWA) -->
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
+<link rel="icon" href="icon-512.png" sizes="512x512" type="image/png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Treino Livre" />
+<meta name="mobile-web-app-capable" content="yes" />
+
+<!-- Prévia ao compartilhar o link no WhatsApp, Instagram etc. -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Treino Livre" />
+<meta property="og:description" content="Monte suas fichas, registre séries e cargas e acompanhe sua evolução na academia. Gratuito e sem cadastro." />
+<meta property="og:image" content="https://carlosjr81.github.io/Treino-Livre/icon-512.png" />
+<meta property="og:url" content="https://carlosjr81.github.io/Treino-Livre/" />
+<meta property="og:locale" content="pt_BR" />
+<meta name="twitter:card" content="summary" />
+
+<!--
+  As bibliotecas vêm com "integrity": se o servidor da CDN for adulterado, o navegador
+  recusa o arquivo em vez de executá-lo. O "?v=3" no fim do endereço existe porque a
+  versão anterior do app guardou esses mesmos arquivos em cache sem permissão de leitura
+  (resposta opaca), e uma resposta opaca não pode ser conferida pelo integrity — o
+  endereço novo simplesmente não encontra o cache velho e busca uma cópia verificável.
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js?v=3"
+  integrity="sha384-tMH8h3BGESGckSAVGZ82T9n90ztNXxvdwvdM6UoR56cYcf+0iGXBliJ29D+wZ/x8" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js?v=3"
+  integrity="sha384-bm7MnzvK++ykSwVJ2tynSE5TRdN+xL418osEVF2DE/L/gfWHj91J2Sphe582B1Bh" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js?v=3"
+  integrity="sha384-1qlE7MZPM2pHD/pBZCU/yB8UCP52RYL8bge/qNdfNBCWToySp8/M+JL2waXU4hjJ" crossorigin="anonymous"></script>
 <style>
   :root {
     --bg: #000000; --bg2: #0A0A0A; --card: #121212;
     --borda: #262626; --borda2: #363636;
-    --texto: #F2F0EB; --cinza: #A8A8A8; --cinza2: #7C8189;
+    --texto: #F2F0EB; --cinza: #A8A8A8; --cinza2: #949AA3;
     --perigo: #F58E8E; --perigo-borda: #F58E8E55;
     --aviso-bg: #2A1512; --ok: #4ADE80; --ok-bg: #173B1E;
     --obs: #C7A94B; --input: #000000;
+    --mapa-bg: #0B0B0B; --mapa-txt: #E8E8E8;
+    --marca: #E1306C;
   }
   [data-tema="claro"] {
     --bg: #FFFFFF; --bg2: #FFFFFF; --card: #FFFFFF;
     --borda: #DBDBDB; --borda2: #C4C4C4;
-    --texto: #262626; --cinza: #737373; --cinza2: #8A8A8A;
+    --texto: #262626; --cinza: #6B6B6B; --cinza2: #6E6E6E;
     --perigo: #C62828; --perigo-borda: #C6282855;
     --aviso-bg: #FFF1EF; --ok: #1B7F3B; --ok-bg: #E8F7EC;
     --obs: #8A6D00; --input: #FAFAFA;
+    --mapa-bg: #1A1A1A; --mapa-txt: #F0F0F0;
+    --marca: #C21E58;
   }
   html, body { margin: 0; padding: 0; background: var(--bg); }
   * { -webkit-tap-highlight-color: transparent; }
   a { color: #8ECDF5; }
   [data-tema="claro"] a { color: #00376B; }
   select { appearance: none; -webkit-appearance: none; }
+
+  /* Foco visível para quem navega pelo teclado */
+  :focus-visible { outline: 3px solid #E1306C; outline-offset: 2px; border-radius: 6px; }
+
+  /* Tela de carregamento enquanto o app é preparado (evita tela em branco) */
+  #carregando {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px;
+    background: var(--bg); color: #A8A8A8;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  #carregando .marca {
+    font-size: 27px; font-weight: 900; letter-spacing: -0.5px;
+    background-image: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  #carregando .barra { width: 140px; height: 4px; border-radius: 2px; background: #262626; overflow: hidden; }
+  #carregando .barra i { display: block; width: 40%; height: 100%; border-radius: 2px;
+    background: linear-gradient(90deg, #FEDA75, #FA7E1E, #D62976, #962FBF, #4F5BD5);
+    animation: desliza 1.1s ease-in-out infinite; }
+  @keyframes desliza { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+  @media (prefers-reduced-motion: reduce) {
+    #carregando .barra i { animation: none; width: 100%; }
+    * { transition: none !important; }
+  }
 </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel" data-presets="env,react">
-const { useState, useEffect, useRef } = React;
+<div id="root">
+  <div id="carregando">
+    <div class="marca">Treino Livre</div>
+    <div class="barra"><i></i></div>
+    <div style="font-size:13px">Preparando seu treino...</div>
+  </div>
+</div>
+<noscript>
+  <div style="font-family:sans-serif;color:#F2F0EB;background:#000;padding:24px;line-height:1.6">
+    O Treino Livre precisa de JavaScript para funcionar. Ative o JavaScript nas configurações do
+    seu navegador e recarregue a página.
+  </div>
+</noscript>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
 // ---------------- ARMAZENAMENTO ----------------
 const memoria = {};
@@ -44,9 +116,29 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) { memoria[k] = v; } },
 };
 const STORAGE_KEY = "treinolivre:v1";
+const IMG_KEY = "treinolivre:imgs";
 const LINK_APP = "https://carlosjr81.github.io/Treino-Livre/";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 const NAVEGADOR_INAPP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|; wv\)/i.test(navigator.userAgent || "");
+
+// Base64 de texto UTF-8. Substitui escape/unescape (obsoletos) mantendo
+// exatamente o mesmo formato dos links já compartilhados por aí.
+function b64Codificar(texto) {
+  const bytes = new TextEncoder().encode(texto);
+  let bin = "";
+  bytes.forEach((b) => { bin += String.fromCharCode(b); });
+  return btoa(bin);
+}
+function b64Decodificar(b64) {
+  const bin = atob(b64);
+  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+// Identificador estável por item de lista. Sem ele o React usa a posição como
+// chave e, ao remover um exercício do meio, os campos de peso/reps sobem uma linha.
+let seqUid = 0;
+const novoUid = () => "u" + Date.now().toString(36) + (seqUid++).toString(36);
 
 // Registra eventos anônimos de uso (apenas contagem, sem dados pessoais)
 function registrarEvento(nome) {
@@ -357,6 +449,23 @@ function beep(freq, dur, vol) {
   } catch (e) {}
 }
 
+// ---------------- MANTER A TELA LIGADA NO DESCANSO ----------------
+// Com o celular no bolso a tela apaga, o navegador suspende o áudio e o aviso de
+// "descanso concluído" nunca toca. A trava de tela resolve isso justamente no
+// único momento em que o aparelho fica parado.
+let travaTela = null;
+async function ligarTravaTela() {
+  try {
+    if (!navigator.wakeLock || travaTela) return;
+    travaTela = await navigator.wakeLock.request("screen");
+    travaTela.addEventListener("release", () => { travaTela = null; });
+  } catch (e) { travaTela = null; }
+}
+async function desligarTravaTela() {
+  try { if (travaTela) await travaTela.release(); } catch (e) {}
+  travaTela = null;
+}
+
 // ---------------- GRUPOS MUSCULARES ----------------
 const GRUPOS = [
   { id: "peito", nome: "Peito", cor: "#FFD86B", corL: "#A9700A" },
@@ -545,15 +654,42 @@ const S = {
   tagCustom: { display: "inline-block", background: "#E1306C22", color: "#E1306C", borderRadius: 8, padding: "2px 8px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, marginLeft: 8 },
 };
 
+// Quantos exercícios mostrar de uma vez em listas longas (o celular engasga com as 100+)
+const LIMITE_LISTA = 50;
+
 const abrirVideoDe = (nome) => {
   const q = encodeURIComponent("como fazer " + nome + " academia execução correta");
   window.open("https://www.youtube.com/results?search_query=" + q, "_blank");
 };
 
 // ---------------- IMAGENS DO WGER (banco aberto, licença CC BY-SA 4.0) ----------------
-const cacheImg = {};
+// O endereço de cada imagem fica guardado no aparelho: na segunda vez que o exercício
+// é aberto não há nova consulta à API, e o service worker serve a figura offline.
+const cacheImg = (() => {
+  try { return JSON.parse(store.get(IMG_KEY) || "{}") || {}; } catch (e) { return {}; }
+})();
+let gravarImgAgendado = null;
+function guardarCacheImg(id, url) {
+  cacheImg[id] = url;
+  if (gravarImgAgendado) clearTimeout(gravarImgAgendado);
+  gravarImgAgendado = setTimeout(() => {
+    try { store.set(IMG_KEY, JSON.stringify(cacheImg)); } catch (e) {}
+  }, 800);
+}
+
+// fetch com prazo máximo: sem isso, a busca fica pendurada quando a rede cai
+async function fetchComPrazo(url, ms) {
+  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const t = ctrl ? setTimeout(() => ctrl.abort(), ms) : null;
+  try {
+    return await fetch(url, ctrl ? { signal: ctrl.signal } : undefined);
+  } finally {
+    if (t) clearTimeout(t);
+  }
+}
+
 async function buscarImagemWger(termo) {
-  const r = await fetch("https://wger.de/api/v2/exercise/search/?language=english&format=json&term=" + encodeURIComponent(termo));
+  const r = await fetchComPrazo("https://wger.de/api/v2/exercise/search/?language=english&format=json&term=" + encodeURIComponent(termo), 8000);
   const j = await r.json();
   const sugestoes = j.suggestions || [];
   const hit = sugestoes.find((s) => s.data && s.data.image) || sugestoes[0];
@@ -561,7 +697,7 @@ async function buscarImagemWger(termo) {
   let url = hit.data.image ? "https://wger.de" + hit.data.image : null;
   if (hit.data.base_id) {
     try {
-      const r2 = await fetch("https://wger.de/api/v2/exerciseimage/?format=json&exercise_base=" + hit.data.base_id);
+      const r2 = await fetchComPrazo("https://wger.de/api/v2/exerciseimage/?format=json&exercise_base=" + hit.data.base_id, 8000);
       const j2 = await r2.json();
       const main = (j2.results || []).find((i) => i.is_main) || (j2.results || [])[0];
       if (main && main.image) url = main.image;
@@ -584,10 +720,11 @@ function ImagemExercicio({ ex }) {
     (async () => {
       try {
         const u = await buscarImagemWger(ex.en || ex.nome);
-        cacheImg[ex.id] = u;
+        guardarCacheImg(ex.id, u);
         if (vivo) { setUrl(u); setStatus(u ? "ok" : "erro"); }
       } catch (e) {
-        cacheImg[ex.id] = null;
+        // falha de rede não vira "não existe imagem": não guardamos o resultado,
+        // assim a próxima abertura tenta de novo quando houver internet
         if (vivo) setStatus("erro");
       }
     })();
@@ -607,8 +744,8 @@ function ImagemExercicio({ ex }) {
   return (
     <div style={{ margin: "4px 0 6px" }}>
       <div style={{ background: "#FFFFFF", borderRadius: 12, padding: 8, textAlign: "center" }}>
-        <img src={url} alt={"Demonstração: " + ex.nome} style={{ maxWidth: "100%", maxHeight: 240, borderRadius: 8 }}
-          onError={() => { cacheImg[ex.id] = null; setStatus("erro"); }} />
+        <img src={url} alt={"Demonstração do exercício " + ex.nome} loading="lazy" style={{ maxWidth: "100%", maxHeight: 240, borderRadius: 8 }}
+          onError={() => { guardarCacheImg(ex.id, null); setStatus("erro"); }} />
       </div>
       <div style={{ fontSize: 11, color: "var(--cinza)", marginTop: 6, lineHeight: 1.5 }}>
         Imagem: comunidade <a href="https://wger.de" target="_blank" rel="noreferrer">wger.de</a> · Licença{" "}
@@ -639,9 +776,9 @@ function MapaMuscular({ p = [], s = [] }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "center", gap: 10, background: "#0B0B0B", borderRadius: "16px 16px 0 0", padding: "10px 6px 4px", borderLeft: "1px solid var(--borda)", borderRight: "1px solid var(--borda)", borderTop: "1px solid var(--borda)" }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 10, background: "var(--mapa-bg)", borderRadius: "16px 16px 0 0", padding: "10px 6px 4px", borderLeft: "1px solid var(--borda)", borderRight: "1px solid var(--borda)", borderTop: "1px solid var(--borda)" }}>
         <div style={{ textAlign: "center" }}>
-          <svg viewBox="0 0 120 196" width="130" height="212">
+          <svg viewBox="0 0 120 196" width="130" height="212" aria-hidden="true" focusable="false">
             <CorpoBase />
             <path d="M48,34 L72,34 L78,42 L42,42 Z" style={st("trapezio")} />
             <ellipse cx="34" cy="48" rx="8" ry="7" style={st("ombros")} />
@@ -660,11 +797,11 @@ function MapaMuscular({ p = [], s = [] }) {
             <ellipse cx="50" cy="136" rx="6.5" ry="23" style={st("quadriceps")} />
             <ellipse cx="70" cy="136" rx="6.5" ry="23" style={st("quadriceps")} />
           </svg>
-          <div style={{ ...S.label, fontSize: 10, color: "#A8A8A8" }}>Frente</div>
+          <div style={{ ...S.label, fontSize: 10, color: "var(--mapa-txt)" }}>Frente</div>
         </div>
 
         <div style={{ textAlign: "center" }}>
-          <svg viewBox="0 0 120 196" width="130" height="212">
+          <svg viewBox="0 0 120 196" width="130" height="212" aria-hidden="true" focusable="false">
             <CorpoBase />
             <path d="M60,32 L78,44 L60,64 L42,44 Z" style={st("trapezio")} />
             <ellipse cx="34" cy="48" rx="8" ry="7" style={st("ombros")} />
@@ -683,16 +820,16 @@ function MapaMuscular({ p = [], s = [] }) {
             <ellipse cx="51" cy="173" rx="5.5" ry="14" style={st("panturrilha")} />
             <ellipse cx="69" cy="173" rx="5.5" ry="14" style={st("panturrilha")} />
           </svg>
-          <div style={{ ...S.label, fontSize: 10, color: "#A8A8A8" }}>Costas</div>
+          <div style={{ ...S.label, fontSize: 10, color: "var(--mapa-txt)" }}>Costas</div>
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", gap: 18, marginTop: -6, background: "#0B0B0B", borderRadius: "0 0 16px 16px", borderLeft: "1px solid var(--borda)", borderRight: "1px solid var(--borda)", borderBottom: "1px solid var(--borda)", padding: "0 6px 10px" }}>
-        <span style={{ fontSize: 12, color: "#E8E8E8" }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 18, marginTop: -6, background: "var(--mapa-bg)", borderRadius: "0 0 16px 16px", borderLeft: "1px solid var(--borda)", borderRight: "1px solid var(--borda)", borderBottom: "1px solid var(--borda)", padding: "0 6px 10px" }}>
+        <span style={{ fontSize: 12, color: "var(--mapa-txt)" }}>
           <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 5, background: COR_DIRETO, marginRight: 6 }} />
           Trabalha direto
         </span>
-        <span style={{ fontSize: 12, color: "#E8E8E8" }}>
+        <span style={{ fontSize: 12, color: "var(--mapa-txt)" }}>
           <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 5, background: COR_INDIRETO, marginRight: 6 }} />
           Auxilia (indireto)
         </span>
@@ -862,7 +999,12 @@ function NumerosGerais({ historico }) {
     const s = statsTreino(h);
     series += s.series; reps += s.reps;
   });
-  const semanas = volumeSemanal(historico, 8).filter((s) => s.treinos > 0).length || 1;
+  // Média das últimas 8 semanas: usa o MESMO período no numerador e no denominador.
+  // Conta só a partir da primeira semana em que houve treino, para não penalizar quem começou agora.
+  const ult8 = volumeSemanal(historico, 8);
+  const treinos8 = ult8.reduce((a, s) => a + s.treinos, 0);
+  const primeiraAtiva = ult8.findIndex((s) => s.treinos > 0);
+  const semanas = primeiraAtiva < 0 ? 1 : ult8.length - primeiraAtiva;
   const eq = equivalencia(est.volumeTotal);
   const itens = [
     ["Treinos", est.total],
@@ -871,7 +1013,10 @@ function NumerosGerais({ historico }) {
     ["Repetições", reps.toLocaleString("pt-BR")],
     ["Volume total", fmtPeso(est.volumeTotal)],
     ["Sequência", est.streak + " " + plural(est.streak, "dia", "dias")],
-    ["Média/semana", (Math.round((est.total / semanas) * 10) / 10).toLocaleString("pt-BR") + " treinos"],
+    ["Média/semana", (() => {
+      const m = Math.round((treinos8 / semanas) * 10) / 10;
+      return m.toLocaleString("pt-BR") + " " + plural(m, "treino", "treinos");
+    })()],
     ["Esta semana", fmtPeso(est.volumeSemana)],
   ];
   return (
@@ -969,7 +1114,6 @@ function GraficoEvolucao({ historico, exPorId }) {
 
   const primeiro = pontos[0], ultimo = pontos[pontos.length - 1];
   const melhor = pontos.length ? Math.max(...pontos.map((pt) => pt.valor)) : 0;
-  const unidade = metrica === "max" ? "kg" : "kg (vol.)";
 
   return (
     <div style={S.card}>
@@ -1026,10 +1170,11 @@ function Header({ titulo, tema, onTema }) {
   return (
     <div style={{ ...S.header, position: "sticky" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={S.logo}>{titulo}</div>
+        <h1 style={{ ...S.logo, margin: 0, fontSize: 27 }}>{titulo}</h1>
         <button onClick={onTema} title={tema === "escuro" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+          aria-label={tema === "escuro" ? "Mudar para o tema claro" : "Mudar para o tema escuro"}
           style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", fontSize: 18, cursor: "pointer" }}>
-          {tema === "escuro" ? "☀️" : "🌙"}
+          <span aria-hidden="true">{tema === "escuro" ? "☀️" : "🌙"}</span>
         </button>
       </div>
       <div style={S.faixa} />
@@ -1046,7 +1191,7 @@ function Resumo({ num, txt }) {
   );
 }
 
-function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onStoryProgresso, onDesafiar, onCopiarLink, onExportar, onImportar }) {
+function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onStoryProgresso, onDesafiar, onCopiarLink, onExportar, onImportar, onInstalar }) {
   const ultima = historico[0];
   const est = calcularEstatisticas(historico);
   const ganhas = CONQUISTAS.filter((c) => c.cond(est));
@@ -1062,6 +1207,17 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
             canto da tela e escolha <b>"Abrir no navegador externo"</b>.
           </div>
           <button style={S.btnGhost} onClick={onCopiarLink}>📋 Copiar link do app</button>
+        </div>
+      )}
+
+      {onInstalar && (
+        <div style={{ ...S.card, borderColor: "#E1306C44" }}>
+          <div style={S.label}>📲 Instalar na tela inicial</div>
+          <div style={{ fontSize: 14, lineHeight: 1.6, margin: "8px 0 12px", color: "var(--cinza)" }}>
+            Instale o Treino Livre como app: abre em tela cheia, direto do ícone,
+            e funciona na academia mesmo sem internet.
+          </div>
+          <button style={S.btn} onClick={onInstalar}>Instalar app</button>
         </div>
       )}
 
@@ -1181,19 +1337,22 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
 }
 
 function CardExercicio({ ex, onAbrir, onExcluir }) {
+  // O cartão inteiro é um botão de verdade (acessível pelo teclado), com o
+  // excluir como botão irmão — botão dentro de botão não é HTML válido.
   return (
-    <div style={{ ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }} onClick={onAbrir}>
-      <div>
-        <div style={{ fontWeight: 800, fontSize: 16 }}>
+    <div style={{ ...S.card, padding: 0, display: "flex", justifyContent: "space-between", alignItems: "stretch", overflow: "hidden" }}>
+      <button type="button" onClick={onAbrir} aria-label={"Abrir " + ex.nome}
+        style={{ flex: 1, textAlign: "left", font: "inherit", color: "var(--texto)", background: "none", border: "none", padding: 16, cursor: "pointer" }}>
+        <span style={{ display: "block", fontWeight: 800, fontSize: 16 }}>
           {ex.nome}
           {ex.custom && <span style={S.tagCustom}>Meu</span>}
-        </div>
-        <div style={{ color: "var(--cinza)", fontSize: 13, marginTop: 2 }}>{ex.equip || "Equipamento livre"}</div>
-      </div>
+        </span>
+        <span style={{ display: "block", color: "var(--cinza)", fontSize: 13, marginTop: 2 }}>{ex.equip || "Equipamento livre"}</span>
+      </button>
       {ex.custom && (
-        <button
-          style={{ background: "none", border: "none", color: "var(--perigo)", fontSize: 18, cursor: "pointer", padding: "4px 8px" }}
-          onClick={(e) => { e.stopPropagation(); onExcluir(ex.id); }}>✕</button>
+        <button type="button" aria-label={"Excluir o exercício " + ex.nome}
+          style={{ background: "none", border: "none", color: "var(--perigo)", fontSize: 18, cursor: "pointer", padding: "0 16px" }}
+          onClick={() => onExcluir(ex.id)}>✕</button>
       )}
     </div>
   );
@@ -1257,10 +1416,11 @@ function DetalheExercicio({ ex, onVoltar }) {
 function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicioAberto, setExercicioAberto, onNovoExercicio, onExcluirCustom }) {
   const [busca, setBusca] = useState("");
 
-  if (exercicioAberto) {
-    const ex = exPorId(exercicioAberto);
-    if (!ex) { setExercicioAberto(null); return null; }
-    return <DetalheExercicio ex={ex} onVoltar={() => setExercicioAberto(null)} />;
+  // Se o exercício aberto sumiu (custom excluído), cai de volta na lista em vez
+  // de alterar estado durante o render.
+  const exAberto = exercicioAberto ? exPorId(exercicioAberto) : null;
+  if (exAberto) {
+    return <DetalheExercicio ex={exAberto} onVoltar={() => setExercicioAberto(null)} />;
   }
 
   const buscando = busca.trim().length > 0;
@@ -1286,6 +1446,7 @@ function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicio
   return (
     <div style={{ padding: "0 18px" }}>
       <input style={{ ...S.input, marginBottom: 12 }} placeholder="Buscar em todos os exercícios..."
+        type="search" aria-label="Buscar em todos os exercícios"
         value={busca} onChange={(e) => setBusca(e.target.value)} />
       <button style={{ ...S.btn, marginBottom: 14 }} onClick={onNovoExercicio}>+ Criar exercício próprio</button>
 
@@ -1306,15 +1467,17 @@ function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicio
           {GRUPOS.map((g) => {
             const qtd = todos.filter((e) => e.grupo === g.id).length;
             return (
-              <div key={g.id} onClick={() => setGrupoAberto(g.id)} style={{ cursor: "pointer", textAlign: "center" }}>
-                <div style={{ width: 82, height: 82, margin: "0 auto", borderRadius: "50%", padding: 3, background: "linear-gradient(45deg, #FEDA75, #FA7E1E, #D62976, #962FBF, #4F5BD5)", boxSizing: "border-box" }}>
-                  <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "var(--bg)", border: "3px solid var(--bg)", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: corGrupo(g) }}>
+              <button key={g.id} type="button" onClick={() => setGrupoAberto(g.id)}
+                aria-label={g.nome + ", " + qtd + " " + plural(qtd, "exercício", "exercícios")}
+                style={{ cursor: "pointer", textAlign: "center", background: "none", border: "none", padding: 0, font: "inherit" }}>
+                <span aria-hidden="true" style={{ display: "block", width: 82, height: 82, margin: "0 auto", borderRadius: "50%", padding: 3, background: "linear-gradient(45deg, #FEDA75, #FA7E1E, #D62976, #962FBF, #4F5BD5)", boxSizing: "border-box" }}>
+                  <span style={{ width: "100%", height: "100%", borderRadius: "50%", background: "var(--bg)", border: "3px solid var(--bg)", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: corGrupo(g) }}>
                     {g.nome[0]}
-                  </div>
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 700, marginTop: 7, color: "var(--texto)" }}>{g.nome}</div>
-                <div style={{ fontSize: 10, color: "var(--cinza)", marginTop: 1 }}>{qtd} exerc.</div>
-              </div>
+                  </span>
+                </span>
+                <span aria-hidden="true" style={{ display: "block", fontSize: 12, fontWeight: 700, marginTop: 7, color: "var(--texto)" }}>{g.nome}</span>
+                <span aria-hidden="true" style={{ display: "block", fontSize: 10, color: "var(--cinza)", marginTop: 1 }}>{qtd} exerc.</span>
+              </button>
             );
           })}
         </div>
@@ -1431,10 +1594,10 @@ function FormNovoExercicio({ grupoSugerido, onSalvar, onCancelar, avisar }) {
 }
 
 function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, onTreinar, onNovaFicha, onEditar, onExcluirFicha, onCompartilharFicha, onNovoPrograma, onRenomearPrograma, onExcluirPrograma, onCompartilharPrograma, onAssistente, onTreinoLivre, pedirConfirmacao }) {
-  // Dentro de um treino: lista de fichas
-  if (progAberto) {
-    const prog = programas.find((p) => p.id === progAberto);
-    if (!prog) { setProgAberto(null); return null; }
+  // Dentro de um treino: lista de fichas. Se o programa aberto foi excluído,
+  // cai de volta na lista em vez de alterar estado durante o render.
+  const prog = progAberto ? programas.find((p) => p.id === progAberto) : null;
+  if (prog) {
     const fichas = treinos.filter((t) => t.programaId === prog.id);
     return (
       <div style={{ padding: "0 18px" }}>
@@ -1546,14 +1709,19 @@ function TelaAssistente({ onGerar, onCancelar }) {
 }
 
 function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }) {
-  const [t, setT] = useState(treinoInicial);
+  // Cada item ganha um identificador estável para que remover um do meio da lista
+  // não desloque os campos de séries/repetições dos itens seguintes.
+  const [t, setT] = useState(() => ({
+    ...treinoInicial,
+    itens: (treinoInicial.itens || []).map((it) => ({ ...it, uid: it.uid || novoUid() })),
+  }));
   const [busca, setBusca] = useState("");
 
   const salvar = () => {
     if (!t.nome.trim()) { avisar("Dê um nome para a ficha (ex.: Treino A - Peito e Tríceps)"); return; }
     onSalvar(t);
   };
-  const addEx = (id) => setT({ ...t, itens: [...t.itens, { exercicioId: id, series: 3, reps: 12, obs: "" }] });
+  const addEx = (id) => setT({ ...t, itens: [...t.itens, { uid: novoUid(), exercicioId: id, series: 3, reps: 12, obs: "" }] });
   const rmEx = (i) => setT({ ...t, itens: t.itens.filter((_, idx) => idx !== i) });
   const upItem = (i, campo, val) => setT({ ...t, itens: t.itens.map((it, idx) => (idx === i ? { ...it, [campo]: val } : it)) });
 
@@ -1564,6 +1732,7 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
     <div style={{ padding: "0 18px" }}>
       <button style={S.voltar} onClick={onCancelar}>← Cancelar</button>
       <input style={{ ...S.input, marginBottom: 14, fontWeight: 800 }} placeholder="Nome da ficha (ex.: Treino A)"
+        aria-label="Nome da ficha"
         value={t.nome} onChange={(e) => setT({ ...t, nome: e.target.value })} />
 
       <div style={S.label}>Exercícios da ficha</div>
@@ -1571,21 +1740,25 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
         {t.itens.length === 0 && <div style={{ color: "var(--cinza)", fontSize: 14, padding: "8px 0" }}>Adicione exercícios da lista abaixo.</div>}
         {t.itens.map((it, i) => {
           const e = exPorId(it.exercicioId);
+          const nomeEx = e ? e.nome : "Exercício removido";
           return (
-            <div key={i} style={{ ...S.card, padding: 12 }}>
+            <div key={it.uid || i} style={{ ...S.card, padding: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ fontWeight: 800, fontSize: 15, flex: 1 }}>{e ? e.nome : "Exercício removido"}</div>
-                <button style={{ background: "none", border: "none", color: "var(--perigo)", fontSize: 18, cursor: "pointer" }} onClick={() => rmEx(i)}>✕</button>
+                <div style={{ fontWeight: 800, fontSize: 15, flex: 1 }}>{nomeEx}</div>
+                <button aria-label={"Tirar " + nomeEx + " da ficha"}
+                  style={{ background: "none", border: "none", color: "var(--perigo)", fontSize: 18, cursor: "pointer" }} onClick={() => rmEx(i)}>✕</button>
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ ...S.label, fontSize: 10 }}>Séries</div>
                   <input type="number" style={S.inputMini} value={it.series} min={1}
+                    aria-label={"Número de séries de " + nomeEx}
                     onChange={(ev) => upItem(i, "series", Math.max(1, parseInt(ev.target.value) || 1))} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ ...S.label, fontSize: 10 }}>Repetições</div>
                   <input type="number" style={S.inputMini} value={it.reps} min={1}
+                    aria-label={"Número de repetições de " + nomeEx}
                     onChange={(ev) => upItem(i, "reps", Math.max(1, parseInt(ev.target.value) || 1))} />
                 </div>
               </div>
@@ -1598,8 +1771,9 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
 
       <div style={S.label}>Adicionar exercício</div>
       <input style={{ ...S.input, margin: "8px 0 10px" }} placeholder="Buscar exercício..."
+        type="search" aria-label="Buscar exercício para adicionar à ficha"
         value={busca} onChange={(e) => setBusca(e.target.value)} />
-      {filtrados.map((ex) => (
+      {filtrados.slice(0, LIMITE_LISTA).map((ex) => (
         <div key={ex.id} style={{ ...S.card, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 14 }}>
@@ -1607,10 +1781,17 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
             </div>
             <div style={{ fontSize: 12, color: corGrupo(grupoPorId(ex.grupo)) }}>{grupoPorId(ex.grupo).nome}</div>
           </div>
-          <button style={{ background: GRAD, color: "#FFFFFF", border: "none", borderRadius: 10, width: 34, height: 34, fontWeight: 900, fontSize: 18, cursor: "pointer" }}
+          <button aria-label={"Adicionar " + ex.nome + " à ficha"}
+            style={{ background: GRAD, color: "#FFFFFF", border: "none", borderRadius: 10, width: 34, height: 34, fontWeight: 900, fontSize: 18, cursor: "pointer" }}
             onClick={() => addEx(ex.id)}>+</button>
         </div>
       ))}
+      {filtrados.length > LIMITE_LISTA && (
+        <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)", fontSize: 13 }}>
+          Mostrando os primeiros {LIMITE_LISTA} de {filtrados.length} exercícios.
+          Use a busca acima para encontrar os demais.
+        </div>
+      )}
     </div>
   );
 }
@@ -1654,6 +1835,24 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
       try { if (navigator.vibrate) navigator.vibrate([300, 120, 300]); } catch (e) {}
     }
   }, [acabou, avisou, som]);
+
+  // Segura a tela acesa enquanto o descanso corre e devolve o controle ao terminar
+  useEffect(() => {
+    if (!fimDescanso || acabou) { desligarTravaTela(); return; }
+    ligarTravaTela();
+    // o sistema solta a trava sozinho quando o app vai para segundo plano: ao voltar, repõe
+    const aoVoltar = () => {
+      if (document.visibilityState === "visible") {
+        ligarTravaTela();
+        try { if (audioCtx && audioCtx.state === "suspended") audioCtx.resume(); } catch (e) {}
+      }
+    };
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => {
+      document.removeEventListener("visibilitychange", aoVoltar);
+      desligarTravaTela();
+    };
+  }, [fimDescanso, acabou]);
 
   const iniciarDescanso = () => {
     setTotalDescanso(descanso);
@@ -1700,7 +1899,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
   const addExercicio = (idEx) => {
     setSessao({
       ...sessao,
-      itens: [...sessao.itens, { exercicioId: idEx, obs: "", series: [{ peso: "", reps: "12", feito: false }] }],
+      itens: [...sessao.itens, { uid: novoUid(), exercicioId: idEx, obs: "", series: [{ peso: "", reps: "12", feito: false }] }],
     });
     setBuscaEx("");
     setMostrarAdd(false);
@@ -1734,6 +1933,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
   const btnSom = (
     <button onClick={() => { setSom(!som); if (!som) beep(700, 0.1, 0.2); }}
       title={som ? "Desligar som" : "Ligar som"}
+      aria-label={som ? "Desligar o som do cronômetro" : "Ligar o som do cronômetro"} aria-pressed={som}
       style={{ width: 42, height: 42, borderRadius: 10, border: "1px solid " + (som ? "#E1306C66" : "var(--borda2)"), background: som ? "#E1306C22" : "transparent", fontSize: 18, cursor: "pointer" }}>
       {som ? "🔊" : "🔇"}
     </button>
@@ -1754,13 +1954,16 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
       <div style={{ ...S.card, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div style={{ flex: 1 }}>
           <div style={S.label}>Descanso entre séries</div>
-          <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 2 }}>Inicia ao marcar uma série ✓</div>
+          <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 2 }}>
+            Inicia ao marcar uma série ✓ · a tela fica acesa até acabar
+          </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => setDescanso(Math.max(15, descanso - 15))}
+          <button onClick={() => setDescanso(Math.max(15, descanso - 15))} aria-label="Diminuir 15 segundos de descanso"
             style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>−</button>
-          <div style={{ fontWeight: 900, fontSize: 17, color: "#E1306C", minWidth: 48, textAlign: "center" }}>{fmt(descanso)}</div>
-          <button onClick={() => setDescanso(Math.min(600, descanso + 15))}
+          <div aria-live="polite" aria-label={"Descanso de " + fmt(descanso)}
+            style={{ fontWeight: 900, fontSize: 17, color: "#E1306C", minWidth: 48, textAlign: "center" }}>{fmt(descanso)}</div>
+          <button onClick={() => setDescanso(Math.min(600, descanso + 15))} aria-label="Aumentar 15 segundos de descanso"
             style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>+</button>
           {btnSom}
         </div>
@@ -1779,15 +1982,17 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
       {sessao.itens.map((it, ei) => {
         const ex = exPorId(it.exercicioId);
         return (
-          <div key={ei} style={S.card}>
+          <div key={it.uid || ei} style={S.card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
               <div style={{ fontWeight: 800, fontSize: 16, flex: 1 }}>{ex ? ex.nome : "Exercício"}</div>
               <button onClick={() => abrirVideoDe(ex ? ex.nome : "")}
                 title="Ver vídeo de como executar"
+                aria-label={"Ver vídeo de como executar " + (ex ? ex.nome : "o exercício")}
                 style={{ border: "1px solid #E1306C66", background: "#E1306C15", color: "#E1306C", borderRadius: 8, padding: "7px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
                 ▶ Vídeo
               </button>
               <button onClick={() => rmExercicio(ei)} title="Remover este exercício do treino"
+                aria-label={"Remover " + (ex ? ex.nome : "este exercício") + " do treino"}
                 style={{ border: "1px solid var(--perigo-borda)", background: "transparent", color: "var(--perigo)", borderRadius: 8, padding: "7px 10px", fontWeight: 900, fontSize: 13, cursor: "pointer" }}>
                 ✕
               </button>
@@ -1799,26 +2004,34 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
               <div style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center" }}>Reps</div>
               <div style={{ width: 44 }} />
             </div>
-            {it.series.map((s, si) => (
-              <div key={si} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, opacity: s.feito ? 0.55 : 1 }}>
-                <div style={{ width: 30, fontWeight: 900, color: "var(--cinza)", textAlign: "center" }}>{si + 1}</div>
-                <input type="number" inputMode="decimal" placeholder="0" style={{ ...S.inputMini, flex: 1 }} value={s.peso}
-                  onChange={(e) => upSerie(ei, si, "peso", e.target.value)} />
-                <input type="number" inputMode="numeric" style={{ ...S.inputMini, flex: 1 }} value={s.reps}
-                  onChange={(e) => upSerie(ei, si, "reps", e.target.value)} />
-                <button onClick={() => marcarSerie(ei, si)}
-                  style={{ width: 44, height: 42, borderRadius: 8, border: "none", fontWeight: 900, fontSize: 18, cursor: "pointer",
-                    background: s.feito ? GRAD : "var(--borda)", color: s.feito ? "#FFFFFF" : "var(--cinza)" }}>✓</button>
-              </div>
-            ))}
+            {it.series.map((s, si) => {
+              const nomeEx = ex ? ex.nome : "exercício";
+              return (
+                <div key={si} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, opacity: s.feito ? 0.55 : 1 }}>
+                  <div style={{ width: 30, fontWeight: 900, color: "var(--cinza)", textAlign: "center" }}>{si + 1}</div>
+                  <input type="number" inputMode="decimal" placeholder="0" style={{ ...S.inputMini, flex: 1 }} value={s.peso}
+                    aria-label={"Peso em quilos da série " + (si + 1) + " de " + nomeEx}
+                    onChange={(e) => upSerie(ei, si, "peso", e.target.value)} />
+                  <input type="number" inputMode="numeric" style={{ ...S.inputMini, flex: 1 }} value={s.reps}
+                    aria-label={"Repetições da série " + (si + 1) + " de " + nomeEx}
+                    onChange={(e) => upSerie(ei, si, "reps", e.target.value)} />
+                  <button onClick={() => marcarSerie(ei, si)} aria-pressed={!!s.feito}
+                    aria-label={(s.feito ? "Desmarcar" : "Concluir") + " a série " + (si + 1) + " de " + nomeEx}
+                    style={{ width: 44, height: 42, borderRadius: 8, border: "none", fontWeight: 900, fontSize: 18, cursor: "pointer",
+                      background: s.feito ? GRAD : "var(--borda)", color: s.feito ? "#FFFFFF" : "var(--cinza)" }}>✓</button>
+                </div>
+              );
+            })}
 
             <div style={{ display: "flex", gap: 8, marginTop: 4, marginBottom: 4 }}>
               <button onClick={() => addSerie(ei)}
+                aria-label={"Adicionar uma série em " + (ex ? ex.nome : "este exercício")}
                 style={{ ...S.btnGhost, flex: 3, padding: "11px 12px", color: "#E1306C", borderColor: "#E1306C66", fontWeight: 800 }}>
                 + Adicionar série
               </button>
               {it.series.length > 1 && (
                 <button onClick={() => rmSerie(ei)} title="Remover a última série"
+                  aria-label={"Remover a última série de " + (ex ? ex.nome : "este exercício")}
                   style={{ ...S.btnGhost, flex: 1, padding: "11px 8px", fontSize: 18, fontWeight: 900 }}>
                   −
                 </button>
@@ -1827,6 +2040,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
 
             <input style={{ ...S.input, marginTop: 4, fontSize: 14 }}
               placeholder="📝 Obs.: altura do banco, altura da polia, pegada..."
+              aria-label={"Observação sobre " + (ex ? ex.nome : "este exercício") + ": altura do banco, pegada, etc."}
               value={it.obs || ""}
               onChange={(e) => upObs(ei, e.target.value)} />
           </div>
@@ -1837,24 +2051,28 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
         <div style={{ ...S.card, borderColor: "#E1306C66" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <div style={S.label}>Adicionar exercício ao treino</div>
-            <button onClick={() => { setMostrarAdd(false); setBuscaEx(""); }}
+            <button onClick={() => { setMostrarAdd(false); setBuscaEx(""); }} aria-label="Fechar a busca de exercícios"
               style={{ background: "none", border: "none", color: "var(--cinza)", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>✕</button>
           </div>
           <input autoFocus style={{ ...S.input, marginBottom: 10 }} placeholder="Buscar exercício (ex.: leg press)..."
+            aria-label="Buscar exercício para adicionar ao treino"
             value={buscaEx} onChange={(e) => setBuscaEx(e.target.value)} />
           <div style={{ maxHeight: 320, overflowY: "auto" }}>
             {(buscaEx.trim()
               ? todos.filter((e) => e.nome.toLowerCase().includes(buscaEx.trim().toLowerCase()))
               : todos
             ).slice(0, 40).map((e) => (
-              <div key={e.id} onClick={() => addExercicio(e.id)}
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 4px", borderBottom: "1px solid var(--borda)", cursor: "pointer" }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{e.nome}</div>
-                  <div style={{ fontSize: 12, color: corGrupo(grupoPorId(e.grupo)) }}>{grupoPorId(e.grupo).nome}</div>
-                </div>
-                <div style={{ background: GRAD, color: "#FFFFFF", borderRadius: 10, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 18, flexShrink: 0 }}>+</div>
-              </div>
+              <button key={e.id} type="button" onClick={() => addExercicio(e.id)}
+                aria-label={"Adicionar " + e.nome + " ao treino"}
+                style={{ width: "100%", textAlign: "left", font: "inherit", color: "var(--texto)", background: "none",
+                  border: "none", borderBottom: "1px solid var(--borda)", display: "flex", justifyContent: "space-between",
+                  alignItems: "center", padding: "10px 4px", cursor: "pointer" }}>
+                <span>
+                  <span style={{ display: "block", fontWeight: 700, fontSize: 14 }}>{e.nome}</span>
+                  <span style={{ display: "block", fontSize: 12, color: corGrupo(grupoPorId(e.grupo)) }}>{grupoPorId(e.grupo).nome}</span>
+                </span>
+                <span aria-hidden="true" style={{ background: GRAD, color: "#FFFFFF", borderRadius: 10, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 18, flexShrink: 0 }}>+</span>
+              </button>
             ))}
           </div>
         </div>
@@ -1879,22 +2097,25 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
               <div style={{ ...S.label, color: acabou ? "var(--ok)" : "var(--cinza)" }}>
                 {acabou ? "Descanso concluído!" : "Descansando"}
               </div>
-              <div style={{ fontSize: 30, fontWeight: 900, color: acabou ? "var(--ok)" : "#E1306C", fontVariantNumeric: "tabular-nums" }}>
+              <div role="timer" aria-live={acabou ? "assertive" : "off"}
+                aria-label={acabou ? "Descanso concluído, bora treinar" : "Faltam " + fmt(restante)}
+                style={{ fontSize: 30, fontWeight: 900, color: acabou ? "var(--ok)" : "#E1306C", fontVariantNumeric: "tabular-nums" }}>
                 {acabou ? "Bora! 💪" : fmt(restante)}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <button onClick={() => { setSom(!som); if (!som) beep(700, 0.1, 0.2); }}
+                aria-label={som ? "Desligar o som do cronômetro" : "Ligar o som do cronômetro"} aria-pressed={som}
                 style={{ width: 40, height: 40, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", fontSize: 16, cursor: "pointer" }}>
                 {som ? "🔊" : "🔇"}
               </button>
               {!acabou && (
-                <button onClick={mais15}
+                <button onClick={mais15} aria-label="Adicionar 15 segundos ao descanso"
                   style={{ border: "1px solid #E1306C66", background: "transparent", color: "#E1306C", borderRadius: 8, padding: "10px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
                   +15s
                 </button>
               )}
-              <button onClick={fecharDescanso}
+              <button onClick={fecharDescanso} aria-label={acabou ? "Fechar o aviso de descanso" : "Pular o descanso"}
                 style={{ border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", borderRadius: 8, padding: "10px 14px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
                 {acabou ? "OK" : "Pular"}
               </button>
@@ -1940,8 +2161,8 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, pedi
         <div style={{ fontWeight: 900, fontSize: 16, flex: 1 }}>{h.nome}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ color: "#E1306C", fontWeight: 800, fontSize: 13 }}>{h.duracaoMin} min</div>
-          <button title="Excluir este treino do histórico"
-            onClick={() => pedirConfirmacao("Excluir este treino do histórico? Essa ação não pode ser desfeita.", () => onExcluir(h.id))}
+          <button title="Excluir este treino do histórico" aria-label={"Excluir do histórico o treino " + h.nome}
+            onClick={() => pedirConfirmacao("Excluir este treino do histórico?\n\nVocê terá alguns segundos para desfazer.", () => onExcluir(h.id))}
             style={{ background: "none", border: "1px solid var(--perigo-borda)", color: "var(--perigo)", borderRadius: 8, width: 30, height: 30, fontSize: 14, fontWeight: 900, cursor: "pointer" }}>
             🗑
           </button>
@@ -2102,9 +2323,42 @@ function TreinoLivre() {
   const [editandoTreino, setEditandoTreino] = useState(null);
   const [sessao, setSessao] = useState(null);
   const [modal, setModal] = useState(null);
+  const [copiado, setCopiado] = useState(false);
+  const [desfazer, setDesfazer] = useState(null);
   const importRef = useRef("");
   const pedirConfirmacao = (msg, onSim) => setModal({ msg, onSim });
   const avisar = (msg) => setModal({ msg });
+
+  // Fechar com Esc, como em qualquer caixa de diálogo
+  useEffect(() => {
+    if (!modal) return;
+    setCopiado(false);
+    const aoTeclar = (e) => { if (e.key === "Escape") setModal(null); };
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, [modal]);
+
+  // O navegador avisa quando o app pode ser instalado na tela inicial.
+  // Guardamos o convite para oferecer no momento certo, em vez de deixar
+  // o usuário caçar a opção escondida no menu.
+  const [promptInstalar, setPromptInstalar] = useState(null);
+  useEffect(() => {
+    const aoPoderInstalar = (e) => { e.preventDefault(); setPromptInstalar(e); };
+    const aoInstalar = () => { setPromptInstalar(null); registrarEvento("app-instalado"); };
+    window.addEventListener("beforeinstallprompt", aoPoderInstalar);
+    window.addEventListener("appinstalled", aoInstalar);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", aoPoderInstalar);
+      window.removeEventListener("appinstalled", aoInstalar);
+    };
+  }, []);
+  const instalarApp = async () => {
+    if (!promptInstalar) return;
+    registrarEvento("instalacao-oferecida");
+    promptInstalar.prompt();
+    try { await promptInstalar.userChoice; } catch (e) {}
+    setPromptInstalar(null);
+  };
 
   const copiarLink = async () => {
     try {
@@ -2116,6 +2370,8 @@ function TreinoLivre() {
   };
 
   const exportarDados = () => {
+    // O backup não leva a sessão em andamento de propósito: restaurar num outro
+    // aparelho um treino pela metade só confundiria.
     const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, seedV3: true });
     setModal({
       msg: "Backup dos seus dados. Toque em Copiar e guarde em local seguro (ex.: cole numa conversa sua no WhatsApp). Para restaurar, use Importar dados.",
@@ -2132,17 +2388,23 @@ function TreinoLivre() {
         try {
           const d = JSON.parse(importRef.current);
           if (!d || (!d.treinos && !d.historico && !d.customEx)) throw new Error("vazio");
-          setTreinos(d.treinos || []);
+          // Decide os programas ANTES de gravar as fichas, para não escrever
+          // "treinos" duas vezes seguidas com conteúdos diferentes.
+          let fichas = d.treinos || [];
+          let pg2 = d.programas || [];
+          if (!pg2.length && fichas.length) {
+            pg2 = [{ id: "prog-meus", nome: "Meus Treinos" }];
+            fichas = fichas.map((t) => ({ ...t, programaId: t.programaId || "prog-meus" }));
+          }
+          setTreinos(fichas);
           setHistorico(d.historico || []);
           setCustomEx(d.customEx || []);
-          let pg2 = d.programas || [];
-          if (!pg2.length && (d.treinos || []).length) {
-            pg2 = [{ id: "prog-meus", nome: "Meus Treinos" }];
-            setTreinos((d.treinos || []).map((t) => ({ ...t, programaId: t.programaId || "prog-meus" })));
-          }
           setProgramas(pg2);
           if (d.descanso) setDescanso(d.descanso);
           if (d.som !== undefined) setSom(d.som);
+          if (d.tema) setTema(d.tema);
+          setSessao(null);
+          setAba("inicio");
           setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 100);
         } catch (e) {
           setTimeout(() => avisar("Não consegui ler esse código. Confira se copiou o backup completo e tente de novo."), 100);
@@ -2152,11 +2414,18 @@ function TreinoLivre() {
   };
 
   TEMA_APP = tema;
-  const todos = [...EXERCICIOS, ...customEx];
-  const exPorId = (id) => todos.find((e) => e.id === id);
+  const todos = useMemo(() => [...EXERCICIOS, ...customEx], [customEx]);
+  // Busca por id via índice. Antes era uma varredura da lista inteira, chamada
+  // uma vez por série ao montar o histórico — ou seja, lento na proporção do quadrado.
+  const indiceEx = useMemo(() => {
+    const m = new Map();
+    todos.forEach((e) => m.set(e.id, e));
+    return m;
+  }, [todos]);
+  const exPorId = useCallback((id) => indiceEx.get(id), [indiceEx]);
 
   useEffect(() => {
-    let tr = [], hi = [], ce = [], de = 90, so = true, seed = false, pg = null;
+    let tr = [], hi = [], ce = [], de = 90, so = true, seed = false, pg = null, ss = null;
     try {
       const raw = store.get(STORAGE_KEY);
       if (raw) {
@@ -2169,11 +2438,16 @@ function TreinoLivre() {
         if (d.tema) setTema(d.tema);
         pg = d.programas || null;
         seed = !!d.seedV3;
+        // Retoma o treino que ficou pela metade (app fechado, página recarregada,
+        // bateria acabou). Passadas 12 horas presumimos que aquele treino não volta.
+        if (d.sessao && d.sessao.inicio && Date.now() - d.sessao.inicio < 12 * 3600000) {
+          ss = d.sessao;
+        }
       }
     } catch (e) {}
     // Insere/atualiza as fichas padrão (rotina semanal) uma única vez por versão
     if (!seed) {
-      tr = tr.filter((t) => String(t.id).indexOf("padrao-") !== 0 && String(t.nome || "").trim().toLowerCase() !== "lucas koba");
+      tr = tr.filter((t) => String(t.id).indexOf("padrao-") !== 0);
       tr = [...FICHAS_PADRAO, ...tr];
     }
     // ---- Organização: "treinos" (programas) agrupam as fichas ----
@@ -2191,6 +2465,7 @@ function TreinoLivre() {
     }
 
     setTreinos(tr); setHistorico(hi); setCustomEx(ce); setDescanso(de); setSom(so); setProgramas(pg);
+    if (ss) { setSessao(ss); setAba("sessao"); }
     setCarregado(true);
 
     // Se o app foi aberto por um link compartilhado (ficha, treino completo ou desafio)
@@ -2199,11 +2474,17 @@ function TreinoLivre() {
       const mF = hash.match(/#ficha=([^&]+)/);
       const mP = hash.match(/#prog=([^&]+)/);
       const mD = hash.match(/#desafio=([^&]+)/);
-      if (mF || mP || mD) {
+      const mA = hash.match(/#atalho=([a-z]+)/);
+      if (mF || mP || mD || mA) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e2) {}
       }
+      // Atalhos do ícone do app na tela inicial (definidos no manifest.json)
+      if (mA && !ss) {
+        if (mA[1] === "historico") setAba("historico");
+        else if (mA[1] === "livre") setTimeout(() => iniciarTreinoLivre(), 0);
+      }
       if (mF) {
-        const p = JSON.parse(decodeURIComponent(escape(atob(mF[1]))));
+        const p = JSON.parse(b64Decodificar(mF[1]));
         if (p && p.n && p.i && p.i.length) {
           setModal({
             msg: 'Você recebeu a ficha de treino "' + p.n + '" com ' + p.i.length + " exercícios. Deseja adicionar às suas fichas?",
@@ -2212,7 +2493,7 @@ function TreinoLivre() {
           });
         }
       } else if (mP) {
-        const p = JSON.parse(decodeURIComponent(escape(atob(mP[1]))));
+        const p = JSON.parse(b64Decodificar(mP[1]));
         if (p && p.pn && p.fs && p.fs.length) {
           setModal({
             msg: 'Você recebeu o treino completo "' + p.pn + '" com ' + p.fs.length + " ficha(s). Deseja adicionar aos seus treinos?",
@@ -2221,7 +2502,7 @@ function TreinoLivre() {
           });
         }
       } else if (mD) {
-        const p = JSON.parse(decodeURIComponent(escape(atob(mD[1]))));
+        const p = JSON.parse(b64Decodificar(mD[1]));
         if (p && p.nm) {
           const eu = calcularEstatisticas(hi);
           const naFrente = eu.total > (p.t || 0) || (eu.total === (p.t || 0) && eu.streak >= (p.s || 0));
@@ -2236,10 +2517,27 @@ function TreinoLivre() {
     } catch (e) {}
   }, []);
 
+  // Gravação com um respiro de 400ms: durante o treino cada tecla digitada muda o
+  // estado, e escrever o histórico inteiro a cada tecla trava o aparelho.
+  const dadosRef = useRef("");
   useEffect(() => {
     if (!carregado) return;
-    store.set(STORAGE_KEY, JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, seedV3: true }));
-  }, [treinos, historico, customEx, descanso, som, tema, programas, carregado]);
+    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, seedV3: true });
+    const t = setTimeout(() => store.set(STORAGE_KEY, dadosRef.current), 400);
+    return () => clearTimeout(t);
+  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, carregado]);
+
+  // Fechou o app ou trocou de aba no meio do treino? Grava na hora, sem esperar o respiro.
+  useEffect(() => {
+    const gravarJa = () => { if (dadosRef.current) store.set(STORAGE_KEY, dadosRef.current); };
+    const aoEsconder = () => { if (document.visibilityState === "hidden") gravarJa(); };
+    document.addEventListener("visibilitychange", aoEsconder);
+    window.addEventListener("pagehide", gravarJa);
+    return () => {
+      document.removeEventListener("visibilitychange", aoEsconder);
+      window.removeEventListener("pagehide", gravarJa);
+    };
+  }, []);
 
   const comecarSessao = (treino) => {
     setSessao({
@@ -2247,6 +2545,7 @@ function TreinoLivre() {
       nome: treino.nome,
       inicio: Date.now(),
       itens: treino.itens.map((it) => ({
+        uid: novoUid(),
         exercicioId: it.exercicioId,
         obs: it.obs || "",
         series: Array.from({ length: it.series }, () => ({ peso: "", reps: String(it.reps || ""), feito: false })),
@@ -2294,7 +2593,9 @@ function TreinoLivre() {
       id: String(Date.now()),
       nome: sessao.nome,
       data: new Date().toISOString(),
-      duracaoMin: Math.max(1, Math.round((Date.now() - sessao.inicio) / 60000)),
+      // O relógio conta desde o início da sessão; o teto de 5h evita que um treino
+      // esquecido aberto vire "480 min" e distorça as médias.
+      duracaoMin: Math.max(1, Math.min(300, Math.round((Date.now() - sessao.inicio) / 60000))),
       itens: sessao.itens.map((it) => ({
         exercicioId: it.exercicioId,
         obs: it.obs || "",
@@ -2302,10 +2603,20 @@ function TreinoLivre() {
       })).filter((it) => it.series.length > 0),
     };
     setHistorico([registro, ...historico]);
-    // Salva as observações de volta na ficha (altura do banco, polia etc. ficam guardadas)
+    // Salva as observações de volta na ficha (altura do banco, polia etc. ficam guardadas).
+    // Casa pelo exercício, e não pela posição: dá para adicionar e remover exercícios
+    // durante o treino, o que desalinharia os índices e gravaria a obs no lugar errado.
+    const obsPorEx = {};
+    sessao.itens.forEach((it) => { obsPorEx[it.exercicioId] = it.obs || ""; });
     setTreinos(treinos.map((t) => {
       if (t.id !== sessao.treinoId) return t;
-      return { ...t, itens: t.itens.map((it, i) => (sessao.itens[i] ? { ...it, obs: sessao.itens[i].obs || "" } : it)) };
+      return {
+        ...t,
+        itens: t.itens.map((it) =>
+          Object.prototype.hasOwnProperty.call(obsPorEx, it.exercicioId)
+            ? { ...it, obs: obsPorEx[it.exercicioId] }
+            : it),
+      };
     }));
     setSessao(null);
     setAba("historico");
@@ -2320,6 +2631,14 @@ function TreinoLivre() {
     if (st.densidade > 0) msg += " · " + st.densidade + " kg/min · carga máx. " + st.cargaMax + " kg";
     if (comp) msg += "\n" + (comp.pct >= 0 ? "▲ +" : "▼ ") + comp.pct + "% de volume vs. o treino anterior";
     if (nRec > 0) msg += "\n🏆 " + nRec + " " + plural(nRec, "recorde pessoal batido", "recordes pessoais batidos") + "!";
+    // Conquistas destravadas por este treino (antes só apareciam caladas na tela inicial)
+    const antes = calcularEstatisticas(historico);
+    const depois = calcularEstatisticas([registro, ...historico]);
+    const novas = CONQUISTAS.filter((c) => c.cond(depois) && !c.cond(antes));
+    if (novas.length) {
+      msg += "\n\n🎖 " + plural(novas.length, "Nova conquista", "Novas conquistas") + ": " +
+        novas.map((c) => c.icone + " " + c.nome).join(", ");
+    }
     setTimeout(() => setModal({
       msg: msg,
       storyTreino: {
@@ -2329,7 +2648,27 @@ function TreinoLivre() {
     }), 250);
   };
 
-  const excluirHistorico = (id) => setHistorico(historico.filter((h) => h.id !== id));
+  // Excluir do histórico agora dá alguns segundos de arrependimento antes de sumir de vez
+  const excluirHistorico = (id) => {
+    const indice = historico.findIndex((h) => h.id === id);
+    if (indice < 0) return;
+    setDesfazer({ registro: historico[indice], indice });
+    setHistorico(historico.filter((h) => h.id !== id));
+  };
+  const restaurarExcluido = () => {
+    if (!desfazer) return;
+    setHistorico((prev) => {
+      const copia = [...prev];
+      copia.splice(Math.min(desfazer.indice, copia.length), 0, desfazer.registro);
+      return copia;
+    });
+    setDesfazer(null);
+  };
+  useEffect(() => {
+    if (!desfazer) return;
+    const t = setTimeout(() => setDesfazer(null), 9000);
+    return () => clearTimeout(t);
+  }, [desfazer]);
 
   // ---- Programas (treinos que agrupam fichas) ----
   const criarPrograma = () => {
@@ -2419,7 +2758,7 @@ function TreinoLivre() {
       const nome = ((importRef.current || "").trim() || "Atleta").slice(0, 20);
       const est = calcularEstatisticas(historico);
       const payload = { nm: nome, t: est.total, s: est.streak, v: est.volumeTotal, w: est.treinosSemana };
-      const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+      const b64 = b64Codificar(JSON.stringify(payload));
       const url = LINK_APP + "#desafio=" + b64;
       const texto = "⚔️ " + nome + " te desafiou no Treino Livre! " + est.total + " treinos e " + est.streak + " dia(s) seguidos. Aceita o desafio?";
       setTimeout(async () => {
@@ -2440,7 +2779,7 @@ function TreinoLivre() {
     fichas.forEach((f) => f.itens.forEach((it) => { usados[it.exercicioId] = true; }));
     const custom = customEx.filter((e) => usados[e.id]);
     const payload = { v: 2, pn: p.nome, fs: fichas.map((f) => ({ n: f.nome, i: f.itens.map((it) => ({ e: it.exercicioId, s: it.series, r: it.reps })) })), x: custom };
-    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    const b64 = b64Codificar(JSON.stringify(payload));
     const url = LINK_APP + "#prog=" + b64;
     registrarEvento("treino-compartilhado");
     const texto = 'Te enviei o treino completo "' + p.nome + '" (' + fichas.length + " fichas) no Treino Livre 💪 Toque no link para adicionar:";
@@ -2482,7 +2821,7 @@ function TreinoLivre() {
       i: t.itens.map((it) => ({ e: it.exercicioId, s: it.series, r: it.reps })),
       x: custom,
     };
-    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    const b64 = b64Codificar(JSON.stringify(payload));
     const url = LINK_APP + "#ficha=" + b64;
     registrarEvento("ficha-compartilhada");
     const texto = 'Te enviei a ficha de treino "' + t.nome + '" no Treino Livre 💪 Toque no link para adicionar:';
@@ -2556,7 +2895,8 @@ function TreinoLivre() {
             onDesafiar={desafiarAmigo}
             onCopiarLink={copiarLink}
             onExportar={exportarDados}
-            onImportar={importarDados} />
+            onImportar={importarDados}
+            onInstalar={promptInstalar ? instalarApp : null} />
         )}
         {aba === "assistente" && (
           <TelaAssistente onGerar={gerarTreinoAssistente} onCancelar={() => setAba("inicio")} />
@@ -2608,11 +2948,12 @@ function TreinoLivre() {
       {modal && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.75)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
           onClick={() => setModal(null)}>
-          <div style={{ ...S.card, width: "100%", maxWidth: 340, marginBottom: 0, borderColor: "var(--borda2)" }}
+          <div role="dialog" aria-modal="true" aria-label={String(modal.msg || "Aviso").split("\n")[0]}
+            style={{ ...S.card, width: "100%", maxWidth: 340, marginBottom: 0, borderColor: "var(--borda2)" }}
             onClick={(e) => e.stopPropagation()}>
             <div style={{ fontSize: 15, lineHeight: 1.6, marginBottom: 16, whiteSpace: "pre-line" }}>{modal.msg}</div>
             {modal.prompt && (
-              <input placeholder={modal.prompt} defaultValue={modal.valor || ""}
+              <input placeholder={modal.prompt} defaultValue={modal.valor || ""} autoFocus aria-label={modal.prompt}
                 onChange={(e) => { importRef.current = e.target.value; }}
                 style={{ ...S.input, marginBottom: 12 }} />
             )}
@@ -2627,17 +2968,23 @@ function TreinoLivre() {
             {modal.texto && (
               <React.Fragment>
                 <textarea readOnly value={modal.texto} onFocus={(e) => e.target.select()}
+                  aria-label="Conteúdo para copiar"
                   style={{ ...S.input, minHeight: 130, fontSize: 11, marginBottom: 10, fontFamily: "monospace" }} />
-                <button style={{ ...S.btnGhost, marginBottom: 12 }}
-                  onClick={async (e) => {
-                    try { await navigator.clipboard.writeText(modal.texto); e.target.textContent = "✓ Copiado!"; } catch (err) {}
+                <button style={{ ...S.btnGhost, marginBottom: 12, color: copiado ? "var(--ok)" : "var(--texto)", borderColor: copiado ? "var(--ok)" : "var(--borda2)" }}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(modal.texto);
+                      setCopiado(true);
+                      setTimeout(() => setCopiado(false), 2500);
+                    } catch (err) {}
                   }}>
-                  📋 Copiar
+                  {copiado ? "✓ Copiado!" : "📋 Copiar"}
                 </button>
               </React.Fragment>
             )}
             {modal.importar && (
-              <textarea placeholder="Cole o código do backup aqui..."
+              <textarea placeholder="Cole o código do backup aqui..." autoFocus
+                aria-label="Código do backup"
                 onChange={(e) => { importRef.current = e.target.value; }}
                 style={{ ...S.input, minHeight: 130, fontSize: 11, marginBottom: 12, fontFamily: "monospace" }} />
             )}
@@ -2656,6 +3003,20 @@ function TreinoLivre() {
         </div>
       )}
 
+      {desfazer && (
+        <div role="status" style={{ position: "fixed", left: 12, right: 12, zIndex: 16,
+          bottom: "calc(" + (sessao && aba !== "sessao" ? 132 : 72) + "px + env(safe-area-inset-bottom))" }}>
+          <div style={{ background: "var(--card)", border: "1px solid var(--borda2)", borderRadius: 12, padding: "12px 14px",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, boxShadow: "0 4px 16px rgba(0,0,0,0.45)" }}>
+            <span style={{ fontSize: 13 }}>Treino excluído do histórico.</span>
+            <button onClick={restaurarExcluido}
+              style={{ background: "none", border: "none", color: "#E1306C", fontWeight: 900, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap", padding: "4px 2px" }}>
+              Desfazer
+            </button>
+          </div>
+        </div>
+      )}
+
       {sessao && aba !== "sessao" && (
         <div style={{ position: "fixed", bottom: "calc(72px + env(safe-area-inset-bottom))", left: 12, right: 12, zIndex: 15 }}>
           <button onClick={() => setAba("sessao")}
@@ -2665,23 +3026,27 @@ function TreinoLivre() {
         </div>
       )}
 
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--bg2)", borderTop: "1px solid var(--borda)", display: "flex", padding: "8px 0", paddingBottom: "calc(14px + env(safe-area-inset-bottom))", zIndex: 10 }}>
+      <nav aria-label="Navegação principal"
+        style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--bg2)", borderTop: "1px solid var(--borda)", display: "flex", padding: "8px 0", paddingBottom: "calc(14px + env(safe-area-inset-bottom))", zIndex: 10 }}>
         {abas.map((a) => (
           <button key={a.id} onClick={() => { setAba(a.id); setGrupoAberto(null); setExercicioAberto(null); setProgAberto(null); }}
+            aria-current={aba === a.id ? "page" : undefined} aria-label={a.nome}
             style={{ flex: 1, background: "none", border: "none", cursor: "pointer", color: aba === a.id ? "#E1306C" : "var(--cinza)", fontWeight: aba === a.id ? 900 : 600 }}>
-            <div style={{ fontSize: 18 }}>{a.icone}</div>
-            <div style={{ fontSize: 11, marginTop: 2 }}>{a.nome}</div>
+            <div aria-hidden="true" style={{ fontSize: 18 }}>{a.icone}</div>
+            <div aria-hidden="true" style={{ fontSize: 11, marginTop: 2 }}>{a.nome}</div>
           </button>
         ))}
-      </div>
+      </nav>
     </div>
   );
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<TreinoLivre />);
 
-// Modo offline: depois da primeira visita, o app abre mesmo sem internet
-if ("serviceWorker" in navigator && location.protocol === "https:") {
+// Modo offline: depois da primeira visita, o app abre mesmo sem internet.
+// (localhost entra na lista para dar pra testar o modo offline antes de publicar)
+const ehLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+if ("serviceWorker" in navigator && (location.protocol === "https:" || ehLocal)) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   });

@@ -1,0 +1,35 @@
+{
+  "name": "Treino Livre",
+  "short_name": "Treino Livre",
+  "description": "Monte suas fichas, registre séries e cargas e acompanhe sua evolução na academia. Funciona offline e sem cadastro.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#111111",
+  "categories": ["health", "fitness", "lifestyle"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Treino livre",
+      "short_name": "Treino livre",
+      "description": "Comecar um treino montando os exercicios na hora",
+      "url": "./#atalho=livre",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Historico",
+      "short_name": "Historico",
+      "description": "Ver treinos concluidos e estatisticas",
+      "url": "./#atalho=historico",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

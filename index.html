@@ -90,6 +90,31 @@
     #carregando .barra i { animation: none; width: 100%; }
     * { transition: none !important; }
   }
+
+  /* Celebração de recorde e de conquista */
+  @keyframes confete {
+    0%   { transform: translate3d(0, -12vh, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate3d(var(--desvio, 0), 96vh, 0) rotate(var(--giro, 540deg)); opacity: 0; }
+  }
+  @keyframes surge {
+    0%   { transform: scale(0.6); opacity: 0; }
+    55%  { transform: scale(1.06); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes pulsa {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.14); }
+  }
+  .confete-peca {
+    position: fixed; top: 0; width: 9px; height: 15px; border-radius: 2px;
+    animation: confete linear forwards; pointer-events: none; z-index: 60;
+  }
+  .celebra-cartao { animation: surge 380ms cubic-bezier(.2,.8,.3,1.2) both; }
+  .celebra-icone { animation: pulsa 900ms ease-in-out 380ms 2 both; display: inline-block; }
+  @media (prefers-reduced-motion: reduce) {
+    .confete-peca { display: none; }
+    .celebra-cartao, .celebra-icone { animation: none; }
+  }
 </style>
 </head>
 <body>
@@ -153,12 +178,40 @@ function diaStr(x) { const dd = new Date(x); return dd.getFullYear() + "-" + (dd
 function calcularEstatisticas(historico) {
   const dias = {};
   let volumeTotal = 0;
+  // números que alimentam nível e conquistas
+  let maiorCarga = 0, maiorDuracao = 0;
+  let melhorSeriesTreino = 0, melhorVolumeTreino = 0;
+  let treinouDeManha = false, treinouDeNoite = false, treinouFimDeSemana = false;
+  const exercicios = {}, grupos = {}, semanas = {};
+
   historico.forEach((h) => {
     dias[diaStr(h.data)] = true;
-    (h.itens || []).forEach((it) => (it.series || []).forEach((s) => {
-      volumeTotal += (parseFloat(s.peso) || 0) * (parseInt(s.reps) || 0);
-    }));
+    const d = new Date(h.data);
+    const hora = d.getHours(), diaSemana = d.getDay();
+    if (hora < 7) treinouDeManha = true;
+    if (hora >= 22) treinouDeNoite = true;
+    if (diaSemana === 0 || diaSemana === 6) treinouFimDeSemana = true;
+    if ((h.duracaoMin || 0) > maiorDuracao) maiorDuracao = h.duracaoMin || 0;
+    const chaveSemana = segundaDaSemana(h.data).getTime();
+    semanas[chaveSemana] = (semanas[chaveSemana] || 0) + 1;
+
+    let volTreino = 0, seriesTreino = 0;
+    (h.itens || []).forEach((it) => {
+      exercicios[it.exercicioId] = true;
+      const g = GRUPO_POR_EXERCICIO[it.exercicioId];
+      if (g) grupos[g] = true;
+      (it.series || []).forEach((s) => {
+        const p = parseFloat(s.peso) || 0, r = parseInt(s.reps) || 0;
+        volumeTotal += p * r;
+        volTreino += p * r;
+        seriesTreino += 1;
+        if (p > maiorCarga) maiorCarga = p;
+      });
+    });
+    if (volTreino > melhorVolumeTreino) melhorVolumeTreino = volTreino;
+    if (seriesTreino > melhorSeriesTreino) melhorSeriesTreino = seriesTreino;
   });
+
   const um = 86400000;
   let streak = 0;
   let cursor = new Date();
@@ -174,7 +227,34 @@ function calcularEstatisticas(historico) {
       }));
     }
   });
-  return { total: historico.length, streak, volumeTotal: Math.round(volumeTotal), treinosSemana, volumeSemana: Math.round(volumeSemana) };
+
+  // recordes pessoais: total e o melhor treino isolado
+  const porTreino = calcularRecordes(historico);
+  let recordes = 0, melhorRecordesTreino = 0;
+  Object.keys(porTreino).forEach((idT) => {
+    let n = 0;
+    Object.keys(porTreino[idT]).forEach((idE) => {
+      const r = porTreino[idT][idE];
+      if (r.peso || r.volume) n += 1;
+    });
+    recordes += n;
+    if (n > melhorRecordesTreino) melhorRecordesTreino = n;
+  });
+
+  const contagens = Object.keys(semanas).map((k) => semanas[k]);
+  return {
+    total: historico.length, streak,
+    volumeTotal: Math.round(volumeTotal),
+    treinosSemana, volumeSemana: Math.round(volumeSemana),
+    maiorCarga, maiorDuracao,
+    melhorSeriesTreino, melhorVolumeTreino: Math.round(melhorVolumeTreino),
+    treinouDeManha, treinouDeNoite, treinouFimDeSemana,
+    exerciciosDistintos: Object.keys(exercicios).length,
+    gruposDistintos: Object.keys(grupos).length,
+    semanasAtivas: contagens.length,
+    melhorSemana: contagens.length ? Math.max(...contagens) : 0,
+    recordes, melhorRecordesTreino,
+  };
 }
 
 // ---------- ESTATÍSTICAS DE UM TREINO ----------
@@ -214,6 +294,8 @@ function volumeItem(it) {
 function fmtKg(kg) {
   return Math.round(kg || 0).toLocaleString("pt-BR") + " kg";
 }
+// Número curto com no máximo uma casa decimal (42,5 e não 42.5)
+const fmtNum = (n) => (Math.round((parseFloat(n) || 0) * 10) / 10).toLocaleString("pt-BR");
 // Versão compacta, para totais acumulados
 function fmtPeso(kg) {
   const v = Math.round(kg || 0);
@@ -328,18 +410,161 @@ function volumeSemanal(historico, nSemanas) {
   return semanas;
 }
 
-const CONQUISTAS = [
-  { id: "t1", nome: "Primeiro treino", icone: "🥇", cond: (e) => e.total >= 1 },
-  { id: "t5", nome: "5 treinos", icone: "🔥", cond: (e) => e.total >= 5 },
-  { id: "t10", nome: "10 treinos", icone: "💪", cond: (e) => e.total >= 10 },
-  { id: "t25", nome: "25 treinos", icone: "🏅", cond: (e) => e.total >= 25 },
-  { id: "t50", nome: "50 treinos", icone: "🏆", cond: (e) => e.total >= 50 },
-  { id: "t100", nome: "100 treinos", icone: "👑", cond: (e) => e.total >= 100 },
-  { id: "s3", nome: "3 dias seguidos", icone: "⚡", cond: (e) => e.streak >= 3 },
-  { id: "s7", nome: "7 dias seguidos", icone: "🚀", cond: (e) => e.streak >= 7 },
-  { id: "v10", nome: "10 toneladas", icone: "🐘", cond: (e) => e.volumeTotal >= 10000 },
-  { id: "v50", nome: "50 toneladas", icone: "🦖", cond: (e) => e.volumeTotal >= 50000 },
+// ---------- NÍVEL DO ATLETA ----------
+// A experiência mistura constância (treinos), esforço (tonelagem) e evolução
+// (recordes), para que nem só quem levanta muito nem só quem aparece sempre suba.
+function xpDe(est) {
+  return Math.round(est.total * 120 + est.volumeTotal / 60 + est.streak * 40 + (est.recordes || 0) * 60);
+}
+const NIVEIS = [
+  { xp: 0, nome: "Novato", icone: "🌱" },
+  { xp: 400, nome: "Iniciante", icone: "🐣" },
+  { xp: 1200, nome: "Frequentador", icone: "🎒" },
+  { xp: 2600, nome: "Ritmo firme", icone: "🏃" },
+  { xp: 5000, nome: "Puxador de ferro", icone: "🔩" },
+  { xp: 9000, nome: "Veterano", icone: "🛡" },
+  { xp: 15000, nome: "Marombeiro", icone: "💪" },
+  { xp: 24000, nome: "Máquina", icone: "⚙️" },
+  { xp: 38000, nome: "Monstro", icone: "🦍" },
+  { xp: 60000, nome: "Lenda da academia", icone: "👑" },
 ];
+function nivelDe(est) {
+  const xp = xpDe(est);
+  let i = 0;
+  for (let k = 0; k < NIVEIS.length; k++) if (xp >= NIVEIS[k].xp) i = k;
+  const atual = NIVEIS[i];
+  const proximo = NIVEIS[i + 1] || null;
+  const base = atual.xp;
+  const alvo = proximo ? proximo.xp : atual.xp;
+  const pct = proximo ? Math.max(0, Math.min(100, ((xp - base) / (alvo - base)) * 100)) : 100;
+  return { xp, indice: i + 1, nome: atual.nome, icone: atual.icone, proximo, faltam: proximo ? alvo - xp : 0, pct };
+}
+
+// ---------- RECORDES E ÚLTIMA EXECUÇÃO ----------
+// Melhor carga, melhor volume e melhor 1RM já feitos em cada exercício.
+function recordesPorExercicio(historico) {
+  const m = {};
+  historico.forEach((h) => {
+    (h.itens || []).forEach((it) => {
+      const r = m[it.exercicioId] || { peso: 0, reps: 0, volume: 0, e1rm: 0 };
+      let vol = 0;
+      (it.series || []).forEach((s) => {
+        const p = parseFloat(s.peso) || 0, rp = parseInt(s.reps) || 0;
+        vol += p * rp;
+        if (p > r.peso) { r.peso = p; r.reps = rp; }
+        const rm = est1RM(s.peso, s.reps);
+        if (rm > r.e1rm) r.e1rm = rm;
+      });
+      if (vol > r.volume) r.volume = Math.round(vol);
+      m[it.exercicioId] = r;
+    });
+  });
+  return m;
+}
+// Séries feitas na última vez em que este exercício apareceu no histórico.
+function ultimaExecucao(historico, exercicioId) {
+  const ord = [...historico].sort((a, b) => new Date(b.data) - new Date(a.data));
+  for (const h of ord) {
+    const it = (h.itens || []).find((x) => x.exercicioId === exercicioId);
+    if (it && (it.series || []).length) return { series: it.series, data: h.data };
+  }
+  return null;
+}
+// Sugere a carga de hoje: repete a da última vez e propõe subir quando todas as
+// séries saíram com as repetições combinadas — que é como a sobrecarga progressiva
+// funciona na prática, sem precisar lembrar de nada.
+const PASSO_CARGA = (peso) => (peso >= 60 ? 5 : peso >= 20 ? 2.5 : 1);
+function sugerirCarga(historico, exercicioId, repsAlvo) {
+  const ult = ultimaExecucao(historico, exercicioId);
+  if (!ult) return null;
+  let melhor = 0, repsNoMelhor = 0;
+  ult.series.forEach((s) => {
+    const p = parseFloat(s.peso) || 0;
+    if (p > melhor) { melhor = p; repsNoMelhor = parseInt(s.reps) || 0; }
+  });
+  if (!melhor) return null;
+  const alvo = parseInt(repsAlvo) || 0;
+  const bateuTudo = alvo > 0 && ult.series.length > 0 &&
+    ult.series.every((s) => (parseFloat(s.peso) || 0) >= melhor && (parseInt(s.reps) || 0) >= alvo);
+  if (bateuTudo) {
+    return { peso: melhor + PASSO_CARGA(melhor), subiu: true, anterior: melhor, reps: repsNoMelhor };
+  }
+  return { peso: melhor, subiu: false, anterior: melhor, reps: repsNoMelhor };
+}
+
+// ---------- RECUPERAÇÃO POR GRUPO MUSCULAR ----------
+// Quantos dias desde a última vez que cada grupo foi treinado. Serve para
+// responder "o que eu treino hoje?" sem precisar abrir o histórico.
+function recuperacaoMuscular(historico, exPorId) {
+  const ultimoDia = {};
+  historico.forEach((h) => {
+    const t = new Date(h.data).getTime();
+    (h.itens || []).forEach((it) => {
+      const e = exPorId(it.exercicioId);
+      if (!e) return;
+      if (!ultimoDia[e.grupo] || t > ultimoDia[e.grupo]) ultimoDia[e.grupo] = t;
+    });
+  });
+  const agora = Date.now();
+  return GRUPOS.map((g) => {
+    const t = ultimoDia[g.id];
+    const dias = t == null ? null : Math.floor((agora - t) / 86400000);
+    let estado = "pronto";
+    if (dias !== null && dias < 1) estado = "descansando";
+    else if (dias !== null && dias < 2) estado = "quase";
+    return { id: g.id, nome: g.nome, dias, estado };
+  }).sort((a, b) => {
+    const va = a.dias === null ? 999 : a.dias;
+    const vb = b.dias === null ? 999 : b.dias;
+    return vb - va;
+  });
+}
+
+const CONQUISTAS = [
+  // --- constância ---
+  { id: "t1", cat: "Constância", nome: "Primeiro treino", icone: "🥇", dica: "Conclua seu primeiro treino", cond: (e) => e.total >= 1 },
+  { id: "t5", cat: "Constância", nome: "5 treinos", icone: "🔥", dica: "Conclua 5 treinos", cond: (e) => e.total >= 5 },
+  { id: "t10", cat: "Constância", nome: "10 treinos", icone: "💪", dica: "Conclua 10 treinos", cond: (e) => e.total >= 10 },
+  { id: "t25", cat: "Constância", nome: "25 treinos", icone: "🏅", dica: "Conclua 25 treinos", cond: (e) => e.total >= 25 },
+  { id: "t50", cat: "Constância", nome: "50 treinos", icone: "🏆", dica: "Conclua 50 treinos", cond: (e) => e.total >= 50 },
+  { id: "t100", cat: "Constância", nome: "100 treinos", icone: "👑", dica: "Conclua 100 treinos", cond: (e) => e.total >= 100 },
+  { id: "t200", cat: "Constância", nome: "200 treinos", icone: "🐉", dica: "Conclua 200 treinos", cond: (e) => e.total >= 200 },
+  { id: "s3", cat: "Constância", nome: "3 dias seguidos", icone: "⚡", dica: "Treine 3 dias seguidos", cond: (e) => e.streak >= 3 },
+  { id: "s7", cat: "Constância", nome: "7 dias seguidos", icone: "🚀", dica: "Treine 7 dias seguidos", cond: (e) => e.streak >= 7 },
+  { id: "s14", cat: "Constância", nome: "14 dias seguidos", icone: "☄️", dica: "Treine 14 dias seguidos", cond: (e) => e.streak >= 14 },
+  { id: "sem4", cat: "Constância", nome: "4 semanas ativas", icone: "📅", dica: "Treine em 4 semanas diferentes", cond: (e) => e.semanasAtivas >= 4 },
+  { id: "sem12", cat: "Constância", nome: "12 semanas ativas", icone: "🗓", dica: "Treine em 12 semanas diferentes", cond: (e) => e.semanasAtivas >= 12 },
+  { id: "sem5x", cat: "Constância", nome: "Semana cheia", icone: "🎯", dica: "Faça 5 treinos numa mesma semana", cond: (e) => e.melhorSemana >= 5 },
+
+  // --- volume ---
+  { id: "v1", cat: "Tonelagem", nome: "1 tonelada", icone: "🪨", dica: "Mova 1.000 kg no total", cond: (e) => e.volumeTotal >= 1000 },
+  { id: "v10", cat: "Tonelagem", nome: "10 toneladas", icone: "🐘", dica: "Mova 10.000 kg no total", cond: (e) => e.volumeTotal >= 10000 },
+  { id: "v50", cat: "Tonelagem", nome: "50 toneladas", icone: "🦖", dica: "Mova 50.000 kg no total", cond: (e) => e.volumeTotal >= 50000 },
+  { id: "v100", cat: "Tonelagem", nome: "100 toneladas", icone: "🚂", dica: "Mova 100.000 kg no total", cond: (e) => e.volumeTotal >= 100000 },
+  { id: "v250", cat: "Tonelagem", nome: "250 toneladas", icone: "🛳", dica: "Mova 250.000 kg no total", cond: (e) => e.volumeTotal >= 250000 },
+  { id: "vd5", cat: "Tonelagem", nome: "5 t num treino só", icone: "🏗", dica: "Mova 5.000 kg num único treino", cond: (e) => e.melhorVolumeTreino >= 5000 },
+
+  // --- força ---
+  { id: "c60", cat: "Força", nome: "60 kg numa série", icone: "🏋", dica: "Levante 60 kg em uma série", cond: (e) => e.maiorCarga >= 60 },
+  { id: "c100", cat: "Força", nome: "100 kg numa série", icone: "💥", dica: "Levante 100 kg em uma série", cond: (e) => e.maiorCarga >= 100 },
+  { id: "c150", cat: "Força", nome: "150 kg numa série", icone: "🦾", dica: "Levante 150 kg em uma série", cond: (e) => e.maiorCarga >= 150 },
+  { id: "pr10", cat: "Força", nome: "10 recordes", icone: "📈", dica: "Bata 10 recordes pessoais", cond: (e) => e.recordes >= 10 },
+  { id: "pr50", cat: "Força", nome: "50 recordes", icone: "🌟", dica: "Bata 50 recordes pessoais", cond: (e) => e.recordes >= 50 },
+  { id: "pr3d", cat: "Força", nome: "Dia inspirado", icone: "🎆", dica: "Bata 3 recordes num mesmo treino", cond: (e) => e.melhorRecordesTreino >= 3 },
+
+  // --- variedade ---
+  { id: "ex15", cat: "Variedade", nome: "15 exercícios", icone: "🧩", dica: "Experimente 15 exercícios diferentes", cond: (e) => e.exerciciosDistintos >= 15 },
+  { id: "ex40", cat: "Variedade", nome: "40 exercícios", icone: "🧠", dica: "Experimente 40 exercícios diferentes", cond: (e) => e.exerciciosDistintos >= 40 },
+  { id: "gr8", cat: "Variedade", nome: "Corpo inteiro", icone: "🗿", dica: "Treine todos os 8 grupos musculares", cond: (e) => e.gruposDistintos >= 8 },
+  { id: "s20", cat: "Variedade", nome: "20 séries num treino", icone: "🔁", dica: "Faça 20 séries num único treino", cond: (e) => e.melhorSeriesTreino >= 20 },
+
+  // --- momentos ---
+  { id: "manha", cat: "Momentos", nome: "Madrugador", icone: "🌅", dica: "Treine antes das 7h da manhã", cond: (e) => e.treinouDeManha },
+  { id: "noite", cat: "Momentos", nome: "Coruja", icone: "🦉", dica: "Treine depois das 22h", cond: (e) => e.treinouDeNoite },
+  { id: "fds", cat: "Momentos", nome: "Fim de semana", icone: "🌤", dica: "Treine num sábado ou domingo", cond: (e) => e.treinouFimDeSemana },
+  { id: "long", cat: "Momentos", nome: "Maratona", icone: "⏳", dica: "Faça um treino de 90 minutos ou mais", cond: (e) => e.maiorDuracao >= 90 },
+];
+const CATEGORIAS_CONQUISTA = ["Constância", "Tonelagem", "Força", "Variedade", "Momentos"];
 
 // ---------- IMAGEM PARA STORY (gerada no aparelho) ----------
 function gerarImagemStory(linhas) {
@@ -713,6 +938,11 @@ const EXERCICIOS = [
   { id: "terra-sumo-halter", grupo: "gluteos", nome: "Levantamento terra sumô com halter", en: "Dumbbell sumo deadlift", equip: "Halter ou kettlebell", musc: { p: ["gluteos","adutores"], s: ["quadriceps","lombar"] }, passos: ["Pés bem afastados com as pontas para fora e o halter entre as pernas.","Desça o quadril mantendo o tronco ereto e segure o peso.","Suba estendendo quadril e joelhos, apertando os glúteos."], dica: "Empurre os joelhos para fora durante toda a subida." },
   { id: "press-gluteo-unilateral", grupo: "gluteos", nome: "Press de glúteo unilateral", en: "Single-leg side glute press", equip: "Máquina", musc: { p: ["gluteos"], s: ["posteriores","quadriceps"] }, passos: ["Posicione um pé na plataforma da máquina, com o outro livre.","Empurre a plataforma estendendo o quadril e o joelho.","Volte controlado até sentir o glúteo alongar."], dica: "Uma perna por vez corrige diferenças de força entre os lados." },
 ];
+
+// Grupo muscular de cada exercício da biblioteca. Usado pelas conquistas, que
+// rodam fora dos componentes e não têm acesso aos exercícios criados pelo usuário.
+const GRUPO_POR_EXERCICIO = {};
+EXERCICIOS.forEach((e) => { GRUPO_POR_EXERCICIO[e.id] = e.grupo; });
 
 // ---------------- FICHAS PADRÃO (rotina semanal que já vem no app) ----------------
 const mkItens = (ids) => ids.map((id) => ({ exercicioId: id, series: 3, reps: 12, obs: "" }));
@@ -1235,10 +1465,261 @@ function Resumo({ num, txt }) {
   );
 }
 
-function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onStoryProgresso, onDesafiar, onCopiarLink, onExportar, onImportar, onInstalar }) {
-  const ultima = historico[0];
-  const est = calcularEstatisticas(historico);
+// ---------------- CELEBRAÇÃO (recorde batido, novo nível) ----------------
+const CORES_CONFETE = ["#F58529", "#DD2A7B", "#8134AF", "#4F5BD5", "#FEDA75", "#4ADE80"];
+function Confete({ pecas = 44 }) {
+  // Sorteado uma vez só: se recalculasse a cada render, o confete "pularia" na tela.
+  const lista = useMemo(() => Array.from({ length: pecas }, (unused, i) => ({
+    i,
+    esq: Math.random() * 100,
+    cor: CORES_CONFETE[Math.floor(Math.random() * CORES_CONFETE.length)],
+    atraso: Math.random() * 450,
+    duracao: 1700 + Math.random() * 1300,
+    desvio: (Math.random() * 40 - 20).toFixed(1) + "vw",
+    giro: Math.round(360 + Math.random() * 720) + "deg",
+  })), [pecas]);
+  return (
+    <React.Fragment>
+      {lista.map((p) => (
+        <span key={p.i} className="confete-peca" aria-hidden="true"
+          style={{
+            left: p.esq + "vw", background: p.cor,
+            animationDelay: p.atraso + "ms", animationDuration: p.duracao + "ms",
+            "--desvio": p.desvio, "--giro": p.giro,
+          }} />
+      ))}
+    </React.Fragment>
+  );
+}
+
+function Celebracao({ festa, onFechar }) {
+  useEffect(() => {
+    if (!festa) return;
+    const t = setTimeout(onFechar, 3400);
+    return () => clearTimeout(t);
+  }, [festa, onFechar]);
+  if (!festa) return null;
+  return (
+    <div role="status" aria-live="assertive" onClick={onFechar}
+      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 55, display: "flex",
+        alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", padding: 24 }}>
+      <Confete />
+      <div className="celebra-cartao"
+        style={{ ...S.card, marginBottom: 0, textAlign: "center", maxWidth: 330, width: "100%", border: "2px solid #E1306C" }}>
+        <div className="celebra-icone" style={{ fontSize: 54, lineHeight: 1 }} aria-hidden="true">{festa.icone}</div>
+        <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase", color: "#E1306C", marginTop: 10 }}>
+          {festa.titulo}
+        </div>
+        <div style={{ fontSize: 19, fontWeight: 900, marginTop: 6, lineHeight: 1.35, whiteSpace: "pre-line" }}>{festa.destaque}</div>
+        {festa.detalhe && (
+          <div style={{ fontSize: 13, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>{festa.detalhe}</div>
+        )}
+        <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 14 }}>toque para fechar</div>
+      </div>
+    </div>
+  );
+}
+
+// Cronômetro do treino. Componente separado de propósito: assim o relógio bate
+// a cada segundo sem redesenhar a lista inteira de exercícios e campos.
+function CronometroSessao({ inicio }) {
+  const [agora, setAgora] = useState(Date.now());
+  useEffect(() => {
+    const iv = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(iv);
+  }, []);
+  const seg = Math.max(0, Math.floor((agora - inicio) / 1000));
+  const h = Math.floor(seg / 3600), m = Math.floor((seg % 3600) / 60), s = seg % 60;
+  const dois = (n) => (n < 10 ? "0" + n : String(n));
+  return (
+    <span style={{ fontVariantNumeric: "tabular-nums" }}>
+      {h > 0 ? h + ":" + dois(m) + ":" + dois(s) : m + ":" + dois(s)}
+    </span>
+  );
+}
+
+// ---------------- NÍVEL DO ATLETA ----------------
+function CartaoNivel({ est }) {
+  const n = nivelDe(est);
+  return (
+    <div style={{ ...S.card, borderColor: "#8134AF55" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div aria-hidden="true" style={{ fontSize: 38, lineHeight: 1 }}>{n.icone}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={S.label}>Nível {n.indice}</div>
+          <div style={{ fontSize: 19, fontWeight: 900, marginTop: 2 }}>{n.nome}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 17, fontWeight: 900, color: "#E1306C" }}>{n.xp.toLocaleString("pt-BR")}</div>
+          <div style={{ fontSize: 10, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.5 }}>pontos</div>
+        </div>
+      </div>
+      <div style={{ height: 9, background: "var(--borda)", borderRadius: 5, marginTop: 14, overflow: "hidden" }}
+        role="progressbar" aria-valuenow={Math.round(n.pct)} aria-valuemin={0} aria-valuemax={100}
+        aria-label={"Progresso para o próximo nível: " + Math.round(n.pct) + "%"}>
+        <div style={{ height: "100%", width: Math.max(3, n.pct) + "%", background: GRAD_LINHA, borderRadius: 5, transition: "width .5s ease" }} />
+      </div>
+      <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 8 }}>
+        {n.proximo
+          ? "Faltam " + n.faltam.toLocaleString("pt-BR") + " pontos para " + n.proximo.icone + " " + n.proximo.nome
+          : "Nível máximo alcançado. Você é lenda por aqui. 👑"}
+      </div>
+      <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>
+        Você ganha pontos treinando, movendo peso, mantendo a sequência e batendo recordes.
+      </div>
+    </div>
+  );
+}
+
+// ---------------- META DA SEMANA ----------------
+function MetaSemanal({ historico, meta, setMeta }) {
+  const feitos = volumeSemanal(historico, 1)[0].treinos;
+  const pct = meta > 0 ? Math.min(100, (feitos / meta) * 100) : 0;
+  const R = 34, C = 2 * Math.PI * R;
+  const bateu = feitos >= meta;
+  return (
+    <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 16 }}>
+      <svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true" style={{ flexShrink: 0 }}>
+        <circle cx="42" cy="42" r={R} fill="none" stroke="var(--borda)" strokeWidth="9" />
+        <circle cx="42" cy="42" r={R} fill="none" stroke={bateu ? "var(--ok)" : "#E1306C"} strokeWidth="9"
+          strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C - (C * pct) / 100}
+          transform="rotate(-90 42 42)" style={{ transition: "stroke-dashoffset .6s ease" }} />
+        <text x="42" y="47" textAnchor="middle" fontSize="20" fontWeight="900" fill="var(--texto)">{feitos}</text>
+      </svg>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={S.label}>Meta da semana</div>
+        <div style={{ fontSize: 15, fontWeight: 800, margin: "4px 0 2px" }}>
+          {bateu ? "Meta batida! 🎉" : feitos + " de " + meta + " " + plural(meta, "treino", "treinos")}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--cinza)" }}>
+          {bateu
+            ? "Tudo que vier agora é lucro."
+            : "Faltam " + (meta - feitos) + " " + plural(meta - feitos, "treino", "treinos") + " até domingo."}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+          <button onClick={() => setMeta(Math.max(1, meta - 1))} aria-label="Diminuir a meta semanal"
+            style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 17, cursor: "pointer" }}>−</button>
+          <span style={{ fontSize: 12, color: "var(--cinza)" }}>meta: <b style={{ color: "var(--texto)" }}>{meta}x</b> por semana</span>
+          <button onClick={() => setMeta(Math.min(14, meta + 1))} aria-label="Aumentar a meta semanal"
+            style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 17, cursor: "pointer" }}>+</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- O QUE TREINAR HOJE ----------------
+function OQueTreinarHoje({ historico, exPorId, onAbrirGrupo }) {
+  const lista = recuperacaoMuscular(historico, exPorId);
+  if (!historico.length) return null;
+  const rotulo = (r) => {
+    if (r.dias === null) return "nunca treinado";
+    if (r.dias === 0) return "hoje";
+    return "há " + r.dias + " " + plural(r.dias, "dia", "dias");
+  };
+  const corDe = (estado) => (estado === "pronto" ? "var(--ok)" : estado === "quase" ? "var(--obs)" : "var(--cinza2)");
+  const selo = (estado) => (estado === "pronto" ? "Pronto" : estado === "quase" ? "Quase" : "Descansando");
+  return (
+    <div style={S.card}>
+      <div style={S.label}>O que treinar hoje</div>
+      <div style={{ fontSize: 12, color: "var(--cinza)", margin: "6px 0 12px", lineHeight: 1.5 }}>
+        Quanto tempo faz desde a última vez que você treinou cada grupo.
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {lista.map((r) => (
+          <button key={r.id} onClick={() => onAbrirGrupo(r.id)}
+            aria-label={r.nome + ", " + selo(r.estado) + ", " + rotulo(r)}
+            style={{
+              border: "1px solid " + corDe(r.estado) + "66", background: "transparent",
+              borderRadius: 10, padding: "8px 11px", cursor: "pointer", textAlign: "left", font: "inherit",
+            }}>
+            <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--texto)" }}>{r.nome}</span>
+            <span style={{ display: "block", fontSize: 10, fontWeight: 800, color: corDe(r.estado), textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>
+              {selo(r.estado)}
+            </span>
+            <span style={{ display: "block", fontSize: 10, color: "var(--cinza2)", marginTop: 1 }}>{rotulo(r)}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------- CONQUISTAS POR CATEGORIA ----------------
+function PainelConquistas({ est, onStory }) {
+  const [aberto, setAberto] = useState(false);
   const ganhas = CONQUISTAS.filter((c) => c.cond(est));
+  const mostrar = aberto ? CATEGORIAS_CONQUISTA : [];
+  return (
+    <div style={{ ...S.card, borderColor: "#ED495644" }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+        <div style={S.label}>Conquistas</div>
+        <div style={{ fontSize: 13, fontWeight: 900, color: "#E1306C" }}>{ganhas.length}/{CONQUISTAS.length}</div>
+      </div>
+      <div style={{ height: 7, background: "var(--borda)", borderRadius: 4, margin: "10px 0 12px", overflow: "hidden" }}>
+        <div style={{ height: "100%", width: Math.max(2, (ganhas.length / CONQUISTAS.length) * 100) + "%", background: GRAD_LINHA, borderRadius: 4 }} />
+      </div>
+
+      {/* as já conquistadas ficam sempre à vista; o resto abre sob demanda */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {(ganhas.length ? ganhas : []).map((c) => (
+          <span key={c.id} title={c.dica}
+            style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid #E1306C66", background: "#E1306C18", fontSize: 12, fontWeight: 700 }}>
+            {c.icone} {c.nome}
+          </span>
+        ))}
+        {!ganhas.length && (
+          <span style={{ fontSize: 13, color: "var(--cinza)" }}>
+            Conclua seu primeiro treino para destravar a primeira medalha.
+          </span>
+        )}
+      </div>
+
+      <button onClick={() => setAberto(!aberto)} aria-expanded={aberto}
+        style={{ background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 12, padding: "12px 0 2px", cursor: "pointer" }}>
+        {aberto ? "▲ Ocultar as que faltam" : "▼ Ver todas as " + CONQUISTAS.length + " conquistas"}
+      </button>
+
+      {mostrar.map((cat) => {
+        const doGrupo = CONQUISTAS.filter((c) => c.cat === cat);
+        return (
+          <div key={cat} style={{ marginTop: 12 }}>
+            <div style={{ ...S.label, fontSize: 10, marginBottom: 8 }}>{cat}</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {doGrupo.map((c) => {
+                const ok = c.cond(est);
+                return (
+                  <span key={c.id} title={c.dica}
+                    style={{
+                      padding: "6px 10px", borderRadius: 10,
+                      border: "1px solid " + (ok ? "#E1306C66" : "var(--borda)"),
+                      background: ok ? "#E1306C18" : "transparent",
+                      color: ok ? "var(--texto)" : "var(--cinza2)",
+                      fontSize: 12, fontWeight: 700,
+                    }}>
+                    <span style={{ filter: ok ? "none" : "grayscale(1) opacity(0.6)" }}>{c.icone}</span>{" "}
+                    {c.nome}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      {aberto && (
+        <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 12, lineHeight: 1.5 }}>
+          Passe o dedo sobre uma medalha bloqueada para ver o que falta.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TelaInicio({ programas, treinos, historico, totalEx, meta, setMeta, exPorId, onAbrirGrupo, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onStoryProgresso, onDesafiar, onCopiarLink, onExportar, onImportar, onInstalar }) {
+  const ultima = historico[0];
+  // O cálculo varre o histórico inteiro e apura recordes: memoizado para não
+  // repetir isso a cada toque na tela.
+  const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
   return (
     <div style={{ padding: "0 18px" }}>
@@ -1299,6 +1780,12 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
         </button>
       </div>
 
+      <OQueTreinarHoje historico={historico} exPorId={exPorId} onAbrirGrupo={onAbrirGrupo} />
+
+      <CartaoNivel est={est} />
+
+      <MetaSemanal historico={historico} meta={meta} setMeta={setMeta} />
+
       <div style={{ ...S.card, borderColor: "#ED495644" }}>
         <div style={S.label}>Seu progresso</div>
         <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
@@ -1306,23 +1793,13 @@ function TelaInicio({ programas, treinos, historico, totalEx, onTreinar, onCriar
           <Resumo num={est.treinosSemana} txt="treinos na semana" />
           <Resumo num={est.volumeSemana >= 1000 ? Math.round(est.volumeSemana / 1000) + "t" : est.volumeSemana + "kg"} txt="volume na semana" />
         </div>
-        <div style={{ ...S.label, margin: "16px 0 8px" }}>Conquistas ({ganhas.length}/{CONQUISTAS.length})</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {CONQUISTAS.map((c) => {
-            const ok = c.cond(est);
-            return (
-              <div key={c.id}
-                style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid " + (ok ? "#E1306C66" : "var(--borda)"), background: ok ? "#E1306C18" : "transparent", fontSize: 12, color: ok ? "var(--texto)" : "var(--cinza2)", fontWeight: 700 }}>
-                {c.icone} {c.nome}
-              </div>
-            );
-          })}
-        </div>
-        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
           <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onStoryProgresso}>📸 Story</button>
           <button style={{ ...S.btnGhost, flex: 1 }} onClick={onDesafiar}>⚔️ Desafiar amigo</button>
         </div>
       </div>
+
+      <PainelConquistas est={est} />
 
       <div style={S.card}>
         <div style={S.label}>Resumo</div>
@@ -1841,7 +2318,21 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
 }
 
 // ---------------- SESSÃO: registro + cronômetro com som + observações + vídeo ----------------
-function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, som, setSom, onFinalizar, onDescartar, onVoltar, pedirConfirmacao }) {
+function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, descanso, setDescanso, som, setSom, onFinalizar, onDescartar, onVoltar, pedirConfirmacao }) {
+  // Recorde e última execução de cada exercício: servem de referência ao lado de
+  // cada série e permitem festejar o recorde no instante em que ele acontece.
+  const recordes = useMemo(() => recordesPorExercicio(historico), [historico]);
+  const ultimas = useMemo(() => {
+    const m = {};
+    [...historico]
+      .sort((a, b) => new Date(b.data) - new Date(a.data))
+      .forEach((h) => (h.itens || []).forEach((it) => {
+        if (!m[it.exercicioId] && (it.series || []).length) m[it.exercicioId] = it.series;
+      }));
+    return m;
+  }, [historico]);
+  const prFestejado = useRef({});
+
   const [mostrarAdd, setMostrarAdd] = useState(false);
   const [buscaEx, setBuscaEx] = useState("");
   const [fimDescanso, setFimDescanso] = useState(null);
@@ -1939,11 +2430,17 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
     setSessao({ ...sessao, itens });
   };
 
-  // Adiciona um exercício novo no meio do treino (treino livre)
+  // Adiciona um exercício novo no meio do treino (treino livre).
+  // Já entra com a carga da última vez, para não precisar lembrar de nada.
   const addExercicio = (idEx) => {
+    const sug = sugerirCarga(historico, idEx, 12);
     setSessao({
       ...sessao,
-      itens: [...sessao.itens, { uid: novoUid(), exercicioId: idEx, obs: "", series: [{ peso: "", reps: "12", feito: false }] }],
+      itens: [...sessao.itens, {
+        uid: novoUid(), exercicioId: idEx, obs: "",
+        sugerido: sug || null,
+        series: [{ peso: sug ? String(sug.peso) : "", reps: "12", feito: false }],
+      }],
     });
     setBuscaEx("");
     setMostrarAdd(false);
@@ -1958,9 +2455,30 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
   };
 
   const marcarSerie = (ei, si) => {
-    const jaFeita = sessao.itens[ei].series[si].feito;
+    const item = sessao.itens[ei];
+    const serie = item.series[si];
+    const jaFeita = serie.feito;
     upSerie(ei, si, "feito", !jaFeita);
-    if (!jaFeita) iniciarDescanso();
+    if (jaFeita) return;
+    iniciarDescanso();
+
+    // Recorde de carga batido nesta série? Festeja na hora, não no fim do treino.
+    const rec = recordes[item.exercicioId];
+    const peso = parseFloat(serie.peso) || 0;
+    const reps = parseInt(serie.reps) || 0;
+    const chave = item.uid + ":" + peso;
+    if (peso > 0 && reps > 0 && rec && rec.peso > 0 && peso > rec.peso && !prFestejado.current[chave]) {
+      prFestejado.current[chave] = true;
+      const ex = exPorId(item.exercicioId);
+      const ganho = Math.round((peso - rec.peso) * 10) / 10;
+      if (som) setTimeout(() => { beep(784, 0.12, 0.28); setTimeout(() => beep(1175, 0.3, 0.28), 130); }, 120);
+      celebrar({
+        icone: "🏆",
+        titulo: "Novo recorde pessoal",
+        destaque: (ex ? ex.nome : "Exercício") + "\n" + peso + " kg × " + reps,
+        detalhe: "Seu melhor era " + rec.peso + " kg. Você subiu " + ganho.toLocaleString("pt-BR") + " kg!",
+      });
+    }
   };
 
   const feitas = sessao.itens.reduce((a, it) => a + it.series.filter((s) => s.feito).length, 0);
@@ -1986,12 +2504,25 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
   return (
     <div style={{ padding: "0 18px", paddingBottom: fimDescanso ? 210 : 20 }}>
       <button style={S.voltar} onClick={onVoltar}>← Voltar (o treino continua salvo)</button>
-      <div style={{ ...S.card, borderColor: "#E1306C44", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <div style={S.label}>Treinando agora</div>
-          <div style={{ fontWeight: 900, fontSize: 18 }}>{sessao.nome}</div>
+      <div style={{ ...S.card, borderColor: "#E1306C44" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={S.label}>Treinando agora</div>
+            <div style={{ fontWeight: 900, fontSize: 18 }}>{sessao.nome}</div>
+          </div>
+          <div style={{ textAlign: "right", flexShrink: 0 }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "#E1306C" }}>{feitas}/{total}</div>
+            <div style={{ fontSize: 12, color: "var(--cinza)" }}>
+              ⏱ <CronometroSessao inicio={sessao.inicio} />
+            </div>
+          </div>
         </div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: "#E1306C" }}>{feitas}/{total}</div>
+        {/* barra de avanço do treino: dá a sensação de estar chegando ao fim */}
+        <div style={{ height: 6, background: "var(--borda)", borderRadius: 3, marginTop: 12, overflow: "hidden" }}
+          role="progressbar" aria-valuenow={total ? Math.round((feitas / total) * 100) : 0} aria-valuemin={0} aria-valuemax={100}
+          aria-label="Progresso do treino">
+          <div style={{ height: "100%", width: (total ? (feitas / total) * 100 : 0) + "%", background: GRAD_LINHA, borderRadius: 3, transition: "width .35s ease" }} />
+        </div>
       </div>
 
       {/* Configuração do descanso */}
@@ -2025,6 +2556,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
 
       {sessao.itens.map((it, ei) => {
         const ex = exPorId(it.exercicioId);
+        const rec = recordes[it.exercicioId];
+        const ult = ultimas[it.exercicioId];
         return (
           <div key={it.uid || ei} style={S.card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
@@ -2041,6 +2574,27 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, descanso, setDescanso, 
                 ✕
               </button>
             </div>
+
+            {/* Referência do exercício: recorde, como foi da última vez e a carga sugerida */}
+            {(rec || ult || it.sugerido) && (
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12, fontSize: 11, lineHeight: 1.5 }}>
+                {rec && rec.peso > 0 && (
+                  <span style={{ background: "#E1306C18", color: "#E1306C", border: "1px solid #E1306C44", borderRadius: 8, padding: "3px 8px", fontWeight: 800, whiteSpace: "nowrap" }}>
+                    🏆 recorde {fmtNum(rec.peso)} kg
+                  </span>
+                )}
+                {it.sugerido && it.sugerido.subiu && (
+                  <span style={{ background: "var(--ok-bg)", color: "var(--ok)", border: "1px solid var(--ok)", borderRadius: 8, padding: "3px 8px", fontWeight: 800, whiteSpace: "nowrap" }}>
+                    ↑ hora de subir para {fmtNum(it.sugerido.peso)} kg
+                  </span>
+                )}
+                {ult && (
+                  <span style={{ color: "var(--cinza)" }}>
+                    última vez: {ult.slice(0, 5).map((s) => fmtNum(s.peso) + "×" + (parseInt(s.reps) || 0)).join(" · ")}
+                  </span>
+                )}
+              </div>
+            )}
 
             <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
               <div style={{ width: 30 }} />
@@ -2356,7 +2910,12 @@ function TreinoLivre() {
   const [descanso, setDescanso] = useState(90);
   const [som, setSom] = useState(true);
   const [tema, setTema] = useState("escuro");
+  const [meta, setMeta] = useState(3);
+  const [festa, setFesta] = useState(null);
   const [carregado, setCarregado] = useState(false);
+
+  const celebrar = useCallback((dados) => setFesta(dados), []);
+  const fecharFesta = useCallback(() => setFesta(null), []);
 
   useEffect(() => {
     try { document.documentElement.setAttribute("data-tema", tema); } catch (e) {}
@@ -2416,7 +2975,7 @@ function TreinoLivre() {
   const exportarDados = () => {
     // O backup não leva a sessão em andamento de propósito: restaurar num outro
     // aparelho um treino pela metade só confundiria.
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, seedV3: true });
     setModal({
       msg: "Backup dos seus dados. Toque em Copiar e guarde em local seguro (ex.: cole numa conversa sua no WhatsApp). Para restaurar, use Importar dados.",
       texto: dados,
@@ -2447,6 +3006,7 @@ function TreinoLivre() {
           if (d.descanso) setDescanso(d.descanso);
           if (d.som !== undefined) setSom(d.som);
           if (d.tema) setTema(d.tema);
+          if (d.meta) setMeta(d.meta);
           setSessao(null);
           setAba("inicio");
           setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 100);
@@ -2469,7 +3029,7 @@ function TreinoLivre() {
   const exPorId = useCallback((id) => indiceEx.get(id), [indiceEx]);
 
   useEffect(() => {
-    let tr = [], hi = [], ce = [], de = 90, so = true, seed = false, pg = null, ss = null;
+    let tr = [], hi = [], ce = [], de = 90, so = true, seed = false, pg = null, ss = null, mt = 3;
     try {
       const raw = store.get(STORAGE_KEY);
       if (raw) {
@@ -2482,6 +3042,7 @@ function TreinoLivre() {
         if (d.tema) setTema(d.tema);
         pg = d.programas || null;
         seed = !!d.seedV3;
+        if (d.meta) mt = d.meta;
         // Retoma o treino que ficou pela metade (app fechado, página recarregada,
         // bateria acabou). Passadas 12 horas presumimos que aquele treino não volta.
         if (d.sessao && d.sessao.inicio && Date.now() - d.sessao.inicio < 12 * 3600000) {
@@ -2508,7 +3069,7 @@ function TreinoLivre() {
       pg.push({ id: "prog-meus", nome: "Meus Treinos" });
     }
 
-    setTreinos(tr); setHistorico(hi); setCustomEx(ce); setDescanso(de); setSom(so); setProgramas(pg);
+    setTreinos(tr); setHistorico(hi); setCustomEx(ce); setDescanso(de); setSom(so); setProgramas(pg); setMeta(mt);
     if (ss) { setSessao(ss); setAba("sessao"); }
     setCarregado(true);
 
@@ -2566,10 +3127,10 @@ function TreinoLivre() {
   const dadosRef = useRef("");
   useEffect(() => {
     if (!carregado) return;
-    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, seedV3: true });
+    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, seedV3: true });
     const t = setTimeout(() => store.set(STORAGE_KEY, dadosRef.current), 400);
     return () => clearTimeout(t);
-  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, carregado]);
+  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, carregado]);
 
   // Fechou o app ou trocou de aba no meio do treino? Grava na hora, sem esperar o respiro.
   useEffect(() => {
@@ -2588,12 +3149,23 @@ function TreinoLivre() {
       treinoId: treino.id,
       nome: treino.nome,
       inicio: Date.now(),
-      itens: treino.itens.map((it) => ({
-        uid: novoUid(),
-        exercicioId: it.exercicioId,
-        obs: it.obs || "",
-        series: Array.from({ length: it.series }, () => ({ peso: "", reps: String(it.reps || ""), feito: false })),
-      })),
+      itens: treino.itens.map((it) => {
+        // A carga já vem preenchida com a da última vez, e sobe sozinha quando
+        // todas as séries fecharam as repetições combinadas. É a sobrecarga
+        // progressiva acontecendo sem ninguém precisar consultar o histórico.
+        const sug = sugerirCarga(historico, it.exercicioId, it.reps);
+        return {
+          uid: novoUid(),
+          exercicioId: it.exercicioId,
+          obs: it.obs || "",
+          sugerido: sug || null,
+          series: Array.from({ length: it.series }, () => ({
+            peso: sug ? String(sug.peso) : "",
+            reps: String(it.reps || ""),
+            feito: false,
+          })),
+        };
+      }),
     });
     setAba("sessao");
   };
@@ -2683,13 +3255,30 @@ function TreinoLivre() {
       msg += "\n\n🎖 " + plural(novas.length, "Nova conquista", "Novas conquistas") + ": " +
         novas.map((c) => c.icone + " " + c.nome).join(", ");
     }
-    setTimeout(() => setModal({
+    const abrirResumo = () => setModal({
       msg: msg,
       storyTreino: {
         nome: registro.nome, series: st.series, reps: st.reps, volume: st.volume,
         duracao: registro.duracaoMin, densidade: st.densidade, cargaMax: st.cargaMax, recordes: nRec,
       },
-    }), 250);
+    });
+
+    // Subir de nível merece o palco só para ele: o resumo entra depois da festa.
+    const nvAntes = nivelDe(antes), nvDepois = nivelDe(depois);
+    if (nvDepois.indice > nvAntes.indice) {
+      registrarEvento("subiu-de-nivel");
+      celebrar({
+        icone: nvDepois.icone,
+        titulo: "Você subiu de nível",
+        destaque: "Nível " + nvDepois.indice + "\n" + nvDepois.nome,
+        detalhe: nvDepois.proximo
+          ? "Próxima parada: " + nvDepois.proximo.icone + " " + nvDepois.proximo.nome
+          : "Você chegou ao topo da tabela. 👑",
+      });
+      setTimeout(abrirResumo, 3600);
+    } else {
+      setTimeout(abrirResumo, 250);
+    }
   };
 
   // Excluir do histórico agora dá alguns segundos de arrependimento antes de sumir de vez
@@ -2931,6 +3520,8 @@ function TreinoLivre() {
       <div style={{ paddingTop: 14 }}>
         {aba === "inicio" && (
           <TelaInicio programas={programas} treinos={treinos} historico={historico} totalEx={todos.length}
+            meta={meta} setMeta={setMeta} exPorId={exPorId}
+            onAbrirGrupo={(g) => { setGrupoAberto(g); setExercicioAberto(null); setAba("exercicios"); }}
             onTreinar={iniciarSessao}
             onCriarPrograma={criarPrograma}
             onAssistente={() => setAba("assistente")}
@@ -2980,6 +3571,7 @@ function TreinoLivre() {
         )}
         {aba === "sessao" && sessao && (
           <TelaSessao sessao={sessao} setSessao={setSessao} exPorId={exPorId} todos={todos} pedirConfirmacao={pedirConfirmacao}
+            historico={historico} celebrar={celebrar}
             descanso={descanso} setDescanso={setDescanso}
             som={som} setSom={setSom}
             onFinalizar={finalizarSessao}
@@ -3046,6 +3638,8 @@ function TreinoLivre() {
           </div>
         </div>
       )}
+
+      <Celebracao festa={festa} onFechar={fecharFesta} />
 
       {desfazer && (
         <div role="status" style={{ position: "fixed", left: 12, right: 12, zIndex: 16,

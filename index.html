@@ -173,6 +173,72 @@ function registrarEvento(nome) {
   } catch (e) {}
 }
 
+// ---------------- FOTOS DE PROGRESSO ----------------
+// Foto não cabe no localStorage (o limite é de poucos MB e é compartilhado com
+// todo o resto), então as imagens moram no IndexedDB. No registro principal fica
+// só a lista de datas, que é leve.
+const BANCO_FOTOS = "treinolivre-fotos";
+const LOJA_FOTOS = "fotos";
+function abrirBancoFotos() {
+  return new Promise((res, rej) => {
+    if (!window.indexedDB) { rej(new Error("sem indexedDB")); return; }
+    const req = indexedDB.open(BANCO_FOTOS, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(LOJA_FOTOS)) db.createObjectStore(LOJA_FOTOS);
+    };
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error || new Error("falhou ao abrir"));
+  });
+}
+async function comLojaFotos(modo, fn) {
+  const db = await abrirBancoFotos();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(LOJA_FOTOS, modo);
+    const loja = tx.objectStore(LOJA_FOTOS);
+    let req;
+    try { req = fn(loja); } catch (e) { rej(e); return; }
+    // "result" existe na requisicao mesmo quando vem vazio: sem essa checagem,
+    // ler uma foto inexistente devolvia o objeto da requisicao em vez de undefined.
+    tx.oncomplete = () => res(req && "result" in req ? req.result : undefined);
+    tx.onerror = () => rej(tx.error || new Error("falhou a transação"));
+  });
+}
+const guardarFoto = (id, blob) => comLojaFotos("readwrite", (loja) => loja.put(blob, id));
+const lerFoto = (id) => comLojaFotos("readonly", (loja) => loja.get(id));
+const apagarFoto = (id) => comLojaFotos("readwrite", (loja) => loja.delete(id));
+
+// Reduz a foto antes de guardar: 1080px de lado maior já é mais do que suficiente
+// para comparar, e evita encher o aparelho com arquivos de 5 MB da câmera.
+function reduzirImagem(arquivo, ladoMax) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(arquivo);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const escala = Math.min(1, ladoMax / Math.max(img.width, img.height));
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(img.width * escala);
+      cv.height = Math.round(img.height * escala);
+      cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+      cv.toBlob((b) => (b ? res(b) : rej(new Error("falhou ao converter"))), "image/jpeg", 0.82);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("não é uma imagem")); };
+    img.src = url;
+  });
+}
+const blobParaBase64 = (blob) => new Promise((res, rej) => {
+  const fr = new FileReader();
+  fr.onload = () => res(String(fr.result).split(",")[1] || "");
+  fr.onerror = () => rej(fr.error);
+  fr.readAsDataURL(blob);
+});
+function base64ParaBlob(b64, tipo) {
+  const bin = atob(b64);
+  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  return new Blob([bytes], { type: tipo || "image/jpeg" });
+}
+
 // ---------- GAMIFICAÇÃO ----------
 function diaStr(x) { const dd = new Date(x); return dd.getFullYear() + "-" + (dd.getMonth() + 1) + "-" + dd.getDate(); }
 function calcularEstatisticas(historico) {
@@ -201,10 +267,12 @@ function calcularEstatisticas(historico) {
       const g = GRUPO_POR_EXERCICIO[it.exercicioId];
       if (g) grupos[g] = true;
       (it.series || []).forEach((s) => {
-        const p = parseFloat(s.peso) || 0, r = parseInt(s.reps) || 0;
+        if (!serieConta(s)) return;
+        seriesTreino += 1;
+        if (ehTempo(s)) return;
+        const p = cargaDe(s), r = repsDe(s);
         volumeTotal += p * r;
         volTreino += p * r;
-        seriesTreino += 1;
         if (p > maiorCarga) maiorCarga = p;
       });
     });
@@ -223,7 +291,7 @@ function calcularEstatisticas(historico) {
     if (agora - new Date(h.data).getTime() <= 7 * um) {
       treinosSemana++;
       (h.itens || []).forEach((it) => (it.series || []).forEach((s) => {
-        volumeSemana += (parseFloat(s.peso) || 0) * (parseInt(s.reps) || 0);
+        if (serieConta(s)) volumeSemana += cargaDe(s) * repsDe(s);
       }));
     }
   });
@@ -257,18 +325,34 @@ function calcularEstatisticas(historico) {
   };
 }
 
+// ---------- LEITURA DE UMA SÉRIE ----------
+// Aquecimento existe para preparar a articulação; contá-lo no volume e nos
+// recordes inflaria os números do treino. Fica registrado, mas fora das contas.
+const ehAquecimento = (s) => !!(s && s.aquec);
+// Isometria (prancha, cadeirinha) se mede em segundos e não tem tonelagem:
+// somar "0 kg × 12" ali era gravar um dado errado.
+const ehTempo = (s) => !!(s && s.segundos !== undefined && s.segundos !== null && s.segundos !== "");
+const segundosDe = (s) => (ehTempo(s) ? parseInt(s.segundos) || 0 : 0);
+const cargaDe = (s) => (ehTempo(s) ? 0 : parseFloat(s.peso) || 0);
+const repsDe = (s) => (ehTempo(s) ? 0 : parseInt(s.reps) || 0);
+// O que entra nas contas de volume, recorde e carga máxima
+const serieConta = (s) => !ehAquecimento(s);
+
 // ---------- ESTATÍSTICAS DE UM TREINO ----------
 // Volume = soma de peso x repetições de todas as séries concluídas
 function statsTreino(h) {
-  let volume = 0, series = 0, reps = 0, cargaMax = 0;
+  let volume = 0, series = 0, reps = 0, cargaMax = 0, segundos = 0, seriesAquec = 0;
   (h.itens || []).forEach((it) => (it.series || []).forEach((s) => {
-    const p = parseFloat(s.peso) || 0, r = parseInt(s.reps) || 0;
-    volume += p * r; series += 1; reps += r;
+    if (ehAquecimento(s)) { seriesAquec += 1; return; }
+    series += 1;
+    if (ehTempo(s)) { segundos += segundosDe(s); return; }
+    const p = cargaDe(s), r = repsDe(s);
+    volume += p * r; reps += r;
     if (p > cargaMax) cargaMax = p;
   }));
   const dur = h.duracaoMin || 0;
   return {
-    volume: Math.round(volume), series, reps,
+    volume: Math.round(volume), series, reps, segundos, seriesAquec,
     exercicios: (h.itens || []).length,
     cargaMax,
     densidade: dur ? Math.round(volume / dur) : 0,
@@ -283,14 +367,25 @@ function est1RM(peso, reps) {
 }
 function melhor1RM(it) {
   let m = 0;
-  (it.series || []).forEach((s) => { const v = est1RM(s.peso, s.reps); if (v > m) m = v; });
+  (it.series || []).forEach((s) => {
+    if (!serieConta(s) || ehTempo(s)) return;
+    const v = est1RM(s.peso, s.reps); if (v > m) m = v;
+  });
   return m;
 }
 function volumeItem(it) {
   let v = 0;
-  (it.series || []).forEach((s) => { v += (parseFloat(s.peso) || 0) * (parseInt(s.reps) || 0); });
+  (it.series || []).forEach((s) => { if (serieConta(s)) v += cargaDe(s) * repsDe(s); });
   return Math.round(v);
 }
+// Segundos segurados num exercício isométrico
+function tempoItem(it) {
+  let t = 0;
+  (it.series || []).forEach((s) => { if (serieConta(s)) t += segundosDe(s); });
+  return t;
+}
+// Um item é "de tempo" quando alguma série registrada está em segundos
+const itemDeTempo = (it) => (it.series || []).some(ehTempo);
 function fmtKg(kg) {
   return Math.round(kg || 0).toLocaleString("pt-BR") + " kg";
 }
@@ -343,8 +438,13 @@ function calcularRecordes(historico) {
     (h.itens || []).forEach((it) => {
       const id = it.exercicioId;
       let pMax = 0;
-      (it.series || []).forEach((s) => { const p = parseFloat(s.peso) || 0; if (p > pMax) pMax = p; });
-      const vol = volumeItem(it);
+      // isometria compara por segundos; o resto, por carga
+      (it.series || []).forEach((s) => {
+        if (!serieConta(s)) return;
+        const p = ehTempo(s) ? segundosDe(s) : cargaDe(s);
+        if (p > pMax) pMax = p;
+      });
+      const vol = itemDeTempo(it) ? tempoItem(it) : volumeItem(it);
       const estreia = bestPeso[id] === undefined;
       out[h.id][id] = {
         peso: !estreia && pMax > 0 && pMax > bestPeso[id],
@@ -357,17 +457,25 @@ function calcularRecordes(historico) {
   return out;
 }
 function contarRecordesNovos(historico, registro) {
-  const bestPeso = {};
+  // "melhor marca" do exercício: carga para peso livre, segundos para isometria
+  const marca = (it) => {
+    let m = 0;
+    (it.series || []).forEach((s) => {
+      if (!serieConta(s)) return;
+      const v = ehTempo(s) ? segundosDe(s) : cargaDe(s);
+      if (v > m) m = v;
+    });
+    return m;
+  };
+  const melhorAntes = {};
   historico.forEach((h) => (h.itens || []).forEach((it) => {
-    let pMax = 0;
-    (it.series || []).forEach((s) => { const p = parseFloat(s.peso) || 0; if (p > pMax) pMax = p; });
-    if (bestPeso[it.exercicioId] === undefined || pMax > bestPeso[it.exercicioId]) bestPeso[it.exercicioId] = pMax;
+    const m = marca(it);
+    if (melhorAntes[it.exercicioId] === undefined || m > melhorAntes[it.exercicioId]) melhorAntes[it.exercicioId] = m;
   }));
   let n = 0;
   (registro.itens || []).forEach((it) => {
-    let pMax = 0;
-    (it.series || []).forEach((s) => { const p = parseFloat(s.peso) || 0; if (p > pMax) pMax = p; });
-    if (bestPeso[it.exercicioId] !== undefined && pMax > bestPeso[it.exercicioId]) n += 1;
+    const m = marca(it);
+    if (melhorAntes[it.exercicioId] !== undefined && m > melhorAntes[it.exercicioId]) n += 1;
   });
   return n;
 }
@@ -446,10 +554,17 @@ function recordesPorExercicio(historico) {
   const m = {};
   historico.forEach((h) => {
     (h.itens || []).forEach((it) => {
-      const r = m[it.exercicioId] || { peso: 0, reps: 0, volume: 0, e1rm: 0 };
+      const r = m[it.exercicioId] || { peso: 0, reps: 0, volume: 0, e1rm: 0, segundos: 0, tempo: false };
       let vol = 0;
       (it.series || []).forEach((s) => {
-        const p = parseFloat(s.peso) || 0, rp = parseInt(s.reps) || 0;
+        if (!serieConta(s)) return;
+        if (ehTempo(s)) {
+          r.tempo = true;
+          const sg = segundosDe(s);
+          if (sg > r.segundos) r.segundos = sg;
+          return;
+        }
+        const p = cargaDe(s), rp = repsDe(s);
         vol += p * rp;
         if (p > r.peso) { r.peso = p; r.reps = rp; }
         const rm = est1RM(s.peso, s.reps);
@@ -477,19 +592,49 @@ const PASSO_CARGA = (peso) => (peso >= 60 ? 5 : peso >= 20 ? 2.5 : 1);
 function sugerirCarga(historico, exercicioId, repsAlvo) {
   const ult = ultimaExecucao(historico, exercicioId);
   if (!ult) return null;
+  const validas = ult.series.filter(serieConta);
+  if (!validas.length) return null;
+
+  // Isometria: a progressão é em segundos, subindo 5s quando a última vez fechou
+  if (validas.every(ehTempo)) {
+    let maior = 0;
+    validas.forEach((s) => { const t = segundosDe(s); if (t > maior) maior = t; });
+    if (!maior) return null;
+    const todasIguais = validas.every((s) => segundosDe(s) >= maior);
+    return todasIguais
+      ? { segundos: maior + 5, subiu: true, anterior: maior, tempo: true }
+      : { segundos: maior, subiu: false, anterior: maior, tempo: true };
+  }
+
   let melhor = 0, repsNoMelhor = 0;
-  ult.series.forEach((s) => {
-    const p = parseFloat(s.peso) || 0;
-    if (p > melhor) { melhor = p; repsNoMelhor = parseInt(s.reps) || 0; }
+  validas.forEach((s) => {
+    const p = cargaDe(s);
+    if (p > melhor) { melhor = p; repsNoMelhor = repsDe(s); }
   });
   if (!melhor) return null;
   const alvo = parseInt(repsAlvo) || 0;
-  const bateuTudo = alvo > 0 && ult.series.length > 0 &&
-    ult.series.every((s) => (parseFloat(s.peso) || 0) >= melhor && (parseInt(s.reps) || 0) >= alvo);
+  const bateuTudo = alvo > 0 && validas.length > 0 &&
+    validas.every((s) => cargaDe(s) >= melhor && repsDe(s) >= alvo);
   if (bateuTudo) {
     return { peso: melhor + PASSO_CARGA(melhor), subiu: true, anterior: melhor, reps: repsNoMelhor };
   }
   return { peso: melhor, subiu: false, anterior: melhor, reps: repsNoMelhor };
+}
+
+// Monta as séries de um exercício ao iniciar o treino. Isometria entra em
+// segundos; o resto, em peso e repetições, já com a carga sugerida.
+function montarSeries(ex, qtdSeries, repsAlvo, sug) {
+  const n = Math.max(1, parseInt(qtdSeries) || 1);
+  const isometria = !!(ex && ex.tempo);
+  if (isometria) {
+    const seg = sug && sug.segundos ? String(sug.segundos) : "30";
+    return Array.from({ length: n }, () => ({ segundos: seg, feito: false }));
+  }
+  return Array.from({ length: n }, () => ({
+    peso: sug && sug.peso ? String(sug.peso) : "",
+    reps: String(repsAlvo || ""),
+    feito: false,
+  }));
 }
 
 // ---------- RECUPERAÇÃO POR GRUPO MUSCULAR ----------
@@ -824,8 +969,8 @@ const EXERCICIOS = [
   { id: "abdominal-supra", grupo: "abdomen", nome: "Abdominal supra", en: "Crunches", equip: "Peso corporal", musc: { p: ["abdomen"], s: [] }, passos: ["Deite com os joelhos flexionados e mãos atrás da cabeça.", "Eleve o tronco tirando as escápulas do chão.", "Desça controlado."], dica: "Não puxe o pescoço; olhe para o teto." },
   { id: "abdominal-infra", grupo: "abdomen", nome: "Abdominal infra na paralela", en: "Knee Raises", equip: "Paralelas ou barra fixa", musc: { p: ["abdomen"], s: ["obliquos", "antebraco"] }, passos: ["Suspenda o corpo com os antebraços ou mãos apoiados.", "Eleve os joelhos em direção ao peito.", "Desça devagar sem balançar."], dica: "Para dificultar, suba com as pernas estendidas." },
   { id: "abdominal-obliquo", grupo: "abdomen", nome: "Abdominal oblíquo (bicicleta)", en: "bicycle crunch", equip: "Peso corporal", musc: { p: ["obliquos"], s: ["abdomen"] }, passos: ["Deite e leve o cotovelo em direção ao joelho oposto.", "Alterne os lados em movimento de pedalada.", "Mantenha o ritmo controlado."], dica: "Gire o tronco, não apenas o cotovelo." },
-  { id: "prancha", grupo: "abdomen", nome: "Prancha isométrica", en: "Plank", equip: "Peso corporal", musc: { p: ["abdomen"], s: ["obliquos", "lombar", "ombros"] }, passos: ["Apoie antebraços e pontas dos pés no chão.", "Mantenha o corpo em linha reta contraindo abdômen e glúteos.", "Segure pelo tempo definido."], dica: "Se o quadril cair ou subir, encerre a série: qualidade > tempo." },
-  { id: "prancha-lateral", grupo: "abdomen", nome: "Prancha lateral", en: "Side Plank (Core L1)", equip: "Peso corporal", musc: { p: ["obliquos"], s: ["abdomen", "ombros"] }, passos: ["Apoie um antebraço no chão com o corpo de lado.", "Eleve o quadril até o corpo formar uma linha reta.", "Segure pelo tempo definido e troque o lado."], dica: "Foca os oblíquos; não deixe o quadril ceder." },
+  { id: "prancha", grupo: "abdomen", nome: "Prancha isométrica", en: "Plank", tempo: true, equip: "Peso corporal", musc: { p: ["abdomen"], s: ["obliquos", "lombar", "ombros"] }, passos: ["Apoie antebraços e pontas dos pés no chão.", "Mantenha o corpo em linha reta contraindo abdômen e glúteos.", "Segure pelo tempo definido."], dica: "Se o quadril cair ou subir, encerre a série: qualidade > tempo." },
+  { id: "prancha-lateral", grupo: "abdomen", nome: "Prancha lateral", en: "Side Plank (Core L1)", tempo: true, equip: "Peso corporal", musc: { p: ["obliquos"], s: ["abdomen", "ombros"] }, passos: ["Apoie um antebraço no chão com o corpo de lado.", "Eleve o quadril até o corpo formar uma linha reta.", "Segure pelo tempo definido e troque o lado."], dica: "Foca os oblíquos; não deixe o quadril ceder." },
   { id: "elevacao-pernas", grupo: "abdomen", nome: "Elevação de pernas", en: "Leg Raises, Lying", equip: "Peso corporal", musc: { p: ["abdomen"], s: ["quadriceps"] }, passos: ["Deite com as mãos ao lado do corpo.", "Eleve as pernas estendidas até 90°.", "Desça devagar sem tocar o chão."], dica: "Pressione a lombar contra o chão o tempo todo." },
   { id: "abdominal-polia", grupo: "abdomen", nome: "Abdominal na polia", en: "cable crunch", equip: "Polia alta com corda", musc: { p: ["abdomen"], s: ["obliquos"] }, passos: ["Ajoelhe de frente para a polia segurando a corda junto à cabeça.", "Flexione o tronco levando os cotovelos em direção aos joelhos.", "Suba controlando a volta."], dica: "O movimento vem do abdômen enrolando, não do quadril." },
 
@@ -850,7 +995,7 @@ const EXERCICIOS = [
   { id: "passada", grupo: "pernas", nome: "Passada caminhando", en: "Dumbbell Lunges Walking", equip: "Halteres", musc: { p: ["quadriceps", "gluteos"], s: ["posteriores", "abdomen"] }, passos: ["Dê um passo à frente e desça até o joelho de trás quase tocar o chão.", "Empurre com a perna da frente e traga a de trás para o próximo passo.", "Alterne as pernas caminhando."], dica: "Passos mais longos ativam mais o glúteo." },
   { id: "subida-banco", grupo: "pernas", nome: "Subida no banco (step-up)", en: "Step-ups", equip: "Banco e halteres", musc: { p: ["quadriceps", "gluteos"], s: ["posteriores"] }, passos: ["Apoie um pé inteiro no banco.", "Suba empurrando com a perna de cima, sem impulsionar com a de baixo.", "Desça controlado e repita."], dica: "Todo o trabalho vem da perna que está no banco." },
   { id: "terra-sumo", grupo: "pernas", nome: "Levantamento terra sumô", en: "Sumo Deadlift", equip: "Barra", musc: { p: ["gluteos", "quadriceps", "adutores"], s: ["lombar", "trapezio", "antebraco"] }, passos: ["Pés bem afastados com pontas para fora e pegada por dentro dos joelhos.", "Suba estendendo quadril e joelhos com o peito alto.", "Desça controlado mantendo a barra próxima ao corpo."], dica: "A postura mais ereta alivia a lombar em relação ao terra convencional." },
-  { id: "agachamento-parede", grupo: "pernas", nome: "Agachamento na parede (isometria)", en: "wall sit", equip: "Peso corporal", musc: { p: ["quadriceps"], s: ["gluteos"] }, passos: ["Apoie as costas na parede e desça até as coxas ficarem paralelas ao chão.", "Mantenha a posição pelo tempo definido.", "Suba deslizando pela parede."], dica: "Excelente para iniciantes criarem resistência de pernas." },
+  { id: "agachamento-parede", grupo: "pernas", nome: "Agachamento na parede (isometria)", en: "wall sit", tempo: true, equip: "Peso corporal", musc: { p: ["quadriceps"], s: ["gluteos"] }, passos: ["Apoie as costas na parede e desça até as coxas ficarem paralelas ao chão.", "Mantenha a posição pelo tempo definido.", "Suba deslizando pela parede."], dica: "Excelente para iniciantes criarem resistência de pernas." },
 
   { id: "elevacao-lateral-cabo", grupo: "ombros", nome: "Elevação lateral na polia", en: "Cable Lateral Raises (Single Arm)", equip: "Polia baixa", musc: { p: ["ombros"], s: ["trapezio"] }, passos: ["Fique de lado para a polia baixa e segure a manopla com a mão de fora.", "Eleve o braço até a linha do ombro.", "Desça resistindo à tração do cabo."], dica: "A polia mantém tensão desde o início do movimento." },
 
@@ -902,7 +1047,7 @@ const EXERCICIOS = [
   { id: "agachamento-lateral", grupo: "pernas", nome: "Agachamento lateral com halter", en: "Dumbbell Side Squat", equip: "Halter", musc: { p: ["quadriceps","adutores"], s: ["gluteos"] }, passos: ["Em pé, segure um halter junto ao peito e dê um passo largo para o lado.","Agache sobre a perna que se afastou, deixando a outra estendida.","Empurre o chão para voltar ao centro e troque o lado."], dica: "Trabalha a parte interna da coxa e a mobilidade do quadril, que o agachamento comum não pega." },
   { id: "agachamento-pistol", grupo: "pernas", nome: "Agachamento unilateral (pistol)", en: "Pistol Squat", equip: "Peso corporal", musc: { p: ["quadriceps","gluteos"], s: ["posteriores","abdomen"] }, passos: ["Fique sobre uma perna com a outra estendida à frente.","Desça devagar sobre a perna de apoio até o quadril chegar perto do calcanhar.","Suba empurrando o chão sem apoiar a outra perna."], dica: "Comece segurando um apoio ou sentando num banco alto até ganhar equilíbrio e força." },
   { id: "agachamento-smith-unilateral", grupo: "pernas", nome: "Agachamento afundo no Smith", en: "Smith Machine Split Squat", equip: "Aparelho Smith", musc: { p: ["quadriceps","gluteos"], s: ["posteriores"] }, passos: ["Posicione um pé à frente e outro atrás, sob a barra do Smith.","Desça flexionando a perna da frente até o joelho de trás quase tocar o chão.","Suba empurrando com o pé da frente inteiro."], dica: "A barra guiada tira a preocupação com equilíbrio e deixa você focar na perna que trabalha." },
-  { id: "agachamento-isometrico", grupo: "pernas", nome: "Agachamento isométrico até a falha", en: "Isometric Squat to Failure", equip: "Peso corporal", musc: { p: ["quadriceps"], s: ["gluteos","abdomen"] }, passos: ["Desça até as coxas ficarem paralelas ao chão.","Segure a posição com o peito alto e os joelhos alinhados aos pés.","Aguente o máximo que conseguir mantendo a postura."], dica: "Ótimo finalizador de treino de pernas: quando a postura piorar, encerre a série." },
+  { id: "agachamento-isometrico", grupo: "pernas", nome: "Agachamento isométrico até a falha", en: "Isometric Squat to Failure", tempo: true, equip: "Peso corporal", musc: { p: ["quadriceps"], s: ["gluteos","abdomen"] }, passos: ["Desça até as coxas ficarem paralelas ao chão.","Segure a posição com o peito alto e os joelhos alinhados aos pés.","Aguente o máximo que conseguir mantendo a postura."], dica: "Ótimo finalizador de treino de pernas: quando a postura piorar, encerre a série." },
   { id: "afundo-reverso", grupo: "pernas", nome: "Afundo reverso (passo atrás)", en: "Reverse lunges", equip: "Halteres ou peso corporal", musc: { p: ["quadriceps","gluteos"], s: ["posteriores"] }, passos: ["Em pé, dê um passo para trás com uma perna.","Desça até o joelho de trás quase tocar o chão.","Empurre com a perna da frente para voltar em pé."], dica: "O passo para trás protege mais o joelho da frente que o afundo tradicional." },
   { id: "afundo-atras-barra", grupo: "pernas", nome: "Afundo com passo atrás na barra", en: "Barbell Step Back Lunge", equip: "Barra", musc: { p: ["quadriceps","gluteos"], s: ["posteriores","abdomen"] }, passos: ["Apoie a barra no trapézio como no agachamento.","Dê um passo longo para trás e desça até o joelho quase tocar o chão.","Empurre com a perna da frente para retornar."], dica: "Faça todas as repetições de uma perna antes de trocar: o equilíbrio fica melhor." },
   { id: "afundo-lateral-deslizante", grupo: "pernas", nome: "Afundo lateral deslizante", en: "Sliding Lateral Lunge", equip: "Peso corporal ou disco deslizante", musc: { p: ["quadriceps","adutores"], s: ["gluteos"] }, passos: ["Em pé, deslize um pé para o lado mantendo a perna estendida.","Agache sobre a perna de apoio, quadril para trás.","Puxe o pé de volta ao centro contraindo a parte interna da coxa."], dica: "Movimento controlado: a perna que desliza é a que trabalha na volta." },
@@ -953,7 +1098,7 @@ const EXERCICIOS = [
   { id: "flexao-lateral-halter", grupo: "abdomen", nome: "Flexão lateral com halter", en: "Dumbbell Side Bend", equip: "Halter", musc: { p: ["obliquos"], s: ["lombar"] }, passos: ["Em pé, segure um halter em uma das mãos ao lado do corpo.","Incline o tronco para o lado do peso, descendo o halter pela perna.","Volte contraindo o oblíquo do lado oposto."], dica: "Segure o peso em um lado só: com halteres nos dois, um anula o outro." },
   { id: "elevacao-joelhos-barra", grupo: "abdomen", nome: "Elevação de joelhos na barra fixa", en: "Leg raises pull up bar", equip: "Barra fixa", musc: { p: ["abdomen"], s: ["obliquos","antebraco"] }, passos: ["Pendure-se na barra fixa com os braços estendidos.","Eleve os joelhos em direção ao peito enrolando o quadril.","Desça devagar sem balançar o corpo."], dica: "Se o corpo balançar, você está usando impulso: desça mais devagar e reduza a amplitude." },
   { id: "elevacao-pernas-declinado", grupo: "abdomen", nome: "Elevação de pernas no banco declinado", en: "Decline Bench Leg Raise", equip: "Banco declinado", musc: { p: ["abdomen"], s: ["obliquos"] }, passos: ["Deite no banco declinado segurando o apoio atrás da cabeça.","Eleve as pernas estendidas até o quadril sair do banco.","Desça devagar sem tocar o banco com os pés."], dica: "A inclinação aumenta bastante a dificuldade em relação à elevação no chão." },
-  { id: "hollow-hold", grupo: "abdomen", nome: "Hollow hold (barquinho)", en: "Hollow Hold", equip: "Peso corporal", musc: { p: ["abdomen"], s: ["obliquos","quadriceps"] }, passos: ["Deite de barriga para cima com braços estendidos atrás da cabeça.","Eleve pernas e ombros do chão formando uma banana com o corpo.","Segure a posição com a lombar colada ao chão."], dica: "Se a lombar descolar do chão, aproxime as pernas do corpo até ela voltar a encostar." },
+  { id: "hollow-hold", grupo: "abdomen", nome: "Hollow hold (barquinho)", en: "Hollow Hold", tempo: true, equip: "Peso corporal", musc: { p: ["abdomen"], s: ["obliquos","quadriceps"] }, passos: ["Deite de barriga para cima com braços estendidos atrás da cabeça.","Eleve pernas e ombros do chão formando uma banana com o corpo.","Segure a posição com a lombar colada ao chão."], dica: "Se a lombar descolar do chão, aproxime as pernas do corpo até ela voltar a encostar." },
   { id: "prancha-toque-ombro", grupo: "abdomen", nome: "Prancha com toque no ombro", en: "Plank Shoulder Taps", equip: "Peso corporal", musc: { p: ["abdomen"], s: ["obliquos","ombros"] }, passos: ["Fique em prancha alta com os pés afastados na largura do quadril.","Toque o ombro oposto com uma das mãos sem girar o quadril.","Apoie de volta e alterne os lados."], dica: "O objetivo é o quadril não balançar: se rodar, afaste mais os pés." },
   { id: "pallof-press", grupo: "abdomen", nome: "Pallof press (antirrotação)", en: "Pallof Press", equip: "Polia ou elástico", musc: { p: ["obliquos","abdomen"], s: ["ombros"] }, passos: ["De lado para a polia, segure a manopla com as duas mãos junto ao peito.","Estenda os braços à frente resistindo à força que puxa você para o lado.","Volte as mãos ao peito sem deixar o tronco girar."], dica: "Aqui o abdômen trabalha impedindo o movimento: quanto mais parado o tronco, melhor." },
   { id: "abdominal-canivete-sentado", grupo: "abdomen", nome: "Canivete sentado", en: "Seated Knee Tuck", equip: "Banco", musc: { p: ["abdomen"], s: ["obliquos","quadriceps"] }, passos: ["Sente na ponta do banco segurando as bordas, tronco inclinado para trás.","Traga os joelhos em direção ao peito enrolando o quadril.","Estenda as pernas à frente sem tocar o chão."], dica: "Estenda as pernas o máximo possível para aumentar a dificuldade." },
@@ -1015,6 +1160,24 @@ const S = {
   inputMini: { background: "var(--input)", border: "1px solid var(--borda2)", borderRadius: 10, color: "var(--texto)", padding: "10px 8px", fontSize: 16, width: "100%", boxSizing: "border-box", textAlign: "center" },
   voltar: { background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 14, padding: 0, cursor: "pointer", marginBottom: 12 },
   tagCustom: { display: "inline-block", background: "#E1306C22", color: "#E1306C", borderRadius: 8, padding: "2px 8px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, marginLeft: 8 },
+};
+
+// Agrupa os equipamentos em famílias, para responder "só tenho halteres em casa".
+// Um exercício pode cair em mais de uma família, e isso não é problema.
+const semAcento = (s) => String(s || "").toLowerCase()
+  .replace(/[áàâã]/g, "a").replace(/[éê]/g, "e").replace(/í/g, "i")
+  .replace(/[óôõ]/g, "o").replace(/ú/g, "u").replace(/ç/g, "c");
+const FAMILIAS_EQUIP = [
+  { id: "corporal", nome: "Peso corporal", termos: ["peso corporal", "barra fixa", "paralela", "parede", "banco romano", "roda abdominal"] },
+  { id: "halteres", nome: "Halteres", termos: ["halter"] },
+  { id: "barra", nome: "Barra", termos: ["barra", "smith", "landmine", "anilha"] },
+  { id: "maquina", nome: "Máquina", termos: ["maquina", "leg press", "hack", "aparelho", "banco scott"] },
+  { id: "polia", nome: "Polia e cabo", termos: ["polia", "cabo", "crossover"] },
+  { id: "acessorio", nome: "Kettlebell e elástico", termos: ["kettlebell", "elastico", "suspensao", "caneleira", "medicine"] },
+];
+const naFamilia = (ex, fam) => {
+  const eq = semAcento(ex.equip);
+  return fam.termos.some((t) => eq.indexOf(semAcento(t)) >= 0);
 };
 
 // Quantos exercícios mostrar de uma vez em listas longas (o celular engasga com as 100+)
@@ -1383,11 +1546,15 @@ function GraficoEvolucao({ historico, exPorId }) {
     if (!it) return;
     let valor = 0;
     if (metrica === "max") {
-      it.series.forEach((sr) => { const pz = parseFloat(sr.peso) || 0; if (pz > valor) valor = pz; });
+      it.series.forEach((sr) => {
+        if (!serieConta(sr)) return;
+        const pz = ehTempo(sr) ? segundosDe(sr) : cargaDe(sr);
+        if (pz > valor) valor = pz;
+      });
     } else if (metrica === "1rm") {
       valor = melhor1RM(it);
     } else {
-      it.series.forEach((sr) => { valor += (parseFloat(sr.peso) || 0) * (parseInt(sr.reps) || 0); });
+      valor = itemDeTempo(it) ? tempoItem(it) : volumeItem(it);
     }
     if (valor > 0) pontos.push({ data: new Date(h.data), valor });
   });
@@ -1473,16 +1640,22 @@ function GraficoEvolucao({ historico, exPorId }) {
 function unidadeCurta(metrica) { return metrica === "volume" ? "" : "kg"; }
 
 // ---------------- COMPONENTES ----------------
-function Header({ titulo, tema, onTema }) {
+function Header({ titulo, tema, onTema, onAjustes }) {
   return (
     <div style={{ ...S.header, position: "sticky" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <h1 style={{ ...S.logo, margin: 0, fontSize: 27 }}>{titulo}</h1>
-        <button onClick={onTema} title={tema === "escuro" ? "Mudar para tema claro" : "Mudar para tema escuro"}
-          aria-label={tema === "escuro" ? "Mudar para o tema claro" : "Mudar para o tema escuro"}
-          style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", fontSize: 18, cursor: "pointer" }}>
-          <span aria-hidden="true">{tema === "escuro" ? "☀️" : "🌙"}</span>
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={onTema} title={tema === "escuro" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+            aria-label={tema === "escuro" ? "Mudar para o tema claro" : "Mudar para o tema escuro"}
+            style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", fontSize: 18, cursor: "pointer" }}>
+            <span aria-hidden="true">{tema === "escuro" ? "☀️" : "🌙"}</span>
+          </button>
+          <button onClick={onAjustes} title="Ajustes" aria-label="Abrir os ajustes"
+            style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", fontSize: 18, cursor: "pointer" }}>
+            <span aria-hidden="true">⚙</span>
+          </button>
+        </div>
       </div>
       <div style={S.faixa} />
     </div>
@@ -1844,6 +2017,72 @@ function CartaoLembrete({ lembrete, setLembrete, avisar }) {
   );
 }
 
+// ---------------- SÉRIES DA SEMANA POR GRUPO ----------------
+// O app já sabia quantas séries de cada grupo você fez. Faltava dizer se isso
+// é pouco ou suficiente — é o que transforma o dado em orientação.
+const FAIXA_SERIES = { min: 10, max: 20 };
+function seriesSemanaisPorGrupo(historico, exPorId) {
+  const inicio = segundaDaSemana(new Date()).getTime();
+  const acc = {};
+  historico.forEach((h) => {
+    if (new Date(h.data).getTime() < inicio) return;
+    (h.itens || []).forEach((it) => {
+      const e = exPorId(it.exercicioId);
+      if (!e) return;
+      // aquecimento não conta como série de trabalho
+      const n = (it.series || []).filter(serieConta).length;
+      acc[e.grupo] = (acc[e.grupo] || 0) + n;
+    });
+  });
+  return GRUPOS.map((g) => ({ id: g.id, nome: g.nome, series: acc[g.id] || 0 }))
+    .sort((a, b) => b.series - a.series);
+}
+
+function VolumeRecomendado({ historico, exPorId }) {
+  const lista = seriesSemanaisPorGrupo(historico, exPorId);
+  const teto = Math.max(FAIXA_SERIES.max + 4, ...lista.map((x) => x.series));
+  const situacao = (n) => {
+    if (n === 0) return { txt: "não treinou", cor: "var(--cinza2)" };
+    if (n < FAIXA_SERIES.min) return { txt: "abaixo da faixa", cor: "var(--obs)" };
+    if (n <= FAIXA_SERIES.max) return { txt: "na faixa", cor: "var(--ok)" };
+    return { txt: "acima da faixa", cor: "var(--perigo)" };
+  };
+  return (
+    <div style={S.card}>
+      <div style={S.label}>Séries desta semana por grupo</div>
+      <div style={{ fontSize: 12, color: "var(--cinza)", margin: "6px 0 14px", lineHeight: 1.5 }}>
+        A faixa de <b>{FAIXA_SERIES.min} a {FAIXA_SERIES.max} séries por semana</b> é a referência mais citada
+        para ganho de massa. É um guia, não uma regra: o que importa é a tendência ao longo das semanas.
+      </div>
+      {lista.map((g) => {
+        const s = situacao(g.series);
+        const cor = corGrupo(GRUPOS.find((x) => x.id === g.id));
+        return (
+          <div key={g.id} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
+              <span style={{ fontWeight: 700 }}>{g.nome}</span>
+              <span style={{ color: s.cor, fontWeight: 700 }}>{g.series} {plural(g.series, "série", "séries")} · {s.txt}</span>
+            </div>
+            {/* a faixa recomendada aparece como uma zona clara atrás da barra */}
+            <div style={{ position: "relative", height: 10, borderRadius: 5, background: "var(--borda)", overflow: "hidden" }}>
+              <div aria-hidden="true" style={{
+                position: "absolute", top: 0, bottom: 0,
+                left: (FAIXA_SERIES.min / teto) * 100 + "%",
+                width: ((FAIXA_SERIES.max - FAIXA_SERIES.min) / teto) * 100 + "%",
+                background: "var(--ok)", opacity: 0.22,
+              }} />
+              <div style={{ position: "relative", height: "100%", width: Math.min(100, (g.series / teto) * 100) + "%", background: cor, borderRadius: 5 }} />
+            </div>
+          </div>
+        );
+      })}
+      <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 4, lineHeight: 1.5 }}>
+        A zona verde clara marca a faixa recomendada. Séries de aquecimento não entram na conta.
+      </div>
+    </div>
+  );
+}
+
 // ---------------- CONQUISTAS POR CATEGORIA ----------------
 function PainelConquistas({ est, onStory }) {
   const [aberto, setAberto] = useState(false);
@@ -1914,13 +2153,45 @@ function PainelConquistas({ est, onStory }) {
   );
 }
 
-function TelaInicio({ programas, treinos, historico, totalEx, meta, setMeta, exPorId, onAbrirGrupo,
-  lembrete, setLembrete, avisar, ultimoBackup, avisoBackup, onBaixarBackup, onRestaurarArquivo,
-  onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onStoryProgresso, onDesafiar, onCopiarLink,
-  onExportar, onImportar, onInstalar }) {
+// ---------------- FAIXA COMPACTA DE PROGRESSO ----------------
+// A tela inicial tinha 14 cartões e virou uma parede. O progresso detalhado
+// mudou para Histórico > Números; aqui fica só o resumo, que leva até lá.
+function FaixaProgresso({ est, historico, meta, onAbrirProgresso }) {
+  const n = nivelDe(est);
+  const feitos = volumeSemanal(historico, 1)[0].treinos;
+  const bateu = feitos >= meta;
+  const R = 22, C = 2 * Math.PI * R;
+  const pct = meta > 0 ? Math.min(100, (feitos / meta) * 100) : 0;
+  return (
+    <button type="button" onClick={onAbrirProgresso}
+      aria-label={"Ver seu progresso. Nível " + n.indice + ", " + n.nome + ". " + feitos + " de " + meta + " treinos nesta semana."}
+      style={{ ...S.card, width: "100%", textAlign: "left", font: "inherit", color: "var(--texto)", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}>
+      <span aria-hidden="true" style={{ fontSize: 30, lineHeight: 1, flexShrink: 0 }}>{n.icone}</span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", ...S.label }}>Nível {n.indice}</span>
+        <span style={{ display: "block", fontSize: 16, fontWeight: 900, marginTop: 2 }}>{n.nome}</span>
+        <span style={{ display: "block", height: 6, background: "var(--borda)", borderRadius: 3, marginTop: 8, overflow: "hidden" }}>
+          <span style={{ display: "block", height: "100%", width: Math.max(3, n.pct) + "%", background: GRAD_LINHA, borderRadius: 3 }} />
+        </span>
+        <span style={{ display: "block", fontSize: 11, color: "var(--cinza)", marginTop: 6 }}>
+          🔥 {est.streak} {plural(est.streak, "dia", "dias")} · ver progresso ›
+        </span>
+      </span>
+      <svg width="54" height="54" viewBox="0 0 54 54" aria-hidden="true" style={{ flexShrink: 0 }}>
+        <circle cx="27" cy="27" r={R} fill="none" stroke="var(--borda)" strokeWidth="6" />
+        <circle cx="27" cy="27" r={R} fill="none" stroke={bateu ? "var(--ok)" : "#E1306C"} strokeWidth="6"
+          strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C - (C * pct) / 100}
+          transform="rotate(-90 27 27)" />
+        <text x="27" y="32" textAnchor="middle" fontSize="16" fontWeight="900" fill="var(--texto)">{feitos}</text>
+      </svg>
+    </button>
+  );
+}
+
+// ---------------- TELA INICIAL ----------------
+function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
+  avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onCopiarLink, onInstalar }) {
   const ultima = historico[0];
-  // O cálculo varre o histórico inteiro e apura recordes: memoizado para não
-  // repetir isso a cada toque na tela.
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
   return (
@@ -1937,17 +2208,6 @@ function TelaInicio({ programas, treinos, historico, totalEx, meta, setMeta, exP
         </div>
       )}
 
-      {onInstalar && (
-        <div style={{ ...S.card, borderColor: "#E1306C44" }}>
-          <div style={S.label}>📲 Instalar na tela inicial</div>
-          <div style={{ fontSize: 14, lineHeight: 1.6, margin: "8px 0 12px", color: "var(--cinza)" }}>
-            Instale o Treino Livre como app: abre em tela cheia, direto do ícone,
-            e funciona na academia mesmo sem internet.
-          </div>
-          <button style={S.btn} onClick={onInstalar}>Instalar app</button>
-        </div>
-      )}
-
       {avisoBackup && (
         <div style={{ ...S.card, borderColor: "#ED4956", background: "var(--aviso-bg)" }}>
           <div style={{ ...S.label, color: "#ED4956" }}>⚠ Faça um backup</div>
@@ -1956,6 +2216,17 @@ function TelaInicio({ programas, treinos, historico, totalEx, meta, setMeta, exP
         </div>
       )}
 
+      {onInstalar && (
+        <div style={{ ...S.card, borderColor: "#E1306C44" }}>
+          <div style={S.label}>📲 Instalar na tela inicial</div>
+          <div style={{ fontSize: 14, lineHeight: 1.6, margin: "8px 0 12px", color: "var(--cinza)" }}>
+            Abre em tela cheia, direto do ícone, e funciona na academia mesmo sem internet.
+          </div>
+          <button style={S.btn} onClick={onInstalar}>Instalar app</button>
+        </div>
+      )}
+
+      {/* O que a pessoa vem fazer aqui: começar o treino */}
       <div style={{ ...S.card, borderColor: "#E1306C44" }}>
         <div style={S.label}>Começar agora</div>
         <div style={{ fontSize: 18, fontWeight: 800, margin: "6px 0 12px" }}>
@@ -1981,44 +2252,22 @@ function TelaInicio({ programas, treinos, historico, totalEx, meta, setMeta, exP
           </React.Fragment>
         )}
         {temFichas && (
-          <button style={{ ...S.btnGhost, marginTop: 4, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onAssistente}>
-            🧭 Montar treino pra mim (assistente)
-          </button>
+          <React.Fragment>
+            <button style={{ ...S.btnGhost, marginTop: 4, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onAssistente}>
+              🧭 Montar treino pra mim (assistente)
+            </button>
+            <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800 }} onClick={onTreinoLivre}>
+              🏋️ Treino livre (montar na hora)
+            </button>
+          </React.Fragment>
         )}
-        <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800 }} onClick={onTreinoLivre}>
-          🏋️ Treino livre (montar na hora)
-        </button>
       </div>
 
       <OQueTreinarHoje historico={historico} exPorId={exPorId} onAbrirGrupo={onAbrirGrupo} />
 
-      <CartaoNivel est={est} />
-
-      <MetaSemanal historico={historico} meta={meta} setMeta={setMeta} />
-
-      <div style={{ ...S.card, borderColor: "#ED495644" }}>
-        <div style={S.label}>Seu progresso</div>
-        <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
-          <Resumo num={"🔥 " + est.streak} txt="dias seguidos" />
-          <Resumo num={est.treinosSemana} txt="treinos na semana" />
-          <Resumo num={est.volumeSemana >= 1000 ? Math.round(est.volumeSemana / 1000) + "t" : est.volumeSemana + "kg"} txt="volume na semana" />
-        </div>
-        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-          <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onStoryProgresso}>📸 Story</button>
-          <button style={{ ...S.btnGhost, flex: 1 }} onClick={onDesafiar}>⚔️ Desafiar amigo</button>
-        </div>
-      </div>
-
-      <PainelConquistas est={est} />
-
-      <div style={S.card}>
-        <div style={S.label}>Resumo</div>
-        <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
-          <Resumo num={historico.length} txt="treinos feitos" />
-          <Resumo num={treinos.length} txt="fichas criadas" />
-          <Resumo num={totalEx} txt="exercícios" />
-        </div>
-      </div>
+      {historico.length > 0 && (
+        <FaixaProgresso est={est} historico={historico} meta={meta} onAbrirProgresso={onAbrirProgresso} />
+      )}
 
       {ultima && (
         <div style={S.card}>
@@ -2032,7 +2281,84 @@ function TelaInicio({ programas, treinos, historico, totalEx, meta, setMeta, exP
         </div>
       )}
 
+      {!historico.length && (
+        <div style={{ ...S.card, borderStyle: "dashed", textAlign: "center", color: "var(--cinza)", fontSize: 14, lineHeight: 1.6 }}>
+          Depois do primeiro treino, aparecem aqui seu nível, sua sequência e o que já dá para
+          treinar hoje. Tudo fica guardado só no seu aparelho.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------- AJUSTES ----------------
+// Tudo que é configuração saiu da tela inicial e veio para cá, atrás da engrenagem.
+function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, setMeta,
+  lembrete, setLembrete, avisar, ultimoBackup, totalEx, historico,
+  onBaixarBackup, onRestaurarArquivo, onExportar, onImportar, onInstalar, onVoltar }) {
+  const fmtSeg = (sg) => Math.floor(sg / 60) + ":" + (sg % 60 < 10 ? "0" : "") + (sg % 60);
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <button style={S.voltar} onClick={onVoltar}>← Voltar</button>
+
+      <div style={S.card}>
+        <div style={{ ...S.label, marginBottom: 14 }}>Preferências</div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 18 }}>
+          <span style={{ fontSize: 15, fontWeight: 700 }}>Tema</span>
+          <button onClick={onTema} style={{ ...S.btnGhost, width: "auto", padding: "9px 14px" }}>
+            {tema === "escuro" ? "🌙 Escuro" : "☀️ Claro"}
+          </button>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 18 }}>
+          <span style={{ fontSize: 15, fontWeight: 700 }}>Som do cronômetro</span>
+          <button onClick={() => { setSom(!som); if (!som) beep(700, 0.1, 0.2); }} aria-pressed={som}
+            aria-label={som ? "Desligar o som" : "Ligar o som"}
+            style={{ ...S.btnGhost, width: "auto", padding: "9px 14px" }}>
+            {som ? "🔊 Ligado" : "🔇 Desligado"}
+          </button>
+        </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <span style={{ fontSize: 15, fontWeight: 700 }}>Descanso padrão</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button onClick={() => setDescanso(Math.max(15, descanso - 15))} aria-label="Diminuir o descanso padrão"
+                style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 17, cursor: "pointer" }}>−</button>
+              <b style={{ color: "#E1306C", minWidth: 46, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>{fmtSeg(descanso)}</b>
+              <button onClick={() => setDescanso(Math.min(600, descanso + 15))} aria-label="Aumentar o descanso padrão"
+                style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 17, cursor: "pointer" }}>+</button>
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>
+            Vale para os exercícios que não têm descanso próprio definido na ficha.
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <span style={{ fontSize: 15, fontWeight: 700 }}>Meta semanal</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => setMeta(Math.max(1, meta - 1))} aria-label="Diminuir a meta semanal"
+              style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 17, cursor: "pointer" }}>−</button>
+            <b style={{ color: "#E1306C", minWidth: 46, textAlign: "center" }}>{meta}x</b>
+            <button onClick={() => setMeta(Math.min(14, meta + 1))} aria-label="Aumentar a meta semanal"
+              style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 17, cursor: "pointer" }}>+</button>
+          </span>
+        </div>
+      </div>
+
       <CartaoLembrete lembrete={lembrete} setLembrete={setLembrete} avisar={avisar} />
+
+      {onInstalar && (
+        <div style={{ ...S.card, borderColor: "#E1306C44" }}>
+          <div style={S.label}>📲 Instalar na tela inicial</div>
+          <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, margin: "8px 0 12px" }}>
+            Abre em tela cheia, direto do ícone, e funciona sem internet.
+          </div>
+          <button style={S.btn} onClick={onInstalar}>Instalar app</button>
+        </div>
+      )}
 
       <div style={S.card}>
         <div style={S.label}>Seus dados (backup)</div>
@@ -2051,6 +2377,14 @@ function TelaInicio({ programas, treinos, historico, totalEx, meta, setMeta, exP
             ? "Último backup: " + new Date(ultimoBackup).toLocaleDateString("pt-BR") + "."
             : "Você ainda não fez nenhum backup."}
           {" "}Guarde o arquivo no Google Drive, no e-mail ou numa conversa sua no WhatsApp.
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <div style={S.label}>Este app</div>
+        <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
+          <Resumo num={historico.length} txt="treinos feitos" />
+          <Resumo num={totalEx} txt="exercícios" />
         </div>
       </div>
 
@@ -2156,6 +2490,7 @@ function DetalheExercicio({ ex, onVoltar }) {
 
 function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicioAberto, setExercicioAberto, onNovoExercicio, onExcluirCustom }) {
   const [busca, setBusca] = useState("");
+  const [equip, setEquip] = useState(null);   // família de equipamento escolhida
 
   // Se o exercício aberto sumiu (custom excluído), cai de volta na lista em vez
   // de alterar estado durante o render.
@@ -2164,14 +2499,18 @@ function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicio
     return <DetalheExercicio ex={exAberto} onVoltar={() => setExercicioAberto(null)} />;
   }
 
-  const buscando = busca.trim().length > 0;
+  const fam = equip ? FAMILIAS_EQUIP.find((f) => f.id === equip) : null;
+  const porEquip = (lista) => (fam ? lista.filter((e) => naFamilia(e, fam)) : lista);
+  // A busca olha nome E equipamento: "halteres" e "polia" passam a achar coisa.
+  const alvo = semAcento(busca.trim());
+  const buscando = alvo.length > 0;
   const resultados = buscando
-    ? todos.filter((e) => e.nome.toLowerCase().includes(busca.trim().toLowerCase()))
+    ? porEquip(todos.filter((e) => semAcento(e.nome).includes(alvo) || semAcento(e.equip).includes(alvo)))
     : [];
 
   if (grupoAberto && !buscando) {
     const g = grupoPorId(grupoAberto);
-    const lista = todos.filter((e) => e.grupo === grupoAberto);
+    const lista = porEquip(todos.filter((e) => e.grupo === grupoAberto));
     return (
       <div style={{ padding: "0 18px" }}>
         <button style={S.voltar} onClick={() => setGrupoAberto(null)}>← Grupos</button>
@@ -2186,9 +2525,36 @@ function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicio
 
   return (
     <div style={{ padding: "0 18px" }}>
-      <input style={{ ...S.input, marginBottom: 12 }} placeholder="Buscar em todos os exercícios..."
-        type="search" aria-label="Buscar em todos os exercícios"
+      <input style={{ ...S.input, marginBottom: 10 }} placeholder="Buscar por nome ou equipamento..."
+        type="search" aria-label="Buscar exercício por nome ou equipamento"
         value={busca} onChange={(e) => setBusca(e.target.value)} />
+
+      {/* Filtro por equipamento: serve para quem treina em casa ou tem a academia cheia */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+        {FAMILIAS_EQUIP.map((f) => {
+          const on = equip === f.id;
+          const qtd = todos.filter((e) => naFamilia(e, f)).length;
+          return (
+            <button key={f.id} onClick={() => setEquip(on ? null : f.id)} aria-pressed={on}
+              aria-label={f.nome + ", " + qtd + " " + plural(qtd, "exercício", "exercícios")}
+              style={{
+                border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"),
+                background: on ? "#E1306C22" : "transparent",
+                color: on ? "#E1306C" : "var(--cinza)",
+                borderRadius: 20, padding: "7px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer",
+              }}>
+              {f.nome} <span style={{ opacity: 0.7 }}>{qtd}</span>
+            </button>
+          );
+        })}
+        {equip && (
+          <button onClick={() => setEquip(null)} aria-label="Limpar o filtro de equipamento"
+            style={{ border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", borderRadius: 20, padding: "7px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+            ✕ limpar
+          </button>
+        )}
+      </div>
+
       <button style={{ ...S.btn, marginBottom: 14 }} onClick={onNovoExercicio}>+ Criar exercício próprio</button>
 
       {buscando ? (
@@ -2206,7 +2572,7 @@ function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicio
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14, marginTop: 6 }}>
           {GRUPOS.map((g) => {
-            const qtd = todos.filter((e) => e.grupo === g.id).length;
+            const qtd = porEquip(todos.filter((e) => e.grupo === g.id)).length;
             return (
               <button key={g.id} type="button" onClick={() => setGrupoAberto(g.id)}
                 aria-label={g.nome + ", " + qtd + " " + plural(qtd, "exercício", "exercícios")}
@@ -2334,7 +2700,9 @@ function FormNovoExercicio({ grupoSugerido, onSalvar, onCancelar, avisar }) {
   );
 }
 
-function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, onTreinar, onNovaFicha, onEditar, onExcluirFicha, onCompartilharFicha, onNovoPrograma, onRenomearPrograma, onExcluirPrograma, onCompartilharPrograma, onAssistente, onTreinoLivre, pedirConfirmacao }) {
+function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, onTreinar, onNovaFicha,
+  onEditar, onExcluirFicha, onCompartilharFicha, onNovoPrograma, onRenomearPrograma, onExcluirPrograma,
+  onCompartilharPrograma, onDuplicarFicha, onDuplicarPrograma, onAssistente, onTreinoLivre, pedirConfirmacao }) {
   // Dentro de um treino: lista de fichas. Se o programa aberto foi excluído,
   // cai de volta na lista em vez de alterar estado durante o render.
   const prog = progAberto ? programas.find((p) => p.id === progAberto) : null;
@@ -2357,8 +2725,12 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
               {t.itens.map((it) => { const e = exPorId(it.exercicioId); return e ? e.nome : null; }).filter(Boolean).join(" · ") || "Sem exercícios"}
             </div>
             <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}>▶ Treinar</button>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onEditar(t)}>Editar</button>
+              <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onDuplicarFicha(t)}
+                aria-label={"Duplicar a ficha " + t.nome}>⧉ Duplicar</button>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
               <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66" }} onClick={() => onCompartilharFicha(t)}>📤 Enviar</button>
               <button style={{ ...S.btnGhost, flex: 1, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}
                 onClick={() => pedirConfirmacao("Excluir esta ficha?", () => onExcluirFicha(t.id))}>Excluir</button>
@@ -2393,8 +2765,12 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
               {fichas.length} ficha(s){fichas.length ? ": " + fichas.map((f) => f.nome).join(" · ") : ""}
             </div>
             <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => setProgAberto(p.id)}>Abrir fichas</button>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onRenomearPrograma(p)}>Renomear</button>
+              <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onDuplicarPrograma(p)}
+                aria-label={"Duplicar o treino " + p.nome}>⧉ Duplicar</button>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
               <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66" }} onClick={() => onCompartilharPrograma(p)}>📤 Enviar</button>
               <button style={{ ...S.btnGhost, flex: 1, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }} onClick={() => onExcluirPrograma(p)}>Excluir</button>
             </div>
@@ -2626,10 +3002,15 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     return m;
   }, [historico]);
   const prFestejado = useRef({});
+  // O cronômetro de isometria marca a série ao acabar; a ref evita depender
+  // de marcarSerie nas dependências do efeito (que mudaria a cada tecla).
+  const marcarSerieRef = useRef(() => {});
 
   const [mostrarAdd, setMostrarAdd] = useState(false);
   const [demo, setDemo] = useState(null);        // exercício aberto na demonstração
   const [trocando, setTrocando] = useState(null); // índice do exercício sendo substituído
+  const [crono, setCrono] = useState(null);       // isometria em andamento: { ei, si, fim }
+  const [restaCrono, setRestaCrono] = useState(0);
   const [buscaEx, setBuscaEx] = useState("");
   const [fimDescanso, setFimDescanso] = useState(null);
   const [totalDescanso, setTotalDescanso] = useState(descanso);
@@ -2666,6 +3047,28 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       try { if (navigator.vibrate) navigator.vibrate([300, 120, 300]); } catch (e) {}
     }
   }, [acabou, avisou, som]);
+
+  // Cronômetro da isometria: conta os segundos da prancha e marca a série no fim.
+  // Sem isso a pessoa precisa de um cronômetro à parte para fazer um exercício
+  // que o próprio app manda "segurar pelo tempo definido".
+  useEffect(() => {
+    if (!crono) return;
+    const tick = () => {
+      const resta = Math.max(0, Math.ceil((crono.fim - Date.now()) / 1000));
+      setRestaCrono(resta);
+      if (resta <= 3 && resta > 0 && som) beep(880, 0.1, 0.22);
+      if (resta === 0) {
+        if (som) { beep(660, 0.2, 0.3); setTimeout(() => beep(990, 0.4, 0.3), 220); }
+        try { if (navigator.vibrate) navigator.vibrate([250, 100, 250]); } catch (e) {}
+        const alvo = crono;
+        setCrono(null);
+        marcarSerieRef.current(alvo.ei, alvo.si);
+      }
+    };
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, [crono, som]);
 
   // Segura a tela acesa enquanto o descanso corre e devolve o controle ao terminar
   useEffect(() => {
@@ -2721,8 +3124,13 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   const addSerie = (ei) => {
     const itens = sessao.itens.map((it, i) => {
       if (i !== ei) return it;
-      const ult = it.series[it.series.length - 1] || { peso: "", reps: "12" };
-      return { ...it, series: [...it.series, { peso: ult.peso || "", reps: ult.reps || "12", feito: false }] };
+      const ult = it.series[it.series.length - 1];
+      // repete o formato da última série: segundos na isometria, peso/reps no resto
+      if (ult && ehTempo(ult)) {
+        return { ...it, series: [...it.series, { segundos: ult.segundos || "30", feito: false }] };
+      }
+      const base = ult || { peso: "", reps: "12" };
+      return { ...it, series: [...it.series, { peso: base.peso || "", reps: base.reps || "12", feito: false }] };
     });
     setSessao({ ...sessao, itens });
   };
@@ -2745,7 +3153,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       itens: [...sessao.itens, {
         uid: novoUid(), exercicioId: idEx, obs: "",
         sugerido: sug || null,
-        series: [{ peso: sug ? String(sug.peso) : "", reps: "12", feito: false }],
+        series: montarSeries(exPorId(idEx), 1, 12, sug),
       }],
     });
     setBuscaEx("");
@@ -2782,11 +3190,23 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         exercicioId: novoId,
         obs: "",
         sugerido: sug || null,
-        // as séries são mantidas em quantidade, mas o peso passa a ser o do exercício novo
-        series: it.series.map((s) => ({ peso: sug ? String(sug.peso) : "", reps: s.reps, feito: false })),
+        // as séries são mantidas em quantidade, mas a carga passa a ser a do exercício novo
+        series: montarSeries(exPorId(novoId), it.series.length, (it.series[0] && it.series[0].reps) || 12, sug),
       })),
     });
     setTrocando(null);
+  };
+
+  const alternarAquecimento = (ei, si) => {
+    const atual = !!sessao.itens[ei].series[si].aquec;
+    upSerie(ei, si, "aquec", !atual);
+  };
+  const iniciarIsometria = (ei, si) => {
+    const seg = parseInt(sessao.itens[ei].series[si].segundos) || 0;
+    if (seg <= 0) return;
+    if (som) beep(520, 0.08, 0.15);
+    setRestaCrono(seg);
+    setCrono({ ei, si, fim: Date.now() + seg * 1000 });
   };
 
   const marcarSerie = (ei, si) => {
@@ -2801,14 +3221,35 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const noMeioDoConjunto = !!(item.conjunto && seguinte && seguinte.conjunto === item.conjunto);
     if (!noMeioDoConjunto) iniciarDescanso(descansoDe(item));
 
-    // Recorde de carga batido nesta série? Festeja na hora, não no fim do treino.
+    // Aquecimento não bate recorde: ele existe para preparar, não para medir.
+    if (ehAquecimento(serie)) return;
+
     const rec = recordes[item.exercicioId];
-    const peso = parseFloat(serie.peso) || 0;
-    const reps = parseInt(serie.reps) || 0;
+    const ex = exPorId(item.exercicioId);
+    if (!rec) return;
+
+    // Isometria compara segundos; o resto compara carga.
+    if (ehTempo(serie)) {
+      const seg = segundosDe(serie);
+      const chaveT = item.uid + ":t" + seg;
+      if (seg > 0 && rec.segundos > 0 && seg > rec.segundos && !prFestejado.current[chaveT]) {
+        prFestejado.current[chaveT] = true;
+        if (som) setTimeout(() => { beep(784, 0.12, 0.28); setTimeout(() => beep(1175, 0.3, 0.28), 130); }, 120);
+        celebrar({
+          icone: "🏆",
+          titulo: "Novo recorde pessoal",
+          destaque: (ex ? ex.nome : "Exercício") + "\n" + seg + " segundos",
+          detalhe: "Seu melhor era " + rec.segundos + "s. Você segurou " + (seg - rec.segundos) + "s mais!",
+        });
+      }
+      return;
+    }
+
+    const peso = cargaDe(serie);
+    const reps = repsDe(serie);
     const chave = item.uid + ":" + peso;
-    if (peso > 0 && reps > 0 && rec && rec.peso > 0 && peso > rec.peso && !prFestejado.current[chave]) {
+    if (peso > 0 && reps > 0 && rec.peso > 0 && peso > rec.peso && !prFestejado.current[chave]) {
       prFestejado.current[chave] = true;
-      const ex = exPorId(item.exercicioId);
       const ganho = Math.round((peso - rec.peso) * 10) / 10;
       if (som) setTimeout(() => { beep(784, 0.12, 0.28); setTimeout(() => beep(1175, 0.3, 0.28), 130); }, 120);
       celebrar({
@@ -2819,6 +3260,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       });
     }
   };
+  marcarSerieRef.current = marcarSerie;
 
   const feitas = sessao.itens.reduce((a, it) => a + it.series.filter((s) => s.feito).length, 0);
   const total = sessao.itens.reduce((a, it) => a + it.series.length, 0);
@@ -2904,6 +3346,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         const abreConjunto = noConjunto && (!anterior || anterior.conjunto !== it.conjunto);
         const fechaConjunto = noConjunto && (!proximo || proximo.conjunto !== it.conjunto);
         const tamConjunto = noConjunto ? sessao.itens.filter((x) => x.conjunto === it.conjunto).length : 0;
+        const ehIsometria = !!(ex && ex.tempo);
         return (
           <div key={it.uid || ei}
             style={{
@@ -2974,19 +3417,19 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
             {/* Referência do exercício: recorde, como foi da última vez e a carga sugerida */}
             {(rec || ult || it.sugerido) && (
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12, fontSize: 11, lineHeight: 1.5 }}>
-                {rec && rec.peso > 0 && (
+                {rec && (ehIsometria ? rec.segundos > 0 : rec.peso > 0) && (
                   <span style={{ background: "#E1306C18", color: "#E1306C", border: "1px solid #E1306C44", borderRadius: 8, padding: "3px 8px", fontWeight: 800, whiteSpace: "nowrap" }}>
-                    🏆 recorde {fmtNum(rec.peso)} kg
+                    🏆 recorde {ehIsometria ? rec.segundos + "s" : fmtNum(rec.peso) + " kg"}
                   </span>
                 )}
                 {it.sugerido && it.sugerido.subiu && (
                   <span style={{ background: "var(--ok-bg)", color: "var(--ok)", border: "1px solid var(--ok)", borderRadius: 8, padding: "3px 8px", fontWeight: 800, whiteSpace: "nowrap" }}>
-                    ↑ hora de subir para {fmtNum(it.sugerido.peso)} kg
+                    ↑ hora de subir para {it.sugerido.tempo ? it.sugerido.segundos + "s" : fmtNum(it.sugerido.peso) + " kg"}
                   </span>
                 )}
                 {ult && (
                   <span style={{ color: "var(--cinza)" }}>
-                    última vez: {ult.slice(0, 5).map((s) => fmtNum(s.peso) + "×" + (parseInt(s.reps) || 0)).join(" · ")}
+                    última vez: {ult.slice(0, 5).map((s) => (ehTempo(s) ? segundosDe(s) + "s" : fmtNum(s.peso) + "×" + repsDe(s)) + (ehAquecimento(s) ? " (aq.)" : "")).join(" · ")}
                   </span>
                 )}
               </div>
@@ -3007,21 +3450,68 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
 
             <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
               <div style={{ width: 30 }} />
-              <div style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center" }}>Peso (kg)</div>
-              <div style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center" }}>Reps</div>
+              {ehIsometria ? (
+                <React.Fragment>
+                  <div style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center" }}>Segundos</div>
+                  <div style={{ width: 44 }} />
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  <div style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center" }}>Peso (kg)</div>
+                  <div style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center" }}>Reps</div>
+                </React.Fragment>
+              )}
               <div style={{ width: 44 }} />
             </div>
             {it.series.map((s, si) => {
               const nomeEx = ex ? ex.nome : "exercício";
+              const aquec = ehAquecimento(s);
+              const contando = crono && crono.ei === ei && crono.si === si;
               return (
                 <div key={si} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, opacity: s.feito ? 0.55 : 1 }}>
-                  <div style={{ width: 30, fontWeight: 900, color: "var(--cinza)", textAlign: "center" }}>{si + 1}</div>
-                  <input type="number" inputMode="decimal" placeholder="0" style={{ ...S.inputMini, flex: 1 }} value={s.peso}
-                    aria-label={"Peso em quilos da série " + (si + 1) + " de " + nomeEx}
-                    onChange={(e) => upSerie(ei, si, "peso", e.target.value)} />
-                  <input type="number" inputMode="numeric" style={{ ...S.inputMini, flex: 1 }} value={s.reps}
-                    aria-label={"Repetições da série " + (si + 1) + " de " + nomeEx}
-                    onChange={(e) => upSerie(ei, si, "reps", e.target.value)} />
+                  {/* O número da série também liga/desliga o aquecimento */}
+                  <button onClick={() => alternarAquecimento(ei, si)} aria-pressed={aquec}
+                    title={aquec ? "Série de aquecimento (fora do volume)" : "Marcar como aquecimento"}
+                    aria-label={(aquec ? "Tirar" : "Marcar") + " a série " + (si + 1) + " de " + nomeEx + " como aquecimento"}
+                    style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, cursor: "pointer",
+                      border: aquec ? "1px solid var(--obs)" : "1px solid transparent",
+                      background: aquec ? "#C7A94B22" : "transparent",
+                      color: aquec ? "var(--obs)" : "var(--cinza)", fontWeight: 900, fontSize: 13 }}>
+                    {aquec ? "A" : si + 1}
+                  </button>
+
+                  {ehIsometria ? (
+                    <React.Fragment>
+                      {contando ? (
+                        <div style={{ ...S.inputMini, flex: 1, background: "var(--ok-bg)", borderColor: "var(--ok)", color: "var(--ok)", fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: "20px" }}
+                          role="timer" aria-live="off" aria-label={"Faltam " + restaCrono + " segundos"}>
+                          {restaCrono}s
+                        </div>
+                      ) : (
+                        <input type="number" inputMode="numeric" placeholder="30" style={{ ...S.inputMini, flex: 1 }} value={s.segundos || ""}
+                          aria-label={"Segundos da série " + (si + 1) + " de " + nomeEx}
+                          onChange={(e) => upSerie(ei, si, "segundos", e.target.value)} />
+                      )}
+                      <button onClick={() => (contando ? setCrono(null) : iniciarIsometria(ei, si))}
+                        aria-label={(contando ? "Parar" : "Iniciar") + " a contagem da série " + (si + 1) + " de " + nomeEx}
+                        style={{ width: 44, height: 42, borderRadius: 8, cursor: "pointer", fontWeight: 900, fontSize: 15,
+                          border: "1px solid " + (contando ? "var(--perigo-borda)" : "#E1306C66"),
+                          background: contando ? "transparent" : "#E1306C15",
+                          color: contando ? "var(--perigo)" : "#E1306C" }}>
+                        {contando ? "■" : "▶"}
+                      </button>
+                    </React.Fragment>
+                  ) : (
+                    <React.Fragment>
+                      <input type="number" inputMode="decimal" placeholder="0" style={{ ...S.inputMini, flex: 1 }} value={s.peso || ""}
+                        aria-label={"Peso em quilos da série " + (si + 1) + " de " + nomeEx}
+                        onChange={(e) => upSerie(ei, si, "peso", e.target.value)} />
+                      <input type="number" inputMode="numeric" style={{ ...S.inputMini, flex: 1 }} value={s.reps || ""}
+                        aria-label={"Repetições da série " + (si + 1) + " de " + nomeEx}
+                        onChange={(e) => upSerie(ei, si, "reps", e.target.value)} />
+                    </React.Fragment>
+                  )}
+
                   <button onClick={() => marcarSerie(ei, si)} aria-pressed={!!s.feito}
                     aria-label={(s.feito ? "Desmarcar" : "Concluir") + " a série " + (si + 1) + " de " + nomeEx}
                     style={{ width: 44, height: 42, borderRadius: 8, border: "none", fontWeight: 900, fontSize: 18, cursor: "pointer",
@@ -3029,6 +3519,11 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 </div>
               );
             })}
+            {it.series.some(ehAquecimento) && (
+              <div style={{ fontSize: 10, color: "var(--obs)", marginBottom: 6 }}>
+                A = aquecimento: fica registrado, mas fora do volume e dos recordes.
+              </div>
+            )}
 
             <div style={{ display: "flex", gap: 8, marginTop: 4, marginBottom: 4 }}>
               <button onClick={() => addSerie(ei)}
@@ -3245,13 +3740,21 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
           <div key={i} style={{ fontSize: 13, marginBottom: 8, lineHeight: 1.5 }}>
             <span style={{ fontWeight: 700 }}>{(e ? e.nome : "Exercício")}: </span>
             <span style={{ color: "var(--cinza)" }}>
-              {it.series.map((s) => (s.peso || 0) + "kg×" + (s.reps || 0)).join("  ·  ")}
+              {it.series.map((s) =>
+                (ehTempo(s) ? segundosDe(s) + "s" : fmtNum(s.peso) + "kg×" + repsDe(s)) + (ehAquecimento(s) ? " (aq.)" : "")
+              ).join("  ·  ")}
             </span>
             {(p.peso || p.volume) && <span style={{ marginLeft: 4 }} title="Recorde pessoal">🏆</span>}
-            {volumeItem(it) > 0 && (
-              <div style={{ color: "var(--cinza2)", fontSize: 11 }}>
-                {fmtKg(volumeItem(it))} de volume{rm ? " · 1RM estim. " + rm + "kg" : ""}
-              </div>
+            {itemDeTempo(it) ? (
+              tempoItem(it) > 0 && (
+                <div style={{ color: "var(--cinza2)", fontSize: 11 }}>{tempoItem(it)}s no total</div>
+              )
+            ) : (
+              volumeItem(it) > 0 && (
+                <div style={{ color: "var(--cinza2)", fontSize: 11 }}>
+                  {fmtKg(volumeItem(it))} de volume{rm ? " · 1RM estim. " + rm + "kg" : ""}
+                </div>
+              )
             )}
             {it.obs && <div style={{ color: "var(--obs)", fontSize: 12, fontStyle: "italic", marginTop: 2 }}>📝 {it.obs}</div>}
           </div>
@@ -3290,8 +3793,10 @@ function TelaEditarHistorico({ registro, exPorId, onSalvar, onCancelar, avisar }
     ...r,
     itens: r.itens.map((it, i) => {
       if (i !== ei) return it;
-      const ult = it.series[it.series.length - 1] || { peso: "", reps: "12" };
-      return { ...it, series: [...it.series, { peso: ult.peso, reps: ult.reps }] };
+      const ult = it.series[it.series.length - 1];
+      if (ult && ehTempo(ult)) return { ...it, series: [...it.series, { segundos: ult.segundos }] };
+      const base = ult || { peso: "", reps: "12" };
+      return { ...it, series: [...it.series, { peso: base.peso, reps: base.reps }] };
     }),
   });
   const rmItem = (ei) => setR({ ...r, itens: r.itens.filter((unused, i) => i !== ei) });
@@ -3349,13 +3854,22 @@ function TelaEditarHistorico({ registro, exPorId, onSalvar, onCancelar, avisar }
             </div>
             {it.series.map((s, si) => (
               <div key={si} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                <div style={{ width: 26, fontWeight: 900, color: "var(--cinza)", textAlign: "center" }}>{si + 1}</div>
-                <input type="number" inputMode="decimal" style={{ ...S.inputMini, flex: 1 }} value={s.peso}
-                  aria-label={"Peso da série " + (si + 1) + " de " + nomeEx}
-                  onChange={(e) => upSerie(ei, si, "peso", e.target.value)} />
-                <input type="number" inputMode="numeric" style={{ ...S.inputMini, flex: 1 }} value={s.reps}
-                  aria-label={"Repetições da série " + (si + 1) + " de " + nomeEx}
-                  onChange={(e) => upSerie(ei, si, "reps", e.target.value)} />
+                <div style={{ width: 26, fontWeight: 900, textAlign: "center", fontSize: 13,
+                  color: ehAquecimento(s) ? "var(--obs)" : "var(--cinza)" }}>{ehAquecimento(s) ? "A" : si + 1}</div>
+                {ehTempo(s) ? (
+                  <input type="number" inputMode="numeric" style={{ ...S.inputMini, flex: 2 }} value={s.segundos}
+                    aria-label={"Segundos da série " + (si + 1) + " de " + nomeEx}
+                    onChange={(e) => upSerie(ei, si, "segundos", e.target.value)} />
+                ) : (
+                  <React.Fragment>
+                    <input type="number" inputMode="decimal" style={{ ...S.inputMini, flex: 1 }} value={s.peso}
+                      aria-label={"Peso da série " + (si + 1) + " de " + nomeEx}
+                      onChange={(e) => upSerie(ei, si, "peso", e.target.value)} />
+                    <input type="number" inputMode="numeric" style={{ ...S.inputMini, flex: 1 }} value={s.reps}
+                      aria-label={"Repetições da série " + (si + 1) + " de " + nomeEx}
+                      onChange={(e) => upSerie(ei, si, "reps", e.target.value)} />
+                  </React.Fragment>
+                )}
                 <button onClick={() => rmSerie(ei, si)} aria-label={"Remover a série " + (si + 1) + " de " + nomeEx}
                   style={{ width: 36, height: 40, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--perigo)", fontWeight: 900, cursor: "pointer" }}>−</button>
               </div>
@@ -3436,7 +3950,90 @@ function GraficoMedida({ medidas, campo, unidade }) {
   );
 }
 
-function TelaCorpo({ medidas, historico, onSalvar, onExcluir, pedirConfirmacao, avisar }) {
+// ---------------- FOTOS DE PROGRESSO (interface) ----------------
+function PainelFotos({ fotos, onAdicionar, onExcluir, pedirConfirmacao }) {
+  const [urls, setUrls] = useState({});
+  const [aberta, setAberta] = useState(null);
+  const entradaRef = useRef(null);
+
+  // Carrega as miniaturas do IndexedDB e devolve os endereços temporários no fim,
+  // senão cada visita à tela vaza memória.
+  useEffect(() => {
+    let vivo = true;
+    const criados = [];
+    (async () => {
+      const novo = {};
+      for (const f of fotos) {
+        try {
+          const blob = await lerFoto(f.id);
+          if (!blob) continue;
+          const u = URL.createObjectURL(blob);
+          criados.push(u);
+          novo[f.id] = u;
+        } catch (e) {}
+      }
+      if (vivo) setUrls(novo); else criados.forEach((u) => URL.revokeObjectURL(u));
+    })();
+    return () => { vivo = false; criados.forEach((u) => URL.revokeObjectURL(u)); };
+  }, [fotos]);
+
+  const ordenadas = [...fotos].sort((a, b) => new Date(b.data) - new Date(a.data));
+  return (
+    <div style={S.card}>
+      <div style={S.label}>Fotos de progresso</div>
+      <div style={{ fontSize: 12, color: "var(--cinza)", margin: "6px 0 12px", lineHeight: 1.5 }}>
+        Sempre no mesmo lugar, na mesma luz e de manhã. É o registro que mostra mudança
+        quando a balança não mostra. As fotos ficam neste aparelho e entram no backup em arquivo.
+      </div>
+      <input ref={entradaRef} type="file" accept="image/*" style={{ display: "none" }}
+        aria-hidden="true" tabIndex={-1}
+        onChange={(e) => { const a = e.target.files && e.target.files[0]; e.target.value = ""; if (a) onAdicionar(a); }} />
+      <button style={S.btn} onClick={() => entradaRef.current && entradaRef.current.click()}>
+        📷 Adicionar foto de hoje
+      </button>
+
+      {ordenadas.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 14 }}>
+          {ordenadas.map((f) => (
+            <button key={f.id} type="button" onClick={() => setAberta(f)}
+              aria-label={"Ver a foto de " + new Date(f.data).toLocaleDateString("pt-BR")}
+              style={{ padding: 0, border: "1px solid var(--borda2)", borderRadius: 12, overflow: "hidden", background: "var(--input)", cursor: "pointer", aspectRatio: "3/4" }}>
+              {urls[f.id]
+                ? <img src={urls[f.id]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                : <span style={{ fontSize: 11, color: "var(--cinza2)" }}>...</span>}
+              <span style={{ display: "block", fontSize: 9, color: "var(--cinza)", padding: "3px 0" }}>
+                {new Date(f.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {aberta && (
+        <div onClick={() => setAberta(null)} role="dialog" aria-modal="true" aria-label="Foto de progresso"
+          style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.9)", zIndex: 48, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, gap: 14 }}>
+          {urls[aberta.id] && (
+            <img src={urls[aberta.id]} alt={"Foto de " + new Date(aberta.data).toLocaleDateString("pt-BR")}
+              style={{ maxWidth: "100%", maxHeight: "72vh", borderRadius: 12 }} />
+          )}
+          <div style={{ color: "#F2F0EC", fontWeight: 800 }}>
+            {new Date(aberta.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
+          </div>
+          <div style={{ display: "flex", gap: 10 }} onClick={(e) => e.stopPropagation()}>
+            <button style={{ ...S.btnGhost, width: "auto", padding: "10px 18px", color: "#FFFFFF", borderColor: "#FFFFFF55" }}
+              onClick={() => setAberta(null)}>Fechar</button>
+            <button style={{ ...S.btnGhost, width: "auto", padding: "10px 18px", color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}
+              onClick={() => pedirConfirmacao("Excluir esta foto? Não há como recuperar.", () => { onExcluir(aberta.id); setAberta(null); })}>
+              🗑 Excluir
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TelaCorpo({ medidas, historico, fotos, onAdicionarFoto, onExcluirFoto, onSalvar, onExcluir, pedirConfirmacao, avisar }) {
   const [form, setForm] = useState({});
   const [campoGrafico, setCampoGrafico] = useState("peso");
 
@@ -3523,6 +4120,8 @@ function TelaCorpo({ medidas, historico, onSalvar, onExcluir, pedirConfirmacao, 
         </div>
       )}
 
+      <PainelFotos fotos={fotos} onAdicionar={onAdicionarFoto} onExcluir={onExcluirFoto} pedirConfirmacao={pedirConfirmacao} />
+
       {medidas.length === 0 && (
         <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)", fontSize: 14, lineHeight: 1.6 }}>
           Registre seu peso e suas medidas de tempo em tempo para ver a evolução ao lado do que você levanta.
@@ -3533,9 +4132,12 @@ function TelaCorpo({ medidas, historico, onSalvar, onExcluir, pedirConfirmacao, 
 }
 
 function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedirConfirmacao,
-  medidas, onSalvarMedida, onExcluirMedida, avisar }) {
-  const [secao, setSecao] = useState("treinos");
+  medidas, onSalvarMedida, onExcluirMedida, avisar,
+  fotos, onAdicionarFoto, onExcluirFoto,
+  meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial }) {
+  const [secao, setSecao] = useState(secaoInicial || "treinos");
   const recordes = useMemo(() => calcularRecordes(historico), [historico]);
+  const est = useMemo(() => calcularEstatisticas(historico), [historico]);
 
   return (
     <div style={{ padding: "0 18px" }}>
@@ -3561,11 +4163,20 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedir
 
       {secao === "corpo" && (
         <TelaCorpo medidas={medidas} historico={historico} avisar={avisar}
+          fotos={fotos} onAdicionarFoto={onAdicionarFoto} onExcluirFoto={onExcluirFoto}
           onSalvar={onSalvarMedida} onExcluir={onExcluirMedida} pedirConfirmacao={pedirConfirmacao} />
       )}
 
       {secao === "stats" && historico.length > 0 && (
         <React.Fragment>
+          <CartaoNivel est={est} />
+          <MetaSemanal historico={historico} meta={meta} setMeta={setMeta} />
+          <PainelConquistas est={est} />
+          <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+            <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onStoryProgresso}>📸 Story</button>
+            <button style={{ ...S.btnGhost, flex: 1 }} onClick={onDesafiar}>⚔️ Desafiar amigo</button>
+          </div>
+          <VolumeRecomendado historico={historico} exPorId={exPorId} />
           <NumerosGerais historico={historico} />
           <GraficoSemanal historico={historico} />
           <VolumeMusculos historico={historico} exPorId={exPorId} />
@@ -3596,9 +4207,13 @@ function TreinoLivre() {
   const [tema, setTema] = useState("escuro");
   const [meta, setMeta] = useState(3);
   const [medidas, setMedidas] = useState([]);
+  const [fotos, setFotos] = useState([]);   // só as datas; a imagem vive no IndexedDB
   const [lembrete, setLembrete] = useState({ ativo: false, hora: "18:00", dias: [1, 2, 3, 4, 5] });
   const [ultimoBackup, setUltimoBackup] = useState(null);
   const [editandoHistorico, setEditandoHistorico] = useState(null);
+  // Quando a faixa de progresso da tela inicial é tocada, o histórico abre já
+  // na aba de números em vez de na lista de treinos.
+  const [secaoHistorico, setSecaoHistorico] = useState("treinos");
   const [festa, setFesta] = useState(null);
   const arquivoRef = useRef(null);
   const [carregado, setCarregado] = useState(false);
@@ -3721,7 +4336,7 @@ function TreinoLivre() {
 
   useEffect(() => {
     let tr = [], hi = [], ce = [], de = 90, so = true, seed = false, pg = null, ss = null, mt = 3;
-    let md = [], lb = null, ub = null;
+    let md = [], lb = null, ub = null, ft = [];
     try {
       const raw = store.get(STORAGE_KEY);
       if (raw) {
@@ -3736,6 +4351,7 @@ function TreinoLivre() {
         seed = !!d.seedV3;
         if (d.meta) mt = d.meta;
         md = d.medidas || [];
+        ft = d.fotos || [];
         if (d.lembrete) lb = d.lembrete;
         ub = d.ultimoBackup || null;
         // Retoma o treino que ficou pela metade (app fechado, página recarregada,
@@ -3765,7 +4381,7 @@ function TreinoLivre() {
     }
 
     setTreinos(tr); setHistorico(hi); setCustomEx(ce); setDescanso(de); setSom(so); setProgramas(pg); setMeta(mt);
-    setMedidas(md); setUltimoBackup(ub);
+    setMedidas(md); setFotos(ft); setUltimoBackup(ub);
     if (lb) setLembrete({ ativo: !!lb.ativo, hora: lb.hora || "18:00", dias: Array.isArray(lb.dias) ? lb.dias : [1, 2, 3, 4, 5] });
     if (ss) { setSessao(ss); setAba("sessao"); }
     setCarregado(true);
@@ -3824,10 +4440,10 @@ function TreinoLivre() {
   const dadosRef = useRef("");
   useEffect(() => {
     if (!carregado) return;
-    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, lembrete, ultimoBackup, seedV3: true });
+    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, seedV3: true });
     const t = setTimeout(() => store.set(STORAGE_KEY, dadosRef.current), 400);
     return () => clearTimeout(t);
-  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, lembrete, ultimoBackup, carregado]);
+  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, carregado]);
 
   // Fechou o app ou trocou de aba no meio do treino? Grava na hora, sem esperar o respiro.
   useEffect(() => {
@@ -3891,6 +4507,7 @@ function TreinoLivre() {
         // todas as séries fecharam as repetições combinadas. É a sobrecarga
         // progressiva acontecendo sem ninguém precisar consultar o histórico.
         const sug = sugerirCarga(historico, it.exercicioId, it.reps);
+        const ex = exPorId(it.exercicioId);
         return {
           uid: novoUid(),
           exercicioId: it.exercicioId,
@@ -3898,11 +4515,7 @@ function TreinoLivre() {
           conjunto: it.conjunto || null,   // bi-set/tri-set definido na ficha
           descanso: it.descanso || null,   // descanso próprio deste exercício
           sugerido: sug || null,
-          series: Array.from({ length: it.series }, () => ({
-            peso: sug ? String(sug.peso) : "",
-            reps: String(it.reps || ""),
-            feito: false,
-          })),
+          series: montarSeries(ex, it.series, it.reps, sug),
         };
       }),
     });
@@ -3954,7 +4567,13 @@ function TreinoLivre() {
       itens: sessao.itens.map((it) => ({
         exercicioId: it.exercicioId,
         obs: it.obs || "",
-        series: it.series.filter((s) => s.feito).map((s) => ({ peso: s.peso, reps: s.reps })),
+        // preserva o formato: isometria grava segundos, e o aquecimento fica
+        // marcado para continuar fora do volume e dos recordes no histórico
+        series: it.series.filter((s) => s.feito).map((s) => {
+          const nova = ehTempo(s) ? { segundos: s.segundos } : { peso: s.peso, reps: s.reps };
+          if (ehAquecimento(s)) nova.aquec = true;
+          return nova;
+        }),
       })).filter((it) => it.series.length > 0),
     };
     setHistorico([registro, ...historico]);
@@ -3988,6 +4607,8 @@ function TreinoLivre() {
     let msg = "Treino concluído! 🎉\n\n";
     if (st.volume > 0) msg += "🏋️ " + fmtKg(st.volume) + " de volume total\n";
     msg += st.series + " " + plural(st.series, "série", "séries") + " · " + st.reps + " " + plural(st.reps, "repetição", "repetições") + " · " + st.exercicios + " " + plural(st.exercicios, "exercício", "exercícios") + "\n";
+    if (st.segundos > 0) msg += "⏳ " + st.segundos + "s de isometria\n";
+    if (st.seriesAquec > 0) msg += "(mais " + st.seriesAquec + " " + plural(st.seriesAquec, "série", "séries") + " de aquecimento, fora da conta)\n";
     msg += "⏱ " + registro.duracaoMin + " min";
     if (st.densidade > 0) msg += " · " + st.densidade + " kg/min · carga máx. " + st.cargaMax + " kg";
     if (comp) msg += "\n" + (comp.pct >= 0 ? "▲ +" : "▼ ") + comp.pct + "% de volume vs. o treino anterior";
@@ -4027,8 +4648,17 @@ function TreinoLivre() {
   };
 
   // ---- backup em arquivo: um toque, e o arquivo vai para o Downloads ----
-  const baixarBackup = () => {
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, seedV3: true });
+  const baixarBackup = async () => {
+    // As fotos vão dentro do arquivo: um backup que não leva tudo é uma armadilha.
+    // Isso engorda o arquivo, e é por isso que o texto copiável não as inclui.
+    const fotosDados = {};
+    for (const f of fotos) {
+      try {
+        const blob = await lerFoto(f.id);
+        if (blob) fotosDados[f.id] = await blobParaBase64(blob);
+      } catch (e) {}
+    }
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, lembrete, seedV3: true });
     try {
       const blob = new Blob([dados], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -4039,7 +4669,9 @@ function TreinoLivre() {
       setTimeout(() => URL.revokeObjectURL(url), 5000);
       setUltimoBackup(Date.now());
       registrarEvento("backup-baixado");
-      avisar("Backup salvo nos seus downloads. Guarde no Google Drive ou envie para você mesmo — é a sua garantia se perder o aparelho.");
+      const nFotos = Object.keys(fotosDados).length;
+      avisar("Backup salvo nos seus downloads" + (nFotos ? ", com " + nFotos + " " + plural(nFotos, "foto", "fotos") : "") +
+        ". Guarde no Google Drive ou envie para você mesmo — é a sua garantia se perder o aparelho.");
     } catch (e) {
       avisar("Não consegui gerar o arquivo neste navegador. Use \"Copiar texto\" e guarde o código.");
     }
@@ -4071,6 +4703,16 @@ function TreinoLivre() {
             setCustomEx(d.customEx || []);
             setProgramas(pg2);
             setMedidas(d.medidas || []);
+            // repõe as imagens no IndexedDB antes de anunciar a lista
+            (async () => {
+              const dados = d.fotosDados || {};
+              const ok = [];
+              for (const f of (d.fotos || [])) {
+                if (!dados[f.id]) continue;
+                try { await guardarFoto(f.id, base64ParaBlob(dados[f.id])); ok.push(f); } catch (e) {}
+              }
+              setFotos(ok);
+            })();
             if (d.descanso) setDescanso(d.descanso);
             if (d.som !== undefined) setSom(d.som);
             if (d.tema) setTema(d.tema);
@@ -4109,6 +4751,24 @@ function TreinoLivre() {
     setTimeout(() => avisar("Medição registrada! Repita a cada 2 ou 4 semanas para a linha ficar útil."), 120);
   };
   const excluirMedida = (id) => setMedidas((prev) => prev.filter((m) => m.id !== id));
+
+  // ---- fotos de progresso ----
+  const adicionarFoto = async (arquivo) => {
+    try {
+      const blob = await reduzirImagem(arquivo, 1080);
+      const id = "ft" + Date.now();
+      await guardarFoto(id, blob);
+      setFotos((prev) => [...prev, { id, data: new Date().toISOString() }]);
+      registrarEvento("foto-adicionada");
+      setTimeout(() => avisar("Foto guardada. Tire a próxima em 4 ou 6 semanas, no mesmo lugar e na mesma luz."), 120);
+    } catch (e) {
+      avisar("Não consegui usar esse arquivo. Escolha uma foto (JPG ou PNG) da sua galeria.");
+    }
+  };
+  const excluirFoto = async (id) => {
+    try { await apagarFoto(id); } catch (e) {}
+    setFotos((prev) => prev.filter((f) => f.id !== id));
+  };
 
   // ---- correcao de um treino do historico ----
   const salvarHistoricoEditado = (reg) => {
@@ -4167,6 +4827,39 @@ function TreinoLivre() {
       setProgAberto(null);
     });
   };
+  // Duplicar existe porque a necessidade real é "variar um treino que já funciona",
+   // e refazer a ficha do zero para isso é trabalho perdido.
+  const clonarItens = (itens) => {
+    // os ids de conjunto são regerados para a cópia não compartilhar bi-set com o original
+    const mapaConjunto = {};
+    return (itens || []).map((it) => {
+      const novo = { ...it, uid: novoUid() };
+      if (it.conjunto) {
+        if (!mapaConjunto[it.conjunto]) mapaConjunto[it.conjunto] = "cj" + novoUid();
+        novo.conjunto = mapaConjunto[it.conjunto];
+      }
+      return novo;
+    });
+  };
+  const duplicarFicha = (t) => {
+    const nova = { ...t, id: "ficha-" + Date.now(), nome: t.nome + " (cópia)", itens: clonarItens(t.itens) };
+    setTreinos((prev) => [nova, ...prev]);
+    registrarEvento("ficha-duplicada");
+    setTimeout(() => avisar('Ficha copiada como "' + nova.nome + '". Edite o que quiser mudar.'), 120);
+  };
+  const duplicarPrograma = (p) => {
+    const fichas = treinos.filter((t) => t.programaId === p.id);
+    const pid = "prog-" + Date.now();
+    setProgramas((prev) => [...prev, { id: pid, nome: p.nome + " (cópia)" }]);
+    const copias = fichas.map((t, i) => ({
+      ...t, id: "ficha-" + Date.now() + "-" + i, programaId: pid, itens: clonarItens(t.itens),
+    }));
+    setTreinos((prev) => [...copias, ...prev]);
+    setProgAberto(pid);
+    registrarEvento("programa-duplicado");
+    setTimeout(() => avisar('Treino copiado com ' + copias.length + ' ' + plural(copias.length, "ficha", "fichas") + '. Os nomes ganharam "(cópia)".'), 150);
+  };
+
   const novaFicha = (progId) => {
     setEditandoTreino({ id: String(Date.now()), nome: "", programaId: progId, itens: [] });
     setAba("editarTreino");
@@ -4345,7 +5038,7 @@ function TreinoLivre() {
     { id: "treinos", nome: "Fichas", icone: "▤" },
     { id: "historico", nome: "Histórico", icone: "◷" },
   ];
-  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente", editarHistorico: "Corrigir treino" };
+  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente", editarHistorico: "Corrigir treino", ajustes: "Ajustes" };
 
   if (!carregado) {
     return <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>Carregando...</div>;
@@ -4353,25 +5046,31 @@ function TreinoLivre() {
 
   return (
     <div style={S.app}>
-      <Header titulo={titulos[aba]} tema={tema} onTema={() => setTema(tema === "escuro" ? "claro" : "escuro")} />
+      <Header titulo={titulos[aba]} tema={tema}
+        onTema={() => setTema(tema === "escuro" ? "claro" : "escuro")}
+        onAjustes={() => setAba(aba === "ajustes" ? "inicio" : "ajustes")} />
       <div style={{ paddingTop: 14 }}>
         {aba === "inicio" && (
-          <TelaInicio programas={programas} treinos={treinos} historico={historico} totalEx={todos.length}
-            meta={meta} setMeta={setMeta} exPorId={exPorId}
-            lembrete={lembrete} setLembrete={setLembrete} avisar={avisar}
-            ultimoBackup={ultimoBackup} avisoBackup={avisoBackup}
-            onBaixarBackup={baixarBackup} onRestaurarArquivo={restaurarDeArquivo}
+          <TelaInicio programas={programas} treinos={treinos} historico={historico}
+            meta={meta} exPorId={exPorId} avisoBackup={avisoBackup} onBaixarBackup={baixarBackup}
             onAbrirGrupo={(g) => { setGrupoAberto(g); setExercicioAberto(null); setAba("exercicios"); }}
+            onAbrirProgresso={() => { setSecaoHistorico("stats"); setAba("historico"); }}
             onTreinar={iniciarSessao}
             onCriarPrograma={criarPrograma}
             onAssistente={() => setAba("assistente")}
             onTreinoLivre={iniciarTreinoLivre}
-            onStoryProgresso={storyProgresso}
-            onDesafiar={desafiarAmigo}
             onCopiarLink={copiarLink}
-            onExportar={exportarDados}
-            onImportar={importarDados}
             onInstalar={promptInstalar ? instalarApp : null} />
+        )}
+        {aba === "ajustes" && (
+          <TelaAjustes tema={tema} onTema={() => setTema(tema === "escuro" ? "claro" : "escuro")}
+            som={som} setSom={setSom} descanso={descanso} setDescanso={setDescanso}
+            meta={meta} setMeta={setMeta} lembrete={lembrete} setLembrete={setLembrete}
+            avisar={avisar} ultimoBackup={ultimoBackup} totalEx={todos.length} historico={historico}
+            onBaixarBackup={baixarBackup} onRestaurarArquivo={restaurarDeArquivo}
+            onExportar={exportarDados} onImportar={importarDados}
+            onInstalar={promptInstalar ? instalarApp : null}
+            onVoltar={() => setAba("inicio")} />
         )}
         {aba === "assistente" && (
           <TelaAssistente onGerar={gerarTreinoAssistente} onCancelar={() => setAba("inicio")} />
@@ -4401,6 +5100,8 @@ function TreinoLivre() {
             onRenomearPrograma={renomearPrograma}
             onExcluirPrograma={excluirPrograma}
             onCompartilharPrograma={compartilharPrograma}
+            onDuplicarFicha={duplicarFicha}
+            onDuplicarPrograma={duplicarPrograma}
             onAssistente={() => setAba("assistente")}
             onTreinoLivre={iniciarTreinoLivre} />
         )}
@@ -4422,7 +5123,10 @@ function TreinoLivre() {
           <TelaHistorico historico={historico} exPorId={exPorId}
             onExcluir={excluirHistorico} onStory={storyDeTreino} pedirConfirmacao={pedirConfirmacao}
             onEditar={(hh) => { setEditandoHistorico(hh); setAba("editarHistorico"); }}
-            medidas={medidas} onSalvarMedida={salvarMedida} onExcluirMedida={excluirMedida} avisar={avisar} />
+            medidas={medidas} onSalvarMedida={salvarMedida} onExcluirMedida={excluirMedida} avisar={avisar}
+            fotos={fotos} onAdicionarFoto={adicionarFoto} onExcluirFoto={excluirFoto}
+            meta={meta} setMeta={setMeta} secaoInicial={secaoHistorico}
+            onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} />
         )}
         {aba === "editarHistorico" && editandoHistorico && (
           <TelaEditarHistorico key={editandoHistorico.id} registro={editandoHistorico} exPorId={exPorId} avisar={avisar}
@@ -4521,7 +5225,7 @@ function TreinoLivre() {
       <nav aria-label="Navegação principal"
         style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--bg2)", borderTop: "1px solid var(--borda)", display: "flex", padding: "8px 0", paddingBottom: "calc(14px + env(safe-area-inset-bottom))", zIndex: 10 }}>
         {abas.map((a) => (
-          <button key={a.id} onClick={() => { setAba(a.id); setGrupoAberto(null); setExercicioAberto(null); setProgAberto(null); }}
+          <button key={a.id} onClick={() => { setAba(a.id); setGrupoAberto(null); setExercicioAberto(null); setProgAberto(null); if (a.id === "historico") setSecaoHistorico("treinos"); }}
             aria-current={aba === a.id ? "page" : undefined} aria-label={a.nome}
             style={{ flex: 1, background: "none", border: "none", cursor: "pointer", color: aba === a.id ? "#E1306C" : "var(--cinza)", fontWeight: aba === a.id ? 900 : 600 }}>
             <div aria-hidden="true" style={{ fontSize: 18 }}>{a.icone}</div>

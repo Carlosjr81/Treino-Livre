@@ -38,6 +38,10 @@ Na ordem em que aparece no arquivo:
    `integrity`/SRI, variáveis CSS de tema, animações, tela de carregamento.
 2. **Armazenamento** — `store` (localStorage com queda para memória),
    `STORAGE_KEY`, `b64Codificar`/`b64Decodificar`, `novoUid`.
+2b. **Fotos** — `abrirBancoFotos`, `guardarFoto`, `lerFoto`, `apagarFoto`,
+   `reduzirImagem` (IndexedDB).
+2c. **Leitura de série** — `ehAquecimento`, `ehTempo`, `cargaDe`, `repsDe`,
+   `segundosDe`, `serieConta`.
 3. **Gamificação** — `calcularEstatisticas`, `statsTreino`, `est1RM`,
    `calcularRecordes`, `volumePorGrupo`, `volumeSemanal`.
 4. **Nível e engajamento** — `xpDe`, `NIVEIS`, `nivelDe`,
@@ -66,7 +70,8 @@ Tudo num único registro em `localStorage["treinolivre:v1"]`:
   historico: [{ id, nome, data, duracaoMin, itens: [{ exercicioId, obs, series: [{ peso, reps }] }] }],
   customEx:  [{ id: "custom-…", custom: true, nome, grupo, equip, musc, passos, dica }],
   medidas:   [{ id, data, peso, cintura, peito, braco, coxa, quadril }],
-  sessao:    { treinoId, nome, inicio, itens: [{ uid, exercicioId, obs, descanso, conjunto, sugerido, series: [{ peso, reps, feito }] }] } | null,
+  fotos:     [{ id, data }],                    // a imagem em si fica no IndexedDB
+  sessao:    { treinoId, nome, inicio, itens: [{ uid, exercicioId, obs, descanso, conjunto, sugerido, series: [...] }] } | null,
   lembrete:  { ativo, hora: "18:00", dias: [1,2,3,4,5] },   // 0 = domingo
   ultimoBackup: 1725100000000,
   descanso: 90, som: true, tema: "escuro", meta: 3, seedV3: true
@@ -93,6 +98,16 @@ Regras importantes:
   olha só o vizinho de cima e o de baixo.
 - **`descanso` no item** vence o descanso geral. `null` significa "usa o geral".
   O valor ajustado durante o treino volta para a ficha ao finalizar, junto das obs.
+- **Uma série tem dois formatos.** `{ peso, reps }` no geral e `{ segundos }` na
+  isometria (exercício com `tempo: true`). Use os leitores `ehTempo`, `cargaDe`,
+  `repsDe` e `segundosDe` em vez de ler `s.peso` direto — foi assim que a prancha
+  deixou de ser gravada como "0 kg × 12".
+- **`aquec: true`** marca série de aquecimento. Ela fica registrada, mas
+  `serieConta` a exclui de volume, carga máxima, recordes e séries semanais.
+- **As fotos não cabem no `localStorage`.** Ficam no IndexedDB
+  (`treinolivre-fotos`), e o registro principal guarda só a lista de datas.
+  O backup **em arquivo** leva as imagens em base64 (`fotosDados`); o backup em
+  texto não leva, de propósito.
 
 ## Imagens de demonstração
 
@@ -150,8 +165,35 @@ compartilhados por aí precisam continuar abrindo.
 - **Meta semanal** — anel de progresso, semana começando na segunda.
 - **O que treinar hoje** (`recuperacaoMuscular`) — dias desde a última vez de
   cada grupo.
+- **Séries da semana por grupo** (`seriesSemanaisPorGrupo`) — compara com a
+  faixa de 10 a 20 séries (`FAIXA_SERIES`), a referência mais citada para
+  hipertrofia. É um guia, e o texto na tela diz isso: não vire prescrição.
+- **Fotos de progresso** — o registro que mostra mudança quando a balança não
+  mostra. Reduzidas para 1080px em JPEG antes de guardar.
+- **Filtro por equipamento** (`FAMILIAS_EQUIP`) — responde "só tenho halteres em
+  casa". Um exercício pode cair em mais de uma família, e isso não é problema.
+- **Duplicar ficha e programa** — ao copiar, os ids de `conjunto` são regerados
+  para a cópia não compartilhar bi-set com o original.
 - **Wake Lock durante o descanso** — sem isso o navegador suspende o áudio com o
   celular no bolso e o aviso de fim nunca toca.
+
+## Navegação e telas
+
+Quatro abas na barra inferior (`Início`, `Exercícios`, `Fichas`, `Histórico`) e
+telas internas roteadas pela mesma variável `aba`: `assistente`, `novoExercicio`,
+`editarTreino`, `editarHistorico`, `sessao`, `ajustes`.
+
+**A tela inicial é enxuta de propósito.** Ela já teve 14 cartões e virou uma
+parede — o que afastava justamente quem chegava pela primeira vez. Hoje ela
+responde só "o que eu faço hoje": avisos, começar agora, o que treinar hoje, uma
+faixa compacta de progresso e o último treino. **Resista a acrescentar cartão
+aqui**; o lugar do resto é:
+
+- **Histórico › Números** — nível, meta, conquistas, story, desafio, séries da
+  semana por grupo, e os gráficos.
+- **Histórico › Corpo** — medidas e fotos de progresso.
+- **Ajustes** (engrenagem no cabeçalho) — tema, som, descanso padrão, meta,
+  lembrete, backup e créditos.
 
 ## Treino em andamento
 
@@ -207,6 +249,11 @@ Roteiro mínimo depois de mexer no app:
 8. Agrupar dois exercícios em bi-set e conferir que o descanso só começa depois
    do segundo.
 9. Baixar o backup em arquivo e restaurá-lo.
+10. Fazer uma prancha: o campo é em segundos, o ▶ conta e marca a série sozinho.
+11. Marcar uma série como aquecimento (toque no número) e conferir que ela não
+    entra no volume nem na carga máxima do resumo.
+12. Adicionar uma foto de progresso, baixar o backup e restaurá-lo — a foto
+    precisa voltar.
 
 ## Convenções
 

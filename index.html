@@ -1648,11 +1648,13 @@ function Header({ titulo, tema, onTema, onAjustes }) {
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={onTema} title={tema === "escuro" ? "Mudar para tema claro" : "Mudar para tema escuro"}
             aria-label={tema === "escuro" ? "Mudar para o tema claro" : "Mudar para o tema escuro"}
-            style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", fontSize: 18, cursor: "pointer" }}>
+            style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", color: "var(--texto)", fontSize: 18, cursor: "pointer" }}>
             <span aria-hidden="true">{tema === "escuro" ? "☀️" : "🌙"}</span>
           </button>
+          {/* A cor precisa ser explícita: <button> não herda color do pai, usa o
+              preto padrão do sistema — e a engrenagem sumia no tema escuro. */}
           <button onClick={onAjustes} title="Ajustes" aria-label="Abrir os ajustes"
-            style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", fontSize: 18, cursor: "pointer" }}>
+            style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", color: "var(--texto)", fontSize: 20, cursor: "pointer" }}>
             <span aria-hidden="true">⚙</span>
           </button>
         </div>
@@ -3290,7 +3292,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     <button onClick={() => { setSom(!som); if (!som) beep(700, 0.1, 0.2); }}
       title={som ? "Desligar som" : "Ligar som"}
       aria-label={som ? "Desligar o som do cronômetro" : "Ligar o som do cronômetro"} aria-pressed={som}
-      style={{ width: 42, height: 42, borderRadius: 10, border: "1px solid " + (som ? "#E1306C66" : "var(--borda2)"), background: som ? "#E1306C22" : "transparent", fontSize: 18, cursor: "pointer" }}>
+      style={{ width: 42, height: 42, borderRadius: 10, border: "1px solid " + (som ? "#E1306C66" : "var(--borda2)"), background: som ? "#E1306C22" : "transparent", color: "var(--texto)", fontSize: 18, cursor: "pointer" }}>
       {som ? "🔊" : "🔇"}
     </button>
   );
@@ -3621,7 +3623,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <button onClick={() => { setSom(!som); if (!som) beep(700, 0.1, 0.2); }}
                 aria-label={som ? "Desligar o som do cronômetro" : "Ligar o som do cronômetro"} aria-pressed={som}
-                style={{ width: 40, height: 40, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", fontSize: 16, cursor: "pointer" }}>
+                style={{ width: 40, height: 40, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontSize: 16, cursor: "pointer" }}>
                 {som ? "🔊" : "🔇"}
               </button>
               {!acabou && (

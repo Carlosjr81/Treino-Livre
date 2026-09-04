@@ -2529,30 +2529,43 @@ function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicio
         type="search" aria-label="Buscar exercício por nome ou equipamento"
         value={busca} onChange={(e) => setBusca(e.target.value)} />
 
-      {/* Filtro por equipamento: serve para quem treina em casa ou tem a academia cheia */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-        {FAMILIAS_EQUIP.map((f) => {
-          const on = equip === f.id;
-          const qtd = todos.filter((e) => naFamilia(e, f)).length;
-          return (
-            <button key={f.id} onClick={() => setEquip(on ? null : f.id)} aria-pressed={on}
-              aria-label={f.nome + ", " + qtd + " " + plural(qtd, "exercício", "exercícios")}
-              style={{
-                border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"),
-                background: on ? "#E1306C22" : "transparent",
-                color: on ? "#E1306C" : "var(--cinza)",
-                borderRadius: 20, padding: "7px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer",
-              }}>
-              {f.nome} <span style={{ opacity: 0.7 }}>{qtd}</span>
+      {/* Filtro por equipamento: serve para quem treina em casa ou tem a academia cheia.
+          O título e o "exerc." ao lado do número existem porque, sem eles, a fileira
+          de nomes com números soltos não diz do que se trata. */}
+      <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+          <div style={S.label}>Filtrar por equipamento</div>
+          {equip && (
+            <button onClick={() => setEquip(null)} aria-label="Limpar o filtro de equipamento"
+              style={{ background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 12, cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}>
+              ✕ limpar filtro
             </button>
-          );
-        })}
-        {equip && (
-          <button onClick={() => setEquip(null)} aria-label="Limpar o filtro de equipamento"
-            style={{ border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", borderRadius: 20, padding: "7px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
-            ✕ limpar
-          </button>
-        )}
+          )}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--cinza)", margin: "6px 0 12px", lineHeight: 1.5 }}>
+          {equip
+            ? "Mostrando só os exercícios de " + (FAMILIAS_EQUIP.find((f) => f.id === equip) || {}).nome + "."
+            : "Toque no que você tem disponível. Serve para treinar em casa ou quando o aparelho está ocupado."}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+          {FAMILIAS_EQUIP.map((f) => {
+            const on = equip === f.id;
+            const qtd = todos.filter((e) => naFamilia(e, f)).length;
+            return (
+              <button key={f.id} onClick={() => setEquip(on ? null : f.id)} aria-pressed={on}
+                aria-label={f.nome + ", " + qtd + " " + plural(qtd, "exercício", "exercícios")}
+                style={{
+                  border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"),
+                  background: on ? "#E1306C22" : "transparent",
+                  color: on ? "#E1306C" : "var(--texto)",
+                  borderRadius: 20, padding: "8px 13px", fontWeight: 800, fontSize: 12.5, cursor: "pointer",
+                }}>
+                {f.nome}
+                <span style={{ color: on ? "#E1306C" : "var(--cinza)", fontWeight: 700 }}> · {qtd} exerc.</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <button style={{ ...S.btn, marginBottom: 14 }} onClick={onNovoExercicio}>+ Criar exercício próprio</button>

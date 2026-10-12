@@ -3,6 +3,22 @@
 App de registro de treinos de academia, em português, gratuito e sem cadastro.
 Publicado em https://carlosjr81.github.io/Treino-Livre/ (GitHub Pages).
 
+## Dois scripts no `index.html`, de propósito
+
+O arquivo tem **dois** blocos de script:
+
+1. Um `<script>` comum com `EXERCICIOS` e `IMAGENS_WGER` — 100 KB de dados
+   puros, sem uma linha de JSX.
+2. O `<script type="text/babel">` com o app.
+
+Com os dados dentro do segundo, o Babel passava de 500 KB, avisava no console
+que tinha desistido de otimizar, e cobrava segundos de espera a cada abertura
+num celular mediano. Compilar dado é trabalho jogado fora.
+
+Script clássico: o `const` do topo vira ligação global e o script seguinte
+enxerga igual. Continua tudo no mesmo arquivo e editável à mão.
+**Dados novos vão no primeiro bloco; código vai no segundo.**
+
 ## Restrições que moldam tudo
 
 Leia esta seção antes de propor qualquer mudança de arquitetura.
@@ -51,7 +67,7 @@ para delatar a versão nova e serviria de pouco vindo do cache.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v11) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v12) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -139,6 +155,37 @@ Regras importantes:
   (`treinolivre-fotos`), e o registro principal guarda só a lista de datas.
   O backup **em arquivo** leva as imagens em base64 (`fotosDados`); o backup em
   texto não leva, de propósito.
+
+## Foto do aparelho (exercício do usuário)
+
+Academia tem três máquinas de remada que não estão em catálogo nenhum, e o
+dono precisa registrar as três separadamente. A resposta é ele fotografar o
+aparelho: nenhuma figura de banco de dados identifica *aquela* máquina.
+
+- A foto vai para a **mesma loja do IndexedDB das fotos de progresso**, com
+  chave `exfoto-<id>`. Abrir um segundo banco obrigaria a subir a versão do
+  IndexedDB que já está no aparelho de todo mundo, sem necessidade.
+- `customEx[].foto` é só um booleano. A imagem nunca entra no `localStorage`.
+- Reduzida para **720px e qualidade 0,72** (a de progresso é 1080 e 0,82): a
+  foto só precisa ser reconhecível de relance e vão ser dezenas delas.
+- `FOTOS_EX` guarda o endereço resolvido. Sem esse cache, cada render criaria
+  um `objectURL` novo — vazamento garantido, já que a mesma foto aparece na
+  lista, na miniatura da sessão e na demonstração. **Ao trocar a foto é
+  obrigatório chamar `esquecerFotoEx`**, senão a tela mostra a imagem antiga.
+- **`BotaoVariacao` é o que torna isso viável.** Cadastrar a segunda e a
+  terceira máquina parecida pelo formulário inteiro é o que faz a pessoa
+  desistir. A variação copia grupo, músculos, equipamento, passos e dica, e
+  sugere o nome seguinte (`proximoNomeVariacao`: "Remada baixa" → "Remada
+  baixa 2"). Sobra fotografar e salvar.
+- O formulário leva `key={base.id}` para **remontar** a cada base: sem isso o
+  React reaproveita a instância e a foto da máquina anterior fica pendurada na
+  nova.
+- A foto é gravada **antes** de o exercício entrar na lista. Ao contrário, uma
+  falha deixaria um exercício prometendo uma imagem que não existe.
+- **O backup em arquivo leva as fotos** (`fotosEx`). É o único dado do app que
+  não existe em lugar nenhum além daquele aparelho.
+- Ficha recebida por link chega com `foto: false`: a imagem não cabe num link,
+  e marcar o contrário deixaria um exercício prometendo o que nunca vai ter.
 
 ## Imagens de demonstração
 
@@ -375,6 +422,17 @@ Comandos de sessão acrescentados depois dos testes em treino real:
 | "repete" / "mais uma igual" | `repetir` | anota outra série com os mesmos números da anterior |
 | "quanto falta de descanso" | `tempoDescanso` | lê o cronômetro em voz alta |
 | "observação: banco na altura 4" | `observacao` | guarda o texto na obs do exercício (usa `c.cru`, com acentos) |
+| "corrige para 50" | `corrigir` | muda a carga da última série marcada, sem desfazer |
+| "bora" (sozinho) | `boraTreinar` | começa a ficha que ele sugeriu para hoje |
+
+`boraTreinar` só casa com a frase **inteira** ("bora", "partiu treinar"):
+dentro de uma frase maior, "bora" é empolgação, não comando.
+
+Fora dos comandos, a voz também entra em dois momentos: o **resumo falado ao
+finalizar** (séries, volume, comparação com o treino anterior, recordes e
+conquistas — chega enquanto a pessoa guarda a anilha, que é quando o número
+significa algo) e a **isometria**, que avisa "metade" e "faltam 10 segundos" —
+numa prancha a pessoa está de cara para o chão e não vê a tela.
 
 `grupoDito` traduz como se fala ("barriga", "bumbum", "braço") para o id do
 grupo. **A ordem das regras importa**: as perguntas com grupo citado vêm antes
@@ -574,7 +632,14 @@ Roteiro mínimo depois de mexer no app:
 27. "Jarvis, próximo exercício" **uma vez**: tem de andar **um** exercício.
 28. "Jarvis, observação: banco na altura 4" — o texto precisa chegar ao campo
     de observação com acentos e maiúsculas.
-29. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
+29. Criar um exercício com foto do aparelho, e depois uma **variação** dele:
+    o nome tem de vir sugerido, a foto **não** pode vir herdada.
+30. Baixar o backup em arquivo e restaurá-lo: as fotos dos aparelhos precisam
+    voltar.
+31. "Jarvis, corrige para 50" depois de anotar errado: o campo muda e a série
+    continua marcada.
+32. "Jarvis, bora" fora de treino: começa a ficha sugerida.
+33. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
     Todas precisam fechar com ✓, e nada pode aparecer no histórico depois.
 
 ## Convenções

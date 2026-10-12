@@ -21,13 +21,39 @@ Leia esta seção antes de propor qualquer mudança de arquitetura.
 4. **Português em tudo.** Nomes de variáveis, funções, comentários e textos de
    interface são em português. Mantenha o padrão.
 
+## Publicar: três lugares para subir a versão
+
+**Faça isto em toda publicação, sem exceção:**
+
+1. `VERSAO_APP` no `index.html` (formato `AAAA-MM-DD` + letra)
+2. `versao.json` com o mesmo valor
+3. `CACHE` no `sw.js` (`treinolivre-vN`)
+
+Por que isso virou regra: um conserto ficou publicado horas sem chegar ao
+celular do dono, e o diagnóstico que ele mandou apontava para um defeito já
+corrigido. Duas rodadas de depuração foram gastas num bug que não existia mais.
+O `VERSAO_APP` aparece nos ajustes **e no topo do diagnóstico do Jarvis** —
+qualquer relato agora diz em qual versão aconteceu.
+
+O app busca `versao.json` 2,5 s depois de abrir e toda vez que volta do segundo
+plano. Se o número diferir, mostra uma faixa com **Atualizar**, que apaga os
+caches (menos `treinolivre-config`), manda o service worker se atualizar e
+recarrega com `?v=<agora>`.
+
+**O `sw.js` busca o `index.html` com `cache: "no-store"`.** Sem isso o "rede
+primeiro" era servido pelo cache HTTP do próprio navegador — o GitHub Pages
+manda `Cache-Control: max-age=600` — e devolvia a cópia velha achando que tinha
+ido à rede. O `versao.json` nunca é interceptado pelo service worker: ele existe
+para delatar a versão nova e serviria de pouco vindo do cache.
+
 ## Arquivos
 
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v9) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v10) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
+| `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
 
 ## Estrutura do `index.html`

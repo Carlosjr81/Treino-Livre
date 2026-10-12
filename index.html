@@ -158,6 +158,11 @@ const store = {
 };
 const STORAGE_KEY = "treinolivre:v1";
 const LINK_APP = "https://carlosjr81.github.io/Treino-Livre/";
+// Qual versão está rodando neste aparelho. Aparece nos ajustes e no
+// diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
+// defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
+// SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
+const VERSAO_APP = "2026-10-12a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 const NAVEGADOR_INAPP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|; wv\)/i.test(navigator.userAgent || "");
 
@@ -2903,6 +2908,7 @@ function ModalDiagnosticoJarvis({ aberto, ligado, estado, voz, noToque, onFechar
 
   const vozAtual = VOZ_FALA ? escolherVozPtBr(voz.vozNome) : null;
   const resumo = [
+    ["Versão do app", VERSAO_APP],
     ["Reconhecimento de voz", VOZ_OUVE ? "disponível" : "NÃO disponível neste navegador"],
     ["Como ele ouve", noToque ? "toque para falar" : "contínuo (mãos livres)"],
     ["Microfone", ligado ? (estado === "ouvindo" ? "ouvindo agora" : "religando") : noToque ? "pronto (toque e fale)" : "desligado"],
@@ -3753,7 +3759,7 @@ function SeletorVoz({ voz, setVoz }) {
 function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, setMeta,
   lembrete, setLembrete, avisar, ultimoBackup, totalEx, historico,
   onBaixarBackup, onRestaurarArquivo, onExportar, onImportar, onInstalar, onVoltar,
-  voz, setVoz, vozAtiva, onAlternarVoz, onAjudaVoz, onEscolaVoz, onDiagnosticoVoz }) {
+  voz, setVoz, vozAtiva, onAlternarVoz, onAjudaVoz, onEscolaVoz, onDiagnosticoVoz, onAtualizar }) {
   const fmtSeg = (sg) => Math.floor(sg / 60) + ":" + (sg % 60 < 10 ? "0" : "") + (sg % 60);
   return (
     <div style={{ padding: "0 18px" }}>
@@ -3962,6 +3968,15 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
         <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
           <Resumo num={historico.length} txt="treinos feitos" />
           <Resumo num={totalEx} txt="exercícios" />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14 }}>
+          <span style={{ fontSize: 12, color: "var(--cinza)" }}>Versão <b style={{ color: "var(--texto)" }}>{VERSAO_APP}</b></span>
+          <button onClick={onAtualizar} style={{ ...S.btnGhost, width: "auto", padding: "8px 13px", fontSize: 12.5 }}>
+            Buscar atualização
+          </button>
+        </div>
+        <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 8, lineHeight: 1.5 }}>
+          Limpa o que ficou guardado no aparelho e recarrega. Seus treinos não são afetados.
         </div>
       </div>
 
@@ -6153,6 +6168,7 @@ function TreinoLivre() {
   const [ajudaVoz, setAjudaVoz] = useState(false);
   const [diagVoz, setDiagVoz] = useState(false);
   const [avisoToque, setAvisoToque] = useState(false);
+  const [versaoNova, setVersaoNova] = useState(null);
   const acoesVoz = useRef({});
   const acoesEscola = useRef({});
   const ouvinte = useRef(null);
@@ -6260,6 +6276,42 @@ function TreinoLivre() {
     return () => { clearInterval(iv); document.removeEventListener("visibilitychange", aoVoltar); };
   }, [vozAtiva]);
   useEffect(() => () => { if (ouvinte.current) ouvinte.current.desligar(); }, []);
+
+  // Confere se há versão nova. O "no-store" e o carimbo de tempo existem porque
+  // o GitHub Pages manda max-age=600 e o navegador devolveria a cópia velha.
+  useEffect(() => {
+    if (!carregado) return;
+    let vivo = true;
+    const conferir = () => {
+      fetch("versao.json?t=" + Date.now(), { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => {
+          if (!vivo || !j || !j.versao) return;
+          if (j.versao !== VERSAO_APP) setVersaoNova(j.versao);
+        })
+        .catch(() => {});
+    };
+    const t = setTimeout(conferir, 2500);
+    // e de novo quando o app volta do segundo plano
+    const aoVoltar = () => { if (document.visibilityState === "visible") conferir(); };
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => { vivo = false; clearTimeout(t); document.removeEventListener("visibilitychange", aoVoltar); };
+  }, [carregado]);
+
+  // Limpa o que o navegador guardou e recarrega. É o único caminho confiável:
+  // pedir "recarregar" ao usuário não vence um cache de service worker.
+  const atualizarApp = useCallback(async () => {
+    try {
+      const ks = await caches.keys();
+      await Promise.all(ks.filter((k) => k !== "treinolivre-config").map((k) => caches.delete(k)));
+    } catch (e) {}
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.update().catch(() => {})));
+    } catch (e) {}
+    try { window.location.replace(window.location.pathname + "?v=" + Date.now()); }
+    catch (e) { window.location.reload(); }
+  }, []);
 
   // A faixa do que foi ouvido some sozinha: é um aviso, não um histórico.
   useEffect(() => {
@@ -7245,7 +7297,7 @@ function TreinoLivre() {
             onAlternarVoz={() => (vozAtiva ? desligarVoz() : ligarVoz())}
             onAjudaVoz={() => setAjudaVoz(true)}
             onEscolaVoz={() => setAba("escolaVoz")}
-            onDiagnosticoVoz={() => setDiagVoz(true)}
+            onDiagnosticoVoz={() => setDiagVoz(true)} onAtualizar={atualizarApp}
             onVoltar={() => setAba("inicio")} />
         )}
         {aba === "assistente" && (
@@ -7381,6 +7433,27 @@ function TreinoLivre() {
         style={{ display: "none" }} tabIndex={-1} aria-hidden="true" />
 
       <Celebracao festa={festa} onFechar={fecharFesta} />
+
+      {versaoNova && (
+        <div role="status" style={{ position: "fixed", left: 12, right: 12, zIndex: 47,
+          top: "calc(10px + env(safe-area-inset-top))" }}>
+          <div style={{ background: "var(--card)", border: "1px solid #E1306C", borderRadius: 14,
+            padding: "12px 14px", boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
+            display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 800, lineHeight: 1.4 }}>Tem versão nova do app</div>
+              <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 2 }}>
+                Esta é a {VERSAO_APP}. Disponível: {versaoNova}.
+              </div>
+            </div>
+            <button onClick={atualizarApp}
+              style={{ background: GRAD, color: "#FFFFFF", border: "none", borderRadius: 10,
+                padding: "10px 14px", fontWeight: 900, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
+              Atualizar
+            </button>
+          </div>
+        </div>
+      )}
 
       <PainelJarvis disponivel={VOZ_OUVE} ligado={vozAtiva} estado={vozEstado}
         parcial={vozParcial} ultima={vozUltima} descansando={descansando}

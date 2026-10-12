@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v9";
+const CACHE = "treinolivre-v10";
 const ARQUIVOS = [
   "./",
   "./index.html",
@@ -43,12 +43,19 @@ self.addEventListener("fetch", (e) => {
   if (url.protocol !== "http:" && url.protocol !== "https:") return;
   // Contador de visitas: nunca interceptar (precisa chegar ao servidor para contar)
   if (url.hostname.indexOf("goatcounter") !== -1 || url.hostname === "gc.zgo.at") return;
+  // O arquivo da versao nunca e interceptado: ele existe para delatar que ha
+  // versao nova, e serviria de pouco vindo do cache.
+  if (url.pathname.indexOf("versao.json") >= 0) return;
   const ehApp = e.request.mode === "navigate" || url.pathname.endsWith("index.html");
 
   if (ehApp) {
     // App: tenta a rede primeiro (para receber atualizações), cai no cache se estiver offline
     e.respondWith(
-      fetch(e.request)
+      // "no-store": sem isto o fetch daqui e servido pelo cache HTTP do proprio
+      // navegador (o GitHub Pages manda Cache-Control: max-age=600), e o
+      // "rede primeiro" devolve a copia velha. Ja aconteceu: o conserto estava
+      // publicado havia horas e o celular seguia rodando a versao anterior.
+      fetch(new Request(e.request.url, { cache: "no-store" }))
         .then((res) => {
           const cp = res.clone();
           caches.open(CACHE).then((c) => c.put(e.request, cp)).catch(() => {});

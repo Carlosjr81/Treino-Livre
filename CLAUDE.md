@@ -26,7 +26,7 @@ Leia esta seção antes de propor qualquer mudança de arquitetura.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v5) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
 
@@ -51,6 +51,9 @@ Na ordem em que aparece no arquivo:
 6. **Modelos do assistente** — `SPLITS` por dias/semana.
 7. **Som e tela** — `beep` (Web Audio), `ligarTravaTela`/`desligarTravaTela`
    (Wake Lock).
+7b. **Jarvis (voz)** — `criarOuvinte`, `jarvisFalar`, `normalizarFala`,
+   `numerosPorExtenso`, `depoisDeJarvis`, `acharExercicio`, `interpretarVoz`,
+   `vozesPtBr`. Fica logo antes de `IMAGENS_WGER`.
 8. **Dados** — `GRUPOS`, `MUSCULOS`, `EXERCICIOS` (204),
    `GRUPO_POR_EXERCICIO`, `FICHAS_PADRAO`.
 9. **Estilos** — objeto `S` com estilos inline reaproveitados.
@@ -73,6 +76,7 @@ Tudo num único registro em `localStorage["treinolivre:v1"]`:
   fotos:     [{ id, data }],                    // a imagem em si fica no IndexedDB
   sessao:    { treinoId, nome, inicio, itens: [{ uid, exercicioId, obs, descanso, conjunto, sugerido, series: [...] }] } | null,
   lembrete:  { ativo, hora: "18:00", dias: [1,2,3,4,5] },   // 0 = domingo
+  voz:       { preferido, falar, animado, vozNome, velocidade, barra },  // Jarvis
   ultimoBackup: 1725100000000,
   descanso: 90, som: true, tema: "escuro", meta: 3, seedV3: true
 }
@@ -174,8 +178,81 @@ compartilhados por aí precisam continuar abrindo.
   casa". Um exercício pode cair em mais de uma família, e isso não é problema.
 - **Duplicar ficha e programa** — ao copiar, os ids de `conjunto` são regerados
   para a cópia não compartilhar bi-set com o original.
+- **Jarvis** — o treino inteiro sem tocar no celular. Ver a seção própria.
 - **Wake Lock durante o descanso** — sem isso o navegador suspende o áudio com o
   celular no bolso e o aviso de fim nunca toca.
+
+## Jarvis (comandos por voz)
+
+Digitar peso e repetição entre uma série e outra, com a mão suada, é o maior
+atrito do app. O Jarvis tira isso do caminho: a pessoa fala, ele anota, marca a
+série, começa o descanso e chama de volta no fim.
+
+Roda inteiro na Web Speech API do navegador — **sem servidor e sem chave de
+API**, que é o que o projeto permite. Em troca, a qualidade é a do navegador:
+boa no Chrome (Android e computador), irregular no iPhone. Por isso **todos os
+campos continuam digitáveis**: o Jarvis é atalho, nunca o único caminho.
+
+### Como o comando chega até a ação
+
+1. `criarOuvinte` entrega a frase (`SpeechRecognition`, pt-BR, contínuo).
+2. `normalizarFala` tira acento e pontuação, junta sinônimos (`quilos|kg` →
+   `kg`) e chama `numerosPorExtenso` (`quarenta e cinco` → `45`).
+3. `depoisDeJarvis` corta tudo até o nome. Aceita variantes (`jarves`, `javis`,
+   `charles`) por distância de edição — o reconhecimento erra o nome o tempo todo.
+4. `interpretarVoz` devolve `{ tipo, ... }`.
+5. `tratarFala` (no componente raiz) resolve o que é global (ajuda, desligar,
+   começar um treino) e manda o resto para `acoesVoz.current.executar`, que a
+   `TelaSessao` pendura numa ref durante o render.
+
+### Regras que não são óbvias
+
+- **A palavra de ativação é obrigatória**, com uma exceção: 15 segundos depois
+  de um comando *aceito*, dá para emendar o próximo sem repetir o nome. A janela
+  **não** se renova em "não entendi", e fecha na primeira frase que não é
+  comando — senão a conversa da academia inteira vira anotação.
+- **O alvo é a primeira série não marcada** (`alvo`, na `TelaSessao`). É o que
+  permite dizer só "Jarvis, 80 por 10". O cartão alvo ganha anel rosa e uma
+  faixa dizendo o que falar: voz sem retorno visual é um salto no escuro.
+- **"de cada lado"** vira `2 × valor + barra`, e a barra só entra em exercício
+  cujo equipamento tem "barra" (e não "barra fixa"). O peso da barra é ajustável
+  (`voz.barra`, padrão 20) porque academia de bairro tem barra de 10 kg. **A
+  resposta sempre diz a soma em voz alta** — é assim que o erro aparece na hora.
+- **A confirmação repete o que foi entendido** (exercício, carga, repetições).
+  Não é enfeite: o reconhecimento erra, e ouvir o número de volta é o que
+  permite corrigir antes de perder a série.
+- **Enquanto o Jarvis fala, o microfone é ignorado** (`jarvisFalandoAte`). Parar
+  o reconhecimento a cada resposta faria o Android apitar o treino inteiro.
+- **O navegador encerra o reconhecimento sozinho** depois de alguns segundos de
+  silêncio, mesmo com `continuous`. O `onend` religa, com freio (mais de 10
+  religadas em 10 s dá um respiro de 2,5 s), e um relógio de 4 s confere, porque
+  o `onend` nem sempre dispara.
+- **O microfone só liga por gesto** — toque no botão flutuante ou em "Treinar"
+  com `voz.preferido`. A única exceção é voltar de uma recarga no meio do treino:
+  a permissão já foi dada antes e o treino está correndo.
+- **`conferirRecorde` devolve a frase do recorde** em vez de falar. Ditar a série
+  e comemorar são duas falas, e uma cancelaria a outra.
+- **Nome falado sai sem parênteses** (`nomeFalado`): "Crossover baixo (polia
+  baixa)" lido em voz alta é um trava-língua, e convida a repetir algo que o
+  reconhecimento não casa.
+- **Tom animado** (`voz.animado`, padrão ligado): `pitch` 1.22, ritmo um pouco
+  acima e interjeições que giram sem repetir a anterior (`animo`).
+
+### Vocabulário
+
+`APELIDOS_EXERCICIO` traduz o jeito da academia ("agacho", "extensora", "leg")
+para o id. `acharExercicio` procura **primeiro entre os exercícios do treino de
+hoje** e só depois nos 204: quem fala "supino" no meio do treino quer o supino
+que está na ficha. Na pontuação, quem acerta mais palavras do nome ganha de quem
+acerta uma só — sem isso "rosca direta" perdia para "Rosca 21".
+
+### Como testar sem microfone
+
+Não dá para falar com o app num teste automatizado. O caminho usado foi montar
+uma cópia do `index.html` com `SpeechRecognition` e `speechSynthesis` falsos,
+expondo `window.dizer("Jarvis, anote 80 por 10")` e `window.__falado`. Assim o
+fluxo inteiro — interpretação, estado, descanso, recorde e resposta falada — roda
+de verdade. Vale refazer esse molde antes de mexer no interpretador.
 
 ## Navegação e telas
 
@@ -254,6 +331,13 @@ Roteiro mínimo depois de mexer no app:
     entra no volume nem na carga máxima do resumo.
 12. Adicionar uma foto de progresso, baixar o backup e restaurá-lo — a foto
     precisa voltar.
+13. Ligar o Jarvis e dizer "Jarvis, anote 80 por 10": a série preenche, marca o
+    ✓, o descanso começa e ele confirma falando o que entendeu.
+14. Dizer "Jarvis, 40 de cada lado, 10 repetições" num exercício de barra — tem
+    de anotar 100 kg e dizer a conta em voz alta.
+15. Falar qualquer coisa sem dizer "Jarvis" depois da janela de 15 s: nada pode
+    ser anotado.
+16. Recarregar no meio do treino com o Jarvis ligado: ele volta ouvindo.
 
 ## Convenções
 

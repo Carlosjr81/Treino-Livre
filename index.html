@@ -105,6 +105,22 @@
     0%, 100% { transform: scale(1); }
     50%      { transform: scale(1.14); }
   }
+  /* Anel que sai do microfone enquanto o Jarvis ouve: sem um sinal vivo na
+     tela não dá para saber se ele está escutando ou se morreu calado. */
+  @keyframes ondaJarvis {
+    0%   { transform: scale(1); opacity: .55; }
+    100% { transform: scale(2.1); opacity: 0; }
+  }
+  .jarvis-onda {
+    position: absolute; inset: 0; border-radius: 50%; border: 2px solid #E1306C;
+    animation: ondaJarvis 1.8s ease-out infinite; pointer-events: none;
+  }
+  .jarvis-onda.atraso { animation-delay: .9s; }
+  @keyframes entraJarvis {
+    0%   { transform: translateY(-14px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  .jarvis-faixa { animation: entraJarvis 220ms ease-out both; }
   .confete-peca {
     position: fixed; top: 0; width: 9px; height: 15px; border-radius: 2px;
     animation: confete linear forwards; pointer-events: none; z-index: 60;
@@ -113,7 +129,7 @@
   .celebra-icone { animation: pulsa 900ms ease-in-out 380ms 2 both; display: inline-block; }
   @media (prefers-reduced-motion: reduce) {
     .confete-peca { display: none; }
-    .celebra-cartao, .celebra-icone { animation: none; }
+    .celebra-cartao, .celebra-icone, .jarvis-onda, .jarvis-faixa { animation: none; }
   }
 </style>
 </head>
@@ -1188,6 +1204,503 @@ const abrirVideoDe = (nome) => {
   window.open("https://www.youtube.com/results?search_query=" + q, "_blank");
 };
 
+// ---------------- JARVIS: O ASSISTENTE DE VOZ ----------------
+// Digitar peso e repetições com a mão suada, entre uma série e outra, é o que
+// mais atrapalha o registro do treino. O Jarvis resolve isso ouvindo: a pessoa
+// fala, o app anota, marca a série, começa o descanso e avisa no fim.
+//
+// Tudo roda no próprio aparelho, pela Web Speech API do navegador — sem
+// servidor e sem chave de API, que é a restrição do projeto. Em troca, a
+// qualidade depende do navegador: é boa no Chrome (Android e computador) e
+// irregular no iPhone. Por isso os campos digitáveis continuam todos lá: o
+// Jarvis é um atalho, nunca o único caminho.
+
+const ReconhecedorVoz = typeof window !== "undefined" ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+const VOZ_OUVE = !!ReconhecedorVoz;
+const VOZ_FALA = typeof window !== "undefined" && !!window.speechSynthesis;
+
+// ---- Fala (resposta do Jarvis) ----
+// Enquanto o Jarvis fala, o microfone continua ligado e ouve a própria voz.
+// Parar o reconhecimento a cada frase faria o Android apitar o tempo todo, então
+// em vez disso marcamos uma janela em que tudo o que chega é descartado.
+let jarvisFalandoAte = 0;
+// A lista de vozes chega vazia na primeira chamada em quase todo navegador e
+// só se preenche depois. Guardar a última lista boa evita o seletor piscar.
+let vozesGuardadas = [];
+function vozesPtBr() {
+  try {
+    const vs = window.speechSynthesis.getVoices() || [];
+    const pt = vs.filter((v) => /^pt/i.test(v.lang));
+    if (pt.length) vozesGuardadas = pt;
+  } catch (e) {}
+  return vozesGuardadas;
+}
+// "Microsoft Francisca Online (Natural) - Portuguese (Brazil)" não cabe num botão.
+function nomeCurtoVoz(v) {
+  const n = String((v && v.name) || "")
+    .replace(/^microsoft\s+/i, "")
+    .replace(/^google\s+/i, "")
+    .replace(/\s*online\s*\(natural\)/i, "")
+    .replace(/\s*[-–]\s*portugu(ê|e)s.*$/i, "")
+    .replace(/\s*\([^)]*\)\s*$/, "")
+    .trim();
+  return n || (v && v.name) || "Voz";
+}
+function escolherVozPtBr(nome) {
+  const vs = vozesPtBr();
+  if (!vs.length) return null;
+  if (nome) {
+    const achada = vs.find((v) => v.name === nome);
+    if (achada) return achada;
+  }
+  return vs.find((v) => /pt[-_]BR/i.test(v.lang) && /google|natural/i.test(v.name)) ||
+    vs.find((v) => /pt[-_]BR/i.test(v.lang)) || vs[0];
+}
+// cfg é a configuração de voz do app: { falar, vozNome, velocidade }
+function jarvisFalar(texto, cfg) {
+  if (!texto) return;
+  // A janela de silêncio vale mesmo com a voz desligada: sem ela, o bipe e o
+  // barulho logo depois da resposta viram comando.
+  jarvisFalandoAte = Date.now() + 500;
+  if (!cfg || !cfg.falar || !VOZ_FALA) return;
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(texto);
+    u.lang = "pt-BR";
+    // Um parceiro de treino não fala como quem lê um extrato bancário. Tom mais
+    // alto e ritmo um pouco acima do normal é o que separa "80 quilos por 10"
+    // dito com energia de um aviso de aeroporto.
+    const animado = cfg.animado !== false;
+    u.rate = (cfg.velocidade || 1.1) + (animado ? 0.06 : 0);
+    u.pitch = animado ? 1.22 : 1;
+    u.volume = 1;
+    const v = escolherVozPtBr(cfg.vozNome);
+    if (v) { u.voice = v; u.lang = v.lang; }
+    // Estimativa de duração como rede de segurança: em alguns navegadores o
+    // "onend" simplesmente não dispara.
+    jarvisFalandoAte = Date.now() + Math.min(16000, 1000 + (texto.length * 95) / u.rate);
+    u.onend = () => { jarvisFalandoAte = Date.now() + 400; };
+    u.onerror = () => { jarvisFalandoAte = Date.now() + 400; };
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+}
+function calarJarvis() {
+  try { if (VOZ_FALA) window.speechSynthesis.cancel(); } catch (e) {}
+  jarvisFalandoAte = 0;
+}
+
+// ---- Jeito de falar ----
+// A mesma palavra toda série cansa em dez minutos. Estas listas giram, e nunca
+// repetem a de antes — é o que faz o Jarvis soar como alguém, e não como um
+// aviso gravado.
+const ANIMO_ANOTOU = ["Boa!", "Isso!", "Show!", "Mandou bem!", "É isso aí!", "Firme!", "Pegou bem!"];
+const ANIMO_VOLTA = ["Bora!", "Vamos que vamos!", "Hora de voltar!", "Partiu a próxima!", "Tá na hora!"];
+const ultimoAnimo = {};
+function animo(lista, chave) {
+  if (!lista.length) return "";
+  let i = Math.floor(Math.random() * lista.length);
+  if (i === ultimoAnimo[chave] && lista.length > 1) i = (i + 1) % lista.length;
+  ultimoAnimo[chave] = i;
+  return lista[i];
+}
+
+// ---- Números por extenso ----
+// O reconhecimento às vezes devolve "quarenta e cinco" e às vezes "45". Aqui
+// tudo vira dígito antes de qualquer outra leitura.
+const NUM_UNIDADE = {
+  zero: 0, um: 1, uma: 1, dois: 2, duas: 2, tres: 3, quatro: 4, cinco: 5, seis: 6,
+  sete: 7, oito: 8, nove: 9, dez: 10, onze: 11, doze: 12, treze: 13, catorze: 14,
+  quatorze: 14, quinze: 15, dezesseis: 16, dezessete: 17, dezoito: 18, dezenove: 19,
+};
+const NUM_DEZENA = { vinte: 20, trinta: 30, quarenta: 40, cinquenta: 50, sessenta: 60, setenta: 70, oitenta: 80, noventa: 90 };
+const NUM_CENTENA = { cem: 100, cento: 100, duzentos: 200, trezentos: 300, quatrocentos: 400, quinhentos: 500, seiscentos: 600, setecentos: 700, oitocentos: 800, novecentos: 900 };
+const ehPalavraNumero = (p) => NUM_UNIDADE[p] !== undefined || NUM_DEZENA[p] !== undefined || NUM_CENTENA[p] !== undefined;
+const ehMetade = (p) => p === "meio" || p === "meia";
+
+function numerosPorExtenso(txt) {
+  const t = String(txt).split(" ");
+  const saida = [];
+  let i = 0;
+  while (i < t.length) {
+    if (!ehPalavraNumero(t[i]) && !ehMetade(t[i])) { saida.push(t[i]); i++; continue; }
+    let soma = 0, j = i, achou = false;
+    if (ehMetade(t[i])) { soma = 0.5; j = i + 1; achou = true; }
+    while (j < t.length) {
+      const p = t[j];
+      if (NUM_CENTENA[p] !== undefined) { soma += NUM_CENTENA[p]; achou = true; j++; }
+      else if (NUM_DEZENA[p] !== undefined) { soma += NUM_DEZENA[p]; achou = true; j++; }
+      else if (NUM_UNIDADE[p] !== undefined) { soma += NUM_UNIDADE[p]; achou = true; j++; }
+      else if (p === "e" && achou && (ehPalavraNumero(t[j + 1]) || ehMetade(t[j + 1]))) { j++; }
+      else if (ehMetade(p) && achou) { soma += 0.5; j++; }
+      else break;
+    }
+    if (!achou) { saida.push(t[i]); i++; continue; }
+    saida.push(String(Math.round(soma * 100) / 100));
+    i = j;
+  }
+  return saida.join(" ");
+}
+
+// ---- Normalização da frase ouvida ----
+function normalizarFala(bruto) {
+  let s = String(bruto || "").toLowerCase();
+  s = s.replace(/(\d)[,.](\d)/g, "$1.$2");          // 42,5 e 42.5 viram o mesmo número
+  s = semAcento(s).replace(/[^a-z0-9. ]+/g, " ");
+  s = s.replace(/(\d)\s*(kgs|kg|k)\b/g, "$1 kg");   // "40kg" -> "40 kg"
+  s = s.replace(/(\d)([a-z])/g, "$1 $2").replace(/([a-z])(\d)/g, "$1 $2");
+  s = s.replace(/\s+/g, " ").trim();
+  s = numerosPorExtenso(s);
+  // Sinônimos: tudo cai num vocabulário único, para as expressões ficarem simples
+  s = s
+    .replace(/\b(quilos|quilo|kilos|kilo|quilogramas|kgs|kg)\b/g, "kg")
+    .replace(/\b(repeticoes|repeticao|repeticos|reps|rep|repts|vezes|vez)\b/g, "reps")
+    .replace(/\b(segundos|segundo|segs|seg)\b/g, "seg")
+    .replace(/\b(minutos|minuto|mins|min|minutinhos|minutinho)\b/g, "min")
+    .replace(/\b(series|serie|seria)\b/g, "serie")
+    .replace(/\b(exercicios|exercicio)\b/g, "exercicio")
+    .replace(/\s+/g, " ")
+    .trim();
+  return s;
+}
+
+// ---- Palavra de ativação ----
+// O reconhecimento erra o nome com frequência ("jarves", "javis", "charles").
+// Aceitar as variantes é a diferença entre um assistente que responde e um que
+// faz a pessoa repetir três vezes no meio da academia.
+const APELIDOS_JARVIS = ["jarvis", "jarves", "jarvez", "jarvi", "jarbas", "jarvas", "javis", "javes", "jervis", "jarvix", "jaivis", "garvis", "harvis", "charles", "charlies", "jarbes", "darvis", "arvis", "jarvisi"];
+function distanciaTexto(a, b) {
+  // Levenshtein com teto baixo: só interessa saber se é "praticamente a mesma palavra"
+  if (Math.abs(a.length - b.length) > 1) return 9;
+  const n = b.length;
+  let linha = Array.from({ length: n + 1 }, (_, k) => k);
+  for (let i = 1; i <= a.length; i++) {
+    let ant = linha[0];
+    linha[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const tmp = linha[j];
+      linha[j] = Math.min(linha[j] + 1, linha[j - 1] + 1, ant + (a[i - 1] === b[j - 1] ? 0 : 1));
+      ant = tmp;
+    }
+  }
+  return linha[n];
+}
+const pareceJarvis = (p) => APELIDOS_JARVIS.indexOf(p) >= 0 || (p.length >= 5 && p.length <= 7 && distanciaTexto(p, "jarvis") <= 1);
+// Devolve o que vem DEPOIS do nome, ou null se o nome não foi dito
+function depoisDeJarvis(frase) {
+  const t = String(frase || "").split(" ");
+  for (let i = 0; i < t.length; i++) {
+    if (pareceJarvis(t[i])) return t.slice(i + 1).join(" ").trim();
+  }
+  return null;
+}
+
+// ---- Encontrar o exercício dito ----
+const PALAVRAS_VAZIAS = ["com", "de", "da", "do", "na", "no", "em", "para", "pelo", "pela", "sem", "ao", "aos", "e", "a", "o", "os", "as", "um", "uma"];
+// Como as pessoas realmente chamam os exercícios na academia
+const APELIDOS_EXERCICIO = [
+  ["supino", "supino-reto"], ["supino reto", "supino-reto"], ["supino inclinado", "supino-inclinado"],
+  ["agacho", "agachamento"], ["leg", "leg-press"], ["leg press", "leg-press"],
+  ["terra", "levantamento-terra"], ["rosca", "rosca-direta"], ["rosca direta", "rosca-direta"],
+  ["triceps", "triceps-polia"], ["triceps na polia", "triceps-polia"], ["triceps corda", "triceps-corda"],
+  ["puxada", "puxada-frente"], ["pulley", "puxada-frente"], ["polia alta", "puxada-frente"],
+  ["remada", "remada-baixa"], ["cavalinho", "remada-cavalinho"],
+  ["elevacao lateral", "elevacao-lateral"], ["lateral", "elevacao-lateral"],
+  ["extensora", "cadeira-extensora"], ["cadeira extensora", "cadeira-extensora"],
+  ["flexora", "mesa-flexora"], ["mesa flexora", "mesa-flexora"], ["adutora", "cadeira-adutora"],
+  ["panturrilha", "panturrilha"], ["gemeos", "panturrilha"], ["abdominal", "abdominal-supra"],
+  ["abdominal supra", "abdominal-supra"], ["crucifixo", "crucifixo"],
+  ["peck deck", "peck-deck"], ["voador", "peck-deck"], ["crossover", "crossover"],
+  ["barra fixa", "barra-fixa"], ["flexao", "flexao"], ["stiff", "stiff"], ["afundo", "afundo"],
+  ["bulgaro", "agachamento-bulgaro"], ["hack", "agachamento-hack"], ["encolhimento", "encolhimento"],
+  ["face pull", "face-pull"], ["martelo", "rosca-martelo"], ["scott", "rosca-scott"],
+  ["testa", "triceps-testa"], ["frances", "triceps-frances"], ["paralela", "paralelas-peito"],
+  ["mergulho", "mergulho-banco"], ["arnold", "desenvolvimento-arnold"], ["elevacao frontal", "elevacao-frontal"],
+  ["remada alta", "remada-alta"], ["remada baixa", "remada-baixa"], ["remada curvada", "remada-curvada"],
+  ["prancha", "prancha"], ["abdominal infra", "abdominal-infra"], ["ponte", "ponte-gluteo"], ["pelvica", "elevacao-pelvica-halter"],
+];
+function pontuarExercicio(ex, frase) {
+  const nome = semAcento(ex.nome);
+  if (frase.indexOf(" " + nome + " ") >= 0) return { inteiro: true, achados: 9, letras: nome.length, cobertura: 1 };
+  const toks = nome.split(/[^a-z0-9]+/).filter((p) => p.length > 2 && PALAVRAS_VAZIAS.indexOf(p) < 0);
+  if (!toks.length) return null;
+  let achados = 0, letras = 0, total = 0;
+  toks.forEach((p) => {
+    total += p.length;
+    if (frase.indexOf(p) >= 0) { achados++; letras += p.length; }
+  });
+  // Metade das palavras do nome precisa aparecer: sem isso "remada" casaria com
+  // "remada alta com barra W" tão bem quanto com "remada baixa".
+  if (!achados || achados / toks.length < 0.5) return null;
+  return { inteiro: false, achados: achados, letras: letras, cobertura: letras / total };
+}
+// Procura numa lista só. Quem acerta MAIS palavras do nome ganha de quem acerta
+// uma só: "rosca direta" tem de vencer "Rosca 21", que casa 100% de uma palavra.
+function melhorDaLista(limpa, lista) {
+  let melhor = null, m = null;
+  lista.forEach((ex) => {
+    const r = pontuarExercicio(ex, limpa);
+    if (!r) return;
+    if (!m || r.achados > m.achados || (r.achados === m.achados && r.cobertura > m.cobertura)) { m = r; melhor = ex; }
+  });
+  return melhor ? { ex: melhor, r: m } : null;
+}
+// Apelido de academia: o nome curto que todo mundo usa ("agacho", "extensora").
+function porApelido(limpa, lista) {
+  let id = null, tamanho = 0;
+  APELIDOS_EXERCICIO.forEach((par) => {
+    if (limpa.indexOf(" " + par[0] + " ") >= 0 && par[0].length > tamanho) { tamanho = par[0].length; id = par[1]; }
+  });
+  if (!id) return null;
+  const ex = lista.find((e) => e.id === id);
+  return ex ? { ex: ex, letras: tamanho } : null;
+}
+// "candidatos" são os exercícios que já estão no treino de hoje. Durante o
+// treino, quem fala "supino" quase sempre quer o supino que está na ficha —
+// por isso a busca começa restrita a eles e só depois abre para os 204.
+function acharExercicio(frase, todos, candidatos) {
+  if (!frase) return null;
+  const limpa = " " + String(frase).replace(/\b\d+(\.\d+)?\b/g, " ").replace(/\s+/g, " ").trim() + " ";
+  if (candidatos && candidatos.length) {
+    const lista = todos.filter((e) => candidatos.indexOf(e.id) >= 0);
+    const ap = porApelido(limpa, lista);
+    const b = melhorDaLista(limpa, lista);
+    if (ap && (!b || ap.letras >= b.r.letras)) return ap.ex;
+    if (b) return b.ex;
+  }
+  const b = melhorDaLista(limpa, todos);
+  if (b && b.r.inteiro) return b.ex;
+  const ap = porApelido(limpa, todos);
+  // O apelido vence quando explica pelo menos tanto da frase quanto o nome
+  // completo explicaria: "supino" é o supino reto, não o "Supino na máquina".
+  if (ap && (!b || ap.letras >= b.r.letras)) return ap.ex;
+  if (b && (b.r.achados >= 2 || b.r.cobertura >= 0.55)) return b.ex;
+  return ap ? ap.ex : null;
+}
+
+// ---- Interpretação do comando ----
+// Devolve { tipo, ... } ou null quando a frase não é um comando conhecido.
+const achaNum = (f, re) => { const m = f.match(re); return m ? parseFloat(m[1]) : null; };
+
+function duracaoDita(f) {
+  // "e meio" vira " e 0.5" na conversao dos numeros, e precisa virar 30 segundos
+  const min = f.match(/(\d+(?:\.\d+)?)\s*min(\s*e\s*0\.5)?/);
+  const seg = f.match(/(\d+(?:\.\d+)?)\s*seg/);
+  const meio = min && min[2] ? 30 : 0;
+  if (min && seg) return Math.round(parseFloat(min[1]) * 60 + meio + parseFloat(seg[1]));
+  if (min) return Math.round(parseFloat(min[1]) * 60 + meio);
+  if (seg) return Math.round(parseFloat(seg[1]));
+  // "descanso de 2" sem unidade: número pequeno é minuto, grande é segundo
+  const cru = f.match(/(?:descans\w*|cronometr\w*|timer|pausa)\s*(?:de|por)?\s*(\d+(?:\.\d+)?)/);
+  if (cru) {
+    const v = parseFloat(cru[1]);
+    return Math.round(v <= 10 ? v * 60 : v);
+  }
+  return null;
+}
+
+function interpretarVoz(fala, ctx) {
+  const f = " " + String(fala || "").trim() + " ";
+  if (!f.trim()) return null;
+  const ctxt = ctx || {};
+  const tem = (re) => re.test(f);
+
+  if (tem(/\b(ajuda|socorro|o que voce faz|o que posso (dizer|falar)|quais (sao os )?comandos|me ajuda)\b/)) return { tipo: "ajuda" };
+  if (tem(/\b(para de ouvir|pare de ouvir|desliga o jarvis|desliga o microfone|pode parar|modo silencioso|dorme)\b/)) return { tipo: "desligar" };
+  if (tem(/\b(fica quieto|fica calado|nao fala|sem voz|voz desligada)\b/)) return { tipo: "mudo" };
+
+  // --- descanso ---
+  if (tem(/\bdescans/) && tem(/\b(pula|pular|cancela|cancelar|encerra|para|parar|chega|acabou)\b/)) return { tipo: "pularDescanso" };
+  if (ctxt.descansando && tem(/\b(mais|adiciona|soma|aumenta)\b/) && tem(/\b\d+(\.\d+)?\s*(seg|min)\b/)) {
+    return { tipo: "esticarDescanso", segundos: duracaoDita(f) || 15 };
+  }
+  if (tem(/\b(descans\w*|cronometr\w*|timer|pausa)\b/)) return { tipo: "descanso", segundos: duracaoDita(f) };
+
+  // --- vida da sessão ---
+  if (tem(/\b(finaliza|finalizar|termina|terminar|encerra|encerrar|acabei|fim do treino|salva o treino)\b/)) return { tipo: "finalizar" };
+  if (tem(/\b(comeca|comecar|iniciar|inicia|bora|vamos|abre)\b/) && tem(/\btreino\b/)) {
+    // "treino A" tem de ser lido ANTES de tirar os artigos, senão o \"a\" do nome
+    // da ficha é removido junto com o artigo e sobra um pedido sem destino.
+    const letra = f.match(/\btreino\s+([a-e])\b/);
+    let nome = f.replace(/.*\b(?:comeca|comecar|iniciar|inicia|bora|vamos|abre)\b/, "")
+      .replace(/\b(o|a|meu|minha|ficha|treino|de|do|da)\b/g, " ").replace(/\s+/g, " ").trim();
+    if (!nome && letra) nome = letra[1];
+    return { tipo: "iniciarTreino", nome: nome };
+  }
+
+  // --- navegação entre exercícios ---
+  if (tem(/\b(proximo|proxima|seguinte)\b/) || tem(/\bpula\b.*\bexercicio\b/)) return { tipo: "proximo" };
+  if (tem(/\banterior\b/) || tem(/\bvolta\b.*\bexercicio\b/)) return { tipo: "anterior" };
+
+  // --- correções ---
+  if (tem(/\b(apaga|apagar|desfaz|desfazer|errei|erramos|desconsidera|cancela a ultima|tira a ultima)\b/)) return { tipo: "desfazer" };
+
+  // --- consultas ---
+  if (tem(/\b(recorde|meu melhor|maior peso|maior carga)\b/)) return { tipo: "recorde", frase: f };
+  if (tem(/\b(ultima vez|quanto eu fiz|quanto fiz|como foi|da outra vez)\b/)) return { tipo: "ultimaVez", frase: f };
+  if (tem(/\b(quantas serie|quantos serie|quanto falta|falta quanto|faltam quanta|como estou|como to)\b/)) return { tipo: "situacao" };
+  if (tem(/\b(quanto tempo|ha quanto tempo|tempo de treino)\b/)) return { tipo: "tempo" };
+
+  // --- montagem do treino ---
+  if (tem(/\b(troca|trocar|substitui|substituir|ocupado|ocupada|em uso)\b/)) return { tipo: "trocar", frase: f };
+  if (tem(/\bmais (uma|1) serie\b/) || (tem(/\b(adiciona|poe|coloca)\b/) && tem(/\bserie\b/))) return { tipo: "maisSerie" };
+  if (tem(/\b(adiciona|adicionar|poe|poem|coloca|colocar|inclui|incluir|acrescenta)\b/)) return { tipo: "adicionar", frase: f };
+
+  // --- anotar a série: o comando principal ---
+  const verboAnotar = tem(/\b(anota|anote|anotar|registra|registrar|marca|marcar|guarda|salva|fiz|feito|fechei|completei|consegui|peguei|levantei|mandei)\b/);
+  const porLado = tem(/\b(cada lado|por lado|de lado|em cada|cada ponta|por ponta)\b/);
+  const aquecimento = tem(/\baquec/);
+  let peso = achaNum(f, /(\d+(?:\.\d+)?)\s*kg/);
+  let reps = achaNum(f, /(\d+(?:\.\d+)?)\s*reps/);
+  const segundos = achaNum(f, /(\d+(?:\.\d+)?)\s*seg/);
+  // "80 por 10", "80 x 12", "80 vezes 10"
+  const parMul = f.match(/(\d+(?:\.\d+)?)\s*(?:kg\s*)?(?:por|x)\s*(\d+(?:\.\d+)?)/);
+  if (parMul) {
+    if (peso === null) peso = parseFloat(parMul[1]);
+    if (reps === null) reps = parseFloat(parMul[2]);
+  }
+  if (verboAnotar || peso !== null || reps !== null || segundos !== null) {
+    // Dois números soltos depois do verbo são peso e repetições, nessa ordem.
+    // Com a palavra "série" na frase, não: "anota 3 séries de 12" é um plano de
+    // treino, e viraria 3 kg por 12 repetições.
+    if (peso === null && reps === null && segundos === null && verboAnotar && !tem(/\bserie\b/)) {
+      const soltos = (f.match(/\b\d+(?:\.\d+)?\b/g) || []).map(parseFloat);
+      if (soltos.length >= 2) { peso = soltos[0]; reps = soltos[1]; }
+      else if (soltos.length === 1) reps = soltos[0];
+    }
+    // "45 de cada lado, 8 repetições" não traz "kg" nem "por": o peso é o outro
+    // número da frase. Vale só com "de cada lado", onde não há o que confundir.
+    if (peso === null && reps !== null && porLado) {
+      const sobra = (f.match(/\b\d+(?:\.\d+)?\b/g) || []).map(parseFloat);
+      const i = sobra.indexOf(reps);
+      if (i >= 0) sobra.splice(i, 1);
+      if (sobra.length === 1) peso = sobra[0];
+    }
+    if (peso !== null || reps !== null || segundos !== null) {
+      return { tipo: "anotar", peso: peso, reps: reps, segundos: segundos, porLado: porLado, aquecimento: aquecimento, frase: f };
+    }
+    if (verboAnotar && tem(/\bserie\b/)) {
+      return { tipo: "anotar", peso: null, reps: null, segundos: null, porLado: false, aquecimento: aquecimento, frase: f };
+    }
+  }
+
+  return null;
+}
+
+// ---- O ouvinte ----
+// O navegador encerra o reconhecimento sozinho depois de alguns segundos de
+// silêncio, mesmo com "continuous". Religar no "onend" é o jeito que funciona —
+// com freio, porque religar em laço trava a aba.
+function criarOuvinte(opcoes) {
+  if (!VOZ_OUVE) return null;
+  const aoParcial = opcoes.aoParcial, aoFinal = opcoes.aoFinal;
+  const aoEstado = opcoes.aoEstado, aoErro = opcoes.aoErro;
+  let rec = null;
+  let querendo = false;
+  let rodando = false;
+  let religadas = [];
+  let timer = null;
+
+  const agendarReligar = () => {
+    const agora = Date.now();
+    religadas = religadas.filter((t) => agora - t < 10000);
+    // Mais de 10 religadas em 10 segundos é sinal de que algo está errado;
+    // dar um respiro evita a aba travar em laço.
+    const espera = religadas.length > 10 ? 2500 : 350;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (!querendo || rodando) return;
+      religadas.push(Date.now());
+      try { rec.start(); } catch (e) { /* já estava começando */ }
+    }, espera);
+  };
+
+  const montar = () => {
+    const r = new ReconhecedorVoz();
+    r.lang = "pt-BR";
+    r.continuous = true;
+    r.interimResults = true;
+    r.maxAlternatives = 3;
+    r.onstart = () => { rodando = true; if (aoEstado) aoEstado("ouvindo"); };
+    r.onaudiostart = () => { rodando = true; };
+    r.onresult = (ev) => {
+      // Tudo o que chega enquanto o Jarvis fala é a própria voz dele voltando
+      if (Date.now() < jarvisFalandoAte) return;
+      let parcial = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const res = ev.results[i];
+        if (res.isFinal) {
+          const alts = [];
+          for (let k = 0; k < res.length; k++) alts.push(res[k].transcript);
+          if (aoFinal) aoFinal(res[0].transcript, alts);
+        } else {
+          parcial += res[0].transcript;
+        }
+      }
+      if (parcial && aoParcial) aoParcial(parcial);
+    };
+    r.onerror = (ev) => {
+      const erro = ev && ev.error;
+      if (erro === "not-allowed" || erro === "service-not-allowed") {
+        querendo = false; rodando = false;
+        if (aoErro) aoErro("permissao");
+        if (aoEstado) aoEstado("desligado");
+        return;
+      }
+      if (erro === "audio-capture") {
+        querendo = false; rodando = false;
+        if (aoErro) aoErro("microfone");
+        if (aoEstado) aoEstado("desligado");
+      }
+      // "no-speech", "aborted" e "network" são rotina: o onend religa
+    };
+    r.onend = () => {
+      rodando = false;
+      if (!querendo) { if (aoEstado) aoEstado("desligado"); return; }
+      agendarReligar();
+    };
+    return r;
+  };
+
+  return {
+    ligar() {
+      if (!rec) rec = montar();
+      querendo = true;
+      if (rodando) return;
+      try { rec.start(); religadas.push(Date.now()); }
+      catch (e) { agendarReligar(); }
+    },
+    desligar() {
+      querendo = false;
+      clearTimeout(timer);
+      calarJarvis();
+      try { if (rec) rec.abort(); } catch (e) {}
+      rodando = false;
+      if (aoEstado) aoEstado("desligado");
+    },
+    // Chamado por um relógio de fora: o "onend" nem sempre dispara, e sem esta
+    // conferência o microfone morre calado no meio do treino.
+    conferir() { if (querendo && !rodando) agendarReligar(); },
+    ligado() { return querendo; },
+  };
+}
+
+// Exemplos do painel e da ajuda. A ordem é a do uso real: anotar é o que
+// acontece vinte vezes por treino.
+const EXEMPLOS_JARVIS = [
+  { d: "Jarvis, anote 80 por 10", o: "anota 80 kg e 10 reps no exercício da vez" },
+  { d: "Jarvis, supino reto com 40 kg de cada lado, fiz 10", o: "soma a barra e anota 100 kg" },
+  { d: "Jarvis, descanso de 2 minutos", o: "começa o cronômetro e avisa no fim" },
+  { d: "Jarvis, próximo exercício", o: "passa para o próximo da ficha" },
+  { d: "Jarvis, mais uma série", o: "acrescenta uma série no exercício" },
+  { d: "Jarvis, qual meu recorde?", o: "diz a maior carga já registrada" },
+  { d: "Jarvis, quanto fiz da última vez?", o: "lê o que você fez no treino anterior" },
+  { d: "Jarvis, errei, apaga a última", o: "desmarca a última série anotada" },
+  { d: "Jarvis, prancha de 40 segundos", o: "anota isometria em segundos" },
+  { d: "Jarvis, adiciona leg press", o: "põe o exercício no treino de hoje" },
+  { d: "Jarvis, o aparelho está ocupado", o: "sugere um substituto do mesmo grupo" },
+  { d: "Jarvis, finaliza o treino", o: "encerra e salva no histórico" },
+];
+
 // ---------------- IMAGENS DO WGER (banco aberto, licença CC BY-SA 4.0) ----------------
 // Endereço da figura de cada exercício, resolvido uma única vez e gravado aqui.
 // Antes o app consultava a API de busca do wger a cada abertura de exercício — e
@@ -1825,6 +2338,126 @@ function ModalDemonstracao({ ex, onFechar }) {
 }
 
 // ---------------- NÍVEL DO ATLETA ----------------
+// Botão redondo do microfone + a faixa que mostra o que o Jarvis ouviu e
+// respondeu. A faixa existe porque voz sem retorno visual é um salto no
+// escuro: a pessoa precisa ver que a frase virou 80 kg por 10, e não 8 por 10.
+// "90" na tela é claro; falado precisa virar "um minuto e meio".
+// O que está entre parênteses no nome é detalhe de catálogo: ajuda a ler, atrapalha a ouvir.
+const nomeFalado = (n) => String(n || "").replace(/\s*\([^)]*\)/g, "").trim() || String(n || "");
+
+function tempoFalado(seg) {
+  const s = Math.max(0, Math.round(seg || 0));
+  const m = Math.floor(s / 60), r = s % 60;
+  if (m && r === 30) return m + " " + plural(m, "minuto", "minutos") + " e meio";
+  if (m && r) return m + " " + plural(m, "minuto", "minutos") + " e " + r + " segundos";
+  if (m) return m + " " + plural(m, "minuto", "minutos");
+  return r + " segundos";
+}
+
+function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando, naSessao, onAlternar, onAjuda }) {
+  if (!disponivel) return null;
+  const ouvindo = ligado && estado === "ouvindo";
+  // Com o cronômetro de descanso na tela, o botão sobe para não cobrir o tempo
+  const alturaBase = descansando && naSessao ? 190 : 76;
+  return (
+    <React.Fragment>
+      {ligado && (ultima || parcial) && (
+        <div className="jarvis-faixa" role="status" aria-live="polite"
+          style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 45,
+            background: "var(--bg2)", borderBottom: "2px solid " + (ultima && !ultima.ok ? "var(--obs)" : "#E1306C"),
+            padding: "calc(10px + env(safe-area-inset-top)) 16px 11px", boxShadow: "0 6px 20px rgba(0,0,0,0.35)" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, maxWidth: 480, margin: "0 auto" }}>
+            <span aria-hidden="true" style={{ fontSize: 17, lineHeight: 1.3 }}>{ultima && !ultima.ok ? "🤔" : "🎙"}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.4, fontStyle: "italic",
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {(ultima && ultima.ouvi) || parcial || "ouvindo..."}
+              </div>
+              {ultima && ultima.resposta && (
+                <div style={{ fontSize: 14, fontWeight: 800, marginTop: 3, lineHeight: 1.4,
+                  color: ultima.ok ? "var(--texto)" : "var(--obs)" }}>
+                  {ultima.resposta}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ position: "fixed", right: 14, zIndex: 25,
+        bottom: "calc(" + alturaBase + "px + env(safe-area-inset-bottom))",
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+        {ligado && (
+          <button onClick={onAjuda} aria-label="O que posso dizer ao Jarvis"
+            style={{ width: 30, height: 30, borderRadius: 15, border: "1px solid var(--borda2)",
+              background: "var(--card)", color: "var(--cinza)", fontSize: 14, fontWeight: 900, cursor: "pointer", lineHeight: 1 }}>
+            ?
+          </button>
+        )}
+        <div style={{ position: "relative", width: 58, height: 58 }}>
+          {ouvindo && <span className="jarvis-onda" aria-hidden="true" />}
+          {ouvindo && <span className="jarvis-onda atraso" aria-hidden="true" />}
+          <button onClick={onAlternar} aria-pressed={ligado}
+            aria-label={ligado ? "Desligar o Jarvis (comandos por voz)" : "Ligar o Jarvis (comandos por voz)"}
+            title={ligado ? "Jarvis ouvindo — toque para desligar" : "Ligar o Jarvis"}
+            style={{ position: "relative", width: 58, height: 58, borderRadius: 29, cursor: "pointer",
+              border: ligado ? "none" : "1px solid var(--borda2)",
+              background: ligado ? GRAD : "var(--card)",
+              color: ligado ? "#FFFFFF" : "var(--cinza)", fontSize: 24,
+              boxShadow: "0 4px 16px rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span aria-hidden="true">{ligado ? "🎤" : "🎙"}</span>
+          </button>
+        </div>
+        <span aria-hidden="true" style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1,
+          color: ligado ? "#E1306C" : "var(--cinza2)", textTransform: "uppercase" }}>
+          Jarvis
+        </span>
+      </div>
+    </React.Fragment>
+  );
+}
+
+// Lista do que dá para falar. Aparece no "?" do painel e quando alguém pede ajuda.
+function ModalAjudaJarvis({ aberto, onFechar, falaLigada, onAlternarFala }) {
+  if (!aberto) return null;
+  return (
+    <div onClick={onFechar}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.78)", zIndex: 55,
+        display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div role="dialog" aria-modal="true" aria-label="Comandos do Jarvis" onClick={(e) => e.stopPropagation()}
+        style={{ ...S.card, width: "100%", maxWidth: 440, marginBottom: 0, borderRadius: "20px 20px 0 0",
+          maxHeight: "82vh", overflowY: "auto", paddingBottom: "calc(18px + env(safe-area-inset-bottom))" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <div style={{ fontSize: 19, fontWeight: 900 }}>🎤 Fale com o Jarvis</div>
+          <button onClick={onFechar} aria-label="Fechar"
+            style={{ background: "none", border: "none", color: "var(--cinza)", fontSize: 24, fontWeight: 900, cursor: "pointer" }}>✕</button>
+        </div>
+        <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, marginBottom: 14 }}>
+          Comece sempre pelo nome dele. Depois de uma resposta, você tem 15 segundos para
+          emendar o próximo comando sem repetir o nome.
+        </div>
+        {EXEMPLOS_JARVIS.map((e, i) => (
+          <div key={i} style={{ borderBottom: "1px solid var(--borda)", padding: "9px 0" }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#E1306C" }}>“{e.d}”</div>
+            <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 2, lineHeight: 1.5 }}>{e.o}</div>
+          </div>
+        ))}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 16 }}>
+          <span style={{ fontSize: 14, fontWeight: 700 }}>Jarvis responde falando</span>
+          <button onClick={onAlternarFala} aria-pressed={falaLigada}
+            style={{ ...S.btnGhost, width: "auto", padding: "9px 14px" }}>
+            {falaLigada ? "🔊 Sim" : "🔇 Só na tela"}
+          </button>
+        </div>
+        <div style={{ fontSize: 11, color: "var(--cinza2)", lineHeight: 1.6, marginTop: 12 }}>
+          O reconhecimento é o do próprio navegador: funciona melhor no Chrome do Android.
+          Tudo o que ele entende vira texto nos mesmos campos de sempre — se errar, é só corrigir na mão.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CartaoNivel({ est }) {
   const n = nivelDe(est);
   return (
@@ -2295,9 +2928,89 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
 
 // ---------------- AJUSTES ----------------
 // Tudo que é configuração saiu da tela inicial e veio para cá, atrás da engrenagem.
+// Escolher a voz importa mais do que parece: a voz padrão do Android lê
+// "80 quilos por 10" de um jeito robótico, e a natural soa como alguém falando
+// com você. Tocar num nome já faz a voz se apresentar — ninguém escolhe no escuro.
+function SeletorVoz({ voz, setVoz }) {
+  const [vozes, setVozes] = useState(() => vozesPtBr());
+  useEffect(() => {
+    if (!VOZ_FALA) return;
+    const atualizar = () => setVozes(vozesPtBr().slice());
+    atualizar();
+    // A lista chega vazia na primeira chamada e o evento nem sempre dispara
+    const t1 = setTimeout(atualizar, 300);
+    const t2 = setTimeout(atualizar, 1200);
+    try { window.speechSynthesis.addEventListener("voiceschanged", atualizar); } catch (e) {}
+    return () => {
+      clearTimeout(t1); clearTimeout(t2);
+      try { window.speechSynthesis.removeEventListener("voiceschanged", atualizar); } catch (e) {}
+    };
+  }, []);
+
+  const provar = (cfg) => jarvisFalar(cfg.animado !== false
+    ? "Boa! Anotei supino reto, 80 quilos por 10. Descanso de um minuto e meio."
+    : "Anotei: supino reto, 80 quilos por 10. Descanso de um minuto e meio.", cfg);
+  const escolher = (nome) => {
+    const nova = { ...voz, vozNome: nome };
+    setVoz(nova);
+    provar(nova);
+  };
+  const VELOCIDADES = [[0.9, "Devagar"], [1.1, "Normal"], [1.3, "Rápido"]];
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ ...S.label, marginBottom: 8 }}>Voz do Jarvis</div>
+      {vozes.length === 0 ? (
+        <div style={{ fontSize: 12, color: "var(--cinza2)", lineHeight: 1.5 }}>
+          Este aparelho só tem a voz padrão do sistema. No Android, dá para instalar outras
+          em Configurações › Idioma › Saída de texto para voz.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+          {[{ name: null, rotulo: "Padrão" }].concat(vozes.map((v) => ({ name: v.name, rotulo: nomeCurtoVoz(v) })))
+            .map((o) => {
+              const on = (voz.vozNome || null) === o.name;
+              return (
+                <button key={o.name || "padrao"} onClick={() => escolher(o.name)} aria-pressed={on}
+                  aria-label={"Usar a voz " + o.rotulo + " e ouvir uma amostra"}
+                  style={{ border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"),
+                    background: on ? "#E1306C22" : "transparent",
+                    color: on ? "#E1306C" : "var(--texto)",
+                    borderRadius: 20, padding: "8px 13px", fontWeight: 800, fontSize: 12.5, cursor: "pointer" }}>
+                  {on ? "🔊 " : ""}{o.rotulo}
+                </button>
+              );
+            })}
+        </div>
+      )}
+      <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 8, lineHeight: 1.5 }}>
+        Toque num nome para ouvir como ele confirma uma série.
+      </div>
+
+      <div style={{ ...S.label, margin: "14px 0 8px" }}>Velocidade da fala</div>
+      <div style={{ display: "flex", gap: 7 }}>
+        {VELOCIDADES.map((vv) => {
+          const on = Math.abs((voz.velocidade || 1.1) - vv[0]) < 0.05;
+          return (
+            <button key={vv[0]} aria-pressed={on}
+              onClick={() => { const nova = { ...voz, velocidade: vv[0] }; setVoz(nova); provar(nova); }}
+              style={{ flex: 1, border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"),
+                background: on ? "#E1306C22" : "transparent",
+                color: on ? "#E1306C" : "var(--texto)",
+                borderRadius: 12, padding: "10px 8px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+              {vv[1]}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, setMeta,
   lembrete, setLembrete, avisar, ultimoBackup, totalEx, historico,
-  onBaixarBackup, onRestaurarArquivo, onExportar, onImportar, onInstalar, onVoltar }) {
+  onBaixarBackup, onRestaurarArquivo, onExportar, onImportar, onInstalar, onVoltar,
+  voz, setVoz, vozAtiva, onAlternarVoz, onAjudaVoz }) {
   const fmtSeg = (sg) => Math.floor(sg / 60) + ":" + (sg % 60 < 10 ? "0" : "") + (sg % 60);
   return (
     <div style={{ padding: "0 18px" }}>
@@ -2348,6 +3061,96 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
               style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 17, cursor: "pointer" }}>+</button>
           </span>
         </div>
+      </div>
+
+      {/* Jarvis: o ajuste do peso da barra fica aqui porque é o único número que
+          o assistente não tem como adivinhar — barra olímpica tem 20 kg, mas a
+          da sala de musculação da esquina pode ter 10. */}
+      <div style={{ ...S.card, borderColor: vozAtiva ? "#E1306C66" : "var(--borda)" }}>
+        <div style={S.label}>🎤 Jarvis — comandos por voz</div>
+        {VOZ_OUVE ? (
+          <React.Fragment>
+            <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, margin: "8px 0 12px" }}>
+              Diga <b>“Jarvis, anote 80 por 10”</b> e ele preenche a série, marca o ✓ e começa o
+              descanso. Treino inteiro sem tocar no celular.
+            </div>
+            <button style={{ ...(vozAtiva ? S.btnGhost : S.btn), marginBottom: 14 }} onClick={onAlternarVoz}>
+              {vozAtiva ? "⏹ Parar de ouvir" : "🎤 Ligar o Jarvis agora"}
+            </button>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 18 }}>
+              <span style={{ fontSize: 15, fontWeight: 700 }}>Começar junto com o treino</span>
+              <button onClick={() => setVoz((v) => ({ ...v, preferido: !v.preferido }))} aria-pressed={voz.preferido}
+                style={{ ...S.btnGhost, width: "auto", padding: "9px 14px" }}>
+                {voz.preferido ? "✓ Sim" : "Não"}
+              </button>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
+              <span style={{ fontSize: 15, fontWeight: 700 }}>Responder falando</span>
+              <button onClick={() => setVoz((v) => ({ ...v, falar: !v.falar }))} aria-pressed={voz.falar}
+                style={{ ...S.btnGhost, width: "auto", padding: "9px 14px" }}>
+                {voz.falar ? "🔊 Sim" : "🔇 Só na tela"}
+              </button>
+            </div>
+
+            {voz.falar && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ ...S.label, marginBottom: 8 }}>Jeito de falar</div>
+                <div style={{ display: "flex", gap: 7 }}>
+                  {[[true, "🔥 Animado"], [false, "Direto"]].map((op) => {
+                    const on = (voz.animado !== false) === op[0];
+                    return (
+                      <button key={String(op[0])} aria-pressed={on}
+                        onClick={() => {
+                          const nova = { ...voz, animado: op[0] };
+                          setVoz(nova);
+                          jarvisFalar(op[0] ? "Boa! Anotei supino reto, 80 quilos por 10. Descanso de um minuto e meio."
+                            : "Anotei: supino reto, 80 quilos por 10. Descanso de um minuto e meio.", nova);
+                        }}
+                        style={{ flex: 1, border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"),
+                          background: on ? "#E1306C22" : "transparent",
+                          color: on ? "#E1306C" : "var(--texto)",
+                          borderRadius: 12, padding: "10px 8px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+                        {op[1]}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 8, lineHeight: 1.5 }}>
+                  No animado ele comemora, varia as palavras e fala num tom mais alto.
+                </div>
+              </div>
+            )}
+            {voz.falar && <SeletorVoz voz={voz} setVoz={setVoz} />}
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <span style={{ fontSize: 15, fontWeight: 700 }}>Peso da barra</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button onClick={() => setVoz((v) => ({ ...v, barra: Math.max(0, (v.barra || 0) - 2.5) }))}
+                    aria-label="Diminuir o peso da barra"
+                    style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 17, cursor: "pointer" }}>−</button>
+                  <b style={{ color: "#E1306C", minWidth: 56, textAlign: "center" }}>{fmtNum(voz.barra || 0)} kg</b>
+                  <button onClick={() => setVoz((v) => ({ ...v, barra: Math.min(30, (v.barra || 0) + 2.5) }))}
+                    aria-label="Aumentar o peso da barra"
+                    style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 17, cursor: "pointer" }}>+</button>
+                </span>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>
+                Entra na conta quando você diz <b>“de cada lado”</b>: {fmtNum(voz.barra || 0)} kg de barra
+                com 20 de cada lado viram {fmtNum((voz.barra || 0) + 40)} kg. Deixe em 0 para contar só as anilhas.
+              </div>
+            </div>
+
+            <button style={S.btnGhost} onClick={onAjudaVoz}>Ver tudo o que dá para falar</button>
+          </React.Fragment>
+        ) : (
+          <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, marginTop: 8 }}>
+            Este navegador não reconhece voz. No celular, abra o app pelo <b>Chrome</b> —
+            é onde o Jarvis funciona. Tudo o que ele faz continua disponível na mão.
+          </div>
+        )}
       </div>
 
       <CartaoLembrete lembrete={lembrete} setLembrete={setLembrete} avisar={avisar} />
@@ -3003,7 +3806,8 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
 }
 
 // ---------------- SESSÃO: registro + cronômetro com som + observações + vídeo ----------------
-function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, descanso, setDescanso, som, setSom, onFinalizar, onDescartar, onVoltar, pedirConfirmacao }) {
+function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, descanso, setDescanso, som, setSom, onFinalizar, onDescartar, onVoltar, pedirConfirmacao,
+  acoesVoz, vozAtiva, vozBarra, vozAnimado, onDescansando, responderVoz }) {
   // Recorde e última execução de cada exercício: servem de referência ao lado de
   // cada série e permitem festejar o recorde no instante em que ele acontece.
   const recordes = useMemo(() => recordesPorExercicio(historico), [historico]);
@@ -3039,6 +3843,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     return () => clearInterval(iv);
   }, [fimDescanso]);
 
+  useEffect(() => { if (onDescansando) onDescansando(!!fimDescanso); }, [fimDescanso, onDescansando]);
+  useEffect(() => () => { if (onDescansando) onDescansando(false); }, [onDescansando]);
+
   const restante = fimDescanso ? Math.max(0, Math.ceil((fimDescanso - agora) / 1000)) : 0;
   const acabou = fimDescanso && restante === 0;
 
@@ -3060,6 +3867,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         setTimeout(() => beep(990, 0.45, 0.3), 240);
       }
       try { if (navigator.vibrate) navigator.vibrate([300, 120, 300]); } catch (e) {}
+      // Com o celular no bolso, o bipe diz "acabou" mas não diz o que vem agora.
+      // Essa é a frase que evita tirar o telefone do bolso entre as séries.
+      if (vozAtiva && responderVoz) {
+        const prox = alvo ? " Próxima: série " + (alvo.si + 1) + " de " + nomeDoItem(alvo.ei) + "." : "";
+        responderVoz((vozAnimado ? animo(ANIMO_VOLTA, "volta") + " Descanso fechado." : "Descanso concluído.") + prox, true);
+      }
     }
   }, [acabou, avisou, som]);
 
@@ -3120,7 +3933,14 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     ultimoBipe.current = null;
     if (som) beep(520, 0.08, 0.15); // clique de início (também "desbloqueia" o áudio no celular)
   };
-  const mais15 = () => { setFimDescanso((f) => (f ? f + 15000 : Date.now() + 15000)); setTotalDescanso((tt) => tt + 15); setAvisou(false); ultimoBipe.current = null; };
+  const esticarDescanso = (seg) => {
+    const s = Math.max(5, Math.round(seg || 15));
+    setFimDescanso((f) => (f ? f + s * 1000 : Date.now() + s * 1000));
+    setTotalDescanso((tt) => tt + s);
+    setAvisou(false);
+    ultimoBipe.current = null;
+  };
+  const mais15 = () => esticarDescanso(15);
   const fecharDescanso = () => { setFimDescanso(null); setAvisou(false); ultimoBipe.current = null; };
 
   const upSerie = (ei, si, campo, val) => {
@@ -3235,13 +4055,23 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const seguinte = sessao.itens[ei + 1];
     const noMeioDoConjunto = !!(item.conjunto && seguinte && seguinte.conjunto === item.conjunto);
     if (!noMeioDoConjunto) iniciarDescanso(descansoDe(item));
+    // O ✓ na tela também merece a comemoração falada quando o Jarvis está ouvindo
+    const recorde = conferirRecorde(item, serie);
+    if (recorde && vozAtiva && responderVoz) responderVoz(recorde, true);
+  };
 
+  // Festeja o recorde no instante em que ele acontece. Fica numa função à parte
+  // porque a série pode ser marcada pelo botão ✓ ou ditada ao Jarvis, e os dois
+  // caminhos precisam festejar igual.
+  // Devolve a frase do recorde (ou nada). Quem chamou decide se fala: ditar a
+  // série e comemorar são duas falas que não podem atropelar uma à outra.
+  const conferirRecorde = (item, serie) => {
     // Aquecimento não bate recorde: ele existe para preparar, não para medir.
-    if (ehAquecimento(serie)) return;
+    if (ehAquecimento(serie)) return null;
 
     const rec = recordes[item.exercicioId];
     const ex = exPorId(item.exercicioId);
-    if (!rec) return;
+    if (!rec) return null;
 
     // Isometria compara segundos; o resto compara carga.
     if (ehTempo(serie)) {
@@ -3256,8 +4086,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           destaque: (ex ? ex.nome : "Exercício") + "\n" + seg + " segundos",
           detalhe: "Seu melhor era " + rec.segundos + "s. Você segurou " + (seg - rec.segundos) + "s mais!",
         });
+        return "Recorde! " + seg + " segundos em " + (ex ? nomeFalado(ex.nome) : "isometria") + ". Seu melhor era " + rec.segundos + ".";
       }
-      return;
+      return null;
     }
 
     const peso = cargaDe(serie);
@@ -3273,9 +4104,302 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         destaque: (ex ? ex.nome : "Exercício") + "\n" + peso + " kg × " + reps,
         detalhe: "Seu melhor era " + rec.peso + " kg. Você subiu " + ganho.toLocaleString("pt-BR") + " kg!",
       });
+      return "Recorde pessoal! " + fmtNum(peso) + " quilos em " + (ex ? nomeFalado(ex.nome) : "exercício") +
+        ". Seu melhor era " + fmtNum(rec.peso) + ". Subiu " + fmtNum(ganho) + ".";
     }
+    return null;
   };
   marcarSerieRef.current = marcarSerie;
+
+  // ---------- JARVIS DENTRO DO TREINO ----------
+  // O ouvinte mora no componente raiz, mas marcar série, cronometrar o descanso
+  // e trocar exercício só existe aqui. As funções são penduradas numa ref
+  // durante o render — o mesmo caminho do marcarSerieRef logo acima.
+  const [focoEi, setFocoEi] = useState(null);
+  const ultimoAnotado = useRef(null);
+
+  // O "alvo" é onde a próxima frase vai cair: a primeira série não marcada.
+  // É o que permite dizer só "Jarvis, 80 por 10", sem repetir o nome do exercício.
+  const alvo = useMemo(() => {
+    const pendente = (it) => it.series.findIndex((s) => !s.feito);
+    if (focoEi !== null && sessao.itens[focoEi]) {
+      const si = pendente(sessao.itens[focoEi]);
+      return { ei: focoEi, si: si < 0 ? sessao.itens[focoEi].series.length : si };
+    }
+    for (let i = 0; i < sessao.itens.length; i++) {
+      const si = pendente(sessao.itens[i]);
+      if (si >= 0) return { ei: i, si: si };
+    }
+    if (!sessao.itens.length) return null;
+    const ult = sessao.itens.length - 1;
+    return { ei: ult, si: sessao.itens[ult].series.length };
+  }, [sessao, focoEi]);
+
+  const nomeDoItem = (ei) => {
+    const it = sessao.itens[ei];
+    const ex = it && exPorId(it.exercicioId);
+    return ex ? nomeFalado(ex.nome) : "exercício";
+  };
+  const irPara = (ei) => {
+    const it = sessao.itens[ei];
+    if (!it) return;
+    setFocoEi(ei);
+    setTimeout(() => {
+      try {
+        const el = document.getElementById("item-" + it.uid);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      } catch (e) {}
+    }, 60);
+  };
+  const descreverItem = (ei) => {
+    const it = sessao.itens[ei];
+    if (!it) return "";
+    const falta = it.series.filter((s) => !s.feito).length;
+    let txt = nomeDoItem(ei) + ". " + (falta ? falta + " " + plural(falta, "série", "séries") + " pela frente" : "todas as séries já marcadas");
+    if (it.sugerido && it.sugerido.peso) txt += ". Comece com " + fmtNum(it.sugerido.peso) + " quilos";
+    else if (it.sugerido && it.sugerido.segundos) txt += ". Tente " + it.sugerido.segundos + " segundos";
+    else {
+      const u = ultimas[it.exercicioId];
+      if (u && u.length) {
+        const s0 = u[0];
+        txt += ". Última vez: " + (ehTempo(s0) ? segundosDe(s0) + " segundos" : fmtNum(s0.peso) + " quilos por " + repsDe(s0));
+      }
+    }
+    return txt + ".";
+  };
+
+  // "40 de cada lado" só vira 2×40 + barra onde existe barra para somar.
+  // No leg press ou na polia, a conta é só o dobro — e a resposta sempre diz a
+  // soma em voz alta, para o erro aparecer na hora.
+  const temBarraParaSomar = (ex) => {
+    const eq = semAcento(ex && ex.equip);
+    return eq.indexOf("barra") >= 0 && eq.indexOf("fixa") < 0;
+  };
+
+  const anotarPorVoz = (c) => {
+    let itens = sessao.itens.slice();
+    let ei = -1;
+    const dito = acharExercicio(c.frase, todos, itens.map((it) => it.exercicioId));
+    if (dito) {
+      ei = itens.findIndex((it) => it.exercicioId === dito.id);
+      if (ei < 0) {
+        // Falou um exercício que não está no treino: entra agora, já com a série
+        const sug = sugerirCarga(historico, dito.id, c.reps || 12);
+        itens = itens.concat([{ uid: novoUid(), exercicioId: dito.id, obs: "", sugerido: sug || null, series: montarSeries(dito, 1, c.reps || 12, sug) }]);
+        ei = itens.length - 1;
+      }
+    } else if (alvo) ei = alvo.ei;
+    if (ei < 0) return { ok: false, fala: "O treino está vazio. Diga: Jarvis, adiciona supino reto." };
+
+    const item = itens[ei];
+    const ex = exPorId(item.exercicioId);
+    const isometria = !!(ex && ex.tempo);
+    let series = item.series.slice();
+    let si = series.findIndex((s) => !s.feito);
+    if (si < 0) {
+      const ult = series[series.length - 1] || {};
+      series = series.concat([isometria || ehTempo(ult)
+        ? { segundos: ult.segundos || "", feito: false }
+        : { peso: ult.peso || "", reps: ult.reps || "", feito: false }]);
+      si = series.length - 1;
+    }
+    const base = series[si];
+    const valores = {};
+    let extra = "";
+    if (isometria) {
+      const seg = c.segundos != null ? c.segundos : (c.reps != null ? c.reps : parseInt(base.segundos) || 0);
+      if (!seg) return { ok: false, fala: "Quantos segundos você segurou?" };
+      valores.segundos = String(Math.round(seg));
+    } else {
+      let peso = c.peso;
+      if (peso != null && c.porLado) {
+        const barra = temBarraParaSomar(ex) ? (parseFloat(vozBarra) || 0) : 0;
+        const total = peso * 2 + barra;
+        extra = " " + fmtNum(peso) + " de cada lado" + (barra ? " mais a barra de " + fmtNum(barra) : "") + " dá " + fmtNum(total) + ".";
+        peso = total;
+      }
+      const reps = c.reps != null ? c.reps : parseInt(base.reps) || 0;
+      if (!reps) return { ok: false, fala: "Faltou a repetição. Diga, por exemplo: 80 por 10." };
+      valores.reps = String(Math.round(reps));
+      if (peso != null) valores.peso = String(Math.round(peso * 100) / 100);
+    }
+    if (c.aquecimento) valores.aquec = true;
+
+    const nova = Object.assign({}, base, valores, { feito: true });
+    series[si] = nova;
+    itens[ei] = Object.assign({}, item, { series: series });
+    setSessao(Object.assign({}, sessao, { itens: itens }));
+    setFocoEi(ei);
+    ultimoAnotado.current = { uid: item.uid, si: si };
+
+    // Daqui em diante é o mesmo caminho do botão ✓: descanso e recorde.
+    const seguinte = itens[ei + 1];
+    const noMeioDoConjunto = !!(item.conjunto && seguinte && seguinte.conjunto === item.conjunto);
+    const segDescanso = descansoDe(item);
+    if (!noMeioDoConjunto) iniciarDescanso(segDescanso);
+    const recorde = conferirRecorde(itens[ei], nova);
+
+    const feito = isometria
+      ? valores.segundos + " segundos"
+      : (valores.peso ? fmtNum(valores.peso) + " quilos por " + valores.reps : valores.reps + " repetições");
+    const restantes = series.filter((s) => !s.feito).length;
+    // A confirmação diz SEMPRE o que entendeu — exercício, carga e repetições —
+    // porque o reconhecimento erra e é ouvindo o número de volta que dá para pegar.
+    const nomeEx = ex ? nomeFalado(ex.nome) : "exercício";
+    let fala = vozAnimado
+      ? animo(ANIMO_ANOTOU, "anotou") + " Anotei " + nomeEx + ", " + feito + "." + extra
+      : "Anotei: " + nomeEx + ", " + feito + "." + extra;
+    if (c.aquecimento) fala += " Contei como aquecimento.";
+    fala += " Série " + (si + 1) + " de " + series.length + ".";
+    if (noMeioDoConjunto) fala += " Emenda no próximo, sem descanso.";
+    else fala += " Descanso de " + tempoFalado(segDescanso) + ".";
+    if (!restantes && series.length > 1) fala += " Esse exercício terminou.";
+    // O recorde vem na frente: é a notícia boa, e atrasá-la seria desperdiçá-la.
+    if (recorde) fala = recorde + " " + fala;
+    return { ok: true, fala: fala };
+  };
+
+  const desfazerPorVoz = () => {
+    let ei = -1, si = -1;
+    const marca = ultimoAnotado.current;
+    if (marca) {
+      const i = sessao.itens.findIndex((it) => it.uid === marca.uid);
+      const s = i >= 0 && sessao.itens[i].series[marca.si];
+      if (s && s.feito) { ei = i; si = marca.si; }
+    }
+    if (ei < 0) {
+      for (let i = sessao.itens.length - 1; i >= 0 && ei < 0; i--) {
+        for (let j = sessao.itens[i].series.length - 1; j >= 0; j--) {
+          if (sessao.itens[i].series[j].feito) { ei = i; si = j; break; }
+        }
+      }
+    }
+    if (ei < 0) return { ok: false, fala: "Não há nenhuma série marcada para apagar." };
+    upSerie(ei, si, "feito", false);
+    fecharDescanso();
+    ultimoAnotado.current = null;
+    setFocoEi(ei);
+    return { ok: true, fala: "Desmarquei a série " + (si + 1) + " de " + nomeDoItem(ei) + ". Pode ditar de novo." };
+  };
+
+  const executarVoz = (c) => {
+    const itens = sessao.itens;
+    const idsNoTreino = itens.map((it) => it.exercicioId);
+    switch (c.tipo) {
+      case "descanso": {
+        const padrao = alvo ? descansoDe(itens[alvo.ei]) : descanso;
+        const seg = Math.max(5, Math.min(1800, c.segundos || padrao));
+        iniciarDescanso(seg);
+        return { ok: true, fala: "Descansando " + tempoFalado(seg) + ". Eu aviso na hora de voltar." };
+      }
+      case "pularDescanso":
+        if (!fimDescanso) return { ok: false, fala: "Não tem descanso correndo agora." };
+        fecharDescanso();
+        return { ok: true, fala: "Descanso encerrado. Bora." };
+      case "esticarDescanso": {
+        const s = Math.max(5, Math.min(600, c.segundos || 15));
+        esticarDescanso(s);
+        return { ok: true, fala: "Mais " + tempoFalado(s) + "." };
+      }
+      case "anotar": return anotarPorVoz(c);
+      case "desfazer": return desfazerPorVoz();
+      case "maisSerie": {
+        if (!alvo) return { ok: false, fala: "O treino está vazio." };
+        addSerie(alvo.ei);
+        return { ok: true, fala: "Mais uma série em " + nomeDoItem(alvo.ei) + "." };
+      }
+      case "proximo": {
+        if (!itens.length) return { ok: false, fala: "O treino está vazio." };
+        const base = alvo ? alvo.ei : -1;
+        const prox = Math.min(itens.length - 1, base + 1);
+        if (prox === base) return { ok: false, fala: "Esse já é o último exercício do treino." };
+        irPara(prox);
+        return { ok: true, fala: "Agora: " + descreverItem(prox) };
+      }
+      case "anterior": {
+        if (!itens.length) return { ok: false, fala: "O treino está vazio." };
+        const base = alvo ? alvo.ei : 0;
+        if (base <= 0) return { ok: false, fala: "Esse já é o primeiro exercício." };
+        irPara(base - 1);
+        return { ok: true, fala: "Voltando para: " + descreverItem(base - 1) };
+      }
+      case "adicionar": {
+        const novo = acharExercicio(c.frase, todos, []);
+        if (!novo) return { ok: false, fala: "Não achei esse exercício. Fale o nome como está na lista." };
+        const ja = itens.findIndex((it) => it.exercicioId === novo.id);
+        if (ja >= 0) { irPara(ja); return { ok: true, fala: nomeFalado(novo.nome) + " já está no treino. Pode ditar a série." }; }
+        addExercicio(novo.id);
+        setFocoEi(itens.length);
+        const sug = sugerirCarga(historico, novo.id, 12);
+        return { ok: true, fala: "Adicionei " + nomeFalado(novo.nome) + "." + (sug && sug.peso ? " Da última vez foram " + fmtNum(sug.anterior) + " quilos." : "") };
+      }
+      case "trocar": {
+        if (!alvo) return { ok: false, fala: "Não há exercício para trocar." };
+        const atual = itens[alvo.ei];
+        const pedido = acharExercicio(c.frase, todos, []);
+        if (pedido && pedido.id !== atual.exercicioId && !idsNoTreino.some((id) => id === pedido.id)) {
+          substituirExercicio(alvo.ei, pedido.id);
+          irPara(alvo.ei);
+          return { ok: true, fala: "Troquei " + nomeDoItem(alvo.ei) + " por " + nomeFalado(pedido.nome) + "." };
+        }
+        const opcoes = alternativasPara(atual.exercicioId);
+        if (!opcoes.length) return { ok: false, fala: "Não achei outro exercício desse grupo fora do treino." };
+        setTrocando(alvo.ei);
+        irPara(alvo.ei);
+        const tres = opcoes.slice(0, 3).map((e) => nomeFalado(e.nome));
+        return { ok: true, fala: "No lugar de " + nomeDoItem(alvo.ei) + ": " + tres.join(", ") + ". Diga: Jarvis, troca por " + tres[0] + "." };
+      }
+      case "recorde": {
+        const ex = acharExercicio(c.frase, todos, idsNoTreino) || (alvo ? exPorId(itens[alvo.ei].exercicioId) : null);
+        if (!ex) return { ok: false, fala: "Recorde de qual exercício?" };
+        const r = recordes[ex.id];
+        if (!r || (!r.peso && !r.segundos)) return { ok: true, fala: "Ainda não há recorde em " + nomeFalado(ex.nome) + ". O de hoje vai ser o primeiro." };
+        if (ex.tempo || (r.tempo && !r.peso)) return { ok: true, fala: "Seu recorde em " + nomeFalado(ex.nome) + " é " + r.segundos + " segundos." };
+        return { ok: true, fala: "Seu recorde em " + nomeFalado(ex.nome) + " é " + fmtNum(r.peso) + " quilos" + (r.reps ? " por " + r.reps + " repetições" : "") + "." };
+      }
+      case "ultimaVez": {
+        const ex = acharExercicio(c.frase, todos, idsNoTreino) || (alvo ? exPorId(itens[alvo.ei].exercicioId) : null);
+        if (!ex) return { ok: false, fala: "De qual exercício?" };
+        const u = ultimas[ex.id];
+        if (!u || !u.length) return { ok: true, fala: "Não encontrei " + nomeFalado(ex.nome) + " no seu histórico. Hoje é a estreia." };
+        const txt = u.slice(0, 4).map((s) => (ehTempo(s) ? segundosDe(s) + " segundos" : fmtNum(s.peso) + " por " + repsDe(s))).join(", ");
+        return { ok: true, fala: "Da última vez em " + nomeFalado(ex.nome) + ": " + txt + "." };
+      }
+      case "situacao": {
+        const f = itens.reduce((a, it) => a + it.series.filter((s) => s.feito).length, 0);
+        const t = itens.reduce((a, it) => a + it.series.length, 0);
+        const exFalta = itens.filter((it) => it.series.some((s) => !s.feito)).length;
+        return { ok: true, fala: f + " de " + t + " " + plural(t, "série", "séries") + " marcadas. " +
+          plural(exFalta, "Falta ", "Faltam ") + exFalta + " " + plural(exFalta, "exercício", "exercícios") + "." };
+      }
+      case "tempo": {
+        const min = Math.max(1, Math.round((Date.now() - sessao.inicio) / 60000));
+        return { ok: true, fala: "Você está treinando há " + min + " " + plural(min, "minuto", "minutos") + "." };
+      }
+      case "finalizar": {
+        // Finalizar sem nenhuma série marcada é recusado lá na frente; dizer
+        // "finalizando" e abrir um aviso de erro logo depois seria mentir.
+        const marcadas = itens.reduce((a, it) => a + it.series.filter((s) => s.feito).length, 0);
+        if (!marcadas) return { ok: false, fala: "Nenhuma série marcada ainda. Dite uma série antes de encerrar." };
+        onFinalizar();
+        return { ok: true, fala: "Treino encerrado e salvo. Descanso merecido." };
+      }
+      default:
+        return null;
+    }
+  };
+
+  // Penduradas na ref a cada render, para o raiz sempre chamar a versão atual
+  if (acoesVoz) {
+    acoesVoz.current = {
+      vivo: true,
+      executar: executarVoz,
+      descansando: !!fimDescanso,
+      alvo: alvo ? nomeDoItem(alvo.ei) : null,
+    };
+  }
+  useEffect(() => () => { if (acoesVoz) acoesVoz.current = {}; }, [acoesVoz]);
+
 
   const feitas = sessao.itens.reduce((a, it) => a + it.series.filter((s) => s.feito).length, 0);
   const total = sessao.itens.reduce((a, it) => a + it.series.length, 0);
@@ -3298,7 +4422,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   );
 
   return (
-    <div style={{ padding: "0 18px", paddingBottom: fimDescanso ? 210 : 20 }}>
+    <div style={{ padding: "0 18px", paddingBottom: (fimDescanso ? 210 : 20) + (vozAtiva ? 60 : 0) }}>
       <button style={S.voltar} onClick={onVoltar}>← Voltar (o treino continua salvo)</button>
       <div style={{ ...S.card, borderColor: "#E1306C44" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
@@ -3362,10 +4486,14 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         const fechaConjunto = noConjunto && (!proximo || proximo.conjunto !== it.conjunto);
         const tamConjunto = noConjunto ? sessao.itens.filter((x) => x.conjunto === it.conjunto).length : 0;
         const ehIsometria = !!(ex && ex.tempo);
+        // Com o Jarvis ligado, este é o cartão que vai receber a próxima frase.
+        // Sem essa marca, ditar "80 por 10" é torcer para cair no lugar certo.
+        const ehAlvo = vozAtiva && alvo && alvo.ei === ei;
         return (
-          <div key={it.uid || ei}
+          <div key={it.uid || ei} id={"item-" + (it.uid || ei)}
             style={{
               ...S.card,
+              ...(ehAlvo ? { borderColor: "#E1306C", boxShadow: "0 0 0 2px #E1306C33" } : {}),
               ...(noConjunto ? {
                 borderLeft: "3px solid #E1306C",
                 borderTopLeftRadius: abreConjunto ? 18 : 4,
@@ -3376,6 +4504,15 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
             {abreConjunto && (
               <div style={{ ...S.label, color: "#E1306C", marginBottom: 10 }}>
                 ⛓ {tamConjunto >= 3 ? "Tri-set" : "Bi-set"} — sem descanso entre eles
+              </div>
+            )}
+            {ehAlvo && (
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10, padding: "7px 10px",
+                background: "#E1306C15", border: "1px solid #E1306C44", borderRadius: 10 }}>
+                <span aria-hidden="true" style={{ fontSize: 13 }}>🎤</span>
+                <span style={{ fontSize: 11.5, color: "#E1306C", fontWeight: 800, lineHeight: 1.4 }}>
+                  O Jarvis anota aqui — diga “Jarvis, {ehIsometria ? "45 segundos" : "80 por 10"}”
+                </span>
               </div>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
@@ -4230,6 +5367,25 @@ function TreinoLivre() {
   // na aba de números em vez de na lista de treinos.
   const [secaoHistorico, setSecaoHistorico] = useState("treinos");
   const [festa, setFesta] = useState(null);
+  // ---- Jarvis ----
+  // "preferido" fica gravado (é a escolha de usar comandos por voz); "ativa" é
+  // só desta visita, porque ligar um microfone sozinho ao abrir o app seria
+  // uma surpresa desagradável.
+  const [voz, setVoz] = useState({ preferido: false, falar: true, barra: 20, vozNome: null, velocidade: 1.1, animado: true });
+  const [vozAtiva, setVozAtiva] = useState(false);
+  const [vozEstado, setVozEstado] = useState("desligado");
+  const [vozParcial, setVozParcial] = useState("");
+  const [vozUltima, setVozUltima] = useState(null);
+  const [descansando, setDescansando] = useState(false);
+  const [ajudaVoz, setAjudaVoz] = useState(false);
+  const acoesVoz = useRef({});
+  const ouvinte = useRef(null);
+  const tratarFalaRef = useRef(null);
+  // O ouvinte vive fora do React e precisa enxergar a configuração atual
+  const vozRef = useRef(voz);
+  // Depois de uma resposta, dá para emendar o próximo comando sem repetir o
+  // nome: entre duas séries ninguém quer dizer "Jarvis" quatro vezes seguidas.
+  const janelaSeguir = useRef(0);
   const arquivoRef = useRef(null);
   const [carregado, setCarregado] = useState(false);
 
@@ -4250,6 +5406,65 @@ function TreinoLivre() {
   const importRef = useRef("");
   const pedirConfirmacao = (msg, onSim) => setModal({ msg, onSim });
   const avisar = (msg) => setModal({ msg });
+
+  // ---------- JARVIS: ouvir, responder e encaminhar ----------
+  const mostrarVoz = useCallback((ouvi, resposta, ok) => {
+    setVozParcial("");
+    setVozUltima({ ouvi: ouvi || "", resposta: resposta || "", ok: ok !== false, t: Date.now() });
+    if (resposta) jarvisFalar(resposta, vozRef.current);
+    // A janela só se renova depois de um comando que deu certo. Renovar a cada
+    // "não entendi" deixaria a conversa da academia inteira valendo como comando.
+    janelaSeguir.current = ok !== false ? Date.now() + 15000 : 0;
+  }, []);
+  const responderVoz = useCallback((texto, ok) => mostrarVoz("", texto, ok), [mostrarVoz]);
+
+  const ligarVoz = useCallback(() => {
+    if (!VOZ_OUVE) {
+      avisar("Este navegador não reconhece voz. No celular, abra o app pelo Chrome — é onde o Jarvis funciona melhor.");
+      return;
+    }
+    if (!ouvinte.current) {
+      ouvinte.current = criarOuvinte({
+        aoParcial: (t) => setVozParcial(t),
+        aoFinal: (t) => { if (tratarFalaRef.current) tratarFalaRef.current(t); },
+        aoEstado: (e) => setVozEstado(e),
+        aoErro: (tipo) => {
+          setVozAtiva(false);
+          avisar(tipo === "permissao"
+            ? "Preciso da permissão do microfone para ouvir. Toque no cadeado ao lado do endereço e libere o microfone para este site."
+            : "Não consegui abrir o microfone. Confira se outro app não está usando.");
+        },
+      });
+    }
+    ouvinte.current.ligar();
+    setVozAtiva(true);
+    setVoz((v) => (v.preferido ? v : { ...v, preferido: true }));
+  }, []);
+
+  const desligarVoz = useCallback(() => {
+    if (ouvinte.current) ouvinte.current.desligar();
+    setVozAtiva(false);
+    setVozParcial("");
+    setVozUltima(null);
+  }, []);
+
+  // O navegador encerra o reconhecimento sozinho e nem sempre avisa. Esta
+  // conferência periódica é o que mantém o microfone vivo o treino inteiro.
+  useEffect(() => {
+    if (!vozAtiva) return;
+    const iv = setInterval(() => { if (ouvinte.current) ouvinte.current.conferir(); }, 4000);
+    const aoVoltar = () => { if (document.visibilityState === "visible" && ouvinte.current) ouvinte.current.conferir(); };
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", aoVoltar); };
+  }, [vozAtiva]);
+  useEffect(() => () => { if (ouvinte.current) ouvinte.current.desligar(); }, []);
+
+  // A faixa do que foi ouvido some sozinha: é um aviso, não um histórico.
+  useEffect(() => {
+    if (!vozUltima) return;
+    const t = setTimeout(() => setVozUltima(null), 9000);
+    return () => clearTimeout(t);
+  }, [vozUltima]);
 
   // Fechar com Esc, como em qualquer caixa de diálogo
   useEffect(() => {
@@ -4294,7 +5509,7 @@ function TreinoLivre() {
   const exportarDados = () => {
     // O backup não leva a sessão em andamento de propósito: restaurar num outro
     // aparelho um treino pela metade só confundiria.
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, voz, seedV3: true });
     setModal({
       msg: "Backup dos seus dados. Toque em Copiar e guarde em local seguro (ex.: cole numa conversa sua no WhatsApp). Para restaurar, use Importar dados.",
       texto: dados,
@@ -4328,6 +5543,8 @@ function TreinoLivre() {
           if (d.meta) setMeta(d.meta);
           if (d.medidas) setMedidas(d.medidas);
           if (d.lembrete) setLembrete(d.lembrete);
+          if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
+            vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false });
           setSessao(null);
           setAba("inicio");
           setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 100);
@@ -4339,6 +5556,7 @@ function TreinoLivre() {
   };
 
   TEMA_APP = tema;
+  vozRef.current = voz;
   const todos = useMemo(() => [...EXERCICIOS, ...customEx], [customEx]);
   // Busca por id via índice. Antes era uma varredura da lista inteira, chamada
   // uma vez por série ao montar o histórico — ou seja, lento na proporção do quadrado.
@@ -4351,7 +5569,7 @@ function TreinoLivre() {
 
   useEffect(() => {
     let tr = [], hi = [], ce = [], de = 90, so = true, seed = false, pg = null, ss = null, mt = 3;
-    let md = [], lb = null, ub = null, ft = [];
+    let md = [], lb = null, ub = null, ft = [], vz = null;
     try {
       const raw = store.get(STORAGE_KEY);
       if (raw) {
@@ -4369,6 +5587,7 @@ function TreinoLivre() {
         ft = d.fotos || [];
         if (d.lembrete) lb = d.lembrete;
         ub = d.ultimoBackup || null;
+        if (d.voz) vz = d.voz;
         // Retoma o treino que ficou pela metade (app fechado, página recarregada,
         // bateria acabou). Passadas 12 horas presumimos que aquele treino não volta.
         if (d.sessao && d.sessao.inicio && Date.now() - d.sessao.inicio < 12 * 3600000) {
@@ -4398,7 +5617,13 @@ function TreinoLivre() {
     setTreinos(tr); setHistorico(hi); setCustomEx(ce); setDescanso(de); setSom(so); setProgramas(pg); setMeta(mt);
     setMedidas(md); setFotos(ft); setUltimoBackup(ub);
     if (lb) setLembrete({ ativo: !!lb.ativo, hora: lb.hora || "18:00", dias: Array.isArray(lb.dias) ? lb.dias : [1, 2, 3, 4, 5] });
+    if (vz) setVoz({ preferido: !!vz.preferido, falar: vz.falar !== false, barra: vz.barra === undefined ? 20 : vz.barra,
+      vozNome: vz.vozNome || null, velocidade: vz.velocidade || 1.1, animado: vz.animado !== false });
     if (ss) { setSessao(ss); setAba("sessao"); }
+    // Recarregou no meio do treino (ou o sistema descarregou o app): quem já
+    // escolheu treinar por voz volta ouvindo. A permissão do microfone já foi
+    // dada antes para este site, então não há caixa nova de permissão aqui.
+    if (ss && vz && vz.preferido) setTimeout(() => ligarVoz(), 500);
     setCarregado(true);
 
     // Se o app foi aberto por um link compartilhado (ficha, treino completo ou desafio)
@@ -4455,10 +5680,10 @@ function TreinoLivre() {
   const dadosRef = useRef("");
   useEffect(() => {
     if (!carregado) return;
-    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, seedV3: true });
+    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, seedV3: true });
     const t = setTimeout(() => store.set(STORAGE_KEY, dadosRef.current), 400);
     return () => clearTimeout(t);
-  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, carregado]);
+  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, carregado]);
 
   // Fechou o app ou trocou de aba no meio do treino? Grava na hora, sem esperar o respiro.
   useEffect(() => {
@@ -4535,6 +5760,9 @@ function TreinoLivre() {
       }),
     });
     setAba("sessao");
+    // Quem já usou o Jarvis não quer ligar o microfone a cada treino. O toque em
+    // "Treinar" é o gesto que o navegador exige para abrir o microfone.
+    if (vozRef.current.preferido && !vozAtiva) ligarVoz();
   };
 
   const iniciarSessao = (treino) => {
@@ -4558,6 +5786,7 @@ function TreinoLivre() {
       });
       setAba("sessao");
       registrarEvento("treino-livre-iniciado");
+      if (vozRef.current.preferido && !vozAtiva) ligarVoz();
     };
     if (sessao) {
       pedirConfirmacao("Você já tem um treino em andamento (" + sessao.nome + "). Começar um treino livre vai descartá-lo. Continuar?", comecar);
@@ -4565,6 +5794,81 @@ function TreinoLivre() {
     }
     comecar();
   };
+
+  // Cada frase ouvida passa por aqui: nome do assistente, interpretação e
+  // encaminhamento. Fica depois de iniciarSessao de propósito — comandos de
+  // voz podem começar um treino.
+  const tratarFala = (bruto) => {
+    const norm = normalizarFala(bruto);
+    if (!norm) return;
+    const depois = depoisDeJarvis(norm);
+    let corpo = depois;
+    if (corpo === null) {
+      // Sem o nome dele, só vale dentro da janela aberta pela última resposta.
+      // É o que impede a conversa da academia inteira de virar anotação.
+      if (Date.now() > janelaSeguir.current) return;
+      corpo = norm;
+    }
+    if (!corpo) { mostrarVoz(bruto, "Estou aqui. Pode falar.", true); return; }
+
+    const naSessao = !!(sessao && acoesVoz.current && acoesVoz.current.vivo);
+    const c = interpretarVoz(corpo, { descansando: descansando, naSessao: naSessao });
+    if (!c) {
+      // Dentro da janela, frase que não é comando é conversa de academia:
+      // fecha a janela e fica quieto, em vez de responder a quem não falou com ele.
+      if (depois === null) { janelaSeguir.current = 0; return; }
+      mostrarVoz(bruto, "Não entendi. Toque no ? do microfone para ver o que dá para falar.", false);
+      return;
+    }
+    registrarEvento("jarvis-comando");
+
+    if (c.tipo === "ajuda") { setAjudaVoz(true); mostrarVoz(bruto, "Abri a lista de comandos.", true); return; }
+    if (c.tipo === "mudo") { setVoz((v) => ({ ...v, falar: false })); mostrarVoz(bruto, "Certo, respondo só na tela.", true); return; }
+    if (c.tipo === "desligar") {
+      mostrarVoz(bruto, "Até logo.", true);
+      setTimeout(desligarVoz, 1600);
+      return;
+    }
+    if (c.tipo === "iniciarTreino") {
+      const pedido = (c.nome || "").trim();
+      if (/\blivre\b/.test(pedido) || (!pedido && !treinos.length)) {
+        iniciarTreinoLivre();
+        mostrarVoz(bruto, "Treino livre começando. Vá ditando os exercícios.", true);
+        return;
+      }
+      const fichas = treinos.filter((t) => t.itens && t.itens.length);
+      if (!fichas.length) { mostrarVoz(bruto, "Você ainda não tem ficha com exercícios. Diga: Jarvis, treino livre.", false); return; }
+      let escolhida = null;
+      if (pedido) {
+        const alvoN = semAcento(pedido);
+        escolhida = fichas.find((t) => semAcento(t.nome) === alvoN) ||
+          fichas.find((t) => semAcento(t.nome).indexOf(alvoN) >= 0) ||
+          fichas.find((t) => alvoN.indexOf(semAcento(t.nome)) >= 0) ||
+          (alvoN.length === 1 ? fichas.find((t) => new RegExp("\\b" + alvoN + "\\b").test(semAcento(t.nome))) : null);
+      }
+      if (!escolhida) {
+        mostrarVoz(bruto, "Qual ficha? Você tem: " + fichas.slice(0, 4).map((t) => t.nome).join(", ") + ".", false);
+        setAba("treinos");
+        return;
+      }
+      iniciarSessao(escolhida);
+      mostrarVoz(bruto, "Começando " + escolhida.nome + ". Pode ditar as séries.", true);
+      return;
+    }
+
+    if (naSessao) {
+      if (aba !== "sessao") setAba("sessao");
+      const r = acoesVoz.current.executar(c);
+      if (r) { mostrarVoz(bruto, r.fala, r.ok); return; }
+      mostrarVoz(bruto, "Esse comando eu ainda não sei fazer.", false);
+      return;
+    }
+
+    const primeira = treinos.find((t) => t.itens && t.itens.length);
+    mostrarVoz(bruto, "Para isso preciso de um treino em andamento. Diga: Jarvis, começa o treino " +
+      (primeira ? primeira.nome : "livre") + ".", false);
+  };
+  tratarFalaRef.current = tratarFala;
 
   const finalizarSessao = () => {
     const feitas = sessao.itens.reduce((a, it) => a + it.series.filter((s) => s.feito).length, 0);
@@ -4673,7 +5977,7 @@ function TreinoLivre() {
         if (blob) fotosDados[f.id] = await blobParaBase64(blob);
       } catch (e) {}
     }
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, lembrete, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, lembrete, voz, seedV3: true });
     try {
       const blob = new Blob([dados], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -4733,6 +6037,8 @@ function TreinoLivre() {
             if (d.tema) setTema(d.tema);
             if (d.meta) setMeta(d.meta);
             if (d.lembrete) setLembrete(d.lembrete);
+            if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
+              vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false });
             setSessao(null);
             setAba("inicio");
             setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 120);
@@ -5085,6 +6391,9 @@ function TreinoLivre() {
             onBaixarBackup={baixarBackup} onRestaurarArquivo={restaurarDeArquivo}
             onExportar={exportarDados} onImportar={importarDados}
             onInstalar={promptInstalar ? instalarApp : null}
+            voz={voz} setVoz={setVoz} vozAtiva={vozAtiva}
+            onAlternarVoz={() => (vozAtiva ? desligarVoz() : ligarVoz())}
+            onAjudaVoz={() => setAjudaVoz(true)}
             onVoltar={() => setAba("inicio")} />
         )}
         {aba === "assistente" && (
@@ -5130,6 +6439,8 @@ function TreinoLivre() {
             historico={historico} celebrar={celebrar}
             descanso={descanso} setDescanso={setDescanso}
             som={som} setSom={setSom}
+            acoesVoz={acoesVoz} vozAtiva={vozAtiva} vozBarra={voz.barra} vozAnimado={voz.animado !== false}
+            onDescansando={setDescansando} responderVoz={responderVoz}
             onFinalizar={finalizarSessao}
             onVoltar={() => setAba("inicio")}
             onDescartar={() => { setSessao(null); setAba("inicio"); }} />
@@ -5213,6 +6524,14 @@ function TreinoLivre() {
         style={{ display: "none" }} tabIndex={-1} aria-hidden="true" />
 
       <Celebracao festa={festa} onFechar={fecharFesta} />
+
+      <PainelJarvis disponivel={VOZ_OUVE} ligado={vozAtiva} estado={vozEstado}
+        parcial={vozParcial} ultima={vozUltima} descansando={descansando}
+        naSessao={aba === "sessao"}
+        onAlternar={() => (vozAtiva ? desligarVoz() : ligarVoz())}
+        onAjuda={() => setAjudaVoz(true)} />
+      <ModalAjudaJarvis aberto={ajudaVoz} onFechar={() => setAjudaVoz(false)}
+        falaLigada={voz.falar} onAlternarFala={() => setVoz((v) => ({ ...v, falar: !v.falar }))} />
 
       {desfazer && (
         <div role="status" style={{ position: "fixed", left: 12, right: 12, zIndex: 16,

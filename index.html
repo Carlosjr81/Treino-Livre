@@ -425,7 +425,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-12g";
+const VERSAO_APP = "2026-10-12h";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 const NAVEGADOR_INAPP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|; wv\)/i.test(navigator.userAgent || "");
 
@@ -8561,6 +8561,77 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedir
 }
 
 // ---------------- APP ----------------
+// ---------------- PORTARIA ----------------
+// A trava de confiança: a tela pede que a pessoa siga antes de entrar, e o
+// "já segui" libera na palavra dela.
+//
+// **Ela não verifica nada, e isso é uma decisão, não um descuido.** Saber se
+// alguém segue uma conta exige servidor e uma API que o Instagram não oferece
+// nem ao dono do perfil. O que existe aqui é o pedido feito na cara limpa, no
+// único lugar em que todo mundo passa.
+//
+// Duas regras que não podem ser removidas:
+//
+// 1. **O "já segui" sempre libera.** Os treinos de quem usa o app vivem só
+//    neste aparelho. Trancar alguém do lado de fora dos próprios dados seria
+//    perder a pessoa e o histórico dela junto, e nenhum seguidor paga isso.
+// 2. **O botão de entrar aparece mesmo se o Instagram não abrir** (14 s). Em
+//    navegador com bloqueio de pop-up o link simplesmente não abre, e sem esse
+//    prazo o app viraria uma porta trancada sem maçaneta.
+function Portaria({ temDados, onEntrar }) {
+  const [foi, setFoi] = useState(false);
+  const [liberou, setLiberou] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setLiberou(true), 14000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const seguir = () => {
+    setFoi(true);
+    setLiberou(true);
+    try { window.open(LINK_INSTAGRAM, "_blank", "noopener"); }
+    catch (e) {}
+  };
+
+  return (
+    <div style={{ ...S.app, minHeight: "100vh", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", padding: "32px 24px", textAlign: "center" }}>
+      <div style={{ ...S.logo, fontSize: 34, marginBottom: 6 }}>Treino Livre</div>
+      <div style={{ height: 4, width: 90, background: GRAD_LINHA, borderRadius: 2, margin: "10px 0 26px" }} />
+
+      <div style={{ fontSize: 19, fontWeight: 900, lineHeight: 1.4, marginBottom: 14, maxWidth: 360 }}>
+        Siga para ter sempre acesso ao app
+      </div>
+      <div style={{ fontSize: 14.5, color: "var(--cinza)", lineHeight: 1.7, maxWidth: 360, marginBottom: 26 }}>
+        É por lá que saem as novidades, as atualizações e o aviso quando algo muda por aqui.
+        O Treino Livre é feito por uma pessoa só: de graça, sem anúncio, sem cadastro e sem
+        vender seus dados — e assim vai continuar.
+      </div>
+
+      <button style={{ ...S.btn, width: "100%", maxWidth: 340, marginBottom: 10 }} onClick={seguir}>
+        Seguir @{INSTAGRAM} no Instagram
+      </button>
+
+      {liberou ? (
+        <button style={{ ...S.btnGhost, width: "100%", maxWidth: 340, fontWeight: 800 }} onClick={onEntrar}>
+          {foi ? "Já segui — entrar" : "Entrar"}
+        </button>
+      ) : (
+        <div style={{ fontSize: 12.5, color: "var(--cinza2)", padding: "13px 0" }}>
+          Toque no botão acima para continuar
+        </div>
+      )}
+
+      <div style={{ fontSize: 12, color: "var(--cinza2)", marginTop: 22, lineHeight: 1.6, maxWidth: 320 }}>
+        {temDados
+          ? "Seus treinos continuam salvos neste aparelho. Isso aqui aparece uma vez só."
+          : "Aparece uma vez só. Depois disso o app abre direto."}
+      </div>
+    </div>
+  );
+}
+
 function TreinoLivre() {
   const [aba, setAba] = useState("inicio");
   const [treinos, setTreinos] = useState([]);
@@ -8657,6 +8728,9 @@ function TreinoLivre() {
   // para sempre quando respondido. Pedir antes disso é pedir a alguém que ainda
   // não sabe se o app presta; pedir de novo depois é insistência.
   const [convite, setConvite] = useState(true);
+  // A portaria passou. Fica no mesmo registro do resto, então sobrevive a
+  // recarga e a fechar o app, e acompanha o backup.
+  const [entrou, setEntrou] = useState(false);
   const [exercicioAberto, setExercicioAberto] = useState(null);
   const [editandoTreino, setEditandoTreino] = useState(null);
   const [baseNovoEx, setBaseNovoEx] = useState(null);   // exercício copiado ao criar variação
@@ -8667,7 +8741,11 @@ function TreinoLivre() {
   const [desfazer, setDesfazer] = useState(null);
   const importRef = useRef("");
   const pedirConfirmacao = (msg, onSim) => setModal({ msg, onSim });
-  const avisar = (msg) => setModal({ msg });
+  // Um aviso nunca atropela uma pergunta. A ficha recebida por link abre um
+  // "deseja adicionar?", e o aviso do microfone — que chega sozinho logo depois,
+  // para quem deixou a voz ligada — trocava a pergunta pelo aviso. A ficha se
+  // perdia sem ninguém saber: o link compartilhado morria em silêncio.
+  const avisar = (msg) => setModal((m) => (m && m.onSim ? m : { msg: msg }));
 
   // ---------- JARVIS: ouvir, responder e encaminhar ----------
   const mostrarVoz = useCallback((ouvi, resposta, ok) => {
@@ -8875,7 +8953,7 @@ function TreinoLivre() {
   const exportarDados = () => {
     // O backup não leva a sessão em andamento de propósito: restaurar num outro
     // aparelho um treino pela metade só confundiria.
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, voz, convite, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, voz, convite, entrou, seedV3: true });
     setModal({
       msg: "Backup dos seus dados. Toque em Copiar e guarde em local seguro (ex.: cole numa conversa sua no WhatsApp). Para restaurar, use Importar dados.",
       texto: dados,
@@ -8952,6 +9030,7 @@ function TreinoLivre() {
         pg = d.programas || null;
         seed = !!d.seedV3;
         if (d.convite === false) setConvite(false);
+        if (d.entrou) setEntrou(true);
         if (d.meta) mt = d.meta;
         md = d.medidas || [];
         ft = d.fotos || [];
@@ -9051,10 +9130,10 @@ function TreinoLivre() {
   const dadosRef = useRef("");
   useEffect(() => {
     if (!carregado) return;
-    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, seedV3: true });
+    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, seedV3: true });
     const t = setTimeout(() => store.set(STORAGE_KEY, dadosRef.current), 400);
     return () => clearTimeout(t);
-  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, carregado]);
+  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, carregado]);
 
   // Fechou o app ou trocou de aba no meio do treino? Grava na hora, sem esperar o respiro.
   useEffect(() => {
@@ -9539,7 +9618,7 @@ function TreinoLivre() {
         if (blob) fotosEx[e.id] = await blobParaBase64(blob);
       } catch (err) {}
     }
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, lembrete, voz, convite, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, lembrete, voz, convite, entrou, seedV3: true });
     try {
       const blob = new Blob([dados], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -9983,6 +10062,15 @@ function TreinoLivre() {
 
   if (!carregado) {
     return <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>Carregando...</div>;
+  }
+
+  // A portaria fica DEPOIS de todos os hooks e de todos os efeitos: quem chegou
+  // por um link de ficha tem o conteúdo lido normalmente, e o convite para
+  // adicionar aparece assim que a porta abre. Trocar isso por um desvio mais
+  // acima faria o link compartilhado morrer na porta.
+  if (!entrou) {
+    return <Portaria temDados={historico.length > 0 || treinos.length > 0}
+      onEntrar={() => { registrarEvento("portaria"); setEntrou(true); }} />;
   }
 
   return (

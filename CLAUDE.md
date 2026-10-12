@@ -121,7 +121,8 @@ Tudo num único registro em `localStorage["treinolivre:v1"]`:
   lembrete:  { ativo, hora: "18:00", dias: [1,2,3,4,5] },   // 0 = domingo
   voz:       { preferido, falar, animado, vozNome, velocidade, barra, modo,
                botaoFone, contarAlto, autoSerie },        // Jarvis e Eyes Scan
-  convite:   true,                              // o convite para seguir ainda nao foi respondido
+  convite:   true,                              // o convite para seguir ainda não foi respondido
+  entrou:    true,                              // a portaria já foi passada
   historico[].bpm: { medio, max, amostras } | ausente,     // monitor cardíaco
   ultimoBackup: 1725100000000,
   descanso: 90, som: true, tema: "escuro", meta: 3, seedV3: true
@@ -457,12 +458,32 @@ lugares, e um @ errado num story já publicado não tem como ser corrigido.
   alguém que ainda não sabe se o app presta; depois é insistência.
 - No rodapé de créditos, que já existia.
 
-**Não dá para exigir que a pessoa siga antes de usar.** Verificar se alguém
-segue uma conta exige servidor e a API do Instagram, e essa API não expõe isso
-nem para o dono da conta. Uma trava por confiança ("já segui" → libera) é
-contornada em dois toques, apaga junto com os dados do navegador, e espanta
-justamente quem ainda não tem motivo para seguir. Se isso for pedido de novo,
-a resposta técnica é essa, e a alternativa é esta seção.
+### A portaria (`Portaria`, campo `entrou`)
+
+A tela que pede para seguir antes de entrar. **Ela não verifica nada, e isso é
+uma decisão tomada com o dono, não um descuido:** saber se alguém segue uma
+conta exige servidor e uma API que o Instagram não oferece nem ao dono do
+perfil. O que existe é o pedido feito na cara limpa, no único lugar por onde
+todo mundo passa. O "já segui" libera na palavra da pessoa.
+
+Três coisas que não podem ser removidas:
+
+1. **O "já segui" sempre libera.** Os treinos vivem só naquele aparelho.
+   Trancar alguém do lado de fora dos próprios dados é perder a pessoa e o
+   histórico dela junto, e nenhum seguidor paga isso.
+2. **O botão de entrar aparece mesmo se o Instagram não abrir** (14 s). Em
+   navegador com bloqueio de pop-up o link não abre, e sem esse prazo o app
+   viraria uma porta trancada sem maçaneta.
+3. **A portaria fica DEPOIS de todos os hooks e efeitos** do componente raiz.
+   É o que mantém o link compartilhado vivo: quem chega por um `#ficha=` tem o
+   conteúdo lido normalmente atrás da porta, e a pergunta "deseja adicionar?"
+   aparece assim que ela abre. Um desvio mais acima mataria na porta justamente
+   o caminho que traz gente nova.
+
+Achado ao testar isso: **`avisar` atropelava a ficha recebida.** O aviso do
+microfone — que chega sozinho para quem deixou a voz ligada — trocava a
+pergunta da ficha pelo aviso, e a ficha se perdia sem ninguém saber. Hoje
+`avisar` nunca substitui um modal que está esperando resposta (`onSim`).
 
 ## Monitor cardíaco, e o que a web não alcança
 
@@ -966,6 +987,9 @@ Roteiro mínimo depois de mexer no app:
     continua marcada.
 32. "Jarvis, bora" fora de treino: começa a ficha sugerida.
 33. Abrir o Eyes Scan, fazer 10 repetições de verdade e conferir a contagem.
+33h. Apagar `entrou` do armazenamento e abrir um link `#ficha=` **com a voz
+     ligada**: passar a portaria e conferir que a pergunta da ficha aparece.
+     Esse é o caminho que traz gente nova, e ele já quebrou uma vez.
 33e. Agachar **bem feito** na frente da câmera: não pode sair correção
      nenhuma de postura. Esse é o teste que importa.
 33f. Agachar deixando o joelho cair para dentro, de frente: na segunda

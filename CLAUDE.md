@@ -51,7 +51,7 @@ para delatar a versão nova e serviria de pouco vindo do cache.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v10) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v11) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -367,6 +367,15 @@ da vez) e, quando ela devolve `null`, cai aqui.
 | "qual meu nível" / "minha sequência" / "minha meta" | `progresso` | `calcularEstatisticas` + `nivelDe` |
 | "quanto eu peso" / "minha cintura" | `medida` | `medidas`, comparando com a medição anterior |
 
+Comandos de sessão acrescentados depois dos testes em treino real:
+
+| Comando | Tipo | O que faz |
+|---|---|---|
+| "vai para o leg press" / "você pulou o X" | `irExercicio` | foca aquele exercício; se não estiver na ficha, entra no fim |
+| "repete" / "mais uma igual" | `repetir` | anota outra série com os mesmos números da anterior |
+| "quanto falta de descanso" | `tempoDescanso` | lê o cronômetro em voz alta |
+| "observação: banco na altura 4" | `observacao` | guarda o texto na obs do exercício (usa `c.cru`, com acentos) |
+
 `grupoDito` traduz como se fala ("barriga", "bumbum", "braço") para o id do
 grupo. **A ordem das regras importa**: as perguntas com grupo citado vêm antes
 de `tempo`, senão "quanto tempo faz que treinei peito" viraria "tempo de treino".
@@ -402,6 +411,44 @@ ali é de graça.
   lição". O estado do microfone aparece no cabeçalho da própria escola.
 
 Entradas: "Jarvis, modo treino", o botão no modal de ajuda e o botão em Ajustes.
+
+### O que os diagnósticos de treino real ensinaram
+
+Cada linha aqui saiu de um treino de verdade, não de um teste de mesa.
+
+- **O verbo vem conjugado de todo jeito.** "pare", "pararam", "interrompeu",
+  "parou" — a lista curta de `pular o descanso` deixava tudo passar, e a frase
+  caía na regra de **começar** o descanso. Fazer o contrário do pedido é o pior
+  erro possível, e acontecia justamente com quem estava com pressa. Daí a
+  constante `PARADA`, longa de propósito. O guarda `!/\d+\s*(min|seg)/` protege
+  "descanso de 2 minutos para o supino".
+- **O nome na frente aparece e some entre uma revisão e outra.** O reconhecedor
+  entregou "Jarvis ir para o próximo exercício" e "ir para o próximo exercício"
+  no mesmo segundo; `mesmaFrase` comparava "jarvis" com "ir", concluía que eram
+  frases diferentes, e o comando era executado **duas vezes** — pulando um
+  exercício. Por isso `semNomeNaFrente` tira o nome antes de comparar.
+- **Pedir para ir a um exercício específico** foi tentado de quatro jeitos num
+  treino só ("ir para o X", "você pulou o X", "você pulou um exercício X por
+  quê") e nenhum existia. Virou `irExercicio`, que vem **depois** de
+  `proximo`/`anterior` para não roubar "ir para o próximo exercício", e exige
+  que a frase não tenha "série" para não roubar "mais uma série de X".
+- **O nome dele vira James, Travis, Charlie.** Todos colhidos de diagnósticos.
+- **Uma palavra isolada não é um pedido.** "nenhum comando mesmo" abria a ajuda
+  porque bastava a palavra "comando". Agora precisa de quem pergunta junto.
+
+### Ouvir no barulho da academia
+
+A Web Speech API quase não dá controle sobre a captação. O único ganho real
+disponível é usar as **alternativas**: o reconhecedor manda vários palpites
+(`maxAlternatives = 5`) e, com música alta, o certo raramente é o primeiro.
+`tratarFalaInterno` testa todos e fica com o que vira comando — preferindo o
+que traz o nome dele. O diário registra quando um palpite alternativo venceu.
+
+Fone com microfone ajuda muito (microfone perto da boca, longe da caixa de
+som) e some com o problema do eco, porque a resposta sai no fone. Em Bluetooth
+há um efeito colateral fora do nosso alcance: enquanto o microfone está ligado,
+o Android troca para o perfil de chamada e a música perde qualidade — nesse
+caso o modo "Toque e fale" é melhor. Isso está dito na ajuda do app.
 
 ### Vocabulário
 
@@ -522,7 +569,12 @@ Roteiro mínimo depois de mexer no app:
     90 kg 12 repetições"): tem de virar **uma** série, não várias.
 25. Ditar a mesma série duas vezes seguidas, com uns 3 segundos entre elas:
     precisam contar como duas.
-26. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
+26. "Jarvis, pare o descanso" com o cronômetro correndo: tem de **parar**, não
+    começar outro. Repetir com "parou", "interrompeu" e "pararam".
+27. "Jarvis, próximo exercício" **uma vez**: tem de andar **um** exercício.
+28. "Jarvis, observação: banco na altura 4" — o texto precisa chegar ao campo
+    de observação com acentos e maiúsculas.
+29. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
     Todas precisam fechar com ✓, e nada pode aparecer no histórico depois.
 
 ## Convenções

@@ -116,6 +116,17 @@
     animation: ondaJarvis 1.8s ease-out infinite; pointer-events: none;
   }
   .jarvis-onda.atraso { animation-delay: .9s; }
+  /* O boneco funcional tem duas poses sobrepostas e o CSS alterna entre elas.
+     Animação de CSS continua rodando com a tela em economia de energia, o que
+     requestAnimationFrame não garante — e numa aula a tela fica minutos parada. */
+  @keyframes bonecoVai   { 0%, 42% { opacity: 1; } 52%, 100% { opacity: 0; } }
+  @keyframes bonecoVolta { 0%, 42% { opacity: 0; } 52%, 100% { opacity: 1; } }
+  .boneco-a { animation: bonecoVai 1.6s steps(1, end) infinite; }
+  .boneco-b { animation: bonecoVolta 1.6s steps(1, end) infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .boneco-a, .boneco-b { animation: none; }
+    .boneco-b { opacity: 0.35; }
+  }
   @keyframes entraJarvis {
     0%   { transform: translateY(-14px); opacity: 0; }
     100% { transform: translateY(0); opacity: 1; }
@@ -164,7 +175,7 @@ const EXERCICIOS = [
   { id: "crucifixo-inclinado", grupo: "peito", nome: "Crucifixo inclinado (fly com giro)", en: "incline dumbbell fly", equip: "Halteres e banco inclinado", musc: { p: ["peito"], s: ["ombros"] }, passos: ["No banco inclinado, abra os braços em arco com halteres.", "Suba fechando o arco; se quiser, gire as palmas no topo.", "Desça alongando o peitoral superior."], dica: "O giro no topo aumenta a contração da porção superior do peito." },
   { id: "peck-deck", grupo: "peito", nome: "Voador (peck deck)", en: "Butterfly", equip: "Máquina", musc: { p: ["peito"], s: ["ombros"] }, passos: ["Sente com as costas apoiadas e antebraços ou mãos nos apoios.", "Feche os braços à frente apertando o peitoral.", "Abra devagar até sentir leve alongamento."], dica: "Segure 1 segundo na contração máxima antes de abrir." },
   { id: "crossover", grupo: "peito", nome: "Crossover na polia", en: "Cable Cross-over", equip: "Polia dupla", musc: { p: ["peito"], s: ["ombros"] }, passos: ["Segure as manoplas com as polias na posição alta.", "Puxe os cabos para frente e para baixo cruzando levemente as mãos.", "Retorne devagar controlando a abertura."], dica: "Incline o tronco levemente à frente e mantenha-o fixo." },
-  { id: "flexao", grupo: "peito", nome: "Flexão de braços", en: "Push-Up", equip: "Peso corporal", musc: { p: ["peito"], s: ["triceps", "ombros", "abdomen"] }, passos: ["Apoie mãos no chão na largura dos ombros, corpo em linha reta.", "Desça o peito até quase tocar o chão.", "Empurre o chão até estender os braços."], dica: "Contraia o abdômen para não deixar o quadril cair." },
+  { id: "flexao", func: "flexao", funcional: true, grupo: "peito", nome: "Flexão de braços", en: "Push-Up", equip: "Peso corporal", musc: { p: ["peito"], s: ["triceps", "ombros", "abdomen"] }, passos: ["Apoie mãos no chão na largura dos ombros, corpo em linha reta.", "Desça o peito até quase tocar o chão.", "Empurre o chão até estender os braços."], dica: "Contraia o abdômen para não deixar o quadril cair." },
   { id: "paralelas-peito", grupo: "peito", nome: "Mergulho nas paralelas", en: "Dips", equip: "Barras paralelas", musc: { p: ["peito", "triceps"], s: ["ombros"] }, passos: ["Suspenda o corpo nas barras com os braços estendidos.", "Incline o tronco à frente e desça flexionando os cotovelos.", "Suba até estender os braços."], dica: "Tronco inclinado foca o peito; tronco reto foca o tríceps." },
 
   { id: "puxada-frente", grupo: "costas", nome: "Puxada alta frontal", en: "lat pulldown", equip: "Polia alta", musc: { p: ["dorsal"], s: ["biceps", "trapezio"] }, passos: ["Segure a barra com pegada aberta e sente com as coxas travadas.", "Puxe a barra até a parte superior do peito, levando os cotovelos para baixo.", "Retorne controlando até estender os braços."], dica: "Pense em puxar com os cotovelos, não com as mãos." },
@@ -191,7 +202,7 @@ const EXERCICIOS = [
   { id: "cadeira-extensora", grupo: "pernas", nome: "Cadeira extensora", en: "Leg Extension", equip: "Máquina", musc: { p: ["quadriceps"], s: [] }, passos: ["Ajuste o rolo na frente dos tornozelos.", "Estenda os joelhos até quase completar.", "Desça controlando a volta."], dica: "Segure 1 segundo no topo para maior ativação do quadríceps." },
   { id: "mesa-flexora", grupo: "pernas", nome: "Mesa/cadeira flexora", en: "Leg Curls (sitting)", equip: "Máquina", musc: { p: ["posteriores"], s: ["panturrilha"] }, passos: ["Posicione o rolo atrás dos tornozelos.", "Flexione os joelhos trazendo o rolo em direção aos glúteos.", "Retorne devagar sem soltar o peso."], dica: "Mantenha o quadril firme no banco durante todo o movimento." },
   { id: "stiff", grupo: "pernas", nome: "Stiff", en: "stiff leg deadlift", equip: "Barra ou halteres", musc: { p: ["posteriores", "gluteos"], s: ["lombar"] }, passos: ["Em pé, segure o peso à frente das coxas.", "Desça empurrando o quadril para trás com joelhos quase estendidos.", "Suba contraindo posteriores e glúteos."], dica: "Desça só até onde a coluna se mantém neutra." },
-  { id: "afundo", grupo: "pernas", nome: "Afundo com halteres", en: "Lunges", equip: "Halteres", musc: { p: ["quadriceps", "gluteos"], s: ["posteriores"] }, passos: ["Dê um passo à frente segurando um halter em cada mão.", "Desça até o joelho de trás quase tocar o chão.", "Empurre com a perna da frente para voltar."], dica: "Tronco ereto; o joelho da frente não precisa passar muito do pé." },
+  { id: "afundo", func: "afundo-alternado", funcional: true, grupo: "pernas", nome: "Afundo com halteres", en: "Lunges", equip: "Halteres", musc: { p: ["quadriceps", "gluteos"], s: ["posteriores"] }, passos: ["Dê um passo à frente segurando um halter em cada mão.", "Desça até o joelho de trás quase tocar o chão.", "Empurre com a perna da frente para voltar."], dica: "Tronco ereto; o joelho da frente não precisa passar muito do pé." },
   { id: "cadeira-adutora", grupo: "pernas", nome: "Cadeira adutora", en: "Seated Hip Adduction", equip: "Máquina", musc: { p: ["adutores"], s: [] }, passos: ["Sente com as pernas abertas nos suportes.", "Feche as pernas contra a resistência.", "Abra devagar controlando o retorno."], dica: "Trabalha a parte interna da coxa; evite cargas exageradas no início." },
   { id: "panturrilha", grupo: "pernas", nome: "Panturrilha em pé", en: "Standing Calf Raises", equip: "Máquina ou degrau", musc: { p: ["panturrilha"], s: [] }, passos: ["Apoie a ponta dos pés na plataforma.", "Suba o máximo que conseguir na ponta dos pés.", "Desça alongando bem abaixo da linha do degrau."], dica: "Faça pausa de 1s em cima e embaixo; evite quicar." },
   { id: "panturrilha-sentado", grupo: "pernas", nome: "Panturrilha sentado", en: "seated calf raise", equip: "Máquina", musc: { p: ["panturrilha"], s: [] }, passos: ["Sente com o apoio sobre as coxas e pontas dos pés na plataforma.", "Eleve os calcanhares o máximo possível.", "Desça alongando devagar."], dica: "Com o joelho dobrado o foco vai para o sóleo." },
@@ -271,7 +282,7 @@ const EXERCICIOS = [
   { id: "giro-russo", grupo: "abdomen", nome: "Giro russo", en: "Russian Twist", equip: "Anilha ou halter", musc: { p: ["obliquos"], s: ["abdomen"] }, passos: ["Sente com o tronco levemente inclinado para trás e pés elevados.", "Gire o tronco levando o peso de um lado ao outro.", "Mantenha o abdômen contraído o tempo todo."], dica: "Gire o tronco inteiro, não apenas os braços." },
   { id: "abdominal-roda", grupo: "abdomen", nome: "Rollout (roda abdominal)", en: "Ab wheel", equip: "Roda abdominal ou barra", musc: { p: ["abdomen"], s: ["obliquos", "lombar", "ombros"] }, passos: ["Ajoelhe segurando a roda no chão à frente dos joelhos.", "Role à frente estendendo o corpo sem deixar o quadril cair.", "Volte contraindo o abdômen."], dica: "Vá só até onde consegue manter a lombar neutra." },
   { id: "abdominal-declinado", grupo: "abdomen", nome: "Abdominal no banco declinado", en: "decline sit up", equip: "Banco declinado", musc: { p: ["abdomen"], s: ["obliquos"] }, passos: ["Prenda os pés no banco declinado.", "Suba o tronco enrolando a coluna.", "Desça controlado sem relaxar no final."], dica: "Segure uma anilha no peito para progredir na carga." },
-  { id: "escalador", grupo: "abdomen", nome: "Escalador (mountain climber)", en: "mountain climber", equip: "Peso corporal", musc: { p: ["abdomen"], s: ["obliquos", "ombros", "quadriceps"] }, passos: ["Em posição de prancha alta, traga um joelho em direção ao peito.", "Alterne as pernas em ritmo constante.", "Mantenha o quadril baixo e o core firme."], dica: "Também eleva a frequência cardíaca: bom para finalizar o treino." },
+  { id: "escalador", func: "escalador", funcional: true, grupo: "abdomen", nome: "Escalador (mountain climber)", en: "mountain climber", equip: "Peso corporal", musc: { p: ["abdomen"], s: ["obliquos", "ombros", "quadriceps"] }, passos: ["Em posição de prancha alta, traga um joelho em direção ao peito.", "Alterne as pernas em ritmo constante.", "Mantenha o quadril baixo e o core firme."], dica: "Também eleva a frequência cardíaca: bom para finalizar o treino." },
 
   { id: "coice-solo", grupo: "gluteos", nome: "Coice no solo (4 apoios)", en: "quadruped hip extension", equip: "Peso corporal ou caneleira", musc: { p: ["gluteos"], s: ["posteriores"] }, passos: ["Em quatro apoios, mantenha o joelho flexionado a 90°.", "Eleve a perna empurrando o calcanhar para o teto.", "Desça sem apoiar o joelho no chão."], dica: "Contraia o glúteo no topo por 1 segundo em cada repetição." },
   { id: "ponte-unilateral", grupo: "gluteos", nome: "Elevação pélvica unilateral", en: "single leg hip thrust", equip: "Peso corporal ou banco", musc: { p: ["gluteos"], s: ["posteriores", "abdomen"] }, passos: ["Na posição de elevação pélvica, estenda uma perna à frente.", "Eleve o quadril com a perna de apoio.", "Desça controlado e complete a série antes de trocar."], dica: "Versão avançada: dobra o estímulo em cada glúteo." },
@@ -310,7 +321,7 @@ const EXERCICIOS = [
   { id: "agachamento-pistol", grupo: "pernas", nome: "Agachamento unilateral (pistol)", en: "Pistol Squat", equip: "Peso corporal", musc: { p: ["quadriceps","gluteos"], s: ["posteriores","abdomen"] }, passos: ["Fique sobre uma perna com a outra estendida à frente.","Desça devagar sobre a perna de apoio até o quadril chegar perto do calcanhar.","Suba empurrando o chão sem apoiar a outra perna."], dica: "Comece segurando um apoio ou sentando num banco alto até ganhar equilíbrio e força." },
   { id: "agachamento-smith-unilateral", grupo: "pernas", nome: "Agachamento afundo no Smith", en: "Smith Machine Split Squat", equip: "Aparelho Smith", musc: { p: ["quadriceps","gluteos"], s: ["posteriores"] }, passos: ["Posicione um pé à frente e outro atrás, sob a barra do Smith.","Desça flexionando a perna da frente até o joelho de trás quase tocar o chão.","Suba empurrando com o pé da frente inteiro."], dica: "A barra guiada tira a preocupação com equilíbrio e deixa você focar na perna que trabalha." },
   { id: "agachamento-isometrico", grupo: "pernas", nome: "Agachamento isométrico até a falha", en: "Isometric Squat to Failure", tempo: true, equip: "Peso corporal", musc: { p: ["quadriceps"], s: ["gluteos","abdomen"] }, passos: ["Desça até as coxas ficarem paralelas ao chão.","Segure a posição com o peito alto e os joelhos alinhados aos pés.","Aguente o máximo que conseguir mantendo a postura."], dica: "Ótimo finalizador de treino de pernas: quando a postura piorar, encerre a série." },
-  { id: "afundo-reverso", grupo: "pernas", nome: "Afundo reverso (passo atrás)", en: "Reverse lunges", equip: "Halteres ou peso corporal", musc: { p: ["quadriceps","gluteos"], s: ["posteriores"] }, passos: ["Em pé, dê um passo para trás com uma perna.","Desça até o joelho de trás quase tocar o chão.","Empurre com a perna da frente para voltar em pé."], dica: "O passo para trás protege mais o joelho da frente que o afundo tradicional." },
+  { id: "afundo-reverso", func: "afundo-alternado", funcional: true, grupo: "pernas", nome: "Afundo reverso (passo atrás)", en: "Reverse lunges", equip: "Halteres ou peso corporal", musc: { p: ["quadriceps","gluteos"], s: ["posteriores"] }, passos: ["Em pé, dê um passo para trás com uma perna.","Desça até o joelho de trás quase tocar o chão.","Empurre com a perna da frente para voltar em pé."], dica: "O passo para trás protege mais o joelho da frente que o afundo tradicional." },
   { id: "afundo-atras-barra", grupo: "pernas", nome: "Afundo com passo atrás na barra", en: "Barbell Step Back Lunge", equip: "Barra", musc: { p: ["quadriceps","gluteos"], s: ["posteriores","abdomen"] }, passos: ["Apoie a barra no trapézio como no agachamento.","Dê um passo longo para trás e desça até o joelho quase tocar o chão.","Empurre com a perna da frente para retornar."], dica: "Faça todas as repetições de uma perna antes de trocar: o equilíbrio fica melhor." },
   { id: "afundo-lateral-deslizante", grupo: "pernas", nome: "Afundo lateral deslizante", en: "Sliding Lateral Lunge", equip: "Peso corporal ou disco deslizante", musc: { p: ["quadriceps","adutores"], s: ["gluteos"] }, passos: ["Em pé, deslize um pé para o lado mantendo a perna estendida.","Agache sobre a perna de apoio, quadril para trás.","Puxe o pé de volta ao centro contraindo a parte interna da coxa."], dica: "Movimento controlado: a perna que desliza é a que trabalha na volta." },
   { id: "leg-press-pes-juntos", grupo: "pernas", nome: "Leg press com pés juntos", en: "Leg Presses (narrow)", equip: "Máquina", musc: { p: ["quadriceps"], s: ["gluteos"] }, passos: ["Posicione os pés juntos e no centro da plataforma.","Desça controlado até ~90° de joelho.","Empurre sem travar os joelhos no final."], dica: "Pés juntos e baixos na plataforma jogam o foco para a parte externa do quadríceps." },
@@ -377,6 +388,16 @@ const EXERCICIOS = [
   { id: "terra-romeno-halteres", grupo: "gluteos", nome: "Peso morto romeno com halteres", en: "Dumbbell Romanian Deadlift", equip: "Halteres", musc: { p: ["gluteos","posteriores"], s: ["lombar"] }, passos: ["Em pé, segure um halter em cada mão à frente das coxas.","Empurre o quadril para trás descendo os halteres pelas pernas.","Suba contraindo glúteos e posteriores."], dica: "Os halteres passam rente às pernas: se afastarem do corpo, a lombar sofre." },
   { id: "terra-sumo-halter", grupo: "gluteos", nome: "Levantamento terra sumô com halter", en: "Dumbbell sumo deadlift", equip: "Halter ou kettlebell", musc: { p: ["gluteos","adutores"], s: ["quadriceps","lombar"] }, passos: ["Pés bem afastados com as pontas para fora e o halter entre as pernas.","Desça o quadril mantendo o tronco ereto e segure o peso.","Suba estendendo quadril e joelhos, apertando os glúteos."], dica: "Empurre os joelhos para fora durante toda a subida." },
   { id: "press-gluteo-unilateral", grupo: "gluteos", nome: "Press de glúteo unilateral", en: "Single-leg side glute press", equip: "Máquina", musc: { p: ["gluteos"], s: ["posteriores","quadriceps"] }, passos: ["Posicione um pé na plataforma da máquina, com o outro livre.","Empurre a plataforma estendendo o quadril e o joelho.","Volte controlado até sentir o glúteo alongar."], dica: "Uma perna por vez corrige diferenças de força entre os lados." },
+  { id: "polichinelo", grupo: "pernas", nome: "Polichinelo (jumping jack)", en: "Jumping Jacks", equip: "Peso corporal", func: "polichinelo", funcional: true, musc: { p: ["quadriceps", "panturrilha"], s: ["ombros", "abdomen"] }, passos: ["Em pé, pés juntos e braços ao lado do corpo.", "Salte abrindo as pernas na linha dos ombros e levando os braços acima da cabeça.", "Salte de volta à posição inicial em ritmo constante."], dica: "É o aquecimento mais simples que existe: dois minutos já sobem a frequência cardíaca." },
+  { id: "burpee", grupo: "pernas", nome: "Burpee", en: "Burpees", equip: "Peso corporal", func: "burpee", funcional: true, musc: { p: ["quadriceps", "gluteos"], s: ["peito", "ombros", "abdomen"] }, passos: ["Agache e apoie as mãos no chão.", "Jogue os pés para trás até a posição de prancha e desça o peito.", "Volte os pés para junto das mãos e suba num salto com os braços estendidos."], dica: "O exercício mais completo e mais odiado do funcional. Dez bem feitos valem mais que trinta arrastados." },
+  { id: "agachamento-salto", grupo: "pernas", nome: "Agachamento com salto (jump squat)", en: "Jump Squats", equip: "Peso corporal", func: "agachamento-salto", funcional: true, musc: { p: ["quadriceps", "gluteos"], s: ["panturrilha", "abdomen"] }, passos: ["Agache até a coxa ficar paralela ao chão.", "Suba explodindo e saia do chão.", "Aterrisse amortecendo com os joelhos e já desça para a repetição seguinte."], dica: "A aterrissagem é a parte que protege o joelho: caia com o pé inteiro e dobre." },
+  { id: "salto-vertical", grupo: "pernas", nome: "Salto vertical", en: "Vertical Jump", equip: "Peso corporal", func: "salto-vertical", funcional: true, musc: { p: ["quadriceps", "panturrilha"], s: ["gluteos"] }, passos: ["Em pé, flexione levemente os joelhos levando os braços para trás.", "Salte o mais alto que conseguir estendendo o corpo todo.", "Aterrisse amortecendo e repita."], dica: "Mede potência, não resistência: séries curtas, de 5 a 8 saltos, com descanso de verdade." },
+  { id: "afundo-alternado", grupo: "pernas", nome: "Afundo alternado (lunge alternado)", en: "Alternating Lunges", equip: "Peso corporal ou halteres", func: "afundo-alternado", funcional: true, musc: { p: ["quadriceps", "gluteos"], s: ["posteriores", "abdomen"] }, passos: ["Dê um passo longo à frente com uma perna.", "Desça até o joelho de trás quase tocar o chão, tronco ereto.", "Empurre com a perna da frente para voltar e repita trocando de lado."], dica: "Cada passada conta uma repetição: o scanner soma os dois lados." },
+  { id: "joelhos-altos", grupo: "pernas", nome: "Joelhos altos (high knees)", en: "High Knees", equip: "Peso corporal", func: "joelhos-altos", funcional: true, musc: { p: ["quadriceps", "panturrilha"], s: ["abdomen"] }, passos: ["Corra parado elevando os joelhos até a altura do quadril.", "Mantenha o tronco ereto e o abdômen firme.", "Pisada leve, na ponta do pé, em ritmo rápido."], dica: "É corrida parada: conte por tempo (30 a 45 segundos) tanto quanto por repetição." },
+  { id: "socos-ar", grupo: "ombros", nome: "Socos no ar (shadow boxing)", en: "Shadow Boxing", equip: "Peso corporal", func: "socos-ar", funcional: true, musc: { p: ["ombros"], s: ["triceps", "abdomen", "obliquos"] }, passos: ["Em guarda, pés na linha dos ombros e mãos na altura do rosto.", "Estenda um braço à frente girando levemente o tronco.", "Recolha protegendo o rosto e alterne os braços."], dica: "O giro do tronco é o que faz o soco: braço sozinho cansa o ombro e não trabalha o resto." },
+  { id: "chute-frontal", grupo: "pernas", nome: "Chute frontal (front kick)", en: "Front Kick", equip: "Peso corporal", func: "chute-frontal", funcional: true, musc: { p: ["quadriceps"], s: ["abdomen", "gluteos"] }, passos: ["Em guarda, eleve o joelho da perna de trás.", "Estenda a perna à frente na altura da cintura.", "Recolha com controle e alterne o lado."], dica: "Recolher a perna é tão importante quanto chutar: é o que protege a lombar." },
+  { id: "skater", grupo: "pernas", nome: "Salto do patinador (skater)", en: "Skater Jumps", equip: "Peso corporal", func: "skater", funcional: true, musc: { p: ["gluteos", "quadriceps"], s: ["adutores", "panturrilha"] }, passos: ["Salte para o lado aterrissando numa perna só.", "Leve a outra perna cruzada para trás e segure o equilíbrio.", "Salte para o lado oposto e repita."], dica: "Trabalha o glúteo médio, que é o que segura o joelho no lugar na corrida." },
+  { id: "abdominal-remador", grupo: "abdomen", nome: "Abdominal remador (V-up)", en: "V-Ups", equip: "Peso corporal", func: "abdominal-remador", funcional: true, musc: { p: ["abdomen"], s: ["obliquos", "quadriceps"] }, passos: ["Deite esticado com os braços acima da cabeça.", "Suba tronco e pernas ao mesmo tempo tentando tocar os pés.", "Desça controlado sem deixar o corpo bater no chão."], dica: "Se for difícil, dobre os joelhos: a forma importa mais que a amplitude." },
 ];
 
 // ---------------- IMAGENS DO WGER (banco aberto, licença CC BY-SA 4.0) ----------------
@@ -400,7 +421,7 @@ const LINK_APP = "https://carlosjr81.github.io/Treino-Livre/";
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-12e";
+const VERSAO_APP = "2026-10-12f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 const NAVEGADOR_INAPP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|; wv\)/i.test(navigator.userAgent || "");
 
@@ -1424,44 +1445,149 @@ const EYES_PREFERENCIA = {
   abdomen: ["quadril-e", "quadril-d"],
 };
 
+// ---- Sinais de posição, para o movimento funcional ----
+// Exercício de máquina é sempre um ângulo que abre e fecha. Funcional não: salto
+// é a ALTURA do quadril, polichinelo é a ABERTURA dos pés e das mãos, soco é o
+// ALCANCE do braço. Sem esses sinais, o contador não tem o que medir.
+//
+// Tudo é dividido pelo comprimento do tronco e multiplicado por 100. Assim o
+// número não muda se a pessoa estiver perto ou longe da câmera, e fica na mesma
+// escala dos ângulos — os mesmos limiares servem para os dois.
+function escalaTorso(l) {
+  const oE = pt(l, 11), oD = pt(l, 12), qE = pt(l, 23), qD = pt(l, 24);
+  if (!oE || !oD || !qE || !qD) return null;
+  const d = Math.hypot((oE.x + oD.x) / 2 - (qE.x + qD.x) / 2, (oE.y + oD.y) / 2 - (qE.y + qD.y) / 2);
+  return d > 0.02 ? d : null;
+}
+// y cresce para baixo na imagem: o sinal é invertido para "mais alto" virar
+// "número maior", que é como a histerese espera.
+function alturaDe(l, iAlto, iBaixo) {
+  const e = escalaTorso(l), a = pt(l, iAlto), b = pt(l, iBaixo);
+  if (!e || !a || !b) return null;
+  return ((a.y - b.y) / e) * 100;
+}
+function aberturaDe(l, iE, iD) {
+  const e = escalaTorso(l), a = pt(l, iE), b = pt(l, iD);
+  if (!e || !a || !b) return null;
+  return (Math.abs(a.x - b.x) / e) * 100;
+}
+function alcanceDe(l, iOmbro, iPunho) {
+  const e = escalaTorso(l), o = pt(l, iOmbro), p = pt(l, iPunho);
+  if (!e || !o || !p) return null;
+  return (Math.hypot(o.x - p.x, o.y - p.y) / e) * 100;
+}
+
+const EYES_SINAIS_POS = [
+  { id: "quadril-alto", nome: "altura do quadril", calc: (l) => { const e = escalaTorso(l), q = pt(l, 23), r = pt(l, 24); return e && q && r ? (-((q.y + r.y) / 2) / e) * 100 : null; } },
+  { id: "punho-e-alto", nome: "mão esquerda", calc: (l) => alturaDe(l, 11, 15) },
+  { id: "punho-d-alto", nome: "mão direita", calc: (l) => alturaDe(l, 12, 16) },
+  { id: "joelho-e-alto", nome: "joelho esquerdo", calc: (l) => alturaDe(l, 23, 25) },
+  { id: "joelho-d-alto", nome: "joelho direito", calc: (l) => alturaDe(l, 24, 26) },
+  { id: "pe-e-alto", nome: "perna esquerda", calc: (l) => alturaDe(l, 23, 27) },
+  { id: "pe-d-alto", nome: "perna direita", calc: (l) => alturaDe(l, 24, 28) },
+  { id: "abertura-pes", nome: "abertura das pernas", calc: (l) => aberturaDe(l, 27, 28) },
+  { id: "abertura-maos", nome: "abertura dos braços", calc: (l) => aberturaDe(l, 15, 16) },
+  { id: "alcance-e", nome: "braço esquerdo", calc: (l) => alcanceDe(l, 11, 15) },
+  { id: "alcance-d", nome: "braço direito", calc: (l) => alcanceDe(l, 12, 16) },
+];
+
+// O rodape do scanner diz o que ele esta medindo: sem isso, contagem errada
+// vira mistério. No alternado nao ha um sinal so — sao os dois lados.
+const nomeDoSinal = (id) => {
+  if (!id) return "";
+  if (id.indexOf(" + ") >= 0) return "os dois lados, alternando";
+  const s = EYES_SINAIS.concat(EYES_SINAIS_POS).find((x) => x.id === id);
+  return s ? s.nome : id;
+};
+
+// ---- Perfis de movimento funcional ----
+// Com 204 exercícios de máquina não dá para configurar um por um — por isso o
+// contador escolhe o sinal sozinho. Mas movimento funcional tem nome e forma
+// conhecidos, e descrever cada um rende uma contagem muito melhor do que
+// qualquer adivinhação.
+//
+//   modo "alternado": o movimento troca de lado a cada repetição (soco, chute,
+//   afundo alternado, joelho alto). Contar um lado só daria metade — então cada
+//   lado tem o seu próprio contador e os dois se somam.
+const MOV_FUNCIONAIS = {
+  "polichinelo":       { sinais: ["abertura-pes", "punho-e-alto", "punho-d-alto"], minMs: 350, minAmp: 22, dica: "Braços até acima da cabeça e pés na linha dos ombros." },
+  "burpee":            { sinais: ["quadril-alto"], minMs: 1100, minAmp: 26, dica: "Peito no chão embaixo, quadril estendido em cima." },
+  "agachamento-salto": { sinais: ["quadril-alto", "joelho-e", "joelho-d"], minMs: 600, minAmp: 20, dica: "Desce até a coxa paralela e sobe explodindo." },
+  "salto-vertical":    { sinais: ["quadril-alto"], minMs: 550, minAmp: 16, dica: "Aterrisse amortecendo com os joelhos." },
+  "afundo-alternado":  { par: ["joelho-e", "joelho-d"], minMs: 550, dica: "Joelho de trás quase no chão, tronco ereto." },
+  "joelhos-altos":     { par: ["joelho-e-alto", "joelho-d-alto"], minMs: 220, minAmp: 18, dica: "Joelho na altura do quadril, pisada leve." },
+  "escalador":         { par: ["joelho-e-alto", "joelho-d-alto"], minMs: 220, minAmp: 15, dica: "Quadril baixo, sem subir a bunda." },
+  "socos-ar":          { par: ["alcance-e", "alcance-d"], minMs: 230, minAmp: 14, dica: "Estende o braço todo e recolhe protegendo o rosto." },
+  "chute-frontal":     { par: ["pe-e-alto", "pe-d-alto"], minMs: 420, minAmp: 18, dica: "Chute na linha da cintura, recolhe a perna com controle." },
+  "flexao":            { sinais: ["cotovelo-e", "cotovelo-d"], minMs: 650, dica: "Peito perto do chão, corpo numa linha só." },
+  "abdominal-remador": { sinais: ["quadril-e", "quadril-d"], minMs: 650, dica: "Sobe com o abdômen, sem puxar o pescoço." },
+  "skater":            { par: ["pe-e-alto", "pe-d-alto"], minMs: 420, minAmp: 14, dica: "Salto lateral amplo, aterrissando numa perna só." },
+};
+
 // ---- O contador ----
 // Uma repetição é uma ida e volta: o sinal sai de "em baixo", passa de "em
 // cima" e volta. Contar no cruzamento simples contaria dez vezes o tremor da
 // mão no meio do caminho — daí os dois limiares separados (histerese) e o tempo
 // mínimo entre repetições.
-// Quatro segundos: cobre duas repetições no ritmo normal e uma repetição bem
-// lenta. Menos que isso e uma repetição de 4s se normalizaria contra si mesma;
-// mais que isso e o contador demora a perceber a amplitude caindo.
+//
+// Três modos, nesta ordem de preferência:
+//   1. perfil "alternado": soco, chute, afundo alternado. Cada lado tem o seu
+//      contador e os dois se somam — contar um lado só daria metade.
+//   2. perfil "simples": o movimento é conhecido e já diz em quais sinais olhar.
+//   3. automático: não há perfil (é uma máquina qualquer, ou um aparelho que o
+//      dono fotografou). Mede todos os sinais e fica com o que mais se mexe.
 const JANELA_MS = 4000;
 function criarContador(opcoes) {
   const o = opcoes || {};
+  const perfil = o.perfil || null;
   const preferidos = o.preferidos || [];
   const aoContar = o.aoContar;
-  const minMs = o.minMs || 550;      // repetição mais rápida que isso é ruído
-  const amostras = {};               // id -> { min, max, valor }
-  let escolhido = null;
-  let estado = "baixo";
-  let ultimaRep = 0;
+  const minMs = (perfil && perfil.minMs) || o.minMs || 550;
+  const minAmp = (perfil && perfil.minAmp) || 22;
+  const alternado = !!(perfil && perfil.par);
+  const TODOS = EYES_SINAIS.concat(EYES_SINAIS_POS);
+  const amostras = {};
   let total = 0;
-  let desde = 0;
   let amplitude = 0;
-  // O percurso de CADA repetição, medido entre uma contagem e a seguinte.
-  // É com isso que dá para dizer se esta foi mais completa que as anteriores.
-  let repMin = Infinity, repMax = -Infinity;
   let melhorAmp = 0, somaAmp = 0, nAmp = 0, somaDur = 0, nDur = 0;
+
+  // Uma máquina de estados por sinal contado. No modo alternado são duas.
+  function criarMaquina(id) {
+    return { id: id, estado: "baixo", ultima: 0, conta: 0, repMin: Infinity, repMax: -Infinity };
+  }
+  const maquinas = alternado ? perfil.par.map(criarMaquina) : [criarMaquina(null)];
+  let escolhido = null;
 
   const faixaDe = (s) => (s && s.max > s.min && isFinite(s.min) ? s.max - s.min : 0);
 
+  // Decide se a máquina m, lendo o sinal id, acabou de completar uma repetição
+  function passo(m, id, agora) {
+    const a = amostras[id];
+    if (!a) return null;
+    const faixa = faixaDe(a);
+    if (faixa < minAmp) return null;
+    if (a.valor < m.repMin) m.repMin = a.valor;
+    if (a.valor > m.repMax) m.repMax = a.valor;
+    const n = (a.valor - a.min) / faixa;
+    if (m.estado === "baixo" && n > 0.72) { m.estado = "cima"; return null; }
+    if (m.estado === "cima" && n < 0.28) {
+      m.estado = "baixo";
+      if (agora - m.ultima <= minMs) return null;
+      const amp = m.repMax > m.repMin ? m.repMax - m.repMin : 0;
+      const dur = m.ultima ? agora - m.ultima : 0;
+      m.ultima = agora;
+      m.repMin = Infinity; m.repMax = -Infinity;
+      return { amp: amp, dur: dur };
+    }
+    return null;
+  }
+
   return {
-    // Devolve o que mudou, para a tela desenhar sem recalcular nada
     processar(lm, agora) {
-      if (!desde) desde = agora;
       // 1. mede todos os sinais e guarda os últimos 4 segundos de cada um.
       // A janela corrida é o que faz o contador acompanhar a amplitude quando
       // ela encolhe — e ela encolhe sempre, porque é isso que o cansaço faz.
-      // Com bordas que cediam devagar, ele parava de contar justamente nas
-      // últimas repetições, as que mais custam.
-      EYES_SINAIS.forEach((s) => {
+      TODOS.forEach((s) => {
         const v = s.calc(lm);
         if (v === null) return;
         const a = amostras[s.id] || (amostras[s.id] = { hist: [], valor: v, suave: v, min: v, max: v });
@@ -1480,77 +1606,91 @@ function criarContador(opcoes) {
         a.min = mn; a.max = mx;
       });
 
-      // 2. escolhe o sinal: o de maior amplitude, com desempate pelo grupo
-      const candidatos = EYES_SINAIS.map((s) => ({ id: s.id, nome: s.nome, faixa: faixaDe(amostras[s.id]) }))
-        .filter((c) => c.faixa > 0)
-        .sort((a, b) => b.faixa - a.faixa);
-      if (candidatos.length) {
-        const topo = candidatos[0];
-        // Entre sinais parecidos (dentro de 20%), o que o grupo muscular indica ganha
-        const perto = candidatos.filter((c) => c.faixa >= topo.faixa * 0.8);
-        const pref = perto.find((c) => preferidos.indexOf(c.id) >= 0);
-        const novo = (pref || topo).id;
-        // Só troca de sinal antes de começar a contar: trocar no meio da série
-        // zeraria a referência e perderia a conta.
-        if (!escolhido || (total === 0 && novo !== escolhido)) escolhido = novo;
-      }
-      if (!escolhido) return { total: total, pronto: false };
-
-      const a = amostras[escolhido];
-      amplitude = faixaDe(a);
-      // 3. amplitude pequena demais é a pessoa parada enquanto o modelo treme
-      if (amplitude < 22) return { total: total, pronto: false, amplitude: amplitude, sinal: escolhido };
-
-      // 4. normaliza para 0..1 e conta a ida e volta
-      const n = (a.valor - a.min) / amplitude;
-      // o percurso desta repetição, em graus de verdade e não normalizado
-      if (a.valor < repMin) repMin = a.valor;
-      if (a.valor > repMax) repMax = a.valor;
-      let contou = false;
-      let qualidade = null;
-      if (estado === "baixo" && n > 0.72) estado = "cima";
-      else if (estado === "cima" && n < 0.28) {
-        estado = "baixo";
-        if (agora - ultimaRep > minMs) {
-          const amp = repMax > repMin ? repMax - repMin : 0;
-          const dur = ultimaRep ? agora - ultimaRep : 0;
-          ultimaRep = agora;
-          total++;
-          contou = true;
-          // Comparações só valem a partir da segunda repetição: a primeira é a
-          // própria referência, e elogiar a primeira por ser a melhor é bobagem.
-          const mediaAmp = nAmp ? somaAmp / nAmp : 0;
-          const mediaDur = nDur ? somaDur / nDur : 0;
-          qualidade = {
-            amplitude: Math.round(amp),
-            duracao: Math.round(dur),
-            melhor: nAmp > 0 && amp > melhorAmp * 1.04,
-            caindo: nAmp > 1 && amp < mediaAmp * 0.84,
-            rapida: nDur > 1 && dur > 0 && dur < mediaDur * 0.68,
-            constante: nAmp > 1 && Math.abs(amp - mediaAmp) < mediaAmp * 0.08,
-          };
-          if (amp > 0) { if (amp > melhorAmp) melhorAmp = amp; somaAmp += amp; nAmp++; }
-          if (dur > 0) { somaDur += dur; nDur++; }
-          repMin = Infinity; repMax = -Infinity;
-          if (aoContar) aoContar(total, qualidade);
+      // 2. escolhe em qual sinal contar
+      if (alternado) {
+        // no alternado cada lado já tem o seu sinal, definido pelo perfil
+        escolhido = perfil.par.join(" + ");
+      } else {
+        const candidatos = (perfil && perfil.sinais ? perfil.sinais : TODOS.map((s) => s.id))
+          .map((id) => ({ id: id, faixa: faixaDe(amostras[id]) }))
+          .filter((c) => c.faixa > 0)
+          .sort((a, b) => b.faixa - a.faixa);
+        if (candidatos.length) {
+          const topo = candidatos[0];
+          // Entre sinais parecidos (dentro de 20%), o que o grupo muscular indica ganha
+          const perto = candidatos.filter((c) => c.faixa >= topo.faixa * 0.8);
+          const pref = perto.find((c) => preferidos.indexOf(c.id) >= 0);
+          const novo = (pref || topo).id;
+          // Só troca de sinal antes de começar a contar: trocar no meio da série
+          // zeraria a referência e perderia a conta.
+          if (!escolhido || (total === 0 && novo !== escolhido)) escolhido = novo;
+          maquinas[0].id = escolhido;
         }
+        if (!maquinas[0].id) return { total: total, pronto: false };
       }
-      return { total: total, pronto: true, contou: contou, qualidade: qualidade, n: n, amplitude: amplitude, sinal: escolhido };
+
+      // 3. roda a histerese em cada máquina
+      let contou = false, qualidade = null;
+      const ids = alternado ? perfil.par : [maquinas[0].id];
+      let maiorFaixa = 0;
+      ids.forEach((id, k) => {
+        maiorFaixa = Math.max(maiorFaixa, faixaDe(amostras[id]));
+        const r = passo(maquinas[k], id, agora);
+        if (!r) return;
+        total++;
+        maquinas[k].conta++;
+        contou = true;
+        // Comparações só valem a partir da segunda repetição: a primeira é a
+        // própria referência, e elogiar a primeira por ser a melhor é bobagem.
+        const mediaAmp = nAmp ? somaAmp / nAmp : 0;
+        const mediaDur = nDur ? somaDur / nDur : 0;
+        qualidade = {
+          amplitude: Math.round(r.amp),
+          duracao: Math.round(r.dur),
+          melhor: nAmp > 0 && r.amp > melhorAmp * 1.04,
+          caindo: nAmp > 1 && r.amp < mediaAmp * 0.84,
+          rapida: nDur > 1 && r.dur > 0 && r.dur < mediaDur * 0.68,
+          constante: nAmp > 1 && Math.abs(r.amp - mediaAmp) < mediaAmp * 0.08,
+        };
+        if (r.amp > 0) { if (r.amp > melhorAmp) melhorAmp = r.amp; somaAmp += r.amp; nAmp++; }
+        if (r.dur > 0) { somaDur += r.dur; nDur++; }
+        if (aoContar) aoContar(total, qualidade);
+      });
+      amplitude = maiorFaixa;
+      if (amplitude < minAmp) return { total: total, pronto: false, amplitude: amplitude, sinal: escolhido };
+      return { total: total, pronto: true, contou: contou, qualidade: qualidade, amplitude: amplitude, sinal: escolhido };
     },
     zerar() {
-      total = 0; estado = "baixo"; ultimaRep = 0;
-      repMin = Infinity; repMax = -Infinity;
+      total = 0;
+      maquinas.forEach((m) => { m.estado = "baixo"; m.ultima = 0; m.conta = 0; m.repMin = Infinity; m.repMax = -Infinity; });
       melhorAmp = 0; somaAmp = 0; nAmp = 0; somaDur = 0; nDur = 0;
     },
     // Serve ao "desfazer" quando o scanner conta uma a mais
     ajustar(n) { total = Math.max(0, n); },
     estado() {
-      const s = EYES_SINAIS.find((x) => x.id === escolhido);
-      return { total: total, sinal: escolhido, nomeSinal: s ? s.nome : null, amplitude: Math.round(amplitude) };
+      const s = TODOS.find((x) => x.id === escolhido);
+      return {
+        total: total,
+        sinal: escolhido,
+        nomeSinal: s ? s.nome : (alternado ? "os dois lados" : null),
+        alternado: alternado,
+        amplitude: Math.round(amplitude),
+        // Ritmo e tempo sob tensão saem de graça: o contador já media a duração de
+        // cada repetição para o técnico saber quando a pessoa estava acelerando.
+        // Repetição de 1 segundo e de 4 segundos treinam coisas diferentes, e até
+        // aqui ninguém media isso sem filmar a série e contar no olho.
+        ritmo: nDur ? Math.round(somaDur / nDur / 100) / 10 : 0,
+        tut: Math.round(somaDur / 1000),
+        // No alternado dá para saber se um lado está fazendo mais que o outro —
+        // o desequilíbrio que ninguém percebe sozinho, porque o lado forte
+        // compensa sem avisar.
+        lados: alternado
+          ? perfil.par.map((id, k) => ({ nome: nomeDoSinal(id), total: maquinas[k].conta }))
+          : null,
+      };
     },
   };
 }
-
 // ---- O técnico ----
 // Um parceiro de treino não comenta todas as repetições: isso vira ruído e
 // atropela a contagem. Ele fica quieto, e quando fala é porque viu alguma
@@ -2033,6 +2173,9 @@ function interpretarVoz(fala, ctx) {
   // --- bora ---
   // Depois de ouvir a sugestão do dia, "bora" é o jeito natural de aceitar.
   // Só vale sozinho: dentro de uma frase maior, "bora" é só empolgação.
+  // "aula" tem de vir antes de iniciarTreino: senão "começa a aula queima" vira
+  // a busca de uma ficha chamada "a aula queima", que não existe.
+  if (tem(/\baula\b/) || tem(/\b(treino funcional|circuito)\b/)) return { tipo: "aula", frase: f };
   if (/^\s*(bora|partiu|vamos|vamo)\s*(treinar|nessa|pra cima|la)?\s*$/.test(f)) return { tipo: "boraTreinar" };
 
   // --- vida da sessão ---
@@ -2627,6 +2770,16 @@ function ImagemExercicio({ ex }) {
     );
   }
 
+  // Movimento funcional não tem figura no acervo do wger — tem boneco desenhado
+  // aqui mesmo, e ele mostra o movimento melhor que uma foto parada mostraria.
+  if ((!url || falhou) && ex.func && POSES_FUNCIONAIS[ex.func]) {
+    return (
+      <div style={{ background: "var(--input)", borderRadius: 12, padding: 10, textAlign: "center",
+        display: "flex", justifyContent: "center", margin: "4px 0 6px" }}>
+        <BonecoFuncional id={ex.func} tamanho={190} cor={corGrupo(grupoPorId(ex.grupo))} />
+      </div>
+    );
+  }
   if (!url || falhou) {
     return (
       <div style={{ fontSize: 13, color: "var(--cinza)", padding: "8px 0", lineHeight: 1.6 }}>
@@ -3184,7 +3337,9 @@ function MiniaturaExercicio({ ex, tamanho = 54, onAbrir }) {
   // pede "cover", senão fica uma tarja no meio de um quadrado vazio.
   const conteudo = url
     ? <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: fotoPropria ? "cover" : "contain", background: fotoPropria ? "var(--input)" : "#FFFFFF" }} />
-    : <span aria-hidden="true" style={{ fontSize: tamanho * 0.42, fontWeight: 900, color: corGrupo(g) }}>{ex ? ex.nome[0] : "?"}</span>;
+    : ex && ex.func && POSES_FUNCIONAIS[ex.func]
+      ? <BonecoFuncional id={ex.func} tamanho={tamanho * 0.86} cor={corGrupo(g)} />
+      : <span aria-hidden="true" style={{ fontSize: tamanho * 0.42, fontWeight: 900, color: corGrupo(g) }}>{ex ? ex.nome[0] : "?"}</span>;
   const estilo = {
     width: tamanho, height: tamanho, borderRadius: 12, overflow: "hidden", flexShrink: 0,
     border: "1px solid var(--borda2)", background: url && !fotoPropria ? "#FFFFFF" : "var(--input)",
@@ -3762,7 +3917,7 @@ function EscolaJarvis({ acoes, ouvindo, vozBarra, todos, onLigarVoz, onDesligarV
 // assim ela usa o mesmo caminho de registrar série que o botão ✓ e a voz usam —
 // descanso, recorde e festa saem de graça, sem nenhuma lógica duplicada.
 function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, serieTotal, som, bpm,
-  vozCfg, contarAlto, onAlternarContagem, onRegistrar, onFechar }) {
+  vozCfg, contarAlto, onAlternarContagem, autoSerie, onAlternarAuto, onRegistrar, onFechar }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fluxoRef = useRef(null);
@@ -3787,8 +3942,20 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const [dica, setDica] = useState(null);     // { texto, tipo, em }
   const alvoRef = useRef(0);
   alvoRef.current = parseInt(repsAlvo) || 0;
+  // Bateu o número combinado, a série está feita: insistir num toque na tela
+  // depois disso é pedir para a pessoa interromper o treino para confirmar o
+  // óbvio. Ela fecha sozinha em quatro segundos, e dá para cancelar nesse meio
+  // tempo — porque quem quer fazer duas a mais também tem razão.
+  const [fechando, setFechando] = useState(0);
+  const autoRef = useRef(autoSerie);
+  autoRef.current = autoSerie;
+  const canceladoRef = useRef(false);
+  const repsRef = useRef(0);
+  const pesoRef = useRef("");
+  const [medidas, setMedidas] = useState(null);   // ritmo, tempo sob tensão e lados
 
   useEffect(() => { setPeso(pesoAtual || ""); }, [pesoAtual, aberto]);
+  pesoRef.current = peso;
 
   // ---- liga e desliga a câmera junto com a tela ----
   useEffect(() => {
@@ -3797,10 +3964,20 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     setFase("carregando");
     setErro("");
     setReps(0);
+    repsRef.current = 0;
+    setFechando(0);
+    setMedidas(null);
+    canceladoRef.current = false;
     inicioRef.current = Date.now();
     tecnicoRef.current = criarTecnico();
     setDica(null);
+    // Exercício de máquina o contador descobre sozinho. Movimento funcional tem
+    // forma conhecida, e dizer qual é rende uma contagem muito melhor — é a
+    // diferença entre contar o salto e contar o balanço do braço durante o salto.
+    const perfil = (ex && ex.func && MOV_FUNCIONAIS[ex.func]) || null;
+    if (perfil && perfil.dica) setDica({ texto: perfil.dica, tipo: "dica", em: Date.now() });
     contadorRef.current = criarContador({
+      perfil: perfil,
       preferidos: (ex && EYES_PREFERENCIA[ex.grupo]) || [],
       aoContar: (n, q) => {
         // O bipe é o retorno que chega sem olhar: a pessoa está de costas para
@@ -3811,6 +3988,9 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         // O comentário aparece na tela mesmo com o som desligado: quem treina
         // sem fone também merece saber que a amplitude está caindo.
         const alvoN = alvoRef.current;
+        repsRef.current = n;
+        if (contadorRef.current) setMedidas(contadorRef.current.estado());
+        if (alvoN > 0 && n >= alvoN && autoRef.current && !canceladoRef.current) setFechando(4);
         const frase = tecnicoRef.current ? tecnicoRef.current.comentar(n, q, alvoN) : null;
         if (frase) setDica({ texto: frase, tipo: q && (q.caindo || q.rapida) ? "corrige" : "elogia", em: Date.now() });
 
@@ -3933,12 +4113,27 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     };
   }, [aberto, frente, ex, som]);
 
-  // A dica fica cinco segundos e sai: é um aviso, não um letreiro.
+  // A dica fica cinco segundos e sai: é um aviso, não um letreiro. A dica de
+  // forma do movimento funcional fica um pouco mais: ela aparece antes da
+  // primeira repetição, quando a pessoa ainda está se posicionando.
   useEffect(() => {
     if (!dica) return;
-    const t = setTimeout(() => setDica(null), 5000);
+    const t = setTimeout(() => setDica(null), dica.tipo === "dica" ? 8000 : 5000);
     return () => clearTimeout(t);
   }, [dica]);
+
+  // A contagem regressiva do fechamento automático. Um bipe por segundo: é o
+  // aviso que chega sem olhar, e é o que torna o cancelamento possível.
+  useEffect(() => {
+    if (fechando <= 0) return;
+    if (som) beep(fechando === 1 ? 1500 : 800, 0.07, 0.1);
+    const t = setTimeout(() => {
+      if (fechando > 1) { setFechando(fechando - 1); return; }
+      setFechando(0);
+      onRegistrar(repsRef.current, pesoRef.current);
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [fechando]);
 
   // cronômetro da série, para as calorias
   useEffect(() => {
@@ -3954,6 +4149,11 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const ajustar = (d) => {
     const n = Math.max(0, reps + d);
     setReps(n);
+    repsRef.current = n;
+    // Mexer na conta à mão é dizer "ainda não acabei": o fechamento some e não
+    // volta nesta série.
+    setFechando(0);
+    canceladoRef.current = true;
     setDica(null);
     if (contadorRef.current) contadorRef.current.ajustar(n);
   };
@@ -4006,6 +4206,17 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
           {contarAlto ? "🔊 1,2,3" : "🔇"}
         </button>
 
+        <button onClick={onAlternarAuto}
+          aria-pressed={!!autoSerie}
+          aria-label={autoSerie ? "Desligar o fechamento automático da série" : "Ligar o fechamento automático da série"}
+          style={{ position: "absolute", top: "calc(160px + env(safe-area-inset-top))", right: 12,
+            minWidth: 42, height: 42, borderRadius: 21, border: "none",
+            background: autoSerie ? "rgba(47,212,138,0.85)" : "rgba(0,0,0,0.55)",
+            color: autoSerie ? "#042016" : "#FFFFFF", fontSize: 14, fontWeight: 900,
+            padding: "0 12px", cursor: "pointer" }}>
+          {autoSerie ? "⏱ auto" : "⏱ off"}
+        </button>
+
         {/* o contador grande, que é o que a pessoa olha de longe */}
         {fase === "pronto" && (
           <div style={{ position: "absolute", right: 14, bottom: 14, textAlign: "center",
@@ -4040,11 +4251,23 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         )}
         {fase === "pronto" && dica && (
           <div role="status" style={{ position: "absolute", left: 14, right: 160, bottom: 150,
-            background: dica.tipo === "corrige" ? "rgba(237,73,86,0.92)" : "rgba(124,255,60,0.92)",
-            color: dica.tipo === "corrige" ? "#FFFFFF" : "#0A2A00",
+            background: dica.tipo === "corrige" ? "rgba(237,73,86,0.92)"
+              : dica.tipo === "dica" ? "rgba(0,0,0,0.78)" : "rgba(124,255,60,0.92)",
+            color: dica.tipo === "elogia" ? "#0A2A00" : "#FFFFFF",
             borderRadius: 14, padding: "12px 14px", fontSize: 16, fontWeight: 900, lineHeight: 1.35 }}>
-            {dica.tipo === "corrige" ? "⚠ " : "✓ "}{dica.texto}
+            {dica.tipo === "corrige" ? "⚠ " : dica.tipo === "dica" ? "◎ " : "✓ "}{dica.texto}
           </div>
+        )}
+        {fechando > 0 && (
+          <button onClick={() => { setFechando(0); canceladoRef.current = true; }}
+            style={{ position: "absolute", left: 14, right: 14, bottom: 150, border: "none",
+              background: "rgba(47,212,138,0.95)", color: "#042016", borderRadius: 14,
+              padding: "14px 14px", fontSize: 15.5, fontWeight: 900, cursor: "pointer", textAlign: "left" }}>
+            ✓ Série completa. Registrando em {fechando}…
+            <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, marginTop: 3, opacity: 0.8 }}>
+              Toque aqui se ainda vai fazer mais.
+            </span>
+          </button>
         )}
         {fase === "pronto" && !vendo && (
           <div style={{ position: "absolute", left: 12, right: 150, bottom: 18,
@@ -4063,8 +4286,16 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
               {ex ? ex.nome : "Exercício"}
             </div>
             <div style={{ fontSize: 11, color: "var(--cinza)" }}>
-              Série {serieNum} de {serieTotal}{sinal ? " · lendo o " + (EYES_SINAIS.find((s) => s.id === sinal) || {}).nome : ""}
+              Série {serieNum} de {serieTotal}{sinal ? " · lendo " + nomeDoSinal(sinal) : ""}
             </div>
+            {medidas && medidas.ritmo > 0 && (
+              <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 3 }}>
+                ⏱ {String(medidas.ritmo).replace(".", ",")}s por repetição · {medidas.tut}s sob tensão
+                {medidas.lados && medidas.lados.length === 2 &&
+                  " · " + medidas.lados[0].total + " / " + medidas.lados[1].total +
+                  (Math.abs(medidas.lados[0].total - medidas.lados[1].total) > 2 ? " ⚠ desigual" : "")}
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
             <button onClick={() => ajustar(-1)} aria-label="Tirar uma repetição"
@@ -4088,6 +4319,594 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---------------- FIGURAS DO MOVIMENTO FUNCIONAL ----------------
+// Nenhum destes movimentos tem figura no acervo do wger, e sem imagem a aula
+// guiada não funciona: a pessoa precisa saber o que fazer antes de começar, não
+// depois de ler. Então são desenhados aqui mesmo, em SVG, com duas poses que o
+// CSS alterna — um boneco que faz o movimento ensina mais que uma foto parada,
+// e não custa nem rede nem licença.
+//
+// O esqueleto tem onze pontos numa tela de 120 por 160, com o chão em y=145.
+const POSE_BASE = {
+  cab: [60, 20], om: [60, 42], qua: [60, 88],
+  coE: [47, 60], puE: [44, 78], coD: [73, 60], puD: [76, 78],
+  joE: [53, 114], peE: [52, 144], joD: [67, 114], peD: [68, 144],
+};
+const pose = (mod) => Object.assign({}, POSE_BASE, mod);
+
+const POSES_FUNCIONAIS = {
+  "polichinelo": [
+    pose({}),
+    pose({ coE: [38, 30], puE: [30, 12], coD: [82, 30], puD: [90, 12],
+      joE: [42, 112], peE: [28, 142], joD: [78, 112], peD: [92, 142] }),
+  ],
+  "burpee": [
+    // embaixo, em prancha com o peito perto do chão
+    pose({ cab: [26, 112], om: [42, 114], qua: [80, 120], coE: [32, 126], puE: [30, 140],
+      coD: [36, 124], puD: [34, 140], joE: [98, 128], peE: [112, 140], joD: [100, 130], peD: [114, 142] }),
+    // em cima, salto com os braços estendidos
+    pose({ cab: [60, 24], om: [60, 44], qua: [60, 86], coE: [46, 26], puE: [40, 8],
+      coD: [74, 26], puD: [80, 8], joE: [52, 110], peE: [50, 134], joD: [68, 110], peD: [70, 134] }),
+  ],
+  "agachamento-salto": [
+    // agachado, coxa paralela
+    pose({ cab: [60, 42], om: [60, 62], qua: [60, 100], coE: [42, 76], puE: [38, 94],
+      coD: [78, 76], puD: [82, 94], joE: [40, 108], peE: [48, 144], joD: [80, 108], peD: [72, 144] }),
+    // no ar, corpo estendido
+    pose({ cab: [60, 14], om: [60, 34], qua: [60, 78], coE: [44, 18], puE: [38, 2],
+      coD: [76, 18], puD: [82, 2], joE: [52, 104], peE: [50, 130], joD: [68, 104], peD: [70, 130] }),
+  ],
+  "salto-vertical": [
+    // flexiona levando os braços para trás
+    pose({ cab: [60, 36], om: [60, 56], qua: [60, 96], coE: [44, 70], puE: [34, 60],
+      coD: [76, 70], puD: [86, 60], joE: [44, 112], peE: [50, 144], joD: [76, 112], peD: [70, 144] }),
+    pose({ cab: [60, 12], om: [60, 32], qua: [60, 76], coE: [48, 14], puE: [44, 0],
+      coD: [72, 14], puD: [76, 0], joE: [54, 104], peE: [54, 128], joD: [66, 104], peD: [66, 128] }),
+  ],
+  "afundo-alternado": [
+    // afundo com a perna esquerda à frente
+    pose({ cab: [56, 36], om: [56, 58], qua: [58, 102], coE: [43, 76], puE: [40, 94],
+      coD: [70, 76], puD: [73, 94], joE: [32, 120], peE: [30, 146], joD: [86, 132], peD: [100, 144] }),
+    pose({}),
+  ],
+  "joelhos-altos": [
+    pose({ coE: [40, 56], puE: [34, 40], coD: [78, 66], puD: [84, 82],
+      joE: [44, 86], peE: [36, 106], joD: [67, 114], peD: [68, 144] }),
+    pose({ coE: [42, 66], puE: [36, 82], coD: [80, 56], puD: [86, 40],
+      joE: [53, 114], peE: [52, 144], joD: [76, 86], peD: [84, 106] }),
+  ],
+  "escalador": [
+    // prancha alta, joelho esquerdo vindo ao peito
+    pose({ cab: [26, 76], om: [42, 84], qua: [86, 100], coE: [40, 102], puE: [38, 128],
+      coD: [44, 104], puD: [42, 128], joE: [62, 102], peE: [56, 124], joD: [108, 114], peD: [116, 134] }),
+    pose({ cab: [26, 76], om: [42, 84], qua: [86, 100], coE: [40, 102], puE: [38, 128],
+      coD: [44, 104], puD: [42, 128], joE: [108, 112], peE: [116, 132], joD: [64, 104], peD: [58, 126] }),
+  ],
+  "socos-ar": [
+    // soco com o braço esquerdo, guarda com o direito
+    pose({ coE: [40, 54], puE: [20, 50], coD: [74, 56], puD: [66, 40],
+      joE: [50, 114], peE: [46, 144], joD: [70, 114], peD: [76, 144] }),
+    pose({ coE: [46, 56], puE: [54, 40], coD: [80, 54], puD: [100, 50],
+      joE: [50, 114], peE: [46, 144], joD: [70, 114], peD: [76, 144] }),
+  ],
+  "chute-frontal": [
+    // chute com a perna esquerda
+    pose({ coE: [46, 56], puE: [52, 42], coD: [76, 56], puD: [70, 42],
+      joE: [40, 100], peE: [20, 86], joD: [68, 114], peD: [70, 144] }),
+    pose({ coE: [44, 56], puE: [50, 42], coD: [74, 56], puD: [68, 42],
+      joE: [52, 114], peE: [50, 144], joD: [80, 100], peD: [100, 86] }),
+  ],
+  "flexao": [
+    // prancha alta, braços estendidos
+    pose({ cab: [26, 78], om: [44, 86], qua: [84, 100], coE: [44, 110], puE: [44, 134],
+      coD: [48, 110], puD: [48, 134], joE: [108, 112], peE: [118, 132], joD: [110, 114], peD: [120, 134] }),
+    // embaixo, peito perto do chão
+    pose({ cab: [26, 106], om: [44, 112], qua: [84, 118], coE: [34, 124], puE: [44, 136],
+      coD: [38, 126], puD: [48, 136], joE: [108, 126], peE: [118, 138], joD: [110, 128], peD: [120, 140] }),
+  ],
+  "abdominal-remador": [
+    // deitado, esticado
+    pose({ cab: [20, 120], om: [38, 124], qua: [78, 126], coE: [22, 112], puE: [6, 108],
+      coD: [24, 116], puD: [8, 112], joE: [98, 128], peE: [116, 130], joD: [100, 132], peD: [118, 134] }),
+    // o "V": tronco e pernas sobem juntos
+    pose({ cab: [34, 74], om: [44, 92], qua: [60, 128], coE: [54, 78], puE: [74, 70],
+      coD: [56, 82], puD: [76, 74], joE: [82, 102], peE: [96, 78], joD: [84, 106], peD: [98, 82] }),
+  ],
+  "skater": [
+    // salto para a esquerda, aterrissando na perna esquerda
+    pose({ cab: [46, 34], om: [50, 56], qua: [60, 94], coE: [32, 62], puE: [16, 56],
+      coD: [70, 70], puD: [78, 84], joE: [44, 116], peE: [38, 144], joD: [82, 106], peD: [98, 118] }),
+    pose({ cab: [74, 34], om: [70, 56], qua: [60, 94], coE: [50, 70], puE: [42, 84],
+      coD: [88, 62], puD: [104, 56], joE: [38, 106], peE: [22, 118], joD: [76, 116], peD: [82, 144] }),
+  ],
+};
+
+// O boneco de duas poses: o CSS alterna a opacidade das duas e o movimento
+// aparece. Sem requestAnimationFrame — numa aula o celular tem coisa melhor a
+// fazer, e animação de CSS continua rodando com a tela em economia.
+function Esqueleto({ p, cor }) {
+  const L = (a, b) => <line key={a + b} x1={p[a][0]} y1={p[a][1]} x2={p[b][0]} y2={p[b][1]} />;
+  return (
+    <g stroke={cor} strokeWidth="7" strokeLinecap="round" fill="none">
+      <circle cx={p.cab[0]} cy={p.cab[1]} r="11" fill={cor} stroke="none" />
+      {L("om", "qua")}
+      {L("om", "coE")}{L("coE", "puE")}
+      {L("om", "coD")}{L("coD", "puD")}
+      {L("qua", "joE")}{L("joE", "peE")}
+      {L("qua", "joD")}{L("joD", "peD")}
+    </g>
+  );
+}
+
+function BonecoFuncional({ id, tamanho, cor }) {
+  const poses = POSES_FUNCIONAIS[id];
+  if (!poses) return null;
+  const c = cor || "#7CFF3C";
+  const alt = tamanho || 170;
+  return (
+    <svg viewBox="0 0 120 160" width={(alt * 120) / 160} height={alt} aria-hidden="true"
+      style={{ display: "block", overflow: "visible" }}>
+      <line x1="2" y1="152" x2="118" y2="152" stroke="rgba(255,255,255,0.18)" strokeWidth="3" strokeLinecap="round" />
+      <g className="boneco-a"><Esqueleto p={poses[0]} cor={c} /></g>
+      <g className="boneco-b"><Esqueleto p={poses[1]} cor={c} /></g>
+    </svg>
+  );
+}
+
+// ---------------- AULAS EM CIRCUITO ----------------
+// Uma ficha diz o que fazer; uma aula conduz. A diferença é o relógio: aqui
+// ninguém decide quando trocar de exercício — a voz avisa, a figura mostra e a
+// pessoa só precisa se mexer. É o formato que faz treinar na sala de casa sem
+// travar a cada dois minutos pensando no que vem agora.
+// A aula roda dentro da tela funcional, mas a fala chega no componente raiz,
+// quatro níveis acima. Um ponteiro só, trocado quando o player entra e sai, em
+// vez de descer callbacks por toda a árvore — é o mesmo arranjo de TEMA_APP, e
+// pelo mesmo motivo: existe no máximo uma aula por vez.
+let CONTROLE_AULA = null;
+
+const PREPARO_AULA = 10;
+const AULAS = [
+  { id: "express", nome: "Express", icone: "⏱", nivel: "Iniciante", voltas: 2, descanso: 20, entreVoltas: 45,
+    desc: "Curtinha, sem salto nenhum alto. Boa para o primeiro dia.",
+    blocos: [{ ex: "polichinelo", seg: 40 }, { ex: "agachamento-salto", seg: 30 }, { ex: "flexao", seg: 30 }, { ex: "escalador", seg: 30 }] },
+  { id: "queima", nome: "Queima", icone: "🔥", nivel: "Intermediário", voltas: 3, descanso: 20, entreVoltas: 60,
+    desc: "Três voltas puxadas. O burpee abre cada uma delas.",
+    blocos: [{ ex: "burpee", seg: 30 }, { ex: "joelhos-altos", seg: 40 }, { ex: "agachamento-salto", seg: 30 }, { ex: "abdominal-remador", seg: 30 }] },
+  { id: "luta", nome: "Luta", icone: "🥊", nivel: "Intermediário", voltas: 4, descanso: 10, entreVoltas: 30,
+    desc: "Blocos curtos no ritmo do boxe: soco, chute e pernas.",
+    blocos: [{ ex: "socos-ar", seg: 20 }, { ex: "chute-frontal", seg: 20 }, { ex: "joelhos-altos", seg: 20 }, { ex: "skater", seg: 20 }] },
+  { id: "potencia", nome: "Potência", icone: "🚀", nivel: "Avançado", voltas: 3, descanso: 25, entreVoltas: 75,
+    desc: "Salto com descanso de verdade entre as séries. Potência não se treina cansado.",
+    blocos: [{ ex: "salto-vertical", seg: 20 }, { ex: "afundo-alternado", seg: 40 }, { ex: "skater", seg: 30 }, { ex: "agachamento-salto", seg: 30 }] },
+  { id: "silencio", nome: "Sem barulho", icone: "🤫", nivel: "Iniciante", voltas: 3, descanso: 20, entreVoltas: 50,
+    desc: "Nenhum salto: dá para fazer em apartamento, à noite, sem incomodar ninguém.",
+    blocos: [{ ex: "flexao", seg: 30 }, { ex: "abdominal-remador", seg: 30 }, { ex: "escalador", seg: 40 }, { ex: "afundo-alternado", seg: 40 }] },
+];
+
+// O roteiro é a aula esticada no tempo: preparo, exercício, descanso, exercício...
+// Deixar isso pronto antes de começar é o que permite dizer "depois: burpee"
+// sem o player ter de adivinhar nada.
+function montarRoteiro(a) {
+  const r = [{ tipo: "prepara", seg: PREPARO_AULA, ex: a.blocos[0].ex, volta: 1 }];
+  for (let v = 1; v <= a.voltas; v++) {
+    a.blocos.forEach((b, k) => {
+      r.push({ tipo: "exercicio", ex: b.ex, seg: b.seg, volta: v });
+      const ultimo = k === a.blocos.length - 1;
+      if (ultimo && v === a.voltas) return;
+      r.push({
+        tipo: "descanso", volta: v,
+        seg: ultimo ? a.entreVoltas : a.descanso,
+        ex: ultimo ? a.blocos[0].ex : a.blocos[k + 1].ex,
+      });
+    });
+  }
+  return r;
+}
+const duracaoAula = (a) => Math.round(montarRoteiro(a).reduce((s, p) => s + p.seg, 0) / 60);
+
+// Frases do meio do bloco. Variam de propósito: ouvir "continue assim" pela
+// décima vez na mesma aula faz a voz virar paisagem.
+const FRASES_AULA = [
+  "Segura o ritmo.", "Isso. Assim mesmo.", "Metade. Não para agora.",
+  "Respira e continua.", "Tá indo bem.", "Aguenta mais um pouco.",
+  "Capricha na forma.", "Força aí.",
+];
+
+function PlayerAula({ aula, exPorId, som, vozCfg, onSair, onConcluir }) {
+  const roteiro = useMemo(() => montarRoteiro(aula), [aula]);
+  const [i, setI] = useState(0);
+  const [resta, setResta] = useState(roteiro[0].seg);
+  const [pausado, setPausado] = useState(false);
+  const inicioRef = useRef(Date.now());
+  const feitosRef = useRef([]);
+  const fraseRef = useRef(0);
+  const passo = roteiro[i];
+  const ex = passo && passo.ex ? exPorId(passo.ex) : null;
+  const perfil = ex && ex.func ? MOV_FUNCIONAIS[ex.func] : null;
+
+  const falar = (txt) => jarvisFalar(txt, {
+    falar: true,
+    vozNome: vozCfg && vozCfg.vozNome,
+    velocidade: (vozCfg && vozCfg.velocidade) || 1.1,
+    animado: vozCfg ? vozCfg.animado : true,
+  });
+
+  // Durante a aula as mãos estão ocupadas e o celular está longe: é exatamente
+  // a situação em que a voz vale mais. O vocabulário fica aqui, junto de quem
+  // sabe executar — o raiz só pergunta se há aula e repassa a frase.
+  useEffect(() => {
+    CONTROLE_AULA = {
+      comando(f) {
+        if (/\b(pausa|pausar|pausado|espera|calma|para a aula|parar a aula)\b/.test(f)) {
+          setPausado(true);
+          return { acao: "pausar", resposta: "Aula pausada." };
+        }
+        if (/\b(continua|continuar|retoma|retomar|voltei|segue|seguir|bora|vamos)\b/.test(f)) {
+          setPausado(false);
+          return { acao: "continuar", resposta: "Voltando." };
+        }
+        if (/\b(pula|pular|proximo|proxima|passa|passar)\b/.test(f)) {
+          avancar();
+          return { acao: "pular", resposta: "Pulando." };
+        }
+        if (/\b(quanto falta|falta quanto|quanto tempo|como estou|em que bloco)\b/.test(f)) {
+          const nome = ex ? nomeFalado(ex.nome) : "";
+          return {
+            acao: "situacao",
+            resposta: descanso
+              ? "Descanso. " + resta + " segundos, e depois " + nome + "."
+              : nome + ", " + resta + " segundos. Volta " + passo.volta + " de " + aula.voltas + ".",
+          };
+        }
+        if (/\b(sair da aula|encerra a aula|encerrar a aula|acabou|chega|desisto|parar tudo)\b/.test(f)) {
+          onSair();
+          return { acao: "sair", resposta: "Aula encerrada." };
+        }
+        return null;
+      },
+    };
+    return () => { CONTROLE_AULA = null; };
+  });
+
+  // A tela não pode apagar no meio da aula: o celular fica apoiado longe e
+  // ninguém vai atravessar a sala para acordá-lo a cada bloco.
+  useEffect(() => {
+    ligarTravaTela();
+    return () => {
+      desligarTravaTela();
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+    };
+  }, []);
+
+  // ---- anuncia cada bloco ----
+  useEffect(() => {
+    if (!passo) return;
+    setResta(passo.seg);
+    const nome = ex ? nomeFalado(ex.nome) : "";
+    if (passo.tipo === "prepara") {
+      falar("Aula " + aula.nome + ". Prepare-se. Começamos com " + nome + ".");
+    } else if (passo.tipo === "exercicio") {
+      if (som) beep(1200, 0.09, 0.16);
+      falar(nome + ". " + passo.seg + " segundos. Vai!");
+    } else {
+      if (som) beep(680, 0.14, 0.13);
+      falar("Descanso. Depois: " + nome + ".");
+    }
+  }, [i]);
+
+  // ---- o relógio ----
+  useEffect(() => {
+    if (pausado || !passo) return;
+    const t = setInterval(() => setResta((s) => (s <= 0 ? 0 : s - 1)), 1000);
+    return () => clearInterval(t);
+  }, [pausado, i]);
+
+  const avancar = () => {
+    if (!passo) return;
+    if (passo.tipo === "exercicio") feitosRef.current.push({ ex: passo.ex, seg: passo.seg });
+    if (i >= roteiro.length - 1) { terminar(); return; }
+    setI(i + 1);
+  };
+
+  const terminar = () => {
+    const porEx = {};
+    feitosRef.current.forEach((b) => { (porEx[b.ex] = porEx[b.ex] || []).push({ segundos: b.seg }); });
+    const itens = Object.keys(porEx).map((id) => ({ exercicioId: id, obs: "", series: porEx[id] }));
+    if (!itens.length) { onSair(); return; }
+    if (som) beep(1500, 0.3, 0.2);
+    falar("Aula concluída. Mandou bem!");
+    onConcluir({
+      id: String(Date.now()),
+      nome: "Aula: " + aula.nome,
+      data: new Date().toISOString(),
+      duracaoMin: Math.max(1, Math.min(300, Math.round((Date.now() - inicioRef.current) / 60000))),
+      itens: itens,
+    });
+  };
+
+  // ---- a contagem regressiva e o que ela dispara ----
+  useEffect(() => {
+    if (pausado || !passo) return;
+    if (resta <= 0) { avancar(); return; }
+    // Os três últimos segundos apitam: é o aviso que chega de costas para a tela.
+    if (resta <= 3 && som) beep(resta === 1 ? 1500 : 900, 0.07, 0.12);
+    if (passo.tipo !== "exercicio") return;
+    if (resta === 10 && passo.seg >= 28) falar("Últimos dez.");
+    else if (resta === Math.round(passo.seg / 2) && passo.seg >= 26) {
+      falar(FRASES_AULA[fraseRef.current++ % FRASES_AULA.length]);
+    }
+  }, [resta]);
+
+  if (!passo) return null;
+  const descanso = passo.tipo === "descanso";
+  const preparo = passo.tipo === "prepara";
+  const pct = passo.seg > 0 ? (resta / passo.seg) * 100 : 0;
+  const cor = descanso ? "#2FD48A" : preparo ? "#FFC107" : "#7CFF3C";
+  const feitos = roteiro.slice(0, i).filter((p) => p.tipo === "exercicio").length;
+  const totalBlocos = roteiro.filter((p) => p.tipo === "exercicio").length;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 70, background: "#0A0A0A", color: "#FFFFFF",
+      display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top)" }}>
+      {/* cabeçalho: onde estou na aula */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px 6px" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {aula.icone} Aula {aula.nome}
+          </div>
+          <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>
+            Volta {passo.volta} de {aula.voltas} · bloco {Math.min(feitos + 1, totalBlocos)} de {totalBlocos}
+          </div>
+        </div>
+        <button onClick={onSair} aria-label="Sair da aula"
+          style={{ width: 40, height: 40, borderRadius: 20, border: "none", background: "rgba(255,255,255,0.12)",
+            color: "#FFFFFF", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>✕</button>
+      </div>
+
+      {/* a barra de progresso da aula inteira, fininha */}
+      <div style={{ height: 4, background: "rgba(255,255,255,0.12)", margin: "0 16px", borderRadius: 2 }}>
+        <div style={{ height: "100%", width: (totalBlocos ? (feitos / totalBlocos) * 100 : 0) + "%",
+          background: "#E1306C", borderRadius: 2, transition: "width .4s ease" }} />
+      </div>
+
+      {/* o miolo: a figura é o que responde "o que eu faço agora" */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
+        justifyContent: "center", padding: "10px 18px", textAlign: "center", minHeight: 0 }}>
+        {descanso ? (
+          <React.Fragment>
+            <div style={{ fontSize: 15, fontWeight: 900, color: "#2FD48A", letterSpacing: 1.5, textTransform: "uppercase" }}>Descanso</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", margin: "14px 0 10px" }}>Depois vem</div>
+            <div style={{ opacity: 0.75 }}><BonecoFuncional id={ex && ex.func} tamanho={120} cor="#FFFFFF" /></div>
+            <div style={{ fontSize: 19, fontWeight: 900, marginTop: 10 }}>{ex ? ex.nome : ""}</div>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            <BonecoFuncional id={ex && ex.func} tamanho={preparo ? 130 : 175} cor={cor} />
+            <div style={{ fontSize: 22, fontWeight: 900, marginTop: 14, lineHeight: 1.2 }}>{ex ? ex.nome : ""}</div>
+            {perfil && perfil.dica && (
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.62)", marginTop: 8, lineHeight: 1.5, maxWidth: 340 }}>
+                {perfil.dica}
+              </div>
+            )}
+            {preparo && <div style={{ fontSize: 13, color: "#FFC107", fontWeight: 800, marginTop: 12 }}>Prepare-se</div>}
+          </React.Fragment>
+        )}
+      </div>
+
+      {/* o relógio grande, legível do outro lado da sala */}
+      <div style={{ padding: "0 18px" }}>
+        <div style={{ fontSize: 76, fontWeight: 900, lineHeight: 1, textAlign: "center", color: cor,
+          fontVariantNumeric: "tabular-nums" }}>{resta}</div>
+        <div style={{ height: 8, background: "rgba(255,255,255,0.14)", borderRadius: 4, marginTop: 12, overflow: "hidden" }}>
+          <div style={{ height: "100%", width: pct + "%", background: cor, borderRadius: 4, transition: "width .9s linear" }} />
+        </div>
+      </div>
+
+      {/* pausar é obrigatório: toca o telefone, cai o halter, a vida acontece */}
+      <div style={{ display: "flex", gap: 10, padding: "16px 18px", paddingBottom: "calc(18px + env(safe-area-inset-bottom))" }}>
+        <button onClick={() => setI(Math.max(0, i - 1))} aria-label="Bloco anterior"
+          style={{ width: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,0.25)", background: "transparent",
+            color: "#FFFFFF", fontSize: 17, cursor: "pointer" }}>⏮</button>
+        <button onClick={() => setPausado((p) => !p)}
+          style={{ flex: 1, borderRadius: 14, border: "none", padding: "16px 10px", fontWeight: 900, fontSize: 16,
+            background: pausado ? "linear-gradient(45deg,#4CD137,#7CFF3C)" : "rgba(255,255,255,0.14)",
+            color: pausado ? "#0A2A00" : "#FFFFFF", cursor: "pointer" }}>
+          {pausado ? "▶ Continuar" : "⏸ Pausar"}
+        </button>
+        <button onClick={avancar} aria-label="Pular este bloco"
+          style={{ width: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,0.25)", background: "transparent",
+            color: "#FFFFFF", fontSize: 17, cursor: "pointer" }}>⏭</button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- TREINO FUNCIONAL ----------------
+// Quantas repetições fazem sentido em cada movimento. Funcional não se mede em
+// quilos: burpee de 10 é série dura, polichinelo de 10 é respirar fundo. Sem
+// isto o app sugeriria 3×12 para tudo, que é errado nos dois sentidos.
+const SUGESTAO_FUNCIONAL = {
+  "polichinelo": { series: 3, reps: 30, descanso: 30 },
+  "burpee": { series: 3, reps: 10, descanso: 75 },
+  "agachamento-salto": { series: 3, reps: 12, descanso: 60 },
+  "salto-vertical": { series: 4, reps: 6, descanso: 90 },
+  "afundo-alternado": { series: 3, reps: 16, descanso: 60 },
+  "joelhos-altos": { series: 3, reps: 30, descanso: 40 },
+  "socos-ar": { series: 3, reps: 30, descanso: 40 },
+  "chute-frontal": { series: 3, reps: 16, descanso: 45 },
+  "skater": { series: 3, reps: 16, descanso: 45 },
+  "abdominal-remador": { series: 3, reps: 15, descanso: 45 },
+  "flexao": { series: 3, reps: 12, descanso: 60 },
+  "escalador": { series: 3, reps: 20, descanso: 45 },
+  "afundo": { series: 3, reps: 12, descanso: 60 },
+  "afundo-reverso": { series: 3, reps: 12, descanso: 60 },
+};
+
+// Circuitos prontos. Escolher 4 exercícios numa lista de 14 é trabalho; tocar
+// em "Aquecer" não é. O mesmo motivo pelo qual existe o assistente de fichas.
+const CIRCUITOS = [
+  { id: "aquecer", nome: "Aquecer", icone: "🔥", tempo: "5 min",
+    desc: "Para antes do treino de musculação: sobe a frequência sem cansar.",
+    ids: ["polichinelo", "joelhos-altos", "afundo-alternado"] },
+  { id: "queima", nome: "Queima rápida", icone: "⚡", tempo: "12 min",
+    desc: "Circuito curto e puxado, sem equipamento nenhum.",
+    ids: ["burpee", "agachamento-salto", "escalador", "polichinelo"] },
+  { id: "potencia", nome: "Potência", icone: "🚀", tempo: "15 min",
+    desc: "Saltos com descanso de verdade entre as séries.",
+    ids: ["salto-vertical", "agachamento-salto", "skater"] },
+  { id: "luta", nome: "Luta", icone: "🥊", tempo: "10 min",
+    desc: "Socos e chutes no ar, no ritmo do boxe.",
+    ids: ["socos-ar", "chute-frontal", "joelhos-altos"] },
+  { id: "corpo", nome: "Só o peso do corpo", icone: "🤸", tempo: "12 min",
+    desc: "Dá para fazer na sala de casa, em silêncio.",
+    ids: ["flexao", "abdominal-remador", "escalador", "afundo-alternado"] },
+];
+
+function TelaFuncional({ todos, exPorId, som, vozCfg, aulaInicial, onAulaAberta,
+  vozAtiva, onLigarVoz, sessaoAtiva, onComecar, onConcluirAula, onVoltar }) {
+  const [aula, setAula] = useState(null);
+  // Começar a aula é o gesto que o navegador exige para abrir o microfone — e
+  // sem microfone não dá para dizer "pausa" com as mãos no chão.
+  const abrirAula = (a) => {
+    setAula(a);
+    if (!vozAtiva && onLigarVoz) onLigarVoz();
+  };
+  useEffect(() => {
+    if (!aulaInicial) return;
+    abrirAula(aulaInicial);
+    if (onAulaAberta) onAulaAberta();
+  }, [aulaInicial]);
+  const [sel, setSel] = useState([]);
+  const [demo, setDemo] = useState(null);
+  const lista = useMemo(() => todos.filter((e) => e.funcional), [todos]);
+  const alternar = (id) => setSel((s) => (s.indexOf(id) >= 0 ? s.filter((x) => x !== id) : s.concat(id)));
+  const total = sel.reduce((a, id) => {
+    const s = SUGESTAO_FUNCIONAL[id] || { series: 3 };
+    return a + s.series;
+  }, 0);
+
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <button style={S.voltar} onClick={onVoltar}>‹ Voltar</button>
+
+      <div style={{ ...S.card, borderColor: "#7CFF3C55" }}>
+        <div style={{ ...S.label, color: "#7CFF3C" }}>◉ Jarvis Eyes Scan</div>
+        <div style={{ fontSize: 18, fontWeight: 900, margin: "6px 0 8px" }}>
+          A câmera conta por você
+        </div>
+        <div style={{ fontSize: 14, color: "var(--cinza)", lineHeight: 1.65 }}>
+          Aqui não tem carga para anotar: o que conta é repetição. Apoie o celular de pé,
+          uns 2 metros de distância, e o Eyes Scan reconhece o movimento, conta em voz
+          alta, corrige a forma e já registra a série na ficha.
+        </div>
+      </div>
+
+      {/* A aula vem antes da montagem manual: quem abre esta tela quer treinar
+          agora, não configurar. Escolher 4 de 14 movimentos é configuração. */}
+      <div style={S.label}>Aulas guiadas · a voz conduz</div>
+      <div style={{ fontSize: 12.5, color: "var(--cinza)", margin: "6px 0 10px", lineHeight: 1.55 }}>
+        Apoie o celular e siga. Cada bloco tem a figura do movimento, o relógio na tela
+        e o aviso falado da troca — não precisa olhar para saber que mudou.
+      </div>
+      <div style={{ marginBottom: 22 }}>
+        {AULAS.map((a) => (
+          <button key={a.id} onClick={() => abrirAula(a)}
+            style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, marginBottom: 8,
+              background: "var(--bg2)", border: "1px solid var(--borda)", borderRadius: 14,
+              padding: "12px 13px", textAlign: "left", color: "var(--texto)", cursor: "pointer" }}>
+            <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>{a.icone}</span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 15.5, fontWeight: 900 }}>Aula {a.nome}</span>
+              <span style={{ display: "block", fontSize: 11.5, color: "#7CFF3C", fontWeight: 800, marginTop: 2 }}>
+                {duracaoAula(a)} min · {a.voltas} {plural(a.voltas, "volta", "voltas")} · {a.nivel}
+              </span>
+              <span style={{ display: "block", fontSize: 11.5, color: "var(--cinza)", marginTop: 4, lineHeight: 1.45 }}>{a.desc}</span>
+            </span>
+            <span aria-hidden="true" style={{ fontSize: 17, color: "#7CFF3C", flexShrink: 0 }}>▶</span>
+          </button>
+        ))}
+      </div>
+
+      <div style={S.label}>Circuitos para contar na câmera</div>
+      <div style={{ fontSize: 12.5, color: "var(--cinza)", margin: "6px 0 2px", lineHeight: 1.55 }}>
+        Estes viram um treino normal, com séries e repetições contadas pelo Eyes Scan.
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, margin: "8px 0 20px" }}>
+        {CIRCUITOS.map((c) => (
+          <button key={c.id} onClick={() => setSel(c.ids.slice())}
+            style={{ background: "var(--bg2)", border: "1px solid var(--borda2)", borderRadius: 14,
+              padding: "12px 12px", textAlign: "left", color: "var(--texto)", cursor: "pointer" }}>
+            <div style={{ fontSize: 22, lineHeight: 1 }} aria-hidden="true">{c.icone}</div>
+            <div style={{ fontSize: 15, fontWeight: 900, marginTop: 6 }}>{c.nome}</div>
+            <div style={{ fontSize: 11, color: "#7CFF3C", fontWeight: 800, marginTop: 2 }}>{c.tempo}</div>
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 5, lineHeight: 1.45 }}>{c.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      <div style={S.label}>Ou escolha os movimentos</div>
+      <div style={{ marginTop: 8 }}>
+        {lista.map((e) => {
+          const marcado = sel.indexOf(e.id) >= 0;
+          const s = SUGESTAO_FUNCIONAL[e.id] || { series: 3, reps: 12 };
+          const g = GRUPOS.find((x) => x.id === e.grupo);
+          return (
+            <div key={e.id}
+              style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8,
+                background: marcado ? "rgba(124,255,60,0.10)" : "var(--bg2)",
+                border: "1px solid " + (marcado ? "#7CFF3C" : "var(--borda)"),
+                borderRadius: 14, padding: "10px 12px" }}>
+              <button onClick={() => alternar(e.id)} aria-pressed={marcado}
+                aria-label={(marcado ? "Tirar " : "Colocar ") + e.nome + " no treino"}
+                style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 11,
+                  background: "transparent", border: "none", padding: 0, textAlign: "left",
+                  color: "var(--texto)", cursor: "pointer" }}>
+                <span aria-hidden="true" style={{ width: 24, height: 24, borderRadius: 7, flexShrink: 0,
+                  border: "2px solid " + (marcado ? "#7CFF3C" : "var(--borda2)"),
+                  background: marcado ? "#7CFF3C" : "transparent", color: "#0A2A00",
+                  fontSize: 15, fontWeight: 900, lineHeight: "21px", textAlign: "center" }}>{marcado ? "✓" : ""}</span>
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 14.5, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.nome}</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--cinza)", marginTop: 2 }}>
+                    <span style={{ color: corGrupo(g), fontWeight: 800 }}>{g ? g.nome : ""}</span>
+                    {" · " + s.series + "×" + s.reps}
+                  </span>
+                </span>
+              </button>
+              <button onClick={() => setDemo(e)} aria-label={"Ver como se faz " + e.nome}
+                style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, cursor: "pointer",
+                  border: "1px solid var(--borda2)", background: "transparent", color: "var(--cinza)", fontSize: 14 }}>▶</button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* A barra fica grudada embaixo: a lista é longa e o botão não pode sumir */}
+      {/* Com treino em andamento existe a faixa "continuar treino" logo acima da
+          barra de abas, e o botão ficava escondido embaixo dela — dava para tocar
+          em "começar" e acabar de volta no treino antigo. */}
+      <div style={{ position: "sticky", bottom: "calc(" + (sessaoAtiva ? 126 : 66) + "px + env(safe-area-inset-bottom))", padding: "12px 0 24px",
+        background: "linear-gradient(to top, var(--bg) 60%, transparent)" }}>
+        <button onClick={() => onComecar(sel)} disabled={!sel.length}
+          style={{ width: "100%", border: "none", borderRadius: 14, padding: "16px 12px",
+            fontWeight: 900, fontSize: 16, cursor: sel.length ? "pointer" : "default",
+            color: sel.length ? "#0A2A00" : "var(--cinza)",
+            background: sel.length ? "linear-gradient(45deg,#4CD137,#7CFF3C)" : "var(--borda)" }}>
+          {sel.length
+            ? "▶ Começar · " + sel.length + " " + plural(sel.length, "movimento", "movimentos") + ", " + total + " " + plural(total, "série", "séries")
+            : "Escolha pelo menos um movimento"}
+        </button>
+      </div>
+      <ModalDemonstracao ex={demo} onFechar={() => setDemo(null)} />
+      {aula && (
+        <PlayerAula aula={aula} exPorId={exPorId} som={som} vozCfg={vozCfg}
+          onSair={() => setAula(null)}
+          onConcluir={(registro) => { setAula(null); onConcluirAula(registro); }} />
+      )}
     </div>
   );
 }
@@ -4459,7 +5278,7 @@ function FaixaProgresso({ est, historico, meta, onAbrirProgresso }) {
 
 // ---------------- TELA INICIAL ----------------
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
-  avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onCopiarLink, onInstalar }) {
+  avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional, onCopiarLink, onInstalar }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
@@ -4530,6 +5349,12 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
             </button>
           </React.Fragment>
         )}
+        {/* Funcional não depende de ter ficha montada: é o caminho mais curto
+            entre abrir o app e estar suando, e por isso aparece sempre. */}
+        <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800, color: "#4CD137", borderColor: "#4CD13766" }}
+          onClick={onFuncional}>
+          ⚡ Treino funcional (a câmera conta)
+        </button>
       </div>
 
       <OQueTreinarHoje historico={historico} exPorId={exPorId} onAbrirGrupo={onAbrirGrupo} />
@@ -5629,6 +6454,7 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
 // ---------------- SESSÃO: registro + cronômetro com som + observações + vídeo ----------------
 function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, descanso, setDescanso, som, setSom, onFinalizar, onDescartar, onVoltar, pedirConfirmacao, pesoCorporal,
   bpm, cardioEstado, onConectarCardio, onDesconectarCardio, vozCfg, contarAlto, onAlternarContagem,
+  autoSerie, onAlternarAuto,
   acoesVoz, vozAtiva, vozBarra, vozAnimado, onDescansando, responderVoz }) {
   // Recorde e última execução de cada exercício: servem de referência ao lado de
   // cada série e permitem festejar o recorde no instante em que ele acontece.
@@ -6752,6 +7578,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         pesoCorporal={pesoCorporal}
         bpm={bpm}
         vozCfg={vozCfg} contarAlto={contarAlto} onAlternarContagem={onAlternarContagem}
+        autoSerie={autoSerie} onAlternarAuto={onAlternarAuto}
         serieNum={alvo ? alvo.si + 1 : 1}
         serieTotal={alvo ? sessao.itens[alvo.ei].series.length : 1}
         som={som}
@@ -7344,7 +8171,7 @@ function TreinoLivre() {
   // "preferido" fica gravado (é a escolha de usar comandos por voz); "ativa" é
   // só desta visita, porque ligar um microfone sozinho ao abrir o app seria
   // uma surpresa desagradável.
-  const [voz, setVoz] = useState({ preferido: false, falar: true, barra: 20, vozNome: null, velocidade: 1.1, animado: true, modo: "continuo", botaoFone: false, contarAlto: true });
+  const [voz, setVoz] = useState({ preferido: false, falar: true, barra: 20, vozNome: null, velocidade: 1.1, animado: true, modo: "continuo", botaoFone: false, contarAlto: true, autoSerie: true });
   const [vozAtiva, setVozAtiva] = useState(false);
   const [vozEstado, setVozEstado] = useState("desligado");
   const noToque = voz.modo === "toque";
@@ -7410,6 +8237,8 @@ function TreinoLivre() {
   }, [tema]);
 
   const [grupoAberto, setGrupoAberto] = useState(null);
+  // A aula escolhida pela voz: a tela funcional abre o player já com ela.
+  const [aulaPedida, setAulaPedida] = useState(null);
   const [exercicioAberto, setExercicioAberto] = useState(null);
   const [editandoTreino, setEditandoTreino] = useState(null);
   const [baseNovoEx, setBaseNovoEx] = useState(null);   // exercício copiado ao criar variação
@@ -7665,7 +8494,7 @@ function TreinoLivre() {
           if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
             vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false,
             modo: d.voz.modo === "toque" ? "toque" : "continuo", botaoFone: !!d.voz.botaoFone,
-            contarAlto: d.voz.contarAlto !== false });
+            contarAlto: d.voz.contarAlto !== false, autoSerie: d.voz.autoSerie !== false });
           setSessao(null);
           setAba("inicio");
           setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 100);
@@ -7741,7 +8570,7 @@ function TreinoLivre() {
     if (lb) setLembrete({ ativo: !!lb.ativo, hora: lb.hora || "18:00", dias: Array.isArray(lb.dias) ? lb.dias : [1, 2, 3, 4, 5] });
     if (vz) setVoz({ preferido: !!vz.preferido, falar: vz.falar !== false, barra: vz.barra === undefined ? 20 : vz.barra,
       vozNome: vz.vozNome || null, velocidade: vz.velocidade || 1.1, animado: vz.animado !== false,
-      modo: vz.modo === "toque" ? "toque" : "continuo", botaoFone: !!vz.botaoFone, contarAlto: vz.contarAlto !== false });
+      modo: vz.modo === "toque" ? "toque" : "continuo", botaoFone: !!vz.botaoFone, contarAlto: vz.contarAlto !== false, autoSerie: vz.autoSerie !== false });
     if (ss) { setSessao(ss); setAba("sessao"); }
     // Recarregou no meio do treino (ou o sistema descarregou o app): quem já
     // escolheu treinar por voz volta ouvindo. A permissão do microfone já foi
@@ -7918,6 +8747,29 @@ function TreinoLivre() {
     comecar();
   };
 
+  // Funcional não é ficha: não tem carga para sugerir e as repetições variam
+  // muito de um movimento para o outro. Mas vira uma sessão comum assim que
+  // começa — e por isso histórico, nível, conquistas e recordes funcionam sem
+  // precisar de nada novo.
+  const iniciarFuncional = (ids) => {
+    if (!ids || !ids.length) return;
+    const hoje = new Date().toLocaleDateString("pt-BR", { weekday: "long" });
+    const treino = {
+      id: "func-" + Date.now(),
+      nome: "Funcional (" + hoje + ")",
+      itens: ids.map((id) => {
+        const s = SUGESTAO_FUNCIONAL[id] || { series: 3, reps: 12, descanso: 45 };
+        return { uid: novoUid(), exercicioId: id, series: s.series, reps: s.reps, obs: "", descanso: s.descanso || null, conjunto: null };
+      }),
+    };
+    const comecar = () => { comecarSessao(treino); registrarEvento("funcional-iniciado"); };
+    if (sessao) {
+      pedirConfirmacao("Você já tem um treino em andamento (" + sessao.nome + "). Começar o funcional vai descartá-lo. Continuar?", comecar);
+      return;
+    }
+    comecar();
+  };
+
   // Cada frase ouvida passa por aqui: nome do assistente, interpretação e
   // encaminhamento. Fica depois de iniciarSessao de propósito — comandos de
   // voz podem começar um treino.
@@ -7937,6 +8789,15 @@ function TreinoLivre() {
       anotarDiario(bruto, "escola: avaliando a lição");
       acoesEscola.current.receber(bruto, d0 === null ? norm : d0, d0 !== null);
       return;
+    }
+
+    // Durante a aula o vocabulário muda de sentido: "pausa" é pausar a aula, e
+    // não começar um descanso; "pula" é pular o bloco, e não trocar de exercício.
+    // Por isso a aula responde antes do interpretador geral.
+    if (CONTROLE_AULA) {
+      const dA = depoisDeJarvis(norm);
+      const r = CONTROLE_AULA.comando(dA === null ? norm : dA);
+      if (r) { anotarDiario(bruto, "aula: " + r.acao); mostrarVoz(bruto, r.resposta, true); return; }
     }
 
     const naSessao = !!(sessao && acoesVoz.current && acoesVoz.current.vivo);
@@ -8056,6 +8917,19 @@ function TreinoLivre() {
       mostrarVoz(bruto, "Bora! " + melhorF.nome + ". " + (sug ? sug.fala.split(". ")[0] + "." : ""), true);
       return;
     }
+    if (c.tipo === "aula") {
+      const alvoN = semAcento(c.frase || "");
+      const achada = AULAS.find((a) => alvoN.indexOf(semAcento(a.nome)) >= 0);
+      if (!achada) {
+        setAba("funcional");
+        mostrarVoz(bruto, "Qual aula? Tem " + AULAS.map((a) => a.nome).join(", ") + ".", true);
+        return;
+      }
+      setAulaPedida(achada);
+      setAba("funcional");
+      mostrarVoz(bruto, "Aula " + achada.nome + ". " + duracaoAula(achada) + " minutos. Prepare-se.", true);
+      return;
+    }
     if (c.tipo === "iniciarTreino") {
       const pedido = (c.nome || "").trim();
       if (/\blivre\b/.test(pedido) || (!pedido && !treinos.length)) {
@@ -8134,7 +9008,6 @@ function TreinoLivre() {
     const resumoBpm = resumoCardioRef.current ? resumoCardioRef.current.fechar() : null;
     if (resumoBpm) registro.bpm = resumoBpm;
     resumoCardioRef.current = criarResumoCardio();
-    setHistorico([registro, ...historico]);
     // Salva as observações de volta na ficha (altura do banco, polia etc. ficam guardadas).
     // Casa pelo exercício, e não pela posição: dá para adicionar e remover exercícios
     // durante o treino, o que desalinharia os índices e gravaria a obs no lugar errado.
@@ -8157,11 +9030,20 @@ function TreinoLivre() {
       };
     }));
     setSessao(null);
+    guardarTreino(registro);
+  };
+
+  // Tudo que acontece depois que um treino vira registro: guardar, somar,
+  // comparar, comemorar e contar em voz alta. A aula de circuito entra por aqui
+  // também — ela não tem ficha nem sessão, mas o resumo, os recordes, as
+  // conquistas e o nível são exatamente os mesmos.
+  const guardarTreino = (registro, evento) => {
+    setHistorico([registro, ...historico]);
     setAba("historico");
     const st = statsTreino(registro);
     const nRec = contarRecordesNovos(historico, registro);
     const comp = compararAnterior([registro, ...historico], registro);
-    registrarEvento("treino-concluido");
+    registrarEvento(evento || "treino-concluido");
     let msg = "Treino concluído! 🎉\n\n";
     if (st.volume > 0) msg += "🏋️ " + fmtKg(st.volume) + " de volume total\n";
     msg += st.series + " " + plural(st.series, "série", "séries") + " · " + st.reps + " " + plural(st.reps, "repetição", "repetições") + " · " + st.exercicios + " " + plural(st.exercicios, "exercício", "exercícios") + "\n";
@@ -8307,7 +9189,7 @@ function TreinoLivre() {
             if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
               vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false,
               modo: d.voz.modo === "toque" ? "toque" : "continuo", botaoFone: !!d.voz.botaoFone,
-              contarAlto: d.voz.contarAlto !== false });
+              contarAlto: d.voz.contarAlto !== false, autoSerie: d.voz.autoSerie !== false });
             setSessao(null);
             setAba("inicio");
             setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 120);
@@ -8676,7 +9558,7 @@ function TreinoLivre() {
     { id: "treinos", nome: "Fichas", icone: "▤" },
     { id: "historico", nome: "Histórico", icone: "◷" },
   ];
-  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente", editarHistorico: "Corrigir treino", ajustes: "Ajustes", escolaVoz: "Escola do Jarvis" };
+  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente", editarHistorico: "Corrigir treino", ajustes: "Ajustes", escolaVoz: "Escola do Jarvis", funcional: "Treino funcional" };
 
   if (!carregado) {
     return <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>Carregando...</div>;
@@ -8697,6 +9579,7 @@ function TreinoLivre() {
             onCriarPrograma={criarPrograma}
             onAssistente={() => setAba("assistente")}
             onTreinoLivre={iniciarTreinoLivre}
+            onFuncional={() => setAba("funcional")}
             onCopiarLink={copiarLink}
             onInstalar={promptInstalar ? instalarApp : null} />
         )}
@@ -8717,6 +9600,14 @@ function TreinoLivre() {
         )}
         {aba === "assistente" && (
           <TelaAssistente onGerar={gerarTreinoAssistente} onCancelar={() => setAba("inicio")} />
+        )}
+        {aba === "funcional" && (
+          <TelaFuncional todos={todos} exPorId={exPorId} som={som} vozCfg={voz}
+            aulaInicial={aulaPedida} onAulaAberta={() => setAulaPedida(null)} sessaoAtiva={!!sessao}
+            vozAtiva={vozAtiva} onLigarVoz={ligarVoz}
+            onVoltar={() => setAba("inicio")}
+            onComecar={(ids) => iniciarFuncional(ids)}
+            onConcluirAula={(registro) => guardarTreino(registro, "aula-concluida")} />
         )}
         {aba === "escolaVoz" && (
           <EscolaJarvis acoes={acoesEscola} ouvindo={vozAtiva} vozBarra={voz.barra} todos={todos}
@@ -8770,6 +9661,8 @@ function TreinoLivre() {
             bpm={bpm} cardioEstado={cardioEstado}
             vozCfg={voz} contarAlto={voz.contarAlto !== false}
             onAlternarContagem={() => setVoz((v) => ({ ...v, contarAlto: v.contarAlto === false }))}
+            autoSerie={voz.autoSerie !== false}
+            onAlternarAuto={() => setVoz((v) => ({ ...v, autoSerie: v.autoSerie === false }))}
             onConectarCardio={conectarCardio} onDesconectarCardio={desconectarCardio}
             onDescansando={setDescansando} responderVoz={responderVoz}
             onFinalizar={finalizarSessao}

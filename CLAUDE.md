@@ -97,7 +97,7 @@ Na ordem em que aparece no arquivo:
    `numerosPorExtenso`, `depoisDeJarvis`, `acharExercicio`, `interpretarVoz`,
    `responderConsulta`, `AJUDA_FALADA`, `LICOES_JARVIS`, `vozesPtBr`.
    Fica logo antes de `IMAGENS_WGER`.
-8. **Dados** — `GRUPOS`, `MUSCULOS`, `EXERCICIOS` (204),
+8. **Dados** — `GRUPOS`, `MUSCULOS`, `EXERCICIOS` (214, dos quais 14 funcionais),
    `GRUPO_POR_EXERCICIO`, `FICHAS_PADRAO`.
 9. **Estilos** — objeto `S` com estilos inline reaproveitados.
 10. **Imagens** — `IMAGENS_WGER` (mapa fixo) e `ImagemExercicio`.
@@ -120,7 +120,7 @@ Tudo num único registro em `localStorage["treinolivre:v1"]`:
   sessao:    { treinoId, nome, inicio, itens: [{ uid, exercicioId, obs, descanso, conjunto, sugerido, series: [...] }] } | null,
   lembrete:  { ativo, hora: "18:00", dias: [1,2,3,4,5] },   // 0 = domingo
   voz:       { preferido, falar, animado, vozNome, velocidade, barra, modo,
-               botaoFone, contarAlto },                   // Jarvis e Eyes Scan
+               botaoFone, contarAlto, autoSerie },        // Jarvis e Eyes Scan
   historico[].bpm: { medio, max, amostras } | ausente,     // monitor cardíaco
   ultimoBackup: 1725100000000,
   descanso: 90, som: true, tema: "escuro", meta: 3, seedV3: true
@@ -178,7 +178,7 @@ celular** — não há servidor para onde mandar, e não haveria mesmo que houve
 
 ### Como a repetição é contada
 
-Exigir configuração por exercício é inviável: são 204 no catálogo mais as
+Exigir configuração por exercício é inviável: são 214 no catálogo mais as
 máquinas que o dono fotografa e que não estão em catálogo nenhum. Então:
 
 1. `criarContador` mede **oito ângulos** ao mesmo tempo (cotovelos, joelhos,
@@ -192,6 +192,44 @@ máquinas que o dono fotografa e que não estão em catálogo nenhum. Então:
    0,28) e tempo mínimo de 550 ms. Sem isso o tremor do modelo no meio do
    caminho contaria dez repetições numa.
 5. Amplitude abaixo de 22° é gente parada enquanto o modelo treme: não conta.
+
+### Movimento funcional: ângulo não basta
+
+Exercício de máquina é sempre um ângulo que abre e fecha. Funcional não: salto
+é a **altura do quadril**, polichinelo é a **abertura** dos pés e das mãos, soco
+é o **alcance** do braço. Por isso existem os onze sinais de posição
+(`EYES_SINAIS_POS`), todos divididos pelo comprimento do tronco (`escalaTorso`) e
+multiplicados por 100 — assim o número não muda com a distância da câmera e fica
+na mesma escala dos ângulos, com os mesmos limiares.
+
+E, diferente de máquina, movimento funcional **tem nome e forma conhecidos**. Daí
+`MOV_FUNCIONAIS`, com doze perfis, em três modos:
+
+| modo | quando | exemplo |
+|---|---|---|
+| `par` (alternado) | o movimento troca de lado a cada repetição | soco, chute, afundo alternado, joelho alto |
+| `sinais` | o movimento é conhecido e já diz onde olhar | polichinelo, burpee, agachamento com salto |
+| automático | não há perfil: máquina qualquer ou aparelho fotografado | os 200 de máquina |
+
+**O alternado é o caso que não dá para errar.** Soco e chute trocam de lado a cada
+repetição; com um contador só, uma série de 20 socos viraria 10. Então cada lado
+tem a sua máquina de estados e os dois se somam. O campo `func` do exercício é o
+que liga um ao outro — e é só o que precisa ser preenchido ao criar um movimento
+funcional novo.
+
+Coberto por `teste-funcional.js`, que vale a pena rodar antes de mexer no
+contador: corpo sintético em coordenadas de imagem, ciclos defasados em meia fase
+para os alternados, e a checagem de que **o modo automático não quebrou**.
+
+### O que o contador mede além de contar
+
+- **Ritmo** (`ritmo`, segundos por repetição) e **tempo sob tensão** (`tut`). Saem
+  de graça: a duração de cada repetição já era medida para o técnico saber quando
+  a pessoa estava acelerando. Repetição de 1 s e de 4 s treinam coisas diferentes,
+  e até aqui não havia como saber sem filmar a série.
+- **Equilíbrio entre lados** (`lados`), só no alternado. O desequilíbrio que
+  ninguém percebe sozinho, porque o lado forte compensa sem avisar. Diferença
+  maior que 2 aparece marcada no rodapé.
 
 Testado com movimento sintético (`teste-contador.js`): 3, 10 e 20 repetições,
 ritmo de 1,2 s e de 4 s, ruído pesado, e **20 segundos parado tremendo contam
@@ -249,10 +287,104 @@ quadro ruim do modelo estica a janela inteira por quatro segundos.
 - **Conta em voz alta** a cada repetição, e diz "completou" na última. O botão
   de liga e desliga fica **no próprio scanner**, não nos ajustes: em academia
   cheia a decisão muda na hora. Guardado em `voz.contarAlto`.
-- `−` e `+` corrigem a conta antes de registrar.
+- **A série fecha sozinha.** Bateu o número combinado, ela está feita: insistir
+  num toque depois disso é pedir para a pessoa interromper o treino para
+  confirmar o óbvio. Fecha em 4 segundos, com bipe por segundo, e dá para
+  cancelar — quem quer fazer duas a mais também tem razão. Botão `⏱ auto` no
+  próprio scanner, guardado em `voz.autoSerie`.
+- `−` e `+` corrigem a conta antes de registrar, e **cancelam o fechamento
+  automático desta série**: mexer na conta à mão é dizer "ainda não acabei".
 - **Ao fechar, as trilhas da câmera são encerradas** (`getTracks().forEach(stop)`).
   Sem isso a luz da câmera fica acesa depois de sair da tela — e com razão a
   pessoa desinstala o app.
+
+## Treino funcional e aulas em circuito
+
+Botão `⚡ Treino funcional` na tela inicial (fora do `temFichas`: funcional não
+depende de ter ficha montada — é o caminho mais curto entre abrir o app e estar
+suando). Abre a aba `funcional`, que tem três coisas, nesta ordem:
+
+1. **Aulas guiadas** — o player conduz pelo relógio.
+2. **Circuitos para contar na câmera** — viram uma sessão normal.
+3. **A lista dos 14 movimentos funcionais**, para montar na mão.
+
+A ordem não é por acaso: quem abre esta tela quer treinar agora, e escolher 4
+movimentos numa lista de 14 é configuração.
+
+### Os exercícios
+
+Dez movimentos novos no catálogo (polichinelo, burpee, agachamento com salto,
+salto vertical, afundo alternado, joelhos altos, socos no ar, chute frontal,
+skater, abdominal remador), mais `flexao`, `escalador`, `afundo` e
+`afundo-reverso`, que já existiam e ganharam `func`. Eles entram na busca, no
+mapa muscular e nas fichas como qualquer outro — a única diferença é o `func`.
+
+`SUGESTAO_FUNCIONAL` diz quantas séries e repetições cada um pede. Não é
+enfeite: burpee de 10 é série dura e polichinelo de 10 é respirar fundo; sem
+isso o app sugeriria 3×12 para tudo, errado nos dois sentidos.
+
+### Os bonecos (`POSES_FUNCIONAIS`)
+
+**Nenhum destes movimentos tem figura no acervo do wger**, e sem imagem a aula
+guiada não funciona: a pessoa precisa saber o que fazer antes de começar, não
+depois de ler. Então são desenhados em SVG aqui mesmo — esqueleto de onze pontos
+numa tela de 120×160, duas poses por movimento, e o CSS alterna a opacidade das
+duas. Um boneco que faz o movimento ensina mais que uma foto parada, e não custa
+nem rede nem licença.
+
+Cada pose é `pose({ ... })` sobre `POSE_BASE` — só o que muda é escrito. A
+animação é de CSS, e não `requestAnimationFrame`, porque CSS continua rodando
+com a tela em economia de energia e numa aula a tela fica minutos parada.
+`@media (prefers-reduced-motion)` congela as duas poses.
+
+O boneco também substitui a figura no `ImagemExercicio` e na
+`MiniaturaExercicio` quando o exercício tem `func` e não tem imagem — assim o
+catálogo fica coerente sem exceção.
+
+### A aula (`AULAS`, `PlayerAula`)
+
+Uma ficha diz o que fazer; uma aula **conduz**. A diferença é o relógio: ninguém
+decide quando trocar de exercício — a voz avisa, a figura mostra, e a pessoa só
+precisa se mexer.
+
+- `montarRoteiro` estica a aula no tempo antes de começar (preparo, exercício,
+  descanso, exercício...). É o que permite dizer "depois: burpee" sem adivinhar.
+- Anuncia cada bloco, apita nos três últimos segundos, elogia na metade e avisa
+  "últimos dez". As frases de `FRASES_AULA` variam de propósito: ouvir "continue
+  assim" pela décima vez faz a voz virar paisagem.
+- Trava a tela (`ligarTravaTela`) enquanto roda. O celular fica apoiado longe, e
+  ninguém vai atravessar a sala para acordá-lo a cada bloco.
+- Pausar é obrigatório: toca o telefone, cai o halter, a vida acontece.
+- Ao terminar, vira um registro de histórico comum, com as séries no formato
+  `{ segundos }` — `ehTempo` olha a **série**, não o exercício, então isso
+  funciona para qualquer movimento sem marcar nada de especial no catálogo.
+
+### `guardarTreino`, e por que a aula não tem código próprio de resumo
+
+A cauda de `finalizarSessao` (resumo, recordes, conquistas, nível, fala do
+fechamento) virou `guardarTreino(registro, evento)`. A aula não tem ficha nem
+sessão, mas o que acontece depois é exatamente o mesmo — e duplicar aquilo era
+garantir que um dos dois caminhos ficaria para trás.
+
+### A voz conduz a aula (`CONTROLE_AULA`)
+
+Durante a aula as mãos estão ocupadas e o celular está longe: é exatamente a
+situação em que a voz vale mais. "Jarvis, pausa", "continua", "pula", "quanto
+falta", "sair da aula". E "Jarvis, começa a aula queima" abre o player direto.
+
+Duas decisões aqui:
+
+- **A aula responde antes do interpretador geral.** Durante a aula o vocabulário
+  muda de sentido: "pausa" é pausar a aula e não começar um descanso; "pula" é
+  pular o bloco e não trocar de exercício.
+- **`CONTROLE_AULA` é um ponteiro de módulo**, trocado quando o player entra e
+  sai. O player está quatro níveis abaixo de quem recebe a fala, e descer
+  callbacks por toda a árvore custaria mais do que rende. É o mesmo arranjo de
+  `TEMA_APP`, e pelo mesmo motivo: existe no máximo uma aula por vez.
+
+Começar a aula também **liga o microfone** se a voz for a preferida — é o gesto
+que o navegador exige, e sem microfone não dá para dizer "pausa" com as mãos no
+chão.
 
 ## Monitor cardíaco, e o que a web não alcança
 
@@ -320,7 +452,9 @@ Ao adicionar exercícios:
 - **Aceite o casamento só quando os nomes tiverem praticamente o mesmo conjunto
   de palavras.** Imagem errada ensina o movimento errado. Na dúvida, deixe sem
   figura: todo exercício tem botão de vídeo do YouTube como alternativa.
-- Hoje: 172 dos 204 exercícios com imagem.
+- Hoje: 172 dos 214 exercícios com imagem do wger. Os 12 movimentos funcionais
+  não têm figura lá e usam o boneco desenhado (`POSES_FUNCIONAIS`), que é melhor
+  para eles do que uma foto parada seria.
 
 Os créditos ao wger e a licença CC BY-SA 4.0 ficam no rodapé e sob cada imagem.
 Mantenha.
@@ -626,7 +760,7 @@ caso o modo "Toque e fale" é melhor. Isso está dito na ajuda do app.
 
 `APELIDOS_EXERCICIO` traduz o jeito da academia ("agacho", "extensora", "leg")
 para o id. `acharExercicio` procura **primeiro entre os exercícios do treino de
-hoje** e só depois nos 204: quem fala "supino" no meio do treino quer o supino
+hoje** e só depois nos 214: quem fala "supino" no meio do treino quer o supino
 que está na ficha. Na pontuação, quem acerta mais palavras do nome ganha de quem
 acerta uma só — sem isso "rosca direta" perdia para "Rosca 21".
 
@@ -641,7 +775,7 @@ de verdade. Vale refazer esse molde antes de mexer no interpretador.
 ## Navegação e telas
 
 Quatro abas na barra inferior (`Início`, `Exercícios`, `Fichas`, `Histórico`) e
-telas internas roteadas pela mesma variável `aba`: `assistente`, `novoExercicio`,
+telas internas roteadas pela mesma variável `aba`: `assistente`, `funcional`, `novoExercicio`,
 `escolaVoz`,
 `editarTreino`, `editarHistorico`, `sessao`, `ajustes`.
 
@@ -754,6 +888,14 @@ Roteiro mínimo depois de mexer no app:
     continua marcada.
 32. "Jarvis, bora" fora de treino: começa a ficha sugerida.
 33. Abrir o Eyes Scan, fazer 10 repetições de verdade e conferir a contagem.
+33a. Fazer uma série até bater o número da ficha: ela tem de **fechar sozinha**
+     em 4 segundos, e o toque na faixa verde tem de cancelar isso.
+33b. Socos no ar no Eyes Scan: os **dois lados** contam, e o rodapé mostra a
+     divisão entre eles.
+33c. Rodar uma aula inteira (a Express tem 7 min): figura certa em cada bloco,
+     aviso falado da troca, e no fim o treino aparece no histórico.
+33d. Durante a aula, dizer "Jarvis, pausa", "Jarvis, continua" e "Jarvis,
+     quanto falta".
     Depois tocar em Registrar: a série tem de aparecer preenchida na ficha, com
     o descanso já correndo.
 34. Fechar o scanner e conferir que a **luz da câmera apagou**.

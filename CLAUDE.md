@@ -26,7 +26,7 @@ Leia esta seção antes de propor qualquer mudança de arquitetura.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v6) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v7) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
 
@@ -203,6 +203,9 @@ campos continuam digitáveis**: o Jarvis é atalho, nunca o único caminho.
    `kg`) e chama `numerosPorExtenso` (`quarenta e cinco` → `45`).
 3. `depoisDeJarvis` corta tudo até o nome. Aceita variantes (`jarves`, `javis`,
    `charles`) por distância de edição — o reconhecimento erra o nome o tempo todo.
+   No celular, num ginásio, sai com mais estrago do que num teste de mesa: a
+   tolerância é de **duas** letras, e ele também tenta juntar duas palavras
+   vizinhas, porque às vezes o nome volta partido em "jar vis".
 4. `interpretarVoz` devolve `{ tipo, ... }`.
 5. `tratarFala` (no componente raiz) resolve o que é global (ajuda, desligar,
    começar um treino) e manda o resto para `acoesVoz.current.executar`, que a
@@ -400,7 +403,12 @@ Roteiro mínimo depois de mexer no app:
     e abre a lista na tela.
 18. Fora de qualquer treino, perguntar "Jarvis, qual meu recorde no supino?" e
     "Jarvis, o que eu treino hoje?" — as duas têm de ser respondidas.
-19. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
+19. Dizer só "Jarvis", esperar, e perguntar **sem repetir o nome**: a pergunta
+    tem de ser respondida. Depois tentar "anote 80 por 10" sem o nome e fora da
+    janela: não pode anotar nada.
+20. Ditar no leg press e **ouvir** a confirmação: tem de sair "Leg press, 200
+    quilos por 15", sem "quarenta e cinco graus" e sem engolir as repetições.
+21. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
     Todas precisam fechar com ✓, e nada pode aparecer no histórico depois.
 
 ## Convenções

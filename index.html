@@ -1223,7 +1223,20 @@ const VOZ_FALA = typeof window !== "undefined" && !!window.speechSynthesis;
 // Enquanto o Jarvis fala, o microfone continua ligado e ouve a própria voz.
 // Parar o reconhecimento a cada frase faria o Android apitar o tempo todo, então
 // em vez disso marcamos uma janela em que tudo o que chega é descartado.
+// Um assistente de voz que falha falha em silêncio: a pessoa fala, nada
+// acontece, e não há como saber se o microfone morreu, se o nome não foi
+// reconhecido ou se a frase não virou comando. Este diário responde isso — e
+// é copiável, para poder ser mostrado a quem conserta.
+const DIARIO_JARVIS = [];
+function anotarDiario(ouvi, nota) {
+  DIARIO_JARVIS.unshift({ hora: new Date().toLocaleTimeString("pt-BR"), ouvi: ouvi || "", nota: nota || "" });
+  if (DIARIO_JARVIS.length > 40) DIARIO_JARVIS.length = 40;
+}
+
 let jarvisFalandoAte = 0;
+// O que ele está dizendo neste instante, para separar o eco da própria voz de
+// uma interrupção de verdade.
+let jarvisDizendo = "";
 // A lista de vozes chega vazia na primeira chamada em quase todo navegador e
 // só se preenche depois. Guardar a última lista boa evita o seletor piscar.
 let vozesGuardadas = [];
@@ -1293,14 +1306,26 @@ function jarvisFalar(texto, cfg) {
     // Estimativa de duração como rede de segurança: em alguns navegadores o
     // "onend" simplesmente não dispara.
     jarvisFalandoAte = Date.now() + Math.min(16000, 1000 + (dito.length * 95) / u.rate);
-    u.onend = () => { jarvisFalandoAte = Date.now() + 400; };
-    u.onerror = () => { jarvisFalandoAte = Date.now() + 400; };
+    jarvisDizendo = " " + normalizarFala(dito) + " ";
+    u.onend = () => { jarvisFalandoAte = Date.now() + 400; jarvisDizendo = ""; };
+    u.onerror = () => { jarvisFalandoAte = Date.now() + 400; jarvisDizendo = ""; };
     window.speechSynthesis.speak(u);
   } catch (e) {}
 }
 function calarJarvis() {
   try { if (VOZ_FALA) window.speechSynthesis.cancel(); } catch (e) {}
   jarvisFalandoAte = 0;
+  jarvisDizendo = "";
+}
+// É a voz dele voltando pelo microfone, ou a pessoa falando por cima?
+// Comparar com o que ele está dizendo separa os dois casos.
+function ecoDaPropriaVoz(txt) {
+  if (!jarvisDizendo) return false;
+  const p = normalizarFala(txt).split(" ").filter((x) => x.length > 2);
+  if (!p.length) return true;
+  let dentro = 0;
+  p.forEach((x) => { if (jarvisDizendo.indexOf(" " + x + " ") >= 0) dentro++; });
+  return dentro / p.length >= 0.6;
 }
 
 // ---- Jeito de falar ----
@@ -1808,45 +1833,77 @@ function criarOuvinte(opcoes) {
   if (!VOZ_OUVE) return null;
   const aoParcial = opcoes.aoParcial, aoFinal = opcoes.aoFinal;
   const aoEstado = opcoes.aoEstado, aoErro = opcoes.aoErro;
+  const aoTumulto = opcoes.aoTumulto;
   let rec = null;
   let querendo = false;
   let rodando = false;
+  let umaVez = false;      // modo "toque para falar": uma sessão por comando
   let religadas = [];
+  let semResultado = 0;    // religadas seguidas sem nenhuma frase
+  let desdeQuando = 0;     // quando essa sequencia comecou
+  let avisouTumulto = false;
   let timer = null;
 
   const agendarReligar = () => {
     const agora = Date.now();
-    religadas = religadas.filter((t) => agora - t < 10000);
-    // Mais de 10 religadas em 10 segundos é sinal de que algo está errado;
+    religadas = religadas.filter((t) => agora - t < 12000);
+    // Mais de 10 religadas em 12 segundos é sinal de que algo está errado;
     // dar um respiro evita a aba travar em laço.
-    const espera = religadas.length > 10 ? 2500 : 350;
+    let espera = religadas.length > 10 ? 2500 : 600;
+    // Religar enquanto ele fala é desperdício puro: o microfone só ia ouvir a
+    // própria voz dele — e, no Android, cada religada apita por cima da resposta.
+    const falta = jarvisFalandoAte - agora;
+    if (falta > 0) espera = Math.max(espera, falta + 200);
     clearTimeout(timer);
     timer = setTimeout(() => {
       if (!querendo || rodando) return;
       religadas.push(Date.now());
       try { rec.start(); } catch (e) { /* já estava começando */ }
     }, espera);
+    // Religar sem parar e sem nunca ouvir nada é o sintoma do Android encerrando
+    // a sessão a cada silêncio. Quem está na academia só percebe os bipes.
+    // Seis encerramentos EM SEQUENCIA E EM POUCOS SEGUNDOS. Espacados, sao o
+    // comportamento normal de quem fica calado entre uma serie e outra.
+    if (semResultado >= 6 && agora - desdeQuando < 15000 && !avisouTumulto) {
+      avisouTumulto = true;
+      anotarDiario("", "o microfone reiniciou " + semResultado + " vezes em " + Math.round((agora - desdeQuando) / 1000) + "s sem ouvir nada");
+      if (aoTumulto) aoTumulto();
+    }
   };
 
   const montar = () => {
     const r = new ReconhecedorVoz();
     r.lang = "pt-BR";
-    r.continuous = true;
+    // No modo toque, uma sessão por comando: é o próprio sistema que decide
+    // quando a pessoa parou de falar, e ele faz isso melhor do que um relógio nosso.
+    r.continuous = !umaVez;
     r.interimResults = true;
     r.maxAlternatives = 3;
     r.onstart = () => { rodando = true; if (aoEstado) aoEstado("ouvindo"); };
     r.onaudiostart = () => { rodando = true; };
     r.onresult = (ev) => {
-      // Tudo o que chega enquanto o Jarvis fala é a própria voz dele voltando
-      if (Date.now() < jarvisFalandoAte) return;
+      const falandoAgora = Date.now() < jarvisFalandoAte;
       let parcial = "";
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
         const res = ev.results[i];
         if (res.isFinal) {
+          const t = res[0].transcript;
+          if (falandoAgora) {
+            // Antes, TUDO o que chegava enquanto ele falava era descartado — e a
+            // pergunta que a pessoa emendava na resposta sumia sem deixar rastro.
+            // Agora só o eco da própria voz é descartado: falar por cima dele
+            // cala o assistente, que é o que se faz com quem está falando demais.
+            if (ecoDaPropriaVoz(t)) { anotarDiario(t, "eco da própria voz — descartado"); continue; }
+            anotarDiario(t, "você falou por cima — calei para ouvir");
+            semResultado = 0;
+            calarJarvis();
+          }
           const alts = [];
           for (let k = 0; k < res.length; k++) alts.push(res[k].transcript);
-          if (aoFinal) aoFinal(res[0].transcript, alts);
-        } else {
+          semResultado = 0;
+          avisouTumulto = false;
+          if (aoFinal) aoFinal(t, alts);
+        } else if (!falandoAgora) {
           parcial += res[0].transcript;
         }
       }
@@ -1854,6 +1911,7 @@ function criarOuvinte(opcoes) {
     };
     r.onerror = (ev) => {
       const erro = ev && ev.error;
+      if (erro && erro !== "no-speech" && erro !== "aborted") anotarDiario("", "erro do microfone: " + erro);
       if (erro === "not-allowed" || erro === "service-not-allowed") {
         querendo = false; rodando = false;
         if (aoErro) aoErro("permissao");
@@ -1869,6 +1927,10 @@ function criarOuvinte(opcoes) {
     };
     r.onend = () => {
       rodando = false;
+      if (semResultado === 0) desdeQuando = Date.now();
+      semResultado++;
+      // No modo toque a sessão acaba e pronto: quem recomeça é o dedo.
+      if (umaVez) { querendo = false; if (aoEstado) aoEstado("desligado"); return; }
       if (!querendo) { if (aoEstado) aoEstado("desligado"); return; }
       agendarReligar();
     };
@@ -1876,9 +1938,17 @@ function criarOuvinte(opcoes) {
   };
 
   return {
-    ligar() {
+    // modo: "continuo" (mãos livres) ou "toque" (uma sessão por comando)
+    ligar(modo) {
+      const toque = modo === "toque";
+      // Trocar de modo exige um reconhecedor novo: "continuous" só pode ser
+      // definido antes de começar.
+      if (rec && toque !== umaVez) { try { rec.abort(); } catch (e) {} rec = null; }
+      umaVez = toque;
       if (!rec) rec = montar();
       querendo = true;
+      semResultado = 0;
+      avisouTumulto = false;
       if (rodando) return;
       try { rec.start(); religadas.push(Date.now()); }
       catch (e) { agendarReligar(); }
@@ -1893,7 +1963,8 @@ function criarOuvinte(opcoes) {
     },
     // Chamado por um relógio de fora: o "onend" nem sempre dispara, e sem esta
     // conferência o microfone morre calado no meio do treino.
-    conferir() { if (querendo && !rodando) agendarReligar(); },
+    conferir() { if (querendo && !rodando && !umaVez) agendarReligar(); },
+    noModoToque() { return umaVez; },
     ligado() { return querendo; },
   };
 }
@@ -2686,14 +2757,17 @@ function tempoFalado(seg) {
   return r + " segundos";
 }
 
-function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando, naSessao, escondido, onAlternar, onAjuda }) {
+function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando, naSessao, escondido, noToque, onAlternar, onAjuda }) {
   if (!disponivel) return null;
   const ouvindo = ligado && estado === "ouvindo";
   // Com o cronômetro de descanso na tela, o botão sobe para não cobrir o tempo
   const alturaBase = descansando && naSessao ? 190 : 76;
   return (
     <React.Fragment>
-      {ligado && (ultima || parcial) && (
+      {/* No modo toque a sessao acaba junto com o comando. Se a faixa dependesse
+          de estar ouvindo, a resposta escrita sumiria no mesmo instante — e a
+          pessoa nunca leria o que ele entendeu. */}
+      {(ultima || (ligado && parcial)) && (
         <div className="jarvis-faixa" role="status" aria-live="polite"
           style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 45,
             background: "var(--bg2)", borderBottom: "2px solid " + (ultima && !ultima.ok ? "var(--obs)" : "#E1306C"),
@@ -2721,7 +2795,9 @@ function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando
       {!escondido && <div style={{ position: "fixed", right: 14, zIndex: 25,
         bottom: "calc(" + alturaBase + "px + env(safe-area-inset-bottom))",
         display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-        {ligado && (
+        {/* O "?" nao pode depender de estar ouvindo: no modo toque a sessao acaba
+            a cada comando, e a ajuda sumiria junto. */}
+        {(
           <button onClick={onAjuda} aria-label="O que posso dizer ao Jarvis"
             style={{ width: 30, height: 30, borderRadius: 15, border: "1px solid var(--borda2)",
               background: "var(--card)", color: "var(--cinza)", fontSize: 14, fontWeight: 900, cursor: "pointer", lineHeight: 1 }}>
@@ -2732,8 +2808,8 @@ function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando
           {ouvindo && <span className="jarvis-onda" aria-hidden="true" />}
           {ouvindo && <span className="jarvis-onda atraso" aria-hidden="true" />}
           <button onClick={onAlternar} aria-pressed={ligado}
-            aria-label={ligado ? "Desligar o Jarvis (comandos por voz)" : "Ligar o Jarvis (comandos por voz)"}
-            title={ligado ? "Jarvis ouvindo — toque para desligar" : "Ligar o Jarvis"}
+            aria-label={ligado ? (noToque ? "Parar de ouvir" : "Desligar o Jarvis (comandos por voz)") : (noToque ? "Tocar e falar com o Jarvis" : "Ligar o Jarvis (comandos por voz)")}
+            title={ligado ? "Ouvindo — pode falar" : noToque ? "Toque e fale o comando" : "Ligar o Jarvis"}
             style={{ position: "relative", width: 58, height: 58, borderRadius: 29, cursor: "pointer",
               border: ligado ? "none" : "1px solid var(--borda2)",
               background: ligado ? GRAD : "var(--card)",
@@ -2743,8 +2819,8 @@ function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando
           </button>
         </div>
         <span aria-hidden="true" style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1,
-          color: ligado ? "#E1306C" : "var(--cinza2)", textTransform: "uppercase" }}>
-          Jarvis
+          color: ligado ? "#E1306C" : "var(--cinza2)", textTransform: "uppercase", textAlign: "center", lineHeight: 1.3 }}>
+          {noToque && !ligado ? "toque e fale" : "Jarvis"}
         </span>
       </div>}
     </React.Fragment>
@@ -2752,7 +2828,97 @@ function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando
 }
 
 // Lista do que dá para falar. Aparece no "?" do painel e quando alguém pede ajuda.
-function ModalAjudaJarvis({ aberto, onFechar, falaLigada, onAlternarFala, onEscola }) {
+// "Ele não responde" é um sintoma com cinco causas possíveis, e nenhuma delas
+// aparece na tela. Isto mostra: se o microfone está vivo, o que ele ouviu
+// palavra por palavra, e o que decidiu fazer com cada frase.
+function ModalDiagnosticoJarvis({ aberto, ligado, estado, voz, noToque, onFechar }) {
+  const [linhas, setLinhas] = useState([]);
+  const [copiado, setCopiado] = useState(false);
+  useEffect(() => {
+    if (!aberto) return;
+    const puxar = () => setLinhas(DIARIO_JARVIS.slice(0, 25));
+    puxar();
+    const iv = setInterval(puxar, 900);
+    return () => clearInterval(iv);
+  }, [aberto]);
+  if (!aberto) return null;
+
+  const vozAtual = VOZ_FALA ? escolherVozPtBr(voz.vozNome) : null;
+  const resumo = [
+    ["Reconhecimento de voz", VOZ_OUVE ? "disponível" : "NÃO disponível neste navegador"],
+    ["Como ele ouve", noToque ? "toque para falar" : "contínuo (mãos livres)"],
+    ["Microfone", ligado ? (estado === "ouvindo" ? "ouvindo agora" : "religando") : noToque ? "pronto (toque e fale)" : "desligado"],
+    ["Resposta falada", voz.falar ? (vozAtual ? "ligada (" + nomeCurtoVoz(vozAtual) + ")" : "ligada") : "desligada"],
+    ["Frases ouvidas", String(DIARIO_JARVIS.length)],
+  ];
+  const texto = "TREINO LIVRE - diagnóstico do Jarvis\n" +
+    resumo.map((x) => x[0] + ": " + x[1]).join("\n") + "\n\n" +
+    (linhas.length ? linhas.map((l) => l.hora + "  \"" + l.ouvi + "\"\n          " + l.nota).join("\n")
+      : "(nenhuma frase ouvida ainda)");
+
+  return (
+    <div onClick={onFechar}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 56,
+        display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div role="dialog" aria-modal="true" aria-label="Diagnóstico do Jarvis" onClick={(e) => e.stopPropagation()}
+        style={{ ...S.card, width: "100%", maxWidth: 460, marginBottom: 0, borderRadius: "20px 20px 0 0",
+          maxHeight: "88vh", overflowY: "auto", paddingBottom: "calc(18px + env(safe-area-inset-bottom))" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ fontSize: 18, fontWeight: 900 }}>🩺 O que o Jarvis ouviu</div>
+          <button onClick={onFechar} aria-label="Fechar"
+            style={{ background: "none", border: "none", color: "var(--cinza)", fontSize: 24, fontWeight: 900, cursor: "pointer" }}>✕</button>
+        </div>
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.6, marginBottom: 14 }}>
+          Fale com ele e volte aqui. Esta lista mostra cada frase que chegou ao microfone
+          e o que ele decidiu fazer com ela.
+        </div>
+
+        <div style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: 12, marginBottom: 14 }}>
+          {resumo.map((x) => (
+            <div key={x[0]} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 12.5, padding: "3px 0" }}>
+              <span style={{ color: "var(--cinza)" }}>{x[0]}</span>
+              <b style={{ textAlign: "right" }}>{x[1]}</b>
+            </div>
+          ))}
+        </div>
+
+        {linhas.length === 0 ? (
+          <div style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--obs)", border: "1px solid var(--obs)", borderRadius: 12, padding: 12 }}>
+            Nada chegou ao microfone ainda. Se você já falou e esta lista continua vazia,
+            o problema é o microfone — não o entendimento. Confira a permissão no cadeado
+            ao lado do endereço, e se outro aplicativo não está usando o microfone.
+          </div>
+        ) : (
+          linhas.map((l, i) => (
+            <div key={i} style={{ borderBottom: "1px solid var(--borda)", padding: "9px 0" }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                <span style={{ fontSize: 10.5, color: "var(--cinza2)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{l.hora}</span>
+                <span style={{ fontSize: 13.5, fontStyle: "italic", lineHeight: 1.4 }}>{l.ouvi ? "“" + l.ouvi + "”" : "—"}</span>
+              </div>
+              <div style={{ fontSize: 11.5, color: /ERRO|erro do/.test(l.nota) ? "var(--perigo)" : /ignorad|descartad/.test(l.nota) ? "var(--obs)" : "var(--ok)",
+                fontWeight: 700, marginTop: 3, marginLeft: 44, lineHeight: 1.4 }}>
+                {l.nota}
+              </div>
+            </div>
+          ))
+        )}
+
+        <button style={{ ...S.btn, marginTop: 16 }}
+          onClick={async () => {
+            try { await navigator.clipboard.writeText(texto); setCopiado(true); setTimeout(() => setCopiado(false), 2500); }
+            catch (e) {}
+          }}>
+          {copiado ? "✓ Copiado" : "📋 Copiar este diagnóstico"}
+        </button>
+        <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 10, lineHeight: 1.5 }}>
+          O diagnóstico fica só neste aparelho e some quando o app é fechado.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModalAjudaJarvis({ aberto, onFechar, falaLigada, onAlternarFala, onEscola, onDiagnostico }) {
   if (!aberto) return null;
   return (
     <div onClick={onFechar}
@@ -2788,6 +2954,11 @@ function ModalAjudaJarvis({ aberto, onFechar, falaLigada, onAlternarFala, onEsco
             {falaLigada ? "🔊 Sim" : "🔇 Só na tela"}
           </button>
         </div>
+        {onDiagnostico && (
+          <button style={{ ...S.btnGhost, marginTop: 10 }} onClick={onDiagnostico}>
+            🩺 Ele não respondeu? Veja o que ele ouviu
+          </button>
+        )}
         <div style={{ fontSize: 11, color: "var(--cinza2)", lineHeight: 1.6, marginTop: 12 }}>
           O reconhecimento é o do próprio navegador: funciona melhor no Chrome do Android.
           Tudo o que ele entende vira texto nos mesmos campos de sempre — se errar, é só corrigir na mão.
@@ -3524,7 +3695,7 @@ function SeletorVoz({ voz, setVoz }) {
 function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, setMeta,
   lembrete, setLembrete, avisar, ultimoBackup, totalEx, historico,
   onBaixarBackup, onRestaurarArquivo, onExportar, onImportar, onInstalar, onVoltar,
-  voz, setVoz, vozAtiva, onAlternarVoz, onAjudaVoz, onEscolaVoz }) {
+  voz, setVoz, vozAtiva, onAlternarVoz, onAjudaVoz, onEscolaVoz, onDiagnosticoVoz }) {
   const fmtSeg = (sg) => Math.floor(sg / 60) + ":" + (sg % 60 < 10 ? "0" : "") + (sg % 60);
   return (
     <div style={{ padding: "0 18px" }}>
@@ -3592,6 +3763,33 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
               {vozAtiva ? "⏹ Parar de ouvir" : "🎤 Ligar o Jarvis agora"}
             </button>
 
+            {/* O reconhecimento contínuo é o sonho (mãos livres), mas no Android o
+                sistema encerra a sessão a cada pausa: o aparelho apita sem parar e
+                as frases longas são cortadas no meio. Por isso a escolha existe. */}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ ...S.label, marginBottom: 8 }}>Como ele ouve</div>
+              <div style={{ display: "flex", gap: 7 }}>
+                {[["continuo", "🎙 Contínuo"], ["toque", "👆 Toque e fale"]].map((op) => {
+                  const on = (voz.modo || "continuo") === op[0];
+                  return (
+                    <button key={op[0]} aria-pressed={on}
+                      onClick={() => setVoz((v) => ({ ...v, modo: op[0] }))}
+                      style={{ flex: 1, border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"),
+                        background: on ? "#E1306C22" : "transparent",
+                        color: on ? "#E1306C" : "var(--texto)",
+                        borderRadius: 12, padding: "10px 8px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+                      {op[1]}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 8, lineHeight: 1.5 }}>
+                {(voz.modo || "continuo") === "toque"
+                  ? "Um toque no microfone por comando. É o modo que funciona em todo aparelho."
+                  : "Mãos livres de verdade. Se o seu celular ficar apitando ou cortando as frases pela metade, mude para “Toque e fale”."}
+              </div>
+            </div>
+
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 18 }}>
               <span style={{ fontSize: 15, fontWeight: 700 }}>Começar junto com o treino</span>
               <button onClick={() => setVoz((v) => ({ ...v, preferido: !v.preferido }))} aria-pressed={voz.preferido}
@@ -3658,6 +3856,7 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
             </div>
 
             <button style={{ ...S.btnGhost, marginBottom: 8 }} onClick={onEscolaVoz}>🎓 Praticar os comandos</button>
+            <button style={{ ...S.btnGhost, marginBottom: 8 }} onClick={onDiagnosticoVoz}>🩺 O que ele ouviu (diagnóstico)</button>
             <button style={S.btnGhost} onClick={onAjudaVoz}>Ver tudo o que dá para falar</button>
           </React.Fragment>
         ) : (
@@ -5886,13 +6085,16 @@ function TreinoLivre() {
   // "preferido" fica gravado (é a escolha de usar comandos por voz); "ativa" é
   // só desta visita, porque ligar um microfone sozinho ao abrir o app seria
   // uma surpresa desagradável.
-  const [voz, setVoz] = useState({ preferido: false, falar: true, barra: 20, vozNome: null, velocidade: 1.1, animado: true });
+  const [voz, setVoz] = useState({ preferido: false, falar: true, barra: 20, vozNome: null, velocidade: 1.1, animado: true, modo: "continuo" });
   const [vozAtiva, setVozAtiva] = useState(false);
   const [vozEstado, setVozEstado] = useState("desligado");
+  const noToque = voz.modo === "toque";
   const [vozParcial, setVozParcial] = useState("");
   const [vozUltima, setVozUltima] = useState(null);
   const [descansando, setDescansando] = useState(false);
   const [ajudaVoz, setAjudaVoz] = useState(false);
+  const [diagVoz, setDiagVoz] = useState(false);
+  const [avisoToque, setAvisoToque] = useState(false);
   const acoesVoz = useRef({});
   const acoesEscola = useRef({});
   const ouvinte = useRef(null);
@@ -5946,7 +6148,18 @@ function TreinoLivre() {
       ouvinte.current = criarOuvinte({
         aoParcial: (t) => setVozParcial(t),
         aoFinal: (t) => { if (tratarFalaRef.current) tratarFalaRef.current(t); },
-        aoEstado: (e) => setVozEstado(e),
+        aoEstado: (e) => {
+          setVozEstado(e);
+          // No modo toque cada comando é uma sessão: quando ela acaba, o botão
+          // volta a ser um convite para falar de novo.
+          if (e === "desligado" && ouvinte.current && ouvinte.current.noModoToque()) setVozAtiva(false);
+        },
+        // O Android encerra a sessão a cada silêncio: religar sem parar faz o
+        // aparelho apitar sem descanso e corta as frases longas no meio.
+        aoTumulto: () => {
+          setVoz((v) => (v.modo === "toque" ? v : { ...v, modo: "toque" }));
+          setAvisoToque(true);
+        },
         aoErro: (tipo) => {
           setVozAtiva(false);
           avisar(tipo === "permissao"
@@ -5955,7 +6168,7 @@ function TreinoLivre() {
         },
       });
     }
-    ouvinte.current.ligar();
+    ouvinte.current.ligar(vozRef.current.modo);
     setVozAtiva(true);
     setVoz((v) => (v.preferido ? v : { ...v, preferido: true }));
   }, []);
@@ -5969,6 +6182,15 @@ function TreinoLivre() {
 
   // O navegador encerra o reconhecimento sozinho e nem sempre avisa. Esta
   // conferência periódica é o que mantém o microfone vivo o treino inteiro.
+  // Trocar de modo com o microfone ligado só vale depois de reabrir a sessão
+  useEffect(() => {
+    if (!vozAtiva || !ouvinte.current) return;
+    ouvinte.current.desligar();
+    const t = setTimeout(() => ouvinte.current && ouvinte.current.ligar(voz.modo), 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line
+  }, [voz.modo]);
+
   useEffect(() => {
     if (!vozAtiva) return;
     const iv = setInterval(() => { if (ouvinte.current) ouvinte.current.conferir(); }, 4000);
@@ -6063,7 +6285,7 @@ function TreinoLivre() {
           if (d.medidas) setMedidas(d.medidas);
           if (d.lembrete) setLembrete(d.lembrete);
           if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
-            vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false });
+            vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false, modo: d.voz.modo === "toque" ? "toque" : "continuo" });
           setSessao(null);
           setAba("inicio");
           setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 100);
@@ -6137,7 +6359,7 @@ function TreinoLivre() {
     setMedidas(md); setFotos(ft); setUltimoBackup(ub);
     if (lb) setLembrete({ ativo: !!lb.ativo, hora: lb.hora || "18:00", dias: Array.isArray(lb.dias) ? lb.dias : [1, 2, 3, 4, 5] });
     if (vz) setVoz({ preferido: !!vz.preferido, falar: vz.falar !== false, barra: vz.barra === undefined ? 20 : vz.barra,
-      vozNome: vz.vozNome || null, velocidade: vz.velocidade || 1.1, animado: vz.animado !== false });
+      vozNome: vz.vozNome || null, velocidade: vz.velocidade || 1.1, animado: vz.animado !== false, modo: vz.modo === "toque" ? "toque" : "continuo" });
     if (ss) { setSessao(ss); setAba("sessao"); }
     // Recarregou no meio do treino (ou o sistema descarregou o app): quem já
     // escolheu treinar por voz volta ouvindo. A permissão do microfone já foi
@@ -6321,7 +6543,7 @@ function TreinoLivre() {
     // Sem isto, qualquer exceção no caminho deixa o Jarvis mudo sem explicação,
     // e quem está na academia não tem como saber se o microfone morreu.
     try { tratarFalaInterno(bruto); }
-    catch (e) { mostrarVoz(bruto, "Tive um problema para processar isso. Pode repetir?", false); }
+    catch (e) { anotarDiario(bruto, "ERRO: " + (e && e.message)); mostrarVoz(bruto, "Tive um problema para processar isso. Pode repetir?", false); }
   };
   const tratarFalaInterno = (bruto) => {
     const norm = normalizarFala(bruto);
@@ -6330,6 +6552,7 @@ function TreinoLivre() {
     // Na escola tudo é exercício de laboratório: a frase chega inteira, com ou
     // sem o nome dele, e nada é gravado em treino nenhum.
     if (aba === "escolaVoz" && acoesEscola.current.receber) {
+      anotarDiario(bruto, "escola: avaliando a lição");
       acoesEscola.current.receber(bruto, depois === null ? norm : depois, depois !== null);
       return;
     }
@@ -6341,6 +6564,7 @@ function TreinoLivre() {
     // respondesse falando, a pergunta que vem logo em seguida cairia dentro da
     // janela em que o microfone ignora a própria voz dele — e sumiria.
     if (comNome && !corpo) {
+      anotarDiario(bruto, "só o nome — janela aberta por 25s");
       setVozParcial("");
       setVozUltima({ ouvi: bruto, resposta: "Estou ouvindo. Pode perguntar.", ok: true, t: Date.now() });
       janelaSeguir.current = Date.now() + 25000;
@@ -6352,12 +6576,18 @@ function TreinoLivre() {
     if (!c) {
       // Sem o nome dele, frase que não é comando é conversa de academia:
       // fecha a janela e fica quieto, em vez de responder a quem não falou com ele.
-      if (!comNome) { janelaSeguir.current = 0; return; }
+      if (!comNome) { anotarDiario(bruto, "sem o nome e não é comando — ignorado (conversa)"); janelaSeguir.current = 0; return; }
+      anotarDiario(bruto, "nome reconhecido, mas não virou comando");
       mostrarVoz(bruto, "Não entendi. Toque no ? do microfone para ver o que dá para falar.", false);
       return;
     }
     // Fora da janela e sem o nome, só pergunta passa (ver PERGUNTA_SEGURA)
-    if (!comNome && !naJanela && !PERGUNTA_SEGURA[c.tipo]) { janelaSeguir.current = 0; return; }
+    if (!comNome && !naJanela && !PERGUNTA_SEGURA[c.tipo]) {
+      anotarDiario(bruto, "“" + (ROTULO_TIPO[c.tipo] || c.tipo) + "” precisa do nome dele — ignorado");
+      janelaSeguir.current = 0;
+      return;
+    }
+    anotarDiario(bruto, "entendido: " + (ROTULO_TIPO[c.tipo] || c.tipo) + (comNome ? " (com o nome)" : " (sem o nome)"));
     registrarEvento("jarvis-comando");
 
     if (c.tipo === "ajuda") {
@@ -6419,7 +6649,7 @@ function TreinoLivre() {
       historico: historico, todos: todos, exPorId: exPorId,
       treinos: treinos, medidas: medidas, meta: meta,
     });
-    if (resposta) { mostrarVoz(bruto, resposta.fala, resposta.ok); return; }
+    if (resposta) { anotarDiario("", "respondi: " + resposta.fala.slice(0, 70)); mostrarVoz(bruto, resposta.fala, resposta.ok); return; }
 
     const primeira = treinos.find((t) => t.itens && t.itens.length);
     mostrarVoz(bruto, "Para isso preciso de um treino em andamento. Diga: Jarvis, começa o treino " +
@@ -6595,7 +6825,7 @@ function TreinoLivre() {
             if (d.meta) setMeta(d.meta);
             if (d.lembrete) setLembrete(d.lembrete);
             if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
-              vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false });
+              vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false, modo: d.voz.modo === "toque" ? "toque" : "continuo" });
             setSessao(null);
             setAba("inicio");
             setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 120);
@@ -6952,6 +7182,7 @@ function TreinoLivre() {
             onAlternarVoz={() => (vozAtiva ? desligarVoz() : ligarVoz())}
             onAjudaVoz={() => setAjudaVoz(true)}
             onEscolaVoz={() => setAba("escolaVoz")}
+            onDiagnosticoVoz={() => setDiagVoz(true)}
             onVoltar={() => setAba("inicio")} />
         )}
         {aba === "assistente" && (
@@ -7090,12 +7321,33 @@ function TreinoLivre() {
 
       <PainelJarvis disponivel={VOZ_OUVE} ligado={vozAtiva} estado={vozEstado}
         parcial={vozParcial} ultima={vozUltima} descansando={descansando}
-        naSessao={aba === "sessao"} escondido={aba === "escolaVoz"}
+        naSessao={aba === "sessao"} escondido={aba === "escolaVoz"} noToque={noToque}
         onAlternar={() => (vozAtiva ? desligarVoz() : ligarVoz())}
         onAjuda={() => setAjudaVoz(true)} />
+
+      {avisoToque && (
+        <div role="status" style={{ position: "fixed", left: 12, right: 12, zIndex: 46,
+          bottom: "calc(150px + env(safe-area-inset-bottom))" }}>
+          <div style={{ background: "var(--card)", border: "1px solid var(--obs)", borderRadius: 14,
+            padding: "14px 16px", boxShadow: "0 6px 20px rgba(0,0,0,0.5)" }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--obs)", marginBottom: 6 }}>
+              🔇 Os bipes eram deste aparelho
+            </div>
+            <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.6, marginBottom: 12 }}>
+              Ele estava reiniciando o microfone a cada pausa — é o que apita e o que
+              corta as frases longas no meio. Mudei para <b>toque para falar</b>:
+              toque no microfone, fale o comando, e ele responde. Um toque por frase.
+            </div>
+            <button style={S.btnGhost} onClick={() => setAvisoToque(false)}>Entendi</button>
+          </div>
+        </div>
+      )}
       <ModalAjudaJarvis aberto={ajudaVoz} onFechar={() => setAjudaVoz(false)}
         onEscola={() => { setAjudaVoz(false); setAba("escolaVoz"); }}
+        onDiagnostico={() => { setAjudaVoz(false); setDiagVoz(true); }}
         falaLigada={voz.falar} onAlternarFala={() => setVoz((v) => ({ ...v, falar: !v.falar }))} />
+      <ModalDiagnosticoJarvis aberto={diagVoz} ligado={vozAtiva} estado={vozEstado} voz={voz} noToque={noToque}
+        onFechar={() => setDiagVoz(false)} />
 
       {desfazer && (
         <div role="status" style={{ position: "fixed", left: 12, right: 12, zIndex: 16,

@@ -26,7 +26,7 @@ Leia esta seção antes de propor qualquer mudança de arquitetura.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v7) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v8) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
 
@@ -77,7 +77,7 @@ Tudo num único registro em `localStorage["treinolivre:v1"]`:
   fotos:     [{ id, data }],                    // a imagem em si fica no IndexedDB
   sessao:    { treinoId, nome, inicio, itens: [{ uid, exercicioId, obs, descanso, conjunto, sugerido, series: [...] }] } | null,
   lembrete:  { ativo, hora: "18:00", dias: [1,2,3,4,5] },   // 0 = domingo
-  voz:       { preferido, falar, animado, vozNome, velocidade, barra },  // Jarvis
+  voz:       { preferido, falar, animado, vozNome, velocidade, barra, modo },  // Jarvis
   ultimoBackup: 1725100000000,
   descanso: 90, som: true, tema: "escuro", meta: 3, seedV3: true
 }
@@ -229,6 +229,56 @@ campos continuam digitáveis**: o Jarvis é atalho, nunca o único caminho.
   permite corrigir antes de perder a série.
 - **Enquanto o Jarvis fala, o microfone é ignorado** (`jarvisFalandoAte`). Parar
   o reconhecimento a cada resposta faria o Android apitar o treino inteiro.
+### Os dois modos de escuta (`voz.modo`)
+
+**Este é o ponto mais importante da implementação.** No Android, `continuous =
+true` não é contínuo: o sistema encerra a sessão a cada silêncio. Religar emite
+o bipe de início do reconhecedor, e o que a pessoa ouve é **um bipe atrás do
+outro**. Pior: cada religada corta a frase no meio, então pergunta longa
+("qual a sugestão de treino para hoje?") nunca chega inteira. Comando curto às
+vezes passa, o que faz o defeito parecer aleatório.
+
+| Modo | Como funciona | Quando |
+|---|---|---|
+| `continuo` (padrão) | `continuous = true`, religa no `onend` | Computador e celulares que aguentam |
+| `toque` | `continuous = false`, uma sessão por comando, sem religar | Android que apita ou corta frases |
+
+O app **troca sozinho** quando detecta o sintoma: 6 encerramentos seguidos sem
+nenhuma frase, em menos de 15 segundos (`aoTumulto`). A janela de tempo importa
+— seis encerramentos espaçados ao longo do treino são o comportamento normal de
+quem fica calado entre as séries, e trocar de modo ali seria errado. Quando
+troca, aparece um aviso explicando que os bipes eram do aparelho.
+
+Duas armadilhas na interface do modo `toque`, as duas já corrigidas:
+- A sessão acaba junto com o comando, então `vozAtiva` vira `false`. Se a faixa
+  de resposta dependesse de estar ouvindo, **a resposta escrita sumiria no
+  mesmo instante** em que aparece.
+- Pelo mesmo motivo o "?" do painel não pode depender de estar ouvindo, ou a
+  ajuda some entre um comando e outro.
+
+Trocar de modo com o microfone ligado exige reabrir a sessão: `continuous` só
+pode ser definido antes de `start()`.
+
+### Interromper e o eco da própria voz
+
+Enquanto ele fala, o microfone ouve a voz dele voltando. Antes, **tudo** o que
+chegava nessa janela era descartado — e a pergunta que a pessoa emendava na
+resposta sumia sem deixar rastro. Agora `ecoDaPropriaVoz` compara o que chegou
+com o que ele está dizendo (`jarvisDizendo`): se a maior parte das palavras
+bate, é eco e é descartado; se não bate, é a pessoa falando por cima — ele cala
+e escuta. Religar o reconhecedor também espera ele terminar de falar, senão no
+Android o bipe toca por cima da própria resposta.
+
+### Diagnóstico (`ModalDiagnosticoJarvis`)
+
+"Ele não responde" é um sintoma com cinco causas possíveis e nenhuma aparece na
+tela. `DIARIO_JARVIS` guarda as últimas 40 frases que chegaram ao microfone e o
+que foi decidido com cada uma ("ignorado (conversa)", "precisa do nome dele",
+"eco da própria voz", "entendido: consultar o recorde"). A tela é copiável.
+
+**Lista vazia depois de falar é a resposta**: o problema é o microfone, não o
+entendimento. Entradas: o "?" do painel e Ajustes › Jarvis.
+
 - **O navegador encerra o reconhecimento sozinho** depois de alguns segundos de
   silêncio, mesmo com `continuous`. O `onend` religa, com freio (mais de 10
   religadas em 10 s dá um respiro de 2,5 s), e um relógio de 4 s confere, porque
@@ -408,7 +458,12 @@ Roteiro mínimo depois de mexer no app:
     janela: não pode anotar nada.
 20. Ditar no leg press e **ouvir** a confirmação: tem de sair "Leg press, 200
     quilos por 15", sem "quarenta e cinco graus" e sem engolir as repetições.
-21. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
+21. Num Android: ligar o Jarvis e ficar calado meio minuto. Se o aparelho
+    começar a apitar, ele tem de trocar sozinho para "toque e fale" e explicar.
+22. No modo toque: tocar, falar, e conferir que a resposta **continua na tela**
+    depois da sessão acabar, e que o "?" continua alcançável.
+23. Falar por cima dele enquanto responde: ele tem de calar e ouvir.
+24. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
     Todas precisam fechar com ✓, e nada pode aparecer no histórico depois.
 
 ## Convenções

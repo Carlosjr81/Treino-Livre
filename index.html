@@ -417,11 +417,15 @@ const store = {
 };
 const STORAGE_KEY = "treinolivre:v1";
 const LINK_APP = "https://carlosjr81.github.io/Treino-Livre/";
+// Quem fez. Fica numa constante porque aparece em cinco lugares, e um @ errado
+// num story já publicado não tem como ser corrigido.
+const INSTAGRAM = "carlos.jr.81";
+const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // Qual versão está rodando neste aparelho. Aparece nos ajustes e no
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-12f";
+const VERSAO_APP = "2026-10-12g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 const NAVEGADOR_INAPP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|; wv\)/i.test(navigator.userAgent || "");
 
@@ -1047,8 +1051,9 @@ function gerarImagemStory(linhas) {
     y += (l.tam || 56) + (l.esp || 44);
   });
   faixa(1680);
-  c.fillStyle = "#E1306C"; c.font = "bold 42px sans-serif"; c.fillText("carlosjr81.github.io/Treino-Livre", 540, 1780);
-  c.fillStyle = "#A8A8A9"; c.font = "30px sans-serif"; c.fillText("App gratuito · por Carlos Jr · @carlos.jr.81", 540, 1840);
+  c.fillStyle = "#E1306C"; c.font = "bold 40px sans-serif"; c.fillText("carlosjr81.github.io/Treino-Livre", 540, 1764);
+  c.fillStyle = "#A8A8A9"; c.font = "28px sans-serif"; c.fillText("App gratuito, feito por", 540, 1818);
+  c.fillStyle = "#F2F0EC"; c.font = "900 52px sans-serif"; c.fillText("@" + INSTAGRAM, 540, 1878);
   return new Promise((res) => cv.toBlob(res, "image/png"));
 }
 async function compartilharImagem(blob, texto, avisarFn) {
@@ -1524,6 +1529,186 @@ const MOV_FUNCIONAIS = {
   "skater":            { par: ["pe-e-alto", "pe-d-alto"], minMs: 420, minAmp: 14, dica: "Salto lateral amplo, aterrissando numa perna só." },
 };
 
+// ---- Postura: a correção que não pode errar ----
+// Contar errado custa uma repetição. Corrigir errado custa a confiança: quem
+// ouve "joelho para dentro" fazendo o movimento certo aprende a ignorar o app —
+// e aí a correção boa também deixa de valer. Por isso tudo aqui é conservador:
+//
+//   1. Só mede quando a câmera está no ângulo que permite ver aquilo. Valgo de
+//      joelho não existe de perfil; quadril caindo não existe de frente.
+//   2. Só fala depois de ver a mesma falha em DUAS repetições seguidas. Uma
+//      repetição ruim é uma repetição ruim; duas são um padrão.
+//   3. Só fala se os pontos estiverem bem visíveis. O modelo inventa posição de
+//      ponto escondido, e ponto inventado vira correção inventada.
+//   4. São dois defeitos, não doze. Os dois que aparecem em quase todo mundo e
+//      que dá para ver com confiança numa câmera de celular.
+//
+// Isto não é avaliação física. É o que um parceiro de treino atento falaria.
+
+// De frente os ombros ficam largos; de perfil eles quase se sobrepõem. A razão
+// entre a largura dos ombros e o comprimento do tronco separa os dois casos.
+function vistaDe(l) {
+  const e = escalaTorso(l);
+  const a = aberturaDe(l, 11, 12);
+  if (!e || a === null) return null;
+  if (a > 70) return "frente";
+  if (a < 45) return "perfil";
+  return null;              // de três quartos não dá para afirmar nada
+}
+
+const visivelBem = (p) => !!(p && (p.visibility === undefined || p.visibility > 0.65));
+
+// Joelho para dentro: a distância entre o joelho e a linha reta que vai do
+// quadril ao tornozelo, medida na direção do meio do corpo. É o sinal clássico
+// do valgo dinâmico, e o que mais aparece em agachamento e aterrissagem.
+function desvioJoelho(l, iQuadril, iJoelho, iTornozelo, meioX) {
+  const q = pt(l, iQuadril), j = pt(l, iJoelho), t = pt(l, iTornozelo), e = escalaTorso(l);
+  if (!e || !q || !j || !t) return null;
+  if (!visivelBem(l[iQuadril]) || !visivelBem(l[iJoelho]) || !visivelBem(l[iTornozelo])) return null;
+  const alturaPerna = t.y - q.y;
+  if (Math.abs(alturaPerna) < 0.04) return null;           // perna de lado: não dá para ler
+  const f = (j.y - q.y) / alturaPerna;
+  if (f < 0.15 || f > 0.85) return null;                   // joelho fora do trecho: leitura sem sentido
+  const esperado = q.x + (t.x - q.x) * f;
+  const lado = q.x >= meioX ? 1 : -1;                      // medial é na direção do meio
+  return (((esperado - j.x) * lado) / e) * 100;
+}
+
+// Quadril fora da linha: distância do quadril até a reta ombro–tornozelo.
+// Positivo = quadril caindo (lombar arqueada na prancha e na flexão);
+// negativo = quadril empinado, o jeito de fugir do esforço.
+function desvioQuadril(l) {
+  const e = escalaTorso(l);
+  const o = pt(l, 11), q = pt(l, 23), t = pt(l, 27);
+  if (!e || !o || !q || !t) return null;
+  if (!visivelBem(l[11]) || !visivelBem(l[23]) || !visivelBem(l[27])) return null;
+  const dx = t.x - o.x, dy = t.y - o.y;
+  const comp = Math.hypot(dx, dy);
+  if (comp < e * 1.4) return null;                         // corpo dobrado: não é prancha
+  // o sinal do produto vetorial diz de que lado da linha o quadril está; o que
+  // interessa é se ele está para baixo na imagem, e y cresce para baixo
+  const cruz = (dx * (q.y - o.y) - dy * (q.x - o.x)) / comp;
+  const paraBaixo = dx >= 0 ? 1 : -1;
+  return ((cruz * paraBaixo) / e) * 100;
+}
+
+const FALHAS_POSTURA = {
+  "valgo": { frase: "Joelho caindo para dentro. Empurra os joelhos para fora.", vista: "frente" },
+  "quadril-caido": { frase: "Quadril caindo. Aperta o abdômen e o glúteo.", vista: "perfil" },
+  "quadril-alto": { frase: "Quadril empinado. Desce o quadril para a linha do corpo.", vista: "perfil" },
+};
+
+// Quais exercícios admitem qual checagem. Fora desta lista não se mede nada:
+// quadril fora da linha é defeito na prancha e é o movimento certo no afundo.
+const POSTURA_POR_MOV = {
+  "agachamento-salto": ["valgo"],
+  "salto-vertical": ["valgo"],
+  "skater": ["valgo"],
+  "polichinelo": ["valgo"],
+  "afundo-alternado": ["valgo"],
+  "flexao": ["quadril-caido", "quadril-alto"],
+  "escalador": ["quadril-caido", "quadril-alto"],
+  "burpee": ["quadril-caido"],
+};
+// Exercício de máquina não tem perfil, mas agachamento livre e leg press têm o
+// mesmo valgo. O grupo muscular responde por eles.
+const POSTURA_POR_GRUPO = { pernas: ["valgo"], gluteos: ["valgo"] };
+
+function criarPostura(ex) {
+  const perm = (ex && ex.func && POSTURA_POR_MOV[ex.func]) ||
+    (ex && POSTURA_POR_GRUPO[ex.grupo]) || [];
+  // Um corpo parado no chão não tem postura errada: só mede quem se mexe.
+  let piorValgo = 0, somaQuadril = 0, nQuadril = 0, quadros = 0, vistaVista = null;
+  let seguidas = { valgo: 0, "quadril-caido": 0, "quadril-alto": 0 };
+  let ultimaDita = -9;
+
+  const zerarCiclo = () => { piorValgo = 0; somaQuadril = 0; nQuadril = 0; quadros = 0; vistaVista = null; };
+
+  return {
+    ativo: perm.length > 0,
+    medir(l) {
+      if (!perm.length) return;
+      const v = vistaDe(l);
+      if (!v) return;
+      vistaVista = v;
+      quadros++;
+      if (v === "frente" && perm.indexOf("valgo") >= 0) {
+        const qE = pt(l, 23), qD = pt(l, 24);
+        if (!qE || !qD) return;
+        const meio = (qE.x + qD.x) / 2;
+        const a = desvioJoelho(l, 23, 25, 27, meio);
+        const b = desvioJoelho(l, 24, 26, 28, meio);
+        [a, b].forEach((d) => { if (d !== null && d > piorValgo) piorValgo = d; });
+      } else if (v === "perfil") {
+        const d = desvioQuadril(l);
+        if (d !== null) { somaQuadril += d; nQuadril++; }
+      }
+    },
+    // Chamada quando o contador fecha uma repetição. Devolve a frase só quando a
+    // mesma falha apareceu duas vezes seguidas e faz três repetições que ele não
+    // comenta nada — correção repetida a cada movimento é sermão, não ajuda.
+    fecharRepeticao(n) {
+      if (!perm.length || quadros < 6) { zerarCiclo(); return null; }
+      let achada = null;
+      if (vistaVista === "frente" && perm.indexOf("valgo") >= 0 && piorValgo > 11) achada = "valgo";
+      else if (vistaVista === "perfil" && nQuadril >= 4) {
+        const m = somaQuadril / nQuadril;
+        if (m > 13 && perm.indexOf("quadril-caido") >= 0) achada = "quadril-caido";
+        else if (m < -16 && perm.indexOf("quadril-alto") >= 0) achada = "quadril-alto";
+      }
+      Object.keys(seguidas).forEach((k) => { seguidas[k] = k === achada ? seguidas[k] + 1 : 0; });
+      zerarCiclo();
+      if (!achada || seguidas[achada] < 2) return null;
+      if (n - ultimaDita < 3) return null;
+      ultimaDita = n;
+      seguidas[achada] = 0;
+      return FALHAS_POSTURA[achada].frase;
+    },
+    zerar() {
+      zerarCiclo();
+      seguidas = { valgo: 0, "quadril-caido": 0, "quadril-alto": 0 };
+      ultimaDita = -9;
+    },
+  };
+}
+
+// ---- "O que estou fazendo?" ----
+// Escolher o exercício antes de começar é o último passo de configuração que
+// sobrou no funcional. Como cada perfil já diz em que sinais olhar, dá para
+// virar a pergunta: medir tudo por alguns segundos e ver de qual perfil aquilo
+// mais se parece.
+//
+// O palpite NUNCA é aplicado calado. Ele aparece escrito, com o nome do
+// movimento e um botão para trocar — errar o palpite e contar escondido seria
+// pior que não adivinhar nada.
+function adivinharMovimento(faixas) {
+  const notas = Object.keys(MOV_FUNCIONAIS).map((id) => {
+    const p = MOV_FUNCIONAIS[id];
+    const sinais = p.par || p.sinais || [];
+    if (!sinais.length) return { id: id, nota: 0 };
+    // A nota é quantas vezes a amplitude passou do mínimo que aquele movimento
+    // exige. Dividir pelo mínimo é o que põe soco (14) e burpee (26) na mesma
+    // régua — senão o movimento de amplitude grande ganharia sempre.
+    const minimo = p.minAmp || 22;
+    const vals = sinais.map((s) => faixas[s] || 0);
+    // No alternado os dois lados contam: um braço só movendo é outra coisa.
+    const base = p.par ? Math.min.apply(null, vals) : vals.reduce((a, b) => a + b, 0) / vals.length;
+    return { id: id, nota: base / minimo };
+  });
+  notas.sort((a, b) => b.nota - a.nota);
+  const topo = notas[0];
+  if (!topo || topo.nota < 1.1) return null;
+  const segundo = notas[1] || { nota: 0, id: null };
+  return {
+    id: topo.id,
+    nota: Math.round(topo.nota * 100) / 100,
+    // Destacar do segundo é o que separa "é isso" de "pode ser isso". Sem folga,
+    // o palpite aparece como dúvida e não como afirmação.
+    seguro: topo.nota > segundo.nota * 1.3,
+    segundo: segundo.id,
+  };
+}
+
 // ---- O contador ----
 // Uma repetição é uma ida e volta: o sinal sai de "em baixo", passa de "em
 // cima" e volta. Contar no cruzamento simples contaria dez vezes o tremor da
@@ -1667,6 +1852,13 @@ function criarContador(opcoes) {
     },
     // Serve ao "desfazer" quando o scanner conta uma a mais
     ajustar(n) { total = Math.max(0, n); },
+    // O quanto cada sinal se mexeu na janela. É o que permite perguntar "de
+    // qual movimento isto mais se parece" sem um segundo medidor rodando junto.
+    faixas() {
+      const r = {};
+      TODOS.forEach((s) => { r[s.id] = Math.round(faixaDe(amostras[s.id])); });
+      return r;
+    },
     estado() {
       const s = TODOS.find((x) => x.id === escolhido);
       return {
@@ -3917,7 +4109,8 @@ function EscolaJarvis({ acoes, ouvindo, vozBarra, todos, onLigarVoz, onDesligarV
 // assim ela usa o mesmo caminho de registrar série que o botão ✓ e a voz usam —
 // descanso, recorde e festa saem de graça, sem nenhuma lógica duplicada.
 function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, serieTotal, som, bpm,
-  vozCfg, contarAlto, onAlternarContagem, autoSerie, onAlternarAuto, onRegistrar, onFechar }) {
+  vozCfg, contarAlto, onAlternarContagem, autoSerie, onAlternarAuto,
+  livre, exPorId, onGuardarLivre, onRegistrar, onFechar }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fluxoRef = useRef(null);
@@ -3939,6 +4132,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const vozRef2 = useRef(vozCfg);
   vozRef2.current = vozCfg;
   const tecnicoRef = useRef(null);
+  const posturaRef = useRef(null);
   const [dica, setDica] = useState(null);     // { texto, tipo, em }
   const alvoRef = useRef(0);
   alvoRef.current = parseInt(repsAlvo) || 0;
@@ -3953,32 +4147,41 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const repsRef = useRef(0);
   const pesoRef = useRef("");
   const [medidas, setMedidas] = useState(null);   // ritmo, tempo sob tensão e lados
+  // Modo livre: ninguém escolheu exercício nenhum. Ele olha alguns segundos e
+  // diz de qual movimento aquilo mais se parece — escrito, com botão para
+  // trocar. Adivinhar e contar calado seria pior do que não adivinhar.
+  const [movLivre, setMovLivre] = useState(null);
+  const [palpite, setPalpite] = useState(null);
+  const [escolhendo, setEscolhendo] = useState(false);
+  const [guardados, setGuardados] = useState([]);
+  const livreRef = useRef(livre);
+  livreRef.current = livre;
+  const movRef = useRef(null);
+  movRef.current = movLivre;
+  const t0Ref = useRef(0);
 
   useEffect(() => { setPeso(pesoAtual || ""); }, [pesoAtual, aberto]);
   pesoRef.current = peso;
 
-  // ---- liga e desliga a câmera junto com a tela ----
-  useEffect(() => {
-    if (!aberto) return;
-    let vivo = true;
-    setFase("carregando");
-    setErro("");
+  // Montar o contador é uma função, e não código solto dentro do efeito, porque
+  // no modo livre ele é trocado no meio: o movimento só é descoberto depois de
+  // alguns segundos de câmera, e aí o perfil certo entra no lugar do automático.
+  const montarContador = (exAlvo) => {
     setReps(0);
     repsRef.current = 0;
     setFechando(0);
-    setMedidas(null);
     canceladoRef.current = false;
-    inicioRef.current = Date.now();
     tecnicoRef.current = criarTecnico();
+    posturaRef.current = criarPostura(exAlvo);
     setDica(null);
     // Exercício de máquina o contador descobre sozinho. Movimento funcional tem
     // forma conhecida, e dizer qual é rende uma contagem muito melhor — é a
     // diferença entre contar o salto e contar o balanço do braço durante o salto.
-    const perfil = (ex && ex.func && MOV_FUNCIONAIS[ex.func]) || null;
+    const perfil = (exAlvo && exAlvo.func && MOV_FUNCIONAIS[exAlvo.func]) || null;
     if (perfil && perfil.dica) setDica({ texto: perfil.dica, tipo: "dica", em: Date.now() });
     contadorRef.current = criarContador({
       perfil: perfil,
-      preferidos: (ex && EYES_PREFERENCIA[ex.grupo]) || [],
+      preferidos: (exAlvo && EYES_PREFERENCIA[exAlvo.grupo]) || [],
       aoContar: (n, q) => {
         // O bipe é o retorno que chega sem olhar: a pessoa está de costas para
         // o celular na maior parte dos exercícios.
@@ -3991,8 +4194,15 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         repsRef.current = n;
         if (contadorRef.current) setMedidas(contadorRef.current.estado());
         if (alvoN > 0 && n >= alvoN && autoRef.current && !canceladoRef.current) setFechando(4);
-        const frase = tecnicoRef.current ? tecnicoRef.current.comentar(n, q, alvoN) : null;
-        if (frase) setDica({ texto: frase, tipo: q && (q.caindo || q.rapida) ? "corrige" : "elogia", em: Date.now() });
+        // Postura vence o técnico, e por uma razão simples: amplitude curta custa
+        // resultado, joelho caindo para dentro custa joelho.
+        const fPostura = posturaRef.current ? posturaRef.current.fecharRepeticao(n) : null;
+        const frase = fPostura || (tecnicoRef.current ? tecnicoRef.current.comentar(n, q, alvoN) : null);
+        if (frase) setDica({
+          texto: frase,
+          tipo: fPostura || (q && (q.caindo || q.rapida)) ? "corrige" : "elogia",
+          em: Date.now(),
+        });
 
         if (!contarAltoRef.current) return;
         // Número seco e rápido, como um parceiro contando. A última ganha a
@@ -4019,6 +4229,26 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         }
       },
     });
+  };
+
+  // ---- liga e desliga a câmera junto com a tela ----
+  useEffect(() => {
+    if (!aberto) return;
+    let vivo = true;
+    setFase("carregando");
+    setErro("");
+    setReps(0);
+    repsRef.current = 0;
+    setFechando(0);
+    setMedidas(null);
+    canceladoRef.current = false;
+    setMovLivre(null);
+    setPalpite(null);
+    setGuardados([]);
+    movRef.current = null;
+    t0Ref.current = 0;
+    inicioRef.current = Date.now();
+    montarContador(ex);
 
     (async () => {
       let detector;
@@ -4093,9 +4323,21 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
           ctx.fill();
         });
 
+        if (posturaRef.current) posturaRef.current.medir(lm);
         const info = contadorRef.current.processar(lm, agora);
         if (info.contou) setReps(info.total);
         if (info.sinal) setSinal(info.sinal);
+
+        // Cinco segundos é o tempo de três ou quatro repetições — menos que isso
+        // e o palpite sai de meio movimento, que é como errar de propósito.
+        if (livreRef.current && !movRef.current) {
+          if (!t0Ref.current) t0Ref.current = agora;
+          else if (agora - t0Ref.current > 5000) {
+            const p = adivinharMovimento(contadorRef.current.faixas());
+            if (p) { t0Ref.current = 0; setPalpite(p); setMovLivre(p.id); }
+            else t0Ref.current = agora - 3200;   // volta a tentar daqui a 1,8 s
+          }
+        }
       };
       lacoRef.current = requestAnimationFrame(quadro);
     })();
@@ -4122,6 +4364,20 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     return () => clearTimeout(t);
   }, [dica]);
 
+  // Movimento escolhido (adivinhado ou trocado na mão): o contador é refeito
+  // com o perfil certo e a conta recomeça do zero. Contar com o perfil errado
+  // os primeiros segundos e somar depois daria um número que não existiu.
+  useEffect(() => {
+    if (!livre || !movLivre) return;
+    const e = exPorId ? exPorId(movLivre) : null;
+    montarContador(e || null);
+    const cfg = vozRef2.current || {};
+    const nome = e ? nomeFalado(e.nome) : "";
+    jarvisFalar((palpite && !palpite.seguro ? "Parece " : "") + nome + ". Contando.", {
+      falar: true, vozNome: cfg.vozNome, velocidade: cfg.velocidade || 1.1, animado: cfg.animado,
+    });
+  }, [movLivre]);
+
   // A contagem regressiva do fechamento automático. Um bipe por segundo: é o
   // aviso que chega sem olhar, e é o que torna o cancelamento possível.
   useEffect(() => {
@@ -4146,6 +4402,22 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
 
   const alvo = parseInt(repsAlvo) || 0;
   const completou = alvo > 0 && reps >= alvo;
+  // No modo livre o exercício é o que foi descoberto; no normal é o da ficha.
+  const exAtual = livre ? (movLivre && exPorId ? exPorId(movLivre) : null) : ex;
+  const checagens = (exAtual && exAtual.func && POSTURA_POR_MOV[exAtual.func]) ||
+    (exAtual && POSTURA_POR_GRUPO[exAtual.grupo]) || [];
+  const guardarLivre = () => {
+    if (reps > 0 && movLivre && onGuardarLivre) {
+      onGuardarLivre(movLivre, reps);
+      setGuardados((g) => g.concat({ id: movLivre, reps: reps }));
+    }
+    setPalpite(null);
+    setMovLivre(null);
+    movRef.current = null;
+    t0Ref.current = 0;
+    montarContador(null);
+  };
+  const vistaPedida = checagens.indexOf("valgo") >= 0 ? "frente" : "perfil";
   const ajustar = (d) => {
     const n = Math.max(0, reps + d);
     setReps(n);
@@ -4156,6 +4428,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     canceladoRef.current = true;
     setDica(null);
     if (contadorRef.current) contadorRef.current.ajustar(n);
+    if (posturaRef.current) posturaRef.current.zerar();
   };
 
   return (
@@ -4217,6 +4490,51 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
           {autoSerie ? "⏱ auto" : "⏱ off"}
         </button>
 
+        {/* O palpite aparece escrito, sempre. Ele pode errar — e quando erra, o
+            botão de trocar tem de estar à mão, não escondido num menu. */}
+        {livre && fase === "pronto" && (
+          <div style={{ position: "absolute", left: 12, right: 12, top: "calc(10px + env(safe-area-inset-top))",
+            display: "flex", justifyContent: "center", pointerEvents: "none" }}>
+            <div style={{ pointerEvents: "auto", maxWidth: 300,
+              background: movLivre ? "rgba(47,212,138,0.92)" : "rgba(0,0,0,0.7)",
+              color: movLivre ? "#042016" : "#FFFFFF", borderRadius: 14, padding: "9px 13px",
+              textAlign: "center", fontSize: 13.5, fontWeight: 900, lineHeight: 1.35 }}>
+              {movLivre
+                ? (palpite && !palpite.seguro ? "Parece " : "") + (exAtual ? exAtual.nome : "")
+                : (vendo ? "Procurando o movimento..." : "Apoie o celular e apareça inteiro")}
+              <button onClick={() => setEscolhendo(true)}
+                style={{ display: "block", margin: "5px auto 0", border: "none", background: "transparent",
+                  color: movLivre ? "#042016" : "#7CFF3C", fontSize: 12, fontWeight: 800,
+                  textDecoration: "underline", cursor: "pointer", padding: 0 }}>
+                {movLivre ? "não é isso? trocar" : "escolher na mão"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {escolhendo && (
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 3,
+            overflowY: "auto", padding: "calc(16px + env(safe-area-inset-top)) 16px 20px" }}>
+            <div style={{ color: "#FFFFFF", fontSize: 16, fontWeight: 900, marginBottom: 12 }}>Qual movimento?</div>
+            {EXERCICIOS.filter((e) => e.funcional).map((e) => (
+              <button key={e.id}
+                onClick={() => { setEscolhendo(false); setPalpite(null); movRef.current = e.id; setMovLivre(e.id); }}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, marginBottom: 7,
+                  background: e.id === movLivre ? "rgba(124,255,60,0.16)" : "rgba(255,255,255,0.07)",
+                  border: "1px solid " + (e.id === movLivre ? "#7CFF3C" : "rgba(255,255,255,0.16)"),
+                  borderRadius: 12, padding: "9px 11px", color: "#FFFFFF", fontSize: 14,
+                  fontWeight: 800, textAlign: "left", cursor: "pointer" }}>
+                <BonecoFuncional id={e.func} tamanho={34} cor="#7CFF3C" />
+                {e.nome}
+              </button>
+            ))}
+            <button onClick={() => setEscolhendo(false)}
+              style={{ ...S.btnGhost, marginTop: 8, color: "#FFFFFF", borderColor: "rgba(255,255,255,0.4)" }}>
+              Voltar e deixar ele descobrir
+            </button>
+          </div>
+        )}
+
         {/* o contador grande, que é o que a pessoa olha de longe */}
         {fase === "pronto" && (
           <div style={{ position: "absolute", right: 14, bottom: 14, textAlign: "center",
@@ -4269,6 +4587,16 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
             </span>
           </button>
         )}
+        {/* Dizer qual vista ele precisa é o que torna a correção possível: valgo
+            de joelho não existe de perfil, e quadril fora da linha não existe de
+            frente. Sem este aviso a checagem simplesmente nunca rodaria. */}
+        {fase === "pronto" && vendo && !dica && posturaRef.current && posturaRef.current.ativo && (
+          <div style={{ position: "absolute", left: 14, bottom: 150,
+            background: "rgba(0,0,0,0.6)", borderRadius: 12, padding: "8px 11px",
+            color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: 700 }}>
+            ◎ Olhando a forma · fique {vistaPedida === "perfil" ? "de lado" : "de frente"}
+          </div>
+        )}
         {fase === "pronto" && !vendo && (
           <div style={{ position: "absolute", left: 12, right: 150, bottom: 18,
             background: "rgba(0,0,0,0.6)", borderRadius: 12, padding: "10px 12px", color: "#FFFFFF", fontSize: 13, lineHeight: 1.5 }}>
@@ -4283,10 +4611,13 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {ex ? ex.nome : "Exercício"}
+              {exAtual ? exAtual.nome : (livre ? "Procurando o movimento..." : "Exercício")}
             </div>
             <div style={{ fontSize: 11, color: "var(--cinza)" }}>
-              Série {serieNum} de {serieTotal}{sinal ? " · lendo " + nomeDoSinal(sinal) : ""}
+              {livre
+                ? (guardados.length ? guardados.length + " " + plural(guardados.length, "movimento guardado", "movimentos guardados") : "Modo livre")
+                : "Série " + serieNum + " de " + serieTotal}
+              {sinal ? " · lendo " + nomeDoSinal(sinal) : ""}
             </div>
             {medidas && medidas.ritmo > 0 && (
               <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 3 }}>
@@ -4304,6 +4635,23 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
               style={{ width: 38, height: 38, borderRadius: 10, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 17, cursor: "pointer" }}>+</button>
           </div>
         </div>
+        {livre ? (
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button onClick={onFechar}
+              style={{ flex: 1, background: "transparent", color: "var(--texto)",
+                border: "1px solid var(--borda2)", borderRadius: 12, padding: "14px 10px",
+                fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
+              Encerrar
+            </button>
+            <button onClick={guardarLivre} disabled={reps <= 0 || !movLivre}
+              style={{ flex: 2.2, border: "none", borderRadius: 12, padding: "14px 10px",
+                fontWeight: 900, fontSize: 15, color: "#FFFFFF",
+                background: reps > 0 && movLivre ? "linear-gradient(45deg,#1FA463,#2FD48A)" : "var(--borda)",
+                cursor: reps > 0 && movLivre ? "pointer" : "default" }}>
+              ✓ Guardar {reps > 0 ? reps + " e ir para o próximo" : ""}
+            </button>
+          </div>
+        ) : (
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input type="number" inputMode="decimal" value={peso} placeholder="peso"
             aria-label="Peso em quilos desta série"
@@ -4318,6 +4666,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
             ✓ Registrar {reps > 0 ? reps + (reps === 1 ? " rep" : " reps") : "série"}
           </button>
         </div>
+        )}
       </div>
     </div>
   );
@@ -4767,7 +5116,7 @@ const CIRCUITOS = [
 ];
 
 function TelaFuncional({ todos, exPorId, som, vozCfg, aulaInicial, onAulaAberta,
-  vozAtiva, onLigarVoz, sessaoAtiva, onComecar, onConcluirAula, onVoltar }) {
+  vozAtiva, onLigarVoz, sessaoAtiva, onAlternarContagem, onComecar, onConcluirAula, onVoltar }) {
   const [aula, setAula] = useState(null);
   // Começar a aula é o gesto que o navegador exige para abrir o microfone — e
   // sem microfone não dá para dizer "pausa" com as mãos no chão.
@@ -4782,6 +5131,11 @@ function TelaFuncional({ todos, exPorId, som, vozCfg, aulaInicial, onAulaAberta,
   }, [aulaInicial]);
   const [sel, setSel] = useState([]);
   const [demo, setDemo] = useState(null);
+  // Modo livre: sem escolher nada antes. Ele descobre o movimento, conta, e a
+  // pessoa só diz "guardei" e parte para o próximo.
+  const [livre, setLivre] = useState(false);
+  const livreInicio = useRef(0);
+  const feitosLivre = useRef([]);
   const lista = useMemo(() => todos.filter((e) => e.funcional), [todos]);
   const alternar = (id) => setSel((s) => (s.indexOf(id) >= 0 ? s.filter((x) => x !== id) : s.concat(id)));
   const total = sel.reduce((a, id) => {
@@ -4807,6 +5161,19 @@ function TelaFuncional({ todos, exPorId, som, vozCfg, aulaInicial, onAulaAberta,
 
       {/* A aula vem antes da montagem manual: quem abre esta tela quer treinar
           agora, não configurar. Escolher 4 de 14 movimentos é configuração. */}
+      {/* O caminho mais curto que existe: abrir, apoiar o celular e começar a se
+          mexer. Nada para escolher antes. */}
+      <button onClick={() => { feitosLivre.current = []; livreInicio.current = Date.now(); setLivre(true); }}
+        style={{ width: "100%", marginBottom: 22, border: "1px solid #7CFF3C66",
+          background: "#7CFF3C14", borderRadius: 14, padding: "14px 14px",
+          color: "var(--texto)", textAlign: "left", cursor: "pointer" }}>
+        <div style={{ fontSize: 15.5, fontWeight: 900, color: "#5FBF28" }}>👁 Modo livre — ele descobre o movimento</div>
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 4, lineHeight: 1.5 }}>
+          Sem escolher exercício. Comece a se mexer e ele diz o que você está fazendo,
+          conta, e você só confirma antes de ir para o próximo.
+        </div>
+      </button>
+
       <div style={S.label}>Aulas guiadas · a voz conduz</div>
       <div style={{ fontSize: 12.5, color: "var(--cinza)", margin: "6px 0 10px", lineHeight: 1.55 }}>
         Apoie o celular e siga. Cada bloco tem a figura do movimento, o relógio na tela
@@ -4902,6 +5269,34 @@ function TelaFuncional({ todos, exPorId, som, vozCfg, aulaInicial, onAulaAberta,
         </button>
       </div>
       <ModalDemonstracao ex={demo} onFechar={() => setDemo(null)} />
+      <ScannerEyes
+        aberto={livre}
+        livre={true}
+        ex={null}
+        exPorId={exPorId}
+        repsAlvo="" pesoAtual="" serieNum={1} serieTotal={1}
+        som={som} vozCfg={vozCfg}
+        contarAlto={vozCfg ? vozCfg.contarAlto !== false : true}
+        onAlternarContagem={onAlternarContagem}
+        autoSerie={false}
+        onGuardarLivre={(id, reps) => feitosLivre.current.push({ id: id, reps: reps })}
+        onRegistrar={() => {}}
+        onFechar={() => {
+          setLivre(false);
+          const feitos = feitosLivre.current;
+          if (!feitos.length) return;
+          // Vira um treino comum: o modo livre não cria um segundo histórico.
+          const porEx = {};
+          feitos.forEach((f) => { (porEx[f.id] = porEx[f.id] || []).push({ peso: "", reps: String(f.reps) }); });
+          onConcluirAula({
+            id: String(Date.now()),
+            nome: "Funcional livre",
+            data: new Date().toISOString(),
+            duracaoMin: Math.max(1, Math.min(300, Math.round((Date.now() - livreInicio.current) / 60000))),
+            itens: Object.keys(porEx).map((id) => ({ exercicioId: id, obs: "", series: porEx[id] })),
+          });
+          feitosLivre.current = [];
+        }} />
       {aula && (
         <PlayerAula aula={aula} exPorId={exPorId} som={som} vozCfg={vozCfg}
           onSair={() => setAula(null)}
@@ -5278,7 +5673,8 @@ function FaixaProgresso({ est, historico, meta, onAbrirProgresso }) {
 
 // ---------------- TELA INICIAL ----------------
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
-  avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional, onCopiarLink, onInstalar }) {
+  avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
+  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
@@ -5358,6 +5754,24 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
       </div>
 
       <OQueTreinarHoje historico={historico} exPorId={exPorId} onAbrirGrupo={onAbrirGrupo} />
+
+      {/* Depois do terceiro treino o app já provou que serve para alguma coisa.
+          É o único momento em que pedir não é atrapalhar — e é por isso que o
+          cartão some assim que recebe resposta, qualquer que seja ela. */}
+      {convite && historico.length >= 3 && (
+        <div style={{ ...S.card, borderColor: "#E1306C55" }}>
+          <div style={{ ...S.label, color: "#E1306C" }}>◎ Quem faz este app</div>
+          <div style={{ fontSize: 14, lineHeight: 1.65, margin: "8px 0 14px" }}>
+            O Treino Livre é feito por uma pessoa só, de graça, sem anúncio, sem cadastro
+            e sem vender seus dados. Se ele está te ajudando, seguir lá é o que dá
+            motivo para continuar.
+          </div>
+          <button style={{ ...S.btn, marginBottom: 8 }} onClick={onSeguir}>
+            Seguir @{INSTAGRAM} no Instagram
+          </button>
+          <button style={{ ...S.btnGhost, fontWeight: 700 }} onClick={onDispensarConvite}>Agora não</button>
+        </div>
+      )}
 
       {historico.length > 0 && (
         <FaixaProgresso est={est} historico={historico} meta={meta} onAbrirProgresso={onAbrirProgresso} />
@@ -8239,6 +8653,10 @@ function TreinoLivre() {
   const [grupoAberto, setGrupoAberto] = useState(null);
   // A aula escolhida pela voz: a tela funcional abre o player já com ela.
   const [aulaPedida, setAulaPedida] = useState(null);
+  // O convite para seguir aparece UMA vez, depois do terceiro treino, e some
+  // para sempre quando respondido. Pedir antes disso é pedir a alguém que ainda
+  // não sabe se o app presta; pedir de novo depois é insistência.
+  const [convite, setConvite] = useState(true);
   const [exercicioAberto, setExercicioAberto] = useState(null);
   const [editandoTreino, setEditandoTreino] = useState(null);
   const [baseNovoEx, setBaseNovoEx] = useState(null);   // exercício copiado ao criar variação
@@ -8457,7 +8875,7 @@ function TreinoLivre() {
   const exportarDados = () => {
     // O backup não leva a sessão em andamento de propósito: restaurar num outro
     // aparelho um treino pela metade só confundiria.
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, voz, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, voz, convite, seedV3: true });
     setModal({
       msg: "Backup dos seus dados. Toque em Copiar e guarde em local seguro (ex.: cole numa conversa sua no WhatsApp). Para restaurar, use Importar dados.",
       texto: dados,
@@ -8533,6 +8951,7 @@ function TreinoLivre() {
         if (d.tema) setTema(d.tema);
         pg = d.programas || null;
         seed = !!d.seedV3;
+        if (d.convite === false) setConvite(false);
         if (d.meta) mt = d.meta;
         md = d.medidas || [];
         ft = d.fotos || [];
@@ -8632,10 +9051,10 @@ function TreinoLivre() {
   const dadosRef = useRef("");
   useEffect(() => {
     if (!carregado) return;
-    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, seedV3: true });
+    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, seedV3: true });
     const t = setTimeout(() => store.set(STORAGE_KEY, dadosRef.current), 400);
     return () => clearTimeout(t);
-  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, carregado]);
+  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, carregado]);
 
   // Fechou o app ou trocou de aba no meio do treino? Grava na hora, sem esperar o respiro.
   useEffect(() => {
@@ -9120,7 +9539,7 @@ function TreinoLivre() {
         if (blob) fotosEx[e.id] = await blobParaBase64(blob);
       } catch (err) {}
     }
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, lembrete, voz, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, lembrete, voz, convite, seedV3: true });
     try {
       const blob = new Blob([dados], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -9402,7 +9821,7 @@ function TreinoLivre() {
       const payload = { nm: nome, t: est.total, s: est.streak, v: est.volumeTotal, w: est.treinosSemana };
       const b64 = b64Codificar(JSON.stringify(payload));
       const url = LINK_APP + "#desafio=" + b64;
-      const texto = "⚔️ " + nome + " te desafiou no Treino Livre! " + est.total + " treinos e " + est.streak + " dia(s) seguidos. Aceita o desafio?";
+      const texto = "⚔️ " + nome + " te desafiou no Treino Livre! " + est.total + " treinos e " + est.streak + " dia(s) seguidos. Aceita o desafio? (app gratuito do @" + INSTAGRAM + ")";
       setTimeout(async () => {
         if (navigator.share) {
           try { await navigator.share({ text: texto, url: url }); return; }
@@ -9424,7 +9843,7 @@ function TreinoLivre() {
     const b64 = b64Codificar(JSON.stringify(payload));
     const url = LINK_APP + "#prog=" + b64;
     registrarEvento("treino-compartilhado");
-    const texto = 'Te enviei o treino completo "' + p.nome + '" (' + fichas.length + " fichas) no Treino Livre 💪 Toque no link para adicionar:";
+    const texto = 'Te enviei o treino completo "' + p.nome + '" (' + fichas.length + " fichas) no Treino Livre 💪 (app gratuito do @" + INSTAGRAM + ") Toque no link para adicionar:";
     if (navigator.share) {
       try { await navigator.share({ text: texto, url: url }); return; }
       catch (e) { if (e && e.name === "AbortError") return; }
@@ -9467,7 +9886,9 @@ function TreinoLivre() {
     const b64 = b64Codificar(JSON.stringify(payload));
     const url = LINK_APP + "#ficha=" + b64;
     registrarEvento("ficha-compartilhada");
-    const texto = 'Te enviei a ficha de treino "' + t.nome + '" no Treino Livre 💪 Toque no link para adicionar:';
+    // O crédito viaja junto com o link: quem recebe a ficha de um amigo descobre
+    // o app e quem o fez no mesmo instante.
+    const texto = 'Te enviei a ficha de treino "' + t.nome + '" no Treino Livre 💪 (app gratuito do @' + INSTAGRAM + ') Toque no link para adicionar:';
     if (navigator.share) {
       try { await navigator.share({ text: texto, url: url }); return; }
       catch (e) { if (e && e.name === "AbortError") return; }
@@ -9580,6 +10001,13 @@ function TreinoLivre() {
             onAssistente={() => setAba("assistente")}
             onTreinoLivre={iniciarTreinoLivre}
             onFuncional={() => setAba("funcional")}
+            convite={convite}
+            onSeguir={() => {
+              registrarEvento("seguiu-instagram");
+              setConvite(false);
+              window.open(LINK_INSTAGRAM, "_blank", "noopener");
+            }}
+            onDispensarConvite={() => setConvite(false)}
             onCopiarLink={copiarLink}
             onInstalar={promptInstalar ? instalarApp : null} />
         )}
@@ -9605,6 +10033,7 @@ function TreinoLivre() {
           <TelaFuncional todos={todos} exPorId={exPorId} som={som} vozCfg={voz}
             aulaInicial={aulaPedida} onAulaAberta={() => setAulaPedida(null)} sessaoAtiva={!!sessao}
             vozAtiva={vozAtiva} onLigarVoz={ligarVoz}
+            onAlternarContagem={() => setVoz((v) => ({ ...v, contarAlto: v.contarAlto === false }))}
             onVoltar={() => setAba("inicio")}
             onComecar={(ids) => iniciarFuncional(ids)}
             onConcluirAula={(registro) => guardarTreino(registro, "aula-concluida")} />

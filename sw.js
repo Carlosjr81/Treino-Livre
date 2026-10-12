@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v15";
+const CACHE = "treinolivre-v16";
 const ARQUIVOS = [
   "./",
   "./index.html",

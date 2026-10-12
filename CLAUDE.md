@@ -121,6 +121,7 @@ Tudo num único registro em `localStorage["treinolivre:v1"]`:
   lembrete:  { ativo, hora: "18:00", dias: [1,2,3,4,5] },   // 0 = domingo
   voz:       { preferido, falar, animado, vozNome, velocidade, barra, modo,
                botaoFone, contarAlto, autoSerie },        // Jarvis e Eyes Scan
+  convite:   true,                              // o convite para seguir ainda nao foi respondido
   historico[].bpm: { medio, max, amostras } | ausente,     // monitor cardíaco
   ultimoBackup: 1725100000000,
   descanso: 90, som: true, tema: "escuro", meta: 3, seedV3: true
@@ -264,6 +265,62 @@ Testado em `teste-tecnico.js` com séries sintéticas de amplitude crescente,
 amplitude caindo (cansaço) e aceleração no fim. O teste também cobra o
 silêncio: no máximo 5 comentários em 12 repetições, e nunca dois seguidos.
 
+### A correção de postura (`criarPostura`)
+
+**Esta é a parte do app com mais regras de contenção, e é de propósito.**
+Contar errado custa uma repetição; corrigir errado custa a confiança. Quem
+ouve "joelho para dentro" fazendo o movimento certo aprende a ignorar o app —
+e aí a correção boa também deixa de valer. Por isso:
+
+1. **Só mede na vista que permite ver aquilo.** `vistaDe` separa frente de
+   perfil pela razão entre a largura dos ombros e o comprimento do tronco
+   (>70 é frente, <45 é perfil, no meio não se afirma nada). Valgo de joelho
+   não existe de perfil; quadril fora da linha não existe de frente. A tela diz
+   qual vista o exercício pede, senão a checagem simplesmente nunca rodaria.
+2. **Só fala na segunda repetição seguida com a mesma falha.** Uma repetição
+   ruim é uma repetição ruim; duas são um padrão.
+3. **Só com os pontos bem visíveis** (`visibility > 0.65`). O modelo inventa a
+   posição de ponto escondido, e ponto inventado vira correção inventada.
+4. **São dois defeitos, não doze** — os dois que aparecem em quase todo mundo e
+   que dá para ver com confiança numa câmera de celular:
+   - **valgo** (joelho caindo para dentro): distância do joelho até a reta
+     quadril–tornozelo, medida na direção do meio do corpo.
+   - **quadril fora da linha** na prancha e na flexão: distância do quadril até
+     a reta ombro–tornozelo, com sinal (caindo ou empinado).
+5. **Postura vence o técnico** na fila de comentários: amplitude curta custa
+   resultado, joelho caindo custa joelho.
+
+`POSTURA_POR_MOV` e `POSTURA_POR_GRUPO` dizem o que pode ser checado em quê.
+Fora dessa lista não se mede nada — quadril fora da linha é defeito na prancha
+e é o movimento certo no afundo.
+
+`teste-postura.js` existe principalmente para a prova **negativa**: oito
+agachamentos na linha, oito flexões retas, ruído do modelo e joelho levemente
+fora não podem gerar correção nenhuma. Depois vem a positiva. Se um dia esses
+limiares forem afrouxados, é esse teste que vai avisar.
+
+### "O que estou fazendo?" (`adivinharMovimento`, modo livre)
+
+Escolher o exercício antes de começar era o último passo de configuração que
+sobrava no funcional. Como cada perfil já diz em que sinais olhar, dá para
+virar a pergunta: medir tudo por 5 segundos (três ou quatro repetições) e ver
+de qual perfil aquilo mais se parece.
+
+A nota é **quantas vezes a amplitude passou do mínimo que aquele movimento
+exige**. Dividir pelo `minAmp` é o que põe soco (14) e burpee (26) na mesma
+régua — sem isso o movimento de amplitude grande ganharia sempre. No modo
+alternado vale o **menor** dos dois lados: um braço só se mexendo é outra coisa.
+
+**O palpite nunca é aplicado calado.** Aparece escrito, com o nome do movimento
+e um botão de trocar à mão — e quando o primeiro não se destaca do segundo em
+30% (`seguro: false`), ele é anunciado como "Parece X", não como "X". Adivinhar
+e contar escondido seria pior que não adivinhar nada.
+
+Quando o movimento é escolhido (adivinhado ou trocado), `montarContador` refaz o
+contador com o perfil certo e **a conta recomeça do zero**: somar o que foi
+contado com o perfil errado daria um número que não existiu. É por isso que
+montar o contador é uma função e não código solto dentro do efeito.
+
 ### A janela corrida de 4 segundos
 
 **O defeito mais caro deste módulo, achado pelo teste do técnico.** A
@@ -385,6 +442,27 @@ Duas decisões aqui:
 Começar a aula também **liga o microfone** se a voz for a preferida — é o gesto
 que o navegador exige, e sem microfone não dá para dizer "pausa" com as mãos no
 chão.
+
+## Crédito ao autor
+
+`INSTAGRAM` e `LINK_INSTAGRAM` são constantes porque o @ aparece em cinco
+lugares, e um @ errado num story já publicado não tem como ser corrigido.
+
+- **Na imagem do story**, em 52px branco. O story é a única peça deste app que
+  vai parar no feed de gente que nunca ouviu falar dele.
+- **No texto de todo link compartilhado** (ficha, programa, desafio): quem
+  recebe descobre o app e quem o fez no mesmo instante.
+- **No convite da tela inicial**, uma vez, depois do terceiro treino, e some
+  para sempre quando respondido (`convite`, persistido). Antes disso é pedir a
+  alguém que ainda não sabe se o app presta; depois é insistência.
+- No rodapé de créditos, que já existia.
+
+**Não dá para exigir que a pessoa siga antes de usar.** Verificar se alguém
+segue uma conta exige servidor e a API do Instagram, e essa API não expõe isso
+nem para o dono da conta. Uma trava por confiança ("já segui" → libera) é
+contornada em dois toques, apaga junto com os dados do navegador, e espanta
+justamente quem ainda não tem motivo para seguir. Se isso for pedido de novo,
+a resposta técnica é essa, e a alternativa é esta seção.
 
 ## Monitor cardíaco, e o que a web não alcança
 
@@ -888,6 +966,12 @@ Roteiro mínimo depois de mexer no app:
     continua marcada.
 32. "Jarvis, bora" fora de treino: começa a ficha sugerida.
 33. Abrir o Eyes Scan, fazer 10 repetições de verdade e conferir a contagem.
+33e. Agachar **bem feito** na frente da câmera: não pode sair correção
+     nenhuma de postura. Esse é o teste que importa.
+33f. Agachar deixando o joelho cair para dentro, de frente: na segunda
+     repetição seguida ele avisa.
+33g. Modo livre: começar a fazer polichinelo sem escolher nada. Em uns 5
+     segundos ele tem de dizer o nome, e o botão de trocar tem de funcionar.
 33a. Fazer uma série até bater o número da ficha: ela tem de **fechar sozinha**
      em 4 segundos, e o toque na faixa verde tem de cancelar isso.
 33b. Socos no ar no Eyes Scan: os **dois lados** contam, e o rodapé mostra a

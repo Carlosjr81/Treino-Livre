@@ -400,7 +400,7 @@ const LINK_APP = "https://carlosjr81.github.io/Treino-Livre/";
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-12d";
+const VERSAO_APP = "2026-10-12e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 const NAVEGADOR_INAPP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|; wv\)/i.test(navigator.userAgent || "");
 
@@ -1429,6 +1429,10 @@ const EYES_PREFERENCIA = {
 // cima" e volta. Contar no cruzamento simples contaria dez vezes o tremor da
 // mão no meio do caminho — daí os dois limiares separados (histerese) e o tempo
 // mínimo entre repetições.
+// Quatro segundos: cobre duas repetições no ritmo normal e uma repetição bem
+// lenta. Menos que isso e uma repetição de 4s se normalizaria contra si mesma;
+// mais que isso e o contador demora a perceber a amplitude caindo.
+const JANELA_MS = 4000;
 function criarContador(opcoes) {
   const o = opcoes || {};
   const preferidos = o.preferidos || [];
@@ -1441,22 +1445,39 @@ function criarContador(opcoes) {
   let total = 0;
   let desde = 0;
   let amplitude = 0;
+  // O percurso de CADA repetição, medido entre uma contagem e a seguinte.
+  // É com isso que dá para dizer se esta foi mais completa que as anteriores.
+  let repMin = Infinity, repMax = -Infinity;
+  let melhorAmp = 0, somaAmp = 0, nAmp = 0, somaDur = 0, nDur = 0;
 
-  const faixaDe = (s) => (s && s.max > s.min ? s.max - s.min : 0);
+  const faixaDe = (s) => (s && s.max > s.min && isFinite(s.min) ? s.max - s.min : 0);
 
   return {
     // Devolve o que mudou, para a tela desenhar sem recalcular nada
     processar(lm, agora) {
       if (!desde) desde = agora;
-      // 1. mede todos os sinais e vai aprendendo o mínimo e o máximo de cada um
+      // 1. mede todos os sinais e guarda os últimos 4 segundos de cada um.
+      // A janela corrida é o que faz o contador acompanhar a amplitude quando
+      // ela encolhe — e ela encolhe sempre, porque é isso que o cansaço faz.
+      // Com bordas que cediam devagar, ele parava de contar justamente nas
+      // últimas repetições, as que mais custam.
       EYES_SINAIS.forEach((s) => {
         const v = s.calc(lm);
         if (v === null) return;
-        const a = amostras[s.id] || (amostras[s.id] = { min: v, max: v, valor: v });
-        a.valor = v;
-        // As bordas cedem devagar: um frame ruim não pode redefinir a amplitude
-        if (v < a.min) a.min = a.min + (v - a.min) * 0.5; else a.min += 0.02;
-        if (v > a.max) a.max = a.max + (v - a.max) * 0.5; else a.max -= 0.02;
+        const a = amostras[s.id] || (amostras[s.id] = { hist: [], valor: v, suave: v, min: v, max: v });
+        // um pouco de suavização antes de guardar: um quadro ruim do modelo não
+        // pode esticar a janela inteira por quatro segundos
+        a.suave = a.suave + (v - a.suave) * 0.4;
+        a.valor = a.suave;
+        a.hist.push(agora, a.suave);
+        while (a.hist.length > 2 && agora - a.hist[0] > JANELA_MS) a.hist.splice(0, 2);
+        let mn = Infinity, mx = -Infinity;
+        for (let i = 1; i < a.hist.length; i += 2) {
+          const x = a.hist[i];
+          if (x < mn) mn = x;
+          if (x > mx) mx = x;
+        }
+        a.min = mn; a.max = mx;
       });
 
       // 2. escolhe o sinal: o de maior amplitude, com desempate pelo grupo
@@ -1482,26 +1503,118 @@ function criarContador(opcoes) {
 
       // 4. normaliza para 0..1 e conta a ida e volta
       const n = (a.valor - a.min) / amplitude;
+      // o percurso desta repetição, em graus de verdade e não normalizado
+      if (a.valor < repMin) repMin = a.valor;
+      if (a.valor > repMax) repMax = a.valor;
       let contou = false;
+      let qualidade = null;
       if (estado === "baixo" && n > 0.72) estado = "cima";
       else if (estado === "cima" && n < 0.28) {
         estado = "baixo";
         if (agora - ultimaRep > minMs) {
+          const amp = repMax > repMin ? repMax - repMin : 0;
+          const dur = ultimaRep ? agora - ultimaRep : 0;
           ultimaRep = agora;
           total++;
           contou = true;
-          if (aoContar) aoContar(total);
+          // Comparações só valem a partir da segunda repetição: a primeira é a
+          // própria referência, e elogiar a primeira por ser a melhor é bobagem.
+          const mediaAmp = nAmp ? somaAmp / nAmp : 0;
+          const mediaDur = nDur ? somaDur / nDur : 0;
+          qualidade = {
+            amplitude: Math.round(amp),
+            duracao: Math.round(dur),
+            melhor: nAmp > 0 && amp > melhorAmp * 1.04,
+            caindo: nAmp > 1 && amp < mediaAmp * 0.84,
+            rapida: nDur > 1 && dur > 0 && dur < mediaDur * 0.68,
+            constante: nAmp > 1 && Math.abs(amp - mediaAmp) < mediaAmp * 0.08,
+          };
+          if (amp > 0) { if (amp > melhorAmp) melhorAmp = amp; somaAmp += amp; nAmp++; }
+          if (dur > 0) { somaDur += dur; nDur++; }
+          repMin = Infinity; repMax = -Infinity;
+          if (aoContar) aoContar(total, qualidade);
         }
       }
-      return { total: total, pronto: true, contou: contou, n: n, amplitude: amplitude, sinal: escolhido };
+      return { total: total, pronto: true, contou: contou, qualidade: qualidade, n: n, amplitude: amplitude, sinal: escolhido };
     },
-    zerar() { total = 0; estado = "baixo"; ultimaRep = 0; },
+    zerar() {
+      total = 0; estado = "baixo"; ultimaRep = 0;
+      repMin = Infinity; repMax = -Infinity;
+      melhorAmp = 0; somaAmp = 0; nAmp = 0; somaDur = 0; nDur = 0;
+    },
     // Serve ao "desfazer" quando o scanner conta uma a mais
     ajustar(n) { total = Math.max(0, n); },
     estado() {
       const s = EYES_SINAIS.find((x) => x.id === escolhido);
       return { total: total, sinal: escolhido, nomeSinal: s ? s.nome : null, amplitude: Math.round(amplitude) };
     },
+  };
+}
+
+// ---- O técnico ----
+// Um parceiro de treino não comenta todas as repetições: isso vira ruído e
+// atropela a contagem. Ele fica quieto, e quando fala é porque viu alguma
+// coisa. Aqui é a mesma regra — no máximo um comentário a cada três
+// repetições, correção antes de elogio, e nunca a mesma frase duas vezes.
+const FRASES_TECNICO = {
+  melhor: [
+    "Essa foi mais completa.",
+    "Amplitude melhor que as anteriores.",
+    "Isso. Assim mesmo.",
+    "Essa saiu melhor executada.",
+  ],
+  caindo: [
+    "Desce mais um pouco.",
+    "A amplitude está caindo. Abre o movimento.",
+    "Completa o movimento até o fim.",
+    "Está encurtando. Vai até embaixo.",
+  ],
+  rapida: [
+    "Controla a descida.",
+    "Mais devagar. Não joga o peso.",
+    "Segura a volta.",
+  ],
+  constante: [
+    "Continue assim.",
+    "Ritmo bom.",
+    "Firme nesse ritmo.",
+    "Está controlado. Mantém.",
+  ],
+  animo: [
+    "Continue assim.",
+    "Boa. Não para.",
+    "Firme.",
+    "Aguenta mais um pouco.",
+  ],
+};
+function criarTecnico() {
+  let ultimaEm = -99;      // em qual repetição falou pela última vez
+  let ditas = {};          // última frase de cada tipo, para não repetir
+  const escolher = (tipo) => {
+    const lista = FRASES_TECNICO[tipo] || [];
+    if (!lista.length) return null;
+    let i = Math.floor(Math.random() * lista.length);
+    if (lista[i] === ditas[tipo] && lista.length > 1) i = (i + 1) % lista.length;
+    ditas[tipo] = lista[i];
+    return lista[i];
+  };
+  return {
+    // Devolve a frase a dizer depois do número, ou null para ficar calado.
+    comentar(n, q, alvo) {
+      // A última e a penúltima falam sempre: é a informação que muda o que fazer.
+      if (alvo > 0 && n === alvo - 1) { ultimaEm = n; return "Última. Segura."; }
+      if (alvo > 0 && n >= alvo) return null;   // o “completou” já vem com o número
+      if (!q) return null;
+      if (n - ultimaEm < 3) return null;        // o silêncio entre comentários é parte do método
+      // Correção vem antes de elogio: quem está errando precisa saber primeiro.
+      let tipo = q.rapida ? "rapida" : q.caindo ? "caindo" : q.melhor ? "melhor" : null;
+      if (!tipo && q.constante && n % 4 === 0) tipo = "constante";
+      if (!tipo && n % 6 === 0) tipo = "animo";
+      if (!tipo) return null;
+      ultimaEm = n;
+      return escolher(tipo);
+    },
+    zerar() { ultimaEm = -99; ditas = {}; },
   };
 }
 
@@ -1599,7 +1712,9 @@ function jarvisFalar(texto, cfg) {
   jarvisFalandoAte = Date.now() + 500;
   if (!cfg || !cfg.falar || !VOZ_FALA) return;
   try {
-    window.speechSynthesis.cancel();
+    // Em fila, o comentário do técnico entra DEPOIS do número em vez de
+    // cortá-lo no meio. Sem isto, "sete" virava "se-" e o resto se perdia.
+    if (!cfg.fila) window.speechSynthesis.cancel();
     const dito = textoParaFala(texto);
     const u = new SpeechSynthesisUtterance(dito);
     u.lang = "pt-BR";
@@ -1614,8 +1729,10 @@ function jarvisFalar(texto, cfg) {
     if (v) { u.voice = v; u.lang = v.lang; }
     // Estimativa de duração como rede de segurança: em alguns navegadores o
     // "onend" simplesmente não dispara.
-    jarvisFalandoAte = Date.now() + Math.min(16000, 1000 + (dito.length * 95) / u.rate);
-    jarvisDizendo = " " + normalizarFala(dito) + " ";
+    // Na fila, a janela de silêncio soma ao que já estava previsto
+    const base = cfg.fila ? Math.max(jarvisFalandoAte, Date.now()) : Date.now();
+    jarvisFalandoAte = base + Math.min(16000, 1000 + (dito.length * 95) / u.rate);
+    jarvisDizendo = (cfg.fila ? jarvisDizendo : " ") + normalizarFala(dito) + " ";
     u.onend = () => { jarvisFalandoAte = Date.now() + 400; jarvisDizendo = ""; };
     u.onerror = () => { jarvisFalandoAte = Date.now() + 400; jarvisDizendo = ""; };
     window.speechSynthesis.speak(u);
@@ -3666,6 +3783,8 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   contarAltoRef.current = contarAlto;
   const vozRef2 = useRef(vozCfg);
   vozRef2.current = vozCfg;
+  const tecnicoRef = useRef(null);
+  const [dica, setDica] = useState(null);     // { texto, tipo, em }
   const alvoRef = useRef(0);
   alvoRef.current = parseInt(repsAlvo) || 0;
 
@@ -3679,24 +3798,45 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     setErro("");
     setReps(0);
     inicioRef.current = Date.now();
+    tecnicoRef.current = criarTecnico();
+    setDica(null);
     contadorRef.current = criarContador({
       preferidos: (ex && EYES_PREFERENCIA[ex.grupo]) || [],
-      aoContar: (n) => {
+      aoContar: (n, q) => {
         // O bipe é o retorno que chega sem olhar: a pessoa está de costas para
         // o celular na maior parte dos exercícios.
         if (som) beep(1200, 0.05, 0.12);
         try { if (navigator.vibrate) navigator.vibrate(25); } catch (e) {}
+
+        // O comentário aparece na tela mesmo com o som desligado: quem treina
+        // sem fone também merece saber que a amplitude está caindo.
+        const alvoN = alvoRef.current;
+        const frase = tecnicoRef.current ? tecnicoRef.current.comentar(n, q, alvoN) : null;
+        if (frase) setDica({ texto: frase, tipo: q && (q.caindo || q.rapida) ? "corrige" : "elogia", em: Date.now() });
+
         if (!contarAltoRef.current) return;
         // Número seco e rápido, como um parceiro contando. A última ganha a
         // palavra que encerra a série, porque é a informação que muda o que fazer.
         const cfg = vozRef2.current || {};
-        const fim = alvoRef.current > 0 && n >= alvoRef.current;
-        jarvisFalar(fim ? n + ". Completou." : String(n), {
+        const fim = alvoN > 0 && n >= alvoN;
+        const voz = {
           falar: true,
           vozNome: cfg.vozNome,
           velocidade: Math.min(1.6, (cfg.velocidade || 1.1) + 0.25),
           animado: cfg.animado,
-        });
+        };
+        jarvisFalar(fim ? n + ". Completou." : String(n), voz);
+        // Em fila: entra depois do número em vez de cortá-lo. E num tom um
+        // pouco mais calmo, porque é frase e não contagem.
+        if (frase) {
+          jarvisFalar(frase, {
+            falar: true,
+            vozNome: cfg.vozNome,
+            velocidade: cfg.velocidade || 1.1,
+            animado: cfg.animado,
+            fila: true,
+          });
+        }
       },
     });
 
@@ -3793,6 +3933,13 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     };
   }, [aberto, frente, ex, som]);
 
+  // A dica fica cinco segundos e sai: é um aviso, não um letreiro.
+  useEffect(() => {
+    if (!dica) return;
+    const t = setTimeout(() => setDica(null), 5000);
+    return () => clearTimeout(t);
+  }, [dica]);
+
   // cronômetro da série, para as calorias
   useEffect(() => {
     if (!aberto || fase !== "pronto") return;
@@ -3807,6 +3954,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const ajustar = (d) => {
     const n = Math.max(0, reps + d);
     setReps(n);
+    setDica(null);
     if (contadorRef.current) contadorRef.current.ajustar(n);
   };
 
@@ -3888,6 +4036,14 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
               <button style={{ ...S.btnGhost, marginTop: 18, color: "#FFFFFF", borderColor: "rgba(255,255,255,0.4)" }}
                 onClick={onFechar}>Voltar e marcar na mão</button>
             </div>
+          </div>
+        )}
+        {fase === "pronto" && dica && (
+          <div role="status" style={{ position: "absolute", left: 14, right: 160, bottom: 150,
+            background: dica.tipo === "corrige" ? "rgba(237,73,86,0.92)" : "rgba(124,255,60,0.92)",
+            color: dica.tipo === "corrige" ? "#FFFFFF" : "#0A2A00",
+            borderRadius: 14, padding: "12px 14px", fontSize: 16, fontWeight: 900, lineHeight: 1.35 }}>
+            {dica.tipo === "corrige" ? "⚠ " : "✓ "}{dica.texto}
           </div>
         )}
         {fase === "pronto" && !vendo && (

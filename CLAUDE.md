@@ -67,7 +67,7 @@ para delatar a versão nova e serviria de pouco vindo do cache.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v13) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v14) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -197,6 +197,49 @@ Testado com movimento sintético (`teste-contador.js`): 3, 10 e 20 repetições,
 ritmo de 1,2 s e de 4 s, ruído pesado, e **20 segundos parado tremendo contam
 zero**. Vale refazer esse teste antes de mexer no contador — não dá para fazer
 agachamento na frente do navegador.
+
+### O técnico (`criarTecnico`)
+
+Contar é informação; corrigir é o que faz valer a pena apoiar o celular. Cada
+repetição é medida — **amplitude percorrida** e **duração** — e comparada com
+as anteriores. Daí saem as frases: "essa foi mais completa", "desce mais um
+pouco", "controla a descida", "continue assim".
+
+As regras valem mais que as frases:
+
+- **Correção vem antes de elogio.** Quem está encurtando o movimento precisa
+  saber disso antes de ouvir que foi bem.
+- **No máximo um comentário a cada três repetições**, e nunca a mesma frase
+  duas vezes seguidas. Um parceiro de treino que comenta tudo vira ruído — e
+  ainda atropela a contagem.
+- **A penúltima fala sempre** ("Última. Segura."): é a informação que muda o
+  que a pessoa vai fazer agora.
+- A comparação só começa na **segunda** repetição: elogiar a primeira por ser a
+  melhor de todas é bobagem.
+
+A frase é dita **em fila** (`jarvisFalar(..., { fila: true })`), depois do
+número. Sem isso o `speechSynthesis.cancel()` do comentário cortava o número no
+meio — "sete" virava "se-". E aparece **na tela** também, em verde para elogio
+e vermelho para correção: com o som desligado a correção continua chegando.
+
+Testado em `teste-tecnico.js` com séries sintéticas de amplitude crescente,
+amplitude caindo (cansaço) e aceleração no fim. O teste também cobra o
+silêncio: no máximo 5 comentários em 12 repetições, e nunca dois seguidos.
+
+### A janela corrida de 4 segundos
+
+**O defeito mais caro deste módulo, achado pelo teste do técnico.** A
+normalização usava bordas que cediam 0,02° por quadro. Quando a amplitude caía
+de 90° para 60° — que é exatamente o que o cansaço faz — levava 45 segundos
+para acompanhar, e nesse meio tempo **o contador simplesmente parava de
+contar**. Justo nas últimas repetições, as que mais custam. Contava 4 de 8.
+
+Hoje o mínimo e o máximo saem de uma **janela corrida de 4 segundos**
+(`JANELA_MS`), que acompanha por construção. Quatro segundos cobrem duas
+repetições no ritmo normal e uma bem lenta: menos que isso e uma repetição de
+4 s se normalizaria contra si mesma; mais que isso e volta a demorar para
+perceber a amplitude caindo. Os valores entram suavizados (0,4), senão um
+quadro ruim do modelo estica a janela inteira por quatro segundos.
 
 ### Na tela
 
@@ -716,7 +759,11 @@ Roteiro mínimo depois de mexer no app:
 34. Fechar o scanner e conferir que a **luz da câmera apagou**.
 35. Desligar a contagem em voz alta pelo botão do scanner e refazer: nenhum
     número pode ser falado.
-36. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
+36. Fazer uma série deixando a amplitude cair de propósito nas últimas
+    repetições: ele tem de **continuar contando** e mandar abrir o movimento.
+37. Conferir que o comentário não corta o número: ouve-se "sete" inteiro e só
+    depois a frase.
+38. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
     Todas precisam fechar com ✓, e nada pode aparecer no histórico depois.
 
 ## Convenções

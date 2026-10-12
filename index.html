@@ -400,7 +400,7 @@ const LINK_APP = "https://carlosjr81.github.io/Treino-Livre/";
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-12c";
+const VERSAO_APP = "2026-10-12d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 const NAVEGADOR_INAPP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|; wv\)/i.test(navigator.userAgent || "");
 
@@ -1256,6 +1256,263 @@ const abrirVideoDe = (nome) => {
   window.open("https://www.youtube.com/results?search_query=" + q, "_blank");
 };
 
+// ---------------- FREQUÊNCIA CARDÍACA (Bluetooth) ----------------
+// O que dá para fazer de dentro de um site, e o que não dá — vale deixar escrito
+// aqui, porque a pergunta volta:
+//
+//   FUNCIONA: qualquer monitor que exponha o serviço padrão de frequência
+//   cardíaca do Bluetooth (0x180D) — cintas peitorais Polar/Garmin/Wahoo,
+//   sensores de braço, e alguns relógios. O navegador fala direto com ele, sem
+//   app nenhum no meio e sem servidor.
+//
+//   NÃO FUNCIONA: ler o Google Fit, o Health Connect ou o Apple Health. São APIs
+//   de sistema operacional, só alcançáveis por um aplicativo instalado pela
+//   loja. A API REST do Google Fit, que permitiria algo parecido, foi
+//   descontinuada pelo próprio Google. Não é limitação do aparelho: é o que a
+//   web tem permissão de fazer. Anéis inteligentes, no geral, também não
+//   expõem o serviço padrão — guardam os dados para o app da marca.
+
+const CARDIO_DISPONIVEL = typeof navigator !== "undefined" && !!navigator.bluetooth;
+
+// Lê o padrão 0x2A37: o primeiro byte diz se o valor vem em 1 ou 2 bytes.
+function lerBpm(dv) {
+  if (!dv || dv.byteLength < 2) return null;
+  const flags = dv.getUint8(0);
+  return flags & 0x01 ? dv.getUint16(1, true) : dv.getUint8(1);
+}
+
+function criarCardio(opcoes) {
+  const o = opcoes || {};
+  let dispositivo = null;
+  let caracteristica = null;
+
+  const aoMudar = (ev) => {
+    const bpm = lerBpm(ev.target.value);
+    if (bpm && bpm > 25 && bpm < 240 && o.aoBpm) o.aoBpm(bpm);
+  };
+  const aoCair = () => {
+    caracteristica = null;
+    if (o.aoEstado) o.aoEstado("caiu");
+  };
+
+  return {
+    async conectar() {
+      if (!CARDIO_DISPONIVEL) throw new Error("sem bluetooth");
+      if (o.aoEstado) o.aoEstado("procurando");
+      // O navegador abre a lista de aparelhos e a pessoa escolhe. Sem escolha
+      // explícita não há conexão — e é assim que tem de ser.
+      dispositivo = await navigator.bluetooth.requestDevice({ filters: [{ services: ["heart_rate"] }] });
+      dispositivo.addEventListener("gattserverdisconnected", aoCair);
+      const servidor = await dispositivo.gatt.connect();
+      const servico = await servidor.getPrimaryService("heart_rate");
+      caracteristica = await servico.getCharacteristic("heart_rate_measurement");
+      await caracteristica.startNotifications();
+      caracteristica.addEventListener("characteristicvaluechanged", aoMudar);
+      if (o.aoEstado) o.aoEstado("ligado");
+      return dispositivo.name || "Monitor";
+    },
+    desconectar() {
+      try { if (caracteristica) caracteristica.removeEventListener("characteristicvaluechanged", aoMudar); } catch (e) {}
+      try { if (dispositivo && dispositivo.gatt.connected) dispositivo.gatt.disconnect(); } catch (e) {}
+      caracteristica = null;
+      if (o.aoEstado) o.aoEstado("desligado");
+    },
+    ligado() { return !!caracteristica; },
+  };
+}
+
+// Acumula os batimentos do treino para virar média e máximo no histórico.
+// Um número por treino diz mais do que o gráfico que ninguém abre.
+function criarResumoCardio() {
+  let soma = 0, n = 0, max = 0;
+  return {
+    somar(bpm) { soma += bpm; n++; if (bpm > max) max = bpm; },
+    fechar() { return n ? { medio: Math.round(soma / n), max: max, amostras: n } : null; },
+  };
+}
+
+// ---------------- JARVIS EYES SCAN: CONTAR REPETIÇÃO PELA CÂMERA ----------------
+// Apoia o celular, o app enxerga o corpo inteiro e conta as repetições sozinho.
+// No fim da série, o número já vai para a ficha — nem falar é preciso.
+//
+// O reconhecimento de pose roda INTEIRO no aparelho (MediaPipe, 33 pontos, na
+// GPU). Nenhuma imagem sai do celular: não há servidor para onde mandar, e não
+// haveria mesmo que houvesse.
+//
+// A biblioteca e o modelo pesam uns 8 MB e são baixados SÓ quando esta tela é
+// aberta pela primeira vez. O app continua abrindo com meio mega como sempre —
+// quem nunca usar o scanner não paga nada por ele.
+
+const EYES_LIB = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+const EYES_WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
+const EYES_MODELO = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+
+let eyesDetector = null;
+let eyesCarregando = null;
+// Carrega sob demanda e uma vez só. Trocar de exercício ou sair e voltar à tela
+// não pode baixar 8 MB de novo.
+function carregarEyes() {
+  if (eyesDetector) return Promise.resolve(eyesDetector);
+  if (eyesCarregando) return eyesCarregando;
+  eyesCarregando = (async () => {
+    const vision = await import(EYES_LIB);
+    const fileset = await vision.FilesetResolver.forVisionTasks(EYES_WASM);
+    eyesDetector = await vision.PoseLandmarker.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: EYES_MODELO, delegate: "GPU" },
+      runningMode: "VIDEO",
+      numPoses: 1,
+      minPoseDetectionConfidence: 0.5,
+      minPosePresenceConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
+    return eyesDetector;
+  })();
+  eyesCarregando.catch(() => { eyesCarregando = null; });
+  return eyesCarregando;
+}
+
+// Os ossos que ligam os 33 pontos do MediaPipe. Só o tronco e os membros: o
+// rosto tem 11 pontos que não dizem nada sobre agachamento e poluem a tela.
+const EYES_OSSOS = [
+  [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+  [11, 23], [12, 24], [23, 24],
+  [23, 25], [25, 27], [27, 31], [24, 26], [26, 28], [28, 32],
+];
+const EYES_PONTOS = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
+
+// Ângulo em graus no vértice b. É daqui que sai todo o resto: a repetição é uma
+// ida e volta de algum ângulo do corpo.
+function anguloEntre(a, b, c) {
+  if (!a || !b || !c) return null;
+  const v1x = a.x - b.x, v1y = a.y - b.y;
+  const v2x = c.x - b.x, v2y = c.y - b.y;
+  const n1 = Math.hypot(v1x, v1y), n2 = Math.hypot(v2x, v2y);
+  if (n1 < 1e-6 || n2 < 1e-6) return null;
+  let cos = (v1x * v2x + v1y * v2y) / (n1 * n2);
+  cos = Math.max(-1, Math.min(1, cos));
+  return (Math.acos(cos) * 180) / Math.PI;
+}
+// Ponto só vale se o modelo tiver alguma confiança nele. Membro escondido atrás
+// do corpo devolve coordenada inventada, e contar por cima disso é contar lixo.
+const visivel = (p) => p && (p.visibility === undefined || p.visibility > 0.5);
+const pt = (lm, i) => (visivel(lm[i]) ? lm[i] : null);
+
+// Os candidatos a "sinal da repetição". Em vez de exigir configuração por
+// exercício — impossível com 204 exercícios e as máquinas que ninguém catalogou —
+// o scanner mede todos e fica com o que mais se mexe.
+const EYES_SINAIS = [
+  { id: "cotovelo-e", nome: "cotovelo esquerdo", calc: (l) => anguloEntre(pt(l, 11), pt(l, 13), pt(l, 15)) },
+  { id: "cotovelo-d", nome: "cotovelo direito", calc: (l) => anguloEntre(pt(l, 12), pt(l, 14), pt(l, 16)) },
+  { id: "joelho-e", nome: "joelho esquerdo", calc: (l) => anguloEntre(pt(l, 23), pt(l, 25), pt(l, 27)) },
+  { id: "joelho-d", nome: "joelho direito", calc: (l) => anguloEntre(pt(l, 24), pt(l, 26), pt(l, 28)) },
+  { id: "quadril-e", nome: "quadril esquerdo", calc: (l) => anguloEntre(pt(l, 11), pt(l, 23), pt(l, 25)) },
+  { id: "quadril-d", nome: "quadril direito", calc: (l) => anguloEntre(pt(l, 12), pt(l, 24), pt(l, 26)) },
+  { id: "ombro-e", nome: "ombro esquerdo", calc: (l) => anguloEntre(pt(l, 23), pt(l, 11), pt(l, 13)) },
+  { id: "ombro-d", nome: "ombro direito", calc: (l) => anguloEntre(pt(l, 24), pt(l, 12), pt(l, 14)) },
+];
+
+// Qual sinal o grupo muscular sugere. Não decide sozinho — só desempata quando
+// dois sinais se mexem parecido, o que acontece sempre (o corpo é inteiro).
+const EYES_PREFERENCIA = {
+  peito: ["cotovelo-e", "cotovelo-d"],
+  costas: ["cotovelo-e", "cotovelo-d"],
+  biceps: ["cotovelo-e", "cotovelo-d"],
+  triceps: ["cotovelo-e", "cotovelo-d"],
+  ombros: ["ombro-e", "ombro-d", "cotovelo-e", "cotovelo-d"],
+  pernas: ["joelho-e", "joelho-d", "quadril-e", "quadril-d"],
+  gluteos: ["quadril-e", "quadril-d", "joelho-e", "joelho-d"],
+  abdomen: ["quadril-e", "quadril-d"],
+};
+
+// ---- O contador ----
+// Uma repetição é uma ida e volta: o sinal sai de "em baixo", passa de "em
+// cima" e volta. Contar no cruzamento simples contaria dez vezes o tremor da
+// mão no meio do caminho — daí os dois limiares separados (histerese) e o tempo
+// mínimo entre repetições.
+function criarContador(opcoes) {
+  const o = opcoes || {};
+  const preferidos = o.preferidos || [];
+  const aoContar = o.aoContar;
+  const minMs = o.minMs || 550;      // repetição mais rápida que isso é ruído
+  const amostras = {};               // id -> { min, max, valor }
+  let escolhido = null;
+  let estado = "baixo";
+  let ultimaRep = 0;
+  let total = 0;
+  let desde = 0;
+  let amplitude = 0;
+
+  const faixaDe = (s) => (s && s.max > s.min ? s.max - s.min : 0);
+
+  return {
+    // Devolve o que mudou, para a tela desenhar sem recalcular nada
+    processar(lm, agora) {
+      if (!desde) desde = agora;
+      // 1. mede todos os sinais e vai aprendendo o mínimo e o máximo de cada um
+      EYES_SINAIS.forEach((s) => {
+        const v = s.calc(lm);
+        if (v === null) return;
+        const a = amostras[s.id] || (amostras[s.id] = { min: v, max: v, valor: v });
+        a.valor = v;
+        // As bordas cedem devagar: um frame ruim não pode redefinir a amplitude
+        if (v < a.min) a.min = a.min + (v - a.min) * 0.5; else a.min += 0.02;
+        if (v > a.max) a.max = a.max + (v - a.max) * 0.5; else a.max -= 0.02;
+      });
+
+      // 2. escolhe o sinal: o de maior amplitude, com desempate pelo grupo
+      const candidatos = EYES_SINAIS.map((s) => ({ id: s.id, nome: s.nome, faixa: faixaDe(amostras[s.id]) }))
+        .filter((c) => c.faixa > 0)
+        .sort((a, b) => b.faixa - a.faixa);
+      if (candidatos.length) {
+        const topo = candidatos[0];
+        // Entre sinais parecidos (dentro de 20%), o que o grupo muscular indica ganha
+        const perto = candidatos.filter((c) => c.faixa >= topo.faixa * 0.8);
+        const pref = perto.find((c) => preferidos.indexOf(c.id) >= 0);
+        const novo = (pref || topo).id;
+        // Só troca de sinal antes de começar a contar: trocar no meio da série
+        // zeraria a referência e perderia a conta.
+        if (!escolhido || (total === 0 && novo !== escolhido)) escolhido = novo;
+      }
+      if (!escolhido) return { total: total, pronto: false };
+
+      const a = amostras[escolhido];
+      amplitude = faixaDe(a);
+      // 3. amplitude pequena demais é a pessoa parada enquanto o modelo treme
+      if (amplitude < 22) return { total: total, pronto: false, amplitude: amplitude, sinal: escolhido };
+
+      // 4. normaliza para 0..1 e conta a ida e volta
+      const n = (a.valor - a.min) / amplitude;
+      let contou = false;
+      if (estado === "baixo" && n > 0.72) estado = "cima";
+      else if (estado === "cima" && n < 0.28) {
+        estado = "baixo";
+        if (agora - ultimaRep > minMs) {
+          ultimaRep = agora;
+          total++;
+          contou = true;
+          if (aoContar) aoContar(total);
+        }
+      }
+      return { total: total, pronto: true, contou: contou, n: n, amplitude: amplitude, sinal: escolhido };
+    },
+    zerar() { total = 0; estado = "baixo"; ultimaRep = 0; },
+    // Serve ao "desfazer" quando o scanner conta uma a mais
+    ajustar(n) { total = Math.max(0, n); },
+    estado() {
+      const s = EYES_SINAIS.find((x) => x.id === escolhido);
+      return { total: total, sinal: escolhido, nomeSinal: s ? s.nome : null, amplitude: Math.round(amplitude) };
+    },
+  };
+}
+
+// Calorias é sempre estimativa, e dizer isso é parte da honestidade do número.
+// MET médio de musculação (5.0) sobre o tempo, com o peso do usuário quando ele
+// já registrou uma medida.
+function caloriasEstimadas(segundos, pesoKg) {
+  const peso = parseFloat(pesoKg) || 75;
+  return Math.round((5.0 * 3.5 * peso / 200) * (segundos / 60));
+}
+
 // ---------------- JARVIS: O ASSISTENTE DE VOZ ----------------
 // Digitar peso e repetições com a mão suada, entre uma série e outra, é o que
 // mais atrapalha o registro do treino. O Jarvis resolve isso ouvindo: a pessoa
@@ -1724,6 +1981,9 @@ function interpretarVoz(fala, ctx) {
   // pino: o detalhe que se esquece entre um treino e outro e que, até aqui, só
   // dava para escrever com o dedo.
   if (tem(/\bobserva/)) return { tipo: "observacao", frase: f };
+
+  // --- o scanner da câmera ---
+  if (tem(/\b(scanner|escaner|camera|eyes|conta (pra|para) mim|contar (pra|para) mim|me conta as reps|olha e conta)\b/)) return { tipo: "scanner" };
 
   // --- repetir a última ---
   // Na prática, metade das séries sai igual à anterior. Ditar os mesmos dois
@@ -2201,6 +2461,7 @@ const EXEMPLOS_JARVIS = [
   { d: "Jarvis, observação: banco na altura 4", o: "guarda o detalhe na ficha" },
   { d: "Jarvis, corrige para 50", o: "conserta a carga da última série" },
   { d: "Jarvis, bora", o: "começa o treino que ele sugeriu para hoje" },
+  { d: "Jarvis, conta pra mim", o: "abre o Eyes Scan e conta pela câmera" },
   { d: "Jarvis, qual meu recorde?", o: "diz a maior carga já registrada" },
   { d: "Jarvis, quanto fiz da última vez?", o: "lê o que você fez no treino anterior" },
   { d: "Jarvis, errei, apaga a última", o: "desmarca a última série anotada" },
@@ -2902,6 +3163,7 @@ const ROTULO_TIPO = {
   desligar: "me desligar", mudo: "ficar em silêncio",
   irExercicio: "ir para um exercício", repetir: "repetir a série anterior",
   corrigir: "corrigir a última série", boraTreinar: "começar o treino sugerido",
+  scanner: "abrir o scanner da câmera",
   tempoDescanso: "ver quanto falta de descanso", observacao: "anotar uma observação",
   sugestaoHoje: "sugerir o treino", recuperacaoGrupo: "ver o descanso do grupo",
   seriesGrupo: "ver as séries da semana", ultimoTreino: "ver o último treino",
@@ -3373,6 +3635,301 @@ function EscolaJarvis({ acoes, ouvindo, vozBarra, todos, onLigarVoz, onDesligarV
               {feitas[l.id] ? "✓ " : ""}{l.titulo}
             </button>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// A tela do scanner. Fica POR CIMA da tela de treino, e não numa aba própria:
+// assim ela usa o mesmo caminho de registrar série que o botão ✓ e a voz usam —
+// descanso, recorde e festa saem de graça, sem nenhuma lógica duplicada.
+function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, serieTotal, som, bpm,
+  vozCfg, contarAlto, onAlternarContagem, onRegistrar, onFechar }) {
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const fluxoRef = useRef(null);
+  const contadorRef = useRef(null);
+  const lacoRef = useRef(0);
+  const [fase, setFase] = useState("carregando");   // carregando | pronto | erro
+  const [erro, setErro] = useState("");
+  const [reps, setReps] = useState(0);
+  const [peso, setPeso] = useState(pesoAtual || "");
+  const [vendo, setVendo] = useState(false);
+  const [sinal, setSinal] = useState("");
+  const [frente, setFrente] = useState(false);
+  const inicioRef = useRef(0);
+  const [segundos, setSegundos] = useState(0);
+  // Em ref, e não em closure: o laço de contagem é montado uma vez, e ligar ou
+  // desligar a voz no meio da série precisa valer na repetição seguinte.
+  const contarAltoRef = useRef(contarAlto);
+  contarAltoRef.current = contarAlto;
+  const vozRef2 = useRef(vozCfg);
+  vozRef2.current = vozCfg;
+  const alvoRef = useRef(0);
+  alvoRef.current = parseInt(repsAlvo) || 0;
+
+  useEffect(() => { setPeso(pesoAtual || ""); }, [pesoAtual, aberto]);
+
+  // ---- liga e desliga a câmera junto com a tela ----
+  useEffect(() => {
+    if (!aberto) return;
+    let vivo = true;
+    setFase("carregando");
+    setErro("");
+    setReps(0);
+    inicioRef.current = Date.now();
+    contadorRef.current = criarContador({
+      preferidos: (ex && EYES_PREFERENCIA[ex.grupo]) || [],
+      aoContar: (n) => {
+        // O bipe é o retorno que chega sem olhar: a pessoa está de costas para
+        // o celular na maior parte dos exercícios.
+        if (som) beep(1200, 0.05, 0.12);
+        try { if (navigator.vibrate) navigator.vibrate(25); } catch (e) {}
+        if (!contarAltoRef.current) return;
+        // Número seco e rápido, como um parceiro contando. A última ganha a
+        // palavra que encerra a série, porque é a informação que muda o que fazer.
+        const cfg = vozRef2.current || {};
+        const fim = alvoRef.current > 0 && n >= alvoRef.current;
+        jarvisFalar(fim ? n + ". Completou." : String(n), {
+          falar: true,
+          vozNome: cfg.vozNome,
+          velocidade: Math.min(1.6, (cfg.velocidade || 1.1) + 0.25),
+          animado: cfg.animado,
+        });
+      },
+    });
+
+    (async () => {
+      let detector;
+      try {
+        detector = await carregarEyes();
+      } catch (e) {
+        if (!vivo) return;
+        setFase("erro");
+        setErro("Não consegui baixar o reconhecimento de movimento. Ele tem uns 8 MB e precisa de internet só na primeira vez.");
+        return;
+      }
+      if (!vivo) return;
+      let fluxo;
+      try {
+        fluxo = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: frente ? "user" : { ideal: "environment" }, width: { ideal: 960 } },
+          audio: false,
+        });
+      } catch (e) {
+        if (!vivo) return;
+        setFase("erro");
+        setErro("Preciso da câmera para contar as repetições. Toque no cadeado ao lado do endereço e libere a câmera para este site.");
+        return;
+      }
+      if (!vivo) { fluxo.getTracks().forEach((t) => t.stop()); return; }
+      fluxoRef.current = fluxo;
+      const v = videoRef.current;
+      if (!v) return;
+      v.srcObject = fluxo;
+      try { await v.play(); } catch (e) {}
+      setFase("pronto");
+      ligarTravaTela();
+
+      // ---- o laço: detecta, desenha, conta ----
+      let ultimo = 0;
+      const quadro = () => {
+        if (!vivo) return;
+        lacoRef.current = requestAnimationFrame(quadro);
+        const agora = performance.now();
+        // 24 quadros por segundo bastam para contar e poupam bateria
+        if (agora - ultimo < 41) return;
+        ultimo = agora;
+        const vid = videoRef.current, cv = canvasRef.current;
+        if (!vid || !cv || vid.readyState < 2) return;
+        let res;
+        try { res = detector.detectForVideo(vid, agora); } catch (e) { return; }
+        const lm = res && res.landmarks && res.landmarks[0];
+        const ctx = cv.getContext("2d");
+        if (cv.width !== vid.videoWidth) { cv.width = vid.videoWidth; cv.height = vid.videoHeight; }
+        ctx.clearRect(0, 0, cv.width, cv.height);
+        if (!lm) { setVendo(false); return; }
+        setVendo(true);
+
+        // esqueleto
+        ctx.lineWidth = Math.max(3, cv.width / 160);
+        ctx.strokeStyle = "#7CFF3C";
+        ctx.fillStyle = "#7CFF3C";
+        EYES_OSSOS.forEach((o) => {
+          const a = lm[o[0]], b = lm[o[1]];
+          if (!visivel(a) || !visivel(b)) return;
+          ctx.beginPath();
+          ctx.moveTo(a.x * cv.width, a.y * cv.height);
+          ctx.lineTo(b.x * cv.width, b.y * cv.height);
+          ctx.stroke();
+        });
+        const r = Math.max(4, cv.width / 110);
+        EYES_PONTOS.forEach((i) => {
+          const p = lm[i];
+          if (!visivel(p)) return;
+          ctx.beginPath();
+          ctx.arc(p.x * cv.width, p.y * cv.height, r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        const info = contadorRef.current.processar(lm, agora);
+        if (info.contou) setReps(info.total);
+        if (info.sinal) setSinal(info.sinal);
+      };
+      lacoRef.current = requestAnimationFrame(quadro);
+    })();
+
+    return () => {
+      vivo = false;
+      cancelAnimationFrame(lacoRef.current);
+      if (fluxoRef.current) {
+        // Sem isto a luz da câmera fica acesa depois de fechar a tela — e com
+        // razão a pessoa desinstala o app.
+        fluxoRef.current.getTracks().forEach((t) => t.stop());
+        fluxoRef.current = null;
+      }
+      desligarTravaTela();
+    };
+  }, [aberto, frente, ex, som]);
+
+  // cronômetro da série, para as calorias
+  useEffect(() => {
+    if (!aberto || fase !== "pronto") return;
+    const iv = setInterval(() => setSegundos(Math.round((Date.now() - inicioRef.current) / 1000)), 1000);
+    return () => clearInterval(iv);
+  }, [aberto, fase]);
+
+  if (!aberto) return null;
+
+  const alvo = parseInt(repsAlvo) || 0;
+  const completou = alvo > 0 && reps >= alvo;
+  const ajustar = (d) => {
+    const n = Math.max(0, reps + d);
+    setReps(n);
+    if (contadorRef.current) contadorRef.current.ajustar(n);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000000", zIndex: 60, display: "flex", flexDirection: "column" }}>
+      {/* a imagem */}
+      <div style={{ position: "relative", flex: 1, overflow: "hidden", background: "#000000" }}>
+        <video ref={videoRef} playsInline muted
+          style={{ width: "100%", height: "100%", objectFit: "cover", transform: frente ? "scaleX(-1)" : "none" }} />
+        <canvas ref={canvasRef}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover",
+            transform: frente ? "scaleX(-1)" : "none", pointerEvents: "none" }} />
+
+        {/* calorias e tempo, como no canto do aparelho */}
+        <div style={{ position: "absolute", top: "calc(10px + env(safe-area-inset-top))", left: 12,
+          background: "rgba(0,0,0,0.55)", borderRadius: 12, padding: "8px 12px" }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "#FFFFFF", lineHeight: 1.1 }}>
+            {caloriasEstimadas(segundos, pesoCorporal)} <span style={{ fontSize: 12, color: "#FF6B6B" }}>kcal</span>
+          </div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.75)" }}>{Math.floor(segundos / 60)}:{(segundos % 60) < 10 ? "0" : ""}{segundos % 60}</div>
+          {bpm && (
+            <div style={{ fontSize: 19, fontWeight: 900, color: "#FFFFFF", marginTop: 4 }}>
+              {bpm} <span style={{ fontSize: 13, color: "#ED4956" }}>❤</span>
+            </div>
+          )}
+        </div>
+
+        <button onClick={onFechar} aria-label="Fechar o scanner"
+          style={{ position: "absolute", top: "calc(10px + env(safe-area-inset-top))", right: 12,
+            width: 42, height: 42, borderRadius: 21, border: "none", background: "rgba(0,0,0,0.55)",
+            color: "#FFFFFF", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>✕</button>
+
+        <button onClick={() => setFrente((f) => !f)} aria-label="Virar a câmera"
+          style={{ position: "absolute", top: "calc(60px + env(safe-area-inset-top))", right: 12,
+            width: 42, height: 42, borderRadius: 21, border: "none", background: "rgba(0,0,0,0.55)",
+            color: "#FFFFFF", fontSize: 17, cursor: "pointer" }}>⟲</button>
+
+        {/* Contar alto é o retorno que serve de costas para a tela — mas em
+            academia cheia nem sempre é bem-vindo. Por isso o botão fica aqui,
+            à mão, e não escondido nos ajustes. */}
+        <button onClick={onAlternarContagem}
+          aria-pressed={!!contarAlto}
+          aria-label={contarAlto ? "Desligar a contagem em voz alta" : "Ligar a contagem em voz alta"}
+          style={{ position: "absolute", top: "calc(110px + env(safe-area-inset-top))", right: 12,
+            minWidth: 42, height: 42, borderRadius: 21, border: "none",
+            background: contarAlto ? "rgba(124,255,60,0.85)" : "rgba(0,0,0,0.55)",
+            color: contarAlto ? "#0A2A00" : "#FFFFFF", fontSize: 15, fontWeight: 900,
+            padding: "0 12px", cursor: "pointer" }}>
+          {contarAlto ? "🔊 1,2,3" : "🔇"}
+        </button>
+
+        {/* o contador grande, que é o que a pessoa olha de longe */}
+        {fase === "pronto" && (
+          <div style={{ position: "absolute", right: 14, bottom: 14, textAlign: "center",
+            background: completou ? "rgba(47,212,138,0.9)" : "rgba(0,0,0,0.6)",
+            borderRadius: 60, width: 118, height: 118, display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center", border: "3px solid " + (completou ? "#2FD48A" : "rgba(255,255,255,0.35)") }}>
+            <div style={{ fontSize: 44, fontWeight: 900, color: "#FFFFFF", lineHeight: 1 }}>{reps}</div>
+            {alvo > 0 && <div style={{ fontSize: 15, fontWeight: 800, color: "rgba(255,255,255,0.8)" }}>de {alvo}</div>}
+          </div>
+        )}
+
+        {/* avisos de estado, sempre em linguagem de quem está treinando */}
+        {fase === "carregando" && (
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 28 }}>
+            <div style={{ textAlign: "center", color: "#FFFFFF" }}>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 8 }}>Preparando o reconhecimento...</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>
+                Na primeira vez ele baixa uns 8 MB. Depois disso funciona sem internet.
+              </div>
+            </div>
+          </div>
+        )}
+        {fase === "erro" && (
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 28 }}>
+            <div style={{ textAlign: "center", color: "#FFFFFF" }}>
+              <div style={{ fontSize: 34, marginBottom: 10 }}>📷</div>
+              <div style={{ fontSize: 14, lineHeight: 1.7 }}>{erro}</div>
+              <button style={{ ...S.btnGhost, marginTop: 18, color: "#FFFFFF", borderColor: "rgba(255,255,255,0.4)" }}
+                onClick={onFechar}>Voltar e marcar na mão</button>
+            </div>
+          </div>
+        )}
+        {fase === "pronto" && !vendo && (
+          <div style={{ position: "absolute", left: 12, right: 150, bottom: 18,
+            background: "rgba(0,0,0,0.6)", borderRadius: 12, padding: "10px 12px", color: "#FFFFFF", fontSize: 13, lineHeight: 1.5 }}>
+            Não estou te vendo. Apoie o celular de pé, uns 2 metros de distância, com o corpo inteiro na tela.
+          </div>
+        )}
+      </div>
+
+      {/* a barra de registro, igual à da ficha: é para onde a contagem vai */}
+      <div style={{ background: "var(--bg2)", borderTop: "1px solid var(--borda)", padding: "12px 14px",
+        paddingBottom: "calc(14px + env(safe-area-inset-bottom))" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {ex ? ex.nome : "Exercício"}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--cinza)" }}>
+              Série {serieNum} de {serieTotal}{sinal ? " · lendo o " + (EYES_SINAIS.find((s) => s.id === sinal) || {}).nome : ""}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            <button onClick={() => ajustar(-1)} aria-label="Tirar uma repetição"
+              style={{ width: 38, height: 38, borderRadius: 10, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 17, cursor: "pointer" }}>−</button>
+            <button onClick={() => ajustar(1)} aria-label="Somar uma repetição"
+              style={{ width: 38, height: 38, borderRadius: 10, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 17, cursor: "pointer" }}>+</button>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input type="number" inputMode="decimal" value={peso} placeholder="peso"
+            aria-label="Peso em quilos desta série"
+            onChange={(e) => setPeso(e.target.value)}
+            style={{ ...S.inputMini, flex: 1 }} />
+          <button
+            onClick={() => onRegistrar(reps, peso)}
+            disabled={reps <= 0}
+            style={{ flex: 2.4, background: reps > 0 ? "linear-gradient(45deg,#1FA463,#2FD48A)" : "var(--borda)",
+              color: "#FFFFFF", border: "none", borderRadius: 12, padding: "14px 10px",
+              fontWeight: 900, fontSize: 15, cursor: reps > 0 ? "pointer" : "default" }}>
+            ✓ Registrar {reps > 0 ? reps + (reps === 1 ? " rep" : " reps") : "série"}
+          </button>
         </div>
       </div>
     </div>
@@ -4914,7 +5471,8 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
 }
 
 // ---------------- SESSÃO: registro + cronômetro com som + observações + vídeo ----------------
-function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, descanso, setDescanso, som, setSom, onFinalizar, onDescartar, onVoltar, pedirConfirmacao,
+function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, descanso, setDescanso, som, setSom, onFinalizar, onDescartar, onVoltar, pedirConfirmacao, pesoCorporal,
+  bpm, cardioEstado, onConectarCardio, onDesconectarCardio, vozCfg, contarAlto, onAlternarContagem,
   acoesVoz, vozAtiva, vozBarra, vozAnimado, onDescansando, responderVoz }) {
   // Recorde e última execução de cada exercício: servem de referência ao lado de
   // cada série e permitem festejar o recorde no instante em que ele acontece.
@@ -5233,6 +5791,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // e trocar exercício só existe aqui. As funções são penduradas numa ref
   // durante o render — o mesmo caminho do marcarSerieRef logo acima.
   const [focoEi, setFocoEi] = useState(null);
+  const [scanner, setScanner] = useState(false);   // câmera contando repetições
   const ultimoAnotado = useRef(null);
 
   // O "alvo" é onde a próxima frase vai cair: a primeira série não marcada.
@@ -5401,6 +5960,20 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     return { ok: true, fala: "Desmarquei a série " + (si + 1) + " de " + nomeDoItem(ei) + ". Pode ditar de novo." };
   };
 
+  // O scanner conta; quem grava é o mesmo anotarPorVoz de sempre. A contagem
+  // entra como repetições da série da vez, com o peso que estiver na barra.
+  const registrarDoScanner = (repsContadas, pesoDito) => {
+    const r = anotarPorVoz({
+      tipo: "anotar",
+      peso: pesoDito !== "" && pesoDito != null ? parseFloat(pesoDito) : null,
+      reps: parseInt(repsContadas) || null,
+      segundos: null, porLado: false, aquecimento: false, frase: "",
+    });
+    setScanner(false);
+    if (r && responderVoz) responderVoz(r.fala, r.ok);
+    return r;
+  };
+
   const executarVoz = (c) => {
     const itens = sessao.itens;
     const idsNoTreino = itens.map((it) => it.exercicioId);
@@ -5490,6 +6063,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         const comoC = campoC === "peso" ? fmtNum(c.valor) + " quilos"
           : campoC === "reps" ? c.valor + " repetições" : c.valor + " segundos";
         return { ok: true, fala: "Corrigi para " + comoC + " na série " + (siC + 1) + " de " + nomeDoItem(eiC) + "." };
+      }
+      case "scanner": {
+        if (!alvo) return { ok: false, fala: "O treino está vazio. Adicione um exercício primeiro." };
+        irPara(alvo.ei);
+        setScanner(true);
+        return { ok: true, fala: "Scanner aberto. Apoie o celular de pé, com o corpo inteiro na tela." };
       }
       case "tempoDescanso": {
         if (!fimDescanso) return { ok: true, fala: "Não tem descanso correndo agora." };
@@ -5633,6 +6212,33 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         </div>
       </div>
 
+      {/* Monitor cardíaco: aparece ligado quando há batimento, e some do caminho
+          quando o navegador não fala Bluetooth — oferecer o que não existe cansa. */}
+      {CARDIO_DISPONIVEL && (
+        <div style={{ ...S.card, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+          borderColor: bpm ? "#ED495666" : "var(--borda)" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={S.label}>Frequência cardíaca</div>
+            {bpm ? (
+              <div style={{ fontSize: 26, fontWeight: 900, color: "#ED4956", lineHeight: 1.1, marginTop: 2 }}>
+                {bpm} <span style={{ fontSize: 12, color: "var(--cinza)", fontWeight: 700 }}>bpm</span>
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 3, lineHeight: 1.5 }}>
+                {cardioEstado === "procurando" ? "Procurando o monitor..."
+                  : cardioEstado === "caiu" ? "O monitor desconectou."
+                  : "Cinta peitoral ou sensor com Bluetooth padrão."}
+              </div>
+            )}
+          </div>
+          <button onClick={bpm ? onDesconectarCardio : onConectarCardio}
+            style={{ ...S.btnGhost, width: "auto", padding: "10px 14px", flexShrink: 0,
+              color: bpm ? "var(--cinza)" : "#ED4956", borderColor: bpm ? "var(--borda2)" : "#ED495666" }}>
+            {bpm ? "Desconectar" : "❤ Conectar"}
+          </button>
+        </div>
+      )}
+
       {/* Configuração do descanso */}
       <div style={{ ...S.card, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div style={{ flex: 1 }}>
@@ -5702,6 +6308,15 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                   O Jarvis anota aqui — diga “Jarvis, {ehIsometria ? "45 segundos" : "80 por 10"}”
                 </span>
               </div>
+            )}
+            {ehAlvo && !ehIsometria && (
+              <button onClick={() => setScanner(true)}
+                aria-label={"Contar as repetições de " + (ex ? ex.nome : "este exercício") + " pela câmera"}
+                style={{ width: "100%", marginBottom: 10, padding: "11px 12px", borderRadius: 12,
+                  border: "1px solid #7CFF3C66", background: "#7CFF3C14", color: "#5FBF28",
+                  fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+                👁 Contar pela câmera (Eyes Scan)
+              </button>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
               <MiniaturaExercicio ex={ex} onAbrir={() => setDemo(ex)} />
@@ -5972,6 +6587,20 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       )}
 
       <ModalDemonstracao ex={demo} onFechar={() => setDemo(null)} />
+
+      <ScannerEyes
+        aberto={scanner}
+        ex={alvo ? exPorId(sessao.itens[alvo.ei].exercicioId) : null}
+        repsAlvo={alvo && sessao.itens[alvo.ei].series[alvo.si] ? sessao.itens[alvo.ei].series[alvo.si].reps : ""}
+        pesoAtual={alvo && sessao.itens[alvo.ei].series[alvo.si] ? sessao.itens[alvo.ei].series[alvo.si].peso : ""}
+        pesoCorporal={pesoCorporal}
+        bpm={bpm}
+        vozCfg={vozCfg} contarAlto={contarAlto} onAlternarContagem={onAlternarContagem}
+        serieNum={alvo ? alvo.si + 1 : 1}
+        serieTotal={alvo ? sessao.itens[alvo.ei].series.length : 1}
+        som={som}
+        onRegistrar={registrarDoScanner}
+        onFechar={() => setScanner(false)} />
     </div>
   );
 }
@@ -6559,13 +7188,17 @@ function TreinoLivre() {
   // "preferido" fica gravado (é a escolha de usar comandos por voz); "ativa" é
   // só desta visita, porque ligar um microfone sozinho ao abrir o app seria
   // uma surpresa desagradável.
-  const [voz, setVoz] = useState({ preferido: false, falar: true, barra: 20, vozNome: null, velocidade: 1.1, animado: true, modo: "continuo", botaoFone: false });
+  const [voz, setVoz] = useState({ preferido: false, falar: true, barra: 20, vozNome: null, velocidade: 1.1, animado: true, modo: "continuo", botaoFone: false, contarAlto: true });
   const [vozAtiva, setVozAtiva] = useState(false);
   const [vozEstado, setVozEstado] = useState("desligado");
   const noToque = voz.modo === "toque";
   const [vozParcial, setVozParcial] = useState("");
   const [vozUltima, setVozUltima] = useState(null);
   const [descansando, setDescansando] = useState(false);
+  const [bpm, setBpm] = useState(null);           // batimento ao vivo
+  const [cardioEstado, setCardioEstado] = useState("desligado");
+  const cardioRef = useRef(null);
+  const resumoCardioRef = useRef(null);
   const [ajudaVoz, setAjudaVoz] = useState(false);
   const [diagVoz, setDiagVoz] = useState(false);
   const [avisoToque, setAvisoToque] = useState(false);
@@ -6583,6 +7216,35 @@ function TreinoLivre() {
   const arquivoRef = useRef(null);
   const fotoExRef = useRef(null);
   const [carregado, setCarregado] = useState(false);
+
+  // O monitor é escolhido pela pessoa na janela do navegador; nada é pareado
+  // por conta própria. O resumo do treino acumula a partir daí.
+  const conectarCardio = useCallback(async () => {
+    if (!CARDIO_DISPONIVEL) {
+      avisar("Este navegador não fala Bluetooth. No celular, use o Chrome do Android — e o monitor precisa ser de frequência cardíaca padrão (cinta peitoral, por exemplo).");
+      return;
+    }
+    if (!cardioRef.current) {
+      cardioRef.current = criarCardio({
+        aoBpm: (v) => {
+          setBpm(v);
+          if (resumoCardioRef.current) resumoCardioRef.current.somar(v);
+        },
+        aoEstado: (e) => { setCardioEstado(e); if (e !== "ligado") setBpm(null); },
+      });
+    }
+    try {
+      if (!resumoCardioRef.current) resumoCardioRef.current = criarResumoCardio();
+      const nome = await cardioRef.current.conectar();
+      registrarEvento("cardio-conectado");
+      setTimeout(() => avisar("Conectado a " + nome + ". O batimento aparece no treino e a média entra no histórico."), 100);
+    } catch (e) {
+      setCardioEstado("desligado");
+      if (e && e.name === "NotFoundError") return;   // a pessoa fechou a lista
+      avisar("Não consegui conectar. Confira se o monitor está ligado, perto, e não pareado com outro app.");
+    }
+  }, []);
+  const desconectarCardio = useCallback(() => { if (cardioRef.current) cardioRef.current.desconectar(); }, []);
 
   const celebrar = useCallback((dados) => setFesta(dados), []);
   const fecharFesta = useCallback(() => setFesta(null), []);
@@ -6846,7 +7508,8 @@ function TreinoLivre() {
           if (d.lembrete) setLembrete(d.lembrete);
           if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
             vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false,
-            modo: d.voz.modo === "toque" ? "toque" : "continuo", botaoFone: !!d.voz.botaoFone });
+            modo: d.voz.modo === "toque" ? "toque" : "continuo", botaoFone: !!d.voz.botaoFone,
+            contarAlto: d.voz.contarAlto !== false });
           setSessao(null);
           setAba("inicio");
           setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 100);
@@ -6922,7 +7585,7 @@ function TreinoLivre() {
     if (lb) setLembrete({ ativo: !!lb.ativo, hora: lb.hora || "18:00", dias: Array.isArray(lb.dias) ? lb.dias : [1, 2, 3, 4, 5] });
     if (vz) setVoz({ preferido: !!vz.preferido, falar: vz.falar !== false, barra: vz.barra === undefined ? 20 : vz.barra,
       vozNome: vz.vozNome || null, velocidade: vz.velocidade || 1.1, animado: vz.animado !== false,
-      modo: vz.modo === "toque" ? "toque" : "continuo", botaoFone: !!vz.botaoFone });
+      modo: vz.modo === "toque" ? "toque" : "continuo", botaoFone: !!vz.botaoFone, contarAlto: vz.contarAlto !== false });
     if (ss) { setSessao(ss); setAba("sessao"); }
     // Recarregou no meio do treino (ou o sistema descarregou o app): quem já
     // escolheu treinar por voz volta ouvindo. A permissão do microfone já foi
@@ -7310,6 +7973,11 @@ function TreinoLivre() {
         }),
       })).filter((it) => it.series.length > 0),
     };
+    // O batimento do treino entra no registro. Um número por treino diz mais do
+    // que o gráfico minuto a minuto que ninguém abre depois.
+    const resumoBpm = resumoCardioRef.current ? resumoCardioRef.current.fechar() : null;
+    if (resumoBpm) registro.bpm = resumoBpm;
+    resumoCardioRef.current = criarResumoCardio();
     setHistorico([registro, ...historico]);
     // Salva as observações de volta na ficha (altura do banco, polia etc. ficam guardadas).
     // Casa pelo exercício, e não pela posição: dá para adicionar e remover exercícios
@@ -7482,7 +8150,8 @@ function TreinoLivre() {
             if (d.lembrete) setLembrete(d.lembrete);
             if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
               vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false,
-              modo: d.voz.modo === "toque" ? "toque" : "continuo", botaoFone: !!d.voz.botaoFone });
+              modo: d.voz.modo === "toque" ? "toque" : "continuo", botaoFone: !!d.voz.botaoFone,
+              contarAlto: d.voz.contarAlto !== false });
             setSessao(null);
             setAba("inicio");
             setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 120);
@@ -7497,6 +8166,13 @@ function TreinoLivre() {
   };
 
   // Aviso de backup pendente: aparece quando há o que perder e faz tempo que não se salva.
+  // Última pesagem registrada, para a estimativa de calorias do scanner.
+  // Sem medida, o cálculo usa 75 kg e o número é claramente uma estimativa.
+  const pesoCorporal = useMemo(() => {
+    const comPeso = [...medidas].filter((m) => m.peso).sort((a, b) => new Date(b.data) - new Date(a.data));
+    return comPeso.length ? parseFloat(comPeso[0].peso) : null;
+  }, [medidas]);
+
   const avisoBackup = useMemo(() => {
     if (historico.length < 5) return null;
     const dias = ultimoBackup ? Math.floor((Date.now() - ultimoBackup) / 86400000) : null;
@@ -7934,6 +8610,11 @@ function TreinoLivre() {
             descanso={descanso} setDescanso={setDescanso}
             som={som} setSom={setSom}
             acoesVoz={acoesVoz} vozAtiva={vozAtiva} vozBarra={voz.barra} vozAnimado={voz.animado !== false}
+            pesoCorporal={pesoCorporal}
+            bpm={bpm} cardioEstado={cardioEstado}
+            vozCfg={voz} contarAlto={voz.contarAlto !== false}
+            onAlternarContagem={() => setVoz((v) => ({ ...v, contarAlto: v.contarAlto === false }))}
+            onConectarCardio={conectarCardio} onDesconectarCardio={desconectarCardio}
             onDescansando={setDescansando} responderVoz={responderVoz}
             onFinalizar={finalizarSessao}
             onVoltar={() => setAba("inicio")}

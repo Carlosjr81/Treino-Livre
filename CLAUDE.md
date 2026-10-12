@@ -67,7 +67,7 @@ para delatar a versão nova e serviria de pouco vindo do cache.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v12) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v13) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -119,7 +119,9 @@ Tudo num único registro em `localStorage["treinolivre:v1"]`:
   fotos:     [{ id, data }],                    // a imagem em si fica no IndexedDB
   sessao:    { treinoId, nome, inicio, itens: [{ uid, exercicioId, obs, descanso, conjunto, sugerido, series: [...] }] } | null,
   lembrete:  { ativo, hora: "18:00", dias: [1,2,3,4,5] },   // 0 = domingo
-  voz:       { preferido, falar, animado, vozNome, velocidade, barra, modo },  // Jarvis
+  voz:       { preferido, falar, animado, vozNome, velocidade, barra, modo,
+               botaoFone, contarAlto },                   // Jarvis e Eyes Scan
+  historico[].bpm: { medio, max, amostras } | ausente,     // monitor cardíaco
   ultimoBackup: 1725100000000,
   descanso: 90, som: true, tema: "escuro", meta: 3, seedV3: true
 }
@@ -155,6 +157,75 @@ Regras importantes:
   (`treinolivre-fotos`), e o registro principal guarda só a lista de datas.
   O backup **em arquivo** leva as imagens em base64 (`fotosDados`); o backup em
   texto não leva, de propósito.
+
+## Jarvis Eyes Scan (contar repetição pela câmera)
+
+Apoia o celular, o app enxerga o corpo e conta as repetições sozinho. No fim
+da série o número vai para a ficha — pelo **mesmo** `anotarPorVoz` do botão ✓ e
+do comando falado. O scanner não grava nada por conta própria: assim descanso,
+recorde e celebração saem de graça e não existe um segundo lugar onde uma série
+possa ser gravada errado.
+
+### Como fica barato
+
+A biblioteca de visão e o modelo somam ~8 MB. São carregados **só quando a tela
+é aberta pela primeira vez** (`carregarEyes`, `import()` dinâmico) e guardados
+pelo service worker. Quem nunca usar o scanner não paga nada por ele: o app
+continua abrindo com o mesmo meio mega.
+
+Tudo roda no aparelho (MediaPipe, 33 pontos, GPU). **Nenhuma imagem sai do
+celular** — não há servidor para onde mandar, e não haveria mesmo que houvesse.
+
+### Como a repetição é contada
+
+Exigir configuração por exercício é inviável: são 204 no catálogo mais as
+máquinas que o dono fotografa e que não estão em catálogo nenhum. Então:
+
+1. `criarContador` mede **oito ângulos** ao mesmo tempo (cotovelos, joelhos,
+   quadris, ombros) e aprende o mínimo e o máximo de cada um. As bordas cedem
+   devagar — um quadro ruim não pode redefinir a amplitude.
+2. Fica com **o que mais se mexe**. Entre sinais parecidos (dentro de 20%), o
+   grupo muscular do exercício desempata (`EYES_PREFERENCIA`).
+3. **Troca de sinal só antes da primeira repetição.** Trocar no meio da série
+   zeraria a referência e perderia a conta.
+4. Conta a ida e volta com **histerese** (sobe acima de 0,72, desce abaixo de
+   0,28) e tempo mínimo de 550 ms. Sem isso o tremor do modelo no meio do
+   caminho contaria dez repetições numa.
+5. Amplitude abaixo de 22° é gente parada enquanto o modelo treme: não conta.
+
+Testado com movimento sintético (`teste-contador.js`): 3, 10 e 20 repetições,
+ritmo de 1,2 s e de 4 s, ruído pesado, e **20 segundos parado tremendo contam
+zero**. Vale refazer esse teste antes de mexer no contador — não dá para fazer
+agachamento na frente do navegador.
+
+### Na tela
+
+- Esqueleto verde sobre o vídeo, só tronco e membros (o rosto tem 11 pontos que
+  não dizem nada sobre agachamento e poluem a imagem).
+- Contador grande no canto, calorias estimadas e batimento quando há monitor.
+- **Conta em voz alta** a cada repetição, e diz "completou" na última. O botão
+  de liga e desliga fica **no próprio scanner**, não nos ajustes: em academia
+  cheia a decisão muda na hora. Guardado em `voz.contarAlto`.
+- `−` e `+` corrigem a conta antes de registrar.
+- **Ao fechar, as trilhas da câmera são encerradas** (`getTracks().forEach(stop)`).
+  Sem isso a luz da câmera fica acesa depois de sair da tela — e com razão a
+  pessoa desinstala o app.
+
+## Monitor cardíaco, e o que a web não alcança
+
+**Funciona:** qualquer monitor que exponha o serviço padrão de frequência
+cardíaca do Bluetooth (0x180D) — cintas peitorais Polar, Garmin, Wahoo e
+sensores de braço. O navegador fala direto com o aparelho, sem app no meio e
+sem servidor. A pessoa escolhe o dispositivo na janela do próprio navegador.
+O batimento aparece no treino e a média e o máximo entram no registro (`bpm`).
+
+**Não funciona, e não é limitação do aparelho:** ler o Google Fit, o Health
+Connect ou o Apple Health. São APIs de sistema operacional, só alcançáveis por
+um aplicativo instalado pela loja. A API REST do Google Fit, que permitiria
+algo parecido, foi descontinuada pelo próprio Google. Anéis inteligentes, no
+geral, também não expõem o serviço padrão — guardam os dados para o app da
+marca. **Não prometa isso na interface.** O caminho real seria empacotar o PWA
+num aplicativo nativo (TWA + Health Connect no Android), que é outro projeto.
 
 ## Foto do aparelho (exercício do usuário)
 
@@ -639,7 +710,13 @@ Roteiro mínimo depois de mexer no app:
 31. "Jarvis, corrige para 50" depois de anotar errado: o campo muda e a série
     continua marcada.
 32. "Jarvis, bora" fora de treino: começa a ficha sugerida.
-33. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
+33. Abrir o Eyes Scan, fazer 10 repetições de verdade e conferir a contagem.
+    Depois tocar em Registrar: a série tem de aparecer preenchida na ficha, com
+    o descanso já correndo.
+34. Fechar o scanner e conferir que a **luz da câmera apagou**.
+35. Desligar a contagem em voz alta pelo botão do scanner e refazer: nenhum
+    número pode ser falado.
+36. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
     Todas precisam fechar com ✓, e nada pode aparecer no histórico depois.
 
 ## Convenções

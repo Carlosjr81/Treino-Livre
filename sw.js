@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v12";
+const CACHE = "treinolivre-v13";
 const ARQUIVOS = [
   "./",
   "./index.html",
@@ -46,6 +46,11 @@ self.addEventListener("fetch", (e) => {
   // O arquivo da versao nunca e interceptado: ele existe para delatar que ha
   // versao nova, e serviria de pouco vindo do cache.
   if (url.pathname.indexOf("versao.json") >= 0) return;
+  // O reconhecimento de movimento (biblioteca, WASM e modelo) sao uns 8 MB.
+  // Guardados aqui, sao baixados uma vez so e o Eyes Scan passa a funcionar
+  // offline, como o resto do app.
+  const ehVisao = url.hostname === "storage.googleapis.com" ||
+    (url.hostname === "cdn.jsdelivr.net" && url.pathname.indexOf("tasks-vision") >= 0);
   const ehApp = e.request.mode === "navigate" || url.pathname.endsWith("index.html");
 
   if (ehApp) {

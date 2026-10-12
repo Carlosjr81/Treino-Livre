@@ -1871,6 +1871,50 @@ function criarOuvinte(opcoes) {
     }
   };
 
+  // A frase só é entregue quando para de crescer. Sem isto, "anota aí cadeira
+  // abdutora 90 kg 12" vira vinte comandos, todos pela metade.
+  let frasePendente = "";
+  let altPendente = null;
+  let timerFrase = null;
+  let ultimaEntregue = "";
+  let quandoEntregue = 0;
+  const entregarFrase = () => {
+    clearTimeout(timerFrase);
+    timerFrase = null;
+    const t = frasePendente, a = altPendente;
+    frasePendente = "";
+    altPendente = null;
+    if (!t) return;
+    ultimaEntregue = t;
+    quandoEntregue = Date.now();
+    if (aoFinal) aoFinal(t, a || [t]);
+  };
+  // Mesma frase crescendo, ou outra frase? Comparar por prefixo de texto não
+  // basta: o reconhecedor REVISA o fim da frase enquanto escuta ("90 kg 12"
+  // virou "90 kg de repetição"), e aí o prefixo deixa de bater. Comparar por
+  // palavras, tolerando a última, resolve.
+  // Usada tanto para juntar os pedaços quanto para reconhecer a continuação
+  const mesmaFrase = (a, b) => {
+    const pa = a.toLowerCase().split(/\s+/).filter(Boolean);
+    const pb = b.toLowerCase().split(/\s+/).filter(Boolean);
+    let k = 0;
+    while (k < pa.length && k < pb.length && pa[k] === pb[k]) k++;
+    return k >= 1 && k >= Math.min(pa.length, pb.length) - 1;
+  };
+  const acumularFrase = (t, alts) => {
+    const novo = String(t || "").trim();
+    if (!novo) return;
+    if (frasePendente && !mesmaFrase(frasePendente, novo)) entregarFrase();
+    if (!frasePendente || novo.length >= frasePendente.length) {
+      frasePendente = novo;
+      altPendente = alts;
+    }
+    clearTimeout(timerFrase);
+    // O tempo precisa caber a frase inteira chegando em pedaços num aparelho
+    // ocupado. Agir cedo demais é agir na frase pela metade.
+    timerFrase = setTimeout(entregarFrase, 1100);
+  };
+
   const montar = () => {
     const r = new ReconhecedorVoz();
     r.lang = "pt-BR";
@@ -1888,6 +1932,15 @@ function criarOuvinte(opcoes) {
         const res = ev.results[i];
         if (res.isFinal) {
           const t = res[0].transcript;
+          // Ainda é a frase que acabou de ser tratada, só que estendida ou
+          // corrigida. O prazo é curto de propósito: a frase já esperou 1,1s para
+          // assentar, então o que vem depois é retardatário. Mais folga do que
+          // isso engoliria quem repete a mesma série de propósito — e ditar
+          // "40 por 15" duas vezes seguidas é das coisas mais comuns do treino.
+          if (ultimaEntregue && Date.now() - quandoEntregue < 1200 && mesmaFrase(ultimaEntregue, t)) {
+            anotarDiario(t, "continuação do que já foi tratado — ignorado");
+            continue;
+          }
           if (falandoAgora) {
             // Antes, TUDO o que chegava enquanto ele falava era descartado — e a
             // pergunta que a pessoa emendava na resposta sumia sem deixar rastro.
@@ -1902,7 +1955,7 @@ function criarOuvinte(opcoes) {
           for (let k = 0; k < res.length; k++) alts.push(res[k].transcript);
           semResultado = 0;
           avisouTumulto = false;
-          if (aoFinal) aoFinal(t, alts);
+          acumularFrase(t, alts);
         } else if (!falandoAgora) {
           parcial += res[0].transcript;
         }
@@ -1927,6 +1980,8 @@ function criarOuvinte(opcoes) {
     };
     r.onend = () => {
       rodando = false;
+      // A sessão acabou: o que estava sendo juntado já é a frase inteira
+      if (frasePendente) entregarFrase();
       if (semResultado === 0) desdeQuando = Date.now();
       semResultado++;
       // No modo toque a sessão acaba e pronto: quem recomeça é o dedo.
@@ -1956,6 +2011,9 @@ function criarOuvinte(opcoes) {
     desligar() {
       querendo = false;
       clearTimeout(timer);
+      clearTimeout(timerFrase);
+      frasePendente = "";
+      altPendente = null;
       calarJarvis();
       try { if (rec) rec.abort(); } catch (e) {}
       rodando = false;
@@ -6130,9 +6188,10 @@ function TreinoLivre() {
     setVozParcial("");
     setVozUltima({ ouvi: ouvi || "", resposta: resposta || "", ok: ok !== false, t: Date.now() });
     if (resposta) jarvisFalar(resposta, vozRef.current);
-    // A janela só se renova depois de um comando que deu certo. Renovar a cada
-    // "não entendi" deixaria a conversa da academia inteira valendo como comando.
-    janelaSeguir.current = ok !== false ? Date.now() + 15000 : 0;
+    // A janela se renova a cada comando aceito. Um "não entendi" não renova,
+    // mas também não encurta o que já estava valendo: fechar a janela por causa
+    // de uma frase mal ouvida é tirar o chão de quem está no meio de um comando.
+    if (ok !== false) janelaSeguir.current = Date.now() + 15000;
   }, []);
   const responderVoz = useCallback((texto, ok) => mostrarVoz("", texto, ok), [mostrarVoz]);
   // A escola fala por conta própria: o retorno dela já está na tela, e abrir a
@@ -6169,11 +6228,13 @@ function TreinoLivre() {
       });
     }
     ouvinte.current.ligar(vozRef.current.modo);
+    anotarDiario("", "microfone ligado (" + (vozRef.current.modo === "toque" ? "toque e fale" : "contínuo") + ")");
     setVozAtiva(true);
     setVoz((v) => (v.preferido ? v : { ...v, preferido: true }));
   }, []);
 
   const desligarVoz = useCallback(() => {
+    anotarDiario("", "microfone desligado");
     if (ouvinte.current) ouvinte.current.desligar();
     setVozAtiva(false);
     setVozParcial("");
@@ -6576,7 +6637,10 @@ function TreinoLivre() {
     if (!c) {
       // Sem o nome dele, frase que não é comando é conversa de academia:
       // fecha a janela e fica quieto, em vez de responder a quem não falou com ele.
-      if (!comNome) { anotarDiario(bruto, "sem o nome e não é comando — ignorado (conversa)"); janelaSeguir.current = 0; return; }
+      // A janela NÃO se fecha aqui. Era o que matava o comando seguinte: o
+      // primeiro pedaço da frase ("anota", "anota aí") não é comando, fechava a
+      // janela, e a frase completa chegava depois, já trancada do lado de fora.
+      if (!comNome) { anotarDiario(bruto, "sem o nome e não é comando — ignorado (conversa)"); return; }
       anotarDiario(bruto, "nome reconhecido, mas não virou comando");
       mostrarVoz(bruto, "Não entendi. Toque no ? do microfone para ver o que dá para falar.", false);
       return;
@@ -6584,7 +6648,6 @@ function TreinoLivre() {
     // Fora da janela e sem o nome, só pergunta passa (ver PERGUNTA_SEGURA)
     if (!comNome && !naJanela && !PERGUNTA_SEGURA[c.tipo]) {
       anotarDiario(bruto, "“" + (ROTULO_TIPO[c.tipo] || c.tipo) + "” precisa do nome dele — ignorado");
-      janelaSeguir.current = 0;
       return;
     }
     anotarDiario(bruto, "entendido: " + (ROTULO_TIPO[c.tipo] || c.tipo) + (comNome ? " (com o nome)" : " (sem o nome)"));

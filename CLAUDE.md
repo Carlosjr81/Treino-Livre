@@ -26,7 +26,7 @@ Leia esta seção antes de propor qualquer mudança de arquitetura.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v8) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v9) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
 
@@ -229,6 +229,35 @@ campos continuam digitáveis**: o Jarvis é atalho, nunca o único caminho.
   permite corrigir antes de perder a série.
 - **Enquanto o Jarvis fala, o microfone é ignorado** (`jarvisFalandoAte`). Parar
   o reconhecimento a cada resposta faria o Android apitar o treino inteiro.
+### A frase chega em pedaços (o defeito mais caro até aqui)
+
+O diagnóstico de um treino real mostrou o Android entregando **uma** frase em
+vinte pedaços, cada um marcado como `isFinal`:
+
+```
+"anota" → "anota aí" → "anota aí cadeira" → "anota aí cadeira abdutora"
+→ "... 90" → "... 90 kg" → "... 90 kg 12" → "... 90 kg 12 repetição"
+```
+
+Agir em cada pedaço é agir vinte vezes na mesma frase, e sempre na versão
+incompleta. `acumularFrase` junta os pedaços e só entrega quando a frase para
+de crescer (1,1 s sem novidade, ou o fim da sessão).
+
+- **`mesmaFrase` compara por palavras, não por prefixo de texto.** O
+  reconhecedor *revisa* o fim da frase enquanto escuta ("90 kg 12" virou "90 kg
+  de repetição"), e aí o prefixo deixa de bater. A regra é: mesma frase quando
+  as palavras iniciais coincidem até a penúltima.
+- **Continuação do que já foi tratado é ignorada** (1,2 s após a entrega). Sem
+  isso acontecia uma cascata: o pedaço seguinte chegava enquanto ele respondia,
+  era lido como "falou por cima", calava a resposta e virava um comando novo —
+  que fazia ele falar de novo. Uma frase virava sete anotações.
+- **O prazo é curto de propósito.** Com 2,5 s, ditar "40 por 15" duas vezes
+  seguidas — a coisa mais comum do treino — perdia a segunda série.
+- **Pedaço que não é comando não fecha mais a janela de 15 s.** Era o que matava
+  o comando inteiro: "anota" (o primeiro pedaço) não é comando, fechava a janela
+  aberta pelo "Jarvis" ditado segundos antes, e a frase completa chegava depois,
+  já trancada do lado de fora.
+
 ### Os dois modos de escuta (`voz.modo`)
 
 **Este é o ponto mais importante da implementação.** No Android, `continuous =
@@ -463,7 +492,11 @@ Roteiro mínimo depois de mexer no app:
 22. No modo toque: tocar, falar, e conferir que a resposta **continua na tela**
     depois da sessão acabar, e que o "?" continua alcançável.
 23. Falar por cima dele enquanto responde: ele tem de calar e ouvir.
-24. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
+24. Ditar uma frase longa com o exercício no meio ("anota aí cadeira abdutora
+    90 kg 12 repetições"): tem de virar **uma** série, não várias.
+25. Ditar a mesma série duas vezes seguidas, com uns 3 segundos entre elas:
+    precisam contar como duas.
+26. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
     Todas precisam fechar com ✓, e nada pode aparecer no histórico depois.
 
 ## Convenções

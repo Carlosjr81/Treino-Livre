@@ -26,7 +26,7 @@ Leia esta seção antes de propor qualquer mudança de arquitetura.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v5) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v6) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
 
@@ -53,7 +53,8 @@ Na ordem em que aparece no arquivo:
    (Wake Lock).
 7b. **Jarvis (voz)** — `criarOuvinte`, `jarvisFalar`, `normalizarFala`,
    `numerosPorExtenso`, `depoisDeJarvis`, `acharExercicio`, `interpretarVoz`,
-   `vozesPtBr`. Fica logo antes de `IMAGENS_WGER`.
+   `responderConsulta`, `AJUDA_FALADA`, `LICOES_JARVIS`, `vozesPtBr`.
+   Fica logo antes de `IMAGENS_WGER`.
 8. **Dados** — `GRUPOS`, `MUSCULOS`, `EXERCICIOS` (204),
    `GRUPO_POR_EXERCICIO`, `FICHAS_PADRAO`.
 9. **Estilos** — objeto `S` com estilos inline reaproveitados.
@@ -179,6 +180,8 @@ compartilhados por aí precisam continuar abrindo.
 - **Duplicar ficha e programa** — ao copiar, os ids de `conjunto` são regerados
   para a cópia não compartilhar bi-set com o original.
 - **Jarvis** — o treino inteiro sem tocar no celular. Ver a seção própria.
+- **Escola do Jarvis** — praticar os comandos sem gravar nada. É o que resolve o
+  problema de um assistente de voz que ninguém sabe o que dizer para ele.
 - **Wake Lock durante o descanso** — sem isso o navegador suspende o áudio com o
   celular no bolso e o aviso de fim nunca toca.
 
@@ -238,6 +241,60 @@ campos continuam digitáveis**: o Jarvis é atalho, nunca o único caminho.
 - **Tom animado** (`voz.animado`, padrão ligado): `pitch` 1.22, ritmo um pouco
   acima e interjeições que giram sem repetir a anterior (`animo`).
 
+### Perguntas sobre o histórico
+
+`responderConsulta` responde **em qualquer tela**, com ou sem treino aberto —
+perguntar "qual meu recorde no supino" não devia exigir um treino em andamento.
+O componente raiz tenta primeiro a `TelaSessao` (que tem o contexto do exercício
+da vez) e, quando ela devolve `null`, cai aqui.
+
+| Pergunta | Tipo | De onde sai a resposta |
+|---|---|---|
+| "qual meu recorde no supino" | `recorde` | `recordesPorExercicio` |
+| "quanto fiz da última vez" | `ultimaVez` | `ultimaExecucao` |
+| "o que eu treino hoje" / "quero treinar peito" | `sugestaoHoje` | `recuperacaoMuscular` + a ficha que mais cobre os grupos |
+| "já posso treinar costas" | `recuperacaoGrupo` | `recuperacaoMuscular` |
+| "quantas séries de peito essa semana" | `seriesGrupo` | `seriesSemanaisPorGrupo` + `FAIXA_SERIES` |
+| "quando foi meu último treino" | `ultimoTreino` | histórico + `statsTreino` |
+| "qual meu nível" / "minha sequência" / "minha meta" | `progresso` | `calcularEstatisticas` + `nivelDe` |
+| "quanto eu peso" / "minha cintura" | `medida` | `medidas`, comparando com a medição anterior |
+
+`grupoDito` traduz como se fala ("barriga", "bumbum", "braço") para o id do
+grupo. **A ordem das regras importa**: as perguntas com grupo citado vêm antes
+de `tempo`, senão "quanto tempo faz que treinei peito" viraria "tempo de treino".
+
+### Ajuda falada
+
+"Jarvis, quais são os principais comandos?" responde **falando** (`AJUDA_FALADA`)
+e abre a lista na tela. Quem pergunta está com o celular no bolso e as mãos no
+ferro: uma lista na tela sozinha não serve. São quatro comandos na resposta, não
+trinta — o resto fica na tela. Com assunto ("como funciona o descanso?") ele
+explica só aquele, e aí não abre modal nenhum.
+
+A detecção não é uma lista fechada de frases: quem pede ajuda pergunta de mil
+jeitos, então ela procura sinais (`ajuda`, `comandos`, `o que você faz`, `como
+funciona`) e depois o assunto.
+
+### Escola do Jarvis (`EscolaJarvis`, aba `escolaVoz`)
+
+Ler uma lista de comandos não ensina ninguém a falar com o app. Na escola a
+pessoa fala de verdade, e **nada é gravado**: a frase passa pelo mesmo
+`interpretarVoz` e o resultado vira texto na tela ("Entendi: 80 kg × 10"). Errar
+ali é de graça.
+
+- São 9 lições (`LICOES_JARVIS`), cada uma com `diga`, `porque`, `confere(c, ctx)`
+  e `resumo(c, ctx)`. `ctx` traz `{ comNome, barra, ex }`.
+- A lição 2 exige que a pessoa **não** diga o nome dele — é como se aprende a
+  janela de 15 segundos.
+- O raiz desvia as frases para cá antes de qualquer roteamento, pelo
+  `acoesEscola.current.receber(bruto, corpo, comNome)`.
+- Tem campo de texto que passa pelo mesmo interpretador: serve para iPhone,
+  navegador sem reconhecimento, e para conferir se uma frase sua seria entendida.
+- **O botão flutuante some nesta tela** (`escondido`): ele cobria o "Próxima
+  lição". O estado do microfone aparece no cabeçalho da própria escola.
+
+Entradas: "Jarvis, modo treino", o botão no modal de ajuda e o botão em Ajustes.
+
 ### Vocabulário
 
 `APELIDOS_EXERCICIO` traduz o jeito da academia ("agacho", "extensora", "leg")
@@ -258,6 +315,7 @@ de verdade. Vale refazer esse molde antes de mexer no interpretador.
 
 Quatro abas na barra inferior (`Início`, `Exercícios`, `Fichas`, `Histórico`) e
 telas internas roteadas pela mesma variável `aba`: `assistente`, `novoExercicio`,
+`escolaVoz`,
 `editarTreino`, `editarHistorico`, `sessao`, `ajustes`.
 
 **A tela inicial é enxuta de propósito.** Ela já teve 14 cartões e virou uma
@@ -338,6 +396,12 @@ Roteiro mínimo depois de mexer no app:
 15. Falar qualquer coisa sem dizer "Jarvis" depois da janela de 15 s: nada pode
     ser anotado.
 16. Recarregar no meio do treino com o Jarvis ligado: ele volta ouvindo.
+17. Perguntar "Jarvis, quais são os principais comandos?" — ele explica falando
+    e abre a lista na tela.
+18. Fora de qualquer treino, perguntar "Jarvis, qual meu recorde no supino?" e
+    "Jarvis, o que eu treino hoje?" — as duas têm de ser respondidas.
+19. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
+    Todas precisam fechar com ✓, e nada pode aparecer no histórico depois.
 
 ## Convenções
 

@@ -1477,6 +1477,23 @@ function acharExercicio(frase, todos, candidatos) {
   return ap ? ap.ex : null;
 }
 
+// Como se fala de grupo muscular em voz alta, que nem sempre é o nome do app
+const TERMOS_GRUPO = [
+  ["peitoral", "peito"], ["peito", "peito"],
+  ["costas", "costas"], ["dorsal", "costas"], ["dorsais", "costas"],
+  ["pernas", "pernas"], ["perna", "pernas"], ["quadriceps", "pernas"], ["coxa", "pernas"],
+  ["ombros", "ombros"], ["ombro", "ombros"], ["deltoide", "ombros"],
+  ["biceps", "biceps"], ["triceps", "triceps"], ["braco", "biceps"], ["bracos", "biceps"],
+  ["abdomen", "abdomen"], ["abdominal", "abdomen"], ["barriga", "abdomen"], ["core", "abdomen"],
+  ["gluteos", "gluteos"], ["gluteo", "gluteos"], ["bumbum", "gluteos"],
+];
+function grupoDito(f) {
+  for (let i = 0; i < TERMOS_GRUPO.length; i++) {
+    if (f.indexOf(" " + TERMOS_GRUPO[i][0]) >= 0) return TERMOS_GRUPO[i][1];
+  }
+  return null;
+}
+
 // ---- Interpretação do comando ----
 // Devolve { tipo, ... } ou null quando a frase não é um comando conhecido.
 const achaNum = (f, re) => { const m = f.match(re); return m ? parseFloat(m[1]) : null; };
@@ -1504,7 +1521,21 @@ function interpretarVoz(fala, ctx) {
   const ctxt = ctx || {};
   const tem = (re) => re.test(f);
 
-  if (tem(/\b(ajuda|socorro|o que voce faz|o que posso (dizer|falar)|quais (sao os )?comandos|me ajuda)\b/)) return { tipo: "ajuda" };
+  // "quais sao os principais comandos" não casava com uma lista fechada de
+  // frases: quem pede ajuda pergunta de mil jeitos. Melhor procurar os sinais.
+  if (tem(/\b(modo treino|modo aprendiz|treinar os comandos|praticar os comandos|quero praticar|me ensina|aprender os comandos|escola do jarvis|escola de comandos)\b/)) return { tipo: "escola" };
+  if (tem(/\b(ajuda|socorro|me ajuda)\b/) || tem(/\bcomandos?\b/) ||
+      tem(/\bo que (voce|vc) (faz|sabe)\b/) || tem(/\bo que (eu )?posso (dizer|falar|pedir)\b/) ||
+      tem(/\bcomo (voce |vc )?(funciona|uso|usa)\b/) || tem(/\bcomo (eu )?(falo|peco|anoto|uso)\b/)) {
+    let assunto = null;
+    if (tem(/\banot|\bregistr|\bmarc/)) assunto = "anotar";
+    else if (tem(/\bdescans|\bcronometr/)) assunto = "descanso";
+    else if (tem(/\bcorrig|\bapag|\berrei|\bdesfaz/)) assunto = "corrigir";
+    else if (tem(/\brecorde|\bconsult|\bultima vez/)) assunto = "consultar";
+    else if (tem(/\btroca|\bsubstitui|\bocupad/)) assunto = "trocar";
+    else if (tem(/\bproximo|\bnaveg|\bexercicio\b/)) assunto = "navegar";
+    return { tipo: "ajuda", assunto: assunto };
+  }
   if (tem(/\b(para de ouvir|pare de ouvir|desliga o jarvis|desliga o microfone|pode parar|modo silencioso|dorme)\b/)) return { tipo: "desligar" };
   if (tem(/\b(fica quieto|fica calado|nao fala|sem voz|voz desligada)\b/)) return { tipo: "mudo" };
 
@@ -1533,6 +1564,18 @@ function interpretarVoz(fala, ctx) {
 
   // --- correções ---
   if (tem(/\b(apaga|apagar|desfaz|desfazer|errei|erramos|desconsidera|cancela a ultima|tira a ultima)\b/)) return { tipo: "desfazer" };
+
+  // --- perguntas sobre o próprio histórico ---
+  // Vêm antes de "quanto tempo" (tempo de treino) porque "quanto tempo faz que
+  // treinei peito" é outra pergunta, e a mais específica tem de ganhar.
+  const gr = grupoDito(f);
+  if (tem(/\b(treino hoje|treinar hoje|o que fazer hoje|sugest\w*|que treino|qual treino|qual ficha|o que (eu )?faco hoje)\b/)) return { tipo: "sugestaoHoje" };
+  if (gr && tem(/\bquant\w* serie/)) return { tipo: "seriesGrupo", grupo: gr };
+  if (gr && tem(/\b(quanto tempo|ha quanto tempo|quantos dias|quando (eu )?treinei|descansad\w*|ja posso)\b/)) return { tipo: "recuperacaoGrupo", grupo: gr };
+  if (gr && tem(/\b(treinar|treino|fazer|faco)\b/)) return { tipo: "sugestaoHoje", grupo: gr };
+  if (tem(/\b(ultimo treino|quando (eu )?treinei|quando foi o ultimo)\b/)) return { tipo: "ultimoTreino" };
+  if (tem(/\b(meu nivel|qual nivel|quantos treinos|minha sequencia|meu volume|quanto (eu )?levantei|minha meta|quantas conquistas|meus numeros|meu progresso)\b/)) return { tipo: "progresso", frase: f };
+  if (tem(/\b(quanto (eu )?peso|meu peso|minha cintura|meu braco|minha coxa|meu quadril|minhas medidas)\b/)) return { tipo: "medida", frase: f };
 
   // --- consultas ---
   if (tem(/\b(recorde|meu melhor|maior peso|maior carga)\b/)) return { tipo: "recorde", frase: f };
@@ -1584,6 +1627,152 @@ function interpretarVoz(fala, ctx) {
   }
 
   return null;
+}
+
+// ---- Perguntas sobre o histórico ----
+// Valem em qualquer tela: perguntar "qual meu recorde no supino" não devia
+// exigir um treino aberto. Devolve { ok, fala } ou null quando o comando não é
+// uma pergunta deste tipo — aí quem chamou decide o que fazer.
+function descreverDescanso(g) {
+  if (g.dias === null) return g.nome + ", sem registro ainda";
+  if (g.dias === 0) return g.nome + ", treinado hoje";
+  return g.nome + ", " + g.dias + " " + plural(g.dias, "dia", "dias") + " de descanso";
+}
+function responderConsulta(c, ctx) {
+  const hist = ctx.historico || [];
+  const todos = ctx.todos || [];
+  switch (c.tipo) {
+    case "recorde": {
+      const ex = acharExercicio(c.frase, todos, []);
+      if (!ex) return { ok: false, fala: "Recorde de qual exercício? Pergunte assim: Jarvis, qual meu recorde no supino." };
+      const r = recordesPorExercicio(hist)[ex.id];
+      const nome = nomeFalado(ex.nome);
+      if (!r || (!r.peso && !r.segundos)) return { ok: true, fala: "Você ainda não registrou " + nome + ". O primeiro recorde está esperando." };
+      if (ex.tempo || (r.tempo && !r.peso)) return { ok: true, fala: "Seu recorde em " + nome + " é " + r.segundos + " segundos." };
+      return { ok: true, fala: "Seu recorde em " + nome + " é " + fmtNum(r.peso) + " quilos" +
+        (r.reps ? " por " + r.reps + " repetições" : "") + "." };
+    }
+    case "ultimaVez": {
+      const ex = acharExercicio(c.frase, todos, []);
+      if (!ex) return { ok: false, fala: "De qual exercício? Pergunte assim: Jarvis, quanto fiz da última vez no supino." };
+      const u = ultimaExecucao(hist, ex.id);
+      const nome = nomeFalado(ex.nome);
+      if (!u) return { ok: true, fala: "Não encontrei " + nome + " no seu histórico." };
+      const dias = Math.floor((Date.now() - new Date(u.data).getTime()) / 86400000);
+      const txt = u.series.slice(0, 4).map((s) => (ehTempo(s) ? segundosDe(s) + " segundos" : fmtNum(s.peso) + " por " + repsDe(s))).join(", ");
+      return { ok: true, fala: "Em " + nome + ", " + (dias <= 0 ? "hoje" : "há " + dias + " " + plural(dias, "dia", "dias")) + ": " + txt + "." };
+    }
+    case "sugestaoHoje": {
+      if (!hist.length) {
+        const f0 = (ctx.treinos || []).find((t) => t.itens && t.itens.length);
+        return { ok: true, fala: "Você ainda não tem treino registrado. " +
+          (f0 ? "Comece pela ficha " + f0.nome + ". Diga: Jarvis, começa o treino " + f0.nome + "." : "Monte uma ficha no assistente e me chame.") };
+      }
+      const rec = recuperacaoMuscular(hist, ctx.exPorId);
+      // Quando a pessoa já disse o grupo ("quero treinar peito hoje"), a resposta
+      // é sobre ele: se está descansado e qual ficha o cobre.
+      const pedido = c.grupo ? rec.filter((g) => g.id === c.grupo) : null;
+      const prontos = rec.filter((g) => g.estado === "pronto").slice(0, 2);
+      const alvo = (pedido && pedido.length) ? pedido : (prontos.length ? prontos : rec.slice(0, 2));
+      let melhor = null, melhorP = 0;
+      (ctx.treinos || []).forEach((t) => {
+        if (!t.itens || !t.itens.length) return;
+        let p = 0;
+        t.itens.forEach((it) => {
+          const e = ctx.exPorId(it.exercicioId);
+          if (e && alvo.some((g) => g.id === e.grupo)) p++;
+        });
+        if (p > melhorP) { melhorP = p; melhor = t; }
+      });
+      let fala = c.grupo
+        ? alvo.map(descreverDescanso).join("; ") + ". " +
+          (alvo[0].estado === "descansando" ? "Ainda está se recuperando — se puder, escolha outro grupo. "
+            : alvo[0].estado === "quase" ? "Dá para ir, mas mais um dia seria melhor. " : "Pode ir. ")
+        : "Quem está mais descansado: " + alvo.map(descreverDescanso).join("; ") + ". ";
+      fala += melhor
+        ? "Sugiro a ficha " + melhor.nome + ". Diga: Jarvis, começa o treino " + melhor.nome + "."
+        : "Escolha uma ficha que pegue esses grupos, ou diga: Jarvis, treino livre.";
+      return { ok: true, fala: fala };
+    }
+    case "recuperacaoGrupo": {
+      const rec = recuperacaoMuscular(hist, ctx.exPorId);
+      const g = rec.find((x) => x.id === c.grupo);
+      if (!g) return { ok: false, fala: "Não achei esse grupo muscular." };
+      if (g.dias === null) return { ok: true, fala: g.nome + " não aparece no seu histórico ainda. Pode treinar à vontade." };
+      const estado = g.estado === "pronto" ? "Já pode treinar." : g.estado === "quase" ? "Quase lá — mais um dia seria melhor." : "Ainda está descansando.";
+      return { ok: true, fala: g.nome + ": " + (g.dias === 0 ? "você treinou hoje" : g.dias + " " + plural(g.dias, "dia", "dias") + " desde a última vez") + ". " + estado };
+    }
+    case "seriesGrupo": {
+      const lista = seriesSemanaisPorGrupo(hist, ctx.exPorId);
+      const g = lista.find((x) => x.id === c.grupo);
+      if (!g) return { ok: false, fala: "Não achei esse grupo muscular." };
+      const faixa = " A referência para crescer é de " + FAIXA_SERIES.min + " a " + FAIXA_SERIES.max + " séries por semana.";
+      const onde = g.series === 0 ? "nenhuma série" : g.series + " " + plural(g.series, "série", "séries");
+      const juizo = g.series === 0 ? " Ainda dá tempo." : g.series < FAIXA_SERIES.min ? " Está abaixo da faixa." :
+        g.series <= FAIXA_SERIES.max ? " Está na faixa." : " Já passou da faixa — cuidado com a recuperação.";
+      return { ok: true, fala: "Esta semana você fez " + onde + " de " + g.nome + "." + juizo + faixa };
+    }
+    case "ultimoTreino": {
+      if (!hist.length) return { ok: true, fala: "Você ainda não tem nenhum treino no histórico." };
+      const ult = [...hist].sort((a, b) => new Date(b.data) - new Date(a.data))[0];
+      const dias = Math.floor((Date.now() - new Date(ult.data).getTime()) / 86400000);
+      const st = statsTreino(ult);
+      const quando = dias <= 0 ? "hoje" : dias === 1 ? "ontem" : "há " + dias + " dias";
+      return { ok: true, fala: "Seu último treino foi " + quando + ": " + ult.nome + ". " +
+        st.series + " " + plural(st.series, "série", "séries") + " em " + ult.duracaoMin + " " + plural(ult.duracaoMin, "minuto", "minutos") +
+        (st.volume > 0 ? ", " + fmtKg(st.volume) + " de volume" : "") + "." };
+    }
+    case "progresso": {
+      const est = calcularEstatisticas(hist);
+      const f = c.frase || "";
+      if (/\bnivel\b/.test(f)) {
+        const nv = nivelDe(est);
+        return { ok: true, fala: "Você está no nível " + nv.indice + ", " + nv.nome + ". " +
+          (nv.proximo ? "Faltam " + nv.faltam + " pontos para " + nv.proximo.nome + "." : "É o topo da tabela.") };
+      }
+      if (/\bsequencia\b/.test(f)) {
+        return { ok: true, fala: est.streak > 0
+          ? "Sua sequência é de " + est.streak + " " + plural(est.streak, "dia", "dias") + " seguidos. Não deixa cair."
+          : "Sua sequência está zerada. O treino de hoje recomeça a conta." };
+      }
+      if (/\bmeta\b/.test(f)) {
+        const meta = ctx.meta || 3;
+        const faltam = Math.max(0, meta - est.treinosSemana);
+        return { ok: true, fala: "Esta semana você treinou " + est.treinosSemana + " de " + meta + ". " +
+          (faltam ? "Faltam " + faltam + "." : "Meta batida!") };
+      }
+      if (/\bconquista/.test(f)) {
+        const g2 = CONQUISTAS.filter((x) => x.cond(est)).length;
+        return { ok: true, fala: "Você tem " + g2 + " de " + CONQUISTAS.length + " conquistas." };
+      }
+      if (/\bvolume\b|levantei/.test(f)) {
+        return { ok: true, fala: "Você já moveu " + fmtPeso(est.volumeTotal) + " desde o começo." };
+      }
+      const nv = nivelDe(est);
+      return { ok: true, fala: est.total + " " + plural(est.total, "treino", "treinos") + " registrados, " +
+        "sequência de " + est.streak + " " + plural(est.streak, "dia", "dias") + ", nível " + nv.indice + ", " + nv.nome +
+        ", e " + fmtPeso(est.volumeTotal) + " movidos." };
+    }
+    case "medida": {
+      const lista = [...(ctx.medidas || [])].sort((a, b) => new Date(b.data) - new Date(a.data));
+      if (!lista.length) return { ok: true, fala: "Você ainda não registrou medidas. Elas ficam em Histórico, aba Corpo." };
+      const f = c.frase || "";
+      const campo = /cintura/.test(f) ? ["cintura", "cintura", "cm"] : /braco/.test(f) ? ["braco", "braço", "cm"] :
+        /coxa/.test(f) ? ["coxa", "coxa", "cm"] : /quadril/.test(f) ? ["quadril", "quadril", "cm"] : ["peso", "peso", "kg"];
+      const atual = lista.find((m) => m[campo[0]]);
+      if (!atual) return { ok: true, fala: "Você ainda não registrou " + campo[1] + "." };
+      const anterior = lista.find((m) => m[campo[0]] && m !== atual && new Date(m.data) < new Date(atual.data));
+      let fala = "Seu " + campo[1] + ": " + fmtNum(atual[campo[0]]) + " " + campo[2] +
+        ", medido em " + new Date(atual.data).toLocaleDateString("pt-BR") + ".";
+      if (anterior) {
+        const dif = Math.round((parseFloat(atual[campo[0]]) - parseFloat(anterior[campo[0]])) * 10) / 10;
+        fala += dif === 0 ? " Igual à medição anterior."
+          : " " + (dif > 0 ? "Subiu " : "Desceu ") + fmtNum(Math.abs(dif)) + " " + campo[2] + " desde a medição anterior.";
+      }
+      return { ok: true, fala: fala };
+    }
+    default: return null;
+  }
 }
 
 // ---- O ouvinte ----
@@ -1683,6 +1872,36 @@ function criarOuvinte(opcoes) {
     ligado() { return querendo; },
   };
 }
+
+// O que o Jarvis FALA quando perguntam como ele funciona. Abrir uma lista na
+// tela não serve para quem está com o celular no bolso e as mãos no ferro —
+// a resposta precisa caber no ouvido, então são quatro comandos, não trinta.
+const AJUDA_FALADA = {
+  geral: "Quatro comandos resolvem quase tudo. Um: anotar. Diga, Jarvis, anote 80 por 10, " +
+    "e eu preencho a série, marco o check e começo o descanso. " +
+    "Dois: descanso. Jarvis, descanso de 2 minutos, e eu te chamo de volta. " +
+    "Três: andar na ficha. Jarvis, próximo exercício. " +
+    "Quatro: corrigir. Jarvis, errei, apaga a última. " +
+    "Abri a lista completa na tela. E se quiser praticar comigo agora, diga: Jarvis, modo treino.",
+  anotar: "Para anotar, diga o peso e as repetições: Jarvis, anote 80 por 10. " +
+    "Se quiser dizer o exercício, fale o nome antes: Jarvis, anote leg press 200 por 15. " +
+    "E dá para falar como na academia: Jarvis, 40 de cada lado, fiz 10 — eu somo a barra e confirmo a conta. " +
+    "Nos 15 segundos seguintes você pode emendar a próxima série sem repetir meu nome.",
+  descanso: "Diga Jarvis, descanso de 2 minutos, ou de 90 segundos. " +
+    "Se não disser o tempo, eu uso o descanso daquele exercício. " +
+    "No fim eu te chamo de volta e já digo qual é a próxima série. " +
+    "Para encurtar, diga Jarvis, pula o descanso. Para esticar, Jarvis, mais 30 segundos.",
+  corrigir: "Se eu entender errado, diga Jarvis, errei, apaga a última. " +
+    "Eu desmarco a série e paro o descanso, e você pode ditar de novo. " +
+    "Nada se perde: tudo o que eu anoto continua editável na mão, nos mesmos campos de sempre.",
+  consultar: "Pergunte Jarvis, qual meu recorde, e eu digo a maior carga já registrada nesse exercício. " +
+    "Jarvis, quanto fiz da última vez, e eu leio as séries do treino anterior. " +
+    "Jarvis, quantas séries faltam, para saber quanto falta para acabar.",
+  navegar: "Diga Jarvis, próximo exercício, e eu passo para o próximo da ficha e digo o que você fez nele da última vez. " +
+    "Jarvis, exercício anterior, para voltar. E Jarvis, mais uma série, quando quiser esticar o exercício.",
+  trocar: "Se o aparelho estiver ocupado, diga Jarvis, o aparelho está ocupado. " +
+    "Eu sugiro três substitutos do mesmo grupo muscular. Aí é só dizer Jarvis, troca por, e o nome que eu falei.",
+};
 
 // Exemplos do painel e da ajuda. A ordem é a do uso real: anotar é o que
 // acontece vinte vezes por treino.
@@ -2341,6 +2560,80 @@ function ModalDemonstracao({ ex, onFechar }) {
 // Botão redondo do microfone + a faixa que mostra o que o Jarvis ouviu e
 // respondeu. A faixa existe porque voz sem retorno visual é um salto no
 // escuro: a pessoa precisa ver que a frase virou 80 kg por 10, e não 8 por 10.
+// ---------- ESCOLA DO JARVIS ----------
+// Aprender comando de voz lendo uma lista não funciona: ninguém decora frase
+// que nunca disse em voz alta. Aqui a pessoa fala de verdade e vê o que ele
+// entendeu — sem anotar nada, sem mexer em treino nenhum. Errar aqui é de graça.
+const ROTULO_TIPO = {
+  anotar: "anotar uma série", descanso: "começar o descanso", pularDescanso: "pular o descanso",
+  esticarDescanso: "esticar o descanso", proximo: "ir para o próximo exercício", anterior: "voltar um exercício",
+  desfazer: "apagar a última série", recorde: "consultar o recorde", ultimaVez: "ver a última vez",
+  situacao: "ver quanto falta", tempo: "ver o tempo de treino", trocar: "trocar de exercício",
+  adicionar: "adicionar um exercício", maisSerie: "adicionar uma série", finalizar: "finalizar o treino",
+  iniciarTreino: "começar um treino", ajuda: "pedir ajuda", escola: "abrir a escola",
+  desligar: "me desligar", mudo: "ficar em silêncio",
+};
+const LICOES_JARVIS = [
+  {
+    id: "anotar", titulo: "Anotar uma série", diga: "Jarvis, anote 80 por 10",
+    porque: "É o comando que você vai usar vinte vezes por treino. Ele preenche o peso e as repetições, marca o ✓ e já começa o descanso.",
+    confere: (c) => c.tipo === "anotar" && c.peso != null && c.reps != null,
+    resumo: (c) => fmtNum(c.peso) + " kg × " + c.reps + " repetições",
+  },
+  {
+    id: "emenda", titulo: "Emendar sem repetir o nome", diga: "90 por 8",
+    dica: "Desta vez NÃO diga “Jarvis”.",
+    porque: "Nos 15 segundos seguintes a uma resposta, ele continua ouvindo você. Entre duas séries, ninguém quer dizer o nome dele quatro vezes seguidas.",
+    confere: (c, x) => c.tipo === "anotar" && c.peso != null && c.reps != null && !x.comNome,
+    errado: (c, x) => (x.comNome ? "Deu certo, mas você disse o nome dele. Tente só “90 por 8”." : null),
+    resumo: (c) => fmtNum(c.peso) + " kg × " + c.reps + " repetições",
+  },
+  {
+    id: "lado", titulo: "Contar as anilhas de cada lado", diga: "Jarvis, 40 de cada lado, fiz 10",
+    porque: "Do jeito que se fala na academia. Ele dobra o valor, soma a barra e diz a conta em voz alta para você conferir.",
+    confere: (c) => c.tipo === "anotar" && c.porLado && c.peso != null,
+    resumo: (c, x) => fmtNum(c.peso) + " de cada lado + barra " + fmtNum(x.barra) + " = " +
+      fmtNum(c.peso * 2 + x.barra) + " kg" + (c.reps != null ? " × " + c.reps : ""),
+  },
+  {
+    id: "exercicio", titulo: "Dizer qual é o exercício", diga: "Jarvis, anote leg press 200 por 15",
+    porque: "Serve para pular na ficha ou para incluir um exercício que não estava no treino — ele entra na hora, já com a série.",
+    confere: (c, x) => c.tipo === "anotar" && !!x.ex,
+    errado: (c, x) => (c.tipo === "anotar" && !x.ex ? "Entendi a série, mas não peguei o exercício. Fale o nome bem separado do número." : null),
+    resumo: (c, x) => x.ex.nome + (c.peso != null ? ", " + fmtNum(c.peso) + " kg × " + c.reps : ""),
+  },
+  {
+    id: "descanso", titulo: "Cronometrar o descanso", diga: "Jarvis, descanso de 2 minutos",
+    porque: "Ele cronometra, mantém a tela acesa e te chama de volta falando qual é a próxima série. Celular no bolso.",
+    confere: (c) => c.tipo === "descanso",
+    resumo: (c) => (c.segundos ? tempoFalado(c.segundos) : "o descanso do exercício"),
+  },
+  {
+    id: "navegar", titulo: "Andar na ficha", diga: "Jarvis, próximo exercício",
+    porque: "Ele passa para o próximo e já diz o que você fez nele da última vez — sem você procurar nada.",
+    confere: (c) => c.tipo === "proximo" || c.tipo === "anterior",
+    resumo: (c) => (c.tipo === "proximo" ? "ir para o próximo" : "voltar um exercício"),
+  },
+  {
+    id: "corrigir", titulo: "Corrigir quando ele errar", diga: "Jarvis, errei, apaga a última",
+    porque: "O reconhecimento erra, e é por isso que ele sempre repete o que entendeu. Ouviu errado? Este comando desfaz e você dita de novo.",
+    confere: (c) => c.tipo === "desfazer",
+    resumo: () => "desmarcar a última série anotada",
+  },
+  {
+    id: "consultar", titulo: "Perguntar sem olhar a tela", diga: "Jarvis, qual meu recorde?",
+    porque: "Também vale “quanto fiz da última vez” e “quantas séries faltam”. Ele responde falando.",
+    confere: (c) => c.tipo === "recorde" || c.tipo === "ultimaVez" || c.tipo === "situacao" || c.tipo === "tempo",
+    resumo: (c) => ROTULO_TIPO[c.tipo] || "consultar",
+  },
+  {
+    id: "fim", titulo: "Encerrar o treino", diga: "Jarvis, finaliza o treino",
+    porque: "Salva tudo no histórico. Se nenhuma série estiver marcada, ele avisa em vez de encerrar vazio.",
+    confere: (c) => c.tipo === "finalizar",
+    resumo: () => "encerrar e salvar no histórico",
+  },
+];
+
 // "90" na tela é claro; falado precisa virar "um minuto e meio".
 // O que está entre parênteses no nome é detalhe de catálogo: ajuda a ler, atrapalha a ouvir.
 const nomeFalado = (n) => String(n || "").replace(/\s*\([^)]*\)/g, "").trim() || String(n || "");
@@ -2354,7 +2647,7 @@ function tempoFalado(seg) {
   return r + " segundos";
 }
 
-function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando, naSessao, onAlternar, onAjuda }) {
+function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando, naSessao, escondido, onAlternar, onAjuda }) {
   if (!disponivel) return null;
   const ouvindo = ligado && estado === "ouvindo";
   // Com o cronômetro de descanso na tela, o botão sobe para não cobrir o tempo
@@ -2384,7 +2677,9 @@ function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando
         </div>
       )}
 
-      <div style={{ position: "fixed", right: 14, zIndex: 25,
+      {/* Na escola o microfone já tem lugar na própria tela: um botão flutuante
+          por cima do “Próxima lição” só atrapalharia quem está aprendendo. */}
+      {!escondido && <div style={{ position: "fixed", right: 14, zIndex: 25,
         bottom: "calc(" + alturaBase + "px + env(safe-area-inset-bottom))",
         display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
         {ligado && (
@@ -2412,13 +2707,13 @@ function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando
           color: ligado ? "#E1306C" : "var(--cinza2)", textTransform: "uppercase" }}>
           Jarvis
         </span>
-      </div>
+      </div>}
     </React.Fragment>
   );
 }
 
 // Lista do que dá para falar. Aparece no "?" do painel e quando alguém pede ajuda.
-function ModalAjudaJarvis({ aberto, onFechar, falaLigada, onAlternarFala }) {
+function ModalAjudaJarvis({ aberto, onFechar, falaLigada, onAlternarFala, onEscola }) {
   if (!aberto) return null;
   return (
     <div onClick={onFechar}
@@ -2436,6 +2731,11 @@ function ModalAjudaJarvis({ aberto, onFechar, falaLigada, onAlternarFala }) {
           Comece sempre pelo nome dele. Depois de uma resposta, você tem 15 segundos para
           emendar o próximo comando sem repetir o nome.
         </div>
+        {onEscola && (
+          <button style={{ ...S.btn, marginBottom: 16 }} onClick={onEscola}>
+            🎓 Praticar os comandos
+          </button>
+        )}
         {EXEMPLOS_JARVIS.map((e, i) => (
           <div key={i} style={{ borderBottom: "1px solid var(--borda)", padding: "9px 0" }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: "#E1306C" }}>“{e.d}”</div>
@@ -2452,6 +2752,181 @@ function ModalAjudaJarvis({ aberto, onFechar, falaLigada, onAlternarFala }) {
         <div style={{ fontSize: 11, color: "var(--cinza2)", lineHeight: 1.6, marginTop: 12 }}>
           O reconhecimento é o do próprio navegador: funciona melhor no Chrome do Android.
           Tudo o que ele entende vira texto nos mesmos campos de sempre — se errar, é só corrigir na mão.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Escola do Jarvis: a pessoa fala de verdade e vê o que ele entendeu, sem
+// nada ser gravado. Ler uma lista de comandos não ensina ninguém a falar com
+// o app; errar de graça, sim.
+function EscolaJarvis({ acoes, ouvindo, vozBarra, todos, onLigarVoz, onDesligarVoz, onFalar, onSair }) {
+  const [i, setI] = useState(0);
+  const [ouvido, setOuvido] = useState("");
+  const [veredito, setVeredito] = useState(null);  // { ok, texto }
+  const [digitado, setDigitado] = useState("");
+  const [feitas, setFeitas] = useState({});
+  const licao = LICOES_JARVIS[i];
+  const ultima = i >= LICOES_JARVIS.length - 1;
+
+  const avaliar = (bruto, corpo, comNome) => {
+    setOuvido(bruto);
+    const c = interpretarVoz(corpo, {});
+    if (!c) {
+      setVeredito({ ok: false, texto: "Não reconheci nenhum comando nessa frase. Fale um pouco mais devagar." });
+      return;
+    }
+    const ex = c.frase ? acharExercicio(c.frase, todos, []) : null;
+    const ctx = { comNome: comNome, barra: parseFloat(vozBarra) || 0, ex: ex };
+    if (licao.confere(c, ctx)) {
+      const resumo = licao.resumo ? licao.resumo(c, ctx) : (ROTULO_TIPO[c.tipo] || c.tipo);
+      setVeredito({ ok: true, texto: "Entendi: " + resumo });
+      setFeitas((f) => Object.assign({}, f, { [licao.id]: true }));
+      if (onFalar) onFalar("Isso! Entendi: " + resumo);
+      return;
+    }
+    const aviso = licao.errado && licao.errado(c, ctx);
+    setVeredito({ ok: false, texto: aviso || ("Entendi como “" + (ROTULO_TIPO[c.tipo] || c.tipo) + "”. Não é o comando desta lição — tente de novo.") });
+  };
+
+  // O raiz entrega as frases ouvidas aqui, do mesmo jeito que entrega na sessão
+  if (acoes) acoes.current = { receber: avaliar };
+  useEffect(() => () => { if (acoes) acoes.current = {}; }, [acoes]);
+
+  const irPara = (n) => { setI(n); setOuvido(""); setVeredito(null); setDigitado(""); };
+  const testarDigitado = () => {
+    const t = digitado.trim();
+    if (!t) return;
+    const norm = normalizarFala(t);
+    const depois = depoisDeJarvis(norm);
+    avaliar(t, depois === null ? norm : depois, depois !== null);
+  };
+  const quantas = Object.keys(feitas).length;
+
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <button style={S.voltar} onClick={onSair}>← Sair da escola</button>
+
+      <div style={{ ...S.card, borderColor: "#E1306C44" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <div>
+            <div style={S.label}>Escola do Jarvis</div>
+            <div style={{ fontWeight: 900, fontSize: 18, marginTop: 2 }}>Lição {i + 1} de {LICOES_JARVIS.length}</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "#E1306C" }}>{quantas}/{LICOES_JARVIS.length}</div>
+            <div style={{ fontSize: 11, color: "var(--cinza)" }}>acertos</div>
+          </div>
+        </div>
+        <div style={{ height: 6, background: "var(--borda)", borderRadius: 3, marginTop: 12, overflow: "hidden" }}
+          role="progressbar" aria-valuenow={quantas} aria-valuemin={0} aria-valuemax={LICOES_JARVIS.length}
+          aria-label="Comandos aprendidos">
+          <div style={{ height: "100%", width: (quantas / LICOES_JARVIS.length) * 100 + "%", background: GRAD_LINHA, borderRadius: 3, transition: "width .35s ease" }} />
+        </div>
+        <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.6, marginTop: 12 }}>
+          Aqui nada é anotado e nenhum treino é alterado. É só para você ouvir como ele entende.
+        </div>
+        {ouvindo && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--ok)" }}>🎤 Ouvindo — pode falar</span>
+            <button onClick={onDesligarVoz}
+              style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 800, fontSize: 12, cursor: "pointer", padding: 0 }}>
+              desligar
+            </button>
+          </div>
+        )}
+      </div>
+
+      {!ouvindo && (
+        <div style={{ ...S.card, borderColor: "var(--obs)" }}>
+          <div style={{ fontSize: 14, lineHeight: 1.6, marginBottom: 12 }}>
+            O microfone está desligado. Ligue para praticar falando — ou use o campo de texto
+            no fim da lição, que funciona igual.
+          </div>
+          <button style={S.btn} onClick={onLigarVoz}>🎤 Ligar o Jarvis</button>
+        </div>
+      )}
+
+      <div style={S.card}>
+        <div style={S.label}>{licao.titulo}</div>
+        <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, margin: "8px 0 16px" }}>{licao.porque}</div>
+
+        <div style={{ ...S.label, marginBottom: 8 }}>Diga em voz alta</div>
+        <div style={{ border: "2px solid #E1306C", background: "#E1306C15", borderRadius: 16, padding: "18px 16px", marginBottom: 10 }}>
+          <div style={{ fontSize: 21, fontWeight: 900, color: "#E1306C", lineHeight: 1.35 }}>“{licao.diga}”</div>
+          {licao.dica && <div style={{ fontSize: 12, color: "var(--obs)", fontWeight: 800, marginTop: 8 }}>{licao.dica}</div>}
+        </div>
+        <button style={{ ...S.btnGhost, marginBottom: 16 }} onClick={() => onFalar && onFalar(licao.diga)}>
+          🔊 Ouvir como se diz
+        </button>
+
+        {ouvido && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={S.label}>Ele ouviu</div>
+            <div style={{ fontSize: 15, fontStyle: "italic", color: "var(--texto)", marginTop: 4, lineHeight: 1.5 }}>“{ouvido}”</div>
+          </div>
+        )}
+
+        {veredito && (
+          <div role="status" style={{
+            border: "1px solid " + (veredito.ok ? "var(--ok)" : "var(--obs)"),
+            background: veredito.ok ? "var(--ok-bg)" : "#C7A94B18",
+            borderRadius: 14, padding: "14px 14px", marginBottom: 14,
+          }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: veredito.ok ? "var(--ok)" : "var(--obs)", lineHeight: 1.5 }}>
+              {veredito.ok ? "✓ " : "🤔 "}{veredito.texto}
+            </div>
+          </div>
+        )}
+
+        {veredito && veredito.ok && !ultima && (
+          <button style={{ ...S.btn, marginBottom: 10 }} onClick={() => irPara(i + 1)}>Próxima lição →</button>
+        )}
+        {veredito && veredito.ok && ultima && (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 8 }}>🎓 Você passou por todos os comandos.</div>
+            <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, marginBottom: 12 }}>
+              No treino, se esquecer algum, é só perguntar: <b>“Jarvis, quais são os principais comandos?”</b>
+            </div>
+            <button style={S.btn} onClick={onSair}>Voltar e treinar de verdade</button>
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button style={{ ...S.btnGhost, flex: 1 }} disabled={i === 0}
+            onClick={() => irPara(Math.max(0, i - 1))}>← Anterior</button>
+          <button style={{ ...S.btnGhost, flex: 1 }} disabled={ultima}
+            onClick={() => irPara(Math.min(LICOES_JARVIS.length - 1, i + 1))}>Pular →</button>
+        </div>
+      </div>
+
+      {/* Sem microfone (iPhone, navegador antigo) ainda dá para aprender a forma da frase */}
+      <div style={S.card}>
+        <div style={S.label}>Ou escreva para testar</div>
+        <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.5, margin: "6px 0 10px" }}>
+          Passa pelo mesmo interpretador da voz. Serve para conferir se uma frase sua seria entendida.
+        </div>
+        <input style={{ ...S.input, marginBottom: 10 }} value={digitado}
+          placeholder={licao.diga}
+          aria-label="Frase para testar"
+          onChange={(e) => setDigitado(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") testarDigitado(); }} />
+        <button style={S.btnGhost} onClick={testarDigitado}>Testar a frase</button>
+      </div>
+
+      <div style={{ ...S.card, borderStyle: "dashed" }}>
+        <div style={S.label}>Todas as lições</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 10 }}>
+          {LICOES_JARVIS.map((l, n) => (
+            <button key={l.id} onClick={() => irPara(n)} aria-pressed={n === i}
+              style={{ border: "1px solid " + (n === i ? "#E1306C" : feitas[l.id] ? "var(--ok)" : "var(--borda2)"),
+                background: n === i ? "#E1306C22" : "transparent",
+                color: n === i ? "#E1306C" : feitas[l.id] ? "var(--ok)" : "var(--cinza)",
+                borderRadius: 20, padding: "7px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+              {feitas[l.id] ? "✓ " : ""}{l.titulo}
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -3010,7 +3485,7 @@ function SeletorVoz({ voz, setVoz }) {
 function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, setMeta,
   lembrete, setLembrete, avisar, ultimoBackup, totalEx, historico,
   onBaixarBackup, onRestaurarArquivo, onExportar, onImportar, onInstalar, onVoltar,
-  voz, setVoz, vozAtiva, onAlternarVoz, onAjudaVoz }) {
+  voz, setVoz, vozAtiva, onAlternarVoz, onAjudaVoz, onEscolaVoz }) {
   const fmtSeg = (sg) => Math.floor(sg / 60) + ":" + (sg % 60 < 10 ? "0" : "") + (sg % 60);
   return (
     <div style={{ padding: "0 18px" }}>
@@ -3143,6 +3618,7 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
               </div>
             </div>
 
+            <button style={{ ...S.btnGhost, marginBottom: 8 }} onClick={onEscolaVoz}>🎓 Praticar os comandos</button>
             <button style={S.btnGhost} onClick={onAjudaVoz}>Ver tudo o que dá para falar</button>
           </React.Fragment>
         ) : (
@@ -5379,6 +5855,7 @@ function TreinoLivre() {
   const [descansando, setDescansando] = useState(false);
   const [ajudaVoz, setAjudaVoz] = useState(false);
   const acoesVoz = useRef({});
+  const acoesEscola = useRef({});
   const ouvinte = useRef(null);
   const tratarFalaRef = useRef(null);
   // O ouvinte vive fora do React e precisa enxergar a configuração atual
@@ -5417,6 +5894,9 @@ function TreinoLivre() {
     janelaSeguir.current = ok !== false ? Date.now() + 15000 : 0;
   }, []);
   const responderVoz = useCallback((texto, ok) => mostrarVoz("", texto, ok), [mostrarVoz]);
+  // A escola fala por conta própria: o retorno dela já está na tela, e abrir a
+  // faixa do painel por cima da lição só atrapalharia.
+  const falarJarvis = useCallback((texto) => jarvisFalar(texto, vozRef.current), []);
 
   const ligarVoz = useCallback(() => {
     if (!VOZ_OUVE) {
@@ -5802,6 +6282,12 @@ function TreinoLivre() {
     const norm = normalizarFala(bruto);
     if (!norm) return;
     const depois = depoisDeJarvis(norm);
+    // Na escola tudo é exercício de laboratório: a frase chega inteira, com ou
+    // sem o nome dele, e nada é gravado em treino nenhum.
+    if (aba === "escolaVoz" && acoesEscola.current.receber) {
+      acoesEscola.current.receber(bruto, depois === null ? norm : depois, depois !== null);
+      return;
+    }
     let corpo = depois;
     if (corpo === null) {
       // Sem o nome dele, só vale dentro da janela aberta pela última resposta.
@@ -5822,7 +6308,19 @@ function TreinoLivre() {
     }
     registrarEvento("jarvis-comando");
 
-    if (c.tipo === "ajuda") { setAjudaVoz(true); mostrarVoz(bruto, "Abri a lista de comandos.", true); return; }
+    if (c.tipo === "ajuda") {
+      // Quem pergunta no meio do treino está com o celular no bolso: a resposta
+      // principal é falada, e a lista na tela é o complemento.
+      if (!c.assunto) setAjudaVoz(true);
+      mostrarVoz(bruto, AJUDA_FALADA[c.assunto || "geral"] || AJUDA_FALADA.geral, true);
+      return;
+    }
+    if (c.tipo === "escola") {
+      setAjudaVoz(false);
+      setAba("escolaVoz");
+      mostrarVoz(bruto, "Vamos praticar. Eu mostro a frase, você repete, e eu digo o que entendi. Nada é anotado aqui.", true);
+      return;
+    }
     if (c.tipo === "mudo") { setVoz((v) => ({ ...v, falar: false })); mostrarVoz(bruto, "Certo, respondo só na tela.", true); return; }
     if (c.tipo === "desligar") {
       mostrarVoz(bruto, "Até logo.", true);
@@ -5860,9 +6358,16 @@ function TreinoLivre() {
       if (aba !== "sessao") setAba("sessao");
       const r = acoesVoz.current.executar(c);
       if (r) { mostrarVoz(bruto, r.fala, r.ok); return; }
-      mostrarVoz(bruto, "Esse comando eu ainda não sei fazer.", false);
-      return;
+      // o que a sessão não resolve pode ser uma pergunta sobre o histórico
     }
+
+    // Perguntar "qual meu recorde no supino" ou "o que eu treino hoje" não
+    // devia exigir um treino aberto — são perguntas sobre o que já aconteceu.
+    const resposta = responderConsulta(c, {
+      historico: historico, todos: todos, exPorId: exPorId,
+      treinos: treinos, medidas: medidas, meta: meta,
+    });
+    if (resposta) { mostrarVoz(bruto, resposta.fala, resposta.ok); return; }
 
     const primeira = treinos.find((t) => t.itens && t.itens.length);
     mostrarVoz(bruto, "Para isso preciso de um treino em andamento. Diga: Jarvis, começa o treino " +
@@ -6359,7 +6864,7 @@ function TreinoLivre() {
     { id: "treinos", nome: "Fichas", icone: "▤" },
     { id: "historico", nome: "Histórico", icone: "◷" },
   ];
-  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente", editarHistorico: "Corrigir treino", ajustes: "Ajustes" };
+  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente", editarHistorico: "Corrigir treino", ajustes: "Ajustes", escolaVoz: "Escola do Jarvis" };
 
   if (!carregado) {
     return <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>Carregando...</div>;
@@ -6394,10 +6899,16 @@ function TreinoLivre() {
             voz={voz} setVoz={setVoz} vozAtiva={vozAtiva}
             onAlternarVoz={() => (vozAtiva ? desligarVoz() : ligarVoz())}
             onAjudaVoz={() => setAjudaVoz(true)}
+            onEscolaVoz={() => setAba("escolaVoz")}
             onVoltar={() => setAba("inicio")} />
         )}
         {aba === "assistente" && (
           <TelaAssistente onGerar={gerarTreinoAssistente} onCancelar={() => setAba("inicio")} />
+        )}
+        {aba === "escolaVoz" && (
+          <EscolaJarvis acoes={acoesEscola} ouvindo={vozAtiva} vozBarra={voz.barra} todos={todos}
+            onLigarVoz={ligarVoz} onDesligarVoz={desligarVoz} onFalar={falarJarvis}
+            onSair={() => setAba(sessao ? "sessao" : "inicio")} />
         )}
         {aba === "exercicios" && (
           <TelaExercicios todos={todos} exPorId={exPorId}
@@ -6527,10 +7038,11 @@ function TreinoLivre() {
 
       <PainelJarvis disponivel={VOZ_OUVE} ligado={vozAtiva} estado={vozEstado}
         parcial={vozParcial} ultima={vozUltima} descansando={descansando}
-        naSessao={aba === "sessao"}
+        naSessao={aba === "sessao"} escondido={aba === "escolaVoz"}
         onAlternar={() => (vozAtiva ? desligarVoz() : ligarVoz())}
         onAjuda={() => setAjudaVoz(true)} />
       <ModalAjudaJarvis aberto={ajudaVoz} onFechar={() => setAjudaVoz(false)}
+        onEscola={() => { setAjudaVoz(false); setAba("escolaVoz"); }}
         falaLigada={voz.falar} onAlternarFala={() => setVoz((v) => ({ ...v, falar: !v.falar }))} />
 
       {desfazer && (

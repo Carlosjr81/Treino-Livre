@@ -323,6 +323,49 @@ contador com o perfil certo e **a conta recomeça do zero**: somar o que foi
 contado com o perfil errado daria um número que não existiu. É por isso que
 montar o contador é uma função e não código solto dentro do efeito.
 
+### Enquadramento antes de contar (`avaliarEnquadramento`)
+
+**Com a câmera de trás — que é a melhor das duas — a pessoa não vê a tela.** Ela
+apoia o celular, anda para trás e não tem como saber se está no quadro. Antes
+disto existir, o jeito de descobrir era fazer a série inteira e ver que não
+contou nada.
+
+Então a contagem só começa depois do enquadramento confirmado, e até lá a **voz**
+guia: esquerda, direita, aproxime, afaste. Quem usa a câmera da frente vê também
+a seta grande e a moldura verde da confirmação.
+
+- **Esquerda e direita são da pessoa, não da imagem.** A câmera vê quem está de
+  frente para ela com os lados trocados de sentido: a mão esquerda dela aparece
+  do lado direito do quadro. "O corpo precisa ir para a direita da imagem"
+  significa "ande para a sua esquerda" — e inverter esse sinal manda a pessoa
+  para fora do quadro em vez de para dentro. É o que `teste-enquadramento.js`
+  cobra antes de qualquer outra coisa.
+- **A seta na tela usa o sentido oposto da voz quando a câmera é a da frente**,
+  porque a imagem aparece espelhada. Mesma informação, dois sistemas de
+  coordenadas.
+- **A medida é dos ombros aos pés**, e acima dos ombros ainda tem cabeça: por
+  isso a folga de cima é maior que a de baixo, e o nariz confirma quando dá para
+  vê-lo. Num corpo em pé, ombros-a-pés dá cerca de 0,82 da altura total — a
+  faixa aceita (0,45 a 0,80) sai daí.
+- **Um segundo e meio parado no lugar certo** antes de liberar: sem essa espera,
+  passar andando pelo quadro já começaria a contagem.
+- **A referência do contador recomeça na confirmação.** O que ele mediu enquanto
+  a pessoa andava para se posicionar não é repetição de nada.
+
+Duas saídas, e as duas são obrigatórias:
+
+1. **"Já estou na posição"**, à mão, bem no meio da tela. Quem sabe onde se põe
+   não devia esperar aval de ninguém.
+2. **Depois de 12 segundos sem confirmar, libera sozinho** e avisa por voz.
+   Exercício sentado não mostra os pés e máquina encostada na parede não mostra
+   o corpo inteiro — sem esta saída o enquadramento viraria uma porta trancada
+   justamente nos exercícios mais comuns da academia.
+
+Achado ao mexer nisto: **o botão de contar pela câmera só aparecia com o Jarvis
+ligado.** Ele vivia dentro da condição `ehAlvo`, que exigia `vozAtiva` — então
+quem nunca ligou a voz nunca soube que o Eyes Scan existia. Hoje "é a vez deste
+exercício" (`ehVez`) e "a voz está ouvindo" (`ehAlvo`) são coisas separadas.
+
 ### A janela corrida de 4 segundos
 
 **O defeito mais caro deste módulo, achado pelo teste do técnico.** A
@@ -447,9 +490,12 @@ chão.
 
 ## A abertura (`Abertura`)
 
-A marca do app em movimento, em três atos e menos de três segundos:
+A marca do app em movimento, em três atos e pouco menos de quatro segundos:
 
-1. A **silhueta azul pontilhada** monta a pose de fisiculturista.
+1. A **silhueta azul pontilhada** monta a pose. Ela é o contorno da imagem da
+   marca, traçado direto dela (`SILHUETA_ABERTURA`) — nenhum desenho à mão. Por
+   isso o esqueleto foi encaixado ponto a ponto nela: a varredura troca um pelo
+   outro sem a figura pular.
 2. Uma **linha de leitura desce** por ela e, onde a linha passa, a silhueta vira
    o **esqueleto verde** — o mesmo, traço por traço, que aparece sobre o vídeo
    quando a câmera conta as repetições.
@@ -1064,6 +1110,13 @@ Roteiro mínimo depois de mexer no app:
      portaria voltar, o looping voltou.
 33j. Abrir o app num iPhone e conferir que o cartão "Baixar o app" aparece e
      explica o caminho do botão de compartilhar.
+33n. Abrir o Eyes Scan com a câmera de trás, de costas para o celular: a voz
+     tem de guiar até confirmar, e o bipe avisa o enquadramento.
+33o. **O teste do sentido.** Ficar na beirada esquerda do quadro: ele tem de
+     mandar andar para a SUA esquerda, e seguir a instrução tem de pôr a pessoa
+     dentro do quadro. Repetir com a câmera da frente e conferir a seta.
+33p. Abrir o scanner num exercício sentado: depois de 12 s ele libera sozinho
+     e avisa. Nunca pode ficar preso.
 33k. Ver a abertura inteira uma vez, e depois tocar no meio dela: tem de pular.
 33h. Apagar `entrou` do armazenamento e abrir um link `#ficha=` **com a voz
      ligada**: passar a portaria e conferir que a pergunta da ficha aparece.

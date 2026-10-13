@@ -91,6 +91,20 @@
     * { transition: none !important; }
   }
 
+  /* Guia de enquadramento do Eyes Scan */
+  @keyframes eqSeta     { 0%, 100% { opacity: .6; transform: translateY(-50%) scale(1); }
+                          50% { opacity: 1; transform: translateY(-50%) scale(1.2); } }
+  @keyframes eqCresce   { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+  @keyframes eqEncolhe  { 0%, 100% { transform: scale(1); } 50% { transform: scale(.91); } }
+  @keyframes eqConfirma { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; } }
+  .eq-seta     { animation: eqSeta .9s ease-in-out infinite; }
+  .eq-cresce   { animation: eqCresce 1.1s ease-in-out infinite; }
+  .eq-encolhe  { animation: eqEncolhe 1.1s ease-in-out infinite; }
+  .eq-confirma { animation: eqConfirma 1.2s ease-out both; }
+  @media (prefers-reduced-motion: reduce) {
+    .eq-seta, .eq-cresce, .eq-encolhe { animation: none; }
+  }
+
   /* Abertura, em três atos:
      1. a silhueta da marca monta a pose;
      2. a régua corre nas duas máscaras ao mesmo tempo — uma apaga a silhueta, a
@@ -469,7 +483,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-13b";
+const VERSAO_APP = "2026-10-13c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -1580,6 +1594,67 @@ const MOV_FUNCIONAIS = {
   "abdominal-remador": { sinais: ["quadril-e", "quadril-d"], minMs: 650, dica: "Sobe com o abdômen, sem puxar o pescoço." },
   "skater":            { par: ["pe-e-alto", "pe-d-alto"], minMs: 420, minAmp: 14, dica: "Salto lateral amplo, aterrissando numa perna só." },
 };
+
+// ---- Enquadramento: pôr a pessoa na posição antes de contar ----
+// Com a câmera de trás — que é a boa, porque é a que enxerga melhor — a pessoa
+// **não vê a tela**. Ela apoia o celular, anda para trás e não tem como saber se
+// está dentro do quadro. Antes disso existir, o jeito de descobrir era fazer a
+// série inteira e ver que não contou nada.
+//
+// Então a contagem só começa depois do enquadramento confirmado, e até lá a voz
+// guia: esquerda, direita, aproxime, afaste. Quem usa a câmera da frente vê
+// ainda as setas e a moldura verde da confirmação.
+//
+// Esquerda e direita são **da pessoa**, não da imagem. A câmera vê quem está de
+// frente para ela espelhado em significado: a mão esquerda dela aparece do lado
+// direito do quadro. Então "o corpo precisa ir para a direita da imagem"
+// significa "ande para a sua esquerda" — e errar esse sinal manda a pessoa para
+// fora do quadro em vez de para dentro.
+const EYES_PONTOS_ENQUADRA = [11, 12, 23, 24, 25, 26, 27, 28];
+
+function avaliarEnquadramento(lm) {
+  if (!lm) return { chave: "corpo", texto: "Não estou te vendo", fala: "Não estou te vendo. Fique de frente para a câmera." };
+  const faltando = EYES_PONTOS_ENQUADRA.some((i) => !visivel(lm[i]));
+  if (faltando) {
+    return {
+      chave: "corpo", texto: "Apareça de corpo inteiro",
+      fala: "Não estou te vendo inteiro. Preciso ver dos ombros aos pés.",
+    };
+  }
+  const xs = EYES_PONTOS_ENQUADRA.map((i) => lm[i].x);
+  const ys = EYES_PONTOS_ENQUADRA.map((i) => lm[i].y);
+  const topo = Math.min.apply(null, ys), base = Math.max.apply(null, ys);
+  const altura = base - topo;
+
+  // Cortado: o resto da conta não vale nada se faltar pedaço. A medida é dos
+  // OMBROS aos pés, e acima dos ombros ainda tem cabeça — por isso a folga de
+  // cima é maior que a de baixo, e o nariz confirma quando dá para vê-lo.
+  const nariz = lm[0];
+  if (base > 0.985 || (visivel(nariz) && nariz.y < 0.025)) {
+    return { chave: "afaste", texto: "Afaste-se", fala: "Você está cortado. Dê uns passos para trás.", seta: "afasta" };
+  }
+
+  // Centralizar vem antes da distância: quem está na beirada precisa entrar no
+  // quadro primeiro, e aí a distância volta a fazer sentido.
+  const cx = (lm[11].x + lm[12].x + lm[23].x + lm[24].x) / 4;
+  if (cx < 0.38 || cx > 0.62) {
+    const precisaMais = cx < 0.5;    // o corpo tem de ir para a direita da imagem
+    return {
+      chave: precisaMais ? "esq" : "dir",
+      texto: precisaMais ? "Vá para a sua esquerda" : "Vá para a sua direita",
+      fala: precisaMais ? "Ande para a sua esquerda." : "Ande para a sua direita.",
+      seta: precisaMais ? "maisX" : "menosX",
+    };
+  }
+
+  if (altura < 0.45) {
+    return { chave: "aproxime", texto: "Aproxime-se", fala: "Você está longe. Chegue mais perto.", seta: "aproxima" };
+  }
+  if (altura > 0.80) {
+    return { chave: "afaste", texto: "Afaste-se", fala: "Você está muito perto. Dê um passo para trás.", seta: "afasta" };
+  }
+  return { chave: "ok", texto: "Enquadrado", fala: "Enquadrado. Pode começar.", ok: true };
+}
 
 // ---- Postura: a correção que não pode errar ----
 // Contar errado custa uma repetição. Corrigir errado custa a confiança: quem
@@ -4211,6 +4286,16 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const movRef = useRef(null);
   movRef.current = movLivre;
   const t0Ref = useRef(0);
+  // Enquadramento: a contagem só começa depois que o corpo está no quadro, e a
+  // voz guia até lá. Sem isso, quem usa a câmera de trás não tem como saber que
+  // está fora — e descobre depois da série inteira não ter contado nada.
+  const [enquadrado, setEnquadrado] = useState(false);
+  const [guia, setGuia] = useState(null);          // { chave, texto, seta }
+  const prontoRef = useRef(false);
+  const okDesdeRef = useRef(0);
+  const entrouEnquadraRef = useRef(0);
+  const faladoRef = useRef({ chave: "", em: 0 });
+  const [confirmou, setConfirmou] = useState(false);
 
   useEffect(() => { setPeso(pesoAtual || ""); }, [pesoAtual, aberto]);
   pesoRef.current = peso;
@@ -4294,6 +4379,13 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     setFechando(0);
     setMedidas(null);
     canceladoRef.current = false;
+    setEnquadrado(false);
+    setConfirmou(false);
+    setGuia(null);
+    prontoRef.current = false;
+    okDesdeRef.current = 0;
+    entrouEnquadraRef.current = 0;
+    faladoRef.current = { chave: "", em: 0 };
     setMovLivre(null);
     setPalpite(null);
     setGuardados([]);
@@ -4374,6 +4466,59 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
           ctx.arc(p.x * cv.width, p.y * cv.height, r, 0, Math.PI * 2);
           ctx.fill();
         });
+
+        // ---- enquadramento: roda antes de qualquer contagem ----
+        if (!prontoRef.current) {
+          if (!entrouEnquadraRef.current) entrouEnquadraRef.current = agora;
+          // Exercício sentado não mostra os pés, e máquina encostada na parede não
+          // mostra o corpo inteiro. Sem esta saída, o enquadramento viraria uma
+          // porta trancada justamente nos exercícios mais comuns da academia.
+          if (agora - entrouEnquadraRef.current > 12000) {
+            prontoRef.current = true;
+            setEnquadrado(true);
+            if (contadorRef.current) contadorRef.current.zerar();
+            if (posturaRef.current) posturaRef.current.zerar();
+            const cfg0 = vozRef2.current || {};
+            jarvisFalar("Não consegui confirmar o enquadramento. Vou contar assim mesmo.", {
+              falar: true, vozNome: cfg0.vozNome, velocidade: cfg0.velocidade || 1.1, animado: false,
+            });
+            return;
+          }
+          const g = avaliarEnquadramento(lm);
+          setGuia(g);
+          // A voz repete só quando a instrução muda, ou de três em três
+          // segundos. Guia que fala sem parar vira ruído e atrapalha quem está
+          // tentando se posicionar de costas para o celular.
+          const f = faladoRef.current;
+          if (g.fala && (g.chave !== f.chave || agora - f.em > 3000)) {
+            faladoRef.current = { chave: g.chave, em: agora };
+            const cfg = vozRef2.current || {};
+            jarvisFalar(g.fala, {
+              falar: true, vozNome: cfg.vozNome,
+              velocidade: cfg.velocidade || 1.1, animado: false,
+            });
+          }
+          if (g.ok) {
+            if (!okDesdeRef.current) okDesdeRef.current = agora;
+            // Um segundo e meio parado no lugar certo: sem essa espera, passar
+            // andando pelo quadro já liberaria a contagem.
+            if (agora - okDesdeRef.current > 1500) {
+              prontoRef.current = true;
+              setEnquadrado(true);
+              setConfirmou(true);
+              setTimeout(() => setConfirmou(false), 1200);
+              if (som) beep(1500, 0.16, 0.18);
+              try { if (navigator.vibrate) navigator.vibrate([40, 60, 40]); } catch (e) {}
+              // A referência do contador recomeça aqui: o que ele mediu enquanto
+              // a pessoa andava para se posicionar não é repetição de nada.
+              if (contadorRef.current) contadorRef.current.zerar();
+              if (posturaRef.current) posturaRef.current.zerar();
+            }
+          } else {
+            okDesdeRef.current = 0;
+          }
+          return;
+        }
 
         if (posturaRef.current) posturaRef.current.medir(lm);
         const info = contadorRef.current.processar(lm, agora);
@@ -4456,8 +4601,27 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const completou = alvo > 0 && reps >= alvo;
   // No modo livre o exercício é o que foi descoberto; no normal é o da ficha.
   const exAtual = livre ? (movLivre && exPorId ? exPorId(movLivre) : null) : ex;
+  // A seta aponta para onde o corpo tem de andar NA TELA. Com a câmera da
+  // frente a imagem é espelhada, então o lado da tela é o contrário do lado da
+  // imagem — e uma seta trocada manda a pessoa para fora do quadro.
+  const ladoSeta = !guia ? null
+    : guia.seta === "maisX" ? (frente ? "esq" : "dir")
+    : guia.seta === "menosX" ? (frente ? "dir" : "esq") : null;
+  const classeAlvo = guia && guia.seta === "aproxima" ? "eq-cresce"
+    : guia && guia.seta === "afasta" ? "eq-encolhe" : "";
+
   const checagens = (exAtual && exAtual.func && POSTURA_POR_MOV[exAtual.func]) ||
     (exAtual && POSTURA_POR_GRUPO[exAtual.grupo]) || [];
+  // Quem já sabe onde se põe não devia esperar o aval de ninguém — e, se o
+  // reconhecimento estiver com dificuldade naquele ângulo, este botão é a
+  // diferença entre usar e desinstalar.
+  const pularEnquadramento = () => {
+    prontoRef.current = true;
+    setEnquadrado(true);
+    if (contadorRef.current) contadorRef.current.zerar();
+    if (posturaRef.current) posturaRef.current.zerar();
+  };
+
   const guardarLivre = () => {
     if (reps > 0 && movLivre && onGuardarLivre) {
       onGuardarLivre(movLivre, reps);
@@ -4512,10 +4676,17 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
             width: 42, height: 42, borderRadius: 21, border: "none", background: "rgba(0,0,0,0.55)",
             color: "#FFFFFF", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>✕</button>
 
-        <button onClick={() => setFrente((f) => !f)} aria-label="Virar a câmera"
+        {/* Enquanto enquadra, este botão ganha nome: com a câmera de trás a pessoa
+            não vê a tela, e trocar para a da frente é o que permite ver as setas.
+            Escondido atrás de um ícone, ninguém achava. */}
+        <button onClick={() => setFrente((f) => !f)}
+          aria-label={frente ? "Usar a câmera de trás" : "Usar a câmera da frente"}
           style={{ position: "absolute", top: "calc(60px + env(safe-area-inset-top))", right: 12,
-            width: 42, height: 42, borderRadius: 21, border: "none", background: "rgba(0,0,0,0.55)",
-            color: "#FFFFFF", fontSize: 17, cursor: "pointer" }}>⟲</button>
+            height: 42, borderRadius: 21, border: "none", background: "rgba(0,0,0,0.55)",
+            color: "#FFFFFF", fontSize: enquadrado ? 17 : 13, fontWeight: 800,
+            padding: enquadrado ? 0 : "0 14px", width: enquadrado ? 42 : "auto", cursor: "pointer" }}>
+          {enquadrado ? "⟲" : (frente ? "⟲ câmera de trás" : "⟲ câmera da frente")}
+        </button>
 
         {/* Contar alto é o retorno que serve de costas para a tela — mas em
             academia cheia nem sempre é bem-vindo. Por isso o botão fica aqui,
@@ -4585,6 +4756,49 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
               Voltar e deixar ele descobrir
             </button>
           </div>
+        )}
+
+        {/* ---- guia de enquadramento, antes de contar ---- */}
+        {fase === "pronto" && !enquadrado && (
+          <React.Fragment>
+            <div className={classeAlvo} style={{ position: "absolute", inset: "6% 16%",
+              border: "2px dashed rgba(255,255,255,0.4)", borderRadius: 20, pointerEvents: "none" }} />
+
+            {ladoSeta && (
+              <div className="eq-seta" aria-hidden="true"
+                style={{ position: "absolute", top: "50%", left: ladoSeta === "esq" ? 8 : "auto",
+                  right: ladoSeta === "dir" ? 8 : "auto", fontSize: 92, lineHeight: 1,
+                  color: "#7CFF3C", textShadow: "0 0 20px rgba(0,0,0,0.9)", pointerEvents: "none" }}>
+                {ladoSeta === "esq" ? "◀" : "▶"}
+              </div>
+            )}
+
+            <div role="status" style={{ position: "absolute", left: 10, right: 10,
+              bottom: 84, textAlign: "center", pointerEvents: "none" }}>
+              <div style={{ display: "inline-block", background: "rgba(0,0,0,0.7)", borderRadius: 16,
+                padding: "11px 18px", color: "#FFFFFF", fontSize: 20, fontWeight: 900, lineHeight: 1.25 }}>
+                {guia ? guia.texto : "Procurando você..."}
+                <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.72)", marginTop: 5 }}>
+                  Vou avisar por voz quando estiver certo
+                </span>
+              </div>
+            </div>
+
+            <button onClick={pularEnquadramento}
+              style={{ position: "absolute", left: "50%", bottom: 22, transform: "translateX(-50%)",
+                border: "1px solid rgba(255,255,255,0.45)", background: "rgba(0,0,0,0.6)", color: "#FFFFFF",
+                borderRadius: 22, padding: "11px 20px", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
+              Já estou na posição
+            </button>
+          </React.Fragment>
+        )}
+
+        {/* a confirmação: a moldura verde é o que a pessoa vê de longe, e o bipe
+            é o que ela ouve quando está de costas para o celular */}
+        {confirmou && (
+          <div className="eq-confirma" aria-hidden="true"
+            style={{ position: "absolute", inset: 0, pointerEvents: "none",
+              border: "12px solid #7CFF3C", boxShadow: "inset 0 0 70px rgba(124,255,60,0.6)" }} />
         )}
 
         {/* o contador grande, que é o que a pessoa olha de longe */}
@@ -7844,7 +8058,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         const ehIsometria = !!(ex && ex.tempo);
         // Com o Jarvis ligado, este é o cartão que vai receber a próxima frase.
         // Sem essa marca, ditar "80 por 10" é torcer para cair no lugar certo.
-        const ehAlvo = vozAtiva && alvo && alvo.ei === ei;
+        // "É a vez deste exercício" e "o Jarvis está ouvindo" são coisas diferentes,
+        // e tratá-las como uma só escondia a câmera: o botão de contar vivia dentro
+        // da condição da voz, então quem nunca ligou o Jarvis nunca soube que o
+        // Eyes Scan existia.
+        const ehVez = !!(alvo && alvo.ei === ei);
+        const ehAlvo = vozAtiva && ehVez;
         return (
           <div key={it.uid || ei} id={"item-" + (it.uid || ei)}
             style={{
@@ -7871,7 +8090,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 </span>
               </div>
             )}
-            {ehAlvo && !ehIsometria && (
+            {ehVez && !ehIsometria && (
               <button onClick={() => setScanner(true)}
                 aria-label={"Contar as repetições de " + (ex ? ex.nome : "este exercício") + " pela câmera"}
                 style={{ width: "100%", marginBottom: 10, padding: "11px 12px", borderRadius: 12,
@@ -8743,12 +8962,16 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedir
 //
 // Tudo é vetor, nos mesmos onze pontos dos bonecos funcionais. Nenhum arquivo
 // novo, nada para baixar, e funciona offline como o resto. Um toque pula.
+// A silhueta e o contorno da imagem da marca, tracado direto dela (nenhum
+// desenho a mao): por isso o esqueleto abaixo foi encaixado ponto a ponto nela,
+// e a varredura troca um pelo outro sem a figura pular.
+const SILHUETA_ABERTURA = "M68.6 5L69.9 5.4L75.2 11.2L76.5 10.7L76.5 12L84 21.3L88.4 30.6L88.4 34.5L84.9 45.1L83.6 47.7L79.6 52.1L79.2 58.8L76.5 63.2L76.1 67.1L73.9 72L74.3 75.9L73 79L73 82.1L73.9 88.3L77 94.4L79.2 101.5L80.5 110.3L80.9 120.9L84.9 129.7L84.5 146.9L86.7 151.7L91.5 156.1L90.6 157L84.9 157L83.6 155.2L80.5 154.4L80 144.7L74.3 132.3L74.3 124L63.3 101.9L58.9 117.8L58.9 122.2L64.2 133.6L64.2 142L67.7 155.2L66.8 156.1L50.5 156.1L51.4 154.8L54.1 154.4L59.8 150L59.3 146L52.7 131.4L51.8 126.2L49.6 120.4L49.6 116.5L47.9 112.5L47 107.7L47.4 98.8L51.8 82.1L51.8 77.3L54.1 69.3L48.3 58.3L39.5 59.2L31.6 55.7L28.5 52.1L32 44.2L40.8 35.4L46.1 34.1L48.3 35.4L49.2 37.6L48.8 38.5L47.9 39.4L46.6 38.9L41.7 39.8L39.1 44.2L38.6 48.6L45.7 48.6L48.3 47.3L52.3 47.7L54.9 49.5L57.1 48.6L58 47.7L58 46L55.8 43.8L55.8 40.7L54.5 37.6L54.9 33.6L56.3 30.1L61.5 26.1L63.3 26.1L64.2 27L66.4 26.6L67.7 27.9L68.2 31L69.9 34.1L69.9 38.9L68.6 39.8L68.2 44.7L69.5 46L75.6 40.2L77.4 37.2L81.4 34.1L81.8 31.9L79.6 27.9L78.3 21.7L76.1 16.9L71.2 13.8L67.7 16L70.4 12.9L70.4 12L64.6 10.7L69 10.7L70.8 9.8L67.7 6.8L67.3 5.4L68.6 5.4Z";
 const POSE_ABERTURA = {
-  cab: [60, 23], om: [60, 50], qua: [58, 95],
-  coE: [26, 61], puE: [41, 30],
-  coD: [92, 35], puD: [83, 8],
-  joE: [47, 121], peE: [45, 151],
-  joD: [77, 119], peD: [87, 151],
+  cab: [61, 34], om: [60, 53], qua: [58, 100],
+  coE: [31, 53], puE: [46, 38],
+  coD: [85, 44], puD: [70, 14],
+  joE: [51, 124], peE: [47, 152],
+  joD: [71, 122], peD: [79, 152],
 };
 const JUNTAS_ABERTURA = ["om", "qua", "coE", "puE", "coD", "puD", "joE", "peE", "joD", "peD"];
 
@@ -8804,15 +9027,9 @@ function HalterAbertura() {
 function Abertura({ onFim }) {
   const P = POSE_ABERTURA;
   useEffect(() => {
-    const t = setTimeout(onFim, 2900);
+    const t = setTimeout(onFim, 3800);
     return () => clearTimeout(t);
   }, []);
-
-  const tronco = [
-    [P.om[0] - 20, P.om[1] - 5], [P.om[0] + 20, P.om[1] - 5],
-    [P.qua[0] + 11, P.qua[1] - 18], [P.qua[0] + 15, P.qua[1] + 5],
-    [P.qua[0] - 15, P.qua[1] + 5], [P.qua[0] - 11, P.qua[1] - 18],
-  ].map((p) => p.join(",")).join(" ");
 
   return (
     <div onClick={onFim} role="img" aria-label="Treino Livre"
@@ -8843,12 +9060,8 @@ function Abertura({ onFim }) {
 
           {/* ---- o corpo, que é o que se quebra ---- */}
           <g className="ab-corpo">
-            <g className="ab-silhueta" mask="url(#ab-apaga)" fill="url(#ab-pontos)" stroke="url(#ab-pontos)"
-              strokeLinecap="round" strokeLinejoin="round">
-              <TracosAbertura largura={15} />
-              <line x1={P.cab[0]} y1={P.cab[1] + 9} x2={P.om[0]} y2={P.om[1]} strokeWidth="15" />
-              <polygon strokeWidth="6" points={tronco} />
-              <circle cx={P.cab[0]} cy={P.cab[1]} r="12.5" />
+            <g className="ab-silhueta" mask="url(#ab-apaga)">
+              <path d={SILHUETA_ABERTURA} fill="url(#ab-pontos)" />
             </g>
 
             <g className="ab-esqueleto" mask="url(#ab-revela)">

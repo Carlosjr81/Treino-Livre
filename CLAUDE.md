@@ -124,6 +124,7 @@ Tudo num único registro em `localStorage["treinolivre:v1"]`:
   convite:   true,                              // o convite para seguir ainda não foi respondido
   entrou:    true,                              // a portaria já foi passada
   dicas:     { voz: 1, scan: 1 },               // dicas de primeiro contato já vistas
+  botaoVoz:  { lado: "dir", y: 76 } | null,     // onde a pessoa pôs o botão do Jarvis
   historico[].bpm: { medio, max, amostras } | ausente,     // monitor cardíaco
   ultimoBackup: 1725100000000,
   descanso: 90, som: true, tema: "escuro", meta: 3, seedV3: true
@@ -857,6 +858,38 @@ entendimento. Entradas: o "?" do painel e Ajustes › Jarvis.
 - **Tom animado** (`voz.animado`, padrão ligado): `pitch` 1.22, ritmo um pouco
   acima e interjeições que giram sem repetir a anterior (`animo`).
 
+### O botão flutuante sai da frente (`PainelJarvis`, campo `botaoVoz`)
+
+A queixa era sempre a mesma: o botão cobre o ✕ do exercício, o ✓ da série, o
+número do descanso. Duas respostas, porque o problema tem duas metades:
+
+- **Ler o que está atrás**: parado e sem ouvir por 4 segundos, ele fica
+  translúcido (0,34) e encolhe. Um toque o traz de volta inteiro.
+- **Clicar no que está atrás**: arrastar o botão para outro lugar. A posição é
+  guardada em `botaoVoz` (`{ lado, y }`) — quem o tirou da frente uma vez não
+  quer encontrá-lo de volta no caminho na próxima abertura. Ao soltar, ele
+  **encosta na borda mais perto**: largado no meio da tela voltaria a cobrir
+  conteúdo, que é o problema que se está resolvendo.
+
+O rótulo embaixo diz **"arraste p/ mover"** enquanto o botão nunca foi movido, e
+volta a dizer "Jarvis" depois. Capacidade que ninguém descobre não existe.
+
+**Dois defeitos de gesto, os dois achados testando:**
+
+1. **Capturar o ponteiro no `pointerdown` engolia o toque.** Com a captura na
+   caixa, o navegador manda o clique para o ancestral comum e não para o botão —
+   o microfone deixava de ligar. Mas capturar só no primeiro movimento perde o
+   arrasto rápido, que sai de cima do botão antes do primeiro `pointermove`.
+   A saída é capturar desde o `pointerdown` **e resolver o toque no `pointerup`**,
+   deixando o `onClick` só para o teclado.
+2. **A marca de "foi arrasto" tinha prazo de 60 ms.** O clique que chegasse
+   depois disso passava, e arrastar o botão ligava o microfone junto, toda vez.
+   Hoje a marca fica de pé até o próximo `pointerdown`, e o `onFocus` a limpa
+   para o teclado continuar funcionando.
+
+O ícone é SVG (`IconeMicrofone`), não emoji: emoji muda de desenho em cada
+aparelho e nunca combina com o resto da interface.
+
 ### Perguntas sobre o histórico
 
 `responderConsulta` responde **em qualquer tela**, com ou sem treino aberto —
@@ -1115,6 +1148,10 @@ Roteiro mínimo depois de mexer no app:
 33o. **O teste do sentido.** Ficar na beirada esquerda do quadro: ele tem de
      mandar andar para a SUA esquerda, e seguir a instrução tem de pôr a pessoa
      dentro do quadro. Repetir com a câmera da frente e conferir a seta.
+33q. Arrastar o botão do Jarvis para o outro lado da tela: ele encosta na borda,
+     fica lá depois de recarregar, e **não pode ligar o microfone no caminho**.
+33r. Tocar no botão sem arrastar: o microfone liga. Esperar 4 s sem usar: ele
+     fica translúcido e dá para ler o que está atrás.
 33p. Abrir o scanner num exercício sentado: depois de 12 s ele libera sozinho
      e avisa. Nunca pode ficar preso.
 33k. Ver a abertura inteira uma vez, e depois tocar no meio dela: tem de pular.

@@ -444,6 +444,30 @@ Começar a aula também **liga o microfone** se a voz for a preferida — é o g
 que o navegador exige, e sem microfone não dá para dizer "pausa" com as mãos no
 chão.
 
+## A abertura (`Abertura`)
+
+A marca do app em movimento, em três atos e menos de três segundos:
+
+1. A **silhueta azul pontilhada** monta a pose de fisiculturista.
+2. Uma **linha de leitura desce** por ela e, onde a linha passa, a silhueta vira
+   o **esqueleto verde** — o mesmo, traço por traço, que aparece sobre o vídeo
+   quando a câmera conta as repetições.
+3. O **halter entra de frente, bate, e a tela racha**. O que fica é o halter com
+   o nome do app.
+
+O ato 2 é o único truque que vale explicar: são **duas máscaras com a mesma
+régua correndo dentro** — uma apaga a silhueta de cima para baixo, a outra
+revela o esqueleto no mesmo passo. É isso que faz a linha parecer *transformar*
+o corpo, em vez de passar por cima dele. Um cross-fade não teria esse efeito.
+
+Não é enfeite: é a promessa do produto dita em dois segundos, antes de qualquer
+texto. E é vetor nos mesmos onze pontos dos bonecos funcionais — nenhum arquivo
+novo, nada para baixar, funciona offline.
+
+**Um toque pula**, e `prefers-reduced-motion` mostra direto o quadro final. A
+abertura roda uma vez por carregamento e não é guardada: é a marca do app, não
+um aviso a ser dispensado.
+
 ## Crédito ao autor
 
 `INSTAGRAM` e `LINK_INSTAGRAM` são constantes porque o @ aparece em cinco
@@ -464,26 +488,47 @@ A tela que pede para seguir antes de entrar. **Ela não verifica nada, e isso é
 uma decisão tomada com o dono, não um descuido:** saber se alguém segue uma
 conta exige servidor e uma API que o Instagram não oferece nem ao dono do
 perfil. O que existe é o pedido feito na cara limpa, no único lugar por onde
-todo mundo passa. O "já segui" libera na palavra da pessoa.
+todo mundo passa.
 
-Três coisas que não podem ser removidas:
+**O looping que ela causou, e que não pode voltar.** Quem vinha do link na bio
+caía na portaria, tocava em "seguir", era levado para fora do navegador, voltava
+pelo mesmo link — e caía na portaria de novo. E de novo. O único jeito de sair
+era desistir do app. A liberação só era gravada quando a pessoa chegava ao botão
+de entrar, e ela nunca chegava lá.
 
-1. **O "já segui" sempre libera.** Os treinos vivem só naquele aparelho.
-   Trancar alguém do lado de fora dos próprios dados é perder a pessoa e o
-   histórico dela junto, e nenhum seguidor paga isso.
-2. **O botão de entrar aparece mesmo se o Instagram não abrir** (14 s). Em
-   navegador com bloqueio de pop-up o link não abre, e sem esse prazo o app
-   viraria uma porta trancada sem maçaneta.
-3. **A portaria fica DEPOIS de todos os hooks e efeitos** do componente raiz.
-   É o que mantém o link compartilhado vivo: quem chega por um `#ficha=` tem o
-   conteúdo lido normalmente atrás da porta, e a pergunta "deseja adicionar?"
-   aparece assim que ela abre. Um desvio mais acima mataria na porta justamente
-   o caminho que traz gente nova.
+Daí as regras, todas nascidas de gente que não conseguiu entrar:
+
+1. **Tocar em "seguir" já libera, antes de sair da tela**, e a gravação é
+   imediata e direta no armazenamento (`liberarPortaria`) — não pelo respiro de
+   400 ms, que a navegação não espera.
+2. **O botão de entrar aparece desde o primeiro segundo.** Ele já ficou escondido
+   atrás de um prazo de 14 s e de um toque no botão de seguir; as duas coisas
+   pareciam uma porta sem maçaneta.
+3. **No navegador embutido do Instagram não há portaria nenhuma.** Ali os dados
+   salvos somem sozinhos, então nada do que a pessoa responder vai ser lembrado —
+   e ela voltaria para a mesma tela na próxima vez. O que importa naquele
+   contexto é tirá-la de lá, e é só isso que a tela diz, com o link para copiar.
+4. **"Seguir e baixar" faz as duas coisas**: dispara a instalação e abre o perfil.
+   Instalado, o app passa a abrir pelo ícone, e o Instagram deixa de ser a única
+   porta de entrada — que é o que fechava o ciclo.
 
 Achado ao testar isso: **`avisar` atropelava a ficha recebida.** O aviso do
 microfone — que chega sozinho para quem deixou a voz ligada — trocava a
 pergunta da ficha pelo aviso, e a ficha se perdia sem ninguém saber. Hoje
 `avisar` nunca substitui um modal que está esperando resposta (`onSim`).
+
+### Baixar o app (`baixarApp`, `ComoInstalar`, `JA_INSTALADO`)
+
+"Baixar" um PWA não é baixar nada: é adicionar à tela de início. O Chrome oferece
+isso num diálogo (`beforeinstallprompt`); **o iPhone nunca oferece**, e sem
+instrução ninguém adivinha que está escondido no botão de compartilhar.
+
+Antes, o cartão de instalar só aparecia quando o navegador se manifestava — ou
+seja, **nunca no iPhone**, e a pessoa concluía que o app não podia ser instalado.
+Hoje o cartão aparece sempre (menos para quem já está em `standalone`), e
+`baixarApp` leva ao diálogo quando ele existe e ao passo a passo quando não
+existe. O passo a passo é por plataforma: navegador embutido, iPhone, Android e
+computador têm caminhos diferentes, e um texto genérico não ajuda nenhum deles.
 
 ## Monitor cardíaco, e o que a web não alcança
 
@@ -987,6 +1032,12 @@ Roteiro mínimo depois de mexer no app:
     continua marcada.
 32. "Jarvis, bora" fora de treino: começa a ficha sugerida.
 33. Abrir o Eyes Scan, fazer 10 repetições de verdade e conferir a contagem.
+33i. **O teste do looping.** Apagar `entrou`, abrir o app, tocar em "Seguir e
+     baixar", voltar e recarregar: tem de entrar direto, sem portaria. Se a
+     portaria voltar, o looping voltou.
+33j. Abrir o app num iPhone e conferir que o cartão "Baixar o app" aparece e
+     explica o caminho do botão de compartilhar.
+33k. Ver a abertura inteira uma vez, e depois tocar no meio dela: tem de pular.
 33h. Apagar `entrou` do armazenamento e abrir um link `#ficha=` **com a voz
      ligada**: passar a portaria e conferir que a pergunta da ficha aparece.
      Esse é o caminho que traz gente nova, e ele já quebrou uma vez.

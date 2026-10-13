@@ -91,6 +91,50 @@
     * { transition: none !important; }
   }
 
+  /* Abertura, em três atos:
+     1. a silhueta da marca monta a pose;
+     2. a régua corre nas duas máscaras ao mesmo tempo — uma apaga a silhueta, a
+        outra revela o esqueleto — e é isso que faz a linha parecer transformar o
+        corpo em vez de passar por cima dele;
+     3. o halter entra de frente, bate, e a tela racha. */
+  @keyframes abSurge  { 0% { opacity: 0; transform: scale(.93); } 100% { opacity: 1; transform: scale(1); } }
+  @keyframes abRegua  { 0% { transform: translateY(0); } 100% { transform: translateY(184px); } }
+  @keyframes abLinha  { 0% { opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes abJunta  { 0% { transform: scale(0); opacity: 0; } 65% { transform: scale(1.55); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes abHalter { 0% { transform: scale(8) rotate(-42deg); opacity: 0; }
+                        28% { opacity: 1; }
+                        74% { transform: scale(1.5) rotate(-18deg); opacity: 1; }
+                        88% { transform: scale(1.22) rotate(-18deg); }
+                        100% { transform: scale(1.3) rotate(-18deg); } }
+  @keyframes abFlash  { 0% { opacity: 0; } 18% { opacity: .85; } 100% { opacity: 0; } }
+  @keyframes abTremor { 0%, 100% { transform: translate(0, 0) rotate(0); }
+                        12% { transform: translate(-9px, 5px) rotate(-1.1deg); }
+                        26% { transform: translate(8px, -6px) rotate(.9deg); }
+                        44% { transform: translate(-6px, -3px) rotate(-.6deg); }
+                        62% { transform: translate(4px, 4px) rotate(.4deg); }
+                        80% { transform: translate(-2px, -1px) rotate(0); } }
+  @keyframes abRacha  { 0% { stroke-dashoffset: 420; opacity: 0; } 6% { opacity: 1; }
+                        48% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: .3; } }
+  @keyframes abQuebra { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.22); } }
+  @keyframes abMarca  { 0% { opacity: 0; transform: translateY(14px); } 100% { opacity: 1; transform: translateY(0); } }
+  .ab-silhueta { animation: abSurge .45s ease-out both; }
+  .ab-regua    { animation: abRegua .68s cubic-bezier(.42,.02,.32,1) .42s both; }
+  .ab-linha    { animation: abLinha .72s linear .40s both; }
+  .ab-juntas circle { animation: abJunta .36s cubic-bezier(.3,1.7,.5,1) both; }
+  .ab-corpo    { animation: abQuebra .46s ease-in 1.48s both; transform-origin: 60px 74px; }
+  .ab-halter   { animation: abHalter .44s cubic-bezier(.2,.75,.3,1) 1.04s both; }
+  .ab-flash    { animation: abFlash .34s ease-out 1.44s both; }
+  .ab-tremor   { animation: abTremor .40s ease-out 1.46s both; }
+  .ab-rachas polyline { stroke-dasharray: 420; animation: abRacha .72s ease-out 1.46s both; }
+  .ab-marca    { animation: abMarca .50s ease-out 1.62s both; }
+  @media (prefers-reduced-motion: reduce) {
+    .ab-silhueta, .ab-regua, .ab-linha, .ab-juntas circle, .ab-corpo,
+    .ab-halter, .ab-flash, .ab-tremor, .ab-rachas polyline, .ab-marca { animation: none; }
+    .ab-corpo, .ab-flash { opacity: 0; }
+    .ab-halter { transform: rotate(-18deg); }
+    .ab-rachas polyline { stroke-dashoffset: 0; opacity: .3; }
+  }
+
   /* Celebração de recorde e de conquista */
   @keyframes confete {
     0%   { transform: translate3d(0, -12vh, 0) rotate(0deg); opacity: 1; }
@@ -425,8 +469,16 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-12h";
+const VERSAO_APP = "2026-10-13a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
+// Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
+// instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
+const JA_INSTALADO = (() => {
+  try {
+    return window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true;
+  } catch (e) { return false; }
+})();
 const NAVEGADOR_INAPP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|; wv\)/i.test(navigator.userAgent || "");
 
 // Base64 de texto UTF-8. Substitui escape/unescape (obsoletos) mantendo
@@ -5674,7 +5726,7 @@ function FaixaProgresso({ est, historico, meta, onAbrirProgresso }) {
 // ---------------- TELA INICIAL ----------------
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
   avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
-  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar }) {
+  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
@@ -5700,13 +5752,18 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
         </div>
       )}
 
-      {onInstalar && (
+      {/* O Chrome oferece a instalação num diálogo; o iPhone NUNCA oferece. Por isso
+          este cartão não depende mais do navegador se manifestar: quando não há
+          diálogo, ele ensina o caminho à mão. Era a maior parte do "não consegui
+          instalar". */}
+      {!instalado && (
         <div style={{ ...S.card, borderColor: "#E1306C44" }}>
           <div style={S.label}>📲 Instalar na tela inicial</div>
           <div style={{ fontSize: 14, lineHeight: 1.6, margin: "8px 0 12px", color: "var(--cinza)" }}>
             Abre em tela cheia, direto do ícone, e funciona na academia mesmo sem internet.
+            Seus treinos também ficam mais seguros do que numa aba perdida.
           </div>
-          <button style={S.btn} onClick={onInstalar}>Instalar app</button>
+          <button style={S.btn} onClick={onInstalar}>Baixar o app</button>
         </div>
       )}
 
@@ -5882,7 +5939,7 @@ function SeletorVoz({ voz, setVoz }) {
 
 function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, setMeta,
   lembrete, setLembrete, avisar, ultimoBackup, totalEx, historico,
-  onBaixarBackup, onRestaurarArquivo, onExportar, onImportar, onInstalar, onVoltar,
+  onBaixarBackup, onRestaurarArquivo, onExportar, onImportar, onInstalar, instalado, onVoltar,
   voz, setVoz, vozAtiva, onAlternarVoz, onAjudaVoz, onEscolaVoz, onDiagnosticoVoz, onAtualizar }) {
   const fmtSeg = (sg) => Math.floor(sg / 60) + ":" + (sg % 60 < 10 ? "0" : "") + (sg % 60);
   return (
@@ -6071,13 +6128,13 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
 
       <CartaoLembrete lembrete={lembrete} setLembrete={setLembrete} avisar={avisar} />
 
-      {onInstalar && (
+      {!instalado && (
         <div style={{ ...S.card, borderColor: "#E1306C44" }}>
           <div style={S.label}>📲 Instalar na tela inicial</div>
           <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, margin: "8px 0 12px" }}>
             Abre em tela cheia, direto do ícone, e funciona sem internet.
           </div>
-          <button style={S.btn} onClick={onInstalar}>Instalar app</button>
+          <button style={S.btn} onClick={onInstalar}>Baixar o app</button>
         </div>
       )}
 
@@ -8561,77 +8618,338 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedir
 }
 
 // ---------------- APP ----------------
-// ---------------- PORTARIA ----------------
-// A trava de confiança: a tela pede que a pessoa siga antes de entrar, e o
-// "já segui" libera na palavra dela.
+// ---------------- ABERTURA ----------------
+// A marca do app em movimento, em três atos e menos de três segundos:
 //
-// **Ela não verifica nada, e isso é uma decisão, não um descuido.** Saber se
-// alguém segue uma conta exige servidor e uma API que o Instagram não oferece
-// nem ao dono do perfil. O que existe aqui é o pedido feito na cara limpa, no
-// único lugar em que todo mundo passa.
+// 1. A silhueta azul pontilhada monta a pose.
+// 2. Uma linha de leitura desce por ela e, **onde a linha passa, a silhueta
+//    vira o esqueleto verde** — o mesmo, traço por traço, que aparece sobre o
+//    vídeo quando a câmera conta as repetições.
+// 3. O halter entra de frente, bate, racha a tela, e o que sobra é o halter com
+//    o nome do app.
 //
-// Duas regras que não podem ser removidas:
+// A troca do ato 2 é feita com duas máscaras que correm juntas: uma apaga a
+// silhueta de cima para baixo, a outra revela o esqueleto no mesmo passo. Por
+// isso a linha parece estar *transformando* o corpo, e não passando por cima.
 //
-// 1. **O "já segui" sempre libera.** Os treinos de quem usa o app vivem só
-//    neste aparelho. Trancar alguém do lado de fora dos próprios dados seria
-//    perder a pessoa e o histórico dela junto, e nenhum seguidor paga isso.
-// 2. **O botão de entrar aparece mesmo se o Instagram não abrir** (14 s). Em
-//    navegador com bloqueio de pop-up o link simplesmente não abre, e sem esse
-//    prazo o app viraria uma porta trancada sem maçaneta.
-function Portaria({ temDados, onEntrar }) {
-  const [foi, setFoi] = useState(false);
-  const [liberou, setLiberou] = useState(false);
+// Tudo é vetor, nos mesmos onze pontos dos bonecos funcionais. Nenhum arquivo
+// novo, nada para baixar, e funciona offline como o resto. Um toque pula.
+const POSE_ABERTURA = {
+  cab: [60, 23], om: [60, 50], qua: [58, 95],
+  coE: [26, 61], puE: [41, 30],
+  coD: [92, 35], puD: [83, 8],
+  joE: [47, 121], peE: [45, 151],
+  joD: [77, 119], peD: [87, 151],
+};
+const JUNTAS_ABERTURA = ["om", "qua", "coE", "puE", "coD", "puD", "joE", "peE", "joD", "peD"];
 
+// As rachaduras saem do ponto da pancada e passam da borda da tela de propósito:
+// trinco que termina no meio do nada não parece vidro quebrado.
+const RACHAS_ABERTURA = [
+  "60,74 48,42 55,10 39,-44",
+  "60,74 79,48 74,12 93,-40",
+  "60,74 98,68 134,76 190,58",
+  "60,74 101,99 139,97 196,124",
+  "60,74 71,113 63,152 80,210",
+  "60,74 43,111 50,153 31,212",
+  "60,74 23,89 -16,83 -72,104",
+  "60,74 25,59 -12,63 -68,45",
+  "60,74 86,31 122,23 158,-18",
+  "60,74 32,34 10,6",
+  "60,74 92,110 112,148",
+];
+
+function TracosAbertura({ largura }) {
+  const P = POSE_ABERTURA;
+  const L = (a, b) => <line key={a + b} x1={P[a][0]} y1={P[a][1]} x2={P[b][0]} y2={P[b][1]} strokeWidth={largura} />;
+  return (
+    <React.Fragment>
+      {L("om", "coE")}{L("coE", "puE")}
+      {L("om", "coD")}{L("coD", "puD")}
+      {L("qua", "joE")}{L("joE", "peE")}
+      {L("qua", "joD")}{L("joD", "peD")}
+      {L("om", "qua")}
+    </React.Fragment>
+  );
+}
+
+// O halter da marca: duas anilhas, barra e presilhas.
+function HalterAbertura() {
+  const anilha = (x) => (
+    <React.Fragment key={x}>
+      <rect x={x - 7} y={-21} width="14" height="42" rx="5" fill="url(#ab-metal)" />
+      <rect x={x - 7} y={-21} width="14" height="42" rx="5" fill="none" stroke="#0C0C0C" strokeWidth="1.6" />
+    </React.Fragment>
+  );
+  return (
+    <g>
+      <rect x={-46} y={-4.6} width="92" height="9.2" rx="4.6" fill="url(#ab-metal)" stroke="#0C0C0C" strokeWidth="1.4" />
+      <rect x={-27} y={-12} width="7" height="24" rx="3" fill="url(#ab-metal)" stroke="#0C0C0C" strokeWidth="1.2" />
+      <rect x={20} y={-12} width="7" height="24" rx="3" fill="url(#ab-metal)" stroke="#0C0C0C" strokeWidth="1.2" />
+      {anilha(-37)}
+      {anilha(37)}
+    </g>
+  );
+}
+
+function Abertura({ onFim }) {
+  const P = POSE_ABERTURA;
   useEffect(() => {
-    const t = setTimeout(() => setLiberou(true), 14000);
+    const t = setTimeout(onFim, 2900);
     return () => clearTimeout(t);
   }, []);
 
-  const seguir = () => {
-    setFoi(true);
-    setLiberou(true);
-    try { window.open(LINK_INSTAGRAM, "_blank", "noopener"); }
-    catch (e) {}
-  };
+  const tronco = [
+    [P.om[0] - 20, P.om[1] - 5], [P.om[0] + 20, P.om[1] - 5],
+    [P.qua[0] + 11, P.qua[1] - 18], [P.qua[0] + 15, P.qua[1] + 5],
+    [P.qua[0] - 15, P.qua[1] + 5], [P.qua[0] - 11, P.qua[1] - 18],
+  ].map((p) => p.join(",")).join(" ");
 
   return (
-    <div style={{ ...S.app, minHeight: "100vh", display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", padding: "32px 24px", textAlign: "center" }}>
-      <div style={{ ...S.logo, fontSize: 34, marginBottom: 6 }}>Treino Livre</div>
-      <div style={{ height: 4, width: 90, background: GRAD_LINHA, borderRadius: 2, margin: "10px 0 26px" }} />
+    <div onClick={onFim} role="img" aria-label="Treino Livre"
+      style={{ position: "fixed", inset: 0, zIndex: 90, background: "#060606", overflow: "hidden",
+        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+      <div className="ab-tremor" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+        <svg viewBox="0 0 120 170" width="214" height="303" aria-hidden="true" style={{ overflow: "visible" }}>
+          <defs>
+            <pattern id="ab-pontos" width="4" height="4" patternUnits="userSpaceOnUse">
+              <rect width="4" height="4" fill="#1B76BC" />
+              <circle cx="1" cy="1" r="0.55" fill="#CFE8F7" />
+            </pattern>
+            <linearGradient id="ab-metal" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#FEDA75" />
+              <stop offset="38%" stopColor="#DD2A7B" />
+              <stop offset="100%" stopColor="#8134AF" />
+            </linearGradient>
+            {/* A mesma régua corre nas duas máscaras: uma apaga, a outra revela. */}
+            <mask id="ab-apaga">
+              <rect x="-220" y="-220" width="560" height="620" fill="#FFFFFF" />
+              <rect className="ab-regua" x="-220" y="-200" width="560" height="200" fill="#000000" />
+            </mask>
+            <mask id="ab-revela">
+              <rect x="-220" y="-220" width="560" height="620" fill="#000000" />
+              <rect className="ab-regua" x="-220" y="-200" width="560" height="200" fill="#FFFFFF" />
+            </mask>
+          </defs>
 
-      <div style={{ fontSize: 19, fontWeight: 900, lineHeight: 1.4, marginBottom: 14, maxWidth: 360 }}>
-        Siga para ter sempre acesso ao app
-      </div>
-      <div style={{ fontSize: 14.5, color: "var(--cinza)", lineHeight: 1.7, maxWidth: 360, marginBottom: 26 }}>
-        É por lá que saem as novidades, as atualizações e o aviso quando algo muda por aqui.
-        O Treino Livre é feito por uma pessoa só: de graça, sem anúncio, sem cadastro e sem
-        vender seus dados — e assim vai continuar.
-      </div>
+          {/* ---- o corpo, que é o que se quebra ---- */}
+          <g className="ab-corpo">
+            <g className="ab-silhueta" mask="url(#ab-apaga)" fill="url(#ab-pontos)" stroke="url(#ab-pontos)"
+              strokeLinecap="round" strokeLinejoin="round">
+              <TracosAbertura largura={15} />
+              <line x1={P.cab[0]} y1={P.cab[1] + 9} x2={P.om[0]} y2={P.om[1]} strokeWidth="15" />
+              <polygon strokeWidth="6" points={tronco} />
+              <circle cx={P.cab[0]} cy={P.cab[1]} r="12.5" />
+            </g>
 
-      <button style={{ ...S.btn, width: "100%", maxWidth: 340, marginBottom: 10 }} onClick={seguir}>
-        Seguir @{INSTAGRAM} no Instagram
-      </button>
+            <g className="ab-esqueleto" mask="url(#ab-revela)">
+              <g stroke="#7CFF3C" strokeWidth="7" strokeLinecap="round" fill="none">
+                <TracosAbertura largura={7} />
+              </g>
+              <circle cx={P.cab[0]} cy={P.cab[1]} r="11" fill="#7CFF3C" />
+            </g>
 
-      {liberou ? (
-        <button style={{ ...S.btnGhost, width: "100%", maxWidth: 340, fontWeight: 800 }} onClick={onEntrar}>
-          {foi ? "Já segui — entrar" : "Entrar"}
-        </button>
-      ) : (
-        <div style={{ fontSize: 12.5, color: "var(--cinza2)", padding: "13px 0" }}>
-          Toque no botão acima para continuar
+            <g className="ab-juntas">
+              {JUNTAS_ABERTURA.map((k, i) => (
+                <circle key={k} cx={P[k][0]} cy={P[k][1]} r="3.6" fill="#7CFF3C"
+                  style={{ animationDelay: 1.02 + i * 0.03 + "s", transformOrigin: P[k][0] + "px " + P[k][1] + "px" }} />
+              ))}
+            </g>
+
+            <g className="ab-linha">
+              <rect className="ab-regua" x="-220" y="-1.6" width="560" height="3.2" fill="#7CFF3C" />
+              <rect className="ab-regua" x="-220" y="-7" width="560" height="14" fill="#7CFF3C" opacity="0.18" />
+            </g>
+          </g>
+
+          {/* ---- a tela rachando ---- */}
+          <g className="ab-rachas" stroke="#F2F0EC" fill="none" strokeLinejoin="round" strokeLinecap="round">
+            {RACHAS_ABERTURA.map((p, i) => (
+              <polyline key={i} points={p} strokeWidth={i % 3 === 0 ? 1.9 : 1.1}
+                opacity={i % 3 === 0 ? 0.95 : 0.6} />
+            ))}
+          </g>
+
+          {/* ---- o halter, que entra de frente e fica ---- */}
+          <g className="ab-halter" style={{ transformOrigin: "60px 74px" }}>
+            <g transform="translate(60 74)">
+              <HalterAbertura />
+            </g>
+          </g>
+        </svg>
+
+        <div className="ab-marca" style={{ textAlign: "center", marginTop: 2 }}>
+          <div style={{ ...S.logo, fontSize: 32 }}>Treino Livre</div>
+          <div style={{ fontSize: 11.5, color: "#7CFF3C", fontWeight: 800, letterSpacing: 1.8,
+            textTransform: "uppercase", marginTop: 7 }}>
+            a câmera conta por você
+          </div>
         </div>
-      )}
+      </div>
 
-      <div style={{ fontSize: 12, color: "var(--cinza2)", marginTop: 22, lineHeight: 1.6, maxWidth: 320 }}>
-        {temDados
-          ? "Seus treinos continuam salvos neste aparelho. Isso aqui aparece uma vez só."
-          : "Aparece uma vez só. Depois disso o app abre direto."}
+      {/* o estouro da pancada, por cima de tudo */}
+      <div className="ab-flash" style={{ position: "absolute", inset: 0, background: "#FFFFFF", pointerEvents: "none" }} />
+    </div>
+  );
+}
+
+// ---------------- COMO INSTALAR ----------------
+// "Baixar" um PWA não é baixar nada: é adicionar à tela de início. O Android
+// oferece isso num diálogo; o iPhone **nunca** oferece, e sem instrução
+// ninguém adivinha que está escondido no botão de compartilhar. Era a maior
+// parte do "não consegui instalar".
+const EH_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent || "") ||
+  (/Mac/.test(navigator.userAgent || "") && navigator.maxTouchPoints > 1);
+const EH_ANDROID = /Android/i.test(navigator.userAgent || "");
+
+function ComoInstalar({ onFechar, onCopiarLink }) {
+  const passos = NAVEGADOR_INAPP
+    ? ["Toque nos ⋮ (ou ···) no canto desta tela.",
+       "Escolha “Abrir no navegador” ou “Abrir no Chrome”.",
+       "Lá dentro, toque em instalar quando o app oferecer."]
+    : EH_IOS
+      ? ["Toque no botão de compartilhar (o quadrado com a seta para cima), embaixo da tela.",
+         "Role a lista e escolha “Adicionar à Tela de Início”.",
+         "Confirme em “Adicionar”. Pronto: o ícone fica junto dos outros apps."]
+      : EH_ANDROID
+        ? ["Toque nos ⋮ no canto do Chrome.",
+           "Escolha “Instalar aplicativo” (ou “Adicionar à tela inicial”).",
+           "Confirme. O ícone aparece junto dos outros apps."]
+        : ["Na barra de endereço, procure o ícone de instalar (uma telinha com uma seta).",
+           "Clique nele e confirme em “Instalar”.",
+           "O app abre em janela própria, sem as abas do navegador."];
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 95,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+      onClick={onFechar}>
+      <div onClick={(e) => e.stopPropagation()}
+        style={{ ...S.card, maxWidth: 400, width: "100%", margin: 0, maxHeight: "86vh", overflowY: "auto" }}>
+        <div style={S.label}>📲 Instalar no seu aparelho</div>
+        <div style={{ fontSize: 14.5, fontWeight: 800, margin: "8px 0 4px" }}>
+          {EH_IOS ? "No iPhone é em dois toques" : "É rápido, e não ocupa quase nada"}
+        </div>
+        <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, marginBottom: 14 }}>
+          Instalado, ele abre em tela cheia, funciona sem internet e guarda seus treinos com
+          mais segurança do que uma aba perdida no navegador.
+        </div>
+        {passos.map((p, i) => (
+          <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
+            <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 11, background: "#E1306C",
+              color: "#FFFFFF", fontSize: 12, fontWeight: 900, textAlign: "center", lineHeight: "22px" }}>{i + 1}</span>
+            <span style={{ fontSize: 13.5, lineHeight: 1.55 }}>{p}</span>
+          </div>
+        ))}
+        {onCopiarLink && (
+          <button style={{ ...S.btnGhost, marginTop: 8 }} onClick={onCopiarLink}>📋 Copiar o link do app</button>
+        )}
+        <button style={{ ...S.btn, marginTop: 8 }} onClick={onFechar}>Entendi</button>
       </div>
     </div>
   );
 }
 
+// ---------------- PORTARIA ----------------
+// A tela que pede para seguir antes de entrar.
+//
+// **Ela não verifica nada**, e isso é uma decisão tomada com o dono: saber se
+// alguém segue uma conta exige servidor e uma API que o Instagram não oferece
+// nem ao dono do perfil. O que existe é o pedido feito na cara limpa, no único
+// lugar por onde todo mundo passa.
+//
+// Quatro regras, e as quatro nasceram de gente que não conseguiu entrar:
+//
+// 1. **Tocar em "seguir" já libera a entrada, antes de sair da tela.** O link
+//    do Instagram leva a pessoa para fora do navegador. Quando ela voltava pelo
+//    link da bio, caía na portaria de novo — e de novo, e de novo. Era um
+//    looping fechado: o único jeito de sair era desistir do app.
+// 2. **O botão de entrar aparece desde o primeiro segundo.** Ele já ficou
+//    escondido atrás de um prazo de 14 s e de um toque no botão de seguir, e as
+//    duas coisas pareciam uma porta sem maçaneta.
+// 3. **No navegador embutido do Instagram não há portaria nenhuma.** Ali os
+//    dados salvos somem sozinhos, então nada do que a pessoa responder vai ser
+//    lembrado — e ela voltaria para a mesma tela na próxima vez. O que importa
+//    naquele contexto é tirá-la de lá, e é só isso que a tela diz.
+// 4. **"Seguir e baixar" faz as duas coisas**: dispara a instalação e abre o
+//    perfil. Instalado, o app passa a abrir pelo ícone, e o caminho do Instagram
+//    deixa de ser a única porta de entrada.
+function Portaria({ temDados, podeInstalar, onInstalar, onCopiarLink, onEntrar }) {
+  const [ajuda, setAjuda] = useState(false);
+
+  const seguir = () => {
+    // Libera ANTES de sair: é isto que impede o looping de quem volta pela bio.
+    onEntrar({ seguiu: true });
+    if (podeInstalar) { try { onInstalar(); } catch (e) {} }
+    setTimeout(() => {
+      try { window.open(LINK_INSTAGRAM, "_blank", "noopener"); }
+      catch (e) { window.location.href = LINK_INSTAGRAM; }
+    }, podeInstalar ? 700 : 0);
+  };
+
+  if (NAVEGADOR_INAPP) {
+    return (
+      <div style={{ ...S.app, minHeight: "100vh", display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", padding: "32px 22px", textAlign: "center" }}>
+        <div style={{ ...S.logo, fontSize: 32, marginBottom: 6 }}>Treino Livre</div>
+        <div style={{ height: 4, width: 90, background: GRAD_LINHA, borderRadius: 2, margin: "10px 0 24px" }} />
+        <div style={{ fontSize: 18, fontWeight: 900, lineHeight: 1.4, marginBottom: 12, maxWidth: 340 }}>
+          Abra no Chrome para não perder seus treinos
+        </div>
+        <div style={{ fontSize: 14, color: "var(--cinza)", lineHeight: 1.65, maxWidth: 340, marginBottom: 24 }}>
+          Você está no navegador de dentro do Instagram, que apaga os dados salvos sozinho.
+          Toque nos <b>⋮</b> (ou <b>···</b>) no canto da tela e escolha <b>“Abrir no navegador”</b>.
+        </div>
+        <button style={{ ...S.btn, width: "100%", maxWidth: 340, marginBottom: 10 }} onClick={onCopiarLink}>
+          📋 Copiar o link do app
+        </button>
+        <button style={{ ...S.btnGhost, width: "100%", maxWidth: 340, fontWeight: 800 }}
+          onClick={() => onEntrar({ seguiu: false })}>
+          Continuar assim mesmo
+        </button>
+        <div style={{ fontSize: 12, color: "var(--cinza2)", marginTop: 20, lineHeight: 1.6, maxWidth: 320 }}>
+          Feito por @{INSTAGRAM}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ ...S.app, minHeight: "100vh", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", padding: "32px 22px", textAlign: "center" }}>
+      <div style={{ ...S.logo, fontSize: 32, marginBottom: 6 }}>Treino Livre</div>
+      <div style={{ height: 4, width: 90, background: GRAD_LINHA, borderRadius: 2, margin: "10px 0 24px" }} />
+
+      <div style={{ fontSize: 19, fontWeight: 900, lineHeight: 1.4, marginBottom: 12, maxWidth: 350 }}>
+        Siga e baixe o app
+      </div>
+      <div style={{ fontSize: 14.5, color: "var(--cinza)", lineHeight: 1.7, maxWidth: 350, marginBottom: 24 }}>
+        Siga para ter sempre acesso ao app e acompanhar as novidades. É por lá que saem as
+        atualizações e os treinos novos. Tudo de graça, sem anúncio e sem cadastro.
+      </div>
+
+      <button style={{ ...S.btn, width: "100%", maxWidth: 340, marginBottom: 10, fontSize: 16 }} onClick={seguir}>
+        Seguir e baixar o app
+      </button>
+      <button style={{ ...S.btnGhost, width: "100%", maxWidth: 340, fontWeight: 800 }}
+        onClick={() => onEntrar({ seguiu: false })}>
+        Entrar no app →
+      </button>
+
+      <button onClick={() => setAjuda(true)}
+        style={{ border: "none", background: "transparent", color: "#E1306C", fontSize: 13,
+          fontWeight: 800, textDecoration: "underline", cursor: "pointer", marginTop: 18, padding: 6 }}>
+        Como instalar no meu celular?
+      </button>
+
+      <div style={{ fontSize: 12, color: "var(--cinza2)", marginTop: 14, lineHeight: 1.6, maxWidth: 320 }}>
+        {temDados
+          ? "Seus treinos continuam salvos neste aparelho. Esta tela aparece uma vez só."
+          : "Esta tela aparece uma vez só. Depois o app abre direto."}
+      </div>
+
+      {ajuda && <ComoInstalar onFechar={() => setAjuda(false)} onCopiarLink={onCopiarLink} />}
+    </div>
+  );
+}
 function TreinoLivre() {
   const [aba, setAba] = useState("inicio");
   const [treinos, setTreinos] = useState([]);
@@ -8731,6 +9049,9 @@ function TreinoLivre() {
   // A portaria passou. Fica no mesmo registro do resto, então sobrevive a
   // recarga e a fechar o app, e acompanha o backup.
   const [entrou, setEntrou] = useState(false);
+  // A abertura roda uma vez por carregamento. Não fica guardada: é a marca do
+  // app, não um aviso a ser dispensado.
+  const [abertura, setAbertura] = useState(true);
   const [exercicioAberto, setExercicioAberto] = useState(null);
   const [editandoTreino, setEditandoTreino] = useState(null);
   const [baseNovoEx, setBaseNovoEx] = useState(null);   // exercício copiado ao criar variação
@@ -8933,6 +9254,33 @@ function TreinoLivre() {
       window.removeEventListener("appinstalled", aoInstalar);
     };
   }, []);
+  // Tocar em "seguir" manda a pessoa para fora do navegador, e ela volta pelo
+  // link da bio — num carregamento novo. Se a liberação só fosse gravada no
+  // respiro de 400 ms, ela voltaria para a portaria, tocaria em seguir de novo,
+  // sairia de novo: o looping relatado. Por isso a gravação aqui é imediata e
+  // direta no armazenamento, antes de qualquer navegação.
+  const liberarPortaria = (info) => {
+    setEntrou(true);
+    if (info && info.seguiu) setConvite(false);
+    registrarEvento(info && info.seguiu ? "portaria-seguiu" : "portaria-entrou");
+    try {
+      const d = JSON.parse(store.get(STORAGE_KEY) || "{}");
+      d.entrou = true;
+      if (info && info.seguiu) d.convite = false;
+      store.set(STORAGE_KEY, JSON.stringify(d));
+    } catch (e) {}
+  };
+
+  // "Baixar" sempre leva a algum lugar: ao dialogo do navegador quando ele existe,
+  // e ao passo a passo quando nao existe. Antes, no iPhone, o botao simplesmente
+  // nao aparecia — e a pessoa concluia que o app nao podia ser instalado.
+  const [comoInstalar, setComoInstalar] = useState(false);
+  const baixarApp = () => {
+    if (promptInstalar) { instalarApp(); return; }
+    registrarEvento("como-instalar");
+    setComoInstalar(true);
+  };
+
   const instalarApp = async () => {
     if (!promptInstalar) return;
     registrarEvento("instalacao-oferecida");
@@ -10068,9 +10416,12 @@ function TreinoLivre() {
   // por um link de ficha tem o conteúdo lido normalmente, e o convite para
   // adicionar aparece assim que a porta abre. Trocar isso por um desvio mais
   // acima faria o link compartilhado morrer na porta.
+  if (abertura) return <Abertura onFim={() => setAbertura(false)} />;
+
   if (!entrou) {
     return <Portaria temDados={historico.length > 0 || treinos.length > 0}
-      onEntrar={() => { registrarEvento("portaria"); setEntrou(true); }} />;
+      podeInstalar={!!promptInstalar} onInstalar={instalarApp} onCopiarLink={copiarLink}
+      onEntrar={liberarPortaria} />;
   }
 
   return (
@@ -10097,7 +10448,7 @@ function TreinoLivre() {
             }}
             onDispensarConvite={() => setConvite(false)}
             onCopiarLink={copiarLink}
-            onInstalar={promptInstalar ? instalarApp : null} />
+            onInstalar={baixarApp} instalado={JA_INSTALADO} />
         )}
         {aba === "ajustes" && (
           <TelaAjustes tema={tema} onTema={() => setTema(tema === "escuro" ? "claro" : "escuro")}
@@ -10106,7 +10457,7 @@ function TreinoLivre() {
             avisar={avisar} ultimoBackup={ultimoBackup} totalEx={todos.length} historico={historico}
             onBaixarBackup={baixarBackup} onRestaurarArquivo={restaurarDeArquivo}
             onExportar={exportarDados} onImportar={importarDados}
-            onInstalar={promptInstalar ? instalarApp : null}
+            onInstalar={baixarApp} instalado={JA_INSTALADO}
             voz={voz} setVoz={setVoz} vozAtiva={vozAtiva}
             onAlternarVoz={() => (vozAtiva ? desligarVoz() : ligarVoz())}
             onAjudaVoz={() => setAjudaVoz(true)}
@@ -10268,6 +10619,7 @@ function TreinoLivre() {
         style={{ display: "none" }} tabIndex={-1} aria-hidden="true" />
 
       <Celebracao festa={festa} onFechar={fecharFesta} />
+      {comoInstalar && <ComoInstalar onFechar={() => setComoInstalar(false)} onCopiarLink={copiarLink} />}
 
       {versaoNova && (
         <div role="status" style={{ position: "fixed", left: 12, right: 12, zIndex: 47,

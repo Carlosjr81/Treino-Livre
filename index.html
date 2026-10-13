@@ -469,7 +469,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-13a";
+const VERSAO_APP = "2026-10-13b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5726,7 +5726,7 @@ function FaixaProgresso({ est, historico, meta, onAbrirProgresso }) {
 // ---------------- TELA INICIAL ----------------
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
   avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
-  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado }) {
+  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
@@ -5765,6 +5765,12 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
           </div>
           <button style={S.btn} onClick={onInstalar}>Baixar o app</button>
         </div>
+      )}
+
+      {/* Só enquanto não há nenhum treino feito. A tela inicial continua enxuta:
+          este painel some sozinho depois do primeiro. */}
+      {!historico.length && (
+        <BemVindo onAssistente={onAssistente} onFuncional={onFuncional} onEscolaVoz={onEscolaVoz} />
       )}
 
       {/* O que a pessoa vem fazer aqui: começar o treino */}
@@ -5852,6 +5858,76 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
           treinar hoje. Tudo fica guardado só no seu aparelho.
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------- PRIMEIRO CONTATO ----------------
+// O app tem duas coisas que ninguém descobre sozinho: que dá para ditar em vez
+// de digitar, e que a câmera conta as repetições. As duas estavam atrás de um
+// botão pequeno, e quem não sabia que existiam não ia procurar.
+//
+// Regras desta dica, e são o que a separa de propaganda dentro do app:
+//
+// - **Uma de cada vez**, nunca duas na mesma tela.
+// - **Some para sempre** ao ser usada ou dispensada (`dicas`, persistido).
+// - **Só aparece onde serve**: a da voz no meio do treino, que é quando digitar
+//   incomoda; a da câmera só depois da primeira, e só quando há uma série de
+//   verdade para contar.
+// - **Nunca durante o descanso**: ali a tela já tem cronômetro e a pessoa está
+//   contando os segundos.
+function DicaInicial({ icone, titulo, texto, acoes, onFechar }) {
+  return (
+    <div style={{ ...S.card, borderColor: "#7CFF3C55", background: "rgba(124,255,60,0.055)" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
+        <span aria-hidden="true" style={{ fontSize: 22, lineHeight: 1.1 }}>{icone}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 900 }}>{titulo}</div>
+          <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, marginTop: 4 }}>{texto}</div>
+        </div>
+        <button onClick={onFechar} aria-label="Dispensar esta dica"
+          style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 14, border: "none",
+            background: "transparent", color: "var(--cinza)", fontSize: 15, cursor: "pointer" }}>✕</button>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>{acoes}</div>
+    </div>
+  );
+}
+
+// ---------------- BOAS-VINDAS ----------------
+// A tela inicial é enxuta de propósito, e continua sendo: este painel só existe
+// enquanto não há nenhum treino no histórico, e some sozinho depois do primeiro.
+// Quem chega não sabe o que o app faz, e a lista de fichas sozinha não conta —
+// ela parece uma agenda. As três linhas aqui são as três coisas que fazem
+// alguém ficar.
+function BemVindo({ onAssistente, onFuncional, onEscolaVoz }) {
+  const linha = (icone, titulo, texto) => (
+    <div style={{ display: "flex", gap: 11, alignItems: "flex-start", marginBottom: 11 }}>
+      <span aria-hidden="true" style={{ fontSize: 19, lineHeight: 1.2, width: 24, flexShrink: 0 }}>{icone}</span>
+      <div style={{ fontSize: 13.5, lineHeight: 1.55 }}>
+        <b>{titulo}</b> <span style={{ color: "var(--cinza)" }}>{texto}</span>
+      </div>
+    </div>
+  );
+  return (
+    <div style={{ ...S.card, borderColor: "#E1306C55" }}>
+      <div style={{ ...S.label, color: "#E1306C" }}>👋 Primeira vez por aqui</div>
+      <div style={{ fontSize: 17, fontWeight: 900, margin: "8px 0 12px", lineHeight: 1.35 }}>
+        Anotar o treino sem parar o treino
+      </div>
+      {linha("🎤", "Dite em vez de digitar.", "“Jarvis, anote 80 por 10” e a série está registrada.")}
+      {linha("👁", "Ou deixe a câmera contar.", "Ela conta em voz alta, corrige a forma e registra sozinha.")}
+      {linha("📶", "Funciona sem internet.", "Tudo fica no seu aparelho. Sem cadastro, sem anúncio, de graça.")}
+      <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, margin: "4px 0 12px" }}>
+        Já deixei algumas fichas prontas aqui embaixo — é só tocar numa e começar.
+      </div>
+      <button style={{ ...S.btnGhost, marginBottom: 8, color: "#E1306C", borderColor: "#E1306C66", fontWeight: 800 }}
+        onClick={onAssistente}>
+        🧭 Prefiro um treino montado para mim
+      </button>
+      <button style={{ ...S.btnGhost, fontWeight: 800 }} onClick={onEscolaVoz}>
+        🎤 Quero testar os comandos de voz antes
+      </button>
     </div>
   );
 }
@@ -6926,7 +7002,8 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
 function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, descanso, setDescanso, som, setSom, onFinalizar, onDescartar, onVoltar, pedirConfirmacao, pesoCorporal,
   bpm, cardioEstado, onConectarCardio, onDesconectarCardio, vozCfg, contarAlto, onAlternarContagem,
   autoSerie, onAlternarAuto,
-  acoesVoz, vozAtiva, vozBarra, vozAnimado, onDescansando, responderVoz }) {
+  acoesVoz, vozAtiva, vozBarra, vozAnimado, onDescansando, responderVoz,
+  dicas, onDicaVista, onLigarVoz, onEscolaVoz }) {
   // Recorde e última execução de cada exercício: servem de referência ao lado de
   // cada série e permitem festejar o recorde no instante em que ele acontece.
   const recordes = useMemo(() => recordesPorExercicio(historico), [historico]);
@@ -7664,6 +7741,38 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           <div style={{ height: "100%", width: (total ? (feitas / total) * 100 : 0) + "%", background: GRAD_LINHA, borderRadius: 3, transition: "width .35s ease" }} />
         </div>
       </div>
+
+      {/* As duas coisas que ninguém descobre sozinho. Uma de cada vez, e só
+          fora do descanso — ali a tela já tem cronômetro e a pessoa está
+          contando os segundos. */}
+      {VOZ_OUVE && !dicas.voz && !fimDescanso && (
+        <DicaInicial icone="🎤" titulo="Dá para ditar em vez de digitar"
+          texto={"Diga “Jarvis, anote 80 por 10” e ele preenche a série, marca o ✓ e já começa o descanso. Suas mãos ficam no ferro."}
+          onFechar={() => onDicaVista("voz")}
+          acoes={
+            <React.Fragment>
+              <button style={{ ...S.btn, flex: 1 }}
+                onClick={() => { onDicaVista("voz"); if (!vozAtiva && onLigarVoz) onLigarVoz(); }}>
+                {vozAtiva ? "Já estou ouvindo" : "Ligar o Jarvis"}
+              </button>
+              <button style={{ ...S.btnGhost, flex: 1, fontWeight: 800 }}
+                onClick={() => { onDicaVista("voz"); if (onEscolaVoz) onEscolaVoz(); }}>
+                Ver os comandos
+              </button>
+            </React.Fragment>
+          } />
+      )}
+      {dicas.voz && !dicas.scan && !fimDescanso && alvo && (
+        <DicaInicial icone="👁" titulo="Ou deixe a câmera contar"
+          texto="Apoie o celular de pé, uns 2 metros de distância. Ele conta as repetições, fala o número em voz alta, corrige a forma e registra a série sozinho."
+          onFechar={() => onDicaVista("scan")}
+          acoes={
+            <button style={{ ...S.btn, flex: 1 }}
+              onClick={() => { onDicaVista("scan"); setScanner(true); }}>
+              Experimentar agora
+            </button>
+          } />
+      )}
 
       {/* Monitor cardíaco: aparece ligado quando há batimento, e some do caminho
           quando o navegador não fala Bluetooth — oferecer o que não existe cansa. */}
@@ -9052,6 +9161,10 @@ function TreinoLivre() {
   // A abertura roda uma vez por carregamento. Não fica guardada: é a marca do
   // app, não um aviso a ser dispensado.
   const [abertura, setAbertura] = useState(true);
+  // Quais dicas de primeiro contato já foram vistas. Some para sempre: dica que
+  // volta não é dica, é propaganda.
+  const [dicas, setDicas] = useState({});
+  const marcarDica = (k) => setDicas((d) => (d[k] ? d : { ...d, [k]: 1 }));
   const [exercicioAberto, setExercicioAberto] = useState(null);
   const [editandoTreino, setEditandoTreino] = useState(null);
   const [baseNovoEx, setBaseNovoEx] = useState(null);   // exercício copiado ao criar variação
@@ -9301,7 +9414,7 @@ function TreinoLivre() {
   const exportarDados = () => {
     // O backup não leva a sessão em andamento de propósito: restaurar num outro
     // aparelho um treino pela metade só confundiria.
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, voz, convite, entrou, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, voz, convite, entrou, dicas, seedV3: true });
     setModal({
       msg: "Backup dos seus dados. Toque em Copiar e guarde em local seguro (ex.: cole numa conversa sua no WhatsApp). Para restaurar, use Importar dados.",
       texto: dados,
@@ -9379,6 +9492,7 @@ function TreinoLivre() {
         seed = !!d.seedV3;
         if (d.convite === false) setConvite(false);
         if (d.entrou) setEntrou(true);
+        if (d.dicas && typeof d.dicas === "object") setDicas(d.dicas);
         if (d.meta) mt = d.meta;
         md = d.medidas || [];
         ft = d.fotos || [];
@@ -9478,10 +9592,10 @@ function TreinoLivre() {
   const dadosRef = useRef("");
   useEffect(() => {
     if (!carregado) return;
-    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, seedV3: true });
+    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, seedV3: true });
     const t = setTimeout(() => store.set(STORAGE_KEY, dadosRef.current), 400);
     return () => clearTimeout(t);
-  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, carregado]);
+  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, carregado]);
 
   // Fechou o app ou trocou de aba no meio do treino? Grava na hora, sem esperar o respiro.
   useEffect(() => {
@@ -9966,7 +10080,7 @@ function TreinoLivre() {
         if (blob) fotosEx[e.id] = await blobParaBase64(blob);
       } catch (err) {}
     }
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, lembrete, voz, convite, entrou, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, lembrete, voz, convite, entrou, dicas, seedV3: true });
     try {
       const blob = new Blob([dados], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -10440,6 +10554,7 @@ function TreinoLivre() {
             onAssistente={() => setAba("assistente")}
             onTreinoLivre={iniciarTreinoLivre}
             onFuncional={() => setAba("funcional")}
+            onEscolaVoz={() => setAba("escolaVoz")}
             convite={convite}
             onSeguir={() => {
               registrarEvento("seguiu-instagram");
@@ -10533,6 +10648,8 @@ function TreinoLivre() {
             onAlternarAuto={() => setVoz((v) => ({ ...v, autoSerie: v.autoSerie === false }))}
             onConectarCardio={conectarCardio} onDesconectarCardio={desconectarCardio}
             onDescansando={setDescansando} responderVoz={responderVoz}
+            dicas={dicas} onDicaVista={marcarDica}
+            onLigarVoz={ligarVoz} onEscolaVoz={() => setAba("escolaVoz")}
             onFinalizar={finalizarSessao}
             onVoltar={() => setAba("inicio")}
             onDescartar={() => { setSessao(null); setAba("inicio"); }} />

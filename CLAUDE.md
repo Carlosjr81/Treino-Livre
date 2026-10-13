@@ -123,6 +123,7 @@ Tudo num único registro em `localStorage["treinolivre:v1"]`:
                botaoFone, contarAlto, autoSerie },        // Jarvis e Eyes Scan
   convite:   true,                              // o convite para seguir ainda não foi respondido
   entrou:    true,                              // a portaria já foi passada
+  dicas:     { voz: 1, scan: 1 },               // dicas de primeiro contato já vistas
   historico[].bpm: { medio, max, amostras } | ausente,     // monitor cardíaco
   ultimoBackup: 1725100000000,
   descanso: 90, som: true, tema: "escuro", meta: 3, seedV3: true
@@ -467,6 +468,28 @@ novo, nada para baixar, funciona offline.
 **Um toque pula**, e `prefers-reduced-motion` mostra direto o quadro final. A
 abertura roda uma vez por carregamento e não é guardada: é a marca do app, não
 um aviso a ser dispensado.
+
+## Primeiro contato (`BemVindo`, `DicaInicial`, campo `dicas`)
+
+O app tem duas coisas que **ninguém descobre sozinho**: que dá para ditar em vez
+de digitar, e que a câmera conta as repetições. As duas estavam atrás de um botão
+pequeno, e quem não sabia que existiam não ia procurar.
+
+- **`BemVindo`** aparece na tela inicial só enquanto o histórico está vazio, e
+  some sozinho depois do primeiro treino. A regra de não acrescentar cartão na
+  tela inicial continua valendo: este não fica. Quem chega não sabe o que o app
+  faz, e a lista de fichas sozinha não conta — ela parece uma agenda.
+- **`DicaInicial`** mostra, dentro do treino, uma dica de cada vez: primeiro a da
+  voz (que é quando digitar incomoda), e só depois da primeira a da câmera.
+
+As regras são o que separa isso de propaganda dentro do app:
+
+1. **Uma de cada vez**, nunca duas na mesma tela.
+2. **Some para sempre** ao ser usada ou dispensada (`dicas`, persistido).
+3. **Nunca durante o descanso**: ali a tela já tem cronômetro e a pessoa está
+   contando os segundos.
+4. A da câmera exige uma série de verdade para contar (`alvo`), e a da voz exige
+   `VOZ_OUVE` — oferecer o que não funciona naquele navegador cansa.
 
 ## Crédito ao autor
 
@@ -1032,6 +1055,10 @@ Roteiro mínimo depois de mexer no app:
     continua marcada.
 32. "Jarvis, bora" fora de treino: começa a ficha sugerida.
 33. Abrir o Eyes Scan, fazer 10 repetições de verdade e conferir a contagem.
+33l. Zerar `dicas` e `historico`, abrir: o painel de boas-vindas tem de
+     aparecer, e sumir sozinho depois do primeiro treino concluído.
+33m. Dentro do treino, dispensar a dica da voz: a da câmera entra no lugar.
+     Dispensar a segunda: nenhuma das duas volta, nem depois de recarregar.
 33i. **O teste do looping.** Apagar `entrou`, abrir o app, tocar em "Seguir e
      baixar", voltar e recarregar: tem de entrar direto, sem portaria. Se a
      portaria voltar, o looping voltou.

@@ -471,7 +471,17 @@ const { useState, useEffect, useRef, useMemo, useCallback } = React;
 const memoria = {};
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch (e) { return memoria[k] != null ? memoria[k] : null; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { memoria[k] = v; } },
+  // **Falhar em silêncio aqui apaga treinos.** Quando o localStorage recusa a
+  // escrita — cota cheia, janela anônima, armazenamento bloqueado, navegador
+  // embutido — o app guardava na memória e seguia se comportando como se tivesse
+  // salvado: marcava a série, mostrava o histórico, comemorava o recorde. A
+  // pessoa só descobria ao reabrir, com tudo perdido e sem nunca ter visto um
+  // aviso. Num app em que os dados vivem só no aparelho, isso é o pior que pode
+  // acontecer — então a falha agora é devolvida e vira um aviso que não some.
+  set(k, v) {
+    try { localStorage.setItem(k, v); return true; }
+    catch (e) { memoria[k] = v; return false; }
+  },
 };
 const STORAGE_KEY = "treinolivre:v1";
 const LINK_APP = "https://carlosjr81.github.io/Treino-Livre/";
@@ -483,7 +493,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-13d";
+const VERSAO_APP = "2026-10-13e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -1654,6 +1664,51 @@ function avaliarEnquadramento(lm) {
     return { chave: "afaste", texto: "Afaste-se", fala: "Você está muito perto. Dê um passo para trás.", seta: "afasta" };
   }
   return { chave: "ok", texto: "Enquadrado", fala: "Enquadrado. Pode começar.", ok: true };
+}
+
+// ---- O narrador ----
+// Falar não precisa do microfone. Quem treina com o celular no bolso e fone
+// bluetooth não vê frase nenhuma na tela — e, até aqui, metade das confirmações
+// do app só existia escrita, ou só saía com o Jarvis ouvindo. São duas coisas
+// diferentes: `voz.falar` é ele falar, `vozAtiva` é ele ouvir.
+//
+// `voz.narrar` liga os avisos do treino (série anotada, descanso, troca de
+// exercício). Fica separado de `contarAlto`, que é a contagem do scanner: numa
+// academia cheia a pessoa pode querer um e não o outro.
+// "90 segundos" é como se escreve; "um minuto e meio" é como se fala.
+function textoDuracao(seg) {
+  const s = Math.round(seg || 0);
+  if (s < 60) return s + " segundos";
+  const m = Math.floor(s / 60), r = s % 60;
+  const base = m + (m === 1 ? " minuto" : " minutos");
+  if (!r) return base;
+  if (r === 30) return base + " e meio";
+  return base + " e " + r + " segundos";
+}
+
+function narrarVoz(texto, cfg, fila) {
+  if (!texto || !cfg || cfg.falar === false || cfg.narrar === false) return;
+  jarvisFalar(texto, {
+    falar: true,
+    vozNome: cfg.vozNome,
+    velocidade: cfg.velocidade || 1.1,
+    animado: cfg.animado,
+    fila: !!fila,
+  });
+}
+
+// Com o celular no bolso e a tela apagada, o navegador pode engolir o áudio do
+// fim do descanso. A notificação é o aviso que atravessa isso — e só entra
+// quando o app NÃO está na frente, senão vira aviso duplicado.
+function avisarEmSegundoPlano(titulo, corpo) {
+  try {
+    if (typeof document !== "undefined" && document.visibilityState === "visible") return;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    new Notification(titulo, {
+      body: corpo, icon: "icon-192.png", badge: "icon-192.png",
+      tag: "treino-livre-descanso", renotify: true,
+    });
+  } catch (e) {}
 }
 
 // ---- Postura: a correção que não pode errar ----
@@ -6345,9 +6400,12 @@ function SeletorVoz({ voz, setVoz }) {
   );
 }
 
+const AVISO_DISPONIVEL = typeof Notification !== "undefined";
+
 function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, setMeta,
   lembrete, setLembrete, avisar, ultimoBackup, totalEx, historico,
   onBaixarBackup, onRestaurarArquivo, onExportar, onImportar, onInstalar, instalado, onVoltar,
+  pedirAvisoDescanso,
   voz, setVoz, vozAtiva, onAlternarVoz, onAjudaVoz, onEscolaVoz, onDiagnosticoVoz, onAtualizar }) {
   const fmtSeg = (sg) => Math.floor(sg / 60) + ":" + (sg % 60 < 10 ? "0" : "") + (sg % 60);
   return (
@@ -6472,6 +6530,34 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
                 {voz.falar ? "🔊 Sim" : "🔇 Só na tela"}
               </button>
             </div>
+
+            {/* Falar e ouvir são coisas diferentes, e este é o ajuste de quem
+                treina com o celular no bolso: sem ele, metade das confirmações
+                do treino só existia escrita na tela. */}
+            {voz.falar && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+                <span style={{ fontSize: 15, fontWeight: 700 }}>Avisar o treino em voz</span>
+                <button onClick={() => setVoz((v) => ({ ...v, narrar: v.narrar === false }))}
+                  aria-pressed={voz.narrar !== false}
+                  style={{ ...S.btnGhost, width: "auto", padding: "9px 14px" }}>
+                  {voz.narrar !== false ? "🔊 Sim" : "🔇 Não"}
+                </button>
+              </div>
+            )}
+            {voz.falar && voz.narrar !== false && (
+              <div style={{ fontSize: 11.5, color: "var(--cinza2)", marginBottom: 14, lineHeight: 1.5 }}>
+                Série anotada, descanso começando e acabando, e qual exercício vem agora —
+                falado, sem precisar tirar o celular do bolso.
+                {AVISO_DISPONIVEL && Notification.permission !== "granted" && (
+                  <button onClick={pedirAvisoDescanso}
+                    style={{ display: "block", marginTop: 8, border: "1px solid var(--borda2)",
+                      background: "transparent", color: "#E1306C", borderRadius: 10,
+                      padding: "8px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>
+                    🔔 Avisar também com a tela apagada
+                  </button>
+                )}
+              </div>
+            )}
 
             {voz.falar && (
               <div style={{ marginBottom: 16 }}>
@@ -6646,7 +6732,202 @@ function CardExercicio({ ex, onAbrir, onExcluir }) {
   );
 }
 
-function DetalheExercicio({ ex, onVoltar, onVariacao, onTrocarFoto }) {
+// ---------------- EVOLUÇÃO DE UM EXERCÍCIO ----------------
+// "Estou melhorando no supino?" é a pergunta que faz alguém abrir um app de
+// treino num sábado à tarde, e até aqui o app não respondia: o dado estava
+// todo no histórico, mas a única forma de ver era rolar treino por treino.
+//
+// Uma sessão vira um ponto. A carga do ponto é a **maior carga daquela sessão**,
+// não a média: progressão de força se lê pelo topo, e a média despenca só porque
+// a pessoa fez uma série leve no fim.
+function seriesDoExercicio(historico, exId) {
+  const pontos = [];
+  (historico || []).forEach((h) => {
+    const itens = (h.itens || []).filter((it) => it.exercicioId === exId);
+    if (!itens.length) return;
+    let cargaMax = 0, volume = 0, reps = 0, series = 0, seg = 0, melhor1RM = 0;
+    const feitas = [];
+    itens.forEach((it) => {
+      (it.series || []).forEach((s) => {
+        if (!serieConta(s)) return;      // aquecimento não entra em progressão
+        series += 1;
+        if (ehTempo(s)) { seg += segundosDe(s); feitas.push(segundosDe(s) + "s"); return; }
+        const c = cargaDe(s), r = repsDe(s);
+        reps += r;
+        volume += c * r;
+        if (c > cargaMax) cargaMax = c;
+        const um = est1RM(c, r);
+        if (um > melhor1RM) melhor1RM = um;
+        feitas.push(c + "×" + r);
+      });
+    });
+    if (!series) return;
+    pontos.push({
+      data: new Date(h.data), nome: h.nome,
+      cargaMax: cargaMax, volume: volume, reps: reps, series: series,
+      segundos: seg, um: melhor1RM, feitas: feitas,
+    });
+  });
+  return pontos.sort((a, b) => a.data - b.data);
+}
+
+function GraficoEvolucaoEx({ pontos, campo, unidade }) {
+  const vals = pontos.map((p) => p[campo]);
+  if (pontos.length < 2 || !vals.some((v) => v > 0)) {
+    return (
+      <div style={{ fontSize: 13, color: "var(--cinza)", padding: "10px 0", lineHeight: 1.6 }}>
+        Faça este exercício em pelo menos dois treinos para a linha aparecer.
+      </div>
+    );
+  }
+  const W = 320, H = 140, x0 = 42, x1 = 310, y0 = 108, y1 = 14;
+  const vmin = Math.min.apply(null, vals), vmax = Math.max.apply(null, vals);
+  const faixa = vmax - vmin || 1;
+  const px = (i) => x0 + (i / (pontos.length - 1)) * (x1 - x0);
+  const py = (v) => y0 - ((v - vmin) / faixa) * (y0 - y1);
+  const linha = pontos.map((p, i) => px(i).toFixed(1) + "," + py(p[campo]).toFixed(1)).join(" ");
+  const fmt = (d) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const dif = Math.round((vals[vals.length - 1] - vals[0]) * 10) / 10;
+  return (
+    <React.Fragment>
+      <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", height: "auto" }} aria-hidden="true">
+        <line x1={x0} y1={y0} x2={x1} y2={y0} stroke="var(--borda)" strokeWidth="1" />
+        <text x="4" y={y1 + 4} fontSize="10" fill="var(--cinza2)">{Math.round(vmax)}</text>
+        <text x="4" y={y0 + 4} fontSize="10" fill="var(--cinza2)">{Math.round(vmin)}</text>
+        <polyline points={linha} fill="none" stroke="#E1306C" strokeWidth="2.5"
+          strokeLinecap="round" strokeLinejoin="round" />
+        {pontos.map((p, i) => (
+          <circle key={i} cx={px(i)} cy={py(p[campo])} r={i === pontos.length - 1 ? 4.5 : 3} fill="#E1306C" />
+        ))}
+        <text x={x0} y={H - 6} fontSize="10" fill="var(--cinza2)">{fmt(pontos[0].data)}</text>
+        <text x={x1} y={H - 6} fontSize="10" fill="var(--cinza2)" textAnchor="end">{fmt(pontos[pontos.length - 1].data)}</text>
+      </svg>
+      <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 4 }}>
+        {dif > 0 ? "▲ +" + dif + " " + unidade + " desde a primeira vez"
+          : dif < 0 ? "▼ " + dif + " " + unidade + " desde a primeira vez"
+            : "Igual à primeira vez"}
+      </div>
+    </React.Fragment>
+  );
+}
+
+function EvolucaoExercicio({ ex, historico, onVoltar }) {
+  const [campo, setCampo] = useState("cargaMax");
+  const pontos = useMemo(() => seriesDoExercicio(historico, ex.id), [historico, ex.id]);
+  const g = grupoPorId(ex.grupo);
+  const porTempo = pontos.length > 0 && pontos.every((p) => p.segundos > 0 && p.cargaMax === 0);
+
+  if (!pontos.length) {
+    return (
+      <div style={{ padding: "0 18px" }}>
+        <button style={S.voltar} onClick={onVoltar}>← Voltar</button>
+        <div style={{ ...S.card, textAlign: "center" }}>
+          <div style={{ fontSize: 34, marginBottom: 10 }} aria-hidden="true">📈</div>
+          <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 8 }}>Ainda sem histórico aqui</div>
+          <div style={{ fontSize: 13.5, color: "var(--cinza)", lineHeight: 1.65 }}>
+            Faça <b>{ex.nome}</b> num treino e esta tela passa a mostrar a carga subindo, o volume
+            de cada sessão e o seu recorde.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const ultimo = pontos[pontos.length - 1];
+  const recorde = pontos.reduce((a, p) => Math.max(a, p.cargaMax), 0);
+  const melhorVol = pontos.reduce((a, p) => Math.max(a, p.volume), 0);
+  const melhorUm = pontos.reduce((a, p) => Math.max(a, p.um), 0);
+  const totalSeries = pontos.reduce((a, p) => a + p.series, 0);
+  const campos = porTempo
+    ? [["segundos", "Tempo total", "s"]]
+    : [["cargaMax", "Carga máxima", "kg"], ["volume", "Volume", "kg"], ["reps", "Repetições", "reps"]];
+  const atual = campos.find((c) => c[0] === campo) || campos[0];
+
+  const caixa = (titulo, valor, cor) => (
+    <div style={{ flex: "1 1 80px", minWidth: 80, background: "var(--bg2)", border: "1px solid var(--borda)",
+      borderRadius: 12, padding: "10px 11px" }}>
+      <div style={{ fontSize: 17, fontWeight: 900, color: cor || "var(--texto)" }}>{valor}</div>
+      <div style={{ fontSize: 10, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.4, marginTop: 2 }}>{titulo}</div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <button style={S.voltar} onClick={onVoltar}>← Voltar</button>
+
+      <div style={{ ...S.card, borderLeft: "4px solid " + corGrupo(g) }}>
+        <div style={{ ...S.label, color: corGrupo(g) }}>Sua evolução</div>
+        <div style={{ fontSize: 19, fontWeight: 900, margin: "6px 0 14px", lineHeight: 1.25 }}>{ex.nome}</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {porTempo
+            ? caixa("Melhor tempo", Math.max.apply(null, pontos.map((p) => p.segundos)) + "s", "#E1306C")
+            : caixa("Recorde", recorde + " kg", "#E1306C")}
+          {!porTempo && caixa("1RM estimado", melhorUm + " kg")}
+          {caixa("Treinos", pontos.length)}
+          {caixa("Séries", totalSeries)}
+        </div>
+      </div>
+
+      <div style={S.card}>
+        {campos.length > 1 && (
+          <div style={{ display: "flex", gap: 7, marginBottom: 12 }}>
+            {campos.map((c) => {
+              const on = c[0] === atual[0];
+              return (
+                <button key={c[0]} onClick={() => setCampo(c[0])} aria-pressed={on}
+                  style={{ flex: 1, border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"),
+                    background: on ? "#E1306C22" : "transparent", color: on ? "#E1306C" : "var(--texto)",
+                    borderRadius: 11, padding: "9px 6px", fontWeight: 800, fontSize: 12.5, cursor: "pointer" }}>
+                  {c[1]}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <GraficoEvolucaoEx pontos={pontos} campo={atual[0]} unidade={atual[2]} />
+      </div>
+
+      <div style={S.card}>
+        <div style={S.label}>Treino a treino</div>
+        <div style={{ fontSize: 12, color: "var(--cinza)", margin: "6px 0 12px", lineHeight: 1.5 }}>
+          Do mais recente para o mais antigo. Séries de aquecimento não entram na conta.
+        </div>
+        {pontos.slice().reverse().slice(0, 12).map((p, i) => (
+          <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start",
+            padding: "9px 0", borderTop: i ? "1px solid var(--borda)" : "none" }}>
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", width: 54, flexShrink: 0, paddingTop: 2 }}>
+              {p.data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 800, lineHeight: 1.4 }}>{p.feitas.join("  ·  ")}</div>
+              <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 2 }}>
+                {p.volume > 0 ? fmtKg(p.volume) + " de volume" : p.segundos + "s no total"}
+                {p.cargaMax === recorde && p.cargaMax > 0 ? "  🏆 recorde" : ""}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ fontSize: 12, color: "var(--cinza2)", lineHeight: 1.6, padding: "0 2px 10px" }}>
+        O 1RM estimado vem da fórmula de Epley e serve de referência, não de meta:
+        ninguém precisa testar uma repetição máxima para saber que está progredindo.
+      </div>
+    </div>
+  );
+}
+
+function DetalheExercicio({ ex, historico, onVoltar, onVariacao, onTrocarFoto }) {
+  const [vendoEvolucao, setVendoEvolucao] = useState(false);
+  // Quantas vezes este exercício já foi feito: o botão só promete evolução
+  // quando existe evolução para mostrar.
+  const vezes = useMemo(
+    () => (historico || []).filter((hh) => (hh.itens || []).some((it) => it.exercicioId === ex.id)).length,
+    [historico, ex.id]
+  );
+  if (vendoEvolucao) {
+    return <EvolucaoExercicio ex={ex} historico={historico} onVoltar={() => setVendoEvolucao(false)} />;
+  }
   const g = grupoPorId(ex.grupo);
   const p = (ex.musc && ex.musc.p) || [];
   const s = (ex.musc && ex.musc.s) || [];
@@ -6657,10 +6938,23 @@ function DetalheExercicio({ ex, onVoltar, onVariacao, onTrocarFoto }) {
       <button style={S.voltar} onClick={onVoltar}>← Voltar</button>
       <div style={{ ...S.card, borderLeft: "4px solid " + corGrupo(g) }}>
         <div style={{ ...S.label, color: corGrupo(g) }}>{g.nome}{ex.equip ? " · " + ex.equip : ""}</div>
-        <div style={{ fontSize: 22, fontWeight: 900, margin: "6px 0 14px" }}>
+        <div style={{ fontSize: 22, fontWeight: 900, margin: "6px 0 10px" }}>
           {ex.nome}
           {ex.custom && <span style={S.tagCustom}>Meu</span>}
         </div>
+
+        {/* "Estou melhorando neste exercício?" é a pergunta que traz alguém ao app
+            fora do dia de treino. O dado sempre esteve no histórico; faltava a tela. */}
+        <button onClick={() => setVendoEvolucao(true)} disabled={!vezes}
+          style={{ width: "100%", marginBottom: 12, padding: "11px 12px", borderRadius: 12,
+            border: "1px solid " + (vezes ? "#E1306C66" : "var(--borda)"),
+            background: vezes ? "#E1306C14" : "transparent",
+            color: vezes ? "#E1306C" : "var(--cinza2)",
+            fontWeight: 800, fontSize: 13, cursor: vezes ? "pointer" : "default" }}>
+          {vezes
+            ? "📈 Minha evolução · " + vezes + " " + plural(vezes, "treino", "treinos")
+            : "📈 Faça este exercício para ver sua evolução aqui"}
+        </button>
 
         <ImagemExercicio ex={ex} />
 
@@ -6708,7 +7002,7 @@ function DetalheExercicio({ ex, onVoltar, onVariacao, onTrocarFoto }) {
   );
 }
 
-function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicioAberto, setExercicioAberto, onNovoExercicio, onExcluirCustom, onVariacao, onTrocarFoto }) {
+function TelaExercicios({ todos, exPorId, historico, grupoAberto, setGrupoAberto, exercicioAberto, setExercicioAberto, onNovoExercicio, onExcluirCustom, onVariacao, onTrocarFoto }) {
   const [busca, setBusca] = useState("");
   const [equip, setEquip] = useState(null);   // família de equipamento escolhida
 
@@ -6716,7 +7010,7 @@ function TelaExercicios({ todos, exPorId, grupoAberto, setGrupoAberto, exercicio
   // de alterar estado durante o render.
   const exAberto = exercicioAberto ? exPorId(exercicioAberto) : null;
   if (exAberto) {
-    return <DetalheExercicio ex={exAberto} onVoltar={() => setExercicioAberto(null)}
+    return <DetalheExercicio ex={exAberto} historico={historico} onVoltar={() => setExercicioAberto(null)}
       onVariacao={onVariacao} onTrocarFoto={onTrocarFoto} />;
   }
 
@@ -7396,11 +7690,16 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       }
       try { if (navigator.vibrate) navigator.vibrate([300, 120, 300]); } catch (e) {}
       // Com o celular no bolso, o bipe diz "acabou" mas não diz o que vem agora.
-      // Essa é a frase que evita tirar o telefone do bolso entre as séries.
-      if (vozAtiva && responderVoz) {
-        const prox = alvo ? " Próxima: série " + (alvo.si + 1) + " de " + nomeDoItem(alvo.ei) + "." : "";
-        responderVoz((vozAnimado ? animo(ANIMO_VOLTA, "volta") + " Descanso fechado." : "Descanso concluído.") + prox, true);
-      }
+      // Essa é a frase que evita tirar o telefone do bolso entre as séries — e
+      // ela não pode depender do microfone estar ligado: falar e ouvir são
+      // coisas diferentes, e quem treina de fone quer o retorno de qualquer jeito.
+      const prox = alvo ? " Próxima: série " + (alvo.si + 1) + " de " + nomeDoItem(alvo.ei) + "." : "";
+      const frase = (vozAnimado ? animo(ANIMO_VOLTA, "volta") + " Descanso fechado." : "Descanso concluído.") + prox;
+      if (vozAtiva && responderVoz) responderVoz(frase, true);
+      else narrarVoz(frase, vozCfg);
+      // E se a tela estiver apagada ou o app atrás de outro, o áudio pode nem
+      // tocar: a notificação é o que atravessa isso.
+      avisarEmSegundoPlano("Acabou o descanso", alvo ? "Próxima: " + nomeDoItem(alvo.ei) : "Volta para a série.");
     }
   }, [acabou, avisou, som]);
 
@@ -7592,9 +7891,19 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const seguinte = sessao.itens[ei + 1];
     const noMeioDoConjunto = !!(item.conjunto && seguinte && seguinte.conjunto === item.conjunto);
     if (!noMeioDoConjunto) iniciarDescanso(descansoDe(item));
+    // Confirmar em voz o que acabou de ser anotado: com o celular no bolso, o ✓
+    // na tela não existe. Frase curta de propósito — é confirmação, não relatório.
+    const quantas = item.series.length;
+    const seg = noMeioDoConjunto ? 0 : descansoDe(item) || descanso;
+    narrarVoz(
+      "Série " + (si + 1) + " de " + quantas + " anotada." +
+      (seg ? " Descanso de " + textoDuracao(seg) + "." : " Emenda no próximo."),
+      vozCfg
+    );
     // O ✓ na tela também merece a comemoração falada quando o Jarvis está ouvindo
     const recorde = conferirRecorde(item, serie);
     if (recorde && vozAtiva && responderVoz) responderVoz(recorde, true);
+    else if (recorde) narrarVoz(recorde, vozCfg, true);
   };
 
   // Festeja o recorde no instante em que ele acontece. Fica numa função à parte
@@ -9414,7 +9723,7 @@ function TreinoLivre() {
   // "preferido" fica gravado (é a escolha de usar comandos por voz); "ativa" é
   // só desta visita, porque ligar um microfone sozinho ao abrir o app seria
   // uma surpresa desagradável.
-  const [voz, setVoz] = useState({ preferido: false, falar: true, barra: 20, vozNome: null, velocidade: 1.1, animado: true, modo: "continuo", botaoFone: false, contarAlto: true, autoSerie: true });
+  const [voz, setVoz] = useState({ preferido: false, falar: true, barra: 20, vozNome: null, velocidade: 1.1, animado: true, modo: "continuo", botaoFone: false, contarAlto: true, autoSerie: true, narrar: true });
   const [vozAtiva, setVozAtiva] = useState(false);
   const [vozEstado, setVozEstado] = useState("desligado");
   const noToque = voz.modo === "toque";
@@ -9498,6 +9807,8 @@ function TreinoLivre() {
   // Onde a pessoa pôs o botão do Jarvis. Guardado: quem o tirou da frente uma
   // vez não quer encontrá-lo de volta no caminho na próxima abertura.
   const [botaoVoz, setBotaoVoz] = useState(null);
+  // A última gravação falhou? Vira faixa vermelha fixa, e não some sozinha.
+  const [semGravar, setSemGravar] = useState(false);
   const marcarDica = (k) => setDicas((d) => (d[k] ? d : { ...d, [k]: 1 }));
   const [exercicioAberto, setExercicioAberto] = useState(null);
   const [editandoTreino, setEditandoTreino] = useState(null);
@@ -9722,6 +10033,18 @@ function TreinoLivre() {
   // e ao passo a passo quando nao existe. Antes, no iPhone, o botao simplesmente
   // nao aparecia — e a pessoa concluia que o app nao podia ser instalado.
   const [comoInstalar, setComoInstalar] = useState(false);
+  // A notificação de fim de descanso só serve com permissão, e pedi-la sozinho
+  // no meio do treino seria uma janela no caminho de quem está levantando peso.
+  // Então ela é pedida aqui, por quem foi aos ajustes procurar isso.
+  const pedirAvisoDescanso = async () => {
+    try {
+      const r = await Notification.requestPermission();
+      avisar(r === "granted"
+        ? "Pronto. O fim do descanso vai avisar mesmo com a tela apagada."
+        : "Sem a permissão, o aviso só sai pelo som e pela voz.");
+    } catch (e) {}
+  };
+
   const baixarApp = () => {
     if (promptInstalar) { instalarApp(); return; }
     registrarEvento("como-instalar");
@@ -9785,7 +10108,8 @@ function TreinoLivre() {
           if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
             vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false,
             modo: d.voz.modo === "toque" ? "toque" : "continuo", botaoFone: !!d.voz.botaoFone,
-            contarAlto: d.voz.contarAlto !== false, autoSerie: d.voz.autoSerie !== false });
+            contarAlto: d.voz.contarAlto !== false, autoSerie: d.voz.autoSerie !== false,
+            narrar: d.voz.narrar !== false });
           setSessao(null);
           setAba("inicio");
           setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 100);
@@ -9865,7 +10189,7 @@ function TreinoLivre() {
     if (lb) setLembrete({ ativo: !!lb.ativo, hora: lb.hora || "18:00", dias: Array.isArray(lb.dias) ? lb.dias : [1, 2, 3, 4, 5] });
     if (vz) setVoz({ preferido: !!vz.preferido, falar: vz.falar !== false, barra: vz.barra === undefined ? 20 : vz.barra,
       vozNome: vz.vozNome || null, velocidade: vz.velocidade || 1.1, animado: vz.animado !== false,
-      modo: vz.modo === "toque" ? "toque" : "continuo", botaoFone: !!vz.botaoFone, contarAlto: vz.contarAlto !== false, autoSerie: vz.autoSerie !== false });
+      modo: vz.modo === "toque" ? "toque" : "continuo", botaoFone: !!vz.botaoFone, contarAlto: vz.contarAlto !== false, autoSerie: vz.autoSerie !== false, narrar: vz.narrar !== false });
     if (ss) { setSessao(ss); setAba("sessao"); }
     // Recarregou no meio do treino (ou o sistema descarregou o app): quem já
     // escolheu treinar por voz volta ouvindo. A permissão do microfone já foi
@@ -9928,13 +10252,19 @@ function TreinoLivre() {
   useEffect(() => {
     if (!carregado) return;
     dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, seedV3: true });
-    const t = setTimeout(() => store.set(STORAGE_KEY, dadosRef.current), 400);
+    const t = setTimeout(() => {
+      const deu = store.set(STORAGE_KEY, dadosRef.current);
+      setSemGravar((antes) => (antes === !deu ? antes : !deu));
+    }, 400);
     return () => clearTimeout(t);
   }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, carregado]);
 
   // Fechou o app ou trocou de aba no meio do treino? Grava na hora, sem esperar o respiro.
   useEffect(() => {
-    const gravarJa = () => { if (dadosRef.current) store.set(STORAGE_KEY, dadosRef.current); };
+    const gravarJa = () => {
+      if (!dadosRef.current) return;
+      if (!store.set(STORAGE_KEY, dadosRef.current)) setSemGravar(true);
+    };
     const aoEsconder = () => { if (document.visibilityState === "hidden") gravarJa(); };
     document.addEventListener("visibilitychange", aoEsconder);
     window.addEventListener("pagehide", gravarJa);
@@ -10484,7 +10814,8 @@ function TreinoLivre() {
             if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
               vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false,
               modo: d.voz.modo === "toque" ? "toque" : "continuo", botaoFone: !!d.voz.botaoFone,
-              contarAlto: d.voz.contarAlto !== false, autoSerie: d.voz.autoSerie !== false });
+              contarAlto: d.voz.contarAlto !== false, autoSerie: d.voz.autoSerie !== false,
+            narrar: d.voz.narrar !== false });
             setSessao(null);
             setAba("inicio");
             setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 120);
@@ -10908,6 +11239,7 @@ function TreinoLivre() {
             onBaixarBackup={baixarBackup} onRestaurarArquivo={restaurarDeArquivo}
             onExportar={exportarDados} onImportar={importarDados}
             onInstalar={baixarApp} instalado={JA_INSTALADO}
+            pedirAvisoDescanso={pedirAvisoDescanso}
             voz={voz} setVoz={setVoz} vozAtiva={vozAtiva}
             onAlternarVoz={() => (vozAtiva ? desligarVoz() : ligarVoz())}
             onAjudaVoz={() => setAjudaVoz(true)}
@@ -10933,7 +11265,7 @@ function TreinoLivre() {
             onSair={() => setAba(sessao ? "sessao" : "inicio")} />
         )}
         {aba === "exercicios" && (
-          <TelaExercicios todos={todos} exPorId={exPorId}
+          <TelaExercicios todos={todos} exPorId={exPorId} historico={historico}
             grupoAberto={grupoAberto} setGrupoAberto={setGrupoAberto}
             exercicioAberto={exercicioAberto} setExercicioAberto={setExercicioAberto}
             onNovoExercicio={() => { setBaseNovoEx(null); setAba("novoExercicio"); }}
@@ -11091,6 +11423,29 @@ function TreinoLivre() {
               Atualizar
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Fica por cima de tudo e não tem botão de fechar, de propósito: quem
+          está treinando sem saber que nada está sendo salvo precisa tropeçar
+          nisso. O único caminho daqui é baixar o backup. */}
+      {semGravar && (
+        <div role="alert" style={{ position: "fixed", left: 0, right: 0, top: 0, zIndex: 70,
+          background: "#7A0F1B", borderBottom: "2px solid #ED4956", color: "#FFFFFF",
+          padding: "calc(10px + env(safe-area-inset-top)) 14px 12px", boxShadow: "0 6px 20px rgba(0,0,0,0.5)" }}>
+          <div style={{ fontSize: 14.5, fontWeight: 900, marginBottom: 5 }}>
+            ⚠ Seus treinos não estão sendo salvos
+          </div>
+          <div style={{ fontSize: 12.5, lineHeight: 1.55, marginBottom: 10, opacity: 0.92 }}>
+            Este navegador recusou gravar os dados. Costuma ser janela anônima, armazenamento
+            cheio ou o navegador de dentro de outro app. Baixe o backup agora — ao fechar esta
+            aba, o que você fez aqui se perde.
+          </div>
+          <button onClick={baixarBackup}
+            style={{ width: "100%", border: "none", borderRadius: 12, padding: "12px 10px",
+              background: "#FFFFFF", color: "#7A0F1B", fontWeight: 900, fontSize: 14.5, cursor: "pointer" }}>
+            ⬇ Baixar backup agora
+          </button>
         </div>
       )}
 

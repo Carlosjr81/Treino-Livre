@@ -125,6 +125,7 @@ Tudo num único registro em `localStorage["treinolivre:v1"]`:
   entrou:    true,                              // a portaria já foi passada
   dicas:     { voz: 1, scan: 1 },               // dicas de primeiro contato já vistas
   botaoVoz:  { lado: "dir", y: 76 } | null,     // onde a pessoa pôs o botão do Jarvis
+  voz.narrar: true,                             // avisos do treino falados
   historico[].bpm: { medio, max, amostras } | ausente,     // monitor cardíaco
   ultimoBackup: 1725100000000,
   descanso: 90, som: true, tema: "escuro", meta: 3, seedV3: true
@@ -600,6 +601,45 @@ Hoje o cartão aparece sempre (menos para quem já está em `standalone`), e
 existe. O passo a passo é por plataforma: navegador embutido, iPhone, Android e
 computador têm caminhos diferentes, e um texto genérico não ajuda nenhum deles.
 
+## Gravar não pode falhar calado
+
+`store.set` devolve se gravou. **Antes ele engolia a falha**: quando o
+`localStorage` recusa a escrita — cota cheia, janela anônima, armazenamento
+bloqueado, navegador embutido — o app guardava na memória e seguia se
+comportando como se tivesse salvado. Marcava a série, mostrava o histórico,
+comemorava o recorde. A pessoa só descobria ao reabrir, com tudo perdido e sem
+nunca ter visto um aviso.
+
+Num app em que os dados vivem só no aparelho, esse é o pior defeito possível.
+Hoje a falha vira uma **faixa vermelha fixa no topo, sem botão de fechar**, cujo
+único caminho é baixar o backup. Quem está treinando sem saber que nada está
+sendo salvo precisa tropeçar nisso.
+
+A checagem vale nos dois caminhos de gravação: o respiro de 400 ms e a descarga
+de emergência do `pagehide`.
+
+## Evolução por exercício (`EvolucaoExercicio`)
+
+"Estou melhorando no supino?" é a pergunta que faz alguém abrir um app de treino
+num sábado à tarde. O dado sempre esteve no histórico — a única forma de ver era
+rolar treino por treino.
+
+Entrada pelo botão **📈 Minha evolução** no detalhe do exercício, que diz em
+quantos treinos ele já apareceu e fica desligado quando ainda não apareceu em
+nenhum: botão que promete o que não tem é pior que botão que falta.
+
+- **Uma sessão vira um ponto**, e a carga do ponto é a **maior daquela sessão**,
+  não a média. Progressão de força se lê pelo topo; a média despenca só porque a
+  pessoa fez uma série leve no fim.
+- Três leituras no mesmo gráfico: carga máxima, volume e repetições.
+- **Aquecimento não entra** (`serieConta`), nem no ponto nem na contagem de
+  séries. Uma série de aquecimento pesada inventaria um recorde.
+- **Isometria entra por tempo**, não por carga: a prancha mostra segundos.
+- O 1RM estimado aparece como referência e o texto diz que é referência —
+  ninguém precisa testar uma repetição máxima para saber que está progredindo.
+
+Coberto por `teste-evolucao.js`.
+
 ## Monitor cardíaco, e o que a web não alcança
 
 **Funciona:** qualquer monitor que exponha o serviço padrão de frequência
@@ -857,6 +897,32 @@ entendimento. Entradas: o "?" do painel e Ajustes › Jarvis.
   reconhecimento não casa.
 - **Tom animado** (`voz.animado`, padrão ligado): `pitch` 1.22, ritmo um pouco
   acima e interjeições que giram sem repetir a anterior (`animo`).
+
+### Falar não é ouvir (`narrarVoz`, campo `voz.narrar`)
+
+**Quem treina com o celular no bolso e fone bluetooth não vê frase nenhuma na
+tela.** Até aqui, metade das confirmações do app só existia escrita — e a outra
+metade só saía com o microfone ligado, porque estava amarrada a `vozAtiva`.
+
+São duas coisas diferentes: `voz.falar` é ele **falar**, `vozAtiva` é ele
+**ouvir**. `narrarVoz` fala sem depender do microfone, e `voz.narrar` liga os
+avisos do treino:
+
+- **Série anotada** — "Série 2 de 3 anotada. Descanso de um minuto e meio."
+- **Fim do descanso** — "Descanso fechado. Próxima: série 1 de agachamento sumô."
+- O recorde, quando acontece.
+
+`textoDuracao` existe para isso: "90 segundos" é como se escreve, "um minuto e
+meio" é como se fala.
+
+Fica separado de `contarAlto` (a contagem do scanner) de propósito: em academia
+cheia a pessoa pode querer um e não o outro.
+
+**E a notificação** (`avisarEmSegundoPlano`) cobre o que a voz não cobre: com a
+tela apagada ou o app atrás de outro, o navegador pode engolir o áudio. Ela só
+dispara quando o app **não** está na frente, senão vira aviso duplicado, e a
+permissão é pedida nos ajustes por quem foi procurar isso — e não numa janela no
+meio do treino de quem está levantando peso.
 
 ### O botão flutuante sai da frente (`PainelJarvis`, campo `botaoVoz`)
 
@@ -1150,6 +1216,13 @@ Roteiro mínimo depois de mexer no app:
      dentro do quadro. Repetir com a câmera da frente e conferir a seta.
 33q. Arrastar o botão do Jarvis para o outro lado da tela: ele encosta na borda,
      fica lá depois de recarregar, e **não pode ligar o microfone no caminho**.
+33s. **Com o microfone DESLIGADO**, marcar uma série: ele tem de falar "série 1
+     de 3 anotada, descanso de ...". E, no fim do descanso, dizer o que vem.
+     Esse é o caminho de quem treina de fone, com o celular no bolso.
+33t. Abrir um exercício já treinado e tocar em "Minha evolução": a linha sobe,
+     e as séries de aquecimento não podem aparecer no recorde.
+33u. Simular falha de gravação (`Storage.prototype.setItem` lançando) e mexer em
+     qualquer coisa: a faixa vermelha tem de aparecer e não sair mais.
 33r. Tocar no botão sem arrastar: o microfone liga. Esperar 4 s sem usar: ele
      fica translúcido e dá para ler o que está atrás.
 33p. Abrir o scanner num exercício sentado: depois de 12 s ele libera sozinho

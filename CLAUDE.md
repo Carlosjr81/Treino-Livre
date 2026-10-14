@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 186 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 193 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 186 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 193 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v24) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v25) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1188,7 +1188,13 @@ Cada linha aqui saiu de um treino de verdade, não de um teste de mesa.
   quê") e nenhum existia. Virou `irExercicio`, que vem **depois** de
   `proximo`/`anterior` para não roubar "ir para o próximo exercício", e exige
   que a frase não tenha "série" para não roubar "mais uma série de X".
-- **O nome dele vira James, Travis, Charlie.** Todos colhidos de diagnósticos.
+- **O nome dele vira James, Travis, Charlie, Jorge e "jogos".** Todos colhidos
+  de diagnósticos — "jorge" fica de fora da distância de edição, então entra na
+  lista `APELIDOS_JARVIS`.
+- **"Acabei de fazer a quarta série com 108 kg, 12 repetições, anota aí" era lido
+  como finalizar o treino**, por causa do "acabei". Só não encerrou o treino no
+  meio porque o nome tinha chegado como "Jorge". Frase que fala de série, ou que
+  tem número com kg, repetições ou "por" (`ditaSerie`), nunca finaliza.
 - **Uma palavra isolada não é um pedido.** "nenhum comando mesmo" abria a ajuda
   porque bastava a palavra "comando". Agora precisa de quem pergunta junto.
 
@@ -1292,7 +1298,7 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 186
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 193
 checagens em sete suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash

@@ -174,5 +174,16 @@ t("Jarvis, cadeira abdutora 40 por 12", { tipo: "anotar", ex: "abducao" }, ficha
 t("Jarvis, abdutora 40 por 12", { tipo: "anotar", ex: "abducao" });
 t("Jarvis, adutora 40 por 12", { tipo: "anotar", ex: "cadeira-adutora" });
 
+console.log("--- diagnostico de 14/10: acabei a serie nao e acabei o treino ---");
+t("Jarvis você tá errando o exercício tô fazendo o cabelo extensora Acabei de fazer a quarta série com 108 kg 12 repetições anota aí",
+  { jarvis: true, tipo: "anotar", peso: 108, reps: 12, ex: "cadeira-extensora" });
+t("Jarvis, acabei a série", { tipo: "undefined" });
+t("Jarvis, terminei 80 por 10", { tipo: "anotar", peso: 80, reps: 10 });
+t("Jarvis, acabei o treino", { tipo: "finalizar" });
+t("Jarvis, encerra o treino", { tipo: "finalizar" });
+// O nome chegou como Jorge e jogos
+t("Jorge anota 80 por 10", { jarvis: true, tipo: "anotar", peso: 80, reps: 10 });
+t("jogos anota aí fiz a série 3 de cadeira extensora 99 kg 12 repetições", { jarvis: true, tipo: "anotar", peso: 99, reps: 12, ex: "cadeira-extensora" });
+
 console.log("\n" + ok + " passou / " + falhou + " falhou");
 process.exit(falhou ? 1 : 0);

@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 238 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 248 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 238 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 248 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v26) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v27) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -983,8 +983,15 @@ campos continuam digitáveis**: o Jarvis é atalho, nunca o único caminho.
   de um comando *aceito*, dá para emendar o próximo sem repetir o nome. A janela
   **não** se renova em "não entendi", e fecha na primeira frase que não é
   comando — senão a conversa da academia inteira vira anotação.
-- **O alvo é a primeira série não marcada** (`alvo`, na `TelaSessao`). É o que
-  permite dizer só "Jarvis, 80 por 10". O cartão alvo ganha anel rosa e uma
+- **O alvo segue o exercício em que a pessoa está** (`alvoDaSessao`, com o foco
+  `focoEi`). É o que permite dizer só "Jarvis, 80 por 10". Enquanto o exercício
+  do foco tem série pendente, é ele; acabou, o próximo da lista **depois** dele;
+  só então os que ficaram para trás. No bi-set, a vez é do parceiro com menos
+  séries feitas. **O foco muda em qualquer toque na série** (`upSerie`), não só
+  pela voz: antes era a primeira série pendente da ficha inteira, e quem pulava o
+  hack e marcava a flexora no ✓ ouvia "próxima: agachamento no hack" a cada
+  série — e o que ditasse sem dizer o aparelho iria parar no hack. Coberto por
+  `teste-alvo.js`. O cartão alvo ganha anel rosa e uma
   faixa dizendo o que falar: voz sem retorno visual é um salto no escuro.
 - **"de cada lado"** vira `2 × valor + barra`, e a barra só entra em exercício
   cujo equipamento tem "barra" (e não "barra fixa"). O peso da barra é ajustável
@@ -1109,7 +1116,22 @@ meio" é como se fala.
 Fica separado de `contarAlto` (a contagem do scanner) de propósito: em academia
 cheia a pessoa pode querer um e não o outro.
 
-**E a notificação** (`avisarEmSegundoPlano`) cobre o que a voz não cobre: com a
+**Com a tela apagada, o Android cala a síntese de voz da página, mas o som
+continua** — os bipes dos últimos segundos chegavam e a frase do fim do
+descanso, não. Então, com a tela apagada, a frase fica guardada
+(`falaPendente`) e é dita quando a tela acende (até 3 minutos depois), e o que
+avisa na hora é a `melodia(TOQUE_VOLTA)`: três notas subindo, duas vezes,
+repetidas 15 s depois se a pessoa não voltou. **As notas são agendadas no relógio
+do Web Audio**, e não em `setTimeout`: com a tela apagada o navegador atrasa todo
+timer para no mínimo um segundo, e a melodia sairia picotada.
+
+**E a notificação** (`avisarEmSegundoPlano`) cobre o que a voz não cobre. **No
+Android ela só sai pelo service worker** (`registration.showNotification`):
+`new Notification()` lança "Illegal constructor" lá, e o erro era engolido — o
+aviso nunca chegava justamente no aparelho em que mais importa. Quem perdeu o
+aviso com a tela apagada e nunca respondeu à permissão vê, na faixa do descanso,
+o botão "🔔 Ativar aviso": é o momento em que a pergunta faz sentido.
+ com a
 tela apagada ou o app atrás de outro, o navegador pode engolir o áudio. Ela só
 dispara quando o app **não** está na frente, senão vira aviso duplicado, e a
 permissão é pedida nos ajustes por quem foi procurar isso — e não numa janela no
@@ -1351,11 +1373,11 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 238
-checagens em oito suítes, e elas recortam as funções do próprio `index.html`:
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 248
+checagens em nove suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash
-node rodar.js      # as oito suítes, contra o index.html da pasta ao lado
+node rodar.js      # as nove suítes, contra o index.html da pasta ao lado
 node servir.js     # sobe o app em http://localhost:8765
 ```
 

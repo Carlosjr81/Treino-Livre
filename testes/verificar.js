@@ -2,7 +2,7 @@
 //
 //   node testes/verificar.js
 //
-// Os 238 testes provam que a LÓGICA não quebrou. Isto prova que o app ainda
+// Os 248 testes provam que a LÓGICA não quebrou. Isto prova que o app ainda
 // ABRE — que é outra coisa, e é a que deixa todo mundo na mão. Cada checagem
 // aqui corresponde a um jeito real de derrubar o Treino Livre:
 //

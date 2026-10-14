@@ -543,7 +543,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-14d";
+const VERSAO_APP = "2026-10-14e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -1185,6 +1185,48 @@ function montarSeries(ex, qtdSeries, repsAlvo, sug) {
   }));
 }
 
+// Onde cai a próxima frase do Jarvis, e de que série fala o "Próxima:" do fim
+// do descanso. Antes era a primeira série pendente da ficha inteira: quem pulava
+// o hack e ia para a flexora ouvia "próxima: agachamento no hack" a cada série,
+// e o que ditasse sem dizer o aparelho iria parar no hack.
+// Agora segue o exercício em que a pessoa está (focoEi): enquanto ele tem série
+// pendente, é ele; acabou, o próximo da lista depois dele; e só então os que
+// ficaram para trás. No bi-set a vez é do parceiro com menos séries feitas.
+function alvoDaSessao(itens, focoEi) {
+  if (!itens || !itens.length) return null;
+  const pendente = (it) => it.series.findIndex((s) => !s.feito);
+  const feitas = (it) => it.series.filter((s) => s.feito).length;
+  if (focoEi !== null && focoEi !== undefined && itens[focoEi]) {
+    const c = itens[focoEi].conjunto;
+    if (c) {
+      let ini = focoEi, fim = focoEi;
+      while (ini > 0 && itens[ini - 1].conjunto === c) ini--;
+      while (fim + 1 < itens.length && itens[fim + 1].conjunto === c) fim++;
+      let melhor = -1;
+      for (let i = ini; i <= fim; i++) {
+        if (pendente(itens[i]) < 0) continue;
+        if (melhor < 0 || feitas(itens[i]) < feitas(itens[melhor])) melhor = i;
+      }
+      if (melhor >= 0) return { ei: melhor, si: pendente(itens[melhor]) };
+    } else {
+      const si = pendente(itens[focoEi]);
+      if (si >= 0) return { ei: focoEi, si: si };
+    }
+    for (let k = 1; k < itens.length; k++) {
+      const i = (focoEi + k) % itens.length;
+      const si = pendente(itens[i]);
+      if (si >= 0) return { ei: i, si: si };
+    }
+    return { ei: focoEi, si: itens[focoEi].series.length };
+  }
+  for (let i = 0; i < itens.length; i++) {
+    const si = pendente(itens[i]);
+    if (si >= 0) return { ei: i, si: si };
+  }
+  const ult = itens.length - 1;
+  return { ei: ult, si: itens[ult].series.length };
+}
+
 // ---------- RECUPERAÇÃO POR GRUPO MUSCULAR ----------
 // Quantos dias desde a última vez que cada grupo foi treinado. Serve para
 // responder "o que eu treino hoje?" sem precisar abrir o histórico.
@@ -1366,6 +1408,37 @@ function beep(freq, dur, vol) {
     o.stop(audioCtx.currentTime + dur);
   } catch (e) {}
 }
+
+// Várias notas agendadas no relógio do próprio áudio. Com a tela apagada o
+// navegador atrasa todo setTimeout para no mínimo um segundo, e uma melodia
+// montada com ele saía picotada; o relógio do Web Audio não atrasa. Devolve
+// a função que cala o que ainda não tocou.
+function melodia(notas) {
+  const osc = [];
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const t0 = audioCtx.currentTime + 0.05;
+    notas.forEach(([freq, quando, dur, vol]) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = "sine";
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(vol || 0.3, t0 + quando);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + quando + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t0 + quando);
+      o.stop(t0 + quando + dur);
+      osc.push(o);
+    });
+  } catch (e) {}
+  return () => osc.forEach((o) => { try { o.stop(); } catch (e) {} });
+}
+// "Acabou o descanso" com a tela apagada: três notas subindo, duas vezes, e a
+// mesma coisa de novo 15 s depois para quem não ouviu da primeira.
+const TOQUE_VOLTA = [0, 0.9, 15, 15.9].flatMap((t) => [
+  [660, t, 0.18], [880, t + 0.22, 0.18], [1175, t + 0.44, 0.4],
+]);
 
 // ---------------- LEMBRETES DE TREINO ----------------
 // Sem servidor não existe push de verdade. O que funciona é: (a) avisar enquanto
@@ -1855,14 +1928,23 @@ function narrarVoz(texto, cfg, fila) {
 // Com o celular no bolso e a tela apagada, o navegador pode engolir o áudio do
 // fim do descanso. A notificação é o aviso que atravessa isso — e só entra
 // quando o app NÃO está na frente, senão vira aviso duplicado.
+// No Android, `new Notification()` lança "Illegal constructor": lá a notificação
+// só sai pelo service worker. O erro era engolido, e o aviso nunca chegava
+// justamente no aparelho em que ele mais importa.
 function avisarEmSegundoPlano(titulo, corpo) {
   try {
     if (typeof document !== "undefined" && document.visibilityState === "visible") return;
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-    new Notification(titulo, {
+    const opcoes = {
       body: corpo, icon: "icon-192.png", badge: "icon-192.png",
-      tag: "treino-livre-descanso", renotify: true,
-    });
+      tag: "treino-livre-descanso", renotify: true, vibrate: [300, 120, 300],
+    };
+    const direto = () => { try { new Notification(titulo, opcoes); } catch (e) {} };
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
+      navigator.serviceWorker.getRegistration()
+        .then((reg) => (reg && reg.showNotification ? reg.showNotification(titulo, opcoes) : direto()))
+        .catch(direto);
+    } else direto();
   } catch (e) {}
 }
 
@@ -4109,6 +4191,8 @@ const LICOES_JARVIS = [
 const nomeFalado = (n) => String(n || "")
   .replace(/\s*\([^)]*\)/g, "")
   .replace(/\s*\d+\s*°/g, "")
+  // "Mesa/cadeira flexora" saía "mesa barra cadeira flexora"
+  .replace(/\s*\/\s*/g, " ou ")
   .trim() || String(n || "");
 
 function tempoFalado(seg) {
@@ -7956,6 +8040,13 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   const [agora, setAgora] = useState(Date.now());
   const [avisou, setAvisou] = useState(false);
   const ultimoBipe = useRef(null);
+  // Com a tela apagada o Android cala a síntese de voz da página, mas o som
+  // continua (os bipes dos últimos segundos chegavam, a frase não). Então a
+  // frase espera a tela acender, e o que avisa na hora é a melodia.
+  const falaPendente = useRef(null);
+  const calarToque = useRef(null);
+  const falarRef = useRef(() => {});
+  const [calouNoFundo, setCalouNoFundo] = useState(false);
 
   useEffect(() => {
     if (!fimDescanso) return;
@@ -7978,6 +8069,25 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     }
   }, [restante, fimDescanso, acabou, som]);
 
+  falarRef.current = (frase) => {
+    if (vozAtiva && responderVoz) responderVoz(frase, true);
+    else narrarVoz(frase, vozCfg);
+  };
+  // A tela acendeu: cala a repetição da melodia e diz o que ficou guardado.
+  // Depois de três minutos a frase já não é notícia, e não é dita.
+  useEffect(() => {
+    const aoVoltar = () => {
+      if (document.visibilityState !== "visible") return;
+      if (calarToque.current) { calarToque.current(); calarToque.current = null; }
+      const p = falaPendente.current;
+      falaPendente.current = null;
+      if (p && Date.now() - p.t < 180000) setTimeout(() => falarRef.current(p.frase), 400);
+    };
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => document.removeEventListener("visibilitychange", aoVoltar);
+  }, []);
+  useEffect(() => () => { if (calarToque.current) calarToque.current(); }, []);
+
   // Som + vibração de finalização
   useEffect(() => {
     if (acabou && !avisou) {
@@ -7993,7 +8103,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       // coisas diferentes, e quem treina de fone quer o retorno de qualquer jeito.
       const prox = alvo ? " Próxima: série " + (alvo.si + 1) + " de " + nomeDoItem(alvo.ei) + "." : "";
       const frase = (vozAnimado ? animo(ANIMO_VOLTA, "volta") + " Descanso fechado." : "Descanso concluído.") + prox;
-      if (vozAtiva && responderVoz) responderVoz(frase, true);
+      const escondido = typeof document !== "undefined" && document.visibilityState !== "visible";
+      setCalouNoFundo(escondido);
+      if (escondido) {
+        falaPendente.current = { frase: frase, t: Date.now() };
+        if (som) calarToque.current = melodia(TOQUE_VOLTA);
+      } else if (vozAtiva && responderVoz) responderVoz(frase, true);
       else narrarVoz(frase, vozCfg);
       // E se a tela estiver apagada ou o app atrás de outro, o áudio pode nem
       // tocar: a notificação é o que atravessa isso.
@@ -8082,6 +8197,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       i !== ei ? it : { ...it, series: it.series.map((s, j) => (j !== si ? s : { ...s, [campo]: val })) }
     );
     setSessao({ ...sessao, itens });
+    // O foco mudava só pela voz: quem marcava a flexora no ✓ continuava com o
+    // alvo parado no primeiro exercício pendente da ficha.
+    if (ei !== focoEi) setFocoEi(ei);
   };
 
   const upObs = (ei, val) => {
@@ -8267,22 +8385,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   const [scanner, setScanner] = useState(false);   // câmera contando repetições
   const ultimoAnotado = useRef(null);
 
-  // O "alvo" é onde a próxima frase vai cair: a primeira série não marcada.
-  // É o que permite dizer só "Jarvis, 80 por 10", sem repetir o nome do exercício.
-  const alvo = useMemo(() => {
-    const pendente = (it) => it.series.findIndex((s) => !s.feito);
-    if (focoEi !== null && sessao.itens[focoEi]) {
-      const si = pendente(sessao.itens[focoEi]);
-      return { ei: focoEi, si: si < 0 ? sessao.itens[focoEi].series.length : si };
-    }
-    for (let i = 0; i < sessao.itens.length; i++) {
-      const si = pendente(sessao.itens[i]);
-      if (si >= 0) return { ei: i, si: si };
-    }
-    if (!sessao.itens.length) return null;
-    const ult = sessao.itens.length - 1;
-    return { ei: ult, si: sessao.itens[ult].series.length };
-  }, [sessao, focoEi]);
+  // O "alvo" é onde a próxima frase vai cair. É o que permite dizer só
+  // "Jarvis, 80 por 10", sem repetir o nome do exercício. Ver alvoDaSessao.
+  const alvo = useMemo(() => alvoDaSessao(sessao.itens, focoEi), [sessao, focoEi]);
 
   const nomeDoItem = (ei) => {
     const it = sessao.itens[ei];
@@ -9146,6 +9251,17 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               </button>
             </div>
           </div>
+          {acabou && calouNoFundo && typeof Notification !== "undefined" && Notification.permission === "default" && (
+            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10, fontSize: 12, color: "var(--cinza)", lineHeight: 1.4 }}>
+              <span style={{ flex: 1 }}>Com a tela apagada o celular cala a voz. A notificação avisa mesmo assim.</span>
+              <button onClick={() => {
+                try { Notification.requestPermission().then(() => setCalouNoFundo(false)); } catch (e) { setCalouNoFundo(false); }
+              }}
+                style={{ border: "1px solid var(--ok)", background: "transparent", color: "var(--ok)", borderRadius: 8, padding: "8px 10px", fontWeight: 800, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
+                🔔 Ativar aviso
+              </button>
+            </div>
+          )}
           {!acabou && (
             <div style={{ height: 5, background: "var(--borda)", borderRadius: 3, marginTop: 10, overflow: "hidden" }}>
               <div style={{ height: "100%", width: pct + "%", background: restante <= 3 ? "#ED4956" : "#E1306C", borderRadius: 3, transition: "width 0.25s linear" }} />

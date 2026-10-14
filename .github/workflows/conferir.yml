@@ -1,0 +1,45 @@
+# A rede de proteção que dá para ver do celular.
+#
+# No computador, a trava é o hook de pre-push: nada sai sem passar pelos testes.
+# No celular não há terminal, e uma sessão na nuvem pode publicar sem que você
+# veja o resultado. Então o GitHub confere de novo, do lado dele, e o ✓ ou o ✗
+# aparece no app do GitHub e na lista de commits.
+#
+# **Isto NÃO publica nada e não é etapa de build.** O GitHub Pages continua
+# servindo os arquivos do jeito que estão no repositório, como sempre fez.
+# Aqui só se roda o que já dá para rodar na mão: `node testes/rodar.js` e
+# `node testes/verificar.js`. Se este arquivo for apagado, o app continua
+# publicando igual — só se perde o aviso.
+name: Conferir
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  conferir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # precisa do commit anterior para saber se a versão subiu junto
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # Nenhum `npm install`: o projeto não tem dependência, de propósito.
+
+      - name: Os 177 testes
+        run: node testes/rodar.js
+
+      - name: A conferida de publicação
+        env:
+          # o commit enviado já é o main; compara com o anterior
+          BASE_REF: ${{ github.event.before || 'HEAD^' }}
+        run: node testes/verificar.js
+
+      - name: A prova de que a conferida reprova mesmo
+        run: node testes/prova-verificador.js

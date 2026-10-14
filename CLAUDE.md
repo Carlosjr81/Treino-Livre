@@ -102,20 +102,82 @@ Duas coisas ele detecta mas não resolve, e as duas têm motivo:
 
 Pedir "prepare esta máquina" ao Claude é o caminho esperado; ele roda o script.
 
-### Publicar: `git push`
+### Publicar: `git push`, e nunca sem conferir
 
 O histórico antigo é de commits "Add files via upload" — o app era publicado
-enviando arquivos pela interface web do GitHub. **Isso não é mais necessário**:
-com o `gh` autenticado, `git push` publica, e o GitHub Pages republica sozinho
-em um ou dois minutos.
+enviando arquivos pela interface web do GitHub. Com o `gh` autenticado, hoje
+`git push` publica e o GitHub Pages republica sozinho em um ou dois minutos.
+A interface web continua valendo quando a máquina não tem git.
 
 Isso **não** reintroduz etapa de build: continua sem Vite, sem `npm`, sem
-Actions. O `git push` só move arquivos prontos, exatamente como o envio pela
-web movia — ver *Restrições que moldam tudo*. A regra das três versões
-(abaixo) continua valendo em toda publicação.
+compilação. O `git push` só move arquivos prontos, exatamente como o envio
+pela web movia — ver *Restrições que moldam tudo*.
 
-A interface web continua funcionando como alternativa, para quando a máquina
-não tiver git.
+> **Antes de qualquer push, rode as duas:**
+> ```bash
+> node testes/rodar.js
+> ```
+> ```bash
+> node testes/verificar.js
+> ```
+> Se alguma reprovar, **não publique**. Conserte ou pergunte.
+
+**Isto vale também — e principalmente — quando o pedido vem do celular.** Lá
+não há como abrir o app em `localhost` antes de publicar, e quem recebe uma
+publicação quebrada é gente no meio de um treino. Em sessão na nuvem, onde o
+hook de `pre-push` pode não estar ligado, rodar as duas é responsabilidade de
+quem publica.
+
+#### As duas conferidas, e o que cada uma pega
+
+`rodar.js` são 177 checagens e prova que a **lógica** não quebrou: o
+interpretador de voz, a contagem de repetições, a postura, o enquadramento.
+
+`verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
+deixa todo mundo na mão. Cada checagem dele é um jeito real de derrubar o
+Treino Livre:
+
+| O que ele confere | O que acontecia sem isso |
+|---|---|
+| O JSX compila (com o Babel de verdade, baixado da mesma CDN) | erro de sintaxe → tela branca para todos |
+| Os hashes SRI batem com os arquivos reais da CDN | hash errado → o navegador recusa o React → nada carrega |
+| As três versões estão sincronizadas **e subiram** quando o app mudou | o conserto nunca chega ao celular de ninguém |
+| Os endereços do `sw.js` batem com os do `index.html` | o cache guarda um endereço que ninguém pede |
+| Todo arquivo da lista do `sw.js` existe | o modo offline instala quebrado |
+
+O que depende de rede vira **aviso** quando não há rede, não erro: travar a
+publicação por falta de internet seria trocar um problema por outro.
+
+`prova-verificador.js` quebra o app de cinco jeitos de propósito e cobra que
+o `verificar.js` reprove cada um. **Rode-o sempre que mexer no verificador** —
+rede de proteção que nunca reprovou nada não é rede de proteção.
+
+#### As três travas, e por que são três
+
+1. **O hook de `pre-push`** (`testes/hooks/pre-push`) roda as duas conferidas
+   e cancela o push se alguma reprovar. Hook do git não viaja no clone, então
+   ele mora no repositório e o `preparar.ps1`/`preparar.sh` aponta o git para
+   lá (`core.hooksPath`). Pular exige `--no-verify`, de propósito.
+2. **A regra acima**, que é a que alcança sessão na nuvem e celular, onde o
+   hook pode não estar ligado.
+3. **O GitHub Actions** (`.github/workflows/conferir.yml`) roda tudo de novo
+   do lado do GitHub. É a única das três que **dá para ver do celular**: o ✓
+   ou o ✗ aparece no app do GitHub. Ela não publica nada e não é etapa de
+   build — se for apagada, o app continua publicando igual, só se perde o
+   aviso.
+
+São três porque cada uma falha de um jeito: o hook não existe em clone novo,
+a regra depende de alguém segui-la, e o Actions só avisa depois que já foi.
+
+#### Se publicar algo quebrado
+
+```bash
+git revert --no-edit HEAD && git push
+```
+
+Volta ao estado anterior e o Pages republica em um ou dois minutos. **Reverter
+primeiro, investigar depois**: enquanto se investiga, tem gente treinando com
+o app quebrado na mão.
 
 ### A regra que o Drive impõe
 

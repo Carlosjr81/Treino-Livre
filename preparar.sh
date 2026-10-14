@@ -103,6 +103,17 @@ if [ "$temGit" = "1" ] && [ -d "$RAIZ/.git" ]; then
   else
     ok "identidade dos commits: $(git -C "$RAIZ" config user.name)"
   fi
+
+  # A trava de publicacao. Hook do git nao viaja no clone (.git/hooks nao e
+  # versionado), entao ele mora em testes/hooks e o git e apontado para la.
+  git -C "$RAIZ" config core.hooksPath "testes/hooks"
+  chmod +x "$RAIZ/testes/hooks/pre-push" 2>/dev/null || true
+  if [ "$(git -C "$RAIZ" config --get core.hooksPath)" = "testes/hooks" ]; then
+    ok "trava de publicacao ligada (roda testes + conferida antes de todo push)"
+  else
+    ruim "nao consegui ligar a trava de publicacao"
+    problemas+=("trava de publicacao desligada")
+  fi
 fi
 
 # ---------------------------------------------------------------- 4. prova

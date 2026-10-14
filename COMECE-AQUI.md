@@ -1,4 +1,73 @@
-# Começar a mexer neste projeto numa máquina nova
+# Começar a mexer neste projeto num aparelho novo
+
+Dois caminhos, conforme o aparelho:
+
+- **Computador** — Claude + Google Drive, e o resto se instala sozinho. É o de
+  baixo nesta página.
+- **Celular** — Claude no navegador, trabalhando direto no GitHub. Não precisa
+  instalar nada. É a seção logo abaixo.
+
+---
+
+## No celular
+
+Abra **`claude.ai/code`** no navegador do celular, entre na sua conta e conecte
+a conta do GitHub. A sessão trabalha num clone do repositório na nuvem: lê,
+edita, roda os 177 testes e publica.
+
+**Não precisa do Google Drive no celular.** O Drive é a conveniência de quem
+está num computador; no celular o GitHub é o caminho, e é por isso que tudo —
+app, documentação e testes — mora no repositório.
+
+### Sempre, antes de publicar do celular
+
+Peça ao Claude, ou confira que ele fez:
+
+```bash
+node testes/rodar.js
+```
+
+```bash
+node testes/verificar.js
+```
+
+A primeira prova que a **lógica** não quebrou. A segunda prova que o app ainda
+**abre** — JSX compilando, hashes das bibliotecas conferindo, as três versões
+sincronizadas. Essa regra está escrita no `CLAUDE.md`, então o Claude já a
+conhece ao abrir o projeto; a lembrança aqui é para você poder cobrar.
+
+Isso importa mais no celular do que no computador: lá não dá para abrir o app
+em `localhost` antes de publicar, e quem recebe uma publicação quebrada é gente
+no meio de um treino.
+
+### Depois de publicar, você tem duas confirmações
+
+1. **O ✓ no app do GitHub.** O GitHub roda os testes de novo do lado dele
+   (`.github/workflows/conferir.yml`) e marca o commit. Se vier ✗, não espere:
+   peça ao Claude para reverter.
+2. **O próprio app, no mesmo celular.** Abra
+   `https://carlosjr81.github.io/Treino-Livre/` um ou dois minutos depois.
+
+Essa segunda é um ganho de verdade: **metade do roteiro de teste do projeto só
+funciona em celular** — a câmera do Eyes Scan, o microfone do Jarvis, o
+enquadramento de costas para o aparelho, o bipe do Android. Pelo computador
+você mexe e precisa ir até o celular testar. Pelo celular, o ciclo fecha no
+mesmo aparelho.
+
+### Se algo quebrar
+
+Peça: **"reverta o último commit e publique"**. São dois comandos e o app volta
+ao ar em um ou dois minutos. Reverter primeiro, investigar depois.
+
+### O que é pior no celular
+
+Ler diff grande e revisar código em tela pequena. Na prática o celular é melhor
+para **ajustar e testar** — mudar um texto, corrigir um limiar, ver se o Jarvis
+entende uma frase — do que para construir recurso novo.
+
+---
+
+## No computador
 
 Você acabou de instalar o Claude e o Google Drive. Faltam duas coisas, e a
 segunda é automática.
@@ -119,14 +188,24 @@ projeto foi publicado até aqui.
 
 ---
 
-## Os dois comandos do dia a dia
+## Os comandos do dia a dia
 
 ```bash
 node testes/rodar.js
 ```
 
-As sete suítes, 177 checagens, contra o `index.html` desta pasta. Rode antes e
+As sete suítes, 177 checagens. Prova que a **lógica** não quebrou. Rode antes e
 depois de mexer no app.
+
+```bash
+node testes/verificar.js
+```
+
+A conferida de publicação. Prova que o app ainda **abre**: o JSX compila, os
+hashes das bibliotecas batem com os arquivos reais da CDN, as três versões
+estão sincronizadas e subiram, e o `sw.js` não guarda endereço que ninguém
+pede. No computador o hook de `pre-push` roda isso sozinho e cancela o push se
+reprovar — você não precisa lembrar.
 
 ```bash
 node testes/servir.js
@@ -135,6 +214,15 @@ node testes/servir.js
 Abre o app em `http://localhost:8765`. Abrir o `index.html` direto no navegador
 não serve: em `file://` o `localStorage` fica bloqueado e o service worker não
 registra — justo onde moram os dados e o modo offline.
+
+### Se publicar algo quebrado
+
+```bash
+git revert --no-edit HEAD && git push
+```
+
+Volta ao estado anterior e o Pages republica em um ou dois minutos. Reverter
+primeiro, investigar depois.
 
 ---
 

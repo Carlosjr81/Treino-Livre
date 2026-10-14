@@ -121,6 +121,17 @@ if ($temGit -and (Test-Path (Join-Path $raiz ".git"))) {
   } else {
     Ok "identidade dos commits: $nome"
   }
+
+  # A trava de publicacao. Hook do git nao viaja no clone (.git/hooks nao e
+  # versionado), entao ele mora em testes/hooks e o git e apontado para la.
+  # Sem isto, uma publicacao quebrada sai sem ninguem perceber.
+  git config core.hooksPath "testes/hooks"
+  if ((git config --get core.hooksPath) -eq "testes/hooks") {
+    Ok "trava de publicacao ligada (roda testes + conferida antes de todo push)"
+  } else {
+    Ruim "nao consegui ligar a trava de publicacao"
+    $script:problemas += "trava de publicacao desligada"
+  }
   Pop-Location
 }
 

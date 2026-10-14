@@ -10,3 +10,6 @@
 # e transformaria todo diff em lixo.
 *.sh text eol=lf
 *.ps1 text eol=crlf
+
+# O hook do git nao tem extensao, mas e script de shell: LF obrigatorio.
+testes/hooks/* text eol=lf

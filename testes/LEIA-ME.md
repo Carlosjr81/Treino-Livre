@@ -12,14 +12,47 @@ Nada aqui é carregado pelo app: o `index.html` não referencia esta pasta, e o
 `sw.js` tem uma lista explícita do que guarda em cache. O GitHub Pages serve
 estes arquivos, e ninguém os pede.
 
-## Os dois comandos
+## Os comandos
 
 ```bash
 node testes/rodar.js
 ```
 
-Roda as sete suítes (177 checagens) contra o `index.html` da raiz. Vale rodar
-**antes e depois** de qualquer mexida.
+As sete suítes (177 checagens) contra o `index.html` da raiz. Prova que a
+**lógica** não quebrou. Vale rodar **antes e depois** de qualquer mexida.
+
+```bash
+node testes/verificar.js
+```
+
+A conferida de publicação — prova que o app ainda **abre**, que é outra coisa.
+Cada checagem corresponde a um jeito real de derrubar o Treino Livre:
+
+| Confere | Sem isso |
+|---|---|
+| o JSX compila (Babel de verdade, da mesma CDN) | erro de sintaxe → tela branca para todos |
+| os hashes SRI batem com os arquivos reais | hash errado → o navegador recusa o React |
+| as três versões sincronizadas **e subidas** | o conserto não chega ao celular de ninguém |
+| os endereços do `sw.js` batem com os do `index.html` | o cache guarda endereço que ninguém pede |
+| todo arquivo da lista do `sw.js` existe | o modo offline instala quebrado |
+
+O que depende de rede vira **aviso** sem rede, não erro: travar a publicação
+por falta de internet seria trocar um problema por outro.
+
+```bash
+node testes/prova-verificador.js
+```
+
+Quebra o app de cinco jeitos de propósito e cobra que o `verificar.js` reprove
+cada um. **Rode sempre que mexer no verificador.** Rede de proteção que nunca
+reprovou nada não é rede de proteção. Demora mais que as outras (copia o
+projeto cinco vezes e roda a conferida inteira em cada cópia), por isso fica
+fora do `rodar.js`.
+
+O hook de `pre-push` (`hooks/pre-push`) roda `rodar.js` e `verificar.js` antes
+de todo push e cancela se alguma reprovar. Ele é ligado pelo `preparar.ps1` /
+`preparar.sh`, que apontam `core.hooksPath` para `testes/hooks` — hook do git
+não viaja dentro do clone.
 
 ```bash
 node testes/servir.js

@@ -1,0 +1,12 @@
+# Script de shell tem de chegar com LF em qualquer maquina.
+#
+# Com CRLF, o `\r` entra no shebang e o sistema procura um interpretador
+# chamado "bash\r", que nao existe: "bad interpreter: No such file or
+# directory". O erro nao diz nada sobre finais de linha, e e por isso que
+# custa uma tarde.
+#
+# Nada mais e normalizado aqui de proposito. O index.html esta em CRLF na
+# copia de trabalho e e editado por script; mudar isso trocaria 11 mil linhas
+# e transformaria todo diff em lixo.
+*.sh text eol=lf
+*.ps1 text eol=crlf

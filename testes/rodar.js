@@ -1,4 +1,4 @@
-// Roda as sete suites e devolve um resumo.
+// Roda as oito suites e devolve um resumo.
 //
 //   node rodar.js
 //
@@ -18,6 +18,7 @@ const SUITES = [
   ["teste-postura", "a correcao de postura (e o que ela NAO pode falar)"],
   ["teste-enquadramento", "pôr a pessoa no quadro, e o sentido esquerda/direita"],
   ["teste-evolucao", "a leitura do historico por exercicio"],
+  ["teste-cardio", "a esteira: distancia, ritmo, gasto e a meta da semana"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");

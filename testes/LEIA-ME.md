@@ -18,7 +18,7 @@ estes arquivos, e ninguém os pede.
 node testes/rodar.js
 ```
 
-As sete suítes (193 checagens) contra o `index.html` da raiz. Prova que a
+As oito suítes (238 checagens) contra o `index.html` da raiz. Prova que a
 **lógica** não quebrou. Vale rodar **antes e depois** de qualquer mexida.
 
 ```bash
@@ -77,6 +77,7 @@ Precisa de Node.js. Nenhuma dependência: não há `package.json`, não há
 | `teste-postura` | a correção de postura, principalmente o que ela **não** pode falar |
 | `teste-enquadramento` | pôr a pessoa no quadro, e o sentido esquerda/direita |
 | `teste-evolucao` | a leitura do histórico por exercício |
+| `teste-cardio` | a esteira: distância, ritmo, gasto pelo ACSM e a meta da semana da OMS |
 
 Eles **não substituem** o roteiro manual do `CLAUDE.md`. Provam que a lógica
 não quebrou; não provam que a tela funciona. Câmera, microfone e service

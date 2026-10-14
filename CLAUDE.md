@@ -74,7 +74,7 @@ Treino-Livre/
 ├── index.html, sw.js, manifest.json, versao.json, ícones   ← o app publicado
 ├── CLAUDE.md            ← este arquivo: o contexto do projeto
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
-└── testes/              ← as 7 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 8 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 193 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 238 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 193 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 238 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v25) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v26) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -235,7 +235,7 @@ Na ordem em que aparece no arquivo:
    `numerosPorExtenso`, `depoisDeJarvis`, `acharExercicio`, `interpretarVoz`,
    `responderConsulta`, `AJUDA_FALADA`, `LICOES_JARVIS`, `vozesPtBr`.
    Fica logo antes de `IMAGENS_WGER`.
-8. **Dados** — `GRUPOS`, `MUSCULOS`, `EXERCICIOS` (255, dos quais 14 funcionais),
+8. **Dados** — `GRUPOS`, `MUSCULOS`, `EXERCICIOS` (258, dos quais 14 funcionais e 3 de esteira),
    `GRUPO_POR_EXERCICIO`, `FICHAS_PADRAO`.
 9. **Estilos** — objeto `S` com estilos inline reaproveitados.
 10. **Imagens** — `IMAGENS_WGER` (mapa fixo) e `ImagemExercicio`.
@@ -321,7 +321,7 @@ celular** — não há servidor para onde mandar, e não haveria mesmo que houve
 
 ### Como a repetição é contada
 
-Exigir configuração por exercício é inviável: são 255 no catálogo mais as
+Exigir configuração por exercício é inviável: são 258 no catálogo mais as
 máquinas que o dono fotografa e que não estão em catálogo nenhum. Então:
 
 1. `criarContador` mede **oito ângulos** ao mesmo tempo (cotovelos, joelhos,
@@ -778,6 +778,59 @@ nenhum: botão que promete o que não tem é pior que botão que falta.
 
 Coberto por `teste-evolucao.js`.
 
+## Esteira (caminhada e corrida)
+
+Três exercícios: `esteira-caminhada`, `esteira-inclinada` e `esteira-corrida`.
+O campo `cardio` ("caminhada" ou "corrida") é o que os diferencia de musculação,
+e `padrao` (`{ min, vel, incl }`) é o que entra na primeira vez.
+
+**A série é uma série de tempo com dois campos a mais:** `{ segundos, vel, incl }`
+— velocidade em km/h e inclinação em %, os dois números que o painel da esteira
+mostra. Por continuar sendo de tempo, tudo o que já sabia lidar com a prancha
+funciona sem saber que esteira existe. `ehCardio(s)` é o que olha os campos a
+mais. **Todo lugar que copia uma série precisa levar `vel` e `incl` junto** —
+o `finalizarSessao` gravava só `{ segundos }` e teria apagado a velocidade de
+todo treino de esteira no histórico.
+
+- **Distância e ritmo saem de tempo × velocidade.** A pessoa não digita distância:
+  o painel da esteira já diz a velocidade, e é ela que se ajusta durante o treino.
+  Pela voz dá para ditar distância ("andei 3 km em 30 minutos") e a velocidade sai
+  da conta.
+- **Gasto pela equação do ACSM** (`medirCardio`), a referência dos
+  fisiologistas: caminhando, VO2 = 0,1·v + 1,8·v·i + 3,5; correndo, 0,2·v +
+  0,9·v·i + 3,5. Correr gasta o dobro por metro na horizontal, então errar o tipo
+  dobra o número: acima de 7 km/h é corrida sempre; entre 6 e 7, vale o exercício
+  escolhido. O peso é o da última pesagem (`pesoCorporal`), ou 75 kg com o aviso
+  dizendo isso.
+- **Intensidade pela OMS** (`intensidadeCardio`): abaixo de 3 MET é leve e não
+  conta para a meta; de 3 a 6, moderada; acima de 6, vigorosa, que vale em dobro.
+  A meta da semana é 150 min (`META_CARDIO_SEMANA`, `cardioDaSemana`).
+- **Várias séries são um intervalado** (5 min andando, 2 correndo...): a
+  intensidade é a média pesada pelo tempo (`resumoCardio`).
+- **Na ficha, "repetições" viram minutos.** Velocidade e inclinação vêm da última
+  vez (`sugerirCarga`); a esteira **não sobe sozinha** — ali quem decide se é dia
+  de forçar é o fôlego.
+- **Esteira não é treino de perna** para `seriesSemanaisPorGrupo` e
+  `recuperacaoMuscular`: 30 minutos de caminhada não são 1 série de quadríceps,
+  nem deixam a perna "descansando" no dia seguinte.
+- **No fim do treino** aparece "🏃 Esteira: 3,3 km em 20 min · ~327 kcal", e não
+  "1200s de isometria". Ficar mais tempo na esteira não dispara a festa de
+  recorde da prancha ("você segurou mais 600 segundos"): o maior tempo fica no
+  selo "mais longo".
+
+`PainelCardio`, dentro do cartão do exercício no treino, é o diagnóstico: distância,
+ritmo (min/km), calorias, intensidade com a explicação, os minutos da semana na
+conta da OMS, a comparação com a última vez e uma dica quando cabe (1% de
+inclinação na corrida compensa a falta de vento; caminhada inclinada gasta perto
+de uma corrida leve com menos impacto).
+
+Voz: "Jarvis, corri 20 minutos a 9 por hora", "30 minutos velocidade 6
+inclinação 5", "caminhada de meia hora a 5,5". `cardioDito` vem **antes** da
+série comum — "a 9 por hora" seria lido como 9 quilos —, e uma frase de esteira
+sem o nome do exercício vai para a esteira da ficha, ou cria uma.
+
+Coberto por `teste-cardio.js`, com os números da equação feitos à mão.
+
 ## Monitor cardíaco, e o que a web não alcança
 
 **Funciona:** qualquer monitor que exponha o serviço padrão de frequência
@@ -844,7 +897,7 @@ Ao adicionar exercícios:
 - **Aceite o casamento só quando os nomes tiverem praticamente o mesmo conjunto
   de palavras.** Imagem errada ensina o movimento errado. Na dúvida, deixe sem
   figura: todo exercício tem botão de vídeo do YouTube como alternativa.
-- Hoje: 177 dos 255 exercícios com imagem do wger. Os 12 movimentos funcionais
+- Hoje: 177 dos 258 exercícios com imagem do wger. Os 12 movimentos funcionais
   não têm figura lá e usam o boneco desenhado (`POSES_FUNCIONAIS`), que é melhor
   para eles do que uma foto parada seria.
 
@@ -1216,7 +1269,7 @@ caso o modo "Toque e fale" é melhor. Isso está dito na ajuda do app.
 
 `APELIDOS_EXERCICIO` traduz o jeito da academia ("agacho", "extensora", "leg")
 para o id. `acharExercicio` procura **primeiro entre os exercícios do treino de
-hoje** e só depois nos 255: quem fala "supino" no meio do treino quer o supino
+hoje** e só depois nos 258: quem fala "supino" no meio do treino quer o supino
 que está na ficha. Na pontuação, quem acerta mais palavras do nome ganha de quem
 acerta uma só — sem isso "rosca direta" perdia para "Rosca 21".
 
@@ -1298,11 +1351,11 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 193
-checagens em sete suítes, e elas recortam as funções do próprio `index.html`:
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 238
+checagens em oito suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash
-node rodar.js      # as sete suítes, contra o index.html da pasta ao lado
+node rodar.js      # as oito suítes, contra o index.html da pasta ao lado
 node servir.js     # sobe o app em http://localhost:8765
 ```
 

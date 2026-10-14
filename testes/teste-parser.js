@@ -185,5 +185,21 @@ t("Jarvis, encerra o treino", { tipo: "finalizar" });
 t("Jorge anota 80 por 10", { jarvis: true, tipo: "anotar", peso: 80, reps: 10 });
 t("jogos anota aí fiz a série 3 de cadeira extensora 99 kg 12 repetições", { jarvis: true, tipo: "anotar", peso: 99, reps: 12, ex: "cadeira-extensora" });
 
+console.log("--- esteira ---");
+t("Jarvis, corri 20 minutos a 9 km/h", { tipo: "anotar", cardio: true, segundos: 1200, vel: 9 });
+t("Jarvis, 30 minutos a seis e meio por hora inclinação cinco", { tipo: "anotar", cardio: true, segundos: 1800, vel: 6.5, incl: 5 });
+t("Jarvis, esteira 30 minutos velocidade 6 inclinação 10", { tipo: "anotar", cardio: true, segundos: 1800, vel: 6, incl: 10 });
+t("Jarvis, andei 3 quilômetros em 30 minutos", { tipo: "anotar", cardio: true, segundos: 1800, vel: 6 });
+t("Jarvis, caminhada de meia hora a 5,5 quilômetros por hora", { tipo: "anotar", cardio: true, segundos: 1800, vel: 5.5, ex: "esteira-caminhada" });
+t("Jarvis, corrida na esteira 1 hora a 10 por hora", { tipo: "anotar", cardio: true, segundos: 3600, vel: 10, ex: "esteira-corrida" });
+t("Jarvis, velocidade 8", { tipo: "anotar", cardio: true, vel: 8 });
+t("Jarvis, vai para a esteira", { tipo: "irExercicio", ex: "esteira-caminhada" });
+// "acabei a corrida de 20 minutos" e uma serie, nao o fim do treino
+t("Jarvis, acabei a corrida de 20 minutos", { tipo: "anotar", cardio: true, segundos: 1200 });
+// e a esteira nao pode roubar o que ja funcionava
+t("Jarvis, descanso de 2 minutos", { tipo: "descanso", segundos: 120 });
+t("Jarvis, anota 80 por 10", { tipo: "anotar", peso: 80, reps: 10, cardio: "undefined" });
+t("Jarvis, 45 segundos", { tipo: "anotar", segundos: 45, cardio: "undefined" });
+
 console.log("\n" + ok + " passou / " + falhou + " falhou");
 process.exit(falhou ? 1 : 0);

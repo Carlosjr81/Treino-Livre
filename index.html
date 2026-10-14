@@ -537,7 +537,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-14a";
+const VERSAO_APP = "2026-10-14b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2437,7 +2437,7 @@ const APELIDOS_EXERCICIO = [
   ["remada", "remada-baixa"], ["cavalinho", "remada-cavalinho"],
   ["elevacao lateral", "elevacao-lateral"], ["lateral", "elevacao-lateral"],
   ["extensora", "cadeira-extensora"], ["cadeira extensora", "cadeira-extensora"],
-  ["flexora", "mesa-flexora"], ["mesa flexora", "mesa-flexora"], ["adutora", "cadeira-adutora"],
+  ["flexora", "mesa-flexora"], ["mesa flexora", "mesa-flexora"], ["adutora", "cadeira-adutora"], ["abdutora", "abducao"],
   ["panturrilha", "panturrilha"], ["gemeos", "panturrilha"], ["abdominal", "abdominal-supra"],
   ["abdominal supra", "abdominal-supra"], ["crucifixo", "crucifixo"],
   ["peck deck", "peck-deck"], ["voador", "peck-deck"], ["crossover", "crossover"],
@@ -2449,29 +2449,63 @@ const APELIDOS_EXERCICIO = [
   ["remada alta", "remada-alta"], ["remada baixa", "remada-baixa"], ["remada curvada", "remada-curvada"],
   ["prancha", "prancha"], ["abdominal infra", "abdominal-infra"], ["ponte", "ponte-gluteo"], ["pelvica", "elevacao-pelvica-halter"],
 ];
-function pontuarExercicio(ex, frase) {
+// Palavra que diz o tipo de aparelho e não qual é. Sozinha não escolhe nada:
+// num treino real, "cadeira extensora" chegou como "cadeira estensora", só
+// "cadeira" casou, e a "Cadeira abdutora" levou a série por ter o nome curto.
+const PALAVRAS_DE_APARELHO = ["cadeira", "mesa"];
+// O reconhecedor estraga justamente a palavra que diferencia: "extensora" vira
+// "estensora", "extensão", "extensor", "x tensora". Casar só o que é quase igual,
+// e valendo metade: a palavra exata sempre ganha da parecida ("adutora" e
+// "abdutora" estão a uma letra uma da outra).
+function palavrasDaFrase(frase) {
+  const t = frase.trim().split(" ").filter(Boolean);
+  const out = t.slice();
+  for (let i = 0; i + 1 < t.length; i++) out.push(t[i] + t[i + 1]);
+  return out;
+}
+function quaseIgual(p, palavras) {
+  if (p.length < 6) return false;
+  return palavras.some((w) => {
+    if (w.length < 5) return false;
+    let comum = 0;
+    while (comum < p.length && p[comum] === w[comum]) comum++;
+    if (comum >= 6) return true;
+    return distanciaTexto(p, w) <= (p.length >= 8 ? 2 : 1);
+  });
+}
+function pontuarExercicio(ex, frase, palavras, semParecidas) {
   const nome = semAcento(ex.nome);
   if (frase.indexOf(" " + nome + " ") >= 0) return { inteiro: true, achados: 9, letras: nome.length, cobertura: 1 };
   const toks = nome.split(/[^a-z0-9]+/).filter((p) => p.length > 2 && PALAVRAS_VAZIAS.indexOf(p) < 0);
   if (!toks.length) return null;
-  let achados = 0, letras = 0, total = 0;
+  const ws = palavras || palavrasDaFrase(frase);
+  let achados = 0, exatos = 0, letras = 0, total = 0, soAparelho = true;
   toks.forEach((p) => {
     total += p.length;
-    if (frase.indexOf(p) >= 0) { achados++; letras += p.length; }
+    if (frase.indexOf(p) >= 0) {
+      achados++; exatos++; letras += p.length;
+      if (PALAVRAS_DE_APARELHO.indexOf(p) < 0) soAparelho = false;
+    } else if (!semParecidas && quaseIgual(p, ws)) {
+      achados++; letras += p.length / 2; soAparelho = false;
+    }
   });
   // Metade das palavras do nome precisa aparecer: sem isso "remada" casaria com
   // "remada alta com barra W" tão bem quanto com "remada baixa".
-  if (!achados || achados / toks.length < 0.5) return null;
-  return { inteiro: false, achados: achados, letras: letras, cobertura: letras / total };
+  if (!achados || achados / toks.length < 0.5 || soAparelho) return null;
+  return { inteiro: false, achados: achados, exatos: exatos, letras: letras, cobertura: letras / total };
 }
 // Procura numa lista só. Quem acerta MAIS palavras do nome ganha de quem acerta
 // uma só: "rosca direta" tem de vencer "Rosca 21", que casa 100% de uma palavra.
-function melhorDaLista(limpa, lista) {
+// A palavra exata conta antes da parecida: "alternada" é a rosca alternada, não
+// o "afundo alternado" que só se parece com ela.
+function melhorDaLista(limpa, lista, semParecidas) {
   let melhor = null, m = null;
+  const palavras = palavrasDaFrase(limpa);
   lista.forEach((ex) => {
-    const r = pontuarExercicio(ex, limpa);
+    const r = pontuarExercicio(ex, limpa, palavras, semParecidas);
     if (!r) return;
-    if (!m || r.achados > m.achados || (r.achados === m.achados && r.cobertura > m.cobertura)) { m = r; melhor = ex; }
+    const ex1 = r.inteiro ? 99 : r.exatos, ex2 = m ? (m.inteiro ? 99 : m.exatos) : -1;
+    if (!m || ex1 > ex2 || (ex1 === ex2 && (r.achados > m.achados || (r.achados === m.achados && r.cobertura > m.cobertura)))) { m = r; melhor = ex; }
   });
   return melhor ? { ex: melhor, r: m } : null;
 }
@@ -2494,7 +2528,9 @@ function acharExercicio(frase, todos, candidatos) {
   if (candidatos && candidatos.length) {
     const lista = todos.filter((e) => candidatos.indexOf(e.id) >= 0);
     const ap = porApelido(limpa, lista);
-    const b = melhorDaLista(limpa, lista);
+    // Na ficha só vale palavra exata. Com só a abdutora na ficha, "adutora" casava
+    // com ela por ser parecida, em vez de ir buscar a adutora no catálogo.
+    const b = melhorDaLista(limpa, lista, true);
     if (ap && (!b || ap.letras >= b.r.letras)) return ap.ex;
     if (b) return b.ex;
   }

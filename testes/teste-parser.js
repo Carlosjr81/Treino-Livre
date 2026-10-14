@@ -158,5 +158,21 @@ console.log("--- exercicios por apelido ---");
   if (id !== p[1]) { falhou++; console.log("  X  \"" + p[0] + "\" -> " + id + " (esperava " + p[1] + ")"); } else ok++;
 });
 
+console.log("--- o reconhecedor estraga a palavra que diferencia ---");
+// Treino real: "cadeira extensora" chegou mal ouvida, so "cadeira" casou, e a
+// serie foi parar na cadeira abdutora. Na ficha estavam as duas.
+const fichaCadeiras = { cand: ["cadeira-extensora", "abducao", "cadeira-adutora", "leg-press"] };
+t("Jarvis, cadeira estensora 40 por 12", { tipo: "anotar", ex: "cadeira-extensora" }, fichaCadeiras);
+t("Jarvis, cadeira extensão 40 por 12", { tipo: "anotar", ex: "cadeira-extensora" }, fichaCadeiras);
+t("Jarvis, cadeira extensor 40 por 12", { tipo: "anotar", ex: "cadeira-extensora" }, fichaCadeiras);
+t("Jarvis, cadeira x tensora 40 por 12", { tipo: "anotar", ex: "cadeira-extensora" }, fichaCadeiras);
+// So "cadeira" nao diz qual: fica com o exercicio da vez, nao chuta outro
+t("Jarvis, cadeira 40 por 12", { tipo: "anotar", ex: null }, fichaCadeiras);
+// A palavra exata ganha da parecida: adutora e abdutora estao a uma letra
+t("Jarvis, cadeira adutora 40 por 12", { tipo: "anotar", ex: "cadeira-adutora" }, fichaCadeiras);
+t("Jarvis, cadeira abdutora 40 por 12", { tipo: "anotar", ex: "abducao" }, fichaCadeiras);
+t("Jarvis, abdutora 40 por 12", { tipo: "anotar", ex: "abducao" });
+t("Jarvis, adutora 40 por 12", { tipo: "anotar", ex: "cadeira-adutora" });
+
 console.log("\n" + ok + " passou / " + falhou + " falhou");
 process.exit(falhou ? 1 : 0);

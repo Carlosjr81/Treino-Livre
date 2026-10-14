@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 177 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 186 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 177 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 186 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v23) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v24) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1214,6 +1214,20 @@ hoje** e só depois nos 255: quem fala "supino" no meio do treino quer o supino
 que está na ficha. Na pontuação, quem acerta mais palavras do nome ganha de quem
 acerta uma só — sem isso "rosca direta" perdia para "Rosca 21".
 
+**O reconhecedor estraga justamente a palavra que diferencia.** Num treino real,
+"cadeira extensora" chegou como "cadeira estensora": só "cadeira" casou, e a série
+foi parar na **cadeira abdutora**, que ganhava o empate por ter o nome mais curto.
+Daí três regras:
+
+- `PALAVRAS_DE_APARELHO` ("cadeira", "mesa") dizem o tipo de aparelho e não qual
+  é: **sozinhas não escolhem exercício**. Sem outro sinal, a série vai para o
+  exercício da vez.
+- `quaseIgual` aceita a palavra estragada ("estensora", "extensão", "x tensora")
+  valendo metade, e **a exata sempre ganha da parecida** — "adutora" e "abdutora"
+  estão a uma letra uma da outra.
+- **Dentro da ficha só vale palavra exata.** Com só a abdutora na ficha,
+  "adutora" casaria com ela por parecença em vez de buscar a adutora no catálogo.
+
 ### Como testar sem microfone
 
 Não dá para falar com o app num teste automatizado. O caminho usado foi montar
@@ -1278,7 +1292,7 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 177
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 186
 checagens em sete suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash

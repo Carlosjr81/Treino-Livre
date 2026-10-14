@@ -40,6 +40,29 @@ Isso importa mais no celular do que no computador: lá não dá para abrir o app
 em `localhost` antes de publicar, e quem recebe uma publicação quebrada é gente
 no meio de um treino.
 
+#### Uma nota sobre a rede da sessão na nuvem
+
+A sessão na nuvem só alcança uma lista de domínios. O `registry.npmjs.org` está
+nela; a `cdnjs.cloudflare.com` — de onde o app carrega React e Babel — **não**.
+O `verificar.js` já contorna isso: quando a CDN não responde, ele pega o Babel
+no npm e compila o JSX do mesmo jeito. **Essa conferida funciona no celular sem
+você configurar nada.**
+
+A única que não dá para fazer dali é conferir os *hashes* das bibliotecas, que
+exige baixar o arquivo da própria CDN. Ela vira aviso, e **o GitHub Actions a
+faz por você** — o servidor dele tem internet aberta, e o resultado aparece
+como ✓ ou ✗ no app do GitHub.
+
+Se quiser a conferida completa também no celular, dá para liberar o domínio uma
+vez: no seletor de ambiente da sessão na nuvem, escolha **Custom** em acesso de
+rede, marque *incluir a lista padrão* e acrescente uma linha:
+
+```text
+cdnjs.cloudflare.com
+```
+
+É opcional. Sem isso nada fica desprotegido — só muda quem faz a checagem.
+
 ### Depois de publicar, você tem duas confirmações
 
 1. **O ✓ no app do GitHub.** O GitHub roda os testes de novo do lado dele

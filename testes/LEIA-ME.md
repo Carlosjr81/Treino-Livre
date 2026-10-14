@@ -30,7 +30,7 @@ Cada checagem corresponde a um jeito real de derrubar o Treino Livre:
 
 | Confere | Sem isso |
 |---|---|
-| o JSX compila (Babel de verdade, da mesma CDN) | erro de sintaxe → tela branca para todos |
+| o JSX compila (Babel de verdade, da CDN ou do npm) | erro de sintaxe → tela branca para todos |
 | os hashes SRI batem com os arquivos reais | hash errado → o navegador recusa o React |
 | as três versões sincronizadas **e subidas** | o conserto não chega ao celular de ninguém |
 | os endereços do `sw.js` batem com os do `index.html` | o cache guarda endereço que ninguém pede |

@@ -121,18 +121,61 @@ else erro("não achei a chamada que monta o app — a tela ficaria vazia");
 titulo("3. O JSX compila? (o que o navegador vai tentar fazer)");
 const BABEL_URL = (html.match(/src="(https:\/\/[^"]*babel-standalone[^"]*)"/) || [])[1];
 
+// O Babel pelo npm, quando a CDN não está ao alcance.
+//
+// Sessão do Claude na nuvem — que é como se mexe neste projeto pelo celular —
+// roda com a rede limitada a uma lista. `registry.npmjs.org` está nela por
+// padrão; `cdnjs.cloudflare.com` NÃO está. Sem esta saída, a conferida mais
+// importante (o JSX compila?) virava um aviso justamente no aparelho onde não
+// dá para abrir o app e olhar.
+//
+// Qualquer Babel serve para saber se o JSX compila — não precisa ser o mesmo
+// byte que o navegador baixa. Para o hash SRI é diferente, e por isso aquela
+// checagem continua exigindo a CDN de verdade.
+async function babelDoNpm(versao) {
+  const r = await fetch(
+    "https://registry.npmjs.org/@babel/standalone/-/standalone-" + versao + ".tgz",
+    { signal: AbortSignal.timeout(90000) }
+  );
+  if (!r.ok) return null;
+  const tar = require("zlib").gunzipSync(Buffer.from(await r.arrayBuffer()));
+  // tar é simples: cabeçalho de 512 bytes, nome nos primeiros 100, tamanho em
+  // octal no byte 124, e os dados logo depois, preenchidos até o múltiplo de 512
+  let off = 0;
+  while (off + 512 <= tar.length) {
+    const nome = tar.toString("utf8", off, off + 100).replace(/\0.*$/, "");
+    if (!nome) break; // blocos zerados marcam o fim
+    const tam = parseInt(tar.toString("utf8", off + 124, off + 136).replace(/\0.*$/, "").trim(), 8) || 0;
+    const dados = off + 512;
+    if (nome === "package/babel.min.js") return tar.toString("utf8", dados, dados + tam);
+    off = dados + Math.ceil(tam / 512) * 512;
+  }
+  return null;
+}
+
 async function compilarJSX() {
   if (blocos.length !== 2) return;
   const jsx = blocos[1].src;
   let fonteBabel = null;
+  const versao = (BABEL_URL && BABEL_URL.match(/babel-standalone\/([\d.]+)\//) || [])[1];
   const cache = path.join(os.tmpdir(), "treinolivre-babel-" + crypto.createHash("sha1").update(BABEL_URL || "x").digest("hex").slice(0, 12) + ".js");
   if (fs.existsSync(cache)) {
     fonteBabel = fs.readFileSync(cache, "utf8");
-  } else if (BABEL_URL) {
-    try {
-      const r = await fetch(BABEL_URL, { signal: AbortSignal.timeout(60000) });
-      if (r.ok) { fonteBabel = await r.text(); fs.writeFileSync(cache, fonteBabel); }
-    } catch (e) {}
+  } else {
+    // SO_NPM existe para provar que a saída pelo npm funciona de verdade
+    if (BABEL_URL && !process.env.SO_NPM) {
+      try {
+        const r = await fetch(BABEL_URL, { signal: AbortSignal.timeout(60000) });
+        if (r.ok) fonteBabel = await r.text();
+      } catch (e) {}
+    }
+    if (!fonteBabel && versao) {
+      try {
+        fonteBabel = await babelDoNpm(versao);
+        if (fonteBabel) console.log("        (a CDN não respondeu; peguei o Babel no npm)");
+      } catch (e) {}
+    }
+    if (fonteBabel) { try { fs.writeFileSync(cache, fonteBabel); } catch (e) {} }
   }
   if (!fonteBabel) {
     aviso("sem rede para baixar o Babel — conferindo só o equilíbrio dos delimitadores");

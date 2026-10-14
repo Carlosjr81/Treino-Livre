@@ -139,11 +139,17 @@ Treino Livre:
 
 | O que ele confere | O que acontecia sem isso |
 |---|---|
-| O JSX compila (com o Babel de verdade, baixado da mesma CDN) | erro de sintaxe → tela branca para todos |
+| O JSX compila (com o Babel de verdade, da CDN ou, se ela não estiver ao alcance, do npm) | erro de sintaxe → tela branca para todos |
 | Os hashes SRI batem com os arquivos reais da CDN | hash errado → o navegador recusa o React → nada carrega |
 | As três versões estão sincronizadas **e subiram** quando o app mudou | o conserto nunca chega ao celular de ninguém |
 | Os endereços do `sw.js` batem com os do `index.html` | o cache guarda um endereço que ninguém pede |
 | Todo arquivo da lista do `sw.js` existe | o modo offline instala quebrado |
+
+**A rede da sessão na nuvem é limitada a uma lista**, e `cdnjs.cloudflare.com`
+não está nela — `registry.npmjs.org` está. Por isso o verificador pega o Babel
+no npm quando a CDN não responde: a conferida do JSX, que é a mais importante,
+funciona no celular sem configurar nada. A dos hashes exige a CDN de verdade e
+vira aviso ali; quem a faz nesse caso é o GitHub Actions, que tem rede aberta.
 
 O que depende de rede vira **aviso** quando não há rede, não erro: travar a
 publicação por falta de internet seria trocar um problema por outro.

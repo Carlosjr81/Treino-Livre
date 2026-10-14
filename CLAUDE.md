@@ -844,7 +844,7 @@ Ao adicionar exercícios:
 - **Aceite o casamento só quando os nomes tiverem praticamente o mesmo conjunto
   de palavras.** Imagem errada ensina o movimento errado. Na dúvida, deixe sem
   figura: todo exercício tem botão de vídeo do YouTube como alternativa.
-- Hoje: 172 dos 255 exercícios com imagem do wger. Os 12 movimentos funcionais
+- Hoje: 177 dos 255 exercícios com imagem do wger. Os 12 movimentos funcionais
   não têm figura lá e usam o boneco desenhado (`POSES_FUNCIONAIS`), que é melhor
   para eles do que uma foto parada seria.
 

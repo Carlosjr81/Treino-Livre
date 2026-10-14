@@ -62,6 +62,66 @@ manda `Cache-Control: max-age=600` — e devolvia a cópia velha achando que tin
 ido à rede. O `versao.json` nunca é interceptado pelo service worker: ele existe
 para delatar a versão nova e serviria de pouco vindo do cache.
 
+## Trabalhar de qualquer computador
+
+O projeto não depende de uma máquina. Tudo o que é preciso para desenvolver
+está **dentro do repositório** — app, documentação e testes — e o repositório
+chega em qualquer computador por dois caminhos independentes: o clone do
+GitHub e a cópia do Google Drive.
+
+```
+Treino-Livre/
+├── index.html, sw.js, manifest.json, versao.json, ícones   ← o app publicado
+├── CLAUDE.md            ← este arquivo: o contexto do projeto
+├── COMECE-AQUI.md       ← como preparar uma máquina nova
+└── testes/              ← as 7 suítes, o servidor local e o LEIA-ME delas
+```
+
+**A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
+entrega o ambiente completo, sem depender de nenhuma nuvem. Nada ali é
+carregado pelo app: o `index.html` não referencia a pasta e o `sw.js` tem uma
+lista explícita do que guarda em cache.
+
+Os testes acham o `index.html` pela posição da pasta dentro do repositório —
+nenhum caminho escrito à mão, e é isso que faz funcionar com qualquer letra
+de unidade e qualquer nome de usuário.
+
+**Numa máquina nova**, o passo a passo está no `COMECE-AQUI.md`, escrito para
+ser lido tanto por gente quanto pelo Claude. O resumo: Node.js, git, `gh auth
+login`, e clonar — ou usar o Google Drive com a pasta marcada como
+**"Disponível off-line"**, sem o que o Drive guarda só os nomes e `git` e
+`node` travam na primeira leitura.
+
+### Publicar: `git push`
+
+O histórico antigo é de commits "Add files via upload" — o app era publicado
+enviando arquivos pela interface web do GitHub. **Isso não é mais necessário**:
+com o `gh` autenticado, `git push` publica, e o GitHub Pages republica sozinho
+em um ou dois minutos.
+
+Isso **não** reintroduz etapa de build: continua sem Vite, sem `npm`, sem
+Actions. O `git push` só move arquivos prontos, exatamente como o envio pela
+web movia — ver *Restrições que moldam tudo*. A regra das três versões
+(abaixo) continua valendo em toda publicação.
+
+A interface web continua funcionando como alternativa, para quando a máquina
+não tiver git.
+
+### A regra que o Drive impõe
+
+**Um computador de cada vez.** O Drive sincroniza, não resolve conflito: duas
+máquinas editando o mesmo arquivo viram duas cópias ("index (1).html"), e no
+`.git` — que é feito de centenas de arquivinhos — isso corrompe o repositório
+em vez de duplicar nada. Antes de trocar de máquina, feche o editor e confira
+na bandeja que o Drive terminou de sincronizar.
+
+O jeito de nunca precisar pensar nisso é **dar `git push` ao terminar e `git
+pull` ao começar**, em qualquer máquina. Aí o Drive vira conveniência, e o
+GitHub vira a verdade.
+
+**Se um dia o Drive bagunçar o `.git`**, não tente consertar: clone de novo do
+GitHub e siga daí.
+
 ## Arquivos
 
 | Arquivo | Papel |
@@ -1139,9 +1199,22 @@ aqui**; o lugar do resto é:
 
 ## Como testar
 
-Não há suíte automatizada. O `file://` não serve: o preview vira `data:` e o
-`localStorage` fica bloqueado. Suba um servidor estático e teste em `http://localhost`
-(o registro do service worker aceita `localhost` além de `https:`).
+Há uma suíte automatizada, **fora do repositório**, na pasta irmã
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 177
+checagens em sete suítes, e elas recortam as funções do próprio `index.html`:
+
+```bash
+node rodar.js      # as sete suítes, contra o index.html da pasta ao lado
+node servir.js     # sobe o app em http://localhost:8765
+```
+
+Rode antes e depois de mexer no app. **Elas não substituem o roteiro manual
+abaixo**: provam que a lógica não quebrou, não que a tela funciona. Câmera,
+microfone e service worker exigem aparelho de verdade.
+
+O `file://` não serve: o preview vira `data:` e o `localStorage` fica
+bloqueado. Por isso o `servir.js` — o registro do service worker aceita
+`localhost` além de `https:`.
 
 Roteiro mínimo depois de mexer no app:
 
@@ -1272,6 +1345,27 @@ Roteiro mínimo depois de mexer no app:
   na checagem de `integrity`. O endereço novo não encontra o cache velho e busca
   uma cópia verificável. Se mudar a versão de alguma biblioteca, recalcule o
   hash SRI e mantenha o mesmo endereço no `index.html` e no `sw.js`.
+
+### Editar um arquivo de 700 KB sem estragá-lo
+
+O `index.html` é grande demais para ser reescrito inteiro a cada mexida, e tem
+acentos e emoji em quase toda tela. Três coisas já custaram uma restauração de
+backup:
+
+- **Use Node para editar, não Python.** Um `write()` em Python com emoji
+  (pares substitutos) levanta `UnicodeEncodeError` **depois** de truncar o
+  arquivo — o `index.html` já ficou com 0 byte assim. Em Node, escreva o emoji
+  como `\u{1F4C8}` e não literal.
+- **Não escreva script de edição com heredoc do Bash.** O `cat << EOF` come as
+  barras invertidas, e um `\s` de expressão regular chega do outro lado como
+  `s`. Grave o script com a ferramenta de escrita de arquivo.
+- **Toda troca deve ser única e conferida.** O padrão aqui é uma função
+  `troca(alvo, novo, rótulo)` que aborta se o alvo não existe **ou se aparece
+  mais de uma vez**. Substituição silenciosa no arquivo errado só aparece
+  horas depois.
+
+E o arquivo é **CRLF**: edição que normaliza para LF troca 1.300 linhas e
+transforma o diff em lixo.
 
 ## Coisas que parecem bug e não são
 

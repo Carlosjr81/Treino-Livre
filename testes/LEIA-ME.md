@@ -1,0 +1,80 @@
+# Suíte de testes do Treino Livre
+
+Esta pasta vive **dentro do repositório**, de propósito: um `git clone` entrega
+o projeto completo — app e testes — em qualquer computador, sem depender de
+nenhuma sincronização de nuvem.
+
+Os testes acham o `index.html` sozinhos, pela posição desta pasta em relação à
+raiz do repositório. Nenhum caminho está escrito à mão, e é isso que permite
+abrir o projeto em qualquer máquina, com qualquer letra de unidade.
+
+Nada aqui é carregado pelo app: o `index.html` não referencia esta pasta, e o
+`sw.js` tem uma lista explícita do que guarda em cache. O GitHub Pages serve
+estes arquivos, e ninguém os pede.
+
+## Os dois comandos
+
+```bash
+node testes/rodar.js
+```
+
+Roda as sete suítes (177 checagens) contra o `index.html` da raiz. Vale rodar
+**antes e depois** de qualquer mexida.
+
+```bash
+node testes/servir.js
+```
+
+Sobe o app em `http://localhost:8765`. Abrir o `index.html` direto no navegador
+não serve: em `file://` o `localStorage` fica bloqueado e o service worker não
+registra — justo onde moram os dados e o modo offline.
+
+Precisa de Node.js. Nenhuma dependência: não há `package.json`, não há
+`npm install`, e isso é de propósito — ver *Restrições que moldam tudo* no
+`CLAUDE.md`.
+
+## O que cada suíte cobre
+
+| Suíte | O que prova |
+|---|---|
+| `teste-parser` | o interpretador de voz: 91 frases viram (ou não viram) comandos |
+| `teste-contador` | a contagem de repetições, com corpo sintético |
+| `teste-tecnico` | os comentários do técnico — **e o silêncio dele** |
+| `teste-funcional` | os movimentos funcionais e o modo alternado |
+| `teste-postura` | a correção de postura, principalmente o que ela **não** pode falar |
+| `teste-enquadramento` | pôr a pessoa no quadro, e o sentido esquerda/direita |
+| `teste-evolucao` | a leitura do histórico por exercício |
+
+Eles **não substituem** o roteiro manual do `CLAUDE.md`. Provam que a lógica
+não quebrou; não provam que a tela funciona. Câmera, microfone e service
+worker continuam exigindo um aparelho de verdade.
+
+## Coisas que já custaram caro aqui
+
+- **Nenhum teste lê cópia do código.** Todos recortam as funções direto do
+  `index.html`, por marcadores de seção. O `teste-parser` lia um
+  `jarvis-cerebro.txt` e o `teste-contador` um `eyes-cerebro.txt`, os dois de
+  outubro: 99 checagens verdes provando que a versão congelada funcionava. O
+  defeito só apareceu quando foram repontados para o código vivo.
+- **O recorte para antes do primeiro componente React.** Node não compila JSX.
+  Se o marcador não for achado, o teste aborta com mensagem — recorte vazio que
+  roda é pior que teste que não roda.
+- **O corpo sintético precisa ter proporção de gente em pé** (tronco de ~0,25
+  da tela). Os sinais de posição do contador são divididos pela escala do
+  tronco e multiplicados por 100: com tronco curto, o tremor de 0,004 vira 4
+  pontos de "movimento" e o contador conta gente parada. A versão antiga punha
+  os dois ombros no mesmo ponto e as duas pernas no mesmo objeto — tronco de
+  largura zero não é um corpo.
+- **O corpo sintético não pode se teletransportar.** O descanso tem de começar
+  no mesmo ponto onde o ciclo começa. Se descansa em pé e o ciclo começa
+  agachado, o primeiro quadro da série é uma descida inteira de uma vez — e o
+  contador conta, com razão.
+- **O ruído é semeado**, não `Math.random`. Com sorteio livre o teste falhava
+  uma vez a cada trinta execuções, e teste que falha às vezes é teste que se
+  aprende a ignorar.
+
+## Se o app estiver em outro lugar
+
+```bash
+TREINO_HTML="/caminho/para/index.html" node rodar.js
+```

@@ -64,16 +64,20 @@ const CASOS = [
   },
 ];
 
+// So os arquivos: `testes/` tem a pasta hooks/ dentro, e copyFileSync num
+// diretorio levanta EISDIR. A copia nao precisa das subpastas — o verificador
+// le o index.html, o sw.js, o versao.json e o proprio testes/app.js.
+function copiarArquivosDe(origem, destino) {
+  fs.mkdirSync(destino, { recursive: true });
+  for (const f of fs.readdirSync(origem)) {
+    const p = path.join(origem, f);
+    if (fs.statSync(p).isFile()) fs.copyFileSync(p, path.join(destino, f));
+  }
+}
+
 function copiar(dest) {
-  fs.mkdirSync(dest, { recursive: true });
-  fs.mkdirSync(path.join(dest, "testes"), { recursive: true });
-  for (const f of fs.readdirSync(ORIG)) {
-    const p = path.join(ORIG, f);
-    if (fs.statSync(p).isFile()) fs.copyFileSync(p, path.join(dest, f));
-  }
-  for (const f of fs.readdirSync(path.join(ORIG, "testes"))) {
-    fs.copyFileSync(path.join(ORIG, "testes", f), path.join(dest, "testes", f));
-  }
+  copiarArquivosDe(ORIG, dest);
+  copiarArquivosDe(path.join(ORIG, "testes"), path.join(dest, "testes"));
 }
 
 let ok = 0, mal = 0;

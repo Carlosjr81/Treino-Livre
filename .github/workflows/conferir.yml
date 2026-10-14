@@ -29,7 +29,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # LTS. O verificador usa `fetch` e `AbortSignal.timeout`, que existem
+          # desde o Node 18 — qualquer LTS recente serve.
+          node-version: "22"
       # Nenhum `npm install`: o projeto não tem dependência, de propósito.
 
       - name: Os 177 testes

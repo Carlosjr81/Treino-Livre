@@ -1,7 +1,5 @@
 // Testa o tecnico: ele precisa reconhecer amplitude melhorando, caindo e
 // repeticao rapida demais — e, principalmente, precisa saber ficar calado.
-const fs = require("fs");
-const PASTA = __dirname + "/";
 
 // pega o cerebro direto do app, para testar o que esta publicado
 const html = require("./app").lerApp();

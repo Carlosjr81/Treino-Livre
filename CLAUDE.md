@@ -86,11 +86,21 @@ Os testes acham o `index.html` pela posição da pasta dentro do repositório �
 nenhum caminho escrito à mão, e é isso que faz funcionar com qualquer letra
 de unidade e qualquer nome de usuário.
 
-**Numa máquina nova**, o passo a passo está no `COMECE-AQUI.md`, escrito para
-ser lido tanto por gente quanto pelo Claude. O resumo: Node.js, git, `gh auth
-login`, e clonar — ou usar o Google Drive com a pasta marcada como
-**"Disponível off-line"**, sem o que o Drive guarda só os nomes e `git` e
-`node` travam na primeira leitura.
+**Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
+`preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
+instala por `winget`/`brew`, define a identidade dos commits só neste
+repositório e termina rodando os 177 testes. Não desinstala nada, não atualiza
+o que já existe e não mexe em configuração global.
+
+Duas coisas ele detecta mas não resolve, e as duas têm motivo:
+
+- **A pasta precisa estar "Disponível off-line"** no Drive. É um menu do
+  Explorador, nenhum comando o alcança. Sem isso o Drive guarda só os nomes, e
+  `git` e `node` travam na primeira leitura — o script mede o tempo de ler o
+  `index.html` inteiro para detectar o sintoma.
+- **`gh auth login`** abre o navegador e espera alguém digitar.
+
+Pedir "prepare esta máquina" ao Claude é o caminho esperado; ele roda o script.
 
 ### Publicar: `git push`
 

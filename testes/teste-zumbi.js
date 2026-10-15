@@ -242,8 +242,10 @@ function final() {
   teste("missao desconhecida cai no Ultimo Sinal", "ultimo-sinal", Z.missaoZumbiPorId("nao-existe").id);
 
   const mb = Z.MONSTROS_ZUMBI.marombeiro, fimMb = Z.missaoZumbiPorId("fuga-do-marombeiro").cenas.find((c) => c.id === "fim-completo").falas.todas;
-  teste("o Marombeiro: as duas fotos existem, e o fim convida a seguir", [true, true, true],
-    [fs.existsSync(path.join(__dirname, "..", mb.foto)), fs.existsSync(path.join(__dirname, "..", mb.fotoCorpo)), /Siga o Marombeiro no Instagram/.test(fimMb)]);
+  teste("o Marombeiro: as camadas existem, estao no modo offline, e o fim convida a seguir", [true, true, true],
+    [[mb.foto, mb.fotoCorpo, "marombeiro-corpo.webp", "marombeiro-braco.webp", "marombeiro-cabeca.webp"].every((f) => fs.existsSync(path.join(__dirname, "..", f))),
+      ["marombeiro-corpo.webp", "marombeiro-braco.webp", "marombeiro-cabeca.webp", mb.fotoCorpo, mb.foto].every((f) => fs.readFileSync(path.join(__dirname, "..", "sw.js"), "utf8").indexOf("./" + f) >= 0),
+      /Siga o Marombeiro no Instagram/.test(fimMb)]);
 
   console.log("--- 9c. o radar ---");
   teste("distancia: longe (dentro do radar), meio e encostando", [280, true, 15], [Z.distanciaMonstro(0), Z.distanciaMonstro(0.5) > 90 && Z.distanciaMonstro(0.5) < 160, Z.distanciaMonstro(1)]);

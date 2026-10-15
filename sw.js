@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v41";
+const CACHE = "treinolivre-v42";
 const CACHE_VOZ = "treinolivre-voz";
 const ARQUIVOS = [
   "./",
@@ -9,7 +9,10 @@ const ARQUIVOS = [
   "./icon-512.png",
   "./icon-maskable-512.png",
   "./apple-touch-icon.png",
-  "./marombeiro.jpg",
+  "./marombeiro-corpo.webp",
+  "./marombeiro-braco.webp",
+  "./marombeiro-cabeca.webp",
+  "./marombeiro-inteiro.webp",
   "./marombeiro-rosto.jpg",
   // O "?v=3" precisa bater exatamente com o endereço usado no index.html,
   // senão o que é guardado aqui nunca é encontrado depois.

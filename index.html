@@ -162,6 +162,12 @@
   @keyframes mbChega { 0% { transform: scale(.12) translateY(40%); opacity: 0; } 12% { opacity: 1; } 78% { transform: scale(1.02) translateY(0); } 86% { transform: scale(1.18) translateY(-2%); } 100% { transform: scale(1.12) translateY(0); } }
   @keyframes mbTreme { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-6px, 3px); } 50% { transform: translate(5px, -4px); } 75% { transform: translate(-3px, -2px); } }
   @keyframes mbTexto { 0% { transform: scale(2.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes mbRespira { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.008, 1.014); } }
+  @keyframes mbBombeia { 0%, 100% { transform: rotate(0deg) scale(1); } 45%, 55% { transform: rotate(5deg) scale(1.02); } }
+  @keyframes mbCabeca { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2.5deg) translateY(.3%); } }
+  @keyframes mbCorre { 0% { transform: translateY(0) rotate(-2deg); } 100% { transform: translateY(-3%) rotate(2deg); } }
+  @keyframes mbSombra { 0% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(.8); opacity: .55; } }
+  @keyframes mbLinhas { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .mb-anima, .mb-anima * { animation: none !important; } }
   @keyframes zb-pulso { 0%, 100% { box-shadow: 0 0 0 0 #FF4D4D00; } 50% { box-shadow: 0 0 0 4px #FF4D4D55; } }
   @media (prefers-reduced-motion: reduce) { [style*="zb-varredura"], [style*="zb-pulso"] { animation: none !important; } }
@@ -627,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15n";
+const VERSAO_APP = "2026-10-15o";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -9637,11 +9643,14 @@ const MONSTROS_ZUMBI = {
 };
 // O especial do criador: o Marombeiro é o Carlos Jr., dono do Treino Livre,
 // com a foto dele, a pedido dele, para divulgar o perfil (@carlos.jr.81).
-// As fotos são arquivos do repositório (marombeiro.jpg, marombeiro-rosto.jpg)
-// e estão na lista do sw.js: funcionam sem internet.
+// O avatar é a foto dele, sem fundo, em três camadas (corpo, braço do bíceps,
+// cabeça) que o CSS e o canvas animam: rosto, cabelo e barba são os da foto,
+// nada é redesenhado. Os arquivos estão na lista do sw.js: funcionam sem internet.
+const AVATAR_MAROMBEIRO = { corpo: "marombeiro-corpo.webp", braco: "marombeiro-braco.webp", cabeca: "marombeiro-cabeca.webp",
+  proporcao: 1.9328, pivoBraco: [32.92, 21.49], pivoCabeca: [55.04, 20.51] };
 Object.assign(MONSTROS_ZUMBI, {
   marombeiro: { id: "marombeiro", grupo: "especial", nome: "Marombeiro", icone: "🏋️", radar: "Cheiro de whey",
-    foto: "marombeiro-rosto.jpg", fotoCorpo: "marombeiro.jpg", instagram: true, frases: {
+    foto: "marombeiro-rosto.jpg", fotoCorpo: "marombeiro-inteiro.webp", avatar: true, instagram: true, frases: {
     "aviso-reserva": "Passos pesados e um grito: hoje é dia de perna! Prepare-se para aumentar o ritmo, se puder.",
     perseguicao: { caminhada: "Segure essa passada. Ele para em toda vitrine para conferir o bíceps.", corrida: "Segure esse ritmo. Ele é forte, mas cardio não é a praia dele." },
     "desfecho-reserva": "Foi por pouco, mas chegou a hora do shake dele, e ele não perde o horário do whey. Você segue inteiro. Reduza e recupere.",
@@ -12009,21 +12018,55 @@ function RadarMonstro({ m, monstro, kmhAgora, esteira, velDecl, som, pertoR }) {
     </div>
   );
 }
-// A abertura do Marombeiro: a foto vem correndo na direção da tela, a tela
-// treme, e entra o grito. Um toque pula; some sozinha em 3,4 s.
+// O avatar animado: respira, o bíceps bombeia e a cabeça balança; correndo,
+// o corpo inteiro sobe e desce no passo, com a sombra acompanhando
+function AvatarMarombeiro({ altura, correndo, estilo }) {
+  const A = AVATAR_MAROMBEIRO, larg = Math.round(altura / A.proporcao);
+  const camada = (src, anim, pivo) => (
+    <img src={src} alt="" draggable="false" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", transformOrigin: pivo, animation: anim }} />
+  );
+  return (
+    <div className="mb-anima" role="img" aria-label="O Marombeiro: Carlos Jr., criador do Treino Livre"
+      style={{ position: "relative", width: larg, height: altura, flexShrink: 0, ...(estilo || {}) }}>
+      <div style={{ position: "absolute", left: "10%", right: "10%", bottom: "-2%", height: "5%", borderRadius: "50%",
+        background: "radial-gradient(closest-side, rgba(0,0,0,.75), rgba(0,0,0,0))", animation: correndo ? "mbSombra .34s ease-in-out infinite alternate" : "none" }} />
+      <div style={{ position: "absolute", inset: 0, transformOrigin: "50% 100%",
+        animation: correndo ? "mbCorre .34s ease-in-out infinite alternate" : "mbRespira 2.8s ease-in-out infinite" }}>
+        {camada(A.corpo, "none", "50% 100%")}
+        {camada(A.braco, "mbBombeia " + (correndo ? ".68s" : "1.6s") + " ease-in-out infinite", A.pivoBraco[0] + "% " + A.pivoBraco[1] + "%")}
+        {camada(A.cabeca, "mbCabeca " + (correndo ? ".68s" : "2.4s") + " ease-in-out infinite", A.pivoCabeca[0] + "% " + A.pivoCabeca[1] + "%")}
+      </div>
+    </div>
+  );
+}
+// A abertura do Marombeiro: ele vem correndo na direção da tela, a tela treme,
+// ele para e posa, e entra o grito. Um toque pula; some sozinha em 3,6 s.
 function AberturaMarombeiro({ mo, som, onFim }) {
+  const [posou, setPosou] = useState(false);
   useEffect(() => {
-    const t = setTimeout(onFim, 3400);
+    const t = setTimeout(onFim, 3600);
+    const p = setTimeout(() => setPosou(true), 2300);
     if (som !== false) setTimeout(() => { try { beep(110, 0.25, 0.3); setTimeout(() => beep(82, 0.35, 0.35), 180); } catch (e) {} }, 2300);
-    return () => clearTimeout(t);
+    return () => { clearTimeout(t); clearTimeout(p); };
   }, []);
+  // cresce até 1,12x no fim da chegada: a cabeça tem de ficar abaixo do título
+  const alt = Math.round(Math.min(window.innerHeight * 0.6, window.innerWidth * 1.45));
   return (
     <div className="mb-anima" onClick={onFim} role="img" aria-label={mo.nome + " corre na sua direção: hoje é dia de perna!"}
       style={{ position: "fixed", inset: 0, zIndex: 2000, background: "radial-gradient(circle at 50% 40%, #1A2A1E, #030503 70%)", overflow: "hidden", cursor: "pointer",
         animation: "mbTreme .12s linear 2.3s 5" }}>
-      <img src={mo.fotoCorpo} alt="" style={{ position: "absolute", left: "50%", bottom: 0, height: "86%", marginLeft: "-31%", width: "62%", objectFit: "cover", objectPosition: "top",
-        borderRadius: 18, animation: "mbChega 2.6s cubic-bezier(.5,0,.9,.5) both", transformOrigin: "50% 100%" }} />
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: "9%", textAlign: "center", animation: "mbTexto .35s ease-out 2.3s both" }}>
+      {/* linhas de velocidade girando atrás dele, e o chão iluminado */}
+      <div style={{ position: "absolute", left: "-50%", top: "-50%", width: "200%", height: "200%",
+        background: "repeating-conic-gradient(from 0deg at 50% 50%, rgba(124,255,60,.09) 0deg 2deg, rgba(0,0,0,0) 2deg 11deg)",
+        animation: "mbLinhas 14s linear infinite" }} />
+      <div style={{ position: "absolute", left: "10%", right: "10%", bottom: "5%", height: "16%", borderRadius: "50%",
+        background: "radial-gradient(closest-side, rgba(124,255,60,.28), rgba(124,255,60,0))" }} />
+      <div style={{ position: "absolute", left: "50%", bottom: "6%", transform: "translateX(-50%)" }}>
+        <div style={{ animation: "mbChega 2.6s cubic-bezier(.5,0,.9,.5) both", transformOrigin: "50% 100%" }}>
+          <AvatarMarombeiro altura={alt} correndo={!posou} />
+        </div>
+      </div>
+      <div style={{ position: "absolute", left: 0, right: 0, top: "5%", textAlign: "center", animation: "mbTexto .35s ease-out 2.3s both" }}>
         <div style={{ fontSize: 38, fontWeight: 900, color: "#7CFF3C", fontFamily: "Impact, 'Arial Black', sans-serif", letterSpacing: 1, textShadow: "0 4px 18px #000" }}>HOJE É DIA DE PERNA!</div>
         <div style={{ fontSize: 15, fontWeight: 800, color: "#F2F0EC", marginTop: 6, textShadow: "0 2px 10px #000" }}>{NOME_ZUMBI} · @{INSTAGRAM}</div>
       </div>
@@ -12374,8 +12417,9 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
               ))}
             </div>
             {((missaoVista && monstroDe(missaoVista).instagram) || cfg.monstro === "marombeiro") && (
-              <div style={{ display: "flex", gap: 12, alignItems: "stretch", marginBottom: 14, padding: 10, borderRadius: 14, background: "#0A140D", border: "1px solid #7CFF3C55" }}>
-                <img src={MONSTROS_ZUMBI.marombeiro.fotoCorpo} alt="O Marombeiro: Carlos Jr., criador do Treino Livre" style={{ width: "38%", maxWidth: 150, borderRadius: 10, objectFit: "cover", objectPosition: "top" }} />
+              <div style={{ display: "flex", gap: 12, alignItems: "stretch", marginBottom: 14, padding: "10px 10px 10px 4px", borderRadius: 14, overflow: "hidden",
+                background: "radial-gradient(circle at 22% 88%, #1E4A28, #0A140D 62%)", border: "1px solid #7CFF3C55" }}>
+                <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: 6 }}><AvatarMarombeiro altura={200} /></div>
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
                   <div style={{ fontWeight: 900, fontSize: 16, color: "#7CFF3C" }}>🏋️ O Marombeiro</div>
                   <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, margin: "6px 0 10px" }}>É o Carlos Jr., criador do Treino Livre. Barba branca, braço de aço e nenhum dia de perna perdido.</div>
@@ -13094,6 +13138,7 @@ function monstroResumo(registro) {
   if (!z) return null;
   const missao = missaoZumbiPorId(z.missao), mo = monstroDe(missao);
   imagemMonstro(mo.foto); imagemMonstro(mo.fotoCorpo);
+  if (mo.avatar) [AVATAR_MAROMBEIRO.corpo, AVATAR_MAROMBEIRO.braco, AVATAR_MAROMBEIRO.cabeca].forEach(imagemMonstro);
   const fatos = {};
   (z.fatos || []).forEach((f) => { fatos[f] = true; });
   const fim = escolherCena(missao, "fim", fatos, []);
@@ -13318,7 +13363,7 @@ function cenasResumo(d) {
 
   if (M && M.fim) {
     c.push({ tipo: "historia", rotulo: M.completo ? "Missão cumprida" : M.parcial ? "Missão em parte" : "Você voltou inteiro", icone: M.missao.icone,
-      texto: M.fim, cor: M.completo ? "#7CFF3C" : "#FFB020", fala: M.fim + (M.mo.instagram ? " No Instagram: arroba " + INSTAGRAM.split(".").join(" ponto ") + "." : ""), fotoGrande: M.mo.fotoCorpo || null, rodape: M.mo.instagram ? "@" + INSTAGRAM : "" });
+      texto: M.fim, cor: M.completo ? "#7CFF3C" : "#FFB020", fala: M.fim + (M.mo.instagram ? " No Instagram: arroba " + INSTAGRAM.split(".").join(" ponto ") + "." : ""), fotoGrande: M.mo.fotoCorpo || null, avatar: !!M.mo.avatar, rodape: M.mo.instagram ? "@" + INSTAGRAM : "" });
   }
   if (d.recCorrida) {
     const rc = d.recCorrida.slice().sort((a, b) => b.m - a.m).slice(0, 4);
@@ -13536,7 +13581,10 @@ function CenaResumo({ c }) {
   if (c.tipo === "historia") {
     return (
       <div style={{ textAlign: "center", padding: "0 26px", maxWidth: 360 }}>
-        {c.fotoGrande ? <img src={c.fotoGrande} alt="" className="rs-marca" style={{ height: 230, maxWidth: "70%", borderRadius: 14, objectFit: "cover", objectPosition: "top" }} />
+        {c.avatar ? <div className="rs-marca" style={{ display: "flex", justifyContent: "center", position: "relative" }}>
+            <div style={{ position: "absolute", left: "15%", right: "15%", bottom: -8, height: 40, borderRadius: "50%", background: "radial-gradient(closest-side, rgba(124,255,60,.35), rgba(124,255,60,0))" }} />
+            <AvatarMarombeiro altura={250} /></div>
+          : c.fotoGrande ? <img src={c.fotoGrande} alt="" className="rs-marca" style={{ height: 230, maxWidth: "70%", borderRadius: 14, objectFit: "cover", objectPosition: "top" }} />
           : <div style={{ fontSize: 56 }} aria-hidden="true">{c.icone}</div>}
         <div style={{ ...ROTULO_RESUMO, color: c.cor, fontSize: 15, marginTop: 6 }}>{c.rotulo}</div>
         <div className="rs-marca" style={{ color: "#F2F0EC", fontSize: c.fotoGrande ? 16 : 18, fontWeight: 700, lineHeight: 1.5, marginTop: 12, animationDelay: "0.4s" }}>{c.texto}</div>
@@ -13709,6 +13757,28 @@ function videoFoto(c, url, x, y, r) {
   c.restore();
   return true;
 }
+// O avatar no canvas: as mesmas três camadas e os mesmos movimentos do CSS
+function videoAvatar(c, cx, base, alt, ms) {
+  const A = AVATAR_MAROMBEIRO, L = [A.corpo, A.braco, A.cabeca].map(imagemMonstro);
+  if (L.some((x) => !x)) return false;
+  const larg = alt / A.proporcao, x0 = cx - larg / 2, y0 = base - alt, t = ms / 1000;
+  const resp = 0.5 + 0.5 * Math.sin(t * Math.PI * 2 / 2.8);
+  // o chão: um brilho verde que some nas bordas
+  c.save(); c.translate(cx, base); c.scale(1, 0.12);
+  const g = c.createRadialGradient(0, 0, 0, 0, 0, larg * 0.6); g.addColorStop(0, "rgba(124,255,60,.38)"); g.addColorStop(1, "rgba(124,255,60,0)");
+  c.fillStyle = g; c.beginPath(); c.arc(0, 0, larg * 0.6, 0, Math.PI * 2); c.fill(); c.restore();
+  c.save(); c.translate(cx, base); c.scale(1 + 0.008 * resp, 1 + 0.014 * resp); c.translate(-cx, -base);
+  c.drawImage(L[0], x0, y0, larg, alt);
+  const camada = (im, piv, ang, esc) => {
+    const px = x0 + larg * piv[0] / 100, py = y0 + alt * piv[1] / 100;
+    c.save(); c.translate(px, py); c.rotate(ang * Math.PI / 180); c.scale(esc, esc); c.translate(-px, -py); c.drawImage(im, x0, y0, larg, alt); c.restore();
+  };
+  const bomb = Math.pow(Math.sin(t * Math.PI / 1.6), 2);
+  camada(L[1], A.pivoBraco, 5 * bomb, 1 + 0.02 * bomb);
+  camada(L[2], A.pivoCabeca, -2 + 4.5 * (0.5 + 0.5 * Math.sin(t * Math.PI * 2 / 2.4)), 1);
+  c.restore();
+  return true;
+}
 function videoCena(c, cena, p) {
   const conta = sobe((p - 350) / 1100);
   const t = cena.tipo;
@@ -13845,14 +13915,17 @@ function videoCena(c, cena, p) {
     videoTexto(c, mostra + " m", 540, 1400, 190, cena.cor, 900);
     videoTexto(c, cena.sub.toUpperCase(), 540, 1490, 54, cena.cor, 900);
   } else if (t === "historia") {
-    const im = imagemMonstro(cena.fotoGrande);
-    if (im) {
+    const comAvatar = !!cena.avatar && videoAvatar(c, 540, 830, 680, p);
+    const im = comAvatar ? null : imagemMonstro(cena.fotoGrande);
+    if (comAvatar || im) {
+      if (im) {
       // a foto de corpo inteiro, com a cabeça sempre à vista
       const alt = 640, larg = Math.min(760, alt * im.naturalWidth / im.naturalHeight);
       const sh = im.naturalWidth * alt / larg;
       c.save(); c.beginPath(); c.roundRect ? c.roundRect(540 - larg / 2, 170, larg, alt, 30) : c.rect(540 - larg / 2, 170, larg, alt); c.clip();
       c.drawImage(im, 0, 0, im.naturalWidth, Math.min(sh, im.naturalHeight), 540 - larg / 2, 170, larg, alt);
       c.restore();
+      }
       videoTexto(c, cena.rotulo.toUpperCase(), 540, 900, 60, cena.cor, 900, 960);
       c.globalAlpha = Math.max(0, Math.min(1, (p - 400) / 500));
       const a = videoParagrafo(c, cena.texto, 990, 46, "#F2F0EC", 700, 900, 8);

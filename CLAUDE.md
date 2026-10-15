@@ -205,11 +205,11 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v41) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v42) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
-| `marombeiro.jpg`, `marombeiro-rosto.jpg` | A foto do dono para a história especial "Fuga do Marombeiro" (ver *Monster, Run!*) |
+| `marombeiro-corpo.webp`, `-braco.webp`, `-cabeca.webp`, `-inteiro.webp`, `marombeiro-rosto.jpg` | O avatar animado do dono na "Fuga do Marombeiro" (ver *Monster, Run!*) |
 
 ## Estrutura do `index.html`
 
@@ -1322,16 +1322,28 @@ para divulgar o perfil.** Você faltou ao treino de perna, ele descobriu, e só
 para quando vir o treino registrado no Treino Livre. O Jarvis narra. O fim
 completo convida a seguir o Instagram.
 
-- As fotos são arquivos do repositório: `marombeiro.jpg` (corpo inteiro,
-  recortado sem a legenda do vídeo original, 520 px) e `marombeiro-rosto.jpg`
-  (192 px). Estão na lista do `sw.js`: funcionam sem internet. O teste cobra
-  que os dois arquivos existam.
-- Onde a foto aparece: avatar no cartão da história, banner com "Seguir
-  @carlos.jr.81" quando a história ou o filtro é dele, a **abertura**
-  (`AberturaMarombeiro`: a foto vem correndo na direção da tela, a tela treme e
-  entra "HOJE É DIA DE PERNA!"; um toque pula), o rosto como ponto no radar ao
-  vivo, e no resumo animado e no vídeo (`videoFoto`, `imagemMonstro`, com o
-  emoji de reserva enquanto a foto não carregou).
+- **O avatar é a foto dele, animada, sem fundo.** A pedido do dono, a foto
+  estática com o fundo da arte virou um avatar em **três camadas do mesmo
+  tamanho** (`marombeiro-corpo.webp`, `-braco.webp`, `-cabeca.webp`, 460 px,
+  uns 70 KB juntas): o corpo respira, o braço do bíceps bombeia girando no ombro
+  e a cabeça balança no pescoço; correndo, tudo sobe e desce no passo, com a
+  sombra acompanhando (`AvatarMarombeiro`, CSS `mbRespira`, `mbBombeia`,
+  `mbCabeca`, `mbCorre`). **Nada é redesenhado**: rosto, cabelo, barba e
+  óculos são os da foto. O ombro e o pescoço ficam nas duas camadas vizinhas,
+  para girar alguns graus não abrir buraco. Os pivôs (em % da imagem) estão em
+  `AVATAR_MAROMBEIRO`.
+- **Como as camadas foram feitas**: a foto que o dono mandou já veio sem fundo
+  (893×1726, pose de bíceps). O MediaPipe (`selfie_multiclass`) separou
+  cabelo, rosto e óculos (a cabeça); o braço é um polígono acima da axila.
+  Para refazer com outra foto, o roteiro está descrito no histórico desta
+  sessão: segmentar, cortar na altura do fim da barba, exportar WebP com alfa.
+- Onde aparece: avatar no cartão da história (o rosto, `marombeiro-rosto.jpg`),
+  o **banner** com ele posando sobre o fundo verde e "Seguir @carlos.jr.81", a
+  **abertura** (`AberturaMarombeiro`: ele vem correndo com linhas de velocidade
+  girando atrás, a tela treme, ele para e posa, e entra "HOJE É DIA DE
+  PERNA!"; um toque pula), o rosto no radar ao vivo, o fim do resumo animado
+  e o **vídeo do story** (`videoAvatar` desenha as mesmas camadas com os mesmos
+  movimentos no canvas). Tudo na lista do `sw.js`: funciona sem internet.
 - O som é grunhido e passos firmes; o radar se chama "Cheiro de whey".
 - Monstro com `foto`/`fotoCorpo`/`instagram` ganha tudo isso de graça: é o
   caminho para outro especial com foto.

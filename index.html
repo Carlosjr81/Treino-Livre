@@ -584,7 +584,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15e";
+const VERSAO_APP = "2026-10-15f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -9506,19 +9506,437 @@ function CenaResumo({ c }) {
   );
 }
 
+// ---------------- O RESUMO ANIMADO EM VÍDEO, PARA O STORY ----------------
+// A tela do resumo é DOM e CSS, e nada disso vira vídeo. Então as mesmas cenas
+// são redesenhadas num canvas de 1080×1920 (o tamanho do story), com a mesma
+// linha verde revelando cada uma, e o MediaRecorder grava o canvas enquanto ele
+// anima. Tudo no aparelho: nenhum quadro sai do celular até a pessoa escolher
+// onde postar.
+//
+// Três coisas que decidem como isto funciona:
+// - **A gravação é em tempo real.** O MediaRecorder grava o que o canvas mostra
+//   enquanto mostra; não há como acelerar. Por isso as cenas do vídeo são mais
+//   curtas que as da tela (2,7 s): o story inteiro fica entre 20 e 35 s.
+// - **Sem voz.** A síntese de fala do navegador não passa por nenhum lugar que
+//   dê para gravar. Quem posta story põe a música de lá.
+// - **Compartilhar exige um toque novo.** O navegador só abre a janela de
+//   compartilhar logo depois de um toque; depois de 30 s gravando, aquele toque
+//   já expirou. Daí o segundo botão, "Compartilhar", quando o vídeo fica pronto.
+//
+// MP4 primeiro (é o que o Instagram aceita sem reclamar); WebM onde é só o que
+// há. Sem MediaRecorder (iPhone antigo), sai uma imagem com os números.
+const VIDEO_FONTE = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+const VIDEO_CENA_MS = 2700, VIDEO_FECHO_MS = 3400, VIDEO_REVELA_MS = 700;
+// área onde as cenas aparecem (a linha varre só ela, como na tela)
+const VIDEO_TOPO = 470, VIDEO_BASE = 1530;
+const suave = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const sobe = (t) => 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3);
+
+// roundRect só existe do Chrome 99 e do Safari 16 para cá
+function arredondado(c, x, y, w, h, r) { if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); }
+function videoGradiente(c, x0, x1) {
+  const g = c.createLinearGradient(x0, 0, x1, 0);
+  g.addColorStop(0, "#F58529"); g.addColorStop(0.5, "#DD2A7B"); g.addColorStop(1, "#8134AF");
+  return g;
+}
+function videoTexto(c, txt, x, y, tam, cor, peso, largMax) {
+  c.font = (peso || 900) + " " + tam + "px " + VIDEO_FONTE;
+  let t = tam;
+  // encolhe até caber: número grande não pode sair da tela
+  while (largMax && c.measureText(txt).width > largMax && t > 24) { t -= 4; c.font = (peso || 900) + " " + t + "px " + VIDEO_FONTE; }
+  const w = c.measureText(txt).width;
+  c.fillStyle = cor === "grad" ? videoGradiente(c, x - w / 2, x + w / 2) : cor;
+  c.fillText(txt, x, y);
+}
+function videoRotulo(c, txt, y) {
+  c.save();
+  if ("letterSpacing" in c) c.letterSpacing = "6px";
+  videoTexto(c, txt.toUpperCase(), 540, y, 34, "#7CFF3C", 800);
+  c.restore();
+}
+// quebra em linhas que caibam; devolve a altura usada
+function videoParagrafo(c, txt, y, tam, cor, peso, largMax, maxLinhas) {
+  c.font = (peso || 700) + " " + tam + "px " + VIDEO_FONTE;
+  const linhas = [];
+  let atual = "";
+  String(txt).split(" ").forEach((p) => {
+    const tenta = atual ? atual + " " + p : p;
+    if (c.measureText(tenta).width > largMax && atual) { linhas.push(atual); atual = p; } else atual = tenta;
+  });
+  if (atual) linhas.push(atual);
+  linhas.slice(0, maxLinhas || 3).forEach((l, k) => videoTexto(c, l, 540, y + k * tam * 1.18, tam, cor, peso));
+  return Math.min(linhas.length, maxLinhas || 3) * tam * 1.18;
+}
+function videoBarra(c, x, y, w, h, frac, cor) {
+  c.fillStyle = "#1f1f1f"; c.beginPath(); arredondado(c, x, y, w, h, h / 2); c.fill();
+  if (frac <= 0) return;
+  c.fillStyle = cor === "grad" ? videoGradiente(c, x, x + w) : cor;
+  c.beginPath(); arredondado(c, x, y, Math.max(h, w * Math.min(1, frac)), h, h / 2); c.fill();
+}
+// o halter da marca: as mesmas peças do HalterAbertura, em unidades do SVG
+function videoHalter(c) {
+  const metal = c.createLinearGradient(0, -21, 0, 21);
+  metal.addColorStop(0, "#FEDA75"); metal.addColorStop(0.38, "#DD2A7B"); metal.addColorStop(1, "#8134AF");
+  const peca = (x, y, w, h, r) => {
+    c.beginPath(); arredondado(c, x, y, w, h, r);
+    c.fillStyle = metal; c.fill();
+    c.lineWidth = 1.5; c.strokeStyle = "#0C0C0C"; c.stroke();
+  };
+  peca(-46, -4.6, 92, 9.2, 4.6);
+  peca(-27, -12, 7, 24, 3); peca(20, -12, 7, 24, 3);
+  peca(-44, -21, 14, 42, 5); peca(30, -21, 14, 42, 5);
+}
+
+// Uma cena num instante p (ms desde o começo dela)
+function videoCena(c, cena, p) {
+  const conta = sobe((p - 350) / 1100);
+  const t = cena.tipo;
+  c.textAlign = "center"; c.textBaseline = "alphabetic";
+  if (t === "abre") {
+    videoRotulo(c, cena.rotulo, 820);
+    const alt = videoParagrafo(c, cena.titulo, 960, 112, "grad", 900, 940, 3);
+    videoTexto(c, cena.dia, 540, 960 + alt + 30, 48, "#BDBDBD", 700);
+    if (cena.sub) videoTexto(c, cena.sub, 540, 960 + alt + 100, 42, "#8a8a8a", 700);
+  } else if (t === "numero") {
+    videoRotulo(c, cena.rotulo, 760);
+    const v = (cena.valor || 0) * conta;
+    videoTexto(c, v.toLocaleString("pt-BR", { minimumFractionDigits: cena.casas, maximumFractionDigits: cena.casas }), 540, 1000, 250, "grad", 900, 980);
+    videoTexto(c, cena.unidade, 540, 1100, 66, "#F2F0EC", 900);
+    if (cena.sub) videoParagrafo(c, cena.sub, 1200, 46, "#BDBDBD", 700, 920, 2);
+  } else if (t === "texto") {
+    videoRotulo(c, cena.rotulo, 780);
+    videoTexto(c, cena.texto, 540, 1010, 200, cena.cor || "grad", 900, 980);
+    if (cena.sub) videoParagrafo(c, cena.sub, 1120, 48, "#BDBDBD", 700, 920, 2);
+  } else if (t === "gasto") {
+    videoRotulo(c, cena.rotulo, 700);
+    videoTexto(c, String(Math.round((cena.valor || 0) * conta)), 540, 930, 240, "grad", 900);
+    videoTexto(c, "kcal" + (cena.estimado ? " (média)" : ""), 540, 1030, 66, "#F2F0EC", 900);
+    const x = 140, w = 800, y = 1130;
+    [["#3a3a3a", 0, 0.25], ["#1B76BC", 0.25, 0.5], ["#DD2A7B", 0.5, 1]].forEach(([cor, a, b]) => {
+      c.fillStyle = cor; c.fillRect(x + w * a, y, w * (b - a), 26);
+    });
+    const pos = x + w * Math.min(1, ((cena.met || 0) * sobe((p - 350) / 1300)) / 12);
+    c.save(); c.shadowColor = "rgba(124,255,60,.6)"; c.shadowBlur = 30;
+    c.fillStyle = "#7CFF3C"; c.beginPath(); c.arc(pos, y + 13, 26, 0, Math.PI * 2); c.fill(); c.restore();
+    c.textAlign = "left"; videoTexto(c, "leve", x, y + 90, 32, "#8a8a8a", 700);
+    c.textAlign = "center"; videoTexto(c, "moderada", 540, y + 90, 32, "#8a8a8a", 700);
+    c.textAlign = "right"; videoTexto(c, "vigorosa", x + w, y + 90, 32, "#8a8a8a", 700);
+    c.textAlign = "center";
+    videoTexto(c, "Intensidade " + cena.intensidade, 540, y + 190, 56, "#F2F0EC", 900);
+  } else if (t === "semana") {
+    videoRotulo(c, cena.rotulo, 660);
+    const v = (cena.valor || 0) * sobe((p - 350) / 1400);
+    const frac = Math.min(1, v / META_CARDIO_SEMANA);
+    c.lineCap = "round"; c.lineWidth = 46;
+    c.strokeStyle = "#1f1f1f"; c.beginPath(); c.arc(540, 960, 230, 0, Math.PI * 2); c.stroke();
+    if (frac > 0) {
+      c.strokeStyle = frac >= 1 ? "#7CFF3C" : videoGradiente(c, 310, 770);
+      c.beginPath(); c.arc(540, 960, 230, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac); c.stroke();
+    }
+    videoTexto(c, String(Math.round(v)), 540, 990, 130, "#F2F0EC", 900);
+    videoTexto(c, "de " + META_CARDIO_SEMANA + " min", 540, 1060, 42, "#8a8a8a", 700);
+    videoParagrafo(c, v >= META_CARDIO_SEMANA ? "Meta da OMS cumprida" : "Meta da OMS: 150 min moderados", 1310, 44, "#BDBDBD", 700, 900, 2);
+  } else if (t === "mapa") {
+    videoRotulo(c, cena.rotulo, 560);
+    const todos = [].concat.apply([], cena.trechos);
+    const lat0 = todos.reduce((a, q) => a + q[0], 0) / todos.length, k = Math.cos((lat0 * Math.PI) / 180);
+    const xs = todos.map((q) => q[1] * k), ys = todos.map((q) => -q[0]);
+    const x0 = Math.min.apply(null, xs), y0 = Math.min.apply(null, ys);
+    const w = Math.max.apply(null, xs) - x0 || 1e-9, h = Math.max.apply(null, ys) - y0 || 1e-9;
+    const esc = 760 / Math.max(w, h), ox = 540 - (w * esc) / 2, oy = 980 - (h * esc) / 2;
+    const pt = (q) => [ox + (q[1] * k - x0) * esc, oy + (-q[0] - y0) * esc];
+    const linha = (tr, ate) => {
+      c.beginPath();
+      let feito = 0;
+      tr.forEach((q, i) => {
+        const [x, y] = pt(q);
+        if (i === 0) { c.moveTo(x, y); return; }
+        const [xa, ya] = pt(tr[i - 1]);
+        const seg = Math.hypot(x - xa, y - ya);
+        if (feito >= ate) return;
+        if (feito + seg > ate) { const f = (ate - feito) / seg; c.lineTo(xa + (x - xa) * f, ya + (y - ya) * f); }
+        else c.lineTo(x, y);
+        feito += seg;
+      });
+      c.stroke();
+    };
+    const comp = (tr) => tr.reduce((a, q, i) => (i ? a + Math.hypot(pt(q)[0] - pt(tr[i - 1])[0], pt(q)[1] - pt(tr[i - 1])[1]) : 0), 0);
+    const total = cena.trechos.reduce((a, tr) => a + comp(tr), 0);
+    c.lineCap = "round"; c.lineJoin = "round";
+    cena.trechos.forEach((tr) => {
+      c.lineWidth = 28; c.strokeStyle = "#1B76BC"; c.setLineDash([]); linha(tr, Infinity);
+      c.lineWidth = 5; c.strokeStyle = "#CFE8F7"; c.setLineDash([2, 12]); linha(tr, Infinity);
+    });
+    c.setLineDash([]);
+    let resta = total * suave(Math.max(0, Math.min(1, (p - 450) / 1700)));
+    c.save(); c.shadowColor = "rgba(124,255,60,.7)"; c.shadowBlur = 26;
+    cena.trechos.forEach((tr) => {
+      const l = comp(tr);
+      if (resta <= 0) return;
+      c.lineWidth = 11; c.strokeStyle = "#7CFF3C"; linha(tr, resta);
+      resta -= l;
+    });
+    c.restore();
+    const a = pt(todos[0]), b = pt(todos[todos.length - 1]);
+    const ponto = (q, cor) => { c.fillStyle = cor; c.strokeStyle = "#FFFFFF"; c.lineWidth = 6; c.beginPath(); c.arc(q[0], q[1], 20, 0, Math.PI * 2); c.fill(); c.stroke(); };
+    ponto(a, "#4CD137");
+    if (p > 2150) ponto(b, "#ED4956");
+    if (cena.sub) videoTexto(c, "📍 " + cena.sub, 540, 1470, 44, "#BDBDBD", 700, 960);
+  } else if (t === "grupos") {
+    videoRotulo(c, cena.rotulo, 640);
+    const max = cena.grupos[0].series;
+    cena.grupos.forEach((g, k) => {
+      const y = 760 + k * 150;
+      c.textAlign = "left"; videoTexto(c, g.grupo.nome, 140, y, 56, g.grupo.cor, 900);
+      c.textAlign = "right"; videoTexto(c, g.series + " " + plural(g.series, "série", "séries"), 940, y, 44, "#BDBDBD", 700);
+      c.textAlign = "center";
+      videoBarra(c, 140, y + 26, 800, 26, (g.series / max) * sobe((p - 350 - k * 120) / 800), g.grupo.cor);
+    });
+  } else if (t === "recordes") {
+    videoRotulo(c, cena.rotulo, 600);
+    videoTexto(c, "🏆", 540, 820, 170, "#FFFFFF", 400);
+    videoTexto(c, String(Math.round((cena.valor || 0) * conta)), 540, 1050, 220, "grad", 900);
+    cena.nomes.forEach((n, k) => {
+      const a = Math.max(0, Math.min(1, (p - 600 - k * 150) / 400));
+      c.globalAlpha = a;
+      videoTexto(c, n, 540, 1170 + k * 80 + (1 - a) * 20, 52, "#F2F0EC", 800, 960);
+      c.globalAlpha = 1;
+    });
+  } else if (t === "nivel") {
+    const nv = cena.nivel;
+    videoRotulo(c, cena.rotulo, 620);
+    videoTexto(c, nv.icone, 540, 830, 170, "#FFFFFF", 400);
+    videoTexto(c, "Nível " + nv.indice, 540, 990, 140, "grad", 900);
+    videoTexto(c, nv.nome, 540, 1070, 64, "#F2F0EC", 900, 960);
+    if (nv.proximo) {
+      videoBarra(c, 160, 1130, 760, 28, (nv.pct / 100) * sobe((p - 400) / 1000), "grad");
+      videoTexto(c, "faltam " + nv.faltam + " pontos para " + nv.proximo.nome, 540, 1220, 38, "#8a8a8a", 700, 960);
+    }
+    videoTexto(c, cena.total + " " + plural(cena.total, "treino", "treinos") + " no total" + (cena.sequencia >= 2 ? " · 🔥 " + cena.sequencia + " dias seguidos" : ""),
+      540, 1320, 44, "#BDBDBD", 700, 960);
+  }
+}
+
+// O fecho é a abertura de novo: o halter entra de frente, bate, e fica com o nome
+function videoFecho(c, cena, p) {
+  const e = sobe((p - 250) / 450);
+  if (p > 250) {
+    c.save();
+    c.globalAlpha = Math.min(1, (p - 250) / 120);
+    c.translate(540, 760);
+    c.rotate(((-42 + 24 * e) * Math.PI) / 180);
+    const s = 8 - 6.7 * e;
+    c.scale(s * 5.2, s * 5.2);
+    videoHalter(c);
+    c.restore();
+  }
+  const m = Math.max(0, Math.min(1, (p - 800) / 500));
+  c.globalAlpha = m;
+  c.textAlign = "center";
+  videoTexto(c, "Treino Livre", 540, 1150 + (1 - m) * 30, 130, "grad", 900);
+  c.save();
+  if ("letterSpacing" in c) c.letterSpacing = "6px";
+  videoTexto(c, cena.fala.replace(/\.$/, "").replace(". ", " · ").toUpperCase(), 540, 1240 + (1 - m) * 30, 36, "#7CFF3C", 800, 960);
+  c.restore();
+  c.globalAlpha = 1;
+  // o estouro da pancada
+  if (p > 700 && p < 1050) { c.fillStyle = "rgba(255,255,255," + 0.8 * (1 - (p - 700) / 350) + ")"; c.fillRect(0, 0, 1080, 1920); }
+}
+
+// Um quadro do vídeo inteiro no tempo t
+function videoQuadro(c, cenas, durs, t) {
+  c.fillStyle = "#060606"; c.fillRect(0, 0, 1080, 1920);
+  let i = 0, ini = 0;
+  while (i < cenas.length - 1 && t >= ini + durs[i]) { ini += durs[i]; i++; }
+  const p = t - ini;
+  // barras de progresso no topo, como as do story
+  const n = cenas.length, gap = 10, larg = (1080 - 80 - gap * (n - 1)) / n;
+  cenas.forEach((x, k) => {
+    const fr = k < i ? 1 : k > i ? 0 : Math.min(1, p / durs[i]);
+    videoBarra(c, 40 + k * (larg + gap), 60, larg, 8, fr, "grad");
+  });
+  const cena = cenas[i];
+  if (cena.tipo === "fecho") videoFecho(c, cena, p);
+  else {
+    // a linha verde desce e a cena aparece no mesmo passo: o recorte segue a linha
+    const r = suave(Math.min(1, p / VIDEO_REVELA_MS));
+    const y = VIDEO_TOPO + (VIDEO_BASE - VIDEO_TOPO) * r;
+    c.save();
+    if (r < 1) { c.beginPath(); c.rect(0, 0, 1080, y); c.clip(); }
+    videoCena(c, cena, p);
+    c.restore();
+    if (r < 1) {
+      const a = r < 0.1 ? r / 0.1 : r > 0.9 ? (1 - r) / 0.1 : 1;
+      c.globalAlpha = 0.18 * a; c.fillStyle = "#7CFF3C"; c.fillRect(0, y - 22, 1080, 44);
+      c.globalAlpha = a; c.save(); c.shadowColor = "rgba(124,255,60,.8)"; c.shadowBlur = 30;
+      c.fillRect(0, y - 4, 1080, 8); c.restore(); c.globalAlpha = 1;
+    }
+  }
+  // o crédito fica no vídeo inteiro: é o que leva o app para o feed de quem não o conhece
+  c.textAlign = "center";
+  videoTexto(c, "Treino Livre", 540, 1730, 60, "grad", 900);
+  videoTexto(c, "@" + INSTAGRAM, 540, 1800, 52, "#F2F0EC", 900);
+  videoTexto(c, "carlosjr81.github.io/Treino-Livre", 540, 1856, 32, "#8a8a8a", 700);
+}
+
+function videoDuracoes(cenas) { return cenas.map((x) => (x.tipo === "fecho" ? VIDEO_FECHO_MS : VIDEO_CENA_MS)); }
+const VIDEO_TIPOS = ["video/mp4;codecs=avc1.42E01E", "video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+function videoSuportado() {
+  try {
+    return typeof MediaRecorder !== "undefined" && !!HTMLCanvasElement.prototype.captureStream &&
+      VIDEO_TIPOS.some((t) => MediaRecorder.isTypeSupported(t));
+  } catch (e) { return false; }
+}
+// Grava o resumo num canvas que a tela mostra como prévia. Devolve o Blob do vídeo.
+function gravarVideoResumo(cv, cenas, aoProgresso, cancelado) {
+  const c = cv.getContext("2d");
+  const durs = videoDuracoes(cenas);
+  const total = durs.reduce((a, b) => a + b, 0);
+  const tipo = VIDEO_TIPOS.find((t) => MediaRecorder.isTypeSupported(t));
+  videoQuadro(c, cenas, durs, 0);
+  const fluxo = cv.captureStream(30);
+  const rec = new MediaRecorder(fluxo, { mimeType: tipo, videoBitsPerSecond: 8000000 });
+  const pedacos = [];
+  rec.ondataavailable = (e) => { if (e.data && e.data.size) pedacos.push(e.data); };
+  return new Promise((res, rej) => {
+    rec.onerror = (e) => rej(e.error || new Error("gravação falhou"));
+    rec.onstop = () => {
+      fluxo.getTracks().forEach((t) => t.stop());
+      if (cancelado()) { res(null); return; }
+      res(new Blob(pedacos, { type: tipo.split(";")[0] }));
+    };
+    rec.start(500);
+    const t0 = performance.now();
+    // setTimeout e não requestAnimationFrame: o rAF para quando a tela apaga,
+    // e o vídeo sairia com um buraco congelado no meio
+    const passo = () => {
+      if (cancelado()) { rec.stop(); return; }
+      const t = performance.now() - t0;
+      videoQuadro(c, cenas, durs, Math.min(t, total));
+      aoProgresso(Math.min(1, t / total));
+      if (t < total + 300) setTimeout(passo, 1000 / 30);
+      else rec.stop();
+    };
+    passo();
+  });
+}
+// Sem gravador de vídeo: a imagem do story com o número que mais importa
+function imagemResumo(cenas) {
+  const cv = document.createElement("canvas");
+  cv.width = 1080; cv.height = 1920;
+  const c = cv.getContext("2d");
+  const durs = videoDuracoes(cenas);
+  const k = Math.max(0, cenas.findIndex((x) => x.tipo === "numero"));
+  const ini = durs.slice(0, k).reduce((a, b) => a + b, 0);
+  videoQuadro(c, cenas, durs, ini + durs[k] - 10);
+  return new Promise((res) => cv.toBlob(res, "image/png"));
+}
+async function compartilharVideo(blob, texto, avisarFn) {
+  const ext = /mp4/.test(blob.type) ? "mp4" : "webm";
+  const nome = "treino-livre-resumo." + ext;
+  try {
+    const file = new File([blob], nome, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], text: texto });
+      return "compartilhou";
+    }
+  } catch (e) { if (e && e.name === "AbortError") return "cancelou"; }
+  baixarArquivo(blob, nome);
+  if (avisarFn) avisarFn("Vídeo salvo na galeria/downloads! Agora é só postar no story. 💪");
+  return "baixou";
+}
+function baixarArquivo(blob, nome) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// A tela de gerar: prévia do vídeo sendo gravado, e os botões quando acaba
+function GerarStoryResumo({ cenas, onVoltar }) {
+  const caixa = useRef(null);
+  const [prog, setProg] = useState(0);
+  const [video, setVideo] = useState(null);
+  const [erro, setErro] = useState("");
+  const [aviso, setAviso] = useState("");
+  const parou = useRef(false);
+  const urlImg = useMemo(() => (video && !videoSuportado() ? URL.createObjectURL(video) : null), [video]);
+  useEffect(() => () => { if (urlImg) URL.revokeObjectURL(urlImg); }, [urlImg]);
+  const ehVideo = useMemo(videoSuportado, []);
+  useEffect(() => {
+    parou.current = false;
+    if (!ehVideo) { imagemResumo(cenas).then(setVideo); return; }
+    const cv = document.createElement("canvas");
+    cv.width = 1080; cv.height = 1920;
+    cv.style.width = "100%"; cv.style.height = "100%"; cv.style.display = "block";
+    if (caixa.current) caixa.current.appendChild(cv);
+    try {
+      gravarVideoResumo(cv, cenas, setProg, () => parou.current)
+        .then((b) => { if (b) setVideo(b); }, () => setErro("A gravação falhou neste aparelho."));
+    } catch (e) { setErro("Este navegador não grava vídeo."); }
+    return () => { parou.current = true; cv.remove(); };
+  }, []);
+  const texto = "Meu treino no Treino Livre 💪 App gratuito do @" + INSTAGRAM + ": " + LINK_APP;
+  const compartilhar = async () => {
+    if (!video) return;
+    if (!ehVideo) { await compartilharImagem(video, texto, setAviso); return; }
+    const r = await compartilharVideo(video, texto, setAviso);
+    if (r === "compartilhou") setAviso("Pronto! No Instagram, escolha Story.");
+  };
+  const parar = (e) => e.stopPropagation();
+  return (
+    <div onClick={parar} style={{ position: "absolute", inset: 0, zIndex: 3, background: "#060606", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", padding: 16, gap: 14, cursor: "default" }}>
+      <div style={ROTULO_RESUMO}>{ehVideo ? (video ? "Vídeo pronto" : "Gravando o vídeo do story") : "Imagem do story"}</div>
+      <div ref={caixa} style={{ width: "min(54vw, 38vh)", aspectRatio: "9 / 16", borderRadius: 14, overflow: "hidden", background: "#111111", border: "1px solid #2a2a2a" }}>
+        {!ehVideo && video && <img alt="Prévia do story" src={urlImg} style={{ width: "100%", height: "100%", display: "block" }} />}
+      </div>
+      {ehVideo && !video && !erro && (
+        <div style={{ width: "min(70vw, 300px)" }}>
+          <div style={{ height: 6, borderRadius: 3, background: "#2a2a2a", overflow: "hidden" }}>
+            <div style={{ height: "100%", width: Math.round(prog * 100) + "%", background: GRAD }} />
+          </div>
+          <div style={{ fontSize: 12, color: "#8a8a8a", textAlign: "center", marginTop: 8 }}>
+            {Math.round(prog * 100)}% · o vídeo grava no tempo dele, deixe a tela ligada
+          </div>
+        </div>
+      )}
+      {erro && <div style={{ fontSize: 13, color: "#FF6B6B", textAlign: "center" }}>{erro}</div>}
+      {!ehVideo && <div style={{ fontSize: 12, color: "#8a8a8a", textAlign: "center", maxWidth: 300 }}>Este navegador não grava vídeo; vai a imagem com os números.</div>}
+      {aviso && <div style={{ fontSize: 13, color: "#7CFF3C", textAlign: "center", maxWidth: 320 }}>{aviso}</div>}
+      <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 380 }}>
+        <button onClick={onVoltar} style={{ ...S.btnGhost, flex: 1, color: "#F2F0EC", borderColor: "#444444" }}>
+          {video ? "Voltar" : "Cancelar"}
+        </button>
+        <button onClick={compartilhar} disabled={!video} style={{ ...S.btn, flex: 1.4, opacity: video ? 1 : 0.45 }}>📤 Compartilhar</button>
+      </div>
+      {video && ehVideo && (
+        <button onClick={() => baixarArquivo(video, "treino-livre-resumo." + (/mp4/.test(video.type) ? "mp4" : "webm"))}
+          style={{ background: "none", border: "none", color: "#8a8a8a", fontSize: 13, textDecoration: "underline", cursor: "pointer" }}>
+          ⬇ Salvar o vídeo no aparelho
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ResumoAnimado({ d, vozCfg, onFechar }) {
   const cenas = useMemo(() => cenasResumo(d), [d]);
   const [i, setI] = useState(0);
   const [mudo, setMudo] = useState(!vozCfg || vozCfg.falar === false);
   const [volta, setVolta] = useState(0);   // muda ao rever, para recomeçar as barras
+  const [story, setStory] = useState(false); // gerando o vídeo do story
   const ultima = i === cenas.length - 1;
   useEffect(() => {
+    // gerando o vídeo, a apresentação para: nem fala nem avança por baixo
+    if (story) { try { window.speechSynthesis.cancel(); } catch (e) {} return; }
     const c = cenas[i];
     if (!mudo) jarvisFalar(c.fala, { falar: true, vozNome: vozCfg && vozCfg.vozNome, velocidade: (vozCfg && vozCfg.velocidade) || 1.1, animado: vozCfg ? vozCfg.animado : true });
     if (ultima) return;
     const t = setTimeout(() => setI((x) => Math.min(x + 1, cenas.length - 1)), c.ms);
     return () => clearTimeout(t);
-  }, [i, volta]);
+  }, [i, volta, story]);
   useEffect(() => () => { try { window.speechSynthesis.cancel(); } catch (e) {} }, []);
   const fechar = () => { try { window.speechSynthesis.cancel(); } catch (e) {} onFechar(); };
   const toque = (e) => {
@@ -9540,6 +9958,8 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
         ))}
       </div>
       <div style={{ position: "absolute", top: 24, right: 8, display: "flex", gap: 2 }}>
+        <button aria-label="Compartilhar no story" onClick={(e) => { e.stopPropagation(); setStory(true); }}
+          style={{ background: "none", border: "none", color: "#F2F0EC", fontSize: 20, padding: 10, cursor: "pointer" }}>📸</button>
         <button aria-label={mudo ? "Ligar a voz" : "Desligar a voz"} onClick={(e) => { e.stopPropagation(); if (!mudo) { try { window.speechSynthesis.cancel(); } catch (er) {} } setMudo(!mudo); }}
           style={{ background: "none", border: "none", color: "#F2F0EC", fontSize: 20, padding: 10, cursor: "pointer" }}>{mudo ? "🔇" : "🔊"}</button>
         <button aria-label="Fechar o resumo" onClick={(e) => { e.stopPropagation(); fechar(); }}
@@ -9555,12 +9975,19 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
       </div>
 
       {ultima && (
-        <div style={{ position: "absolute", bottom: 34, left: 16, right: 16, display: "flex", gap: 10, maxWidth: 420, margin: "0 auto" }}>
-          <button onClick={(e) => { e.stopPropagation(); setVolta((v) => v + 1); setI(0); }}
-            style={{ ...S.btnGhost, flex: 1, color: "#F2F0EC", borderColor: "#444444" }}>↺ Rever</button>
-          <button onClick={(e) => { e.stopPropagation(); fechar(); }} style={{ ...S.btn, flex: 1 }}>Fechar</button>
+        <div style={{ position: "absolute", bottom: 34, left: 16, right: 16, maxWidth: 420, margin: "0 auto" }}>
+          <button onClick={(e) => { e.stopPropagation(); setStory(true); }} style={{ ...S.btn, width: "100%", marginBottom: 10 }}>
+            📸 Compartilhar no story
+          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={(e) => { e.stopPropagation(); setVolta((v) => v + 1); setI(0); }}
+              style={{ ...S.btnGhost, flex: 1, color: "#F2F0EC", borderColor: "#444444" }}>↺ Rever</button>
+            <button onClick={(e) => { e.stopPropagation(); fechar(); }}
+              style={{ ...S.btnGhost, flex: 1, color: "#F2F0EC", borderColor: "#444444" }}>Fechar</button>
+          </div>
         </div>
       )}
+      {story && <GerarStoryResumo cenas={cenas} onVoltar={(e) => { if (e) e.stopPropagation(); setStory(false); }} />}
       {i === 0 && (
         <div style={{ position: "absolute", bottom: 30, width: "100%", textAlign: "center", fontSize: 11.5, color: "#666666" }}>
           toque para avançar · no canto esquerdo, volta

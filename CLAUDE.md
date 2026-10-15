@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v32) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v33) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -993,6 +993,37 @@ Treino Livre e não um relatório.
   raiz (`resumoAnim`), porque o modal que tem o botão fecha ao tocar.
 - `prefers-reduced-motion`: sem varredura, números já no valor final.
 
+### O resumo vira vídeo para o story (`GerarStoryResumo`)
+
+O 📸 no topo do resumo (e o botão "Compartilhar no story" na última cena) gera
+um **vídeo 1080×1920** com as mesmas cenas, e abre a janela de compartilhar do
+celular — no Instagram, é escolher Story.
+
+- **As cenas são redesenhadas num canvas** (`videoQuadro`, `videoCena`,
+  `videoFecho`): o resumo da tela é DOM e CSS, e nada disso vira vídeo. Mesma
+  identidade: a linha verde revelando cada cena (recorte e linha no mesmo
+  passo), números no degradê subindo do zero, barras de story no topo, o halter
+  do fecho (`videoHalter`, as peças do `HalterAbertura`) e o crédito
+  `@INSTAGRAM` em todos os quadros — o story é o que leva o app ao feed de
+  quem nunca ouviu falar dele.
+- **O `MediaRecorder` grava em tempo real**: não há como acelerar. Por isso as
+  cenas do vídeo duram 2,7 s (o fecho, 3,4), e um treino completo dá uns 33 s.
+  A tela mostra a prévia sendo gravada e a porcentagem.
+- **O relógio é `setTimeout`, não `requestAnimationFrame`**: o rAF para com a
+  tela apagada e o vídeo sairia com um trecho congelado.
+- **MP4 primeiro** (o Instagram aceita sem reclamar), WebM onde é só o que há.
+  Sem gravador nenhum (iPhone antigo), sai a imagem do primeiro número
+  (`imagemResumo`).
+- **Sem voz no vídeo**: a síntese de fala não passa por nada que dê para
+  gravar. A música, a pessoa põe no próprio Instagram.
+- **Compartilhar é um segundo toque, de propósito.** O navegador só abre a
+  janela de compartilhar logo depois de um toque, e depois de 30 s gravando
+  aquele toque já expirou. Sem a janela (computador), o vídeo é baixado.
+- Enquanto grava, a apresentação para: nem fala nem avança por baixo.
+
+Testado no Chromium: MP4 de 1080×1920, 33 s, 3,6 MB para um treino com
+musculação e esteira, e os quadros conferidos um a um.
+
 **O mapa por cima de tudo.** O Leaflet põe as camadas em z-index 400 a 1000, e o
 mapa ao vivo do percurso aparecia **por cima** do resumo. O `div` do mapa leva
 `isolation: isolate` e `zIndex: 0` — vale para o `ModalRota` também, e para
@@ -1673,6 +1704,9 @@ Roteiro mínimo depois de mexer no app:
      aeróbica e o nível, nessa ordem. Depois abrir o "▶ Resumo animado" no
      painel da esteira, no fim do percurso e no histórico: a linha verde revela cada cena, cada cena é falada, e o mapa
      do percurso **não** aparece por cima do resumo.
+33z. No resumo animado, tocar no 📸: a prévia grava até 100%, "Compartilhar"
+     abre a janela do celular, e o vídeo no Instagram tem as cenas, o halter no
+     fim e o @ embaixo.
 33v. **O teste da calibração.** Abrir o scanner, confirmar o enquadramento, andar
      até a máquina e sentar, ajeitar o banco: nada pode contar. Depois fazer 10
      repetições: o número aparece **já na 1ª** e termina em 10. Um movimento

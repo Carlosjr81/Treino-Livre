@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 485 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 499 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 485 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 499 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v39) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v40) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1173,7 +1173,7 @@ app; só a ideia da mecânica veio da documentação pública deles.
 
 ### Separado em camadas
 - **Motor** (`ZUMBI: MOTOR` até `FIM DO MOTOR ZUMBI`): lógica pura, sem tela,
-  som nem sensor, coberta por `teste-zumbi.js` (86 checagens, relógio e sensores
+  som nem sensor, coberta por `teste-zumbi.js` (100 checagens, relógio e sensores
   simulados). Unidades, base, alvo, avaliação, plano, estados, missão, validador,
   fila de falas e o registro do histórico.
 - **Som** (`criarPaisagemZumbi`): vento, chuva, estática, passos, gemido e
@@ -1292,6 +1292,52 @@ duas histórias ou mais:
   de a pessoa escolher monstro.
 - Para um monstro novo: uma entrada em `MONSTROS_ZUMBI` (frases), uma em
   `SOM_MONSTRO` (números do som) e duas histórias com `monstro`.
+
+### Inspirados em filmes e séries (`grupo: "cinema"`)
+O dono pediu uma história do Capitão Pátria (The Boys) e outras de filmes e
+séries famosos. **São homenagens, não cópias**: o app é público, e personagem,
+nome e enredo de série têm dono. Fica o clima e as cenas que todo mundo
+reconhece; os nomes são nossos. O `teste-zumbi.js` procura no `index.html`
+os nomes protegidos (The Boys, Capitão Pátria, Homelander, Vought, Jurassic,
+Nostromo, Ripley, Skynet, Stranger Things, Hawkins, Demogorgon...) e reprova
+se algum aparecer — inclusive em comentário.
+
+| Monstro | História | Homenagem a |
+|---|---|---|
+| 🦸 O Herói | 🦸 O Herói da Nação, 🎙️ Ao Vivo | o super-herói adorado que deixou o avião cair e sorri para a câmera |
+| 🦈 Tubarão | 🏖️ Temporada de Verão | o prefeito que não fecha a praia no feriado; o som são duas notas graves a meio tom |
+| 👽 Alienígena | 🛸 Cargueiro Sem Resposta | a criatura nos dutos do cargueiro, o detector de movimento e o gato da nave |
+| 🌀 Criatura do Outro Lado | 🔦 O Outro Lado | o menino sumido que responde pelas luzes piscando no alfabeto da parede |
+| 🤖 Máquina caçadora | 🤖 O Caçador do Futuro | a máquina que veio do futuro e não para |
+| 🦖 Dinossauro | 🦖 Ilha Âmbar | as cercas desligadas, o copo d'água tremendo, o sinalizador vermelho |
+
+Os monstros de cinema aparecem num grupo à parte na configuração e têm uma
+história cada (os clássicos têm pelo menos duas).
+
+### O radar da perseguição (`RadarMonstro`)
+Para quem corre na esteira ou com a tela à vista. Tudo sai do motor, sem regra
+nova: a **distância em metros** é a ameaça convertida (`distanciaMonstro`:
+280 m longe, 15 m encostando, sempre dentro do radar de 300 m durante a
+perseguição, para não parecer que acabou antes de a fuga valer), e a tela a
+move no máximo 5 m/s — a ameaça do motor muda depressa, e "ficando para trás a
+30 m/s" não parece perseguição.
+
+- Radar circular com varredura, anéis de 100/200/300 m, faixa vermelha dos
+  60 m e o ícone do monstro na distância certa, atrás de você.
+- Zonas (`ZONAS_RADAR`): no seu calcanhar (≤60 m, o painel pulsa), perto,
+  à vista, fora do alcance.
+- Tendência (`leituraRadar`, janela de 4 s): ficando para trás, chegando,
+  mesma distância, e "alcança em ~N s se nada mudar" — escondido no aviso, em
+  que ainda não é hora de acelerar.
+- Ele × você em km/h, o prazo da fuga e a barra "18 de 30 s no ritmo".
+- Na esteira, a velocidade para pôr no painel, e quanto subir.
+- Placar (`placarMissao`, do estado do motor): fugas, sequência (e a melhor),
+  o mais perto que ele chegou e os km.
+- **Bipes do detector**: mais rápidos quanto mais perto. Ligados de saída no
+  alienígena; um botão liga nos outros.
+- O nome do radar muda com o monstro (`radar`): Faro, Céu, Sismógrafo, Sonar,
+  Escuta, Detector de movimento, Luzes, Varredura, Tremor.
+- O rodapé diz que distância e monstro são ficção e que ritmo e km são reais.
 
 ### Acrescentar uma missão
 É dado, não código: um objeto como `MISSAO_ULTIMO_SINAL` (id, versão, nome,
@@ -1903,7 +1949,7 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 485
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 499
 checagens em treze suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash
@@ -1991,6 +2037,11 @@ Roteiro mínimo depois de mexer no app:
      encerrar no meio o histórico guarda só os blocos feitos. No Monster, Run!,
      escolher "Aleatória" duas vezes: as histórias não podem se repetir. Filtrar
      🐺 Lobisomem e tocar "Ouvir uma prévia": tem de soar o uivo, não o gemido.
+33ê. **O radar na esteira.** Missão de 20 min com 🦸 O Herói da Nação, tela
+     ligada: no aviso o monstro aparece no radar; acelerando, a distância sobe
+     e "ficando para trás" fica verde; diminuindo, ele chega, o painel pulsa
+     vermelho abaixo de 60 m. A velocidade para a esteira aparece, e o placar
+     conta a fuga. No 👽 Alienígena, os bipes aceleram quando ele chega perto.
 33ç. Correr 2 km na rua com o celular no braço e a idade preenchida no painel:
      a cadência aparece ao vivo e a voz do km a fala; no fim, a análise mostra
      pace, ajustado ao relevo, melhor km, cadência, passada, melhores esforços e,

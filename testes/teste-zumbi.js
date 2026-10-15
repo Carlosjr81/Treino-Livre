@@ -9,7 +9,7 @@ if (ini < 0 || fim < 0) { console.error("nao achei o motor zumbi no index.html")
 eval(html.slice(ini, fim).replace(/\r\n/g, "\n") +
   "\nglobalThis.Z = { NOME_ZUMBI, ZUMBI_PADRAO, kmhDeMs, msDeKmh, paceSegKm, velocidadeAlvo, paceAlvo, fmtPaceSeg, validarAmostra, velocidadeBase," +
   " calcularAlvo, criarAvaliador, planejarMissao, validarConfigZumbi, criarMotorZumbi, restaurarMotorZumbi, validarMissao, escolherCena, narrar," +
-  " criarFilaFalas, MISSAO_ULTIMO_SINAL, MISSOES_ZUMBI, sortearMissaoZumbi, missaoZumbiPorId, MONSTROS_ZUMBI, monstroDe, missoesDoMonstro, juntarSemDuplicar, registroZumbi, duracaoPerseguicao };");
+  " criarFilaFalas, MISSAO_ULTIMO_SINAL, MISSOES_ZUMBI, sortearMissaoZumbi, missaoZumbiPorId, MONSTROS_ZUMBI, monstroDe, missoesDoMonstro, distanciaMonstro, leituraRadar, zonaRadar, placarMissao, juntarSemDuplicar, registroZumbi, duracaoPerseguicao };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido, tol) {
@@ -209,10 +209,14 @@ function final() {
   teste("cada fala dita uma vez por evento", true, todasFugas.falas.length === new Set(todasFugas.falas.map((f) => f.evento)).size);
 
   console.log("--- 9b. as outras historias ---");
-  teste("catorze historias", 14, Z.MISSOES_ZUMBI.length);
-  teste("ids unicos", 14, new Set(Z.MISSOES_ZUMBI.map((m) => m.id)).size);
-  teste("cinco monstros, cada um com pelo menos duas historias", [5, true],
-    [Object.keys(Z.MONSTROS_ZUMBI).length, Object.keys(Z.MONSTROS_ZUMBI).every((k) => Z.missoesDoMonstro(k).length >= 2)]);
+  teste("vinte e uma historias", 21, Z.MISSOES_ZUMBI.length);
+  teste("ids unicos", 21, new Set(Z.MISSOES_ZUMBI.map((m) => m.id)).size);
+  const classicos = Object.keys(Z.MONSTROS_ZUMBI).filter((k) => !Z.MONSTROS_ZUMBI[k].grupo);
+  teste("onze monstros; os classicos com 2+ historias, os de cinema com 1+", [11, 5, true],
+    [Object.keys(Z.MONSTROS_ZUMBI).length, classicos.length,
+      Object.keys(Z.MONSTROS_ZUMBI).every((k) => Z.missoesDoMonstro(k).length >= (Z.MONSTROS_ZUMBI[k].grupo ? 1 : 2))]);
+  teste("homenagem, nao copia: nenhum nome protegido no app", [],
+    (html.match(/The Boys|Capit[aã]o P[aá]tria|Homelander|Vought|Jurassic|Nostromo|Ripley|Skynet|Stranger Things|Hawkins|Demogorgon|Exterminador|Sarah Connor/gi) || []));
   const persegue = (m, at) => m.cenas.find((c) => c.id === "perseguicao").falas[at];
   teste("so o zumbi e lento: as outras perseguicoes falam do proprio monstro", true,
     Z.MISSOES_ZUMBI.every((m) => Z.monstroDe(m).id === "zumbi" ? /lentos|arrastando/.test(persegue(m, "caminhada")) : !/lentos|eles est/i.test(persegue(m, "caminhada") + persegue(m, "corrida"))));
@@ -235,6 +239,19 @@ function final() {
   const sorteios = Array.from({ length: 12 }, (_, i) => Z.sortearMissaoZumbi(i % 2 ? "trem-da-meia-noite" : "ultimo-sinal", rnd).id);
   teste("o sorteio varia e nao repete a ultima", [true, true], [new Set(sorteios).size >= 3, sorteios.every((id, i) => id !== (i % 2 ? "trem-da-meia-noite" : "ultimo-sinal"))]);
   teste("missao desconhecida cai no Ultimo Sinal", "ultimo-sinal", Z.missaoZumbiPorId("nao-existe").id);
+
+  console.log("--- 9c. o radar ---");
+  teste("distancia: longe (dentro do radar), meio e encostando", [280, true, 15], [Z.distanciaMonstro(0), Z.distanciaMonstro(0.5) > 90 && Z.distanciaMonstro(0.5) < 160, Z.distanciaMonstro(1)]);
+  teste("quanto mais ameaca, mais perto (sempre)", true, Array.from({ length: 20 }, (_, i) => Z.distanciaMonstro(i / 20)).every((d, i, a) => i === 0 || d < a[i - 1]));
+  const fecha = Z.leituraRadar([{ t: 0, d: 100 }, { t: 2000, d: 90 }, { t: 4000, d: 80 }]);
+  teste("chegando 5 m/s: alcanca em 13 s", [-5, 13], [fecha.vel, fecha.alcancaEm]);
+  const abre = Z.leituraRadar([{ t: 0, d: 80 }, { t: 4000, d: 92 }]);
+  teste("ficando para tras: sem previsao de alcance", [3, null], [abre.vel, abre.alcancaEm]);
+  teste("zonas do radar", ["No seu calcanhar", "Perto", "À vista", "Fora do alcance"], [40, 100, 250, Infinity].map((d) => Z.zonaRadar(d).nome));
+  const pl = Z.placarMissao({ tAtivo: 25000, graf: { 0: [30, 10], 1: [30, 10], 2: [30, 10] },
+    persegs: { a: { blocoIni: 1, resultado: "fugiu", noAlvoMs: 30000 }, b: { blocoIni: 2, resultado: "alcancado", noAlvoMs: 10000 },
+      c: { blocoIni: 3, resultado: "fugiu", noAlvoMs: 30000 }, d: { blocoIni: 4, resultado: "fugiu", noAlvoMs: 30000 }, e: { blocoIni: 5, resultado: "adiada" } } });
+  teste("placar: fugas, sequencia, melhor sequencia, tempo no alvo e km", [3, 4, 2, 2, 100000, 0.08], [pl.fugas, pl.decididas, pl.sequencia, pl.melhorSeq, pl.noAlvoMs, pl.km]);
 
   console.log("--- 10. historico sem duplicar ---");
   const r1 = Z.registroZumbi("zr-1", new Date(2026, 9, 15).toISOString(), todasFugas.m, Z.MISSAO_ULTIMO_SINAL, { km: 3 });

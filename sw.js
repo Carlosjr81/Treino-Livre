@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v29";
+const CACHE = "treinolivre-v30";
 const ARQUIVOS = [
   "./",
   "./index.html",
@@ -46,6 +46,10 @@ self.addEventListener("fetch", (e) => {
   // O arquivo da versao nunca e interceptado: ele existe para delatar que ha
   // versao nova, e serviria de pouco vindo do cache.
   if (url.pathname.indexOf("versao.json") >= 0) return;
+  // Os pedaços do mapa e a busca de endereço do percurso não entram no cache:
+  // cada lugar do mapa é um arquivo, e guardar todos encheria o celular. O
+  // navegador já guarda os recentes no cache dele, que se limpa sozinho.
+  if (url.hostname === "tile.openstreetmap.org" || url.hostname === "nominatim.openstreetmap.org") return;
   // O reconhecimento de movimento (biblioteca, WASM e modelo) sao uns 8 MB.
   // Guardados aqui, sao baixados uma vez so e o Eyes Scan passa a funcionar
   // offline, como o resto do app.

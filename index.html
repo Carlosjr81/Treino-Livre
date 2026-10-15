@@ -561,7 +561,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15b";
+const VERSAO_APP = "2026-10-15c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -6725,7 +6725,7 @@ function FaixaProgresso({ est, historico, meta, onAbrirProgresso }) {
 // ---------------- TELA INICIAL ----------------
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
   avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
-  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz }) {
+  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
@@ -6812,6 +6812,11 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
         <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800, color: "#4CD137", borderColor: "#4CD13766" }}
           onClick={onFuncional}>
           ⚡ Treino funcional (a câmera conta)
+        </button>
+        {/* Também fora do temFichas: sair para correr não depende de ficha montada */}
+        <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800, color: "#4C9BE8", borderColor: "#4C9BE866" }}
+          onClick={onPercurso}>
+          🗺 Caminhada ou corrida na rua (GPS)
         </button>
       </div>
 
@@ -8241,6 +8246,717 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
   );
 }
 
+// ---------------- PERCURSO NA RUA (GPS) ----------------
+// Caminhada, corrida, pedalada e trilha com o GPS do celular, no mapa do
+// OpenStreetMap — o mesmo mapa que mostra nome de rua, prédio, bairro e cidade,
+// sem chave e sem conta. Nada sai do aparelho além do pedido de mapa e de
+// endereço: a rota fica no IndexedDB, e o resumo vai para o histórico comum.
+//
+// O GPS do celular mente de três jeitos, e cada um tem a sua regra:
+//   1. ponto impreciso (precisão pior que 35 m): fora;
+//   2. tremor parado — o GPS desenha uma estrela em volta de quem está no
+//      semáforo: ponto a menos de 4 m (ou metade da precisão) do anterior não
+//      entra, senão a pessoa "anda" um quilômetro parada;
+//   3. salto — o ponto pula um quarteirão e volta: velocidade impossível para a
+//      modalidade, descontada a incerteza dos dois pontos, fica fora.
+// E o tempo que conta é o tempo em movimento: parado mais de 15 s não conta,
+// que é a pausa automática do semáforo.
+const MODALIDADES_ROTA = [
+  { id: "caminhada-rua", nome: "Caminhada", icone: "🚶", velMax: 12 },
+  { id: "corrida-rua", nome: "Corrida", icone: "🏃", velMax: 30 },
+  { id: "bike-rua", nome: "Pedalada", icone: "🚴", velMax: 80 },
+  { id: "trilha", nome: "Trilha", icone: "🥾", velMax: 12 },
+];
+const ROTA_PRECISAO_MAX = 35;
+const ROTA_PARADO_MS = 15000;
+const ROTA_LACUNA_MS = 20000;
+function distanciaM(a, b) {
+  const R = 6371000, rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+  const x = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(x)));
+}
+// "ok", "impreciso", "parado", "salto" ou "substitui". ult é o último ponto
+// aceito do mesmo trecho (null no começo de um trecho).
+function aceitarPonto(ult, p, velMax) {
+  if (!(p.acc <= ROTA_PRECISAO_MAX)) return "impreciso";
+  if (!ult) return "ok";
+  // O GPS acha a pessoa com ±30 m e segundos depois melhora para ±8 m. Ligar o
+  // ponto ruim ao bom inventava dezenas de metros: o bom toma o lugar dele.
+  if (ult.acc > 20 && p.acc <= ult.acc / 2) return "substitui";
+  const d = distanciaM(ult, p);
+  if (d < Math.max(4, Math.min(p.acc, 20) * 0.5)) return "parado";
+  const dt = (p.t - ult.t) / 1000;
+  // a incerteza dos dois pontos sai da conta: um começo impreciso não pode
+  // fazer todo ponto bom seguinte parecer um salto
+  const real = Math.max(0, d - (ult.acc || 0) - (p.acc || 0));
+  if (dt > 0 && (real / dt) * 3.6 > velMax) return "salto";
+  return "ok";
+}
+// O tempo que conta entre dois pontos. Mais de 15 s sem andar é parada; mas
+// mais de 15 s andando (a tela apagou e o GPS sumiu) conta inteiro.
+function tempoEntre(a, b) {
+  const dt = b.t - a.t;
+  if (dt <= ROTA_PARADO_MS) return Math.max(0, dt);
+  const kmh = (distanciaM(a, b) / (dt / 1000)) * 3.6;
+  return kmh >= 2 ? dt : ROTA_PARADO_MS;
+}
+// A distância é medida em cordas de 12 m, não ponto a ponto. Cada leitura do
+// GPS erra uns metros para um lado ou para o outro, e somar ponto a ponto mede
+// esse zigue-zague como se fosse caminho: numa corrida simulada de 3 km com 3 m
+// de erro, dava 3,6. Só quando a pessoa se afasta 12 m do último ponto de
+// referência a distância soma — e o tremor parado no semáforo fica dentro da
+// folga, sem andar nada.
+const ROTA_CORDA_M = 12;
+// Tudo o que a tela mostra sai daqui. "agora" é para o relógio correr entre
+// um ponto e outro enquanto a pessoa anda (só no ao vivo).
+function resumoRota(pts, agora) {
+  const r = { m: 0, ms: 0, ganho: 0, perda: 0, splits: [], lacunaMs: 0, trechos: 0 };
+  let proxKm = 1000, msSplit = 0, refAlt = null, anc = null, ult = null;
+  const somar = (b) => {
+    const d = distanciaM(anc, b), dt = tempoEntre(anc, b);
+    while (d > 0 && r.m + d >= proxKm) {
+      const t = r.ms + (dt * (proxKm - r.m)) / d;
+      r.splits.push({ km: proxKm / 1000, ms: t - msSplit });
+      msSplit = t;
+      proxKm += 1000;
+    }
+    r.m += d;
+    r.ms += dt;
+    anc = b;
+  };
+  (pts || []).forEach((p, i) => {
+    if (p.alt !== null && p.alt !== undefined && p.acc <= 20) {
+      // 3 m de folga: a altitude do GPS oscila, e somar o tremor inventaria morro
+      if (refAlt === null) refAlt = p.alt;
+      else if (p.alt > refAlt + 3) { r.ganho += p.alt - refAlt; refAlt = p.alt; }
+      else if (p.alt < refAlt - 3) { r.perda += refAlt - p.alt; refAlt = p.alt; }
+    }
+    if (i === 0 || pts[i - 1].seg !== p.seg) {
+      // fecha o pedaço que sobrou do trecho anterior (a pausa separa os trechos)
+      if (anc && ult && ult !== anc) somar(ult);
+      r.trechos++;
+      anc = p; ult = p;
+      return;
+    }
+    const dtBruto = p.t - ult.t;
+    if (dtBruto > ROTA_LACUNA_MS && (distanciaM(ult, p) / (dtBruto / 1000)) * 3.6 >= 2) r.lacunaMs += dtBruto;
+    ult = p;
+    if (distanciaM(anc, p) >= ROTA_CORDA_M) somar(p);
+  });
+  if (anc && ult && ult !== anc) somar(ult);
+  if (agora && ult) r.ms += Math.min(Math.max(0, agora - ult.t), ROTA_PARADO_MS);
+  r.km = r.m / 1000;
+  r.ritmo = r.km >= 0.01 ? r.ms / 60000 / r.km : 0;
+  r.vel = r.ms > 0 ? r.km / (r.ms / 3600000) : 0;
+  r.noKm = { m: r.m - (proxKm - 1000), ms: r.ms - msSplit };
+  return r;
+}
+// O ritmo de agora: os últimos 30 s, pela mesma conta. O médio esconde quem
+// acabou de acelerar.
+function ritmoRecente(pts, janelaMs) {
+  const lista = pts || [];
+  if (lista.length < 2) return 0;
+  const u = lista[lista.length - 1];
+  let i = lista.length - 1;
+  while (i > 0 && lista[i - 1].seg === u.seg && u.t - lista[i - 1].t <= (janelaMs || 30000)) i--;
+  const r = resumoRota(lista.slice(i));
+  return r.m >= 20 && r.ms > 0 ? r.ms / 60000 / (r.m / 1000) : 0;
+}
+function fmtTempoRota(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(ss).padStart(2, "0");
+}
+// O endereço do Nominatim em pedaços que a tela usa
+function enderecoDe(json) {
+  const a = (json && json.address) || {};
+  const rua = a.road || a.pedestrian || a.footway || a.cycleway || a.path || a.street || a.square || null;
+  const bairro = a.suburb || a.neighbourhood || a.quarter || a.city_district || a.district || null;
+  const cidade = a.city || a.town || a.village || a.municipality || null;
+  const lugar = (json && json.name && json.name !== rua) ? json.name : null;
+  return {
+    rua: rua, numero: a.house_number || null, bairro: bairro, cidade: cidade, estado: a.state || null, lugar: lugar,
+    curto: [rua, bairro].filter(Boolean).join(" · ") || cidade || "",
+    regiao: [bairro, cidade].filter(Boolean).join(", "),
+  };
+}
+// A rota guardada no formato de linha do Google Maps: de um ponto para o
+// outro só a diferença, cada número em poucos caracteres. Uma hora de corrida
+// cabe em uns 20 KB. Campos por ponto: lat e lng (x 100 000), tempo em
+// décimos de segundo, altitude (-9999 quando o GPS não dá), precisão, trecho.
+function codificarNums(nums) {
+  let s = "";
+  nums.forEach((n) => {
+    let v = n < 0 ? ~(n << 1) : n << 1;
+    while (v >= 0x20) { s += String.fromCharCode((0x20 | (v & 0x1f)) + 63); v >>= 5; }
+    s += String.fromCharCode(v + 63);
+  });
+  return s;
+}
+function decodificarNums(s) {
+  const out = [];
+  let i = 0;
+  while (i < s.length) {
+    let b, shift = 0, v = 0;
+    do { b = s.charCodeAt(i++) - 63; v |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    out.push(v & 1 ? ~(v >> 1) : v >> 1);
+  }
+  return out;
+}
+function compactarRota(pts) {
+  const t0 = pts.length ? pts[0].t : 0;
+  const nums = [];
+  let ant = [0, 0, 0, 0, 0, 0];
+  pts.forEach((p) => {
+    const atual = [Math.round(p.lat * 1e5), Math.round(p.lng * 1e5), Math.round((p.t - t0) / 100),
+      p.alt === null || p.alt === undefined ? -9999 : Math.round(p.alt), Math.round(p.acc || 0), p.seg || 0];
+    atual.forEach((v, k) => nums.push(v - ant[k]));
+    ant = atual;
+  });
+  return { v: 2, t0: t0, d: codificarNums(nums) };
+}
+function expandirRota(c) {
+  if (!c || typeof c.d !== "string") return [];
+  const nums = decodificarNums(c.d);
+  const pts = [];
+  let ant = [0, 0, 0, 0, 0, 0];
+  for (let i = 0; i + 5 < nums.length; i += 6) {
+    const atual = ant.map((v, k) => v + nums[i + k]);
+    pts.push({ lat: atual[0] / 1e5, lng: atual[1] / 1e5, t: c.t0 + atual[2] * 100,
+      alt: atual[3] === -9999 ? null : atual[3], acc: atual[4], seg: atual[5] });
+    ant = atual;
+  }
+  return pts;
+}
+// Os trechos separados pelas pausas, para o mapa não ligar o fim de um ao
+// começo do outro em linha reta
+function trechosRota(pts) {
+  const t = [];
+  (pts || []).forEach((p, i) => {
+    if (i === 0 || pts[i - 1].seg !== p.seg) t.push([]);
+    t[t.length - 1].push([p.lat, p.lng]);
+  });
+  return t;
+}
+// ---------------- FIM DAS CONTAS DO PERCURSO ----------------
+
+// O mapa (Leaflet) é carregado só quando a tela abre: quem nunca usar o
+// percurso não paga nada por ele. Fica no cache do service worker para abrir
+// sem sinal — os pedaços do mapa não, que encheriam o celular.
+const MAPA_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+const MAPA_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+let mapaCarregando = null;
+function carregarMapa() {
+  if (window.L && window.L.map) return Promise.resolve(window.L);
+  if (mapaCarregando) return mapaCarregando;
+  mapaCarregando = new Promise((res, rej) => {
+    const css = document.createElement("link");
+    css.rel = "stylesheet"; css.href = MAPA_CSS; css.crossOrigin = "";
+    css.integrity = "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=";
+    document.head.appendChild(css);
+    const s = document.createElement("script");
+    s.src = MAPA_JS; s.crossOrigin = "";
+    s.integrity = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
+    s.onload = () => (window.L && window.L.map ? res(window.L) : rej(new Error("mapa sem L")));
+    s.onerror = () => rej(new Error("mapa não carregou"));
+    document.head.appendChild(s);
+  });
+  mapaCarregando.catch(() => { mapaCarregando = null; });
+  return mapaCarregando;
+}
+function camadaMapa(L) {
+  return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+  });
+}
+// Rua, bairro e cidade pelo Nominatim, a busca do próprio OpenStreetMap. A
+// regra de uso deles é no máximo um pedido por segundo: aqui é um no começo,
+// um no fim e um a cada 400 m.
+function buscarEndereco(p) {
+  const url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=pt-BR&lat=" +
+    p.lat.toFixed(6) + "&lon=" + p.lng.toFixed(6);
+  return fetch(url).then((r) => (r.ok ? r.json() : null)).then((j) => (j ? enderecoDe(j) : null)).catch(() => null);
+}
+const chaveRota = (id) => "rota-" + id;
+const guardarRota = (id, pts) => guardarFoto(chaveRota(id), compactarRota(pts));
+const lerRota = (id) => lerFoto(chaveRota(id)).then(expandirRota);
+
+function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, onSalvar, onVoltar }) {
+  const [modo, setModo] = useState("corrida-rua");
+  const [fase, setFase] = useState("preparo");     // preparo | rodando | pausado | fim
+  const [erroMapa, setErroMapa] = useState("");
+  const [erroGps, setErroGps] = useState("");
+  const [gps, setGps] = useState(null);             // precisão da última leitura
+  const [, setTique] = useState(0);
+  const [local, setLocal] = useState(null);
+  const [inicioLocal, setInicioLocal] = useState(null);
+  const [fimLocal, setFimLocal] = useState(null);
+  const [bolso, setBolso] = useState(false);
+  const [seguir, setSeguir] = useState(true);
+  const [aviso, setAviso] = useState("");
+  const pts = useRef([]);
+  const seg = useRef(0);
+  const saltos = useRef(0);
+  const leitura = useRef(null);
+  const faseRef = useRef("preparo");
+  const seguirRef = useRef(true);
+  const mapaRef = useRef(null);
+  const divRef = useRef(null);
+  const linhaRef = useRef(null);
+  const posRef = useRef(null);
+  const precRef = useRef(null);
+  const kmFalado = useRef(0);
+  const geo = useRef({ m: -1e9, t: 0 });
+  const lugares = useRef({ ruas: [], bairros: [] });
+  const escondido = useRef(0);
+  const inicio = useRef(0);
+  const ultimoToque = useRef(0);
+  faseRef.current = fase;
+  seguirRef.current = seguir;
+  const mod = MODALIDADES_ROTA.find((m) => m.id === modo) || MODALIDADES_ROTA[0];
+  const ex = exPorId(modo);
+
+  const falar = (t) => narrarVoz(t, vozCfg);
+  const anotarLugar = (e) => {
+    if (!e) return;
+    const L0 = lugares.current;
+    if (e.rua && L0.ruas.indexOf(e.rua) < 0) L0.ruas.push(e.rua);
+    if (e.bairro && L0.bairros.indexOf(e.bairro) < 0) L0.bairros.push(e.bairro);
+  };
+  const procurarLugar = (p, m, quando) => {
+    geo.current = { m: m, t: Date.now() };
+    buscarEndereco(p).then((e) => {
+      if (!e) return;
+      setLocal(e);
+      anotarLugar(e);
+      if (quando === "inicio") setInicioLocal(e);
+      if (quando === "fim") setFimLocal(e);
+    });
+  };
+
+  // ---- o mapa ----
+  useEffect(() => {
+    let vivo = true;
+    carregarMapa().then((L) => {
+      if (!vivo || !divRef.current) return;
+      const m = L.map(divRef.current, { zoomControl: false }).setView([-15.79, -47.88], 4);
+      camadaMapa(L).addTo(m);
+      linhaRef.current = L.polyline([], { color: "#E1306C", weight: 5, opacity: 0.9 }).addTo(m);
+      m.on("dragstart", () => setSeguir(false));
+      mapaRef.current = m;
+      if (leitura.current) m.setView([leitura.current.lat, leitura.current.lng], 17);
+      setTimeout(() => m.invalidateSize(), 200);
+    }).catch(() => setErroMapa("O mapa não carregou (sem internet?). O GPS e os números funcionam assim mesmo."));
+    return () => { vivo = false; if (mapaRef.current) { mapaRef.current.remove(); mapaRef.current = null; } };
+  }, []);
+
+  const desenharPosicao = (p) => {
+    const m = mapaRef.current, L = window.L;
+    if (!m || !L) return;
+    if (!posRef.current) {
+      precRef.current = L.circle([p.lat, p.lng], { radius: p.acc, color: "#4C9BE8", weight: 1, fillOpacity: 0.12 }).addTo(m);
+      posRef.current = L.circleMarker([p.lat, p.lng], { radius: 8, color: "#FFFFFF", weight: 3, fillColor: "#4C9BE8", fillOpacity: 1 }).addTo(m);
+      m.setView([p.lat, p.lng], 17);
+    } else {
+      posRef.current.setLatLng([p.lat, p.lng]);
+      precRef.current.setLatLng([p.lat, p.lng]).setRadius(p.acc);
+      if (seguirRef.current) m.panTo([p.lat, p.lng], { animate: true });
+    }
+  };
+
+  // ---- cada leitura do GPS ----
+  const lerRef = useRef(() => {});
+  lerRef.current = (pos) => {
+    const c = pos.coords;
+    const p = { lat: c.latitude, lng: c.longitude, acc: c.accuracy, alt: c.altitude === null || c.altitude === undefined ? null : c.altitude, t: Date.now() };
+    leitura.current = p;
+    setGps(Math.round(p.acc));
+    setErroGps("");
+    desenharPosicao(p);
+    if (faseRef.current !== "rodando") return;
+    p.seg = seg.current;
+    const lista = pts.current;
+    const ult = lista.length && lista[lista.length - 1].seg === p.seg ? lista[lista.length - 1] : null;
+    const v = aceitarPonto(ult, p, mod.velMax);
+    if (v === "substitui") lista.pop();
+    else if (v === "salto") {
+      // Oito saltos seguidos não são o GPS errando: é o ponto de antes que estava
+      // errado. Recomeça o trecho dali, sem somar a distância do pulo.
+      saltos.current++;
+      if (saltos.current < 8) return;
+      seg.current++;
+      p.seg = seg.current;
+    } else if (v !== "ok") return;
+    saltos.current = 0;
+    lista.push(p);
+    if (linhaRef.current) linhaRef.current.setLatLngs(trechosRota(lista));
+    const r = resumoRota(lista);
+    const km = Math.floor(r.m / 1000);
+    if (km > kmFalado.current && r.splits[km - 1]) {
+      kmFalado.current = km;
+      const sp = r.splits[km - 1];
+      if (som) beep(880, 0.15, 0.25);
+      falar(km + (km === 1 ? " quilômetro" : " quilômetros") + ". Esse quilômetro em " + textoDuracao(Math.round(sp.ms / 1000)) +
+        ". Tempo total, " + textoDuracao(Math.round(r.ms / 1000)) + ".");
+    }
+    if (r.m - geo.current.m >= 400 && Date.now() - geo.current.t > 30000) procurarLugar(p, r.m);
+  };
+  useEffect(() => {
+    if (!navigator.geolocation) { setErroGps("Este navegador não tem acesso ao GPS."); return; }
+    const id = navigator.geolocation.watchPosition((pos) => lerRef.current(pos), (e) => {
+      setErroGps(e.code === 1
+        ? "Sem permissão de localização. Libere a localização para este site nas configurações do navegador."
+        : "O GPS ainda não respondeu. Em lugar aberto ele acha mais rápido.");
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+    return () => navigator.geolocation.clearWatch(id);
+  }, []);
+
+  // o relógio corre entre um ponto e outro
+  useEffect(() => {
+    if (fase !== "rodando") return;
+    const iv = setInterval(() => setTique((t) => t + 1), 1000);
+    return () => clearInterval(iv);
+  }, [fase]);
+
+  // Com a tela apagada o navegador para o GPS. Não há como contornar numa página
+  // web; o que dá para fazer é avisar quando acontece, e o trecho sem GPS entra
+  // em linha reta (a distância sai menor que a real, nunca maior).
+  useEffect(() => {
+    const aoMudar = () => {
+      if (document.visibilityState === "hidden") { escondido.current = Date.now(); return; }
+      if (faseRef.current === "rodando") ligarTravaTela();
+      const fora = escondido.current ? Date.now() - escondido.current : 0;
+      escondido.current = 0;
+      if (faseRef.current === "rodando" && fora > ROTA_LACUNA_MS) {
+        setAviso("A tela ficou " + textoDuracao(Math.round(fora / 1000)) + " apagada e o GPS parou nesse tempo. O trecho foi ligado em linha reta. Use o modo bolso para a tela ficar ligada gastando pouca bateria.");
+      }
+    };
+    document.addEventListener("visibilitychange", aoMudar);
+    return () => document.removeEventListener("visibilitychange", aoMudar);
+  }, []);
+  useEffect(() => () => desligarTravaTela(), []);
+
+  const comecar = () => {
+    const p0 = leitura.current;
+    if (!p0) { setAviso("Esperando o GPS achar você. Em lugar aberto leva alguns segundos."); return; }
+    pts.current = [Object.assign({}, p0, { t: Date.now(), seg: 0 })];
+    seg.current = 0; saltos.current = 0; kmFalado.current = 0;
+    lugares.current = { ruas: [], bairros: [] };
+    inicio.current = Date.now();
+    if (linhaRef.current) linhaRef.current.setLatLngs([]);
+    setAviso(p0.acc > ROTA_PRECISAO_MAX ? "O GPS ainda está impreciso (±" + Math.round(p0.acc) + " m). Os primeiros metros podem ficar de fora." : "");
+    setSeguir(true);
+    setFase("rodando");
+    ligarTravaTela();
+    if (som) beep(1200, 0.15, 0.25);
+    falar(mod.nome + " começou. Bom treino.");
+    procurarLugar(p0, 0, "inicio");
+  };
+  const pausar = () => { setFase("pausado"); falar("Pausado."); };
+  const continuar = () => {
+    seg.current++;
+    const p = leitura.current;
+    if (p) pts.current.push(Object.assign({}, p, { t: Date.now(), seg: seg.current }));
+    setFase("rodando");
+    falar("Continuando.");
+  };
+  const terminar = () => {
+    setFase("fim");
+    setBolso(false);
+    desligarTravaTela();
+    const lista = pts.current;
+    const r = resumoRota(lista);
+    falar(mod.nome + " encerrada. " + (r.km >= 0.1 ? num1(r.km) + " quilômetros em " + textoDuracao(Math.round(r.ms / 1000)) + "." : ""));
+    if (lista.length) procurarLugar(lista[lista.length - 1], r.m, "fim");
+    const m = mapaRef.current, L = window.L;
+    if (m && L && lista.length > 1) {
+      m.fitBounds(L.latLngBounds(lista.map((p) => [p.lat, p.lng])), { padding: [24, 24] });
+      L.circleMarker([lista[0].lat, lista[0].lng], { radius: 7, color: "#FFFFFF", weight: 2, fillColor: "#4CD137", fillOpacity: 1 }).addTo(m);
+      L.circleMarker([lista[lista.length - 1].lat, lista[lista.length - 1].lng], { radius: 7, color: "#FFFFFF", weight: 2, fillColor: "#ED4956", fillOpacity: 1 }).addTo(m);
+    }
+  };
+  const salvar = () => {
+    const lista = pts.current;
+    const r = resumoRota(lista);
+    const lugar = (inicioLocal && inicioLocal.bairro) || (fimLocal && fimLocal.bairro) || null;
+    const registro = {
+      id: String(Date.now()),
+      nome: mod.nome + " na rua" + (lugar ? " — " + lugar : ""),
+      data: new Date(inicio.current).toISOString(),
+      duracaoMin: Math.max(1, Math.min(300, Math.round(r.ms / 60000))),
+      itens: [{ exercicioId: modo, obs: "", series: [{ segundos: String(Math.round(r.ms / 1000)), mod: ex ? ex.cardio : "rua-corrida", km: String(Math.round(r.km * 100) / 100) }] }],
+      rota: {
+        modo: modo,
+        km: Math.round(r.km * 100) / 100, ms: Math.round(r.ms), ritmo: r.ritmo, ganho: Math.round(r.ganho),
+        splits: r.splits.map((s) => Math.round(s.ms / 1000)),
+        inicio: inicioLocal ? inicioLocal.curto : null, fim: fimLocal ? fimLocal.curto : null,
+        regiao: (inicioLocal && inicioLocal.regiao) || (fimLocal && fimLocal.regiao) || null,
+        ruas: lugares.current.ruas.slice(0, 15), bairros: lugares.current.bairros.slice(0, 8),
+        lacunaMin: Math.round(r.lacunaMs / 60000),
+      },
+    };
+    onSalvar(registro, lista);
+  };
+
+  // "Jarvis, pausa", "continua", "como estou", "encerra": com as mãos ocupadas
+  // e o celular no braço, é a voz que conduz. Mesmo ponteiro da aula guiada.
+  useEffect(() => {
+    if (fase !== "rodando" && fase !== "pausado") return;
+    CONTROLE_AULA = {
+      comando(f) {
+        if (/\b(pausa|pausar|espera|para|parar)\b/.test(f) && faseRef.current === "rodando") { pausar(); return { acao: "pausar", resposta: "Pausado." }; }
+        if (/\b(continua|continuar|retoma|retomar|voltei|segue|bora|vamos)\b/.test(f) && faseRef.current === "pausado") { continuar(); return { acao: "continuar", resposta: "Continuando." }; }
+        if (/\b(encerra|encerrar|finaliza|finalizar|termina|terminar|terminei|acabei)\b/.test(f)) { terminar(); return { acao: "encerrar", resposta: "Encerrado." }; }
+        if (/\b(como estou|como to|quanto|distancia|ritmo|tempo|status)\b/.test(f)) {
+          const r = resumoRota(pts.current, faseRef.current === "rodando" ? Date.now() : 0);
+          const t = num1(r.km) + " quilômetros em " + textoDuracao(Math.round(r.ms / 1000)) + (r.ritmo ? ". Ritmo médio de " + textoDuracao(Math.round(r.ritmo * 60)) + " por quilômetro." : ".");
+          falar(t);
+          return { acao: "status", resposta: t };
+        }
+        return null;
+      },
+    };
+    return () => { CONTROLE_AULA = null; };
+  }, [fase]);
+
+  const lista = pts.current;
+  const r = resumoRota(lista, fase === "rodando" ? Date.now() : 0);
+  const ritmoAgora = ritmoRecente(lista);
+  const kcal = ex ? medirCardio({ segundos: String(r.ms / 1000), mod: ex.cardio, km: String(r.km) }, pesoCorporal, ex.cardio).kcal : 0;
+  const pedala = modo === "bike-rua";
+  const cartao = (rot, val, grande) => (
+    <div style={{ flex: grande ? "1 1 100%" : "1 1 30%", minWidth: 0, textAlign: "center" }}>
+      <div style={{ fontSize: grande ? 40 : 21, fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}>{val}</div>
+      <div style={{ ...S.label, fontSize: 9.5, marginTop: 2 }}>{rot}</div>
+    </div>
+  );
+  const numeros = (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 6px" }}>
+      {cartao("quilômetros", num1(r.km), true)}
+      {cartao("tempo", fmtTempoRota(r.ms))}
+      {pedala ? cartao("km/h agora", ritmoAgora ? num1(60 / ritmoAgora) : "—") : cartao("ritmo agora", ritmoAgora ? fmtRitmo(ritmoAgora, "") : "—")}
+      {pedala ? cartao("km/h médio", r.vel ? num1(r.vel) : "—") : cartao("ritmo médio", r.ritmo ? fmtRitmo(r.ritmo, "") : "—")}
+      {cartao("subida", Math.round(r.ganho) + " m")}
+      {cartao("kcal", "~" + Math.round(kcal))}
+      {cartao("este km", fmtTempoRota(r.noKm.ms))}
+    </div>
+  );
+  const melhorSplit = r.splits.length ? Math.min.apply(null, r.splits.map((s) => s.ms)) : 0;
+  const piorSplit = r.splits.length ? Math.max.apply(null, r.splits.map((s) => s.ms)) : 0;
+
+  return (
+    <div>
+      <button onClick={() => {
+        if (fase === "rodando" || fase === "pausado") { pedirConfirmacao("Sair agora descarta este percurso. Encerrar e salvar é no botão Encerrar.\n\nSair mesmo assim?", onVoltar); return; }
+        onVoltar();
+      }} style={{ background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 14, cursor: "pointer", padding: "4px 0 12px" }}>
+        ← Voltar
+      </button>
+      <div style={{ ...S.card, padding: 0, overflow: "hidden" }}>
+        <div ref={divRef} style={{ height: fase === "fim" ? 300 : "44vh", minHeight: 240, background: "#1b2330" }} />
+        {!seguir && fase !== "fim" && (
+          <button onClick={() => { setSeguir(true); if (leitura.current && mapaRef.current) mapaRef.current.panTo([leitura.current.lat, leitura.current.lng]); }}
+            style={{ ...S.btnGhost, margin: "8px 12px 0", width: "calc(100% - 24px)", padding: "8px 12px", fontSize: 13 }}>
+            ◎ Voltar a seguir minha posição
+          </button>
+        )}
+        <div style={{ padding: "10px 14px 12px", fontSize: 12, color: "var(--cinza)" }}>
+          {erroMapa || (local ? "📍 " + local.curto + (local.regiao && local.regiao !== local.curto ? " — " + local.regiao : "") : "📍 procurando onde você está...")}
+          <div style={{ fontSize: 11, marginTop: 2, color: erroGps ? "var(--perigo)" : gps !== null && gps > ROTA_PRECISAO_MAX ? "var(--obs)" : "var(--cinza2)" }}>
+            {erroGps || (gps === null ? "Ligando o GPS..." : "GPS: precisão de ±" + gps + " m" + (gps > ROTA_PRECISAO_MAX ? " — ainda impreciso" : ""))}
+          </div>
+        </div>
+      </div>
+
+      {aviso && (
+        <div style={{ ...S.card, borderColor: "var(--obs)", fontSize: 12.5, lineHeight: 1.5, color: "var(--texto)" }}>
+          ⚠️ {aviso}
+          <button onClick={() => setAviso("")} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 800, cursor: "pointer", marginLeft: 6 }}>ok</button>
+        </div>
+      )}
+
+      {fase === "preparo" && (
+        <div style={S.card}>
+          <div style={{ ...S.label, marginBottom: 10 }}>O que vai fazer?</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+            {MODALIDADES_ROTA.map((m) => (
+              <button key={m.id} onClick={() => setModo(m.id)} aria-pressed={modo === m.id}
+                style={{ flex: "1 1 40%", padding: "12px 8px", borderRadius: 12, cursor: "pointer", fontWeight: 800, fontSize: 14,
+                  border: "1px solid " + (modo === m.id ? "#E1306C" : "var(--borda2)"),
+                  background: modo === m.id ? "#E1306C18" : "transparent", color: modo === m.id ? "#E1306C" : "var(--texto)" }}>
+                {m.icone} {m.nome}
+              </button>
+            ))}
+          </div>
+          <button onClick={comecar} style={{ ...S.btn, width: "100%", fontSize: 17 }} disabled={!!erroGps && !leitura.current}>
+            ▶ Começar
+          </button>
+          <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
+            Deixe a tela ligada durante o percurso: com a tela apagada o navegador para o GPS. O <b>modo bolso</b> deixa a
+            tela preta, que gasta pouca bateria. A voz avisa cada quilômetro.
+          </div>
+        </div>
+      )}
+
+      {(fase === "rodando" || fase === "pausado") && (
+        <div style={S.card}>
+          {fase === "pausado" && <div style={{ ...S.label, color: "var(--obs)", textAlign: "center", marginBottom: 8 }}>⏸ Pausado</div>}
+          {numeros}
+          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            {fase === "rodando"
+              ? <button onClick={pausar} style={{ ...S.btnGhost, flex: 1, fontWeight: 900 }}>⏸ Pausar</button>
+              : <button onClick={continuar} style={{ ...S.btn, flex: 1 }}>▶ Continuar</button>}
+            <button onClick={() => setBolso(true)} style={{ ...S.btnGhost, flex: 1, fontWeight: 800 }}>🌑 Modo bolso</button>
+          </div>
+          <button onClick={() => pedirConfirmacao("Encerrar o percurso?", terminar)}
+            style={{ ...S.btnGhost, width: "100%", marginTop: 8, color: "var(--perigo)", borderColor: "var(--perigo-borda)", fontWeight: 900 }}>
+            ■ Encerrar
+          </button>
+          <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 8, textAlign: "center" }}>
+            Pela voz: "Jarvis, pausa", "continua", "como estou", "encerra".
+          </div>
+        </div>
+      )}
+
+      {fase === "fim" && (
+        <div style={S.card}>
+          <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 2 }}>{mod.icone} {mod.nome} na rua</div>
+          <div style={{ fontSize: 12, color: "var(--cinza)", marginBottom: 12 }}>
+            {(inicioLocal && inicioLocal.regiao) || (fimLocal && fimLocal.regiao) || ""}
+          </div>
+          {numeros}
+          {r.splits.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ ...S.label, marginBottom: 6 }}>Parciais por km</div>
+              {r.splits.map((s) => (
+                <div key={s.km} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, marginBottom: 4 }}>
+                  <span style={{ width: 34, color: "var(--cinza)" }}>km {s.km}</span>
+                  <div style={{ flex: 1, height: 8, background: "var(--borda)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: Math.round((melhorSplit / s.ms) * 100) + "%", background: s.ms === melhorSplit ? "var(--ok)" : GRAD }} />
+                  </div>
+                  <span style={{ width: pedala ? 76 : 52, textAlign: "right", fontWeight: s.ms === melhorSplit ? 900 : 600, fontVariantNumeric: "tabular-nums" }}>
+                    {pedala ? num1(60 / (s.ms / 60000)) + " km/h" : fmtTempoRota(s.ms)}
+                  </span>
+                </div>
+              ))}
+              {r.splits.length > 1 && (
+                <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 4 }}>
+                  Melhor km: {fmtTempoRota(melhorSplit)}. {piorSplit > melhorSplit * 1.15
+                    ? "A diferença para o pior (" + fmtTempoRota(piorSplit) + ") é grande: largar mais devagar costuma render um fim mais forte."
+                    : "Ritmo constante do começo ao fim."}
+                </div>
+              )}
+            </div>
+          )}
+          {(inicioLocal || fimLocal || lugares.current.ruas.length > 0) && (
+            <div style={{ marginTop: 14, fontSize: 12.5, lineHeight: 1.6 }}>
+              {inicioLocal && <div>🟢 Saída: {inicioLocal.curto}</div>}
+              {fimLocal && <div>🔴 Chegada: {fimLocal.curto}</div>}
+              {lugares.current.ruas.length > 2 && (
+                <div style={{ color: "var(--cinza)" }}>Passou por: {lugares.current.ruas.slice(0, 12).join(", ")}</div>
+              )}
+              {lugares.current.bairros.length > 1 && (
+                <div style={{ color: "var(--cinza)" }}>Bairros: {lugares.current.bairros.join(", ")}</div>
+              )}
+            </div>
+          )}
+          {r.lacunaMs > 60000 && (
+            <div style={{ fontSize: 11.5, color: "var(--obs)", marginTop: 10 }}>
+              {textoDuracao(Math.round(r.lacunaMs / 1000))} com a tela apagada, sem GPS: esses trechos entraram em linha reta.
+            </div>
+          )}
+          <button onClick={salvar} disabled={r.km < 0.05} style={{ ...S.btn, width: "100%", marginTop: 16 }}>
+            {r.km < 0.05 ? "Percurso curto demais para salvar" : "Salvar no histórico"}
+          </button>
+          <button onClick={() => pedirConfirmacao("Descartar este percurso?", onVoltar)}
+            style={{ ...S.btnGhost, width: "100%", marginTop: 8, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}>
+            Descartar
+          </button>
+        </div>
+      )}
+
+      {/* Tela preta: o OLED desligado gasta quase nada, e a tela continua "ligada"
+          para o navegador não parar o GPS. Dois toques seguidos voltam. */}
+      {bolso && (
+        <div onClick={() => {
+          const ag = Date.now();
+          if (ag - ultimoToque.current < 450) setBolso(false);
+          ultimoToque.current = ag;
+        }} style={{ position: "fixed", inset: 0, background: "#000000", zIndex: 80, color: "#9a9a9a", display: "flex",
+          flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 8, userSelect: "none" }}>
+          <div style={{ fontSize: 64, fontWeight: 900, color: "#cfcfcf", fontVariantNumeric: "tabular-nums" }}>{num1(r.km)} km</div>
+          <div style={{ fontSize: 30, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{fmtTempoRota(r.ms)}</div>
+          <div style={{ fontSize: 18 }}>{pedala ? (r.vel ? num1(r.vel) + " km/h" : "") : (ritmoAgora ? fmtRitmo(ritmoAgora) : "")}</div>
+          {fase === "pausado" && <div style={{ fontSize: 16, color: "#c9a94b" }}>pausado</div>}
+          <div style={{ position: "absolute", bottom: 40, fontSize: 12, color: "#555555" }}>toque duas vezes para voltar</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// O percurso salvo, reaberto do histórico
+function ModalRota({ h, onFechar }) {
+  const divRef = useRef(null);
+  const [erro, setErro] = useState("");
+  useEffect(() => {
+    let vivo = true, mapa = null;
+    Promise.all([carregarMapa(), lerRota(h.id)]).then(([L, pts]) => {
+      if (!vivo || !divRef.current) return;
+      if (!pts.length) { setErro("O traçado deste percurso não está neste aparelho."); return; }
+      mapa = L.map(divRef.current, { zoomControl: true });
+      camadaMapa(L).addTo(mapa);
+      L.polyline(trechosRota(pts), { color: "#E1306C", weight: 5, opacity: 0.9 }).addTo(mapa);
+      L.circleMarker([pts[0].lat, pts[0].lng], { radius: 7, color: "#FFFFFF", weight: 2, fillColor: "#4CD137", fillOpacity: 1 }).addTo(mapa);
+      const u = pts[pts.length - 1];
+      L.circleMarker([u.lat, u.lng], { radius: 7, color: "#FFFFFF", weight: 2, fillColor: "#ED4956", fillOpacity: 1 }).addTo(mapa);
+      mapa.fitBounds(L.latLngBounds(pts.map((p) => [p.lat, p.lng])), { padding: [20, 20] });
+      setTimeout(() => mapa && mapa.invalidateSize(), 200);
+    }).catch(() => setErro("O mapa não carregou (sem internet?)."));
+    return () => { vivo = false; if (mapa) mapa.remove(); };
+  }, [h.id]);
+  const ro = h.rota || {};
+  const ms = ro.splits || [];
+  const melhor = ms.length ? Math.min.apply(null, ms) : 0;
+  return (
+    <div role="dialog" aria-modal="true" aria-label={"Percurso: " + h.nome} onClick={onFechar}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 70, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--card)", width: "100%", maxWidth: 560, maxHeight: "92vh", overflowY: "auto",
+        borderRadius: "18px 18px 0 0", padding: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ fontWeight: 900, fontSize: 16 }}>{h.nome}</div>
+          <button onClick={onFechar} aria-label="Fechar" style={{ background: "none", border: "none", color: "var(--texto)", fontSize: 20, cursor: "pointer" }}>✕</button>
+        </div>
+        {erro ? <div style={{ fontSize: 13, color: "var(--cinza)", margin: "20px 0" }}>{erro}</div>
+          : <div ref={divRef} style={{ height: 320, borderRadius: 12, overflow: "hidden", background: "#1b2330" }} />}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, margin: "12px 0", fontSize: 13 }}>
+          <b>{num1(ro.km)} km</b><span>{fmtTempoRota(ro.ms || 0)}</span>
+          {ro.ritmo ? <span>{ro.modo === "bike-rua" ? num1(60 / ro.ritmo) + " km/h" : fmtRitmo(ro.ritmo)}</span> : null}
+          {ro.ganho ? <span>↗ {ro.ganho} m</span> : null}
+        </div>
+        {ro.regiao && <div style={{ fontSize: 12, color: "var(--cinza)" }}>📍 {ro.regiao}</div>}
+        {ro.ruas && ro.ruas.length > 0 && <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 4 }}>Passou por: {ro.ruas.join(", ")}</div>}
+        {ms.length > 0 && (
+          <div style={{ marginTop: 10 }}>
+            {ms.map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, marginBottom: 3 }}>
+                <span style={{ width: 34, color: "var(--cinza)" }}>km {i + 1}</span>
+                <div style={{ flex: 1, height: 7, background: "var(--borda)", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: Math.round((melhor / s) * 100) + "%", background: s === melhor ? "var(--ok)" : GRAD }} />
+                </div>
+                <span style={{ width: 70, textAlign: "right" }}>{ro.modo === "bike-rua" ? num1(3600 / s) + " km/h" : fmtTempoRota(s * 1000)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ---------------- SESSÃO: registro + cronômetro com som + observações + vídeo ----------------
 // O diagnóstico do aeróbico, dentro do cartão do exercício no treino. Responde
 // o que quem desce do aparelho quer saber: quanto fez, em que ritmo, quanto
@@ -9628,6 +10344,7 @@ function MiniStat({ valor, nome, cor }) {
 
 function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEditar, pedirConfirmacao }) {
   const [aberto, setAberto] = useState(false);
+  const [verRota, setVerRota] = useState(false);
   const st = statsTreino(h);
   const pr = recordes[h.id] || {};
   const nPR = Object.keys(pr).filter((k) => pr[k].peso || pr[k].volume).length;
@@ -9706,6 +10423,20 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
           </div>
         </div>
       )}
+
+      {h.rota && (
+        <div style={{ marginTop: 10, fontSize: 12.5, lineHeight: 1.5 }}>
+          <div style={{ color: "var(--cinza)" }}>
+            🗺 {num1(h.rota.km)} km · {fmtTempoRota(h.rota.ms || 0)}{h.rota.ritmo ? " · " + (h.rota.modo === "bike-rua" ? num1(60 / h.rota.ritmo) + " km/h" : fmtRitmo(h.rota.ritmo)) : ""}
+            {h.rota.regiao ? " · " + h.rota.regiao : ""}
+          </div>
+          <button onClick={() => setVerRota(true)}
+            style={{ ...S.btnGhost, marginTop: 8, padding: "9px 12px", fontSize: 13, fontWeight: 800 }}>
+            🗺 Ver percurso no mapa
+          </button>
+        </div>
+      )}
+      {verRota && <ModalRota h={h} onFechar={() => setVerRota(false)} />}
 
       {/* Séries */}
       <button onClick={() => setAberto(!aberto)}
@@ -11568,7 +12299,13 @@ function TreinoLivre() {
         if (blob) fotosEx[e.id] = await blobParaBase64(blob);
       } catch (err) {}
     }
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, lembrete, voz, convite, entrou, dicas, botaoVoz, seedV3: true });
+    // E as rotas do GPS: o traçado só existe neste aparelho
+    const rotasDados = {};
+    for (const hh of historico) {
+      if (!hh.rota) continue;
+      try { const c = await lerFoto(chaveRota(hh.id)); if (c) rotasDados[hh.id] = c; } catch (err) {}
+    }
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, rotasDados, lembrete, voz, convite, entrou, dicas, botaoVoz, seedV3: true });
     try {
       const blob = new Blob([dados], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -11627,6 +12364,10 @@ function TreinoLivre() {
               const fx = d.fotosEx || {};
               for (const id of Object.keys(fx)) {
                 try { await guardarFotoEx(id, base64ParaBlob(fx[id])); esquecerFotoEx(id); } catch (e) {}
+              }
+              const rt = d.rotasDados || {};
+              for (const id of Object.keys(rt)) {
+                try { await guardarFoto(chaveRota(id), rt[id]); } catch (e) {}
               }
             })();
             if (d.descanso) setDescanso(d.descanso);
@@ -12043,6 +12784,7 @@ function TreinoLivre() {
             onAssistente={() => setAba("assistente")}
             onTreinoLivre={iniciarTreinoLivre}
             onFuncional={() => setAba("funcional")}
+            onPercurso={() => setAba("percurso")}
             onEscolaVoz={() => setAba("escolaVoz")}
             convite={convite}
             onSeguir={() => {
@@ -12072,6 +12814,18 @@ function TreinoLivre() {
         )}
         {aba === "assistente" && (
           <TelaAssistente onGerar={gerarTreinoAssistente} onCancelar={() => setAba("inicio")} />
+        )}
+        {aba === "percurso" && (
+          <TelaPercurso exPorId={exPorId} vozCfg={voz} som={som} pesoCorporal={pesoCorporal}
+            pedirConfirmacao={pedirConfirmacao}
+            onVoltar={() => setAba("inicio")}
+            onSalvar={(registro, pts) => {
+              // a rota vai antes do registro: ao contrário, uma falha deixaria um
+              // treino prometendo um mapa que não existe
+              guardarRota(registro.id, pts)
+                .catch(() => { registro.rota = Object.assign({}, registro.rota, { semTraco: true }); })
+                .then(() => guardarTreino(registro, "percurso-concluido"));
+            }} />
         )}
         {aba === "funcional" && (
           <TelaFuncional todos={todos} exPorId={exPorId} som={som} vozCfg={voz}

@@ -18,7 +18,7 @@ estes arquivos, e ninguém os pede.
 node testes/rodar.js
 ```
 
-As nove suítes (289 checagens) contra o `index.html` da raiz. Prova que a
+As dez suítes (316 checagens) contra o `index.html` da raiz. Prova que a
 **lógica** não quebrou. Vale rodar **antes e depois** de qualquer mexida.
 
 ```bash
@@ -79,6 +79,7 @@ Precisa de Node.js. Nenhuma dependência: não há `package.json`, não há
 | `teste-evolucao` | a leitura do histórico por exercício |
 | `teste-cardio` | o aeróbico: esteira, bicicleta, remo, escada, natação, rua — distância, ritmo, gasto (ACSM e Compendium) e a meta da semana da OMS |
 | `teste-alvo` | onde cai a próxima frase do Jarvis, e a alternância do bi-set |
+| `teste-rota` | o percurso na rua: filtro do GPS, distância em cordas, parciais, subida, pausa e tela apagada |
 
 Eles **não substituem** o roteiro manual do `CLAUDE.md`. Provam que a lógica
 não quebrou; não provam que a tela funciona. Câmera, microfone e service

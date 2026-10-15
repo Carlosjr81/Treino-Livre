@@ -74,7 +74,7 @@ Treino-Livre/
 ├── index.html, sw.js, manifest.json, versao.json, ícones   ← o app publicado
 ├── CLAUDE.md            ← este arquivo: o contexto do projeto
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
-└── testes/              ← as 8 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 10 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 289 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 316 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 289 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 316 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v29) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v30) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -916,6 +916,55 @@ sem o nome do exercício vai para a esteira da ficha, ou cria uma.
 
 Coberto por `teste-cardio.js`, com os números da equação feitos à mão.
 
+## Percurso na rua (GPS e mapa)
+
+Caminhada, corrida, pedalada e trilha com o GPS do celular, no mapa do
+OpenStreetMap — nome de rua, prédio, bairro e cidade, sem chave e sem conta.
+Entrada pelo botão **🗺 Caminhada ou corrida na rua (GPS)** na tela inicial
+(fora do `temFichas`, como o funcional), aba `percurso`, `TelaPercurso`.
+
+- **O mapa (Leaflet 1.9.4, do unpkg, com SRI) só carrega quando a tela abre**
+  (`carregarMapa`), como o Eyes Scan. Fica no cache do service worker; **os
+  pedaços do mapa e a busca de endereço não** — o `sw.js` deixa
+  `tile.openstreetmap.org` e `nominatim.openstreetmap.org` passarem direto, senão
+  cada lugar visitado viraria um arquivo guardado para sempre.
+- **Endereço pelo Nominatim** (`buscarEndereco`, `enderecoDe`): a regra deles é
+  no máximo um pedido por segundo; aqui é um no começo, um no fim e um a cada
+  400 m. Daí saem "Saída", "Chegada", as ruas e os bairros por onde passou.
+- **O filtro do GPS** (`aceitarPonto`): precisão pior que 35 m fica fora; ponto
+  a menos de 4 m do anterior é tremor de quem está parado; velocidade
+  impossível para a modalidade, **descontada a incerteza dos dois pontos**, é
+  salto. Oito saltos seguidos querem dizer que o errado era o ponto de antes, e o
+  trecho recomeça dali. **Ponto muito mais preciso que o anterior toma o lugar
+  dele** ("substitui"): o GPS acha a pessoa com ±30 m e melhora para ±8 m, e ligar
+  os dois inventava dezenas de metros.
+- **A distância é medida em cordas de 12 m** (`ROTA_CORDA_M`), não ponto a ponto.
+  Somar ponto a ponto mede o zigue-zague do erro do GPS como caminho: numa
+  corrida simulada de 3 km, dava 3,6. É o defeito mais caro deste módulo, e foi
+  o teste que o achou.
+- **O tempo é o tempo em movimento** (`tempoEntre`): mais de 15 s parado conta
+  15 s — a pausa automática do semáforo. Mais de 15 s **andando** (a tela apagou
+  e o GPS sumiu) conta inteiro e vira `lacunaMs`.
+- **Com a tela apagada o navegador para o GPS**, e uma página web não contorna
+  isso. A tela fica ligada (`ligarTravaTela`), o **modo bolso** deixa ela preta
+  (OLED apagado gasta quase nada), e quando acontece a tela avisa e o resumo diz
+  quanto tempo entrou em linha reta. **Não prometa gravação com a tela
+  bloqueada**: só um app nativo faz isso.
+- **A rota vai para o IndexedDB** (`guardarRota`, chave `rota-<id>`, a loja das
+  fotos), no formato de linha do Google Maps (`compactarRota`): uma hora cabe em
+  uns 20 KB. O resumo (km, tempo, ritmo, parciais, subida, ruas, bairros) vai em
+  `historico[].rota`, e a série entra como aeróbico comum (`{ segundos, mod, km }`)
+  — assim meta da semana, calorias e evolução funcionam sem saber de GPS. A rota
+  é gravada **antes** do registro. O backup em arquivo leva as rotas
+  (`rotasDados`).
+- A voz avisa cada km com a parcial, e "Jarvis, pausa / continua / como estou /
+  encerra" conduzem pelo mesmo `CONTROLE_AULA` da aula guiada.
+- No histórico, **🗺 Ver percurso no mapa** (`ModalRota`).
+
+`teste-rota.js` simula corridas em coordenadas da Avenida Paulista com ruído:
+3 km a 6:00/km, semáforo de 60 s, salto de um quarteirão, ponto impreciso,
+começo impreciso, pausa, 3 minutos de tela apagada, morro e plano tremendo.
+
 ## Monitor cardíaco, e o que a web não alcança
 
 **Funciona:** qualquer monitor que exponha o serviço padrão de frequência
@@ -1458,11 +1507,11 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 289
-checagens em nove suítes, e elas recortam as funções do próprio `index.html`:
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 316
+checagens em dez suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash
-node rodar.js      # as nove suítes, contra o index.html da pasta ao lado
+node rodar.js      # as dez suítes, contra o index.html da pasta ao lado
 node servir.js     # sobe o app em http://localhost:8765
 ```
 
@@ -1530,6 +1579,9 @@ Roteiro mínimo depois de mexer no app:
 31. "Jarvis, corrige para 50" depois de anotar errado: o campo muda e a série
     continua marcada.
 32. "Jarvis, bora" fora de treino: começa a ficha sugerida.
+33w. **O teste da rua.** Caminhar 1 km com o percurso: o mapa segue, a rua e o
+     bairro aparecem, a voz avisa o km, a distância bate com a de outro app
+     (diferença de poucos por cento), e o percurso abre no histórico.
 33. Abrir o Eyes Scan, fazer 10 repetições de verdade e conferir a contagem.
 33v. **O teste da calibração.** Abrir o scanner, confirmar o enquadramento, andar
      até a máquina e sentar, ajeitar o banco: nada pode contar. Depois fazer 10

@@ -141,6 +141,29 @@
   .ab-tremor   { animation: abTremor .40s ease-out 1.46s both; }
   .ab-rachas polyline { stroke-dasharray: 420; animation: abRacha .72s ease-out 1.46s both; }
   .ab-marca    { animation: abMarca .50s ease-out 1.62s both; }
+  /* Resumo animado: a linha verde desce e revela a cena no mesmo passo — o
+     recorte e a linha usam a mesma duração e a mesma curva da régua da
+     abertura, e é isso que faz a linha parecer escrever a cena. */
+  @keyframes rsVarre  { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+  @keyframes rsRevela { 0% { clip-path: inset(0 0 100% 0); } 100% { clip-path: inset(0 0 0 0); } }
+  @keyframes rsBarra  { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+  @keyframes rsTraco  { 0% { stroke-dashoffset: 1; } 100% { stroke-dashoffset: 0; } }
+  @keyframes rsSurge  { 0% { opacity: 0; } 100% { opacity: 1; } }
+  .rs-cena  { animation: rsRevela .68s cubic-bezier(.42,.02,.32,1) both; }
+  .rs-linha { position: absolute; left: 0; right: 0; height: 3px; margin-top: -1.5px; background: #7CFF3C;
+              box-shadow: 0 0 16px 5px rgba(124,255,60,.28); pointer-events: none;
+              animation: rsVarre .72s cubic-bezier(.42,.02,.32,1) both; }
+  .rs-barra { transform-origin: left center; animation: rsBarra linear both; }
+  .rs-traco { stroke-dasharray: 1; animation: rsTraco 1.9s cubic-bezier(.42,.02,.32,1) .55s both; }
+  .rs-chegada { animation: rsSurge .3s ease-out 2.4s both; }
+  .rs-halter { animation: abHalter .44s cubic-bezier(.2,.75,.3,1) .35s both; }
+  .rs-marca  { animation: abMarca .5s ease-out .8s both; }
+  @media (prefers-reduced-motion: reduce) {
+    .rs-cena, .rs-traco, .rs-chegada, .rs-halter, .rs-marca { animation: none; }
+    .rs-linha { display: none; }
+    .rs-traco { stroke-dashoffset: 0; }
+    .rs-halter { transform: rotate(-18deg); }
+  }
   @media (prefers-reduced-motion: reduce) {
     .ab-silhueta, .ab-regua, .ab-linha, .ab-juntas circle, .ab-corpo,
     .ab-halter, .ab-flash, .ab-tremor, .ab-rachas polyline, .ab-marca { animation: none; }
@@ -561,7 +584,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15c";
+const VERSAO_APP = "2026-10-15d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -951,6 +974,32 @@ function falaCardio(s) {
     return Math.round(m.min) + " minutos a " + num1(m.vel) + " por hora" + (m.incl ? ", inclinação " + num1(m.incl) : "");
   }
   return [Math.round(m.min) + " minutos"].concat(partesCardio(s, true)).join(", ");
+}
+// "10:30 /km" é como se escreve; "10 minutos e 30 por quilômetro" é como se fala.
+function falaRitmo(minPorKm) {
+  if (!minPorKm || !isFinite(minPorKm)) return "";
+  let m = Math.floor(minPorKm), s = Math.round((minPorKm - m) * 60);
+  if (s === 60) { m += 1; s = 0; }
+  return m + (m === 1 ? " minuto" : " minutos") + (s ? " e " + s : "") + " por quilômetro";
+}
+// Os minutos que uma série soma na meta da OMS: leve não conta, vigoroso vale dois.
+const minutosOMS = (met, min) => (met >= 6 ? 2 * min : met >= 3 ? min : 0);
+// As estatísticas de uma série aeróbica em voz alta. Quem anda na esteira com
+// fone e olhando para a frente não vê o painel do app: distância, ritmo, gasto
+// e intensidade são o que a pessoa iria procurar na tela.
+function relatoCardio(s, pesoKg, perfil) {
+  const m = medirCardio(s, pesoKg, perfil);
+  const p = m.perfil;
+  const partes = [];
+  if (p === "natacao" && m.metros) partes.push(Math.round(m.metros) + " metros em " + textoDuracao(m.min * 60));
+  else if (m.km >= 0.05) partes.push(num1(m.km) + " quilômetros em " + textoDuracao(m.min * 60));
+  else partes.push(textoDuracao(m.min * 60));
+  if (p === "bike-rua" && m.vel) partes.push("média de " + num1(m.vel) + " por hora");
+  else if (p !== "natacao" && m.km >= 0.05 && m.ritmo) partes.push("ritmo de " + falaRitmo(m.ritmo));
+  if (m.watts) partes.push(Math.round(m.watts) + " watts");
+  partes.push("cerca de " + Math.round(m.kcal) + " calorias");
+  partes.push("intensidade " + intensidadeCardio(m.met));
+  return partes.join(", ");
 }
 // Soma das séries aeróbicas de um exercício. Várias séries são um intervalado
 // (5 minutos andando, 2 correndo...): a intensidade, os watts e a cadência são
@@ -2314,19 +2363,26 @@ function criarContador(opcoes) {
 
   // ---- Calibração ----
   // Sentar na máquina, pegar a barra, ajustar o banco: tudo isso é uma ida e
-  // volta, e o contador contava como repetição — às vezes antes de a série
-  // começar. Movimento de se posicionar não tem ritmo; exercício tem.
-  // Então a contagem só trava depois de ver o movimento se repetir IGUAL:
-  // três repetições seguidas (duas no movimento funcional, que tem forma
-  // conhecida) com amplitude parecida (a menor com pelo menos 60% da maior),
-  // ritmo parecido (o intervalo mais longo até 1,8x o mais curto) e nenhum
-  // intervalo acima de 8 s. Aí as três contam de uma vez — nada se perde.
-  // Sem o padrão, a mais antiga sai da janela e a calibração continua.
+  // volta, e o contador contava como repetição. Movimento de se posicionar não
+  // tem ritmo; exercício tem.
+  //
+  // A primeira versão só começava a contar quando via o padrão — o número
+  // aparecia já no 3, e quem treinava achava que a contagem não tinha começado.
+  // Agora toda repetição conta NA HORA, e a calibração trabalha descontando:
+  // as primeiras ficam "em conferência" até se repetirem iguais — três seguidas
+  // (duas no funcional) com amplitude parecida (a menor com pelo menos 60% da
+  // maior), ritmo parecido (intervalo mais longo até 1,8x o mais curto) e nenhum
+  // intervalo acima de 8 s. Aí o padrão trava. Enquanto não trava, sai da conta:
+  //   - a mais antiga, quando a janela de três não fecha o padrão;
+  //   - todas, quando passam 8 s até a seguinte (movimento solto, não série);
+  //   - todas, quando ficam 10 s sem companhia;
+  //   - todas, quando a pessoa anda (ver deslocando).
   // Travado, um "movimento" com menos de 35% da amplitude das repetições de
   // verdade (mexer na pegada, ajeitar o pé) não conta. O cansaço não chega
   // nisso: ele derruba a amplitude para uns 70%.
   const TRAVA = o.trava || (perfil ? 2 : 3);
   const DUR_MAX = 8000;
+  const SOLTA_MS = 10000;
   // Uma máquina de estados por sinal contado. No modo alternado são duas.
   function criarMaquina(id) {
     return { id: id, estado: "baixo", ultima: 0, conta: 0, repMin: Infinity, repMax: -Infinity, prov: [], travado: false, ampRef: 0 };
@@ -2335,29 +2391,39 @@ function criarContador(opcoes) {
     m.estado = "baixo"; m.ultima = 0; m.repMin = Infinity; m.repMax = -Infinity;
     m.prov = []; m.travado = false; m.ampRef = 0;
   }
-  // Recebe a repetição que a histerese fechou e devolve as que contam agora
+  // Recebe a repetição que a histerese fechou. Diz se ela conta agora e
+  // quantas das que já tinham contado saem da conta.
   function aceitar(m, r) {
     if (m.travado) {
-      if (m.ampRef && r.faixa < m.ampRef * 0.35) return [];
+      if (m.ampRef && r.faixa < m.ampRef * 0.35) return { contar: false, retirar: 0 };
       m.ampRef = m.ampRef * 0.8 + r.faixa * 0.2;
-      return [r];
+      return { contar: true, retirar: 0 };
     }
-    if (m.prov.length && r.dur > DUR_MAX) m.prov = [];
+    let retirar = 0;
+    if (m.prov.length && r.dur > DUR_MAX) { retirar += m.prov.length; m.prov = []; }
     m.prov.push(r);
-    if (m.prov.length > TRAVA) m.prov.shift();
-    if (m.prov.length < TRAVA) return [];
-    const amps = m.prov.map((x) => x.faixa);
-    // a primeira da janela não tem intervalo que valha: ele é até a anterior
-    const durs = m.prov.slice(1).map((x) => x.dur);
-    const ampOk = Math.min.apply(null, amps) >= Math.max.apply(null, amps) * 0.6;
-    const durOk = durs.every((d) => d > 0 && d <= DUR_MAX) &&
-      (durs.length < 2 || Math.min.apply(null, durs) * 1.8 >= Math.max.apply(null, durs));
-    if (!ampOk || !durOk) return [];
-    m.travado = true;
-    m.ampRef = amps.reduce((a, b) => a + b, 0) / amps.length;
-    const lista = m.prov;
-    m.prov = [];
-    return lista;
+    if (m.prov.length >= TRAVA) {
+      const jan = m.prov.slice(-TRAVA);
+      const amps = jan.map((x) => x.faixa);
+      // a primeira da janela não tem intervalo que valha: ele é até a anterior
+      const durs = jan.slice(1).map((x) => x.dur);
+      // A primeira repetição de todas sai medida pela metade — a régua ainda
+      // está aprendendo a amplitude —, então dela se cobra só 30% da maior.
+      const maior = Math.max.apply(null, amps);
+      const ampOk = jan.every((x) => x.faixa >= maior * (x.dur ? 0.6 : 0.3));
+      const durOk = durs.every((d) => d > 0 && d <= DUR_MAX) &&
+        (durs.length < 2 || Math.min.apply(null, durs) * 1.8 >= Math.max.apply(null, durs));
+      if (ampOk && durOk) {
+        // o que veio antes da janela já tinha sido descontado; a janela fica
+        m.travado = true;
+        m.ampRef = amps.reduce((a, b) => a + b, 0) / amps.length;
+        m.prov = [];
+      } else {
+        m.prov.shift();
+        retirar += 1;
+      }
+    }
+    return { contar: true, retirar: retirar };
   }
   // Andar para se posicionar desloca o corpo inteiro; exercício de máquina não.
   // - De lado: o quadril atravessa mais de 0,6 tronco em 1,5 s.
@@ -2418,7 +2484,7 @@ function criarContador(opcoes) {
       m.repMin = Infinity; m.repMax = -Infinity;
       // faixa: o tamanho do movimento na janela. É o que a calibração compara —
       // a amp da primeira repetição só começa a ser medida no meio da descida.
-      return { amp: amp, dur: dur, faixa: faixa };
+      return { amp: amp, dur: dur, faixa: faixa, t: agora };
     }
     return null;
   }
@@ -2475,22 +2541,39 @@ function criarContador(opcoes) {
       }
 
       // 3. roda a histerese em cada máquina
-      let contou = false, qualidade = null, viu = false;
+      let contou = false, qualidade = null, viu = false, retirou = 0;
       const ids = alternado ? perfil.par : [maquinas[0].id];
+      const retirarDe = (k, n) => {
+        if (!n) return;
+        const tira = Math.min(n, total);
+        total -= tira;
+        maquinas[k].conta = Math.max(0, maquinas[k].conta - tira);
+        retirou += tira;
+        if (o.aoRetirar && tira) o.aoRetirar(total, tira);
+      };
       if (!perfil && deslocando(lm, agora)) {
-        maquinas.forEach((m) => {
+        maquinas.forEach((m, k) => {
           m.estado = "baixo"; m.repMin = Infinity; m.repMax = -Infinity;
-          if (!m.travado) { m.prov = []; m.ultima = 0; }
+          if (!m.travado) { retirarDe(k, m.prov.length); m.prov = []; m.ultima = 0; }
         });
-        return { total: total, pronto: false, deslocando: true, calibrando: total === 0, provisorias: 0, trava: TRAVA, sinal: escolhido };
+        return { total: total, pronto: false, deslocando: true, retirou: retirou, sinal: escolhido };
       }
+      // movimento solto: contou, ninguém veio depois em 10 s, sai da conta
+      maquinas.forEach((m, k) => {
+        if (!m.travado && m.prov.length && agora - m.prov[m.prov.length - 1].t > SOLTA_MS) {
+          retirarDe(k, m.prov.length);
+          m.prov = [];
+        }
+      });
       let maiorFaixa = 0;
       ids.forEach((id, k) => {
         maiorFaixa = Math.max(maiorFaixa, faixaDe(amostras[id]));
         const fechou = passo(maquinas[k], id, agora);
         if (!fechou) return;
         viu = true;
-        aceitar(maquinas[k], fechou).forEach((r) => registrar(k, r));
+        const dec = aceitar(maquinas[k], fechou);
+        retirarDe(k, dec.retirar);
+        if (dec.contar) registrar(k, fechou);
       });
       function registrar(k, r) {
         total++;
@@ -2513,8 +2596,7 @@ function criarContador(opcoes) {
         if (aoContar) aoContar(total, qualidade);
       }
       amplitude = maiorFaixa;
-      const calib = { calibrando: maquinas.some((m) => !m.travado) && total === 0,
-        provisorias: Math.max.apply(null, maquinas.map((m) => m.prov.length)), trava: TRAVA };
+      const calib = { conferindo: maquinas.some((m) => !m.travado) && total > 0, retirou: retirou };
       if (amplitude < minAmp) return Object.assign({ total: total, pronto: false, amplitude: amplitude, sinal: escolhido, viu: viu }, calib);
       return Object.assign({ total: total, pronto: true, contou: contou, qualidade: qualidade, amplitude: amplitude, sinal: escolhido, viu: viu }, calib);
     },
@@ -5091,6 +5173,18 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     contadorRef.current = criarContador({
       perfil: perfil,
       preferidos: (exAlvo && EYES_PREFERENCIA[exAlvo.grupo]) || [],
+      // Desconto da calibração: aparece e soa diferente da contagem, para a
+      // pessoa entender que o número desceu de propósito.
+      aoRetirar: (n, quantas) => {
+        repsRef.current = n;
+        if (alvoRef.current > 0 && n < alvoRef.current) setFechando(0);
+        if (som) { beep(520, 0.08, 0.14); setTimeout(() => beep(390, 0.12, 0.14), 110); }
+        setDica({ texto: "↩ Descontei " + (quantas > 1 ? quantas + " movimentos" : "um movimento") + ": não era repetição do exercício.", tipo: "corrige", em: Date.now() });
+        if (contarAltoRef.current) {
+          const cfg = vozRef2.current || {};
+          jarvisFalar("Descontei. " + n + ".", { falar: true, vozNome: cfg.vozNome, velocidade: cfg.velocidade || 1.1, animado: false });
+        }
+      },
       aoContar: (n, q) => {
         // O bipe é o retorno que chega sem olhar: a pessoa está de costas para
         // o celular na maior parte dos exercícios.
@@ -5294,14 +5388,11 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
 
         if (posturaRef.current) posturaRef.current.medir(lm);
         const info = contadorRef.current.processar(lm, agora);
-        if (info.contou) setReps(info.total);
+        if (info.contou || info.retirou) setReps(info.total);
         if (info.sinal) setSinal(info.sinal);
         // só renderiza quando muda: isto roda a cada quadro
-        const cal = info.calibrando ? (info.deslocando ? "andando" : info.provisorias + "/" + info.trava) : "";
-        if (cal !== calibRef.current) { calibRef.current = cal; setCalib(cal ? { texto: cal, andando: !!info.deslocando } : null); }
-        // Um toque baixo a cada movimento visto durante a calibração: quem está de
-        // costas para o celular sabe que ele está vendo, mesmo sem número.
-        if (info.viu && !info.contou && info.calibrando && som) beep(700, 0.04, 0.08);
+        const cal = info.deslocando ? "andando" : "";
+        if (cal !== calibRef.current) { calibRef.current = cal; setCalib(cal ? { andando: true } : null); }
 
         // Cinco segundos é o tempo de três ou quatro repetições — menos que isso
         // e o palpite sai de meio movimento, que é como errar de propósito.
@@ -5663,11 +5754,9 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
                 : "Série " + serieNum + " de " + serieTotal}
               {sinal ? " · lendo " + nomeDoSinal(sinal) : ""}
             </div>
-            {enquadrado && calib && reps === 0 && (
+            {enquadrado && calib && calib.andando && (
               <div style={{ fontSize: 11, color: "var(--obs)", marginTop: 3, fontWeight: 700 }}>
-                {calib.andando
-                  ? "🎯 Calibrando: pare no lugar do exercício"
-                  : "🎯 Calibrando: a contagem começa quando o movimento se repetir igual (" + calib.texto + ")"}
+                🎯 Andando: a contagem espera você parar no lugar do exercício
               </div>
             )}
             {medidas && medidas.ritmo > 0 && (
@@ -8484,7 +8573,7 @@ const chaveRota = (id) => "rota-" + id;
 const guardarRota = (id, pts) => guardarFoto(chaveRota(id), compactarRota(pts));
 const lerRota = (id) => lerFoto(chaveRota(id)).then(expandirRota);
 
-function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, onSalvar, onVoltar }) {
+function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, onSalvar, onVoltar, historico }) {
   const [modo, setModo] = useState("corrida-rua");
   const [fase, setFase] = useState("preparo");     // preparo | rodando | pausado | fim
   const [erroMapa, setErroMapa] = useState("");
@@ -8678,7 +8767,9 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
       L.circleMarker([lista[lista.length - 1].lat, lista[lista.length - 1].lng], { radius: 7, color: "#FFFFFF", weight: 2, fillColor: "#ED4956", fillOpacity: 1 }).addTo(m);
     }
   };
-  const salvar = () => {
+  // O registro sai daqui tanto para salvar quanto para o resumo animado: os
+  // dois precisam dizer os mesmos números.
+  const montarRegistro = () => {
     const lista = pts.current;
     const r = resumoRota(lista);
     const lugar = (inicioLocal && inicioLocal.bairro) || (fimLocal && fimLocal.bairro) || null;
@@ -8698,8 +8789,9 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
         lacunaMin: Math.round(r.lacunaMs / 60000),
       },
     };
-    onSalvar(registro, lista);
+    return registro;
   };
+  const salvar = () => onSalvar(montarRegistro(), pts.current);
 
   // "Jarvis, pausa", "continua", "como estou", "encerra": com as mãos ocupadas
   // e o celular no braço, é a voz que conduz. Mesmo ponteiro da aula guiada.
@@ -8756,7 +8848,9 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
         ← Voltar
       </button>
       <div style={{ ...S.card, padding: 0, overflow: "hidden" }}>
-        <div ref={divRef} style={{ height: fase === "fim" ? 300 : "44vh", minHeight: 240, background: "#1b2330" }} />
+        {/* isolation: as camadas do Leaflet usam z-index 400 a 1000 e, soltas, passavam
+            por cima de qualquer janela do app aberta sobre o mapa */}
+        <div ref={divRef} style={{ height: fase === "fim" ? 300 : "44vh", minHeight: 240, background: "#1b2330", position: "relative", zIndex: 0, isolation: "isolate" }} />
         {!seguir && fase !== "fim" && (
           <button onClick={() => { setSeguir(true); if (leitura.current && mapaRef.current) mapaRef.current.panTo([leitura.current.lat, leitura.current.lng]); }}
             style={{ ...S.btnGhost, margin: "8px 12px 0", width: "calc(100% - 24px)", padding: "8px 12px", fontSize: 13 }}>
@@ -8868,7 +8962,11 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
               {textoDuracao(Math.round(r.lacunaMs / 1000))} com a tela apagada, sem GPS: esses trechos entraram em linha reta.
             </div>
           )}
-          <button onClick={salvar} disabled={r.km < 0.05} style={{ ...S.btn, width: "100%", marginTop: 16 }}>
+          {r.km >= 0.05 && (
+            <BotaoResumoAnimado registro={montarRegistro()} pts={pts.current} exPorId={exPorId} historico={historico}
+              pesoCorporal={pesoCorporal} vozCfg={vozCfg} estilo={{ width: "100%", marginTop: 16 }} />
+          )}
+          <button onClick={salvar} disabled={r.km < 0.05} style={{ ...S.btn, width: "100%", marginTop: 10 }}>
             {r.km < 0.05 ? "Percurso curto demais para salvar" : "Salvar no histórico"}
           </button>
           <button onClick={() => pedirConfirmacao("Descartar este percurso?", onVoltar)}
@@ -8931,7 +9029,7 @@ function ModalRota({ h, onFechar }) {
           <button onClick={onFechar} aria-label="Fechar" style={{ background: "none", border: "none", color: "var(--texto)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
         {erro ? <div style={{ fontSize: 13, color: "var(--cinza)", margin: "20px 0" }}>{erro}</div>
-          : <div ref={divRef} style={{ height: 320, borderRadius: 12, overflow: "hidden", background: "#1b2330" }} />}
+          : <div ref={divRef} style={{ height: 320, borderRadius: 12, overflow: "hidden", background: "#1b2330", position: "relative", zIndex: 0, isolation: "isolate" }} />}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, margin: "12px 0", fontSize: 13 }}>
           <b>{num1(ro.km)} km</b><span>{fmtTempoRota(ro.ms || 0)}</span>
           {ro.ritmo ? <span>{ro.modo === "bike-rua" ? num1(60 / ro.ritmo) + " km/h" : fmtRitmo(ro.ritmo)}</span> : null}
@@ -8975,7 +9073,360 @@ const DICA_CARDIO = {
   "rua-corrida": (r) => (r.km && r.min ? null : "Anote a distância do relógio ou do aplicativo: sem ela o gasto é uma média."),
   "rua-caminhada": (r) => (r.km && r.min ? null : "Anote a distância do relógio ou do aplicativo: sem ela o gasto é uma média."),
 };
-function PainelCardio({ it, ex, historico, exPorId, pesoCorporal }) {
+// ---------------- RESUMO ANIMADO DO AERÓBICO ----------------
+// Os números da esteira, da bicicleta ou da rua contados como a abertura conta
+// a marca: fundo preto, a linha verde de leitura descendo e revelando cada
+// cena, o degradê da marca nos números e o halter fechando. É a mesma
+// identidade, para que o resumo pareça do Treino Livre e não um relatório.
+//
+// Cada cena é falada. Quem acabou de descer da esteira está com o celular na
+// mão, mas ofegante: ouvir "3 quilômetros em 30 minutos" é mais fácil que ler.
+//
+// As contas saem das mesmas funções do painel (medirCardio, resumoCardio,
+// cardioDaSemana): o resumo nunca pode dizer um número diferente do da ficha.
+// O que entra: { id, nome, data, itens, rota } — um registro de histórico, ou
+// o pedaço da sessão que já foi feito.
+function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
+  const itens = (registro.itens || []).filter((it) => (it.series || []).some((s) => serieConta(s) && ehCardio(s)));
+  if (!itens.length) return null;
+  let min = 0, km = 0, kcal = 0, metMin = 0, principal = null, maior = -1;
+  itens.forEach((it) => {
+    const e = exPorId(it.exercicioId);
+    const r = resumoCardio(it.series, pesoKg, e && e.cardio);
+    min += r.min; km += r.km; kcal += r.kcal; metMin += r.met * r.min;
+    if (r.min > maior) { maior = r.min; principal = { it: it, ex: e, r: r }; }
+  });
+  if (!min) return null;
+  const perfil = (principal.ex && principal.ex.cardio) || "caminhada";
+  const ro = registro.rota || null;
+  if (ro && ro.km) { km = ro.km; min = (ro.ms || 0) / 60000 || min; }
+  const vel = min && km ? km / (min / 60) : 0;
+  const met = metMin / (itens.reduce((a, it) => a + resumoCardio(it.series, pesoKg, (exPorId(it.exercicioId) || {}).cardio).min, 0) || 1);
+  // A semana do treino, não a de hoje: um resumo revisto no histórico fala da
+  // semana em que ele aconteceu.
+  const quando = new Date(registro.data || Date.now());
+  const ini = segundaDaSemana(quando).getTime(), fim = ini + 7 * 864e5;
+  const daSemana = (historico || []).filter((h) => h.id !== registro.id && new Date(h.data).getTime() >= ini && new Date(h.data).getTime() < fim);
+  const semana = cardioDaSemana(daSemana, exPorId, ini, pesoKg).equivalente + minutosOMS(met, min);
+  // A última vez do mesmo exercício, antes deste treino
+  let antes = null;
+  (historico || []).filter((h) => h.id !== registro.id && new Date(h.data) < quando)
+    .sort((a, b) => new Date(b.data) - new Date(a.data))
+    .some((h) => {
+      const it = (h.itens || []).find((x) => x.exercicioId === principal.it.exercicioId);
+      if (!it) return false;
+      const r = resumoCardio(it.series, pesoKg, perfil);
+      if (!r.min) return false;
+      antes = { km: h.rota && h.rota.km ? h.rota.km : r.km, min: h.rota && h.rota.ms ? h.rota.ms / 60000 : r.min };
+      antes.vel = antes.min && antes.km ? antes.km / (antes.min / 60) : 0;
+      return true;
+    });
+  const s0 = principal.it.series.find((s) => serieConta(s) && ehCardio(s)) || {};
+  return {
+    nome: principal.ex ? principal.ex.nome : registro.nome, perfil: perfil, data: quando,
+    min: min, km: km, vel: vel, ritmo: vel ? 60 / vel : 0, kcal: kcal, met: met,
+    incl: ehEsteiraPerfil(perfil) ? numDe(s0.incl) : 0, watts: principal.r.watts,
+    estimado: principal.r.estimado, semana: Math.round(semana), antes: antes,
+    ganho: ro ? ro.ganho || 0 : 0, regiao: ro ? ro.regiao || null : null,
+    trechos: pts && pts.length > 1 ? trechosRota(pts) : null,
+  };
+}
+
+const DIAS_RESUMO = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+const MESES_RESUMO = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+// As cenas: o que aparece e o que é dito. Cena que não tem número para mostrar
+// não entra — esteira sem velocidade não tem cena de ritmo.
+function cenasResumo(d) {
+  const c = [];
+  const pedala = d.perfil === "bike-rua" || d.perfil === "bike";
+  const anda = d.km >= 0.05 && d.perfil !== "natacao";
+  const dia = DIAS_RESUMO[d.data.getDay()] + ", " + d.data.getDate() + " de " + MESES_RESUMO[d.data.getMonth()];
+  c.push({ tipo: "abre", rotulo: "Resumo do treino", fala: "Resumo do treino. " + nomeFalado(d.nome) + ".", dia: dia });
+  if (anda) c.push({ tipo: "numero", rotulo: "Distância", valor: d.km, casas: 2, unidade: "km",
+    sub: "em " + fmtTempoRota(d.min * 60000), fala: num1(d.km) + " quilômetros em " + textoDuracao(Math.round(d.min * 60)) + "." });
+  else c.push({ tipo: "numero", rotulo: "Tempo", valor: Math.round(d.min), casas: 0, unidade: "min",
+    sub: d.watts ? Math.round(d.watts) + " W de média" : "", fala: textoDuracao(Math.round(d.min * 60)) + " de aeróbico." });
+  if (anda && d.vel) {
+    c.push(pedala
+      ? { tipo: "texto", rotulo: "Velocidade média", texto: num1(d.vel) + " km/h", sub: d.ganho ? "↗ " + d.ganho + " m de subida" : "",
+        fala: "Média de " + num1(d.vel) + " por hora." + (d.ganho ? " " + d.ganho + " metros de subida." : "") }
+      : { tipo: "texto", rotulo: "Ritmo médio", texto: fmtRitmo(d.ritmo),
+        sub: [num1(d.vel) + " km/h", d.incl ? "inclinação " + num1(d.incl) + "%" : "", d.ganho ? "↗ " + d.ganho + " m" : ""].filter(Boolean).join(" · "),
+        fala: "Ritmo de " + falaRitmo(d.ritmo) + "." + (d.incl ? " Com inclinação " + num1(d.incl) + "." : "") + (d.ganho ? " " + d.ganho + " metros de subida." : "") });
+  }
+  const int = intensidadeCardio(d.met);
+  c.push({ tipo: "gasto", rotulo: "Gasto", valor: Math.round(d.kcal), met: d.met, intensidade: int, estimado: d.estimado,
+    fala: "Cerca de " + Math.round(d.kcal) + " calorias. Intensidade " + int + "." });
+  c.push({ tipo: "semana", rotulo: "Meta da semana", valor: d.semana,
+    fala: d.semana >= META_CARDIO_SEMANA ? "Meta da semana batida: " + d.semana + " minutos." : "Na semana, " + d.semana + " de " + META_CARDIO_SEMANA + " minutos da meta." });
+  if (d.trechos) c.push({ tipo: "mapa", rotulo: "Percurso", trechos: d.trechos, sub: d.regiao || "",
+    fala: "Esse foi o seu percurso" + (d.regiao ? ", em " + d.regiao.split(",")[0] : "") + "." });
+  if (d.antes) {
+    const dk = d.km - d.antes.km, dv = d.vel - d.antes.vel;
+    let texto, sub, fala, melhor;
+    if (anda && Math.abs(dk) >= 0.05) {
+      melhor = dk > 0; texto = (dk > 0 ? "+" : "−") + num1(Math.abs(dk)) + " km";
+      sub = "que na última vez"; fala = num1(Math.abs(dk)) + " quilômetro" + (Math.abs(dk) >= 2 ? "s" : "") + (dk > 0 ? " a mais" : " a menos") + " que na última vez.";
+    } else if (anda && d.antes.vel && Math.abs(dv) >= 0.2 && !pedala) {
+      const seg = Math.round(Math.abs(60 / d.vel - 60 / d.antes.vel) * 60);
+      melhor = dv > 0; texto = seg + " s/km"; sub = dv > 0 ? "mais rápido que na última vez" : "mais devagar que na última vez";
+      fala = "Ritmo " + seg + " segundos por quilômetro " + (dv > 0 ? "mais rápido" : "mais lento") + " que na última vez.";
+    } else {
+      const dm = Math.round(d.min - d.antes.min);
+      melhor = dm >= 0; texto = dm ? (dm > 0 ? "+" : "−") + Math.abs(dm) + " min" : "=";
+      sub = dm ? "que na última vez" : "igual à última vez: constância";
+      fala = dm ? Math.abs(dm) + " minutos " + (dm > 0 ? "a mais" : "a menos") + " que na última vez." : "Igual à última vez. Constância é o que dá resultado.";
+    }
+    c.push({ tipo: "texto", rotulo: "Comparando", texto: texto, sub: sub, fala: fala, cor: melhor ? "#7CFF3C" : null });
+  }
+  c.push({ tipo: "fecho", fala: d.semana >= META_CARDIO_SEMANA ? "Meta cumprida. Até a próxima." : "Bom treino. Até a próxima." });
+  // tempo de cada cena: o suficiente para a frase caber
+  c.forEach((x) => { x.ms = Math.max(3400, x.fala.split(" ").length * 420 + 900); });
+  return c;
+}
+
+const REDUZ_MOVIMENTO = typeof window !== "undefined" && window.matchMedia &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+// O número sobe do zero, como placar
+function useSobe(alvo, ms) {
+  const [v, setV] = useState(REDUZ_MOVIMENTO ? alvo : 0);
+  useEffect(() => {
+    if (REDUZ_MOVIMENTO) { setV(alvo); return; }
+    let raf, t0 = null;
+    const passo = (t) => {
+      if (t0 === null) t0 = t;
+      const p = Math.min(1, (t - t0) / (ms || 1100));
+      setV(alvo * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) raf = requestAnimationFrame(passo);
+    };
+    // começa depois da varredura, que é quando o número aparece
+    const t = setTimeout(() => { raf = requestAnimationFrame(passo); }, 350);
+    return () => { clearTimeout(t); cancelAnimationFrame(raf); };
+  }, [alvo]);
+  return v;
+}
+
+const ROTULO_RESUMO = { fontSize: 11.5, color: "#7CFF3C", fontWeight: 800, letterSpacing: 1.8, textTransform: "uppercase" };
+const NUMERO_RESUMO = { ...S.logo, fontSize: 76, lineHeight: 1.05, fontVariantNumeric: "tabular-nums" };
+
+function MapaResumo({ trechos }) {
+  // projeção plana: num percurso de alguns quilômetros a curvatura não aparece
+  const todos = [].concat.apply([], trechos);
+  const lat0 = todos.reduce((a, p) => a + p[0], 0) / todos.length;
+  const k = Math.cos((lat0 * Math.PI) / 180);
+  const xs = todos.map((p) => p[1] * k), ys = todos.map((p) => -p[0]);
+  const x0 = Math.min.apply(null, xs), y0 = Math.min.apply(null, ys);
+  const w = Math.max.apply(null, xs) - x0 || 1e-9, h = Math.max.apply(null, ys) - y0 || 1e-9;
+  const esc = 220 / Math.max(w, h);
+  const ox = (260 - w * esc) / 2, oy = (260 - h * esc) / 2;
+  const pt = (p) => [ox + (p[1] * k - x0) * esc, oy + (-p[0] - y0) * esc];
+  const linhas = trechos.map((t) => t.map((p) => pt(p).map((n) => n.toFixed(1)).join(",")).join(" "));
+  const a = pt(todos[0]), b = pt(todos[todos.length - 1]);
+  return (
+    <svg viewBox="0 0 260 260" width="260" height="260" aria-hidden="true">
+      <defs>
+        <pattern id="rs-pontos" width="4" height="4" patternUnits="userSpaceOnUse">
+          <rect width="4" height="4" fill="#1B76BC" />
+          <circle cx="1" cy="1" r="0.55" fill="#CFE8F7" />
+        </pattern>
+      </defs>
+      {linhas.map((l, i) => <polyline key={"a" + i} points={l} fill="none" stroke="url(#rs-pontos)" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />)}
+      {linhas.map((l, i) => <polyline key={"b" + i} className="rs-traco" points={l} pathLength="1" fill="none" stroke="#7CFF3C" strokeWidth="11" opacity="0.18" strokeLinecap="round" strokeLinejoin="round" />)}
+      {linhas.map((l, i) => <polyline key={"c" + i} className="rs-traco" points={l} pathLength="1" fill="none" stroke="#7CFF3C" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round" />)}
+      <circle cx={a[0]} cy={a[1]} r="6" fill="#4CD137" stroke="#FFFFFF" strokeWidth="2" />
+      <circle className="rs-chegada" cx={b[0]} cy={b[1]} r="6" fill="#ED4956" stroke="#FFFFFF" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function CenaResumo({ c }) {
+  const v = useSobe(c.valor || 0, c.tipo === "semana" ? 1400 : 1100);
+  const metV = useSobe(c.met || 0, 1300);
+  if (c.tipo === "abre") {
+    return (
+      <div style={{ textAlign: "center", padding: "0 24px" }}>
+        <div style={ROTULO_RESUMO}>{c.rotulo}</div>
+        <div style={{ ...S.logo, fontSize: 40, lineHeight: 1.15, margin: "14px 0 10px" }}>{c.fala.replace(/^Resumo do treino\. /, "").replace(/\.$/, "")}</div>
+        <div style={{ color: "#BDBDBD", fontSize: 15, fontWeight: 700 }}>{c.dia}</div>
+      </div>
+    );
+  }
+  if (c.tipo === "numero") {
+    return (
+      <div style={{ textAlign: "center" }}>
+        <div style={ROTULO_RESUMO}>{c.rotulo}</div>
+        <div style={{ ...NUMERO_RESUMO, marginTop: 10 }}>{v.toLocaleString("pt-BR", { minimumFractionDigits: c.casas, maximumFractionDigits: c.casas })}</div>
+        <div style={{ color: "#F2F0EC", fontSize: 22, fontWeight: 900, letterSpacing: 1 }}>{c.unidade}</div>
+        {c.sub && <div style={{ color: "#BDBDBD", fontSize: 16, fontWeight: 700, marginTop: 14 }}>{c.sub}</div>}
+      </div>
+    );
+  }
+  if (c.tipo === "texto") {
+    return (
+      <div style={{ textAlign: "center", padding: "0 20px" }}>
+        <div style={ROTULO_RESUMO}>{c.rotulo}</div>
+        <div style={{ ...NUMERO_RESUMO, fontSize: 64, marginTop: 10, ...(c.cor ? { background: "none", WebkitTextFillColor: c.cor, color: c.cor } : {}) }}>{c.texto}</div>
+        {c.sub && <div style={{ color: "#BDBDBD", fontSize: 16, fontWeight: 700, marginTop: 14 }}>{c.sub}</div>}
+      </div>
+    );
+  }
+  if (c.tipo === "gasto") {
+    // régua de 0 a 12 MET com as três faixas da OMS
+    const pos = Math.min(100, (metV / 12) * 100);
+    return (
+      <div style={{ textAlign: "center", width: "100%", maxWidth: 320, padding: "0 20px" }}>
+        <div style={ROTULO_RESUMO}>{c.rotulo}</div>
+        <div style={{ ...NUMERO_RESUMO, marginTop: 10 }}>{Math.round(v)}</div>
+        <div style={{ color: "#F2F0EC", fontSize: 22, fontWeight: 900, letterSpacing: 1 }}>kcal{c.estimado ? " (média)" : ""}</div>
+        <div style={{ position: "relative", height: 10, borderRadius: 5, marginTop: 26, overflow: "visible",
+          background: "linear-gradient(90deg, #3a3a3a 0 25%, #1B76BC 25% 50%, #DD2A7B 50% 100%)" }}>
+          <div style={{ position: "absolute", top: -5, left: "calc(" + pos + "% - 10px)", width: 20, height: 20, borderRadius: 10,
+            background: "#7CFF3C", boxShadow: "0 0 14px 4px rgba(124,255,60,.35)" }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#8a8a8a", marginTop: 8, fontWeight: 700 }}>
+          <span>leve</span><span>moderada</span><span>vigorosa</span>
+        </div>
+        <div style={{ color: "#F2F0EC", fontSize: 18, fontWeight: 900, marginTop: 14 }}>Intensidade {c.intensidade}</div>
+      </div>
+    );
+  }
+  if (c.tipo === "semana") {
+    const R = 74, vol = 2 * Math.PI * R, pct = Math.min(1, v / META_CARDIO_SEMANA);
+    return (
+      <div style={{ textAlign: "center" }}>
+        <div style={ROTULO_RESUMO}>{c.rotulo}</div>
+        <svg viewBox="0 0 180 180" width="210" height="210" style={{ marginTop: 10 }} aria-hidden="true">
+          <defs>
+            <linearGradient id="rs-anel" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#F58529" /><stop offset="50%" stopColor="#DD2A7B" /><stop offset="100%" stopColor="#8134AF" />
+            </linearGradient>
+          </defs>
+          <circle cx="90" cy="90" r={R} fill="none" stroke="#1f1f1f" strokeWidth="14" />
+          <circle cx="90" cy="90" r={R} fill="none" stroke={pct >= 1 ? "#7CFF3C" : "url(#rs-anel)"} strokeWidth="14" strokeLinecap="round"
+            strokeDasharray={vol} strokeDashoffset={vol * (1 - pct)} transform="rotate(-90 90 90)" />
+          <text x="90" y="92" textAnchor="middle" fill="#F2F0EC" fontSize="40" fontWeight="900">{Math.round(v)}</text>
+          <text x="90" y="118" textAnchor="middle" fill="#8a8a8a" fontSize="13" fontWeight="700">de {META_CARDIO_SEMANA} min</text>
+        </svg>
+        <div style={{ color: "#BDBDBD", fontSize: 14, fontWeight: 700, marginTop: 8, padding: "0 24px" }}>
+          {v >= META_CARDIO_SEMANA ? "Meta da OMS cumprida" : "Meta da OMS: 150 min moderados (vigoroso vale dobrado)"}
+        </div>
+      </div>
+    );
+  }
+  if (c.tipo === "mapa") {
+    return (
+      <div style={{ textAlign: "center" }}>
+        <div style={ROTULO_RESUMO}>{c.rotulo}</div>
+        <div style={{ marginTop: 10 }}><MapaResumo trechos={c.trechos} /></div>
+        {c.sub && <div style={{ color: "#BDBDBD", fontSize: 15, fontWeight: 700, marginTop: 8 }}>📍 {c.sub}</div>}
+      </div>
+    );
+  }
+  // fecho: o halter da abertura entra de frente, e fica com o nome do app
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <svg viewBox="0 0 120 80" width="200" height="133" aria-hidden="true" style={{ overflow: "visible" }}>
+        <defs>
+          <linearGradient id="ab-metal" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#FEDA75" /><stop offset="38%" stopColor="#DD2A7B" /><stop offset="100%" stopColor="#8134AF" />
+          </linearGradient>
+        </defs>
+        <g className="rs-halter" style={{ transformOrigin: "60px 40px" }}>
+          <g transform="translate(60 40)"><HalterAbertura /></g>
+        </g>
+      </svg>
+      <div className="rs-marca" style={{ textAlign: "center" }}>
+        <div style={{ ...S.logo, fontSize: 34 }}>Treino Livre</div>
+        <div style={{ ...ROTULO_RESUMO, marginTop: 7 }}>{c.fala.replace(/\.$/, "").replace(". ", " · ")}</div>
+      </div>
+    </div>
+  );
+}
+
+function ResumoAnimado({ d, vozCfg, onFechar }) {
+  const cenas = useMemo(() => cenasResumo(d), [d]);
+  const [i, setI] = useState(0);
+  const [mudo, setMudo] = useState(!vozCfg || vozCfg.falar === false);
+  const [volta, setVolta] = useState(0);   // muda ao rever, para recomeçar as barras
+  const ultima = i === cenas.length - 1;
+  useEffect(() => {
+    const c = cenas[i];
+    if (!mudo) jarvisFalar(c.fala, { falar: true, vozNome: vozCfg && vozCfg.vozNome, velocidade: (vozCfg && vozCfg.velocidade) || 1.1, animado: vozCfg ? vozCfg.animado : true });
+    if (ultima) return;
+    const t = setTimeout(() => setI((x) => Math.min(x + 1, cenas.length - 1)), c.ms);
+    return () => clearTimeout(t);
+  }, [i, volta]);
+  useEffect(() => () => { try { window.speechSynthesis.cancel(); } catch (e) {} }, []);
+  const fechar = () => { try { window.speechSynthesis.cancel(); } catch (e) {} onFechar(); };
+  const toque = (e) => {
+    const x = e.clientX / (window.innerWidth || 1);
+    if (x < 0.3) setI((v) => Math.max(0, v - 1));
+    else if (!ultima) setI((v) => v + 1);
+  };
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Resumo animado do treino" onClick={toque}
+      style={{ position: "fixed", inset: 0, zIndex: 92, background: "#060606", color: "#F2F0EC", overflow: "hidden",
+        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", userSelect: "none" }}>
+      {/* barras de progresso, como story */}
+      <div style={{ position: "absolute", top: 12, left: 12, right: 12, display: "flex", gap: 4 }}>
+        {cenas.map((c, k) => (
+          <div key={k} style={{ flex: 1, height: 3, borderRadius: 2, background: "#2a2a2a", overflow: "hidden" }}>
+            {k < i && <div style={{ height: "100%", background: GRAD }} />}
+            {k === i && <div key={volta + "-" + i} className="rs-barra" style={{ height: "100%", background: GRAD, animationDuration: (ultima ? 0.4 : c.ms / 1000) + "s" }} />}
+          </div>
+        ))}
+      </div>
+      <div style={{ position: "absolute", top: 24, right: 8, display: "flex", gap: 2 }}>
+        <button aria-label={mudo ? "Ligar a voz" : "Desligar a voz"} onClick={(e) => { e.stopPropagation(); if (!mudo) { try { window.speechSynthesis.cancel(); } catch (er) {} } setMudo(!mudo); }}
+          style={{ background: "none", border: "none", color: "#F2F0EC", fontSize: 20, padding: 10, cursor: "pointer" }}>{mudo ? "🔇" : "🔊"}</button>
+        <button aria-label="Fechar o resumo" onClick={(e) => { e.stopPropagation(); fechar(); }}
+          style={{ background: "none", border: "none", color: "#F2F0EC", fontSize: 22, padding: 10, cursor: "pointer" }}>✕</button>
+      </div>
+
+      {/* a cena, revelada pela linha verde que desce: a mesma régua da abertura */}
+      <div key={volta + "-" + i} style={{ position: "relative", width: "100%", minHeight: 420, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className="rs-cena" style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+          <CenaResumo c={cenas[i]} />
+        </div>
+        <div className="rs-linha" aria-hidden="true" />
+      </div>
+
+      {ultima && (
+        <div style={{ position: "absolute", bottom: 34, left: 16, right: 16, display: "flex", gap: 10, maxWidth: 420, margin: "0 auto" }}>
+          <button onClick={(e) => { e.stopPropagation(); setVolta((v) => v + 1); setI(0); }}
+            style={{ ...S.btnGhost, flex: 1, color: "#F2F0EC", borderColor: "#444444" }}>↺ Rever</button>
+          <button onClick={(e) => { e.stopPropagation(); fechar(); }} style={{ ...S.btn, flex: 1 }}>Fechar</button>
+        </div>
+      )}
+      {i === 0 && (
+        <div style={{ position: "absolute", bottom: 30, width: "100%", textAlign: "center", fontSize: 11.5, color: "#666666" }}>
+          toque para avançar · no canto esquerdo, volta
+        </div>
+      )}
+    </div>
+  );
+}
+
+// O botão que abre o resumo, com a rota do GPS quando houver
+function BotaoResumoAnimado({ registro, pts, exPorId, historico, pesoCorporal, vozCfg, estilo }) {
+  const [d, setD] = useState(null);
+  const abrir = () => {
+    const montar = (p) => setD(dadosResumo(registro, exPorId, historico, pesoCorporal, p));
+    if (pts) montar(pts);
+    else if (registro.rota && registro.id) lerRota(registro.id).then(montar, () => montar(null));
+    else montar(null);
+  };
+  return (
+    <React.Fragment>
+      <button onClick={abrir} style={{ ...S.btnGhost, fontWeight: 900, color: "#7CFF3C", borderColor: "#7CFF3C66", ...(estilo || {}) }}>
+        ▶ Resumo animado
+      </button>
+      {d && <ResumoAnimado d={d} vozCfg={vozCfg} onFechar={() => setD(null)} />}
+    </React.Fragment>
+  );
+}
+
+function PainelCardio({ it, ex, historico, exPorId, pesoCorporal, vozCfg }) {
   const perfil = (ex && ex.cardio) || "caminhada";
   const feitas = it.series.filter((s) => s.feito);
   const prevista = !feitas.length;
@@ -9036,6 +9487,12 @@ function PainelCardio({ it, ex, historico, exPorId, pesoCorporal }) {
         </div>
       )}
       {dica && <div style={{ marginTop: 6, color: "var(--obs)" }}>💡 {dica}</div>}
+      {!prevista && (
+        <BotaoResumoAnimado
+          registro={{ id: "agora", nome: ex ? ex.nome : "Aeróbico", data: new Date().toISOString(), itens: [{ exercicioId: it.exercicioId, series: feitas }] }}
+          exPorId={exPorId} historico={historico} pesoCorporal={pesoCorporal} vozCfg={vozCfg}
+          estilo={{ marginTop: 10, padding: "9px 12px", fontSize: 13 }} />
+      )}
       <div style={{ marginTop: 6, fontSize: 10, color: "var(--cinza2)" }}>
         {r.estimado
           ? "Sem o número do painel, o gasto é a média do Compendium de Atividades Físicas para este aparelho"
@@ -9163,14 +9620,31 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     // Numa prancha de 60 segundos a pessoa está de cara para o chão e não vê a
     // tela. Saber que passou da metade é o que faz aguentar o resto.
     const total = Math.max(1, Math.round((crono.fim - crono.inicio) / 1000) || 0);
-    const avisado = {};
+    const avisado = { km: 0 };
+    // Na esteira o aviso é outro: cada quilômetro, a metade com a distância, e o
+    // último minuto. A pessoa está olhando para a frente, de fone, e o painel
+    // da esteira não diz quanto falta da série que ela combinou.
+    const sCrono = ((sessao.itens[crono.ei] || {}).series || [])[crono.si] || {};
+    const cardio = ehCardio(sCrono);
+    const kmh = cardio ? numDe(sCrono.vel) || (numDe(sCrono.km) ? numDe(sCrono.km) / (total / 3600) : 0) : 0;
+    const falar = (t) => falarRef.current(t);
     const tick = () => {
       const resta = Math.max(0, Math.ceil((crono.fim - Date.now()) / 1000));
       setRestaCrono(resta);
-      if (vozAtiva && responderVoz) {
-        const meio = Math.round(total / 2);
-        if (total >= 24 && resta === meio && !avisado.meio) { avisado.meio = true; responderVoz("Metade.", true); }
-        else if (total >= 16 && resta === 10 && !avisado.dez) { avisado.dez = true; responderVoz("Faltam 10 segundos. Segura.", true); }
+      const meio = Math.round(total / 2);
+      const feito = total - resta;
+      if (cardio) {
+        const km = Math.floor((kmh * feito) / 3600);
+        if (km > avisado.km && resta > 30) {
+          avisado.km = km;
+          falar(km + (km === 1 ? " quilômetro." : " quilômetros.") + " Faltam " + textoDuracao(Math.round(resta / 60) * 60 || resta) + ".");
+        } else if (total >= 240 && resta === meio && !avisado.meio) {
+          avisado.meio = true;
+          falar("Metade." + (kmh ? " " + num1((kmh * feito) / 3600) + " quilômetros até aqui." : "") + " Faltam " + textoDuracao(resta) + ".");
+        } else if (total >= 300 && resta === 60 && !avisado.dez) { avisado.dez = true; falar("Último minuto."); }
+      } else {
+        if (total >= 24 && resta === meio && !avisado.meio) { avisado.meio = true; falar("Metade."); }
+        else if (total >= 16 && resta === 10 && !avisado.dez) { avisado.dez = true; falar("Faltam 10 segundos. Segura."); }
       }
       if (resta <= 3 && resta > 0 && som) beep(880, 0.1, 0.22);
       if (resta === 0) {
@@ -9351,8 +9825,27 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     // na tela não existe. Frase curta de propósito — é confirmação, não relatório.
     const quantas = item.series.length;
     const seg = noMeioDoConjunto ? 0 : descansoDe(item) || descanso;
+    const exItem = exPorId(item.exercicioId);
+    let relato = "";
+    if (ehCardio(serie) && segundosDe(serie) > 0) {
+      const perfil = exItem && exItem.cardio;
+      relato = " " + relatoCardio(serie, pesoCorporal, perfil) + ".";
+      // a meta da semana com o que já foi feito hoje, esta série incluída
+      let hoje = 0;
+      sessao.itens.forEach((it, i) => it.series.forEach((s, k) => {
+        if (!(s.feito || (i === ei && k === si)) || !ehCardio(s) || !serieConta(s)) return;
+        const e = exPorId(it.exercicioId);
+        const m = medirCardio(s, pesoCorporal, e && e.cardio);
+        hoje += minutosOMS(m.met, m.min);
+      }));
+      const semana = cardioDaSemana(historico, exPorId, segundaDaSemana(new Date()).getTime(), pesoCorporal);
+      const total = Math.round(semana.equivalente + hoje);
+      relato += total >= META_CARDIO_SEMANA
+        ? " Meta da semana batida: " + total + " minutos."
+        : " Na semana, " + total + " de " + META_CARDIO_SEMANA + " minutos da meta.";
+    }
     narrarVoz(
-      "Série " + (si + 1) + " de " + quantas + " anotada." +
+      "Série " + (si + 1) + " de " + quantas + " anotada." + relato +
       (seg ? " Descanso de " + textoDuracao(seg) + "." : " Emenda no próximo."),
       vozCfg
     );
@@ -9552,7 +10045,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       ? (() => {
         const s = Object.assign({}, base, valores);
         const m = medirCardio(s, pesoCorporal, ex.cardio);
-        return falaCardio(s) + ". " + (m.km >= 0.05 ? num1(m.km) + " quilômetros, " : "") + "cerca de " + Math.round(m.kcal) + " calorias";
+        return falaCardio(s) + ". " + (m.km >= 0.05 ? num1(m.km) + " quilômetros" + (m.ritmo && ex.cardio !== "bike-rua" ? ", ritmo de " + falaRitmo(m.ritmo) : "") + ", " : "") +
+          "cerca de " + Math.round(m.kcal) + " calorias, intensidade " + intensidadeCardio(m.met);
       })()
       : isometria
       ? valores.segundos + " segundos"
@@ -10188,7 +10682,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               );
             })}
             {ehAerobico && (
-              <PainelCardio it={it} ex={ex} historico={historico} exPorId={exPorId} pesoCorporal={pesoCorporal} />
+              <PainelCardio it={it} ex={ex} historico={historico} exPorId={exPorId} pesoCorporal={pesoCorporal} vozCfg={vozCfg} />
             )}
             {it.series.some(ehAquecimento) && (
               <div style={{ fontSize: 10, color: "var(--obs)", marginBottom: 6 }}>
@@ -10342,7 +10836,7 @@ function MiniStat({ valor, nome, cor }) {
   );
 }
 
-function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEditar, pedirConfirmacao }) {
+function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEditar, pedirConfirmacao, historico, pesoCorporal, vozCfg }) {
   const [aberto, setAberto] = useState(false);
   const [verRota, setVerRota] = useState(false);
   const st = statsTreino(h);
@@ -10437,6 +10931,10 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
         </div>
       )}
       {verRota && <ModalRota h={h} onFechar={() => setVerRota(false)} />}
+      {st.cardioMin > 0 && (
+        <BotaoResumoAnimado registro={h} exPorId={exPorId} historico={historico} pesoCorporal={pesoCorporal} vozCfg={vozCfg}
+          estilo={{ marginTop: 8, padding: "9px 12px", fontSize: 13 }} />
+      )}
 
       {/* Séries */}
       <button onClick={() => setAberto(!aberto)}
@@ -10857,7 +11355,7 @@ function TelaCorpo({ medidas, historico, fotos, onAdicionarFoto, onExcluirFoto, 
 function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedirConfirmacao,
   medidas, onSalvarMedida, onExcluirMedida, avisar,
   fotos, onAdicionarFoto, onExcluirFoto,
-  meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial }) {
+  meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg }) {
   const [secao, setSecao] = useState(secaoInicial || "treinos");
   const recordes = useMemo(() => calcularRecordes(historico), [historico]);
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
@@ -10909,7 +11407,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedir
       )}
 
       {secao === "treinos" && historico.map((h) => (
-        <CardTreino key={h.id} h={h} exPorId={exPorId} recordes={recordes}
+        <CardTreino key={h.id} h={h} exPorId={exPorId} recordes={recordes} historico={historico} pesoCorporal={pesoCorporal} vozCfg={vozCfg}
           comparacao={compararAnterior(historico, h)}
           onExcluir={onExcluir} onStory={onStory} onEditar={onEditar} pedirConfirmacao={pedirConfirmacao} />
       ))}
@@ -12816,7 +13314,7 @@ function TreinoLivre() {
           <TelaAssistente onGerar={gerarTreinoAssistente} onCancelar={() => setAba("inicio")} />
         )}
         {aba === "percurso" && (
-          <TelaPercurso exPorId={exPorId} vozCfg={voz} som={som} pesoCorporal={pesoCorporal}
+          <TelaPercurso exPorId={exPorId} vozCfg={voz} som={som} pesoCorporal={pesoCorporal} historico={historico}
             pedirConfirmacao={pedirConfirmacao}
             onVoltar={() => setAba("inicio")}
             onSalvar={(registro, pts) => {
@@ -12905,7 +13403,7 @@ function TreinoLivre() {
             medidas={medidas} onSalvarMedida={salvarMedida} onExcluirMedida={excluirMedida} avisar={avisar}
             fotos={fotos} onAdicionarFoto={adicionarFoto} onExcluirFoto={excluirFoto}
             meta={meta} setMeta={setMeta} secaoInicial={secaoHistorico}
-            onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} />
+            onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} pesoCorporal={pesoCorporal} vozCfg={voz} />
         )}
         {aba === "editarHistorico" && editandoHistorico && (
           <TelaEditarHistorico key={editandoHistorico.id} registro={editandoHistorico} exPorId={exPorId} avisar={avisar}

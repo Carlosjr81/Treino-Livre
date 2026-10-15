@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 316 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 322 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 316 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 322 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v30) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v31) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -342,19 +342,32 @@ Sentar na máquina, pegar a barra, ajeitar o banco, andar até o aparelho: tudo
 isso é uma ida e volta, e o contador contava — às vezes antes de a série
 começar. **Movimento de se posicionar não tem ritmo; exercício tem.** Então:
 
-1. **A contagem só trava depois de ver o movimento se repetir igual**: três
-   repetições seguidas (duas no funcional, que tem forma conhecida) com amplitude
-   parecida (a menor com pelo menos 60% da maior), ritmo parecido (o intervalo
-   mais longo até 1,8× o mais curto) e nenhum intervalo acima de 8 s. Aí **as três
-   contam de uma vez**: nada se perde, só aparece um pouco depois. Sem padrão, a
-   mais antiga sai da janela e a calibração continua (`aceitar`).
+1. **Toda repetição conta na hora, e a calibração trabalha descontando.** A
+   primeira versão só mostrava o número quando via o padrão — ele aparecia já no
+   3, e quem treinava achava que a contagem não tinha começado. Isso foi
+   reprovado pelo dono: **o número tem de aparecer no 1.** Hoje as primeiras
+   ficam "em conferência" até o movimento se repetir igual: três seguidas (duas
+   no funcional, que tem forma conhecida) com amplitude parecida (a menor com
+   pelo menos 60% da maior — 30% para a primeira de todas, medida com a régua
+   ainda aprendendo), ritmo parecido (o intervalo mais longo até 1,8× o mais
+   curto) e nenhum intervalo acima de 8 s. Aí o padrão trava. Enquanto não
+   trava, sai da conta (`aceitar` devolve `{ contar, retirar }`):
+   - a mais antiga, quando a janela de três não fecha o padrão;
+   - todas, quando passam 8 s até a seguinte, ou 10 s sem nenhuma (`SOLTA_MS`);
+   - todas, quando a pessoa anda (ver o item 4).
+
+   **O desconto é avisado**, senão o número que desce parece defeito: dois
+   toques graves, a frase "↩ Descontei um movimento: não era repetição do
+   exercício." na tela e, com a contagem em voz alta, "Descontei. N."
+   (`aoRetirar`). Se o desconto põe a conta abaixo da meta, o fechamento
+   automático da série é cancelado.
 2. **A amplitude comparada é a da janela de 4 s** (`faixa`), não a medida pela
    histerese: esta só começa no meio da descida da primeira repetição, que saía
    menor que as outras e reprovava a calibração — o contador perdia uma.
 3. **Travado, "movimento" com menos de 35% da amplitude das repetições de
    verdade não conta** (mexer na pegada). O cansaço não chega nisso: derruba a
    amplitude para uns 70%.
-4. **Andar recomeça a calibração** (`deslocando`, só no modo automático — o
+4. **Andar desconta o que estava em conferência e recomeça a calibração** (`deslocando`, só no modo automático — o
    skater salta de lado de propósito): de lado, o quadril atravessando mais de
    0,6 tronco em 1,5 s; para longe ou para perto do celular, o corpo mudando de
    tamanho **sempre no mesmo sentido** por 3 s, somando mais de 20%. O sentido
@@ -368,8 +381,8 @@ começar. **Movimento de se posicionar não tem ritmo; exercício tem.** Então:
    meio da primeira repetição a perdia — foi assim que a primeira versão desta
    calibração passou a contar uma a menos em toda série.
 
-Na tela, o rodapé diz "🎯 Calibrando ... (1/3)" e um toque baixo marca cada
-movimento visto: quem está de costas para o celular sabe que ele está vendo.
+Na tela, enquanto a pessoa anda, o rodapé diz "🎯 Andando: a contagem espera
+você parar no lugar do exercício".
 
 `teste-contador.js` tem as cenas: sentar e depois 10 repetições, andar de lado e
 para longe, ajeitar-se três vezes sem ritmo, mexer na pegada no meio da série, e
@@ -915,6 +928,57 @@ série comum — "a 9 por hora" seria lido como 9 quilos —, e uma frase de est
 sem o nome do exercício vai para a esteira da ficha, ou cria uma.
 
 Coberto por `teste-cardio.js`, com os números da equação feitos à mão.
+
+### A voz fala as estatísticas (`relatoCardio`)
+
+Quem anda na esteira de fone, olhando para a frente, não vê o painel do app.
+Então os números que a tela mostra também são ditos:
+
+- **Ao marcar a série** (✓, fim do cronômetro ou ditada): "Série 1 de 2
+  anotada. 3 quilômetros em 30 minutos, ritmo de 10 minutos por quilômetro,
+  cerca de 152 calorias, intensidade moderada. Na semana, 90 de 150 minutos da
+  meta." — a semana já soma o que foi feito hoje. Ditada ao Jarvis, a
+  confirmação ganha o ritmo e a intensidade.
+- **Durante o cronômetro**: cada quilômetro ("2 quilômetros. Faltam 10
+  minutos."), a metade com a distância até ali, e "Último minuto". O aviso de
+  prancha ("faltam 10 segundos") não serve aqui.
+- **Os avisos do cronômetro não dependem mais do microfone**: saem por
+  `falarRef` (Jarvis ouvindo → resposta dele; senão → `narrarVoz`). Antes, a
+  "metade" da prancha só era dita com o Jarvis ligado.
+
+`falaRitmo` é para ritmo o que `textoDuracao` é para tempo: "10:30 /km" se
+escreve, "10 minutos e 30 por quilômetro" se fala. Coberto em `teste-cardio.js`.
+
+### Resumo animado (`ResumoAnimado`, `BotaoResumoAnimado`)
+
+Os números do aeróbico contados no estilo da abertura: fundo `#060606`, a
+**linha verde de leitura descendo e revelando cada cena** (o recorte e a linha
+usam a mesma duração e a mesma curva da régua da abertura — é isso que faz a
+linha parecer escrever a cena), números no degradê da marca subindo do zero,
+barras de progresso de story no topo e, no fim, **o halter da abertura entrando
+de frente** com o nome do app. Mesma identidade, para o resumo parecer do
+Treino Livre e não um relatório.
+
+- **Cenas** (`cenasResumo`): abertura com a modalidade e o dia, distância (ou
+  tempo, no aparelho que não anda), ritmo (km/h na bicicleta; inclinação e
+  subida quando houver), gasto com a régua de intensidade da OMS, anel da meta
+  da semana, **o traçado da rua** (pontilhado azul da silhueta, coberto pelo
+  verde que se desenha), comparação com a última vez, e o fecho. Cena sem
+  número para mostrar não entra.
+- **Cada cena é falada**, e dura o que a frase precisa (`ms`). 🔇 cala. Toque
+  avança; no terço esquerdo, volta.
+- **As contas são as do painel** (`dadosResumo` usa `resumoCardio`,
+  `cardioDaSemana`): o resumo nunca pode dizer um número diferente da ficha.
+  A semana é a **do treino**, não a de hoje — revisto no histórico, ele fala da
+  semana em que aconteceu.
+- **Entradas**: o painel da esteira (com série feita), o fim do percurso na rua
+  (antes de salvar) e o cartão do histórico de qualquer treino com aeróbico.
+- `prefers-reduced-motion`: sem varredura, números já no valor final.
+
+**O mapa por cima de tudo.** O Leaflet põe as camadas em z-index 400 a 1000, e o
+mapa ao vivo do percurso aparecia **por cima** do resumo. O `div` do mapa leva
+`isolation: isolate` e `zIndex: 0` — vale para o `ModalRota` também, e para
+qualquer janela que um dia se abra sobre um mapa.
 
 ## Percurso na rua (GPS e mapa)
 
@@ -1507,7 +1571,7 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 316
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 322
 checagens em dez suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash
@@ -1583,9 +1647,16 @@ Roteiro mínimo depois de mexer no app:
      bairro aparecem, a voz avisa o km, a distância bate com a de outro app
      (diferença de poucos por cento), e o percurso abre no histórico.
 33. Abrir o Eyes Scan, fazer 10 repetições de verdade e conferir a contagem.
+33x. Na esteira, de fone e com o microfone **desligado**: marcar a série tem de
+     dizer distância, ritmo, calorias, intensidade e a meta da semana; com o
+     cronômetro rodando, ele avisa cada km e a metade.
+33y. Abrir o "▶ Resumo animado" no painel da esteira, no fim do percurso e no
+     histórico: a linha verde revela cada cena, cada cena é falada, e o mapa
+     do percurso **não** aparece por cima do resumo.
 33v. **O teste da calibração.** Abrir o scanner, confirmar o enquadramento, andar
      até a máquina e sentar, ajeitar o banco: nada pode contar. Depois fazer 10
-     repetições: o número aparece na 3ª (já como 3) e termina em 10.
+     repetições: o número aparece **já na 1ª** e termina em 10. Um movimento
+     solto (levantar e mexer no banco) conta e, em 10 s, é descontado com aviso.
 33l. Zerar `dicas` e `historico`, abrir: o painel de boas-vindas tem de
      aparecer, e sumir sozinho depois do primeiro treino concluído.
 33m. Dentro do treino, dispensar a dica da voz: a da câmera entra no lugar.
@@ -1677,8 +1748,8 @@ backup:
   mais de uma vez**. Substituição silenciosa no arquivo errado só aparece
   horas depois.
 
-E o arquivo é **CRLF**: edição que normaliza para LF troca 1.300 linhas e
-transforma o diff em lixo.
+E o arquivo hoje é **LF**. Confira com `grep -c $'\r$' index.html` (tem de dar 0)
+antes de publicar: edição que mistura finais de linha transforma o diff em lixo.
 
 ## Coisas que parecem bug e não são
 

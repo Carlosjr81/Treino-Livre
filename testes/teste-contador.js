@@ -134,6 +134,7 @@ for (let i = 0; i < 30 * 20; i++) { parado.processar(corpo({ joelho: 170, ruido:
 teste("20s parado tremendo", 0, parado.estado().total);
 
 console.log("\n--- calibracao: posicionar-se nao e repeticao ---");
+// sentar conta na hora, mas sai assim que a serie de verdade mostra o padrao
 // Cada cena e uma lista de trechos: { ms, joelho: fn(fracao) ou numero, cot, dx }
 function cena(trechos, opc) {
   semear();
@@ -160,11 +161,11 @@ teste("sentar na maquina e depois 10 repeticoes", 10,
 // andar: o corpo atravessa o quadro, pernas e bracos balancando no passo
 const andar = { ms: 6000, dx: (f) => -0.3 + 0.6 * f, joelho: (f) => 150 + 25 * Math.sin(f * 12 * 2 * Math.PI),
   cot: (f) => 140 + 35 * Math.sin(f * 12 * 2 * Math.PI) };
-teste("andar ate o aparelho (6 s) nao conta nada", 0, cena([andar, quieto(1000)]).total);
+teste("andar ate o aparelho (6 s) nao fica na conta", 0, cena([andar, quieto(11000)]).total);
 // o caso comum: apoia o celular e anda ate a maquina, ficando menor na imagem
 const afastar = { ms: 6000, zoom: (f) => 1.3 - 0.6 * f, joelho: (f) => 150 + 25 * Math.sin(f * 12 * 2 * Math.PI),
   cot: (f) => 140 + 35 * Math.sin(f * 12 * 2 * Math.PI) };
-teste("andar para longe do celular (6 s) nao conta nada", 0, cena([afastar, quieto(1000)], {}).total);
+teste("andar para longe do celular (6 s) nao fica na conta", 0, cena([afastar, quieto(11000)], {}).total);
 // e a prova contraria: no stiff visto de frente o tronco encolhe na imagem a
 // cada repeticao, mas volta. Isso e exercicio, e tem de contar.
 const stiff = (n) => ({ ms: n * 2500, zoom: (f) => 1 - 0.25 * (1 - Math.cos(f * n * 2 * Math.PI)) / 2,
@@ -179,13 +180,17 @@ const ajeitar = [
   quieto(6500),
   { ms: 2500, joelho: (f) => 115 - 35 * Math.cos(f * 2 * Math.PI) },
 ];
-teste("ajeitar-se tres vezes, sem ritmo, nao conta", 0, cena(ajeitar.concat([quieto(2000)])).total);
+teste("ajeitar-se tres vezes, sem ritmo, sai da conta", 0, cena(ajeitar.concat([quieto(11000)])).total);
 // mexer na pegada no meio da serie: movimento pequeno depois de uma pausa
 const pegada = { ms: 1500, joelho: (f) => FUNDO + 12 - 12 * Math.cos(f * 2 * Math.PI) };
 teste("mexer na pegada depois de 6 repeticoes nao conta", 6,
   cena([quieto(1500), reps(6), quieto(5000), pegada, quieto(2000)]).total);
-const cal = cena([quieto(1500), reps(2), quieto(500)]);
-teste("duas repeticoes ainda estao calibrando (contam na terceira)", 0, cal.total);
+// A contagem aparece desde a primeira: esperar o padrao para mostrar o numero
+// fazia parecer que a contagem nao tinha comecado.
+teste("a primeira repeticao ja conta", 1, cena([quieto(1500), reps(1), quieto(500)]).total);
+teste("duas repeticoes contam duas", 2, cena([quieto(1500), reps(2), quieto(500)]).total);
+// e o que contou e nao se confirmou sai depois
+teste("movimento solto conta e e descontado em 10 s", 0, cena([quieto(1500), reps(1), quieto(11000)]).total);
 
 console.log("\n--- calorias ---");
 console.log("  30 min, 80 kg: " + A.caloriasEstimadas(1800, 80) + " kcal");

@@ -12,8 +12,9 @@ const EXERCICIOS = eval(html.slice(ini + "const EXERCICIOS = ".length, html.inde
 const exPorId = (id) => EXERCICIOS.find((e) => e.id === id);
 const leitores = pedaco("const ehAquecimento", "// ---------- ESTATÍSTICAS DE UM TREINO");
 const sugestao = pedaco("function ultimaExecucao", "// ---------- RECUPERAÇÃO POR GRUPO MUSCULAR");
-eval(leitores + sugestao +
-  "\nglobalThis.API = { medirCardio, resumoCardio, cardioDaSemana, fmtRitmo, textoCardio, falaCardio, ehCardio, montarSeries, sugerirCarga, copiaCardio, destaquesCardio };");
+const duracao = pedaco("function textoDuracao", "function narrarVoz");
+eval(leitores + sugestao + duracao +
+  "\nglobalThis.API = { falaRitmo, relatoCardio, medirCardio, resumoCardio, cardioDaSemana, fmtRitmo, textoCardio, falaCardio, ehCardio, montarSeries, sugerirCarga, copiaCardio, destaquesCardio };");
 const A = globalThis.API;
 
 let ok = 0, mal = 0;
@@ -131,6 +132,15 @@ const bike = exPorId("bike-vertical");
 teste("ficha da bike: padrao com watts e nivel", [{ segundos: "1800", mod: "bike", watts: "100", nivel: "5", feito: false }], A.montarSeries(bike, 1, null, null));
 const hb = [{ data: new Date().toISOString(), itens: [{ exercicioId: "bike-vertical", series: [{ segundos: "2400", mod: "bike", watts: "140", nivel: "7" }] }] }];
 teste("bike repete os watts da ultima vez", ["140", "7"], ((s) => [s.watts, s.nivel])(A.montarSeries(bike, 1, null, A.sugerirCarga(hb, "bike-vertical", 12))[0]));
+
+console.log("--- o que a voz diz no fim da serie ---");
+teste("ritmo falado", "10 minutos e 30 por quilômetro", A.falaRitmo(10.5));
+teste("ritmo redondo", "6 minutos por quilômetro", A.falaRitmo(6));
+teste("esteira 30 min a 6 km/h",
+  "3 quilômetros em 30 minutos, ritmo de 10 minutos por quilômetro, cerca de 152 calorias, intensidade moderada",
+  A.relatoCardio({ segundos: "1800", vel: "6", incl: "0", mod: "caminhada" }, 75, "caminhada"));
+teste("bike na rua fala a media, nao o ritmo", true,
+  /media de 25 por hora|média de 25 por hora/.test(A.relatoCardio({ segundos: "3600", km: "25", mod: "bike-rua" }, 75, "bike-rua")));
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

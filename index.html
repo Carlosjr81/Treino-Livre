@@ -584,7 +584,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15d";
+const VERSAO_APP = "2026-10-15e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -9073,22 +9073,64 @@ const DICA_CARDIO = {
   "rua-corrida": (r) => (r.km && r.min ? null : "Anote a distância do relógio ou do aplicativo: sem ela o gasto é uma média."),
   "rua-caminhada": (r) => (r.km && r.min ? null : "Anote a distância do relógio ou do aplicativo: sem ela o gasto é uma média."),
 };
-// ---------------- RESUMO ANIMADO DO AERÓBICO ----------------
-// Os números da esteira, da bicicleta ou da rua contados como a abertura conta
-// a marca: fundo preto, a linha verde de leitura descendo e revelando cada
-// cena, o degradê da marca nos números e o halter fechando. É a mesma
-// identidade, para que o resumo pareça do Treino Livre e não um relatório.
+// ---------------- RESUMO ANIMADO DO TREINO ----------------
+// Os números do treino contados como a abertura conta a marca: fundo preto, a
+// linha verde de leitura descendo e revelando cada cena, o degradê da marca nos
+// números e o halter fechando. É a mesma identidade, para que o resumo pareça
+// do Treino Livre e não um relatório.
 //
-// Cada cena é falada. Quem acabou de descer da esteira está com o celular na
-// mão, mas ofegante: ouvir "3 quilômetros em 30 minutos" é mais fácil que ler.
+// Vale para qualquer treino: a parte de força (volume, séries, músculos,
+// recordes, comparação com o treino anterior), a parte aeróbica (distância,
+// ritmo, gasto, meta da semana, o traçado da rua) e o nível no fim. Cena sem
+// número para mostrar não entra — treino de esteira não tem cena de volume.
 //
-// As contas saem das mesmas funções do painel (medirCardio, resumoCardio,
-// cardioDaSemana): o resumo nunca pode dizer um número diferente do da ficha.
+// Cada cena é falada: quem acabou de treinar está ofegante, e ouvir "4 mil
+// quilos movidos" é mais fácil que ler.
+//
+// As contas saem das mesmas funções do resto do app (statsTreino,
+// calcularRecordes, compararAnterior, resumoCardio, cardioDaSemana, nivelDe): o
+// resumo nunca pode dizer um número diferente do da ficha ou do histórico.
 // O que entra: { id, nome, data, itens, rota } — um registro de histórico, ou
-// o pedaço da sessão que já foi feito.
+// o pedaço da sessão que já foi feito. O histórico pode ou não conter o próprio
+// registro: ele é tirado e recolocado aqui.
 function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
+  const quando = new Date(registro.data || Date.now());
+  const outros = (historico || []).filter((x) => x.id !== registro.id);
+  const comEle = [registro].concat(outros);
+  const d = { nome: registro.nome || "Treino", data: quando, duracao: registro.duracaoMin || 0,
+    exercicios: (registro.itens || []).length, forca: null, cardio: null, nivel: null };
+
+  // ---- força: tudo o que não é aeróbico ----
+  const f = { series: 0, reps: 0, volume: 0, cargaMax: 0, segundos: 0, grupos: {} };
+  (registro.itens || []).forEach((it) => {
+    const e = exPorId(it.exercicioId);
+    (it.series || []).forEach((s) => {
+      if (!serieConta(s) || ehCardio(s)) return;
+      f.series += 1;
+      if (e && e.grupo) f.grupos[e.grupo] = (f.grupos[e.grupo] || 0) + 1;
+      if (ehTempo(s)) { f.segundos += segundosDe(s); return; }
+      const p = cargaDe(s), r = repsDe(s);
+      f.volume += p * r; f.reps += r;
+      if (p > f.cargaMax) f.cargaMax = p;
+    });
+  });
+  if (f.series) {
+    // séries por grupo, que é a régua do app (seriesSemanaisPorGrupo): conta
+    // também o exercício sem carga, que o volume deixaria de fora
+    f.listaGrupos = Object.keys(f.grupos).sort((a, b) => f.grupos[b] - f.grupos[a])
+      .map((g) => ({ id: g, series: f.grupos[g], grupo: GRUPOS.find((x) => x.id === g) }))
+      .filter((x) => x.grupo);
+    const rec = calcularRecordes(comEle)[registro.id] || {};
+    f.recordes = Object.keys(rec).filter((k) => rec[k].peso || rec[k].volume)
+      .map((k) => exPorId(k)).filter(Boolean).map((e) => e.nome);
+    const comp = compararAnterior(comEle, registro);
+    f.comp = comp ? comp.pct : null;
+    f.volume = Math.round(f.volume);
+    d.forca = f;
+  }
+
+  // ---- aeróbico ----
   const itens = (registro.itens || []).filter((it) => (it.series || []).some((s) => serieConta(s) && ehCardio(s)));
-  if (!itens.length) return null;
   let min = 0, km = 0, kcal = 0, metMin = 0, principal = null, maior = -1;
   itens.forEach((it) => {
     const e = exPorId(it.exercicioId);
@@ -9096,40 +9138,51 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
     min += r.min; km += r.km; kcal += r.kcal; metMin += r.met * r.min;
     if (r.min > maior) { maior = r.min; principal = { it: it, ex: e, r: r }; }
   });
-  if (!min) return null;
-  const perfil = (principal.ex && principal.ex.cardio) || "caminhada";
-  const ro = registro.rota || null;
-  if (ro && ro.km) { km = ro.km; min = (ro.ms || 0) / 60000 || min; }
-  const vel = min && km ? km / (min / 60) : 0;
-  const met = metMin / (itens.reduce((a, it) => a + resumoCardio(it.series, pesoKg, (exPorId(it.exercicioId) || {}).cardio).min, 0) || 1);
-  // A semana do treino, não a de hoje: um resumo revisto no histórico fala da
-  // semana em que ele aconteceu.
-  const quando = new Date(registro.data || Date.now());
-  const ini = segundaDaSemana(quando).getTime(), fim = ini + 7 * 864e5;
-  const daSemana = (historico || []).filter((h) => h.id !== registro.id && new Date(h.data).getTime() >= ini && new Date(h.data).getTime() < fim);
-  const semana = cardioDaSemana(daSemana, exPorId, ini, pesoKg).equivalente + minutosOMS(met, min);
-  // A última vez do mesmo exercício, antes deste treino
-  let antes = null;
-  (historico || []).filter((h) => h.id !== registro.id && new Date(h.data) < quando)
-    .sort((a, b) => new Date(b.data) - new Date(a.data))
-    .some((h) => {
-      const it = (h.itens || []).find((x) => x.exercicioId === principal.it.exercicioId);
-      if (!it) return false;
-      const r = resumoCardio(it.series, pesoKg, perfil);
-      if (!r.min) return false;
-      antes = { km: h.rota && h.rota.km ? h.rota.km : r.km, min: h.rota && h.rota.ms ? h.rota.ms / 60000 : r.min };
-      antes.vel = antes.min && antes.km ? antes.km / (antes.min / 60) : 0;
-      return true;
-    });
-  const s0 = principal.it.series.find((s) => serieConta(s) && ehCardio(s)) || {};
-  return {
-    nome: principal.ex ? principal.ex.nome : registro.nome, perfil: perfil, data: quando,
-    min: min, km: km, vel: vel, ritmo: vel ? 60 / vel : 0, kcal: kcal, met: met,
-    incl: ehEsteiraPerfil(perfil) ? numDe(s0.incl) : 0, watts: principal.r.watts,
-    estimado: principal.r.estimado, semana: Math.round(semana), antes: antes,
-    ganho: ro ? ro.ganho || 0 : 0, regiao: ro ? ro.regiao || null : null,
-    trechos: pts && pts.length > 1 ? trechosRota(pts) : null,
-  };
+  if (min) {
+    const met = metMin / min;
+    const perfil = (principal.ex && principal.ex.cardio) || "caminhada";
+    const ro = registro.rota || null;
+    if (ro && ro.km) { km = ro.km; min = (ro.ms || 0) / 60000 || min; }
+    const vel = min && km ? km / (min / 60) : 0;
+    // A semana do treino, não a de hoje: um resumo revisto no histórico fala
+    // da semana em que ele aconteceu.
+    const ini = segundaDaSemana(quando).getTime(), fim = ini + 7 * 864e5;
+    const daSemana = outros.filter((x) => new Date(x.data).getTime() >= ini && new Date(x.data).getTime() < fim);
+    const semana = cardioDaSemana(daSemana, exPorId, ini, pesoKg).equivalente + minutosOMS(met, min);
+    let antes = null;
+    outros.filter((x) => new Date(x.data) < quando)
+      .sort((a, b) => new Date(b.data) - new Date(a.data))
+      .some((x) => {
+        const it = (x.itens || []).find((y) => y.exercicioId === principal.it.exercicioId);
+        if (!it) return false;
+        const r = resumoCardio(it.series, pesoKg, perfil);
+        if (!r.min) return false;
+        antes = { km: x.rota && x.rota.km ? x.rota.km : r.km, min: x.rota && x.rota.ms ? x.rota.ms / 60000 : r.min };
+        antes.vel = antes.min && antes.km ? antes.km / (antes.min / 60) : 0;
+        return true;
+      });
+    const s0 = principal.it.series.find((s) => serieConta(s) && ehCardio(s)) || {};
+    d.cardio = {
+      nome: principal.ex ? principal.ex.nome : registro.nome, perfil: perfil,
+      min: min, km: km, vel: vel, ritmo: vel ? 60 / vel : 0, kcal: kcal, met: met,
+      incl: ehEsteiraPerfil(perfil) ? numDe(s0.incl) : 0, watts: principal.r.watts,
+      estimado: principal.r.estimado, semana: Math.round(semana), antes: antes,
+      ganho: ro ? ro.ganho || 0 : 0, regiao: ro ? ro.regiao || null : null,
+      trechos: pts && pts.length > 1 ? trechosRota(pts) : null,
+    };
+  }
+  if (!d.forca && !d.cardio) return null;
+  // Treino só de aeróbico tem o nome do aparelho no título: "Treino A" não diz nada
+  if (!d.forca && d.cardio && itens.length === 1) d.nome = d.cardio.nome;
+
+  // ---- nível: o do dia do treino, contando ele ----
+  const ate = comEle.filter((x) => new Date(x.data) <= quando);
+  const est = calcularEstatisticas(ate);
+  d.nivel = nivelDe(est);
+  d.total = ate.length;
+  // a sequência é contada até hoje: só faz sentido num treino de hoje
+  d.sequencia = diaStr(quando) === diaStr(new Date()) ? est.streak : 0;
+  return d;
 }
 
 const DIAS_RESUMO = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
@@ -9138,48 +9191,101 @@ const MESES_RESUMO = ["janeiro", "fevereiro", "março", "abril", "maio", "junho"
 // não entra — esteira sem velocidade não tem cena de ritmo.
 function cenasResumo(d) {
   const c = [];
-  const pedala = d.perfil === "bike-rua" || d.perfil === "bike";
-  const anda = d.km >= 0.05 && d.perfil !== "natacao";
   const dia = DIAS_RESUMO[d.data.getDay()] + ", " + d.data.getDate() + " de " + MESES_RESUMO[d.data.getMonth()];
-  c.push({ tipo: "abre", rotulo: "Resumo do treino", fala: "Resumo do treino. " + nomeFalado(d.nome) + ".", dia: dia });
-  if (anda) c.push({ tipo: "numero", rotulo: "Distância", valor: d.km, casas: 2, unidade: "km",
-    sub: "em " + fmtTempoRota(d.min * 60000), fala: num1(d.km) + " quilômetros em " + textoDuracao(Math.round(d.min * 60)) + "." });
-  else c.push({ tipo: "numero", rotulo: "Tempo", valor: Math.round(d.min), casas: 0, unidade: "min",
-    sub: d.watts ? Math.round(d.watts) + " W de média" : "", fala: textoDuracao(Math.round(d.min * 60)) + " de aeróbico." });
-  if (anda && d.vel) {
-    c.push(pedala
-      ? { tipo: "texto", rotulo: "Velocidade média", texto: num1(d.vel) + " km/h", sub: d.ganho ? "↗ " + d.ganho + " m de subida" : "",
-        fala: "Média de " + num1(d.vel) + " por hora." + (d.ganho ? " " + d.ganho + " metros de subida." : "") }
-      : { tipo: "texto", rotulo: "Ritmo médio", texto: fmtRitmo(d.ritmo),
-        sub: [num1(d.vel) + " km/h", d.incl ? "inclinação " + num1(d.incl) + "%" : "", d.ganho ? "↗ " + d.ganho + " m" : ""].filter(Boolean).join(" · "),
-        fala: "Ritmo de " + falaRitmo(d.ritmo) + "." + (d.incl ? " Com inclinação " + num1(d.incl) + "." : "") + (d.ganho ? " " + d.ganho + " metros de subida." : "") });
-  }
-  const int = intensidadeCardio(d.met);
-  c.push({ tipo: "gasto", rotulo: "Gasto", valor: Math.round(d.kcal), met: d.met, intensidade: int, estimado: d.estimado,
-    fala: "Cerca de " + Math.round(d.kcal) + " calorias. Intensidade " + int + "." });
-  c.push({ tipo: "semana", rotulo: "Meta da semana", valor: d.semana,
-    fala: d.semana >= META_CARDIO_SEMANA ? "Meta da semana batida: " + d.semana + " minutos." : "Na semana, " + d.semana + " de " + META_CARDIO_SEMANA + " minutos da meta." });
-  if (d.trechos) c.push({ tipo: "mapa", rotulo: "Percurso", trechos: d.trechos, sub: d.regiao || "",
-    fala: "Esse foi o seu percurso" + (d.regiao ? ", em " + d.regiao.split(",")[0] : "") + "." });
-  if (d.antes) {
-    const dk = d.km - d.antes.km, dv = d.vel - d.antes.vel;
-    let texto, sub, fala, melhor;
-    if (anda && Math.abs(dk) >= 0.05) {
-      melhor = dk > 0; texto = (dk > 0 ? "+" : "−") + num1(Math.abs(dk)) + " km";
-      sub = "que na última vez"; fala = num1(Math.abs(dk)) + " quilômetro" + (Math.abs(dk) >= 2 ? "s" : "") + (dk > 0 ? " a mais" : " a menos") + " que na última vez.";
-    } else if (anda && d.antes.vel && Math.abs(dv) >= 0.2 && !pedala) {
-      const seg = Math.round(Math.abs(60 / d.vel - 60 / d.antes.vel) * 60);
-      melhor = dv > 0; texto = seg + " s/km"; sub = dv > 0 ? "mais rápido que na última vez" : "mais devagar que na última vez";
-      fala = "Ritmo " + seg + " segundos por quilômetro " + (dv > 0 ? "mais rápido" : "mais lento") + " que na última vez.";
-    } else {
-      const dm = Math.round(d.min - d.antes.min);
-      melhor = dm >= 0; texto = dm ? (dm > 0 ? "+" : "−") + Math.abs(dm) + " min" : "=";
-      sub = dm ? "que na última vez" : "igual à última vez: constância";
-      fala = dm ? Math.abs(dm) + " minutos " + (dm > 0 ? "a mais" : "a menos") + " que na última vez." : "Igual à última vez. Constância é o que dá resultado.";
+  const sub = [d.forca ? d.exercicios + " " + plural(d.exercicios, "exercício", "exercícios") : "",
+    d.duracao ? d.duracao + " min" : ""].filter(Boolean).join(" · ");
+  c.push({ tipo: "abre", rotulo: "Resumo do treino", titulo: d.nome, dia: dia, sub: sub,
+    fala: "Resumo do treino. " + nomeFalado(d.nome) + "." });
+
+  const f = d.forca;
+  if (f) {
+    if (f.volume > 0) {
+      const ton = f.volume >= 10000;
+      const eq = equivalencia(f.volume);
+      c.push({ tipo: "numero", rotulo: "Volume", valor: ton ? f.volume / 1000 : f.volume, casas: ton ? 1 : 0,
+        unidade: ton ? "toneladas movidas" : "kg movidos", sub: eq || "",
+        fala: (ton ? num1(f.volume / 1000) + " toneladas" : f.volume.toLocaleString("pt-BR") + " quilos") + " movidos." +
+          (eq ? " " + eq.replace(/^\S+\s/, "").replace(/^o mesmo/, "O mesmo") + "." : "") });
     }
-    c.push({ tipo: "texto", rotulo: "Comparando", texto: texto, sub: sub, fala: fala, cor: melhor ? "#7CFF3C" : null });
+    const partes = [];
+    if (f.reps) partes.push(f.reps + " " + plural(f.reps, "repetição", "repetições"));
+    if (f.cargaMax) partes.push("carga máx. " + fmtNum(f.cargaMax) + " kg");
+    if (f.segundos) partes.push(f.segundos + " s de isometria");
+    c.push({ tipo: "numero", rotulo: "Séries", valor: f.series, casas: 0, unidade: plural(f.series, "série", "séries"),
+      sub: partes.join(" · "),
+      fala: f.series + " " + plural(f.series, "série", "séries") + (f.reps ? ", " + f.reps + " repetições" : "") +
+        (f.cargaMax ? ". Carga máxima de " + fmtNum(f.cargaMax) + " quilos" : "") + "." });
+    if (f.listaGrupos.length) {
+      const top = f.listaGrupos.slice(0, 2).map((g) => g.grupo.nome.toLowerCase());
+      c.push({ tipo: "grupos", rotulo: "Músculos trabalhados", grupos: f.listaGrupos.slice(0, 5),
+        fala: "Mais trabalhado" + (top.length > 1 ? "s: " + top.join(" e ") : ": " + top[0]) + "." });
+    }
+    if (f.recordes.length) {
+      c.push({ tipo: "recordes", rotulo: plural(f.recordes.length, "Recorde pessoal", "Recordes pessoais"), valor: f.recordes.length,
+        nomes: f.recordes.slice(0, 4),
+        fala: f.recordes.length + " " + plural(f.recordes.length, "recorde pessoal", "recordes pessoais") + ": " +
+          f.recordes.slice(0, 3).map(nomeFalado).join(", ") + "." });
+    }
+    if (f.comp !== null && f.comp !== undefined) {
+      c.push({ tipo: "texto", rotulo: "Comparando", texto: (f.comp >= 0 ? "+" : "−") + Math.abs(f.comp) + "%",
+        sub: "de volume que da última vez", cor: f.comp >= 0 ? "#7CFF3C" : null,
+        fala: f.comp === 0 ? "O mesmo volume da última vez." : Math.abs(f.comp) + " por cento " + (f.comp > 0 ? "a mais" : "a menos") + " de volume que da última vez." });
+    }
   }
-  c.push({ tipo: "fecho", fala: d.semana >= META_CARDIO_SEMANA ? "Meta cumprida. Até a próxima." : "Bom treino. Até a próxima." });
+
+  const k = d.cardio;
+  if (k) {
+    // num treino misto, o rótulo diz que a cena é do aeróbico
+    const pre = f ? "Aeróbico · " : "";
+    const pedala = k.perfil === "bike-rua" || k.perfil === "bike";
+    const anda = k.km >= 0.05 && k.perfil !== "natacao";
+    if (anda) c.push({ tipo: "numero", rotulo: pre + "Distância", valor: k.km, casas: 2, unidade: "km",
+      sub: "em " + fmtTempoRota(k.min * 60000), fala: (f ? "No aeróbico, " : "") + num1(k.km) + " quilômetros em " + textoDuracao(Math.round(k.min * 60)) + "." });
+    else c.push({ tipo: "numero", rotulo: pre + "Tempo", valor: Math.round(k.min), casas: 0, unidade: "min",
+      sub: k.watts ? Math.round(k.watts) + " W de média" : "", fala: textoDuracao(Math.round(k.min * 60)) + " de aeróbico." });
+    if (anda && k.vel) {
+      c.push(pedala
+        ? { tipo: "texto", rotulo: pre + "Velocidade média", texto: num1(k.vel) + " km/h", sub: k.ganho ? "↗ " + k.ganho + " m de subida" : "",
+          fala: "Média de " + num1(k.vel) + " por hora." + (k.ganho ? " " + k.ganho + " metros de subida." : "") }
+        : { tipo: "texto", rotulo: pre + "Ritmo médio", texto: fmtRitmo(k.ritmo),
+          sub: [num1(k.vel) + " km/h", k.incl ? "inclinação " + num1(k.incl) + "%" : "", k.ganho ? "↗ " + k.ganho + " m" : ""].filter(Boolean).join(" · "),
+          fala: "Ritmo de " + falaRitmo(k.ritmo) + "." + (k.incl ? " Com inclinação " + num1(k.incl) + "." : "") + (k.ganho ? " " + k.ganho + " metros de subida." : "") });
+    }
+    const int = intensidadeCardio(k.met);
+    c.push({ tipo: "gasto", rotulo: pre + "Gasto", valor: Math.round(k.kcal), met: k.met, intensidade: int, estimado: k.estimado,
+      fala: "Cerca de " + Math.round(k.kcal) + " calorias. Intensidade " + int + "." });
+    c.push({ tipo: "semana", rotulo: "Aeróbico na semana", valor: k.semana,
+      fala: k.semana >= META_CARDIO_SEMANA ? "Meta da semana batida: " + k.semana + " minutos." : "Na semana, " + k.semana + " de " + META_CARDIO_SEMANA + " minutos da meta." });
+    if (k.trechos) c.push({ tipo: "mapa", rotulo: "Percurso", trechos: k.trechos, sub: k.regiao || "",
+      fala: "Esse foi o seu percurso" + (k.regiao ? ", em " + k.regiao.split(",")[0] : "") + "." });
+    if (k.antes) {
+      const dk = k.km - k.antes.km, dv = k.vel - k.antes.vel;
+      let texto, sub, fala, melhor;
+      if (anda && Math.abs(dk) >= 0.05) {
+        melhor = dk > 0; texto = (dk > 0 ? "+" : "−") + num1(Math.abs(dk)) + " km";
+        sub = "que na última vez"; fala = num1(Math.abs(dk)) + " quilômetro" + (Math.abs(dk) >= 2 ? "s" : "") + (dk > 0 ? " a mais" : " a menos") + " que na última vez.";
+      } else if (anda && k.antes.vel && Math.abs(dv) >= 0.2 && !pedala) {
+        const seg = Math.round(Math.abs(60 / k.vel - 60 / k.antes.vel) * 60);
+        melhor = dv > 0; texto = seg + " s/km"; sub = dv > 0 ? "mais rápido que na última vez" : "mais devagar que na última vez";
+        fala = "Ritmo " + seg + " segundos por quilômetro " + (dv > 0 ? "mais rápido" : "mais lento") + " que na última vez.";
+      } else {
+        const dm = Math.round(k.min - k.antes.min);
+        melhor = dm >= 0; texto = dm ? (dm > 0 ? "+" : "−") + Math.abs(dm) + " min" : "=";
+        sub = dm ? "que na última vez" : "igual à última vez: constância";
+        fala = dm ? Math.abs(dm) + " minutos " + (dm > 0 ? "a mais" : "a menos") + " que na última vez." : "Igual à última vez. Constância é o que dá resultado.";
+      }
+      c.push({ tipo: "texto", rotulo: pre + "Comparando", texto: texto, sub: sub, fala: fala, cor: melhor ? "#7CFF3C" : null });
+    }
+  }
+
+  if (d.nivel) {
+    const nv = d.nivel;
+    c.push({ tipo: "nivel", rotulo: "Seu nível", nivel: nv, total: d.total, sequencia: d.sequencia,
+      fala: "Nível " + nv.indice + ", " + nv.nome + "." + (d.sequencia >= 2 ? " Sequência de " + d.sequencia + " dias." : "") +
+        (nv.proximo ? " Faltam " + nv.faltam + " pontos para " + nv.proximo.nome + "." : "") });
+  }
+  const meta = d.cardio && d.cardio.semana >= META_CARDIO_SEMANA;
+  c.push({ tipo: "fecho", fala: meta ? "Meta cumprida. Até a próxima." : "Bom treino. Até a próxima." });
   // tempo de cada cena: o suficiente para a frase caber
   c.forEach((x) => { x.ms = Math.max(3400, x.fala.split(" ").length * 420 + 900); });
   return c;
@@ -9246,8 +9352,9 @@ function CenaResumo({ c }) {
     return (
       <div style={{ textAlign: "center", padding: "0 24px" }}>
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
-        <div style={{ ...S.logo, fontSize: 40, lineHeight: 1.15, margin: "14px 0 10px" }}>{c.fala.replace(/^Resumo do treino\. /, "").replace(/\.$/, "")}</div>
+        <div style={{ ...S.logo, fontSize: 40, lineHeight: 1.15, margin: "14px 0 10px" }}>{c.titulo}</div>
         <div style={{ color: "#BDBDBD", fontSize: 15, fontWeight: 700 }}>{c.dia}</div>
+        {c.sub && <div style={{ color: "#8a8a8a", fontSize: 13.5, fontWeight: 700, marginTop: 6 }}>{c.sub}</div>}
       </div>
     );
   }
@@ -9309,6 +9416,62 @@ function CenaResumo({ c }) {
         </svg>
         <div style={{ color: "#BDBDBD", fontSize: 14, fontWeight: 700, marginTop: 8, padding: "0 24px" }}>
           {v >= META_CARDIO_SEMANA ? "Meta da OMS cumprida" : "Meta da OMS: 150 min moderados (vigoroso vale dobrado)"}
+        </div>
+      </div>
+    );
+  }
+  if (c.tipo === "grupos") {
+    const max = c.grupos[0].series;
+    return (
+      <div style={{ width: "100%", maxWidth: 340, padding: "0 24px" }}>
+        <div style={{ ...ROTULO_RESUMO, textAlign: "center", marginBottom: 18 }}>{c.rotulo}</div>
+        {c.grupos.map((g, k) => (
+          <div key={g.id} style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 900, marginBottom: 5 }}>
+              <span style={{ color: g.grupo.cor }}>{g.grupo.nome}</span>
+              <span style={{ color: "#BDBDBD" }}>{g.series} {plural(g.series, "série", "séries")}</span>
+            </div>
+            <div style={{ height: 10, borderRadius: 5, background: "#1f1f1f", overflow: "hidden" }}>
+              <div className="rs-barra" style={{ height: "100%", width: Math.round((g.series / max) * 100) + "%", background: g.grupo.cor,
+                animationDuration: ".8s", animationDelay: 0.35 + k * 0.12 + "s", animationTimingFunction: "cubic-bezier(.42,.02,.32,1)" }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (c.tipo === "recordes") {
+    return (
+      <div style={{ textAlign: "center", padding: "0 24px" }}>
+        <div style={ROTULO_RESUMO}>{c.rotulo}</div>
+        <div style={{ fontSize: 54, marginTop: 10 }} aria-hidden="true">🏆</div>
+        <div style={{ ...NUMERO_RESUMO, fontSize: 64 }}>{Math.round(v)}</div>
+        {c.nomes.map((n, k) => (
+          <div key={n} className="rs-marca" style={{ color: "#F2F0EC", fontSize: 16, fontWeight: 800, marginTop: 8, animationDelay: 0.6 + k * 0.15 + "s" }}>{n}</div>
+        ))}
+      </div>
+    );
+  }
+  if (c.tipo === "nivel") {
+    const nv = c.nivel;
+    return (
+      <div style={{ textAlign: "center", width: "100%", maxWidth: 320, padding: "0 24px" }}>
+        <div style={ROTULO_RESUMO}>{c.rotulo}</div>
+        <div style={{ fontSize: 58, marginTop: 10 }} aria-hidden="true">{nv.icone}</div>
+        <div style={{ ...S.logo, fontSize: 40, lineHeight: 1.1 }}>Nível {nv.indice}</div>
+        <div style={{ color: "#F2F0EC", fontSize: 18, fontWeight: 900, marginTop: 4 }}>{nv.nome}</div>
+        {nv.proximo && (
+          <React.Fragment>
+            <div style={{ height: 10, borderRadius: 5, background: "#1f1f1f", overflow: "hidden", marginTop: 20 }}>
+              <div className="rs-barra" style={{ height: "100%", width: Math.round(nv.pct) + "%", background: GRAD, animationDuration: "1s", animationDelay: ".4s" }} />
+            </div>
+            <div style={{ color: "#8a8a8a", fontSize: 12.5, fontWeight: 700, marginTop: 8 }}>
+              faltam {nv.faltam} pontos para {nv.proximo.icone} {nv.proximo.nome}
+            </div>
+          </React.Fragment>
+        )}
+        <div style={{ color: "#BDBDBD", fontSize: 14, fontWeight: 700, marginTop: 16 }}>
+          {c.total} {plural(c.total, "treino", "treinos")} no total{c.sequencia >= 2 ? " · 🔥 " + c.sequencia + " dias seguidos" : ""}
         </div>
       </div>
     );
@@ -10931,7 +11094,7 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
         </div>
       )}
       {verRota && <ModalRota h={h} onFechar={() => setVerRota(false)} />}
-      {st.cardioMin > 0 && (
+      {(st.series > 0 || st.cardioMin > 0) && (
         <BotaoResumoAnimado registro={h} exPorId={exPorId} historico={historico} pesoCorporal={pesoCorporal} vozCfg={vozCfg}
           estilo={{ marginTop: 8, padding: "9px 12px", fontSize: 13 }} />
       )}
@@ -11859,6 +12022,7 @@ function TreinoLivre() {
   const trocaFotoRef = useRef(null);                    // qual exercício está trocando a foto
   const [sessao, setSessao] = useState(null);
   const [modal, setModal] = useState(null);
+  const [resumoAnim, setResumoAnim] = useState(null);   // dados do resumo animado aberto pelo fim do treino
   const [copiado, setCopiado] = useState(false);
   const [desfazer, setDesfazer] = useState(null);
   const importRef = useRef("");
@@ -12752,6 +12916,7 @@ function TreinoLivre() {
 
     const abrirResumo = () => setModal({
       msg: msg,
+      resumoRegistro: registro,
       storyTreino: {
         nome: registro.nome, series: st.series, reps: st.reps, volume: st.volume,
         duracao: registro.duracaoMin, densidade: st.densidade, cargaMax: st.cargaMax, recordes: nRec,
@@ -13412,6 +13577,7 @@ function TreinoLivre() {
         )}
       </div>
 
+      {resumoAnim && <ResumoAnimado d={resumoAnim} vozCfg={voz} onFechar={() => setResumoAnim(null)} />}
       {modal && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.75)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
           onClick={() => setModal(null)}>
@@ -13424,8 +13590,17 @@ function TreinoLivre() {
                 onChange={(e) => { importRef.current = e.target.value; }}
                 style={{ ...S.input, marginBottom: 12 }} />
             )}
+            {modal.resumoRegistro && (
+              <button style={{ ...S.btn, marginBottom: 10 }} onClick={() => {
+                const reg = modal.resumoRegistro;
+                setModal(null);
+                const abrir = (p) => setResumoAnim(dadosResumo(reg, exPorId, historico, pesoCorporal, p));
+                if (reg.rota) lerRota(reg.id).then(abrir, () => abrir(null));
+                else abrir(null);
+              }}>▶ Ver resumo animado</button>
+            )}
             {modal.storyTreino && (
-              <button style={{ ...S.btn, marginBottom: 10 }} onClick={async () => {
+              <button style={{ ...S.btnGhost, marginBottom: 10 }} onClick={async () => {
                 const st = modal.storyTreino;
                 setModal(null);
                 const blob = await gerarImagemStory(linhasStoryTreino(st));

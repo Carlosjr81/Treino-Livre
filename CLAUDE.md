@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v31) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v32) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -951,7 +951,7 @@ escreve, "10 minutos e 30 por quilômetro" se fala. Coberto em `teste-cardio.js`
 
 ### Resumo animado (`ResumoAnimado`, `BotaoResumoAnimado`)
 
-Os números do aeróbico contados no estilo da abertura: fundo `#060606`, a
+Os números de **qualquer treino** contados no estilo da abertura: fundo `#060606`, a
 **linha verde de leitura descendo e revelando cada cena** (o recorte e a linha
 usam a mesma duração e a mesma curva da régua da abertura — é isso que faz a
 linha parecer escrever a cena), números no degradê da marca subindo do zero,
@@ -959,20 +959,38 @@ barras de progresso de story no topo e, no fim, **o halter da abertura entrando
 de frente** com o nome do app. Mesma identidade, para o resumo parecer do
 Treino Livre e não um relatório.
 
-- **Cenas** (`cenasResumo`): abertura com a modalidade e o dia, distância (ou
-  tempo, no aparelho que não anda), ritmo (km/h na bicicleta; inclinação e
-  subida quando houver), gasto com a régua de intensidade da OMS, anel da meta
-  da semana, **o traçado da rua** (pontilhado azul da silhueta, coberto pelo
-  verde que se desenha), comparação com a última vez, e o fecho. Cena sem
-  número para mostrar não entra.
+- **Cenas** (`cenasResumo`), nesta ordem, e cena sem número para mostrar não
+  entra (treino só de esteira não tem volume; treino só de força não tem
+  distância):
+  - abertura: nome do treino, dia, exercícios e duração;
+  - **força**: volume (em toneladas a partir de 10 t, com a equivalência do
+    app: "o mesmo que 5,8 carros populares"), séries com repetições e carga
+    máxima, **músculos trabalhados** em barras por séries (a régua do
+    `seriesSemanaisPorGrupo`, que conta também exercício sem carga), recordes
+    pessoais com os nomes (`calcularRecordes`) e a comparação de volume com o
+    treino anterior de mesmo nome (`compararAnterior`);
+  - **aeróbico** (no treino misto o rótulo diz "Aeróbico ·"): distância ou tempo,
+    ritmo (km/h na bicicleta; inclinação e subida quando houver), gasto com a
+    régua de intensidade da OMS, anel da meta da semana, **o traçado da rua**
+    (pontilhado azul da silhueta, coberto pelo verde que se desenha) e a
+    comparação com a última vez;
+  - **nível** (`nivelDe`, contando os treinos até aquele dia), total de
+    treinos e a sequência — só num treino de hoje, porque ela é contada até
+    hoje;
+  - o fecho com o halter.
 - **Cada cena é falada**, e dura o que a frase precisa (`ms`). 🔇 cala. Toque
   avança; no terço esquerdo, volta.
-- **As contas são as do painel** (`dadosResumo` usa `resumoCardio`,
-  `cardioDaSemana`): o resumo nunca pode dizer um número diferente da ficha.
+- **As contas são as do resto do app** (`dadosResumo` usa `calcularRecordes`,
+  `compararAnterior`, `resumoCardio`, `cardioDaSemana`, `nivelDe`): o resumo
+  nunca pode dizer um número diferente da ficha ou do histórico. O histórico que
+  entra pode ou não conter o próprio treino: ele é tirado e recolocado.
   A semana é a **do treino**, não a de hoje — revisto no histórico, ele fala da
   semana em que aconteceu.
-- **Entradas**: o painel da esteira (com série feita), o fim do percurso na rua
-  (antes de salvar) e o cartão do histórico de qualquer treino com aeróbico.
+- **Entradas**: **"▶ Ver resumo animado" no resumo do fim do treino** (o botão
+  principal dali; o do story passou a ser o secundário), o cartão de qualquer
+  treino no histórico, o painel da esteira (com série feita) e o fim do
+  percurso na rua (antes de salvar). O do fim do treino abre no componente
+  raiz (`resumoAnim`), porque o modal que tem o botão fecha ao tocar.
 - `prefers-reduced-motion`: sem varredura, números já no valor final.
 
 **O mapa por cima de tudo.** O Leaflet põe as camadas em z-index 400 a 1000, e o
@@ -1650,8 +1668,10 @@ Roteiro mínimo depois de mexer no app:
 33x. Na esteira, de fone e com o microfone **desligado**: marcar a série tem de
      dizer distância, ritmo, calorias, intensidade e a meta da semana; com o
      cronômetro rodando, ele avisa cada km e a metade.
-33y. Abrir o "▶ Resumo animado" no painel da esteira, no fim do percurso e no
-     histórico: a linha verde revela cada cena, cada cena é falada, e o mapa
+33y. Finalizar um treino de musculação com esteira no fim e tocar em "▶ Ver
+     resumo animado": volume, séries, músculos, recordes, comparação, a parte
+     aeróbica e o nível, nessa ordem. Depois abrir o "▶ Resumo animado" no
+     painel da esteira, no fim do percurso e no histórico: a linha verde revela cada cena, cada cena é falada, e o mapa
      do percurso **não** aparece por cima do resumo.
 33v. **O teste da calibração.** Abrir o scanner, confirmar o enquadramento, andar
      até a máquina e sentar, ajeitar o banco: nada pode contar. Depois fazer 10

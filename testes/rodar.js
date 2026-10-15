@@ -18,7 +18,7 @@ const SUITES = [
   ["teste-postura", "a correcao de postura (e o que ela NAO pode falar)"],
   ["teste-enquadramento", "pôr a pessoa no quadro, e o sentido esquerda/direita"],
   ["teste-evolucao", "a leitura do historico por exercicio"],
-  ["teste-cardio", "a esteira: distancia, ritmo, gasto e a meta da semana"],
+  ["teste-cardio", "o aerobico: distancia, ritmo, gasto e a meta da semana"],
   ["teste-alvo", "onde cai a proxima frase do Jarvis, e o bi-set"],
 ];
 

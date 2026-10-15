@@ -200,6 +200,18 @@ t("Jarvis, acabei a corrida de 20 minutos", { tipo: "anotar", cardio: true, segu
 t("Jarvis, descanso de 2 minutos", { tipo: "descanso", segundos: 120 });
 t("Jarvis, anota 80 por 10", { tipo: "anotar", peso: 80, reps: 10, cardio: "undefined" });
 t("Jarvis, 45 segundos", { tipo: "anotar", segundos: 45, cardio: "undefined" });
+console.log("--- outros aparelhos ---");
+t("Jarvis, pedalei 30 minutos a 120 watts nível 8", { tipo: "anotar", cardio: true, segundos: 1800, watts: 120, nivel: 8 });
+t("Jarvis, nadei mil metros em 25 minutos", { tipo: "anotar", cardio: true, segundos: 1500, m: 1000 });
+t("Jarvis, nadei 1.500 metros em 30 minutos", { tipo: "anotar", cardio: true, m: 1500 });
+t("Jarvis, elíptico 30 minutos nível oito", { tipo: "anotar", cardio: true, segundos: 1800, nivel: 8, ex: "eliptico" });
+t("Jarvis, remo 20 minutos 150 watts 24 remadas por minuto", { tipo: "anotar", cardio: true, watts: 150, cad: 24, ex: "remo-ergometro" });
+t("Jarvis, escada 15 minutos 60 degraus por minuto", { tipo: "anotar", cardio: true, segundos: 900, cad: 60, ex: "escada" });
+t("Jarvis, corri 5 km na rua em 25 minutos", { tipo: "anotar", cardio: true, km: 5, vel: 12 });
+t("Jarvis, bicicleta 40 minutos", { tipo: "anotar", cardio: true, segundos: 2400, ex: "bike-vertical" });
+t("Jarvis, vai para o elíptico", { tipo: "irExercicio", ex: "eliptico" });
+// o triceps corda nao pode virar pular corda
+t("Jarvis, triceps corda 30 por 12", { tipo: "anotar", peso: 30, reps: 12, ex: "triceps-corda" });
 
 console.log("\n" + ok + " passou / " + falhou + " falhou");
 process.exit(falhou ? 1 : 0);

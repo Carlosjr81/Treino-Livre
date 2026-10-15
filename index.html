@@ -496,6 +496,24 @@ const EXERCICIOS = [
   { id: "esteira-caminhada", grupo: "pernas", nome: "Caminhada na esteira", en: "Treadmill Walking", tempo: true, cardio: "caminhada", padrao: { min: 30, vel: 5.5, incl: 1 }, equip: "Esteira", musc: { p: ["quadriceps", "panturrilha"], s: ["gluteos", "posteriores"] }, passos: ["Suba com a esteira parada e segure nas laterais só para começar.", "Aumente a velocidade aos poucos até um passo firme, em que ainda dá para conversar.", "Solte as mãos e caminhe com o tronco ereto, pisando com o calcanhar e rolando até a ponta do pé."], dica: "Segurar no painel tira peso das pernas e derruba o gasto pela metade: mãos livres." },
   { id: "esteira-inclinada", grupo: "pernas", nome: "Caminhada inclinada na esteira", en: "Incline Treadmill Walking", tempo: true, cardio: "caminhada", padrao: { min: 20, vel: 5, incl: 10 }, equip: "Esteira", musc: { p: ["gluteos", "panturrilha"], s: ["quadriceps", "posteriores"] }, passos: ["Comece plano por 2 minutos para aquecer.", "Suba a inclinação aos poucos até 8% a 15%, mantendo uma velocidade de caminhada.", "Passos curtos, tronco levemente à frente e sem se pendurar no painel."], dica: "Gasta perto de uma corrida leve com bem menos impacto nos joelhos." },
   { id: "esteira-corrida", grupo: "pernas", nome: "Corrida na esteira", en: "Treadmill Running", tempo: true, cardio: "corrida", padrao: { min: 20, vel: 9, incl: 1 }, equip: "Esteira", musc: { p: ["quadriceps", "panturrilha"], s: ["gluteos", "posteriores", "abdomen"] }, passos: ["Aqueça caminhando de 3 a 5 minutos.", "Suba a velocidade até o ritmo de corrida, com passadas curtas e o pé caindo embaixo do corpo.", "Nos últimos minutos, desça a velocidade para voltar à calma antes de parar."], dica: "Deixe 1% de inclinação: compensa a falta de vento e deixa o esforço igual ao da rua." },
+  // Aeróbico: o mesmo modelo da esteira. "cardio" escolhe o perfil (os campos
+  // que o painel daquele aparelho mostra e a conta de gasto que vale para ele).
+  { id: "bike-vertical", grupo: "pernas", nome: "Bicicleta ergométrica vertical", en: "Stationary Bike", tempo: true, cardio: "bike", padrao: { min: 30, watts: 100, nivel: 5 }, equip: "Bicicleta ergométrica", musc: { p: ["quadriceps"], s: ["gluteos", "posteriores", "panturrilha"] }, passos: ["Ajuste o banco: com o pedal embaixo, o joelho fica levemente dobrado.", "Pedale em ritmo constante, com o tronco firme e sem balançar o quadril.", "Suba o nível quando conseguir conversar fácil demais."], dica: "Banco baixo demais é a causa número um de dor no joelho na bicicleta." },
+  { id: "bike-horizontal", grupo: "pernas", nome: "Bicicleta ergométrica horizontal (reclinada)", en: "Recumbent Bike", tempo: true, cardio: "bike", padrao: { min: 30, watts: 80, nivel: 4 }, equip: "Bicicleta ergométrica", musc: { p: ["quadriceps"], s: ["gluteos", "posteriores"] }, passos: ["Sente com as costas no encosto e ajuste a distância: joelho levemente dobrado com o pedal na frente.", "Pedale empurrando com o pé inteiro.", "Mantenha a lombar apoiada o tempo todo."], dica: "O encosto tira a carga da lombar: boa porta de entrada para quem sente as costas." },
+  { id: "bike-spinning", grupo: "pernas", nome: "Bike indoor (spinning)", en: "Indoor Cycling", tempo: true, cardio: "bike", padrao: { min: 45, watts: 150, nivel: 8 }, equip: "Bicicleta ergométrica de spinning", musc: { p: ["quadriceps", "gluteos"], s: ["posteriores", "panturrilha", "abdomen"] }, passos: ["Ajuste banco e guidão na altura do quadril.", "Alterne sentado e em pé conforme a carga, sem soltar a resistência a zero.", "Em pé, o quadril fica sobre o banco, não à frente do guidão."], dica: "Pedalar rápido sem carga não é treino: é a perna girando solta. Deixe sempre alguma resistência." },
+  { id: "air-bike", grupo: "pernas", nome: "Air bike (bicicleta de ar)", en: "Air Bike", tempo: true, cardio: "bike", padrao: { min: 10, watts: 200 }, equip: "Bicicleta ergométrica de ar", musc: { p: ["quadriceps"], s: ["ombros", "peito", "dorsal", "gluteos"] }, passos: ["Sente com o banco ajustado como numa bicicleta comum.", "Empurre e puxe os braços junto com as pernas.", "A resistência é o ar: quanto mais forte, mais pesa."], dica: "Ótima para tiros curtos: 20 segundos fortes, 40 leves, repetidos." },
+  { id: "bike-braco", grupo: "ombros", nome: "Bicicleta de braço (ergômetro de braço)", en: "Arm Ergometer", tempo: true, cardio: "bike-braco", padrao: { min: 15, watts: 50 }, equip: "Ergômetro de braço", musc: { p: ["ombros"], s: ["biceps", "triceps", "dorsal"] }, passos: ["Sente com o eixo das manivelas na altura dos ombros.", "Gire os braços em ritmo constante, tronco parado.", "Troque o sentido na metade do tempo."], dica: "Aeróbico para quem está com lesão nas pernas: o coração treina igual." },
+  { id: "eliptico", grupo: "pernas", nome: "Elíptico (transport)", en: "Elliptical Trainer", tempo: true, cardio: "eliptico", padrao: { min: 30, nivel: 8, cad: 130 }, equip: "Elíptico", musc: { p: ["quadriceps", "gluteos"], s: ["posteriores", "ombros", "dorsal"] }, passos: ["Suba com os pés inteiros nos pedais.", "Empurre e puxe os braços móveis no ritmo das pernas.", "Tronco ereto, sem se debruçar no painel."], dica: "Movimento de corrida sem impacto: o pé nunca sai do pedal." },
+  { id: "escada", grupo: "pernas", nome: "Simulador de escada (stepmill)", en: "Stair Climber", tempo: true, cardio: "escada", padrao: { min: 15, nivel: 6, cad: 60 }, equip: "Simulador de escada", musc: { p: ["gluteos", "quadriceps"], s: ["panturrilha", "posteriores"] }, passos: ["Suba com o pé inteiro em cada degrau.", "Tronco levemente à frente, mãos só encostando no corrimão.", "Comece num nível em que dá para manter 10 minutos."], dica: "Pendurar o peso no corrimão tira o trabalho das pernas e derruba o gasto." },
+  { id: "escadaria", grupo: "pernas", nome: "Subir escadaria (prédio)", en: "Stair Climbing", tempo: true, cardio: "escada", padrao: { min: 10, cad: 60 }, equip: "Escadaria", musc: { p: ["gluteos", "quadriceps"], s: ["panturrilha"] }, passos: ["Suba degrau por degrau, com o pé inteiro.", "Desça devagar, que a descida é que cansa o joelho.", "Use o corrimão só para equilíbrio."], dica: "Contar degraus por minuto é o jeito de comparar um dia com o outro." },
+  { id: "remo-ergometro", grupo: "costas", nome: "Remo ergômetro", en: "Rowing Machine", tempo: true, cardio: "remo", padrao: { min: 20, watts: 120, cad: 24 }, equip: "Remo ergômetro", musc: { p: ["dorsal", "quadriceps"], s: ["gluteos", "biceps", "posteriores", "abdomen"] }, passos: ["Pés presos, joelhos dobrados e braços estendidos.", "Empurre com as pernas, depois incline o tronco e só então puxe com os braços.", "Volte na ordem inversa: braços, tronco, pernas."], dica: "60% da força vem das pernas. Puxar só com os braços cansa rápido e rende pouco." },
+  { id: "ski-erg", grupo: "costas", nome: "Simulador de esqui (SkiErg)", en: "Ski Ergometer", tempo: true, cardio: "ski", padrao: { min: 10, watts: 120, cad: 30 }, equip: "Simulador de esqui", musc: { p: ["dorsal", "triceps"], s: ["abdomen", "ombros", "gluteos"] }, passos: ["Segure as manoplas acima da cabeça, em pé de frente para o aparelho.", "Puxe para baixo dobrando o quadril e os joelhos juntos.", "Volte esticando o corpo e levando as mãos ao alto."], dica: "A força vem do tronco descendo, não só dos braços." },
+  { id: "caminhada-rua", grupo: "pernas", nome: "Caminhada na rua", en: "Walking", tempo: true, cardio: "rua-caminhada", padrao: { min: 40, km: 4 }, equip: "Ao ar livre", musc: { p: ["quadriceps", "panturrilha"], s: ["gluteos", "posteriores"] }, passos: ["Use um tênis confortável e comece num passo leve por 5 minutos.", "Acelere até um ritmo em que ainda dá para conversar, mas não cantar.", "Anote o tempo e a distância que o celular ou o relógio marcaram."], dica: "Caminhar firme 30 minutos por dia cumpre a meta de atividade da OMS." },
+  { id: "corrida-rua", grupo: "pernas", nome: "Corrida na rua", en: "Running", tempo: true, cardio: "rua-corrida", padrao: { min: 30, km: 5 }, equip: "Ao ar livre", musc: { p: ["quadriceps", "panturrilha"], s: ["gluteos", "posteriores", "abdomen"] }, passos: ["Aqueça caminhando ou trotando por 5 minutos.", "Corra com passadas curtas, o pé caindo embaixo do corpo.", "Anote o tempo e a distância do relógio ou do aplicativo de corrida."], dica: "Suba a distância da semana aos poucos: pular de 10 para 20 km é o caminho mais curto para a lesão." },
+  { id: "trilha", grupo: "pernas", nome: "Trilha (caminhada em montanha)", en: "Hiking", tempo: true, cardio: "trilha", padrao: { min: 90, km: 6 }, equip: "Ao ar livre", musc: { p: ["quadriceps", "gluteos"], s: ["panturrilha", "posteriores", "abdomen"] }, passos: ["Comece devagar: o terreno irregular cansa mais do que parece.", "Na subida, passos curtos; na descida, joelhos levemente dobrados.", "Anote o tempo total e a distância."], dica: "Bastão de caminhada tira carga dos joelhos na descida." },
+  { id: "bike-rua", grupo: "pernas", nome: "Pedalada na rua (ciclismo)", en: "Cycling", tempo: true, cardio: "bike-rua", padrao: { min: 60, km: 20 }, equip: "Ao ar livre", musc: { p: ["quadriceps"], s: ["gluteos", "posteriores", "panturrilha"] }, passos: ["Ajuste o banco: joelho levemente dobrado com o pedal embaixo.", "Pedale com cadência constante e marchas leves nas subidas.", "Anote o tempo e a distância do ciclocomputador ou do aplicativo."], dica: "A velocidade média diz a intensidade: acima de 19 km/h já é treino vigoroso." },
+  { id: "pular-corda", grupo: "pernas", nome: "Pular corda", en: "Jump Rope", tempo: true, cardio: "corda", padrao: { min: 10, cad: 110 }, equip: "Corda de pular", musc: { p: ["panturrilha"], s: ["quadriceps", "ombros", "abdomen"] }, passos: ["Segure a corda com os cotovelos perto do corpo.", "Gire com os punhos, não com os braços.", "Saltos baixos, na ponta dos pés."], dica: "Dez minutos de corda gastam como meia hora de caminhada firme." },
+  { id: "natacao", grupo: "costas", nome: "Natação (crawl)", en: "Swimming", tempo: true, cardio: "natacao", padrao: { min: 30, m: 1000 }, equip: "Piscina", musc: { p: ["dorsal", "ombros"], s: ["peito", "triceps", "abdomen", "quadriceps"] }, passos: ["Corpo na horizontal, olhando para o fundo.", "Braçadas longas, respirando de lado a cada duas ou três.", "Anote o tempo e quantos metros nadou."], dica: "O ritmo por 100 metros é a régua de quem nada: compare com a última vez." },
   { id: "polichinelo", grupo: "pernas", nome: "Polichinelo (jumping jack)", en: "Jumping Jacks", equip: "Peso corporal", func: "polichinelo", funcional: true, musc: { p: ["quadriceps", "panturrilha"], s: ["ombros", "abdomen"] }, passos: ["Em pé, pés juntos e braços ao lado do corpo.", "Salte abrindo as pernas na linha dos ombros e levando os braços acima da cabeça.", "Salte de volta à posição inicial em ritmo constante."], dica: "É o aquecimento mais simples que existe: dois minutos já sobem a frequência cardíaca." },
   { id: "burpee", grupo: "pernas", nome: "Burpee", en: "Burpees", equip: "Peso corporal", func: "burpee", funcional: true, musc: { p: ["quadriceps", "gluteos"], s: ["peito", "ombros", "abdomen"] }, passos: ["Agache e apoie as mãos no chão.", "Jogue os pés para trás até a posição de prancha e desça o peito.", "Volte os pés para junto das mãos e suba num salto com os braços estendidos."], dica: "O exercício mais completo e mais odiado do funcional. Dez bem feitos valem mais que trinta arrastados." },
   { id: "agachamento-salto", grupo: "pernas", nome: "Agachamento com salto (jump squat)", en: "Jump Squats", equip: "Peso corporal", func: "agachamento-salto", funcional: true, musc: { p: ["quadriceps", "gluteos"], s: ["panturrilha", "abdomen"] }, passos: ["Agache até a coxa ficar paralela ao chão.", "Suba explodindo e saia do chão.", "Aterrisse amortecendo com os joelhos e já desça para a repetição seguinte."], dica: "A aterrissagem é a parte que protege o joelho: caia com o pé inteiro e dobre." },
@@ -543,7 +561,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-14e";
+const VERSAO_APP = "2026-10-15a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -781,70 +799,203 @@ const repsDe = (s) => (ehTempo(s) ? 0 : parseInt(s.reps) || 0);
 // O que entra nas contas de volume, recorde e carga máxima
 const serieConta = (s) => !ehAquecimento(s);
 
-// ---------- ESTEIRA ----------
-// A série da esteira é uma série de tempo com velocidade (km/h) e inclinação (%)
-// a mais: { segundos, vel, incl }. Por continuar sendo de tempo, tudo o que já
-// sabia lidar com a prancha — volume, recorde, histórico, evolução — funciona
-// sem saber que esteira existe. Só o que é próprio dela olha os campos a mais.
-const ehCardio = (s) => ehTempo(s) && s.vel !== undefined && s.vel !== null && s.vel !== "";
+// ---------- AERÓBICO ----------
+// A série aeróbica é uma série de tempo com os números do painel do aparelho a
+// mais: { segundos, mod, vel, incl, km, m, watts, nivel, cad } — cada aparelho
+// usa só os seus. Por continuar sendo de tempo, tudo o que já sabia lidar com a
+// prancha — volume, recorde, histórico, evolução — funciona sem saber que
+// aeróbico existe. "mod" é o perfil, gravado na própria série; a esteira de
+// antes dele (só vel e incl) continua sendo reconhecida.
+const CAMPOS_CARDIO = ["vel", "incl", "km", "m", "watts", "nivel", "cad"];
+const temValor = (v) => v !== undefined && v !== null && v !== "";
+const ehCardio = (s) => ehTempo(s) && (!!s.mod || temValor(s.vel));
 const exCardio = (ex) => !!(ex && ex.cardio);
 const numDe = (v) => parseFloat(String(v === undefined || v === null ? "" : v).replace(",", ".")) || 0;
-// Gasto pela equação do ACSM para esteira, a referência dos fisiologistas:
-// caminhando, VO2 = 0,1·v + 1,8·v·i + 3,5; correndo, 0,2·v + 0,9·v·i + 3,5
-// (v em metros por minuto, i em fração). Correr gasta o dobro por metro na
-// horizontal, então errar o tipo dobra o número: acima de 7 km/h é corrida
-// sempre, e entre 6 e 7 vale o que a pessoa escolheu.
-function medirCardio(s, pesoKg, correndo) {
+// Os campos de cada aparelho são os números que o painel dele mostra. "diga" é
+// o exemplo do que falar para o Jarvis.
+const PERFIS_CARDIO = {
+  caminhada: { campos: [["vel", "km/h", "6"], ["incl", "Incl. %", "0"]], diga: "30 minutos a 6 por hora" },
+  corrida: { campos: [["vel", "km/h", "9"], ["incl", "Incl. %", "1"]], diga: "20 minutos a 9 por hora" },
+  "rua-caminhada": { campos: [["km", "km", "4"]], diga: "40 minutos, 4 quilômetros" },
+  "rua-corrida": { campos: [["km", "km", "5"]], diga: "corri 5 quilômetros em 30 minutos" },
+  trilha: { campos: [["km", "km", "6"]], diga: "trilha de 90 minutos, 6 quilômetros" },
+  "bike-rua": { campos: [["km", "km", "20"]], diga: "pedalei 20 quilômetros em uma hora" },
+  bike: { campos: [["watts", "Watts", "100"], ["nivel", "Nível", "5"]], diga: "30 minutos a 120 watts" },
+  "bike-braco": { campos: [["watts", "Watts", "50"]], diga: "15 minutos a 50 watts" },
+  eliptico: { campos: [["nivel", "Nível", "8"], ["cad", "Passos/min", "130"]], diga: "30 minutos nível 8" },
+  escada: { campos: [["nivel", "Nível", "6"], ["cad", "Degraus/min", "60"]], diga: "15 minutos, 60 degraus por minuto" },
+  remo: { campos: [["watts", "Watts", "120"], ["cad", "Rem./min", "24"]], diga: "20 minutos a 120 watts" },
+  ski: { campos: [["watts", "Watts", "120"], ["cad", "Puxadas/min", "30"]], diga: "10 minutos a 120 watts" },
+  corda: { campos: [["cad", "Saltos/min", "110"]], diga: "10 minutos de corda" },
+  natacao: { campos: [["m", "Metros", "1000"]], diga: "nadei mil metros em 30 minutos" },
+};
+// perfil vem da série; sem ele, do exercício (ou do antigo "correndo" true/false)
+const perfilDe = (s, perfil) => (s && s.mod) || (typeof perfil === "string" ? perfil : perfil === true ? "corrida" : "caminhada");
+const camposCardio = (perfil) => (PERFIS_CARDIO[perfil] || PERFIS_CARDIO.caminhada).campos;
+const ehEsteiraPerfil = (p) => p === "caminhada" || p === "corrida";
+// Todo lugar que copia uma série passa por aqui: copiar campo a campo já
+// apagou a velocidade da esteira no histórico uma vez.
+function copiaCardio(s) {
+  const o = {};
+  if (!s) return o;
+  ["mod"].concat(CAMPOS_CARDIO).forEach((k) => { if (temValor(s[k])) o[k] = s[k]; });
+  return o;
+}
+// Linha quebrada entre pontos conhecidos; abaixo do primeiro, o primeiro; acima
+// do último, continua a última inclinação.
+function interpola(x, pts) {
+  if (x <= pts[0][0]) return pts[0][1];
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+    if (x <= x1 || i === pts.length - 1) return y0 + ((x - x0) * (y1 - y0)) / (x1 - x0);
+  }
+  return pts[pts.length - 1][1];
+}
+// O gasto de cada aparelho pela melhor referência que o painel dele permite:
+// - esteira e rua: equação do ACSM (caminhando, VO2 = 0,1·v + 1,8·v·i + 3,5;
+//   correndo, 0,2·v + 0,9·v·i + 3,5; v em m/min, i em fração). Correr gasta o
+//   dobro por metro, então acima de 7 km/h é corrida sempre, e entre 6 e 7 vale
+//   o exercício escolhido.
+// - bicicleta com watts: ACSM do cicloergômetro, VO2 = 1,8·(W·6,12)/kg + 7; de
+//   braço, 3·(W·6,12)/kg + 3,5.
+// - escada com degraus por minuto: ACSM do step, degrau de 20 cm.
+// - remo e esqui com watts, bicicleta na rua pela velocidade, corda pelos saltos
+//   e natação pelo ritmo: faixas do Compendium de Atividades Físicas.
+// Sem o número do painel, vale a média do Compendium para o aparelho, e
+// "estimado" avisa a tela disso.
+function medirCardio(s, pesoKg, perfil) {
+  const p = perfilDe(s, perfil);
   const min = segundosDe(s) / 60;
-  const vel = numDe(s.vel), incl = numDe(s.incl);
-  const km = (vel * min) / 60;
-  const v = (vel * 1000) / 60, i = incl / 100;
-  const corre = vel >= 7 || (!!correndo && vel >= 6);
-  const vo2 = vel <= 0 ? 3.5 : corre ? 0.2 * v + 0.9 * v * i + 3.5 : 0.1 * v + 1.8 * v * i + 3.5;
-  const met = vo2 / 3.5;
-  const kcal = ((met * 3.5 * (parseFloat(pesoKg) || 75)) / 200) * min;
-  return { min, vel, incl, km, ritmo: vel > 0 ? 60 / vel : 0, met, kcal, corre };
+  const kg = parseFloat(pesoKg) || 75;
+  let vel = numDe(s.vel), incl = numDe(s.incl), km = numDe(s.km), met = 0, estimado = false, corre = false;
+  const watts = numDe(s.watts), cad = numDe(s.cad), metros = numDe(s.m);
+  if (ehEsteiraPerfil(p) || p === "rua-caminhada" || p === "rua-corrida") {
+    if (!vel && km && min) vel = km / (min / 60);
+    if (!km) km = (vel * min) / 60;
+    const v = (vel * 1000) / 60, i = incl / 100;
+    corre = vel >= 7 || ((p === "corrida" || p === "rua-corrida") && vel >= 6);
+    if (vel > 0) met = (corre ? 0.2 * v + 0.9 * v * i + 3.5 : 0.1 * v + 1.8 * v * i + 3.5) / 3.5;
+    else if (p === "rua-caminhada" || p === "rua-corrida") { met = p === "rua-corrida" ? 9.8 : 3.5; estimado = true; }
+    else met = 1;
+  } else if (p === "trilha") {
+    met = 6.0;
+    if (km && min) vel = km / (min / 60);
+  } else if (p === "bike-rua") {
+    if (km && min) vel = km / (min / 60);
+    if (vel) met = vel < 16 ? 4.0 : vel < 19.3 ? 6.8 : vel < 22.5 ? 8.0 : vel < 25.7 ? 10.0 : vel < 32 ? 12.0 : 15.8;
+    else { met = 6.8; estimado = true; }
+  } else if (p === "bike") {
+    if (watts) met = ((1.8 * watts * 6.12) / kg + 7) / 3.5;
+    else { met = 6.8; estimado = true; }
+  } else if (p === "bike-braco") {
+    if (watts) met = ((3 * watts * 6.12) / kg + 3.5) / 3.5;
+    else { met = 4.0; estimado = true; }
+  } else if (p === "eliptico") {
+    met = 5.0; estimado = true;
+  } else if (p === "escada") {
+    if (cad) met = (0.2 * cad + 1.33 * 1.8 * 0.2 * cad + 3.5) / 3.5;
+    else { met = 9.0; estimado = true; }
+  } else if (p === "remo" || p === "ski") {
+    if (watts) met = interpola(watts, [[50, 3.5], [100, 7.0], [150, 8.5], [200, 12.0]]);
+    else { met = 7.0; estimado = true; }
+  } else if (p === "corda") {
+    if (cad) met = cad < 100 ? 8.8 : cad <= 120 ? 11.8 : 12.3;
+    else { met = 11.8; estimado = true; }
+  } else if (p === "natacao") {
+    const por100 = metros ? (min * 100) / metros : 0;
+    if (por100) met = por100 > 2.5 ? 5.8 : por100 > 11 / 6 ? 8.3 : 9.8;
+    else { met = 5.8; estimado = true; }
+    km = metros / 1000;
+  }
+  const kcal = ((met * 3.5 * kg) / 200) * min;
+  return { min, vel, incl, km, ritmo: vel > 0 ? 60 / vel : 0, met, kcal, corre, watts, cad, metros, nivel: numDe(s.nivel), estimado, perfil: p };
 }
 // Faixas da OMS: abaixo de 3 MET é leve e não conta para a meta da semana;
 // de 6 para cima é vigoroso e conta em dobro.
 const intensidadeCardio = (met) => (met >= 6 ? "vigorosa" : met >= 3 ? "moderada" : "leve");
 // 6 km/h é "10:00 /km": quem corre pensa em ritmo, não em velocidade
-function fmtRitmo(minPorKm) {
+function fmtRitmo(minPorKm, unidade) {
   if (!minPorKm || !isFinite(minPorKm)) return "—";
   let m = Math.floor(minPorKm), s = Math.round((minPorKm - m) * 60);
   if (s === 60) { m += 1; s = 0; }
-  return m + ":" + String(s).padStart(2, "0") + " /km";
+  return m + ":" + String(s).padStart(2, "0") + " " + (unidade || "/km");
 }
 const num1 = (n) => (Math.round((n || 0) * 10) / 10).toLocaleString("pt-BR");
-// "30 min a 6 km/h, 5% (3 km)"
+// Como cada campo aparece escrito e falado
+const UNIDADE_CARDIO = {
+  vel: [(v) => num1(v) + " km/h", (v) => num1(v) + " por hora"],
+  incl: [(v) => num1(v) + "%", (v) => "inclinação " + num1(v)],
+  km: [(v) => num1(v) + " km", (v) => num1(v) + " quilômetros"],
+  m: [(v) => Math.round(v) + " m", (v) => Math.round(v) + " metros"],
+  watts: [(v) => Math.round(v) + " W", (v) => Math.round(v) + " watts"],
+  nivel: [(v) => "nível " + num1(v), (v) => "nível " + num1(v)],
+  cad: [(v) => Math.round(v) + "/min", (v) => Math.round(v) + " por minuto"],
+};
+function partesCardio(s, falado) {
+  const p = perfilDe(s);
+  return camposCardio(p).map(([k]) => k).filter((k) => numDe(s[k])).map((k) => UNIDADE_CARDIO[k][falado ? 1 : 0](numDe(s[k])));
+}
+// "30 min a 6 km/h, 5% (3 km)" na esteira; "30 min · 120 W · nível 5" no resto
 function textoCardio(s) {
   const m = medirCardio(s);
-  return Math.round(m.min) + " min a " + num1(m.vel) + " km/h" + (m.incl ? ", " + num1(m.incl) + "%" : "") +
-    (m.km >= 0.05 ? " (" + num1(m.km) + " km)" : "");
+  if (ehEsteiraPerfil(m.perfil)) {
+    return Math.round(m.min) + " min a " + num1(m.vel) + " km/h" + (m.incl ? ", " + num1(m.incl) + "%" : "") +
+      (m.km >= 0.05 ? " (" + num1(m.km) + " km)" : "");
+  }
+  return [Math.round(m.min) + " min"].concat(partesCardio(s, false)).join(" · ");
 }
 // O mesmo, do jeito que se fala
 function falaCardio(s) {
   const m = medirCardio(s);
-  return Math.round(m.min) + " minutos a " + num1(m.vel) + " por hora" + (m.incl ? ", inclinação " + num1(m.incl) : "");
+  if (ehEsteiraPerfil(m.perfil)) {
+    return Math.round(m.min) + " minutos a " + num1(m.vel) + " por hora" + (m.incl ? ", inclinação " + num1(m.incl) : "");
+  }
+  return [Math.round(m.min) + " minutos"].concat(partesCardio(s, true)).join(", ");
 }
-// Soma das séries de esteira de um exercício. Várias séries são um intervalado
-// (5 minutos andando, 2 correndo...): a intensidade é a média pesada pelo tempo.
-function resumoCardio(series, pesoKg, correndo) {
-  const r = { min: 0, km: 0, kcal: 0, met: 0, series: 0 };
+// Soma das séries aeróbicas de um exercício. Várias séries são um intervalado
+// (5 minutos andando, 2 correndo...): a intensidade, os watts e a cadência são
+// médias pesadas pelo tempo.
+function resumoCardio(series, pesoKg, perfil) {
+  const r = { min: 0, km: 0, kcal: 0, met: 0, series: 0, metros: 0, watts: 0, cad: 0, estimado: false };
+  let minW = 0, minC = 0;
   (series || []).forEach((s) => {
     if (!serieConta(s) || !ehCardio(s)) return;
-    const m = medirCardio(s, pesoKg, correndo);
+    const m = medirCardio(s, pesoKg, perfil);
     if (!m.min) return;
-    r.min += m.min; r.km += m.km; r.kcal += m.kcal; r.met += m.met * m.min; r.series += 1;
+    r.min += m.min; r.km += m.km; r.kcal += m.kcal; r.met += m.met * m.min; r.series += 1; r.metros += m.metros;
+    if (m.watts) { r.watts += m.watts * m.min; minW += m.min; }
+    if (m.cad) { r.cad += m.cad * m.min; minC += m.min; }
+    if (m.estimado) r.estimado = true;
   });
   r.met = r.min ? r.met / r.min : 0;
-  r.vel = r.min ? r.km / (r.min / 60) : 0;
+  r.watts = minW ? r.watts / minW : 0;
+  r.cad = minC ? r.cad / minC : 0;
+  r.vel = r.min && r.km ? r.km / (r.min / 60) : 0;
   r.ritmo = r.vel > 0 ? 60 / r.vel : 0;
   r.intensidade = intensidadeCardio(r.met);
   return r;
 }
-// Minutos de cardio da semana na conta da OMS: 150 de moderado, ou 75 de
-// vigoroso, que valem em dobro. Caminhada leve não entra.
+// O que vai em destaque no painel: a distância e a régua de ritmo de cada
+// modalidade — min/km de quem anda e corre, km/h de quem pedala na rua,
+// min/100 m de quem nada, min/500 m do remo (a régua do Concept2, que sai dos
+// watts), e watts ou cadência nos aparelhos que não andam.
+function destaquesCardio(perfil, r) {
+  const d = [];
+  if (perfil === "natacao") { if (r.metros) d.push(Math.round(r.metros) + " m", fmtRitmo((r.min * 100) / r.metros, "/100 m")); }
+  else if (r.km >= 0.05) {
+    d.push(num1(r.km) + " km");
+    d.push(perfil === "bike-rua" ? num1(r.vel) + " km/h" : fmtRitmo(r.ritmo));
+  }
+  if ((perfil === "remo" || perfil === "ski") && r.watts) d.push(fmtRitmo(500 * Math.cbrt(2.8 / r.watts) / 60, "/500 m"));
+  if ((perfil === "bike" || perfil === "bike-braco") && r.watts) d.push(Math.round(r.watts) + " W");
+  if ((perfil === "eliptico" || perfil === "escada" || perfil === "corda") && r.cad) {
+    const rot = (camposCardio(perfil).find((c) => c[0] === "cad") || [])[1] || "/min";
+    d.push(Math.round(r.cad) + " " + rot.toLowerCase());
+  }
+  return d;
+}
+// Minutos de aeróbico da semana na conta da OMS: 150 de moderado, ou 75 de
+// vigoroso, que valem em dobro. Atividade leve não entra.
 const META_CARDIO_SEMANA = 150;
 function cardioDaSemana(historico, exPorId, inicioMs, pesoKg) {
   const r = { moderado: 0, vigoroso: 0 };
@@ -854,7 +1005,7 @@ function cardioDaSemana(historico, exPorId, inicioMs, pesoKg) {
       const e = exPorId(it.exercicioId);
       (it.series || []).forEach((s) => {
         if (!serieConta(s) || !ehCardio(s)) return;
-        const m = medirCardio(s, pesoKg, e && e.cardio === "corrida");
+        const m = medirCardio(s, pesoKg, e && e.cardio);
         if (m.met >= 6) r.vigoroso += m.min;
         else if (m.met >= 3) r.moderado += m.min;
       });
@@ -1128,7 +1279,7 @@ function sugerirCarga(historico, exercicioId, repsAlvo) {
   // na esteira quem decide se hoje é dia de forçar é o fôlego, não a planilha.
   if (validas.every(ehCardio)) {
     const u = validas[validas.length - 1];
-    return { cardio: true, tempo: true, subiu: false, segundos: segundosDe(u), vel: u.vel, incl: u.incl || "0" };
+    return Object.assign({ cardio: true, tempo: true, subiu: false, segundos: segundosDe(u) }, copiaCardio(u));
   }
   // Isometria: a progressão é em segundos, subindo 5s quando a última vez fechou
   if (validas.every(ehTempo)) {
@@ -1160,18 +1311,21 @@ function sugerirCarga(historico, exercicioId, repsAlvo) {
 // segundos; o resto, em peso e repetições, já com a carga sugerida.
 function montarSeries(ex, qtdSeries, repsAlvo, sug) {
   const n = Math.max(1, parseInt(qtdSeries) || 1);
-  // Esteira: na ficha, "repetições" são os minutos. Velocidade e inclinação vêm
+  // Aeróbico: na ficha, "repetições" são os minutos. Os números do painel vêm
   // da última vez; sem histórico, do padrão do exercício.
   if (exCardio(ex)) {
     const p = ex.padrao || {};
     const ant = sug && sug.cardio ? sug : null;
     const min = parseInt(repsAlvo) || (ant ? Math.round(ant.segundos / 60) : 0) || p.min || 30;
-    return Array.from({ length: n }, () => ({
-      segundos: String(min * 60),
-      vel: String(ant ? ant.vel : p.vel || 6),
-      incl: String(ant ? ant.incl || 0 : p.incl || 0),
-      feito: false,
-    }));
+    return Array.from({ length: n }, () => {
+      const s = { segundos: String(min * 60), mod: ex.cardio };
+      camposCardio(ex.cardio).forEach(([k]) => {
+        const v = ant && temValor(ant[k]) ? ant[k] : p[k];
+        s[k] = temValor(v) ? String(v) : "";
+      });
+      s.feito = false;
+      return s;
+    });
   }
   const isometria = !!(ex && ex.tempo);
   if (isometria) {
@@ -1572,8 +1726,11 @@ const FAMILIAS_EQUIP = [
   { id: "maquina", nome: "Máquina", termos: ["maquina", "leg press", "hack", "aparelho", "banco scott", "esteira"] },
   { id: "polia", nome: "Polia e cabo", termos: ["polia", "cabo", "crossover"] },
   { id: "acessorio", nome: "Kettlebell e elástico", termos: ["kettlebell", "elastico", "suspensao", "caneleira", "medicine"] },
+  // Aeróbico não é um equipamento: é tudo o que tem "cardio", da esteira à piscina
+  { id: "aerobico", nome: "Aeróbico", termos: [] },
 ];
 const naFamilia = (ex, fam) => {
+  if (fam.id === "aerobico") return !!ex.cardio;
   const eq = semAcento(ex.equip);
   return fam.termos.some((t) => eq.indexOf(semAcento(t)) >= 0);
 };
@@ -2631,7 +2788,10 @@ const APELIDOS_EXERCICIO = [
   ["remada", "remada-baixa"], ["cavalinho", "remada-cavalinho"],
   ["elevacao lateral", "elevacao-lateral"], ["lateral", "elevacao-lateral"],
   ["extensora", "cadeira-extensora"], ["cadeira extensora", "cadeira-extensora"],
-  ["flexora", "mesa-flexora"], ["mesa flexora", "mesa-flexora"], ["adutora", "cadeira-adutora"], ["abdutora", "abducao"], ["esteira", "esteira-caminhada"], ["caminhada", "esteira-caminhada"], ["corrida", "esteira-corrida"],
+  ["flexora", "mesa-flexora"], ["mesa flexora", "mesa-flexora"], ["adutora", "cadeira-adutora"], ["abdutora", "abducao"], ["esteira", "esteira-caminhada"], ["caminhada", "esteira-caminhada"], ["corrida", "esteira-corrida"], ["bicicleta", "bike-vertical"], ["bike", "bike-vertical"],
+  ["ergometrica", "bike-vertical"], ["spinning", "bike-spinning"], ["eliptico", "eliptico"], ["transport", "eliptico"],
+  ["escada", "escada"], ["stepmill", "escada"], ["remo", "remo-ergometro"], ["natacao", "natacao"],
+  ["pular corda", "pular-corda"], ["corrida na rua", "corrida-rua"], ["caminhada na rua", "caminhada-rua"],
   ["panturrilha", "panturrilha"], ["gemeos", "panturrilha"], ["abdominal", "abdominal-supra"],
   ["abdominal supra", "abdominal-supra"], ["crucifixo", "crucifixo"],
   ["peck deck", "peck-deck"], ["voador", "peck-deck"], ["crossover", "crossover"],
@@ -2779,6 +2939,22 @@ function duracaoDita(f) {
 // Toda forma de "pare" que o reconhecimento devolve. A lista é longa de
 // propósito: errar aqui faz o app começar um descanso quando pediram para parar.
 const PARADA = /\b(pula|pular|pule|pulo|cancela|cancelar|cancele|encerra|encerrar|encerre|para|parar|pare|parou|pararam|param|interrompe|interromper|interrompa|interrompeu|corta|cortar|corte|chega|acabou|termina|terminar|termine|finaliza|finalizar|desliga|tira)\b/;
+// Sem o nome do aparelho e sem aeróbico na ficha, a frase diz qual é: "pedalei"
+// é bicicleta, "nadei" é natação, metros é piscina, watts é bicicleta.
+function aerobicoDaFrase(c) {
+  const f = c.frase || "";
+  const v = parseFloat(c.vel) || 0;
+  if (/\b(pedal\w*|bike|bicicleta|spinning)\b/.test(f)) return /\brua\b/.test(f) ? "bike-rua" : "bike-vertical";
+  if (/\b(nad\w*|natacao|piscina)\b/.test(f) || c.m != null) return "natacao";
+  if (/\b(remo|remei|remando)\b/.test(f)) return "remo-ergometro";
+  if (/\b(eliptico|transport)\b/.test(f)) return "eliptico";
+  if (/\bescada/.test(f)) return "escada";
+  if (/\bcorda\b/.test(f)) return "pular-corda";
+  if (/\btrilha\b/.test(f)) return "trilha";
+  if (/\b(rua|parque|praia|pista)\b/.test(f)) return v >= 7 || /\bcorr/.test(f) ? "corrida-rua" : "caminhada-rua";
+  if (c.watts != null) return "bike-vertical";
+  return v >= 7 ? "esteira-corrida" : "esteira-caminhada";
+}
 function cardioDito(f, tem) {
   if (tem(/\bdescans/)) return null;
   const vel = achaNum(f, /velocidade\s*(?:de\s*|em\s*)?(\d+(?:\.\d+)?)/) !== null
@@ -2792,12 +2968,22 @@ function cardioDito(f, tem) {
   const horas = achaNum(resto, /(\d+(?:\.\d+)?)\s*horas?\b/);
   if (min === null && horas !== null) min = horas * 60;
   const dist = achaNum(resto, /(\d+(?:\.\d+)?)\s*(?:km|quilometros?)\b/);
-  const palavra = tem(/\b(esteira|caminhada|caminhei|caminhando|corrida|corri|correndo|andei|trote|trotei)\b/);
+  const watts = achaNum(f, /(\d+(?:\.\d+)?)\s*(?:watts?|uats)\b/);
+  const nivel = achaNum(f, /nivel\s*(?:de\s*|em\s*)?(\d+(?:\.\d+)?)/);
+  const cad = achaNum(f, /(\d+(?:\.\d+)?)\s*(?:rpm|spm|(?:passos|degraus|saltos|remadas|pedaladas|puxadas)?\s*por min\w*)/);
+  // "mil metros" chega por extenso, e "1.500 metros" com ponto de milhar
+  const fm = f.replace(/\b(?:(\d+)\s*)?mil\s+metros/, (x, a) => (a ? parseFloat(a) : 1) * 1000 + " metros");
+  const mm = fm.match(/(\d{1,3}(?:\.\d{3})+|\d+)\s*metros?\b/);
+  const metros = mm ? parseFloat(mm[1].replace(/\./g, "")) : null;
+  const palavra = tem(/\b(esteira|caminhada|caminhei|caminhando|corrida|corri|correndo|andei|trote|trotei|bicicleta|bike|pedalei|pedalando|pedalada|spinning|eliptico|transport|escada|escadaria|remo|remei|esqui|corda|pulei|nadei|natacao|nadando|trilha)\b/);
   const verbo = tem(/\b(anota|anote|anotar|registra|registrar|marca|marcar|fiz|feito|fechei|completei)\b/);
-  if (!(vel !== null || incl !== null || (palavra && (min !== null || dist !== null)) || (verbo && min !== null))) return null;
+  if (!(vel !== null || incl !== null || watts !== null || metros !== null || cad !== null ||
+    ((palavra || min !== null) && nivel !== null) ||
+    (palavra && (min !== null || dist !== null)) || (verbo && min !== null))) return null;
   let v = vel;
   if (v === null && dist !== null && min) v = Math.round((dist / (min / 60)) * 10) / 10;
   return { tipo: "anotar", cardio: true, segundos: min !== null ? Math.round(min * 60) : null, vel: v, incl: incl,
+    km: dist, m: metros, watts: watts, nivel: nivel, cad: cad,
     peso: null, reps: null, porLado: false, aquecimento: false, frase: f };
 }
 function interpretarVoz(fala, ctx) {
@@ -2851,7 +3037,7 @@ function interpretarVoz(fala, ctx) {
   // "Acabei de fazer a quarta série com 108 kg, 12 repetições, anota aí" é uma
   // série, não o fim do treino. Num treino real, só não encerrou tudo porque o
   // nome dele tinha chegado como "Jorge".
-  const ditaSerie = tem(/\bseries?\b/) || (/\d/.test(f) && tem(/\b(kg|repet\w*|reps?|por|min\w*|km|quilometros?|velocidade|inclinacao)\b/));
+  const ditaSerie = tem(/\bseries?\b/) || (/\d/.test(f) && tem(/\b(kg|repet\w*|reps?|por|min\w*|km|quilometros?|velocidade|inclinacao|watts?|metros?|nivel)\b/));
   if (!ditaSerie && tem(/\b(finaliza|finalizar|termina|terminar|encerra|encerrar|acabei|fim do treino|salva o treino)\b/)) return { tipo: "finalizar" };
   if (tem(/\b(comeca|comecar|iniciar|inicia|bora|vamos|abre)\b/) && tem(/\btreino\b/)) {
     // "treino A" tem de ser lido ANTES de tirar os artigos, senão o \"a\" do nome
@@ -7939,40 +8125,58 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
 }
 
 // ---------------- SESSÃO: registro + cronômetro com som + observações + vídeo ----------------
-// O diagnóstico da esteira, dentro do cartão do exercício no treino. Responde
-// o que quem sai da esteira quer saber: quanto andou, em que ritmo, quanto
+// O diagnóstico do aeróbico, dentro do cartão do exercício no treino. Responde
+// o que quem desce do aparelho quer saber: quanto fez, em que ritmo, quanto
 // gastou, se aquilo foi treino ou passeio, e como está a semana.
+const DICA_CARDIO = {
+  bike: (r) => (r.watts ? "Cadência entre 80 e 100 rpm pede menos força por pedalada e poupa o joelho."
+    : "Sem watts no painel o gasto é uma média. Anote o nível: dá para comparar com a próxima vez."),
+  "bike-braco": () => "Troque o sentido do giro na metade: os dois lados do ombro trabalham por igual.",
+  eliptico: () => "Use os braços móveis em vez do apoio fixo: o corpo todo trabalha e o gasto sobe.",
+  escada: () => "Pendurar o peso no corrimão tira o trabalho das pernas e derruba o gasto: mãos só encostando.",
+  remo: () => "A força sai das pernas, depois do tronco e por último dos braços — nessa ordem.",
+  ski: () => "Puxe com o tronco descendo, não só com os braços: é ali que mora a força.",
+  corda: () => "Saltos baixos, na ponta dos pés: o impulso vem do tornozelo, não do joelho.",
+  natacao: () => "O ritmo por 100 metros é a régua de quem nada: compare com o da última vez.",
+  trilha: () => "Subida e chão irregular fazem a trilha gastar mais que a mesma distância no plano.",
+  "rua-corrida": (r) => (r.km && r.min ? null : "Anote a distância do relógio ou do aplicativo: sem ela o gasto é uma média."),
+  "rua-caminhada": (r) => (r.km && r.min ? null : "Anote a distância do relógio ou do aplicativo: sem ela o gasto é uma média."),
+};
 function PainelCardio({ it, ex, historico, exPorId, pesoCorporal }) {
-  const corre = !!(ex && ex.cardio === "corrida");
+  const perfil = (ex && ex.cardio) || "caminhada";
   const feitas = it.series.filter((s) => s.feito);
   const prevista = !feitas.length;
-  const r = resumoCardio(prevista ? it.series : feitas, pesoCorporal, corre);
+  const r = resumoCardio(prevista ? it.series : feitas, pesoCorporal, perfil);
   const semana = cardioDaSemana(historico, exPorId, segundaDaSemana(new Date()).getTime(), pesoCorporal);
   // o de hoje ainda não está no histórico: soma o que já foi feito agora
   const hoje = prevista ? 0 : r.met >= 6 ? 2 * r.min : r.met >= 3 ? r.min : 0;
   const naSemana = Math.round(semana.equivalente + hoje);
   const pct = Math.min(100, Math.round((naSemana / META_CARDIO_SEMANA) * 100));
   const ult = ultimaExecucao(historico, it.exercicioId);
-  const antes = ult ? resumoCardio(ult.series, pesoCorporal, corre) : null;
+  const antes = ult ? resumoCardio(ult.series, pesoCorporal, perfil) : null;
   if (!r.min) return null;
   const corInt = r.intensidade === "vigorosa" ? "var(--perigo)" : r.intensidade === "moderada" ? "var(--ok)" : "var(--obs)";
   const nota = r.intensidade === "leve"
-    ? "Ainda não conta para a meta da OMS: suba a velocidade ou a inclinação até a respiração acelerar."
+    ? "Ainda não conta para a meta da OMS: aumente o ritmo até a respiração acelerar."
     : r.intensidade === "vigorosa"
     ? "Cada minuto vale dois na meta da OMS."
     : "Conta para a meta da OMS.";
-  const medias = it.series.filter((s) => (prevista || s.feito) && ehCardio(s));
-  const inclMedia = medias.length ? medias.reduce((a, s) => a + numDe(s.incl), 0) / medias.length : 0;
   let dica = null;
-  if (corre && inclMedia < 1) dica = "Deixe 1% de inclinação: compensa a falta de vento e deixa o esforço igual ao da rua.";
-  else if (!corre && inclMedia >= 8) dica = "Caminhada inclinada gasta perto de uma corrida leve, com bem menos impacto nos joelhos.";
-  else if (!corre && r.vel >= 6.5) dica = "Acima de 6,5 km/h, trotar costuma ser mais natural que caminhar.";
+  if (ehEsteiraPerfil(perfil)) {
+    const medias = it.series.filter((s) => (prevista || s.feito) && ehCardio(s));
+    const inclMedia = medias.length ? medias.reduce((a, s) => a + numDe(s.incl), 0) / medias.length : 0;
+    if (perfil === "corrida" && inclMedia < 1) dica = "Deixe 1% de inclinação: compensa a falta de vento e deixa o esforço igual ao da rua.";
+    else if (perfil === "caminhada" && inclMedia >= 8) dica = "Caminhada inclinada gasta perto de uma corrida leve, com bem menos impacto nos joelhos.";
+    else if (perfil === "caminhada" && r.vel >= 6.5) dica = "Acima de 6,5 km/h, trotar costuma ser mais natural que caminhar.";
+  } else if (DICA_CARDIO[perfil]) dica = DICA_CARDIO[perfil](r);
+  const destaques = destaquesCardio(perfil, r);
+  const antesTxt = antes && antes.min > 0 ? destaquesCardio(perfil, antes) : [];
+  const comparaKm = !prevista && antes && antes.km >= 0.05 && Math.abs(r.km - antes.km) >= 0.05;
   return (
     <div style={{ margin: "4px 0 10px", padding: "10px 12px", borderRadius: 12, background: "var(--bg2)", border: "1px solid var(--borda2)", fontSize: 12, lineHeight: 1.5 }}>
       <div style={{ ...S.label, fontSize: 10, marginBottom: 4 }}>{prevista ? "Previsto para hoje" : "Feito até agora"}</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "2px 14px", fontWeight: 900, fontSize: 15 }}>
-        <span>{num1(r.km)} km</span>
-        <span>{fmtRitmo(r.ritmo)}</span>
+        {destaques.map((d) => <span key={d}>{d}</span>)}
         <span>~{Math.round(r.kcal)} kcal</span>
       </div>
       <div style={{ marginTop: 4 }}>
@@ -7981,7 +8185,7 @@ function PainelCardio({ it, ex, historico, exPorId, pesoCorporal }) {
       </div>
       <div style={{ marginTop: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", color: "var(--cinza)" }}>
-          <span>Cardio na semana</span>
+          <span>Aeróbico na semana</span>
           <span style={{ fontWeight: 800, color: "var(--texto)" }}>{naSemana} de {META_CARDIO_SEMANA} min</span>
         </div>
         <div style={{ height: 6, borderRadius: 3, background: "var(--borda2)", marginTop: 3, overflow: "hidden" }}>
@@ -7990,8 +8194,8 @@ function PainelCardio({ it, ex, historico, exPorId, pesoCorporal }) {
       </div>
       {antes && antes.min > 0 && (
         <div style={{ marginTop: 6, color: "var(--cinza)" }}>
-          Última vez: {num1(antes.km)} km em {Math.round(antes.min)} min ({fmtRitmo(antes.ritmo)})
-          {!prevista && Math.abs(r.km - antes.km) >= 0.05 && (
+          Última vez: {Math.round(antes.min)} min{antesTxt.length ? " · " + antesTxt.join(" · ") : ""}
+          {comparaKm && (
             <span style={{ fontWeight: 800, color: r.km > antes.km ? "var(--ok)" : "var(--cinza)" }}>
               {" · hoje " + (r.km > antes.km ? "+" : "−") + num1(Math.abs(r.km - antes.km)) + " km"}
             </span>
@@ -8000,8 +8204,10 @@ function PainelCardio({ it, ex, historico, exPorId, pesoCorporal }) {
       )}
       {dica && <div style={{ marginTop: 6, color: "var(--obs)" }}>💡 {dica}</div>}
       <div style={{ marginTop: 6, fontSize: 10, color: "var(--cinza2)" }}>
-        Distância e ritmo saem do tempo e da velocidade. Calorias pela equação do ACSM
-        {pesoCorporal ? " com " + num1(pesoCorporal) + " kg" : " com 75 kg — registre seu peso em Histórico › Corpo para acertar a conta"}.
+        {r.estimado
+          ? "Sem o número do painel, o gasto é a média do Compendium de Atividades Físicas para este aparelho"
+          : "Calorias pelas equações do ACSM e pelo Compendium de Atividades Físicas"}
+        {pesoCorporal ? ", com " + num1(pesoCorporal) + " kg" : ", com 75 kg — registre seu peso em Histórico › Corpo para acertar a conta"}.
       </div>
     </div>
   );
@@ -8214,7 +8420,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       const ult = it.series[it.series.length - 1];
       // repete o formato da última série: segundos na isometria, peso/reps no resto
       if (ult && ehTempo(ult)) {
-        const extra = ehCardio(ult) ? { vel: ult.vel, incl: ult.incl } : {};
+        const extra = ehCardio(ult) ? copiaCardio(ult) : {};
         return { ...it, series: [...it.series, { segundos: ult.segundos || "30", ...extra, feito: false }] };
       }
       const base = ult || { peso: "", reps: "12" };
@@ -8438,7 +8644,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     // ou uma nova: caminhada ou corrida pela velocidade dita.
     if (c.cardio && !exCardio(dito)) {
       const naFicha = itens.find((it) => exCardio(exPorId(it.exercicioId)));
-      dito = naFicha ? exPorId(naFicha.exercicioId) : exPorId((parseFloat(c.vel) || 0) >= 7 ? "esteira-corrida" : "esteira-caminhada");
+      dito = naFicha ? exPorId(naFicha.exercicioId) : exPorId(aerobicoDaFrase(c));
     }
     if (dito) {
       ei = itens.findIndex((it) => it.exercicioId === dito.id);
@@ -8459,7 +8665,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     if (si < 0) {
       const ult = series[series.length - 1] || {};
       series = series.concat([isometria || ehTempo(ult)
-        ? { segundos: ult.segundos || "", ...(ehCardio(ult) ? { vel: ult.vel, incl: ult.incl } : {}), feito: false }
+        ? { segundos: ult.segundos || "", ...(ehCardio(ult) ? copiaCardio(ult) : {}), feito: false }
         : { peso: ult.peso || "", reps: ult.reps || "", feito: false }]);
       si = series.length - 1;
     }
@@ -8470,9 +8676,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       const seg = c.segundos != null ? c.segundos : parseInt(base.segundos) || 0;
       if (!seg) return { ok: false, fala: "Quantos minutos? Diga, por exemplo: 30 minutos a 6 por hora." };
       valores.segundos = String(Math.round(seg));
-      if (c.vel != null) valores.vel = String(c.vel);
-      if (c.incl != null) valores.incl = String(c.incl);
-      if (!numDe(c.vel != null ? c.vel : base.vel)) return { ok: false, fala: "Qual a velocidade? Diga, por exemplo: 30 minutos a 6 por hora." };
+      const campos = camposCardio(ex.cardio).map((x) => x[0]);
+      CAMPOS_CARDIO.forEach((k) => { if (c[k] != null && campos.indexOf(k) >= 0) valores[k] = String(c[k]); });
+      // na rua a pessoa sabe a distância; se disse a velocidade, a distância sai da conta
+      if (campos.indexOf("km") >= 0 && c.km == null && c.vel != null) valores.km = String(Math.round(((c.vel * seg) / 3600) * 10) / 10);
+      valores.mod = ex.cardio;
+      if (campos.indexOf("vel") >= 0 && !numDe(valores.vel != null ? valores.vel : base.vel)) return { ok: false, fala: "Qual a velocidade? Diga, por exemplo: 30 minutos a 6 por hora." };
     } else if (isometria) {
       const seg = c.segundos != null ? c.segundos : (c.reps != null ? c.reps : parseInt(base.segundos) || 0);
       if (!seg) return { ok: false, fala: "Quantos segundos você segurou?" };
@@ -8508,8 +8717,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
 
     const feito = exCardio(ex)
       ? (() => {
-        const m = medirCardio(Object.assign({}, base, valores), pesoCorporal, ex.cardio === "corrida");
-        return falaCardio(Object.assign({}, base, valores)) + ". " + num1(m.km) + " quilômetros, cerca de " + Math.round(m.kcal) + " calorias";
+        const s = Object.assign({}, base, valores);
+        const m = medirCardio(s, pesoCorporal, ex.cardio);
+        return falaCardio(s) + ". " + (m.km >= 0.05 ? num1(m.km) + " quilômetros, " : "") + "cerca de " + Math.round(m.kcal) + " calorias";
       })()
       : isometria
       ? valores.segundos + " segundos"
@@ -8909,7 +9119,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         const fechaConjunto = noConjunto && (!proximo || proximo.conjunto !== it.conjunto);
         const tamConjunto = noConjunto ? sessao.itens.filter((x) => x.conjunto === it.conjunto).length : 0;
         const ehIsometria = !!(ex && ex.tempo);
-        const ehEsteira = exCardio(ex);
+        const ehAerobico = exCardio(ex);
         // Com o Jarvis ligado, este é o cartão que vai receber a próxima frase.
         // Sem essa marca, ditar "80 por 10" é torcer para cair no lugar certo.
         // "É a vez deste exercício" e "o Jarvis está ouvindo" são coisas diferentes,
@@ -8940,7 +9150,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 background: "#E1306C15", border: "1px solid #E1306C44", borderRadius: 10 }}>
                 <span aria-hidden="true" style={{ fontSize: 13 }}>🎤</span>
                 <span style={{ fontSize: 11.5, color: "#E1306C", fontWeight: 800, lineHeight: 1.4 }}>
-                  O Jarvis anota aqui — diga “Jarvis, {ehEsteira ? "30 minutos a 6 por hora" : ehIsometria ? "45 segundos" : "80 por 10"}”
+                  O Jarvis anota aqui — diga “Jarvis, {ehAerobico ? (PERFIS_CARDIO[ex.cardio] || PERFIS_CARDIO.caminhada).diga : ehIsometria ? "45 segundos" : "80 por 10"}”
                 </span>
               </div>
             )}
@@ -9009,7 +9219,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12, fontSize: 11, lineHeight: 1.5 }}>
                 {rec && (ehIsometria ? rec.segundos > 0 : rec.peso > 0) && (
                   <span style={{ background: "#E1306C18", color: "#E1306C", border: "1px solid #E1306C44", borderRadius: 8, padding: "3px 8px", fontWeight: 800, whiteSpace: "nowrap" }}>
-                    🏆 {ehEsteira ? "mais longo " + Math.round(rec.segundos / 60) + " min" : "recorde " + (ehIsometria ? rec.segundos + "s" : fmtNum(rec.peso) + " kg")}
+                    🏆 {ehAerobico ? "mais longo " + Math.round(rec.segundos / 60) + " min" : "recorde " + (ehIsometria ? rec.segundos + "s" : fmtNum(rec.peso) + " kg")}
                   </span>
                 )}
                 {it.sugerido && it.sugerido.subiu && (
@@ -9040,11 +9250,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
 
             <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
               <div style={{ width: 30 }} />
-              {ehEsteira ? (
+              {ehAerobico ? (
                 <React.Fragment>
                   <div style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center" }}>Min</div>
-                  <div style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center" }}>km/h</div>
-                  <div style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center" }}>Incl. %</div>
+                  {camposCardio(ex.cardio).map(([k, rot]) => (
+                    <div key={k} style={{ flex: 1, ...S.label, fontSize: 10, textAlign: "center", letterSpacing: 0 }}>{rot}</div>
+                  ))}
                   <div style={{ width: 44 }} />
                 </React.Fragment>
               ) : ehIsometria ? (
@@ -9077,7 +9288,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                     {aquec ? "A" : si + 1}
                   </button>
 
-                  {ehEsteira ? (
+                  {ehAerobico ? (
                     <React.Fragment>
                       {contando ? (
                         <div style={{ ...S.inputMini, flex: 1, minWidth: 0, padding: "10px 2px", background: "var(--ok-bg)", borderColor: "var(--ok)", color: "var(--ok)", fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: "20px" }}
@@ -9090,12 +9301,11 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                           aria-label={"Minutos da série " + (si + 1) + " de " + nomeEx}
                           onChange={(e) => upSerie(ei, si, "segundos", String(Math.max(0, parseInt(e.target.value) || 0) * 60))} />
                       )}
-                      <input type="number" inputMode="decimal" step="0.1" placeholder="6" style={{ ...S.inputMini, flex: 1, minWidth: 0 }} value={s.vel || ""}
-                        aria-label={"Velocidade em km por hora da série " + (si + 1) + " de " + nomeEx}
-                        onChange={(e) => upSerie(ei, si, "vel", e.target.value)} />
-                      <input type="number" inputMode="decimal" step="0.5" placeholder="0" style={{ ...S.inputMini, flex: 1, minWidth: 0 }} value={s.incl || ""}
-                        aria-label={"Inclinação em porcentagem da série " + (si + 1) + " de " + nomeEx}
-                        onChange={(e) => upSerie(ei, si, "incl", e.target.value)} />
+                      {camposCardio(ex.cardio).map(([k, rot, ph]) => (
+                        <input key={k} type="number" inputMode="decimal" step="any" placeholder={ph} style={{ ...S.inputMini, flex: 1, minWidth: 0 }} value={s[k] || ""}
+                          aria-label={rot + " da série " + (si + 1) + " de " + nomeEx}
+                          onChange={(e) => upSerie(ei, si, k, e.target.value)} />
+                      ))}
                       <button onClick={() => (contando ? setCrono(null) : iniciarIsometria(ei, si))}
                         aria-label={(contando ? "Parar" : "Iniciar") + " o cronômetro da série " + (si + 1) + " de " + nomeEx}
                         style={{ width: 44, height: 42, borderRadius: 8, cursor: "pointer", fontWeight: 900, fontSize: 15, flexShrink: 0,
@@ -9144,7 +9354,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 </div>
               );
             })}
-            {ehEsteira && (
+            {ehAerobico && (
               <PainelCardio it={it} ex={ex} historico={historico} exPorId={exPorId} pesoCorporal={pesoCorporal} />
             )}
             {it.series.some(ehAquecimento) && (
@@ -9448,7 +9658,7 @@ function TelaEditarHistorico({ registro, exPorId, onSalvar, onCancelar, avisar }
     itens: r.itens.map((it, i) => {
       if (i !== ei) return it;
       const ult = it.series[it.series.length - 1];
-      if (ult && ehTempo(ult)) return { ...it, series: [...it.series, ehCardio(ult) ? { segundos: ult.segundos, vel: ult.vel, incl: ult.incl } : { segundos: ult.segundos }] };
+      if (ult && ehTempo(ult)) return { ...it, series: [...it.series, ehCardio(ult) ? { segundos: ult.segundos, ...copiaCardio(ult) } : { segundos: ult.segundos }] };
       const base = ult || { peso: "", reps: "12" };
       return { ...it, series: [...it.series, { peso: base.peso, reps: base.reps }] };
     }),
@@ -9515,12 +9725,11 @@ function TelaEditarHistorico({ registro, exPorId, onSalvar, onCancelar, avisar }
                     <input type="number" inputMode="numeric" style={{ ...S.inputMini, flex: 1, minWidth: 0 }} value={Math.round(segundosDe(s) / 60) || ""}
                       aria-label={"Minutos da série " + (si + 1) + " de " + nomeEx}
                       onChange={(e) => upSerie(ei, si, "segundos", String(Math.max(0, parseInt(e.target.value) || 0) * 60))} />
-                    <input type="number" inputMode="decimal" style={{ ...S.inputMini, flex: 1, minWidth: 0 }} value={s.vel}
-                      aria-label={"Velocidade em km por hora da série " + (si + 1) + " de " + nomeEx}
-                      onChange={(e) => upSerie(ei, si, "vel", e.target.value)} />
-                    <input type="number" inputMode="decimal" style={{ ...S.inputMini, flex: 1, minWidth: 0 }} value={s.incl || ""}
-                      aria-label={"Inclinação em porcentagem da série " + (si + 1) + " de " + nomeEx}
-                      onChange={(e) => upSerie(ei, si, "incl", e.target.value)} />
+                    {camposCardio(perfilDe(s, ex && ex.cardio)).map(([k, rot]) => (
+                      <input key={k} type="number" inputMode="decimal" step="any" placeholder={rot} style={{ ...S.inputMini, flex: 1, minWidth: 0 }} value={s[k] || ""}
+                        aria-label={rot + " da série " + (si + 1) + " de " + nomeEx}
+                        onChange={(e) => upSerie(ei, si, k, e.target.value)} />
+                    ))}
                   </React.Fragment>
                 ) : ehTempo(s) ? (
                   <input type="number" inputMode="numeric" style={{ ...S.inputMini, flex: 2 }} value={s.segundos}
@@ -11110,7 +11319,7 @@ function TreinoLivre() {
         // preserva o formato: isometria grava segundos, e o aquecimento fica
         // marcado para continuar fora do volume e dos recordes no histórico
         series: it.series.filter((s) => s.feito).map((s) => {
-          const nova = ehCardio(s) ? { segundos: s.segundos, vel: s.vel, incl: s.incl || "0" }
+          const nova = ehCardio(s) ? { segundos: s.segundos, ...copiaCardio(s) }
             : ehTempo(s) ? { segundos: s.segundos } : { peso: s.peso, reps: s.reps };
           if (ehAquecimento(s)) nova.aquec = true;
           return nova;
@@ -11166,9 +11375,9 @@ function TreinoLivre() {
     let kcalCardio = 0;
     (registro.itens || []).forEach((it) => {
       const e = exPorId(it.exercicioId);
-      if (exCardio(e)) kcalCardio += resumoCardio(it.series, pesoCorporal, e.cardio === "corrida").kcal;
+      if (exCardio(e)) kcalCardio += resumoCardio(it.series, pesoCorporal, e.cardio).kcal;
     });
-    if (st.cardioMin > 0) msg += "🏃 Esteira: " + num1(st.cardioKm) + " km em " + Math.round(st.cardioMin) + " min · ~" + Math.round(kcalCardio) + " kcal\n";
+    if (st.cardioMin > 0) msg += "🏃 Aeróbico: " + Math.round(st.cardioMin) + " min" + (st.cardioKm >= 0.05 ? " · " + num1(st.cardioKm) + " km" : "") + " · ~" + Math.round(kcalCardio) + " kcal\n";
     if (st.seriesAquec > 0) msg += "(mais " + st.seriesAquec + " " + plural(st.seriesAquec, "série", "séries") + " de aquecimento, fora da conta)\n";
     msg += "⏱ " + registro.duracaoMin + " min";
     if (st.densidade > 0) msg += " · " + st.densidade + " kg/min · carga máx. " + st.cargaMax + " kg";
@@ -11188,7 +11397,7 @@ function TreinoLivre() {
       let dito = "Treino fechado. " + st.series + " " + plural(st.series, "série", "séries") +
         " em " + registro.duracaoMin + " " + plural(registro.duracaoMin, "minuto", "minutos") + ". ";
       if (st.volume > 0) dito += fmtPeso(st.volume) + " movidos. ";
-      if (st.cardioMin > 0) dito += num1(st.cardioKm) + " quilômetros de esteira. ";
+      if (st.cardioMin > 0) dito += st.cardioKm >= 0.05 ? num1(st.cardioKm) + " quilômetros de aeróbico. " : Math.round(st.cardioMin) + " minutos de aeróbico. ";
       if (comp) dito += (comp.pct >= 0 ? "Mais " : "Menos ") + Math.abs(comp.pct) + " por cento de volume que o treino anterior. ";
       if (nRec > 0) dito += nRec + " " + plural(nRec, "recorde pessoal", "recordes pessoais") + "! ";
       if (novas.length) dito += plural(novas.length, "Nova conquista", "Novas conquistas") + ": " + novas.map((x) => x.nome).join(", ") + ". ";

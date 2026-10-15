@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 248 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 281 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 248 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 281 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v27) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v28) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -235,7 +235,7 @@ Na ordem em que aparece no arquivo:
    `numerosPorExtenso`, `depoisDeJarvis`, `acharExercicio`, `interpretarVoz`,
    `responderConsulta`, `AJUDA_FALADA`, `LICOES_JARVIS`, `vozesPtBr`.
    Fica logo antes de `IMAGENS_WGER`.
-8. **Dados** — `GRUPOS`, `MUSCULOS`, `EXERCICIOS` (258, dos quais 14 funcionais e 3 de esteira),
+8. **Dados** — `GRUPOS`, `MUSCULOS`, `EXERCICIOS` (274, dos quais 14 funcionais e 19 aeróbicos),
    `GRUPO_POR_EXERCICIO`, `FICHAS_PADRAO`.
 9. **Estilos** — objeto `S` com estilos inline reaproveitados.
 10. **Imagens** — `IMAGENS_WGER` (mapa fixo) e `ImagemExercicio`.
@@ -321,7 +321,7 @@ celular** — não há servidor para onde mandar, e não haveria mesmo que houve
 
 ### Como a repetição é contada
 
-Exigir configuração por exercício é inviável: são 258 no catálogo mais as
+Exigir configuração por exercício é inviável: são 274 no catálogo mais as
 máquinas que o dono fotografa e que não estão em catálogo nenhum. Então:
 
 1. `criarContador` mede **oito ângulos** ao mesmo tempo (cotovelos, joelhos,
@@ -778,7 +778,52 @@ nenhum: botão que promete o que não tem é pior que botão que falta.
 
 Coberto por `teste-evolucao.js`.
 
-## Esteira (caminhada e corrida)
+## Aeróbico (esteira, bicicleta, elíptico, escada, remo, rua, piscina)
+
+19 exercícios com `cardio`, o **perfil** da modalidade. `PERFIS_CARDIO` diz, para
+cada perfil, os campos que aparecem na série — **os números que o painel daquele
+aparelho mostra** — e a frase de exemplo para o Jarvis:
+
+| Perfil | Campos | Conta do gasto |
+|---|---|---|
+| `caminhada`, `corrida` (esteira) | km/h, inclinação | ACSM caminhada/corrida |
+| `rua-caminhada`, `rua-corrida` | km | ACSM, com a velocidade saindo de km ÷ tempo |
+| `trilha` | km | Compendium (6 MET) |
+| `bike-rua` | km | Compendium pela velocidade média |
+| `bike` (vertical, horizontal, spinning, air bike) | watts, nível | ACSM do cicloergômetro |
+| `bike-braco` | watts | ACSM do ergômetro de braço |
+| `eliptico` | nível, passos/min | Compendium (5 MET) — não há equação com o painel |
+| `escada` (stepmill, escadaria) | nível, degraus/min | ACSM do step, degrau de 20 cm |
+| `remo`, `ski` | watts, remadas/min | Compendium pelos watts |
+| `corda` | saltos/min | Compendium pela cadência |
+| `natacao` | metros | Compendium pelo ritmo por 100 m |
+
+**Sem o número do painel, vale a média do Compendium** para o aparelho, e a tela
+diz isso (`estimado`). Ninguém fica sem diagnóstico por não ter anotado os watts.
+
+**A série grava o perfil** (`mod`): `{ segundos, mod, watts, nivel }`. É o que faz
+uma série de elíptico só com o tempo continuar sendo aeróbica — sem ele, ela seria
+lida como isometria. A esteira de antes do `mod` (só `vel` e `incl`) continua
+reconhecida. **Copiar série passa sempre por `copiaCardio`**: copiar campo a campo já
+apagou a velocidade da esteira no histórico uma vez.
+
+O painel (`destaquesCardio`) mostra a régua de cada modalidade: min/km de quem
+anda e corre, km/h de quem pedala na rua, min/100 m de quem nada, min/500 m do
+remo (a fórmula do Concept2, que sai dos watts), watts ou cadência nos aparelhos
+que não andam. `DICA_CARDIO` tem a dica de cada um.
+
+Pela voz, "pedalei 30 minutos a 120 watts", "nadei mil metros em 25 minutos",
+"elíptico 30 minutos nível 8". Sem o nome do aparelho e sem aeróbico na ficha,
+`aerobicoDaFrase` deduz pelo verbo e pelos números (watts é bicicleta, metros é
+piscina). "Aeróbico" é também um filtro na lista de exercícios
+(`FAMILIAS_EQUIP`), que olha o `cardio` em vez do equipamento.
+
+**Achado ao testar no navegador, e que nenhuma suíte pegaria:** um renomear
+global de `ehEsteira` apanhou também `ehEsteiraPerfil`, e a tela do treino caía
+com "is not defined". O `verificar.js` prova que o JSX compila, não que o
+componente desenha. Mexeu em componente, abra a tela.
+
+### Esteira (caminhada e corrida)
 
 Três exercícios: `esteira-caminhada`, `esteira-inclinada` e `esteira-corrida`.
 O campo `cardio` ("caminhada" ou "corrida") é o que os diferencia de musculação,
@@ -897,7 +942,7 @@ Ao adicionar exercícios:
 - **Aceite o casamento só quando os nomes tiverem praticamente o mesmo conjunto
   de palavras.** Imagem errada ensina o movimento errado. Na dúvida, deixe sem
   figura: todo exercício tem botão de vídeo do YouTube como alternativa.
-- Hoje: 177 dos 258 exercícios com imagem do wger. Os 12 movimentos funcionais
+- Hoje: 177 dos 274 exercícios com imagem do wger. Os 12 movimentos funcionais
   não têm figura lá e usam o boneco desenhado (`POSES_FUNCIONAIS`), que é melhor
   para eles do que uma foto parada seria.
 
@@ -1291,7 +1336,7 @@ caso o modo "Toque e fale" é melhor. Isso está dito na ajuda do app.
 
 `APELIDOS_EXERCICIO` traduz o jeito da academia ("agacho", "extensora", "leg")
 para o id. `acharExercicio` procura **primeiro entre os exercícios do treino de
-hoje** e só depois nos 258: quem fala "supino" no meio do treino quer o supino
+hoje** e só depois nos 274: quem fala "supino" no meio do treino quer o supino
 que está na ficha. Na pontuação, quem acerta mais palavras do nome ganha de quem
 acerta uma só — sem isso "rosca direta" perdia para "Rosca 21".
 
@@ -1373,7 +1418,7 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 248
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 281
 checagens em nove suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash

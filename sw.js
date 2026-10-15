@@ -1,6 +1,9 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v43";
+const CACHE = "treinolivre-v44";
 const CACHE_VOZ = "treinolivre-voz";
+// As falas gravadas do Monster, Run! (vozes/*.mp3): baixadas quando a história
+// começa e guardadas fora do cache da versão, para não sumirem a cada atualização.
+const CACHE_FALAS = "treinolivre-falas";
 const ARQUIVOS = [
   "./",
   "./index.html",
@@ -39,7 +42,7 @@ self.addEventListener("activate", (e) => {
       // a troca de versao, senao o aviso morre a cada atualizacao do app.
       // "treinolivre-voz" guarda a voz do narrador do story (uns 90 MB): apagá-la a
       // cada versão obrigaria a pessoa a baixar tudo de novo.
-      .then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== "treinolivre-config" && k !== CACHE_VOZ).map((k) => caches.delete(k))))
+      .then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== "treinolivre-config" && k !== CACHE_VOZ && k !== CACHE_FALAS).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -70,6 +73,22 @@ self.addEventListener("fetch", (e) => {
   // scripts), para nada disso ir parar no cache da versão, que é apagado.
   const ehVoz = url.hostname === "huggingface.co" || (url.hostname === "cdn.jsdelivr.net" &&
     /onnxruntime-web@|piper-wasm@|mp4-muxer@/.test(url.pathname));
+  // O índice das falas gravadas vem sempre da rede (lista nova = gravações novas);
+  // cada .mp3 vem do cache quando já foi baixado.
+  if (url.pathname.indexOf("/vozes/") >= 0 && url.pathname.endsWith(".mp3")) {
+    e.respondWith(caches.open(CACHE_FALAS).then((c) => c.match(e.request.url).then((r) => r || fetch(e.request).then((res) => {
+      if (res.ok) c.put(e.request.url, res.clone()).catch(() => {});
+      return res;
+    }))));
+    return;
+  }
+  if (url.pathname.endsWith("/vozes/indice.json")) {
+    e.respondWith(fetch(e.request, { cache: "no-store" }).then((res) => {
+      if (res.ok) caches.open(CACHE_FALAS).then((c) => c.put(e.request.url, res.clone())).catch(() => {});
+      return res;
+    }).catch(() => caches.open(CACHE_FALAS).then((c) => c.match(e.request.url)).then((r) => r || new Response('{"ids":[]}'))));
+    return;
+  }
   if (ehVoz) {
     e.respondWith(
       caches.open(CACHE_VOZ).then((c) => c.match(e.request.url).then((r) => r || fetch(e.request).then((res) => {

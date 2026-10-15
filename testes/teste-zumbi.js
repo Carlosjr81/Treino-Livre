@@ -9,7 +9,7 @@ const fim = html.indexOf("// ---------------- FIM DO MOTOR ZUMBI");
 if (ini < 0 || fim < 0) { console.error("nao achei o motor zumbi no index.html"); process.exit(1); }
 eval(html.slice(ini, fim).replace(/\r\n/g, "\n") +
   "\nglobalThis.Z = { NOME_ZUMBI, ZUMBI_PADRAO, kmhDeMs, msDeKmh, paceSegKm, velocidadeAlvo, paceAlvo, fmtPaceSeg, validarAmostra, velocidadeBase," +
-  " calcularAlvo, criarAvaliador, planejarMissao, validarConfigZumbi, criarMotorZumbi, restaurarMotorZumbi, validarMissao, escolherCena, falaDaCena, narrar," +
+  " calcularAlvo, criarAvaliador, planejarMissao, validarConfigZumbi, criarMotorZumbi, restaurarMotorZumbi, validarMissao, escolherCena, falaDaCena, narrar, roteiroDeVozes, idDaFala, separarAlvo, emocaoDaFala, EMOCOES_FALA," +
   " criarFilaFalas, MISSAO_ULTIMO_SINAL, MISSOES_ZUMBI, sortearMissaoZumbi, missaoZumbiPorId, MONSTROS_ZUMBI, monstroDe, missoesDoMonstro, distanciaMonstro, leituraRadar, zonaRadar, placarMissao, juntarSemDuplicar, registroZumbi, duracaoPerseguicao };");
 
 let ok = 0, mal = 0;
@@ -272,6 +272,22 @@ function final() {
     const p = MR(reg(["gravacao"]));
     teste("resumo: so o primeiro fato e missao em parte", [false, true], [p.completo, p.parcial]);
     teste("resumo: registro sem missao nao e monstro", null, MR({ itens: [] }));
+  }
+
+  console.log("--- 9e. as vozes com emocao ---");
+  {
+    const rot = Z.roteiroDeVozes(), noArquivo = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "vozes", "roteiro.json"), "utf8"));
+    teste("o roteiro de vozes esta em dia com as historias (rode vozes/exportar-roteiro.js)", true,
+      JSON.stringify(rot.map((l) => l.id + l.emocao)) === JSON.stringify(noArquivo.map((l) => l.id + l.emocao)));
+    teste("ids das falas unicos e estaveis", [rot.length, "f-19kqyf4"], [new Set(rot.map((l) => l.id)).size, Z.idDaFala("f", "Teste de voz.")]);
+    teste("a frase do alvo sai da gravacao", ["Agora. Aumente a passada.", "Alvo: {alvo}."], [Z.separarAlvo("Agora. Aumente a passada. Alvo: {alvo}.").gravavel, Z.separarAlvo("Agora. Aumente a passada. Alvo: {alvo}.").alvo]);
+    const her = Z.missaoZumbiPorId("heroi-da-nacao"), mb = Z.missaoZumbiPorId("fuga-do-marombeiro");
+    teste("emocao: aviso tenso, alvo urgente, fuga aliviada, fim vitorioso, marombeiro com humor", ["tensao", "urgencia", "alivio", "vitoria", "humor"],
+      [Z.emocaoDaFala(her, "aviso-1", "aviso"), Z.emocaoDaFala(her, "transicao", "transicao"), Z.emocaoDaFala(her, "fuga-1", "fuga"), Z.emocaoDaFala(her, "fim-completo", "fim"), Z.emocaoDaFala(mb, "aviso-1", "aviso")]);
+    // toda fala que a historia diz numa missao inteira tem lugar no roteiro
+    const ids = new Set(rot.map((l) => l.id)); let fora = 0, ditas = 0;
+    Z.MISSOES_ZUMBI.forEach((m) => { const s = simular({ missao: m }); s.falas.forEach((f) => { ditas++; if (f.gravada && !ids.has(f.gravada)) fora++; }); });
+    teste("todas as falas ditas nas simulacoes estao no roteiro", [true, 0], [ditas > 300, fora]);
   }
 
   console.log("--- 10. historico sem duplicar ---");

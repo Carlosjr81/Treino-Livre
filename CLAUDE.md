@@ -74,6 +74,7 @@ Treino-Livre/
 ├── index.html, sw.js, manifest.json, versao.json, ícones   ← o app publicado
 ├── CLAUDE.md            ← este arquivo: o contexto do projeto
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
+├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
 └── testes/              ← as 10 suítes, o servidor local e o LEIA-ME delas
 ```
 
@@ -89,7 +90,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 505 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 510 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +131,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 505 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 510 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +206,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v43) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v44) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1174,7 +1175,7 @@ app; só a ideia da mecânica veio da documentação pública deles.
 
 ### Separado em camadas
 - **Motor** (`ZUMBI: MOTOR` até `FIM DO MOTOR ZUMBI`): lógica pura, sem tela,
-  som nem sensor, coberta por `teste-zumbi.js` (106 checagens, relógio e sensores
+  som nem sensor, coberta por `teste-zumbi.js` (111 checagens, relógio e sensores
   simulados). Unidades, base, alvo, avaliação, plano, estados, missão, validador,
   fila de falas e o registro do histórico.
 - **Som** (`criarPaisagemZumbi`): vento, chuva, estática, passos, gemido e
@@ -1333,7 +1334,10 @@ completo convida a seguir o Instagram.
   para girar alguns graus não abrir buraco. Os pivôs (em % da imagem) estão em
   `AVATAR_MAROMBEIRO`.
 - **Como as camadas foram feitas**: a foto que o dono mandou já veio sem fundo
-  (893×1726, pose de bíceps). O MediaPipe (`selfie_multiclass`) separou
+  (893×1726, pose de bíceps). Os tênis brancos foram pintados no esquema
+  "Bred Toe" do Jordan 1, a pedido dele (biqueira, calcanhar e solado vermelhos,
+  gola e lingueta pretas, laterais brancas), preservando dobras e sombras e
+  **sem logo de marca**. O MediaPipe (`selfie_multiclass`) separou
   cabelo, rosto e óculos (a cabeça); o braço é um polígono acima da axila.
   Para refazer com outra foto, o roteiro está descrito no histórico desta
   sessão: segmentar, cortar na altura do fim da barba, exportar WebP com alfa.
@@ -1402,13 +1406,42 @@ opcionalmente `requer`, `semFatos`, `define`, `repetivel`, `proximas`.
 quebrada e evento essencial sem cena de reserva (sem `requer`). Rode-o no
 teste antes de pôr a missão nova na tela.
 
-### Trocar as vozes e os efeitos
-`ZUMBI_AUDIO_MANIFESTO` lista cada camada com origem e licença. Para usar
-locução gravada, o caminho é dar a cada cena um campo de arquivo e tocá-lo
-pela mesma fila de falas (`criarFilaFalas`), no lugar do `jarvisFalar` — a
-fila já garante prioridade, uma de cada vez e descarte da vencida. **Hoje não
-há arquivo gravado nenhum**: a voz é a do aparelho. Algumas vozes do Android
-exigem internet; os efeitos funcionam offline.
+### A voz com emoção, e as vozes gravadas (pasta `vozes/`)
+O dono reclamou, com razão: a voz do aparelho é robótica, e uma perseguição
+lida como extrato bancário não assusta ninguém. Duas camadas:
+
+1. **Toda fala tem uma emoção** (`emocaoDaFala`, `EMOCOES_FALA`): mistério no
+   ambiente e na abertura, tensão no aviso, urgência no "agora!", incentivo
+   ofegante na perseguição, alívio na fuga, drama no desfecho, calma na
+   recuperação, vitória no fim completo, humor em tudo do Marombeiro. Na voz do
+   aparelho isso vira ritmo, tom e **pausa entre as frases** (`falarComEmocao`
+   fala frase por frase: é a pausa que mais tira o jeito de robô). A voz é a
+   melhor do aparelho (`notaVoz`: "Natural"/"Neural"/"Online" primeiro, Google
+   depois) e segue o narrador: feminina ou masculina (`VOZ_DA_MISSAO`,
+   `vozPorGenero`), a não ser que a pessoa tenha escolhido uma voz nos ajustes.
+2. **A voz de verdade é gravada por uma IA de voz**, uma vez, e publicada em
+   `vozes/`. O app busca `vozes/indice.json` e, para cada fala com gravação,
+   toca o `.mp3` (`audioNarracao`, que o `calarJarvis` também cala); sem
+   gravação, ou se o arquivo falhar, cai na voz do aparelho. O nome do arquivo
+   é um hash do texto e da voz (`idDaFala`): mudou a frase, muda o arquivo. A
+   frase do ritmo-alvo muda a cada perseguição e fica fora da gravação
+   (`separarAlvo`): é dita pela voz do aparelho logo depois.
+   - `vozes/roteiro.json`/`.csv` (597 falas, ~55 mil caracteres), gerado por
+     `node vozes/exportar-roteiro.js` a partir do próprio `index.html`. **O
+     teste reprova se o roteiro estiver desatualizado**: mexeu numa história,
+     rode o exportador.
+   - `vozes/gerar-vozes.js` gera os `.mp3` com OpenAI (`gpt-4o-mini-tts`, com a
+     direção de emoção como instrução; ~US$ 1 tudo) ou ElevenLabs (`eleven_v3`,
+     com as marcas `[whispers]`, `[shouting]`...). **A sessão na nuvem não
+     alcança esses serviços**: roda na máquina do dono, com a chave dele. O
+     passo a passo está em `vozes/LEIA-ME.md`.
+   - O `sw.js` guarda as gravações num cache próprio (`treinolivre-falas`,
+     preservado entre versões) e busca o `indice.json` sempre na rede. As
+     falas da história são baixadas quando ela começa: depois, sem internet.
+   - **Hoje nenhuma fala está gravada** (`indice.json` vazio): até o dono gerar,
+     tudo sai na voz do aparelho, com a entonação por emoção.
+
+Os efeitos continuam sintetizados no aparelho (`ZUMBI_AUDIO_MANIFESTO`).
 
 ### O que a web não alcança aqui
 Tela bloqueada e app em segundo plano: o navegador pode parar o GPS, o relógio
@@ -2003,7 +2036,7 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 505
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 510
 checagens em treze suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash

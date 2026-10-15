@@ -13,7 +13,7 @@ Dois caminhos, conforme o aparelho:
 
 Abra **`claude.ai/code`** no navegador do celular, entre na sua conta e conecte
 a conta do GitHub. A sessão trabalha num clone do repositório na nuvem: lê,
-edita, roda os 505 testes e publica.
+edita, roda os 510 testes e publica.
 
 **Não precisa do Google Drive no celular.** O Drive é a conveniência de quem
 está num computador; no celular o GitHub é o caminho, e é por isso que tudo —
@@ -127,7 +127,7 @@ bash preparar.sh
 ```
 
 O script **não desinstala nada, não atualiza o que já existe e não mexe em
-configuração global.** Só acrescenta o que falta, e termina rodando os 505
+configuração global.** Só acrescenta o que falta, e termina rodando os 510
 testes para provar que funcionou.
 
 Depois de instalar alguma coisa, **feche e reabra o terminal** e rode de novo:
@@ -143,7 +143,7 @@ no Windows o `PATH` só muda em sessão nova.
 | **Node.js** | para os testes e o servidor local. Instala por `winget` (Windows) ou `brew` (Mac) |
 | **git e GitHub CLI** | para publicar daqui com `git push` |
 | **Identidade dos commits** | define só neste repositório, com o e-mail `noreply` para não expor seu endereço pessoal |
-| **Os 505 testes** | roda e mostra o resultado |
+| **Os 510 testes** | roda e mostra o resultado |
 
 Duas coisas ele **detecta mas não resolve**, e avisa:
 
@@ -161,7 +161,7 @@ git são para testar e publicar — não para trabalhar.
 | Para | Precisa de |
 |---|---|
 | Editar o app com o Claude | nada além do Drive |
-| Rodar os 505 testes | Node.js |
+| Rodar os 510 testes | Node.js |
 | Abrir o app em `localhost` | Node.js |
 | Publicar com `git push` | git + `gh auth login` |
 | Publicar sem instalar nada | nada: a interface web do GitHub |
@@ -217,7 +217,7 @@ projeto foi publicado até aqui.
 node testes/rodar.js
 ```
 
-As treze suítes, 505 checagens. Prova que a **lógica** não quebrou. Rode antes e
+As treze suítes, 510 checagens. Prova que a **lógica** não quebrou. Rode antes e
 depois de mexer no app.
 
 ```bash

@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15p";
+const VERSAO_APP = "2026-10-15q";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2822,6 +2822,9 @@ function nomeCurtoVoz(v) {
     .trim();
   return n || (v && v.name) || "Voz";
 }
+// As vozes neurais ("Natural", "Online", "Neural") soam muito menos robóticas
+// que as antigas; o Google vem logo depois. Elas vêm primeiro.
+const notaVoz = (v) => (/pt[-_]BR/i.test(v.lang) ? 4 : 0) + (/natural|neural|online/i.test(v.name) ? 3 : /google/i.test(v.name) ? 2 : 0);
 function escolherVozPtBr(nome) {
   const vs = vozesPtBr();
   if (!vs.length) return null;
@@ -2829,8 +2832,31 @@ function escolherVozPtBr(nome) {
     const achada = vs.find((v) => v.name === nome);
     if (achada) return achada;
   }
-  return vs.find((v) => /pt[-_]BR/i.test(v.lang) && /google|natural/i.test(v.name)) ||
-    vs.find((v) => /pt[-_]BR/i.test(v.lang)) || vs[0];
+  return vs.slice().sort((a, b) => notaVoz(b) - notaVoz(a))[0];
+}
+// A voz do narrador da história: feminina ou masculina, pelo nome que o sistema dá
+const NOMES_VOZ = { f: /francisca|thalita|luciana|maria|vit[oó]ria|brenda|leila|manuela|yara|elza|giovanna|let[ií]cia|raquel|female|feminin/i,
+  m: /ant[oô]nio|daniel|felipe|f[aá]bio|humberto|j[uú]lio|nicolau|val[eé]rio|donato|male|masculin/i };
+function vozPorGenero(genero) {
+  const vs = vozesPtBr().filter((v) => NOMES_VOZ[genero] && NOMES_VOZ[genero].test(v.name));
+  return vs.length ? vs.sort((a, b) => notaVoz(b) - notaVoz(a))[0].name : null;
+}
+// O áudio gravado que está tocando agora (calarJarvis também o cala)
+let audioNarracao = null;
+// Fala com emoção na voz do aparelho: frase por frase, com o ritmo, o tom e a
+// pausa da emoção. A pausa entre as frases é o que mais tira o jeito de robô.
+function falarComEmocao(texto, emo, cfg, fim) {
+  const frases = String(texto || "").split(/(?<=[.!?…])\s+/).filter(Boolean);
+  let i = 0, fechou = false;
+  const fecha = () => { if (!fechou) { fechou = true; if (fim) fim(); } };
+  const proxima = () => {
+    if (i >= frases.length) return fecha();
+    const fr = frases[i++];
+    const ok = jarvisFalar(fr, { falar: true, fila: i > 1, vozNome: cfg.vozNome || vozPorGenero(cfg.genero), velocidade: (cfg.velocidade || 1) * emo.taxa,
+      tom: emo.tom, volume: cfg.volume, animado: false, aoTerminar: () => setTimeout(proxima, i < frases.length ? emo.pausa : 0) });
+    if (!ok) setTimeout(fecha, Math.min(6000, 800 + String(texto).length * 45));
+  };
+  proxima();
 }
 // O texto das respostas é escrito para a tela. Lido em voz alta, o "×" de
 // "80 kg × 10" simplesmente não é pronunciado (vira "80 kg 10", que soa como
@@ -2870,7 +2896,7 @@ function jarvisFalar(texto, cfg) {
     // dito com energia de um aviso de aeroporto.
     const animado = cfg.animado !== false;
     u.rate = (cfg.velocidade || 1.1) + (animado ? 0.06 : 0);
-    u.pitch = animado ? 1.22 : 1;
+    u.pitch = cfg.tom != null ? cfg.tom : animado ? 1.22 : 1;
     u.volume = cfg.volume != null ? Math.max(0, Math.min(1, cfg.volume)) : 1;
     const v = escolherVozPtBr(cfg.vozNome);
     if (v) { u.voice = v; u.lang = v.lang; }
@@ -2895,6 +2921,7 @@ function jarvisFalar(texto, cfg) {
 }
 function calarJarvis() {
   try { if (VOZ_FALA) window.speechSynthesis.cancel(); } catch (e) {}
+  try { if (audioNarracao) { audioNarracao.pause(); audioNarracao = null; } } catch (e) {}
   jarvisFalandoAte = 0;
   jarvisDizendo = "";
 }
@@ -10412,6 +10439,77 @@ function sortearMissaoZumbi(ultimaId, rnd, monstro) {
   const opc = base.length > 1 ? base.filter((m) => m.id !== ultimaId) : base;
   return opc[Math.floor(r() * opc.length)] || MISSAO_ULTIMO_SINAL;
 }
+// ---- A voz com emoção ----
+// A voz do aparelho lê tudo no mesmo tom, e uma perseguição lida como extrato
+// bancário não assusta ninguém. Cada fala tem uma emoção: a voz do aparelho a
+// traduz em ritmo, tom e pausa entre as frases (falarComEmocao), e a voz
+// gravada por uma IA de voz (pasta vozes/) a traz de verdade. "tag" é a marca
+// de emoção que as IAs de voz entendem ([whispers], [laughs]); "direcao" vai como instrução.
+const EMOCOES_FALA = {
+  misterio: { taxa: 0.9, tom: 0.9, pausa: 450, tag: "[whispers]", direcao: "voz baixa e misteriosa, quase sussurrando, como quem conta um segredo" },
+  narracao: { taxa: 1.0, tom: 1.0, pausa: 280, tag: "", direcao: "narrador de aventura, envolvente, com calor na voz" },
+  tensao: { taxa: 1.12, tom: 1.0, pausa: 170, tag: "[nervous]", direcao: "tenso e alarmado, respiração curta, falando rápido" },
+  urgencia: { taxa: 1.2, tom: 1.08, pausa: 120, tag: "[shouting]", direcao: "urgente e enérgico, um comando de corrida, quase gritando" },
+  incentivo: { taxa: 1.1, tom: 1.06, pausa: 160, tag: "[out of breath]", direcao: "ofegante, correndo junto, incentivando com garra" },
+  alivio: { taxa: 1.0, tom: 1.12, pausa: 260, tag: "[relieved]", direcao: "aliviado e vibrando, comemorando a fuga" },
+  drama: { taxa: 0.95, tom: 0.95, pausa: 350, tag: "[dramatically]", direcao: "dramático, com suspense, e aliviado no fim" },
+  calma: { taxa: 0.9, tom: 0.98, pausa: 330, tag: "[calm]", direcao: "calmo e acolhedor, devagar, ajudando a respirar" },
+  vitoria: { taxa: 1.02, tom: 1.15, pausa: 320, tag: "[excited]", direcao: "vitorioso e emocionado, celebrando" },
+  humor: { taxa: 1.05, tom: 1.1, pausa: 230, tag: "[laughs]", direcao: "bem-humorado e brincalhão, segurando o riso" },
+};
+// a voz de cada história segue o narrador: feminina ou masculina
+const VOZ_DA_MISSAO = { "ultimo-sinal": "f", "remedio-da-vila": "f", "trem-da-meia-noite": "m", "sementes-de-amanha": "f",
+  "resgate-do-pipoca": "m", "luz-no-hospital": "f", "lua-cheia-na-serra": "m", "rastro-de-prata": "f", "antes-do-amanhecer": "f",
+  "baile-no-casarao": "f", "guardiao-da-pedreira": "f", "passos-de-pedra": "m", "mare-alta": "f", "canto-da-baia": "f",
+  "heroi-da-nacao": "f", "ao-vivo": "m", "temporada-de-verao": "m", "cargueiro-sem-resposta": "f", "o-outro-lado": "f",
+  "o-cacador-do-futuro": "m", "ilha-ambar": "m", "fuga-do-marombeiro": "m" };
+const generoDaMissao = (m) => VOZ_DA_MISSAO[m && m.id] || "m";
+function emocaoDaFala(missao, cenaId, tipo) {
+  const humor = monstroDe(missao).id === "marombeiro";
+  if (tipo === "aviso") return humor ? "humor" : "tensao";
+  if (tipo === "transicao") return "urgencia";
+  if (tipo === "perseguicao") return "incentivo";
+  if (tipo === "fuga") return "alivio";
+  if (tipo === "desfecho") return humor ? "humor" : "drama";
+  if (tipo === "fim") return /fim-completo|fim-farol/.test(cenaId || "") ? "vitoria" : humor ? "humor" : "calma";
+  if (tipo === "ambiente" || tipo === "aquecimento") return humor ? "humor" : "misterio";
+  if (["recuperacao", "desaquecimento", "cancelada", "guiada", "nao-avaliada", "adiada", "sem-margem", "sinal-perdido", "pausa-seguranca"].indexOf(tipo) >= 0) return "calma";
+  return humor ? "humor" : "narracao";
+}
+// O nome do arquivo gravado sai do texto (e da voz): mudou a frase, muda o
+// arquivo, e a fala nova cai na voz do aparelho até ser gravada de novo.
+function idDaFala(genero, texto) {
+  const t = genero + "|" + String(texto).replace(/\s+/g, " ").trim();
+  let x = 0x811c9dc5;
+  for (let i = 0; i < t.length; i++) { x ^= t.charCodeAt(i); x = Math.imul(x, 0x01000193) >>> 0; }
+  return genero + "-" + x.toString(36).padStart(7, "0");
+}
+// A frase com o ritmo-alvo muda a cada perseguição: não dá para gravar. Ela sai
+// da gravação e é dita pela voz do aparelho logo depois.
+function separarAlvo(modelo) {
+  if (String(modelo).indexOf("{alvo}") < 0) return { gravavel: modelo, alvo: "" };
+  const fr = String(modelo).split(/(?<=[.!?])\s+/);
+  return { gravavel: fr.filter((s) => s.indexOf("{alvo}") < 0).join(" "), alvo: fr.filter((s) => s.indexOf("{alvo}") >= 0).join(" ") };
+}
+// Todas as falas que podem ser gravadas, sem repetir: é o roteiro da pasta vozes/
+function roteiroDeVozes(missoes) {
+  const porId = {};
+  (missoes || MISSOES_ZUMBI).forEach((m) => {
+    const g = generoDaMissao(m);
+    m.cenas.forEach((c) => {
+      ["todas", "caminhada", "corrida"].forEach((k) => {
+        if (!c.falas[k]) return;
+        const t = separarAlvo(c.falas[k]).gravavel;
+        if (!t) return;
+        const id = idDaFala(g, t), emo = emocaoDaFala(m, c.id, c.evento);
+        if (!porId[id]) porId[id] = { id: id, genero: g, emocao: emo, tag: EMOCOES_FALA[emo].tag, direcao: EMOCOES_FALA[emo].direcao, texto: t, missoes: [], cenas: [] };
+        if (porId[id].missoes.indexOf(m.id) < 0) porId[id].missoes.push(m.id);
+        if (porId[id].cenas.indexOf(c.id) < 0) porId[id].cenas.push(c.id);
+      });
+    });
+  });
+  return Object.keys(porId).sort().map((k) => porId[k]);
+}
 // Cada evento vira no máximo uma fala, com a cena escolhida e os fatos que ela liga
 function narrar(missao, ev, fatos, usadas) {
   const cena = escolherCena(missao, ev.tipo, fatos, usadas);
@@ -10419,7 +10517,11 @@ function narrar(missao, ev, fatos, usadas) {
   (cena.define || []).forEach((f) => { fatos[f] = true; });
   usadas.push(cena.id);
   const prioridade = { aviso: 3, transicao: 3, fuga: 3, desfecho: 3, cancelada: 3, guiada: 3, "nao-avaliada": 3, "pausa-seguranca": 4, "sinal-perdido": 3, perseguicao: 2, ambiente: 0 }[ev.tipo];
-  return { cena: cena.id, texto: falaDaCena(cena, ev.atividade || "corrida", ev), prioridade: prioridade == null ? 1 : prioridade, evento: ev.id, tipo: ev.tipo };
+  const at = ev.atividade || "corrida", g = generoDaMissao(missao);
+  const sep = separarAlvo(cena.falas[at] || cena.falas.todas || cena.falas.corrida || "");
+  return { cena: cena.id, texto: falaDaCena(cena, at, ev), prioridade: prioridade == null ? 1 : prioridade, evento: ev.id, tipo: ev.tipo,
+    emocao: emocaoDaFala(missao, cena.id, ev.tipo), genero: g, gravada: sep.gravavel ? idDaFala(g, sep.gravavel) : null,
+    resto: sep.alvo ? falaDaCena({ falas: { todas: sep.alvo } }, at, ev) : "" };
 }
 // A fila de falas: uma de cada vez, a de maior prioridade primeiro, e a que
 // venceu (a fase mudou) é descartada antes de ser dita.
@@ -10434,7 +10536,7 @@ function criarFilaFalas(falar) {
         const f = fila.shift();
         if (!f.valida()) continue;
         falando = f;
-        falar(f.texto, () => { falando = null; api.proxima(); });
+        falar(f.texto, () => { falando = null; api.proxima(); }, f);
         return;
       }
     },
@@ -10447,7 +10549,7 @@ function criarFilaFalas(falar) {
 }
 // O que cada camada de som é, de onde vem e qual a licença
 const ZUMBI_AUDIO_MANIFESTO = [
-  { id: "voz", camada: "voz", origem: "síntese de voz do navegador (speechSynthesis), voz pt-BR do aparelho", licenca: "do sistema do aparelho", gravada: null },
+  { id: "voz", camada: "voz", origem: "gravada por IA de voz (pasta vozes/, quando existe) ou a síntese do navegador com entonação por emoção", licenca: "a do serviço que gerou / do sistema do aparelho", gravada: "vozes/" },
   { id: "vento", camada: "ambiente", origem: "ruído filtrado gerado no aparelho (Web Audio), código deste app", licenca: "própria" },
   { id: "chuva", camada: "ambiente", origem: "ruído agudo com gotas sintetizadas (Web Audio), código deste app", licenca: "própria" },
   { id: "estatica", camada: "ambiente", origem: "ruído em banda estreita, em rajadas (Web Audio), código deste app", licenca: "própria" },
@@ -12145,13 +12247,37 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   }, []);
 
   // ---- a fala: uma de cada vez, e a que venceu não é dita ----
-  const falarUma = (texto, fim) => {
+  // As falas gravadas que existem (vozes/indice.json). Sem o arquivo, ou fora do
+  // ar, fica vazio e tudo cai na voz do aparelho, com entonação por emoção.
+  const gravadasR = useRef(new Set());
+  const [nGravadas, setNGravadas] = useState(0);
+  useEffect(() => {
+    fetch("vozes/indice.json").then((r) => (r.ok ? r.json() : { ids: [] })).then((j) => {
+      gravadasR.current = new Set((j && j.ids) || []); setNGravadas(gravadasR.current.size);
+    }).catch(() => {});
+  }, []);
+  const ultimaFalaR = useRef(null);
+  const falarUma = (texto, fim, f) => {
     setLegenda(texto);
-    ultimaFala.current = texto;
+    ultimaFala.current = texto; ultimaFalaR.current = f || null;
     if (paisagem.current) paisagem.current.duck(true);
-    const ok = jarvisFalar(texto, { falar: true, vozNome: vozCfg && vozCfg.vozNome, velocidade: (vozCfg && vozCfg.velocidade) || 1.05,
-      animado: false, volume: vol.voz, aoTerminar: () => { if (paisagem.current) paisagem.current.duck(false); fim(); } });
-    if (!ok) setTimeout(() => { if (paisagem.current) paisagem.current.duck(false); fim(); }, Math.min(6000, 800 + texto.length * 45));
+    const acabou = () => { if (paisagem.current) paisagem.current.duck(false); fim(); };
+    const emo = EMOCOES_FALA[(f && f.emocao) || "narracao"] || EMOCOES_FALA.narracao;
+    const dizer = (t, depois) => falarComEmocao(t, emo, { vozNome: vozCfg && vozCfg.vozNome, genero: (f && f.genero) || generoDaMissao(missaoR.current),
+      velocidade: (vozCfg && vozCfg.velocidade) || 1.05, volume: vol.voz }, depois);
+    if (f && f.gravada && gravadasR.current.has(f.gravada) && vozCfg && vozCfg.falar !== false) {
+      calarJarvis();
+      const a = new Audio("vozes/" + f.gravada + ".mp3");
+      a.volume = Math.max(0, Math.min(1, vol.voz));
+      let foi = false;
+      const cai = () => { if (!foi) { foi = true; audioNarracao = null; dizer(texto, acabou); } };
+      a.onended = () => { if (foi) return; foi = true; audioNarracao = null; if (f.resto) dizer(f.resto, acabou); else acabou(); };
+      a.onerror = cai;
+      audioNarracao = a;
+      a.play().catch(cai);
+      return;
+    }
+    dizer(texto, acabou);
   };
   const tratarEventos = (evs) => {
     const m = motor.current;
@@ -12277,6 +12403,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
     missaoR.current = cfg.missao === "aleatoria" ? sortearMissaoZumbi(ultima, null, cfg.monstro) : missaoZumbiPorId(cfg.missao);
     try { localStorage.setItem("treinolivre:zumbi-ultima", missaoR.current.id); } catch (e) {}
     if (monstroDe(missaoR.current).fotoCorpo) setIntro(true);
+    roteiroDeVozes([missaoR.current]).forEach((l) => { if (gravadasR.current.has(l.id)) fetch("vozes/" + l.id + ".mp3").catch(() => {}); });
     meta.current = { id: "zr-" + Date.now(), inicio: new Date().toISOString(), pausadoMs: 0, pausaDesde: null, pts: [], seg: 0, missao: missaoR.current.id };
     fatos.current = {}; usadas.current = []; maisPertoR.current = null;
     filaR.current = criarFilaFalas(falarUma);
@@ -12427,6 +12554,10 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
                 </div>
               </div>
             )}
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", margin: "-4px 0 12px", lineHeight: 1.45 }}>
+              🎙️ {nGravadas > 0 ? "Narração gravada com emoção (" + nGravadas + " falas); o que não foi gravado sai na voz do aparelho." :
+                "Narração na voz do aparelho, com entonação por emoção. Para a voz mais natural, use o Chrome ou o Edge com voz \"Natural\" ou Google."}
+            </div>
             {linha("Onde", [chip("ambiente", "rua", "🌆 Rua"), chip("ambiente", "esteira", "🏃 Esteira")])}
             {linha("Atividade", [chip("atividade", "caminhada", "🚶 Caminhada"), chip("atividade", "corrida", "🏃 Corrida"), chip("atividade", "alternada", "🔁 Alternada")])}
             {linha("Experiência", [chip("experiencia", "adaptativa", "🎲 Aventura"), chip("experiencia", "intervalos", "⏱ Intervalos"), chip("experiencia", "historia", "📖 Só a história")])}
@@ -12490,7 +12621,8 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
                 if (!p) return;
                 let x = 0;
                 const iv = setInterval(() => { x += 0.08; p.setAmeaca(Math.min(1, x)); }, 250);
-                jarvisFalar(MONSTROS_ZUMBI[monstroVisto].frases["aviso-reserva"] || "Detectei movimento atrás de você. Prepare-se para aumentar o ritmo, se puder.", { falar: true, vozNome: vozCfg && vozCfg.vozNome, volume: vol.voz, animado: false });
+                falarComEmocao(MONSTROS_ZUMBI[monstroVisto].frases["aviso-reserva"] || "Detectei movimento atrás de você. Prepare-se para aumentar o ritmo, se puder.",
+                  EMOCOES_FALA.tensao, { vozNome: vozCfg && vozCfg.vozNome, genero: missaoVista ? generoDaMissao(missaoVista) : "m", volume: vol.voz });
                 setTimeout(() => { clearInterval(iv); p.parar(); }, 4500);
               }} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13 }}>🔊 Ouvir uma prévia (4 s)</button>
               <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>
@@ -12603,7 +12735,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
             : <button onClick={() => pausar(true)} style={{ ...grande, gridColumn: "1 / 3", background: "#F58529" }}>⏸ Pausa de segurança</button>}
           <button disabled={!emEsforco || s.pausado} onClick={() => { m.cancelarDesafio(); tratarEventos(m.eventos()); }} style={{ ...fantasma, opacity: emEsforco && !s.pausado ? 1 : 0.4 }}>✋ Cancelar desafio</button>
           <button disabled={s.pausado || cfg.experiencia === "historia"} onClick={() => { const n = m.reduzirIntensidade(); setLegenda("Intensidade reduzida para +" + n + "%."); }} style={fantasma}>➖ Reduzir intensidade</button>
-          <button disabled={!ultimaFala.current} onClick={() => falarUma(ultimaFala.current, () => {})} style={fantasma}>🔁 Repetir instrução</button>
+          <button disabled={!ultimaFala.current} onClick={() => falarUma(ultimaFala.current, () => {}, ultimaFalaR.current)} style={fantasma}>🔁 Repetir instrução</button>
           <button disabled={s.pausado || emEsforco} onClick={() => { const ok = m.estenderRecuperacao(); setLegenda(ok ? "Mais um minuto de recuperação." : "Não há mais tempo leve para estender."); }} style={{ ...fantasma, opacity: !s.pausado && !emEsforco ? 1 : 0.4 }}>🧘 Recuperar mais</button>
           {cfg.demo && <button onClick={() => { mult.current = mult.current === 1 ? 10 : 1; }} style={{ ...fantasma, gridColumn: "1 / 3" }}>⏩ Relógio da demonstração: ×{mult.current} (tocar troca para ×{mult.current === 1 ? 10 : 1})</button>}
           <button onClick={() => { pausar(false); encerrar(); }} style={{ ...fantasma, gridColumn: "1 / 3", color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}>■ Encerrar missão</button>

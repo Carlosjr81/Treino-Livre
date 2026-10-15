@@ -584,7 +584,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15f";
+const VERSAO_APP = "2026-10-15g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2797,12 +2797,18 @@ function textoParaFala(t) {
 }
 
 // cfg é a configuração de voz do app: { falar, vozNome, velocidade }
+// A fala que está no ar. Guardar a referência não é enfeite: no Chrome, uma
+// fala sem ninguém segurando é recolhida pela memória no meio, e o "onend"
+// dela nunca chega — e quem esperava o fim para seguir fica parado.
+let jarvisFalaAtual = null;
+// cfg.aoTerminar é chamado uma vez, quando a fala acaba (ou falha). Devolve
+// se a fala começou: sem voz, quem chamou precisa seguir pelo relógio.
 function jarvisFalar(texto, cfg) {
-  if (!texto) return;
+  if (!texto) return false;
   // A janela de silêncio vale mesmo com a voz desligada: sem ela, o bipe e o
   // barulho logo depois da resposta viram comando.
   jarvisFalandoAte = Date.now() + 500;
-  if (!cfg || !cfg.falar || !VOZ_FALA) return;
+  if (!cfg || !cfg.falar || !VOZ_FALA) return false;
   try {
     // Em fila, o comentário do técnico entra DEPOIS do número em vez de
     // cortá-lo no meio. Sem isto, "sete" virava "se-" e o resto se perdia.
@@ -2825,10 +2831,18 @@ function jarvisFalar(texto, cfg) {
     const base = cfg.fila ? Math.max(jarvisFalandoAte, Date.now()) : Date.now();
     jarvisFalandoAte = base + Math.min(16000, 1000 + (dito.length * 95) / u.rate);
     jarvisDizendo = (cfg.fila ? jarvisDizendo : " ") + normalizarFala(dito) + " ";
-    u.onend = () => { jarvisFalandoAte = Date.now() + 400; jarvisDizendo = ""; };
-    u.onerror = () => { jarvisFalandoAte = Date.now() + 400; jarvisDizendo = ""; };
+    let avisou = false;
+    const terminou = () => {
+      jarvisFalandoAte = Date.now() + 400; jarvisDizendo = "";
+      if (jarvisFalaAtual === u) jarvisFalaAtual = null;
+      if (!avisou && cfg.aoTerminar) { avisou = true; cfg.aoTerminar(); }
+    };
+    u.onend = terminou;
+    u.onerror = terminou;
+    jarvisFalaAtual = u;
     window.speechSynthesis.speak(u);
-  } catch (e) {}
+    return true;
+  } catch (e) { return false; }
 }
 function calarJarvis() {
   try { if (VOZ_FALA) window.speechSynthesis.cancel(); } catch (e) {}
@@ -9928,18 +9942,49 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
   const [volta, setVolta] = useState(0);   // muda ao rever, para recomeçar as barras
   const [story, setStory] = useState(false); // gerando o vídeo do story
   const ultima = i === cenas.length - 1;
+  // Quanto a cena fica no ar: a fala inteira, nunca menos que a animação.
+  // Antes era um relógio fixo por cena, e a frase longa ("5.770 quilos movidos.
+  // O mesmo que 5,8 carros populares.") era cortada no meio pela cena seguinte,
+  // porque a voz de cada aparelho tem o seu ritmo. Agora a cena só sai quando a
+  // voz termina (aoTerminar), com um respiro depois. O relógio fica de rede de
+  // segurança, folgado, para o navegador em que o "onend" não chega.
+  const [durCena, setDurCena] = useState(cenas[0].ms);
   useEffect(() => {
     // gerando o vídeo, a apresentação para: nem fala nem avança por baixo
     if (story) { try { window.speechSynthesis.cancel(); } catch (e) {} return; }
     const c = cenas[i];
-    if (!mudo) jarvisFalar(c.fala, { falar: true, vozNome: vozCfg && vozCfg.vozNome, velocidade: (vozCfg && vozCfg.velocidade) || 1.1, animado: vozCfg ? vozCfg.animado : true });
-    if (ultima) return;
-    const t = setTimeout(() => setI((x) => Math.min(x + 1, cenas.length - 1)), c.ms);
-    return () => clearTimeout(t);
-  }, [i, volta, story]);
+    let vivo = true, rede = null, falou = false, fimFala = false;
+    const t0 = Date.now();
+    const MIN_MS = 2600, RESPIRO_MS = 700;
+    const seguir = () => { if (vivo && !ultima) setI((x) => Math.min(x + 1, cenas.length - 1)); };
+    const aoTerminar = () => {
+      if (!vivo || fimFala) return;
+      fimFala = true;
+      clearTimeout(rede);
+      // a cena termina a animação antes de sair, mesmo com frase curta
+      rede = setTimeout(seguir, Math.max(RESPIRO_MS, MIN_MS - (Date.now() - t0)));
+    };
+    if (!mudo) {
+      const vel = ((vozCfg && vozCfg.velocidade) || 1.1) + 0.06;
+      falou = jarvisFalar(c.fala, { falar: true, vozNome: vozCfg && vozCfg.vozNome, velocidade: (vozCfg && vozCfg.velocidade) || 1.1,
+        animado: vozCfg ? vozCfg.animado : true, aoTerminar: aoTerminar });
+      if (falou) {
+        const estimado = Math.max(MIN_MS, 900 + (textoParaFala(c.fala).length * 75) / vel + RESPIRO_MS);
+        setDurCena(estimado);
+        // a rede: o dobro do que a frase deveria levar
+        if (!ultima) rede = setTimeout(seguir, estimado * 2 + 3000);
+      }
+    }
+    if (!falou) {
+      setDurCena(c.ms);
+      if (!ultima) rede = setTimeout(seguir, c.ms);
+    }
+    return () => { vivo = false; clearTimeout(rede); };
+  }, [i, volta, story, mudo]);
   useEffect(() => () => { try { window.speechSynthesis.cancel(); } catch (e) {} }, []);
   const fechar = () => { try { window.speechSynthesis.cancel(); } catch (e) {} onFechar(); };
   const toque = (e) => {
+    try { window.speechSynthesis.cancel(); } catch (er) {}
     const x = e.clientX / (window.innerWidth || 1);
     if (x < 0.3) setI((v) => Math.max(0, v - 1));
     else if (!ultima) setI((v) => v + 1);
@@ -9953,7 +9998,7 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
         {cenas.map((c, k) => (
           <div key={k} style={{ flex: 1, height: 3, borderRadius: 2, background: "#2a2a2a", overflow: "hidden" }}>
             {k < i && <div style={{ height: "100%", background: GRAD }} />}
-            {k === i && <div key={volta + "-" + i} className="rs-barra" style={{ height: "100%", background: GRAD, animationDuration: (ultima ? 0.4 : c.ms / 1000) + "s" }} />}
+            {k === i && <div key={volta + "-" + i} className="rs-barra" style={{ height: "100%", background: GRAD, animationDuration: (ultima ? 0.4 : durCena / 1000) + "s" }} />}
           </div>
         ))}
       </div>

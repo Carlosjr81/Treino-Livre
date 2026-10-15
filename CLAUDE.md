@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v33) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v34) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -978,8 +978,16 @@ Treino Livre e não um relatório.
     treinos e a sequência — só num treino de hoje, porque ela é contada até
     hoje;
   - o fecho com o halter.
-- **Cada cena é falada**, e dura o que a frase precisa (`ms`). 🔇 cala. Toque
-  avança; no terço esquerdo, volta.
+- **Cada cena é falada, e só sai quando a fala acaba.** A primeira versão
+  usava um relógio fixo por cena, estimado pelo número de palavras, e a voz de
+  cada aparelho tem o seu ritmo: no celular do dono a cena seguinte cortava a
+  frase no meio. Hoje `jarvisFalar` aceita `aoTerminar`, a cena espera o fim
+  da fala mais um respiro de 0,7 s (e nunca menos de 2,6 s, o tempo da
+  animação), e o relógio virou só rede de segurança — o dobro do estimado —
+  para navegador em que o `onend` não chega. `jarvisFalaAtual` segura a fala
+  no ar: no Chrome, fala sem referência é recolhida pela memória e o `onend`
+  some. Com 🔇, volta o relógio (`ms`). Toque avança (cortando a fala da cena
+  que sai); no terço esquerdo, volta.
 - **As contas são as do resto do app** (`dadosResumo` usa `calcularRecordes`,
   `compararAnterior`, `resumoCardio`, `cardioDaSemana`, `nivelDe`): o resumo
   nunca pode dizer um número diferente da ficha ou do histórico. O histórico que
@@ -1704,6 +1712,8 @@ Roteiro mínimo depois de mexer no app:
      aeróbica e o nível, nessa ordem. Depois abrir o "▶ Resumo animado" no
      painel da esteira, no fim do percurso e no histórico: a linha verde revela cada cena, cada cena é falada, e o mapa
      do percurso **não** aparece por cima do resumo.
+33æ. Assistir ao resumo animado inteiro **com a voz ligada**, sem tocar: toda
+     frase tem de ser dita até o fim antes de a cena trocar.
 33z. No resumo animado, tocar no 📸: a prévia grava até 100%, "Compartilhar"
      abre a janela do celular, e o vídeo no Instagram tem as cenas, o halter no
      fim e o @ embaixo.

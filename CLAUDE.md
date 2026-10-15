@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 322 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 361 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 322 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 361 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v35) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v36) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1120,6 +1120,42 @@ Entrada pelo botão **🗺 Caminhada ou corrida na rua (GPS)** na tela inicial
 3 km a 6:00/km, semáforo de 60 s, salto de um quarteirão, ponto impreciso,
 começo impreciso, pausa, 3 minutos de tela apagada, morro e plano tremendo.
 
+## O corredor (`TelaCorredor`, `AnaliseCorrida`, aba `corredor`)
+
+Pedido do dono: "coloque o máximo de dados que os corredores usam". Ele conhecia
+só o pace. Então cada número vem com uma frase que diz o que ele é
+(`GLOSSARIO_CORRIDA`, no botão "O que é cada número?"): número sem explicação
+não atrai ninguém.
+
+**As contas** ficam num bloco puro, entre `CORRIDA: AS CONTAS DO CORREDOR` e o
+fim dele, cobertas por `teste-corrida.js` (39 checagens):
+
+| Número | De onde sai |
+|---|---|
+| Melhores esforços (400 m, 1 km, milha, 5 km, 10 km, meia, maratona) | janela corrida sobre o percurso (`melhoresEsforcos`), nas mesmas cordas de 12 m e no mesmo tempo em movimento do `resumoRota`; na esteira, do ritmo médio da série (`esforcosDeSerie`) |
+| VO2máx estimado (VDOT) | Daniels & Gilbert (`vdotDe`), o melhor esforço de 1,5 km para cima das últimas 8 semanas. O teste confere contra a tabela publicada (VDOT 50 = 5 km em 19:57) |
+| Previsão de prova | o tempo que o VDOT prevê (`tempoPrevisto`, busca binária) |
+| Ritmos de treino | fácil, maratona, limiar, intervalado e repetição (`ritmosDeTreino`) |
+| Ritmo ajustado ao relevo (GAP) | custo de Minetti (2002): cada metro subido vale uns 6,6 m de plano, cada metro descido devolve uns 4 (`distanciaPlana`). Na esteira, a inclinação vira o "pace equivalente no plano" (`fatorInclinacao`) |
+| Cadência e passada | o acelerômetro (`devicemotion`), um passo por subida acima da média recente, com histerese e no máximo um a cada 240 ms (`criarContadorPassos`). Só conta com a corrida rodando. **O iPhone exige pedir permissão num toque**: é pedida no "Começar" |
+| FC média, máxima e zonas | a cinta Bluetooth que já existia, amostrada a cada segundo no percurso. FC máxima por Tanaka (208 − 0,7 × idade); a idade fica em `corredor.idade` (persistida e no backup). Buraco de sinal conta no máximo 5 s |
+| Split negativo | a segunda metade mais rápida que a primeira (`metades`) |
+| Carga | km dos últimos 7 dias ÷ média semanal das últimas 4 (aguda:crônica, faixa ideal 0,8–1,3) e o aumento contra a semana anterior (regra dos 10%) |
+
+- **Corrida e caminhada têm recordes separados** (`tipoCorrida`): o 5 km
+  caminhado não compete com o corrido. Caminhada não dá VDOT: ela não mostra o
+  limite de ninguém. Pedalada fica de fora de tudo isso.
+- **A primeira vez numa distância é estreia, não recorde** (`recordesNovos`).
+- O percurso guarda a análise em `historico[].rota` (`esforcos`, `gap`,
+  `melhorKm`, `metades`, `passos`, `cadencia`, `passada`, `fc`, `vdot`,
+  `decorridoMs`). Percurso antigo, sem esses campos, continua abrindo; a
+  análise só aparece nos novos.
+- A voz do km ganha a cadência e o batimento.
+- **Entradas do painel**: Histórico › Números, a tela de preparo do percurso e
+  o painel da esteira dentro do treino. Não na tela inicial (regra dela).
+- O resumo animado ganhou a cena "Recordes de corrida" quando o treino bateu
+  algum.
+
 ## Monitor cardíaco, e o que a web não alcança
 
 **Funciona:** qualquer monitor que exponha o serviço padrão de frequência
@@ -1662,11 +1698,11 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 322
-checagens em dez suítes, e elas recortam as funções do próprio `index.html`:
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 361
+checagens em onze suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash
-node rodar.js      # as dez suítes, contra o index.html da pasta ao lado
+node rodar.js      # as onze suítes, contra o index.html da pasta ao lado
 node servir.js     # sobe o app em http://localhost:8765
 ```
 
@@ -1738,6 +1774,11 @@ Roteiro mínimo depois de mexer no app:
      bairro aparecem, a voz avisa o km, a distância bate com a de outro app
      (diferença de poucos por cento), e o percurso abre no histórico.
 33. Abrir o Eyes Scan, fazer 10 repetições de verdade e conferir a contagem.
+33ç. Correr 2 km na rua com o celular no braço e a idade preenchida no painel:
+     a cadência aparece ao vivo e a voz do km a fala; no fim, a análise mostra
+     pace, ajustado ao relevo, melhor km, cadência, passada, melhores esforços e,
+     com cinta, as zonas. No painel do corredor: volume, carga, VO2máx,
+     previsões e recordes. No iPhone, o "Começar" pede o sensor de movimento.
 33x. Na esteira, de fone e com o microfone **desligado**: marcar a série tem de
      dizer distância, ritmo, calorias, intensidade e a meta da semana; com o
      cronômetro rodando, ele avisa cada km e a metade.

@@ -584,7 +584,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15h";
+const VERSAO_APP = "2026-10-15i";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -8544,6 +8544,361 @@ function trechosRota(pts) {
   return t;
 }
 // ---------------- FIM DAS CONTAS DO PERCURSO ----------------
+// ---------------- CORRIDA: AS CONTAS DO CORREDOR ----------------
+// O que os apps de corrida mostram, feito com o que o celular já mede. Cada
+// número aqui tem uma referência publicada, e a tela diz qual:
+// - melhores esforços: o trecho mais rápido de cada distância dentro de uma
+//   corrida (o "best effort" do Strava), por janela corrida sobre o percurso;
+// - VDOT de Jack Daniels (Daniels & Gilbert, 1979): o VO2máx que aquele
+//   resultado exigiria, e daí a previsão de prova e os ritmos de treino;
+// - ritmo ajustado ao relevo (GAP), pelo custo energético de correr em
+//   subida e descida de Minetti et al. (2002);
+// - frequência cardíaca máxima por Tanaka (208 − 0,7 × idade) e as cinco zonas;
+// - carga: o aumento de volume semanal (a "regra dos 10%") e a razão entre a
+//   semana e a média das quatro (aguda:crônica, Gabbett 2016).
+// Nada disso é diagnóstico: são as mesmas estimativas que os relógios fazem.
+const DISTANCIAS_ESFORCO = [
+  { m: 400, nome: "400 m" }, { m: 1000, nome: "1 km" }, { m: 1609, nome: "1 milha" },
+  { m: 5000, nome: "5 km" }, { m: 10000, nome: "10 km" }, { m: 21097, nome: "Meia maratona" },
+  { m: 42195, nome: "Maratona" },
+];
+// Corrida e caminhada têm recordes separados: o 5 km caminhado não compete
+// com o corrido. Pedalada fica de fora de tudo aqui.
+function tipoCorrida(perfil, vel) {
+  if (perfil === "corrida" || perfil === "rua-corrida") return "corrida";
+  if (perfil === "caminhada" || perfil === "rua-caminhada" || perfil === "trilha") return vel >= 7.5 ? "corrida" : "caminhada";
+  return null;
+}
+// O percurso como distância e tempo acumulados, pelas mesmas cordas de 12 m do
+// resumoRota (o zigue-zague do GPS não vira caminho) e pelo mesmo tempo em
+// movimento (a parada do semáforo não conta). Pausa não soma nada.
+function trilhaAcumulada(pts) {
+  const out = [{ m: 0, ms: 0 }];
+  let m = 0, ms = 0, anc = null;
+  (pts || []).forEach((p, i) => {
+    if (i === 0 || pts[i - 1].seg !== p.seg) { anc = p; return; }
+    const d = distanciaM(anc, p);
+    if (d < ROTA_CORDA_M) return;
+    m += d; ms += tempoEntre(anc, p); anc = p;
+    out.push({ m: m, ms: ms });
+  });
+  return out;
+}
+// O trecho mais rápido de cada distância. Janela corrida: para cada começo, o
+// fim é onde a distância completa, com o tempo interpolado no ponto exato.
+function melhoresEsforcos(pts) {
+  const tr = trilhaAcumulada(pts);
+  const total = tr[tr.length - 1].m;
+  const out = {};
+  DISTANCIAS_ESFORCO.forEach((d) => {
+    if (total < d.m) return;
+    let melhor = Infinity, j = 0;
+    for (let i = 0; i < tr.length; i++) {
+      const alvo = tr[i].m + d.m;
+      if (alvo > total) break;
+      if (j < i) j = i;
+      while (j < tr.length - 1 && tr[j].m < alvo) j++;
+      const a = tr[j - 1], b = tr[j];
+      const f = b.m > a.m ? (alvo - a.m) / (b.m - a.m) : 0;
+      const t = a.ms + (b.ms - a.ms) * f - tr[i].ms;
+      if (t > 0 && t < melhor) melhor = t;
+    }
+    if (isFinite(melhor)) out[d.m] = Math.round(melhor);
+  });
+  return out;
+}
+// Na esteira (e na série de rua sem percurso) o ritmo é um só: o melhor 5 km
+// de 30 minutos a 10 km/h é 30 minutos.
+function esforcosDeSerie(km, ms) {
+  const out = {};
+  if (!(km > 0) || !(ms > 0)) return out;
+  DISTANCIAS_ESFORCO.forEach((d) => { if (km * 1000 >= d.m) out[d.m] = Math.round((ms * d.m) / (km * 1000)); });
+  return out;
+}
+
+// ---- VDOT (Daniels) ----
+// O VO2 que a velocidade custa, dividido pela fração do VO2máx que dá para
+// sustentar por aquele tempo. v em metros por minuto, t em minutos.
+function vdotDe(m, ms) {
+  const t = ms / 60000;
+  if (!(m >= 1500) || !(t > 3)) return 0;
+  const v = m / t;
+  const vo2 = -4.6 + 0.182258 * v + 0.000104 * v * v;
+  const frac = 0.8 + 0.1894393 * Math.exp(-0.012778 * t) + 0.2989558 * Math.exp(-0.1932605 * t);
+  return vo2 / frac;
+}
+// O tempo que aquele VDOT prevê para uma distância: o VDOT cai com o tempo, então
+// busca binária.
+function tempoPrevisto(vdot, m) {
+  if (!(vdot > 0)) return 0;
+  let a = 60000, b = 60000 * 60 * 12;
+  for (let k = 0; k < 60; k++) {
+    const meio = (a + b) / 2;
+    if (vdotDe(m, meio) > vdot) a = meio; else b = meio;
+  }
+  return Math.round((a + b) / 2);
+}
+// A velocidade (m/min) em que a corrida custa aquele VO2: a equação do VO2 ao contrário
+function velocidadeDoVo2(vo2) {
+  const a = 0.000104, b = 0.182258, c = -4.6 - vo2;
+  return (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);
+}
+// Os ritmos de treino de Daniels, em min/km
+function ritmosDeTreino(vdot) {
+  if (!(vdot > 0)) return null;
+  const ritmo = (frac) => 1000 / velocidadeDoVo2(frac * vdot);
+  return {
+    facil: [ritmo(0.74), ritmo(0.59)],
+    maratona: tempoPrevisto(vdot, 42195) / 60000 / 42.195,
+    limiar: ritmo(0.88),
+    intervalado: ritmo(0.975),
+    repeticao: tempoPrevisto(vdot, 1609) / 60000 / 1.609,
+  };
+}
+
+// ---- Relevo (Minetti) ----
+// Custo de correr em J/kg/m com inclinação i (fração). No plano, 3,6.
+function custoMinetti(i) {
+  const g = Math.max(-0.45, Math.min(0.45, i));
+  return 155.4 * g ** 5 - 30.4 * g ** 4 - 43.3 * g ** 3 + 46.3 * g ** 2 + 19.5 * g + 3.6;
+}
+// Quanto aquela inclinação vale em esforço, comparada ao plano
+const fatorInclinacao = (i) => custoMinetti(i) / 3.6;
+// A distância "de plano" de um percurso: cada metro subido custa como uns
+// 6,6 m a mais, e cada metro descido devolve uns 4 (Minetti, a 10%). A descida
+// nunca devolve mais que 15% do percurso.
+function distanciaPlana(m, ganho, perda) {
+  return Math.max(m * 0.85, m + 6.6 * (ganho || 0) - 4 * (perda || 0));
+}
+
+// ---- Frequência cardíaca ----
+const fcMaxima = (idade) => (idade > 0 ? Math.round(208 - 0.7 * idade) : 0);
+const ZONAS_FC = [
+  { nome: "Z1 Recuperação", de: 0.5, cor: "#8a8a8a" },
+  { nome: "Z2 Aeróbico leve", de: 0.6, cor: "#4C9BE8" },
+  { nome: "Z3 Aeróbico", de: 0.7, cor: "#4CD137" },
+  { nome: "Z4 Limiar", de: 0.8, cor: "#F58529" },
+  { nome: "Z5 Máximo", de: 0.9, cor: "#ED4956" },
+];
+function zonaDaFc(bpm, fcMax) {
+  if (!(bpm > 0) || !(fcMax > 0)) return -1;
+  const f = bpm / fcMax;
+  let z = -1;
+  ZONAS_FC.forEach((x, k) => { if (f >= x.de) z = k; });
+  return z;
+}
+// amostras: [[t, bpm], ...] — o tempo de cada amostra vai para a zona dela
+function tempoNasZonas(amostras, fcMax) {
+  const ms = ZONAS_FC.map(() => 0);
+  for (let i = 1; i < (amostras || []).length; i++) {
+    const dt = Math.min(5000, amostras[i][0] - amostras[i - 1][0]);
+    const z = zonaDaFc(amostras[i][1], fcMax);
+    if (z >= 0 && dt > 0) ms[z] += dt;
+  }
+  return ms;
+}
+
+// ---- Passos pelo acelerômetro ----
+// O celular no braço ou no bolso balança uma vez a cada passo. A força medida
+// (com a gravidade) sobe e desce em volta de 9,8; conta-se cada subida acima da
+// média recente, com histerese, e no máximo um passo a cada 240 ms (250 por
+// minuto, acima do que qualquer pessoa faz).
+function criarContadorPassos() {
+  let media = 9.8, alto = false, ultimo = -1e9, passos = 0, suave = 9.8;
+  const tempos = [];
+  return {
+    processar(ax, ay, az, t) {
+      const g = Math.sqrt(ax * ax + ay * ay + az * az);
+      if (!isFinite(g)) return passos;
+      suave = suave * 0.6 + g * 0.4;
+      media = media * 0.98 + suave * 0.02;
+      if (!alto && suave > media + 1.2 && t - ultimo > 240) {
+        alto = true; ultimo = t; passos++;
+        tempos.push(t);
+        while (tempos.length && t - tempos[0] > 30000) tempos.shift();
+      } else if (alto && suave < media + 0.3) alto = false;
+      return passos;
+    },
+    get passos() { return passos; },
+    // passos por minuto nos últimos 30 s (ou no que houver, a partir de 6 s)
+    cadencia(agora) {
+      while (tempos.length && agora - tempos[0] > 30000) tempos.shift();
+      if (tempos.length < 6) return 0;
+      const janela = Math.max(6000, agora - tempos[0]);
+      return Math.round((tempos.length / janela) * 60000);
+    },
+  };
+}
+// Cadência: o que se espera de cada um, para a tela poder comentar
+function leituraCadencia(spm, tipo) {
+  if (!(spm > 0)) return null;
+  if (tipo === "caminhada") return spm >= 120 ? "passo firme" : spm >= 100 ? "passo moderado" : "passo tranquilo";
+  return spm >= 170 ? "cadência de corredor treinado" : spm >= 160 ? "boa cadência" :
+    "passada longa: encurtar o passo e aumentar a cadência alivia o impacto nos joelhos";
+}
+
+// ---- Uma corrida inteira, para a tela de fim e o histórico ----
+function analiseCorrida(pts, extras) {
+  const r = resumoRota(pts);
+  const ex = extras || {};
+  const out = { km: r.km, ms: r.ms, ritmo: r.ritmo, ganho: Math.round(r.ganho), perda: Math.round(r.perda), splits: r.splits };
+  out.esforcos = melhoresEsforcos(pts);
+  if (r.m > 0 && r.ms > 0) {
+    const plana = distanciaPlana(r.m, r.ganho, r.perda);
+    out.gap = r.ms / 60000 / (plana / 1000);
+  }
+  if (r.splits.length) {
+    const ms = r.splits.map((s) => s.ms);
+    out.melhorKm = Math.min.apply(null, ms);
+    out.piorKm = Math.max.apply(null, ms);
+  }
+  // split negativo: a segunda metade mais rápida que a primeira
+  const tr = trilhaAcumulada(pts), meio = tr[tr.length - 1].m / 2;
+  if (meio >= 500) {
+    const k = tr.findIndex((x) => x.m >= meio);
+    const t1 = tr[k].ms, t2 = tr[tr.length - 1].ms - t1;
+    out.metades = [t1, t2];
+  }
+  if (ex.passos > 0 && r.ms > 0) {
+    out.passos = ex.passos;
+    out.cadencia = Math.round(ex.passos / (r.ms / 60000));
+    out.passada = r.m / ex.passos;
+  }
+  if (ex.decorridoMs) out.decorridoMs = ex.decorridoMs;
+  let melhorVdot = 0;
+  Object.keys(out.esforcos).forEach((m) => { melhorVdot = Math.max(melhorVdot, vdotDe(+m, out.esforcos[m])); });
+  if (r.m >= 1500) melhorVdot = Math.max(melhorVdot, vdotDe(r.m, r.ms));
+  out.vdot = melhorVdot;
+  return out;
+}
+
+// ---- O histórico do corredor ----
+// Cada atividade de corrida ou caminhada vira { data, tipo, km, ms, esforcos,
+// ganho, cadencia, local }. Com percurso, os esforços são os medidos no
+// caminho; na esteira e na série de rua sem percurso, saem do ritmo médio.
+function atividadesDeCorrida(historico, exPorId) {
+  const lista = [];
+  (historico || []).forEach((h) => {
+    (h.itens || []).forEach((it) => {
+      const e = exPorId(it.exercicioId);
+      const perfil = e && e.cardio;
+      (it.series || []).forEach((s) => {
+        if (!serieConta(s) || !ehCardio(s)) return;
+        const m = medirCardio(s, 75, perfil);
+        const tipo = tipoCorrida(m.perfil, m.vel);
+        if (!tipo || !(m.min > 0)) return;
+        const ro = h.rota && h.rota.km ? h.rota : null;
+        const km = ro ? ro.km : m.km;
+        const ms = ro ? ro.ms : m.min * 60000;
+        if (!(km > 0)) return;
+        lista.push({
+          id: h.id, data: h.data, tipo: tipo, km: km, ms: ms,
+          esforcos: ro && ro.esforcos ? ro.esforcos : esforcosDeSerie(km, ms),
+          ganho: ro ? ro.ganho || 0 : 0, cadencia: ro ? ro.cadencia || 0 : 0,
+          local: ro ? "rua" : ehEsteiraPerfil(m.perfil) ? "esteira" : "rua",
+          incl: m.incl || 0,
+        });
+      });
+    });
+  });
+  return lista.sort((a, b) => new Date(a.data) - new Date(b.data));
+}
+// Recordes de cada distância, por tipo, até uma data (exclusive), com a data em
+// que aconteceram
+function recordesCorrida(ativs, ate) {
+  const rec = { corrida: {}, caminhada: {} };
+  ativs.forEach((a) => {
+    if (ate && new Date(a.data) >= ate) return;
+    Object.keys(a.esforcos).forEach((m) => {
+      const atual = rec[a.tipo][m];
+      if (!atual || a.esforcos[m] < atual.ms) rec[a.tipo][m] = { ms: a.esforcos[m], data: a.data, id: a.id };
+    });
+  });
+  return rec;
+}
+// Os recordes que uma atividade bateu (a primeira vez em cada distância não é
+// recorde: é estreia)
+function recordesNovos(ativs, id) {
+  const minha = ativs.filter((a) => a.id === id);
+  if (!minha.length) return [];
+  const antes = recordesCorrida(ativs.filter((a) => a.id !== id), new Date(minha[0].data));
+  const out = [];
+  minha.forEach((a) => Object.keys(a.esforcos).forEach((m) => {
+    const r = antes[a.tipo][m];
+    if (r && a.esforcos[m] < r.ms && !out.some((x) => x.m === +m && x.tipo === a.tipo)) out.push({ m: +m, tipo: a.tipo, ms: a.esforcos[m], antes: r.ms });
+  }));
+  return out;
+}
+// Tudo que o painel do corredor mostra. agora é injetável para o teste.
+function painelCorredor(historico, exPorId, agora) {
+  const ag = agora || Date.now();
+  const ativs = atividadesDeCorrida(historico, exPorId);
+  const dia = 864e5;
+  const seg0 = segundaDaSemana(new Date(ag)).getTime();
+  const semanas = [];
+  for (let k = 11; k >= 0; k--) {
+    const ini = seg0 - k * 7 * dia, fim = ini + 7 * dia;
+    const s = { ini: ini, corrida: 0, caminhada: 0, ms: 0, n: 0 };
+    ativs.forEach((a) => { const t = new Date(a.data).getTime(); if (t >= ini && t < fim) { s[a.tipo] += a.km; s.ms += a.ms; s.n++; } });
+    s.km = s.corrida + s.caminhada;
+    semanas.push(s);
+  }
+  const soma = (filtro) => {
+    const t = { km: 0, ms: 0, n: 0, ganho: 0 };
+    ativs.forEach((a) => { if (filtro(new Date(a.data))) { t.km += a.km; t.ms += a.ms; t.n++; t.ganho += a.ganho; } });
+    return t;
+  };
+  const hoje = new Date(ag);
+  const totais = {
+    semana: soma((d) => d.getTime() >= seg0),
+    mes: soma((d) => d.getMonth() === hoje.getMonth() && d.getFullYear() === hoje.getFullYear()),
+    ano: soma((d) => d.getFullYear() === hoje.getFullYear()),
+    tudo: soma(() => true),
+  };
+  // carga: últimos 7 dias contra a média semanal dos últimos 28
+  const kmEntre = (de, ate) => ativs.reduce((s, a) => { const t = new Date(a.data).getTime(); return t >= de && t < ate ? s + a.km : s; }, 0);
+  const agudo = kmEntre(ag - 7 * dia, ag + 1), cronico = kmEntre(ag - 28 * dia, ag + 1) / 4;
+  const carga = { agudo: agudo, cronico: cronico, razao: cronico > 0 ? agudo / cronico : 0 };
+  const sAtual = semanas[11].km, sAnterior = semanas[10].km;
+  carga.aumento = sAnterior > 0 ? (sAtual - sAnterior) / sAnterior : 0;
+  // VDOT: o melhor das corridas de 1,5 km para cima nas últimas 8 semanas
+  let vdot = 0, vdotDe8 = null;
+  ativs.forEach((a) => {
+    if (a.tipo !== "corrida" || ag - new Date(a.data).getTime() > 56 * dia) return;
+    Object.keys(a.esforcos).forEach((m) => {
+      const v = vdotDe(+m, a.esforcos[m]);
+      if (v > vdot) { vdot = v; vdotDe8 = { m: +m, ms: a.esforcos[m], data: a.data }; }
+    });
+    const v = vdotDe(a.km * 1000, a.ms);
+    if (v > vdot) { vdot = v; vdotDe8 = { m: a.km * 1000, ms: a.ms, data: a.data }; }
+  });
+  const previsoes = vdot ? [5000, 10000, 21097, 42195].map((m) => ({ m: m, ms: tempoPrevisto(vdot, m) })) : [];
+  // semanas seguidas com corrida ou caminhada, contando a atual se já houve
+  let seqSemanas = 0;
+  for (let k = 11; k >= 0; k--) { if (semanas[k].n) seqSemanas++; else if (k < 11) break; }
+  const maior = ativs.reduce((m, a) => (a.km > (m ? m.km : 0) ? a : m), null);
+  const maiorSemana = semanas.reduce((m, s) => Math.max(m, s.km), 0);
+  // ritmo médio das corridas por semana, para a linha de tendência
+  const tendencia = semanas.map((s) => {
+    const cs = ativs.filter((a) => a.tipo === "corrida" && new Date(a.data).getTime() >= s.ini && new Date(a.data).getTime() < s.ini + 7 * dia);
+    const km = cs.reduce((x, a) => x + a.km, 0), ms = cs.reduce((x, a) => x + a.ms, 0);
+    return km > 0 ? ms / 60000 / km : 0;
+  });
+  return {
+    ativs: ativs, semanas: semanas, totais: totais, carga: carga, vdot: vdot, vdotOrigem: vdotDe8,
+    previsoes: previsoes, ritmos: ritmosDeTreino(vdot), recordes: recordesCorrida(ativs),
+    seqSemanas: seqSemanas, maior: maior, maiorSemana: maiorSemana, tendencia: tendencia,
+  };
+}
+// Como a carga é dita na tela: a faixa de 0,8 a 1,3 é a de menor risco de lesão
+function leituraCarga(c) {
+  if (!(c.cronico > 0)) return { cor: "var(--cinza)", texto: "Ainda sem 4 semanas de histórico para comparar." };
+  if (c.razao > 1.5) return { cor: "var(--perigo)", texto: "Semana bem acima do seu costume. É assim que aparece canelite e dor no joelho: segure o volume." };
+  if (c.razao > 1.3) return { cor: "var(--obs)", texto: "Subindo rápido. Vale uma semana mais leve antes de aumentar de novo." };
+  if (c.razao >= 0.8) return { cor: "var(--ok)", texto: "Na faixa ideal: volume parecido com o das últimas semanas." };
+  return { cor: "var(--cinza)", texto: "Semana mais leve que o seu costume: bom para recuperar." };
+}
+// ---------------- FIM DAS CONTAS DO CORREDOR ----------------
 
 // O mapa (Leaflet) é carregado só quando a tela abre: quem nunca usar o
 // percurso não paga nada por ele. Fica no cache do service worker para abrir
@@ -8587,7 +8942,8 @@ const chaveRota = (id) => "rota-" + id;
 const guardarRota = (id, pts) => guardarFoto(chaveRota(id), compactarRota(pts));
 const lerRota = (id) => lerFoto(chaveRota(id)).then(expandirRota);
 
-function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, onSalvar, onVoltar, historico }) {
+function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, onSalvar, onVoltar, historico,
+  bpm, onConectarCardio, corredor, onPainel }) {
   const [modo, setModo] = useState("corrida-rua");
   const [fase, setFase] = useState("preparo");     // preparo | rodando | pausado | fim
   const [erroMapa, setErroMapa] = useState("");
@@ -8617,6 +8973,12 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
   const escondido = useRef(0);
   const inicio = useRef(0);
   const ultimoToque = useRef(0);
+  // Passos pelo acelerômetro e batimento da cinta, os dois só enquanto corre
+  const passos = useRef(null);
+  const fcAmostras = useRef([]);
+  const bpmRef = useRef(null);
+  bpmRef.current = bpm;
+  const [semSensor, setSemSensor] = useState(false);
   faseRef.current = fase;
   seguirRef.current = seguir;
   const mod = MODALIDADES_ROTA.find((m) => m.id === modo) || MODALIDADES_ROTA[0];
@@ -8702,8 +9064,10 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
       kmFalado.current = km;
       const sp = r.splits[km - 1];
       if (som) beep(880, 0.15, 0.25);
+      const cad = passos.current ? passos.current.cadencia(performance.now()) : 0;
       falar(km + (km === 1 ? " quilômetro" : " quilômetros") + ". Esse quilômetro em " + textoDuracao(Math.round(sp.ms / 1000)) +
-        ". Tempo total, " + textoDuracao(Math.round(r.ms / 1000)) + ".");
+        ". Tempo total, " + textoDuracao(Math.round(r.ms / 1000)) + "." +
+        (cad ? " Cadência " + cad + "." : "") + (bpmRef.current ? " Coração a " + bpmRef.current + "." : ""));
     }
     if (r.m - geo.current.m >= 400 && Date.now() - geo.current.t > 30000) procurarLugar(p, r.m);
   };
@@ -8742,11 +9106,38 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
   }, []);
   useEffect(() => () => desligarTravaTela(), []);
 
+  // O balanço do celular a cada passo. Só soma com a corrida rodando: andar até
+  // a porta de casa com o app aberto não é cadência.
+  useEffect(() => {
+    const aoMexer = (e) => {
+      if (faseRef.current !== "rodando" || !passos.current) return;
+      const a = e.accelerationIncludingGravity;
+      if (a && a.x !== null) passos.current.processar(a.x, a.y, a.z, e.timeStamp || performance.now());
+    };
+    window.addEventListener("devicemotion", aoMexer);
+    return () => window.removeEventListener("devicemotion", aoMexer);
+  }, []);
+  // o batimento entra uma vez por segundo
+  useEffect(() => {
+    if (fase !== "rodando") return;
+    const iv = setInterval(() => { if (bpmRef.current) fcAmostras.current.push([Date.now(), bpmRef.current]); }, 1000);
+    return () => clearInterval(iv);
+  }, [fase]);
+
   const comecar = () => {
     const p0 = leitura.current;
     if (!p0) { setAviso("Esperando o GPS achar você. Em lugar aberto leva alguns segundos."); return; }
     pts.current = [Object.assign({}, p0, { t: Date.now(), seg: 0 })];
     seg.current = 0; saltos.current = 0; kmFalado.current = 0;
+    passos.current = criarContadorPassos();
+    fcAmostras.current = [];
+    setSemSensor(false);
+    // O iPhone só entrega o acelerômetro depois de pedir, e só num toque
+    try {
+      if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+        DeviceMotionEvent.requestPermission().then((r) => { if (r !== "granted") setSemSensor(true); }, () => setSemSensor(true));
+      } else if (typeof DeviceMotionEvent === "undefined") setSemSensor(true);
+    } catch (e) { setSemSensor(true); }
     lugares.current = { ruas: [], bairros: [] };
     inicio.current = Date.now();
     if (linhaRef.current) linhaRef.current.setLatLngs([]);
@@ -8803,7 +9194,26 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
         lacunaMin: Math.round(r.lacunaMs / 60000),
       },
     };
+    Object.assign(registro.rota, analiseParaGuardar());
     return registro;
+  };
+  // A análise da corrida, do jeito que vai para o histórico: os campos que o
+  // painel do corredor e o mapa do histórico leem depois
+  const analiseParaGuardar = () => {
+    const lista = pts.current;
+    const fim = lista.length ? lista[lista.length - 1].t : Date.now();
+    const a = analiseCorrida(lista, { passos: passos.current ? passos.current.passos : 0, decorridoMs: Math.max(0, fim - inicio.current) });
+    const out = { esforcos: a.esforcos, perda: a.perda, gap: a.gap || null, melhorKm: a.melhorKm || null, metades: a.metades || null,
+      decorridoMs: a.decorridoMs || null, vdot: a.vdot ? Math.round(a.vdot * 10) / 10 : null };
+    if (a.passos > 30) { out.passos = a.passos; out.cadencia = a.cadencia; out.passada = Math.round(a.passada * 100) / 100; }
+    const fa = fcAmostras.current;
+    if (fa.length >= 10) {
+      const bs = fa.map((x) => x[1]);
+      const fcMax = fcMaxima(corredor && corredor.idade) || 0;
+      out.fc = { medio: Math.round(bs.reduce((s, b) => s + b, 0) / bs.length), max: Math.max.apply(null, bs) };
+      if (fcMax) { out.fc.zonas = tempoNasZonas(fa, fcMax); out.fc.fcMax = fcMax; }
+    }
+    return out;
   };
   const salvar = () => onSalvar(montarRegistro(), pts.current);
 
@@ -8833,6 +9243,16 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
   const ritmoAgora = ritmoRecente(lista);
   const kcal = ex ? medirCardio({ segundos: String(r.ms / 1000), mod: ex.cardio, km: String(r.km) }, pesoCorporal, ex.cardio).kcal : 0;
   const pedala = modo === "bike-rua";
+  const cadAgora = passos.current && fase === "rodando" ? passos.current.cadencia(performance.now()) : 0;
+  const tipoAtiv = modo === "corrida-rua" ? "corrida" : "caminhada";
+  // a análise da tela de fim, com os recordes que esta atividade bateu
+  const analiseFim = fase === "fim" && lista.length > 1 ? Object.assign({ ritmo: r.ritmo, km: r.km, ms: r.ms, ganho: Math.round(r.ganho), splits: r.splits }, analiseParaGuardar()) : null;
+  const recNovosFim = useMemo(() => {
+    if (!analiseFim || pedala) return [];
+    const fake = { id: "agora", data: new Date(inicio.current).toISOString(), nome: "", rota: { km: analiseFim.km, ms: analiseFim.ms, esforcos: analiseFim.esforcos },
+      itens: [{ exercicioId: modo, series: [{ segundos: String(Math.round(analiseFim.ms / 1000)), mod: ex ? ex.cardio : "rua-corrida", km: String(analiseFim.km) }] }] };
+    return recordesNovos(atividadesDeCorrida([fake].concat(historico || []), exPorId), "agora");
+  }, [fase, lista.length]);
   const cartao = (rot, val, grande) => (
     <div style={{ flex: grande ? "1 1 100%" : "1 1 30%", minWidth: 0, textAlign: "center" }}>
       <div style={{ fontSize: grande ? 40 : 21, fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}>{val}</div>
@@ -8848,6 +9268,9 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
       {cartao("subida", Math.round(r.ganho) + " m")}
       {cartao("kcal", "~" + Math.round(kcal))}
       {cartao("este km", fmtTempoRota(r.noKm.ms))}
+      {!pedala && fase !== "fim" && cartao("passos/min", cadAgora || "—")}
+      {bpm && fase !== "fim" ? cartao("❤ bpm", bpm) : null}
+      {fase !== "fim" && cartao("tempo total", fmtTempoRota(inicio.current ? Date.now() - inicio.current : 0))}
     </div>
   );
   const melhorSplit = r.splits.length ? Math.min.apply(null, r.splits.map((s) => s.ms)) : 0;
@@ -8902,9 +9325,18 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
           <button onClick={comecar} style={{ ...S.btn, width: "100%", fontSize: 17 }} disabled={!!erroGps && !leitura.current}>
             ▶ Começar
           </button>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            {onConectarCardio && (
+              <button onClick={onConectarCardio} style={{ ...S.btnGhost, flex: 1, fontSize: 13, fontWeight: 800, color: bpm ? "var(--ok)" : "#ED4956", borderColor: bpm ? "var(--ok)" : "#ED495666" }}>
+                {bpm ? "❤ " + bpm + " bpm" : "❤ Cinta cardíaca"}
+              </button>
+            )}
+            {onPainel && <button onClick={onPainel} style={{ ...S.btnGhost, flex: 1, fontSize: 13, fontWeight: 800 }}>📊 Painel do corredor</button>}
+          </div>
           <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
             Deixe a tela ligada durante o percurso: com a tela apagada o navegador para o GPS. O <b>modo bolso</b> deixa a
-            tela preta, que gasta pouca bateria. A voz avisa cada quilômetro.
+            tela preta, que gasta pouca bateria. A voz avisa cada quilômetro. Com o celular no bolso ou no braço, ele
+            conta os passos (cadência); com cinta cardíaca, o batimento e as zonas.
           </div>
         </div>
       )}
@@ -8913,6 +9345,7 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
         <div style={S.card}>
           {fase === "pausado" && <div style={{ ...S.label, color: "var(--obs)", textAlign: "center", marginBottom: 8 }}>⏸ Pausado</div>}
           {numeros}
+          {semSensor && !pedala && <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 8, textAlign: "center" }}>Sem acesso ao sensor de movimento: a cadência não vai ser medida.</div>}
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
             {fase === "rodando"
               ? <button onClick={pausar} style={{ ...S.btnGhost, flex: 1, fontWeight: 900 }}>⏸ Pausar</button>
@@ -8971,6 +9404,11 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
               )}
             </div>
           )}
+          {analiseFim && (
+            <div style={{ margin: "14px -14px 0" }}>
+              <AnaliseCorrida a={analiseFim} tipo={tipoAtiv} pedala={pedala} recNovos={recNovosFim} />
+            </div>
+          )}
           {r.lacunaMs > 60000 && (
             <div style={{ fontSize: 11.5, color: "var(--obs)", marginTop: 10 }}>
               {textoDuracao(Math.round(r.lacunaMs / 1000))} com a tela apagada, sem GPS: esses trechos entraram em linha reta.
@@ -9006,6 +9444,319 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
           <div style={{ position: "absolute", bottom: 40, fontSize: 12, color: "#555555" }}>toque duas vezes para voltar</div>
         </div>
       )}
+    </div>
+  );
+}
+
+// "1:23:45" para provas longas, "23:45" para as curtas
+const fmtProva = (ms) => fmtTempoRota(ms);
+const nomeDistancia = (m) => (DISTANCIAS_ESFORCO.find((d) => d.m === +m) || { nome: (m / 1000) + " km" }).nome;
+
+// O que cada número quer dizer. Quem corre conhece um ou dois; o resto precisa
+// de uma frase, senão é só número bonito.
+const GLOSSARIO_CORRIDA = [
+  ["Pace (ritmo)", "Minutos para cada quilômetro. 6:00 /km é 10 km/h. Quanto menor, mais rápido."],
+  ["Ritmo ajustado ao relevo (GAP)", "O pace que você faria no plano com o mesmo esforço. Subida conta como mais distância, descida devolve um pouco (Minetti, 2002). Serve para comparar treino com morro e sem morro."],
+  ["Parciais", "O tempo de cada quilômetro. Mostra se você largou rápido demais e quebrou no fim."],
+  ["Split negativo", "Fazer a segunda metade mais rápida que a primeira. É como os recordes mundiais são batidos: sinal de ritmo bem dosado."],
+  ["Cadência", "Passos por minuto, contados pelo balanço do celular. Corredores treinados ficam perto de 170 a 180. Passada longa e cadência baixa aumentam o impacto nos joelhos."],
+  ["Passada", "Metros por passo: a distância dividida pelos passos."],
+  ["Melhores esforços", "O trecho mais rápido de cada distância dentro de uma atividade, como no Strava: o melhor 1 km de uma corrida de 8 km conta como o seu 1 km do dia."],
+  ["VO2máx estimado (VDOT)", "O índice de Jack Daniels: o VO2máx que o seu melhor resultado recente exigiria. Sobe quando você melhora, e é dele que saem a previsão de prova e os ritmos de treino."],
+  ["Previsão de prova", "O tempo que o seu VDOT prevê para cada distância. Vale para quem treinou aquela distância: a maratona exige volume que a previsão não enxerga."],
+  ["Ritmos de treino", "As cinco intensidades de Daniels: fácil (a maior parte da semana), maratona, limiar (confortavelmente difícil, uns 20 a 40 min), intervalado (tiros de 3 a 5 min) e repetição (tiros curtos e rápidos)."],
+  ["Zonas de frequência cardíaca", "Faixas do batimento em relação ao seu máximo (208 − 0,7 × idade, Tanaka). Z2 constrói base aeróbica; Z4 e Z5 são treino forte e curto."],
+  ["Carga (aguda:crônica)", "Os km dos últimos 7 dias divididos pela média semanal das últimas 4 semanas. Entre 0,8 e 1,3 é a faixa de menor risco de lesão; acima de 1,5, o corpo não acompanha."],
+  ["Regra dos 10%", "Não aumentar o volume semanal mais que uns 10% de uma semana para a outra."],
+];
+
+// Um quadradinho de número com o nome embaixo
+function NumeroCorrida({ rot, val, sub, cor }) {
+  return (
+    <div style={{ flex: "1 1 30%", minWidth: 92, padding: "8px 6px", borderRadius: 10, background: "var(--bg2)", textAlign: "center" }}>
+      <div style={{ fontSize: 18, fontWeight: 900, fontVariantNumeric: "tabular-nums", color: cor || "var(--texto)", lineHeight: 1.15 }}>{val}</div>
+      <div style={{ ...S.label, fontSize: 9, marginTop: 3 }}>{rot}</div>
+      {sub && <div style={{ fontSize: 10, color: "var(--cinza)", marginTop: 2, lineHeight: 1.3 }}>{sub}</div>}
+    </div>
+  );
+}
+// As zonas como barras
+function ZonasFc({ zonas, fcMax }) {
+  const total = (zonas || []).reduce((a, b) => a + b, 0);
+  if (!total) return null;
+  return (
+    <div style={{ marginTop: 10 }}>
+      {ZONAS_FC.map((z, k) => (
+        <div key={k} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, marginBottom: 4 }}>
+          <span style={{ width: 118, color: "var(--cinza)" }}>{z.nome}</span>
+          <div style={{ flex: 1, height: 8, background: "var(--borda)", borderRadius: 4, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: Math.round((zonas[k] / total) * 100) + "%", background: z.cor }} />
+          </div>
+          <span style={{ width: 44, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtTempoRota(zonas[k])}</span>
+        </div>
+      ))}
+      <div style={{ fontSize: 10.5, color: "var(--cinza2)" }}>Zonas pela FC máxima de {fcMax} bpm.</div>
+    </div>
+  );
+}
+
+// A análise de uma corrida ou caminhada: tela de fim do percurso e histórico.
+// a: os campos do analiseCorrida (ou h.rota, que guarda os mesmos)
+function AnaliseCorrida({ a, tipo, pedala, recNovos, onPainel }) {
+  if (!a || !(a.km > 0)) return null;
+  const rec = (m) => (recNovos || []).some((r) => r.m === +m);
+  const metades = a.metades && a.metades[0] > 0 ? a.metades : null;
+  const negativo = metades && metades[1] < metades[0];
+  const leitura = leituraCadencia(a.cadencia, tipo);
+  const esforcos = Object.keys(a.esforcos || {}).map(Number).sort((x, y) => x - y);
+  const gapDiferente = a.gap && a.ritmo && Math.abs(a.gap - a.ritmo) >= 0.05;
+  return (
+    <div style={{ ...S.card }}>
+      <div style={{ ...S.label, marginBottom: 10 }}>📊 Análise {tipo === "caminhada" ? "da caminhada" : pedala ? "da pedalada" : "da corrida"}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {pedala
+          ? <NumeroCorrida rot="velocidade média" val={a.ritmo ? num1(60 / a.ritmo) + " km/h" : "—"} />
+          : <NumeroCorrida rot="pace médio" val={fmtRitmo(a.ritmo, "/km")} />}
+        {!pedala && a.gap ? <NumeroCorrida rot="ajustado ao relevo" val={fmtRitmo(a.gap, "/km")} sub={gapDiferente ? (a.gap < a.ritmo ? "o morro pesou" : "a descida ajudou") : "percurso plano"} /> : null}
+        {a.melhorKm ? <NumeroCorrida rot="melhor km" val={fmtTempoRota(a.melhorKm)} cor="var(--ok)" /> : null}
+        <NumeroCorrida rot="em movimento" val={fmtTempoRota(a.ms)} sub={a.decorridoMs && a.decorridoMs - a.ms > 30000 ? "total " + fmtTempoRota(a.decorridoMs) : null} />
+        <NumeroCorrida rot="subida / descida" val={"↗" + (a.ganho || 0) + " ↘" + (a.perda || 0)} sub="metros" />
+        {a.cadencia ? <NumeroCorrida rot="cadência" val={a.cadencia} sub="passos/min" /> : null}
+        {a.passada ? <NumeroCorrida rot="passada" val={num1(a.passada) + " m"} sub={(a.passos || 0).toLocaleString("pt-BR") + " passos"} /> : null}
+        {a.fc && a.fc.medio ? <NumeroCorrida rot="FC média / máx" val={a.fc.medio + " / " + a.fc.max} sub="bpm" cor="#ED4956" /> : null}
+        {a.vdot >= 20 && !pedala && tipo === "corrida" ? <NumeroCorrida rot="VO2máx estimado" val={num1(a.vdot)} sub="VDOT desta corrida" /> : null}
+      </div>
+      {leitura && <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 8 }}>👣 Cadência: {leitura}.</div>}
+      {metades && (
+        <div style={{ fontSize: 12.5, marginTop: 8, color: negativo ? "var(--ok)" : "var(--cinza)" }}>
+          {negativo ? "🔥 Split negativo: " : "Metades: "}1ª em {fmtTempoRota(metades[0])}, 2ª em {fmtTempoRota(metades[1])}
+          {negativo ? " — terminou mais forte do que começou." : metades[1] > metades[0] * 1.08 ? " — a segunda metade caiu: largar mais devagar costuma render mais." : "."}
+        </div>
+      )}
+      {a.fc && a.fc.zonas && <ZonasFc zonas={a.fc.zonas} fcMax={a.fc.fcMax} />}
+      {esforcos.length > 0 && !pedala && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Melhores esforços</div>
+          {esforcos.map((m) => (
+            <div key={m} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "3px 0", borderBottom: "1px solid var(--borda)" }}>
+              <span>{nomeDistancia(m)}{rec(m) ? <b style={{ color: "#E1306C" }}> 🏆 recorde</b> : null}</span>
+              <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>
+                {fmtProva(a.esforcos[m])} <span style={{ fontWeight: 600, color: "var(--cinza)", fontSize: 11.5 }}>{fmtRitmo(a.esforcos[m] / 60000 / (m / 1000), "/km")}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {onPainel && !pedala && (
+        <button onClick={onPainel} style={{ ...S.btnGhost, width: "100%", marginTop: 12, fontWeight: 800 }}>🏃 Abrir o painel do corredor</button>
+      )}
+    </div>
+  );
+}
+
+// Barras das 12 semanas: corrida por cima da caminhada
+function SemanasCorrida({ semanas }) {
+  const max = Math.max(1, ...semanas.map((s) => s.km));
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 110 }}>
+        {semanas.map((s, k) => (
+          <div key={k} title={num1(s.km) + " km"} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", height: "100%" }}>
+            {s.km > 0 && <div style={{ fontSize: 9, color: "var(--cinza)", textAlign: "center", marginBottom: 2 }}>{Math.round(s.km)}</div>}
+            <div style={{ height: (s.corrida / max) * 90 + "%", background: "#E1306C", borderRadius: "3px 3px 0 0" }} />
+            <div style={{ height: (s.caminhada / max) * 90 + "%", background: "#4C9BE8", borderRadius: s.corrida ? 0 : "3px 3px 0 0" }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--cinza2)", marginTop: 4 }}>
+        <span>há 11 semanas</span><span>esta semana</span>
+      </div>
+      <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--cinza)", marginTop: 6 }}>
+        <span><span style={{ color: "#E1306C" }}>■</span> corrida</span><span><span style={{ color: "#4C9BE8" }}>■</span> caminhada</span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- PAINEL DO CORREDOR ----------------
+// Tudo o que os apps de corrida mostram, num lugar só: volume, recordes,
+// VO2máx estimado, previsão de prova, ritmos de treino, carga e coração.
+// Esteira e rua entram juntas; corrida e caminhada têm recordes separados.
+function TelaCorredor({ historico, exPorId, corredor, setCorredor, onVoltar, onPercurso }) {
+  const P = useMemo(() => painelCorredor(historico, exPorId), [historico]);
+  const [verGlossario, setVerGlossario] = useState(false);
+  const [tipoRec, setTipoRec] = useState("corrida");
+  const idade = (corredor && corredor.idade) || "";
+  const fcMax = fcMaxima(parseInt(idade) || 0);
+  const t = P.totais;
+  const lc = leituraCarga(P.carga);
+  const bloco = (titulo, filhos) => (
+    <div style={S.card}>
+      <div style={{ ...S.label, marginBottom: 10 }}>{titulo}</div>
+      {filhos}
+    </div>
+  );
+  const linhaTotal = (rot, x) => (
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: "1px solid var(--borda)" }}>
+      <span style={{ color: "var(--cinza)" }}>{rot}</span>
+      <span style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
+        {num1(x.km)} km · {fmtTempoRota(x.ms)} · {x.n} {plural(x.n, "atividade", "atividades")}{x.ganho ? " · ↗" + Math.round(x.ganho) + " m" : ""}
+      </span>
+    </div>
+  );
+  const recs = P.recordes[tipoRec];
+  const tendencia = P.tendencia.filter((x) => x > 0);
+  return (
+    <div>
+      <button onClick={onVoltar} style={{ display: "block", background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 14, cursor: "pointer", padding: "4px 0 12px" }}>← Voltar</button>
+      <div style={{ ...S.logo, fontSize: 26, marginBottom: 4, display: "block" }}>Painel do corredor</div>
+      <div style={{ fontSize: 12.5, color: "var(--cinza)", marginBottom: 12, lineHeight: 1.5 }}>
+        Corrida e caminhada, na rua e na esteira. <button onClick={() => setVerGlossario(!verGlossario)}
+          style={{ background: "none", border: "none", color: "#E1306C", fontWeight: 800, cursor: "pointer", padding: 0, fontSize: 12.5 }}>
+          {verGlossario ? "Esconder" : "O que é cada número?"}</button>
+      </div>
+      {verGlossario && bloco("📖 O que é cada número", GLOSSARIO_CORRIDA.map(([n, d]) => (
+        <div key={n} style={{ marginBottom: 9, fontSize: 12.5, lineHeight: 1.5 }}><b>{n}.</b> <span style={{ color: "var(--cinza)" }}>{d}</span></div>
+      )))}
+
+      {!P.ativs.length ? (
+        <div style={{ ...S.card, textAlign: "center", fontSize: 13.5, lineHeight: 1.6 }}>
+          Nenhuma corrida ou caminhada ainda. Faça uma na rua com o GPS ou registre a esteira numa ficha, e os números aparecem aqui.
+          {onPercurso && <button onClick={onPercurso} style={{ ...S.btn, width: "100%", marginTop: 12 }}>🗺 Sair para correr agora</button>}
+        </div>
+      ) : (
+        <React.Fragment>
+          {bloco("📅 Volume", (
+            <React.Fragment>
+              {linhaTotal("Esta semana", t.semana)}
+              {linhaTotal("Este mês", t.mes)}
+              {linhaTotal("Este ano", t.ano)}
+              {linhaTotal("Desde o começo", t.tudo)}
+              <div style={{ marginTop: 14 }}><SemanasCorrida semanas={P.semanas} /></div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
+                {P.maior && <NumeroCorrida rot="maior distância" val={num1(P.maior.km) + " km"} sub={new Date(P.maior.data).toLocaleDateString("pt-BR")} />}
+                <NumeroCorrida rot="maior semana" val={num1(P.maiorSemana) + " km"} sub="nas últimas 12" />
+                <NumeroCorrida rot="semanas seguidas" val={P.seqSemanas} sub="com corrida ou caminhada" />
+              </div>
+            </React.Fragment>
+          ))}
+
+          {bloco("⚖️ Carga de treino", (
+            <React.Fragment>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <NumeroCorrida rot="últimos 7 dias" val={num1(P.carga.agudo) + " km"} />
+                <NumeroCorrida rot="média semanal (4 sem.)" val={num1(P.carga.cronico) + " km"} />
+                <NumeroCorrida rot="aguda : crônica" val={P.carga.razao ? num1(P.carga.razao) : "—"} cor={lc.cor} />
+              </div>
+              <div style={{ fontSize: 12.5, color: lc.cor, marginTop: 8, lineHeight: 1.5 }}>{lc.texto}</div>
+              {P.semanas[10].km > 0 && (
+                <div style={{ fontSize: 12, color: P.carga.aumento > 0.1 ? "var(--obs)" : "var(--cinza)", marginTop: 6 }}>
+                  Esta semana {P.carga.aumento >= 0 ? "+" : "−"}{Math.round(Math.abs(P.carga.aumento) * 100)}% em relação à anterior
+                  {P.carga.aumento > 0.1 ? " — acima dos 10% da regra." : "."}
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+
+          {bloco("🫁 VO2máx estimado e previsão de prova", P.vdot ? (
+            <React.Fragment>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                <div style={{ ...S.logo, fontSize: 44 }}>{num1(P.vdot)}</div>
+                <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.4 }}>
+                  VDOT, pelo seu melhor esforço das últimas 8 semanas
+                  {P.vdotOrigem ? ": " + nomeDistancia(Math.round(P.vdotOrigem.m)) + " em " + fmtProva(P.vdotOrigem.ms) : ""}.
+                </div>
+              </div>
+              <div style={{ marginTop: 10 }}>
+                {P.previsoes.map((p) => (
+                  <div key={p.m} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, padding: "5px 0", borderBottom: "1px solid var(--borda)" }}>
+                    <span>{nomeDistancia(p.m)}</span>
+                    <span style={{ fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>{fmtProva(p.ms)} <span style={{ fontWeight: 600, fontSize: 11.5, color: "var(--cinza)" }}>{fmtRitmo(p.ms / 60000 / (p.m / 1000), "/km")}</span></span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ ...S.label, fontSize: 10, margin: "14px 0 6px" }}>Ritmos de treino (Daniels)</div>
+              {[
+                ["Fácil", fmtRitmo(P.ritmos.facil[0], "") + " a " + fmtRitmo(P.ritmos.facil[1], "/km"), "a maior parte da semana; dá para conversar"],
+                ["Maratona", fmtRitmo(P.ritmos.maratona, "/km"), "longões e treino de prova"],
+                ["Limiar", fmtRitmo(P.ritmos.limiar, "/km"), "confortavelmente difícil, 20 a 40 min"],
+                ["Intervalado", fmtRitmo(P.ritmos.intervalado, "/km"), "tiros de 3 a 5 min com pausa igual"],
+                ["Repetição", fmtRitmo(P.ritmos.repeticao, "/km"), "tiros curtos de 200 a 400 m"],
+              ].map(([n, r, d]) => (
+                <div key={n} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12.5, padding: "5px 0", borderBottom: "1px solid var(--borda)" }}>
+                  <span><b>{n}</b> <span style={{ color: "var(--cinza)", fontSize: 11.5 }}>· {d}</span></span>
+                  <span style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{r}</span>
+                </div>
+              ))}
+              <div style={{ fontSize: 10.5, color: "var(--cinza2)", marginTop: 8 }}>Estimativas da fórmula de Daniels & Gilbert, as mesmas dos relógios de corrida. Não substituem um teste de esforço.</div>
+            </React.Fragment>
+          ) : (
+            <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5 }}>Aparece depois da primeira corrida de 1,5 km ou mais (caminhada não entra: ela não mostra o seu limite).</div>
+          ))}
+
+          {bloco("🏆 Recordes pessoais", (
+            <React.Fragment>
+              <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                {["corrida", "caminhada"].map((x) => (
+                  <button key={x} onClick={() => setTipoRec(x)} aria-pressed={tipoRec === x}
+                    style={{ flex: 1, padding: "7px 8px", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 13,
+                      border: "1px solid " + (tipoRec === x ? "#E1306C" : "var(--borda2)"), background: tipoRec === x ? "#E1306C18" : "transparent",
+                      color: tipoRec === x ? "#E1306C" : "var(--texto)" }}>{x === "corrida" ? "🏃 Corrida" : "🚶 Caminhada"}</button>
+                ))}
+              </div>
+              {DISTANCIAS_ESFORCO.filter((d) => recs[d.m]).length === 0 && <div style={{ fontSize: 12.5, color: "var(--cinza)" }}>Nenhum ainda.</div>}
+              {DISTANCIAS_ESFORCO.filter((d) => recs[d.m]).map((d) => (
+                <div key={d.m} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, padding: "5px 0", borderBottom: "1px solid var(--borda)" }}>
+                  <span>{d.nome} <span style={{ fontSize: 11, color: "var(--cinza2)" }}>{new Date(recs[d.m].data).toLocaleDateString("pt-BR")}</span></span>
+                  <span style={{ fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>{fmtProva(recs[d.m].ms)} <span style={{ fontWeight: 600, fontSize: 11.5, color: "var(--cinza)" }}>{fmtRitmo(recs[d.m].ms / 60000 / (d.m / 1000), "/km")}</span></span>
+                </div>
+              ))}
+            </React.Fragment>
+          ))}
+
+          {tendencia.length >= 2 && bloco("📈 Pace médio das corridas, semana a semana", (
+            <React.Fragment>
+              <svg viewBox="0 0 300 80" width="100%" height="80" aria-hidden="true">
+                {(() => {
+                  const vals = P.tendencia.map((x, i) => [i, x]).filter((p) => p[1] > 0);
+                  const mn = Math.min(...vals.map((p) => p[1])), mx = Math.max(...vals.map((p) => p[1]));
+                  const y = (v) => (mx > mn ? 10 + ((v - mn) / (mx - mn)) * 60 : 40);
+                  const pts = vals.map((p) => (p[0] * 300 / 11).toFixed(1) + "," + y(p[1]).toFixed(1)).join(" ");
+                  return <React.Fragment>
+                    <polyline points={pts} fill="none" stroke="#E1306C" strokeWidth="2.5" strokeLinejoin="round" />
+                    {vals.map((p) => <circle key={p[0]} cx={p[0] * 300 / 11} cy={y(p[1])} r="3.5" fill="#E1306C" />)}
+                  </React.Fragment>;
+                })()}
+              </svg>
+              <div style={{ fontSize: 11.5, color: "var(--cinza)" }}>Mais alto é mais rápido. Primeira: {fmtRitmo(tendencia[0], "/km")} · última: {fmtRitmo(tendencia[tendencia.length - 1], "/km")}</div>
+            </React.Fragment>
+          ))}
+        </React.Fragment>
+      )}
+
+      {bloco("❤️ Frequência cardíaca", (
+        <React.Fragment>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+            <span>Sua idade</span>
+            <input type="number" inputMode="numeric" min="10" max="99" value={idade} placeholder="anos" aria-label="Sua idade"
+              onChange={(e) => setCorredor(Object.assign({}, corredor || {}, { idade: e.target.value ? Math.max(0, Math.min(99, parseInt(e.target.value) || 0)) : null }))}
+              style={{ ...S.input, width: 80, margin: 0 }} />
+            {fcMax > 0 && <span style={{ color: "var(--cinza)" }}>FC máxima estimada: <b style={{ color: "var(--texto)" }}>{fcMax} bpm</b></span>}
+          </div>
+          {fcMax > 0 ? (
+            <div style={{ marginTop: 10 }}>
+              {ZONAS_FC.map((z, k) => (
+                <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "4px 0", borderBottom: "1px solid var(--borda)" }}>
+                  <span><span style={{ color: z.cor }}>●</span> {z.nome}</span>
+                  <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>{Math.round(fcMax * z.de)}–{Math.round(fcMax * (ZONAS_FC[k + 1] ? ZONAS_FC[k + 1].de : 1))} bpm</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 8 }}>Com a idade, o app calcula as suas zonas e mostra o tempo em cada uma quando você corre com cinta cardíaca.</div>
+          )}
+        </React.Fragment>
+      ))}
     </div>
   );
 }
@@ -9050,6 +9801,11 @@ function ModalRota({ h, onFechar }) {
           {ro.ganho ? <span>↗ {ro.ganho} m</span> : null}
         </div>
         {ro.regiao && <div style={{ fontSize: 12, color: "var(--cinza)" }}>📍 {ro.regiao}</div>}
+        {ro.esforcos && (
+          <div style={{ margin: "10px -14px 0" }}>
+            <AnaliseCorrida a={ro} pedala={ro.modo === "bike-rua"} tipo={ro.modo === "caminhada-rua" || ro.modo === "trilha" ? "caminhada" : "corrida"} />
+          </div>
+        )}
         {ro.ruas && ro.ruas.length > 0 && <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 4 }}>Passou por: {ro.ruas.join(", ")}</div>}
         {ms.length > 0 && (
           <div style={{ marginTop: 10 }}>
@@ -9186,6 +9942,11 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
     };
   }
   if (!d.forca && !d.cardio) return null;
+  // os recordes de corrida e caminhada que este treino bateu
+  if (d.cardio) {
+    const novos = recordesNovos(atividadesDeCorrida(comEle, exPorId), registro.id);
+    if (novos.length) d.recCorrida = novos;
+  }
   // Treino só de aeróbico tem o nome do aparelho no título: "Treino A" não diz nada
   if (!d.forca && d.cardio && itens.length === 1) d.nome = d.cardio.nome;
 
@@ -9292,6 +10053,14 @@ function cenasResumo(d) {
     }
   }
 
+  if (d.recCorrida) {
+    const rc = d.recCorrida.slice().sort((a, b) => b.m - a.m).slice(0, 4);
+    const falaDist = (m) => (m === 1609 ? "1 milha" : m === 21097 ? "meia maratona" : m === 42195 ? "maratona" : m >= 1000 ? (m / 1000) + (m === 1000 ? " quilômetro" : " quilômetros") : m + " metros");
+    c.push({ tipo: "recordes", rotulo: plural(rc.length, "Recorde de " + rc[0].tipo, "Recordes de " + rc[0].tipo), valor: d.recCorrida.length,
+      nomes: rc.map((r) => nomeDistancia(r.m) + " · " + fmtTempoRota(r.ms)),
+      fala: plural(d.recCorrida.length, "Recorde pessoal", "Recordes pessoais") + ": " +
+        rc.slice(0, 2).map((r) => falaDist(r.m) + " em " + textoDuracao(Math.round(r.ms / 1000))).join(", e ") + "." });
+  }
   if (d.nivel) {
     const nv = d.nivel;
     c.push({ tipo: "nivel", rotulo: "Seu nível", nivel: nv, total: d.total, sequencia: d.sequencia,
@@ -10431,7 +11200,7 @@ function BotaoResumoAnimado({ registro, pts, exPorId, historico, pesoCorporal, v
   );
 }
 
-function PainelCardio({ it, ex, historico, exPorId, pesoCorporal, vozCfg }) {
+function PainelCardio({ it, ex, historico, exPorId, pesoCorporal, vozCfg, onCorredor }) {
   const perfil = (ex && ex.cardio) || "caminhada";
   const feitas = it.series.filter((s) => s.feito);
   const prevista = !feitas.length;
@@ -10492,6 +11261,25 @@ function PainelCardio({ it, ex, historico, exPorId, pesoCorporal, vozCfg }) {
         </div>
       )}
       {dica && <div style={{ marginTop: 6, color: "var(--obs)" }}>💡 {dica}</div>}
+      {ehEsteiraPerfil(perfil) && r.ritmo > 0 && (() => {
+        // a inclinação média (pesada pelo tempo) vale como relevo: o pace "de rua plana" do mesmo esforço
+        const ss = it.series.filter((s) => (prevista || s.feito) && ehCardio(s));
+        const tmp = ss.reduce((a, s) => a + segundosDe(s), 0) || 1;
+        const incl = ss.reduce((a, s) => a + numDe(s.incl) * segundosDe(s), 0) / tmp;
+        const plano = incl >= 0.5 ? r.ritmo / fatorInclinacao(incl / 100) : 0;
+        const tipo = tipoCorrida(perfil, r.vel);
+        return (
+          <div style={{ marginTop: 6 }}>
+            <span style={{ color: "var(--cinza)" }}>Pace </span><b>{fmtRitmo(r.ritmo, "/km")}</b>
+            {plano ? <span style={{ color: "var(--cinza)" }}> · com {num1(incl)}% de inclinação, o esforço vale um pace de <b style={{ color: "var(--texto)" }}>{fmtRitmo(plano, "/km")}</b> no plano</span> : null}
+            {!prevista && onCorredor && tipo && (
+              <button onClick={onCorredor} style={{ background: "none", border: "none", color: "#E1306C", fontWeight: 800, cursor: "pointer", padding: 0, marginLeft: 6, fontSize: 12 }}>
+                📊 painel do corredor
+              </button>
+            )}
+          </div>
+        );
+      })()}
       {!prevista && (
         <BotaoResumoAnimado
           registro={{ id: "agora", nome: ex ? ex.nome : "Aeróbico", data: new Date().toISOString(), itens: [{ exercicioId: it.exercicioId, series: feitas }] }}
@@ -10512,7 +11300,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   bpm, cardioEstado, onConectarCardio, onDesconectarCardio, vozCfg, contarAlto, onAlternarContagem,
   autoSerie, onAlternarAuto,
   acoesVoz, vozAtiva, vozBarra, vozAnimado, onDescansando, responderVoz,
-  dicas, onDicaVista, onLigarVoz, onEscolaVoz }) {
+  dicas, onDicaVista, onLigarVoz, onEscolaVoz, onCorredor }) {
   // Recorde e última execução de cada exercício: servem de referência ao lado de
   // cada série e permitem festejar o recorde no instante em que ele acontece.
   const recordes = useMemo(() => recordesPorExercicio(historico), [historico]);
@@ -11687,7 +12475,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               );
             })}
             {ehAerobico && (
-              <PainelCardio it={it} ex={ex} historico={historico} exPorId={exPorId} pesoCorporal={pesoCorporal} vozCfg={vozCfg} />
+              <PainelCardio it={it} ex={ex} historico={historico} exPorId={exPorId} pesoCorporal={pesoCorporal} vozCfg={vozCfg} onCorredor={onCorredor} />
             )}
             {it.series.some(ehAquecimento) && (
               <div style={{ fontSize: 10, color: "var(--obs)", marginBottom: 6 }}>
@@ -12360,7 +13148,7 @@ function TelaCorpo({ medidas, historico, fotos, onAdicionarFoto, onExcluirFoto, 
 function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedirConfirmacao,
   medidas, onSalvarMedida, onExcluirMedida, avisar,
   fotos, onAdicionarFoto, onExcluirFoto,
-  meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg }) {
+  meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor }) {
   const [secao, setSecao] = useState(secaoInicial || "treinos");
   const recordes = useMemo(() => calcularRecordes(historico), [historico]);
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
@@ -12402,6 +13190,11 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedir
             <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onStoryProgresso}>📸 Story</button>
             <button style={{ ...S.btnGhost, flex: 1 }} onClick={onDesafiar}>⚔️ Desafiar amigo</button>
           </div>
+          {onCorredor && (
+            <button onClick={onCorredor} style={{ ...S.btnGhost, width: "100%", marginBottom: 12, fontWeight: 900, color: "#E1306C", borderColor: "#E1306C66" }}>
+              🏃 Painel do corredor: pace, recordes, VO2máx e previsão de prova
+            </button>
+          )}
           <VolumeRecomendado historico={historico} exPorId={exPorId} />
           <NumerosGerais historico={historico} />
           <GraficoSemanal historico={historico} />
@@ -12758,6 +13551,8 @@ function TreinoLivre() {
   const [som, setSom] = useState(true);
   const [tema, setTema] = useState("escuro");
   const [meta, setMeta] = useState(3);
+  // { idade }: só para a FC máxima e as zonas do painel do corredor
+  const [corredor, setCorredor] = useState({ idade: null });
   const [medidas, setMedidas] = useState([]);
   const [fotos, setFotos] = useState([]);   // só as datas; a imagem vive no IndexedDB
   const [lembrete, setLembrete] = useState({ ativo: false, hora: "18:00", dias: [1, 2, 3, 4, 5] });
@@ -13120,7 +13915,7 @@ function TreinoLivre() {
   const exportarDados = () => {
     // O backup não leva a sessão em andamento de propósito: restaurar num outro
     // aparelho um treino pela metade só confundiria.
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, voz, convite, entrou, dicas, botaoVoz, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, voz, convite, entrou, dicas, botaoVoz, corredor, seedV3: true });
     setModal({
       msg: "Backup dos seus dados. Toque em Copiar e guarde em local seguro (ex.: cole numa conversa sua no WhatsApp). Para restaurar, use Importar dados.",
       texto: dados,
@@ -13152,6 +13947,7 @@ function TreinoLivre() {
           if (d.som !== undefined) setSom(d.som);
           if (d.tema) setTema(d.tema);
           if (d.meta) setMeta(d.meta);
+          if (d.corredor && typeof d.corredor === "object") setCorredor({ idade: d.corredor.idade || null });
           if (d.medidas) setMedidas(d.medidas);
           if (d.lembrete) setLembrete(d.lembrete);
           if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
@@ -13201,6 +13997,7 @@ function TreinoLivre() {
         if (d.entrou) setEntrou(true);
         if (d.dicas && typeof d.dicas === "object") setDicas(d.dicas);
         if (d.botaoVoz && typeof d.botaoVoz.y === "number") setBotaoVoz(d.botaoVoz);
+        if (d.corredor && typeof d.corredor === "object") setCorredor({ idade: d.corredor.idade || null });
         if (d.meta) mt = d.meta;
         md = d.medidas || [];
         ft = d.fotos || [];
@@ -13300,13 +14097,13 @@ function TreinoLivre() {
   const dadosRef = useRef("");
   useEffect(() => {
     if (!carregado) return;
-    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, seedV3: true });
+    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, seedV3: true });
     const t = setTimeout(() => {
       const deu = store.set(STORAGE_KEY, dadosRef.current);
       setSemGravar((antes) => (antes === !deu ? antes : !deu));
     }, 400);
     return () => clearTimeout(t);
-  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, carregado]);
+  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, carregado]);
 
   // Fechou o app ou trocou de aba no meio do treino? Grava na hora, sem esperar o respiro.
   useEffect(() => {
@@ -13810,7 +14607,7 @@ function TreinoLivre() {
       if (!hh.rota) continue;
       try { const c = await lerFoto(chaveRota(hh.id)); if (c) rotasDados[hh.id] = c; } catch (err) {}
     }
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, rotasDados, lembrete, voz, convite, entrou, dicas, botaoVoz, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, rotasDados, lembrete, voz, convite, entrou, dicas, botaoVoz, corredor, seedV3: true });
     try {
       const blob = new Blob([dados], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -13879,6 +14676,8 @@ function TreinoLivre() {
             if (d.som !== undefined) setSom(d.som);
             if (d.tema) setTema(d.tema);
             if (d.meta) setMeta(d.meta);
+            if (d.corredor && typeof d.corredor === "object") setCorredor({ idade: d.corredor.idade || null });
+          if (d.corredor && typeof d.corredor === "object") setCorredor({ idade: d.corredor.idade || null });
             if (d.lembrete) setLembrete(d.lembrete);
             if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
               vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false,
@@ -14322,6 +15121,7 @@ function TreinoLivre() {
         )}
         {aba === "percurso" && (
           <TelaPercurso exPorId={exPorId} vozCfg={voz} som={som} pesoCorporal={pesoCorporal} historico={historico}
+            bpm={bpm} onConectarCardio={conectarCardio} corredor={corredor} onPainel={() => setAba("corredor")}
             pedirConfirmacao={pedirConfirmacao}
             onVoltar={() => setAba("inicio")}
             onSalvar={(registro, pts) => {
@@ -14331,6 +15131,10 @@ function TreinoLivre() {
                 .catch(() => { registro.rota = Object.assign({}, registro.rota, { semTraco: true }); })
                 .then(() => guardarTreino(registro, "percurso-concluido"));
             }} />
+        )}
+        {aba === "corredor" && (
+          <TelaCorredor historico={historico} exPorId={exPorId} corredor={corredor} setCorredor={setCorredor}
+            onVoltar={() => setAba(sessao ? "sessao" : "historico")} onPercurso={() => setAba("percurso")} />
         )}
         {aba === "funcional" && (
           <TelaFuncional todos={todos} exPorId={exPorId} som={som} vozCfg={voz}
@@ -14395,7 +15199,7 @@ function TreinoLivre() {
             onAlternarContagem={() => setVoz((v) => ({ ...v, contarAlto: v.contarAlto === false }))}
             autoSerie={voz.autoSerie !== false}
             onAlternarAuto={() => setVoz((v) => ({ ...v, autoSerie: v.autoSerie === false }))}
-            onConectarCardio={conectarCardio} onDesconectarCardio={desconectarCardio}
+            onConectarCardio={conectarCardio} onDesconectarCardio={desconectarCardio} onCorredor={() => setAba("corredor")}
             onDescansando={setDescansando} responderVoz={responderVoz}
             dicas={dicas} onDicaVista={marcarDica}
             onLigarVoz={ligarVoz} onEscolaVoz={() => setAba("escolaVoz")}
@@ -14410,7 +15214,7 @@ function TreinoLivre() {
             medidas={medidas} onSalvarMedida={salvarMedida} onExcluirMedida={excluirMedida} avisar={avisar}
             fotos={fotos} onAdicionarFoto={adicionarFoto} onExcluirFoto={excluirFoto}
             meta={meta} setMeta={setMeta} secaoInicial={secaoHistorico}
-            onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} pesoCorporal={pesoCorporal} vozCfg={voz} />
+            onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} pesoCorporal={pesoCorporal} vozCfg={voz} onCorredor={() => setAba("corredor")} />
         )}
         {aba === "editarHistorico" && editandoHistorico && (
           <TelaEditarHistorico key={editandoHistorico.id} registro={editandoHistorico} exPorId={exPorId} avisar={avisar}

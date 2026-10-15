@@ -1,4 +1,4 @@
-// Roda as dez suites e devolve um resumo.
+// Roda as onze suites e devolve um resumo.
 //
 //   node rodar.js
 //
@@ -21,6 +21,7 @@ const SUITES = [
   ["teste-cardio", "o aerobico: distancia, ritmo, gasto e a meta da semana"],
   ["teste-alvo", "onde cai a proxima frase do Jarvis, e o bi-set"],
   ["teste-rota", "o percurso na rua: GPS, distancia, parciais e o filtro"],
+  ["teste-corrida", "o corredor: recordes, VDOT, ritmos, relevo, passos e carga"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");

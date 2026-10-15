@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 474 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 485 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 474 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 485 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v38) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v39) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1173,7 +1173,7 @@ app; só a ideia da mecânica veio da documentação pública deles.
 
 ### Separado em camadas
 - **Motor** (`ZUMBI: MOTOR` até `FIM DO MOTOR ZUMBI`): lógica pura, sem tela,
-  som nem sensor, coberta por `teste-zumbi.js` (65 checagens, relógio e sensores
+  som nem sensor, coberta por `teste-zumbi.js` (86 checagens, relógio e sensores
   simulados). Unidades, base, alvo, avaliação, plano, estados, missão, validador,
   fila de falas e o registro do histórico.
 - **Som** (`criarPaisagemZumbi`): vento, chuva, estática, passos, gemido e
@@ -1265,6 +1265,33 @@ no checkpoint (`meta.missao`): retomar uma missão interrompida não troca de
 história no meio. `missaoZumbiPorId` cai no Último Sinal quando o id não
 existe mais. O `teste-zumbi.js` roda **as seis** pelos três caminhos (todas as
 fugas, nenhuma, pulando todas) e procura ordem de navegação em cada uma.
+
+### Os cinco monstros (`MONSTROS_ZUMBI`)
+Com o nome "Monster, Run!", o zumbi virou um monstro entre cinco, cada um com
+duas histórias ou mais:
+
+| Monstro | Histórias | Como persegue | Som da ameaça (`SOM_MONSTRO`) |
+|---|---|---|---|
+| 🧟 Zumbis | as seis acima | em grupo, lento | gemido grave e passos arrastados |
+| 🐺 Lobisomem | 🌕 Lua Cheia na Serra, 🪙 Rastro de Prata | um só, fareja | uivo que sobe e cai, passos curtos e rápidos |
+| 🦇 Vampiros | 🌅 Antes do Amanhecer, 🎭 Baile no Casarão | voam, evitam a luz | asas (ruído agudo batendo rápido), sem passos |
+| 🗿 Golem de pedra | ⛰️ O Guardião da Pedreira, 🕰️ Passos de Pedra | pesado, faz o chão tremer | ronco muito grave e pisadas lentas |
+| 🐙 Criatura do mar | 🌊 Maré Alta, 🐋 O Canto da Baía | perde força longe da água | ondas e ronco grave, sem passos |
+
+- **A história diz qual é o monstro** (campo `monstro`; sem ele, zumbi).
+  `montarMissaoZumbi` troca, nas cenas comuns, só as frases que falam "dele"
+  (`frases` do monstro: aviso, perseguição, desfecho, adiada). "Eles são
+  lentos" num lobisomem seria erro de história, e o teste cobra isso.
+- **Na configuração**, chips de monstro filtram as histórias, e a "Aleatória"
+  sorteia dentro do filtro (`sortearMissaoZumbi(ultima, rnd, monstro)`).
+  Trocar de monstro com uma história de outro escolhida volta para a aleatória.
+- **A prévia do som** toca o monstro da história escolhida (ou o do filtro), e
+  a fala dela é a do aviso daquele monstro. Na sessão, o título e a barra da
+  ameaça mostram o ícone do monstro; no histórico, o cartão também.
+- **A abertura continua sendo o zumbi**: é a marca da modalidade, e roda antes
+  de a pessoa escolher monstro.
+- Para um monstro novo: uma entrada em `MONSTROS_ZUMBI` (frases), uma em
+  `SOM_MONSTRO` (números do som) e duas histórias com `monstro`.
 
 ### Acrescentar uma missão
 É dado, não código: um objeto como `MISSAO_ULTIMO_SINAL` (id, versão, nome,
@@ -1876,7 +1903,7 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 474
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 485
 checagens em treze suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash
@@ -1962,7 +1989,8 @@ Roteiro mínimo depois de mexer no app:
 33è. ⏱ Intervalado na esteira, modelo corre-caminha: a voz anuncia cada bloco
      com a velocidade para pôr no painel, o 3-2-1 apita antes da troca, e ao
      encerrar no meio o histórico guarda só os blocos feitos. No Monster, Run!,
-     escolher "Aleatória" duas vezes: as histórias não podem se repetir.
+     escolher "Aleatória" duas vezes: as histórias não podem se repetir. Filtrar
+     🐺 Lobisomem e tocar "Ouvir uma prévia": tem de soar o uivo, não o gemido.
 33ç. Correr 2 km na rua com o celular no braço e a idade preenchida no painel:
      a cadência aparece ao vivo e a voz do km a fala; no fim, a análise mostra
      pace, ajustado ao relevo, melhor km, cadência, passada, melhores esforços e,

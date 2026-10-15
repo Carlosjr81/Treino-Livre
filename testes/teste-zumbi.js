@@ -9,7 +9,7 @@ if (ini < 0 || fim < 0) { console.error("nao achei o motor zumbi no index.html")
 eval(html.slice(ini, fim).replace(/\r\n/g, "\n") +
   "\nglobalThis.Z = { NOME_ZUMBI, ZUMBI_PADRAO, kmhDeMs, msDeKmh, paceSegKm, velocidadeAlvo, paceAlvo, fmtPaceSeg, validarAmostra, velocidadeBase," +
   " calcularAlvo, criarAvaliador, planejarMissao, validarConfigZumbi, criarMotorZumbi, restaurarMotorZumbi, validarMissao, escolherCena, narrar," +
-  " criarFilaFalas, MISSAO_ULTIMO_SINAL, MISSOES_ZUMBI, sortearMissaoZumbi, missaoZumbiPorId, juntarSemDuplicar, registroZumbi, duracaoPerseguicao };");
+  " criarFilaFalas, MISSAO_ULTIMO_SINAL, MISSOES_ZUMBI, sortearMissaoZumbi, missaoZumbiPorId, MONSTROS_ZUMBI, monstroDe, missoesDoMonstro, juntarSemDuplicar, registroZumbi, duracaoPerseguicao };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido, tol) {
@@ -209,8 +209,17 @@ function final() {
   teste("cada fala dita uma vez por evento", true, todasFugas.falas.length === new Set(todasFugas.falas.map((f) => f.evento)).size);
 
   console.log("--- 9b. as outras historias ---");
-  teste("seis historias", 6, Z.MISSOES_ZUMBI.length);
-  teste("ids unicos", 6, new Set(Z.MISSOES_ZUMBI.map((m) => m.id)).size);
+  teste("catorze historias", 14, Z.MISSOES_ZUMBI.length);
+  teste("ids unicos", 14, new Set(Z.MISSOES_ZUMBI.map((m) => m.id)).size);
+  teste("cinco monstros, cada um com pelo menos duas historias", [5, true],
+    [Object.keys(Z.MONSTROS_ZUMBI).length, Object.keys(Z.MONSTROS_ZUMBI).every((k) => Z.missoesDoMonstro(k).length >= 2)]);
+  const persegue = (m, at) => m.cenas.find((c) => c.id === "perseguicao").falas[at];
+  teste("so o zumbi e lento: as outras perseguicoes falam do proprio monstro", true,
+    Z.MISSOES_ZUMBI.every((m) => Z.monstroDe(m).id === "zumbi" ? /lentos|arrastando/.test(persegue(m, "caminhada")) : !/lentos|eles est/i.test(persegue(m, "caminhada") + persegue(m, "corrida"))));
+  let r2 = 0; const rnd2 = () => (r2 = (r2 + 0.29) % 1);
+  const lobos = Array.from({ length: 10 }, () => Z.sortearMissaoZumbi("lua-cheia-na-serra", rnd2, "lobisomem"));
+  teste("o sorteio por monstro fica no monstro e nao repete", [true, true],
+    [lobos.every((m) => Z.monstroDe(m).id === "lobisomem"), lobos.every((m) => m.id !== "lua-cheia-na-serra")]);
   Z.MISSOES_ZUMBI.forEach((m) => {
     const v = Z.validarMissao(m);
     const todas = simular({ missao: m });

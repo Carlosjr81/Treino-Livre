@@ -96,7 +96,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 510 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 522 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -137,7 +137,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 510 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 522 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -212,7 +212,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v46) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v47) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -561,6 +561,39 @@ Duas saídas, e as duas são obrigatórias:
    Exercício sentado não mostra os pés e máquina encostada na parede não mostra
    o corpo inteiro — sem esta saída o enquadramento viraria uma porta trancada
    justamente nos exercícios mais comuns da academia.
+
+### Sentado, com as pernas atrás do banco (`EYES_GRUPOS_TRONCO`)
+
+Num treino real de puxada alta, o rodapé dizia "lendo altura do quadril" e a
+conta empacava no 1. Eram três defeitos somados, e os três valem para supino
+máquina, remada, rosca e desenvolvimento:
+
+1. **O enquadramento esperava os pés.** Nos grupos peito, costas, ombros,
+   bíceps e tríceps (fora do funcional, `eyesSoTronco`), ele mede **do quadril
+   para cima** (`enquadrarTronco`): ombros, cotovelos e quadril bastam, e o
+   tronco precisa ocupar de 15% a 55% da tela. Os 12 s continuam como saída.
+2. **O contador lia perna inventada e a altura do quadril.** Perna escondida
+   o modelo inventa com visibilidade perto de 0,55 — passa no `visivel` e treme
+   o bastante para virar "o que mais se mexe". No automático, sinal de perna só
+   vale com a perna bem vista (`EYES_PONTOS_PERNA`, `visivelBem`); a altura do
+   quadril saiu do automático (é posição dividida pelo tronco, e na puxada o
+   tronco encurta na imagem a cada repetição); e nesses grupos só concorrem os
+   sinais do braço (`EYES_SINAIS_TRONCO`).
+3. **A última repetição de braço estendido nunca contava.** A histerese só
+   contava na volta para "baixo". Puxada, supino e remada descansam com o
+   cotovelo aberto, em "cima": cada repetição só entrava na descida da
+   seguinte, e a última ficava de fora. Hoje o automático aprende **de que lado
+   o movimento descansa** (`polo`: o lado que o sinal deixa ao começar) e conta
+   na volta para lá. O funcional continua fixo em "baixo", como o perfil espera.
+
+Contar meio ciclo antes tirou a folga de um caso: andando para longe do
+celular, três passadas travavam o padrão antes de o deslocamento ser visto
+(ele precisa de uns 3 s). Por isso **andar desconta também o padrão que travou
+há menos de 3,5 s** (`m.desde`).
+
+`teste-contador.js` tem a puxada sintética (tronco inclinando, pernas
+inventadas tremendo, com e sem saber que é sentado) e `teste-enquadramento.js`
+o enquadramento sentado.
 
 Achado ao mexer nisto: **o botão de contar pela câmera só aparecia com o Jarvis
 ligado.** Ele vivia dentro da condição `ehAlvo`, que exigia `vozAtiva` — então
@@ -2040,7 +2073,7 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 510
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 522
 checagens em treze suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash

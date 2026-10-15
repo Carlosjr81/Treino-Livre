@@ -192,6 +192,56 @@ teste("duas repeticoes contam duas", 2, cena([quieto(1500), reps(2), quieto(500)
 // e o que contou e nao se confirmou sai depois
 teste("movimento solto conta e e descontado em 10 s", 0, cena([quieto(1500), reps(1), quieto(11000)]).total);
 
+console.log("\n--- sentado, pernas atras do banco (puxada alta) ---");
+// O caso do treino real: puxada sentado, o banco e a almofada escondem as
+// pernas. O modelo inventa joelho e tornozelo com visibilidade de 0,5 a 0,6,
+// tremendo muito, e o tronco inclina para tras a cada puxada (o ombro desce na
+// imagem). O rodape dizia "lendo altura do quadril" e a conta nao andava.
+function puxada(opc) {
+  const o = opc || {};
+  semear();
+  const cont = A.criarContador({ preferidos: ["cotovelo-e", "cotovelo-d"], tronco: o.tronco });
+  const ruido = (k) => (sorte() - 0.5) * k;
+  let t = 0;
+  const passo = 1000 / 30;
+  const quadro = (f) => {
+    // f: 0 = bracos em cima (barra la no alto), 1 = barra no peito
+    const l = [];
+    for (let i = 0; i < 33; i++) l[i] = { x: 0.5, y: 0.3, visibility: 0.9 };
+    const p = (x, y, v) => ({ x: x + ruido(0.006), y: y + ruido(0.006), z: 0, visibility: v === undefined ? 0.9 : v });
+    const oy = 0.36 + 0.05 * f;              // o tronco inclina: o ombro desce
+    l[0] = p(0.5, oy - 0.1);
+    l[11] = p(0.41, oy); l[12] = p(0.59, oy);
+    l[23] = p(0.44, 0.66); l[24] = p(0.56, 0.66);
+    // cotovelo: em cima, acima e ao lado do ombro; embaixo, ao lado das costelas
+    const cy = oy - 0.13 + 0.25 * f, cxo = 0.1 + 0.04 * f;
+    l[13] = p(0.41 - cxo, cy); l[14] = p(0.59 + cxo, cy);
+    // punho: segura a barra, que desce do alto ate o peito
+    const by = 0.08 + 0.26 * f;
+    l[15] = p(0.31, by); l[16] = p(0.69, by);
+    // pernas inventadas: escondidas, tremendo muito
+    for (let i = 25; i <= 32; i++) {
+      const lado = i % 2 ? -1 : 1;
+      l[i] = { x: 0.5 + lado * 0.08 + ruido(0.12), y: 0.8 + ruido(0.15), z: 0, visibility: 0.56 };
+    }
+    return l;
+  };
+  for (let i = 0; i < 60; i++) { cont.processar(quadro(0), t); t += passo; }
+  const n = o.reps || 10;
+  for (let r = 0; r < n; r++) {
+    const q = Math.round(2400 / passo);
+    for (let i = 0; i < q; i++) { cont.processar(quadro((1 - Math.cos((i / q) * 2 * Math.PI)) / 2), t); t += passo; }
+  }
+  for (let i = 0; i < 60; i++) { cont.processar(quadro(0), t); t += passo; }
+  return cont.estado();
+}
+const pu = puxada({ tronco: true });
+teste("puxada sentado, 10 repeticoes", 10, pu.total);
+teste("e le o cotovelo, nao o quadril", true, /^cotovelo/.test(pu.sinal || ""));
+const pa = puxada({});
+teste("sem saber que e sentado, tambem conta 10", 10, pa.total);
+teste("e tambem nao le perna escondida", true, !/joelho|quadril|pe-|abertura-pes/.test(pa.sinal || ""));
+
 console.log("\n--- calorias ---");
 console.log("  30 min, 80 kg: " + A.caloriasEstimadas(1800, 80) + " kcal");
 

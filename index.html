@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15s";
+const VERSAO_APP = "2026-10-15t";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2009,6 +2009,25 @@ const EYES_PREFERENCIA = {
   abdomen: ["quadril-e", "quadril-d"],
 };
 
+// Puxada, supino máquina, rosca, desenvolvimento: sentado, com as pernas
+// escondidas pelo banco ou pela almofada. Nesses grupos o exercício é dos
+// braços, e o enquadramento e o contador olham só para a parte de cima.
+// Antes os dois esperavam ver os pés: o enquadramento só liberava em 12 s, e o
+// contador lia "altura do quadril" na puxada — o tronco que se inclina mexia o
+// número mais que o cotovelo.
+const EYES_GRUPOS_TRONCO = ["peito", "costas", "ombros", "biceps", "triceps"];
+const eyesSoTronco = (ex) => !!(ex && !ex.func && EYES_GRUPOS_TRONCO.indexOf(ex.grupo) >= 0);
+const EYES_SINAIS_TRONCO = ["cotovelo-e", "cotovelo-d", "ombro-e", "ombro-d",
+  "punho-e-alto", "punho-d-alto", "alcance-e", "alcance-d", "abertura-maos"];
+// Pontos das pernas que cada sinal usa. Perna atrás do banco o modelo inventa
+// com visibilidade de 0,5 a 0,6 — passa no `visivel` e treme o bastante para
+// virar "o que mais se mexe". No automático, só vale perna bem vista.
+const EYES_PONTOS_PERNA = {
+  "joelho-e": [25, 27], "joelho-d": [26, 28], "quadril-e": [25], "quadril-d": [26],
+  "joelho-e-alto": [25], "joelho-d-alto": [26], "pe-e-alto": [27], "pe-d-alto": [28],
+  "abertura-pes": [27, 28],
+};
+
 // ---- Sinais de posição, para o movimento funcional ----
 // Exercício de máquina é sempre um ângulo que abre e fecha. Funcional não: salto
 // é a ALTURA do quadril, polichinelo é a ABERTURA dos pés e das mãos, soco é o
@@ -2104,9 +2123,12 @@ const MOV_FUNCIONAIS = {
 // significa "ande para a sua esquerda" — e errar esse sinal manda a pessoa para
 // fora do quadro em vez de para dentro.
 const EYES_PONTOS_ENQUADRA = [11, 12, 23, 24, 25, 26, 27, 28];
+// Sentado, com as pernas atrás do banco: ombros, cotovelos e quadril bastam.
+const EYES_PONTOS_TRONCO = [11, 12, 13, 14, 23, 24];
 
-function avaliarEnquadramento(lm) {
+function avaliarEnquadramento(lm, opcoes) {
   if (!lm) return { chave: "corpo", texto: "Não estou te vendo", fala: "Não estou te vendo. Fique de frente para a câmera." };
+  if (opcoes && opcoes.tronco) return enquadrarTronco(lm);
   const faltando = EYES_PONTOS_ENQUADRA.some((i) => !visivel(lm[i]));
   if (faltando) {
     return {
@@ -2146,6 +2168,37 @@ function avaliarEnquadramento(lm) {
   if (altura > 0.80) {
     return { chave: "afaste", texto: "Afaste-se", fala: "Você está muito perto. Dê um passo para trás.", seta: "afasta" };
   }
+  return { chave: "ok", texto: "Enquadrado", fala: "Enquadrado. Pode começar.", ok: true };
+}
+
+// A mesma conversa, medindo dos ombros ao quadril. Num corpo em pé o tronco é
+// uns 30% da altura; sentado e enquadrado do quadril para cima, de 15% a 55%
+// da tela é a faixa em que o modelo enxerga bem os cotovelos.
+function enquadrarTronco(lm) {
+  if (EYES_PONTOS_TRONCO.some((i) => !visivel(lm[i]))) {
+    return {
+      chave: "corpo", texto: "Mostre do quadril para cima",
+      fala: "Não estou te vendo direito. Preciso ver do quadril para cima, com os braços.",
+    };
+  }
+  const nariz = lm[0];
+  const ombroY = (lm[11].y + lm[12].y) / 2, quadrilY = (lm[23].y + lm[24].y) / 2;
+  if (quadrilY > 0.985 || Math.min(lm[11].y, lm[12].y) < 0.03 || (visivel(nariz) && nariz.y < 0.025)) {
+    return { chave: "afaste", texto: "Afaste-se", fala: "Você está cortado. Afaste um pouco o celular.", seta: "afasta" };
+  }
+  const cx = (lm[11].x + lm[12].x + lm[23].x + lm[24].x) / 4;
+  if (cx < 0.38 || cx > 0.62) {
+    const precisaMais = cx < 0.5;
+    return {
+      chave: precisaMais ? "esq" : "dir",
+      texto: precisaMais ? "Vá para a sua esquerda" : "Vá para a sua direita",
+      fala: precisaMais ? "Ande para a sua esquerda." : "Ande para a sua direita.",
+      seta: precisaMais ? "maisX" : "menosX",
+    };
+  }
+  const tronco = quadrilY - ombroY;
+  if (tronco < 0.15) return { chave: "aproxime", texto: "Aproxime o celular", fala: "Você está longe. Aproxime o celular.", seta: "aproxima" };
+  if (tronco > 0.55) return { chave: "afaste", texto: "Afaste-se", fala: "Você está muito perto. Afaste um pouco o celular.", seta: "afasta" };
   return { chave: "ok", texto: "Enquadrado", fala: "Enquadrado. Pode começar.", ok: true };
 }
 
@@ -2405,6 +2458,11 @@ function criarContador(opcoes) {
   const minAmp = (perfil && perfil.minAmp) || 22;
   const alternado = !!(perfil && perfil.par);
   const TODOS = EYES_SINAIS.concat(EYES_SINAIS_POS);
+  // No automático (máquina), quais sinais concorrem. A altura do quadril fica
+  // de fora: é posição absoluta dividida pelo tronco, e na puxada o tronco
+  // encurta na imagem a cada repetição — o número pulava sem o quadril sair do
+  // lugar, e ganhava do cotovelo. No funcional ela é o salto, e continua lá.
+  const AUTO = (o.tronco ? EYES_SINAIS_TRONCO : TODOS.map((s) => s.id).filter((id) => id !== "quadril-alto"));
   const amostras = {};
   let total = 0;
   let amplitude = 0;
@@ -2432,12 +2490,20 @@ function criarContador(opcoes) {
   const TRAVA = o.trava || (perfil ? 2 : 3);
   const DUR_MAX = 8000;
   const SOLTA_MS = 10000;
+  // De que lado o movimento descansa. Agachamento e rosca descansam com o
+  // ângulo num extremo; puxada, supino e remada descansam com o braço
+  // estendido, no outro. A repetição conta quando o sinal VOLTA para onde
+  // descansa — e contar sempre na volta para "baixo" deixava a repetição dos
+  // exercícios de braço estendido para ser contada só na descida da seguinte:
+  // a última da série nunca contava. No automático, o lado de descanso é o
+  // que o sinal deixa ao começar; no funcional o perfil já sabe.
+  const POLO0 = perfil ? "baixo" : null;
   // Uma máquina de estados por sinal contado. No modo alternado são duas.
   function criarMaquina(id) {
-    return { id: id, estado: "baixo", ultima: 0, conta: 0, repMin: Infinity, repMax: -Infinity, prov: [], travado: false, ampRef: 0 };
+    return { id: id, estado: POLO0, polo: "baixo", ultima: 0, conta: 0, repMin: Infinity, repMax: -Infinity, prov: [], travado: false, ampRef: 0 };
   }
   function recalibrar(m) {
-    m.estado = "baixo"; m.ultima = 0; m.repMin = Infinity; m.repMax = -Infinity;
+    m.estado = POLO0; m.polo = "baixo"; m.ultima = 0; m.repMin = Infinity; m.repMax = -Infinity;
     m.prov = []; m.travado = false; m.ampRef = 0;
   }
   // Recebe a repetição que a histerese fechou. Diz se ela conta agora e
@@ -2465,6 +2531,7 @@ function criarContador(opcoes) {
       if (ampOk && durOk) {
         // o que veio antes da janela já tinha sido descontado; a janela fica
         m.travado = true;
+        m.desde = jan[0].t;
         m.ampRef = amps.reduce((a, b) => a + b, 0) / amps.length;
         m.prov = [];
       } else {
@@ -2523,9 +2590,17 @@ function criarContador(opcoes) {
     if (a.valor < m.repMin) m.repMin = a.valor;
     if (a.valor > m.repMax) m.repMax = a.valor;
     const n = (a.valor - a.min) / faixa;
-    if (m.estado === "baixo" && n > 0.72) { m.estado = "cima"; return null; }
-    if (m.estado === "cima" && n < 0.28) {
-      m.estado = "baixo";
+    if (m.estado === null) {
+      if (n > 0.72) { m.polo = "baixo"; m.estado = "cima"; }
+      else if (n < 0.28) { m.polo = "cima"; m.estado = "baixo"; }
+      return null;
+    }
+    const emCima = n > 0.72, emBaixo = n < 0.28;
+    const longe = m.polo === "baixo" ? emCima : emBaixo;
+    const voltou = m.polo === "baixo" ? emBaixo : emCima;
+    if (m.estado === m.polo && longe) { m.estado = m.polo === "baixo" ? "cima" : "baixo"; return null; }
+    if (m.estado !== m.polo && voltou) {
+      m.estado = m.polo;
       if (agora - m.ultima <= minMs) return null;
       const amp = m.repMax > m.repMin ? m.repMax - m.repMin : 0;
       const dur = m.ultima ? agora - m.ultima : 0;
@@ -2544,6 +2619,8 @@ function criarContador(opcoes) {
       // A janela corrida é o que faz o contador acompanhar a amplitude quando
       // ela encolhe — e ela encolhe sempre, porque é isso que o cansaço faz.
       TODOS.forEach((s) => {
+        const perna = !perfil && EYES_PONTOS_PERNA[s.id];
+        if (perna && perna.some((i) => !visivelBem(lm[i]))) return;
         const v = s.calc(lm);
         if (v === null) return;
         const a = amostras[s.id] || (amostras[s.id] = { hist: [], valor: v, suave: v, min: v, max: v });
@@ -2567,7 +2644,7 @@ function criarContador(opcoes) {
         // no alternado cada lado já tem o seu sinal, definido pelo perfil
         escolhido = perfil.par.join(" + ");
       } else {
-        const candidatos = (perfil && perfil.sinais ? perfil.sinais : TODOS.map((s) => s.id))
+        const candidatos = (perfil && perfil.sinais ? perfil.sinais : AUTO)
           .map((id) => ({ id: id, faixa: faixaDe(amostras[id]) }))
           .filter((c) => c.faixa > 0)
           .sort((a, b) => b.faixa - a.faixa);
@@ -2602,8 +2679,16 @@ function criarContador(opcoes) {
       };
       if (!perfil && deslocando(lm, agora)) {
         maquinas.forEach((m, k) => {
-          m.estado = "baixo"; m.repMin = Infinity; m.repMax = -Infinity;
+          // o lado de descanso já aprendido continua valendo: andar não o muda
+          m.estado = m.estado === null ? null : m.polo; m.repMin = Infinity; m.repMax = -Infinity;
           if (!m.travado) { retirarDe(k, m.prov.length); m.prov = []; m.ultima = 0; }
+          // Travou há pouco, e a pessoa está andando: o passo tem ritmo, e três
+          // passadas iguais travam o padrão antes de dar para ver o deslocamento
+          // (que precisa de uns 3 s). O que começou dentro dessa janela era o andar.
+          else if (agora - m.desde < 3500) {
+            retirarDe(k, m.conta);
+            m.travado = false; m.prov = []; m.ultima = 0; m.ampRef = 0;
+          }
         });
         return { total: total, pronto: false, deslocando: true, retirou: retirou, sinal: escolhido };
       }
@@ -5184,6 +5269,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const canvasRef = useRef(null);
   const fluxoRef = useRef(null);
   const contadorRef = useRef(null);
+  const soTroncoRef = useRef(false);
   const lacoRef = useRef(0);
   const [fase, setFase] = useState("carregando");   // carregando | pronto | erro
   const [erro, setErro] = useState("");
@@ -5260,9 +5346,11 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     // diferença entre contar o salto e contar o balanço do braço durante o salto.
     const perfil = (exAlvo && exAlvo.func && MOV_FUNCIONAIS[exAlvo.func]) || null;
     if (perfil && perfil.dica) setDica({ texto: perfil.dica, tipo: "dica", em: Date.now() });
+    soTroncoRef.current = eyesSoTronco(exAlvo);
     contadorRef.current = criarContador({
       perfil: perfil,
       preferidos: (exAlvo && EYES_PREFERENCIA[exAlvo.grupo]) || [],
+      tronco: eyesSoTronco(exAlvo),
       // Desconto da calibração: aparece e soa diferente da contagem, para a
       // pessoa entender que o número desceu de propósito.
       aoRetirar: (n, quantas) => {
@@ -5440,7 +5528,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
             });
             return;
           }
-          const g = avaliarEnquadramento(lm);
+          const g = avaliarEnquadramento(lm, { tronco: soTroncoRef.current });
           setGuia(g);
           // A voz repete só quando a instrução muda, ou de três em três
           // segundos. Guia que fala sem parar vira ruído e atrapalha quem está

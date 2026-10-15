@@ -70,5 +70,30 @@ console.log("\n--- a faixa que e aceita ---");
 // ombros ainda tem cabeca, e ela nao cabe em 5%.
 teste("ombros a pes em 85% da tela", "afaste", chave(corpo(0.5, 0.85)));
 
+console.log("\n--- sentado, pernas atras do banco ---");
+// Puxada, supino maquina, rosca: o banco esconde as pernas. Nesses grupos o
+// enquadramento mede do quadril para cima e libera sem os pes.
+function sentado(cx, tronco, pernas) {
+  const l = corpo(cx, 0.75);
+  const oy = 0.3, qy = oy + tronco;
+  l[0] = { x: cx, y: oy - 0.12, visibility: 0.95 };
+  l[11] = { x: cx - 0.08, y: oy, visibility: 0.95 }; l[12] = { x: cx + 0.08, y: oy, visibility: 0.95 };
+  l[13] = { x: cx - 0.13, y: oy + 0.12, visibility: 0.95 }; l[14] = { x: cx + 0.13, y: oy + 0.12, visibility: 0.95 };
+  l[23] = { x: cx - 0.06, y: qy, visibility: 0.9 }; l[24] = { x: cx + 0.06, y: qy, visibility: 0.9 };
+  for (let i = 25; i <= 28; i++) l[i] = { x: cx, y: 0.9, visibility: pernas };
+  return l;
+}
+const tr = (l) => A.avaliarEnquadramento(l, { tronco: true }).chave;
+teste("sentado sem pernas, exercicio de braco", "ok", tr(sentado(0.5, 0.3, 0.2)));
+teste("o mesmo, num exercicio de perna", "corpo", chave(sentado(0.5, 0.3, 0.2)));
+teste("sentado com as pernas aparecendo", "ok", tr(sentado(0.5, 0.3, 0.95)));
+teste("sentado, longe", "aproxime", tr(sentado(0.5, 0.1, 0.2)));
+teste("sentado, perto demais", "afaste", tr(sentado(0.5, 0.6, 0.2)));
+teste("sentado, na esquerda da imagem", "esq", tr(sentado(0.25, 0.3, 0.2)));
+const semCot = sentado(0.5, 0.3, 0.2); semCot[13].visibility = 0.1;
+teste("sem ver o cotovelo nao libera", "corpo", tr(semCot));
+const quadrilFora = sentado(0.5, 0.3, 0.2); quadrilFora[23].y = 0.995; quadrilFora[24].y = 0.995;
+teste("quadril na borda de baixo", "afaste", tr(quadrilFora));
+
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

@@ -9,7 +9,7 @@ if (ini < 0 || fim < 0) { console.error("nao achei o motor zumbi no index.html")
 eval(html.slice(ini, fim).replace(/\r\n/g, "\n") +
   "\nglobalThis.Z = { NOME_ZUMBI, ZUMBI_PADRAO, kmhDeMs, msDeKmh, paceSegKm, velocidadeAlvo, paceAlvo, fmtPaceSeg, validarAmostra, velocidadeBase," +
   " calcularAlvo, criarAvaliador, planejarMissao, validarConfigZumbi, criarMotorZumbi, restaurarMotorZumbi, validarMissao, escolherCena, narrar," +
-  " criarFilaFalas, MISSAO_ULTIMO_SINAL, juntarSemDuplicar, registroZumbi, duracaoPerseguicao };");
+  " criarFilaFalas, MISSAO_ULTIMO_SINAL, MISSOES_ZUMBI, sortearMissaoZumbi, missaoZumbiPorId, juntarSemDuplicar, registroZumbi, duracaoPerseguicao };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido, tol) {
@@ -27,7 +27,8 @@ function simular(o) {
   const m = Z.criarMotorZumbi(cfg, plano);
   const fatos = {}, usadas = [], falas = [], eventos = [];
   const base = o.base || (cfg.atividade === "caminhada" ? Z.msDeKmh(5) : Z.msDeKmh(10));
-  const narrarTudo = (evs) => evs.forEach((e) => { eventos.push(e); const f = Z.narrar(Z.MISSAO_ULTIMO_SINAL, e, fatos, usadas); if (f) falas.push(f); });
+  const missao = o.missao || Z.MISSAO_ULTIMO_SINAL;
+  const narrarTudo = (evs) => evs.forEach((e) => { eventos.push(e); const f = Z.narrar(missao, e, fatos, usadas); if (f) falas.push(f); });
   narrarTudo(m.iniciar());
   let passo = 0;
   while (m.s.fase !== "finalizada" && passo < 4000) {
@@ -207,6 +208,25 @@ function final() {
   teste("a ambientacao nao repete a mesma fala seguida", true, amb.every((c, i) => i === 0 || c !== amb[i - 1]));
   teste("cada fala dita uma vez por evento", true, todasFugas.falas.length === new Set(todasFugas.falas.map((f) => f.evento)).size);
 
+  console.log("--- 9b. as outras historias ---");
+  teste("seis historias", 6, Z.MISSOES_ZUMBI.length);
+  teste("ids unicos", 6, new Set(Z.MISSOES_ZUMBI.map((m) => m.id)).size);
+  Z.MISSOES_ZUMBI.forEach((m) => {
+    const v = Z.validarMissao(m);
+    const todas = simular({ missao: m });
+    const nenhuma = simular({ missao: m, responde: false });
+    const pulando = simular({ missao: m, acao: (mm) => { if (mm.s.fase === "transicao") mm.cancelarDesafio(); } });
+    const fim = (x) => x.falas.find((f) => f.tipo === "fim").cena;
+    const fala = JSON.stringify(m.cenas.map((c) => c.falas));
+    teste(m.nome + ": valida, fim completo com fugas, coerente sem elas", [true, "completo", true, true, false],
+      [v.ok, /fim-completo|fim-farol/.test(fim(todas)) ? "completo" : fim(todas), !/fim-completo|fim-farol/.test(fim(nenhuma)) || !!nenhuma.fatos[m.fatos[1]],
+        !!pulando.fatos[m.fatos[0]], /atravess|entre no|vire |dobre a/.test(fala)]);
+  });
+  let r = 0; const rnd = () => (r = (r + 0.37) % 1);
+  const sorteios = Array.from({ length: 12 }, (_, i) => Z.sortearMissaoZumbi(i % 2 ? "trem-da-meia-noite" : "ultimo-sinal", rnd).id);
+  teste("o sorteio varia e nao repete a ultima", [true, true], [new Set(sorteios).size >= 3, sorteios.every((id, i) => id !== (i % 2 ? "trem-da-meia-noite" : "ultimo-sinal"))]);
+  teste("missao desconhecida cai no Ultimo Sinal", "ultimo-sinal", Z.missaoZumbiPorId("nao-existe").id);
+
   console.log("--- 10. historico sem duplicar ---");
   const r1 = Z.registroZumbi("zr-1", new Date(2026, 9, 15).toISOString(), todasFugas.m, Z.MISSAO_ULTIMO_SINAL, { km: 3 });
   const h1 = Z.juntarSemDuplicar([], r1);
@@ -215,7 +235,7 @@ function final() {
   teste("o grafico preserva lacunas (null), nao zera", true, perdido.m && Z.registroZumbi("x", "", perdido.m, Z.MISSAO_ULTIMO_SINAL).zumbi.velocidade.some((x) => x === null));
   const rg = Z.registroZumbi("g", "", gui.m, Z.MISSAO_ULTIMO_SINAL, { km: 9 });
   teste("guiado nao inventa velocidade nem distancia", [null, undefined], [rg.zumbi.velocidade, rg.itens[0].series[0].km]);
-  teste("o nome da modalidade", "Zombies, Run!", Z.NOME_ZUMBI);
+  teste("o nome da modalidade", "Monster, Run!", Z.NOME_ZUMBI);
 
   console.log("\n" + ok + " passou / " + mal + " falhou");
   process.exit(mal ? 1 : 0);

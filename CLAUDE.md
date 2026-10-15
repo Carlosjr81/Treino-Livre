@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 426 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 474 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 426 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 474 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v37) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v38) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1156,16 +1156,18 @@ fim dele, cobertas por `teste-corrida.js` (39 checagens):
 - O resumo animado ganhou a cena "Recordes de corrida" quando o treino bateu
   algum.
 
-## Zombies, Run! (`TelaZumbi`, aba `zumbi`)
+## Monster, Run! (`TelaZumbi`, aba `zumbi`)
 
 Treino intervalado com história, pedido pelo dono a partir de uma especificação
 própria ("Missão Zumbi"). A pessoa ouve a aventura, uma ameaça se aproxima, ela
 acelera **dentro dos limites que ela escolheu**, escapa (ou não) e recupera.
 Funciona na rua e na esteira, caminhando, correndo ou alternando.
 
-**O nome.** O dono pediu "Zombies, Run!", que é marca registrada da Six to Start
-(o app de referência). A especificação dele mesmo recomendava não usar a marca.
-O nome mora numa constante só, `NOME_ZUMBI`: trocar é uma linha. Nada além do
+**O nome.** Primeiro foi "Zombies, Run!", que é marca registrada da Six to Start
+(o app de referência); o dono trocou para **"Monster, Run!"**. O nome mora numa
+constante só, `NOME_ZUMBI`: trocar é uma linha. Os identificadores internos
+(`zumbi`, `TelaZumbi`, `h.zumbi`) ficaram, de propósito: renomear o campo
+do histórico deixaria os treinos já gravados sem cartão. Nada além do
 nome vem de lá — código, regras, números, missão, personagens e sons são deste
 app; só a ideia da mecânica veio da documentação pública deles.
 
@@ -1246,6 +1248,24 @@ sobreviventes, a bateria deixada no caminho) e o fim não finge sinal
 restaurado. **Nenhuma fala dá ordem de navegação real** — a fuga é no ritmo,
 nunca na direção — e o teste procura "atravesse", "entre", "vire".
 
+### As seis histórias, e a aleatória
+Além do "Último Sinal" há cinco: **💉 Remédio da Vila** (a caixa de remédio, o
+gelo, o posto), **🚂 Trem da Meia-Noite** (a chave, o desvio, o trem),
+**🌱 Sementes de Amanhã** (as sementes, a água, a estufa), **🐕 Resgate do
+Pipoca** (a pista, o cachorro, o lar) e **💡 Luz no Hospital** (o galão, a
+peça, a luz). As cinco saem de `montarMissaoZumbi(spec)` sobre
+`cenasComunsZumbi(narrador)`: o que muda de uma para outra é o narrador, os
+três fatos e as falas — a mecânica e as reservas são as mesmas, e por isso as
+regras de coerência valem para todas sem repetir código.
+
+A configuração mostra as seis em cartões, mais **🎲 Aleatória** (o padrão):
+sorteia no "Começar" e **nunca repete a última** (`sortearMissaoZumbi`, a
+última em `localStorage["treinolivre:zumbi-ultima"]`). A história sorteada vai
+no checkpoint (`meta.missao`): retomar uma missão interrompida não troca de
+história no meio. `missaoZumbiPorId` cai no Último Sinal quando o id não
+existe mais. O `teste-zumbi.js` roda **as seis** pelos três caminhos (todas as
+fugas, nenhuma, pulando todas) e procura ordem de navegação em cada uma.
+
 ### Acrescentar uma missão
 É dado, não código: um objeto como `MISSAO_ULTIMO_SINAL` (id, versão, nome,
 fatos, cenas). Cada cena tem `evento` (um de `EVENTOS_ZUMBI`), `falas`
@@ -1269,6 +1289,50 @@ e a voz. A tela pede para ficar ligada, a trava de tela fica ativa, e a volta de
 uma suspensão pausa a sessão em vez de inventar tempo. Chamada telefônica e
 fone desconectado não têm aviso confiável numa página web. **Não está validado
 em aparelho**: GPS de verdade, esteira física, celular bloqueado, Bluetooth.
+
+## Intervalado (`TelaIntervalado`, aba `intervalado`)
+
+"Caminhada e corrida em que o ritmo varia" — o dono não sabia o nome; é o
+**treino intervalado**. Botão **⏱ Intervalado** na tela inicial e no preparo do
+percurso. Rua (GPS mostra se está no ritmo) ou esteira (o app diz a velocidade
+para pôr no painel: **quem ajusta a esteira é a pessoa**, uma página não fala com
+a esteira).
+
+Modelos (`MODELOS_INTERVALO`), cada um com a explicação na tela:
+
+| Modelo | Para quem | Forma |
+|---|---|---|
+| 🐢 Corre-caminha | quem está começando a correr | 1 min correndo leve, 2 andando, ×8 |
+| 🚶 Japonês (Nemoto, 2007) | caminhada | 3 min rápido, 3 devagar, ×5 |
+| 🎯 Tiros | ganhar velocidade | 2 min forte, 2 leve, ×6 |
+| 🎲 Fartlek | variar sem pensar | blocos sorteados com semente (`serieFartlek`) |
+| 🔺 Pirâmide | variar o estímulo | forte de 1-2-3-2-1 min, com recuperação |
+| 📈 Progressivo | terminar mais forte | moderado, forte, muito forte, sem parar |
+| ✏️ Personalizado | quem já sabe o que quer | blocos montados à mão |
+
+- **Intensidade em níveis** (`NIVEIS_INTERVALO`), cada um com a escala de
+  esforço (RPE) e o que se sente ("dá para conversar", "só palavras soltas"):
+  é o que vale quando não há número nenhum.
+- **O alvo de cada nível** (`alvoDoNivel`): os ritmos de Daniels quando há VDOT
+  (corrida); senão o ritmo confortável das últimas atividades
+  (`confortoDoHistorico`, mediana) com um fator por nível; senão só a escala.
+  **Caminhada rápida nunca passa de 7 km/h** — acima disso é corrida.
+- **Na caminhada nenhum bloco pede corrida**: o esforço vira caminhada rápida.
+- **"Esforço" é relativo à série**, não ao nível absoluto: no corre-caminha, a
+  corrida leve é o esforço porque o resto é caminhada.
+- **O relógio é o do tempo ativo** (`criarSessaoIntervalado`), como no motor
+  zumbi: pausa congela, salto maior que 2 s não conta. Bipe e vibração no 3-2-1
+  antes de cada troca, voz anunciando o bloco seguinte e a metade dos esforços
+  longos. ⏭ Pular e +30 s.
+- **O resumo conta o tempo feito, não o planejado.** Achado no navegador:
+  encerrar no meio gravava também os blocos que nem começaram. Na esteira cada
+  bloco feito vira uma série `{ segundos, mod, vel }`; na rua, uma série com o
+  km do GPS. O registro leva `intervalado` (blocos, alvos, constância), que o
+  histórico mostra em faixa (`CartaoIntervalado`).
+- **Constância** (`consistenciaEsforcos`): quanto os esforços variaram entre si.
+  Só entram esforços com 60% de leitura — bloco sem GPS não inventa velocidade.
+
+Coberto por `teste-intervalado.js` (38 checagens).
 
 ## Monitor cardíaco, e o que a web não alcança
 
@@ -1812,11 +1876,11 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 426
-checagens em doze suítes, e elas recortam as funções do próprio `index.html`:
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 474
+checagens em treze suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash
-node rodar.js      # as doze suítes, contra o index.html da pasta ao lado
+node rodar.js      # as treze suítes, contra o index.html da pasta ao lado
 node servir.js     # sobe o app em http://localhost:8765
 ```
 
@@ -1888,13 +1952,17 @@ Roteiro mínimo depois de mexer no app:
      bairro aparecem, a voz avisa o km, a distância bate com a de outro app
      (diferença de poucos por cento), e o percurso abre no histórico.
 33. Abrir o Eyes Scan, fazer 10 repetições de verdade e conferir a contagem.
-33é. Abrir o 🧟 Zombies, Run!: a abertura do zumbi passa (e de novo a cada vez
+33é. Abrir o 🧟 Monster, Run!: a abertura do zumbi passa (e de novo a cada vez
      que se abre). Fazer uma missão de 10 min na rua com o GPS: a voz conta a
      história, avisa a ameaça, pede o ritmo-alvo, conta a fuga e manda
      recuperar; a pausa de segurança congela tudo; no fim, o gráfico com a
      perseguição marcada vai para o histórico uma vez só. Repetir na esteira
      com a velocidade informada e com o celular parado no suporte (estimativa
      por passos não pode aparecer).
+33è. ⏱ Intervalado na esteira, modelo corre-caminha: a voz anuncia cada bloco
+     com a velocidade para pôr no painel, o 3-2-1 apita antes da troca, e ao
+     encerrar no meio o histórico guarda só os blocos feitos. No Monster, Run!,
+     escolher "Aleatória" duas vezes: as histórias não podem se repetir.
 33ç. Correr 2 km na rua com o celular no braço e a idade preenchida no painel:
      a cadência aparece ao vivo e a voz do km a fala; no fim, a análise mostra
      pace, ajustado ao relevo, melhor km, cadência, passada, melhores esforços e,

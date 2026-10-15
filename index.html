@@ -141,7 +141,7 @@
   .ab-tremor   { animation: abTremor .40s ease-out 1.46s both; }
   .ab-rachas polyline { stroke-dasharray: 420; animation: abRacha .72s ease-out 1.46s both; }
   .ab-marca    { animation: abMarca .50s ease-out 1.62s both; }
-  /* Abertura do Zombies, Run!: o zumbi sai do fundo da rua, corre na direção
+  /* Abertura do Monster, Run!: o zumbi sai do fundo da rua, corre na direção
      da tela (cresce, balança a cada passada, pernas e braços alternando) e, em
      2,6 s, avança sobre quem olha — a tela pisca, treme e ficam as garras. */
   @keyframes zbAprox  { 0% { transform: translateY(-150px) scale(.12); } 100% { transform: translateY(30px) scale(1.65); } }
@@ -620,7 +620,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15j";
+const VERSAO_APP = "2026-10-15k";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -6864,7 +6864,7 @@ function FaixaProgresso({ est, historico, meta, onAbrirProgresso }) {
 // ---------------- TELA INICIAL ----------------
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
   avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
-  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi }) {
+  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi, onIntervalado }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
@@ -6960,6 +6960,11 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
         {onZumbi && (
           <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 900, color: "#7CFF3C", borderColor: "#7CFF3C66" }} onClick={onZumbi}>
             🧟 {NOME_ZUMBI} — corra da história
+          </button>
+        )}
+        {onIntervalado && (
+          <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 900, color: "#F5A623", borderColor: "#F5A62366" }} onClick={onIntervalado}>
+            ⏱ Intervalado — o ritmo que varia
           </button>
         )}
       </div>
@@ -8954,7 +8959,7 @@ function leituraCarga(c) {
 // Tudo por dentro é em m/s e em milissegundos de TEMPO ATIVO: o relógio da
 // sessão só anda quando ela não está pausada. A pausa congela tudo por
 // construção, e um processo encerrado não inventa tempo que não viu.
-const NOME_ZUMBI = "Zombies, Run!";
+const NOME_ZUMBI = "Monster, Run!";
 const ZUMBI_VERSAO_MOTOR = 1;
 const ZUMBI_PADRAO = {
   aumentoPct: 10,          // quanto a perseguição pede acima do ritmo de agora
@@ -9516,7 +9521,7 @@ function falaDaCena(cena, atividade, extra) {
 // fictício: nenhuma fala manda atravessar rua, entrar em terreno ou virar de
 // repente — a fuga é no ritmo, nunca na direção.
 const MISSAO_ULTIMO_SINAL = {
-  id: "ultimo-sinal", versao: 1, nome: "Último Sinal",
+  id: "ultimo-sinal", versao: 1, nome: "Último Sinal", icone: "📡",
   resumo: "Leve uma bateria de rádio até a Estação Farol antes que o último sinal se apague.",
   duracaoBase: 20, duracoes: [10, 20, 30, 45],
   personagens: [
@@ -9589,6 +9594,212 @@ const MISSAO_ULTIMO_SINAL = {
       falas: { todas: "Você voltou ao abrigo inteiro, e isso é o que importa. O rádio continua esperando a próxima missão." } },
   ],
 };
+// ---- As outras missões ----
+// Cada missão tem o seu narrador, o seu objetivo em três etapas (três fatos) e
+// as suas cenas próprias; as falas de serviço (acelerar, recuperar, pausa,
+// sinal perdido...) saem de um molde com o nome do narrador. O resultado é
+// dado puro, validado pelo mesmo validarMissao, como o Último Sinal.
+function cenasComunsZumbi(q) {
+  return [
+    { id: "deslocamento-reserva", evento: "deslocamento", repetivel: true, intensidade: "leve", falas: { todas: q + " na escuta. Siga no ritmo confortável." } },
+    { id: "marco-reserva", evento: "marco", repetivel: true, falas: { todas: "Mais um trecho vencido. Continue no seu ritmo." } },
+    { id: "aviso-reserva", evento: "aviso", repetivel: true, falas: { todas: "Detectei movimento atrás de você. Prepare-se para aumentar o ritmo, se puder." } },
+    { id: "transicao", evento: "transicao", repetivel: true, intensidade: "forte",
+      falas: { caminhada: "Agora. Aumente um pouco a passada, mantendo a caminhada. Alvo: {alvo}.", corrida: "Agora. Aumente gradualmente até o ritmo indicado. Alvo: {alvo}." } },
+    { id: "perseguicao", evento: "perseguicao", repetivel: true, intensidade: "forte",
+      falas: { caminhada: "Segure essa passada. Eles são lentos, você é mais rápido.", corrida: "Segure esse ritmo. Eles estão ficando para trás." } },
+    { id: "sinal-perdido", evento: "sinal-perdido", repetivel: true, falas: { todas: "Perdi a sua leitura. Siga no ritmo que for seguro. Esse trecho não conta contra você." } },
+    { id: "fuga-reserva", evento: "fuga", repetivel: true, falas: { todas: "Você abriu distância. Reduza o ritmo e recupere." } },
+    { id: "desfecho-reserva", evento: "desfecho", repetivel: true, falas: { todas: "Foi por pouco, mas eles se distraíram com um barulho ao longe. Você segue inteiro. Reduza e recupere." } },
+    { id: "cancelada-reserva", evento: "cancelada", repetivel: true, falas: { todas: "Ativamos uma distração. Pode continuar no ritmo confortável." } },
+    { id: "nao-avaliada", evento: "nao-avaliada", repetivel: true, falas: { todas: "O sinal falhou e eu não consegui acompanhar você nesse trecho. Sem problema: a passagem foi coberta. Ritmo confortável." } },
+    { id: "guiada-reserva", evento: "guiada", repetivel: true, falas: { todas: "Pronto, pode reduzir e recuperar. Desta vez a fuga foi conduzida, sem medir o seu ritmo." } },
+    { id: "adiada", evento: "adiada", repetivel: true, falas: { todas: "Ouvi alguma coisa ao longe, mas ainda não é hora de acelerar. Fique no confortável." } },
+    { id: "sem-margem", evento: "sem-margem", repetivel: true, falas: { todas: "Você já está no limite que combinamos. Sem acelerar: siga assim que eu cuido da distração." } },
+    { id: "recuperacao", evento: "recuperacao", repetivel: true, intensidade: "leve",
+      falas: { caminhada: "Respiração no lugar. Passo tranquilo.", corrida: "Solte os ombros e respire. Trote leve ou caminhada, como preferir." } },
+    { id: "pausa", evento: "pausa-seguranca", repetivel: true, falas: { todas: "Pausa de segurança. Tudo parado. Volte quando quiser." } },
+    { id: "retomada", evento: "retomada", repetivel: true, falas: { todas: "De volta. Vamos começar leve." } },
+  ];
+}
+// Monta uma missão a partir das falas próprias dela.
+// f: [primeiro, segundo, final] — os três fatos, em ordem
+function montarMissaoZumbi(m) {
+  const [f1, f2, f3] = m.fatos;
+  const c = m.falas;
+  return {
+    id: m.id, versao: m.versao || 1, nome: m.nome, resumo: m.resumo, icone: m.icone, duracaoBase: 20, duracoes: [10, 20, 30, 45],
+    personagens: m.personagens, fatos: m.fatos,
+    cenas: [
+      { id: "abertura", evento: "aquecimento", intensidade: "leve", falas: { todas: c.abertura } },
+      { id: "missao", evento: "deslocamento", semFatos: [f1], intensidade: "leve", falas: c.missao },
+      { id: "rumo-2", evento: "deslocamento", requer: [f1], semFatos: [f2], repetivel: true, intensidade: "leve", falas: { todas: c.rumo2 } },
+      { id: "rumo-3", evento: "deslocamento", requer: [f2], repetivel: true, intensidade: "leve", falas: { todas: c.rumo3 } },
+      { id: "marco-1", evento: "marco", semFatos: [f1], define: [f1], falas: { todas: c.marco1 } },
+      { id: "marco-2", evento: "marco", requer: [f1], semFatos: [f2], define: [f2], falas: { todas: c.marco2 } },
+      { id: "amb-1", evento: "ambiente", repetivel: true, falas: { todas: c.amb[0] } },
+      { id: "amb-2", evento: "ambiente", requer: [f1], repetivel: true, falas: { todas: c.amb[1] } },
+      { id: "amb-3", evento: "ambiente", repetivel: true, falas: { todas: c.amb[2] } },
+      { id: "aviso-1", evento: "aviso", semFatos: [f1], falas: { todas: c.aviso1 } },
+      { id: "aviso-2", evento: "aviso", requer: [f1], repetivel: true, falas: { todas: c.aviso2 } },
+      { id: "fuga-1", evento: "fuga", semFatos: [f1], define: [f1], falas: { todas: c.fuga1 } },
+      { id: "fuga-2", evento: "fuga", requer: [f1], semFatos: [f2], define: [f2], falas: { todas: c.fuga2 } },
+      { id: "desfecho-1", evento: "desfecho", semFatos: [f1], define: [f1], falas: { todas: c.desfecho1 } },
+      { id: "cancelada-1", evento: "cancelada", semFatos: [f1], define: [f1], falas: { todas: c.cancelada1 } },
+      { id: "guiada-1", evento: "guiada", semFatos: [f1], define: [f1], falas: { todas: c.guiada1 } },
+      { id: "desaquecimento", evento: "desaquecimento", intensidade: "leve", falas: { todas: c.desaquecimento } },
+      { id: "fim-completo", evento: "fim", requer: [f2], define: [f3], falas: { todas: c.fimCompleto } },
+      { id: "fim-parcial", evento: "fim", requer: [f1], semFatos: [f2], falas: { todas: c.fimParcial } },
+      { id: "fim-reserva", evento: "fim", falas: { todas: c.fimReserva } },
+    ].concat(cenasComunsZumbi(m.narrador)),
+  };
+}
+
+const MISSAO_REMEDIO = montarMissaoZumbi({
+  id: "remedio-da-vila", nome: "Remédio da Vila", icone: "💉", narrador: "Doutora Cora",
+  resumo: "A insulina do Posto Aurora acabou. Busque a caixa térmica antes que o gelo derreta.",
+  personagens: [{ id: "cora", nome: "Doutora Cora Lins", papel: "médica do Posto Aurora" }, { id: "joca", nome: "Joca", papel: "menino radioamador" }],
+  fatos: ["caixa", "gelo", "posto"],
+  falas: {
+    abertura: "Aqui é a doutora Cora Lins, do Posto Aurora. A insulina da vila acabou hoje de manhã, e você é a nossa melhor chance. Comece devagar: aquece primeiro, corre depois.",
+    missao: { caminhada: "A caixa térmica ficou na Farmácia do Largo. Caminhe firme. O Joca está no rádio comigo e avisa se ouvir alguma coisa.",
+      corrida: "A caixa térmica ficou na Farmácia do Largo. Trote confortável. O Joca está no rádio comigo e avisa se ouvir alguma coisa." },
+    rumo2: "Com a caixa na mão, falta trocar o gelo na sorveteria abandonada. O Joca diz que o freezer de lá ainda funciona com o gerador.",
+    rumo3: "Gelo novo, insulina fria. Agora é só levar para o posto, sem pressa. Tem gente esperando por você.",
+    marco1: "Farmácia do Largo. A caixa está no balcão, lacrada. Pegue com cuidado e siga no seu ritmo.",
+    marco2: "Sorveteria. O Joca ligou o gerador e você trocou o gelo. Ouça o motorzinho: ainda temos tempo.",
+    amb: ["Um sino de bicicleta toca sozinho com o vento. O Joca jura que não foi ele.", "A caixa térmica sacode um pouco. O gelo faz barulho de chocalho.", "Cheiro de chuva chegando. Continue no confortável."],
+    aviso1: "Joca no rádio: tem movimento perto da farmácia! Prepare-se para aumentar o ritmo, se puder.",
+    aviso2: "Eles ouviram o gelo batendo na caixa. Prepare-se para acelerar, se puder.",
+    fuga1: "Você abriu distância e chegou à farmácia. A caixa está com você! Reduza o ritmo e recupere.",
+    fuga2: "Escapou! E no caminho o Joca trocou o gelo para você. A insulina está segura. Reduza e recupere.",
+    desfecho1: "Eles chegaram perto, mas o Joca tocou a sirene do posto e liberou a passagem. Você pegou a caixa mesmo assim. Pode reduzir.",
+    cancelada1: "Ativamos uma distração. O Joca deixou a caixa na porta para você. Pode continuar no confortável.",
+    guiada1: "Pronto, pode reduzir. Eu não meço o seu ritmo daqui, mas a caixa já está com você.",
+    desaquecimento: "Últimos minutos. Diminua aos poucos. A vila agradece.",
+    fimCompleto: "Posto Aurora para toda a vila: a insulina chegou fria e no prazo. Ninguém vai ficar sem remédio esta noite. Missão cumprida.",
+    fimParcial: "A caixa chegou, mas o gelo está no fim. Vamos usar a insulina primeiro em quem mais precisa. Você fez a diferença.",
+    fimReserva: "Você voltou ao posto inteiro, e isso é o mais importante. Amanhã tentamos de novo a farmácia.",
+  },
+});
+
+const MISSAO_TREM = montarMissaoZumbi({
+  id: "trem-da-meia-noite", nome: "Trem da Meia-Noite", icone: "🚂", narrador: "Otávio",
+  resumo: "O último trem de evacuação parte à meia-noite. A maquinista precisa da chave do desvio.",
+  personagens: [{ id: "otavio", nome: "Otávio", papel: "chefe da estação de evacuação" }, { id: "nina", nome: "Nina", papel: "maquinista do último trem" }],
+  fatos: ["chave", "desvio", "trem"],
+  falas: {
+    abertura: "Boa noite. Aqui é o Otávio, da estação. O último trem sai à meia-noite, e a Nina, a maquinista, não pode partir sem a chave do desvio. Aqueça com calma.",
+    missao: { caminhada: "A chave ficou no relógio da praça. Caminhe firme e deixe o resto comigo.", corrida: "A chave ficou no relógio da praça. Trote confortável e deixe o resto comigo." },
+    rumo2: "Chave no bolso. Agora a Nina precisa que alguém confirme o desvio pelo rádio da guarita. Ritmo confortável.",
+    rumo3: "Desvio liberado. Ouço o apito do trem esquentando. Siga tranquilo até a plataforma.",
+    marco1: "Relógio da praça. A chave estava escondida atrás do ponteiro das doze. Pegue e siga no seu ritmo.",
+    marco2: "Guarita. Você confirmou o desvio no rádio, e a Nina respondeu com dois apitos curtos.",
+    amb: ["Um apito longo, lá longe. É a Nina testando a locomotiva.", "A chave pesa no bolso. Ainda bem que está com você.", "O relógio da cidade bateu mais uma hora. Continue no confortável."],
+    aviso1: "Otávio no rádio: tem movimento perto da praça! Prepare-se para aumentar o ritmo, se puder.",
+    aviso2: "Eles ouviram o apito e estão vindo. Prepare-se para acelerar, se puder.",
+    fuga1: "Você abriu distância e chegou ao relógio. A chave está com você! Reduza o ritmo e recupere.",
+    fuga2: "Escapou! E a Nina viu tudo da cabine: ela mesma acionou o desvio. Reduza e recupere.",
+    desfecho1: "Eles chegaram perto, mas a Nina soltou o vapor da locomotiva e eles se espalharam. Você pegou a chave assim mesmo. Pode reduzir.",
+    cancelada1: "Ativamos uma distração. Um carregador da estação trouxe a chave até você. Pode continuar no confortável.",
+    guiada1: "Pronto, pode reduzir. Daqui eu não meço o seu ritmo, mas a chave já está no seu bolso.",
+    desaquecimento: "Últimos minutos. Diminua aos poucos. Escute: o trem está chegando à plataforma.",
+    fimCompleto: "Meia-noite em ponto. A Nina apitou três vezes e o último trem partiu com todo mundo a bordo. Missão cumprida.",
+    fimParcial: "A chave chegou, mas o desvio vai ser feito à mão. O trem atrasa um pouco, mas parte. Você trouxe o que faltava.",
+    fimReserva: "Você chegou à estação inteiro. O trem espera mais uma noite. Amanhã a gente tenta de novo.",
+  },
+});
+
+const MISSAO_SEMENTES = montarMissaoZumbi({
+  id: "sementes-de-amanha", nome: "Sementes de Amanhã", icone: "🌱", narrador: "Irmã Dalva",
+  resumo: "A estufa comunitária precisa das sementes do Viveiro Velho para a colheita do próximo mês.",
+  personagens: [{ id: "dalva", nome: "Irmã Dalva", papel: "cuidadora da estufa comunitária" }, { id: "rui", nome: "Rui", papel: "agricultor" }],
+  fatos: ["sementes", "agua", "estufa"],
+  falas: {
+    abertura: "Paz e bem. Aqui é a Irmã Dalva, da estufa comunitária. Sem as sementes do Viveiro Velho não tem colheita no mês que vem. Comece devagar, que a terra não tem pressa.",
+    missao: { caminhada: "O pacote de sementes está no Viveiro Velho. Caminhe firme. O Rui fica de olho daqui.", corrida: "O pacote de sementes está no Viveiro Velho. Trote confortável. O Rui fica de olho daqui." },
+    rumo2: "Sementes na mochila. Agora precisamos do filtro de água da cisterna, senão não tem como regar. Ritmo confortável.",
+    rumo3: "Água limpa garantida. Leve tudo para a estufa, sem correr. Já estou preparando os canteiros.",
+    marco1: "Viveiro Velho. O pacote estava numa lata de biscoito, sequinho. Pegue e siga no seu ritmo.",
+    marco2: "Cisterna. O Rui trocou o filtro e a água saiu limpinha. Uma coisa a menos.",
+    amb: ["Um bem-te-vi canta em cima do muro. Bom sinal.", "As sementes chacoalham na lata a cada passo.", "O sol saiu entre as nuvens. Continue no confortável."],
+    aviso1: "Rui no rádio: tem movimento perto do viveiro! Prepare-se para aumentar o ritmo, se puder.",
+    aviso2: "Eles ouviram a lata chacoalhando. Prepare-se para acelerar, se puder.",
+    fuga1: "Você abriu distância e chegou ao viveiro. As sementes estão com você! Reduza o ritmo e recupere.",
+    fuga2: "Escapou! E o Rui aproveitou a confusão para trocar o filtro da cisterna. Reduza e recupere.",
+    desfecho1: "Eles chegaram perto, mas o Rui bateu panela do outro lado e eles foram atrás do barulho. Você pegou as sementes assim mesmo. Pode reduzir.",
+    cancelada1: "Ativamos uma distração. O Rui deixou a lata de sementes no caminho para você. Pode continuar no confortável.",
+    guiada1: "Pronto, pode reduzir. Daqui eu não meço o seu ritmo, mas as sementes já estão com você.",
+    desaquecimento: "Últimos minutos. Diminua aos poucos, como quem caminha entre os canteiros.",
+    fimCompleto: "Sementes plantadas e regadas com água limpa. Daqui a um mês a vila inteira come do que você trouxe. Missão cumprida.",
+    fimParcial: "As sementes chegaram. Vamos regar com a água da chuva até arrumar o filtro. Você trouxe o que faltava.",
+    fimReserva: "Você voltou inteiro, e isso vale mais que qualquer semente. O viveiro espera por amanhã.",
+  },
+});
+
+const MISSAO_PIPOCA = montarMissaoZumbi({
+  id: "resgate-do-pipoca", nome: "Resgate do Pipoca", icone: "🐕", narrador: "Seu Amadeu",
+  resumo: "O Pipoca, cachorro do abrigo, fugiu com o barulho da noite. Ache-o e traga-o de volta.",
+  personagens: [{ id: "amadeu", nome: "Seu Amadeu", papel: "veterinário do abrigo" }, { id: "pipoca", nome: "Pipoca", papel: "vira-lata caramelo do abrigo" }],
+  fatos: ["pista", "pipoca", "lar"],
+  falas: {
+    abertura: "Aqui é o Seu Amadeu, veterinário do abrigo. O Pipoca, nosso caramelo, fugiu com o barulho de ontem à noite. Ele confia em você. Aqueça devagar.",
+    missao: { caminhada: "Alguém viu o Pipoca perto do campinho de futebol. Caminhe firme e preste atenção nos latidos.", corrida: "Alguém viu o Pipoca perto do campinho de futebol. Trote confortável e preste atenção nos latidos." },
+    rumo2: "Achamos a coleira dele! Agora é seguir o latido. Ritmo confortável, ele está perto.",
+    rumo3: "O Pipoca está com você, abanando o rabo. Volte para o abrigo sem pressa, que ele cansa rápido.",
+    marco1: "Campinho de futebol. A coleira do Pipoca estava presa no alambrado. Ele passou por aqui. Siga no seu ritmo.",
+    marco2: "Ouça esse latido: é ele! O Pipoca veio correndo e pulou em você. Que festa.",
+    amb: ["Um latido ao longe. Pode ser ele, pode ser outro.", "O Pipoca não larga do seu pé. Cachorro sabe quem cuida.", "Folhas secas rolando com o vento. Continue no confortável."],
+    aviso1: "Seu Amadeu no rádio: tem movimento perto do campinho! Prepare-se para aumentar o ritmo, se puder.",
+    aviso2: "O Pipoca rosnou para trás: eles estão vindo. Prepare-se para acelerar, se puder.",
+    fuga1: "Você abriu distância e achou a coleira dele no campinho! Reduza o ritmo e recupere.",
+    fuga2: "Escapou! E o Pipoca veio junto, correndo do seu lado. Reduza e recupere.",
+    desfecho1: "Eles chegaram perto, mas o Pipoca latiu tão alto que eles se assustaram. Você achou a coleira assim mesmo. Pode reduzir.",
+    cancelada1: "Ativamos uma distração. Uma vizinha achou a coleira e deixou no caminho para você. Pode continuar no confortável.",
+    guiada1: "Pronto, pode reduzir. Daqui eu não meço o seu ritmo, mas a coleira dele já está com você.",
+    desaquecimento: "Últimos minutos. Diminua aos poucos. O Pipoca já está bocejando.",
+    fimCompleto: "O Pipoca está em casa, comendo e dormindo na caminha dele. O abrigo inteiro agradece. Missão cumprida.",
+    fimParcial: "Achamos a coleira, e o Pipoca está por perto. Amanhã cedo ele volta sozinho, você vai ver. Bom trabalho.",
+    fimReserva: "Você voltou inteiro. O Pipoca é esperto, e a gente deixa a porta do abrigo aberta para ele.",
+  },
+});
+
+const MISSAO_LUZ = montarMissaoZumbi({
+  id: "luz-no-hospital", nome: "Luz no Hospital", icone: "💡", narrador: "Enfermeira Iara",
+  resumo: "O gerador do Hospital Santa Clara parou. Leve o combustível e a peça antes que as luzes apaguem.",
+  personagens: [{ id: "iara", nome: "Enfermeira Iara", papel: "chefe do plantão do Hospital Santa Clara" }, { id: "teo", nome: "Téo", papel: "eletricista" }],
+  fatos: ["galao", "peca", "luz"],
+  falas: {
+    abertura: "Aqui é a enfermeira Iara, do Hospital Santa Clara. O gerador está no fim, e temos pacientes que não podem ficar no escuro. Aqueça com calma, conto com você.",
+    missao: { caminhada: "Tem um galão de combustível no posto da avenida velha. Caminhe firme. O Téo, nosso eletricista, acompanha pelo rádio.",
+      corrida: "Tem um galão de combustível no posto da avenida velha. Trote confortável. O Téo, nosso eletricista, acompanha pelo rádio." },
+    rumo2: "Galão na mão. O Téo diz que também falta a correia do gerador, na oficina do bairro. Ritmo confortável.",
+    rumo3: "Combustível e correia com você. As luzes do hospital piscam esperando. Siga sem pressa.",
+    marco1: "Posto da avenida velha. O galão está cheio e bem fechado. Pegue e siga no seu ritmo.",
+    marco2: "Oficina. A correia estava pendurada na parede, nova na embalagem. O Téo comemorou no rádio.",
+    amb: ["As luzes do hospital piscam lá longe. Ainda estão acesas.", "O galão balança e o combustível faz barulho de onda.", "Um gato pula o muro e some. Continue no confortável."],
+    aviso1: "Téo no rádio: tem movimento perto do posto! Prepare-se para aumentar o ritmo, se puder.",
+    aviso2: "Eles sentiram o cheiro do combustível. Prepare-se para acelerar, se puder.",
+    fuga1: "Você abriu distância e chegou ao posto. O galão está com você! Reduza o ritmo e recupere.",
+    fuga2: "Escapou! E o Téo achou a correia na oficina enquanto você distraía eles. Reduza e recupere.",
+    desfecho1: "Eles chegaram perto, mas o Téo acendeu os holofotes do estacionamento e eles se espalharam. Você pegou o galão assim mesmo. Pode reduzir.",
+    cancelada1: "Ativamos uma distração. Um maqueiro trouxe o galão até o meio do caminho. Pode continuar no confortável.",
+    guiada1: "Pronto, pode reduzir. Daqui eu não meço o seu ritmo, mas o galão já está com você.",
+    desaquecimento: "Últimos minutos. Diminua aos poucos. Ouça: o gerador deu a primeira tossida.",
+    fimCompleto: "O gerador pegou de primeira. As luzes do Santa Clara estão firmes, e a UTI segue funcionando. Missão cumprida.",
+    fimParcial: "O combustível chegou. Sem a correia nova o gerador funciona meio capenga, mas aguenta a noite. Você salvou o plantão.",
+    fimReserva: "Você voltou inteiro, e isso importa. Vamos economizar luz esta noite e tentar de novo amanhã.",
+  },
+});
+
+const MISSOES_ZUMBI = [MISSAO_ULTIMO_SINAL, MISSAO_REMEDIO, MISSAO_TREM, MISSAO_SEMENTES, MISSAO_PIPOCA, MISSAO_LUZ];
+const missaoZumbiPorId = (id) => MISSOES_ZUMBI.find((m) => m.id === id) || MISSAO_ULTIMO_SINAL;
+// "Aleatória": sorteia, evitando repetir a última jogada quando há outra
+function sortearMissaoZumbi(ultimaId, rnd) {
+  const r = rnd || Math.random;
+  const opc = MISSOES_ZUMBI.filter((m) => m.id !== ultimaId);
+  return opc[Math.floor(r() * opc.length)] || MISSAO_ULTIMO_SINAL;
+}
 // Cada evento vira no máximo uma fala, com a cena escolhida e os fatos que ela liga
 function narrar(missao, ev, fatos, usadas) {
   const cena = escolherCena(missao, ev.tipo, fatos, usadas);
@@ -9683,6 +9894,197 @@ function registroZumbi(id, inicioISO, motor, missao, extra) {
   };
 }
 // ---------------- FIM DO MOTOR ZUMBI ----------------
+// ---------------- INTERVALADO: CONTAS ----------------
+// Caminhada e corrida em que o ritmo varia: o treino intervalado. Pedido do
+// dono, que não sabia o nome — então cada modelo diz na tela o que é e para
+// quem serve. Lógica pura (teste-intervalado.js); tela e voz ficam fora.
+//
+// As intensidades têm três jeitos de se dizer, do mais preciso ao que sempre
+// existe: o ritmo de treino de Daniels (quem já tem VDOT no painel do
+// corredor), o ritmo confortável que o histórico mostra (+10%, +20%...), e a
+// escala de esforço de 0 a 10 com o "teste da fala", que vale para qualquer um.
+const NIVEIS_INTERVALO = {
+  caminhada: { nome: "Caminhada", cor: "#4C9BE8", rpe: 3, sente: "conversa fácil", fator: 1 },
+  "caminhada-rapida": { nome: "Caminhada rápida", cor: "#2EC4B6", rpe: 5, sente: "conversa em frases curtas", fator: 1.2 },
+  leve: { nome: "Leve", cor: "#4CD137", rpe: 4, sente: "dá para conversar", fator: 1 },
+  moderado: { nome: "Moderado", cor: "#F5C518", rpe: 6, sente: "frases curtas", fator: 1.1 },
+  forte: { nome: "Forte", cor: "#F58529", rpe: 8, sente: "só palavras soltas", fator: 1.2 },
+  "muito-forte": { nome: "Muito forte", cor: "#ED4956", rpe: 9, sente: "sem fôlego para falar", fator: 1.3 },
+};
+// Na caminhada, nenhum nível pede corrida: o mais forte é caminhada rápida
+const ORDEM_INTENSIDADE = ["caminhada", "caminhada-rapida", "leve", "moderado", "forte", "muito-forte"];
+const VEL_MAX_CAMINHADA = 7;
+
+const MODELOS_INTERVALO = [
+  { id: "corre-caminha", nome: "Corre-caminha", icone: "🐢", para: "corrida", reps: 8,
+    explica: "Alterna 1 minuto de corrida leve com 2 de caminhada. É o jeito mais usado para começar a correr sem se machucar.",
+    aquec: [["caminhada", 300]], serie: [["leve", 60], ["caminhada", 120]], desaq: [["caminhada", 300]] },
+  { id: "japones", nome: "Caminhada intervalada (método japonês)", icone: "🚶", para: "caminhada", reps: 5,
+    explica: "3 minutos de caminhada rápida e 3 devagar, cinco vezes. Criado por pesquisadores japoneses (Nemoto e colegas, 2007) para melhorar o fôlego e a força das pernas sem correr.",
+    aquec: [["caminhada", 180]], serie: [["caminhada-rapida", 180], ["caminhada", 180]], desaq: [["caminhada", 120]] },
+  { id: "tiros", nome: "Tiros", icone: "🎯", para: "ambos", reps: 6,
+    explica: "Trechos fortes de 2 minutos com 2 minutos leves no meio. O intervalado clássico para ganhar velocidade.",
+    aquec: [["leve", 600]], serie: [["forte", 120], ["leve", 120]], desaq: [["leve", 300]] },
+  { id: "fartlek", nome: "Fartlek", icone: "🎲", para: "ambos", reps: 10,
+    explica: "Palavra sueca para \"brincadeira de velocidade\": o ritmo muda sem padrão fixo — forte, moderado, leve. Cada treino sai diferente.",
+    aquec: [["leve", 480]], serie: null, desaq: [["leve", 300]] },
+  { id: "piramide", nome: "Pirâmide", icone: "🔺", para: "ambos", reps: 1,
+    explica: "Os trechos fortes crescem e depois diminuem: 1, 2, 3, 2 e 1 minuto, com recuperação entre eles.",
+    aquec: [["leve", 480]], serie: [["forte", 60], ["leve", 60], ["forte", 120], ["leve", 90], ["forte", 180], ["leve", 120], ["forte", 120], ["leve", 90], ["forte", 60], ["leve", 60]], desaq: [["leve", 300]] },
+  { id: "progressivo", nome: "Progressivo", icone: "📈", para: "ambos", reps: 1,
+    explica: "Começa leve e termina forte, sem paradas: ensina a terminar melhor do que começou.",
+    aquec: [["leve", 480]], serie: [["moderado", 480], ["forte", 360], ["muito-forte", 120]], desaq: [["leve", 300]] },
+  { id: "personalizado", nome: "Personalizado", icone: "✏️", para: "ambos", reps: 3,
+    explica: "Você monta os blocos: intensidade, tempo e quantas vezes repetir.",
+    aquec: [["leve", 300]], serie: [["forte", 90], ["leve", 120]], desaq: [["leve", 300]] },
+];
+const modeloIntervalo = (id) => MODELOS_INTERVALO.find((m) => m.id === id) || MODELOS_INTERVALO[0];
+
+// O fartlek sai diferente a cada treino, mas com semente o teste repete
+function serieFartlek(n, rnd) {
+  const out = [];
+  for (let k = 0; k < n; k++) {
+    const r = rnd();
+    if (k % 2 === 1) out.push(["leve", 60 + Math.round(rnd() * 4) * 15]);
+    else if (r < 0.45) out.push(["forte", 30 + Math.round(rnd() * 4) * 15]);
+    else if (r < 0.8) out.push(["moderado", 90 + Math.round(rnd() * 6) * 15]);
+    else out.push(["muito-forte", 30 + Math.round(rnd() * 2) * 15]);
+  }
+  return out;
+}
+// O plano em blocos: { id, nivel, dur (ms), ini, fase } — fase é aquecimento,
+// esforco, recuperacao ou desaquecimento. Na caminhada os níveis viram de caminhada.
+function montarIntervalado(o) {
+  const m = modeloIntervalo(o.modelo);
+  const reps = Math.max(1, Math.min(20, o.reps || m.reps));
+  const rnd = aleatorioComSemente(o.semente || 1);
+  let serie = m.id === "personalizado" && o.blocos ? o.blocos.map((b) => [b.nivel, b.seg]) : m.serie;
+  if (m.id === "fartlek") serie = serieFartlek(reps * 2, rnd);
+  // esforço é o que é mais intenso que o mais leve da própria série: no
+  // corre-caminha, o trote leve é o esforço e a caminhada é a recuperação
+  const minOrdem = Math.min.apply(null, serie.map(([n]) => ORDEM_INTENSIDADE.indexOf(n)));
+  const lista = [];
+  m.aquec.forEach(([n, s]) => lista.push({ nivel: n, seg: s, fase: "aquecimento" }));
+  const vezes = m.id === "fartlek" ? 1 : reps;
+  for (let r = 0; r < vezes; r++) serie.forEach(([n, s]) => lista.push({ nivel: n, seg: s, fase: ORDEM_INTENSIDADE.indexOf(n) > minOrdem ? "esforco" : "recuperacao" }));
+  m.desaq.forEach(([n, s]) => lista.push({ nivel: n, seg: s, fase: "desaquecimento" }));
+  let ini = 0;
+  const blocos = lista.map((b, i) => {
+    // na caminhada, o esforço é caminhada rápida e todo o resto é caminhada
+    const nivel = o.atividade === "caminhada" ? (b.fase === "esforco" ? "caminhada-rapida" : "caminhada") : b.nivel;
+    const x = { id: "i" + i, nivel: nivel, dur: Math.round(b.seg * 1000), ini: ini, fase: b.fase };
+    ini += x.dur;
+    return x;
+  });
+  const esforcos = blocos.filter((b) => b.fase === "esforco");
+  if (!esforcos.length) return { erro: "O treino precisa de pelo menos um bloco mais forte que o leve." };
+  if (blocos.some((b) => b.dur < 15000)) return { erro: "Cada bloco precisa de pelo menos 15 segundos." };
+  if (ini > 120 * 60000) return { erro: "O treino passou de 2 horas. Diminua as repetições." };
+  return { blocos: blocos, total: ini, modelo: m.id };
+}
+
+// O ritmo-alvo de um nível. ref: { ritmos (Daniels) | null, confortoKmh | null, atividade }
+function alvoDoNivel(nivel, ref) {
+  const N = NIVEIS_INTERVALO[nivel];
+  if (!N) return null;
+  const r = ref || {};
+  let kmh = 0, fonte = null;
+  if (r.ritmos && r.atividade !== "caminhada" && ["leve", "moderado", "forte", "muito-forte"].indexOf(nivel) >= 0) {
+    const pace = nivel === "leve" ? (r.ritmos.facil[0] + r.ritmos.facil[1]) / 2 : nivel === "moderado" ? r.ritmos.maratona : nivel === "forte" ? r.ritmos.limiar : r.ritmos.intervalado;
+    kmh = 60 / pace; fonte = "daniels";
+  } else if (r.confortoKmh > 0) {
+    kmh = r.confortoKmh * N.fator; fonte = "historico";
+  }
+  if (!kmh) return null;
+  if (nivel === "caminhada" || nivel === "caminhada-rapida") kmh = Math.min(kmh, VEL_MAX_CAMINHADA);
+  return { kmh: Math.round(kmh * 10) / 10, paceSeg: 3600 / kmh, fonte: fonte };
+}
+// O ritmo confortável que o histórico mostra: a mediana das últimas atividades
+// daquele tipo (corrida ou caminhada), na rua ou na esteira
+function confortoDoHistorico(historico, exPorId, tipo) {
+  const xs = atividadesDeCorrida(historico, exPorId).filter((a) => a.tipo === tipo && a.ms > 0)
+    .slice(-6).map((a) => a.km / (a.ms / 3600000)).sort((a, b) => a - b);
+  return xs.length ? xs[Math.floor(xs.length / 2)] : 0;
+}
+// Está no ritmo? Com folga de 4% para o ruído do GPS
+function comparaRitmo(kmh, alvo) {
+  if (!(kmh > 0) || !alvo) return null;
+  if (kmh < alvo.kmh * 0.96) return "abaixo";
+  if (kmh > alvo.kmh * 1.04) return "acima";
+  return "no ritmo";
+}
+
+// ---- A sessão: o relógio dos blocos, em tempo ATIVO (pausa congela) ----
+function criarSessaoIntervalado(plano) {
+  const blocos = plano.blocos.map((b) => Object.assign({ soma: 0, tempo: 0, pulado: false }, b));
+  const s = { tAtivo: 0, pausado: false, feitos: [], fim: false, ultT: null, ultV: null };
+  const fila = [];
+  const emitir = (id, tipo, extra) => { if (s.feitos.indexOf(id) < 0) { s.feitos.push(id); fila.push(Object.assign({ id: id, tipo: tipo }, extra || {})); } };
+  const total = () => blocos.reduce((a, b) => a + b.dur, 0);
+  const idx = () => blocos.findIndex((b) => s.tAtivo >= b.ini && s.tAtivo < b.ini + b.dur);
+  const refazerInicios = () => { let ini = 0; blocos.forEach((b) => { b.ini = ini; ini += b.dur; }); };
+  function atualizar() {
+    if (s.tAtivo >= total()) { if (!s.fim) { s.fim = true; emitir("fim", "fim"); } return; }
+    const i = idx();
+    if (i < 0) return;
+    const b = blocos[i];
+    emitir(b.id + ":inicio", "bloco", { bloco: b, proximo: blocos[i + 1] || null, indice: i });
+    const resta = b.ini + b.dur - s.tAtivo;
+    // contagem para a troca: 3, 2, 1 — não na última, que é o fim
+    if (i + 1 < blocos.length) [3, 2, 1].forEach((k) => { if (resta <= k * 1000) emitir(b.id + ":conta" + k, "conta", { n: k, proximo: blocos[i + 1] }); });
+    if (b.fase === "esforco" && b.dur >= 120000 && s.tAtivo - b.ini >= b.dur / 2) emitir(b.id + ":metade", "metade", { bloco: b });
+  }
+  const api = {
+    blocos: blocos, s: s, total: total,
+    iniciar() { atualizar(); return api.eventos(); },
+    avancar(dt) { if (s.pausado || s.fim) return []; s.tAtivo += Math.max(0, Math.min(dt, 2000)); atualizar(); return api.eventos(); },
+    eventos() { return fila.splice(0, fila.length); },
+    blocoAtual() { const i = idx(); return i >= 0 ? blocos[i] : null; },
+    proximo() { const i = idx(); return i >= 0 ? blocos[i + 1] || null : null; },
+    restanteBloco() { const b = api.blocoAtual(); return b ? b.ini + b.dur - s.tAtivo : 0; },
+    restante() { return Math.max(0, total() - s.tAtivo); },
+    // velocidade (km/h) de uma leitura válida, somada ao bloco pelo tempo que cobre
+    amostra(kmh) {
+      if (s.pausado || s.fim) return;
+      const b = api.blocoAtual();
+      if (s.ultT !== null && b && s.tAtivo - s.ultT <= 5000 && s.ultV > 0) {
+        const dt = s.tAtivo - s.ultT;
+        b.soma += s.ultV * dt; b.tempo += dt;
+      }
+      s.ultT = s.tAtivo; s.ultV = kmh > 0 ? kmh : null;
+    },
+    pausar() { s.pausado = true; s.ultT = null; },
+    retomar() { s.pausado = false; atualizar(); return api.eventos(); },
+    // pular: o bloco atual termina agora (o tempo que sobrava sai do treino)
+    pular() {
+      const i = idx();
+      if (i < 0) return;
+      const b = blocos[i];
+      b.pulado = true; b.dur = Math.max(1000, s.tAtivo - b.ini); refazerInicios();
+      s.tAtivo = b.ini + b.dur; atualizar();
+    },
+    estender(ms) { const b = api.blocoAtual(); if (b) { b.dur += ms; refazerInicios(); } },
+    resumo() {
+      // dur é o tempo feito, não o planejado: quem encerra no meio não fez o resto
+      return blocos.map((b) => {
+        const feito = Math.max(0, Math.min(b.dur, s.tAtivo - b.ini));
+        return { id: b.id, nivel: b.nivel, fase: b.fase, dur: feito, plano: b.dur, pulado: b.pulado,
+          kmh: b.tempo > 0 ? Math.round((b.soma / b.tempo) * 10) / 10 : null, cobertura: feito ? b.tempo / feito : 0 };
+      });
+    },
+  };
+  return api;
+}
+// Consistência dos esforços: quanto o pace variou entre os blocos fortes
+// (desvio ÷ média). Abaixo de 3% é muito regular; acima de 8%, quebrou no fim.
+function consistenciaEsforcos(resumo) {
+  const vs = resumo.filter((b) => b.fase === "esforco" && b.kmh > 0 && b.cobertura >= 0.6).map((b) => b.kmh);
+  if (vs.length < 2) return null;
+  const media = vs.reduce((a, b) => a + b, 0) / vs.length;
+  const dp = Math.sqrt(vs.reduce((a, b) => a + (b - media) * (b - media), 0) / vs.length);
+  return { variacao: dp / media, primeiro: vs[0], ultimo: vs[vs.length - 1] };
+}
+// ---------------- FIM DAS CONTAS DO INTERVALADO ----------------
 
 // O mapa (Leaflet) é carregado só quando a tela abre: quem nunca usar o
 // percurso não paga nada por ele. Fica no cache do service worker para abrir
@@ -9727,7 +10129,7 @@ const guardarRota = (id, pts) => guardarFoto(chaveRota(id), compactarRota(pts));
 const lerRota = (id) => lerFoto(chaveRota(id)).then(expandirRota);
 
 function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, onSalvar, onVoltar, historico,
-  bpm, onConectarCardio, corredor, onPainel, onZumbi }) {
+  bpm, onConectarCardio, corredor, onPainel, onZumbi, onIntervalado }) {
   const [modo, setModo] = useState("corrida-rua");
   const [fase, setFase] = useState("preparo");     // preparo | rodando | pausado | fim
   const [erroMapa, setErroMapa] = useState("");
@@ -10120,6 +10522,11 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
           {onZumbi && (
             <button onClick={onZumbi} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13.5, fontWeight: 900, color: "#7CFF3C", borderColor: "#7CFF3C66" }}>
               🧟 Ou faça com história: {NOME_ZUMBI}
+            </button>
+          )}
+          {onIntervalado && (
+            <button onClick={onIntervalado} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13.5, fontWeight: 900, color: "#F5A623", borderColor: "#F5A62366" }}>
+              ⏱ Ou faça intervalado (o ritmo varia)
             </button>
           )}
           <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
@@ -10841,7 +11248,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   const passada = useMemo(() => passadaCalibrada(historico), [historico]);
   const [cfg, setCfg] = useState({
     duracaoMin: 20, ambiente: "rua", atividade: "corrida", experiencia: "adaptativa", fonte: "gps",
-    aumentoPct: 10, tetoKmh: 14, suspense: "normal", repeticoes: 4, demo: false,
+    aumentoPct: 10, tetoKmh: 14, suspense: "normal", repeticoes: 4, demo: false, missao: "aleatoria",
     blocos: [{ tipo: "forte", seg: 90 }, { tipo: "leve", seg: 120 }],
   });
   const [etapa, setEtapa] = useState("config");   // config, plano, sessao, fim
@@ -10855,6 +11262,9 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   const motor = useRef(null), paisagem = useRef(null), filaR = useRef(null);
   const meta = useRef({ id: null, inicio: null, pausadoMs: 0, pausaDesde: null, pts: [], seg: 0 });
   const fatos = useRef({}), usadas = useRef([]), ultimaFala = useRef("");
+  // a história desta sessão (na "aleatória", sorteada no começar)
+  const missaoR = useRef(MISSAO_ULTIMO_SINAL);
+  const missaoVista = cfg.missao === "aleatoria" ? null : missaoZumbiPorId(cfg.missao);
   const passosR = useRef(null), velDeclR = useRef(velDecl), mult = useRef(1);
   velDeclR.current = velDecl;
   const up = (k, v) => setCfg((c) => Object.assign({}, c, { [k]: v }));
@@ -10884,7 +11294,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   const tratarEventos = (evs) => {
     const m = motor.current;
     evs.forEach((ev) => {
-      const f = narrar(MISSAO_ULTIMO_SINAL, ev, fatos.current, usadas.current);
+      const f = narrar(missaoR.current, ev, fatos.current, usadas.current);
       Object.keys(fatos.current).forEach((k) => m.marcarFato(k));
       if (ev.tipo === "aviso") { try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch (e) {} if (paisagem.current) paisagem.current.porta(); }
       if (ev.tipo === "transicao") { try { navigator.vibrate && navigator.vibrate([450]); } catch (e) {} }
@@ -10999,7 +11409,12 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   const comecar = () => {
     if (erros.length || plano.erro) return;
     motor.current = criarMotorZumbi(cfgFinal, plano);
-    meta.current = { id: "zr-" + Date.now(), inicio: new Date().toISOString(), pausadoMs: 0, pausaDesde: null, pts: [], seg: 0 };
+    // a história: a escolhida, ou sorteada sem repetir a última
+    let ultima = null;
+    try { ultima = localStorage.getItem("treinolivre:zumbi-ultima"); } catch (e) {}
+    missaoR.current = cfg.missao === "aleatoria" ? sortearMissaoZumbi(ultima) : missaoZumbiPorId(cfg.missao);
+    try { localStorage.setItem("treinolivre:zumbi-ultima", missaoR.current.id); } catch (e) {}
+    meta.current = { id: "zr-" + Date.now(), inicio: new Date().toISOString(), pausadoMs: 0, pausaDesde: null, pts: [], seg: 0, missao: missaoR.current.id };
     fatos.current = {}; usadas.current = [];
     filaR.current = criarFilaFalas(falarUma);
     mult.current = 1;
@@ -11019,6 +11434,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
     if (!m) { setGuardado(null); return; }
     motor.current = m;
     meta.current = Object.assign({}, g.meta, { pts: [], pausaDesde: Date.now() });
+    missaoR.current = missaoZumbiPorId(g.meta && g.meta.missao);
     fatos.current = g.fatos || {}; usadas.current = g.usadas || [];
     setCfg(g.cfg);
     filaR.current = criarFilaFalas(falarUma);
@@ -11058,7 +11474,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
     setEtapa("fim");
   };
   const registro = etapa === "fim" && motor.current
-    ? registroZumbi(meta.current.id, meta.current.inicio, motor.current, MISSAO_ULTIMO_SINAL,
+    ? registroZumbi(meta.current.id, meta.current.inicio, motor.current, missaoR.current,
       { km: cfgFinal.fonte === "gps" && meta.current.pts.length > 1 ? resumoRota(meta.current.pts).km : 0, pausadoMs: meta.current.pausadoMs })
     : null;
 
@@ -11082,7 +11498,9 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   const titulo = (
     <div style={{ marginBottom: 12 }}>
       <div style={{ fontSize: 30, fontWeight: 900, color: "#B9F6CA", fontFamily: "Impact, 'Arial Black', sans-serif", letterSpacing: 0.5 }}>🧟 {NOME_ZUMBI}</div>
-      <div style={{ fontSize: 12.5, color: "var(--cinza)" }}>Missão: <b>{MISSAO_ULTIMO_SINAL.nome}</b> — {MISSAO_ULTIMO_SINAL.resumo}</div>
+      {etapa === "sessao" || etapa === "fim"
+        ? <div style={{ fontSize: 12.5, color: "var(--cinza)" }}>Missão: <b>{missaoR.current.icone} {missaoR.current.nome}</b> — {missaoR.current.resumo}</div>
+        : <div style={{ fontSize: 12.5, color: "var(--cinza)" }}>Treino intervalado com história: fuja no ritmo, recupere, e a história anda.</div>}
     </div>
   );
 
@@ -11106,6 +11524,17 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
         )}
         {etapa === "config" && (
           <div style={S.card}>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>História</div>
+              {[{ id: "aleatoria", icone: "🎲", nome: "Aleatória", resumo: "Sorteia uma história a cada missão, sem repetir a última." }].concat(MISSOES_ZUMBI).map((m) => (
+                <button key={m.id} onClick={() => up("missao", m.id)} aria-pressed={cfg.missao === m.id}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", marginBottom: 6, borderRadius: 12, cursor: "pointer",
+                    border: "1px solid " + (cfg.missao === m.id ? "#7CFF3C" : "var(--borda2)"), background: cfg.missao === m.id ? "#7CFF3C1c" : "transparent", color: "var(--texto)" }}>
+                  <div style={{ fontWeight: 900, fontSize: 14, color: cfg.missao === m.id ? "#7CFF3C" : "var(--texto)" }}>{m.icone} {m.nome}</div>
+                  <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 2, lineHeight: 1.4 }}>{m.resumo}</div>
+                </button>
+              ))}
+            </div>
             {linha("Onde", [chip("ambiente", "rua", "🌆 Rua"), chip("ambiente", "esteira", "🏃 Esteira")])}
             {linha("Atividade", [chip("atividade", "caminhada", "🚶 Caminhada"), chip("atividade", "corrida", "🏃 Corrida"), chip("atividade", "alternada", "🔁 Alternada")])}
             {linha("Experiência", [chip("experiencia", "adaptativa", "🎲 Aventura"), chip("experiencia", "intervalos", "⏱ Intervalos"), chip("experiencia", "historia", "📖 Só a história")])}
@@ -11189,7 +11618,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
         )}
         {etapa === "plano" && !plano.erro && (
           <div style={S.card}>
-            <div style={{ ...S.label, marginBottom: 8 }}>O plano: {cfg.duracaoMin} min</div>
+            <div style={{ ...S.label, marginBottom: 8 }}>O plano: {cfg.duracaoMin} min · {missaoVista ? missaoVista.icone + " " + missaoVista.nome : "🎲 história sorteada no começo"}</div>
             <div style={{ display: "flex", height: 22, borderRadius: 6, overflow: "hidden", marginBottom: 10 }}>
               {plano.blocos.map((b) => (
                 <div key={b.id} title={b.tipo} style={{ flex: b.dur, background: b.tipo === "perseguicao" || b.tipo === "forte" ? "#ED4956" : b.tipo === "recuperacao" ? "#4C9BE8" : b.tipo === "leve" ? "#2E7D32" : "#555555" }} />
@@ -11316,6 +11745,378 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   return null;
 }
 
+// ---------------- INTERVALADO: A TELA ----------------
+// Escolher o modelo, ver o plano com o ritmo de cada intensidade, e treinar com
+// a voz conduzindo cada troca (com 3-2-1 em bipe, para não atrasar). Na rua o
+// GPS mostra se está no ritmo; na esteira o app diz a velocidade para pôr no
+// painel, e quem ajusta a esteira é a pessoa.
+const fmtKmhFala = (k) => num1(k) + " por hora";
+function textoAlvoFala(alvo, esteira) {
+  if (!alvo) return "";
+  if (esteira) return " Ajuste a esteira para " + fmtKmhFala(alvo.kmh) + ".";
+  const p = alvo.paceSeg, m = Math.floor(p / 60), s = Math.round(p - m * 60);
+  return " Ritmo de " + m + " minutos" + (s ? " e " + s : "") + " por quilômetro.";
+}
+// A faixa colorida do plano, com o bloco atual marcado
+function FaixaIntervalo({ blocos, atual, tAtivo }) {
+  const total = blocos.reduce((a, b) => a + b.dur, 0) || 1;
+  return (
+    <div style={{ position: "relative", display: "flex", height: 18, borderRadius: 6, overflow: "hidden" }}>
+      {blocos.map((b) => (
+        <div key={b.id} title={NIVEIS_INTERVALO[b.nivel].nome} style={{ flex: b.dur, background: NIVEIS_INTERVALO[b.nivel].cor, opacity: atual && b.id === atual ? 1 : 0.55, borderRight: "1px solid #0006" }} />
+      ))}
+      {tAtivo != null && <div style={{ position: "absolute", top: 0, bottom: 0, left: (tAtivo / total) * 100 + "%", width: 3, background: "#FFFFFF" }} />}
+    </div>
+  );
+}
+function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, onPainel }) {
+  const [cfg, setCfg] = useState({ modelo: "tiros", atividade: "corrida", ambiente: "rua", reps: null, blocos: [{ nivel: "forte", seg: 90 }, { nivel: "leve", seg: 120 }], semente: Date.now() % 100000 });
+  const [etapa, setEtapa] = useState("config");   // config, sessao, fim
+  const [, setTique] = useState(0);
+  const [legenda, setLegenda] = useState("");
+  const [salvo, setSalvo] = useState(false);
+  const sessao = useRef(null), filaR = useRef(null), meta = useRef({}), ultimaPos = useRef(null), pts = useRef([]);
+  const up = (k, v) => setCfg((c) => Object.assign({}, c, { [k]: v }));
+  const modelo = modeloIntervalo(cfg.modelo);
+  const reps = cfg.reps || modelo.reps;
+  const plano = useMemo(() => montarIntervalado({ modelo: cfg.modelo, atividade: cfg.atividade, reps: reps, blocos: cfg.blocos, semente: cfg.semente }),
+    [cfg.modelo, cfg.atividade, reps, JSON.stringify(cfg.blocos), cfg.semente]);
+  // as referências de ritmo: Daniels (corrida com VDOT), ou o confortável do histórico
+  const ref = useMemo(() => {
+    const P = painelCorredor(historico, exPorId);
+    const tipo = cfg.atividade === "caminhada" ? "caminhada" : "corrida";
+    return { ritmos: tipo === "corrida" ? P.ritmos : null, confortoKmh: confortoDoHistorico(historico, exPorId, tipo), atividade: cfg.atividade };
+  }, [historico, cfg.atividade]);
+  const alvo = (nivel) => alvoDoNivel(nivel, ref);
+  const esteira = cfg.ambiente === "esteira";
+  useEffect(() => { try { window.scrollTo(0, 0); } catch (e) {} }, [etapa]);
+  useEffect(() => () => desligarTravaTela(), []);
+
+  const falarUma = (texto, fim) => {
+    setLegenda(texto);
+    const ok = jarvisFalar(texto, { falar: true, vozNome: vozCfg && vozCfg.vozNome, velocidade: (vozCfg && vozCfg.velocidade) || 1.1, animado: vozCfg ? vozCfg.animado : true, aoTerminar: fim });
+    if (!ok) setTimeout(fim, 400);
+  };
+  const tratar = (evs) => {
+    const se = sessao.current;
+    evs.forEach((ev) => {
+      if (ev.tipo === "conta") {
+        if (som) beep(ev.n === 1 ? 1100 : 760, 0.12, 0.3);
+        try { navigator.vibrate && navigator.vibrate(ev.n === 1 ? 250 : 80); } catch (e) {}
+        return;
+      }
+      if (ev.tipo === "bloco") {
+        const b = ev.bloco, N = NIVEIS_INTERVALO[b.nivel];
+        const a = alvo(b.nivel);
+        const texto = (ev.indice === 0 ? "Vamos lá. " : "") + N.nome + " por " + textoDuracao(Math.round(b.dur / 1000)) + "." +
+          (a ? textoAlvoFala(a, esteira) : " Esforço " + N.rpe + " de 10: " + N.sente + ".") +
+          (ev.proximo && b.dur >= 60000 ? " Depois: " + NIVEIS_INTERVALO[ev.proximo.nivel].nome.toLowerCase() + "." : "");
+        filaR.current.limpar();
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+        filaR.current.por({ texto: texto, prioridade: 3 }, () => se.blocoAtual() && se.blocoAtual().id === b.id);
+        return;
+      }
+      if (ev.tipo === "metade") { filaR.current.por({ texto: "Metade. Segura.", prioridade: 1 }, () => se.blocoAtual() && se.blocoAtual().id === ev.bloco.id); return; }
+      if (ev.tipo === "fim") { filaR.current.por({ texto: "Treino concluído. Muito bem!", prioridade: 4 }, () => true); encerrar(); }
+    });
+  };
+  // GPS: velocidade nativa se a precisão deixar; senão distância ÷ tempo de 5 a 15 s
+  const lerGps = (pos) => {
+    const c = pos.coords;
+    if (Date.now() - pos.timestamp > 5000) return;
+    const p = { lat: c.latitude, lng: c.longitude, acc: c.accuracy, t: Date.now(), alt: null, seg: meta.current.seg || 0 };
+    const lista = pts.current, ult = lista.length && lista[lista.length - 1].seg === p.seg ? lista[lista.length - 1] : null;
+    const v = sessao.current && sessao.current.s.pausado ? "pausa" : aceitarPonto(ult, p, cfg.atividade === "caminhada" ? 12 : 30);
+    if (v === "ok" || v === "substitui") { if (v === "substitui") lista.pop(); lista.push(p); }
+    let ms = null;
+    if (c.speed !== null && c.speed !== undefined && c.accuracy <= 25) ms = c.speed;
+    else if (lista.length >= 2) {
+      const u = lista[lista.length - 1];
+      let k = lista.length - 2;
+      while (k > 0 && u.t - lista[k].t < 5000) k--;
+      const dt = (u.t - lista[k].t) / 1000;
+      if (dt >= 4 && dt <= 15 && lista[k].seg === u.seg) ms = distanciaM(lista[k], u) / dt;
+    }
+    ultimaPos.current = ms === null || ms > 8 ? null : { kmh: ms * 3.6, t: Date.now() };
+  };
+  useEffect(() => {
+    if (etapa !== "sessao" || esteira || !navigator.geolocation) return;
+    const id = navigator.geolocation.watchPosition(lerGps, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+    return () => navigator.geolocation.clearWatch(id);
+  }, [etapa]);
+  const kmhAgora = () => { const u = ultimaPos.current; return u && Date.now() - u.t < 6000 ? u.kmh : null; };
+  useEffect(() => {
+    if (etapa !== "sessao") return;
+    let ant = performance.now(), ultL = 0;
+    const iv = setInterval(() => {
+      const se = sessao.current;
+      if (!se) return;
+      const agora = performance.now(), dt = agora - ant;
+      ant = agora;
+      if (dt > 5000 && !se.s.pausado) { pausar(); setLegenda("Pausado: o app ficou em segundo plano e não acompanhou esse tempo."); return; }
+      if (agora - ultL >= 1000 && !esteira) { ultL = agora; se.amostra(kmhAgora()); }
+      tratar(se.avancar(dt));
+      setTique((x) => x + 1);
+    }, 200);
+    return () => clearInterval(iv);
+  }, [etapa]);
+
+  const comecar = () => {
+    if (plano.erro) return;
+    sessao.current = criarSessaoIntervalado(plano);
+    meta.current = { id: "iv-" + Date.now(), inicio: new Date().toISOString(), pausadoMs: 0, pausaDesde: null, seg: 0 };
+    pts.current = [];
+    filaR.current = criarFilaFalas(falarUma);
+    ligarTravaTela();
+    setSalvo(false);
+    setEtapa("sessao");
+    tratar(sessao.current.iniciar());
+  };
+  const pausar = () => {
+    const se = sessao.current;
+    if (!se || se.s.pausado) return;
+    se.pausar(); meta.current.pausaDesde = Date.now(); meta.current.seg = (meta.current.seg || 0) + 1;
+    filaR.current.limpar();
+    try { window.speechSynthesis.cancel(); } catch (e) {}
+    setTique((x) => x + 1);
+  };
+  const retomar = () => {
+    const se = sessao.current;
+    if (meta.current.pausaDesde) meta.current.pausadoMs += Date.now() - meta.current.pausaDesde;
+    meta.current.pausaDesde = null;
+    se.retomar();
+    const b = se.blocoAtual();
+    if (b) filaR.current.por({ texto: "De volta. " + NIVEIS_INTERVALO[b.nivel].nome + ", faltam " + textoDuracao(Math.round(se.restanteBloco() / 1000)) + ".", prioridade: 3 }, () => true);
+  };
+  const encerrar = () => {
+    const se = sessao.current;
+    if (se && !se.s.pausado && !se.s.fim) se.pausar();
+    if (meta.current.pausaDesde) { meta.current.pausadoMs += Date.now() - meta.current.pausaDesde; meta.current.pausaDesde = null; }
+    desligarTravaTela();
+    setEtapa("fim");
+  };
+  // O registro: uma série só na rua (com a distância do GPS); na esteira, uma
+  // série por bloco, com a velocidade que o app indicou — é o que a pessoa
+  // anotaria à mão, e o painel avisa que veio da indicação.
+  const montarRegistro = () => {
+    const se = sessao.current, res = se.resumo();
+    const ativo = se.s.tAtivo;
+    const tipoCorr = cfg.atividade === "caminhada" ? "caminhada" : "corrida";
+    const exId = esteira ? (tipoCorr === "caminhada" ? "esteira-caminhada" : "esteira-corrida") : (tipoCorr === "caminhada" ? "caminhada-rua" : "corrida-rua");
+    const mod = esteira ? tipoCorr : "rua-" + tipoCorr;
+    let series;
+    if (esteira) {
+      series = res.filter((b) => b.dur >= 1000).map((b) => {
+        const a = alvo(b.nivel);
+        const x = { segundos: String(Math.round(b.dur / 1000)), mod: mod };
+        if (a) x.vel = String(a.kmh);
+        return x;
+      });
+    } else {
+      const km = pts.current.length > 1 ? resumoRota(pts.current).km : 0;
+      series = [Object.assign({ segundos: String(Math.round(ativo / 1000)), mod: mod }, km > 0.05 ? { km: String(Math.round(km * 100) / 100) } : {})];
+    }
+    const cons = consistenciaEsforcos(res);
+    return {
+      id: meta.current.id, nome: "Intervalado — " + modelo.nome, data: meta.current.inicio,
+      duracaoMin: Math.max(1, Math.min(300, Math.round(ativo / 60000))),
+      itens: [{ exercicioId: exId, obs: "", series: series }],
+      intervalado: { modelo: modelo.id, nomeModelo: modelo.nome, atividade: cfg.atividade, ambiente: cfg.ambiente, ativoMs: ativo, pausadoMs: meta.current.pausadoMs,
+        blocos: res.filter((b) => b.dur > 0).map((b) => ({ nivel: b.nivel, fase: b.fase, dur: b.dur, kmh: esteira ? null : b.kmh, alvoKmh: (alvo(b.nivel) || {}).kmh || null, pulado: b.pulado })),
+        consistencia: cons ? Math.round(cons.variacao * 1000) / 1000 : null, velIndicada: esteira },
+    };
+  };
+  const voltar = (
+    <button onClick={() => { if (etapa === "sessao") pausar(); onVoltar(); }} style={{ display: "block", background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 14, cursor: "pointer", padding: "4px 0 12px" }}>← Voltar</button>
+  );
+  const chip = (k, v, rot) => (
+    <button key={String(v)} onClick={() => up(k, v)} aria-pressed={cfg[k] === v}
+      style={{ flex: "1 1 auto", padding: "9px 10px", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 13,
+        border: "1px solid " + (cfg[k] === v ? "#E1306C" : "var(--borda2)"), background: cfg[k] === v ? "#E1306C18" : "transparent", color: cfg[k] === v ? "#E1306C" : "var(--texto)" }}>{rot}</button>
+  );
+  const fonteRef = ref.ritmos && cfg.atividade !== "caminhada" ? "pelos seus ritmos de treino (VO2máx estimado no painel do corredor)" :
+    ref.confortoKmh ? "pelo seu ritmo confortável das últimas atividades (" + num1(ref.confortoKmh) + " km/h)" : null;
+
+  if (etapa === "config") {
+    const niveis = plano.blocos ? Array.from(new Set(plano.blocos.map((b) => b.nivel))) : [];
+    return (
+      <div>
+        {voltar}
+        <div style={{ ...S.logo, fontSize: 26, display: "block" }}>⏱ Intervalado</div>
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", marginBottom: 12, lineHeight: 1.5 }}>
+          Caminhada ou corrida em que o ritmo varia: trechos mais fortes e trechos para recuperar. Melhora o fôlego mais rápido que o ritmo sempre igual.
+        </div>
+        <div style={S.card}>
+          <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Atividade e lugar</div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>{chip("atividade", "caminhada", "🚶 Caminhada")}{chip("atividade", "corrida", "🏃 Corrida")}</div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>{chip("ambiente", "rua", "🌆 Rua (GPS)")}{chip("ambiente", "esteira", "🏃 Esteira")}</div>
+          <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Modelo</div>
+          {MODELOS_INTERVALO.map((m) => (
+            <button key={m.id} onClick={() => setCfg((c) => Object.assign({}, c, { modelo: m.id, reps: null }))} aria-pressed={cfg.modelo === m.id}
+              style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", marginBottom: 6, borderRadius: 12, cursor: "pointer", color: "var(--texto)",
+                border: "1px solid " + (cfg.modelo === m.id ? "#E1306C" : "var(--borda2)"), background: cfg.modelo === m.id ? "#E1306C14" : "transparent" }}>
+              <div style={{ fontWeight: 900, fontSize: 14, color: cfg.modelo === m.id ? "#E1306C" : "var(--texto)" }}>
+                {m.icone} {m.nome}{m.para === "caminhada" ? " · ideal para caminhada" : m.id === "corre-caminha" ? " · para começar a correr" : ""}
+              </div>
+              {cfg.modelo === m.id && <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 3, lineHeight: 1.45 }}>{m.explica}</div>}
+            </button>
+          ))}
+          {cfg.modelo === "personalizado" && (
+            <div style={{ margin: "6px 0 10px" }}>
+              {cfg.blocos.map((b, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                  <select value={b.nivel} aria-label="Intensidade do bloco" onChange={(e) => up("blocos", cfg.blocos.map((x, k) => (k === i ? Object.assign({}, x, { nivel: e.target.value }) : x)))}
+                    style={{ ...S.input, margin: 0, flex: 1, padding: "6px 8px" }}>
+                    {["leve", "moderado", "forte", "muito-forte"].map((n) => <option key={n} value={n}>{NIVEIS_INTERVALO[n].nome}</option>)}
+                  </select>
+                  <button onClick={() => up("blocos", cfg.blocos.map((x, k) => (k === i ? Object.assign({}, x, { seg: Math.max(15, x.seg - 15) }) : x)))} style={{ ...S.btnGhost, width: 36, padding: 6 }} aria-label="Menos 15 segundos">−</button>
+                  <span style={{ minWidth: 48, textAlign: "center", fontWeight: 800, fontSize: 13 }}>{fmtTempoRota(b.seg * 1000)}</span>
+                  <button onClick={() => up("blocos", cfg.blocos.map((x, k) => (k === i ? Object.assign({}, x, { seg: Math.min(1800, x.seg + 15) }) : x)))} style={{ ...S.btnGhost, width: 36, padding: 6 }} aria-label="Mais 15 segundos">+</button>
+                  <button disabled={cfg.blocos.length <= 1} onClick={() => up("blocos", cfg.blocos.filter((x, k) => k !== i))} style={{ ...S.btnGhost, width: 36, padding: 6 }} aria-label="Tirar o bloco">✕</button>
+                </div>
+              ))}
+              <button onClick={() => up("blocos", cfg.blocos.concat([{ nivel: "leve", seg: 60 }]))} style={{ ...S.btnGhost, width: "100%", fontSize: 12.5 }}>+ bloco</button>
+            </div>
+          )}
+          {modelo.serie !== null && modelo.reps > 1 || cfg.modelo === "fartlek" || cfg.modelo === "personalizado" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0 12px", fontSize: 13 }}>
+              <span style={{ flex: 1 }}>{cfg.modelo === "fartlek" ? "Trocas de ritmo" : "Repetições"}</span>
+              <button onClick={() => up("reps", Math.max(1, reps - 1))} style={{ ...S.btnGhost, width: 44, padding: 6 }} aria-label="Menos repetições">−</button>
+              <b style={{ minWidth: 30, textAlign: "center" }}>{reps}</b>
+              <button onClick={() => up("reps", Math.min(20, reps + 1))} style={{ ...S.btnGhost, width: 44, padding: 6 }} aria-label="Mais repetições">+</button>
+            </div>
+          ) : null}
+          {plano.erro ? <div style={{ fontSize: 12.5, color: "var(--perigo)" }}>⚠️ {plano.erro}</div> : (
+            <React.Fragment>
+              <div style={{ ...S.label, fontSize: 10, margin: "6px 0 6px" }}>O plano: {fmtTempoRota(plano.total)}</div>
+              <FaixaIntervalo blocos={plano.blocos} />
+              <div style={{ marginTop: 10 }}>
+                {niveis.map((n) => {
+                  const a = alvo(n), N = NIVEIS_INTERVALO[n];
+                  return (
+                    <div key={n} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12.5, padding: "4px 0", borderBottom: "1px solid var(--borda)" }}>
+                      <span><span style={{ color: N.cor }}>■</span> <b>{N.nome}</b> <span style={{ color: "var(--cinza)", fontSize: 11.5 }}>· esforço {N.rpe}/10, {N.sente}</span></span>
+                      <span style={{ fontWeight: 800, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{a ? (esteira ? num1(a.kmh) + " km/h" : fmtPaceSeg(a.paceSeg) + " /km") : "pelo esforço"}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>
+                {fonteRef ? "Ritmos calculados " + fonteRef + ". " : "Sem histórico de " + (cfg.atividade === "caminhada" ? "caminhada" : "corrida") + " ainda: os blocos são guiados pela sensação de esforço (0 a 10). Depois de algumas atividades, o app passa a sugerir o ritmo. "}
+                {esteira ? "Na esteira, o app diz a velocidade a pôr no painel; quem ajusta é você." : "Na rua, o GPS mostra se você está no ritmo. Deixe a tela ligada."}
+              </div>
+              {cfg.modelo === "fartlek" && <button onClick={() => up("semente", Date.now() % 100000)} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13 }}>🎲 Sortear outro fartlek</button>}
+              <button onClick={comecar} style={{ ...S.btn, width: "100%", marginTop: 12 }}>▶ Começar</button>
+              {onPainel && <button onClick={onPainel} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13 }}>📊 Ver meus ritmos no painel do corredor</button>}
+            </React.Fragment>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const se = sessao.current;
+  if (etapa === "sessao" && se) {
+    const b = se.blocoAtual() || se.blocos[se.blocos.length - 1];
+    const N = NIVEIS_INTERVALO[b.nivel], a = alvo(b.nivel), prox = se.proximo();
+    const kmh = esteira ? null : kmhAgora();
+    const cmp = comparaRitmo(kmh, a);
+    const resta = se.restanteBloco();
+    return (
+      <div>
+        {voltar}
+        <div style={{ ...S.card, background: N.cor + "22", borderColor: N.cor, textAlign: "center" }}>
+          <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase", color: N.cor }}>
+            {se.s.pausado ? "⏸ Pausado" : { aquecimento: "Aquecimento", esforco: "Esforço", recuperacao: "Recuperação", desaquecimento: "Desaquecimento" }[b.fase]}
+          </div>
+          <div style={{ fontSize: 34, fontWeight: 900, margin: "4px 0" }}>{N.nome}</div>
+          <div style={{ fontSize: 76, fontWeight: 900, lineHeight: 1, fontVariantNumeric: "tabular-nums", color: resta <= 3000 ? N.cor : "var(--texto)" }}>{fmtTempoRota(resta)}</div>
+          <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8 }}>
+            {a ? (esteira ? "Esteira em " + num1(a.kmh) + " km/h" : "Alvo " + fmtPaceSeg(a.paceSeg) + " /km · " + num1(a.kmh) + " km/h") : "Esforço " + N.rpe + " de 10 · " + N.sente}
+          </div>
+          {!esteira && (
+            <div style={{ fontSize: 14, marginTop: 6 }}>
+              Agora: <b>{kmh ? fmtPaceSeg(3600 / kmh) + " /km" : "sem leitura do GPS"}</b>
+              {cmp && <span style={{ marginLeft: 8, padding: "2px 8px", borderRadius: 8, fontWeight: 900, fontSize: 12,
+                background: cmp === "no ritmo" ? "#4CD13733" : "#F5852933", color: cmp === "no ritmo" ? "var(--ok)" : "#F58529" }}>
+                {cmp === "no ritmo" ? "✓ no ritmo" : cmp === "abaixo" ? "↑ acelere um pouco" : "↓ pode segurar"}</span>}
+            </div>
+          )}
+          {prox && <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 10 }}>Depois: <b style={{ color: NIVEIS_INTERVALO[prox.nivel].cor }}>{NIVEIS_INTERVALO[prox.nivel].nome}</b> por {fmtTempoRota(prox.dur)}</div>}
+          <div style={{ marginTop: 12 }}><FaixaIntervalo blocos={se.blocos} atual={b.id} tAtivo={se.s.tAtivo} /></div>
+          <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 6 }}>Total: {fmtTempoRota(se.s.tAtivo)} · falta {fmtTempoRota(se.restante())}</div>
+          {legenda && <div style={{ fontSize: 12.5, marginTop: 10, color: "var(--texto)" }} aria-live="polite">🔊 {legenda}</div>}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+          {se.s.pausado
+            ? <button onClick={retomar} style={{ ...S.btn, gridColumn: "1 / 3", padding: "16px 10px", fontSize: 16 }}>▶ Retomar</button>
+            : <button onClick={pausar} style={{ ...S.btn, gridColumn: "1 / 3", padding: "16px 10px", fontSize: 16 }}>⏸ Pausar</button>}
+          <button disabled={se.s.pausado} onClick={() => { se.pular(); }} style={{ ...S.btnGhost, padding: "14px 8px", fontWeight: 900 }}>⏭ Pular bloco</button>
+          <button disabled={se.s.pausado} onClick={() => { se.estender(30000); setLegenda("Mais 30 segundos neste bloco."); }} style={{ ...S.btnGhost, padding: "14px 8px", fontWeight: 900 }}>+30 s</button>
+          <button onClick={() => { pausar(); encerrar(); }} style={{ ...S.btnGhost, gridColumn: "1 / 3", padding: "14px 8px", fontWeight: 900, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}>■ Encerrar</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (etapa === "fim" && se) {
+    const reg = montarRegistro(), iv = reg.intervalado;
+    const esforcos = iv.blocos.filter((b) => b.fase === "esforco");
+    return (
+      <div>
+        {voltar}
+        <div style={S.card}>
+          <div style={{ ...S.label, marginBottom: 8 }}>✅ {modelo.icone} {modelo.nome}</div>
+          <div style={{ fontSize: 13, marginBottom: 10 }}>
+            {fmtTempoRota(iv.ativoMs)} de treino · {esforcos.length} {plural(esforcos.length, "esforço", "esforços")}
+            {reg.itens[0].series[0].km ? " · " + num1(+reg.itens[0].series[0].km) + " km pelo GPS" : ""}
+          </div>
+          <FaixaIntervalo blocos={se.blocos} />
+          {!esteira && esforcos.some((b) => b.kmh) && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Cada esforço</div>
+              {esforcos.map((b, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0", borderBottom: "1px solid var(--borda)" }}>
+                  <span>{i + 1}. {NIVEIS_INTERVALO[b.nivel].nome} · {fmtTempoRota(b.dur)}{b.pulado ? " (pulado)" : ""}</span>
+                  <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>{b.kmh ? fmtPaceSeg(3600 / b.kmh) + " /km" : "sem leitura"}{b.alvoKmh ? <span style={{ color: "var(--cinza)", fontWeight: 600 }}> (alvo {fmtPaceSeg(3600 / b.alvoKmh)})</span> : null}</span>
+                </div>
+              ))}
+              {iv.consistencia !== null && (
+                <div style={{ fontSize: 12.5, marginTop: 8, color: iv.consistencia <= 0.03 ? "var(--ok)" : iv.consistencia <= 0.08 ? "var(--texto)" : "#F58529" }}>
+                  {iv.consistencia <= 0.03 ? "🎯 Esforços muito regulares: ritmo bem dosado." : iv.consistencia <= 0.08 ? "Esforços regulares." : "Os esforços variaram bastante: começar um pouco mais devagar ajuda a manter até o último."}
+                </div>
+              )}
+            </div>
+          )}
+          {esteira && <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 10 }}>Na esteira, a velocidade de cada bloco vai para o histórico como a que o app indicou{iv.blocos.some((b) => b.alvoKmh) ? "" : " (sem referência ainda, só o tempo)"}.</div>}
+          <button disabled={salvo} onClick={() => { onSalvar(reg); setSalvo(true); }} style={{ ...S.btn, width: "100%", marginTop: 14, opacity: salvo ? 0.5 : 1 }}>{salvo ? "✓ Salvo no histórico" : "Salvar no histórico"}</button>
+          <button onClick={() => { sessao.current = null; setEtapa("config"); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>Novo intervalado</button>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
+
+// O intervalado no histórico: os blocos em faixa e a constância dos esforços
+function CartaoIntervalado({ iv }) {
+  const blocos = (iv.blocos || []).filter((b) => b.dur > 0 && NIVEIS_INTERVALO[b.nivel]);
+  const esf = blocos.filter((b) => b.fase === "esforco");
+  const total = blocos.reduce((a, b) => a + b.dur, 0) || 1;
+  return (
+    <div>
+      <div style={{ fontWeight: 900, fontSize: 13.5, marginBottom: 6 }}>⏱ Intervalado · {iv.nomeModelo}</div>
+      <div style={{ display: "flex", height: 12, borderRadius: 5, overflow: "hidden", marginBottom: 6 }}>
+        {blocos.map((b, i) => <div key={i} style={{ flex: b.dur / total, background: NIVEIS_INTERVALO[b.nivel].cor, opacity: b.pulado ? 0.3 : 0.85, borderRight: "1px solid #0006" }} />)}
+      </div>
+      <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.5 }}>
+        {plural(esf.length, "esforço", "esforços")} · {textoDuracao(Math.round((iv.ativoMs || 0) / 1000))} em movimento
+        {iv.consistencia != null && esf.length > 1 ? " · constância: os esforços variaram " + Math.round(iv.consistencia * 100) + "%" : ""}
+      </div>
+    </div>
+  );
+}
 // O percurso salvo, reaberto do histórico
 function ModalRota({ h, onFechar }) {
   const divRef = useRef(null);
@@ -14279,6 +15080,11 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
         </div>
       )}
       {verRota && <ModalRota h={h} onFechar={() => setVerRota(false)} />}
+      {h.intervalado && (
+        <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 12, background: "var(--bg2)", border: "1px solid var(--borda2)" }}>
+          <CartaoIntervalado iv={h.intervalado} />
+        </div>
+      )}
       {h.zumbi && (
         <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 12, background: "var(--bg2)", border: "1px solid var(--borda2)" }}>
           <ResumoZumbiCard z={h.zumbi} />
@@ -16653,6 +17459,7 @@ function TreinoLivre() {
             onFuncional={() => setAba("funcional")}
             onPercurso={() => setAba("percurso")}
             onZumbi={() => setAbrindoZumbi(true)}
+            onIntervalado={() => setAba("intervalado")}
             onEscolaVoz={() => setAba("escolaVoz")}
             convite={convite}
             onSeguir={() => {
@@ -16685,7 +17492,7 @@ function TreinoLivre() {
         )}
         {aba === "percurso" && (
           <TelaPercurso exPorId={exPorId} vozCfg={voz} som={som} pesoCorporal={pesoCorporal} historico={historico}
-            bpm={bpm} onConectarCardio={conectarCardio} corredor={corredor} onPainel={() => setAba("corredor")} onZumbi={() => setAbrindoZumbi(true)}
+            bpm={bpm} onConectarCardio={conectarCardio} corredor={corredor} onPainel={() => setAba("corredor")} onZumbi={() => setAbrindoZumbi(true)} onIntervalado={() => setAba("intervalado")}
             pedirConfirmacao={pedirConfirmacao}
             onVoltar={() => setAba("inicio")}
             onSalvar={(registro, pts) => {
@@ -16694,6 +17501,14 @@ function TreinoLivre() {
               guardarRota(registro.id, pts)
                 .catch(() => { registro.rota = Object.assign({}, registro.rota, { semTraco: true }); })
                 .then(() => guardarTreino(registro, "percurso-concluido"));
+            }} />
+        )}
+        {aba === "intervalado" && (
+          <TelaIntervalado historico={historico} exPorId={exPorId} vozCfg={voz} som={som}
+            onVoltar={() => setAba("inicio")} onPainel={() => setAba("corredor")}
+            onSalvar={(registro) => {
+              if (historico.some((x) => x.id === registro.id)) return;
+              guardarTreino(registro, "intervalado-concluido");
             }} />
         )}
         {aba === "zumbi" && (

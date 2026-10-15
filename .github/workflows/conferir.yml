@@ -34,7 +34,7 @@ jobs:
           node-version: "22"
       # Nenhum `npm install`: o projeto não tem dependência, de propósito.
 
-      - name: Os 426 testes
+      - name: Os 474 testes
         run: node testes/rodar.js
 
       - name: A conferida de publicação

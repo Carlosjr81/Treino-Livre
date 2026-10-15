@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 361 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 426 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 361 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 426 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v36) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v37) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1156,6 +1156,120 @@ fim dele, cobertas por `teste-corrida.js` (39 checagens):
 - O resumo animado ganhou a cena "Recordes de corrida" quando o treino bateu
   algum.
 
+## Zombies, Run! (`TelaZumbi`, aba `zumbi`)
+
+Treino intervalado com história, pedido pelo dono a partir de uma especificação
+própria ("Missão Zumbi"). A pessoa ouve a aventura, uma ameaça se aproxima, ela
+acelera **dentro dos limites que ela escolheu**, escapa (ou não) e recupera.
+Funciona na rua e na esteira, caminhando, correndo ou alternando.
+
+**O nome.** O dono pediu "Zombies, Run!", que é marca registrada da Six to Start
+(o app de referência). A especificação dele mesmo recomendava não usar a marca.
+O nome mora numa constante só, `NOME_ZUMBI`: trocar é uma linha. Nada além do
+nome vem de lá — código, regras, números, missão, personagens e sons são deste
+app; só a ideia da mecânica veio da documentação pública deles.
+
+### Separado em camadas
+- **Motor** (`ZUMBI: MOTOR` até `FIM DO MOTOR ZUMBI`): lógica pura, sem tela,
+  som nem sensor, coberta por `teste-zumbi.js` (65 checagens, relógio e sensores
+  simulados). Unidades, base, alvo, avaliação, plano, estados, missão, validador,
+  fila de falas e o registro do histórico.
+- **Som** (`criarPaisagemZumbi`): vento, chuva, estática, passos, gemido e
+  respiração sintetizados no aparelho (Web Audio), em canais separados de
+  ambiente e ameaça, com limitador; a voz é o `speechSynthesis`.
+- **Telas** (`TelaZumbi`): configuração, prévia do plano, sessão, resumo.
+- **Abertura** (`AberturaZumbi`, `ZumbiDesenho`): toda vez que a modalidade é
+  acionada, um zumbi de desenho (desenhado aqui, em SVG) corre do fundo da rua
+  na direção da tela e "alcança" quem olha: a tela pisca, treme e ficam as
+  garras com o nome. Uns 3,9 s; um toque pula; movimento reduzido mostra só o fim.
+
+### As regras que importam
+- **Tudo por dentro em m/s e em tempo ATIVO** (`s.tAtivo`): o relógio só anda
+  fora da pausa. Um salto do relógio maior que 2 s (o app ficou suspenso) não
+  vira tempo, e na tela um intervalo de mais de 5 s pausa a sessão com aviso.
+- **Pace é o inverso da velocidade**: +20% de velocidade é pace ÷ 1,2, nunca
+  pace − 20% (6 km/h → 7,2 km/h; 10:00 → 8:20). O teste cobra isso.
+- **A base é a média pelo tempo dos 30 s antes do aviso**, só com leitura
+  válida, exigindo 80% de cobertura; cada leitura vale até a seguinte, no
+  máximo 5 s — lacuna não vira dado. **Ela congela antes do aviso**: acelerar
+  não sobe o alvo. Teto absoluto (o da pessoa; na caminhada, 7,5 km/h no
+  máximo, para nunca pedir corrida) e teto relativo ao ritmo confortável da
+  sessão (+25%), para as fugas não virarem uma escada. Sem margem, não manda
+  acelerar.
+- **Avaliação** (`criarAvaliador`): aviso de 10 s, adaptação de 15 s (25 na
+  esteira), e então 30 s acumulados no alvo dentro de 60 s, com histerese. Abaixo
+  do alvo a soma para mas não zera. Sem leitura por 10 s, **suspensa**; 20 s
+  suspensa, **não avaliada** — nunca derrota. Todos esses números são ajustes
+  do produto (`ZUMBI_PADRAO`), e a tela diz que não são prescrição.
+- **Resultados que não se misturam**: fuga medida (GPS), estimada (passos),
+  declarada (velocidade digitada na esteira), simulada (demonstração), guiada
+  (nada medido), alcançado (desfecho alternativo), cancelada, não avaliada,
+  adiada, sem margem.
+- **Fontes**: rua = GPS (velocidade nativa se a precisão deixa, senão distância
+  ÷ tempo de 5 a 15 s; leitura velha não vale). Esteira = velocidade informada
+  (botões + e −), passos × passada calibrada na rua (sem passo, não há
+  estimativa: celular parado no suporte não vira velocidade) ou guiado.
+  **GPS na esteira é recusado** pelo validador de configuração.
+- **Plano** (`planejarMissao`): cabe exatamente na duração escolhida (que já
+  inclui aquecimento e desaquecimento); recuperação mínima de 90 s depois de
+  cada esforço; no máximo 35% do miolo em esforço; missão curta tem menos
+  perseguições; a folga é repartida ao acaso com semente. Intervalos
+  programados: editáveis, ordenáveis e repetíveis; nunca ganham esforço
+  escondido; bloco forte curto demais ou recuperação curta demais é recusado
+  com a mensagem do porquê.
+- **Eventos com id estável** (`b3:aviso`, `b3:fugiu`) processados uma vez só.
+  **Checkpoint a cada 5 s** em `localStorage["treinolivre:zumbi"]`; ao abrir a
+  modalidade de novo, a missão volta **pausada**, a perseguição que estava no
+  ar vira "não avaliada (interrompida)", e retomar não repete fala nem
+  recompensa.
+- **Pausa de segurança** (o botão grande, sempre visível): congela tudo, cancela
+  a perseguição em curso sem penalidade e garante 60 s leves na volta.
+  Cancelar desafio, reduzir intensidade (−5 pontos), repetir instrução e
+  recuperar mais (+60 s, tirados do último trecho leve) também estão sempre ali.
+- **Falas** (`criarFilaFalas`): uma de cada vez, por prioridade, e a vencida é
+  descartada — "acelere" não é dito quando a sessão já está em recuperação. A
+  voz abaixa o ambiente enquanto fala (ducking). Vibração no aviso, na
+  aceleração e na fuga; a última fala fica escrita na tela.
+- **Histórico**: um treino com id da sessão (`juntarSemDuplicar`), série aeróbica
+  comum (meta da semana e painel do corredor enxergam), e `historico[].zumbi`
+  com o resumo, os blocos, cada perseguição e a velocidade em médias de 10 s
+  com `null` onde não houve leitura (`GraficoZumbi` deixa a lacuna em branco).
+  **Distância só com GPS; velocidade da esteira só se foi informada; o guiado
+  não grava velocidade nem distância.** A demonstração nunca é salva.
+
+### A missão "Último Sinal" (`MISSAO_ULTIMO_SINAL`)
+Lia Ventura, operadora da Estação Farol, guia a pessoa para buscar a bateria
+do rádio na Garagem Norte e religar a antena com o Bento. Fatos persistentes
+(`bateria`, `sinal`, `farol`) impedem contradição: sem nenhuma fuga, ou
+pulando todos os desafios, a história fecha por outro caminho (a distração dos
+sobreviventes, a bateria deixada no caminho) e o fim não finge sinal
+restaurado. **Nenhuma fala dá ordem de navegação real** — a fuga é no ritmo,
+nunca na direção — e o teste procura "atravesse", "entre", "vire".
+
+### Acrescentar uma missão
+É dado, não código: um objeto como `MISSAO_ULTIMO_SINAL` (id, versão, nome,
+fatos, cenas). Cada cena tem `evento` (um de `EVENTOS_ZUMBI`), `falas`
+(`caminhada` e `corrida`, ou `todas`; `{alvo}` vira a velocidade), e
+opcionalmente `requer`, `semFatos`, `define`, `repetivel`, `proximas`.
+`validarMissao` recusa código dentro do objeto, fato não declarado, referência
+quebrada e evento essencial sem cena de reserva (sem `requer`). Rode-o no
+teste antes de pôr a missão nova na tela.
+
+### Trocar as vozes e os efeitos
+`ZUMBI_AUDIO_MANIFESTO` lista cada camada com origem e licença. Para usar
+locução gravada, o caminho é dar a cada cena um campo de arquivo e tocá-lo
+pela mesma fila de falas (`criarFilaFalas`), no lugar do `jarvisFalar` — a
+fila já garante prioridade, uma de cada vez e descarte da vencida. **Hoje não
+há arquivo gravado nenhum**: a voz é a do aparelho. Algumas vozes do Android
+exigem internet; os efeitos funcionam offline.
+
+### O que a web não alcança aqui
+Tela bloqueada e app em segundo plano: o navegador pode parar o GPS, o relógio
+e a voz. A tela pede para ficar ligada, a trava de tela fica ativa, e a volta de
+uma suspensão pausa a sessão em vez de inventar tempo. Chamada telefônica e
+fone desconectado não têm aviso confiável numa página web. **Não está validado
+em aparelho**: GPS de verdade, esteira física, celular bloqueado, Bluetooth.
+
 ## Monitor cardíaco, e o que a web não alcança
 
 **Funciona:** qualquer monitor que exponha o serviço padrão de frequência
@@ -1698,11 +1812,11 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 361
-checagens em onze suítes, e elas recortam as funções do próprio `index.html`:
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 426
+checagens em doze suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash
-node rodar.js      # as onze suítes, contra o index.html da pasta ao lado
+node rodar.js      # as doze suítes, contra o index.html da pasta ao lado
 node servir.js     # sobe o app em http://localhost:8765
 ```
 
@@ -1774,6 +1888,13 @@ Roteiro mínimo depois de mexer no app:
      bairro aparecem, a voz avisa o km, a distância bate com a de outro app
      (diferença de poucos por cento), e o percurso abre no histórico.
 33. Abrir o Eyes Scan, fazer 10 repetições de verdade e conferir a contagem.
+33é. Abrir o 🧟 Zombies, Run!: a abertura do zumbi passa (e de novo a cada vez
+     que se abre). Fazer uma missão de 10 min na rua com o GPS: a voz conta a
+     história, avisa a ameaça, pede o ritmo-alvo, conta a fuga e manda
+     recuperar; a pausa de segurança congela tudo; no fim, o gráfico com a
+     perseguição marcada vai para o histórico uma vez só. Repetir na esteira
+     com a velocidade informada e com o celular parado no suporte (estimativa
+     por passos não pode aparecer).
 33ç. Correr 2 km na rua com o celular no braço e a idade preenchida no painel:
      a cadência aparece ao vivo e a voz do km a fala; no fim, a análise mostra
      pace, ajustado ao relevo, melhor km, cadência, passada, melhores esforços e,

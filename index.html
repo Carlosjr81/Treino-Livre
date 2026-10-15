@@ -141,6 +141,42 @@
   .ab-tremor   { animation: abTremor .40s ease-out 1.46s both; }
   .ab-rachas polyline { stroke-dasharray: 420; animation: abRacha .72s ease-out 1.46s both; }
   .ab-marca    { animation: abMarca .50s ease-out 1.62s both; }
+  /* Abertura do Zombies, Run!: o zumbi sai do fundo da rua, corre na direção
+     da tela (cresce, balança a cada passada, pernas e braços alternando) e, em
+     2,6 s, avança sobre quem olha — a tela pisca, treme e ficam as garras. */
+  @keyframes zbAprox  { 0% { transform: translateY(-150px) scale(.12); } 100% { transform: translateY(30px) scale(1.65); } }
+  @keyframes zbPega   { 0% { transform: translateY(30px) scale(1.65) rotate(0); } 55% { transform: translateY(80px) scale(3.6) rotate(-5deg); }
+                        100% { transform: translateY(110px) scale(4.6) rotate(3deg); } }
+  @keyframes zbPasso  { 0% { transform: translateY(0) rotate(-3deg); } 100% { transform: translateY(-12px) rotate(3deg); } }
+  @keyframes zbPernaE { 0% { transform: rotate(24deg); } 100% { transform: rotate(-20deg); } }
+  @keyframes zbPernaD { 0% { transform: rotate(-20deg); } 100% { transform: rotate(24deg); } }
+  @keyframes zbBracos { 0% { transform: translateY(0); } 100% { transform: translateY(5px); } }
+  @keyframes zbCabeca { 0% { transform: rotate(-7deg); } 100% { transform: rotate(7deg); } }
+  @keyframes zbFlash  { 0% { opacity: 0; } 18% { opacity: .92; } 100% { opacity: 0; } }
+  @keyframes zbGarra  { 0% { stroke-dashoffset: 320; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
+  @keyframes zbTitulo { 0% { opacity: 0; transform: scale(1.6); } 60% { opacity: 1; transform: scale(.94); } 100% { opacity: 1; transform: scale(1); } }
+  @keyframes zbNevoa  { 0% { transform: translateX(-12%); } 100% { transform: translateX(12%); } }
+  @keyframes zbTremor { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-10px, 6px); } 40% { transform: translate(9px, -7px); }
+                        60% { transform: translate(-6px, -4px); } 80% { transform: translate(4px, 5px); } }
+  .zb-aprox  { animation: zbAprox 2.6s cubic-bezier(.55,0,.9,.45) both, zbPega .55s ease-in 2.6s forwards; }
+  .zb-passada { animation: zbPasso .3s ease-in-out infinite alternate; }
+  .zb-perna-e { animation: zbPernaE .3s ease-in-out infinite alternate; }
+  .zb-perna-d { animation: zbPernaD .3s ease-in-out infinite alternate; }
+  .zb-bracos { animation: zbBracos .15s ease-in-out infinite alternate; }
+  .zb-cabeca { animation: zbCabeca .6s ease-in-out infinite alternate; }
+  .zb-flash  { position: absolute; inset: 0; background: #E8FFE0; opacity: 0; pointer-events: none; animation: zbFlash .55s ease-out 2.62s both; }
+  .zb-garras path { stroke-dasharray: 320; stroke-dashoffset: 320; opacity: 0; animation: zbGarra .22s ease-out both; }
+  .zb-garras path:nth-child(1) { animation-delay: 2.78s; } .zb-garras path:nth-child(2) { animation-delay: 2.84s; }
+  .zb-garras path:nth-child(3) { animation-delay: 2.9s; } .zb-garras path:nth-child(4) { animation-delay: 2.96s; }
+  .zb-titulo { opacity: 0; animation: zbTitulo .45s ease-out 3.0s both, zbTremor .35s ease-out 3.05s; }
+  .zb-nevoa  { position: absolute; left: -20%; right: -20%; bottom: 0; height: 45%; pointer-events: none;
+               background: linear-gradient(0deg, rgba(185,246,202,.16), rgba(185,246,202,0)); animation: zbNevoa 4s ease-in-out infinite alternate; }
+  @media (prefers-reduced-motion: reduce) {
+    .zb-aprox, .zb-passada, .zb-perna-e, .zb-perna-d, .zb-bracos, .zb-cabeca, .zb-flash, .zb-garras path, .zb-titulo, .zb-nevoa { animation: none; }
+    .zb-aprox { transform: translateY(-40px) scale(1); }
+    .zb-garras path { stroke-dashoffset: 0; opacity: .9; }
+    .zb-titulo { opacity: 1; }
+  }
   /* Resumo animado: a linha verde desce e revela a cena no mesmo passo — o
      recorte e a linha usam a mesma duração e a mesma curva da régua da
      abertura, e é isso que faz a linha parecer escrever a cena. */
@@ -584,7 +620,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15i";
+const VERSAO_APP = "2026-10-15j";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2822,7 +2858,7 @@ function jarvisFalar(texto, cfg) {
     const animado = cfg.animado !== false;
     u.rate = (cfg.velocidade || 1.1) + (animado ? 0.06 : 0);
     u.pitch = animado ? 1.22 : 1;
-    u.volume = 1;
+    u.volume = cfg.volume != null ? Math.max(0, Math.min(1, cfg.volume)) : 1;
     const v = escolherVozPtBr(cfg.vozNome);
     if (v) { u.voice = v; u.lang = v.lang; }
     // Estimativa de duração como rede de segurança: em alguns navegadores o
@@ -6828,7 +6864,7 @@ function FaixaProgresso({ est, historico, meta, onAbrirProgresso }) {
 // ---------------- TELA INICIAL ----------------
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
   avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
-  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso }) {
+  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
@@ -6921,6 +6957,11 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
           onClick={onPercurso}>
           🗺 Caminhada ou corrida na rua (GPS)
         </button>
+        {onZumbi && (
+          <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 900, color: "#7CFF3C", borderColor: "#7CFF3C66" }} onClick={onZumbi}>
+            🧟 {NOME_ZUMBI} — corra da história
+          </button>
+        )}
       </div>
 
       <OQueTreinarHoje historico={historico} exPorId={exPorId} onAbrirGrupo={onAbrirGrupo} />
@@ -8899,6 +8940,749 @@ function leituraCarga(c) {
   return { cor: "var(--cinza)", texto: "Semana mais leve que o seu costume: bom para recuperar." };
 }
 // ---------------- FIM DAS CONTAS DO CORREDOR ----------------
+// ---------------- ZUMBI: MOTOR ----------------
+// Treino intervalado com história: a pessoa ouve a aventura, uma ameaça se
+// aproxima, ela acelera dentro de limites que ela mesma escolheu, escapa (ou
+// não) e recupera. Referência de mecânica: as perseguições e o modo intervalado
+// do Zombies, Run!, a partir só da documentação pública deles. O código, as
+// regras, os números, a missão e os personagens são nossos.
+//
+// Este bloco é lógica pura — nada de React, tela, GPS ou som — para que cada
+// regra seja testada com relógio e sensores simulados (teste-zumbi.js). Quem
+// mede, quem fala e quem desenha ficam fora daqui.
+//
+// Tudo por dentro é em m/s e em milissegundos de TEMPO ATIVO: o relógio da
+// sessão só anda quando ela não está pausada. A pausa congela tudo por
+// construção, e um processo encerrado não inventa tempo que não viu.
+const NOME_ZUMBI = "Zombies, Run!";
+const ZUMBI_VERSAO_MOTOR = 1;
+const ZUMBI_PADRAO = {
+  aumentoPct: 10,          // quanto a perseguição pede acima do ritmo de agora
+  aumentoMaxPct: 25,       // teto relativo ao ritmo confortável da sessão
+  avisoMs: 10000,          // o aviso da ameaça, antes de pedir qualquer coisa
+  adaptMs: 15000,          // tempo para chegar ao ritmo antes de avaliar
+  adaptEsteiraMs: 25000,   // na esteira o botão sobe devagar
+  alvoMs: 30000,           // tempo acumulado no alvo para escapar
+  janelaMs: 60000,         // prazo para acumular
+  tolerancia: 0.03,        // ruído aceito abaixo do alvo
+  baseJanelaMs: 30000,     // de onde sai o ritmo de referência
+  coberturaMin: 0.8,       // quanto da janela precisa ter leitura válida
+  gapMaxMs: 5000,          // lacuna maior que isso não é preenchida
+  perdaMs: 10000,          // sem leitura por tanto tempo: avaliação suspensa
+  recuperarSinalMs: 20000, // suspensa por tanto tempo: não avaliada
+  recupMinMs: 90000,       // recuperação mínima depois de cada esforço
+  leveMinMs: 60000,        // trecho leve mínimo antes de cada perseguição
+  seguroMs: 60000,         // depois da pausa de segurança, leve antes de qualquer perseguição
+  ambienteMs: 75000,       // de quanto em quanto tempo entra uma fala de ambientação
+  baseMinMs: 0.6,          // abaixo disso não é base (parado, ou leitura ruim)
+  velMaxFisica: 7.5,       // 27 km/h: acima disso é erro de medida
+  tetoCaminhadaKmh: 7.5,   // caminhada nunca vira corrida
+  tetoCorridaKmh: 18,
+  maxPerseguicoes: 6,
+  orcamentoPct: 0.35,      // no máximo 35% do miolo em esforço
+};
+
+// ---- Unidades ----
+const kmhDeMs = (v) => v * 3.6;
+const msDeKmh = (k) => k / 3.6;
+const paceSegKm = (v) => (v > 0 ? 1000 / v : null);
+const velocidadeAlvo = (base, pct) => base * (1 + pct / 100);
+// Pace e velocidade são inversos: aumentar 20% a velocidade NÃO é tirar 20% do pace
+const paceAlvo = (paceBase, pct) => paceBase / (1 + pct / 100);
+function fmtPaceSeg(s) {
+  if (!(s > 0) || !isFinite(s)) return "—";
+  let m = Math.floor(s / 60), r = Math.round(s - m * 60);
+  if (r === 60) { m++; r = 0; }
+  return m + ":" + String(r).padStart(2, "0");
+}
+
+// ---- Amostra de movimento ----
+// { valor (m/s), unidade: "m/s", origem, t (tempo ativo, ms), qualidade 0..1, valida }
+// Origens: "gps" (medido), "passos" (estimado: cadência × passada calibrada),
+// "declarado" (a pessoa digitou a velocidade da esteira), "simulado" (demonstração).
+const ORIGENS_ZUMBI = {
+  gps: { nome: "GPS", classe: "medida" },
+  passos: { nome: "passos × passada", classe: "estimada" },
+  declarado: { nome: "velocidade informada", classe: "declarada" },
+  simulado: { nome: "simulação", classe: "simulada" },
+};
+// Uma leitura só vale se for plausível: número, positiva, dentro do possível,
+// com qualidade, e não um pico isolado (o GPS que pula e volta).
+function validarAmostra(a, recentes, cfg) {
+  const c = cfg || ZUMBI_PADRAO;
+  if (!a || typeof a.valor !== "number" || !isFinite(a.valor) || a.valor < 0) return false;
+  if (a.valor > c.velMaxFisica) return false;
+  if (!(a.qualidade >= 0.5)) return false;
+  const ant = (recentes || []).filter((x) => x.valida).slice(-3).map((x) => x.valor).sort((x, y) => x - y);
+  if (ant.length === 3 && Math.abs(a.valor - ant[1]) > 2.5) return false;
+  return true;
+}
+// Média pelo tempo das leituras válidas da janela que termina em tFim. Cada
+// leitura vale até a seguinte, nunca mais que gapMax: lacuna não vira dado.
+function velocidadeBase(amostras, tFim, cfg) {
+  const c = cfg || ZUMBI_PADRAO;
+  const ini = tFim - c.baseJanelaMs;
+  const lista = (amostras || []).filter((a) => a.valida && !a.esforco && a.t < tFim);
+  let soma = 0, coberto = 0;
+  lista.forEach((a, i) => {
+    const prox = i + 1 < lista.length ? lista[i + 1].t : tFim;
+    const de = Math.max(a.t, ini), ate = Math.min(prox, a.t + c.gapMaxMs, tFim);
+    if (ate > de) { soma += a.valor * (ate - de); coberto += ate - de; }
+  });
+  const cobertura = coberto / c.baseJanelaMs;
+  if (cobertura < c.coberturaMin || !coberto) return { base: null, cobertura: cobertura };
+  const base = soma / coberto;
+  if (base < c.baseMinMs) return { base: null, cobertura: cobertura };
+  return { base: base, cobertura: cobertura };
+}
+// O alvo da perseguição: base × (1 + aumento), limitado pelo teto absoluto e
+// pelo teto relativo ao ritmo confortável da sessão — senão cada fuga elevaria
+// a base da seguinte, e a sessão viraria uma escada. Sem margem, não há alvo.
+function calcularAlvo(base, conforto, cfg) {
+  const c = cfg || ZUMBI_PADRAO;
+  if (!(base > 0)) return null;
+  let alvo = velocidadeAlvo(base, c.aumentoPct);
+  alvo = Math.min(alvo, msDeKmh(c.tetoKmh || c.tetoCorridaKmh));
+  if (conforto > 0) alvo = Math.min(alvo, velocidadeAlvo(conforto, c.aumentoMaxPct));
+  return alvo > base * 1.02 ? alvo : null;
+}
+
+// ---- A avaliação de uma perseguição ----
+// Estados: adaptando → avaliando ⇄ suspensa → fugiu | alcancado | nao-avaliada
+// (ou cancelada). Só soma tempo coberto por leitura válida, e só depois da
+// adaptação. Abaixo do alvo, a soma para, mas não zera e o alvo não sobe.
+function criarAvaliador(o) {
+  const c = Object.assign({}, ZUMBI_PADRAO, o.cfg || {});
+  const st = {
+    base: o.base, alvo: o.alvo, guiada: !!o.guiada, origem: o.origem || null,
+    inicio: o.inicio, fimAdapt: o.inicio + (o.adaptMs || c.adaptMs),
+    fimJanela: o.inicio + (o.adaptMs || c.adaptMs) + c.janelaMs, alvoMs: o.alvoMs || c.alvoMs,
+    estado: "adaptando", noAlvoMs: 0, ultT: null, ultV: null, dentro: false,
+    suspensaDesde: null, suspensoMs: 0, ameaca: 0.45, tAnt: o.inicio, resultado: null,
+  };
+  const entrar = () => st.alvo * (1 - c.tolerancia), sair = () => st.alvo * (1 - 2 * c.tolerancia);
+  const terminar = (r) => { if (!st.resultado) { st.resultado = r; st.estado = r; } };
+  function tick(t) {
+    if (st.resultado) return st;
+    const dt = Math.max(0, t - st.tAnt);
+    st.tAnt = t;
+    if (st.guiada) {
+      // guiada: ninguém mede; o roteiro conduz pelo tempo e o desfecho é narrativo
+      if (t >= st.fimAdapt) st.estado = "avaliando";
+      st.ameaca = Math.min(0.8, st.ameaca + dt / 60000);
+      if (t >= st.fimAdapt + st.alvoMs) terminar("guiada");
+      return st;
+    }
+    if (t < st.fimAdapt) { st.estado = "adaptando"; st.ameaca = Math.min(0.6, st.ameaca + dt / 100000); return st; }
+    const semLeitura = st.ultT === null ? t - st.fimAdapt : t - st.ultT;
+    if (semLeitura > c.perdaMs) {
+      if (st.suspensaDesde === null) st.suspensaDesde = t;
+      st.estado = "suspensa";
+      if (t - st.suspensaDesde > c.recuperarSinalMs) terminar("nao-avaliada");
+      return st;
+    }
+    if (st.suspensaDesde !== null) {
+      // a leitura voltou: o prazo anda o tempo que ficou suspenso
+      st.suspensoMs += t - st.suspensaDesde; st.fimJanela += t - st.suspensaDesde; st.suspensaDesde = null;
+    }
+    st.estado = "avaliando";
+    // a ameaça é ficção: chega perto quando a pessoa está abaixo do alvo, se
+    // afasta quando ela sustenta — suavizada, para não pular
+    const alvoAmeaca = st.dentro ? 0.1 : 0.95;
+    st.ameaca += (alvoAmeaca - st.ameaca) * Math.min(1, dt / 6000);
+    if (st.noAlvoMs >= st.alvoMs) terminar("fugiu");
+    else if (t >= st.fimJanela) terminar("alcancado");
+    return st;
+  }
+  function amostra(a) {
+    if (st.resultado || st.guiada || !a.valida) return st;
+    if (st.ultT !== null && a.t > st.fimAdapt) {
+      const de = Math.max(st.ultT, st.fimAdapt), ate = Math.min(a.t, st.fimJanela);
+      // só conta o trecho que leituras válidas cobrem, e só enquanto estava no alvo
+      if (a.t - st.ultT <= c.gapMaxMs && st.dentro && ate > de) st.noAlvoMs += ate - de;
+    }
+    if (st.dentro) { if (a.valor < sair()) st.dentro = false; }
+    else if (a.valor >= entrar()) st.dentro = true;
+    st.ultT = a.t; st.ultV = a.valor;
+    return tick(a.t);
+  }
+  return {
+    st: st, tick: tick, amostra: amostra,
+    cancelar: () => terminar("cancelada"),
+    reduzir: (pct) => { if (!st.resultado && st.base) st.alvo = Math.max(st.base * 1.02, Math.min(st.alvo, velocidadeAlvo(st.base, pct))); },
+  };
+}
+
+// ---- Gerador com semente (testes reproduzíveis) ----
+function aleatorioComSemente(semente) {
+  let s = (semente >>> 0) || 1;
+  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+}
+
+// ---- O plano: blocos que cabem exatamente na duração escolhida ----
+// Tipos: aquecimento, leve, perseguicao, forte (intervalo programado),
+// recuperacao, desaquecimento. A duração escolhida já inclui aquecimento e
+// desaquecimento. Missão curta tem menos perseguições; descanso nunca é
+// comprimido para caber uma cena.
+function duracaoPerseguicao(cfg) {
+  const c = Object.assign({}, ZUMBI_PADRAO, cfg);
+  return c.avisoMs + (c.ambiente === "esteira" ? c.adaptEsteiraMs : c.adaptMs) + c.janelaMs;
+}
+function planejarMissao(cfgEntrada) {
+  const c = Object.assign({}, ZUMBI_PADRAO, cfgEntrada);
+  const total = Math.round(c.duracaoMin * 60000);
+  const aquec = Math.round((c.aquecMin != null ? c.aquecMin : c.duracaoMin <= 10 ? 2 : 4) * 60000);
+  const desaq = Math.round((c.desaqMin != null ? c.desaqMin : c.duracaoMin <= 10 ? 1.5 : 3) * 60000);
+  const meio = total - aquec - desaq;
+  if (meio < 3 * 60000) return { erro: "A missão precisa de pelo menos 3 minutos entre o aquecimento e o desaquecimento." };
+  const blocos = [{ tipo: "aquecimento", dur: aquec }];
+  if (c.experiencia === "historia") {
+    // sem acelerações: três trechos leves, e a história avança nos marcos
+    const t3 = Math.floor(meio / 3);
+    blocos.push({ tipo: "leve", dur: t3, marco: 1 }, { tipo: "leve", dur: t3, marco: 2 }, { tipo: "leve", dur: meio - 2 * t3 });
+  } else if (c.experiencia === "intervalos") {
+    const serie = (c.blocos || []).map((b) => ({ tipo: b.tipo === "forte" ? "forte" : "leve", dur: Math.round(b.seg * 1000) }));
+    const rep = Math.max(1, c.repeticoes || 1);
+    const minForte = c.avisoMs + (c.ambiente === "esteira" ? c.adaptEsteiraMs : c.adaptMs) + 20000;
+    let usado = 0;
+    const lista = [];
+    for (let r = 0; r < rep; r++) serie.forEach((b) => { lista.push(Object.assign({}, b)); usado += b.dur; });
+    if (!lista.some((b) => b.tipo === "forte")) return { erro: "Os intervalos precisam de pelo menos um bloco forte." };
+    if (lista.some((b) => b.tipo === "forte" && b.dur < minForte)) return { erro: "Cada bloco forte precisa de pelo menos " + Math.round(minForte / 1000) + " s: aviso, chegada ao ritmo e algum tempo nele." };
+    for (let i = 0; i < lista.length; i++) {
+      if (lista[i].tipo === "forte" && i + 1 < lista.length && lista[i + 1].tipo === "leve" && lista[i + 1].dur < c.recupMinMs)
+        return { erro: "Depois de cada bloco forte, o leve precisa de pelo menos " + Math.round(c.recupMinMs / 1000) + " s de recuperação." };
+    }
+    if (usado > meio) return { erro: "Os blocos somam " + Math.round(usado / 60000) + " min e só cabem " + Math.round(meio / 60000) + " entre o aquecimento e o desaquecimento." };
+    // o que sobra é leve, no começo (nunca um esforço extra escondido)
+    if (meio - usado > 0) blocos.push({ tipo: "leve", dur: meio - usado });
+    lista.forEach((b) => blocos.push(b.tipo === "forte" ? { tipo: "forte", dur: b.dur, programado: true } : { tipo: "recuperacao", dur: b.dur }));
+  } else {
+    const persg = duracaoPerseguicao(c);
+    const ciclo = c.leveMinMs + persg + c.recupMinMs;
+    let n = Math.floor(meio / ciclo);
+    n = Math.min(n, c.maxPerseguicoes, Math.floor((meio * c.orcamentoPct) / persg));
+    n = Math.max(0, n);
+    const folga = meio - n * ciclo;
+    // a folga é repartida ao acaso (com semente) entre os n+1 trechos leves
+    const rnd = aleatorioComSemente(c.semente || 1);
+    const pesos = Array.from({ length: n + 1 }, () => 0.2 + rnd());
+    const sp = pesos.reduce((a, b) => a + b, 0);
+    const extras = pesos.map((p) => Math.floor((folga * p) / sp));
+    extras[n] += folga - extras.reduce((a, b) => a + b, 0);
+    for (let k = 0; k < n; k++) {
+      blocos.push({ tipo: "leve", dur: c.leveMinMs + extras[k] });
+      blocos.push({ tipo: "perseguicao", dur: persg });
+      blocos.push({ tipo: "recuperacao", dur: c.recupMinMs });
+    }
+    if (extras[n] > 0) blocos.push({ tipo: "leve", dur: extras[n] });
+  }
+  blocos.push({ tipo: "desaquecimento", dur: desaq });
+  let ini = 0;
+  blocos.forEach((b, i) => { b.id = "b" + i; b.ini = ini; ini += b.dur; });
+  return { blocos: blocos, total: ini };
+}
+
+// ---- Configuração: o que combina com o quê ----
+function validarConfigZumbi(cfg) {
+  const erros = [];
+  if ([10, 20, 30, 45].indexOf(cfg.duracaoMin) < 0) erros.push("Duração: escolha 10, 20, 30 ou 45 minutos.");
+  if (["rua", "esteira"].indexOf(cfg.ambiente) < 0) erros.push("Escolha rua ou esteira.");
+  if (["caminhada", "corrida", "alternada"].indexOf(cfg.atividade) < 0) erros.push("Escolha caminhada, corrida ou alternada.");
+  if (["adaptativa", "intervalos", "historia"].indexOf(cfg.experiencia) < 0) erros.push("Escolha a experiência.");
+  if (!(cfg.aumentoPct >= 5 && cfg.aumentoPct <= 25)) erros.push("O aumento de ritmo vai de 5% a 25%.");
+  if (cfg.ambiente === "esteira" && cfg.fonte === "gps") erros.push("Na esteira o GPS não mede a corrida: escolha velocidade informada, passos ou guiado.");
+  if (cfg.ambiente === "rua" && cfg.fonte === "declarado") erros.push("Na rua a velocidade vem do GPS (ou use o modo guiado).");
+  if (cfg.fonte === "passos" && !(cfg.passada > 0.3)) erros.push("Estimar pelos passos exige a sua passada calibrada: faça antes uma corrida na rua com o GPS.");
+  if (cfg.atividade === "caminhada" && cfg.tetoKmh > ZUMBI_PADRAO.tetoCaminhadaKmh) erros.push("Na caminhada o teto é " + ZUMBI_PADRAO.tetoCaminhadaKmh + " km/h: acima disso a pessoa precisaria correr.");
+  if (!(cfg.tetoKmh >= 3 && cfg.tetoKmh <= 25)) erros.push("O teto de velocidade vai de 3 a 25 km/h.");
+  return erros;
+}
+
+// ---- O motor da sessão ----
+// Fases: preparacao, aquecimento, deslocamento, aviso, transicao, perseguicao,
+// fuga, desfecho, recuperacao, desaquecimento, pausa, finalizada. A perda de
+// sinal é uma condição (sinalOk), não uma fase, e nunca é derrota.
+// Cada acontecimento vira um evento com id estável ("b3:aviso"), processado
+// uma vez só: retomar ou reavaliar não repete fala nem recompensa.
+function criarMotorZumbi(cfgEntrada, plano, restaurado) {
+  const cfg = Object.assign({}, ZUMBI_PADRAO, cfgEntrada);
+  if (cfg.atividade === "caminhada") cfg.tetoKmh = Math.min(cfg.tetoKmh || 99, cfg.tetoCaminhadaKmh);
+  const guiadoGeral = cfg.fonte === "guiado";
+  const s = restaurado ? JSON.parse(JSON.stringify(restaurado.estado)) : {
+    fase: "preparacao", tAtivo: 0, pausado: false, pausadoMs: 0, feitos: [], fatos: {}, persegs: {},
+    conforto: null, seguroAte: 0, amostras: [], blocoId: null, iniciou: false, terminou: false, trocasOrigem: [],
+    ultValidaT: null, origem: null, estendido: 0, graf: {},
+  };
+  if (restaurado) {
+    s.pausado = true;
+    // a perseguição que estava no ar quando o processo caiu não é avaliada
+    Object.keys(s.persegs).forEach((k) => { const p = s.persegs[k]; if (!p.resultado) { p.resultado = "nao-avaliada"; p.motivo = "interrompida"; } });
+    s.seguroAte = s.tAtivo + cfg.seguroMs;
+  }
+  const blocos = plano.blocos.map((b) => Object.assign({}, b));
+  const avaliadores = {};
+  const fila = [];
+  const emitir = (id, tipo, extra) => {
+    if (s.feitos.indexOf(id) >= 0) return;
+    s.feitos.push(id);
+    fila.push(Object.assign({ id: id, tipo: tipo, t: s.tAtivo }, extra || {}));
+  };
+  const blocoEm = (t) => blocos.find((b) => t >= b.ini && t < b.ini + b.dur) || null;
+  const total = () => blocos.reduce((a, b) => a + b.dur, 0);
+  const ehEsforco = (b) => b && (b.tipo === "perseguicao" || b.tipo === "forte");
+  const atividadeEm = (b) => (cfg.atividade === "alternada" ? (ehEsforco(b) ? "corrida" : "caminhada") : cfg.atividade);
+
+  function abrirPerseguicao(b) {
+    const ini = b.ini + cfg.avisoMs;
+    const adapt = cfg.ambiente === "esteira" ? cfg.adaptEsteiraMs : cfg.adaptMs;
+    const alvoMs = b.programado ? Math.min(cfg.alvoMs, b.dur - cfg.avisoMs - adapt) : cfg.alvoMs;
+    const p = { id: b.id, blocoIni: b.ini, programado: !!b.programado, resultado: null, base: null, alvo: null, origem: s.origem, noAlvoMs: 0, guiada: false };
+    if (cfg.experiencia === "historia" || s.tAtivo < s.seguroAte) {
+      p.resultado = "adiada"; p.motivo = s.tAtivo < s.seguroAte ? "pausa de segurança" : "somente história";
+      s.persegs[b.id] = p;
+      return;
+    }
+    let base = null;
+    if (!guiadoGeral) {
+      // a base congela AQUI, antes do aviso: acelerar depois não a eleva
+      base = velocidadeBase(s.amostras, b.ini, cfg).base;
+      if (base && s.conforto === null) s.conforto = base;
+    }
+    const alvo = base ? calcularAlvo(base, s.conforto, cfg) : null;
+    if (!guiadoGeral && base && !alvo) {
+      // os limites não deixam acelerar: não manda acelerar
+      p.resultado = "sem-margem"; p.base = base; s.persegs[b.id] = p;
+      return;
+    }
+    p.guiada = !alvo;
+    if (!alvo && !guiadoGeral) p.motivo = "sem base representativa";
+    p.base = base; p.alvo = alvo;
+    s.persegs[b.id] = p;
+    avaliadores[b.id] = criarAvaliador({ base: base, alvo: alvo, guiada: p.guiada, inicio: ini, adaptMs: adapt, alvoMs: alvoMs, cfg: cfg, origem: s.origem });
+  }
+  // depois de reiniciar, o avaliador da perseguição em curso não existe mais:
+  // ela já foi marcada como não avaliada acima
+
+  function atualizar() {
+    if (!s.iniciou) return;
+    if (s.tAtivo >= total()) {
+      s.fase = "finalizada";
+      if (!s.terminou) { s.terminou = true; emitir("fim", "fim"); }
+      return;
+    }
+    const b = blocoEm(s.tAtivo);
+    if (!b) return;
+    const rel = s.tAtivo - b.ini;
+    const sinalOk = guiadoGeral || (s.ultValidaT !== null && s.tAtivo - s.ultValidaT <= cfg.perdaMs);
+    s.sinalOk = sinalOk;
+    if (b.id !== s.blocoId) {
+      // saiu de uma perseguição sem desfecho (o prazo não fechou dentro do bloco)
+      if (s.blocoId && avaliadores[s.blocoId] && !s.persegs[s.blocoId].resultado) {
+        const ant = avaliadores[s.blocoId];
+        ant.tick(s.tAtivo);
+        if (!ant.st.resultado) ant.st.resultado = ant.st.estado === "suspensa" ? "nao-avaliada" : "alcancado";
+        fecharPerseguicao(s.blocoId);
+      }
+      s.blocoId = b.id;
+      if (b.marco) emitir(b.id + ":marco", "marco", { marco: b.marco });
+    }
+    if (ehEsforco(b)) {
+      if (!s.persegs[b.id]) abrirPerseguicao(b);
+      const p = s.persegs[b.id];
+      const av = avaliadores[b.id];
+      if (p.resultado && !av) { s.fase = "deslocamento"; emitir(b.id + ":" + p.resultado, p.resultado); return; }
+      if (rel < cfg.avisoMs) {
+        s.fase = "aviso";
+        emitir(b.id + ":aviso", "aviso", { alvo: p.alvo, base: p.base, guiada: p.guiada, atividade: atividadeEm(b), programado: p.programado });
+        return;
+      }
+      if (!p.resultado) {
+        av.tick(s.tAtivo);
+        p.noAlvoMs = av.st.noAlvoMs;
+        if (av.st.resultado) fecharPerseguicao(b.id);
+      }
+      if (p.resultado) { s.fase = p.resultado === "fugiu" ? "recuperacao" : "recuperacao"; return; }
+      if (av.st.estado === "adaptando") { s.fase = "transicao"; emitir(b.id + ":transicao", "transicao", { alvo: p.alvo, atividade: atividadeEm(b), guiada: p.guiada }); }
+      else { s.fase = "perseguicao"; emitir(b.id + ":perseguicao", "perseguicao", { alvo: p.alvo, atividade: atividadeEm(b), guiada: p.guiada }); }
+      if (av.st.estado === "suspensa") emitir(b.id + ":suspensa", "sinal-perdido");
+      return;
+    }
+    const mapa = { aquecimento: "aquecimento", leve: "deslocamento", recuperacao: "recuperacao", desaquecimento: "desaquecimento" };
+    s.fase = mapa[b.tipo];
+    if (rel < 1000 || s.feitos.indexOf(b.id + ":" + s.fase) < 0) emitir(b.id + ":" + s.fase, s.fase, { atividade: atividadeEm(b) });
+    // ambientação: uma fala a cada tanto, se ainda sobra tempo no trecho
+    const k = Math.floor(rel / cfg.ambienteMs);
+    if (k >= 1 && b.dur - rel > 20000) emitir(b.id + ":amb" + k, "ambiente", { atividade: atividadeEm(b) });
+  }
+  function fecharPerseguicao(id) {
+    const p = s.persegs[id], av = avaliadores[id];
+    if (!av) return;
+    p.resultado = av.st.resultado;
+    p.noAlvoMs = Math.round(av.st.noAlvoMs);
+    p.origem = av.st.origem || s.origem;
+    p.classe = p.guiada ? "guiada" : p.origem ? ORIGENS_ZUMBI[p.origem].classe : null;
+    delete avaliadores[id];
+    const tipo = p.resultado === "fugiu" ? "fuga" : p.resultado === "alcancado" ? "desfecho" : p.resultado;
+    emitir(id + ":" + p.resultado, tipo, { classe: p.classe, noAlvoMs: p.noAlvoMs });
+  }
+
+  const api = {
+    cfg: cfg, blocos: blocos, s: s,
+    total: total,
+    iniciar() { if (!s.iniciou) { s.iniciou = true; atualizar(); } return api.eventos(); },
+    // dt em ms do relógio monotônico; ignorado em pausa
+    avancar(dt) {
+      if (!s.iniciou || s.pausado || s.fase === "finalizada") return [];
+      // um salto grande (o app ficou suspenso) não vira tempo ativo
+      s.tAtivo += Math.max(0, Math.min(dt, 2000));
+      atualizar();
+      return api.eventos();
+    },
+    amostra(a) {
+      if (!s.iniciou || s.pausado || s.fase === "finalizada") return null;
+      const am = Object.assign({ unidade: "m/s" }, a, { t: s.tAtivo });
+      am.valida = validarAmostra(am, s.amostras, cfg);
+      const b = blocoEm(s.tAtivo);
+      am.esforco = ehEsforco(b) && s.fase !== "aviso" && s.fase !== "deslocamento";
+      if (s.origem && am.origem !== s.origem) {
+        // trocou a fonte: recalibra antes da próxima perseguição
+        s.trocasOrigem.push({ t: s.tAtivo, de: s.origem, para: am.origem });
+        s.conforto = null;
+        s.amostras = s.amostras.filter((x) => x.origem === am.origem);
+      }
+      s.origem = am.origem;
+      s.amostras.push(am);
+      if (s.amostras.length > 1200) s.amostras.splice(0, s.amostras.length - 1200);
+      if (am.valida) {
+        s.ultValidaT = s.tAtivo;
+        // o gráfico guarda médias de 10 s: a missão de 45 min não cabe em leitura bruta
+        const k = Math.floor(s.tAtivo / 10000), g = s.graf[k] || (s.graf[k] = [0, 0]);
+        g[0] += am.valor; g[1]++;
+      }
+      if (b && avaliadores[b.id]) avaliadores[b.id].amostra(am);
+      return am;
+    },
+    // fatos da história, que a narrativa liga (bateria, sinal...)
+    marcarFato(f) { s.fatos[f] = true; },
+    eventos() { return fila.splice(0, fila.length); },
+    ameaca() {
+      const b = blocoEm(s.tAtivo);
+      if (!b || !ehEsforco(b)) return s.fase === "recuperacao" ? 0.12 : 0.05;
+      if (s.fase === "aviso") return 0.3 + 0.2 * ((s.tAtivo - b.ini) / cfg.avisoMs);
+      const av = avaliadores[b.id];
+      return av ? av.st.ameaca : 0.1;
+    },
+    perseguicaoAtual() { const b = blocoEm(s.tAtivo); return b && ehEsforco(b) ? Object.assign({}, s.persegs[b.id] || {}, avaliadores[b.id] ? { st: avaliadores[b.id].st } : {}) : null; },
+    blocoAtual() { return blocoEm(s.tAtivo); },
+    restanteMs() { return Math.max(0, total() - s.tAtivo); },
+    atividadeAgora() { return atividadeEm(blocoEm(s.tAtivo)); },
+    // Pausa de segurança: congela tudo na hora; a perseguição em curso é
+    // cancelada sem penalidade, e a volta tem um trecho leve antes de outra
+    pausar(seguranca) {
+      if (s.pausado) return;
+      s.pausado = true;
+      if (seguranca) {
+        const b = blocoEm(s.tAtivo);
+        if (b && avaliadores[b.id]) { avaliadores[b.id].cancelar(); fecharPerseguicao(b.id); }
+        s.seguroAte = s.tAtivo + cfg.seguroMs;
+        emitir("seg:" + s.tAtivo, "pausa-seguranca");
+      }
+    },
+    retomar() { if (s.pausado) { s.pausado = false; emitir("ret:" + s.tAtivo, "retomada"); atualizar(); } return api.eventos(); },
+    cancelarDesafio() {
+      const b = blocoEm(s.tAtivo);
+      if (b && avaliadores[b.id]) { avaliadores[b.id].cancelar(); fecharPerseguicao(b.id); atualizar(); return true; }
+      return false;
+    },
+    reduzirIntensidade() {
+      cfg.aumentoPct = Math.max(5, cfg.aumentoPct - 5);
+      const b = blocoEm(s.tAtivo);
+      if (b && avaliadores[b.id]) { avaliadores[b.id].reduzir(cfg.aumentoPct); s.persegs[b.id].alvo = avaliadores[b.id].st.alvo; }
+      return cfg.aumentoPct;
+    },
+    // Recuperar mais: o trecho leve atual ganha 60 s, tirados do último trecho
+    // leve antes do desaquecimento. Sem de onde tirar, a próxima perseguição vira leve.
+    estenderRecuperacao() {
+      const i = blocos.findIndex((b) => s.tAtivo >= b.ini && s.tAtivo < b.ini + b.dur);
+      if (i < 0 || ehEsforco(blocos[i])) return false;
+      const extra = 60000;
+      let doador = -1;
+      for (let k = blocos.length - 2; k > i; k--) if (blocos[k].tipo === "leve" && blocos[k].dur >= extra + 20000) { doador = k; break; }
+      if (doador < 0) {
+        const prox = blocos.findIndex((b, k) => k > i && ehEsforco(b));
+        if (prox < 0) return false;
+        blocos[prox].tipo = "leve"; blocos[prox].convertida = true;
+      } else {
+        blocos[i].dur += extra; blocos[doador].dur -= extra;
+        let ini = 0; blocos.forEach((b) => { b.ini = ini; ini += b.dur; });
+      }
+      s.estendido += extra;
+      return true;
+    },
+    // Checkpoint: o bastante para reconstituir, nada de leitura bruta demais
+    checkpoint() {
+      return JSON.stringify({ v: ZUMBI_VERSAO_MOTOR, cfg: cfgEntrada, plano: { blocos: blocos }, estado: Object.assign({}, s, { amostras: s.amostras.slice(-120) }) });
+    },
+    resumo() {
+      const ps = Object.keys(s.persegs).map((k) => s.persegs[k]);
+      const conta = (r) => ps.filter((p) => p.resultado === r).length;
+      return {
+        tAtivo: s.tAtivo, propostas: ps.filter((p) => p.resultado !== "adiada" && p.resultado !== "sem-margem").length,
+        fugasMedidas: ps.filter((p) => p.resultado === "fugiu" && p.classe === "medida").length,
+        fugasEstimadas: ps.filter((p) => p.resultado === "fugiu" && (p.classe === "estimada" || p.classe === "declarada" || p.classe === "simulada")).length,
+        guiadas: conta("guiada"), canceladas: conta("cancelada"), desfechos: conta("alcancado"), naoAvaliadas: conta("nao-avaliada"),
+        adiadas: conta("adiada"), semMargem: conta("sem-margem"),
+        noAlvoMs: ps.reduce((a, p) => a + (p.noAlvoMs || 0), 0), persegs: ps, trocasOrigem: s.trocasOrigem,
+      };
+    },
+  };
+  return api;
+}
+function restaurarMotorZumbi(json) {
+  const d = JSON.parse(json);
+  if (d.v !== ZUMBI_VERSAO_MOTOR) return null;
+  return criarMotorZumbi(d.cfg, d.plano, d);
+}
+
+// ---- A missão: o roteiro como dados ----
+const EVENTOS_ZUMBI = ["aquecimento", "deslocamento", "marco", "ambiente", "aviso", "transicao", "perseguicao", "fuga", "desfecho",
+  "cancelada", "nao-avaliada", "guiada", "adiada", "sem-margem", "sinal-perdido", "recuperacao", "pausa-seguranca", "retomada", "desaquecimento", "fim"];
+const EVENTOS_ESSENCIAIS = ["aquecimento", "deslocamento", "aviso", "transicao", "perseguicao", "fuga", "desfecho", "cancelada",
+  "nao-avaliada", "guiada", "recuperacao", "desaquecimento", "fim"];
+// O roteiro é dado, não código: o validador recusa função, referência
+// quebrada, fato inventado e evento sem fala de reserva.
+function validarMissao(m) {
+  const erros = [];
+  // só dado puro: texto, número, lista e objeto. O JSON.stringify some com
+  // função dos dois lados, então a busca é item a item.
+  const soDados = (x, prof) => {
+    if (prof > 12) return false;
+    if (x === null || typeof x === "string" || typeof x === "number" || typeof x === "boolean") return true;
+    if (Array.isArray(x)) return x.every((y) => soDados(y, prof + 1));
+    if (typeof x === "object" && Object.getPrototypeOf(x) === Object.prototype) return Object.keys(x).every((k) => soDados(x[k], prof + 1));
+    return false;
+  };
+  if (!soDados(m, 0)) return { ok: false, erros: ["A missão tem conteúdo que não é dado puro (código, data ou objeto especial)."] };
+  if (!m || typeof m.id !== "string" || typeof m.nome !== "string" || !(m.versao >= 1)) erros.push("Faltam id, nome ou versão.");
+  const fatos = m.fatos || [];
+  const ids = {};
+  (m.cenas || []).forEach((c, i) => {
+    const onde = "Cena " + (c && c.id ? c.id : "#" + i);
+    if (!c || typeof c.id !== "string") { erros.push(onde + ": sem id."); return; }
+    if (ids[c.id]) erros.push(onde + ": id repetido.");
+    ids[c.id] = true;
+    if (EVENTOS_ZUMBI.indexOf(c.evento) < 0) erros.push(onde + ": evento desconhecido (" + c.evento + ").");
+    const f = c.falas || {};
+    const textos = ["todas", "caminhada", "corrida"].map((k) => f[k]).filter((x) => x !== undefined);
+    if (!f.todas && !(f.caminhada && f.corrida)) erros.push(onde + ": precisa de fala para caminhada e corrida (ou \"todas\").");
+    textos.forEach((t) => { if (typeof t !== "string" || !t.trim() || t.length > 320) erros.push(onde + ": fala vazia ou longa demais."); });
+    ["requer", "semFatos", "define"].forEach((k) => (c[k] || []).forEach((x) => { if (fatos.indexOf(x) < 0) erros.push(onde + ": fato desconhecido \"" + x + "\"."); }));
+    if (c.duracaoMin != null && c.duracaoMax != null && c.duracaoMin > c.duracaoMax) erros.push(onde + ": duração mínima maior que a máxima.");
+    if (c.intensidade && ["leve", "forte"].indexOf(c.intensidade) < 0) erros.push(onde + ": intensidade deve ser leve ou forte.");
+  });
+  (m.cenas || []).forEach((c) => (c.proximas || []).forEach((p) => { if (!ids[p]) erros.push("Cena " + c.id + ": a próxima \"" + p + "\" não existe."); }));
+  // cada evento essencial precisa de uma cena sem pré-condição: é a saída que
+  // impede a história de travar sem nenhuma fuga, ou com todos os desafios pulados
+  EVENTOS_ESSENCIAIS.forEach((ev) => {
+    if (!(m.cenas || []).some((c) => c.evento === ev && !(c.requer || []).length)) erros.push("Falta uma cena de reserva para \"" + ev + "\".");
+  });
+  return { ok: !erros.length, erros: erros };
+}
+// Escolhe a cena: a primeira, na ordem do roteiro, cujo evento bate, cujas
+// pré-condições valem, e que ainda não foi usada (a não ser as repetíveis)
+// — e, entre as repetíveis, a que foi dita há mais tempo: ouvir a mesma fala de
+// ambiente duas vezes seguidas faz a história parecer gravação em loop.
+function escolherCena(missao, evento, fatos, usadas) {
+  const u = usadas || [];
+  const cands = (missao.cenas || []).filter((c) => c.evento === evento &&
+    (c.requer || []).every((f) => fatos[f]) && !(c.semFatos || []).some((f) => fatos[f]) &&
+    (c.repetivel || u.indexOf(c.id) < 0));
+  return cands.find((c) => u.indexOf(c.id) < 0) ||
+    cands.slice().sort((a, b) => u.lastIndexOf(a.id) - u.lastIndexOf(b.id))[0] || null;
+}
+function falaDaCena(cena, atividade, extra) {
+  if (!cena) return "";
+  let t = cena.falas[atividade] || cena.falas.todas || cena.falas.corrida || "";
+  const e = extra || {};
+  if (e.alvo) t = t.replace("{alvo}", kmhDeMs(e.alvo).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " quilômetros por hora");
+  else t = t.replace(/\s*\{alvo\}[^.]*\./, ".").replace("{alvo}", "um pouco acima do seu ritmo");
+  return t;
+}
+
+// ---- "Último Sinal", a missão original ----
+// Lia Ventura, operadora da Estação Farol, guia o participante para buscar uma
+// bateria de rádio na Garagem Norte e levar o sinal de volta ao abrigo. Mundo
+// fictício: nenhuma fala manda atravessar rua, entrar em terreno ou virar de
+// repente — a fuga é no ritmo, nunca na direção.
+const MISSAO_ULTIMO_SINAL = {
+  id: "ultimo-sinal", versao: 1, nome: "Último Sinal",
+  resumo: "Leve uma bateria de rádio até a Estação Farol antes que o último sinal se apague.",
+  duracaoBase: 20, duracoes: [10, 20, 30, 45],
+  personagens: [
+    { id: "lia", nome: "Lia Ventura", papel: "operadora de rádio da Estação Farol" },
+    { id: "bento", nome: "Bento", papel: "mecânico do abrigo" },
+  ],
+  fatos: ["bateria", "sinal", "farol"],
+  cenas: [
+    { id: "abertura", evento: "aquecimento", intensidade: "leve", duracaoMin: 15, duracaoMax: 40,
+      falas: { todas: "Aqui é Lia Ventura, da Estação Farol. Se você está ouvindo, é porque o rádio ainda funciona. Comece devagar, no seu ritmo. Preciso de você inteiro para o que vem." },
+      proximas: ["missao"] },
+    { id: "missao", evento: "deslocamento", semFatos: ["bateria"], intensidade: "leve",
+      falas: { caminhada: "A bateria do nosso rádio está na Garagem Norte. Siga caminhando firme. Eu aviso quando ouvir alguma coisa.",
+        corrida: "A bateria do nosso rádio está na Garagem Norte. Mantenha um trote confortável. Eu aviso quando ouvir alguma coisa." } },
+    { id: "rumo-farol", evento: "deslocamento", requer: ["bateria"], semFatos: ["sinal"], repetivel: true, intensidade: "leve",
+      falas: { todas: "Com a bateria na mochila, falta ligar a antena. Bento está esperando com as ferramentas. Ritmo confortável." } },
+    { id: "rumo-abrigo", evento: "deslocamento", requer: ["sinal"], repetivel: true, intensidade: "leve",
+      falas: { todas: "O sinal está no ar. Agora é só voltar ao abrigo, sem pressa. Respire e aproveite o caminho." } },
+    { id: "deslocamento-reserva", evento: "deslocamento", repetivel: true, intensidade: "leve",
+      falas: { todas: "Siga no ritmo confortável. Eu estou ouvindo o rádio." } },
+    { id: "marco-1", evento: "marco", semFatos: ["bateria"], define: ["bateria"], falas: { todas: "Garagem Norte. A bateria está aqui, intacta. Pegue e siga em frente, no seu ritmo." } },
+    { id: "marco-2", evento: "marco", requer: ["bateria"], semFatos: ["sinal"], define: ["sinal"], falas: { todas: "Bento ligou a bateria na antena. Ouça: o rádio voltou a chiar. O sinal está no ar." } },
+    { id: "marco-reserva", evento: "marco", repetivel: true, falas: { todas: "Mais um trecho vencido. Continue." } },
+    { id: "amb-1", evento: "ambiente", repetivel: true, falas: { todas: "O vento está mudando. Lá longe, um portão bate sozinho." } },
+    { id: "amb-2", evento: "ambiente", requer: ["bateria"], repetivel: true, falas: { todas: "A bateria pesa um pouco na mochila. Ainda bem que você está levando." } },
+    { id: "amb-3", evento: "ambiente", repetivel: true, falas: { todas: "Chuva fina por aqui. Nada que atrapalhe. Continue no confortável." } },
+    { id: "aviso-1", evento: "aviso", semFatos: ["bateria"], intensidade: "leve",
+      falas: { todas: "Espere. Detectei movimento atrás de você, perto da Garagem Norte. Prepare-se para aumentar o ritmo, se puder." } },
+    { id: "aviso-2", evento: "aviso", requer: ["bateria"], repetivel: true,
+      falas: { todas: "Movimento atrás de você de novo. Eles ouviram a bateria batendo na mochila. Prepare-se para acelerar, se puder." } },
+    { id: "aviso-reserva", evento: "aviso", repetivel: true, falas: { todas: "Detectei movimento atrás de você. Prepare-se para aumentar o ritmo, se puder." } },
+    { id: "transicao", evento: "transicao", repetivel: true, intensidade: "forte",
+      falas: { caminhada: "Agora. Aumente um pouco a passada, mantendo a caminhada. Alvo: {alvo}.",
+        corrida: "Agora. Aumente gradualmente até o ritmo indicado. Alvo: {alvo}." } },
+    { id: "perseguicao", evento: "perseguicao", repetivel: true, intensidade: "forte",
+      falas: { caminhada: "Segure essa passada. Eles estão arrastando os pés, você é mais rápido.", corrida: "Segure esse ritmo. Eles estão ficando para trás." } },
+    { id: "sinal-perdido", evento: "sinal-perdido", repetivel: true,
+      falas: { todas: "Perdi a sua leitura no rádio. Siga no ritmo que for seguro. Não vou contar esse trecho contra você." } },
+    { id: "fuga-1", evento: "fuga", semFatos: ["bateria"], define: ["bateria"],
+      falas: { todas: "Você abriu distância e chegou à Garagem Norte. A bateria está com você! Reduza o ritmo e recupere." } },
+    { id: "fuga-2", evento: "fuga", requer: ["bateria"], semFatos: ["sinal"], define: ["sinal"],
+      falas: { todas: "Escapou! Bento conseguiu ligar a antena enquanto você distraía eles. O sinal voltou. Reduza o ritmo e recupere." } },
+    { id: "fuga-reserva", evento: "fuga", repetivel: true, falas: { todas: "Você abriu distância. Reduza o ritmo e recupere." } },
+    { id: "desfecho-1", evento: "desfecho", semFatos: ["bateria"], define: ["bateria"],
+      falas: { todas: "Eles chegaram perto, mas os sobreviventes acenderam um sinalizador e liberaram a passagem. Você pegou a bateria assim mesmo. Pode reduzir." } },
+    { id: "desfecho-reserva", evento: "desfecho", repetivel: true,
+      falas: { todas: "Foi por pouco, mas um portão bateu e eles se distraíram. Você segue inteiro. Reduza e recupere." } },
+    { id: "cancelada-1", evento: "cancelada", semFatos: ["bateria"], define: ["bateria"],
+      falas: { todas: "Ativamos uma distração. Bento deixou a bateria no caminho para você. Pode continuar no ritmo confortável." } },
+    { id: "cancelada-reserva", evento: "cancelada", repetivel: true,
+      falas: { todas: "Ativamos uma distração. Pode continuar no ritmo confortável." } },
+    { id: "nao-avaliada", evento: "nao-avaliada", repetivel: true,
+      falas: { todas: "O rádio falhou nesse trecho e eu não consegui acompanhar você. Sem problema: os sobreviventes cobriram a passagem. Ritmo confortável." } },
+    { id: "guiada-1", evento: "guiada", semFatos: ["bateria"], define: ["bateria"],
+      falas: { todas: "Pronto, pode reduzir. Daqui eu não meço o seu ritmo, mas a bateria já está na mochila." } },
+    { id: "guiada-reserva", evento: "guiada", repetivel: true, falas: { todas: "Pronto, pode reduzir e recuperar. Desta vez a fuga foi conduzida, sem medir o seu ritmo." } },
+    { id: "adiada", evento: "adiada", repetivel: true, falas: { todas: "Ouvi alguma coisa ao longe, mas ainda não é hora de correr. Fique no confortável." } },
+    { id: "sem-margem", evento: "sem-margem", repetivel: true, falas: { todas: "Você já está no seu limite combinado. Sem acelerar: siga assim que eu cuido da distração." } },
+    { id: "recuperacao", evento: "recuperacao", repetivel: true, intensidade: "leve",
+      falas: { caminhada: "Respiração no lugar. Passo tranquilo.", corrida: "Solte os ombros e respire. Trote leve ou caminhada, como preferir." } },
+    { id: "pausa", evento: "pausa-seguranca", repetivel: true, falas: { todas: "Pausa de segurança. Tudo parado. Volte quando quiser." } },
+    { id: "retomada", evento: "retomada", repetivel: true, falas: { todas: "De volta. Vamos começar leve." } },
+    { id: "desaquecimento", evento: "desaquecimento", intensidade: "leve",
+      falas: { todas: "Últimos minutos. Diminua aos poucos. Você fez a sua parte." } },
+    { id: "fim-farol", evento: "fim", requer: ["sinal"], define: ["farol"],
+      falas: { todas: "Estação Farol para todos os abrigos: o último sinal não se apagou, graças a você. Missão cumprida." } },
+    { id: "fim-bateria", evento: "fim", requer: ["bateria"], semFatos: ["sinal"],
+      falas: { todas: "A bateria chegou ao abrigo. Amanhã Bento liga a antena. Você trouxe o que faltava. Bom trabalho." } },
+    { id: "fim-reserva", evento: "fim",
+      falas: { todas: "Você voltou ao abrigo inteiro, e isso é o que importa. O rádio continua esperando a próxima missão." } },
+  ],
+};
+// Cada evento vira no máximo uma fala, com a cena escolhida e os fatos que ela liga
+function narrar(missao, ev, fatos, usadas) {
+  const cena = escolherCena(missao, ev.tipo, fatos, usadas);
+  if (!cena) return null;
+  (cena.define || []).forEach((f) => { fatos[f] = true; });
+  usadas.push(cena.id);
+  const prioridade = { aviso: 3, transicao: 3, fuga: 3, desfecho: 3, cancelada: 3, guiada: 3, "nao-avaliada": 3, "pausa-seguranca": 4, "sinal-perdido": 3, perseguicao: 2, ambiente: 0 }[ev.tipo];
+  return { cena: cena.id, texto: falaDaCena(cena, ev.atividade || "corrida", ev), prioridade: prioridade == null ? 1 : prioridade, evento: ev.id, tipo: ev.tipo };
+}
+// A fila de falas: uma de cada vez, a de maior prioridade primeiro, e a que
+// venceu (a fase mudou) é descartada antes de ser dita.
+function criarFilaFalas(falar) {
+  const fila = [];
+  let falando = null;
+  const api = {
+    por(f, valida) { fila.push(Object.assign({}, f, { valida: valida || (() => true) })); fila.sort((a, b) => b.prioridade - a.prioridade); api.proxima(); },
+    proxima() {
+      if (falando) return;
+      while (fila.length) {
+        const f = fila.shift();
+        if (!f.valida()) continue;
+        falando = f;
+        falar(f.texto, () => { falando = null; api.proxima(); });
+        return;
+      }
+    },
+    descartarVencidas() { for (let i = fila.length - 1; i >= 0; i--) if (!fila[i].valida()) fila.splice(i, 1); },
+    get falando() { return falando; },
+    get tamanho() { return fila.length; },
+    limpar() { fila.length = 0; },
+  };
+  return api;
+}
+// O que cada camada de som é, de onde vem e qual a licença
+const ZUMBI_AUDIO_MANIFESTO = [
+  { id: "voz", camada: "voz", origem: "síntese de voz do navegador (speechSynthesis), voz pt-BR do aparelho", licenca: "do sistema do aparelho", gravada: null },
+  { id: "vento", camada: "ambiente", origem: "ruído filtrado gerado no aparelho (Web Audio), código deste app", licenca: "própria" },
+  { id: "chuva", camada: "ambiente", origem: "ruído agudo com gotas sintetizadas (Web Audio), código deste app", licenca: "própria" },
+  { id: "estatica", camada: "ambiente", origem: "ruído em banda estreita, em rajadas (Web Audio), código deste app", licenca: "própria" },
+  { id: "passos", camada: "ameaca", origem: "batidas graves curtas sintetizadas (Web Audio), código deste app", licenca: "própria" },
+  { id: "gemido", camada: "ameaca", origem: "oscilador com vibrato e filtro (Web Audio), código deste app", licenca: "própria" },
+  { id: "respiracao", camada: "ameaca", origem: "ruído com envelope lento (Web Audio), código deste app", licenca: "própria" },
+  { id: "porta", camada: "ambiente", origem: "batida grave com ressonância (Web Audio), código deste app", licenca: "própria" },
+];
+// ---- O treino no histórico ----
+// Uma identidade só (o id da sessão, criado no começo): salvar de novo,
+// retomar ou finalizar duas vezes não cria um segundo treino.
+function juntarSemDuplicar(historico, registro) {
+  return (historico || []).some((h) => h.id === registro.id) ? historico : [registro].concat(historico || []);
+}
+// A série de velocidade para o gráfico: média a cada 10 s de tempo ativo, e
+// null onde não há leitura válida — a lacuna fica lacuna, não vira zero.
+function serieVelocidadeZumbi(graf, tTotal) {
+  const out = [];
+  for (let k = 0; k * 10000 < tTotal; k++) {
+    const g = graf[k];
+    out.push(g && g[1] ? Math.round((g[0] / g[1]) * 100) / 100 : null);
+  }
+  return out;
+}
+function registroZumbi(id, inicioISO, motor, missao, extra) {
+  const cfg = motor.cfg, r = motor.resumo(), s = motor.s;
+  const seg = Math.round(s.tAtivo / 1000);
+  const medido = cfg.fonte === "gps" && !cfg.demo;
+  const gs = Object.keys(s.graf).map((k) => s.graf[k]);
+  const n = gs.reduce((a, g) => a + g[1], 0);
+  const velMedia = n && cfg.fonte !== "guiado" ? gs.reduce((a, g) => a + g[0], 0) / n : 0;
+  const exercicioId = cfg.ambiente === "rua"
+    ? (cfg.atividade === "caminhada" ? "caminhada-rua" : "corrida-rua")
+    : (cfg.atividade === "caminhada" ? "esteira-caminhada" : "esteira-corrida");
+  const mod = cfg.ambiente === "rua" ? (cfg.atividade === "caminhada" ? "rua-caminhada" : "rua-corrida") : (cfg.atividade === "caminhada" ? "caminhada" : "corrida");
+  const serie = { segundos: String(seg), mod: mod };
+  // distância só com fonte que mede de verdade; velocidade da esteira só se foi informada
+  if (medido && extra && extra.km > 0) serie.km = String(Math.round(extra.km * 100) / 100);
+  if (cfg.ambiente === "esteira" && cfg.fonte === "declarado" && velMedia > 0) serie.vel = String(Math.round(kmhDeMs(velMedia) * 10) / 10);
+  return {
+    id: id, nome: NOME_ZUMBI + " — " + missao.nome, data: inicioISO,
+    duracaoMin: Math.max(1, Math.min(300, Math.round(s.tAtivo / 60000))),
+    itens: [{ exercicioId: exercicioId, obs: "", series: [serie] }],
+    zumbi: {
+      versaoMotor: ZUMBI_VERSAO_MOTOR, missao: missao.id, versaoMissao: missao.versao,
+      cfg: { ambiente: cfg.ambiente, atividade: cfg.atividade, experiencia: cfg.experiencia, fonte: cfg.fonte, duracaoMin: cfg.duracaoMin, aumentoPct: cfg.aumentoPct, tetoKmh: cfg.tetoKmh },
+      ativoMs: s.tAtivo, pausadoMs: Math.round((extra && extra.pausadoMs) || 0),
+      blocos: motor.blocos.map((b) => ({ tipo: b.tipo, ini: b.ini, dur: b.dur })),
+      persegs: r.persegs.map((p) => ({ id: p.id, ini: p.blocoIni, resultado: p.resultado, classe: p.classe || null, motivo: p.motivo || null,
+        base: p.base ? Math.round(p.base * 100) / 100 : null, alvo: p.alvo ? Math.round(p.alvo * 100) / 100 : null, noAlvoMs: p.noAlvoMs || 0 })),
+      fugasMedidas: r.fugasMedidas, fugasEstimadas: r.fugasEstimadas, guiadas: r.guiadas, canceladas: r.canceladas,
+      desfechos: r.desfechos, naoAvaliadas: r.naoAvaliadas, noAlvoMs: r.noAlvoMs, trocasOrigem: r.trocasOrigem,
+      fatos: Object.keys(s.fatos), origem: cfg.fonte === "guiado" ? null : s.origem,
+      velocidade: cfg.fonte === "guiado" ? null : serieVelocidadeZumbi(s.graf, s.tAtivo),
+    },
+  };
+}
+// ---------------- FIM DO MOTOR ZUMBI ----------------
 
 // O mapa (Leaflet) é carregado só quando a tela abre: quem nunca usar o
 // percurso não paga nada por ele. Fica no cache do service worker para abrir
@@ -8943,7 +9727,7 @@ const guardarRota = (id, pts) => guardarFoto(chaveRota(id), compactarRota(pts));
 const lerRota = (id) => lerFoto(chaveRota(id)).then(expandirRota);
 
 function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, onSalvar, onVoltar, historico,
-  bpm, onConectarCardio, corredor, onPainel }) {
+  bpm, onConectarCardio, corredor, onPainel, onZumbi }) {
   const [modo, setModo] = useState("corrida-rua");
   const [fase, setFase] = useState("preparo");     // preparo | rodando | pausado | fim
   const [erroMapa, setErroMapa] = useState("");
@@ -9333,6 +10117,11 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
             )}
             {onPainel && <button onClick={onPainel} style={{ ...S.btnGhost, flex: 1, fontSize: 13, fontWeight: 800 }}>📊 Painel do corredor</button>}
           </div>
+          {onZumbi && (
+            <button onClick={onZumbi} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13.5, fontWeight: 900, color: "#7CFF3C", borderColor: "#7CFF3C66" }}>
+              🧟 Ou faça com história: {NOME_ZUMBI}
+            </button>
+          )}
           <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
             Deixe a tela ligada durante o percurso: com a tela apagada o navegador para o GPS. O <b>modo bolso</b> deixa a
             tela preta, que gasta pouca bateria. A voz avisa cada quilômetro. Com o celular no bolso ou no braço, ele
@@ -9759,6 +10548,772 @@ function TelaCorredor({ historico, exPorId, corredor, setCorredor, onVoltar, onP
       ))}
     </div>
   );
+}
+
+// ---------------- ZUMBI: SOM ----------------
+// Tudo sintetizado aqui, no aparelho: nenhum arquivo de áudio de terceiros
+// (origem e licença de cada camada em ZUMBI_AUDIO_MANIFESTO). Três canais
+// separados — voz (a do navegador), ambiente e ameaça —, cada um com o seu
+// volume. A ameaça chega e se afasta pelo número que o motor dá (ficção, não
+// distância de verdade): volume, ritmo dos passos e posição no estéreo.
+function criarPaisagemZumbi(opc) {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  const o = Object.assign({ ambiente: 0.6, ameaca: 0.8, suspense: "normal", mono: false }, opc || {});
+  const ctx = new AC();
+  const agora = () => ctx.currentTime;
+  const master = ctx.createGain();
+  master.gain.value = 0.9;
+  // limitador: nenhum efeito estoura o fone
+  const lim = ctx.createDynamicsCompressor();
+  lim.threshold.value = -10; lim.ratio.value = 8;
+  master.connect(lim); lim.connect(ctx.destination);
+  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const ruido = () => { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.start(); return s; };
+  const ganho = (v, dest) => { const g = ctx.createGain(); g.gain.value = v; g.connect(dest); return g; };
+  const filtro = (tipo, f, q) => { const x = ctx.createBiquadFilter(); x.type = tipo; x.frequency.value = f; if (q) x.Q.value = q; return x; };
+  const gAmb = ganho(o.ambiente, master);
+  const pan = ctx.createStereoPanner && !o.mono ? ctx.createStereoPanner() : null;
+  const gAme = ganho(o.ameaca, master);
+  if (pan) { gAme.disconnect(); gAme.connect(pan); pan.connect(master); pan.pan.value = -0.6; }
+  const susp = o.suspense === "leve" ? 0.45 : 1;
+  // vento: ruído grave com o volume oscilando devagar
+  const fVento = filtro("lowpass", 420); ruido().connect(fVento);
+  const gVento = ganho(0.22, gAmb); fVento.connect(gVento);
+  const lfo = ctx.createOscillator(); lfo.frequency.value = 0.09; const lfoG = ganho(0.12, gVento.gain); lfo.connect(lfoG); lfo.start();
+  // chuva fina: ruído agudo e baixo
+  const fChuva = filtro("highpass", 4200); ruido().connect(fChuva); fChuva.connect(ganho(0.035, gAmb));
+  // estática do rádio: rajadas de ruído em banda estreita
+  const fEst = filtro("bandpass", 1800, 6); ruido().connect(fEst); const gEst = ganho(0, gAmb); fEst.connect(gEst);
+  // gemido: dente de serra grave com vibrato, abafado
+  const gem = ctx.createOscillator(); gem.type = "sawtooth"; gem.frequency.value = 105;
+  const vib = ctx.createOscillator(); vib.frequency.value = 4.5; vib.connect(ganho(7, gem.frequency)); vib.start();
+  const fGem = filtro("lowpass", 650, 4); gem.connect(fGem); const gGem = ganho(0, gAme); fGem.connect(gGem); gem.start();
+  // respiração: ruído em banda média, inspirando e expirando
+  const fResp = filtro("bandpass", 650, 2); ruido().connect(fResp); const gResp = ganho(0, gAme); fResp.connect(gResp);
+  const lResp = ctx.createOscillator(); lResp.frequency.value = 0.35; const lRespG = ganho(0, gResp.gain); lResp.connect(lRespG); lResp.start();
+  let ameaca = 0, pausado = false, proxPasso = 0, proxEst = 0;
+  // passos arrastados: batidas graves agendadas no relógio do áudio
+  const passo = (t, forca) => {
+    const os = ctx.createOscillator(); os.type = "sine"; os.frequency.setValueAtTime(85, t); os.frequency.exponentialRampToValueAtTime(42, t + 0.16);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(forca, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    os.connect(g); g.connect(gAme); os.start(t); os.stop(t + 0.25);
+  };
+  const relogio = setInterval(() => {
+    if (pausado) return;
+    const t = agora();
+    while (proxPasso < t + 0.2) {
+      if (proxPasso < t) proxPasso = t + 0.05;
+      if (ameaca > 0.2) passo(proxPasso, Math.min(0.5, 0.05 + ameaca * 0.45) * susp);
+      proxPasso += ameaca > 0.2 ? 1.1 - ameaca * 0.65 : 0.6;
+    }
+    if (t > proxEst) {
+      proxEst = t + 3 + Math.random() * 6;
+      gEst.gain.setValueAtTime(0, t); gEst.gain.linearRampToValueAtTime(0.06, t + 0.05); gEst.gain.linearRampToValueAtTime(0, t + 0.35 + Math.random() * 0.4);
+    }
+  }, 100);
+  const rampa = (p, v, s) => { try { p.cancelScheduledValues(agora()); p.setTargetAtTime(v, agora(), s || 0.4); } catch (e) {} };
+  const api = {
+    ctx: ctx,
+    setAmeaca(x) {
+      ameaca = Math.max(0, Math.min(1, x));
+      rampa(gGem.gain, ameaca > 0.25 ? (ameaca - 0.25) * 0.22 * susp : 0, 0.8);
+      rampa(lRespG.gain, ameaca > 0.15 ? ameaca * 0.09 * susp : 0, 0.8);
+      gem.frequency.setTargetAtTime(95 + ameaca * 40, agora(), 1);
+      if (pan) rampa(pan.pan, -0.7 * (1 - ameaca), 1);
+    },
+    // a voz manda: o ambiente abaixa enquanto ela fala
+    duck(sim) { rampa(gAmb.gain, sim ? o.ambiente * 0.3 : o.ambiente, 0.15); rampa(gAme.gain, sim ? o.ameaca * 0.45 : o.ameaca, 0.15); },
+    volumes(amb, ame) { o.ambiente = amb; o.ameaca = ame; rampa(gAmb.gain, amb, 0.1); rampa(gAme.gain, ame, 0.1); },
+    porta() {
+      const t = agora(), s = ctx.createBufferSource(); s.buffer = buf;
+      const f = filtro("lowpass", 180, 8), g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.6, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      s.connect(f); f.connect(g); g.connect(gAmb); s.start(t); s.stop(t + 0.6);
+    },
+    pausar() { pausado = true; ctx.suspend().catch(() => {}); },
+    retomar() { pausado = false; ctx.resume().catch(() => {}); },
+    parar() { clearInterval(relogio); try { ctx.close(); } catch (e) {} },
+  };
+  return api;
+}
+// O gemido da abertura: curto, e só com o som ligado
+function gemidoAbertura() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AC(), t = ctx.currentTime;
+    const os = ctx.createOscillator(); os.type = "sawtooth";
+    os.frequency.setValueAtTime(150, t); os.frequency.exponentialRampToValueAtTime(85, t + 1.4);
+    const vib = ctx.createOscillator(); vib.frequency.value = 6; const vg = ctx.createGain(); vg.gain.value = 9; vib.connect(vg); vg.connect(os.frequency);
+    const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 700; f.Q.value = 5;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
+    os.connect(f); f.connect(g); g.connect(ctx.destination); os.start(t); vib.start(t); os.stop(t + 1.7); vib.stop(t + 1.7);
+    // a pancada da pegada
+    const b = ctx.createOscillator(); b.frequency.setValueAtTime(90, t + 2.5); b.frequency.exponentialRampToValueAtTime(35, t + 2.9);
+    const bg = ctx.createGain(); bg.gain.setValueAtTime(0.0001, t + 2.5); bg.gain.exponentialRampToValueAtTime(0.7, t + 2.52); bg.gain.exponentialRampToValueAtTime(0.0001, t + 3.0);
+    b.connect(bg); bg.connect(ctx.destination); b.start(t + 2.5); b.stop(t + 3.05);
+    setTimeout(() => ctx.close().catch(() => {}), 3600);
+  } catch (e) {}
+}
+
+// ---------------- ZUMBI: A ABERTURA ----------------
+// Toda vez que a modalidade é aberta: um zumbi de desenho animado — cabeçorra
+// verde, um olho maior que o outro, gravata torta, braços esticados — sai do
+// fundo da rua, corre na direção da tela e, no fim, "alcança" quem está olhando:
+// avança, a tela pisca e ficam as marcas das garras com o nome da modalidade.
+// Personagem desenhado aqui, em SVG; nada copiado de jogo nenhum. Um toque pula,
+// e com movimento reduzido só aparece o quadro final.
+function ZumbiDesenho() {
+  return (
+    <svg viewBox="0 0 200 260" width="200" height="260" aria-hidden="true" style={{ overflow: "visible" }}>
+      {/* pernas, que alternam */}
+      <g className="zb-perna-e" style={{ transformOrigin: "88px 176px" }}>
+        <path d="M80 172 L74 226 L64 244 L86 246 L90 228 L96 176 Z" fill="#4E5B6E" />
+        <path d="M64 244 L86 246 L88 252 L58 252 Z" fill="#3B2F2A" />
+      </g>
+      <g className="zb-perna-d" style={{ transformOrigin: "112px 176px" }}>
+        <path d="M104 176 L108 228 L114 246 L136 244 L128 226 L120 172 Z" fill="#46526A" />
+        <path d="M114 246 L136 244 L142 252 L112 252 Z" fill="#3B2F2A" />
+        <path d="M110 212 L118 206 L114 220 Z" fill="#9CCC65" />
+      </g>
+      {/* corpo: camisa marrom rasgada e a gravata torta */}
+      <path d="M68 104 Q100 92 132 104 L136 178 Q100 186 64 178 Z" fill="#8D6E63" />
+      <path d="M68 168 L76 178 L84 168 L92 180 L100 170 L108 180 L116 168 L124 178 L136 170 L136 178 Q100 186 64 178 Z" fill="#6D4C41" />
+      <path d="M92 102 L108 102 L104 110 Z" fill="#B71C1C" />
+      <path d="M100 108 L94 146 L102 156 L110 146 Z" fill="#E53935" transform="rotate(-9 100 130)" />
+      <circle cx="118" cy="132" r="4" fill="#5D4037" opacity="0.6" />
+      {/* braços esticados para a frente, na direção de quem olha */}
+      <g className="zb-bracos">
+        <path d="M70 110 Q44 108 30 86 L42 78 Q54 96 74 100 Z" fill="#8D6E63" />
+        <path d="M130 110 Q156 108 170 86 L158 78 Q146 96 126 100 Z" fill="#8D6E63" />
+        <g fill="#9CCC65" stroke="#689F38" strokeWidth="1.5">
+          <ellipse cx="34" cy="78" rx="12" ry="10" />
+          <path d="M26 72 L20 60 M32 70 L30 56 M38 70 L40 57 M44 74 L50 63" stroke="#9CCC65" strokeWidth="5" strokeLinecap="round" />
+          <ellipse cx="166" cy="78" rx="12" ry="10" />
+          <path d="M174 72 L180 60 M168 70 L170 56 M162 70 L160 57 M156 74 L150 63" stroke="#9CCC65" strokeWidth="5" strokeLinecap="round" />
+        </g>
+      </g>
+      {/* a cabeçorra */}
+      <g className="zb-cabeca" style={{ transformOrigin: "100px 96px" }}>
+        <path d="M86 92 L114 92 L112 106 L88 106 Z" fill="#8BC34A" />
+        <ellipse cx="100" cy="58" rx="44" ry="42" fill="#9CCC65" />
+        <ellipse cx="100" cy="64" rx="44" ry="36" fill="#8BC34A" opacity="0.35" />
+        <path d="M70 26 Q74 12 82 22 M92 18 Q96 4 102 18 M110 20 Q118 8 120 24" stroke="#33691E" strokeWidth="4" fill="none" strokeLinecap="round" />
+        <circle cx="136" cy="70" r="6" fill="#7CB342" />
+        <path d="M60 52 Q68 46 78 50" stroke="#33691E" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+        <path d="M108 44 Q122 36 134 46" stroke="#33691E" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+        {/* um olho grande e um pequeno */}
+        <circle cx="120" cy="58" r="16" fill="#FFFDE7" stroke="#33691E" strokeWidth="2" />
+        <circle className="zb-pupila" cx="118" cy="62" r="5.5" fill="#1B1B1B" />
+        <circle cx="72" cy="62" r="9" fill="#FFFDE7" stroke="#33691E" strokeWidth="2" />
+        <circle cx="73" cy="64" r="3.2" fill="#1B1B1B" />
+        {/* a boca aberta com dois dentes */}
+        <path d="M74 80 Q98 100 124 80 Q122 94 98 96 Q78 94 74 80 Z" fill="#3E2723" />
+        <rect x="88" y="81" width="7" height="8" rx="1.5" fill="#FFF8E1" />
+        <rect x="104" y="82" width="6" height="6" rx="1.5" fill="#FFF8E1" />
+        <path d="M58 70 L66 74 M60 76 L68 78" stroke="#689F38" strokeWidth="2" strokeLinecap="round" />
+      </g>
+    </svg>
+  );
+}
+function AberturaZumbi({ onFim, som }) {
+  const reduz = REDUZ_MOVIMENTO;
+  useEffect(() => {
+    if (som && !reduz) gemidoAbertura();
+    try { if (navigator.vibrate) setTimeout(() => navigator.vibrate([60, 40, 220]), reduz ? 0 : 2550); } catch (e) {}
+    const t = setTimeout(onFim, reduz ? 1100 : 3900);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div onClick={onFim} role="img" aria-label={NOME_ZUMBI + ": um zumbi corre na sua direção e te alcança"}
+      style={{ position: "fixed", inset: 0, zIndex: 95, overflow: "hidden", cursor: "pointer",
+        background: "radial-gradient(ellipse at 50% 30%, #1E3A28 0%, #0B1A10 55%, #040805 100%)" }}>
+      {/* a lua, a cerca e o chão em perspectiva */}
+      <div style={{ position: "absolute", top: "9%", right: "14%", width: 70, height: 70, borderRadius: "50%", background: "#E8F5C8", boxShadow: "0 0 60px 20px rgba(232,245,200,.25)" }} />
+      <svg viewBox="0 0 400 300" preserveAspectRatio="none" style={{ position: "absolute", left: 0, right: 0, bottom: 0, width: "100%", height: "58%" }} aria-hidden="true">
+        <path d="M0 40 L400 40 L400 300 L0 300 Z" fill="#132417" />
+        <path d="M170 40 L230 40 L400 300 L0 300 Z" fill="#1C3322" />
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => <rect key={k} x={6 + k * 20} y={20 - k} width="5" height={24 + k * 1.5} fill="#0A140C" />)}
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => <rect key={"d" + k} x={389 - k * 20} y={20 - k} width="5" height={24 + k * 1.5} fill="#0A140C" />)}
+      </svg>
+      <div className="zb-nevoa" />
+      {/* o zumbi: vem do fundo e cresce na direção da tela */}
+      <div className="zb-aprox" style={{ position: "absolute", left: "50%", top: "50%", width: 200, height: 260, marginLeft: -100, marginTop: -130 }}>
+        <div className="zb-passada"><ZumbiDesenho /></div>
+      </div>
+      <div className="zb-flash" />
+      {/* as garras e o nome */}
+      <svg className="zb-garras" viewBox="0 0 300 300" aria-hidden="true"
+        style={{ position: "absolute", left: "50%", top: "42%", width: 320, height: 320, marginLeft: -160, marginTop: -160 }}>
+        {[0, 1, 2, 3].map((k) => (
+          <path key={k} d={"M" + (60 + k * 50) + " 30 Q" + (40 + k * 50) + " 150 " + (70 + k * 48) + " 280"} stroke="#B9F6CA" strokeWidth="10" strokeLinecap="round" fill="none" opacity="0.9" />
+        ))}
+      </svg>
+      <div className="zb-titulo" style={{ position: "absolute", left: 0, right: 0, bottom: "16%", textAlign: "center" }}>
+        <div style={{ fontSize: 46, fontWeight: 900, letterSpacing: 1, color: "#B9F6CA", textShadow: "0 3px 0 #1B5E20, 0 0 24px rgba(124,255,60,.55)", fontFamily: "Impact, 'Arial Black', sans-serif" }}>
+          {NOME_ZUMBI.toUpperCase()}
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 2, color: "#7CFF3C", marginTop: 6, textTransform: "uppercase" }}>corra, que ele não cansa</div>
+      </div>
+      <div style={{ position: "absolute", bottom: 14, width: "100%", textAlign: "center", fontSize: 11, color: "#6b8f72" }}>toque para pular</div>
+    </div>
+  );
+}
+
+// ---------------- ZUMBI: AS TELAS ----------------
+const ZUMBI_CHAVE = "treinolivre:zumbi";
+const NOME_FASE_ZUMBI = {
+  preparacao: "Preparação", aquecimento: "Aquecimento", deslocamento: "Deslocamento leve", aviso: "Ameaça detectada",
+  transicao: "Acelerando", perseguicao: "Perseguição", fuga: "Fuga", desfecho: "Desfecho", recuperacao: "Recuperação",
+  desaquecimento: "Desaquecimento", pausa: "Pausa", finalizada: "Missão concluída",
+};
+const NOME_RESULTADO_ZUMBI = {
+  fugiu: "fuga", alcancado: "desfecho alternativo (alcançado)", cancelada: "cancelada", "nao-avaliada": "não avaliada (sem dados)",
+  guiada: "guiada (não medida)", adiada: "adiada", "sem-margem": "sem margem para acelerar",
+};
+// A passada que o percurso na rua mediu: é ela que transforma passos em velocidade
+function passadaCalibrada(historico) {
+  const xs = (historico || []).map((h) => h.rota && h.rota.passada).filter((x) => x > 0.4 && x < 2.5).slice(0, 8).sort((a, b) => a - b);
+  return xs.length ? xs[Math.floor(xs.length / 2)] : 0;
+}
+// Velocidade × tempo, com as perseguições marcadas e as lacunas em branco
+function GraficoZumbi({ z }) {
+  if (!z) return null;
+  const total = z.ativoMs || 1;
+  const vs = z.velocidade || [];
+  const max = Math.max(1, ...vs.filter((x) => x !== null).map((x) => x * 3.6));
+  const X = (t) => (t / total) * 300, Y = (kmh) => 100 - (kmh / max) * 88;
+  const linhas = [];
+  let atual = [];
+  vs.forEach((v, k) => { if (v === null) { if (atual.length) linhas.push(atual); atual = []; } else atual.push(X(k * 10000 + 5000).toFixed(1) + "," + Y(v * 3.6).toFixed(1)); });
+  if (atual.length) linhas.push(atual);
+  const cor = (r) => (r === "fugiu" ? "#4CD137" : r === "alcancado" ? "#ED4956" : r === "cancelada" ? "#F58529" : "#8a8a8a");
+  return (
+    <div>
+      <svg viewBox="0 0 300 110" width="100%" height="120" aria-label="Velocidade ao longo da missão, com as perseguições marcadas">
+        {(z.persegs || []).filter((p) => p.resultado !== "adiada").map((p) => {
+          const b = (z.blocos || []).find((x) => x.ini === p.ini);
+          return b ? <rect key={p.id} x={X(b.ini)} y="0" width={Math.max(2, X(b.dur))} height="100" fill={cor(p.resultado)} opacity="0.22" /> : null;
+        })}
+        {linhas.map((l, i) => l.length > 1 ? <polyline key={i} points={l.join(" ")} fill="none" stroke="#E1306C" strokeWidth="2" /> : <circle key={i} cx={l[0].split(",")[0]} cy={l[0].split(",")[1]} r="1.5" fill="#E1306C" />)}
+        <text x="2" y="10" fontSize="8" fill="var(--cinza)">{num1(max)} km/h</text>
+        <line x1="0" y1="100" x2="300" y2="100" stroke="var(--borda2)" />
+      </svg>
+      <div style={{ fontSize: 10.5, color: "var(--cinza)", display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <span><span style={{ color: "#4CD137" }}>■</span> fuga</span><span><span style={{ color: "#ED4956" }}>■</span> alcançado</span>
+        <span><span style={{ color: "#F58529" }}>■</span> cancelada</span><span><span style={{ color: "#8a8a8a" }}>■</span> não medida</span>
+        <span>· trecho em branco: sem leitura</span>
+      </div>
+    </div>
+  );
+}
+// O resumo de uma missão, na tela final e no histórico
+function ResumoZumbiCard({ z }) {
+  if (!z) return null;
+  const classe = { medida: "medida pelo GPS", estimada: "estimada pelos passos", declarada: "pela velocidade informada", simulada: "simulada" };
+  return (
+    <div style={{ fontSize: 12.5, lineHeight: 1.6 }}>
+      <div>🧟 {z.fugasMedidas + z.fugasEstimadas} {plural(z.fugasMedidas + z.fugasEstimadas, "fuga", "fugas")}
+        {z.fugasMedidas ? " (" + z.fugasMedidas + " medida" + (z.fugasMedidas > 1 ? "s" : "") + ")" : ""}
+        {z.desfechos ? " · " + z.desfechos + " alcançado" + (z.desfechos > 1 ? "s" : "") : ""}
+        {z.canceladas ? " · " + z.canceladas + " cancelada" + (z.canceladas > 1 ? "s" : "") : ""}
+        {z.guiadas ? " · " + z.guiadas + " guiada" + (z.guiadas > 1 ? "s" : "") + " (sem medição)" : ""}
+        {z.naoAvaliadas ? " · " + z.naoAvaliadas + " sem dados" : ""}</div>
+      {z.noAlvoMs > 0 && <div style={{ color: "var(--cinza)" }}>⏱ {Math.round(z.noAlvoMs / 1000)} s no ritmo-alvo</div>}
+      <div style={{ color: "var(--cinza)" }}>
+        Tempo ativo {fmtTempoRota(z.ativoMs)}{z.pausadoMs > 1000 ? " · pausado " + fmtTempoRota(z.pausadoMs) : ""}
+        {z.cfg ? " · " + (z.cfg.ambiente === "rua" ? "rua" : "esteira") + ", " + z.cfg.atividade : ""}
+      </div>
+      {(z.persegs || []).filter((p) => p.resultado !== "adiada").map((p, i) => (
+        <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, borderBottom: "1px solid var(--borda)", padding: "3px 0" }}>
+          <span>Perseguição {i + 1}: {NOME_RESULTADO_ZUMBI[p.resultado] || p.resultado}{p.classe && classe[p.classe] && p.resultado === "fugiu" ? " " + classe[p.classe] : ""}</span>
+          <span style={{ color: "var(--cinza)", fontVariantNumeric: "tabular-nums" }}>{p.alvo ? num1(kmhDeMs(p.alvo)) + " km/h" : "—"}</span>
+        </div>
+      ))}
+      {z.cfg && z.cfg.fonte === "guiado" && <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 4 }}>Modo guiado: o ritmo não foi medido, então não há velocidade, distância nem fuga validada.</div>}
+    </div>
+  );
+}
+
+function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
+  const passada = useMemo(() => passadaCalibrada(historico), [historico]);
+  const [cfg, setCfg] = useState({
+    duracaoMin: 20, ambiente: "rua", atividade: "corrida", experiencia: "adaptativa", fonte: "gps",
+    aumentoPct: 10, tetoKmh: 14, suspense: "normal", repeticoes: 4, demo: false,
+    blocos: [{ tipo: "forte", seg: 90 }, { tipo: "leve", seg: 120 }],
+  });
+  const [etapa, setEtapa] = useState("config");   // config, plano, sessao, fim
+  const [vol, setVol] = useState({ voz: 1, ambiente: 0.6, ameaca: 0.8, mono: false });
+  const [, setTique] = useState(0);
+  const [legenda, setLegenda] = useState("");
+  const [aviso, setAviso] = useState("");
+  const [velDecl, setVelDecl] = useState(cfg.atividade === "caminhada" ? 5 : 8);
+  const [salvo, setSalvo] = useState(false);
+  const [guardado, setGuardado] = useState(null);   // checkpoint achado ao abrir
+  const motor = useRef(null), paisagem = useRef(null), filaR = useRef(null);
+  const meta = useRef({ id: null, inicio: null, pausadoMs: 0, pausaDesde: null, pts: [], seg: 0 });
+  const fatos = useRef({}), usadas = useRef([]), ultimaFala = useRef("");
+  const passosR = useRef(null), velDeclR = useRef(velDecl), mult = useRef(1);
+  velDeclR.current = velDecl;
+  const up = (k, v) => setCfg((c) => Object.assign({}, c, { [k]: v }));
+  const cfgFinal = Object.assign({}, cfg, { passada: passada, tetoKmh: cfg.atividade === "caminhada" ? Math.min(cfg.tetoKmh, 7.5) : cfg.tetoKmh,
+    fonte: cfg.demo ? "simulado" : cfg.fonte, semente: Date.now() % 100000 });
+  const erros = validarConfigZumbi(Object.assign({}, cfgFinal, { fonte: cfg.demo ? (cfg.ambiente === "rua" ? "gps" : "declarado") : cfg.fonte }));
+  const plano = useMemo(() => planejarMissao(cfgFinal), [cfg.duracaoMin, cfg.experiencia, cfg.ambiente, JSON.stringify(cfg.blocos), cfg.repeticoes, etapa === "plano"]);
+  const temVoz = VOZ_FALA;
+  const vozesPt = temVoz ? vozesPtBr().length : 0;
+
+  // cada etapa começa do topo da tela
+  useEffect(() => { try { window.scrollTo(0, 0); } catch (e) {} }, [etapa]);
+  useEffect(() => {
+    try { const j = localStorage.getItem(ZUMBI_CHAVE); if (j) setGuardado(JSON.parse(j)); } catch (e) {}
+    return () => { if (paisagem.current) paisagem.current.parar(); desligarTravaTela(); };
+  }, []);
+
+  // ---- a fala: uma de cada vez, e a que venceu não é dita ----
+  const falarUma = (texto, fim) => {
+    setLegenda(texto);
+    ultimaFala.current = texto;
+    if (paisagem.current) paisagem.current.duck(true);
+    const ok = jarvisFalar(texto, { falar: true, vozNome: vozCfg && vozCfg.vozNome, velocidade: (vozCfg && vozCfg.velocidade) || 1.05,
+      animado: false, volume: vol.voz, aoTerminar: () => { if (paisagem.current) paisagem.current.duck(false); fim(); } });
+    if (!ok) setTimeout(() => { if (paisagem.current) paisagem.current.duck(false); fim(); }, Math.min(6000, 800 + texto.length * 45));
+  };
+  const tratarEventos = (evs) => {
+    const m = motor.current;
+    evs.forEach((ev) => {
+      const f = narrar(MISSAO_ULTIMO_SINAL, ev, fatos.current, usadas.current);
+      Object.keys(fatos.current).forEach((k) => m.marcarFato(k));
+      if (ev.tipo === "aviso") { try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch (e) {} if (paisagem.current) paisagem.current.porta(); }
+      if (ev.tipo === "transicao") { try { navigator.vibrate && navigator.vibrate([450]); } catch (e) {} }
+      if (ev.tipo === "fuga") { try { navigator.vibrate && navigator.vibrate([90, 50, 90, 50, 280]); } catch (e) {} if (som) beep(990, 0.18, 0.25); }
+      if (!f) return;
+      const bloco = m.s.blocoId, fase = m.s.fase;
+      // comando de ritmo vale só enquanto a fase dele durar; o resto, por 25 s
+      const comando = ["aviso", "transicao", "perseguicao"].indexOf(ev.tipo) >= 0;
+      const t0 = m.s.tAtivo;
+      filaR.current.por(f, () => comando ? (m.s.blocoId === bloco && ["aviso", "transicao", "perseguicao"].indexOf(m.s.fase) >= 0) :
+        ev.tipo === "fim" || m.s.tAtivo - t0 < 25000);
+    });
+    filaR.current.descartarVencidas();
+  };
+
+  // ---- a fonte de movimento ----
+  const ultimaPos = useRef(null);
+  const lerGps = (pos) => {
+    const m = motor.current;
+    if (!m || cfgFinal.fonte !== "gps") return;
+    const c = pos.coords;
+    if (Date.now() - pos.timestamp > 5000) return;   // leitura velha não vale
+    const p = { lat: c.latitude, lng: c.longitude, acc: c.accuracy, t: Date.now(), alt: null, seg: meta.current.seg };
+    const lista = meta.current.pts, ult = lista.length && lista[lista.length - 1].seg === p.seg ? lista[lista.length - 1] : null;
+    const v = m.s.pausado ? "pausa" : aceitarPonto(ult, p, cfg.atividade === "caminhada" ? 12 : 30);
+    if (v === "ok" || v === "substitui") { if (v === "substitui") lista.pop(); lista.push(p); }
+    let valor = null;
+    if (c.speed !== null && c.speed !== undefined && c.accuracy <= 25) valor = c.speed;
+    else if (lista.length >= 2) {
+      // sem velocidade nativa: distância por tempo nos últimos 5 a 15 s
+      const u = lista[lista.length - 1];
+      let k = lista.length - 2;
+      while (k > 0 && u.t - lista[k].t < 5000) k--;
+      const dt = (u.t - lista[k].t) / 1000;
+      if (dt >= 4 && dt <= 15 && lista[k].seg === u.seg) valor = distanciaM(lista[k], u) / dt;
+    }
+    ultimaPos.current = { valor: valor, qualidade: Math.max(0, Math.min(1, 1 - c.accuracy / 50)), t: Date.now() };
+  };
+  useEffect(() => {
+    if (etapa !== "sessao" || cfgFinal.fonte !== "gps" || !navigator.geolocation) return;
+    const id = navigator.geolocation.watchPosition(lerGps, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+    return () => navigator.geolocation.clearWatch(id);
+  }, [etapa]);
+  useEffect(() => {
+    if (etapa !== "sessao" || cfgFinal.fonte !== "passos") return;
+    const aoMexer = (e) => { const a = e.accelerationIncludingGravity; if (a && a.x !== null && passosR.current) passosR.current.processar(a.x, a.y, a.z, e.timeStamp || performance.now()); };
+    window.addEventListener("devicemotion", aoMexer);
+    return () => window.removeEventListener("devicemotion", aoMexer);
+  }, [etapa]);
+  // a leitura de agora, de cada fonte — e nada quando não há
+  const leituraAgora = () => {
+    const m = motor.current, f = cfgFinal.fonte;
+    if (f === "gps") {
+      const u = ultimaPos.current;
+      if (!u || Date.now() - u.t > 5000 || u.valor === null) return null;
+      return { valor: u.valor, origem: "gps", qualidade: u.qualidade };
+    }
+    if (f === "declarado") return { valor: msDeKmh(velDeclR.current), origem: "declarado", qualidade: 1 };
+    if (f === "passos") {
+      // celular parado no suporte da esteira não tem passo: aí não há estimativa
+      const cad = passosR.current ? passosR.current.cadencia(performance.now()) : 0;
+      if (!(cad > 40)) return null;
+      return { valor: (cad / 60) * passada, origem: "passos", qualidade: 0.75 };
+    }
+    if (f === "simulado") {
+      // a pessoa simulada: sobe até o alvo quando pedem, volta ao confortável depois
+      const p = m.perseguicaoAtual();
+      const base = cfg.atividade === "caminhada" ? 1.4 : 2.6;
+      const quer = p && p.alvo && (m.s.fase === "transicao" || m.s.fase === "perseguicao") ? p.alvo * 1.04 : base;
+      const ant = m.s.amostras.length ? m.s.amostras[m.s.amostras.length - 1].valor : base;
+      return { valor: ant + (quer - ant) * 0.25 + (Math.random() - 0.5) * 0.08, origem: "simulado", qualidade: 0.95 };
+    }
+    return null;
+  };
+
+  // ---- o relógio da sessão ----
+  useEffect(() => {
+    if (etapa !== "sessao") return;
+    let ant = performance.now(), ultLeitura = 0, ultCp = 0;
+    const iv = setInterval(() => {
+      const m = motor.current;
+      if (!m) return;
+      const agora = performance.now(), dt = agora - ant;
+      ant = agora;
+      if (dt > 5000 && !m.s.pausado && m.s.fase !== "finalizada") {
+        // o app ficou suspenso: pausa, não inventa tempo nem dispara falas atrasadas
+        pausar(false);
+        setAviso("A sessão foi pausada: o app ficou em segundo plano e não acompanhou esse tempo. Retome quando quiser.");
+        return;
+      }
+      if (agora - ultLeitura >= 1000 / mult.current && !m.s.pausado) {
+        ultLeitura = agora;
+        const l = leituraAgora();
+        if (l) m.amostra(l);
+      }
+      tratarEventos(m.avancar(dt * mult.current));
+      if (paisagem.current) paisagem.current.setAmeaca(m.ameaca());
+      if (agora - ultCp > 5000 && !cfg.demo) {
+        ultCp = agora;
+        try { localStorage.setItem(ZUMBI_CHAVE, JSON.stringify({ cp: m.checkpoint(), meta: Object.assign({}, meta.current, { pts: [] }), fatos: fatos.current, usadas: usadas.current, cfg: cfg })); } catch (e) {}
+      }
+      if (m.s.fase === "finalizada") { encerrar(); return; }
+      setTique((x) => x + 1);
+    }, 200);
+    return () => clearInterval(iv);
+  }, [etapa]);
+
+  const iniciarAudio = () => {
+    if (paisagem.current) return;
+    paisagem.current = criarPaisagemZumbi({ ambiente: vol.ambiente, ameaca: vol.ameaca, suspense: cfg.suspense, mono: vol.mono });
+  };
+  const comecar = () => {
+    if (erros.length || plano.erro) return;
+    motor.current = criarMotorZumbi(cfgFinal, plano);
+    meta.current = { id: "zr-" + Date.now(), inicio: new Date().toISOString(), pausadoMs: 0, pausaDesde: null, pts: [], seg: 0 };
+    fatos.current = {}; usadas.current = [];
+    filaR.current = criarFilaFalas(falarUma);
+    mult.current = 1;
+    if (cfgFinal.fonte === "passos") {
+      passosR.current = criarContadorPassos();
+      try { if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") DeviceMotionEvent.requestPermission(); } catch (e) {}
+    }
+    iniciarAudio();
+    ligarTravaTela();
+    setSalvo(false); setAviso("");
+    setEtapa("sessao");
+    tratarEventos(motor.current.iniciar());
+  };
+  const retomarGuardado = () => {
+    const g = guardado;
+    const m = restaurarMotorZumbi(g.cp);
+    if (!m) { setGuardado(null); return; }
+    motor.current = m;
+    meta.current = Object.assign({}, g.meta, { pts: [], pausaDesde: Date.now() });
+    fatos.current = g.fatos || {}; usadas.current = g.usadas || [];
+    setCfg(g.cfg);
+    filaR.current = criarFilaFalas(falarUma);
+    iniciarAudio();
+    if (paisagem.current) paisagem.current.pausar();
+    setGuardado(null);
+    setAviso("Missão restaurada em pausa. O tempo em que o app ficou fechado não conta.");
+    setEtapa("sessao");
+  };
+  const pausar = (seguranca) => {
+    const m = motor.current;
+    if (!m || m.s.pausado) return;
+    m.pausar(seguranca);
+    meta.current.pausaDesde = Date.now();
+    filaR.current.limpar();
+    try { window.speechSynthesis.cancel(); } catch (e) {}
+    if (paisagem.current) paisagem.current.pausar();
+    tratarEventos(m.eventos());
+    setTique((x) => x + 1);
+  };
+  const retomar = () => {
+    const m = motor.current;
+    if (!m) return;
+    if (meta.current.pausaDesde) meta.current.pausadoMs += Date.now() - meta.current.pausaDesde;
+    meta.current.pausaDesde = null;
+    if (paisagem.current) paisagem.current.retomar();
+    setAviso("");
+    tratarEventos(m.retomar());
+  };
+  const encerrar = () => {
+    const m = motor.current;
+    if (m && !m.s.pausado && m.s.fase !== "finalizada") m.pausar();
+    if (meta.current.pausaDesde) { meta.current.pausadoMs += Date.now() - meta.current.pausaDesde; meta.current.pausaDesde = null; }
+    if (paisagem.current) { paisagem.current.parar(); paisagem.current = null; }
+    desligarTravaTela();
+    try { localStorage.removeItem(ZUMBI_CHAVE); } catch (e) {}
+    setEtapa("fim");
+  };
+  const registro = etapa === "fim" && motor.current
+    ? registroZumbi(meta.current.id, meta.current.inicio, motor.current, MISSAO_ULTIMO_SINAL,
+      { km: cfgFinal.fonte === "gps" && meta.current.pts.length > 1 ? resumoRota(meta.current.pts).km : 0, pausadoMs: meta.current.pausadoMs })
+    : null;
+
+  // ---------- telas ----------
+  const chip = (k, v, rot) => (
+    <button key={String(v)} onClick={() => up(k, v)} aria-pressed={cfg[k] === v}
+      style={{ flex: "1 1 auto", padding: "9px 10px", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 13,
+        border: "1px solid " + (cfg[k] === v ? "#7CFF3C" : "var(--borda2)"), background: cfg[k] === v ? "#7CFF3C1c" : "transparent",
+        color: cfg[k] === v ? "#7CFF3C" : "var(--texto)" }}>{rot}</button>
+  );
+  const linha = (rot, filhos) => (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>{rot}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{filhos}</div>
+    </div>
+  );
+  const voltar = (
+    <button onClick={() => { if (etapa === "sessao") { pausar(false); onVoltar(); } else onVoltar(); }}
+      style={{ display: "block", background: "none", border: "none", color: "#7CFF3C", fontWeight: 800, fontSize: 14, cursor: "pointer", padding: "4px 0 12px" }}>← Voltar</button>
+  );
+  const titulo = (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 30, fontWeight: 900, color: "#B9F6CA", fontFamily: "Impact, 'Arial Black', sans-serif", letterSpacing: 0.5 }}>🧟 {NOME_ZUMBI}</div>
+      <div style={{ fontSize: 12.5, color: "var(--cinza)" }}>Missão: <b>{MISSAO_ULTIMO_SINAL.nome}</b> — {MISSAO_ULTIMO_SINAL.resumo}</div>
+    </div>
+  );
+
+  if (etapa === "config" || etapa === "plano") {
+    const fontes = cfg.ambiente === "rua"
+      ? [["gps", "Medido pelo GPS"], ["guiado", "Guiado (sem medir)"]]
+      : [["declarado", "Velocidade que eu informar"], ["passos", "Estimada pelos passos"], ["guiado", "Guiado (sem medir)"]];
+    if (!fontes.some((f) => f[0] === cfg.fonte)) setTimeout(() => up("fonte", fontes[0][0]), 0);
+    return (
+      <div>
+        {voltar}{titulo}
+        {guardado && (
+          <div style={{ ...S.card, borderColor: "#7CFF3C66" }}>
+            <div style={{ fontWeight: 900, marginBottom: 6 }}>Missão em andamento encontrada</div>
+            <div style={{ fontSize: 12.5, color: "var(--cinza)", marginBottom: 10 }}>Ela volta pausada; o tempo em que o app ficou fechado não conta.</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={retomarGuardado} style={{ ...S.btn, flex: 1 }}>▶ Retomar</button>
+              <button onClick={() => { try { localStorage.removeItem(ZUMBI_CHAVE); } catch (e) {} setGuardado(null); }} style={{ ...S.btnGhost, flex: 1 }}>Descartar</button>
+            </div>
+          </div>
+        )}
+        {etapa === "config" && (
+          <div style={S.card}>
+            {linha("Onde", [chip("ambiente", "rua", "🌆 Rua"), chip("ambiente", "esteira", "🏃 Esteira")])}
+            {linha("Atividade", [chip("atividade", "caminhada", "🚶 Caminhada"), chip("atividade", "corrida", "🏃 Corrida"), chip("atividade", "alternada", "🔁 Alternada")])}
+            {linha("Experiência", [chip("experiencia", "adaptativa", "🎲 Aventura"), chip("experiencia", "intervalos", "⏱ Intervalos"), chip("experiencia", "historia", "📖 Só a história")])}
+            {linha("Duração (inclui aquecimento e desaquecimento)", [10, 20, 30, 45].map((d) => chip("duracaoMin", d, d + " min")))}
+            {cfg.experiencia !== "historia" && linha("Quanto acelerar na perseguição", [5, 10, 15, 20].map((p) => chip("aumentoPct", p, "+" + p + "%")))}
+            {cfg.experiencia !== "historia" && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Velocidade máxima que eu aceito</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <button onClick={() => up("tetoKmh", Math.max(3, cfg.tetoKmh - 0.5))} style={{ ...S.btnGhost, width: 44, padding: 8 }} aria-label="Diminuir o teto">−</button>
+                  <b style={{ fontSize: 18, minWidth: 90, textAlign: "center" }}>{num1(Math.min(cfg.tetoKmh, cfg.atividade === "caminhada" ? 7.5 : 25))} km/h</b>
+                  <button onClick={() => up("tetoKmh", Math.min(cfg.atividade === "caminhada" ? 7.5 : 25, cfg.tetoKmh + 0.5))} style={{ ...S.btnGhost, width: 44, padding: 8 }} aria-label="Aumentar o teto">+</button>
+                </div>
+                {cfg.atividade === "caminhada" && <div style={{ fontSize: 11, color: "var(--cinza)", marginTop: 4 }}>Na caminhada o teto é 7,5 km/h: a fuga nunca pede para correr.</div>}
+              </div>
+            )}
+            {linha("Suspense", [chip("suspense", "normal", "😱 Normal"), chip("suspense", "leve", "🙂 Leve")])}
+            {linha("De onde vem o ritmo", fontes.map(([v, r]) => chip("fonte", v, r)))}
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: -6, marginBottom: 12, lineHeight: 1.5 }}>
+              {cfg.fonte === "gps" && "O GPS mede de verdade. A tela precisa ficar ligada: com ela apagada o navegador para o GPS."}
+              {cfg.fonte === "declarado" && "Você informa a velocidade da esteira nos botões + e −. É informação sua, não medição: a fuga fica marcada como \"pela velocidade informada\"."}
+              {cfg.fonte === "passos" && (passada ? "Cadência × a sua passada medida na rua (" + num1(passada) + " m). Celular no bolso ou no braço — parado no suporte da esteira ele não vê passo, e aí não há estimativa." : "Precisa da sua passada: faça antes uma corrida na rua com o GPS.")}
+              {cfg.fonte === "guiado" && "A história conduz pelo tempo e você ajusta o ritmo; nada é medido nem validado."}
+            </div>
+            {cfg.experiencia === "intervalos" && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Blocos (repetidos {cfg.repeticoes}×)</div>
+                {cfg.blocos.map((b, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <button onClick={() => up("blocos", cfg.blocos.map((x, k) => (k === i ? Object.assign({}, x, { tipo: x.tipo === "forte" ? "leve" : "forte" }) : x)))}
+                      style={{ ...S.btnGhost, width: 74, padding: "6px 4px", fontSize: 12, color: b.tipo === "forte" ? "#ED4956" : "#4C9BE8" }}>{b.tipo === "forte" ? "🔥 forte" : "🌿 leve"}</button>
+                    <button onClick={() => up("blocos", cfg.blocos.map((x, k) => (k === i ? Object.assign({}, x, { seg: Math.max(30, x.seg - 15) }) : x)))} style={{ ...S.btnGhost, width: 36, padding: 6 }} aria-label="Menos 15 segundos">−</button>
+                    <span style={{ minWidth: 54, textAlign: "center", fontWeight: 800, fontSize: 13 }}>{fmtTempoRota(b.seg * 1000)}</span>
+                    <button onClick={() => up("blocos", cfg.blocos.map((x, k) => (k === i ? Object.assign({}, x, { seg: Math.min(900, x.seg + 15) }) : x)))} style={{ ...S.btnGhost, width: 36, padding: 6 }} aria-label="Mais 15 segundos">+</button>
+                    <button disabled={i === 0} onClick={() => { const n = cfg.blocos.slice(); [n[i - 1], n[i]] = [n[i], n[i - 1]]; up("blocos", n); }} style={{ ...S.btnGhost, width: 36, padding: 6 }} aria-label="Subir o bloco">↑</button>
+                    <button disabled={cfg.blocos.length <= 1} onClick={() => up("blocos", cfg.blocos.filter((x, k) => k !== i))} style={{ ...S.btnGhost, width: 36, padding: 6 }} aria-label="Tirar o bloco">✕</button>
+                  </div>
+                ))}
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => up("blocos", cfg.blocos.concat([{ tipo: "leve", seg: 120 }]))} style={{ ...S.btnGhost, flex: 1, fontSize: 12.5 }}>+ bloco</button>
+                  <button onClick={() => up("repeticoes", Math.max(1, cfg.repeticoes - 1))} style={{ ...S.btnGhost, width: 44 }} aria-label="Menos repetições">−</button>
+                  <span style={{ alignSelf: "center", fontWeight: 800, fontSize: 13 }}>{cfg.repeticoes}×</span>
+                  <button onClick={() => up("repeticoes", Math.min(20, cfg.repeticoes + 1))} style={{ ...S.btnGhost, width: 44 }} aria-label="Mais repetições">+</button>
+                </div>
+              </div>
+            )}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Som</div>
+              {[["voz", "Voz"], ["ambiente", "Ambiente"], ["ameaca", "Ameaça"]].map(([k, r]) => (
+                <div key={k} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, marginBottom: 4 }}>
+                  <span style={{ width: 70 }}>{r}</span>
+                  <input type="range" min="0" max="1" step="0.05" value={vol[k]} aria-label={"Volume: " + r}
+                    onChange={(e) => setVol(Object.assign({}, vol, { [k]: parseFloat(e.target.value) }))} style={{ flex: 1 }} />
+                </div>
+              ))}
+              <label style={{ fontSize: 12.5, display: "flex", gap: 6, alignItems: "center", marginTop: 4 }}>
+                <input type="checkbox" checked={vol.mono} onChange={(e) => setVol(Object.assign({}, vol, { mono: e.target.checked }))} /> Mono (um fone só)
+              </label>
+              <button onClick={() => {
+                const p = criarPaisagemZumbi({ ambiente: vol.ambiente, ameaca: vol.ameaca, suspense: cfg.suspense, mono: vol.mono });
+                if (!p) return;
+                let x = 0;
+                const iv = setInterval(() => { x += 0.08; p.setAmeaca(Math.min(1, x)); }, 250);
+                jarvisFalar("Detectei movimento atrás de você. Prepare-se para aumentar o ritmo, se puder.", { falar: true, vozNome: vozCfg && vozCfg.vozNome, volume: vol.voz, animado: false });
+                setTimeout(() => { clearInterval(iv); p.parar(); }, 4500);
+              }} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13 }}>🔊 Ouvir uma prévia (4 s)</button>
+              <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>
+                {!temVoz ? "Este navegador não fala: as instruções aparecem na tela e com vibração." :
+                  vozesPt ? "Voz: a do seu aparelho, em português. Algumas vozes do Android precisam de internet." :
+                    "Não achei voz em português neste aparelho: o navegador vai usar a que tiver. As instruções também aparecem na tela."}
+                {" "}Os efeitos são gerados no aparelho e funcionam sem internet.
+              </div>
+            </div>
+            <label style={{ fontSize: 12.5, display: "flex", gap: 6, alignItems: "center", marginBottom: 12 }}>
+              <input type="checkbox" checked={cfg.demo} onChange={(e) => up("demo", e.target.checked)} />
+              Modo demonstração (movimento simulado, relógio acelerado, não vai para o histórico)
+            </label>
+            {erros.concat(plano.erro ? [plano.erro] : []).map((e) => <div key={e} style={{ fontSize: 12.5, color: "var(--perigo)", marginBottom: 6 }}>⚠️ {e}</div>)}
+            <button disabled={!!erros.length || !!plano.erro} onClick={() => setEtapa("plano")} style={{ ...S.btn, width: "100%", opacity: erros.length || plano.erro ? 0.5 : 1 }}>Ver o plano</button>
+          </div>
+        )}
+        {etapa === "plano" && !plano.erro && (
+          <div style={S.card}>
+            <div style={{ ...S.label, marginBottom: 8 }}>O plano: {cfg.duracaoMin} min</div>
+            <div style={{ display: "flex", height: 22, borderRadius: 6, overflow: "hidden", marginBottom: 10 }}>
+              {plano.blocos.map((b) => (
+                <div key={b.id} title={b.tipo} style={{ flex: b.dur, background: b.tipo === "perseguicao" || b.tipo === "forte" ? "#ED4956" : b.tipo === "recuperacao" ? "#4C9BE8" : b.tipo === "leve" ? "#2E7D32" : "#555555" }} />
+              ))}
+            </div>
+            {plano.blocos.map((b) => (
+              <div key={b.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0", borderBottom: "1px solid var(--borda)" }}>
+                <span>{{ aquecimento: "Aquecimento", leve: "Leve", perseguicao: "Perseguição (aviso, chegada ao ritmo, fuga)", forte: "Bloco forte", recuperacao: "Recuperação", desaquecimento: "Desaquecimento" }[b.tipo]}</span>
+                <span style={{ color: "var(--cinza)", fontVariantNumeric: "tabular-nums" }}>{fmtTempoRota(b.ini)} · {fmtTempoRota(b.dur)}</span>
+              </div>
+            ))}
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>
+              {cfg.experiencia === "adaptativa" && "Na aventura, a hora exata de cada perseguição varia, mas a recuperação mínima e o total nunca mudam. "}
+              Os números (+{cfg.aumentoPct}%, {Math.round(ZUMBI_PADRAO.alvoMs / 1000)} s no alvo em até {Math.round(ZUMBI_PADRAO.janelaMs / 1000)} s) são ajustes do app, não prescrição de treino.
+              Você pode cancelar qualquer perseguição, reduzir a intensidade ou recuperar por mais tempo, sem penalidade.
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button onClick={() => setEtapa("config")} style={{ ...S.btnGhost, flex: 1 }}>Ajustar</button>
+              <button onClick={comecar} style={{ ...S.btn, flex: 1.5 }}>▶ Começar a missão</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (etapa === "sessao" && motor.current) {
+    const m = motor.current, s = m.s;
+    const p = m.perseguicaoAtual();
+    const ultima = s.amostras.length ? s.amostras[s.amostras.length - 1] : null;
+    const temLeitura = ultima && ultima.valida && s.tAtivo - ultima.t < 6000;
+    const ameaca = m.ameaca();
+    const emEsforco = p && p.st && !p.resultado && (s.fase === "transicao" || s.fase === "perseguicao" || s.fase === "aviso");
+    const origemTxt = cfgFinal.fonte === "guiado" ? "guiado: sem medição" : !temLeitura ? "sem leitura agora" :
+      (ORIGENS_ZUMBI[ultima.origem] || {}).nome + (ultima.origem === "gps" ? " (" + (ultima.qualidade >= 0.7 ? "bom" : "razoável") + ")" : "");
+    const objetivo = emEsforco && p.alvo ? "Alvo: " + num1(kmhDeMs(p.alvo)) + " km/h · " + fmtPaceSeg(paceSegKm(p.alvo)) + " /km" :
+      emEsforco && p.guiada ? "Aumente o ritmo, se puder (guiado)" : s.fase === "recuperacao" ? "Recupere: ritmo bem leve" : "Ritmo confortável";
+    const grande = { ...S.btn, padding: "16px 10px", fontSize: 15, fontWeight: 900 };
+    const fantasma = { ...S.btnGhost, padding: "14px 8px", fontSize: 13.5, fontWeight: 900 };
+    return (
+      <div>
+        {voltar}
+        <div style={{ ...S.card, background: "linear-gradient(180deg, #0B1A10, #050805)", borderColor: "#1E3A28", color: "#E8F5E9" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <div style={{ fontSize: 13, fontWeight: 900, color: "#7CFF3C", letterSpacing: 1.5, textTransform: "uppercase" }}>{s.pausado ? "⏸ Pausado" : NOME_FASE_ZUMBI[s.fase] || s.fase}</div>
+            {cfg.demo && <div style={{ fontSize: 11, color: "#F58529", fontWeight: 800 }}>DEMONSTRAÇÃO ×{mult.current}</div>}
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 900, margin: "6px 0 2px" }}>{objetivo}</div>
+          {emEsforco && p.st && !p.guiada && (
+            <div style={{ fontSize: 12.5, color: "#B9F6CA" }}>
+              {p.st.estado === "adaptando" ? "Chegando ao ritmo..." : p.st.estado === "suspensa" ? "Sem leitura: avaliação suspensa" :
+                "No alvo: " + Math.round(p.st.noAlvoMs / 1000) + " de " + Math.round(p.st.alvoMs / 1000) + " s"}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8, marginTop: 12, textAlign: "center" }}>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 24, fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>{fmtTempoRota(m.restanteMs())}</div><div style={{ fontSize: 10, color: "#8FBF96" }}>FALTA</div></div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 24, fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>{fmtTempoRota(s.tAtivo)}</div><div style={{ fontSize: 10, color: "#8FBF96" }}>TEMPO ATIVO</div></div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 24, fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>{temLeitura && cfgFinal.fonte !== "guiado" ? num1(kmhDeMs(ultima.valor)) : "—"}</div>
+              <div style={{ fontSize: 10, color: "#8FBF96" }}>KM/H{temLeitura && cfgFinal.fonte !== "guiado" ? " · " + fmtPaceSeg(paceSegKm(ultima.valor)) + "/KM" : ""}</div>
+            </div>
+          </div>
+          <div style={{ fontSize: 11, color: "#8FBF96", textAlign: "center", marginTop: 4 }}>Ritmo: {origemTxt}{s.sinalOk === false && cfgFinal.fonte !== "guiado" ? " — perseguições esperam o sinal" : ""}</div>
+          {/* a ameaça: distância fictícia, com rótulo e número além da cor */}
+          <div style={{ marginTop: 12 }} aria-label={"Ameaça fictícia: " + Math.round(ameaca * 100) + " por cento de proximidade"}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#8FBF96" }}><span>ameaça (ficção)</span><span>{ameaca > 0.75 ? "muito perto" : ameaca > 0.45 ? "se aproximando" : ameaca > 0.2 ? "à distância" : "longe"}</span></div>
+            <div style={{ position: "relative", height: 26, background: "#132417", borderRadius: 13, marginTop: 4 }}>
+              <div style={{ position: "absolute", right: 6, top: 2, fontSize: 18 }} aria-hidden="true">🏃</div>
+              <div style={{ position: "absolute", left: "calc(" + Math.round(ameaca * 80) + "% )", top: 1, fontSize: 20, transition: "left .6s" }} aria-hidden="true">🧟</div>
+            </div>
+          </div>
+          {legenda && <div style={{ marginTop: 12, fontSize: 13.5, lineHeight: 1.5, color: "#E8F5E9", background: "#0F2416", borderRadius: 10, padding: "10px 12px" }} aria-live="polite">📻 {legenda}</div>}
+        </div>
+        {aviso && <div style={{ ...S.card, borderColor: "var(--obs)", fontSize: 12.5 }}>⚠️ {aviso}</div>}
+        {cfgFinal.fonte === "declarado" && !s.pausado && (
+          <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 12.5, flex: 1 }}>Velocidade da esteira (você informa)</span>
+            <button onClick={() => setVelDecl(Math.max(1, Math.round((velDecl - 0.5) * 10) / 10))} style={{ ...fantasma, width: 54 }} aria-label="Diminuir a velocidade informada">−</button>
+            <b style={{ fontSize: 20, minWidth: 64, textAlign: "center" }}>{num1(velDecl)}</b>
+            <button onClick={() => setVelDecl(Math.min(25, Math.round((velDecl + 0.5) * 10) / 10))} style={{ ...fantasma, width: 54 }} aria-label="Aumentar a velocidade informada">+</button>
+          </div>
+        )}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+          {s.pausado
+            ? <button onClick={retomar} style={{ ...grande, gridColumn: "1 / 3" }}>▶ Retomar (começa leve)</button>
+            : <button onClick={() => pausar(true)} style={{ ...grande, gridColumn: "1 / 3", background: "#F58529" }}>⏸ Pausa de segurança</button>}
+          <button disabled={!emEsforco || s.pausado} onClick={() => { m.cancelarDesafio(); tratarEventos(m.eventos()); }} style={{ ...fantasma, opacity: emEsforco && !s.pausado ? 1 : 0.4 }}>✋ Cancelar desafio</button>
+          <button disabled={s.pausado || cfg.experiencia === "historia"} onClick={() => { const n = m.reduzirIntensidade(); setLegenda("Intensidade reduzida para +" + n + "%."); }} style={fantasma}>➖ Reduzir intensidade</button>
+          <button disabled={!ultimaFala.current} onClick={() => falarUma(ultimaFala.current, () => {})} style={fantasma}>🔁 Repetir instrução</button>
+          <button disabled={s.pausado || emEsforco} onClick={() => { const ok = m.estenderRecuperacao(); setLegenda(ok ? "Mais um minuto de recuperação." : "Não há mais tempo leve para estender."); }} style={{ ...fantasma, opacity: !s.pausado && !emEsforco ? 1 : 0.4 }}>🧘 Recuperar mais</button>
+          {cfg.demo && <button onClick={() => { mult.current = mult.current === 1 ? 10 : 1; }} style={{ ...fantasma, gridColumn: "1 / 3" }}>⏩ Relógio da demonstração: ×{mult.current} (tocar troca para ×{mult.current === 1 ? 10 : 1})</button>}
+          <button onClick={() => { pausar(false); encerrar(); }} style={{ ...fantasma, gridColumn: "1 / 3", color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}>■ Encerrar missão</button>
+        </div>
+        <div style={{ fontSize: 11, color: "var(--cinza2)", textAlign: "center", lineHeight: 1.5 }}>
+          Mantenha a tela ligada: numa página web o navegador pode parar o GPS, o relógio e a voz com a tela apagada.
+          A história acontece num mundo fictício: nunca siga a voz para mudar de caminho.
+        </div>
+      </div>
+    );
+  }
+
+  if (etapa === "fim" && registro) {
+    const z = registro.zumbi;
+    return (
+      <div>
+        {voltar}{titulo}
+        <div style={S.card}>
+          <div style={{ ...S.label, marginBottom: 8 }}>{fatos.current.farol ? "📡 O último sinal não se apagou" : "🏠 De volta ao abrigo"}</div>
+          <ResumoZumbiCard z={z} />
+          {z.velocidade && <div style={{ marginTop: 12 }}><GraficoZumbi z={z} /></div>}
+          {registro.itens[0].series[0].km && <div style={{ fontSize: 12.5, marginTop: 8 }}>🗺 {num1(+registro.itens[0].series[0].km)} km medidos pelo GPS</div>}
+          {cfg.demo ? (
+            <div style={{ fontSize: 12.5, color: "#F58529", marginTop: 12 }}>Demonstração: nada disto vai para o histórico.</div>
+          ) : (
+            <button disabled={salvo} onClick={() => { onSalvar(registro); setSalvo(true); }} style={{ ...S.btn, width: "100%", marginTop: 14, opacity: salvo ? 0.5 : 1 }}>
+              {salvo ? "✓ Salvo no histórico" : "Salvar no histórico"}
+            </button>
+          )}
+          <button onClick={() => { setEtapa("config"); motor.current = null; }} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>Nova missão</button>
+        </div>
+      </div>
+    );
+  }
+  return null;
 }
 
 // O percurso salvo, reaberto do histórico
@@ -12724,6 +14279,12 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
         </div>
       )}
       {verRota && <ModalRota h={h} onFechar={() => setVerRota(false)} />}
+      {h.zumbi && (
+        <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 12, background: "var(--bg2)", border: "1px solid var(--borda2)" }}>
+          <ResumoZumbiCard z={h.zumbi} />
+          {h.zumbi.velocidade && <div style={{ marginTop: 8 }}><GraficoZumbi z={h.zumbi} /></div>}
+        </div>
+      )}
       {(st.series > 0 || st.cardioMin > 0) && (
         <BotaoResumoAnimado registro={h} exPorId={exPorId} historico={historico} pesoCorporal={pesoCorporal} vozCfg={vozCfg}
           estilo={{ marginTop: 8, padding: "9px 12px", fontSize: 13 }} />
@@ -13659,7 +15220,9 @@ function TreinoLivre() {
   const trocaFotoRef = useRef(null);                    // qual exercício está trocando a foto
   const [sessao, setSessao] = useState(null);
   const [modal, setModal] = useState(null);
-  const [resumoAnim, setResumoAnim] = useState(null);   // dados do resumo animado aberto pelo fim do treino
+  const [resumoAnim, setResumoAnim] = useState(null);
+  // a abertura do zumbi passa toda vez que a modalidade é aberta
+  const [abrindoZumbi, setAbrindoZumbi] = useState(false);   // dados do resumo animado aberto pelo fim do treino
   const [copiado, setCopiado] = useState(false);
   const [desfazer, setDesfazer] = useState(null);
   const importRef = useRef("");
@@ -15089,6 +16652,7 @@ function TreinoLivre() {
             onTreinoLivre={iniciarTreinoLivre}
             onFuncional={() => setAba("funcional")}
             onPercurso={() => setAba("percurso")}
+            onZumbi={() => setAbrindoZumbi(true)}
             onEscolaVoz={() => setAba("escolaVoz")}
             convite={convite}
             onSeguir={() => {
@@ -15121,7 +16685,7 @@ function TreinoLivre() {
         )}
         {aba === "percurso" && (
           <TelaPercurso exPorId={exPorId} vozCfg={voz} som={som} pesoCorporal={pesoCorporal} historico={historico}
-            bpm={bpm} onConectarCardio={conectarCardio} corredor={corredor} onPainel={() => setAba("corredor")}
+            bpm={bpm} onConectarCardio={conectarCardio} corredor={corredor} onPainel={() => setAba("corredor")} onZumbi={() => setAbrindoZumbi(true)}
             pedirConfirmacao={pedirConfirmacao}
             onVoltar={() => setAba("inicio")}
             onSalvar={(registro, pts) => {
@@ -15130,6 +16694,15 @@ function TreinoLivre() {
               guardarRota(registro.id, pts)
                 .catch(() => { registro.rota = Object.assign({}, registro.rota, { semTraco: true }); })
                 .then(() => guardarTreino(registro, "percurso-concluido"));
+            }} />
+        )}
+        {aba === "zumbi" && (
+          <TelaZumbi historico={historico} exPorId={exPorId} vozCfg={voz} som={som}
+            onVoltar={() => setAba("inicio")}
+            onSalvar={(registro) => {
+              // uma identidade só: salvar de novo não cria outro treino
+              if (historico.some((x) => x.id === registro.id)) return;
+              guardarTreino(registro, "zumbi-concluido");
             }} />
         )}
         {aba === "corredor" && (
@@ -15224,6 +16797,7 @@ function TreinoLivre() {
       </div>
 
       {resumoAnim && <ResumoAnimado d={resumoAnim} vozCfg={voz} onFechar={() => setResumoAnim(null)} />}
+      {abrindoZumbi && <AberturaZumbi som={som} onFim={() => { setAbrindoZumbi(false); setAba("zumbi"); }} />}
       {modal && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.75)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
           onClick={() => setModal(null)}>

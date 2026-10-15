@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v34) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v35) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1004,33 +1004,67 @@ Treino Livre e não um relatório.
 ### O resumo vira vídeo para o story (`GerarStoryResumo`)
 
 O 📸 no topo do resumo (e o botão "Compartilhar no story" na última cena) gera
-um **vídeo 1080×1920** com as mesmas cenas, e abre a janela de compartilhar do
-celular — no Instagram, é escolher Story.
+um **vídeo 1080×1920, narrado**, com as mesmas cenas, mostra o vídeo com som
+para conferir, e abre a janela de compartilhar do celular — no Instagram, é
+escolher Story.
 
-- **As cenas são redesenhadas num canvas** (`videoQuadro`, `videoCena`,
-  `videoFecho`): o resumo da tela é DOM e CSS, e nada disso vira vídeo. Mesma
-  identidade: a linha verde revelando cada cena (recorte e linha no mesmo
-  passo), números no degradê subindo do zero, barras de story no topo, o halter
-  do fecho (`videoHalter`, as peças do `HalterAbertura`) e o crédito
-  `@INSTAGRAM` em todos os quadros — o story é o que leva o app ao feed de
-  quem nunca ouviu falar dele.
-- **O `MediaRecorder` grava em tempo real**: não há como acelerar. Por isso as
-  cenas do vídeo duram 2,7 s (o fecho, 3,4), e um treino completo dá uns 33 s.
-  A tela mostra a prévia sendo gravada e a porcentagem.
-- **O relógio é `setTimeout`, não `requestAnimationFrame`**: o rAF para com a
-  tela apagada e o vídeo sairia com um trecho congelado.
-- **MP4 primeiro** (o Instagram aceita sem reclamar), WebM onde é só o que há.
-  Sem gravador nenhum (iPhone antigo), sai a imagem do primeiro número
-  (`imagemResumo`).
-- **Sem voz no vídeo**: a síntese de fala não passa por nada que dê para
-  gravar. A música, a pessoa põe no próprio Instagram.
+**A primeira versão falhou no Instagram, dos dois jeitos que o dono relatou:**
+o vídeo não rodava inteiro e a narração não ia junto.
+
+1. **Não rodava inteiro** porque o `MediaRecorder` do Chrome grava MP4
+   **fragmentado** (pedaços de meio segundo, `moof`, sem a duração no
+   cabeçalho), e o Instagram lê o começo e para. Hoje cada quadro é desenhado
+   no seu tempo exato, codificado pelo `VideoEncoder` (WebCodecs) e montado
+   pelo **mp4-muxer** (`fastStart: "in-memory"`): um MP4 comum, `moov` antes
+   do `mdat`, 30 quadros por segundo cravados (`montarMp4`). De quebra, sai
+   mais rápido que o tempo real.
+2. **A voz do navegador não passa por nada que dê para gravar** — não existe
+   jeito de capturar o `speechSynthesis`. Então a narração é feita **por uma
+   voz neural em português rodando no aparelho**: Piper, voz `pt_BR-faber-medium`
+   (fonemas pelo espeak-ng em WASM, `@diffusionstudio/piper-wasm`; a voz pelo
+   `onnxruntime-web` 1.18). **Não é a mesma voz do Jarvis** na tela — é a única
+   que dá para pôr dentro de um arquivo sem servidor.
+
+O que decide como isso funciona:
+
+- **São uns 90 MB, baixados uma vez** (modelo 63 MB, espeak 18 MB, onnxruntime
+  10 MB), e só para quem escolhe "Com a narração" — a tela pergunta antes, e diz
+  o tamanho. Ficam no cache **`treinolivre-voz`**, que o `activate` do `sw.js`
+  preserva: apagar a cada versão do app obrigaria a baixar tudo de novo. Os
+  arquivos grandes quem guarda é o app (`baixarVoz`, que mostra o progresso); o
+  service worker só serve desse cache e guarda os scripts pequenos. Com a voz já
+  guardada, o 📸 começa direto, com narração.
+- **Versões presas e SRI** nos três scripts (onnxruntime, phonemize, mp4-muxer),
+  do jsDelivr, que serve o arquivo do npm byte a byte. O modelo vem da revisão
+  `v1.0.0` do `rhasspy/piper-voices` no Hugging Face.
+- **Os números dos fonemas são montados aqui**, pela `phoneme_id_map` do
+  próprio modelo (`^`, cada fonema seguido de `_`, `$`). Os que o espeak devolve
+  seguem a tabela das vozes novas: num modelo com outra tabela o onnxruntime
+  para com "Gather ... indices" — foi o que aconteceu no primeiro teste.
+- **Uma thread só** (`numThreads = 1`): o GitHub Pages não manda os cabeçalhos
+  de isolamento, e sem eles não há SharedArrayBuffer.
+- **Cada cena dura a sua frase** (`videoDuracoes(cenas, falasMs)`): entra 0,25 s
+  depois da cena e sai 0,45 s depois da frase. **O story tem 60 s**: passou de
+  58,5 s, a narração é refeita mais ligeira, na medida do que sobra
+  (`STORY_MAX_MS`), até o limite de 0,72 do ritmo normal, abaixo do qual a voz
+  embola.
+- `textoParaVozNeural`: "5.770" vira "5770" (senão o espeak lê "5 ponto 770").
+- **H.264 + AAC** quando o aparelho tem (é o que o Instagram toca em qualquer
+  lugar); VP9 e Opus dentro do MP4 só onde não há.
+- **Sem WebCodecs** (iPhone antes do iOS 16.4) volta o `MediaRecorder`, agora sem
+  fatias e com a narração tocada no próprio fluxo de áudio. Sem nenhum dos dois,
+  sai a imagem (`imagemResumo`). **A voz não carregou** (sem internet, sem
+  espaço): o vídeo sai sem narração, e a tela diz isso.
 - **Compartilhar é um segundo toque, de propósito.** O navegador só abre a
-  janela de compartilhar logo depois de um toque, e depois de 30 s gravando
-  aquele toque já expirou. Sem a janela (computador), o vídeo é baixado.
-- Enquanto grava, a apresentação para: nem fala nem avança por baixo.
+  janela de compartilhar logo depois de um toque, e montar o vídeo leva mais
+  que isso. Sem a janela (computador), o vídeo é baixado.
+- Enquanto gera, a apresentação para: nem fala nem avança por baixo.
 
-Testado no Chromium: MP4 de 1080×1920, 33 s, 3,6 MB para um treino com
-musculação e esteira, e os quadros conferidos um a um.
+Testado no Chromium (que não tem H.264 nem AAC: saiu VP9 + Opus), com a voz
+`pt-br-edresson-low` no lugar da faber (o Hugging Face não responde na sessão
+da nuvem): MP4 de 57,9 s, `moov` antes do `mdat`, nenhum `moof`, a trilha de
+áudio com as falas de 0,6 s a 56,5 s, e os quadros conferidos pelo ffmpeg.
+**No celular é que se confere a faber, o H.264 e o AAC** (item 33z).
 
 **O mapa por cima de tudo.** O Leaflet põe as camadas em z-index 400 a 1000, e o
 mapa ao vivo do percurso aparecia **por cima** do resumo. O `div` do mapa leva
@@ -1714,9 +1748,11 @@ Roteiro mínimo depois de mexer no app:
      do percurso **não** aparece por cima do resumo.
 33æ. Assistir ao resumo animado inteiro **com a voz ligada**, sem tocar: toda
      frase tem de ser dita até o fim antes de a cena trocar.
-33z. No resumo animado, tocar no 📸: a prévia grava até 100%, "Compartilhar"
-     abre a janela do celular, e o vídeo no Instagram tem as cenas, o halter no
-     fim e o @ embaixo.
+33z. No resumo animado, tocar no 📸 e escolher "Com a narração": a voz baixa
+     uma vez (90 MB, no Wi-Fi), o vídeo fica pronto, o ▶ da prévia toca **com a
+     narração**, "Compartilhar" abre a janela do celular, e **no story o vídeo
+     roda até o halter do fim, com som**. Na segunda vez, o 📸 começa direto,
+     sem baixar nada.
 33v. **O teste da calibração.** Abrir o scanner, confirmar o enquadramento, andar
      até a máquina e sentar, ajeitar o banco: nada pode contar. Depois fazer 10
      repetições: o número aparece **já na 1ª** e termina em 10. Um movimento

@@ -1,5 +1,6 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v34";
+const CACHE = "treinolivre-v35";
+const CACHE_VOZ = "treinolivre-voz";
 const ARQUIVOS = [
   "./",
   "./index.html",
@@ -31,7 +32,9 @@ self.addEventListener("activate", (e) => {
     caches.keys()
       // "treinolivre-config" guarda a configuracao do lembrete e precisa sobreviver
       // a troca de versao, senao o aviso morre a cada atualizacao do app.
-      .then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== "treinolivre-config").map((k) => caches.delete(k))))
+      // "treinolivre-voz" guarda a voz do narrador do story (uns 90 MB): apagá-la a
+      // cada versão obrigaria a pessoa a baixar tudo de novo.
+      .then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== "treinolivre-config" && k !== CACHE_VOZ).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -56,6 +59,22 @@ self.addEventListener("fetch", (e) => {
   const ehVisao = url.hostname === "storage.googleapis.com" ||
     (url.hostname === "cdn.jsdelivr.net" && url.pathname.indexOf("tasks-vision") >= 0);
   const ehApp = e.request.mode === "navigate" || url.pathname.endsWith("index.html");
+  // A voz do narrador do story (modelo, espeak, onnxruntime) e o montador de
+  // MP4 moram num cache só deles. Os arquivos grandes quem guarda é o app, que
+  // mostra o progresso; aqui só se serve do cache e guarda os pequenos (os
+  // scripts), para nada disso ir parar no cache da versão, que é apagado.
+  const ehVoz = url.hostname === "huggingface.co" || (url.hostname === "cdn.jsdelivr.net" &&
+    /onnxruntime-web@|piper-wasm@|mp4-muxer@/.test(url.pathname));
+  if (ehVoz) {
+    e.respondWith(
+      caches.open(CACHE_VOZ).then((c) => c.match(e.request.url).then((r) => r || fetch(e.request).then((res) => {
+        const tam = +(res.headers.get("Content-Length") || 0);
+        if (res.ok && /\.js$/.test(url.pathname) && tam < 2000000) c.put(e.request.url, res.clone()).catch(() => {});
+        return res;
+      })))
+    );
+    return;
+  }
 
   if (ehApp) {
     // App: tenta a rede primeiro (para receber atualizações), cai no cache se estiver offline

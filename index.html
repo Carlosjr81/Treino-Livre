@@ -584,7 +584,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15g";
+const VERSAO_APP = "2026-10-15h";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -9523,22 +9523,29 @@ function CenaResumo({ c }) {
 // ---------------- O RESUMO ANIMADO EM VÍDEO, PARA O STORY ----------------
 // A tela do resumo é DOM e CSS, e nada disso vira vídeo. Então as mesmas cenas
 // são redesenhadas num canvas de 1080×1920 (o tamanho do story), com a mesma
-// linha verde revelando cada uma, e o MediaRecorder grava o canvas enquanto ele
-// anima. Tudo no aparelho: nenhum quadro sai do celular até a pessoa escolher
-// onde postar.
+// linha verde revelando cada uma. Tudo no aparelho: nenhum quadro e nenhuma
+// palavra saem do celular até a pessoa escolher onde postar.
 //
-// Três coisas que decidem como isto funciona:
-// - **A gravação é em tempo real.** O MediaRecorder grava o que o canvas mostra
-//   enquanto mostra; não há como acelerar. Por isso as cenas do vídeo são mais
-//   curtas que as da tela (2,7 s): o story inteiro fica entre 20 e 35 s.
-// - **Sem voz.** A síntese de fala do navegador não passa por nenhum lugar que
-//   dê para gravar. Quem posta story põe a música de lá.
+// A primeira versão gravava o canvas com o MediaRecorder, e o dono foi postar:
+// **o Instagram não rodava o vídeo inteiro, e a narração não ia junto.**
+// - O MediaRecorder do Chrome grava MP4 **fragmentado** (pedaços de meio
+//   segundo, sem a duração no cabeçalho), e o Instagram lê o começo e para.
+//   Hoje cada quadro é desenhado no seu tempo exato e codificado pelo
+//   VideoEncoder (WebCodecs), e o mp4-muxer monta um MP4 comum, com a duração
+//   no começo do arquivo — o formato que qualquer app aceita. De quebra fica
+//   mais rápido que o tempo real: não é mais preciso esperar o vídeo passar.
+// - **A voz do navegador não passa por nada que dê para gravar.** Então a
+//   narração é sintetizada aqui mesmo por uma voz neural em português (Piper,
+//   voz "faber"), rodando no aparelho: fonemas pelo espeak-ng em WASM, a voz
+//   pelo onnxruntime. São uns 90 MB, baixados **uma vez** e guardados num cache
+//   próprio (treinolivre-voz) que a troca de versão do app não apaga.
+//   A pessoa escolhe: com narração (baixa a voz) ou sem.
+// - **Cada cena dura o que a frase dela precisa**, como na tela.
 // - **Compartilhar exige um toque novo.** O navegador só abre a janela de
-//   compartilhar logo depois de um toque; depois de 30 s gravando, aquele toque
-//   já expirou. Daí o segundo botão, "Compartilhar", quando o vídeo fica pronto.
+//   compartilhar logo depois de um toque, e montar o vídeo leva mais que isso.
 //
-// MP4 primeiro (é o que o Instagram aceita sem reclamar); WebM onde é só o que
-// há. Sem MediaRecorder (iPhone antigo), sai uma imagem com os números.
+// Sem WebCodecs (iPhone antes do iOS 16.4) volta o MediaRecorder, agora com a
+// narração tocada no próprio fluxo de áudio. Sem nenhum dos dois, sai a imagem.
 const VIDEO_FONTE = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
 const VIDEO_CENA_MS = 2700, VIDEO_FECHO_MS = 3400, VIDEO_REVELA_MS = 700;
 // área onde as cenas aparecem (a linha varre só ela, como na tela)
@@ -9793,22 +9800,293 @@ function videoQuadro(c, cenas, durs, t) {
   videoTexto(c, "carlosjr81.github.io/Treino-Livre", 540, 1856, 32, "#8a8a8a", 700);
 }
 
-function videoDuracoes(cenas) { return cenas.map((x) => (x.tipo === "fecho" ? VIDEO_FECHO_MS : VIDEO_CENA_MS)); }
-const VIDEO_TIPOS = ["video/mp4;codecs=avc1.42E01E", "video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
-function videoSuportado() {
+// Quanto cada cena fica no ar: a animação dela, ou a frase inteira mais um respiro
+const VOZ_ENTRA_MS = 250, VOZ_RESPIRO_MS = 450;
+// O story do Instagram tem 60 s: passou disso, ele corta ou parte em dois.
+const STORY_MAX_MS = 58500;
+function videoDuracoes(cenas, falasMs) {
+  return cenas.map((x, i) => {
+    const base = x.tipo === "fecho" ? VIDEO_FECHO_MS : VIDEO_CENA_MS;
+    const fala = falasMs && falasMs[i] ? VOZ_ENTRA_MS + falasMs[i] + VOZ_RESPIRO_MS : 0;
+    return Math.max(base, Math.round(fala));
+  });
+}
+
+// ---- A voz neural do narrador ----
+// Versões presas e hashes conferidos: o que o celular baixa hoje é o mesmo que
+// foi testado. O modelo vem da revisão v1.0.0 do repositório de vozes do Piper.
+const VOZ_NEURAL = {
+  ort: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/",
+  ortJs: "ort.wasm.min.js",
+  ortSri: "sha384-SgeB7YRZLYVIvNteTHalidIdVwoxCxFIEnAbq/xbds9+tUeuA7rCxn0j5AwZFUSW",
+  fonema: "https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize",
+  fonemaSri: "sha384-PMufGRTCTqKC0tPjOTp2UFXycN+yWWjDareOeoy106zJZAHPijaeHDAX/4Pi0I5S",
+  modelo: "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/pt/pt_BR/faber/medium/pt_BR-faber-medium.onnx",
+  muxer: "https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js",
+  muxerSri: "sha384-SujebcgqCNlLMRSnVkLD+3eWOzsxobv30Bct+0lV+fc1EHHEuvcePwmDgMzpnptj",
+  cache: "treinolivre-voz",
+  mb: 90,
+};
+const scriptsCarregados = {};
+function carregarScript(src, sri) {
+  if (!scriptsCarregados[src]) {
+    scriptsCarregados[src] = new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = src; s.crossOrigin = "anonymous";
+      if (sri) s.integrity = sri;
+      s.onload = res;
+      s.onerror = () => { delete scriptsCarregados[src]; rej(new Error("não carregou: " + src)); };
+      document.head.appendChild(s);
+    });
+  }
+  return scriptsCarregados[src];
+}
+// Baixa guardando no cache da voz, com progresso. O cache é aberto aqui, e não
+// pelo service worker, porque é aqui que se sabe quanto já chegou.
+async function baixarVoz(url, aoProgresso) {
+  let cache = null;
+  try { cache = await caches.open(VOZ_NEURAL.cache); } catch (e) {}
+  if (cache) {
+    const r = await cache.match(url);
+    if (r) { if (aoProgresso) aoProgresso(1); return r.arrayBuffer(); }
+  }
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error("download " + resp.status);
+  const total = +(resp.headers.get("Content-Length") || 0);
+  const leitor = resp.body && resp.body.getReader();
+  let buf;
+  if (!leitor) buf = new Uint8Array(await resp.arrayBuffer());
+  else {
+    const partes = [];
+    let chegou = 0;
+    for (;;) {
+      const { done, value } = await leitor.read();
+      if (done) break;
+      partes.push(value); chegou += value.length;
+      if (aoProgresso && total) aoProgresso(Math.min(1, chegou / total));
+    }
+    buf = new Uint8Array(chegou);
+    let p = 0;
+    partes.forEach((x) => { buf.set(x, p); p += x.length; });
+  }
+  // sem cópia: o modelo tem 63 MB, e duas cópias dele não cabem em celular modesto
+  if (cache) { try { await cache.put(url, new Response(buf)); } catch (e) {} }
+  return buf.buffer;
+}
+async function vozJaBaixada() {
+  try { return !!(await (await caches.open(VOZ_NEURAL.cache)).match(VOZ_NEURAL.modelo)); } catch (e) { return false; }
+}
+let vozNeural = null;   // { sessao, cfg } depois de pronta: carrega uma vez por abertura do app
+async function prepararVozNeural(aoProgresso) {
+  if (vozNeural) return vozNeural;
+  aoProgresso(0);
+  await carregarScript(VOZ_NEURAL.ort + VOZ_NEURAL.ortJs, VOZ_NEURAL.ortSri);
+  await carregarScript(VOZ_NEURAL.fonema + ".js", VOZ_NEURAL.fonemaSri);
+  const ort = window.ort;
+  // Sem isolamento de origem (o GitHub Pages não manda os cabeçalhos) não há
+  // SharedArrayBuffer: uma linha de execução só, senão o ort tenta e falha.
+  ort.env.wasm.numThreads = 1;
+  ort.env.wasm.wasmPaths = VOZ_NEURAL.ort;
+  // os pesos de cada parte no progresso: o modelo é quase tudo
+  const pesos = { cfg: 0.01, fon: 0.2, wasm: 0.11, modelo: 0.68 }, feito = {};
+  const marca = (k) => (f) => { feito[k] = f; aoProgresso(Object.keys(pesos).reduce((a, x) => a + pesos[x] * (feito[x] || 0), 0)); };
+  const [cfgBuf, , , modeloBuf] = await Promise.all([
+    baixarVoz(VOZ_NEURAL.modelo + ".json", marca("cfg")),
+    baixarVoz(VOZ_NEURAL.fonema + ".data", marca("fon")),
+    baixarVoz(VOZ_NEURAL.ort + "ort-wasm-simd.wasm", marca("wasm")),
+    baixarVoz(VOZ_NEURAL.modelo, marca("modelo")),
+  ]);
+  // a .data e o .wasm já estão no cache: quem os pede depois (o espeak e o ort)
+  // recebe do service worker sem baixar de novo
+  const cfg = JSON.parse(new TextDecoder().decode(cfgBuf));
+  const sessao = await ort.InferenceSession.create(new Uint8Array(modeloBuf), { executionProviders: ["wasm"] });
+  vozNeural = { sessao: sessao, cfg: cfg };
+  aoProgresso(1);
+  return vozNeural;
+}
+// O texto do jeito que a voz neural lê melhor: "5.770" é número, não "5 ponto 770"
+function textoParaVozNeural(t) {
+  return textoParaFala(t)
+    .replace(/(\d)\.(\d{3})(?!\d)/g, "$1$2")
+    .replace(/(\d)\.(\d{3})(?!\d)/g, "$1$2")
+    .replace(/[🏆🔥📍⚡]/gu, "")
+    .replace(/\s+/g, " ").trim();
+}
+// Fonemas de todas as frases numa chamada só: cada chamada carrega os 18 MB do
+// espeak de novo. Volta a lista de fonemas, e não os números que o espeak
+// sugere: esses seguem a tabela das vozes novas, e um modelo com outra tabela
+// recebe índice que não existe e para no meio ("Gather ... indices").
+function fonemasDe(textos, voz) {
+  return new Promise((res, rej) => {
+    const saida = [];
+    window.createPiperPhonemize({
+      print: (linha) => { try { saida.push(JSON.parse(linha).phonemes); } catch (e) {} },
+      printErr: () => {},
+      locateFile: (f) => (f.endsWith(".wasm") ? VOZ_NEURAL.fonema + ".wasm" : f.endsWith(".data") ? VOZ_NEURAL.fonema + ".data" : f),
+    }).then((m) => {
+      try {
+        m.callMain(["-l", voz, "--input", JSON.stringify(textos.map((t) => ({ text: t }))), "--espeak_data", "/espeak-ng-data"]);
+        if (saida.length !== textos.length) throw new Error("fonemas: " + saida.length + " de " + textos.length);
+        res(saida);
+      } catch (e) { rej(e); }
+    }, rej);
+  });
+}
+// As falas das cenas viram áudio: uma Float32Array por cena, na taxa do modelo
+async function narrarCenas(cenas, aoProgresso, ritmo) {
+  const { sessao, cfg } = vozNeural;
+  const ort = window.ort;
+  const textos = cenas.map((c) => textoParaVozNeural(c.fala));
+  const fonemas = await fonemasDe(textos, (cfg.espeak && cfg.espeak.voice) || "pt-br");
+  // a regra do Piper: início, e cada fonema seguido do separador, e fim
+  const mapa = cfg.phoneme_id_map || {};
+  const um = (f) => (mapa[f] || [])[0];
+  const ids = fonemas.map((lista) => {
+    const out = [um("^"), um("_")];
+    lista.forEach((f) => { (mapa[f] || []).forEach((id) => out.push(id, um("_"))); });
+    out.push(um("$"));
+    return out.filter((x) => x !== undefined);
+  });
+  const inf = cfg.inference || {};
+  const clipes = [];
+  for (let i = 0; i < ids.length; i++) {
+    const t = ids[i];
+    const entrada = {
+      input: new ort.Tensor("int64", BigInt64Array.from(t.map((x) => BigInt(x))), [1, t.length]),
+      input_lengths: new ort.Tensor("int64", BigInt64Array.from([BigInt(t.length)]), [1]),
+      // um pouco mais ligeiro que o padrão: o story tem 60 s, e narração arrastada cansa
+      scales: new ort.Tensor("float32", Float32Array.from([inf.noise_scale || 0.667, (inf.length_scale || 1) * (ritmo || 0.92), inf.noise_w || 0.8]), [3]),
+    };
+    if (cfg.num_speakers > 1) entrada.sid = new ort.Tensor("int64", BigInt64Array.from([BigInt(0)]), [1]);
+    const r = await sessao.run(entrada);
+    clipes.push(new Float32Array(r.output.data));
+    aoProgresso((i + 1) / ids.length);
+    // respira entre uma frase e outra, senão a tela congela no celular
+    await new Promise((ok) => setTimeout(ok, 0));
+  }
+  return { taxa: (cfg.audio && cfg.audio.sample_rate) || 22050, clipes: clipes };
+}
+// A trilha inteira em 48 kHz, cada frase no começo da sua cena
+async function trilhaNarracao(narr, durs) {
+  const taxa = 48000;
+  const total = durs.reduce((a, b) => a + b, 0) / 1000;
+  const ctx = new OfflineAudioContext(1, Math.ceil(total * taxa), taxa);
+  let ini = 0;
+  narr.clipes.forEach((cl, i) => {
+    if (cl.length) {
+      const b = ctx.createBuffer(1, cl.length, narr.taxa);
+      b.copyToChannel(cl, 0);
+      const s = ctx.createBufferSource();
+      s.buffer = b; s.connect(ctx.destination);
+      s.start((ini + VOZ_ENTRA_MS) / 1000);
+    }
+    ini += durs[i];
+  });
+  const r = await ctx.startRendering();
+  return { taxa: taxa, dados: r.getChannelData(0) };
+}
+
+// ---- Montar o MP4 ----
+// H.264 é o que todo app toca; VP9 dentro do MP4 só onde não há H.264
+const VIDEO_CODECS = [["avc1.640028", "avc"], ["avc1.4D0028", "avc"], ["avc1.42E028", "avc"], ["avc1.42001F", "avc"], ["vp09.00.40.08", "vp9"]];
+async function codecVideo() {
+  if (typeof VideoEncoder === "undefined") return null;
+  for (const [codec, nome] of VIDEO_CODECS) {
+    const cfg = { codec: codec, width: 1080, height: 1920, bitrate: 6000000, framerate: 30 };
+    if (nome === "avc") cfg.avc = { format: "avc" };
+    try { if ((await VideoEncoder.isConfigSupported(cfg)).supported) return { cfg: cfg, nome: nome }; } catch (e) {}
+  }
+  return null;
+}
+async function codecAudio() {
+  if (typeof AudioEncoder === "undefined") return null;
+  // AAC é o que o Instagram toca em qualquer lugar; Opus só onde não há AAC
+  for (const [codec, nome] of [["mp4a.40.2", "aac"], ["opus", "opus"]]) {
+    const cfg = { codec: codec, sampleRate: 48000, numberOfChannels: 1, bitrate: 128000 };
+    try { if ((await AudioEncoder.isConfigSupported(cfg)).supported) return { cfg: cfg, nome: nome }; } catch (e) {}
+  }
+  return null;
+}
+// Quadro a quadro, no tempo exato de cada um: o vídeo sai com 30 quadros por
+// segundo cravados, seja qual for a velocidade do aparelho.
+async function montarMp4(cv, cenas, durs, trilha, aoProgresso, cancelado) {
+  await carregarScript(VOZ_NEURAL.muxer, VOZ_NEURAL.muxerSri);
+  const M = window.Mp4Muxer;
+  const vcfg = await codecVideo();
+  const acod = trilha ? await codecAudio() : null;
+  const muxer = new M.Muxer({
+    target: new M.ArrayBufferTarget(),
+    video: { codec: vcfg.nome, width: 1080, height: 1920, frameRate: 30 },
+    audio: acod ? { codec: acod.nome, sampleRate: 48000, numberOfChannels: 1 } : undefined,
+    fastStart: "in-memory",
+    firstTimestampBehavior: "offset",
+  });
+  let erro = null;
+  const venc = new VideoEncoder({ output: (ch, meta) => muxer.addVideoChunk(ch, meta), error: (e) => { erro = e; } });
+  venc.configure(vcfg.cfg);
+  const c = cv.getContext("2d");
+  const total = durs.reduce((a, b) => a + b, 0);
+  const n = Math.ceil((total / 1000) * 30);
+  for (let i = 0; i < n; i++) {
+    if (cancelado()) { try { venc.close(); } catch (e) {} return null; }
+    if (erro) throw erro;
+    const t = (i * 1000) / 30;
+    videoQuadro(c, cenas, durs, t);
+    const q = new VideoFrame(cv, { timestamp: Math.round(t * 1000), duration: Math.round(1000000 / 30) });
+    venc.encode(q, { keyFrame: i % 60 === 0 });
+    q.close();
+    // não deixa a fila do codificador crescer: no celular a memória acaba antes
+    while (venc.encodeQueueSize > 4) await new Promise((ok) => setTimeout(ok, 5));
+    if (i % 10 === 0) { aoProgresso(i / n); await new Promise((ok) => setTimeout(ok, 0)); }
+  }
+  await venc.flush();
+  venc.close();
+  if (acod) {
+    const aenc = new AudioEncoder({ output: (ch, meta) => muxer.addAudioChunk(ch, meta), error: (e) => { erro = e; } });
+    aenc.configure(acod.cfg);
+    const d = trilha.dados, passo = 1024;
+    for (let p = 0; p < d.length; p += passo) {
+      const pedaco = d.subarray(p, Math.min(d.length, p + passo));
+      const ad = new AudioData({ format: "f32-planar", sampleRate: 48000, numberOfFrames: pedaco.length, numberOfChannels: 1,
+        timestamp: Math.round((p / 48000) * 1000000), data: pedaco.slice(0) });
+      aenc.encode(ad);
+      ad.close();
+    }
+    await aenc.flush();
+    aenc.close();
+  }
+  if (erro) throw erro;
+  muxer.finalize();
+  aoProgresso(1);
+  return { blob: new Blob([muxer.target.buffer], { type: "video/mp4" }), comVoz: !!acod };
+}
+
+// ---- Sem WebCodecs: o MediaRecorder, agora com a narração no fluxo ----
+const VIDEO_TIPOS = ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "video/mp4;codecs=avc1,mp4a.40.2", "video/mp4", "video/webm;codecs=vp8,opus", "video/webm"];
+function gravadorSuportado() {
   try {
     return typeof MediaRecorder !== "undefined" && !!HTMLCanvasElement.prototype.captureStream &&
       VIDEO_TIPOS.some((t) => MediaRecorder.isTypeSupported(t));
   } catch (e) { return false; }
 }
-// Grava o resumo num canvas que a tela mostra como prévia. Devolve o Blob do vídeo.
-function gravarVideoResumo(cv, cenas, aoProgresso, cancelado) {
+function gravarVideoResumo(cv, cenas, durs, trilha, aoProgresso, cancelado) {
   const c = cv.getContext("2d");
-  const durs = videoDuracoes(cenas);
   const total = durs.reduce((a, b) => a + b, 0);
   const tipo = VIDEO_TIPOS.find((t) => MediaRecorder.isTypeSupported(t));
   videoQuadro(c, cenas, durs, 0);
   const fluxo = cv.captureStream(30);
+  let actx = null, fonte = null;
+  if (trilha) {
+    try {
+      actx = new AudioContext({ sampleRate: 48000 });
+      const dest = actx.createMediaStreamDestination();
+      const b = actx.createBuffer(1, trilha.dados.length, trilha.taxa);
+      b.copyToChannel(trilha.dados, 0);
+      fonte = actx.createBufferSource();
+      fonte.buffer = b; fonte.connect(dest);
+      dest.stream.getAudioTracks().forEach((t) => fluxo.addTrack(t));
+    } catch (e) { actx = null; fonte = null; }
+  }
   const rec = new MediaRecorder(fluxo, { mimeType: tipo, videoBitsPerSecond: 8000000 });
   const pedacos = [];
   rec.ondataavailable = (e) => { if (e.data && e.data.size) pedacos.push(e.data); };
@@ -9816,10 +10094,13 @@ function gravarVideoResumo(cv, cenas, aoProgresso, cancelado) {
     rec.onerror = (e) => rej(e.error || new Error("gravação falhou"));
     rec.onstop = () => {
       fluxo.getTracks().forEach((t) => t.stop());
+      if (actx) actx.close().catch(() => {});
       if (cancelado()) { res(null); return; }
-      res(new Blob(pedacos, { type: tipo.split(";")[0] }));
+      res({ blob: new Blob(pedacos, { type: tipo.split(";")[0] }), comVoz: !!fonte });
     };
-    rec.start(500);
+    // sem fatias: menos pedaços, menos chance de o app de destino ler só o começo
+    rec.start();
+    if (fonte) fonte.start();
     const t0 = performance.now();
     // setTimeout e não requestAnimationFrame: o rAF para quando a tela apaga,
     // e o vídeo sairia com um buraco congelado no meio
@@ -9867,66 +10148,155 @@ function baixarArquivo(blob, nome) {
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
-// A tela de gerar: prévia do vídeo sendo gravado, e os botões quando acaba
+// A tela de gerar: escolher a narração, acompanhar cada etapa, conferir o
+// vídeo com som antes de postar, e os botões quando acaba
 function GerarStoryResumo({ cenas, onVoltar }) {
   const caixa = useRef(null);
+  const [etapa, setEtapa] = useState("inicio");   // inicio, escolha, voz, narrando, video, pronto, erro
   const [prog, setProg] = useState(0);
-  const [video, setVideo] = useState(null);
+  const [res, setRes] = useState(null);           // { blob, comVoz, imagem }
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
   const parou = useRef(false);
-  const urlImg = useMemo(() => (video && !videoSuportado() ? URL.createObjectURL(video) : null), [video]);
-  useEffect(() => () => { if (urlImg) URL.revokeObjectURL(urlImg); }, [urlImg]);
-  const ehVideo = useMemo(videoSuportado, []);
-  useEffect(() => {
+  const cvRef = useRef(null);
+  const temCodec = typeof VideoEncoder !== "undefined" && typeof VideoFrame !== "undefined";
+  const temGravador = useMemo(gravadorSuportado, []);
+  const url = useMemo(() => (res ? URL.createObjectURL(res.blob) : null), [res]);
+  useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+  useEffect(() => () => { parou.current = true; }, []);
+
+  const gerar = async (comVoz) => {
     parou.current = false;
-    if (!ehVideo) { imagemResumo(cenas).then(setVideo); return; }
-    const cv = document.createElement("canvas");
-    cv.width = 1080; cv.height = 1920;
-    cv.style.width = "100%"; cv.style.height = "100%"; cv.style.display = "block";
-    if (caixa.current) caixa.current.appendChild(cv);
+    setErro(""); setAviso("");
+    if (!temCodec && !temGravador) { setRes({ blob: await imagemResumo(cenas), imagem: true }); setEtapa("pronto"); return; }
+    let trilha = null, falasMs = null, semVoz = "";
+    if (comVoz) {
+      try {
+        setEtapa("voz"); setProg(0);
+        await prepararVozNeural(setProg);
+        if (parou.current) return;
+        setEtapa("narrando"); setProg(0);
+        let ritmo = 0.92;
+        let narr = await narrarCenas(cenas, setProg, ritmo);
+        if (parou.current) return;
+        falasMs = narr.clipes.map((cl) => (cl.length / narr.taxa) * 1000);
+        // Passou de 60 s: fala de novo, mais ligeiro, na medida do que sobra.
+        // Mais rápido que 0,72 a voz embola; aí o vídeo fica um pouco maior.
+        const total = videoDuracoes(cenas, falasMs).reduce((a, b) => a + b, 0);
+        if (total > STORY_MAX_MS) {
+          const fala = falasMs.reduce((a, b) => a + b, 0);
+          const sobra = fala - (total - STORY_MAX_MS);
+          ritmo = Math.max(0.72, ritmo * (sobra / fala) * 0.97);
+          setProg(0);
+          narr = await narrarCenas(cenas, setProg, ritmo);
+          if (parou.current) return;
+          falasMs = narr.clipes.map((cl) => (cl.length / narr.taxa) * 1000);
+        }
+        trilha = await trilhaNarracao(narr, videoDuracoes(cenas, falasMs));
+      } catch (e) {
+        trilha = null; falasMs = null;
+        semVoz = "A narração não carregou (sem internet ou sem espaço?). O vídeo vai sem voz.";
+      }
+    }
+    const durs = videoDuracoes(cenas, falasMs);
+    if (!cvRef.current) {
+      const cv = document.createElement("canvas");
+      cv.width = 1080; cv.height = 1920;
+      cv.style.width = "100%"; cv.style.height = "100%"; cv.style.display = "block";
+      cvRef.current = cv;
+    }
+    if (caixa.current && !caixa.current.contains(cvRef.current)) caixa.current.appendChild(cvRef.current);
+    setEtapa("video"); setProg(0);
     try {
-      gravarVideoResumo(cv, cenas, setProg, () => parou.current)
-        .then((b) => { if (b) setVideo(b); }, () => setErro("A gravação falhou neste aparelho."));
-    } catch (e) { setErro("Este navegador não grava vídeo."); }
-    return () => { parou.current = true; cv.remove(); };
+      let r = null;
+      const fim = () => parou.current;
+      if (temCodec && (await codecVideo())) {
+        try { r = await montarMp4(cvRef.current, cenas, durs, trilha, setProg, fim); }
+        catch (e) { r = null; if (!temGravador) throw e; }
+      }
+      if (!r && !parou.current && temGravador) r = await gravarVideoResumo(cvRef.current, cenas, durs, trilha, setProg, fim);
+      if (!r || parou.current) return;
+      if (trilha && !r.comVoz) semVoz = "Este aparelho não conseguiu pôr som no vídeo; ele vai sem a narração.";
+      setRes(r);
+      setAviso(semVoz);
+      setEtapa("pronto");
+    } catch (e) {
+      setErro("A montagem do vídeo falhou neste aparelho.");
+      setEtapa("erro");
+    }
+  };
+  // Voz já baixada antes: começa direto, com narração. Senão, pergunta.
+  useEffect(() => {
+    let vivo = true;
+    vozJaBaixada().then((ja) => { if (!vivo) return; if (ja) gerar(true); else setEtapa("escolha"); });
+    return () => { vivo = false; };
   }, []);
+
   const texto = "Meu treino no Treino Livre 💪 App gratuito do @" + INSTAGRAM + ": " + LINK_APP;
   const compartilhar = async () => {
-    if (!video) return;
-    if (!ehVideo) { await compartilharImagem(video, texto, setAviso); return; }
-    const r = await compartilharVideo(video, texto, setAviso);
+    if (!res) return;
+    if (res.imagem) { await compartilharImagem(res.blob, texto, setAviso); return; }
+    const r = await compartilharVideo(res.blob, texto, setAviso);
     if (r === "compartilhou") setAviso("Pronto! No Instagram, escolha Story.");
   };
+  const rotulo = { inicio: "Preparando", escolha: "Vídeo para o story", voz: "Baixando a voz do narrador",
+    narrando: "Gravando a narração", video: "Montando o vídeo", pronto: res && res.imagem ? "Imagem pronta" : "Vídeo pronto", erro: "Não deu certo" }[etapa];
+  const detalhe = { voz: "só desta vez: depois ela fica guardada no aparelho", narrando: "a voz roda no seu celular, nada sai dele",
+    video: "quadro a quadro, com a narração junto" }[etapa];
   const parar = (e) => e.stopPropagation();
+  const cancelar = () => { parou.current = true; onVoltar(); };
   return (
     <div onClick={parar} style={{ position: "absolute", inset: 0, zIndex: 3, background: "#060606", display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", padding: 16, gap: 14, cursor: "default" }}>
-      <div style={ROTULO_RESUMO}>{ehVideo ? (video ? "Vídeo pronto" : "Gravando o vídeo do story") : "Imagem do story"}</div>
-      <div ref={caixa} style={{ width: "min(54vw, 38vh)", aspectRatio: "9 / 16", borderRadius: 14, overflow: "hidden", background: "#111111", border: "1px solid #2a2a2a" }}>
-        {!ehVideo && video && <img alt="Prévia do story" src={urlImg} style={{ width: "100%", height: "100%", display: "block" }} />}
+      alignItems: "center", justifyContent: "center", padding: 16, gap: 14, cursor: "default", overflowY: "auto" }}>
+      <div style={ROTULO_RESUMO}>{rotulo}</div>
+
+      {etapa === "escolha" && (
+        <div style={{ width: "100%", maxWidth: 380, display: "flex", flexDirection: "column", gap: 10 }}>
+          <button onClick={() => gerar(true)} style={{ ...S.btn, padding: "14px 16px", textAlign: "left" }}>
+            <div style={{ fontWeight: 900, fontSize: 16 }}>🎙 Com a narração</div>
+            <div style={{ fontWeight: 600, fontSize: 12.5, opacity: 0.9, marginTop: 4 }}>
+              Na primeira vez baixa a voz do narrador (uns {VOZ_NEURAL.mb} MB, melhor no Wi-Fi). Depois fica guardada.
+            </div>
+          </button>
+          <button onClick={() => gerar(false)} style={{ ...S.btnGhost, color: "#F2F0EC", borderColor: "#444444", padding: "12px 16px", textAlign: "left" }}>
+            <div style={{ fontWeight: 900, fontSize: 15 }}>🎵 Sem narração</div>
+            <div style={{ fontWeight: 600, fontSize: 12.5, color: "#8a8a8a", marginTop: 4 }}>Mais rápido. Dá para pôr música no próprio Instagram.</div>
+          </button>
+        </div>
+      )}
+
+      <div style={{ width: "min(54vw, 36vh)", aspectRatio: "9 / 16", borderRadius: 14, overflow: "hidden", background: "#111111",
+        border: "1px solid #2a2a2a", display: etapa === "escolha" ? "none" : "block", position: "relative" }}>
+        <div ref={caixa} style={{ width: "100%", height: "100%", display: res ? "none" : "block" }} />
+        {res && !res.imagem && <video src={url} controls playsInline style={{ width: "100%", height: "100%", display: "block", background: "#000" }} />}
+        {res && res.imagem && <img alt="Prévia do story" src={url} style={{ width: "100%", height: "100%", display: "block" }} />}
       </div>
-      {ehVideo && !video && !erro && (
-        <div style={{ width: "min(70vw, 300px)" }}>
+
+      {(etapa === "voz" || etapa === "narrando" || etapa === "video") && (
+        <div style={{ width: "min(74vw, 300px)" }}>
           <div style={{ height: 6, borderRadius: 3, background: "#2a2a2a", overflow: "hidden" }}>
-            <div style={{ height: "100%", width: Math.round(prog * 100) + "%", background: GRAD }} />
+            <div style={{ height: "100%", width: Math.round(prog * 100) + "%", background: GRAD, transition: "width .2s" }} />
           </div>
           <div style={{ fontSize: 12, color: "#8a8a8a", textAlign: "center", marginTop: 8 }}>
-            {Math.round(prog * 100)}% · o vídeo grava no tempo dele, deixe a tela ligada
+            {Math.round(prog * 100)}%{detalhe ? " · " + detalhe : ""}
           </div>
         </div>
       )}
-      {erro && <div style={{ fontSize: 13, color: "#FF6B6B", textAlign: "center" }}>{erro}</div>}
-      {!ehVideo && <div style={{ fontSize: 12, color: "#8a8a8a", textAlign: "center", maxWidth: 300 }}>Este navegador não grava vídeo; vai a imagem com os números.</div>}
-      {aviso && <div style={{ fontSize: 13, color: "#7CFF3C", textAlign: "center", maxWidth: 320 }}>{aviso}</div>}
+      {res && !res.imagem && res.comVoz && <div style={{ fontSize: 12, color: "#8a8a8a", textAlign: "center" }}>Toque no ▶ para conferir com som antes de postar.</div>}
+      {erro && <div style={{ fontSize: 13, color: "#FF6B6B", textAlign: "center", maxWidth: 320 }}>{erro}</div>}
+      {res && res.imagem && <div style={{ fontSize: 12, color: "#8a8a8a", textAlign: "center", maxWidth: 300 }}>Este navegador não monta vídeo; vai a imagem com os números.</div>}
+      {aviso && <div style={{ fontSize: 13, color: /não|falhou/.test(aviso) ? "#FFB86B" : "#7CFF3C", textAlign: "center", maxWidth: 320 }}>{aviso}</div>}
+
       <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 380 }}>
-        <button onClick={onVoltar} style={{ ...S.btnGhost, flex: 1, color: "#F2F0EC", borderColor: "#444444" }}>
-          {video ? "Voltar" : "Cancelar"}
+        <button onClick={cancelar} style={{ ...S.btnGhost, flex: 1, color: "#F2F0EC", borderColor: "#444444" }}>
+          {res ? "Voltar" : "Cancelar"}
         </button>
-        <button onClick={compartilhar} disabled={!video} style={{ ...S.btn, flex: 1.4, opacity: video ? 1 : 0.45 }}>📤 Compartilhar</button>
+        {etapa !== "escolha" && (
+          <button onClick={compartilhar} disabled={!res} style={{ ...S.btn, flex: 1.4, opacity: res ? 1 : 0.45 }}>📤 Compartilhar</button>
+        )}
       </div>
-      {video && ehVideo && (
-        <button onClick={() => baixarArquivo(video, "treino-livre-resumo." + (/mp4/.test(video.type) ? "mp4" : "webm"))}
+      {res && !res.imagem && (
+        <button onClick={() => baixarArquivo(res.blob, "treino-livre-resumo." + (/mp4/.test(res.blob.type) ? "mp4" : "webm"))}
           style={{ background: "none", border: "none", color: "#8a8a8a", fontSize: 13, textDecoration: "underline", cursor: "pointer" }}>
           ⬇ Salvar o vídeo no aparelho
         </button>

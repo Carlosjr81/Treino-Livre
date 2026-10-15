@@ -561,7 +561,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15a";
+const VERSAO_APP = "2026-10-15b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2312,9 +2312,87 @@ function criarContador(opcoes) {
   let amplitude = 0;
   let melhorAmp = 0, somaAmp = 0, nAmp = 0, somaDur = 0, nDur = 0;
 
+  // ---- Calibração ----
+  // Sentar na máquina, pegar a barra, ajustar o banco: tudo isso é uma ida e
+  // volta, e o contador contava como repetição — às vezes antes de a série
+  // começar. Movimento de se posicionar não tem ritmo; exercício tem.
+  // Então a contagem só trava depois de ver o movimento se repetir IGUAL:
+  // três repetições seguidas (duas no movimento funcional, que tem forma
+  // conhecida) com amplitude parecida (a menor com pelo menos 60% da maior),
+  // ritmo parecido (o intervalo mais longo até 1,8x o mais curto) e nenhum
+  // intervalo acima de 8 s. Aí as três contam de uma vez — nada se perde.
+  // Sem o padrão, a mais antiga sai da janela e a calibração continua.
+  // Travado, um "movimento" com menos de 35% da amplitude das repetições de
+  // verdade (mexer na pegada, ajeitar o pé) não conta. O cansaço não chega
+  // nisso: ele derruba a amplitude para uns 70%.
+  const TRAVA = o.trava || (perfil ? 2 : 3);
+  const DUR_MAX = 8000;
   // Uma máquina de estados por sinal contado. No modo alternado são duas.
   function criarMaquina(id) {
-    return { id: id, estado: "baixo", ultima: 0, conta: 0, repMin: Infinity, repMax: -Infinity };
+    return { id: id, estado: "baixo", ultima: 0, conta: 0, repMin: Infinity, repMax: -Infinity, prov: [], travado: false, ampRef: 0 };
+  }
+  function recalibrar(m) {
+    m.estado = "baixo"; m.ultima = 0; m.repMin = Infinity; m.repMax = -Infinity;
+    m.prov = []; m.travado = false; m.ampRef = 0;
+  }
+  // Recebe a repetição que a histerese fechou e devolve as que contam agora
+  function aceitar(m, r) {
+    if (m.travado) {
+      if (m.ampRef && r.faixa < m.ampRef * 0.35) return [];
+      m.ampRef = m.ampRef * 0.8 + r.faixa * 0.2;
+      return [r];
+    }
+    if (m.prov.length && r.dur > DUR_MAX) m.prov = [];
+    m.prov.push(r);
+    if (m.prov.length > TRAVA) m.prov.shift();
+    if (m.prov.length < TRAVA) return [];
+    const amps = m.prov.map((x) => x.faixa);
+    // a primeira da janela não tem intervalo que valha: ele é até a anterior
+    const durs = m.prov.slice(1).map((x) => x.dur);
+    const ampOk = Math.min.apply(null, amps) >= Math.max.apply(null, amps) * 0.6;
+    const durOk = durs.every((d) => d > 0 && d <= DUR_MAX) &&
+      (durs.length < 2 || Math.min.apply(null, durs) * 1.8 >= Math.max.apply(null, durs));
+    if (!ampOk || !durOk) return [];
+    m.travado = true;
+    m.ampRef = amps.reduce((a, b) => a + b, 0) / amps.length;
+    const lista = m.prov;
+    m.prov = [];
+    return lista;
+  }
+  // Andar para se posicionar desloca o corpo inteiro; exercício de máquina não.
+  // - De lado: o quadril atravessa mais de 0,6 tronco em 1,5 s.
+  // - Para longe ou para perto do celular — o caso comum: apoiar o celular e
+  //   andar até a máquina —, o corpo muda de tamanho SEMPRE NO MESMO SENTIDO por
+  //   3 s, somando mais de 20%. O sentido único é o que separa andar de um stiff
+  //   visto de frente, em que o tronco também encolhe na imagem, mas volta.
+  // Aí a calibração recomeça. Só no modo automático: no funcional o skater salta
+  // de lado de propósito.
+  const centro = [];   // pares tempo, [x do quadril na imagem, tamanho do tronco]
+  function deslocando(lm, agora) {
+    const e = escalaTorso(lm), q1 = pt(lm, 23), q2 = pt(lm, 24);
+    if (!e || !q1 || !q2) return false;
+    centro.push(agora, [(q1.x + q2.x) / 2, e]);
+    while (centro.length > 2 && agora - centro[0] > 3000) centro.splice(0, 2);
+    let mn = Infinity, mx = -Infinity;
+    for (let i = 1; i < centro.length; i += 2) {
+      if (agora - centro[i - 1] > 1500) continue;
+      const x = centro[i][0];
+      if (x < mn) mn = x; if (x > mx) mx = x;
+    }
+    // o quanto o quadril andou, medido em troncos (dividir a posição antes de
+    // subtrair fazia o tronco encolhendo parecer deslocamento)
+    if ((mx - mn) / e > 0.6) return true;
+    if (agora - centro[0] < 2700) return false;
+    // cinco amostras ao longo dos 3 s: andando, cada uma menor (ou maior) que a anterior
+    const am = [0, 0.25, 0.5, 0.75, 1].map((p) => {
+      const alvo = centro[0] + p * (agora - centro[0]);
+      let melhor = centro[1][1];
+      for (let i = 0; i < centro.length; i += 2) if (centro[i] <= alvo) melhor = centro[i + 1][1];
+      return melhor;
+    });
+    const desce = am.every((v, i) => i === 0 || v < am[i - 1] * 0.99);
+    const sobe = am.every((v, i) => i === 0 || v > am[i - 1] * 1.01);
+    return (desce && am[0] > am[4] * 1.2) || (sobe && am[4] > am[0] * 1.2);
   }
   const maquinas = alternado ? perfil.par.map(criarMaquina) : [criarMaquina(null)];
   let escolhido = null;
@@ -2338,7 +2416,9 @@ function criarContador(opcoes) {
       const dur = m.ultima ? agora - m.ultima : 0;
       m.ultima = agora;
       m.repMin = Infinity; m.repMax = -Infinity;
-      return { amp: amp, dur: dur };
+      // faixa: o tamanho do movimento na janela. É o que a calibração compara —
+      // a amp da primeira repetição só começa a ser medida no meio da descida.
+      return { amp: amp, dur: dur, faixa: faixa };
     }
     return null;
   }
@@ -2378,12 +2458,16 @@ function criarContador(opcoes) {
           .sort((a, b) => b.faixa - a.faixa);
         if (candidatos.length) {
           const topo = candidatos[0];
-          // Entre sinais parecidos (dentro de 20%), o que o grupo muscular indica ganha
-          const perto = candidatos.filter((c) => c.faixa >= topo.faixa * 0.8);
-          const pref = perto.find((c) => preferidos.indexOf(c.id) >= 0);
+          // O grupo muscular pesa: o sinal que ele indica ganha se mexer pelo
+          // menos metade do que mais se mexe. Era 80%, e o braço balançando
+          // enquanto a pessoa se ajeitava na cadeira extensora levava o sinal.
+          const pref = candidatos.find((c) => preferidos.indexOf(c.id) >= 0 && c.faixa >= topo.faixa * 0.5);
           const novo = (pref || topo).id;
           // Só troca de sinal antes de começar a contar: trocar no meio da série
-          // zeraria a referência e perderia a conta.
+          // zeraria a referência e perderia a conta. A troca não recalibra:
+          // zerar a histerese no meio da primeira repetição a perdia, e
+          // repetição medida em outro sinal tem outra amplitude — a própria
+          // calibração recusa a mistura.
           if (!escolhido || (total === 0 && novo !== escolhido)) escolhido = novo;
           maquinas[0].id = escolhido;
         }
@@ -2391,13 +2475,24 @@ function criarContador(opcoes) {
       }
 
       // 3. roda a histerese em cada máquina
-      let contou = false, qualidade = null;
+      let contou = false, qualidade = null, viu = false;
       const ids = alternado ? perfil.par : [maquinas[0].id];
+      if (!perfil && deslocando(lm, agora)) {
+        maquinas.forEach((m) => {
+          m.estado = "baixo"; m.repMin = Infinity; m.repMax = -Infinity;
+          if (!m.travado) { m.prov = []; m.ultima = 0; }
+        });
+        return { total: total, pronto: false, deslocando: true, calibrando: total === 0, provisorias: 0, trava: TRAVA, sinal: escolhido };
+      }
       let maiorFaixa = 0;
       ids.forEach((id, k) => {
         maiorFaixa = Math.max(maiorFaixa, faixaDe(amostras[id]));
-        const r = passo(maquinas[k], id, agora);
-        if (!r) return;
+        const fechou = passo(maquinas[k], id, agora);
+        if (!fechou) return;
+        viu = true;
+        aceitar(maquinas[k], fechou).forEach((r) => registrar(k, r));
+      });
+      function registrar(k, r) {
         total++;
         maquinas[k].conta++;
         contou = true;
@@ -2416,14 +2511,21 @@ function criarContador(opcoes) {
         if (r.amp > 0) { if (r.amp > melhorAmp) melhorAmp = r.amp; somaAmp += r.amp; nAmp++; }
         if (r.dur > 0) { somaDur += r.dur; nDur++; }
         if (aoContar) aoContar(total, qualidade);
-      });
+      }
       amplitude = maiorFaixa;
-      if (amplitude < minAmp) return { total: total, pronto: false, amplitude: amplitude, sinal: escolhido };
-      return { total: total, pronto: true, contou: contou, qualidade: qualidade, amplitude: amplitude, sinal: escolhido };
+      const calib = { calibrando: maquinas.some((m) => !m.travado) && total === 0,
+        provisorias: Math.max.apply(null, maquinas.map((m) => m.prov.length)), trava: TRAVA };
+      if (amplitude < minAmp) return Object.assign({ total: total, pronto: false, amplitude: amplitude, sinal: escolhido, viu: viu }, calib);
+      return Object.assign({ total: total, pronto: true, contou: contou, qualidade: qualidade, amplitude: amplitude, sinal: escolhido, viu: viu }, calib);
     },
+    // Recomeça do zero, e esquece também a janela: o que ele mediu enquanto a
+    // pessoa andava para se posicionar virava a régua da amplitude.
     zerar() {
       total = 0;
-      maquinas.forEach((m) => { m.estado = "baixo"; m.ultima = 0; m.conta = 0; m.repMin = Infinity; m.repMax = -Infinity; });
+      maquinas.forEach((m) => { recalibrar(m); m.conta = 0; });
+      Object.keys(amostras).forEach((k) => { delete amostras[k]; });
+      centro.length = 0;
+      if (!alternado) { escolhido = null; maquinas[0].id = null; }
       melhorAmp = 0; somaAmp = 0; nAmp = 0; somaDur = 0; nDur = 0;
     },
     // Serve ao "desfazer" quando o scanner conta uma a mais
@@ -4917,6 +5019,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const [peso, setPeso] = useState(pesoAtual || "");
   const [vendo, setVendo] = useState(false);
   const [sinal, setSinal] = useState("");
+  const [calib, setCalib] = useState(null);       // { provisorias, trava } enquanto calibra
   const [frente, setFrente] = useState(false);
   const inicioRef = useRef(0);
   const [segundos, setSegundos] = useState(0);
@@ -4960,6 +5063,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const [enquadrado, setEnquadrado] = useState(false);
   const [guia, setGuia] = useState(null);          // { chave, texto, seta }
   const prontoRef = useRef(false);
+  const calibRef = useRef("");
   const okDesdeRef = useRef(0);
   const entrouEnquadraRef = useRef(0);
   const faladoRef = useRef({ chave: "", em: 0 });
@@ -5192,6 +5296,12 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         const info = contadorRef.current.processar(lm, agora);
         if (info.contou) setReps(info.total);
         if (info.sinal) setSinal(info.sinal);
+        // só renderiza quando muda: isto roda a cada quadro
+        const cal = info.calibrando ? (info.deslocando ? "andando" : info.provisorias + "/" + info.trava) : "";
+        if (cal !== calibRef.current) { calibRef.current = cal; setCalib(cal ? { texto: cal, andando: !!info.deslocando } : null); }
+        // Um toque baixo a cada movimento visto durante a calibração: quem está de
+        // costas para o celular sabe que ele está vendo, mesmo sem número.
+        if (info.viu && !info.contou && info.calibrando && som) beep(700, 0.04, 0.08);
 
         // Cinco segundos é o tempo de três ou quatro repetições — menos que isso
         // e o palpite sai de meio movimento, que é como errar de propósito.
@@ -5553,6 +5663,13 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
                 : "Série " + serieNum + " de " + serieTotal}
               {sinal ? " · lendo " + nomeDoSinal(sinal) : ""}
             </div>
+            {enquadrado && calib && reps === 0 && (
+              <div style={{ fontSize: 11, color: "var(--obs)", marginTop: 3, fontWeight: 700 }}>
+                {calib.andando
+                  ? "🎯 Calibrando: pare no lugar do exercício"
+                  : "🎯 Calibrando: a contagem começa quando o movimento se repetir igual (" + calib.texto + ")"}
+              </div>
+            )}
             {medidas && medidas.ritmo > 0 && (
               <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 3 }}>
                 ⏱ {String(medidas.ritmo).replace(".", ",")}s por repetição · {medidas.tut}s sob tensão

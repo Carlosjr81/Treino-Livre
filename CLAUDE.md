@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 281 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 289 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 281 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 289 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,7 +205,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v28) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v29) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -335,6 +335,46 @@ máquinas que o dono fotografa e que não estão em catálogo nenhum. Então:
    0,28) e tempo mínimo de 550 ms. Sem isso o tremor do modelo no meio do
    caminho contaria dez repetições numa.
 5. Amplitude abaixo de 22° é gente parada enquanto o modelo treme: não conta.
+
+### Calibração: se posicionar não é repetição
+
+Sentar na máquina, pegar a barra, ajeitar o banco, andar até o aparelho: tudo
+isso é uma ida e volta, e o contador contava — às vezes antes de a série
+começar. **Movimento de se posicionar não tem ritmo; exercício tem.** Então:
+
+1. **A contagem só trava depois de ver o movimento se repetir igual**: três
+   repetições seguidas (duas no funcional, que tem forma conhecida) com amplitude
+   parecida (a menor com pelo menos 60% da maior), ritmo parecido (o intervalo
+   mais longo até 1,8× o mais curto) e nenhum intervalo acima de 8 s. Aí **as três
+   contam de uma vez**: nada se perde, só aparece um pouco depois. Sem padrão, a
+   mais antiga sai da janela e a calibração continua (`aceitar`).
+2. **A amplitude comparada é a da janela de 4 s** (`faixa`), não a medida pela
+   histerese: esta só começa no meio da descida da primeira repetição, que saía
+   menor que as outras e reprovava a calibração — o contador perdia uma.
+3. **Travado, "movimento" com menos de 35% da amplitude das repetições de
+   verdade não conta** (mexer na pegada). O cansaço não chega nisso: derruba a
+   amplitude para uns 70%.
+4. **Andar recomeça a calibração** (`deslocando`, só no modo automático — o
+   skater salta de lado de propósito): de lado, o quadril atravessando mais de
+   0,6 tronco em 1,5 s; para longe ou para perto do celular, o corpo mudando de
+   tamanho **sempre no mesmo sentido** por 3 s, somando mais de 20%. O sentido
+   único é o que separa andar de um stiff visto de frente, em que o tronco também
+   encolhe na imagem, mas volta.
+5. **`zerar()` esquece também a janela**: a amplitude do movimento de se
+   posicionar virava a régua da série.
+6. **O grupo muscular pesa mais**: o sinal que ele indica ganha se mexer pelo
+   menos metade do que mais se mexe (era 80%).
+7. **Trocar de sinal durante a calibração não zera nada.** Zerar a histerese no
+   meio da primeira repetição a perdia — foi assim que a primeira versão desta
+   calibração passou a contar uma a menos em toda série.
+
+Na tela, o rodapé diz "🎯 Calibrando ... (1/3)" e um toque baixo marca cada
+movimento visto: quem está de costas para o celular sabe que ele está vendo.
+
+`teste-contador.js` tem as cenas: sentar e depois 10 repetições, andar de lado e
+para longe, ajeitar-se três vezes sem ritmo, mexer na pegada no meio da série, e
+a prova contrária do stiff de frente — que **tem** de contar. A versão anterior
+reprovava cinco delas.
 
 ### Movimento funcional: ângulo não basta
 
@@ -1418,7 +1458,7 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 281
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 289
 checagens em nove suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash
@@ -1491,6 +1531,9 @@ Roteiro mínimo depois de mexer no app:
     continua marcada.
 32. "Jarvis, bora" fora de treino: começa a ficha sugerida.
 33. Abrir o Eyes Scan, fazer 10 repetições de verdade e conferir a contagem.
+33v. **O teste da calibração.** Abrir o scanner, confirmar o enquadramento, andar
+     até a máquina e sentar, ajeitar o banco: nada pode contar. Depois fazer 10
+     repetições: o número aparece na 3ª (já como 3) e termina em 10.
 33l. Zerar `dicas` e `historico`, abrir: o painel de boas-vindas tem de
      aparecer, e sumir sozinho depois do primeiro treino concluído.
 33m. Dentro do treino, dispensar a dica da voz: a da câmera entra no lugar.

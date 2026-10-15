@@ -18,7 +18,7 @@ estes arquivos, e ninguém os pede.
 node testes/rodar.js
 ```
 
-As nove suítes (281 checagens) contra o `index.html` da raiz. Prova que a
+As nove suítes (289 checagens) contra o `index.html` da raiz. Prova que a
 **lógica** não quebrou. Vale rodar **antes e depois** de qualquer mexida.
 
 ```bash

@@ -33,7 +33,10 @@ function sorte() {
 function corpo(opc) {
   const o = opc || {};
   const ruido = () => (o.ruido ? (sorte() - 0.5) * o.ruido : 0);
-  const pt = (x, y) => ({ x: x + ruido(), y: y + ruido(), z: 0, visibility: 0.9 });
+  // dx desloca o corpo inteiro de lado: e a pessoa andando no quadro
+  // zoom encolhe o corpo em volta do centro da tela: e a pessoa se afastando
+  const z = o.zoom || 1;
+  const pt = (x, y) => ({ x: 0.5 + (x - 0.5) * z + (o.dx || 0) + ruido(), y: 0.5 + (y - 0.5) * z + ruido(), z: 0, visibility: 0.9 });
   const COXA = 0.18, PERNA = 0.18, QX = 0.5, QY = 0.55;
   const l = [];
   for (let i = 0; i < 33; i++) l[i] = pt(QX, 0.3);
@@ -129,6 +132,60 @@ const parado = A.criarContador({});
 let t = 0;
 for (let i = 0; i < 30 * 20; i++) { parado.processar(corpo({ joelho: 170, ruido: 0.01 }), t); t += 33; }
 teste("20s parado tremendo", 0, parado.estado().total);
+
+console.log("\n--- calibracao: posicionar-se nao e repeticao ---");
+// Cada cena e uma lista de trechos: { ms, joelho: fn(fracao) ou numero, cot, dx }
+function cena(trechos, opc) {
+  semear();
+  const cont = A.criarContador(Object.assign({ preferidos: ["joelho-e", "joelho-d"] }, opc || {}));
+  let t = 0;
+  const passo = 1000 / 30;
+  trechos.forEach((tr) => {
+    const q = Math.round(tr.ms / passo);
+    for (let i = 0; i < q; i++) {
+      const f = i / q;
+      const val = (v, padrao) => (typeof v === "function" ? v(f) : v === undefined ? padrao : v);
+      cont.processar(corpo({ joelho: val(tr.joelho, FUNDO), cotovelo: val(tr.cot, 170), dx: val(tr.dx, 0), zoom: val(tr.zoom, 1), ruido: 0.004 }), t);
+      t += passo;
+    }
+  });
+  return cont.estado();
+}
+const reps = (n, ms) => ({ ms: n * (ms || 2000), joelho: (f) => 125 - 45 * Math.cos(f * n * 2 * Math.PI) });
+const quieto = (ms) => ({ ms: ms });
+// sentar na maquina: o joelho vai de 170 a 80 de uma vez, numa descida so
+const sentar = { ms: 1500, joelho: (f) => 170 - 90 * f };
+teste("sentar na maquina e depois 10 repeticoes", 10,
+  cena([{ ms: 1000, joelho: 170 }, sentar, quieto(2500), reps(10), quieto(2000)]).total);
+// andar: o corpo atravessa o quadro, pernas e bracos balancando no passo
+const andar = { ms: 6000, dx: (f) => -0.3 + 0.6 * f, joelho: (f) => 150 + 25 * Math.sin(f * 12 * 2 * Math.PI),
+  cot: (f) => 140 + 35 * Math.sin(f * 12 * 2 * Math.PI) };
+teste("andar ate o aparelho (6 s) nao conta nada", 0, cena([andar, quieto(1000)]).total);
+// o caso comum: apoia o celular e anda ate a maquina, ficando menor na imagem
+const afastar = { ms: 6000, zoom: (f) => 1.3 - 0.6 * f, joelho: (f) => 150 + 25 * Math.sin(f * 12 * 2 * Math.PI),
+  cot: (f) => 140 + 35 * Math.sin(f * 12 * 2 * Math.PI) };
+teste("andar para longe do celular (6 s) nao conta nada", 0, cena([afastar, quieto(1000)], {}).total);
+// e a prova contraria: no stiff visto de frente o tronco encolhe na imagem a
+// cada repeticao, mas volta. Isso e exercicio, e tem de contar.
+const stiff = (n) => ({ ms: n * 2500, zoom: (f) => 1 - 0.25 * (1 - Math.cos(f * n * 2 * Math.PI)) / 2,
+  joelho: (f) => 125 - 45 * Math.cos(f * n * 2 * Math.PI) });
+teste("tronco que encolhe e volta (stiff de frente) conta", 8, cena([quieto(1500), stiff(8), quieto(2000)], {}).total);
+teste("andar e depois 8 repeticoes", 8, cena([andar, quieto(2500), reps(8), quieto(2000)]).total);
+// ajeitar-se: tres movimentos de tamanho e ritmo diferentes
+const ajeitar = [
+  { ms: 1200, joelho: (f) => 125 - 45 * Math.cos(f * 2 * Math.PI) },
+  quieto(3000),
+  { ms: 700, joelho: (f) => 100 - 20 * Math.cos(f * 2 * Math.PI) },
+  quieto(6500),
+  { ms: 2500, joelho: (f) => 115 - 35 * Math.cos(f * 2 * Math.PI) },
+];
+teste("ajeitar-se tres vezes, sem ritmo, nao conta", 0, cena(ajeitar.concat([quieto(2000)])).total);
+// mexer na pegada no meio da serie: movimento pequeno depois de uma pausa
+const pegada = { ms: 1500, joelho: (f) => FUNDO + 12 - 12 * Math.cos(f * 2 * Math.PI) };
+teste("mexer na pegada depois de 6 repeticoes nao conta", 6,
+  cena([quieto(1500), reps(6), quieto(5000), pegada, quieto(2000)]).total);
+const cal = cena([quieto(1500), reps(2), quieto(500)]);
+teste("duas repeticoes ainda estao calibrando (contam na terceira)", 0, cal.total);
 
 console.log("\n--- calorias ---");
 console.log("  30 min, 80 kg: " + A.caloriasEstimadas(1800, 80) + " kcal");

@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15q";
+const VERSAO_APP = "2026-10-15r";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -9668,7 +9668,7 @@ const MONSTROS_ZUMBI = {
     adiada: "Ouvi a água se agitar ao longe, mas ainda não é hora de acelerar. Fique no confortável.",
   } },
 };
-// O especial do criador: o Marombeiro é o Carlos Jr., dono do Treino Livre,
+// O especial do criador: o Marombeiro é o Carlos Jr - O Zeus, dono do Treino Livre,
 // com a foto dele, a pedido dele, para divulgar o perfil (@carlos.jr.81).
 // O avatar é a foto dele, sem fundo, em três camadas (corpo, braço do bíceps,
 // cabeça) que o CSS e o canvas animam: rosto, cabelo e barba são os da foto,
@@ -10402,7 +10402,7 @@ function placarMissao(s) {
 const MISSAO_MAROMBEIRO = montarMissaoZumbi({
   id: "fuga-do-marombeiro", monstro: "marombeiro", nome: "Fuga do Marombeiro", icone: "🏋️", narrador: "Jarvis",
   resumo: "Você faltou ao treino de perna, e o Marombeiro, criador do Treino Livre, descobriu. Ele só para quando vir o treino registrado.",
-  personagens: [{ id: "carlos", nome: "O Marombeiro (Carlos Jr.)", papel: "criador do Treino Livre, barba branca e braço de aço" }, { id: "jarvis", nome: "Jarvis", papel: "o assistente de voz do app" }],
+  personagens: [{ id: "carlos", nome: "O Marombeiro (Carlos Jr - O Zeus)", papel: "criador do Treino Livre, barba branca e braço de aço" }, { id: "jarvis", nome: "Jarvis", papel: "o assistente de voz do app" }],
   fatos: ["garrafa", "registro", "paz"],
   falas: {
     abertura: "Aqui é o Jarvis, do Treino Livre. Notícia ruim: você faltou ao treino de perna, e o Marombeiro descobriu. Barba branca, braço de aço, e ele nunca pula o dia de perna. Aqueça com calma.",
@@ -12128,7 +12128,7 @@ function AvatarMarombeiro({ altura, correndo, estilo }) {
     <img src={src} alt="" draggable="false" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", transformOrigin: pivo, animation: anim }} />
   );
   return (
-    <div className="mb-anima" role="img" aria-label="O Marombeiro: Carlos Jr., criador do Treino Livre"
+    <div className="mb-anima" role="img" aria-label="O Marombeiro: Carlos Jr - O Zeus, criador do Treino Livre"
       style={{ position: "relative", width: larg, height: altura, flexShrink: 0, ...(estilo || {}) }}>
       <div style={{ position: "absolute", left: "10%", right: "10%", bottom: "-2%", height: "5%", borderRadius: "50%",
         background: "radial-gradient(closest-side, rgba(0,0,0,.75), rgba(0,0,0,0))", animation: correndo ? "mbSombra .34s ease-in-out infinite alternate" : "none" }} />
@@ -12549,7 +12549,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
                 <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: 6 }}><AvatarMarombeiro altura={200} /></div>
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
                   <div style={{ fontWeight: 900, fontSize: 16, color: "#7CFF3C" }}>🏋️ O Marombeiro</div>
-                  <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, margin: "6px 0 10px" }}>É o Carlos Jr., criador do Treino Livre. Barba branca, braço de aço e nenhum dia de perna perdido.</div>
+                  <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, margin: "6px 0 10px" }}>É o Carlos Jr - O Zeus, criador do Treino Livre. Barba branca, braço de aço e nenhum dia de perna perdido.</div>
                   <a href={LINK_INSTAGRAM} target="_blank" rel="noopener" style={{ ...S.btn, display: "block", boxSizing: "border-box", width: "100%", textDecoration: "none", textAlign: "center", padding: "10px 6px", fontSize: 13 }}>📸 Seguir @{INSTAGRAM}</a>
                 </div>
               </div>

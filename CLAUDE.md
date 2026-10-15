@@ -206,7 +206,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v44) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v45) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1318,7 +1318,7 @@ Os monstros de cinema ficam num grupo à parte na configuração e têm uma
 história cada (os clássicos têm pelo menos duas).
 
 ### O especial do criador: Fuga do Marombeiro (`grupo: "especial"`)
-**O Marombeiro é o dono do app, Carlos Jr., com a foto dele, a pedido dele,
+**O Marombeiro é o dono do app, Carlos Jr - O Zeus, com a foto dele, a pedido dele,
 para divulgar o perfil.** Você faltou ao treino de perna, ele descobriu, e só
 para quando vir o treino registrado no Treino Livre. O Jarvis narra. O fim
 completo convida a seguir o Instagram.
@@ -1334,10 +1334,8 @@ completo convida a seguir o Instagram.
   para girar alguns graus não abrir buraco. Os pivôs (em % da imagem) estão em
   `AVATAR_MAROMBEIRO`.
 - **Como as camadas foram feitas**: a foto que o dono mandou já veio sem fundo
-  (893×1726, pose de bíceps). Os tênis brancos foram pintados no esquema
-  "Bred Toe" do Jordan 1, a pedido dele (biqueira, calcanhar e solado vermelhos,
-  gola e lingueta pretas, laterais brancas), preservando dobras e sombras e
-  **sem logo de marca**. O MediaPipe (`selfie_multiclass`) separou
+  (893×1726, pose de bíceps). Os tênis são os da foto: a pintura no esquema "Bred Toe"
+  foi testada e desfeita a pedido dele. O MediaPipe (`selfie_multiclass`) separou
   cabelo, rosto e óculos (a cabeça); o braço é um polígono acima da axila.
   Para refazer com outra foto, o roteiro está descrito no histórico desta
   sessão: segmentar, cortar na altura do fim da barba, exportar WebP com alfa.

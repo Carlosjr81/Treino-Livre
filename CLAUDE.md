@@ -62,6 +62,12 @@ manda `Cache-Control: max-age=600` — e devolvia a cópia velha achando que tin
 ido à rede. O `versao.json` nunca é interceptado pelo service worker: ele existe
 para delatar a versão nova e serviria de pouco vindo do cache.
 
+**A instalação do service worker também busca com `cache: "reload"`.** Pelo
+mesmo motivo: o `c.add` comum passa pelo cache HTTP, e uma versão publicada
+minutos depois da anterior guardava de novo os arquivos velhos. Aconteceu com
+o avatar do Marombeiro: a pintura dos tênis foi desfeita, o texto novo chegou
+ao celular e a imagem continuou pintada.
+
 ## Trabalhar de qualquer computador
 
 O projeto não depende de uma máquina. Tudo o que é preciso para desenvolver
@@ -206,7 +212,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v45) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v46) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |

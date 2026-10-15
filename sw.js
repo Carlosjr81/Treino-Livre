@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v45";
+const CACHE = "treinolivre-v46";
 const CACHE_VOZ = "treinolivre-voz";
 // As falas gravadas do Monster, Run! (vozes/*.mp3): baixadas quando a história
 // começa e guardadas fora do cache da versão, para não sumirem a cada atualização.
@@ -29,7 +29,11 @@ self.addEventListener("install", (e) => {
     // addAll é tudo-ou-nada: se uma única URL falhar nada é guardado.
     // Guardando um a um, uma falha isolada não derruba o cache inteiro.
     caches.open(CACHE).then((c) =>
-      Promise.all(ARQUIVOS.map((u) => c.add(u).catch(() => {})))
+      // cache: "reload" passa por cima do cache HTTP do navegador (o GitHub Pages
+      // manda max-age=600). Sem isso, uma versão publicada minutos depois da
+      // anterior guardava de novo os arquivos velhos: foi assim que o avatar do
+      // Marombeiro continuou com os tênis pintados depois de a pintura ser desfeita.
+      Promise.all(ARQUIVOS.map((u) => c.add(new Request(u, { cache: "reload" })).catch(() => {})))
     )
   );
   self.skipWaiting();

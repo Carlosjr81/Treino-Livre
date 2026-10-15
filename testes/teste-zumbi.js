@@ -3,12 +3,13 @@
 // critérios de aceite da especificação (seção 14) que não dependem de tela,
 // GPS de verdade ou alto-falante — esses ficam no roteiro manual do CLAUDE.md.
 const html = require("./app").lerApp();
+const fs = require("fs"), path = require("path");
 const ini = html.indexOf("// ---------------- ZUMBI: MOTOR");
 const fim = html.indexOf("// ---------------- FIM DO MOTOR ZUMBI");
 if (ini < 0 || fim < 0) { console.error("nao achei o motor zumbi no index.html"); process.exit(1); }
 eval(html.slice(ini, fim).replace(/\r\n/g, "\n") +
   "\nglobalThis.Z = { NOME_ZUMBI, ZUMBI_PADRAO, kmhDeMs, msDeKmh, paceSegKm, velocidadeAlvo, paceAlvo, fmtPaceSeg, validarAmostra, velocidadeBase," +
-  " calcularAlvo, criarAvaliador, planejarMissao, validarConfigZumbi, criarMotorZumbi, restaurarMotorZumbi, validarMissao, escolherCena, narrar," +
+  " calcularAlvo, criarAvaliador, planejarMissao, validarConfigZumbi, criarMotorZumbi, restaurarMotorZumbi, validarMissao, escolherCena, falaDaCena, narrar," +
   " criarFilaFalas, MISSAO_ULTIMO_SINAL, MISSOES_ZUMBI, sortearMissaoZumbi, missaoZumbiPorId, MONSTROS_ZUMBI, monstroDe, missoesDoMonstro, distanciaMonstro, leituraRadar, zonaRadar, placarMissao, juntarSemDuplicar, registroZumbi, duracaoPerseguicao };");
 
 let ok = 0, mal = 0;
@@ -209,14 +210,14 @@ function final() {
   teste("cada fala dita uma vez por evento", true, todasFugas.falas.length === new Set(todasFugas.falas.map((f) => f.evento)).size);
 
   console.log("--- 9b. as outras historias ---");
-  teste("vinte e uma historias", 21, Z.MISSOES_ZUMBI.length);
-  teste("ids unicos", 21, new Set(Z.MISSOES_ZUMBI.map((m) => m.id)).size);
+  teste("vinte e duas historias", 22, Z.MISSOES_ZUMBI.length);
+  teste("ids unicos", 22, new Set(Z.MISSOES_ZUMBI.map((m) => m.id)).size);
   const classicos = Object.keys(Z.MONSTROS_ZUMBI).filter((k) => !Z.MONSTROS_ZUMBI[k].grupo);
-  teste("onze monstros; os classicos com 2+ historias, os de cinema com 1+", [11, 5, true],
+  teste("doze monstros; os classicos com 2+ historias, os outros com 1+", [12, 5, true],
     [Object.keys(Z.MONSTROS_ZUMBI).length, classicos.length,
       Object.keys(Z.MONSTROS_ZUMBI).every((k) => Z.missoesDoMonstro(k).length >= (Z.MONSTROS_ZUMBI[k].grupo ? 1 : 2))]);
-  teste("homenagem, nao copia: nenhum nome protegido no app", [],
-    (html.match(/The Boys|Capit[aã]o P[aá]tria|Homelander|Vought|Jurassic|Nostromo|Ripley|Skynet|Stranger Things|Hawkins|Demogorgon|Exterminador|Sarah Connor/gi) || []));
+  teste("parodia, nao copia: nenhum nome original no app", [],
+    (html.match(/The Boys|Capit[aã]o P[aá]tria|Homelander|Vought|Jurassic|Nostromo|Ripley|Skynet|Stranger Things|Hawkins|Demogorgon|Sarah Connor|Kyle Reese|Ripley|Nostromo|Amity|Brody|Hammond|Alan Grant|Joyce|Eleven/g) || []));
   const persegue = (m, at) => m.cenas.find((c) => c.id === "perseguicao").falas[at];
   teste("so o zumbi e lento: as outras perseguicoes falam do proprio monstro", true,
     Z.MISSOES_ZUMBI.every((m) => Z.monstroDe(m).id === "zumbi" ? /lentos|arrastando/.test(persegue(m, "caminhada")) : !/lentos|eles est/i.test(persegue(m, "caminhada") + persegue(m, "corrida"))));
@@ -240,6 +241,10 @@ function final() {
   teste("o sorteio varia e nao repete a ultima", [true, true], [new Set(sorteios).size >= 3, sorteios.every((id, i) => id !== (i % 2 ? "trem-da-meia-noite" : "ultimo-sinal"))]);
   teste("missao desconhecida cai no Ultimo Sinal", "ultimo-sinal", Z.missaoZumbiPorId("nao-existe").id);
 
+  const mb = Z.MONSTROS_ZUMBI.marombeiro, fimMb = Z.missaoZumbiPorId("fuga-do-marombeiro").cenas.find((c) => c.id === "fim-completo").falas.todas;
+  teste("o Marombeiro: as duas fotos existem, e o fim convida a seguir", [true, true, true],
+    [fs.existsSync(path.join(__dirname, "..", mb.foto)), fs.existsSync(path.join(__dirname, "..", mb.fotoCorpo)), /Siga o Marombeiro no Instagram/.test(fimMb)]);
+
   console.log("--- 9c. o radar ---");
   teste("distancia: longe (dentro do radar), meio e encostando", [280, true, 15], [Z.distanciaMonstro(0), Z.distanciaMonstro(0.5) > 90 && Z.distanciaMonstro(0.5) < 160, Z.distanciaMonstro(1)]);
   teste("quanto mais ameaca, mais perto (sempre)", true, Array.from({ length: 20 }, (_, i) => Z.distanciaMonstro(i / 20)).every((d, i, a) => i === 0 || d < a[i - 1]));
@@ -252,6 +257,20 @@ function final() {
     persegs: { a: { blocoIni: 1, resultado: "fugiu", noAlvoMs: 30000 }, b: { blocoIni: 2, resultado: "alcancado", noAlvoMs: 10000 },
       c: { blocoIni: 3, resultado: "fugiu", noAlvoMs: 30000 }, d: { blocoIni: 4, resultado: "fugiu", noAlvoMs: 30000 }, e: { blocoIni: 5, resultado: "adiada" } } });
   teste("placar: fugas, sequencia, melhor sequencia, tempo no alvo e km", [3, 4, 2, 2, 100000, 0.08], [pl.fugas, pl.decididas, pl.sequencia, pl.melhorSeq, pl.noAlvoMs, pl.km]);
+
+  console.log("--- 9d. o resumo animado da missao ---");
+  {
+    const i0 = html.indexOf("// Quem é o monstro, dito em voz alta"), i1 = html.indexOf("function dadosResumo(");
+    eval("const { missaoZumbiPorId, monstroDe, escolherCena, falaDaCena } = Z;\n" + html.slice(i0, i1).replace(/\r\n/g, "\n") + "\nglobalThis.MR = monstroResumo;");
+    const reg = (fatos) => ({ zumbi: { missao: "heroi-da-nacao", fatos: fatos, noAlvoMs: 60000, maisPerto: 21, cfg: { atividade: "corrida" },
+      persegs: [{ resultado: "fugiu", alvo: 2.9 }, { resultado: "alcancado" }, { resultado: "adiada" }] } });
+    const r = MR(reg(["gravacao", "copia", "verdade"]));
+    teste("resumo: fugas, alcances, mais perto e quem", [1, 2, 1, 21, "o Capitão Pátio"], [r.fugas, r.ps.length, r.alcancado, r.maisPerto, r.quem.nome]);
+    teste("resumo: o final da historia completa", [true, true], [r.completo, /^A gravação tocou/.test(r.fim)]);
+    const p = MR(reg(["gravacao"]));
+    teste("resumo: so o primeiro fato e missao em parte", [false, true], [p.completo, p.parcial]);
+    teste("resumo: registro sem missao nao e monstro", null, MR({ itens: [] }));
+  }
 
   console.log("--- 10. historico sem duplicar ---");
   const r1 = Z.registroZumbi("zr-1", new Date(2026, 9, 15).toISOString(), todasFugas.m, Z.MISSAO_ULTIMO_SINAL, { km: 3 });

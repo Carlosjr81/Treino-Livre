@@ -159,6 +159,10 @@
   @keyframes zbTremor { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-10px, 6px); } 40% { transform: translate(9px, -7px); }
                         60% { transform: translate(-6px, -4px); } 80% { transform: translate(4px, 5px); } }
   @keyframes zb-varredura { to { transform: rotate(360deg); } }
+  @keyframes mbChega { 0% { transform: scale(.12) translateY(40%); opacity: 0; } 12% { opacity: 1; } 78% { transform: scale(1.02) translateY(0); } 86% { transform: scale(1.18) translateY(-2%); } 100% { transform: scale(1.12) translateY(0); } }
+  @keyframes mbTreme { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-6px, 3px); } 50% { transform: translate(5px, -4px); } 75% { transform: translate(-3px, -2px); } }
+  @keyframes mbTexto { 0% { transform: scale(2.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .mb-anima, .mb-anima * { animation: none !important; } }
   @keyframes zb-pulso { 0%, 100% { box-shadow: 0 0 0 0 #FF4D4D00; } 50% { box-shadow: 0 0 0 4px #FF4D4D55; } }
   @media (prefers-reduced-motion: reduce) { [style*="zb-varredura"], [style*="zb-pulso"] { animation: none !important; } }
   .zb-aprox  { animation: zbAprox 2.6s cubic-bezier(.55,0,.9,.45) both, zbPega .55s ease-in 2.6s forwards; }
@@ -623,7 +627,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15m";
+const VERSAO_APP = "2026-10-15n";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2151,12 +2155,12 @@ function avaliarEnquadramento(lm) {
 // "90 segundos" é como se escreve; "um minuto e meio" é como se fala.
 function textoDuracao(seg) {
   const s = Math.round(seg || 0);
-  if (s < 60) return s + " segundos";
+  if (s < 60) return s + (s === 1 ? " segundo" : " segundos");
   const m = Math.floor(s / 60), r = s % 60;
   const base = m + (m === 1 ? " minuto" : " minutos");
   if (!r) return base;
   if (r === 30) return base + " e meio";
-  return base + " e " + r + " segundos";
+  return base + " e " + r + (r === 1 ? " segundo" : " segundos");
 }
 
 function narrarVoz(texto, cfg, fila) {
@@ -9631,39 +9635,52 @@ const MONSTROS_ZUMBI = {
     adiada: "Ouvi a água se agitar ao longe, mas ainda não é hora de acelerar. Fique no confortável.",
   } },
 };
+// O especial do criador: o Marombeiro é o Carlos Jr., dono do Treino Livre,
+// com a foto dele, a pedido dele, para divulgar o perfil (@carlos.jr.81).
+// As fotos são arquivos do repositório (marombeiro.jpg, marombeiro-rosto.jpg)
+// e estão na lista do sw.js: funcionam sem internet.
+Object.assign(MONSTROS_ZUMBI, {
+  marombeiro: { id: "marombeiro", grupo: "especial", nome: "Marombeiro", icone: "🏋️", radar: "Cheiro de whey",
+    foto: "marombeiro-rosto.jpg", fotoCorpo: "marombeiro.jpg", instagram: true, frases: {
+    "aviso-reserva": "Passos pesados e um grito: hoje é dia de perna! Prepare-se para aumentar o ritmo, se puder.",
+    perseguicao: { caminhada: "Segure essa passada. Ele para em toda vitrine para conferir o bíceps.", corrida: "Segure esse ritmo. Ele é forte, mas cardio não é a praia dele." },
+    "desfecho-reserva": "Foi por pouco, mas chegou a hora do shake dele, e ele não perde o horário do whey. Você segue inteiro. Reduza e recupere.",
+    adiada: "Ouvi alguém contando repetições ao longe, mas ainda não é hora de acelerar. Fique no confortável.",
+  } },
+});
 // Inspirados em filmes e séries: grupo à parte na tela
 Object.assign(MONSTROS_ZUMBI, {
-  superser: { id: "superser", grupo: "cinema", nome: "O Herói", icone: "🦸", radar: "Escuta", frases: {
+  superser: { id: "superser", grupo: "cinema", nome: "Capitão Pátio", icone: "🦸", radar: "Escuta", frases: {
     "aviso-reserva": "Um estrondo no céu, logo acima de você. É ele. Prepare-se para aumentar o ritmo, se puder.",
     perseguicao: { caminhada: "Segure essa passada. No meio do movimento, você é só mais um rosto.", corrida: "Segure esse ritmo. Ele não pode ser filmado caçando ninguém." },
     "desfecho-reserva": "Foi por pouco, mas uma câmera de TV apontou para ele, e ele precisou sorrir. Você segue inteiro. Reduza e recupere.",
     adiada: "Ouvi um estrondo no céu, ao longe, mas ainda não é hora de acelerar. Fique no confortável.",
   } },
-  tubarao: { id: "tubarao", grupo: "cinema", nome: "Tubarão", icone: "🦈", radar: "Sonar", frases: {
+  tubarao: { id: "tubarao", grupo: "cinema", nome: "Tubarão da Amizade", icone: "🦈", radar: "Sonar", frases: {
     "aviso-reserva": "Uma barbatana corta a água ao seu lado. Prepare-se para aumentar o ritmo, se puder.",
     perseguicao: { caminhada: "Segure essa passada. Longe da beira, ele não alcança.", corrida: "Segure esse ritmo. A barbatana está ficando para trás." },
     "desfecho-reserva": "Foi por pouco, mas uma onda grande o empurrou para o fundo. Você segue inteiro. Reduza e recupere.",
     adiada: "Vi uma sombra na água, ao longe, mas ainda não é hora de acelerar. Fique no confortável.",
   } },
-  alienigena: { id: "alienigena", grupo: "cinema", nome: "Alienígena", icone: "👽", radar: "Detector de movimento", frases: {
+  alienigena: { id: "alienigena", grupo: "cinema", nome: "Alien do Nostrômulo", icone: "👽", radar: "Detector de movimento", frases: {
     "aviso-reserva": "O detector apita: movimento atrás de você. Prepare-se para aumentar o ritmo, se puder.",
     perseguicao: { caminhada: "Segure essa passada. Ele anda pelos dutos, e os dutos dão voltas.", corrida: "Segure esse ritmo. Os apitos estão ficando espaçados." },
     "desfecho-reserva": "Foi por pouco, mas a comporta fechou a tempo. Você segue inteiro. Reduza e recupere.",
     adiada: "O detector apitou uma vez, longe, mas ainda não é hora de acelerar. Fique no confortável.",
   } },
-  sombra: { id: "sombra", grupo: "cinema", nome: "Criatura do Outro Lado", icone: "🌀", radar: "Luzes", frases: {
+  sombra: { id: "sombra", grupo: "cinema", nome: "Demogorgão", icone: "🌀", radar: "Luzes", frases: {
     "aviso-reserva": "As luzes começaram a piscar atrás de você. Prepare-se para aumentar o ritmo, se puder.",
     perseguicao: { caminhada: "Segure essa passada. Onde a luz está firme, ele não chega.", corrida: "Segure esse ritmo. As luzes pararam de piscar: ele ficou para trás." },
     "desfecho-reserva": "Foi por pouco, mas uma luz forte acendeu e ele recuou para o outro lado. Você segue inteiro. Reduza e recupere.",
     adiada: "Um poste piscou ao longe, mas ainda não é hora de acelerar. Fique no confortável.",
   } },
-  maquina: { id: "maquina", grupo: "cinema", nome: "Máquina caçadora", icone: "🤖", radar: "Varredura", frases: {
+  maquina: { id: "maquina", grupo: "cinema", nome: "Exterminador T-80", icone: "🤖", radar: "Varredura", frases: {
     "aviso-reserva": "Passos metálicos, sempre no mesmo compasso, atrás de você. Prepare-se para aumentar o ritmo, se puder.",
     perseguicao: { caminhada: "Segure essa passada. Ele não cansa, mas também não acelera.", corrida: "Segure esse ritmo. A varredura dele perdeu você." },
     "desfecho-reserva": "Foi por pouco, mas um caminhão passou entre vocês e ele perdeu a varredura. Você segue inteiro. Reduza e recupere.",
     adiada: "Ouvi um zumbido de motor ao longe, mas ainda não é hora de acelerar. Fique no confortável.",
   } },
-  dinossauro: { id: "dinossauro", grupo: "cinema", nome: "Dinossauro", icone: "🦖", radar: "Tremor", frases: {
+  dinossauro: { id: "dinossauro", grupo: "cinema", nome: "T-Rex do Juráxico", icone: "🦖", radar: "Tremor", frases: {
     "aviso-reserva": "O chão treme em compasso. Prepare-se para aumentar o ritmo, se puder.",
     perseguicao: { caminhada: "Segure essa passada, sempre igual: ele se guia pelo que vê se mexer.", corrida: "Segure esse ritmo. As pisadas estão ficando para trás." },
     "desfecho-reserva": "Foi por pouco, mas um sinalizador vermelho acendeu ao longe e ele foi atrás da luz. Você segue inteiro. Reduza e recupere.",
@@ -10101,29 +10118,29 @@ const MISSAO_CANTO = montarMissaoZumbi({
 
 
 // ---- Inspiradas em filmes e séries ----
-// Homenagens: o clima, o tipo de ameaça e as cenas que todo mundo reconhece,
-// com personagens, nomes e enredo próprios. O app é público, e personagem e
-// nome de série têm dono; o que não tem dono é o medo de um herói que sorri
-// para a câmera, de uma barbatana na água ou de um copo d'água tremendo.
+// Paródias: o clima, as cenas que todo mundo reconhece e nomes parecidos com
+// os originais, para quem lê já saber de quem se está rindo (Capitão Pátio,
+// Nostrômulo, Demogorgão, T-80, Parque Juráxico). O nome exato do original
+// nunca: o teste-zumbi.js procura e reprova.
 const MISSAO_HEROI = montarMissaoZumbi({
   id: "heroi-da-nacao", monstro: "superser", nome: "O Herói da Nação", icone: "🦸", narrador: "Júlia",
-  resumo: "O herói mais amado do país deixou um avião cair para proteger a própria imagem. A gravação da caixa-preta sobreviveu.",
-  personagens: [{ id: "julia", nome: "Júlia Rocha", papel: "jornalista investigativa" }, { id: "omega", nome: "Ômega", papel: "o herói mais amado do país" }],
+  resumo: "O Capitão Pátio, o herói mais amado do país, deixou o voo 37 cair para proteger a própria imagem. A caixa-preta gravou tudo.",
+  personagens: [{ id: "julia", nome: "Júlia Rocha", papel: "jornalista investigativa" }, { id: "patio", nome: "Capitão Pátio", papel: "o herói mais amado do país, garoto-propaganda da Vôti" }],
   fatos: ["gravacao", "copia", "verdade"],
   falas: {
-    abertura: "Aqui é a Júlia Rocha. Escute com atenção e não diga o nome dele em voz alta: ele ouve. O Ômega deixou o voo 290 cair para não estragar a própria imagem, e a caixa-preta gravou tudo. Aqueça com calma.",
+    abertura: "Aqui é a Júlia Rocha. Escute com atenção e não diga o nome dele em voz alta: ele ouve. O Capitão Pátio deixou o voo 37 cair para não estragar a própria imagem, e a caixa-preta gravou tudo. Aqueça com calma.",
     missao: { caminhada: "A gravação está escondida no hangar velho do aeroclube. Caminhe firme, no ritmo de quem não tem nada a esconder.",
       corrida: "A gravação está escondida no hangar velho do aeroclube. Trote confortável, no ritmo de quem não tem nada a esconder." },
     rumo2: "Gravação no bolso. Agora uma cópia: o técnico da rádio comunitária pode espalhar o arquivo por todas as emissoras ao mesmo tempo.",
     rumo3: "A cópia está pronta. Siga tranquilo. Uma coisa ele não consegue: calar um país inteiro de uma vez.",
     marco1: "Hangar do aeroclube. O pen drive estava dentro do extintor, onde o piloto deixou. Leve com você e siga no seu ritmo.",
     marco2: "Rádio comunitária. O arquivo foi copiado para doze emissoras. Basta um sinal meu.",
-    amb: ["Na TV da padaria, ele sorri e acena para a plateia. Repare: ele quase não pisca.", "Lembre: ele escuta um coração acelerado a quilômetros. Respire fundo e mantenha o passo.", "Um avião passa alto no céu. Todo mundo olha para cima por um segundo, e ninguém comenta nada."],
+    amb: ["Na TV da padaria, o Capitão Pátio sorri e acena, com a capa de bandeira. Repare: ele quase não pisca.", "Lembre: ele escuta um coração acelerado a quilômetros. Respire fundo e mantenha o passo.", "Um avião passa alto no céu. Todo mundo olha para cima por um segundo, e ninguém comenta nada."],
     aviso1: "Júlia no rádio: um estrondo no céu, perto do aeroclube. É ele. Prepare-se para aumentar o ritmo, se puder.",
     aviso2: "Ele ouviu o pen drive bater na sua chave. Prepare-se para acelerar, se puder.",
     fuga1: "Você abriu distância e chegou ao hangar. A gravação está com você! Reduza o ritmo e recupere.",
     fuga2: "Escapou! E o técnico da rádio fez a cópia sem esperar por você. Reduza e recupere.",
-    desfecho1: "Ele desceu bem na sua frente, mas uma equipe de TV apareceu na esquina, e ele precisou sorrir e posar para a foto. A gravação ficou com você. Pode reduzir.",
+    desfecho1: "Ele desceu bem na sua frente, mas uma equipe de TV da Vôti apareceu na esquina, e ele precisou sorrir e posar para a foto. A gravação ficou com você. Pode reduzir.",
     cancelada1: "Ativamos uma distração: um alarme falso do outro lado da cidade. Ele foi posar de salvador. Pode continuar no confortável.",
     guiada1: "Pronto, pode reduzir. Eu não meço o seu ritmo daqui, mas a gravação já está com você.",
     desaquecimento: "Últimos minutos. Diminua aos poucos, como quem volta da padaria. Nada de chamar atenção.",
@@ -10135,18 +10152,18 @@ const MISSAO_HEROI = montarMissaoZumbi({
 
 const MISSAO_AO_VIVO = montarMissaoZumbi({
   id: "ao-vivo", monstro: "superser", nome: "Ao Vivo", icone: "🎙️", narrador: "Tavinho",
-  resumo: "O herói está no palco, ao vivo, e o humor dele mudou. Esvazie a plateia antes de as câmeras desligarem.",
-  personagens: [{ id: "tavinho", nome: "Tavinho", papel: "produtor do estúdio" }, { id: "omega", nome: "Ômega", papel: "o herói mais amado do país" }],
+  resumo: "O Capitão Pátio está no palco, ao vivo, e o humor dele mudou. Esvazie a plateia antes de as câmeras desligarem.",
+  personagens: [{ id: "tavinho", nome: "Tavinho", papel: "produtor do estúdio" }, { id: "patio", nome: "Capitão Pátio", papel: "o herói mais amado do país, garoto-propaganda da Vôti" }],
   fatos: ["cracha", "alarme", "plateia"],
   falas: {
-    abertura: "Aqui é o Tavinho, da produção. O Ômega está no palco, ao vivo, e alguém fez a pergunta errada. Enquanto as câmeras estiverem ligadas, ele sorri. É quando elas desligam que ninguém quer estar perto. Aqueça com calma.",
+    abertura: "Aqui é o Tavinho, da produção. O Capitão Pátio está no palco, ao vivo, e alguém fez a pergunta errada. Enquanto as câmeras estiverem ligadas, ele sorri. É quando elas desligam que ninguém quer estar perto. Aqueça com calma.",
     missao: { caminhada: "Preciso de você no andar técnico. O crachá de acesso ficou no camarim três. Caminhe firme, como quem trabalha aqui.",
       corrida: "Preciso de você no andar técnico. O crachá de acesso ficou no camarim três. Trote confortável, como quem está atrasado para o intervalo." },
     rumo2: "Crachá liberado. Agora o alarme de incêndio do andar técnico: a plateia sai em ordem, achando que é treinamento.",
     rumo3: "O alarme tocou e a plateia está saindo. Siga tranquilo. Faltam dois blocos para o fim do programa.",
     marco1: "Camarim três. O crachá estava preso no espelho. Pendure no pescoço e siga no seu ritmo.",
     marco2: "Andar técnico. Você acionou o alarme, e a voz gravada pede calma. A plateia levanta sem pressa.",
-    amb: ["No monitor, ele ri de uma piada da apresentadora. O riso dura um segundo a mais do que devia.", "A luz vermelha do 'no ar' continua acesa. Enquanto ela brilhar, estamos bem.", "Alguém da plateia pede uma foto. Ele aceita, e o sorriso não chega aos olhos."],
+    amb: ["No monitor, ele ri de uma piada da apresentadora e toma um gole de leite. O riso dura um segundo a mais do que devia.", "A luz vermelha do 'no ar' continua acesa. Enquanto ela brilhar, estamos bem.", "Alguém da plateia pede uma foto. Ele aceita, e o sorriso não chega aos olhos."],
     aviso1: "Tavinho no rádio: ele saiu do palco no intervalo e está nos corredores! Prepare-se para aumentar o ritmo, se puder.",
     aviso2: "Ele ouviu o crachá apitar na porta. Prepare-se para acelerar, se puder.",
     fuga1: "Você abriu distância e pegou o crachá. Reduza o ritmo e recupere.",
@@ -10162,19 +10179,19 @@ const MISSAO_AO_VIVO = montarMissaoZumbi({
 });
 
 const MISSAO_VERAO = montarMissaoZumbi({
-  id: "temporada-de-verao", monstro: "tubarao", nome: "Temporada de Verão", icone: "🏖️", narrador: "Delegado Bruno",
-  resumo: "O prefeito não quer fechar a praia no feriado. A barbatana voltou, e a areia está lotada.",
-  personagens: [{ id: "bruno", nome: "Delegado Bruno Matos", papel: "delegado da cidade" }, { id: "nanda", nome: "Nanda", papel: "salva-vidas" }],
+  id: "temporada-de-verao", monstro: "tubarao", nome: "Verão na Praia da Amizade", icone: "🏖️", narrador: "Delegado Brodi",
+  resumo: "O prefeito da Praia da Amizade não quer fechar a praia no feriado. A barbatana voltou, e a areia está lotada.",
+  personagens: [{ id: "brodi", nome: "Delegado Brodi", papel: "delegado da Praia da Amizade" }, { id: "nanda", nome: "Nanda", papel: "salva-vidas" }],
   fatos: ["megafone", "bandeira", "praia"],
   falas: {
-    abertura: "Aqui é o delegado Bruno. O prefeito disse que tubarão em feriado é boato e que fechar a praia espanta o turista. Eu vi a barbatana hoje de manhã. Aqueça com calma: vamos esvaziar essa água.",
+    abertura: "Aqui é o delegado Brodi, da Praia da Amizade. O prefeito disse que tubarão em feriado é boato e que fechar a praia espanta o turista. Eu vi a barbatana hoje de manhã. Aqueça com calma: vamos esvaziar essa água.",
     missao: { caminhada: "O megafone ficou na guarita da orla. Caminhe firme pelo calçadão. A Nanda está na torre e me avisa de tudo.",
       corrida: "O megafone ficou na guarita da orla. Trote confortável pelo calçadão. A Nanda está na torre e me avisa de tudo." },
     rumo2: "Megafone na mão. Agora a bandeira vermelha na torre dos salva-vidas: com ela no alto, nem o prefeito discute.",
     rumo3: "Bandeira hasteada. O pessoal está saindo da água. Siga tranquilo pelo calçadão.",
     marco1: "Guarita da orla. O megafone está com a bateria cheia. Leve e siga no seu ritmo.",
     marco2: "Torre dos salva-vidas. A bandeira vermelha subiu, e a Nanda apitou três vezes.",
-    amb: ["Uma criança joga uma bola na água. O pai busca rindo, sem saber de nada.", "O megafone pesa no braço. Logo você vai usar.", "A água está calma demais. A Nanda não gosta disso."],
+    amb: ["Uma criança joga uma bola na água. O pai busca rindo, sem saber de nada.", "O megafone pesa no braço. Logo você vai usar.", "O Brodi resmunga: vamos precisar de um barco maior. A Nanda ri, mas não muito."],
     aviso1: "Nanda no rádio: barbatana a cinquenta metros da arrebentação! Prepare-se para aumentar o ritmo, se puder.",
     aviso2: "Ela está acompanhando você pela beira da água. Prepare-se para acelerar, se puder.",
     fuga1: "Você abriu distância e chegou à guarita. O megafone está com você! Reduza o ritmo e recupere.",
@@ -10190,20 +10207,20 @@ const MISSAO_VERAO = montarMissaoZumbi({
 });
 
 const MISSAO_CARGUEIRO = montarMissaoZumbi({
-  id: "cargueiro-sem-resposta", monstro: "alienigena", nome: "Cargueiro Sem Resposta", icone: "🛸", narrador: "Oficial Rute",
-  resumo: "Um tripulante trouxe alguma coisa a bordo do cargueiro Aldebarã. Agora ela mora nos dutos.",
-  personagens: [{ id: "rute", nome: "Oficial Rute Valença", papel: "segunda oficial do cargueiro Aldebarã" }, { id: "pirata", nome: "Pirata", papel: "o gato da nave" }],
+  id: "cargueiro-sem-resposta", monstro: "alienigena", nome: "O Nono Passageiro", icone: "🛸", narrador: "Tenente Ripla",
+  resumo: "Um tripulante trouxe alguma coisa a bordo do cargueiro Nostrômulo. Agora ela mora nos dutos.",
+  personagens: [{ id: "ripla", nome: "Tenente Ripla", papel: "oficial do cargueiro Nostrômulo" }, { id: "jonas", nome: "Jonas", papel: "o gato da nave" }],
   fatos: ["detector", "codigo", "capsula"],
   falas: {
-    abertura: "Aqui é a oficial Rute Valença, do cargueiro Aldebarã. O que entrou com o tripulante Moura não está mais com ele. Está nos dutos. Aqueça com calma e mantenha a respiração baixa.",
+    abertura: "Aqui é a tenente Ripla, do cargueiro Nostrômulo. O que grudou no rosto do tripulante Keine Moura não está mais com ele. Está nos dutos. Aqueça com calma e mantenha a respiração baixa.",
     missao: { caminhada: "Primeiro, o detector de movimento no paiol. Caminhe firme pelo corredor principal. Eu acompanho pelas câmeras.",
       corrida: "Primeiro, o detector de movimento no paiol. Trote confortável pelo corredor principal. Eu acompanho pelas câmeras." },
     rumo2: "Detector ligado. Agora o código da cápsula de fuga, na ponte de comando. Fique atento aos apitos.",
-    rumo3: "Código digitado. A cápsula está aquecendo. Siga tranquilo, e sim: o Pirata vem junto.",
+    rumo3: "Código digitado. A cápsula está aquecendo. Siga tranquilo, e sim: o Jonas vem junto.",
     marco1: "Paiol. O detector liga com um apito curto. Os números na tela são a distância. Leve e siga no seu ritmo.",
     marco2: "Ponte de comando. O código foi aceito. A contagem da cápsula começou.",
-    amb: ["O detector apita uma vez, longe, e para. Pode ser só a ventilação.", "O Pirata mia dentro da caixa de transporte. Ele também não gosta de dutos.", "Pinga água de um cano. Cada gota parece um passo."],
-    aviso1: "Rute no rádio: movimento nos dutos acima do paiol! Prepare-se para aumentar o ritmo, se puder.",
+    amb: ["O detector apita uma vez, longe, e para. Pode ser só a ventilação.", "O Jonas mia dentro da caixa de transporte. Ele também não gosta de dutos.", "Pinga água de um cano. Cada gota parece um passo."],
+    aviso1: "Ripla no rádio: movimento nos dutos acima do paiol! Prepare-se para aumentar o ritmo, se puder.",
     aviso2: "O detector está apitando mais rápido. Prepare-se para acelerar, se puder.",
     fuga1: "Você abriu distância e chegou ao paiol. O detector está com você! Reduza o ritmo e recupere.",
     fuga2: "Escapou! E eu digitei o código da ponte por você. Reduza e recupere.",
@@ -10211,27 +10228,27 @@ const MISSAO_CARGUEIRO = montarMissaoZumbi({
     cancelada1: "Ativamos uma distração: um vazamento de vapor no porão chamou a atenção dele. Pode continuar no confortável.",
     guiada1: "Pronto, pode reduzir. Eu não meço o seu ritmo daqui, mas o detector já está com você.",
     desaquecimento: "Últimos minutos. Diminua aos poucos. A cápsula está pressurizada.",
-    fimCompleto: "Cápsula lançada, cargueiro ficando para trás, e o detector em silêncio. O Pirata dormiu no seu colo. Missão cumprida.",
+    fimCompleto: "Cápsula lançada, cargueiro ficando para trás, e o detector em silêncio. O Jonas dormiu no seu colo. Missão cumprida.",
     fimParcial: "O detector chegou, mas sem o código a cápsula não sai. Vamos nos trancar na enfermaria até o resgate. Você sabe onde ele está, e isso é tudo.",
     fimReserva: "Você chegou inteiro à enfermaria, e isso vem primeiro. A porta aguenta. O resgate chega pela manhã.",
   },
 });
 
 const MISSAO_OUTRO_LADO = montarMissaoZumbi({
-  id: "o-outro-lado", monstro: "sombra", nome: "O Outro Lado", icone: "🔦", narrador: "Dona Célia",
-  resumo: "O Léo sumiu depois da aula de ciências. As luzes da casa piscam quando ele tenta falar.",
-  personagens: [{ id: "celia", nome: "Dona Célia", papel: "mãe do Léo" }, { id: "leo", nome: "Léo", papel: "menino desaparecido" }],
+  id: "o-outro-lado", monstro: "sombra", nome: "Coisas Estranhíssimas", icone: "🔦", narrador: "Dona Djóice",
+  resumo: "O Wilinho sumiu em Hókins na volta do RPG com os amigos. As luzes da casa piscam quando ele tenta falar.",
+  personagens: [{ id: "djoice", nome: "Dona Djóice", papel: "mãe do Wilinho" }, { id: "wilinho", nome: "Wilinho", papel: "menino desaparecido" }, { id: "onze", nome: "Onzi", papel: "menina de cabelo raspado que gosta de waffles" }],
   fatos: ["radio", "luzes", "leo"],
   falas: {
-    abertura: "Aqui é a Célia, mãe do Léo. Ele sumiu na volta da escola, e desde então as luzes da casa piscam quando eu chamo o nome dele. Ninguém acredita em mim. Você acredita? Aqueça com calma.",
+    abertura: "Aqui é a Djóice, mãe do Wilinho, de Hókins. Ele sumiu na volta do RPG com os amigos, e desde então as luzes da casa piscam quando eu chamo o nome dele. Ninguém acredita em mim. Você acredita? Aqueça com calma.",
     missao: { caminhada: "O rádio amador do clube de ciências pega uma frequência estranha. Os meninos dizem que é ele. Caminhe firme.",
       corrida: "O rádio amador do clube de ciências pega uma frequência estranha. Os meninos dizem que é ele. Trote confortável." },
     rumo2: "Com o rádio, falta o varal de luzes: pintei o alfabeto na parede, e cada lâmpada é uma letra. É assim que ele responde.",
     rumo3: "As luzes estão soletrando: A-Q-U-I. Ele está perto. Siga tranquilo, eu estou com você.",
     marco1: "Clube de ciências. O rádio estava na mesa do professor, ainda chiando. Leve e siga no seu ritmo.",
     marco2: "Sala de casa. Você ligou o varal, e as lâmpadas piscaram sozinhas, uma por uma.",
-    amb: ["Uma bicicleta caída na calçada, com a roda ainda girando.", "O rádio chia, e no meio do chiado parece uma voz de criança.", "Um poste pisca duas vezes. Bom sinal ou mau sinal, ninguém sabe."],
-    aviso1: "Célia no rádio: as luzes da rua estão piscando atrás de você! Prepare-se para aumentar o ritmo, se puder.",
+    amb: ["Uma bicicleta caída na calçada, com a roda ainda girando. A Onzi olha para ela e o nariz dela sangra um pouquinho.", "O rádio chia, e no meio do chiado parece uma voz de criança.", "Um poste pisca duas vezes. Bom sinal ou mau sinal, ninguém sabe."],
+    aviso1: "Djóice no rádio: as luzes da rua estão piscando atrás de você! Prepare-se para aumentar o ritmo, se puder.",
     aviso2: "O rádio está chiando alto demais. Ele percebeu. Prepare-se para acelerar, se puder.",
     fuga1: "Você abriu distância e pegou o rádio. Reduza o ritmo e recupere.",
     fuga2: "Escapou! E os meninos do clube ligaram as luzes por você. Reduza e recupere.",
@@ -10239,47 +10256,47 @@ const MISSAO_OUTRO_LADO = montarMissaoZumbi({
     cancelada1: "Ativamos uma distração: os meninos acenderam todas as lanternas ao mesmo tempo. Pode continuar no confortável.",
     guiada1: "Pronto, pode reduzir. Eu não meço o seu ritmo daqui, mas o rádio já está com você.",
     desaquecimento: "Últimos minutos. Diminua aos poucos. As luzes da casa estão firmes, sem piscar.",
-    fimCompleto: "A parede soletrou C-A-S-A, a luz da sala acendeu inteira, e o Léo estava ali, sujo de terra e com frio, mas inteiro. Missão cumprida.",
-    fimParcial: "O rádio chegou, e a voz dele está mais clara. Sem as luzes ainda não sei onde procurar. Você me deu esperança.",
+    fimCompleto: "A parede soletrou C-A-S-A, a luz da sala acendeu inteira, e o Wilinho estava ali, sujo de terra e com frio, mas inteiro. Missão cumprida.",
+    fimParcial: "O rádio chegou, e a voz dele está mais clara. Sem as luzes ainda não sei onde procurar no Mundo Invertido. Você me deu esperança.",
     fimReserva: "Você voltou inteiro, e isso vem primeiro. Vou deixar a luz da varanda acesa a noite toda.",
   },
 });
 
 const MISSAO_FUTURO = montarMissaoZumbi({
-  id: "o-cacador-do-futuro", monstro: "maquina", nome: "O Caçador do Futuro", icone: "🤖", narrador: "Cabo Renato",
-  resumo: "Uma máquina veio do futuro atrás da Helena. Ela ainda não sabe por quê, e não há tempo para explicar.",
-  personagens: [{ id: "renato", nome: "Cabo Renato", papel: "soldado que veio do futuro" }, { id: "helena", nome: "Helena Duarte", papel: "enfermeira" }],
+  id: "o-cacador-do-futuro", monstro: "maquina", nome: "O Exterminador T-80", icone: "🤖", narrador: "Kaio Reis",
+  resumo: "A Céu-Net mandou o T-80 do futuro atrás da Sara Conrado. Ela ainda não sabe por quê, e não há tempo para explicar.",
+  personagens: [{ id: "kaio", nome: "Kaio Reis", papel: "soldado que veio do futuro" }, { id: "sara", nome: "Sara Conrado", papel: "garçonete" }],
   fatos: ["helena", "carro", "abrigo"],
   falas: {
-    abertura: "Aqui é o Renato. Eu vim de depois de amanhã, e ele também. Ele não negocia, não cansa e não desiste. O alvo é a Helena, uma enfermeira que ainda não sabe quem vai ser. Aqueça com calma.",
-    missao: { caminhada: "A Helena está na lanchonete da rodovia, no fim do plantão. Caminhe firme. Encontre-a antes dele.",
-      corrida: "A Helena está na lanchonete da rodovia, no fim do plantão. Trote confortável. Encontre-a antes dele." },
-    rumo2: "A Helena está com você, assustada, mas vindo. Agora o carro, no estacionamento do posto. A chave está no quebra-sol.",
+    abertura: "Aqui é o Kaio Reis. Eu vim do futuro, e o T-80 também: a Céu-Net mandou. Ele não negocia, não cansa e não desiste. O alvo é a Sara Conrado, uma garçonete que ainda não sabe quem vai ser. Aqueça com calma.",
+    missao: { caminhada: "A Sara está na lanchonete da rodovia, no fim do turno. Caminhe firme. Encontre-a antes dele.",
+      corrida: "A Sara está na lanchonete da rodovia, no fim do turno. Trote confortável. Encontre-a antes dele." },
+    rumo2: "A Sara está com você, assustada, mas vindo. Agora o carro, no estacionamento do posto. A chave está no quebra-sol.",
     rumo3: "Carro funcionando. O abrigo fica no fim da estrada de terra. Siga tranquilo, por enquanto.",
-    marco1: "Lanchonete. A Helena largou o café no balcão e veio. Ela pergunta quem você é. Diga que explica depois.",
+    marco1: "Lanchonete. A Sara largou a bandeja no balcão e veio. Ela pergunta quem você é. Diga que explica depois.",
     marco2: "Estacionamento do posto. A chave estava no quebra-sol. O motor pegou na segunda tentativa.",
-    amb: ["Uma moto passa devagar. O motoqueiro olha demais para vocês.", "A Helena pergunta se isso é sério. Você só faz que sim.", "Faróis no retrovisor, constantes, sempre na mesma distância."],
-    aviso1: "Renato no rádio: ele está na lanchonete, perguntando pelo nome dela! Prepare-se para aumentar o ritmo, se puder.",
+    amb: ["Uma moto passa devagar. O motoqueiro olha demais para vocês.", "A Sara pergunta se isso é sério. Você só faz que sim.", "Faróis no retrovisor, constantes, sempre na mesma distância."],
+    aviso1: "Kaio no rádio: ele está na lanchonete, perguntando pelo nome dela! Prepare-se para aumentar o ritmo, se puder.",
     aviso2: "Passos pesados e regulares atrás de vocês. Prepare-se para acelerar, se puder.",
-    fuga1: "Você abriu distância e chegou à lanchonete primeiro. A Helena está com você! Reduza o ritmo e recupere.",
+    fuga1: "Você abriu distância e chegou à lanchonete primeiro. A Sara está com você! Reduza o ritmo e recupere.",
     fuga2: "Escapou! E eu trouxe o carro até vocês. Reduza e recupere.",
-    desfecho1: "Ele chegou a poucos metros, mas um caminhão passou entre vocês e ele perdeu a varredura. A Helena está com você. Pode reduzir.",
+    desfecho1: "Ele chegou a poucos metros, mas um caminhão passou entre vocês e ele perdeu a varredura. Antes de sumir, a voz metálica disse só: eu volto. A Sara está com você. Pode reduzir.",
     cancelada1: "Ativamos uma distração: o alarme do posto disparou. Pode continuar no confortável.",
-    guiada1: "Pronto, pode reduzir. Eu não meço o seu ritmo daqui, mas a Helena já está com você.",
+    guiada1: "Pronto, pode reduzir. Eu não meço o seu ritmo daqui, mas a Sara já está com você.",
     desaquecimento: "Últimos minutos. Diminua aos poucos. A estrada de terra está silenciosa.",
-    fimCompleto: "Abrigo trancado, Helena segura, e lá fora só o vento. Daqui a muitos anos, alguém vai agradecer o que você fez hoje. Missão cumprida.",
-    fimParcial: "A Helena está com você, mas sem carro vamos a pé até o abrigo. É longe, mas ela acredita agora. Você fez o principal.",
-    fimReserva: "Você está inteiro, e isso vem primeiro. A Helena se escondeu com amigos. Amanhã a gente a encontra.",
+    fimCompleto: "Abrigo trancado, Sara segura, e lá fora só o vento. Daqui a muitos anos, alguém vai agradecer o que você fez hoje. Missão cumprida.",
+    fimParcial: "A Sara está com você, mas sem carro vamos a pé até o abrigo. É longe, mas ela acredita agora. Você fez o principal.",
+    fimReserva: "Você está inteiro, e isso vem primeiro. A Sara se escondeu com amigos. Amanhã a gente a encontra.",
   },
 });
 
 const MISSAO_ILHA = montarMissaoZumbi({
-  id: "ilha-ambar", monstro: "dinossauro", nome: "Ilha Âmbar", icone: "🦖", narrador: "Doutor Elias",
-  resumo: "A tempestade derrubou a energia do parque. As cercas estão desligadas, e eles perceberam.",
-  personagens: [{ id: "elias", nome: "Doutor Elias Gomes", papel: "paleontólogo" }, { id: "mel", nome: "Mel", papel: "técnica de sistemas do parque" }],
+  id: "ilha-ambar", monstro: "dinossauro", nome: "Parque Juráxico", icone: "🦖", narrador: "Doutor Alan Grana",
+  resumo: "A tempestade derrubou a energia do Parque Juráxico. As cercas estão desligadas, e o T-Rex percebeu.",
+  personagens: [{ id: "grana", nome: "Doutor Alan Grana", papel: "paleontólogo" }, { id: "mel", nome: "Mel", papel: "técnica de sistemas do parque" }, { id: "hamundo", nome: "Seu Hamundo", papel: "dono do parque, que não poupou despesas" }],
   fatos: ["gerador", "cerca", "heliponto"],
   falas: {
-    abertura: "Aqui é o doutor Elias, da Ilha Âmbar. A tempestade derrubou a energia do parque, e as cercas estão desligadas. Repare no copo d'água do painel: ele treme em círculos. Aqueça com calma.",
+    abertura: "Aqui é o doutor Alan Grana, do Parque Juráxico. O Seu Hamundo não poupou despesas, mas a tempestade derrubou a energia do parque, e as cercas estão desligadas. Repare no copo d'água do painel: ele treme em círculos. Aqueça com calma.",
     missao: { caminhada: "O gerador de reserva fica no galpão de manutenção. Caminhe firme e em movimento constante. A Mel está na sala de controle.",
       corrida: "O gerador de reserva fica no galpão de manutenção. Trote confortável e em movimento constante. A Mel está na sala de controle." },
     rumo2: "Gerador funcionando. Agora as cercas: a Mel precisa que alguém religue o disjuntor do setor leste.",
@@ -10287,11 +10304,11 @@ const MISSAO_ILHA = montarMissaoZumbi({
     marco1: "Galpão de manutenção. O gerador pegou na terceira puxada. As luzes do caminho acendem uma a uma.",
     marco2: "Disjuntor do setor leste. Você subiu a alavanca, e a cerca voltou a zumbir de ponta a ponta.",
     amb: ["Uma poça na trilha treme em ondinhas, sem vento nenhum.", "A Mel no rádio: os sensores mostram um bando pequeno, rápido, no setor norte.", "O cheiro de chuva e de folha molhada é forte. Continue no confortável."],
-    aviso1: "Elias no rádio: o chão está tremendo perto do galpão! Prepare-se para aumentar o ritmo, se puder.",
+    aviso1: "Grana no rádio: o chão está tremendo perto do galpão! Prepare-se para aumentar o ritmo, se puder.",
     aviso2: "Ele viu você se mexer. Prepare-se para acelerar, se puder.",
     fuga1: "Você abriu distância e chegou ao galpão. Reduza o ritmo e recupere.",
     fuga2: "Escapou! E a Mel religou a cerca pelo sistema enquanto você corria. Reduza e recupere.",
-    desfecho1: "Ele chegou perto, mas o Elias acendeu um sinalizador vermelho e ele foi atrás da luz. O gerador está ligado. Pode reduzir.",
+    desfecho1: "Ele chegou perto, mas o Grana acendeu um sinalizador vermelho e ele foi atrás da luz. O gerador está ligado. Pode reduzir.",
     cancelada1: "Ativamos uma distração: o alarme do curral de cabras disparou. Pode continuar no confortável.",
     guiada1: "Pronto, pode reduzir. Eu não meço o seu ritmo daqui, mas o gerador já está ligado.",
     desaquecimento: "Últimos minutos. Diminua aos poucos. Já dá para ouvir o helicóptero.",
@@ -10300,7 +10317,6 @@ const MISSAO_ILHA = montarMissaoZumbi({
     fimReserva: "Você chegou inteiro ao centro de visitantes, e isso vem primeiro. A porta é grossa. O resgate chega ao amanhecer.",
   },
 });
-
 
 // ---- O radar: a distância (fictícia) e o placar da missão ----
 // A distância sai da ameaça do motor (0 = longe, 1 = encostando), que já é a
@@ -10347,7 +10363,34 @@ function placarMissao(s) {
   return { fugas: decididas.filter((p) => p.resultado === "fugiu").length, decididas: decididas.length, sequencia: seq, melhorSeq: melhorSeq,
     noAlvoMs: ps.reduce((a, p) => a + (p.noAlvoMs || 0), 0), km: Math.round(m / 10) / 100 };
 }
-const MISSOES_ZUMBI = [MISSAO_ULTIMO_SINAL, MISSAO_REMEDIO, MISSAO_TREM, MISSAO_SEMENTES, MISSAO_PIPOCA, MISSAO_LUZ,
+const MISSAO_MAROMBEIRO = montarMissaoZumbi({
+  id: "fuga-do-marombeiro", monstro: "marombeiro", nome: "Fuga do Marombeiro", icone: "🏋️", narrador: "Jarvis",
+  resumo: "Você faltou ao treino de perna, e o Marombeiro, criador do Treino Livre, descobriu. Ele só para quando vir o treino registrado.",
+  personagens: [{ id: "carlos", nome: "O Marombeiro (Carlos Jr.)", papel: "criador do Treino Livre, barba branca e braço de aço" }, { id: "jarvis", nome: "Jarvis", papel: "o assistente de voz do app" }],
+  fatos: ["garrafa", "registro", "paz"],
+  falas: {
+    abertura: "Aqui é o Jarvis, do Treino Livre. Notícia ruim: você faltou ao treino de perna, e o Marombeiro descobriu. Barba branca, braço de aço, e ele nunca pula o dia de perna. Aqueça com calma.",
+    missao: { caminhada: "Primeiro, a sua garrafinha, que ficou no vestiário da academia. Caminhe firme. Se ele vir você parado, vai querer saber o porquê.",
+      corrida: "Primeiro, a sua garrafinha, que ficou no vestiário da academia. Trote confortável. Se ele vir você parado, vai querer saber o porquê." },
+    rumo2: "Garrafinha na mão. Agora o único jeito de acalmar o Marombeiro: registrar um treino de verdade no Treino Livre. Ele confere o app de hora em hora.",
+    rumo3: "Treino registrado. Ele está abrindo o app neste momento. Siga tranquilo e deixe o histórico falar por você.",
+    marco1: "Vestiário. A garrafinha estava no banco, ao lado de uma toalha com a logo do Treino Livre. Pegue e siga no seu ritmo.",
+    marco2: "Treino anotado no app, com série, carga e tudo. Eu conferi: está no histórico.",
+    amb: ["O shaker dele faz barulho a cada passo. Whey de chocolate: dá para sentir o cheiro daqui.", "Ele passou por uma vitrine e parou dois segundos para conferir o bíceps. Ponto para você.", "Ao longe, alguém grita: mais uma! Mais uma! É ele, motivando um desconhecido na academia."],
+    aviso1: "Alerta do Jarvis: o Marombeiro saiu da academia e está vindo, de regata e barba ao vento! Prepare-se para aumentar o ritmo, se puder.",
+    aviso2: "Ele viu a garrafinha na sua mão e sabe que você não treinou. Prepare-se para acelerar, se puder.",
+    fuga1: "Você abriu distância e pegou a garrafinha. Ele ficou para trás, alongando a panturrilha. Reduza o ritmo e recupere.",
+    fuga2: "Escapou! E eu registrei o treino no app enquanto você corria. Reduza e recupere.",
+    desfecho1: "Ele te alcançou, pôs a mão no seu ombro e disse: amanhã, perna, seis da manhã. Depois foi tomar o whey. A garrafinha ficou com você. Pode reduzir.",
+    cancelada1: "Ativamos uma distração: alguém pediu para ele explicar a técnica do agachamento. Isso leva meia hora. Pode continuar no confortável.",
+    guiada1: "Pronto, pode reduzir. Eu não meço o seu ritmo daqui, mas a garrafinha já está com você.",
+    desaquecimento: "Últimos minutos. Diminua aos poucos. Ele está olhando o app, com o polegar em cima do botão de joinha.",
+    fimCompleto: "O Marombeiro abriu o Treino Livre, viu o seu treino registrado e mandou um joinha. Você está perdoado, por hoje. Missão cumprida. Siga o Marombeiro no Instagram.",
+    fimParcial: "Você pegou a garrafinha, mas o treino não foi registrado. Ele mandou mensagem: perna, amanhã, sem desculpa. Pelo menos você correu.",
+    fimReserva: "Você escapou por hoje, mas ele vai estar na academia amanhã cedo. E ele nunca falta.",
+  },
+});
+const MISSOES_ZUMBI = [MISSAO_MAROMBEIRO, MISSAO_ULTIMO_SINAL, MISSAO_REMEDIO, MISSAO_TREM, MISSAO_SEMENTES, MISSAO_PIPOCA, MISSAO_LUZ,
   MISSAO_LUA_CHEIA, MISSAO_PRATA, MISSAO_AMANHECER, MISSAO_BAILE, MISSAO_PEDREIRA, MISSAO_RELOGIO, MISSAO_MARE, MISSAO_CANTO,
   MISSAO_HEROI, MISSAO_AO_VIVO, MISSAO_VERAO, MISSAO_CARGUEIRO, MISSAO_OUTRO_LADO, MISSAO_FUTURO, MISSAO_ILHA];
 // "todos" ou o id de um monstro
@@ -10449,6 +10492,7 @@ function registroZumbi(id, inicioISO, motor, missao, extra) {
       fugasMedidas: r.fugasMedidas, fugasEstimadas: r.fugasEstimadas, guiadas: r.guiadas, canceladas: r.canceladas,
       desfechos: r.desfechos, naoAvaliadas: r.naoAvaliadas, noAlvoMs: r.noAlvoMs, trocasOrigem: r.trocasOrigem,
       fatos: Object.keys(s.fatos), origem: cfg.fonte === "guiado" ? null : s.origem,
+      maisPerto: extra && extra.maisPerto != null ? Math.round(extra.maisPerto) : null,
       velocidade: cfg.fonte === "guiado" ? null : serieVelocidadeZumbi(s.graf, s.tAtivo),
     },
   };
@@ -11530,6 +11574,9 @@ function TelaCorredor({ historico, exPorId, corredor, setCorredor, onVoltar, onP
 const SOM_MONSTRO = {
   zumbi: { onda: "sawtooth", f: 105, sobe: 40, vibF: 4.5, vibA: 7, corte: 650, respF: 650, respRit: 0.35, passo: [85, 42, 0.22], passoBase: 1.1, passoVel: 0.65 },
   lobisomem: { onda: "triangle", f: 120, sobe: 30, vibF: 3, vibA: 4, corte: 500, respF: 900, respRit: 0.9, passo: [140, 70, 0.1], passoBase: 0.6, passoVel: 0.3, uivo: true },
+  // o Marombeiro: grunhido de quem tira o peso do chão, respiração pesada, passo firme
+  marombeiro: { onda: "sawtooth", f: 85, sobe: 25, vibF: 2, vibA: 3, corte: 450, respF: 700, respRit: 0.6, passo: [72, 38, 0.25], passoBase: 0.75, passoVel: 0.3,
+    uivo: true, grito: { de: 120, ate: 180, fim: 100, onda: "sawtooth", corte: 900 } },
   // o herói: zumbido elétrico de quem paira no ar, vento de voo, sem passos
   superser: { onda: "sine", f: 90, sobe: 30, vibF: 6, vibA: 2, corte: 900, respF: 4000, respRit: 0.5, passo: null },
   // duas notas graves, meio tom de distância, cada vez mais rápidas
@@ -11828,7 +11875,7 @@ function GraficoZumbi({ z }) {
 // Distância em metros, se ele está chegando ou ficando para trás, quanto falta
 // para a fuga valer, a velocidade para pôr na esteira e o placar da missão.
 // Tudo ficção sobre os números reais do motor, e a tela diz isso.
-function RadarMonstro({ m, monstro, kmhAgora, esteira, velDecl, som }) {
+function RadarMonstro({ m, monstro, kmhAgora, esteira, velDecl, som, pertoR }) {
   const s = m.s, p = m.perseguicaoAtual();
   const pontos = useRef([]);
   const recorde = useRef({ perto: null, longe: 0 });
@@ -11851,6 +11898,7 @@ function RadarMonstro({ m, monstro, kmhAgora, esteira, velDecl, som }) {
     if (s.fase !== "aviso") {
       recorde.current.perto = recorde.current.perto === null ? dist : Math.min(recorde.current.perto, dist);
       if (p.st && p.st.dentro) recorde.current.longe = Math.max(recorde.current.longe, dist);
+      if (pertoR) pertoR.current = recorde.current.perto;
     }
   } else pontos.current = [];
   const lr = leituraRadar(pontos.current);
@@ -11905,7 +11953,10 @@ function RadarMonstro({ m, monstro, kmhAgora, esteira, velDecl, som }) {
           {emEsforco && r !== null && (
             <g style={{ transition: "transform .5s" }} transform={"translate(" + bx.toFixed(1) + " " + by.toFixed(1) + ")"}>
               <circle r="11" fill={zona.cor + "33"} stroke={zona.cor} strokeWidth="1.5" />
-              <text y="5" textAnchor="middle" fontSize="13">{monstro.icone}</text>
+              {monstro.foto
+                ? <React.Fragment><clipPath id="zbFotoBlip"><circle r="10" /></clipPath>
+                    <image href={monstro.foto} x="-10" y="-10" width="20" height="20" clipPath="url(#zbFotoBlip)" preserveAspectRatio="xMidYMid slice" /></React.Fragment>
+                : <text y="5" textAnchor="middle" fontSize="13">{monstro.icone}</text>}
             </g>
           )}
         </svg>
@@ -11958,6 +12009,28 @@ function RadarMonstro({ m, monstro, kmhAgora, esteira, velDecl, som }) {
     </div>
   );
 }
+// A abertura do Marombeiro: a foto vem correndo na direção da tela, a tela
+// treme, e entra o grito. Um toque pula; some sozinha em 3,4 s.
+function AberturaMarombeiro({ mo, som, onFim }) {
+  useEffect(() => {
+    const t = setTimeout(onFim, 3400);
+    if (som !== false) setTimeout(() => { try { beep(110, 0.25, 0.3); setTimeout(() => beep(82, 0.35, 0.35), 180); } catch (e) {} }, 2300);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div className="mb-anima" onClick={onFim} role="img" aria-label={mo.nome + " corre na sua direção: hoje é dia de perna!"}
+      style={{ position: "fixed", inset: 0, zIndex: 2000, background: "radial-gradient(circle at 50% 40%, #1A2A1E, #030503 70%)", overflow: "hidden", cursor: "pointer",
+        animation: "mbTreme .12s linear 2.3s 5" }}>
+      <img src={mo.fotoCorpo} alt="" style={{ position: "absolute", left: "50%", bottom: 0, height: "86%", marginLeft: "-31%", width: "62%", objectFit: "cover", objectPosition: "top",
+        borderRadius: 18, animation: "mbChega 2.6s cubic-bezier(.5,0,.9,.5) both", transformOrigin: "50% 100%" }} />
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: "9%", textAlign: "center", animation: "mbTexto .35s ease-out 2.3s both" }}>
+        <div style={{ fontSize: 38, fontWeight: 900, color: "#7CFF3C", fontFamily: "Impact, 'Arial Black', sans-serif", letterSpacing: 1, textShadow: "0 4px 18px #000" }}>HOJE É DIA DE PERNA!</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "#F2F0EC", marginTop: 6, textShadow: "0 2px 10px #000" }}>{NOME_ZUMBI} · @{INSTAGRAM}</div>
+      </div>
+      <div style={{ position: "absolute", bottom: 14, left: 0, right: 0, textAlign: "center", fontSize: 11, color: "#8FBF96" }}>toque para pular</div>
+    </div>
+  );
+}
 function ResumoZumbiCard({ z }) {
   if (!z) return null;
   const classe = { medida: "medida pelo GPS", estimada: "estimada pelos passos", declarada: "pela velocidade informada", simulada: "simulada" };
@@ -11998,6 +12071,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   const [legenda, setLegenda] = useState("");
   const [aviso, setAviso] = useState("");
   const [velDecl, setVelDecl] = useState(cfg.atividade === "caminhada" ? 5 : 8);
+  const [intro, setIntro] = useState(false);   // a abertura do monstro com foto
   const [salvo, setSalvo] = useState(false);
   const [guardado, setGuardado] = useState(null);   // checkpoint achado ao abrir
   const motor = useRef(null), paisagem = useRef(null), filaR = useRef(null);
@@ -12005,6 +12079,8 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   const fatos = useRef({}), usadas = useRef([]), ultimaFala = useRef("");
   // a história desta sessão (na "aleatória", sorteada no começar)
   const missaoR = useRef(MISSAO_ULTIMO_SINAL);
+  // o mais perto que o monstro chegou, medido pelo radar (vai para o resumo)
+  const maisPertoR = useRef(null);
   const missaoVista = cfg.missao === "aleatoria" ? null : missaoZumbiPorId(cfg.missao);
   // o som da prévia: o da história escolhida, senão o do monstro filtrado
   const monstroVisto = missaoVista ? monstroDe(missaoVista).id : cfg.monstro !== "todos" ? cfg.monstro : "zumbi";
@@ -12157,8 +12233,9 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
     try { ultima = localStorage.getItem("treinolivre:zumbi-ultima"); } catch (e) {}
     missaoR.current = cfg.missao === "aleatoria" ? sortearMissaoZumbi(ultima, null, cfg.monstro) : missaoZumbiPorId(cfg.missao);
     try { localStorage.setItem("treinolivre:zumbi-ultima", missaoR.current.id); } catch (e) {}
+    if (monstroDe(missaoR.current).fotoCorpo) setIntro(true);
     meta.current = { id: "zr-" + Date.now(), inicio: new Date().toISOString(), pausadoMs: 0, pausaDesde: null, pts: [], seg: 0, missao: missaoR.current.id };
-    fatos.current = {}; usadas.current = [];
+    fatos.current = {}; usadas.current = []; maisPertoR.current = null;
     filaR.current = criarFilaFalas(falarUma);
     mult.current = 1;
     if (cfgFinal.fonte === "passos") {
@@ -12218,7 +12295,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   };
   const registro = etapa === "fim" && motor.current
     ? registroZumbi(meta.current.id, meta.current.inicio, motor.current, missaoR.current,
-      { km: cfgFinal.fonte === "gps" && meta.current.pts.length > 1 ? resumoRota(meta.current.pts).km : 0, pausadoMs: meta.current.pausadoMs })
+      { km: cfgFinal.fonte === "gps" && meta.current.pts.length > 1 ? resumoRota(meta.current.pts).km : 0, pausadoMs: meta.current.pausadoMs, maisPerto: maisPertoR.current })
     : null;
 
   // ---------- telas ----------
@@ -12270,8 +12347,10 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
             <div style={{ marginBottom: 14 }}>
               <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Monstro</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-                {[{ id: "todos", icone: "🎲", nome: "Todos" }].concat(Object.values(MONSTROS_ZUMBI).filter((x) => !x.grupo), [{ id: "_cinema" }], Object.values(MONSTROS_ZUMBI).filter((x) => x.grupo === "cinema")).map((mo) => mo.id === "_cinema" ? (
-                  <div key="_cinema" style={{ flexBasis: "100%", fontSize: 10.5, color: "var(--cinza)", fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", margin: "6px 0 0" }}>🎬 Inspirados em filmes e séries</div>
+                {[{ id: "todos", icone: "🎲", nome: "Todos" }, { id: "_especial" }].concat(Object.values(MONSTROS_ZUMBI).filter((x) => x.grupo === "especial"), [{ id: "_classicos" }],
+                  Object.values(MONSTROS_ZUMBI).filter((x) => !x.grupo), [{ id: "_cinema" }], Object.values(MONSTROS_ZUMBI).filter((x) => x.grupo === "cinema")).map((mo) => mo.id.charAt(0) === "_" ? (
+                  <div key={mo.id} style={{ flexBasis: "100%", fontSize: 10.5, color: "var(--cinza)", fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", margin: "6px 0 0" }}>
+                    {{ _especial: "⭐ Especial do criador", _classicos: "👻 Clássicos", _cinema: "🎬 Paródias de filmes e séries" }[mo.id]}</div>
                 ) : (
                   <button key={mo.id} aria-pressed={cfg.monstro === mo.id}
                     onClick={() => setCfg((c) => Object.assign({}, c, { monstro: mo.id },
@@ -12288,11 +12367,22 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
                 <button key={m.id} onClick={() => up("missao", m.id)} aria-pressed={cfg.missao === m.id}
                   style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", marginBottom: 6, borderRadius: 12, cursor: "pointer",
                     border: "1px solid " + (cfg.missao === m.id ? "#7CFF3C" : "var(--borda2)"), background: cfg.missao === m.id ? "#7CFF3C1c" : "transparent", color: "var(--texto)" }}>
+                  {m.fatos && monstroDe(m).foto && <img src={monstroDe(m).foto} alt="" style={{ float: "right", width: 46, height: 46, borderRadius: 23, objectFit: "cover", marginLeft: 8, border: "2px solid #7CFF3C" }} />}
                   <div style={{ fontWeight: 900, fontSize: 14, color: cfg.missao === m.id ? "#7CFF3C" : "var(--texto)" }}>{m.icone} {m.nome}{m.fatos && cfg.monstro === "todos" ? <span style={{ fontWeight: 700, fontSize: 11.5, color: "var(--cinza)" }}> · {monstroDe(m).icone} {monstroDe(m).nome}</span> : null}</div>
                   <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 2, lineHeight: 1.4 }}>{m.resumo}</div>
                 </button>
               ))}
             </div>
+            {((missaoVista && monstroDe(missaoVista).instagram) || cfg.monstro === "marombeiro") && (
+              <div style={{ display: "flex", gap: 12, alignItems: "stretch", marginBottom: 14, padding: 10, borderRadius: 14, background: "#0A140D", border: "1px solid #7CFF3C55" }}>
+                <img src={MONSTROS_ZUMBI.marombeiro.fotoCorpo} alt="O Marombeiro: Carlos Jr., criador do Treino Livre" style={{ width: "38%", maxWidth: 150, borderRadius: 10, objectFit: "cover", objectPosition: "top" }} />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  <div style={{ fontWeight: 900, fontSize: 16, color: "#7CFF3C" }}>🏋️ O Marombeiro</div>
+                  <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, margin: "6px 0 10px" }}>É o Carlos Jr., criador do Treino Livre. Barba branca, braço de aço e nenhum dia de perna perdido.</div>
+                  <a href={LINK_INSTAGRAM} target="_blank" rel="noopener" style={{ ...S.btn, textDecoration: "none", textAlign: "center", padding: "10px", fontSize: 13.5 }}>📸 Seguir @{INSTAGRAM}</a>
+                </div>
+              </div>
+            )}
             {linha("Onde", [chip("ambiente", "rua", "🌆 Rua"), chip("ambiente", "esteira", "🏃 Esteira")])}
             {linha("Atividade", [chip("atividade", "caminhada", "🚶 Caminhada"), chip("atividade", "corrida", "🏃 Corrida"), chip("atividade", "alternada", "🔁 Alternada")])}
             {linha("Experiência", [chip("experiencia", "adaptativa", "🎲 Aventura"), chip("experiencia", "intervalos", "⏱ Intervalos"), chip("experiencia", "historia", "📖 Só a história")])}
@@ -12419,6 +12509,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
     return (
       <div>
         {voltar}
+        {intro && <AberturaMarombeiro mo={monstroDe(missaoR.current)} som={som} onFim={() => setIntro(false)} />}
         <div style={{ ...S.card, background: "linear-gradient(180deg, #0B1A10, #050805)", borderColor: "#1E3A28", color: "#E8F5E9" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
             <div style={{ fontSize: 13, fontWeight: 900, color: "#7CFF3C", letterSpacing: 1.5, textTransform: "uppercase" }}>{s.pausado ? "⏸ Pausado" : NOME_FASE_ZUMBI[s.fase] || s.fase}</div>
@@ -12440,7 +12531,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
             </div>
           </div>
           <div style={{ fontSize: 11, color: "#8FBF96", textAlign: "center", marginTop: 4 }}>Ritmo: {origemTxt}{s.sinalOk === false && cfgFinal.fonte !== "guiado" ? " — perseguições esperam o sinal" : ""}</div>
-          <RadarMonstro m={m} monstro={monstroDe(missaoR.current)} som={som}
+          <RadarMonstro m={m} monstro={monstroDe(missaoR.current)} som={som} pertoR={maisPertoR}
             kmhAgora={temLeitura && cfgFinal.fonte !== "guiado" ? kmhDeMs(ultima.valor) : null}
             esteira={cfgFinal.ambiente === "esteira"} velDecl={cfgFinal.fonte === "declarado" ? velDecl : null} />
           {/* a barra antiga fica para leitores de tela: rótulo e número além da cor */}
@@ -12487,7 +12578,9 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
       <div>
         {voltar}{titulo}
         <div style={S.card}>
-          <div style={{ ...S.label, marginBottom: 8 }}>{fatos.current.farol ? "📡 O último sinal não se apagou" : "🏠 De volta ao abrigo"}</div>
+          <BotaoResumoAnimado registro={registro} exPorId={exPorId} historico={historico} vozCfg={vozCfg} rotulo="▶ Ver resumo animado da missão"
+            estilo={{ ...S.btn, width: "100%", marginBottom: 14, padding: "14px", fontSize: 15, color: "#fff", border: "none" }} />
+          <div style={{ ...S.label, marginBottom: 8 }}>{monstroResumo(registro) && monstroResumo(registro).completo ? "✅ Missão cumprida" : "🏠 Você voltou inteiro"}</div>
           <ResumoZumbiCard z={z} />
           {z.velocidade && <div style={{ marginTop: 12 }}><GraficoZumbi z={z} /></div>}
           {registro.itens[0].series[0].km && <div style={{ fontSize: 12.5, marginTop: 8 }}>🗺 {num1(+registro.itens[0].series[0].km)} km medidos pelo GPS</div>}
@@ -12980,6 +13073,37 @@ const DICA_CARDIO = {
 // O que entra: { id, nome, data, itens, rota } — um registro de histórico, ou
 // o pedaço da sessão que já foi feito. O histórico pode ou não conter o próprio
 // registro: ele é tirado e recolocado aqui.
+// Quem é o monstro, dito em voz alta: "o Capitão Pátio chegou", "os zumbis chegaram"
+// As fotos do monstro para o canvas do vídeo: carregadas uma vez, usadas quando prontas
+const IMAGENS_MONSTRO = {};
+function imagemMonstro(url) {
+  if (!url || typeof Image === "undefined") return null;
+  let im = IMAGENS_MONSTRO[url];
+  if (!im) { im = new Image(); im.src = url; IMAGENS_MONSTRO[url] = im; }
+  return im.complete && im.naturalWidth ? im : null;
+}
+const QUEM_MONSTRO = { marombeiro: ["o Marombeiro"], zumbi: ["os zumbis", true], lobisomem: ["o lobisomem"], vampiro: ["os vampiros", true], golem: ["o golem"],
+  kraken: ["a criatura do mar"], superser: ["o Capitão Pátio"], tubarao: ["o tubarão"], alienigena: ["o alien"], sombra: ["o Demogorgão"],
+  maquina: ["o T-80"], dinossauro: ["o T-Rex"] };
+const quemMonstro = (mo) => { const q = QUEM_MONSTRO[mo.id] || ["ele"]; return { nome: q[0], plural: !!q[1] }; };
+const maiuscula = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+const ICONE_RESULTADO_ZUMBI = { fugiu: "✅", alcancado: "💀", cancelada: "✋", "nao-avaliada": "📡", guiada: "🧭" };
+// A missão de monstro no resumo animado: o que a história e o motor guardaram
+function monstroResumo(registro) {
+  const z = registro.zumbi;
+  if (!z) return null;
+  const missao = missaoZumbiPorId(z.missao), mo = monstroDe(missao);
+  imagemMonstro(mo.foto); imagemMonstro(mo.fotoCorpo);
+  const fatos = {};
+  (z.fatos || []).forEach((f) => { fatos[f] = true; });
+  const fim = escolherCena(missao, "fim", fatos, []);
+  const ps = (z.persegs || []).filter((p) => ICONE_RESULTADO_ZUMBI[p.resultado]);
+  const fugas = ps.filter((p) => p.resultado === "fugiu");
+  const picos = fugas.map((p) => p.alvo).filter(Boolean);
+  return { missao: missao, mo: mo, quem: quemMonstro(mo), ps: ps, fugas: fugas.length, alcancado: ps.filter((p) => p.resultado === "alcancado").length,
+    noAlvoMs: z.noAlvoMs || 0, maisPerto: z.maisPerto != null ? z.maisPerto : null, pico: picos.length ? Math.max.apply(null, picos) : null,
+    fim: fim ? falaDaCena(fim, z.cfg && z.cfg.atividade) : "", completo: !!fim && /fim-completo|fim-farol/.test(fim.id), parcial: !!fim && fim.id === "fim-parcial" };
+}
 function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
   const quando = new Date(registro.data || Date.now());
   const outros = (historico || []).filter((x) => x.id !== registro.id);
@@ -13058,7 +13182,8 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
       trechos: pts && pts.length > 1 ? trechosRota(pts) : null,
     };
   }
-  if (!d.forca && !d.cardio) return null;
+  d.monstro = monstroResumo(registro);
+  if (!d.forca && !d.cardio && !d.monstro) return null;
   // os recordes de corrida e caminhada que este treino bateu
   if (d.cardio) {
     const novos = recordesNovos(atividadesDeCorrida(comEle, exPorId), registro.id);
@@ -13086,7 +13211,28 @@ function cenasResumo(d) {
   const dia = DIAS_RESUMO[d.data.getDay()] + ", " + d.data.getDate() + " de " + MESES_RESUMO[d.data.getMonth()];
   const sub = [d.forca ? d.exercicios + " " + plural(d.exercicios, "exercício", "exercícios") : "",
     d.duracao ? d.duracao + " min" : ""].filter(Boolean).join(" · ");
-  c.push({ tipo: "abre", rotulo: "Resumo do treino", titulo: d.nome, dia: dia, sub: sub,
+  const M = d.monstro;
+  if (M) {
+    c.push({ tipo: "abre", rotulo: NOME_ZUMBI, titulo: M.missao.icone + " " + M.missao.nome, dia: dia,
+      sub: [M.mo.icone + " " + M.mo.nome, d.duracao ? d.duracao + " min" : ""].filter(Boolean).join(" · "),
+      fala: "Monster, Run! " + M.missao.nome + "." });
+    if (M.ps.length) {
+      const q = M.quem;
+      c.push({ tipo: "perseguicoes", rotulo: plural(M.ps.length, "Perseguição", "Perseguições"), valor: M.fugas, total: M.ps.length, icone: M.mo.icone, foto: M.mo.foto,
+        linhas: M.ps.map((p, i) => ({ ok: p.resultado === "fugiu", texto: ICONE_RESULTADO_ZUMBI[p.resultado] + " " + (i + 1) + "ª · " +
+          (p.resultado === "fugiu" ? "fuga" + (p.alvo ? " a " + num1(kmhDeMs(p.alvo)) + " km/h" : "") : NOME_RESULTADO_ZUMBI[p.resultado]) })).slice(0, 6),
+        sub: M.noAlvoMs >= 1000 ? fmtTempoRota(M.noAlvoMs) + " no ritmo da fuga" : "",
+        fala: M.ps.length + " " + plural(M.ps.length, "perseguição", "perseguições") + ", " + M.fugas + " " + plural(M.fugas, "fuga", "fugas") + "." +
+          (M.alcancado ? " Em " + M.alcancado + ", " + (q.plural ? q.nome + " te alcançaram" : q.nome + " te alcançou") + "." : M.fugas === M.ps.length && M.fugas > 1 ? " Nenhuma vez alcançado." : "") +
+          (M.pico ? " A fuga mais rápida foi a " + num1(kmhDeMs(M.pico)) + " por hora." : "") });
+    }
+    if (M.maisPerto != null) {
+      const z = zonaRadar(M.maisPerto), q = M.quem;
+      c.push({ tipo: "radar", rotulo: "O mais perto que " + (q.plural ? "chegaram" : "chegou"), valor: M.maisPerto, icone: M.mo.icone, foto: M.mo.foto, cor: z.cor, sub: z.nome,
+        fala: maiuscula(q.nome) + " " + (q.plural ? "chegaram" : "chegou") + " a " + M.maisPerto + " metros de você." +
+          (M.maisPerto <= 60 ? " Essa foi por pouco." : M.maisPerto > 150 ? " Nunca chegou perto de verdade." : "") });
+    }
+  } else c.push({ tipo: "abre", rotulo: "Resumo do treino", titulo: d.nome, dia: dia, sub: sub,
     fala: "Resumo do treino. " + nomeFalado(d.nome) + "." });
 
   const f = d.forca;
@@ -13170,6 +13316,10 @@ function cenasResumo(d) {
     }
   }
 
+  if (M && M.fim) {
+    c.push({ tipo: "historia", rotulo: M.completo ? "Missão cumprida" : M.parcial ? "Missão em parte" : "Você voltou inteiro", icone: M.missao.icone,
+      texto: M.fim, cor: M.completo ? "#7CFF3C" : "#FFB020", fala: M.fim + (M.mo.instagram ? " No Instagram: arroba " + INSTAGRAM.split(".").join(" ponto ") + "." : ""), fotoGrande: M.mo.fotoCorpo || null, rodape: M.mo.instagram ? "@" + INSTAGRAM : "" });
+  }
   if (d.recCorrida) {
     const rc = d.recCorrida.slice().sort((a, b) => b.m - a.m).slice(0, 4);
     const falaDist = (m) => (m === 1609 ? "1 milha" : m === 21097 ? "meia maratona" : m === 42195 ? "maratona" : m >= 1000 ? (m / 1000) + (m === 1000 ? " quilômetro" : " quilômetros") : m + " metros");
@@ -13185,7 +13335,7 @@ function cenasResumo(d) {
         (nv.proximo ? " Faltam " + nv.faltam + " pontos para " + nv.proximo.nome + "." : "") });
   }
   const meta = d.cardio && d.cardio.semana >= META_CARDIO_SEMANA;
-  c.push({ tipo: "fecho", fala: meta ? "Meta cumprida. Até a próxima." : "Bom treino. Até a próxima." });
+  c.push({ tipo: "fecho", fala: M ? "Você sobreviveu. Até a próxima missão." : meta ? "Meta cumprida. Até a próxima." : "Bom treino. Até a próxima." });
   // tempo de cada cena: o suficiente para a frase caber
   c.forEach((x) => { x.ms = Math.max(3400, x.fala.split(" ").length * 420 + 900); });
   return c;
@@ -13337,6 +13487,60 @@ function CenaResumo({ c }) {
             </div>
           </div>
         ))}
+      </div>
+    );
+  }
+  if (c.tipo === "perseguicoes") {
+    return (
+      <div style={{ textAlign: "center", padding: "0 24px", width: "100%", maxWidth: 340 }}>
+        <div style={ROTULO_RESUMO}>{c.rotulo}</div>
+        {c.foto ? <img src={c.foto} alt="" style={{ width: 74, height: 74, borderRadius: 37, objectFit: "cover", marginTop: 8, border: "3px solid #7CFF3C" }} />
+          : <div style={{ fontSize: 50, marginTop: 8 }} aria-hidden="true">{c.icone}</div>}
+        <div style={{ ...NUMERO_RESUMO, fontSize: 64 }}>{Math.round(v)}<span style={{ fontSize: 30 }}>/{c.total}</span></div>
+        <div style={{ color: "#F2F0EC", fontSize: 15, fontWeight: 900, letterSpacing: 1, marginBottom: 8 }}>{plural(c.valor, "fuga", "fugas")}</div>
+        {c.linhas.map((l, k) => (
+          <div key={k} className="rs-marca" style={{ color: l.ok ? "#B9F6CA" : "#FFB4B4", fontSize: 15.5, fontWeight: 800, marginTop: 6, textAlign: "left", animationDelay: 0.6 + k * 0.18 + "s" }}>{l.texto}</div>
+        ))}
+        {c.sub && <div style={{ color: "#BDBDBD", fontSize: 14, fontWeight: 700, marginTop: 14 }}>{c.sub}</div>}
+      </div>
+    );
+  }
+  if (c.tipo === "radar") {
+    // o número desce de 300 até a distância, e o monstro anda junto no radar
+    const f = c.valor ? v / c.valor : 1, mostra = Math.round(RADAR_ALCANCE_M - (RADAR_ALCANCE_M - c.valor) * f);
+    // o centro tem folga: a 20 m o monstro encosta no anel, não em cima de você
+    const rr = (d) => 22 + Math.min(d, RADAR_ALCANCE_M) / RADAR_ALCANCE_M * 66, r = rr(mostra);
+    return (
+      <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={ROTULO_RESUMO}>{c.rotulo}</div>
+        <svg viewBox="0 0 200 200" width="230" height="230" style={{ marginTop: 10, display: "block" }} aria-hidden="true">
+          <circle cx="100" cy="100" r="96" fill="#071209" stroke="#1E3A28" strokeWidth="2" />
+          {[100, 200, 300].map((d) => <circle key={d} cx="100" cy="100" r={rr(d)} fill="none" stroke="#1E3A28" strokeDasharray="3 4" />)}
+          <circle cx="100" cy="100" r={rr(60)} fill="#FF4D4D14" stroke="#FF4D4D55" />
+          <g style={{ transformOrigin: "100px 100px", animation: "zb-varredura 2.6s linear infinite" }}>
+            <path d="M100 100 L100 12 A88 88 0 0 1 162 38 Z" fill="#7CFF3C33" />
+          </g>
+          <text x="100" y="106" textAnchor="middle" fontSize="18">🏃</text>
+          <g transform={"translate(100 " + (100 + r).toFixed(1) + ")"}>
+            <circle r="13" fill={c.cor + "33"} stroke={c.cor} strokeWidth="2" />
+            {c.foto ? <React.Fragment><clipPath id="rsFotoBlip"><circle r="12" /></clipPath>
+                <image href={c.foto} x="-12" y="-12" width="24" height="24" clipPath="url(#rsFotoBlip)" preserveAspectRatio="xMidYMid slice" /></React.Fragment>
+              : <text y="6" textAnchor="middle" fontSize="16">{c.icone}</text>}
+          </g>
+        </svg>
+        <div style={{ ...NUMERO_RESUMO, fontSize: 64, background: "none", WebkitTextFillColor: c.cor, color: c.cor }}>{mostra} m</div>
+        <div style={{ color: c.cor, fontSize: 16, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}>{c.sub}</div>
+      </div>
+    );
+  }
+  if (c.tipo === "historia") {
+    return (
+      <div style={{ textAlign: "center", padding: "0 26px", maxWidth: 360 }}>
+        {c.fotoGrande ? <img src={c.fotoGrande} alt="" className="rs-marca" style={{ height: 230, maxWidth: "70%", borderRadius: 14, objectFit: "cover", objectPosition: "top" }} />
+          : <div style={{ fontSize: 56 }} aria-hidden="true">{c.icone}</div>}
+        <div style={{ ...ROTULO_RESUMO, color: c.cor, fontSize: 15, marginTop: 6 }}>{c.rotulo}</div>
+        <div className="rs-marca" style={{ color: "#F2F0EC", fontSize: c.fotoGrande ? 16 : 18, fontWeight: 700, lineHeight: 1.5, marginTop: 12, animationDelay: "0.4s" }}>{c.texto}</div>
+        {c.rodape && <div style={{ color: "#7CFF3C", fontSize: 18, fontWeight: 900, marginTop: 12 }}>{c.rodape}</div>}
       </div>
     );
   }
@@ -13495,6 +13699,16 @@ function videoHalter(c) {
 }
 
 // Uma cena num instante p (ms desde o começo dela)
+// Foto redonda no canvas; devolve false quando ainda não carregou (aí vai o emoji)
+function videoFoto(c, url, x, y, r) {
+  const im = imagemMonstro(url);
+  if (!im) return false;
+  const lado = Math.min(im.naturalWidth, im.naturalHeight);
+  c.save(); c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.clip();
+  c.drawImage(im, (im.naturalWidth - lado) / 2, 0, lado, lado, x - r, y - r, r * 2, r * 2);
+  c.restore();
+  return true;
+}
 function videoCena(c, cena, p) {
   const conta = sobe((p - 350) / 1100);
   const t = cena.tipo;
@@ -13599,6 +13813,59 @@ function videoCena(c, cena, p) {
       c.textAlign = "center";
       videoBarra(c, 140, y + 26, 800, 26, (g.series / max) * sobe((p - 350 - k * 120) / 800), g.grupo.cor);
     });
+  } else if (t === "perseguicoes") {
+    videoRotulo(c, cena.rotulo, 560);
+    if (!videoFoto(c, cena.foto, 540, 690, 90)) videoTexto(c, cena.icone, 540, 740, 150, "#FFFFFF", 400);
+    videoTexto(c, Math.round((cena.valor || 0) * conta) + "/" + cena.total, 540, 940, 200, "grad", 900);
+    videoTexto(c, plural(cena.valor, "fuga", "fugas"), 540, 1020, 54, "#F2F0EC", 900);
+    cena.linhas.forEach((l, k) => {
+      const a = Math.max(0, Math.min(1, (p - 600 - k * 180) / 400));
+      c.globalAlpha = a;
+      videoTexto(c, l.texto, 540, 1130 + k * 76 + (1 - a) * 20, 46, l.ok ? "#B9F6CA" : "#FFB4B4", 800, 960);
+      c.globalAlpha = 1;
+    });
+    if (cena.sub) videoTexto(c, cena.sub, 540, 1160 + cena.linhas.length * 76, 40, "#BDBDBD", 700, 940);
+  } else if (t === "radar") {
+    videoRotulo(c, cena.rotulo, 520);
+    const mostra = Math.round(RADAR_ALCANCE_M - (RADAR_ALCANCE_M - cena.valor) * conta);
+    const cx = 540, cy = 900, R = 300;
+    c.fillStyle = "#071209"; c.beginPath(); c.arc(cx, cy, R + 14, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = "#1E3A28"; c.lineWidth = 4; c.setLineDash([10, 14]);
+    const rr = (d) => 75 + Math.min(d, RADAR_ALCANCE_M) / RADAR_ALCANCE_M * (R - 75);
+    [100, 200, 300].forEach((d) => { c.beginPath(); c.arc(cx, cy, rr(d), 0, Math.PI * 2); c.stroke(); });
+    c.setLineDash([]);
+    c.fillStyle = "#FF4D4D22"; c.beginPath(); c.arc(cx, cy, rr(60), 0, Math.PI * 2); c.fill();
+    // a varredura
+    const ang = (p / 2600) * Math.PI * 2 - Math.PI / 2;
+    c.fillStyle = "rgba(124,255,60,.18)"; c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, R, ang, ang + 0.7); c.closePath(); c.fill();
+    videoTexto(c, "🏃", cx, cy + 22, 64, "#FFFFFF", 400);
+    const my = cy + rr(mostra);
+    c.fillStyle = cena.cor + "44"; c.strokeStyle = cena.cor; c.lineWidth = 6; c.beginPath(); c.arc(cx, my, 46, 0, Math.PI * 2); c.fill(); c.stroke();
+    if (!videoFoto(c, cena.foto, cx, my, 42)) videoTexto(c, cena.icone, cx, my + 22, 60, "#FFFFFF", 400);
+    videoTexto(c, mostra + " m", 540, 1400, 190, cena.cor, 900);
+    videoTexto(c, cena.sub.toUpperCase(), 540, 1490, 54, cena.cor, 900);
+  } else if (t === "historia") {
+    const im = imagemMonstro(cena.fotoGrande);
+    if (im) {
+      // a foto de corpo inteiro, com a cabeça sempre à vista
+      const alt = 640, larg = Math.min(760, alt * im.naturalWidth / im.naturalHeight);
+      const sh = im.naturalWidth * alt / larg;
+      c.save(); c.beginPath(); c.roundRect ? c.roundRect(540 - larg / 2, 170, larg, alt, 30) : c.rect(540 - larg / 2, 170, larg, alt); c.clip();
+      c.drawImage(im, 0, 0, im.naturalWidth, Math.min(sh, im.naturalHeight), 540 - larg / 2, 170, larg, alt);
+      c.restore();
+      videoTexto(c, cena.rotulo.toUpperCase(), 540, 900, 60, cena.cor, 900, 960);
+      c.globalAlpha = Math.max(0, Math.min(1, (p - 400) / 500));
+      const a = videoParagrafo(c, cena.texto, 990, 46, "#F2F0EC", 700, 900, 8);
+      if (cena.rodape) videoTexto(c, cena.rodape, 540, 1040 + (a || 400), 64, "#7CFF3C", 900);
+      c.globalAlpha = 1;
+    } else {
+      videoTexto(c, cena.icone, 540, 700, 150, "#FFFFFF", 400);
+      videoTexto(c, cena.rotulo.toUpperCase(), 540, 840, 60, cena.cor, 900, 960);
+      c.globalAlpha = Math.max(0, Math.min(1, (p - 400) / 500));
+      const a = videoParagrafo(c, cena.texto, 960, 52, "#F2F0EC", 700, 900, 9);
+      if (cena.rodape) videoTexto(c, cena.rodape, 540, 1020 + (a || 400), 64, "#7CFF3C", 900);
+      c.globalAlpha = 1;
+    }
   } else if (t === "recordes") {
     videoRotulo(c, cena.rotulo, 600);
     videoTexto(c, "🏆", 540, 820, 170, "#FFFFFF", 400);
@@ -14299,7 +14566,7 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
 }
 
 // O botão que abre o resumo, com a rota do GPS quando houver
-function BotaoResumoAnimado({ registro, pts, exPorId, historico, pesoCorporal, vozCfg, estilo }) {
+function BotaoResumoAnimado({ registro, pts, exPorId, historico, pesoCorporal, vozCfg, estilo, rotulo }) {
   const [d, setD] = useState(null);
   const abrir = () => {
     const montar = (p) => setD(dadosResumo(registro, exPorId, historico, pesoCorporal, p));
@@ -14310,7 +14577,7 @@ function BotaoResumoAnimado({ registro, pts, exPorId, historico, pesoCorporal, v
   return (
     <React.Fragment>
       <button onClick={abrir} style={{ ...S.btnGhost, fontWeight: 900, color: "#7CFF3C", borderColor: "#7CFF3C66", ...(estilo || {}) }}>
-        ▶ Resumo animado
+        {rotulo || "▶ Resumo animado"}
       </button>
       {d && <ResumoAnimado d={d} vozCfg={vozCfg} onFechar={() => setD(null)} />}
     </React.Fragment>

@@ -89,7 +89,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 499 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 505 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -130,7 +130,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 499 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 505 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -205,10 +205,11 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v40) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v41) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
+| `marombeiro.jpg`, `marombeiro-rosto.jpg` | A foto do dono para a história especial "Fuga do Marombeiro" (ver *Monster, Run!*) |
 
 ## Estrutura do `index.html`
 
@@ -1173,7 +1174,7 @@ app; só a ideia da mecânica veio da documentação pública deles.
 
 ### Separado em camadas
 - **Motor** (`ZUMBI: MOTOR` até `FIM DO MOTOR ZUMBI`): lógica pura, sem tela,
-  som nem sensor, coberta por `teste-zumbi.js` (100 checagens, relógio e sensores
+  som nem sensor, coberta por `teste-zumbi.js` (106 checagens, relógio e sensores
   simulados). Unidades, base, alvo, avaliação, plano, estados, missão, validador,
   fila de falas e o registro do histórico.
 - **Som** (`criarPaisagemZumbi`): vento, chuva, estática, passos, gemido e
@@ -1293,26 +1294,67 @@ duas histórias ou mais:
 - Para um monstro novo: uma entrada em `MONSTROS_ZUMBI` (frases), uma em
   `SOM_MONSTRO` (números do som) e duas histórias com `monstro`.
 
-### Inspirados em filmes e séries (`grupo: "cinema"`)
-O dono pediu uma história do Capitão Pátria (The Boys) e outras de filmes e
-séries famosos. **São homenagens, não cópias**: o app é público, e personagem,
-nome e enredo de série têm dono. Fica o clima e as cenas que todo mundo
-reconhece; os nomes são nossos. O `teste-zumbi.js` procura no `index.html`
-os nomes protegidos (The Boys, Capitão Pátria, Homelander, Vought, Jurassic,
-Nostromo, Ripley, Skynet, Stranger Things, Hawkins, Demogorgon...) e reprova
-se algum aparecer — inclusive em comentário.
+### Paródias de filmes e séries (`grupo: "cinema"`)
+O dono pediu histórias do Capitão Pátria (The Boys) e de outros filmes e
+séries, e depois pediu **nomes parecidos com os originais**, para quem lê já
+reconhecer a paródia. A regra que ficou: **nome de paródia sempre, nome exato
+do original nunca**. O `teste-zumbi.js` procura no `index.html` os nomes
+originais (The Boys, Capitão Pátria, Homelander, Vought, Jurassic, Nostromo,
+Ripley, Skynet, Stranger Things, Hawkins, Demogorgon, Sarah Connor, Kyle Reese,
+Amity, Brody, Hammond, Alan Grant, Joyce, Eleven) e reprova se algum aparecer —
+inclusive em comentário.
 
-| Monstro | História | Homenagem a |
+| Monstro | História | Paródia de |
 |---|---|---|
-| 🦸 O Herói | 🦸 O Herói da Nação, 🎙️ Ao Vivo | o super-herói adorado que deixou o avião cair e sorri para a câmera |
-| 🦈 Tubarão | 🏖️ Temporada de Verão | o prefeito que não fecha a praia no feriado; o som são duas notas graves a meio tom |
-| 👽 Alienígena | 🛸 Cargueiro Sem Resposta | a criatura nos dutos do cargueiro, o detector de movimento e o gato da nave |
-| 🌀 Criatura do Outro Lado | 🔦 O Outro Lado | o menino sumido que responde pelas luzes piscando no alfabeto da parede |
-| 🤖 Máquina caçadora | 🤖 O Caçador do Futuro | a máquina que veio do futuro e não para |
-| 🦖 Dinossauro | 🦖 Ilha Âmbar | as cercas desligadas, o copo d'água tremendo, o sinalizador vermelho |
+| 🦸 Capitão Pátio | 🦸 O Herói da Nação, 🎙️ Ao Vivo | The Boys: o herói da Vôti que deixou o voo 37 cair, sorri para a câmera e toma leite |
+| 🦈 Tubarão da Amizade | 🏖️ Verão na Praia da Amizade | Tubarão: o delegado Brodi, o prefeito, "vamos precisar de um barco maior" |
+| 👽 Alien do Nostrômulo | 🛸 O Nono Passageiro | Alien: a tenente Ripla, o tripulante Keine, o gato Jonas, o detector de movimento |
+| 🌀 Demogorgão | 🔦 Coisas Estranhíssimas | Stranger Things: Hókins, Dona Djóice, o Wilinho, a Onzi e as luzes do alfabeto |
+| 🤖 Exterminador T-80 | 🤖 O Exterminador T-80 | O Exterminador do Futuro: a Céu-Net, Kaio Reis, Sara Conrado, "eu volto" |
+| 🦖 T-Rex do Juráxico | 🦖 Parque Juráxico | Jurassic Park: o doutor Alan Grana, o Seu Hamundo que não poupou despesas, o copo tremendo |
 
-Os monstros de cinema aparecem num grupo à parte na configuração e têm uma
+Os monstros de cinema ficam num grupo à parte na configuração e têm uma
 história cada (os clássicos têm pelo menos duas).
+
+### O especial do criador: Fuga do Marombeiro (`grupo: "especial"`)
+**O Marombeiro é o dono do app, Carlos Jr., com a foto dele, a pedido dele,
+para divulgar o perfil.** Você faltou ao treino de perna, ele descobriu, e só
+para quando vir o treino registrado no Treino Livre. O Jarvis narra. O fim
+completo convida a seguir o Instagram.
+
+- As fotos são arquivos do repositório: `marombeiro.jpg` (corpo inteiro,
+  recortado sem a legenda do vídeo original, 520 px) e `marombeiro-rosto.jpg`
+  (192 px). Estão na lista do `sw.js`: funcionam sem internet. O teste cobra
+  que os dois arquivos existam.
+- Onde a foto aparece: avatar no cartão da história, banner com "Seguir
+  @carlos.jr.81" quando a história ou o filtro é dele, a **abertura**
+  (`AberturaMarombeiro`: a foto vem correndo na direção da tela, a tela treme e
+  entra "HOJE É DIA DE PERNA!"; um toque pula), o rosto como ponto no radar ao
+  vivo, e no resumo animado e no vídeo (`videoFoto`, `imagemMonstro`, com o
+  emoji de reserva enquanto a foto não carregou).
+- O som é grunhido e passos firmes; o radar se chama "Cheiro de whey".
+- Monstro com `foto`/`fotoCorpo`/`instagram` ganha tudo isso de graça: é o
+  caminho para outro especial com foto.
+
+### O resumo animado da missão (`monstroResumo`)
+Ao terminar, o fim da missão tem **"▶ Ver resumo animado da missão"** como botão
+principal (e o cartão do histórico tem o de sempre). O resumo é o mesmo
+`ResumoAnimado` dos outros treinos, com três cenas a mais, que também são
+desenhadas no vídeo do story:
+
+1. **Abertura** com o nome da modalidade, a história e o monstro.
+2. **Perseguições** (`perseguicoes`): "2/3 fugas" e a linha do tempo de cada uma
+   (✅ fuga a 10,4 km/h, 💀 alcançado, ✋ cancelada...), e o tempo no ritmo.
+3. **O mais perto que chegou** (`radar`): o número desce de 300 até a distância
+   e o monstro anda no radar até lá. Vem de `zumbi.maisPerto`, que o radar ao
+   vivo mede e o registro guarda (missão antiga não tem: a cena não entra).
+4. Os números aeróbicos de sempre (tempo ou distância, gasto, semana).
+5. **Como terminou** (`historia`): a fala final da história, escolhida pelos
+   fatos guardados (`escolherCena(missao, "fim", fatos)`), narrada de novo.
+6. Nível e o fecho "Você sobreviveu. Até a próxima missão."
+
+Sem testes de tela para o resumo; `monstroResumo` é coberto em
+`teste-zumbi.js` (9d).
 
 ### O radar da perseguição (`RadarMonstro`)
 Para quem corre na esteira ou com a tela à vista. Tudo sai do motor, sem regra
@@ -1949,7 +1991,7 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 499
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 505
 checagens em treze suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash
@@ -2041,7 +2083,13 @@ Roteiro mínimo depois de mexer no app:
      ligada: no aviso o monstro aparece no radar; acelerando, a distância sobe
      e "ficando para trás" fica verde; diminuindo, ele chega, o painel pulsa
      vermelho abaixo de 60 m. A velocidade para a esteira aparece, e o placar
-     conta a fuga. No 👽 Alienígena, os bipes aceleram quando ele chega perto.
+     conta a fuga. No 👽 Alien do Nostrômulo, os bipes aceleram quando ele chega perto.
+33ô. **O Marombeiro.** Filtrar ⭐ Marombeiro: o banner com a foto e "Seguir"
+     aparece e abre o Instagram. Começar a Fuga do Marombeiro: a foto vem
+     correndo na tela com "HOJE É DIA DE PERNA!", o rosto aparece no radar, e no
+     fim o "▶ Ver resumo animado da missão" mostra perseguições, o mais perto
+     que ele chegou e a foto com o @ no final. Gerar o vídeo do story e conferir
+     que a foto entrou no vídeo.
 33ç. Correr 2 km na rua com o celular no braço e a idade preenchida no painel:
      a cadência aparece ao vivo e a voz do km a fala; no fim, a análise mostra
      pace, ajustado ao relevo, melhor km, cadência, passada, melhores esforços e,

@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v55) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v56) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1871,6 +1871,31 @@ mão** — não "mais um modelo":
   de cena o app volta sozinho para um modelo que funciona sem ela. Oferecer uma
   rampa automática a quem vai ter de girar o botão a cada minuto é oferecer
   frustração.
+
+### No treino comum de esteira, só leitura (`ConexaoEsteiraSessao`)
+
+Pedido do dono: "deixa bem fácil, bem sugestivo". Até aqui a conexão só existia
+no intervalado e no Monster Run, e quem começava "Corrida na esteira" pelo
+atalho da tela inicial digitava velocidade e inclinação à mão sem saber que a
+máquina podia dizê-las. Hoje o cartão de todo exercício de esteira abre com um
+botão grande **📶 Conectar a esteira**, e a escolha da esteira na tela inicial
+já avisa que ele existe.
+
+- **Aqui a esteira é lida, nunca comandada.** `confirmar(true)` (o `soLer`)
+  confirma sem pedir o controle: ninguém combinou, num treino comum, que o app
+  mexeria na correia. O teste no navegador confere que nenhum byte é escrito.
+- As regras de sempre continuam: conexão por toque, conferência no painel
+  ("mude a velocidade; se o número mudar, é a sua"), aviso se ela já estiver
+  andando, e nada de reconectar sozinha.
+- **Só depois da confirmação** velocidade e inclinação da série pendente
+  passam a seguir o painel (a do exercício da vez, senão a primeira de esteira
+  com série por fazer). Grava só quando o número muda.
+- **"✓ Anotar a série: 15 min · 2,6 km"** aparece depois de um minuto: grava o
+  tempo da esteira e a velocidade **média** (a de agora mentiria sobre quem
+  variou o ritmo) e marca. São dois passos (`anotarEsteira` + efeito) porque o
+  `marcarSerie` lê a sessão do render: gravar e marcar juntos apagaria os números.
+- No iPhone, em vez do botão, uma linha dizendo que a Apple não libera e que é
+  só digitar o painel.
 
 ### O que pode dar errado, e o que o app faz
 

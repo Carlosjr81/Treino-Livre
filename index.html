@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16h";
+const VERSAO_APP = "2026-10-16i";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -7487,7 +7487,7 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
               </button>
             ))}
             <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 4 }}>
-              Velocidade e inclinação você ajusta na tela do treino, e da segunda vez em diante elas vêm da última. Quer variar o ritmo? Use o <b>Intervalado</b>.
+              Esteira com Bluetooth? Na tela do treino tem o botão <b>Conectar a esteira</b>: a velocidade e a inclinação entram sozinhas. Sem ele, você digita o que o painel mostra. Quer variar o ritmo? Use o <b>Intervalado</b>.
             </div>
           </div>
         )}
@@ -14201,6 +14201,89 @@ function FaixaIntervalo({ blocos, atual, tAtivo }) {
 // página não pode listar aparelhos por perto, e ainda bem — mas o filtro pelo
 // serviço 0x1826 faz com que só apareça máquina de academia, nunca o fone nem
 // a TV do vizinho. Da segunda vez não aparece janela nenhuma.
+// A esteira dentro do treino comum. Antes a conexão só existia no intervalado
+// e no Monster Run: quem começava "Corrida na esteira" digitava velocidade e
+// inclinação à mão, sem saber que a máquina podia dizê-las sozinha. Aqui ela
+// só é LIDA — nunca comandada — e as mesmas regras valem: conexão por toque,
+// conferência no painel, nada de reconectar sozinha.
+function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onAnotar }) {
+  if (!ESTEIRA_DISPONIVEL) {
+    return (
+      <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, margin: "2px 0 10px", padding: "8px 10px", borderRadius: 10, background: "var(--bg2)" }}>
+        📶 <b style={{ color: "var(--texto)" }}>Esteira com Bluetooth?</b> O app lê a velocidade dela
+        sozinho no Chrome do Android e do computador. No iPhone a Apple não libera isso para
+        nenhum site: digite a velocidade e a inclinação do painel aqui embaixo.
+      </div>
+    );
+  }
+  const d = est.dado || {};
+  const caixa = { margin: "2px 0 12px", padding: 12, borderRadius: 12, border: "1px solid #4C9BE866", background: "#4C9BE80F" };
+  if (!est.ligada) {
+    return (
+      <div style={caixa}>
+        <button onClick={onConectar} disabled={est.estado === "procurando"}
+          style={{ ...S.btn, width: "100%", background: "linear-gradient(135deg, #4C9BE8, #2F6FD0)", fontSize: 15 }}>
+          {est.estado === "procurando" ? "Procurando a esteira…" : "📶 Conectar a esteira"}
+        </button>
+        <div style={{ fontSize: 12, color: "var(--texto)", marginTop: 8, lineHeight: 1.5 }}>
+          A velocidade, a inclinação e a distância entram sozinhas — sem digitar nada.
+        </div>
+        <div style={{ fontSize: 11, color: "var(--cinza)", marginTop: 4, lineHeight: 1.45 }}>
+          Ligue a esteira antes e toque acima: abre a lista de aparelhos por perto, e só
+          aparecem máquinas de academia. Se a sua não aparecer, ela não tem esse Bluetooth —
+          é só digitar os números do painel.
+        </div>
+        {est.erro && <div style={{ fontSize: 12, color: "var(--perigo)", marginTop: 8, lineHeight: 1.45 }}>{est.erro}</div>}
+      </div>
+    );
+  }
+  const km = d.metros !== undefined ? d.metros / 1000 : null;
+  const seg = d.segundos || 0;
+  return (
+    <div style={caixa}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 800, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ color: "var(--ok)" }}>●</span> {est.nome || "Esteira"}
+        </div>
+        <button onClick={onDesconectar} style={{ background: "none", border: "none", color: "var(--cinza)", fontSize: 12, cursor: "pointer", padding: 0, textDecoration: "underline", flexShrink: 0 }}>Desconectar</button>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+        <NumeroCorrida rot="velocidade" val={d.vel !== undefined ? num1(d.vel) : "—"} sub="km/h" cor="#4C9BE8" />
+        {d.incl !== undefined ? <NumeroCorrida rot="inclinação" val={num1(d.incl) + "%"} /> : null}
+        {km !== null ? <NumeroCorrida rot="distância" val={num1(km)} sub="km" /> : null}
+        {seg ? <NumeroCorrida rot="tempo" val={Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0")} /> : null}
+      </div>
+      {!est.confirmada ? (
+        <React.Fragment>
+          <div style={{ fontSize: 12.5, marginTop: 10, lineHeight: 1.55, padding: 10, borderRadius: 10, background: "var(--bg2)" }}>
+            <b>É esta a sua esteira?</b> Mude a velocidade no painel dela: se o número acima
+            mudar junto, é a sua. Numa academia com várias iguais, o nome não diz qual é.
+            {d.vel > 0 && (
+              <div style={{ color: "var(--obs)", marginTop: 6 }}>
+                ⚠ Esta esteira já está andando a {num1(d.vel)} km/h. Se não for você em cima dela, desconecte.
+              </div>
+            )}
+          </div>
+          <button onClick={onConfirmar} style={{ ...S.btn, width: "100%", marginTop: 10 }}>✓ É esta a minha esteira</button>
+        </React.Fragment>
+      ) : (
+        <React.Fragment>
+          <div style={{ fontSize: 12, color: "var(--ok)", marginTop: 8, lineHeight: 1.5 }}>
+            ✓ Lendo a esteira: a velocidade e a inclinação da série acompanham o painel.
+            Quem muda a velocidade continua sendo você.
+          </div>
+          {seg >= 60 && (
+            <button onClick={onAnotar} style={{ ...S.btn, width: "100%", marginTop: 10 }}>
+              ✓ Anotar a série: {Math.round(seg / 60)} min{km ? " · " + num1(km) + " km" : ""}
+            </button>
+          )}
+        </React.Fragment>
+      )}
+      {est.erro && <div style={{ fontSize: 12, color: "var(--perigo)", marginTop: 8, lineHeight: 1.45 }}>{est.erro}</div>}
+    </div>
+  );
+}
+
 function CartaoEsteira({ est, onConectar, onConfirmar, onDesconectar, teto, setTeto }) {
   if (!ESTEIRA_DISPONIVEL) {
     return (
@@ -14346,12 +14429,14 @@ function usarEsteira() {
     }
   };
 
-  // "É esta a minha esteira." Só depois disto o app pede o controle.
-  const confirmar = async () => {
+  // "É esta a minha esteira." Só depois disto o app pede o controle — e só
+  // quando a tela vai mesmo comandar. No treino comum (soLer) a esteira é
+  // lida e nunca comandada: ninguém ali combinou que o app mexeria nela.
+  const confirmar = async (soLer) => {
     const e = ref.current;
     if (!e) return;
     setEst((s) => Object.assign({}, s, { confirmada: true, erro: "" }));
-    if (!estRef.current.podeComandar) return;
+    if (soLer === true || !estRef.current.podeComandar) return;
     try {
       await e.pedirControle();
       setEst((s) => Object.assign({}, s, { comanda: true }));
@@ -17686,6 +17771,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // O cronômetro de isometria marca a série ao acabar; a ref evita depender
   // de marcarSerie nas dependências do efeito (que mudaria a cada tecla).
   const marcarSerieRef = useRef(() => {});
+  // A esteira por Bluetooth, só lida (ver ConexaoEsteiraSessao).
+  const btSessao = usarEsteira();
+  const [anotarEsteira, setAnotarEsteira] = useState(null);
 
   const [mostrarAdd, setMostrarAdd] = useState(false);
   const [demo, setDemo] = useState(null);        // exercício aberto na demonstração
@@ -18070,6 +18158,52 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     return null;
   };
   marcarSerieRef.current = marcarSerie;
+
+  // Qual série a esteira preenche: a do exercício da vez, se for de esteira;
+  // senão a primeira de esteira que ainda tem série por fazer.
+  const serieDaEsteira = () => {
+    const ehEst = (i) => { const e = exPorId(sessao.itens[i].exercicioId); return !!(e && ehEsteiraPerfil(e.cardio)); };
+    const pend = (i) => sessao.itens[i].series.findIndex((s) => !s.feito);
+    const ordem = (alvo ? [alvo.ei] : []).concat(sessao.itens.map((_, i) => i));
+    for (const i of ordem) if (sessao.itens[i] && ehEst(i) && pend(i) >= 0) return { ei: i, si: pend(i) };
+    return null;
+  };
+  // Com a esteira confirmada, velocidade e inclinação da série seguem o painel.
+  // Só grava quando o número muda: a esteira manda um pacote por segundo.
+  const dadoEst = btSessao.est.confirmada ? btSessao.est.dado : null;
+  useEffect(() => {
+    if (!dadoEst) return;
+    const alvoE = serieDaEsteira();
+    if (!alvoE) return;
+    const s = sessao.itens[alvoE.ei].series[alvoE.si];
+    const novo = {};
+    if (dadoEst.vel > 0 && String(Math.round(dadoEst.vel * 10) / 10) !== String(s.vel || "")) novo.vel = String(Math.round(dadoEst.vel * 10) / 10);
+    if (dadoEst.incl !== undefined && String(Math.round(dadoEst.incl * 10) / 10) !== String(s.incl || "0")) novo.incl = String(Math.round(dadoEst.incl * 10) / 10);
+    if (!Object.keys(novo).length) return;
+    setSessao({ ...sessao, itens: sessao.itens.map((it, i) => i !== alvoE.ei ? it
+      : { ...it, series: it.series.map((x, j) => (j !== alvoE.si ? x : { ...x, ...novo })) }) });
+  }, [dadoEst]);
+  // "Anotar a série": o tempo e a velocidade MÉDIA da esteira (a de agora
+  // mentiria sobre quem subiu e desceu o ritmo), e marca. Em dois passos porque
+  // marcarSerie lê a sessão do render: gravar e marcar no mesmo instante
+  // faria a marcação apagar os números.
+  const anotarDaEsteira = () => {
+    const d = btSessao.est.dado || {};
+    const alvoE = serieDaEsteira();
+    if (!alvoE || !(d.segundos >= 60)) return;
+    const media = d.velMedia > 0 ? d.velMedia : d.metros > 0 ? (d.metros / d.segundos) * 3.6 : d.vel;
+    const novo = { segundos: String(d.segundos) };
+    if (media > 0) novo.vel = String(Math.round(media * 10) / 10);
+    if (d.incl !== undefined) novo.incl = String(Math.round(d.incl * 10) / 10);
+    setSessao({ ...sessao, itens: sessao.itens.map((it, i) => i !== alvoE.ei ? it
+      : { ...it, series: it.series.map((x, j) => (j !== alvoE.si ? x : { ...x, ...novo })) }) });
+    setAnotarEsteira(alvoE);
+  };
+  useEffect(() => {
+    if (!anotarEsteira) return;
+    setAnotarEsteira(null);
+    marcarSerieRef.current(anotarEsteira.ei, anotarEsteira.si);
+  }, [anotarEsteira]);
 
   // ---------- JARVIS DENTRO DO TREINO ----------
   // O ouvinte mora no componente raiz, mas marcar série, cronometrar o descanso
@@ -18806,6 +18940,10 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               {!it.descanso && <span style={{ fontSize: 10, color: "var(--cinza2)" }}>(geral)</span>}
             </div>
 
+            {ehAerobico && ehEsteiraPerfil(ex.cardio) && (
+              <ConexaoEsteiraSessao est={btSessao.est} onConectar={btSessao.conectar} onConfirmar={() => btSessao.confirmar(true)}
+                onDesconectar={btSessao.desconectar} onAnotar={anotarDaEsteira} />
+            )}
             <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
               <div style={{ width: 30 }} />
               {ehAerobico ? (

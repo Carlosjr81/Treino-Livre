@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16e";
+const VERSAO_APP = "2026-10-16f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -1774,6 +1774,17 @@ EXERCICIOS.forEach((e) => { GRUPO_POR_EXERCICIO[e.id] = e.grupo; });
 
 // ---------------- FICHAS PADRÃO (rotina semanal que já vem no app) ----------------
 const mkItens = (ids) => ids.map((id) => ({ exercicioId: id, series: 3, reps: 12, obs: "" }));
+// O que quem instala hoje encontra pronto: três fichas curtas, de máquina, que
+// um iniciante consegue fazer sem ninguém do lado. As FICHAS_PADRAO (o programa
+// avançado de seis dias) continuam para quem já as tinha — mudar a ficha de
+// quem já treina com ela seria mexer no treino de alguém sem pedir. Antes, a
+// primeira coisa que alguém via era "Segunda - Pernas e Costas", 10 exercícios,
+// e quem nunca pisou numa academia fechava o app ali.
+const FICHAS_INICIANTE = [
+  { id: "inicial-a", nome: "Treino A - Peito, Ombros e Tríceps", itens: mkItens(["supino-maquina", "peck-deck", "desenvolvimento-maquina", "elevacao-lateral", "triceps-polia"]) },
+  { id: "inicial-b", nome: "Treino B - Costas e Bíceps", itens: mkItens(["puxada-frente", "remada-baixa", "rosca-alternada", "rosca-direta", "prancha"]) },
+  { id: "inicial-c", nome: "Treino C - Pernas", itens: mkItens(["leg-press", "cadeira-extensora", "mesa-flexora", "elevacao-pelvica", "panturrilha"]) },
+];
 const FICHAS_PADRAO = [
   { id: "padrao-seg", nome: "Segunda - Pernas e Costas", itens: mkItens(["mesa-flexora", "agachamento-sumo", "agachamento-smith", "elevacao-pelvica", "abducao", "panturrilha-sentado", "puxada-frente", "puxada-triangulo", "remada-baixa", "pulldown"]) },
   { id: "padrao-ter", nome: "Terça - Peito e Tríceps", itens: mkItens(["supino-halteres", "supino-inclinado", "crucifixo", "crucifixo-inclinado", "peck-deck", "triceps-polia", "triceps-coice", "triceps-corda"]) },
@@ -7401,10 +7412,10 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
             <button style={{ ...S.btn, fontSize: 17, padding: "16px 12px" }} onClick={() => onTreinar(hoje.ficha)}>▶ Começar este treino</button>
             {novato && (
               <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
-                É uma ficha de exemplo. Achou puxada demais, ou de menos?{" "}
+                Um treino de iniciante, pronto para usar. Quer outro objetivo ou mais dias?{" "}
                 <button onClick={onAssistente} style={{ background: "none", border: "none", padding: 0, color: "#E1306C", fontWeight: 800, fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}>
-                  Monte uma no seu nível
-                </button>{" "}— leva um minuto.
+                  Monte o seu
+                </button>{" "}— são 3 perguntas.
               </div>
             )}
             {treinos.length > 1 && (
@@ -7664,6 +7675,10 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
   pedirAvisoDescanso,
   voz, setVoz, vozAtiva, onAlternarVoz, onAjudaVoz, onEscolaVoz, onDiagnosticoVoz, onAtualizar }) {
   const fmtSeg = (sg) => Math.floor(sg / 60) + ":" + (sg % 60 < 10 ? "0" : "") + (sg % 60);
+  // Os ajustes finos da voz ficam fechados. Eram dois terços da página — modo de
+  // ouvir, botão do fone, jeito de falar, voz, velocidade, peso da barra — e
+  // empurravam o backup, que é o que mais importa aqui, para longe da vista.
+  const [vozAberta, setVozAberta] = useState(false);
   return (
     <div style={{ padding: "0 18px" }}>
       <button style={S.voltar} onClick={onVoltar}>← Voltar</button>
@@ -7730,6 +7745,11 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
               {vozAtiva ? "⏹ Parar de ouvir" : "🎤 Ligar o Jarvis agora"}
             </button>
 
+            <button style={{ ...S.btnGhost, fontWeight: 800 }} onClick={() => setVozAberta((v) => !v)} aria-expanded={vozAberta}>
+              {vozAberta ? "▴ Esconder os ajustes da voz" : "⚙ Ajustes da voz (como ouve, voz, velocidade, barra) ▾"}
+            </button>
+            {vozAberta && (
+              <div style={{ marginTop: 16 }}>
             {/* O reconhecimento contínuo é o sonho (mãos livres), mas no Android o
                 sistema encerra a sessão a cada pausa: o aparelho apita sem parar e
                 as frases longas são cortadas no meio. Por isso a escolha existe. */}
@@ -7867,6 +7887,8 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
             <button style={{ ...S.btnGhost, marginBottom: 8 }} onClick={onEscolaVoz}>🎓 Praticar os comandos</button>
             <button style={{ ...S.btnGhost, marginBottom: 8 }} onClick={onDiagnosticoVoz}>🩺 O que ele ouviu (diagnóstico)</button>
             <button style={S.btnGhost} onClick={onAjudaVoz}>Ver tudo o que dá para falar</button>
+              </div>
+            )}
           </React.Fragment>
         ) : (
           <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, marginTop: 8 }}>
@@ -18029,6 +18051,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // e trocar exercício só existe aqui. As funções são penduradas numa ref
   // durante o render — o mesmo caminho do marcarSerieRef logo acima.
   const [focoEi, setFocoEi] = useState(null);
+  // Os cartões que a pessoa abriu à mão (por uid). O da vez abre sozinho.
+  const [abertos, setAbertos] = useState({});
   const [scanner, setScanner] = useState(false);   // câmera contando repetições
   const ultimoAnotado = useRef(null);
 
@@ -18594,6 +18618,36 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         // Eyes Scan existia.
         const ehVez = !!(alvo && alvo.ei === ei);
         const ehAlvo = vozAtiva && ehVez;
+        // Só o exercício da vez fica aberto (e o parceiro dele no bi-set); os
+        // outros viram uma linha. Treze exercícios com três séries cada, tudo
+        // aberto, era uma lista de trinta linhas de campos — quem chegava não
+        // sabia onde estava, e quem treinava rolava a tela inteira a cada série.
+        // Acabou um, abre o seguinte, porque o "da vez" anda sozinho.
+        const chave = it.uid || ei;
+        const vezItem = alvo && sessao.itens[alvo.ei];
+        const aberto = ehVez || abertos[chave] || trocando === ei ||
+          (noConjunto && vezItem && vezItem.conjunto === it.conjunto);
+        if (!aberto) {
+          const nFeitas = it.series.filter((s) => s.feito).length, nTot = it.series.length;
+          const pronto = nTot > 0 && nFeitas === nTot;
+          return (
+            <button key={chave} id={"item-" + chave} type="button"
+              onClick={() => { setAbertos((a) => Object.assign({}, a, { [chave]: true })); setFocoEi(ei); }}
+              aria-label={"Abrir " + (ex ? ex.nome : "o exercício") + (pronto ? ", já feito" : "")}
+              style={{ ...S.card, width: "100%", display: "flex", alignItems: "center", gap: 10, textAlign: "left", font: "inherit",
+                color: "var(--texto)", cursor: "pointer", padding: "10px 12px", opacity: pronto ? 0.7 : 1,
+                ...(noConjunto ? { borderLeft: "3px solid #E1306C", marginBottom: fechaConjunto ? 12 : 4 } : {}) }}>
+              <MiniaturaExercicio ex={ex} tamanho={40} />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontWeight: 800, fontSize: 14.5, lineHeight: 1.25, textDecoration: pronto ? "line-through" : "none" }}>{ex ? ex.nome : "Exercício"}</span>
+                <span style={{ display: "block", fontSize: 11.5, color: pronto ? "var(--ok)" : "var(--cinza)", marginTop: 2 }}>
+                  {pronto ? "✓ feito" : nFeitas ? nFeitas + " de " + nTot + " séries feitas" : nTot + " " + plural(nTot, "série", "séries") + (abreConjunto ? " · " + (tamConjunto >= 3 ? "tri-set" : "bi-set") : "")}
+                </span>
+              </span>
+              <span aria-hidden="true" style={{ fontSize: 13, fontWeight: 900, color: pronto ? "var(--ok)" : "#E1306C" }}>{pronto ? "✓" : "abrir ▾"}</span>
+            </button>
+          );
+        }
         return (
           <div key={it.uid || ei} id={"item-" + (it.uid || ei)}
             style={{
@@ -18639,6 +18693,13 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                   {(ex && ex.equip ? ex.equip + " · " : "")}<span style={{ color: "#E1306C", fontWeight: 700 }}>ver execução ›</span>
                 </span>
               </button>
+              {!ehVez && abertos[chave] && (
+                <button onClick={() => setAbertos((a) => Object.assign({}, a, { [chave]: false }))}
+                  title="Recolher" aria-label={"Recolher " + (ex ? ex.nome : "este exercício")}
+                  style={{ border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", borderRadius: 8, padding: "7px 9px", fontWeight: 900, fontSize: 13, cursor: "pointer" }}>
+                  ▴
+                </button>
+              )}
               <button onClick={() => setTrocando(trocando === ei ? null : ei)}
                 title="Trocar por outro exercício" aria-expanded={trocando === ei}
                 aria-label={"Trocar " + (ex ? ex.nome : "este exercício") + " por outro"}
@@ -19873,7 +19934,7 @@ function Portaria({ temDados, podeInstalar, onInstalar, onCopiarLink, onEntrar }
       <div style={{ height: 4, width: 90, background: GRAD_LINHA, borderRadius: 2, margin: "10px 0 24px" }} />
 
       <div style={{ fontSize: 19, fontWeight: 900, lineHeight: 1.4, marginBottom: 12, maxWidth: 350 }}>
-        Siga e baixe o app
+        {temDados ? "Primeiro treino feito! 🎉 Siga e baixe o app" : "Siga e baixe o app"}
       </div>
       <div style={{ fontSize: 14.5, color: "var(--cinza)", lineHeight: 1.7, maxWidth: 350, marginBottom: 24 }}>
         Siga para ter sempre acesso ao app e acompanhar as novidades. É por lá que saem as
@@ -20348,10 +20409,11 @@ function TreinoLivre() {
 
   useEffect(() => {
     let tr = [], hi = [], ce = [], de = 90, so = true, seed = false, pg = null, ss = null, mt = 3;
-    let md = [], lb = null, ub = null, ft = [], vz = null;
+    let md = [], lb = null, ub = null, ft = [], vz = null, novo = true;
     try {
       const raw = store.get(STORAGE_KEY);
       if (raw) {
+        novo = false;
         const d = JSON.parse(raw);
         tr = d.treinos || [];
         hi = d.historico || [];
@@ -20382,16 +20444,21 @@ function TreinoLivre() {
     // Insere/atualiza as fichas padrão (rotina semanal) uma única vez por versão
     if (!seed) {
       tr = tr.filter((t) => String(t.id).indexOf("padrao-") !== 0);
-      tr = [...FICHAS_PADRAO, ...tr];
+      // aparelho sem nada gravado: começa pelo iniciante
+      tr = [...(novo ? FICHAS_INICIANTE : FICHAS_PADRAO), ...tr];
     }
     // ---- Organização: "treinos" (programas) agrupam as fichas ----
     if (!pg) pg = [];
+    if (tr.some((t) => String(t.id).indexOf("inicial-") === 0) && !pg.some((p) => p.id === "prog-iniciante")) {
+      pg.unshift({ id: "prog-iniciante", nome: "Treino Iniciante (3x por semana)" });
+    }
     if (tr.some((t) => String(t.id).indexOf("padrao-") === 0) && !pg.some((p) => p.id === "prog-avancado")) {
       pg.unshift({ id: "prog-avancado", nome: "Treino Avançado" });
     }
     tr = tr.map((t) => {
       if (t.programaId && pg.some((p) => p.id === t.programaId)) return t;
       if (String(t.id).indexOf("padrao-") === 0) return { ...t, programaId: "prog-avancado" };
+      if (String(t.id).indexOf("inicial-") === 0) return { ...t, programaId: "prog-iniciante" };
       return { ...t, programaId: "prog-meus" };
     });
     if (tr.some((t) => t.programaId === "prog-meus") && !pg.some((p) => p.id === "prog-meus")) {
@@ -21439,7 +21506,15 @@ function TreinoLivre() {
   // acima faria o link compartilhado morrer na porta.
   if (abertura) return <Abertura onFim={() => setAbertura(false)} />;
 
-  if (!entrou) {
+  // A portaria só depois do primeiro treino concluído, e só na tela inicial.
+  // Antes ela era a primeira coisa do app: pedir para seguir alguém antes de a
+  // pessoa ver uma tela sequer era o primeiro motivo para fechar e não voltar.
+  // Depois do primeiro treino o app já mostrou para que serve. Na tela inicial
+  // e fora do treino: no meio da sessão ou por cima do resumo do fim, ela
+  // atropelaria o que a pessoa está fazendo. No navegador embutido continua
+  // logo na entrada, porque ali o recado é outro: tire o app daqui, ou os
+  // dados se perdem.
+  if (!entrou && (NAVEGADOR_INAPP || (historico.length > 0 && aba === "inicio" && !sessao && !modal))) {
     return <Portaria temDados={historico.length > 0 || treinos.length > 0}
       podeInstalar={!!promptInstalar} onInstalar={instalarApp} onCopiarLink={copiarLink}
       onEntrar={liberarPortaria} />;

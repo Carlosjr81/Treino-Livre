@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v52) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v53) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -796,7 +796,17 @@ lugares, e um @ errado num story já publicado não tem como ser corrigido.
 
 ### A portaria (`Portaria`, campo `entrou`)
 
-A tela que pede para seguir antes de entrar. **Ela não verifica nada, e isso é
+**Hoje ela aparece depois do primeiro treino concluído, não na entrada**
+(pedido do dono: "faça tudo" para quem chega não desistir). Pedir para seguir
+alguém antes de a pessoa ver uma tela sequer era o primeiro motivo para fechar
+o app. Ela aparece quando a pessoa volta à tela inicial com um treino no
+histórico, fora do treino e sem modal aberto — por cima do resumo do fim ela
+atropelaria o que a pessoa está lendo — e com o título "Primeiro treino feito!
+🎉". **No navegador embutido continua na entrada**: ali o recado é outro (tire
+o app daqui, ou os dados se perdem). Um link `#ficha=` de quem nunca abriu o
+app chega direto na pergunta da ficha, sem porta nenhuma.
+
+A tela que pede para seguir. **Ela não verifica nada, e isso é
 uma decisão tomada com o dono, não um descuido:** saber se alguém segue uma
 conta exige servidor e uma API que o Instagram não oferece nem ao dono do
 perfil. O que existe é o pedido feito na cara limpa, no único lugar por onde
@@ -2417,7 +2427,10 @@ aqui**; o lugar do resto é:
   semana por grupo, e os gráficos.
 - **Histórico › Corpo** — medidas e fotos de progresso.
 - **Ajustes** (engrenagem no cabeçalho) — tema, som, descanso padrão, meta,
-  lembrete, backup e créditos.
+  lembrete, backup e créditos. Os ajustes finos do Jarvis (como ouve, fone,
+  jeito de falar, voz, velocidade, barra) ficam fechados atrás de "⚙ Ajustes da
+  voz" (`vozAberta`): eram dois terços da página e empurravam o backup para
+  longe da vista.
 
 ### O treino de hoje (`fichaDeHoje`), e os outros jeitos em grade
 
@@ -2432,9 +2445,13 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   primeira. Um botão grande, "▶ Começar este treino", com o número de
   exercícios e o tempo aproximado. As outras fichas ficam atrás de "Escolher
   outra ficha", a um toque.
-- **Para quem nunca treinou**, embaixo do botão: "É uma ficha de exemplo...
-  Monte uma no seu nível" — as fichas que vêm prontas são de um programa
-  avançado, e começar por ali assusta quem é iniciante.
+- **Quem instala hoje encontra um programa de iniciante** (`FICHAS_INICIANTE`,
+  `prog-iniciante`): três fichas de cinco exercícios de máquina, A/B/C. As
+  `FICHAS_PADRAO` (o avançado de seis dias) continuam só para quem já as tinha:
+  trocar a ficha de quem treina com ela seria mexer no treino de alguém sem
+  pedir. "Aparelho novo" é não haver nada gravado em `treinolivre:v1` (`novo`
+  na carga). Embaixo do botão, para quem nunca treinou: "Quer outro objetivo ou
+  mais dias? Monte o seu — são 3 perguntas" (o assistente).
 - **Ordem da tela**: o treino de hoje primeiro, depois as boas-vindas, depois o
   instalar. A primeira coisa da tela é o que fazer; a explicação vem em seguida.
 - **Os outros jeitos de treinar** (assistente, livre, funcional, rua,
@@ -2445,6 +2462,13 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   sem caminho é tela onde a pessoa desiste.
 
 ## Treino em andamento
+
+- **Só o exercício da vez fica aberto** (o `alvo`, e o parceiro dele no bi-set).
+  Os outros viram uma linha com o nome e "3 séries", "2 de 3 feitas" ou "✓
+  feito". Acabou um, abre o seguinte sozinho, porque o alvo anda. Tocar numa
+  linha abre o cartão **e muda o foco** (`setFocoEi`): abrir um exercício é
+  dizer que é ele agora, e a voz passa a anotar ali. Quem abriu à mão fecha no
+  ▴ (`abertos`). Antes eram treze cartões com três séries cada, tudo aberto.
 
 - **Miniatura + demonstração** — cada exercício da sessão mostra a figura ao lado
   do nome; tocar abre `ModalDemonstracao` por cima, com imagem, músculos, passos,

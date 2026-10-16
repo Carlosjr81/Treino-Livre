@@ -84,7 +84,7 @@ Treino-Livre/
 ├── CLAUDE.md            ← este arquivo: o contexto do projeto
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
-└── testes/              ← as 10 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 17 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -99,7 +99,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 568 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 745 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -140,7 +140,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 568 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 745 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -1200,6 +1200,108 @@ fim dele, cobertas por `teste-corrida.js` (39 checagens):
 - O resumo animado ganhou a cena "Recordes de corrida" quando o treino bateu
   algum.
 
+## Metas, esforço relativo e forma (`CartaoMetas`, `CartaoForma`)
+
+Pedido do dono: um lugar para estabelecer meta na corrida e na caminhada, e
+os parâmetros que Garmin e Strava usam e que ainda faltavam aqui.
+
+Tudo mora em `corredor` — que já era o perfil do corredor e já é persistido,
+carregado e levado no backup. Um campo em vez de cinco pontos de integração
+novos. **Em troca, os quatro carregadores precisaram de conserto**: eles
+remontavam o objeto à mão (`{ idade: ... }`) e descartavam todo o resto, então
+uma meta seria gravada e sumiria na recarga seguinte, calada. Hoje existe
+`lerCorredor`, e campo novo entra num lugar só.
+
+### As metas
+
+**Correr sem meta é o que a maioria faz, e está certo.** Por isso o cartão
+fechado é uma linha só: quem não treina para nada não vê barra de progresso
+nenhuma. Ele cresce quando alguém pede.
+
+- Quatro medidas (`MEDIDAS_META`: distância, tempo, subida, atividades) em
+  três períodos (`PERIODOS_META`: semana, mês, ano). **Medida sem alvo não
+  aparece** — meta que não foi pedida é enfeite.
+- O que a meta existe para responder não é "quanto já fiz", é **"estou em
+  dia?"**. Daí `emDia` (ter feito a fatia do período que já passou), `porDia`
+  (quanto falta por dia restante) e `projecao` (onde o período fecha no ritmo
+  de até aqui). Número que já é a decisão, em vez de número que exige fazer a
+  conta de cabeça na rua.
+- **O dia de hoje conta como dia restante**: ainda dá para correr hoje.
+
+### A prova alvo
+
+A meta que muda o treino inteiro, e a única que o app pode responder com
+honestidade: ele já sabe estimar o VDOT de quem corre e já sabe prever tempo a
+partir dele. `planoProva` compara o tempo desejado com o que o condicionamento
+de hoje prevê, diz de quantos pontos de VDOT é a diferença e se o prazo
+comporta (`viavel`: `ja` / `da` / `dificil`, pela régua de ~1 ponto de VDOT a
+cada 2 semanas, que já é otimista).
+
+- **A contagem de dias é de meia-noite a meia-noite.** Medindo de "agora" até
+  o meio-dia da prova, ela mudava conforme a hora em que a tela fosse aberta:
+  56 dias de manhã e 57 à noite, para a mesma prova.
+- **O rascunho é guardado mesmo incompleto.** Antes só virava prova quando já
+  tinha data, e quem preenchia de cima para baixo — nome, distância, data —
+  via o nome sumir ao chegar na data. Quem decide se o rascunho já é uma prova
+  é `planoProva`, que devolve `null` sem data.
+
+### Esforço relativo (TRIMP)
+
+Quilômetro é quanto, não é quão duro: dez quilômetros arrastados e dez em
+ritmo de prova somam igual em qualquer total de distância. O esforço relativo
+é o tempo pesado pela intensidade.
+
+- **Com cinta**, é o TRIMP de Banister, a fórmula publicada:
+  `minutos × reserva × 0,64 × e^(1,92 × reserva)`. O `0,64` é só escala e não
+  muda a comparação entre dois treinos — mas o número leva o nome de Banister,
+  e número que leva nome tem de bater com a tabela.
+- **Sem cinta**, o ritmo entra no lugar da FC, com o ritmo de limiar do próprio
+  corredor como régua (no limiar a pessoa está perto de 88% da reserva). O
+  número vem marcado como estimado, e a tela diz isso: é o que o próprio Strava
+  faz, e vale dizer em vez de fingir precisão que não existe.
+- `corredor.fcRepouso` afina a conta. Sem ela, 60 — que é a média e não é
+  ninguém.
+
+### Condicionamento, fadiga e forma
+
+O gráfico de Fitness & Freshness do Strava, que vem do modelo de
+impulso-resposta de Banister: duas médias móveis exponenciais do esforço
+diário, uma de 42 dias (o condicionamento que levou meses para construir) e
+uma de 7 (o cansaço de ontem). A forma é a diferença.
+
+**Forma negativa quer dizer cansado — que é onde se treina.** O erro clássico
+é achar que forma alta é bom sempre: forma alta por um mês é sedentarismo com
+outro nome, e `leituraForma` diz isso em vez de elogiar.
+
+Coberto por `teste-metas.js` (61 checagens), com o TRIMP conferido contra a
+fórmula calculada à mão no próprio teste.
+
+## O percurso desenhado (`PerfilElevacao`, `LegendaRitmo`, `pintarRotaPorRitmo`)
+
+O mapa já ficava na tela de fim. O que faltava era o que esses apps mostram em
+volta dele.
+
+- **A rota colorida pelo ritmo**, a assinatura do mapa do Strava: diz num
+  relance onde foi a subida e onde a pessoa abriu — coisa que a lista de
+  parciais só conta quilômetro a quilômetro. **As faixas saem dos quantis do
+  próprio percurso**, não de uma tabela fixa: 6:00/km é passeio para um e tiro
+  para outro, e o mapa tem de ser legível para os dois. O teste prova a
+  invariância: o mesmo percurso corrido na metade da velocidade sai com
+  exatamente o mesmo desenho de cores.
+- **O ritmo de cada trecho é medido em cordas** (`ROTA_CORDA_M`), como a
+  distância. Ponto a ponto, o erro do GPS vira velocidade que ninguém fez.
+- **Legenda sempre junto.** Mapa colorido sem legenda é enfeite: ninguém
+  adivinha se o vermelho é rápido ou devagar.
+- **O perfil de elevação** sai do mesmo `alt` do GPS que já alimentava a
+  subida. **O eixo é a distância percorrida, não o número do ponto**: parado
+  num semáforo o GPS cospe dezenas de pontos no mesmo lugar, e um eixo por
+  ponto desenharia um platô enorme onde não houve caminho nenhum. Terreno com
+  menos de 3 m de amplitude não vira gráfico.
+- Os dois valem **na tela de fim e no mapa do histórico** (`ModalRota`): quem
+  olha o percurso uma semana depois quer a mesma leitura.
+
+Coberto por `teste-mapa.js` (28 checagens).
+
 ## Monster, Run! (`TelaZumbi`, aba `zumbi`)
 
 Treino intervalado com história, pedido pelo dono a partir de uma especificação
@@ -1494,9 +1596,13 @@ em aparelho**: GPS de verdade, esteira física, celular bloqueado, Bluetooth.
 
 "Caminhada e corrida em que o ritmo varia" — o dono não sabia o nome; é o
 **treino intervalado**. Botão **⏱ Intervalado** na tela inicial e no preparo do
-percurso. Rua (GPS mostra se está no ritmo) ou esteira (o app diz a velocidade
-para pôr no painel: **quem ajusta a esteira é a pessoa**, uma página não fala com
-a esteira).
+percurso. Rua (GPS mostra se está no ritmo) ou esteira.
+
+**Na esteira há dois caminhos hoje.** Sem conexão, o app diz a velocidade e quem
+ajusta é a pessoa. **Com a esteira conectada por Bluetooth, o app acerta a
+velocidade de cada bloco sozinho** — ver *A esteira por Bluetooth*. Esta linha
+já afirmou que "uma página não fala com a esteira"; fala, quando a esteira expõe
+o padrão FTMS.
 
 Modelos (`MODELOS_INTERVALO`), cada um com a explicação na tela:
 
@@ -1638,11 +1744,175 @@ testado com um retransmissor local e dois navegadores: sala por código,
 largada, ultrapassagem narrada, previsão, link com fantasma, simulação até a
 chegada, e o registro no histórico.
 
+## A esteira por Bluetooth (FTMS)
+
+Pedido do dono: conectar o app à esteira, de um jeito fácil, e deixar o
+intervalado conduzir a velocidade sem as mãos.
+
+**Funciona pelo padrão aberto das máquinas de academia**: Fitness Machine
+Service, `0x1826`, publicado pelo Bluetooth SIG — o mesmo caminho do Zwift e do
+Kinomap. Nada aqui é engenharia reversa, e os bytes saem da especificação.
+
+| O que | Onde |
+|---|---|
+| velocidade, inclinação, distância, tempo, bpm | `0x2ACD`, notificado ~1×/s |
+| o que a máquina aceita de velocidade | `0x2AD4` (min, max, passo) |
+| mandar velocidade / inclinação | `0x2AD9`, op `0x02` / `0x03` |
+| parar | `0x2AD9`, op `0x08` com parâmetro `0x01` |
+
+### A varredura é do navegador, e tem de ser
+
+**Uma página não pode listar os aparelhos por perto**, e isso é de propósito:
+seria um rastreador pronto. Quem lista é o navegador, na janela dele. O que dá
+para fazer — e é o que muda a experiência — é **filtrar pelo serviço `0x1826`**,
+para que só apareça máquina de academia e não o fone nem a TV do vizinho.
+**E nunca reconecta sozinha. Esta é a decisão de segurança central do módulo,**
+e veio do dono: academia tem uma bateria de esteiras iguais. A de ontem pode
+ter outra pessoa correndo nela hoje — e o app não teria como saber. Ele veria
+um aparelho conhecido, conectaria, e comandaria a velocidade de um estranho.
+
+Por isso:
+
+- **Não existe `reconectar()`.** Conexão é sempre um ato deliberado, no
+  momento. Se um dia alguém for tentado a acrescentar: a pergunta é como o app
+  saberia que a esteira conhecida é a que está na frente da pessoa. Não saberia.
+- **Ao sair, o app devolve a permissão** (`device.forget()`), em vez de
+  guardá-la para depois. O toque a mais na próxima vez é o preço, e é barato.
+- **Conectar não é o mesmo que poder comandar.** Depois de conectar, a tela
+  pede a confirmação: *"mude a velocidade no painel; se o número aqui mudar, é
+  a sua"*. Só então o controle é pedido. Numa academia com dez máquinas iguais
+  o nome no Bluetooth não distingue nada; o painel, sim.
+- Se a esteira já estiver **andando** no instante da conexão, a tela avisa: é
+  o sinal mais forte de que tem alguém nela.
+
+### As regras de segurança, e por que cada uma existe
+
+Mudar a velocidade de uma esteira com alguém em cima não é como mudar um campo
+de formulário. Quem está correndo não consegue ler a tela, discutir nem recuar.
+
+1. **O teto é da pessoa, não da máquina.** Antes de começar ela diz a velocidade
+   máxima que aguenta, e `velocidadePermitida` toma **o menor** entre esse teto,
+   o máximo da esteira e um padrão — nessa ordem. Nenhum treino passa disso.
+2. **O app não liga nem desliga a esteira.** Quem começa e para é a pessoa, no
+   painel. O app só muda a velocidade de uma esteira que já está andando.
+3. **A troca vem anunciada duas vezes.** Onze segundos antes, a voz diz o que
+   vem: *"Em 11 segundos, a esteira acelera para 12,3 por hora"*
+   (`falaTrocaEsteira`, `AVISO_TROCA_MS`). A frase diz o **sentido antes do
+   número** — "acelera" chega ao ouvido antes de "doze", e é o sentido que muda
+   o que o corpo faz. Depois vem a contagem regressiva falada, 3-2-1, que só
+   existe quando o app comanda: na rua o bipe basta, porque ali a troca é de
+   esforço; na esteira a correia vai mudar debaixo do pé.
+4. **A tela diz o que foi pedido.** Sem isso, uma esteira que recusa o comando
+   calada deixaria a pessoa correndo no ritmo errado achando que o app cuidava.
+5. **⏹ PARAR A ESTEIRA é um botão separado do Encerrar.** Na hora do aperto
+   ninguém procura o botão certo. (O botão vermelho da própria esteira continua
+   sendo o caminho mais rápido — este é o que está na mão.)
+6. **No fim, desacelera para caminhada** (`VEL_DESAQUECIMENTO`) em vez de parar:
+   largar alguém em 14 km/h é ruim, parar de repente com a pessoa correndo é pior.
+7. **A velocidade encaixa no degrau da máquina.** Pedir 8,37 numa esteira de
+   passo 0,1 é pedir algo que ela arredonda sozinha — e aí a tela mostra um
+   número e a esteira faz outro.
+
+### A história manda na correia (Monster Run)
+
+O Monster Run na esteira ganhou as duas pontas: a esteira vira **fonte de
+movimento** (`fonte: "esteira"` — a melhor leitura possível ali, melhor que
+estimar por passos) e vira **a correia que a história conduz**.
+
+- O comando segue a **fase**, não o evento narrativo (`kmhDaFaseZumbi`). Evento
+  é quando a história tem algo a dizer; fase é o que está acontecendo com o
+  corpo, e entre um e outro cabem trocas sem fala nenhuma.
+- **A fase de aviso NÃO acelera.** Ali a história está dizendo que a ameaça
+  vem; quem acelera antes da hora chega cansado na perseguição. A correia muda
+  na transição, e a voz anuncia o ritmo durante o aviso.
+- O alvo da perseguição já era calculado pelo motor (em m/s): o que mudou é
+  que agora ele vira velocidade de verdade em vez de um número para a pessoa
+  perseguir no painel.
+
+### Métodos que só existem com a esteira comandada (`MODELOS_ESTEIRA`)
+
+Os modelos do intervalado falam em **nível** ("forte", "leve") porque quem
+ajusta a esteira é a pessoa, e pedir "11,3 km/h" a quem está correndo e precisa
+achar o botão é pedir demais. Com o app comandando, a conta inverte: velocidade
+exata deixa de ser incômodo e vira o próprio treino.
+
+**O critério para entrar aqui é ser desconfortável ou impossível de fazer à
+mão** — não "mais um modelo":
+
+| Método | O que é |
+|---|---|
+| 🪜 Rampa | +0,5 km/h a cada minuto, sem teto, até você não segurar. É o teste incremental de laboratório, e só dá para fazer sozinho se a máquina obedecer ao relógio |
+| 🌊 Onda | sobe e desce de meio em meio minuto, sem parar. Meio minuto é curto demais para alguém ficar mexendo no painel |
+| 📶 Escada de velocidade | um minuto por degrau, subindo e descendo. Na pirâmide cresce o TEMPO; aqui cresce a VELOCIDADE |
+| 🎰 Surpresa | o app muda quando quer, dentro do seu teto. Treina o que ritmo combinado não treina — e avisa por voz antes, sempre |
+
+- Os blocos carregam **`dkmh`**: quanto a velocidade fica acima (ou abaixo) do
+  ritmo confortável da pessoa. `alvoDoBloco` resolve isso; `alvoDoNivel`
+  continua valendo para todo o resto.
+- **Sem histórico não há velocidade para pedir.** Sem ritmo confortável medido,
+  `alvoDoBloco` devolve `null` em vez de chutar um número para mandar a uma
+  máquina.
+- Eles **só aparecem na lista quando a esteira aceita comando**, e se ela sair
+  de cena o app volta sozinho para um modelo que funciona sem ela. Oferecer uma
+  rampa automática a quem vai ter de girar o botão a cada minuto é oferecer
+  frustração.
+
+### O que pode dar errado, e o que o app faz
+
+- **A esteira só conta e não aceita comando.** É comum, e continua valendo: a
+  velocidade e a distância entram sozinhas, sem digitar. A tela diz isso.
+- **A esteira recusa** (`Control Not Permitted` etc.): vira frase em português
+  (`MOTIVO_FTMS`), não código de erro.
+- **A esteira ignora o comando**: toda ordem tem prazo de 4 s. Sem isso a tela
+  ficaria presa em "mandando…" para sempre.
+- **A conexão cai**: o estado volta para desconectado e a tela avisa.
+- **Recusa no meio do treino não derruba o treino.** Vira aviso; a pessoa ajusta
+  no painel como sempre fez.
+
+### O que não funciona, e não é escolha nossa
+
+**No iPhone não funciona.** O Web Bluetooth existe no Chrome do Android e do
+computador; a Apple não o oferece a nenhum site e disse que não pretende. É a
+mesma limitação da cinta cardíaca. **A tela diz isso em vez de mostrar um botão
+que não vai funcionar.**
+
+**Nem toda esteira expõe FTMS.** Muita máquina de academia grande usa protocolo
+próprio e só conversa com o app da marca. O jeito de descobrir é a esteira
+anunciar o `0x1826` — e o filtro da busca já faz essa prova: se ela não aparece
+na lista, não é compatível.
+
+### Como isso foi testado sem uma esteira
+
+`teste-esteira.js` (88 checagens) tem três partes. A primeira monta pacotes
+**byte a byte a partir da especificação** e confere a leitura: é código de bits,
+em que ler um campo na ordem errada não dá erro — dá número errado, que é pior,
+porque aparece na tela com cara de verdade.
+
+A segunda é uma **esteira de mentira** (`esteiraFalsa`), o mesmo molde que o
+projeto usa para falar com o Jarvis sem microfone. Ela prova a coreografia que
+é o risco real: pedir controle antes de comandar, casar cada resposta com a
+ordem certa, e os três casos ruins — a que recusa, a que não responde e a que
+só conta.
+
+A terceira cobre os métodos de velocidade: que a rampa **só sobe**, que a onda
+alterna sempre, que a escada é simétrica, que a surpresa com a mesma semente dá
+o mesmo treino, e que a frase do aviso diz o sentido certo nos quatro casos
+(acelera, reduz, vai para, segue em).
+
+No navegador, a mesma esteira falsa foi injetada no lugar do `requestDevice` e o
+treino rodou inteiro: conectar, pedir controle, `[0x02, 0x66, 0x03]` = 8,70 km/h
+no primeiro bloco, `[0x02, 0x4C, 0x04]` = 11,00 no seguinte, e `[0x08, 0x01]` no
+botão de parar. **O que só aparece assim**: a voz mandava "ajuste a esteira para
+8,7" logo depois de o app ter ajustado. `textoAlvoFala` agora sabe se o app
+comandou — e a diferença entre as duas frases é a diferença entre uma ferramenta
+que cuida e uma que dá ordem.
+
 ## Monitor cardíaco, e o que a web não alcança
 
 **Funciona:** qualquer monitor que exponha o serviço padrão de frequência
 cardíaca do Bluetooth (0x180D) — cintas peitorais Polar, Garmin, Wahoo e
-sensores de braço. O navegador fala direto com o aparelho, sem app no meio e
+sensores de braço. E, pelo mesmo caminho, a esteira que expõe o `0x1826`
+(ver *A esteira por Bluetooth*). O navegador fala direto com o aparelho, sem app no meio e
 sem servidor. A pessoa escolhe o dispositivo na janela do próprio navegador.
 O batimento aparece no treino e a média e o máximo entram no registro (`bpm`).
 
@@ -2179,13 +2449,13 @@ aqui**; o lugar do resto é:
 
 ## Como testar
 
-Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 568
-checagens em catorze suítes, e elas recortam as funções do próprio `index.html`:
+A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
+qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node rodar.js      # as catorze suítes, contra o index.html da pasta ao lado
-node servir.js     # sobe o app em http://localhost:8765
+node testes/rodar.js      # as 17 suítes (745 checagens)
+node testes/verificar.js  # a conferida de publicação
+node testes/servir.js     # sobe o app em http://localhost:8765
 ```
 
 Rode antes e depois de mexer no app. **Elas não substituem o roteiro manual
@@ -2195,6 +2465,15 @@ microfone e service worker exigem aparelho de verdade.
 O `file://` não serve: o preview vira `data:` e o `localStorage` fica
 bloqueado. Por isso o `servir.js` — o registro do service worker aceita
 `localhost` além de `https:`.
+
+**`lerApp()` normaliza o arquivo para LF, e isso não é detalhe.** O
+`index.html` é CRLF na cópia do Windows e LF na do Linux, porque o git
+converte na saída. As suítes recortam o código por marcadores de texto, e um
+marcador que termine em `\n}\n` nunca casa num arquivo CRLF. O resultado era
+o pior dos mundos: `teste-corrida` e `teste-intervalado` passavam no Linux do
+CI — que ficava verde — e **não rodavam** na máquina de quem desenvolve, onde
+o hook de pre-push exige que rodem. Normalizar num lugar só faz toda suíte ver
+os mesmos bytes em qualquer computador.
 
 Roteiro mínimo depois de mexer no app:
 

@@ -32,8 +32,22 @@ function caminhoDoApp() {
   process.exit(1);
 }
 
+// Sempre LF, em qualquer sistema.
+//
+// O `index.html` é CRLF na cópia de trabalho do Windows e LF no Linux — o git
+// converte na saída. As suítes recortam o código por marcadores de texto, e um
+// marcador que termine em "\n}\n" nunca casa num arquivo CRLF: ali está
+// "\r\n}\r\n". O resultado era o pior dos mundos — `teste-corrida` e
+// `teste-intervalado` passavam no Linux do CI, que ficava verde, e **não
+// rodavam** no computador de quem desenvolve, onde o hook de pre-push exige
+// que rodem.
+//
+// Normalizar aqui, num lugar só, faz toda suíte ver os mesmos bytes em
+// qualquer máquina. Nenhuma delas precisa do byte cru: todas já normalizavam
+// por conta própria, umas antes de procurar e outras depois — e era essa
+// diferença que decidia quem quebrava.
 function lerApp() {
-  return fs.readFileSync(caminhoDoApp(), "utf8");
+  return fs.readFileSync(caminhoDoApp(), "utf8").replace(/\r\n/g, "\n");
 }
 
 module.exports = { caminhoDoApp, lerApp };

@@ -9,6 +9,7 @@ function pedaco(de, ate) {
   return html.slice(i, f);
 }
 eval(pedaco("// ---- Batimento em pedaços ----", "// ---- fim do batimento em pedaços") + "\nglobalThis.F = { criarLeituraFc };");
+eval(pedaco("// ---- Odômetro da esteira ----", "// ---- fim do odômetro da esteira") + "\nglobalThis.O = { criarOdometroEsteira };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -59,6 +60,46 @@ console.log("\n--- o pico ---");
   const r = ler(criar(), [150, 155, 160, 165, 170, 172, 171, 169], 0).fechar(8);
   teste("pico de verdade aparece (mediana de tres)", 171, r.max);
   teste("o pico nunca e menor que a media", true, r.max >= r.medio);
+}
+
+console.log("\n--- o odometro da esteira (parar a esteira nao apaga o treino) ---");
+{
+  // 42 min caminhando; a esteira e parada e o painel volta a zero
+  const o = O.criarOdometroEsteira();
+  for (let s = 0; s <= 2520; s += 30) o.ler({ vel: 5, segundos: s, metros: Math.round(s * 5 / 3.6), kcal: Math.round(s / 10) }, s * 1000);
+  const antes = o.total();
+  o.ler({ vel: 0, segundos: 0, metros: 0, kcal: 0 }, 2521000);
+  const depois = o.total();
+  teste("o painel zerado nao apaga o tempo (42 min)", 2520, depois.seg);
+  teste("nem a distancia", antes.m, depois.m);
+  teste("nem as kcal", antes.kcal, depois.kcal);
+  teste("e avisa que o painel reiniciou", 2521000, depois.reiniciouEm);
+  o.ler({ vel: 5, segundos: 60, metros: 83, kcal: 6 }, 2581000);
+  teste("religada, continua somando por cima", 2580, o.total().seg);
+}
+{
+  // esteira que nao manda a distancia: soma pela velocidade
+  const o = O.criarOdometroEsteira();
+  for (let s = 0; s <= 600; s++) o.ler({ vel: 6, segundos: s }, s * 1000);
+  teste("sem metros no pacote, 10 min a 6 km/h = 1000 m", 1000, o.total().m);
+  teste("e diz que a distancia foi somada", false, o.total().mDoPainel);
+}
+{
+  // a conexao some 2 min: o buraco nao vira distancia inteira
+  const o = O.criarOdometroEsteira();
+  o.ler({ vel: 6 }, 0); o.ler({ vel: 6 }, 120000);
+  teste("lacuna de 2 min conta no maximo 5 s", 8, o.total().m);
+}
+{
+  // o mesmo pacote lido em cada render nao soma duas vezes
+  const o = O.criarOdometroEsteira(), d = { vel: 6 };
+  o.ler({ vel: 6 }, 0); o.ler(d, 1000); o.ler(d, 2000); o.ler(d, 3000);
+  teste("o mesmo pacote relido nao soma de novo", 2, o.total().m);
+}
+{
+  const o = O.criarOdometroEsteira();
+  o.ler({ segundos: 100 }, 0); o.ler({ segundos: 98 }, 1000);
+  teste("recuo pequeno (pacote atrasado) nao e reinicio", 98, o.total().seg);
 }
 
 function criar() { return F.criarLeituraFc(); }

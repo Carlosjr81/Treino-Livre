@@ -99,7 +99,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 805 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 815 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -140,7 +140,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 805 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 815 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v62) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v63) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1955,6 +1955,37 @@ entra o que a máquina mediu **desde a série anterior** (`extrasEsteira`,
   num treino de esteira mostrava "0 reps" e agora mostra distância, kcal,
   batimento e subida.
 
+### Parar a esteira não pode apagar o treino (`criarOdometroEsteira`)
+
+Achado no treino real do dono: 40 min programados no ▶, 42 caminhados, e ele
+parou a esteira sem mexer no app. O fim do cronômetro já tinha marcado a série
+com os 40 **planejados**, e o painel, ao parar, voltou a zero: tempo,
+distância e batimento reais sumiram. Daí:
+
+- **O odômetro** soma o painel por cima de cada reinício: quando tempo,
+  metros, kcal ou subida *caem* (mais que uma folga pequena, para pacote
+  atrasado não parecer reinício), o que havia vira saldo. Esteira que não
+  manda distância tem os metros somados pela velocidade, com lacuna de no
+  máximo 5 s (conexão que some não vira quilômetros), e o cartão diz
+  "somada pela velocidade".
+- **Com a esteira andando, o fim do ▶ não fecha a série**: a voz diz "Meta
+  cumprida. Pode continuar" (`seguirEsteiraRef`). Quem decide quando acabou é
+  a esteira parando.
+- **Parar a esteira anota a série sozinha**, com o tempo real: o painel
+  zerado, a esteira dizendo que parou, 15 s a 0 km/h ou o Desconectar —
+  qualquer um dos quatro, com pelo menos 1 minuto desde a anotação anterior.
+- Se a série já tinha sido marcada pelo ▶, o efeito das séries feitas troca o
+  tempo planejado pelo medido (acima de 1 min) e recalcula a velocidade média.
+- **O cartão mostra tudo o que a esteira manda**: ritmo, velocidade média,
+  batimento (fresco, ou "— segure o pegador"), kcal, subida, MET, potência, e a
+  linha "Nesta série" com tempo, km e ❤ média/pico/quanto foi medido. O
+  quadro do batimento exige `d.bpm > 0`: o zero do pegador apaga o número mas
+  deixa `bpmEm`, e o quadro mostrava vazio.
+
+Coberto em `teste-fc.js` (reinício, distância pela velocidade, lacuna, pacote
+relido) e conferido no navegador com a esteira falsa: 1 min programado, 85 s
+andados, esteira parada → série com 85 s, km e batimento.
+
 ### O batimento em pedaços (`criarLeituraFc`, coberto por `teste-fc.js`)
 
 Pedido do dono: "nem sempre estarei com as mãos onde capta o batimento".
@@ -2657,7 +2688,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 20 suítes (805 checagens)
+node testes/rodar.js      # as 20 suítes (815 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16o";
+const VERSAO_APP = "2026-10-16p";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2325,6 +2325,54 @@ function criarLeituraFc() {
   };
 }
 // ---- fim do batimento em pedaços
+
+// ---- Odômetro da esteira ----
+// Achado no treino real do dono: ao parar, a esteira ZEROU o painel, e o app
+// leu os zeros como o fim — 42 minutos, a distância e o batimento sumiram, e
+// ficaram só os 40 planejados. Muita esteira zera ao parar, outra desliga o
+// Bluetooth. O odômetro nunca anda para trás: quando um contador cai, o que
+// ele tinha vira saldo e a conta continua dali. E a esteira que não manda a
+// distância (só velocidade e tempo) ganha a distância somada pacote a
+// pacote: velocidade × o tempo até o pacote seguinte (no máximo 5 s, para um
+// buraco de sinal não virar quilômetros).
+const ODO_CAMPOS = [["segundos", "seg", 5], ["metros", "m", 20], ["kcal", "kcal", 5], ["subida", "subida", 2]];
+function criarOdometroEsteira() {
+  const saldo = { seg: 0, m: 0, kcal: 0, subida: 0 }, ultimo = {};
+  let ultimoPacote = null, tVel = null, vel = 0, mSomado = 0, segSomado = 0, reiniciouEm = 0;
+  const odo = {
+    // d: o pacote juntado; agora: ms. Chamado a cada render, conta cada pacote uma vez.
+    ler(d, agora) {
+      if (d && d !== ultimoPacote) {
+        ultimoPacote = d;
+        ODO_CAMPOS.forEach(([campo, nome, folga]) => {
+          if (d[campo] === undefined) return;
+          if (ultimo[nome] !== undefined && d[campo] + folga < ultimo[nome]) { saldo[nome] += ultimo[nome]; reiniciouEm = agora; }
+          ultimo[nome] = d[campo];
+        });
+        if (tVel !== null && vel > 0) {
+          const dt = Math.min(agora - tVel, 5000) / 1000;
+          if (dt > 0) { mSomado += (vel / 3.6) * dt; segSomado += dt; }
+        }
+        tVel = agora;
+        vel = d.vel !== undefined ? d.vel : vel;
+      }
+      return odo.total();
+    },
+    total() {
+      return {
+        seg: ultimo.seg !== undefined ? saldo.seg + ultimo.seg : Math.round(segSomado),
+        m: ultimo.m !== undefined ? saldo.m + ultimo.m : Math.round(mSomado),
+        kcal: ultimo.kcal !== undefined ? saldo.kcal + ultimo.kcal : null,
+        subida: ultimo.subida !== undefined ? saldo.subida + ultimo.subida : null,
+        // a distância veio do painel ou foi somada aqui (a tela diz qual)
+        mDoPainel: ultimo.m !== undefined,
+        reiniciouEm: reiniciouEm,
+      };
+    },
+  };
+  return odo;
+}
+// ---- fim do odômetro da esteira
 
 // ---------------- JARVIS EYES SCAN: CONTAR REPETIÇÃO PELA CÂMERA ----------------
 // Apoia o celular, o app enxerga o corpo inteiro e conta as repetições sozinho.
@@ -14431,7 +14479,7 @@ function FaixaIntervalo({ blocos, atual, tAtivo }) {
 // inclinação à mão, sem saber que a máquina podia dizê-las sozinha. Aqui ela
 // só é LIDA — nunca comandada — e as mesmas regras valem: conexão por toque,
 // conferência no painel, nada de reconectar sozinha.
-function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onAnotar, segAnotar, kmAnotar, seguindo }) {
+function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onAnotar, segAnotar, kmAnotar, seguindo, fcSerie, kmSomado }) {
   if (!ESTEIRA_DISPONIVEL) {
     return (
       <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, margin: "2px 0 10px", padding: "8px 10px", borderRadius: 10, background: "var(--bg2)" }}>
@@ -14477,10 +14525,25 @@ function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onA
         {d.incl !== undefined ? <NumeroCorrida rot="inclinação" val={num1(d.incl) + "%"} /> : null}
         {km !== null ? <NumeroCorrida rot="distância" val={num1(km)} sub="km" /> : null}
         {seg ? <NumeroCorrida rot="tempo" val={Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0")} /> : null}
-        {d.bpm ? <NumeroCorrida rot="❤ bpm" val={d.bpm} cor="#ED4956" /> : null}
+        {d.vel > 0 ? <NumeroCorrida rot="ritmo" val={fmtRitmo(60 / d.vel)} /> : null}
+        {d.velMedia > 0 ? <NumeroCorrida rot="vel. média" val={num1(d.velMedia)} sub="km/h" /> : null}
+        {/* o batimento só vale fresco: com as mãos fora do pegador o último
+            número fica parado, e mostrá-lo como atual seria mentir */}
+        {d.bpmEm ? (d.bpm > 0 && Date.now() - d.bpmEm < 5000
+          ? <NumeroCorrida rot="❤ bpm" val={d.bpm} cor="#ED4956" />
+          : <NumeroCorrida rot="❤ bpm" val="—" sub="segure o pegador" />) : null}
         {d.kcal ? <NumeroCorrida rot="kcal" val={d.kcal} sub="no painel" /> : null}
         {d.subida ? <NumeroCorrida rot="subida" val={Math.round(d.subida)} sub="m" /> : null}
+        {d.met ? <NumeroCorrida rot="MET" val={num1(d.met)} /> : null}
+        {d.watts > 0 ? <NumeroCorrida rot="potência" val={d.watts} sub="W" /> : null}
       </div>
+      {est.confirmada && (segAnotar > 0 || fcSerie) ? (
+        <div style={{ fontSize: 12, marginTop: 8, lineHeight: 1.5, padding: "7px 10px", borderRadius: 10, background: "var(--bg2)" }}>
+          <b>Nesta série:</b> {Math.floor(segAnotar / 60) + ":" + String(segAnotar % 60).padStart(2, "0")}
+          {kmAnotar ? " · " + num1(kmAnotar) + " km" + (kmSomado ? " (somada pela velocidade)" : "") : ""}
+          {fcSerie ? <span> · <b style={{ color: "#ED4956" }}>❤ {fcSerie.medio}</b> média, pico {fcSerie.max}{fcSerie.cob !== null && fcSerie.cob < 90 ? " (medido em " + fcSerie.cob + "% do tempo)" : ""}</span> : null}
+        </div>
+      ) : null}
       {!est.confirmada ? (
         <React.Fragment>
           <div style={{ fontSize: 12.5, marginTop: 10, lineHeight: 1.55, padding: 10, borderRadius: 10, background: "var(--bg2)" }}>
@@ -14499,6 +14562,7 @@ function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onA
           <div style={{ fontSize: 12, color: "var(--ok)", marginTop: 8, lineHeight: 1.5 }}>
             ✓ Lendo a esteira: {seguindo ? "a série " + seguindo + " acompanha" : "a próxima série acompanha"} a
             velocidade e a inclinação do painel. Quem muda a velocidade continua sendo você.
+            {" "}<b>Quando você parar a esteira, a série é anotada sozinha</b>, com o tempo e tudo o que ela mediu.
           </div>
           {segAnotar >= 60 ? (
             <button onClick={onAnotar} style={{ ...S.btn, width: "100%", marginTop: 10 }}>
@@ -18024,6 +18088,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // O cronômetro de isometria marca a série ao acabar; a ref evita depender
   // de marcarSerie nas dependências do efeito (que mudaria a cada tecla).
   const marcarSerieRef = useRef(() => {});
+  const seguirEsteiraRef = useRef(() => false);
   // A esteira por Bluetooth, só lida (ver ConexaoEsteiraSessao).
   const btSessao = usarEsteira();
   const [anotarEsteira, setAnotarEsteira] = useState(null);
@@ -18155,7 +18220,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         try { if (navigator.vibrate) navigator.vibrate([250, 100, 250]); } catch (e) {}
         const alvo = crono;
         setCrono(null);
-        marcarSerieRef.current(alvo.ei, alvo.si);
+        if (seguirEsteiraRef.current(alvo.ei)) {
+          falar("Meta de " + textoDuracao(total) + " cumprida. Pode continuar: a série fecha quando você parar a esteira.");
+        } else marcarSerieRef.current(alvo.ei, alvo.si);
       }
     };
     tick();
@@ -18469,9 +18536,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   const ZERO_EST = { seg: 0, m: 0, kcal: 0, subida: 0 };
   const [baseEst, setBaseEst] = useState(ZERO_EST);
   const dadoBruto = btSessao.est.dado || {};
-  const baseValida = (dadoBruto.segundos || 0) >= baseEst.seg ? baseEst : ZERO_EST;
-  const segEst = Math.max(0, (dadoBruto.segundos || 0) - baseValida.seg);
-  const mEst = dadoBruto.metros !== undefined ? Math.max(0, dadoBruto.metros - baseValida.m) : null;
+  // Tudo conta pelo odômetro (ver criarOdometroEsteira): o painel zerado ao
+  // parar não apaga nada, e o que ele já tinha mostrado continua valendo.
+  const odoEst = useRef(criarOdometroEsteira());
+  const cumEst = odoEst.current.ler(btSessao.est.dado, Date.now());
+  const segEst = Math.max(0, cumEst.seg - baseEst.seg);
+  const mEst = cumEst.m > 0 || cumEst.mDoPainel ? Math.max(0, cumEst.m - baseEst.m) : null;
   // O batimento de cada série, desde a última anotação (ver criarLeituraFc).
   // Conta só leitura nova (bpmEm), nunca o número que ficou parado.
   const fcSerie = useRef(criarLeituraFc());
@@ -18487,15 +18557,15 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const d = btSessao.est.dado || {};
     const x = {};
     if (mEst > 0) x.km = String(Math.round(mEst) / 1000);
-    if (d.kcal !== undefined && d.kcal - baseValida.kcal > 0) x.kcal = String(Math.round(d.kcal - baseValida.kcal));
-    if (d.subida !== undefined && d.subida - baseValida.subida > 0) x.subida = String(Math.round((d.subida - baseValida.subida) * 10) / 10);
+    if (cumEst.kcal !== null && cumEst.kcal - baseEst.kcal > 0) x.kcal = String(Math.round(cumEst.kcal - baseEst.kcal));
+    if (cumEst.subida !== null && cumEst.subida - baseEst.subida > 0) x.subida = String(Math.round((cumEst.subida - baseEst.subida) * 10) / 10);
     const fc = fcSerie.current.fechar(segEst);
     if (fc) { x.bpm = String(fc.medio); x.bpmMax = String(fc.max); if (fc.cob !== null) x.bpmCob = String(fc.cob); }
     return x;
   };
   const moverRegua = () => {
-    const d = btSessao.est.dado || {};
-    setBaseEst({ seg: d.segundos || 0, m: d.metros || 0, kcal: d.kcal || 0, subida: d.subida || 0 });
+    const t = odoEst.current.total();
+    setBaseEst({ seg: t.seg, m: t.m, kcal: t.kcal || 0, subida: t.subida || 0 });
     fcSerie.current = criarLeituraFc();
   };
   // Série marcada por qualquer caminho (✓, fim do ▶, ditada): recebe o que a
@@ -18513,6 +18583,10 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const x = extrasEsteira();
     const falta = {};
     Object.keys(x).forEach((k) => { if (!temValor(s[k])) falta[k] = x[k]; });
+    if (segEst >= 60) {
+      falta.segundos = String(segEst);
+      if (mEst > 0) falta.vel = String(Math.round(((mEst / segEst) * 3.6) * 10) / 10);
+    }
     if (Object.keys(falta).length) {
       setSessao((ss) => ss && { ...ss, itens: ss.itens.map((it, i) => i !== ei ? it
         : { ...it, series: it.series.map((y, j) => (j !== si ? y : { ...y, ...falta })) }) });
@@ -18567,6 +18641,38 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     setAnotarEsteira(null);
     marcarSerieRef.current(anotarEsteira.ei, anotarEsteira.si);
   }, [anotarEsteira]);
+  // A série termina quando a esteira para, não quando um relógio do app diz:
+  // parada por 15 s (o gole d'água não divide a série), painel zerado ou
+  // Bluetooth caído. Antes disso, nada fecha — e nada se perde.
+  const anotarEstRef = useRef(null);
+  anotarEstRef.current = anotarDaEsteira;
+  const estadoParada = useRef({});
+  estadoParada.current = { ligada: btSessao.est.ligada, vel: dadoBruto.vel, seg: segEst, reinicio: cumEst.reiniciouEm };
+  const parada = useRef({ desde: null, anotouEm: 0 });
+  useEffect(() => {
+    if (!btSessao.est.confirmada) return;
+    const iv = setInterval(() => {
+      const e = estadoParada.current, p = parada.current, agora = Date.now();
+      if (!(e.seg >= 60) || agora - p.anotouEm < 5000) { p.desde = null; return; }
+      const zerou = e.reinicio && agora - e.reinicio < 10000;
+      if (e.ligada && !zerou && e.vel !== 0) { p.desde = null; return; }
+      if (p.desde === null) p.desde = agora;
+      if (!e.ligada || zerou || agora - p.desde >= 15000) {
+        p.desde = null; p.anotouEm = agora;
+        if (anotarEstRef.current) anotarEstRef.current();
+      }
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [btSessao.est.confirmada]);
+  // O fim do ▶ com a esteira ainda andando não fecha a série: quem passou da
+  // meta e continuou andando fez mais, e é isso que tem de ficar gravado.
+  seguirEsteiraRef.current = (ei) => !!(btSessao.est.confirmada && btSessao.est.ligada && ehEsteiraItem(ei) && dadoBruto.vel > 0);
+  // Desconectar com série em aberto anota antes: depois a esteira já não diz nada.
+  const desconectarEsteira = () => {
+    if (segEst >= 60) anotarDaEsteira();
+    btSessao.desconectar();
+  };
+  const fcResumoSerie = btSessao.est.confirmada ? fcSerie.current.fechar(segEst) : null;
 
   // ---------- JARVIS DENTRO DO TREINO ----------
   // O ouvinte mora no componente raiz, mas marcar série, cronometrar o descanso
@@ -19305,7 +19411,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
 
             {ehAerobico && ehEsteiraPerfil(ex.cardio) && (
               <ConexaoEsteiraSessao est={btSessao.est} onConectar={btSessao.conectar} onConfirmar={() => btSessao.confirmar(true)}
-                onDesconectar={btSessao.desconectar} onAnotar={anotarDaEsteira} segAnotar={segEst} kmAnotar={mEst !== null ? mEst / 1000 : null}
+                onDesconectar={desconectarEsteira} onAnotar={anotarDaEsteira} segAnotar={segEst} kmAnotar={mEst !== null ? mEst / 1000 : null}
+                fcSerie={fcResumoSerie} kmSomado={!cumEst.mDoPainel}
                 seguindo={(() => { const a = serieDaEsteira(); return a && a.ei === ei ? a.si + 1 : null; })()} />
             )}
             <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>

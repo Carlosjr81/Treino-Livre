@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v64) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v65) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1985,6 +1985,22 @@ distância e batimento reais sumiram. Daí:
 - **Parar a esteira anota a série sozinha**, com o tempo real: o painel
   zerado, a esteira dizendo que parou, 15 s a 0 km/h ou o Desconectar —
   qualquer um dos quatro, com pelo menos 1 minuto desde a anotação anterior.
+- **Esteira desligada no botão** derruba o Bluetooth (`gattserverdisconnected`
+  → `ligada: false`): conta como parada, e a série é anotada com o último
+  pacote. Conferido no navegador.
+- **"Finalizar treino" com a esteira andando** (`finalizar`, `finalizarPend`):
+  anota a série aberta primeiro e só fecha o treino quando ela aparece feita
+  na sessão — o `onFinalizar` do raiz lê a sessão dele, e chamar no mesmo
+  instante gravaria sem a série.
+- **O app fechado no meio da caminhada** (memória, bateria, recarga, sair da
+  tela do treino — a conexão vive na `TelaSessao`): a cada 10 s vai um
+  rascunho para `sessao.esteiraParcial` (tempo, km, kcal, subida, batimento e
+  onde o painel estava). Ao reabrir o treino, ele vira a série, com um aviso
+  verde "Recuperei a série". A régua recomeça **de onde o painel estava**
+  (`painel`), senão a esteira, que continuou contando, levaria o tempo já
+  recuperado de novo para a série seguinte; painel zerado nesse meio tempo
+  (`reguaVelha`) volta a régua para zero. Anotar limpa o rascunho
+  (`moverRegua`).
 - Se a série já tinha sido marcada pelo ▶, o efeito das séries feitas troca o
   tempo planejado pelo medido (acima de 1 min) e recalcula a velocidade média.
 - **O cartão mostra tudo o que a esteira manda**: ritmo, velocidade média,

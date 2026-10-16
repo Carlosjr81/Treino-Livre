@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16q";
+const VERSAO_APP = "2026-10-16r";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -18540,14 +18540,22 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       : { ...it, series: it.series.map((y, j) => (j !== p.si ? y : { ...y, passos: String(n), cad: String(Math.round(cad)) })) }) });
   }, [crono]);
   const ZERO_EST = { seg: 0, m: 0, kcal: 0, subida: 0 };
-  const [baseEst, setBaseEst] = useState(ZERO_EST);
+  // Reaberto o treino com um rascunho recuperado, a régua começa onde o painel
+  // estava: a esteira continua contando, e o que já foi gravado não pode
+  // entrar de novo na série seguinte.
+  const [baseEst, setBaseEst] = useState(() => (sessao.esteiraParcial && sessao.esteiraParcial.painel) || ZERO_EST);
   const dadoBruto = btSessao.est.dado || {};
   // Tudo conta pelo odômetro (ver criarOdometroEsteira): o painel zerado ao
   // parar não apaga nada, e o que ele já tinha mostrado continua valendo.
   const odoEst = useRef(criarOdometroEsteira());
   const cumEst = odoEst.current.ler(btSessao.est.dado, Date.now());
-  const segEst = Math.max(0, cumEst.seg - baseEst.seg);
-  const mEst = cumEst.m > 0 || cumEst.mDoPainel ? Math.max(0, cumEst.m - baseEst.m) : null;
+  // ...a não ser que o painel tenha sido zerado nesse meio tempo: aí a régua
+  // velha não vale, e conta do zero.
+  const reguaVelha = cumEst.seg > 0 && cumEst.seg + 5 < baseEst.seg;
+  useEffect(() => { if (reguaVelha) setBaseEst(ZERO_EST); }, [reguaVelha]);
+  const baseUsada = reguaVelha ? ZERO_EST : baseEst;
+  const segEst = Math.max(0, cumEst.seg - baseUsada.seg);
+  const mEst = cumEst.m > 0 || cumEst.mDoPainel ? Math.max(0, cumEst.m - baseUsada.m) : null;
   // O batimento de cada série, desde a última anotação (ver criarLeituraFc).
   // Conta só leitura nova (bpmEm), nunca o número que ficou parado.
   const fcSerie = useRef(criarLeituraFc());
@@ -18563,8 +18571,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const d = btSessao.est.dado || {};
     const x = {};
     if (mEst > 0) x.km = String(Math.round(mEst) / 1000);
-    if (cumEst.kcal !== null && cumEst.kcal - baseEst.kcal > 0) x.kcal = String(Math.round(cumEst.kcal - baseEst.kcal));
-    if (cumEst.subida !== null && cumEst.subida - baseEst.subida > 0) x.subida = String(Math.round((cumEst.subida - baseEst.subida) * 10) / 10);
+    if (cumEst.kcal !== null && cumEst.kcal - baseUsada.kcal > 0) x.kcal = String(Math.round(cumEst.kcal - baseUsada.kcal));
+    if (cumEst.subida !== null && cumEst.subida - baseUsada.subida > 0) x.subida = String(Math.round((cumEst.subida - baseUsada.subida) * 10) / 10);
     const fc = fcSerie.current.fechar(segEst);
     if (fc) { x.bpm = String(fc.medio); x.bpmMax = String(fc.max); if (fc.cob !== null) x.bpmCob = String(fc.cob); }
     return x;
@@ -18573,6 +18581,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const t = odoEst.current.total();
     setBaseEst({ seg: t.seg, m: t.m, kcal: t.kcal || 0, subida: t.subida || 0 });
     fcSerie.current = criarLeituraFc();
+    setSessao((ss) => (ss && ss.esteiraParcial ? { ...ss, esteiraParcial: null } : ss));
   };
   // Série marcada por qualquer caminho (✓, fim do ▶, ditada): recebe o que a
   // esteira mediu desde a anterior, sem apagar o que já tem, e a régua anda.
@@ -18689,6 +18698,53 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   useEffect(() => {
     if (esteiraConduz && crono && ehEsteiraItem(crono.ei)) setCrono(null);
   }, [esteiraConduz, crono]);
+  // O que a esteira mediu na série aberta só existe na memória até a série
+  // ser anotada. Se o celular fechar o app no meio da caminhada (memória,
+  // bateria, recarga), sumiria. Então, a cada 10 s, vai um rascunho para a
+  // sessão, que já é gravada no aparelho — e ao reabrir o treino ele vira a
+  // série.
+  const rascunhoEst = () => {
+    if (!serieConduzida || !(segEst >= 60)) return null;
+    const media = mEst > 0 ? (mEst / segEst) * 3.6 : 0;
+    const r = Object.assign({ ei: serieConduzida.ei, si: serieConduzida.si, seg: segEst }, extrasEsteira());
+    // onde o painel estava (os números crus dele, não os somados): é de onde
+    // a série seguinte conta, se o app reabrir com a esteira ainda andando
+    r.painel = { seg: dadoBruto.segundos || 0, m: cumEst.mDoPainel ? dadoBruto.metros || 0 : 0, kcal: dadoBruto.kcal || 0, subida: dadoBruto.subida || 0 };
+    if (media > 0) r.vel = String(Math.round(media * 10) / 10);
+    return r;
+  };
+  useEffect(() => {
+    const r = rascunhoEst();
+    if (!r) return;
+    const p = sessao.esteiraParcial;
+    if (p && p.ei === r.ei && p.si === r.si && r.seg - p.seg < 10) return;
+    setSessao((ss) => ss && { ...ss, esteiraParcial: r });
+  }, [segEst]);
+  const [recuperadoEst, setRecuperadoEst] = useState(null);
+  useEffect(() => {
+    const p = sessao.esteiraParcial;
+    if (!p) return;
+    const s = sessao.itens[p.ei] && sessao.itens[p.ei].series[p.si];
+    const { ei, si, seg, painel, ...medido } = p;
+    if (!s || !(seg >= 60)) { setSessao((ss) => ss && { ...ss, esteiraParcial: null }); return; }
+    const novo = Object.assign({}, medido, { segundos: String(seg), feito: true });
+    setSessao((ss) => ss && { ...ss, esteiraParcial: null, itens: ss.itens.map((it, i) => i !== ei ? it
+      : { ...it, series: it.series.map((x, j) => (j !== si ? x : { ...x, ...novo })) }) });
+    setRecuperadoEst({ ei: ei, seg: seg, km: medido.km });
+  }, []);
+  // "Finalizar treino" com a esteira andando: a série aberta é anotada antes,
+  // e só então o treino fecha. Fechar direto deixaria de fora tudo desde a
+  // última anotação.
+  const [finalizarPend, setFinalizarPend] = useState(null);
+  const finalizar = () => {
+    if (serieConduzida && segEst >= 60) { setFinalizarPend(serieConduzida); anotarDaEsteira(); }
+    else onFinalizar();
+  };
+  useEffect(() => {
+    if (!finalizarPend) return;
+    const s = sessao.itens[finalizarPend.ei] && sessao.itens[finalizarPend.ei].series[finalizarPend.si];
+    if (s && s.feito) { setFinalizarPend(null); onFinalizar(); }
+  }, [sessao, finalizarPend]);
   // A voz que o ▶ dava (cada km, a metade, a meta) agora segue a esteira.
   const avisosEst = useRef({ chave: null });
   useEffect(() => {
@@ -19448,6 +19504,13 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               {!it.descanso && <span style={{ fontSize: 10, color: "var(--cinza2)" }}>(geral)</span>}
             </div>
 
+            {recuperadoEst && recuperadoEst.ei === ei && (
+              <div style={{ fontSize: 12.5, lineHeight: 1.5, padding: "9px 11px", borderRadius: 10, marginBottom: 8, background: "var(--ok-bg)", border: "1px solid var(--ok)", color: "var(--ok)" }}>
+                ↩ O app tinha fechado no meio da esteira. Recuperei a série: {textoDuracao(recuperadoEst.seg)}
+                {recuperadoEst.km ? " · " + num1(numDe(recuperadoEst.km)) + " km" : ""}, gravada até o último registro (a cada 10 s).
+                <button onClick={() => setRecuperadoEst(null)} style={{ background: "none", border: "none", color: "var(--ok)", textDecoration: "underline", cursor: "pointer", padding: 0, marginLeft: 6, fontSize: 12 }}>ok</button>
+              </div>
+            )}
             {ehAerobico && ehEsteiraPerfil(ex.cardio) && (
               <ConexaoEsteiraSessao est={btSessao.est} onConectar={btSessao.conectar} onConfirmar={() => btSessao.confirmar(true)}
                 onDesconectar={desconectarEsteira} onAnotar={anotarDaEsteira} segAnotar={segEst} kmAnotar={mEst !== null ? mEst / 1000 : null}
@@ -19656,7 +19719,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         </button>
       )}
 
-      <button style={{ ...S.btn, marginTop: 4 }} onClick={onFinalizar}>Finalizar treino</button>
+      <button style={{ ...S.btn, marginTop: 4 }} onClick={finalizar}>Finalizar treino</button>
       <button style={{ ...S.btnGhost, marginTop: 10, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}
         onClick={() => pedirConfirmacao("Descartar este treino sem salvar?", onDescartar)}>
         Descartar

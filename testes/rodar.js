@@ -21,7 +21,9 @@ const SUITES = [
   ["teste-cardio", "o aerobico: distancia, ritmo, gasto e a meta da semana"],
   ["teste-alvo", "onde cai a proxima frase do Jarvis, e o bi-set"],
   ["teste-rota", "o percurso na rua: GPS, distancia, parciais e o filtro"],
+  ["teste-mapa", "o perfil de elevacao e a rota colorida pelo ritmo"],
   ["teste-corrida", "o corredor: recordes, VDOT, ritmos, relevo, passos e carga"],
+  ["teste-metas", "metas, esforco relativo e a forma (condicionamento x fadiga)"],
   ["teste-zumbi", "a modalidade zumbi: perseguicao, plano, historia e falas"],
   ["teste-intervalado", "o intervalado: modelos, alvos, relogio dos blocos e resumo"],
 ];

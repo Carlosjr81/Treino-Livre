@@ -1197,6 +1197,108 @@ fim dele, cobertas por `teste-corrida.js` (39 checagens):
 - O resumo animado ganhou a cena "Recordes de corrida" quando o treino bateu
   algum.
 
+## Metas, esforço relativo e forma (`CartaoMetas`, `CartaoForma`)
+
+Pedido do dono: um lugar para estabelecer meta na corrida e na caminhada, e
+os parâmetros que Garmin e Strava usam e que ainda faltavam aqui.
+
+Tudo mora em `corredor` — que já era o perfil do corredor e já é persistido,
+carregado e levado no backup. Um campo em vez de cinco pontos de integração
+novos. **Em troca, os quatro carregadores precisaram de conserto**: eles
+remontavam o objeto à mão (`{ idade: ... }`) e descartavam todo o resto, então
+uma meta seria gravada e sumiria na recarga seguinte, calada. Hoje existe
+`lerCorredor`, e campo novo entra num lugar só.
+
+### As metas
+
+**Correr sem meta é o que a maioria faz, e está certo.** Por isso o cartão
+fechado é uma linha só: quem não treina para nada não vê barra de progresso
+nenhuma. Ele cresce quando alguém pede.
+
+- Quatro medidas (`MEDIDAS_META`: distância, tempo, subida, atividades) em
+  três períodos (`PERIODOS_META`: semana, mês, ano). **Medida sem alvo não
+  aparece** — meta que não foi pedida é enfeite.
+- O que a meta existe para responder não é "quanto já fiz", é **"estou em
+  dia?"**. Daí `emDia` (ter feito a fatia do período que já passou), `porDia`
+  (quanto falta por dia restante) e `projecao` (onde o período fecha no ritmo
+  de até aqui). Número que já é a decisão, em vez de número que exige fazer a
+  conta de cabeça na rua.
+- **O dia de hoje conta como dia restante**: ainda dá para correr hoje.
+
+### A prova alvo
+
+A meta que muda o treino inteiro, e a única que o app pode responder com
+honestidade: ele já sabe estimar o VDOT de quem corre e já sabe prever tempo a
+partir dele. `planoProva` compara o tempo desejado com o que o condicionamento
+de hoje prevê, diz de quantos pontos de VDOT é a diferença e se o prazo
+comporta (`viavel`: `ja` / `da` / `dificil`, pela régua de ~1 ponto de VDOT a
+cada 2 semanas, que já é otimista).
+
+- **A contagem de dias é de meia-noite a meia-noite.** Medindo de "agora" até
+  o meio-dia da prova, ela mudava conforme a hora em que a tela fosse aberta:
+  56 dias de manhã e 57 à noite, para a mesma prova.
+- **O rascunho é guardado mesmo incompleto.** Antes só virava prova quando já
+  tinha data, e quem preenchia de cima para baixo — nome, distância, data —
+  via o nome sumir ao chegar na data. Quem decide se o rascunho já é uma prova
+  é `planoProva`, que devolve `null` sem data.
+
+### Esforço relativo (TRIMP)
+
+Quilômetro é quanto, não é quão duro: dez quilômetros arrastados e dez em
+ritmo de prova somam igual em qualquer total de distância. O esforço relativo
+é o tempo pesado pela intensidade.
+
+- **Com cinta**, é o TRIMP de Banister, a fórmula publicada:
+  `minutos × reserva × 0,64 × e^(1,92 × reserva)`. O `0,64` é só escala e não
+  muda a comparação entre dois treinos — mas o número leva o nome de Banister,
+  e número que leva nome tem de bater com a tabela.
+- **Sem cinta**, o ritmo entra no lugar da FC, com o ritmo de limiar do próprio
+  corredor como régua (no limiar a pessoa está perto de 88% da reserva). O
+  número vem marcado como estimado, e a tela diz isso: é o que o próprio Strava
+  faz, e vale dizer em vez de fingir precisão que não existe.
+- `corredor.fcRepouso` afina a conta. Sem ela, 60 — que é a média e não é
+  ninguém.
+
+### Condicionamento, fadiga e forma
+
+O gráfico de Fitness & Freshness do Strava, que vem do modelo de
+impulso-resposta de Banister: duas médias móveis exponenciais do esforço
+diário, uma de 42 dias (o condicionamento que levou meses para construir) e
+uma de 7 (o cansaço de ontem). A forma é a diferença.
+
+**Forma negativa quer dizer cansado — que é onde se treina.** O erro clássico
+é achar que forma alta é bom sempre: forma alta por um mês é sedentarismo com
+outro nome, e `leituraForma` diz isso em vez de elogiar.
+
+Coberto por `teste-metas.js` (61 checagens), com o TRIMP conferido contra a
+fórmula calculada à mão no próprio teste.
+
+## O percurso desenhado (`PerfilElevacao`, `LegendaRitmo`, `pintarRotaPorRitmo`)
+
+O mapa já ficava na tela de fim. O que faltava era o que esses apps mostram em
+volta dele.
+
+- **A rota colorida pelo ritmo**, a assinatura do mapa do Strava: diz num
+  relance onde foi a subida e onde a pessoa abriu — coisa que a lista de
+  parciais só conta quilômetro a quilômetro. **As faixas saem dos quantis do
+  próprio percurso**, não de uma tabela fixa: 6:00/km é passeio para um e tiro
+  para outro, e o mapa tem de ser legível para os dois. O teste prova a
+  invariância: o mesmo percurso corrido na metade da velocidade sai com
+  exatamente o mesmo desenho de cores.
+- **O ritmo de cada trecho é medido em cordas** (`ROTA_CORDA_M`), como a
+  distância. Ponto a ponto, o erro do GPS vira velocidade que ninguém fez.
+- **Legenda sempre junto.** Mapa colorido sem legenda é enfeite: ninguém
+  adivinha se o vermelho é rápido ou devagar.
+- **O perfil de elevação** sai do mesmo `alt` do GPS que já alimentava a
+  subida. **O eixo é a distância percorrida, não o número do ponto**: parado
+  num semáforo o GPS cospe dezenas de pontos no mesmo lugar, e um eixo por
+  ponto desenharia um platô enorme onde não houve caminho nenhum. Terreno com
+  menos de 3 m de amplitude não vira gráfico.
+- Os dois valem **na tela de fim e no mapa do histórico** (`ModalRota`): quem
+  olha o percurso uma semana depois quer a mesma leitura.
+
+Coberto por `teste-mapa.js` (28 checagens).
+
 ## Monster, Run! (`TelaZumbi`, aba `zumbi`)
 
 Treino intervalado com história, pedido pelo dono a partir de uma especificação
@@ -2072,13 +2174,13 @@ aqui**; o lugar do resto é:
 
 ## Como testar
 
-Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 522
-checagens em treze suítes, e elas recortam as funções do próprio `index.html`:
+A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
+qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node rodar.js      # as treze suítes, contra o index.html da pasta ao lado
-node servir.js     # sobe o app em http://localhost:8765
+node testes/rodar.js      # as 14 suítes (611 checagens)
+node testes/verificar.js  # a conferida de publicação
+node testes/servir.js     # sobe o app em http://localhost:8765
 ```
 
 Rode antes e depois de mexer no app. **Elas não substituem o roteiro manual
@@ -2088,6 +2190,15 @@ microfone e service worker exigem aparelho de verdade.
 O `file://` não serve: o preview vira `data:` e o `localStorage` fica
 bloqueado. Por isso o `servir.js` — o registro do service worker aceita
 `localhost` além de `https:`.
+
+**`lerApp()` normaliza o arquivo para LF, e isso não é detalhe.** O
+`index.html` é CRLF na cópia do Windows e LF na do Linux, porque o git
+converte na saída. As suítes recortam o código por marcadores de texto, e um
+marcador que termine em `\n}\n` nunca casa num arquivo CRLF. O resultado era
+o pior dos mundos: `teste-corrida` e `teste-intervalado` passavam no Linux do
+CI — que ficava verde — e **não rodavam** na máquina de quem desenvolve, onde
+o hook de pre-push exige que rodem. Normalizar num lugar só faz toda suíte ver
+os mesmos bytes em qualquer computador.
 
 Roteiro mínimo depois de mexer no app:
 

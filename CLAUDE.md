@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v58) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v59) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1910,6 +1910,17 @@ já avisa que ele existe.
   `marcarSerie` lê a sessão do render: gravar e marcar juntos apagaria os números.
 - No iPhone, em vez do botão, uma linha dizendo que a Apple não libera e que é
   só digitar o painel.
+- **Achado no primeiro treino real com a esteira**: o dono anotou a 1ª série
+  pela esteira, pôs 40 min na mesma linha e apertou ▶ — e a velocidade parou
+  de acompanhar, porque só série pendente era seguida. Hoje **a série com o
+  cronômetro rodando vem antes de tudo** (`serieDaEsteira`), e ▶ numa série já
+  marcada a devolve a pendente: o fim do cronômetro chama `marcarSerie`, que
+  **alterna**, e desmarcaria o treino de 40 min.
+- **Cada anotação conta desde a anterior** (`baseEst`): o tempo e a distância
+  do painel só crescem, e a 2ª série levaria os minutos da 1ª. Série marcada por
+  outro caminho (✓, fim do cronômetro) também move a régua; painel zerado
+  (esteira parada e religada) zera a régua. Sem série pendente, "Anotar" cria
+  uma série nova no exercício de esteira.
 
 ### O que pode dar errado, e o que o app faz
 

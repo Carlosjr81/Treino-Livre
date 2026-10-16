@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16k";
+const VERSAO_APP = "2026-10-16l";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -14339,7 +14339,7 @@ function FaixaIntervalo({ blocos, atual, tAtivo }) {
 // inclinação à mão, sem saber que a máquina podia dizê-las sozinha. Aqui ela
 // só é LIDA — nunca comandada — e as mesmas regras valem: conexão por toque,
 // conferência no painel, nada de reconectar sozinha.
-function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onAnotar }) {
+function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onAnotar, segAnotar, kmAnotar, seguindo }) {
   if (!ESTEIRA_DISPONIVEL) {
     return (
       <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, margin: "2px 0 10px", padding: "8px 10px", borderRadius: 10, background: "var(--bg2)" }}>
@@ -14402,13 +14402,17 @@ function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onA
       ) : (
         <React.Fragment>
           <div style={{ fontSize: 12, color: "var(--ok)", marginTop: 8, lineHeight: 1.5 }}>
-            ✓ Lendo a esteira: a velocidade e a inclinação da série acompanham o painel.
-            Quem muda a velocidade continua sendo você.
+            ✓ Lendo a esteira: {seguindo ? "a série " + seguindo + " acompanha" : "a próxima série acompanha"} a
+            velocidade e a inclinação do painel. Quem muda a velocidade continua sendo você.
           </div>
-          {seg >= 60 && (
+          {segAnotar >= 60 ? (
             <button onClick={onAnotar} style={{ ...S.btn, width: "100%", marginTop: 10 }}>
-              ✓ Anotar a série: {Math.round(seg / 60)} min{km ? " · " + num1(km) + " km" : ""}
+              ✓ Anotar {seguindo ? "a série " + seguindo : "uma série"}: {Math.round(segAnotar / 60)} min{kmAnotar ? " · " + num1(kmAnotar) + " km" : ""}
             </button>
+          ) : (
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>
+              Depois de 1 minuto aparece o botão de anotar, com o tempo e a distância desde a última série.
+            </div>
           )}
         </React.Fragment>
       )}
@@ -18189,6 +18193,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const seg = parseInt(sessao.itens[ei].series[si].segundos) || 0;
     if (seg <= 0) return;
     if (som) beep(520, 0.08, 0.15);
+    // ▶ numa série já marcada é refazer a série: ela volta a pendente, senão o
+    // fim do cronômetro (que chama marcarSerie, um alternador) a desmarcaria.
+    if (sessao.itens[ei].series[si].feito) upSerie(ei, si, "feito", false);
     setRestaCrono(seg);
     setCrono({ ei, si, inicio: Date.now(), fim: Date.now() + seg * 1000 });
   };
@@ -18294,13 +18301,34 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
 
   // Qual série a esteira preenche: a do exercício da vez, se for de esteira;
   // senão a primeira de esteira que ainda tem série por fazer.
+  // Treino real do dono: anotou a 1ª série pela esteira e começou outra de
+  // 40 min no ▶ — e a velocidade parou de acompanhar, porque só série pendente
+  // era seguida. A série com o cronômetro rodando é a que está acontecendo, e
+  // vem antes de tudo.
+  const ehEsteiraItem = (i) => { const it = sessao.itens[i]; const e = it && exPorId(it.exercicioId); return !!(e && ehEsteiraPerfil(e.cardio)); };
   const serieDaEsteira = () => {
-    const ehEst = (i) => { const e = exPorId(sessao.itens[i].exercicioId); return !!(e && ehEsteiraPerfil(e.cardio)); };
+    if (crono && ehEsteiraItem(crono.ei) && sessao.itens[crono.ei].series[crono.si]) return { ei: crono.ei, si: crono.si };
     const pend = (i) => sessao.itens[i].series.findIndex((s) => !s.feito);
     const ordem = (alvo ? [alvo.ei] : []).concat(sessao.itens.map((_, i) => i));
-    for (const i of ordem) if (sessao.itens[i] && ehEst(i) && pend(i) >= 0) return { ei: i, si: pend(i) };
+    for (const i of ordem) if (ehEsteiraItem(i) && pend(i) >= 0) return { ei: i, si: pend(i) };
     return null;
   };
+  // O tempo e a distância da esteira são do painel dela, e só crescem: a 2ª
+  // série anotada levaria junto os minutos da 1ª. Então cada anotação conta a
+  // partir da anterior (baseEst), e uma série marcada por outro caminho (✓, fim
+  // do cronômetro) também move a régua.
+  const [baseEst, setBaseEst] = useState({ seg: 0, m: 0 });
+  const dadoBruto = btSessao.est.dado || {};
+  const baseValida = (dadoBruto.segundos || 0) >= baseEst.seg ? baseEst : { seg: 0, m: 0 };
+  const segEst = Math.max(0, (dadoBruto.segundos || 0) - baseValida.seg);
+  const mEst = dadoBruto.metros !== undefined ? Math.max(0, dadoBruto.metros - baseValida.m) : null;
+  const feitasEst = sessao.itens.reduce((n, it, i) => n + (ehEsteiraItem(i) ? it.series.filter((s) => s.feito).length : 0), 0);
+  const feitasEstAntes = useRef(feitasEst);
+  useEffect(() => {
+    if (feitasEst > feitasEstAntes.current && btSessao.est.confirmada && btSessao.est.dado)
+      setBaseEst({ seg: btSessao.est.dado.segundos || 0, m: btSessao.est.dado.metros || 0 });
+    feitasEstAntes.current = feitasEst;
+  }, [feitasEst]);
   // Com a esteira confirmada, velocidade e inclinação da série seguem o painel.
   // Só grava quando o número muda: a esteira manda um pacote por segundo.
   const dadoEst = btSessao.est.confirmada ? btSessao.est.dado : null;
@@ -18322,14 +18350,26 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // faria a marcação apagar os números.
   const anotarDaEsteira = () => {
     const d = btSessao.est.dado || {};
-    const alvoE = serieDaEsteira();
-    if (!alvoE || !(d.segundos >= 60)) return;
-    const media = d.velMedia > 0 ? d.velMedia : d.metros > 0 ? (d.metros / d.segundos) * 3.6 : d.vel;
-    const novo = { segundos: String(d.segundos) };
+    if (!(segEst >= 60)) return;
+    // Sem série pendente (todas já marcadas), a anotação vira uma série nova
+    // no exercício de esteira: quem continuou correndo fez mais uma.
+    let alvoE = serieDaEsteira();
+    let itens = sessao.itens;
+    if (!alvoE) {
+      const ei = alvo && ehEsteiraItem(alvo.ei) ? alvo.ei : sessao.itens.findIndex((_, i) => ehEsteiraItem(i));
+      if (ei < 0) return;
+      const ult = sessao.itens[ei].series[sessao.itens[ei].series.length - 1];
+      const nova = Object.assign({}, ult ? copiaCardio(ult) : {}, { segundos: "60", feito: false });
+      itens = itens.map((it, i) => (i !== ei ? it : { ...it, series: [...it.series, nova] }));
+      alvoE = { ei, si: itens[ei].series.length - 1 };
+    }
+    const media = mEst > 0 ? (mEst / segEst) * 3.6 : d.velMedia > 0 ? d.velMedia : d.vel;
+    const novo = { segundos: String(segEst) };
     if (media > 0) novo.vel = String(Math.round(media * 10) / 10);
     if (d.incl !== undefined) novo.incl = String(Math.round(d.incl * 10) / 10);
-    setSessao({ ...sessao, itens: sessao.itens.map((it, i) => i !== alvoE.ei ? it
-      : { ...it, series: it.series.map((x, j) => (j !== alvoE.si ? x : { ...x, ...novo })) }) });
+    if (crono && crono.ei === alvoE.ei && crono.si === alvoE.si) setCrono(null);
+    setSessao({ ...sessao, itens: itens.map((it, i) => i !== alvoE.ei ? it
+      : { ...it, series: it.series.map((x, j) => (j !== alvoE.si ? x : { ...x, ...novo, feito: false })) }) });
     setAnotarEsteira(alvoE);
   };
   useEffect(() => {
@@ -19075,7 +19115,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
 
             {ehAerobico && ehEsteiraPerfil(ex.cardio) && (
               <ConexaoEsteiraSessao est={btSessao.est} onConectar={btSessao.conectar} onConfirmar={() => btSessao.confirmar(true)}
-                onDesconectar={btSessao.desconectar} onAnotar={anotarDaEsteira} />
+                onDesconectar={btSessao.desconectar} onAnotar={anotarDaEsteira} segAnotar={segEst} kmAnotar={mEst !== null ? mEst / 1000 : null}
+                seguindo={(() => { const a = serieDaEsteira(); return a && a.ei === ei ? a.si + 1 : null; })()} />
             )}
             <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
               <div style={{ width: 30 }} />

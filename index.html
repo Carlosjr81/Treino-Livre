@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16g";
+const VERSAO_APP = "2026-10-16h";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -7340,12 +7340,13 @@ function fichaDeHoje(programas, treinos, historico, agora) {
 
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
   avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
-  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi, onIntervalado, onDesafio }) {
+  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi, onIntervalado, onDesafio, onEsteira }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
   const hoje = useMemo(() => fichaDeHoje(programas, treinos, historico), [programas, treinos, historico]);
   const [verTodas, setVerTodas] = useState(false);
+  const [escolhaEsteira, setEscolhaEsteira] = useState(false);
   const novato = !historico.length;
   // Os outros jeitos de treinar, lado a lado: cada um com uma linha dizendo para
   // que serve. Sete botões coloridos do mesmo tamanho, um embaixo do outro, era
@@ -7355,9 +7356,12 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
     { icone: "🏋️", nome: "Treino livre", diz: "escolha na hora", cor: "var(--texto)", onClick: onTreinoLivre, se: temFichas },
     { icone: "⚡", nome: "Funcional", diz: "em casa, a câmera conta", cor: "#4CD137", onClick: onFuncional },
     { icone: "🗺", nome: "Corrida na rua", diz: "GPS, mapa e ritmo", cor: "#4C9BE8", onClick: onPercurso },
+    // A esteira era só um exercício escondido dentro das fichas: quem ia à
+    // academia só para correr não achava por onde começar.
+    { icone: "\u{1F3C3}", nome: "Esteira", diz: "corrida ou caminhada", cor: "#4C9BE8", onClick: onEsteira && (() => setEscolhaEsteira((v) => !v)), ativo: escolhaEsteira },
     { icone: "⏱", nome: "Intervalado", diz: "o ritmo que varia", cor: "#F5A623", onClick: onIntervalado },
     { icone: "🏁", nome: "Desafio", diz: "corra contra amigos", cor: "#E1306C", onClick: onDesafio },
-    { icone: "🧟", nome: NOME_ZUMBI, diz: "fuja dos monstros correndo", cor: "#7CFF3C", onClick: onZumbi, largo: true },
+    { icone: "🧟", nome: NOME_ZUMBI, diz: "fuja dos monstros correndo", cor: "#7CFF3C", onClick: onZumbi },
   ].filter((j) => j.onClick && j.se !== false);
   const cartaoInstalar = !instalado && (
     <div style={{ ...S.card, borderColor: "#E1306C44" }}>
@@ -7459,13 +7463,34 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
           {jeitos.map((j) => (
             <button key={j.nome} onClick={j.onClick}
+              aria-expanded={j.ativo === undefined ? undefined : !!j.ativo}
               style={{ gridColumn: j.largo ? "1 / 3" : "auto", textAlign: "left", padding: "11px 12px", borderRadius: 12, cursor: "pointer",
-                background: "var(--bg2)", border: "1px solid var(--borda2)", color: "var(--texto)", minHeight: 64 }}>
+                background: j.ativo ? "#4C9BE81A" : "var(--bg2)", border: "1px solid " + (j.ativo ? "#4C9BE8" : "var(--borda2)"), color: "var(--texto)", minHeight: 64 }}>
               <div style={{ fontSize: 14, fontWeight: 900, color: j.cor }}>{j.icone} {j.nome}</div>
               <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 3, lineHeight: 1.35 }}>{j.diz}</div>
             </button>
           ))}
         </div>
+        {escolhaEsteira && onEsteira && (
+          <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: "1px solid #4C9BE866", background: "#4C9BE80D" }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>O que você vai fazer na esteira?</div>
+            {[
+              ["esteira-corrida", "\u{1F3C3} Correr", "começa com 9 km/h, 20 min"],
+              ["esteira-caminhada", "\u{1F6B6} Caminhar", "começa com 5,5 km/h, 30 min"],
+              ["esteira-inclinada", "\u26F0\uFE0F Caminhada inclinada", "gasta quase o de uma corrida leve, com menos impacto"],
+            ].map((o) => (
+              <button key={o[0]} onClick={() => onEsteira(o[0])}
+                style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 12px", marginBottom: 6, borderRadius: 10, cursor: "pointer",
+                  background: "var(--card)", border: "1px solid var(--borda2)", color: "var(--texto)" }}>
+                <span style={{ display: "block", fontWeight: 900, fontSize: 14 }}>{o[1]}</span>
+                <span style={{ display: "block", fontSize: 12, color: "var(--cinza)", marginTop: 2 }}>{o[2]}</span>
+              </button>
+            ))}
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 4 }}>
+              Velocidade e inclinação você ajusta na tela do treino, e da segunda vez em diante elas vêm da última. Quer variar o ritmo? Use o <b>Intervalado</b>.
+            </div>
+          </div>
+        )}
       </div>
 
       <OQueTreinarHoje historico={historico} exPorId={exPorId} onAbrirGrupo={onAbrirGrupo} />
@@ -18462,6 +18487,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   );
 
   const primeiroTreino = !(historico && historico.length) && feitas === 0;
+  // só esteira (ou prancha): o guia não fala em peso
+  const soTempo = sessao.itens.length > 0 && sessao.itens.every((it) => { const e = exPorId(it.exercicioId); return !!(e && e.tempo); });
   return (
     <div style={{ padding: "0 18px", paddingBottom: (fimDescanso ? 210 : 20) + (vozAtiva ? 60 : 0) }}>
       <button style={S.voltar} onClick={onVoltar}>← Voltar (o treino continua salvo)</button>
@@ -18497,11 +18524,15 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       {primeiroTreino && (
         <div style={{ ...S.card, borderColor: "#4ADE8066", background: "var(--ok-bg)" }}>
           <div style={{ ...S.label, color: "var(--ok)" }}>👋 Como anotar o seu treino</div>
-          {[
+          {(soTempo ? [
+            ["1", "Confira os minutos e ponha a velocidade e a inclinação que você vai usar na esteira."],
+            ["2", "Toque no ▶ para o app cronometrar e avisar o fim — ou no ✓ quando terminar."],
+          ] : [
             ["1", "Digite o peso que você vai usar. As repetições já vêm sugeridas — mude se quiser."],
             ["2", "Fez a série? Toque no ✓. O descanso começa sozinho e avisa quando acabar."],
+          ]).concat([
             ["3", "Terminou tudo? Toque em Finalizar treino, lá no fim da lista."],
-          ].map((p) => (
+          ]).map((p) => (
             <div key={p[0]} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 10, fontSize: 14, lineHeight: 1.5 }}>
               <span style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 12, background: "var(--ok)", color: "#062", fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>{p[0]}</span>
               <span>{p[1]}</span>
@@ -20660,6 +20691,25 @@ function TreinoLivre() {
     comecar();
   };
 
+  // A esteira sozinha, sem ficha: uma sessão comum com um exercício só. O
+  // "repetições" de um exercício de tempo são minutos (padrao.min), e a
+  // velocidade e a inclinação saem da última vez pelo mesmo sugerirCarga.
+  const iniciarEsteira = (id) => {
+    const ex = exPorId(id);
+    if (!ex) return;
+    const treino = {
+      id: "esteira-" + Date.now(),
+      nome: ex.nome,
+      itens: [{ uid: novoUid(), exercicioId: id, series: 1, reps: (ex.padrao && ex.padrao.min) || 20, obs: "", descanso: null, conjunto: null }],
+    };
+    const comecar = () => { comecarSessao(treino); registrarEvento("esteira-iniciada"); };
+    if (sessao) {
+      pedirConfirmacao("Você já tem um treino em andamento (" + sessao.nome + "). Começar a esteira vai descartá-lo. Continuar?", comecar);
+      return;
+    }
+    comecar();
+  };
+
   // Funcional não é ficha: não tem carga para sugerir e as repetições variam
   // muito de um movimento para o outro. Mas vira uma sessão comum assim que
   // começa — e por isso histórico, nível, conquistas e recordes funcionam sem
@@ -21539,6 +21589,7 @@ function TreinoLivre() {
             onZumbi={() => setAbrindoZumbi(true)}
             onIntervalado={() => setAba("intervalado")}
             onDesafio={() => setAba("desafio")}
+            onEsteira={iniciarEsteira}
             onEscolaVoz={() => setAba("escolaVoz")}
             convite={convite}
             onSeguir={() => {

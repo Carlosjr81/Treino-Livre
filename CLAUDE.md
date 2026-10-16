@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v54) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v55) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2453,10 +2453,17 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   mais dias? Monte o seu — são 3 perguntas" (o assistente).
 - **Ordem da tela**: o treino de hoje primeiro, depois as boas-vindas, depois o
   instalar. A primeira coisa da tela é o que fazer; a explicação vem em seguida.
-- **Os outros jeitos de treinar** (assistente, livre, funcional, rua,
+- **Os outros jeitos de treinar** (assistente, livre, funcional, rua, esteira,
   intervalado, desafio, Monster Run) viraram uma **grade de dois**, cada um com
   uma linha dizendo para que serve. Modo novo entra no vetor `jeitos`, não
   como mais um botão solto.
+- **🏃 Esteira** (pedido do dono: "senti falta da esteira"): a esteira era só um
+  exercício dentro das fichas, e quem ia à academia só para correr não achava
+  por onde começar. O azulejo abre a escolha — correr, caminhar, caminhada
+  inclinada — e `iniciarEsteira` começa uma sessão comum com aquele exercício
+  só (os minutos vêm do `padrao`, velocidade e inclinação da última vez). O guia
+  do primeiro treino troca "digite o peso" por minutos, velocidade e ▶
+  quando o treino é só de tempo (`soTempo`).
 - **O histórico vazio tem botão** ("▶ Fazer meu primeiro treino"): tela vazia
   sem caminho é tela onde a pessoa desiste.
 

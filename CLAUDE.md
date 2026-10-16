@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v63) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v64) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1968,9 +1968,20 @@ distância e batimento reais sumiram. Daí:
   manda distância tem os metros somados pela velocidade, com lacuna de no
   máximo 5 s (conexão que some não vira quilômetros), e o cartão diz
   "somada pela velocidade".
-- **Com a esteira andando, o fim do ▶ não fecha a série**: a voz diz "Meta
-  cumprida. Pode continuar" (`seguirEsteiraRef`). Quem decide quando acabou é
-  a esteira parando.
+- **Um treino só, não dois** (`esteiraConduz`, `serieConduzida`). O dono
+  desconfiou, com razão: o cartão contava o tempo do painel e, embaixo, o ▶
+  da série contava os 40 minutos por conta própria — dois relógios para a
+  mesma caminhada, e o de baixo era o gravado. Hoje, com a esteira confirmada
+  e ligada, **a série é a da esteira**: no lugar dos minutos aparece o tempo
+  dela desde a última anotação ("0:48 / 40 min"), os minutos da ficha viram
+  meta, **o ▶ some** das séries de esteira, e um ▶ que já estava rodando é
+  cancelado na confirmação. O cartão mostra "tempo da série" e "distância da
+  série" — os mesmos números de baixo —, não o total do painel. A voz que o ▶
+  dava (cada km, a metade, a meta) passou a seguir a esteira. Sem esteira
+  conectada, o ▶ continua sendo o relógio.
+- **Passar da meta não fecha a série**: a voz diz "Meta cumprida. Pode
+  continuar". Quem decide quando acabou é a esteira parando.
+  (`seguirEsteiraRef` ainda cobre o fim de um ▶, por segurança.)
 - **Parar a esteira anota a série sozinha**, com o tempo real: o painel
   zerado, a esteira dizendo que parou, 15 s a 0 km/h ou o Desconectar —
   qualquer um dos quatro, com pelo menos 1 minuto desde a anotação anterior.

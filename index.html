@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16p";
+const VERSAO_APP = "2026-10-16q";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -14479,7 +14479,7 @@ function FaixaIntervalo({ blocos, atual, tAtivo }) {
 // inclinação à mão, sem saber que a máquina podia dizê-las sozinha. Aqui ela
 // só é LIDA — nunca comandada — e as mesmas regras valem: conexão por toque,
 // conferência no painel, nada de reconectar sozinha.
-function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onAnotar, segAnotar, kmAnotar, seguindo, fcSerie, kmSomado }) {
+function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onAnotar, segAnotar, kmAnotar, seguindo, fcSerie, kmSomado, metaSerie }) {
   if (!ESTEIRA_DISPONIVEL) {
     return (
       <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, margin: "2px 0 10px", padding: "8px 10px", borderRadius: 10, background: "var(--bg2)" }}>
@@ -14523,8 +14523,14 @@ function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onA
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
         <NumeroCorrida rot="velocidade" val={d.vel !== undefined ? num1(d.vel) : "—"} sub="km/h" cor="#4C9BE8" />
         {d.incl !== undefined ? <NumeroCorrida rot="inclinação" val={num1(d.incl) + "%"} /> : null}
-        {km !== null ? <NumeroCorrida rot="distância" val={num1(km)} sub="km" /> : null}
-        {seg ? <NumeroCorrida rot="tempo" val={Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0")} /> : null}
+        {/* confirmada, o tempo e a distância são os da série — os mesmos da
+            linha de baixo. Antes era o total do painel, e pareciam dois treinos */}
+        {est.confirmada
+          ? <NumeroCorrida rot="tempo da série" val={Math.floor((segAnotar || 0) / 60) + ":" + String((segAnotar || 0) % 60).padStart(2, "0")} sub={metaSerie ? "meta: " + Math.round(metaSerie / 60) + " min" : null} cor="var(--ok)" />
+          : seg ? <NumeroCorrida rot="tempo" val={Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0")} /> : null}
+        {est.confirmada
+          ? (kmAnotar !== null ? <NumeroCorrida rot="distância da série" val={num1(kmAnotar)} sub={kmSomado ? "km, pela velocidade" : "km"} /> : null)
+          : km !== null ? <NumeroCorrida rot="distância" val={num1(km)} sub="km" /> : null}
         {d.vel > 0 ? <NumeroCorrida rot="ritmo" val={fmtRitmo(60 / d.vel)} /> : null}
         {d.velMedia > 0 ? <NumeroCorrida rot="vel. média" val={num1(d.velMedia)} sub="km/h" /> : null}
         {/* o batimento só vale fresco: com as mãos fora do pegador o último
@@ -14537,11 +14543,10 @@ function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onA
         {d.met ? <NumeroCorrida rot="MET" val={num1(d.met)} /> : null}
         {d.watts > 0 ? <NumeroCorrida rot="potência" val={d.watts} sub="W" /> : null}
       </div>
-      {est.confirmada && (segAnotar > 0 || fcSerie) ? (
+      {est.confirmada && fcSerie ? (
         <div style={{ fontSize: 12, marginTop: 8, lineHeight: 1.5, padding: "7px 10px", borderRadius: 10, background: "var(--bg2)" }}>
-          <b>Nesta série:</b> {Math.floor(segAnotar / 60) + ":" + String(segAnotar % 60).padStart(2, "0")}
-          {kmAnotar ? " · " + num1(kmAnotar) + " km" + (kmSomado ? " (somada pela velocidade)" : "") : ""}
-          {fcSerie ? <span> · <b style={{ color: "#ED4956" }}>❤ {fcSerie.medio}</b> média, pico {fcSerie.max}{fcSerie.cob !== null && fcSerie.cob < 90 ? " (medido em " + fcSerie.cob + "% do tempo)" : ""}</span> : null}
+          <b style={{ color: "#ED4956" }}>❤ Nesta série: {fcSerie.medio}</b> média, pico {fcSerie.max}
+          {fcSerie.cob !== null && fcSerie.cob < 90 ? " (medido em " + fcSerie.cob + "% do tempo)" : ""}
         </div>
       ) : null}
       {!est.confirmada ? (
@@ -14562,7 +14567,8 @@ function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onA
           <div style={{ fontSize: 12, color: "var(--ok)", marginTop: 8, lineHeight: 1.5 }}>
             ✓ Lendo a esteira: {seguindo ? "a série " + seguindo + " acompanha" : "a próxima série acompanha"} a
             velocidade e a inclinação do painel. Quem muda a velocidade continua sendo você.
-            {" "}<b>Quando você parar a esteira, a série é anotada sozinha</b>, com o tempo e tudo o que ela mediu.
+            {" "}<b>O tempo da série é o da esteira</b>: os minutos da ficha viram a meta, e não há
+            cronômetro à parte. <b>Quando você parar a esteira, a série é anotada sozinha</b>, com o tempo e tudo o que ela mediu.
           </div>
           {segAnotar >= 60 ? (
             <button onClick={onAnotar} style={{ ...S.btn, width: "100%", marginTop: 10 }}>
@@ -18673,6 +18679,36 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     btSessao.desconectar();
   };
   const fcResumoSerie = btSessao.est.confirmada ? fcSerie.current.fechar(segEst) : null;
+  // Um treino só. Treino real do dono: o cartão da esteira contava o tempo do
+  // painel e, embaixo, o ▶ da série contava 40 minutos por conta própria — dois
+  // relógios para a mesma caminhada, e o de baixo é que foi gravado. Com a
+  // esteira confirmada, a série É a da esteira: o tempo que corre embaixo é o
+  // dela (desde a última anotação), os minutos da ficha viram meta, e não
+  // existe ▶ à parte. Sem esteira conectada, o ▶ continua sendo o relógio.
+  const esteiraConduz = !!(btSessao.est.confirmada && btSessao.est.ligada);
+  useEffect(() => {
+    if (esteiraConduz && crono && ehEsteiraItem(crono.ei)) setCrono(null);
+  }, [esteiraConduz, crono]);
+  // A voz que o ▶ dava (cada km, a metade, a meta) agora segue a esteira.
+  const avisosEst = useRef({ chave: null });
+  useEffect(() => {
+    if (!serieConduzida) return;
+    const chave = serieConduzida.ei + ":" + serieConduzida.si + ":" + baseEst.seg;
+    const a = avisosEst.current, km = Math.floor((mEst || 0) / 1000), meta = metaConduzida;
+    if (a.chave !== chave) { avisosEst.current = { chave: chave, km: km, meio: segEst >= meta / 2, meta: meta > 0 && segEst >= meta }; return; }
+    if (meta > 0 && segEst >= meta && !a.meta) {
+      a.meta = true; a.meio = true; a.km = km;
+      if (som) { beep(660, 0.2, 0.3); setTimeout(() => beep(990, 0.4, 0.3), 220); }
+      try { if (navigator.vibrate) navigator.vibrate([250, 100, 250]); } catch (e) {}
+      falarRef.current("Meta de " + textoDuracao(meta) + " cumprida. Pode continuar: a série fecha quando você parar a esteira.");
+    } else if (km > a.km) {
+      a.km = km;
+      falarRef.current(km + (km === 1 ? " quilômetro." : " quilômetros.") + (meta > segEst + 30 ? " Faltam " + textoDuracao(Math.round((meta - segEst) / 60) * 60) + "." : ""));
+    } else if (meta >= 240 && !a.meio && segEst >= meta / 2) {
+      a.meio = true;
+      falarRef.current("Metade." + (mEst ? " " + num1(mEst / 1000) + " quilômetros até aqui." : ""));
+    }
+  }, [segEst]);
 
   // ---------- JARVIS DENTRO DO TREINO ----------
   // O ouvinte mora no componente raiz, mas marcar série, cronometrar o descanso
@@ -18687,6 +18723,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // O "alvo" é onde a próxima frase vai cair. É o que permite dizer só
   // "Jarvis, 80 por 10", sem repetir o nome do exercício. Ver alvoDaSessao.
   const alvo = useMemo(() => alvoDaSessao(sessao.itens, focoEi), [sessao, focoEi]);
+  // a série que a esteira conduz (ver esteiraConduz): depende do alvo
+  const serieConduzida = esteiraConduz ? serieDaEsteira() : null;
+  const metaConduzida = serieConduzida ? segundosDe(sessao.itens[serieConduzida.ei].series[serieConduzida.si]) || 0 : 0;
 
   const nomeDoItem = (ei) => {
     const it = sessao.itens[ei];
@@ -19412,7 +19451,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
             {ehAerobico && ehEsteiraPerfil(ex.cardio) && (
               <ConexaoEsteiraSessao est={btSessao.est} onConectar={btSessao.conectar} onConfirmar={() => btSessao.confirmar(true)}
                 onDesconectar={desconectarEsteira} onAnotar={anotarDaEsteira} segAnotar={segEst} kmAnotar={mEst !== null ? mEst / 1000 : null}
-                fcSerie={fcResumoSerie} kmSomado={!cumEst.mDoPainel}
+                fcSerie={fcResumoSerie} kmSomado={!cumEst.mDoPainel} metaSerie={metaConduzida}
                 seguindo={(() => { const a = serieDaEsteira(); return a && a.ei === ei ? a.si + 1 : null; })()} />
             )}
             <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
@@ -19457,7 +19496,13 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
 
                   {ehAerobico ? (
                     <React.Fragment>
-                      {contando ? (
+                      {serieConduzida && serieConduzida.ei === ei && serieConduzida.si === si ? (
+                        <div style={{ ...S.inputMini, flex: 1.6, minWidth: 0, padding: "10px 2px", background: "#4C9BE815", borderColor: "#4C9BE8", color: "#4C9BE8", fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: "20px", textAlign: "center", whiteSpace: "nowrap" }}
+                          role="timer" aria-live="off" aria-label={"Tempo na esteira: " + textoDuracao(segEst) + (metaConduzida ? ", meta de " + textoDuracao(metaConduzida) : "")}>
+                          {Math.floor(segEst / 60) + ":" + String(segEst % 60).padStart(2, "0")}
+                          {metaConduzida ? <span style={{ fontSize: 10.5, opacity: 0.75, fontWeight: 700 }}> / {Math.round(metaConduzida / 60)} min</span> : null}
+                        </div>
+                      ) : contando ? (
                         <div style={{ ...S.inputMini, flex: 1, minWidth: 0, padding: "10px 2px", background: "var(--ok-bg)", borderColor: "var(--ok)", color: "var(--ok)", fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: "20px" }}
                           role="timer" aria-live="off" aria-label={"Faltam " + textoDuracao(restaCrono)}>
                           {Math.floor(restaCrono / 60) + ":" + String(restaCrono % 60).padStart(2, "0")}
@@ -19473,14 +19518,14 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                           aria-label={rot + " da série " + (si + 1) + " de " + nomeEx}
                           onChange={(e) => upSerie(ei, si, k, e.target.value)} />
                       ))}
-                      <button onClick={() => (contando ? setCrono(null) : iniciarIsometria(ei, si))}
+                      {esteiraConduz && ehEsteiraItem(ei) ? null : <button onClick={() => (contando ? setCrono(null) : iniciarIsometria(ei, si))}
                         aria-label={(contando ? "Parar" : "Iniciar") + " o cronômetro da série " + (si + 1) + " de " + nomeEx}
                         style={{ width: 44, height: 42, borderRadius: 8, cursor: "pointer", fontWeight: 900, fontSize: 15, flexShrink: 0,
                           border: "1px solid " + (contando ? "var(--perigo-borda)" : "#E1306C66"),
                           background: contando ? "transparent" : "#E1306C15",
                           color: contando ? "var(--perigo)" : "#E1306C" }}>
                         {contando ? "■" : "▶"}
-                      </button>
+                      </button>}
                     </React.Fragment>
                   ) : ehIsometria ? (
                     <React.Fragment>

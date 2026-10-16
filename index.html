@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-15t";
+const VERSAO_APP = "2026-10-16a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -6992,7 +6992,7 @@ function FaixaProgresso({ est, historico, meta, onAbrirProgresso }) {
 // ---------------- TELA INICIAL ----------------
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
   avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
-  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi, onIntervalado }) {
+  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi, onIntervalado, onDesafio }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
@@ -7093,6 +7093,11 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
         {onIntervalado && (
           <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 900, color: "#F5A623", borderColor: "#F5A62366" }} onClick={onIntervalado}>
             ⏱ Intervalado — o ritmo que varia
+          </button>
+        )}
+        {onDesafio && (
+          <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 900, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onDesafio}>
+            🏁 Desafio — corra contra os amigos
           </button>
         )}
       </div>
@@ -10932,7 +10937,7 @@ const guardarRota = (id, pts) => guardarFoto(chaveRota(id), compactarRota(pts));
 const lerRota = (id) => lerFoto(chaveRota(id)).then(expandirRota);
 
 function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, onSalvar, onVoltar, historico,
-  bpm, onConectarCardio, corredor, onPainel, onZumbi, onIntervalado }) {
+  bpm, onConectarCardio, corredor, onPainel, onZumbi, onIntervalado, onDesafio }) {
   const [modo, setModo] = useState("corrida-rua");
   const [fase, setFase] = useState("preparo");     // preparo | rodando | pausado | fim
   const [erroMapa, setErroMapa] = useState("");
@@ -11330,6 +11335,11 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
           {onIntervalado && (
             <button onClick={onIntervalado} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13.5, fontWeight: 900, color: "#F5A623", borderColor: "#F5A62366" }}>
               ⏱ Ou faça intervalado (o ritmo varia)
+            </button>
+          )}
+          {onDesafio && (
+            <button onClick={onDesafio} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13.5, fontWeight: 900, color: "#E1306C", borderColor: "#E1306C66" }}>
+              🏁 Ou corra contra os amigos (desafio)
             </button>
           )}
           <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
@@ -13235,6 +13245,1067 @@ function CartaoIntervalado({ iv }) {
     </div>
   );
 }
+// ---------------- DESAFIO: MOTOR
+// Correr contra outras pessoas: juntas no mesmo lugar, em cidades diferentes,
+// ao mesmo tempo ou em dias diferentes. A régua que põe todo mundo na mesma
+// conta é o TEMPO DE PROVA de cada um: a posição é sempre "aos 12:30 da sua
+// corrida, quanto cada um tinha andado aos 12:30 da dele". Assim largar
+// junto, largar uma hora depois ou correr amanhã contra o resultado de hoje
+// é a mesma comparação, e ninguém precisa sincronizar relógio.
+//
+// Cada pessoa é uma trilha: [[ms de prova, metros], ...], uma amostra a cada
+// 5 s. É o que viaja (pelo retransmissor ao vivo ou dentro de um link) e é
+// dela que sai tudo: posição, diferença em metros e em segundos, velocidade
+// de agora e quando um alcança o outro.
+const DESAFIO_DISTANCIAS = [1000, 3000, 5000, 10000, 21097];
+const DESAFIO_TEMPOS = [10, 20, 30, 45, 60].map((m) => m * 60000);
+const DESAFIO_AMOSTRA_MS = 5000;
+// Até onde vale estimar quem está ao vivo e mandou a última leitura há pouco:
+// mais que isso, a pessoa "ainda não chegou" a esse tempo de prova.
+const DESAFIO_PROJECAO_MS = 20000;
+const DESAFIO_SEM_SINAL_MS = 30000;
+// As velocidades de agora saem dos últimos 15 s: o médio esconde quem acabou
+// de acelerar, e é justamente quem acelera que interessa na ultrapassagem.
+// Com 30 s, quem subia a esteira de 9 para 16 km/h esperava meio minuto para
+// a previsão perceber.
+const DESAFIO_JANELA_MS = 15000;
+
+function fimDaTrilha(tr) { return tr && tr.length ? tr[tr.length - 1] : [0, 0]; }
+// Metros aos t ms de prova, interpolando entre as amostras. Depois da última
+// amostra, fica nela: quem estima o resto é estadoNoTempo, que sabe se a
+// pessoa está ao vivo.
+function distanciaNaTrilha(tr, t) {
+  if (!tr || !tr.length || !(t > 0)) return 0;
+  const u = tr[tr.length - 1];
+  if (t >= u[0]) return u[1];
+  let lo = 0, hi = tr.length - 1;
+  if (t <= tr[0][0]) return tr[0][0] > 0 ? (tr[0][1] * t) / tr[0][0] : tr[0][1];
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (tr[m][0] <= t) lo = m; else hi = m; }
+  const a = tr[lo], b = tr[hi];
+  return b[0] > a[0] ? a[1] + ((b[1] - a[1]) * (t - a[0])) / (b[0] - a[0]) : b[1];
+}
+// O primeiro instante em que a trilha passou de m metros (null se não passou)
+function tempoNaDistancia(tr, m) {
+  if (!tr || !tr.length) return null;
+  if (!(m > 0)) return 0;
+  let antes = [0, 0];
+  for (let i = 0; i < tr.length; i++) {
+    const p = tr[i];
+    if (p[1] >= m) return p[1] > antes[1] ? antes[0] + ((p[0] - antes[0]) * (m - antes[1])) / (p[1] - antes[1]) : p[0];
+    antes = p;
+  }
+  return null;
+}
+// m/s nos últimos 15 s de prova antes de t
+function velocidadeNaTrilha(tr, t, janela) {
+  const j = janela || DESAFIO_JANELA_MS;
+  const fimT = Math.min(t, fimDaTrilha(tr)[0]);
+  const ini = Math.max(0, fimT - j);
+  if (fimT - ini < 4000) return 0;
+  return ((distanciaNaTrilha(tr, fimT) - distanciaNaTrilha(tr, ini)) / (fimT - ini)) * 1000;
+}
+
+// Uma pessoa vista no tempo de prova t. "agora" é o relógio de parede: serve
+// para saber se a leitura dela é recente o bastante para ser estimada.
+//   p = { id, nome, eu, trilha, fim: { ms, m } | null, ts, aoVivo }
+function estadoNoTempo(p, t, meta, agora) {
+  const tr = p.trilha || [];
+  const ult = fimDaTrilha(tr);
+  const r = { p: p, d: 0, terminou: false, msFim: null, projetado: false, aindaNao: false, v: 0 };
+  if (p.fim && (meta.tipo === "distancia" ? p.fim.ms <= t : t >= meta.alvo)) {
+    r.terminou = true; r.msFim = p.fim.ms; r.d = meta.tipo === "distancia" ? meta.alvo : p.fim.m;
+    return r;
+  }
+  r.d = distanciaNaTrilha(tr, t);
+  r.v = velocidadeNaTrilha(tr, t);
+  if (t > ult[0] && !p.fim) {
+    // Ao vivo e com leitura fresca: estima pelo ritmo de agora, por no máximo
+    // 20 s. Sem isso, quem mandou a leitura há 3 s aparecia 3 s atrás.
+    const fresco = p.aoVivo && agora - (p.ts || 0) < DESAFIO_SEM_SINAL_MS;
+    if (fresco && t - ult[0] <= DESAFIO_PROJECAO_MS) {
+      r.d = ult[1] + r.v * ((t - ult[0]) / 1000);
+      r.projetado = t - ult[0] > 2500;
+    } else r.aindaNao = true;     // não chegou a esse tempo de prova (largou depois, parou, perdeu o sinal)
+  }
+  if (meta.tipo === "distancia") r.d = Math.min(r.d, meta.alvo);
+  return r;
+}
+
+// A classificação no tempo de prova t. Na prova de distância, quem já cruzou
+// a linha vem primeiro, pelo tempo; os outros, por quanto andaram. Na de tempo,
+// só a distância importa.
+function classificarDesafio(participantes, t, meta, agora) {
+  const linhas = (participantes || []).map((p) => estadoNoTempo(p, t, meta, agora));
+  linhas.sort((a, b) => {
+    if (meta.tipo === "distancia") {
+      if (a.terminou !== b.terminou) return a.terminou ? -1 : 1;
+      if (a.terminou) return a.msFim - b.msFim;
+    }
+    return b.d - a.d || (a.p.eu ? -1 : b.p.eu ? 1 : 0);
+  });
+  const lider = linhas[0];
+  linhas.forEach((l, i) => {
+    l.pos = i + 1;
+    l.atrasLiderM = lider ? Math.max(0, lider.d - l.d) : 0;
+    l.atrasLiderS = lider ? diferencaSegundos(lider, l, t) : 0;
+  });
+  return linhas;
+}
+// Quantos segundos a está à frente de b: há quanto tempo de prova a passou
+// pelo ponto onde b está agora. É o número que corredor usa ("12 s atrás"),
+// e sai exato da trilha, sem supor ritmo nenhum.
+function diferencaSegundos(a, b, t) {
+  if (a === b) return 0;
+  if (a.terminou && b.terminou) return Math.round((b.msFim - a.msFim) / 1000);
+  if (a.d <= b.d) return 0;
+  const ta = tempoNaDistancia(a.p.trilha, b.d);
+  if (ta === null) return a.v > 0 ? Math.round((a.d - b.d) / a.v) : null;
+  // o tempo de b é o de agora, ou o da última leitura de quem ainda não chegou a este tempo de prova
+  const tb = b.terminou ? b.msFim : b.aindaNao ? fimDaTrilha(b.p.trilha)[0] : t;
+  return Math.max(0, Math.round((tb - ta) / 1000));
+}
+
+// Quando um alcança o outro, se as velocidades de agora se mantiverem. É a
+// conta de quem acelera: 40 m de diferença e 0,5 m/s a mais são 80 s.
+//   tipo "alcanca": eu chego no outro; "chega": o outro chega em mim;
+//   "afasta"/"estavel": ninguém alcança ninguém nesse ritmo.
+// viavel diz se acontece antes da linha de chegada (ou do fim do tempo).
+function previsaoUltrapassagem(eu, outro, t, meta) {
+  if (!eu || !outro || eu.terminou || outro.terminou) return null;
+  const gap = outro.d - eu.d;                 // positivo: o outro está na frente
+  const aprox = eu.v - outro.v;               // positivo: eu estou mais rápido
+  const r = { gapM: gap, vEu: eu.v, vOutro: outro.v };
+  const cabe = (s, pontoM) => (meta.tipo === "distancia" ? pontoM < meta.alvo : t + s * 1000 < meta.alvo);
+  if (gap > 0 && aprox > 0.05) {
+    const s = gap / aprox;
+    return Object.assign(r, { tipo: "alcanca", s: s, viavel: cabe(s, eu.d + eu.v * s) });
+  }
+  if (gap < 0 && -aprox > 0.05) {
+    const s = -gap / -aprox;
+    return Object.assign(r, { tipo: "chega", s: s, viavel: cabe(s, outro.d + outro.v * s) });
+  }
+  // ninguém está alcançando: quanto precisaria para alcançar em 1 minuto, e até a chegada
+  if (gap > 0) {
+    r.kmhEm1Min = (outro.v + gap / 60) * 3.6;
+    if (meta.tipo === "distancia" && outro.v > 0.3) {
+      const sOutro = (meta.alvo - outro.d) / outro.v;
+      r.kmhAteChegada = sOutro > 0 ? ((meta.alvo - eu.d) / sOutro) * 3.6 : null;
+    } else if (meta.tipo === "tempo") {
+      const sResta = (meta.alvo - t) / 1000;
+      r.kmhAteChegada = sResta > 0 ? (outro.v + gap / sResta) * 3.6 : null;
+    }
+  }
+  return Object.assign(r, { tipo: Math.abs(aprox) <= 0.05 ? "estavel" : "afasta" });
+}
+
+// O que mudou entre duas classificações: quem passou quem. Só olha a vizinhança
+// de quem está usando o app — "o 5º passou o 6º" não interessa a quem é o 1º.
+function eventosDesafio(antes, depois, idEu) {
+  const ev = [];
+  if (!antes || !depois) return ev;
+  const posA = {}, posD = {};
+  antes.forEach((l) => { posA[l.p.id] = l.pos; });
+  depois.forEach((l) => { posD[l.p.id] = l.pos; });
+  const eu = depois.find((l) => l.p.id === idEu);
+  if (!eu || posA[idEu] === undefined) return ev;
+  depois.forEach((l) => {
+    if (l.p.id === idEu || posA[l.p.id] === undefined) return;
+    if (posA[idEu] > posA[l.p.id] && posD[idEu] < posD[l.p.id]) ev.push({ tipo: "passei", quem: l.p, pos: eu.pos });
+    if (posA[idEu] < posA[l.p.id] && posD[idEu] > posD[l.p.id]) ev.push({ tipo: "passou", quem: l.p, pos: eu.pos });
+  });
+  if (eu.pos === 1 && posA[idEu] !== 1 && depois.length > 1) ev.push({ tipo: "lider", pos: 1 });
+  return ev;
+}
+
+// ---- A trilha em texto curto ----
+// Uma amostra a cada 10 s (5 s ao vivo), em metros andados desde a anterior,
+// base 36. Uma hora de corrida cabe em uns 1,5 KB: viaja num link de WhatsApp.
+function reamostrarTrilha(tr, passo) {
+  if (!tr || !tr.length) return [];
+  const u = fimDaTrilha(tr), out = [];
+  for (let t = passo; t < u[0]; t += passo) out.push([t, distanciaNaTrilha(tr, t)]);
+  out.push(u);
+  return out;
+}
+function codificarTrilha(tr, passo) {
+  const p = passo || 10000;
+  const am = reamostrarTrilha(tr, p);
+  if (!am.length) return "";
+  const u = am.pop();
+  let antes = 0;
+  const partes = am.map((x) => { const m = Math.round(x[1]); const d = Math.max(0, m - antes); antes += d; return d.toString(36); });
+  return Math.round(p / 1000).toString(36) + "~" + partes.join(".") + "~" + Math.round(u[0] / 1000).toString(36) + "." + Math.round(u[1]).toString(36);
+}
+function decodificarTrilha(s) {
+  if (!s || typeof s !== "string") return [];
+  const pd = s.split("~");
+  if (pd.length !== 3) return [];
+  const passo = parseInt(pd[0], 36) * 1000;
+  if (!(passo > 0)) return [];
+  const out = [[0, 0]];
+  let m = 0;
+  (pd[1] ? pd[1].split(".") : []).forEach((x, i) => { m += parseInt(x, 36) || 0; out.push([(i + 1) * passo, m]); });
+  const f = pd[2].split(".");
+  const uT = parseInt(f[0], 36) * 1000, uM = parseInt(f[1], 36);
+  if (uT > out[out.length - 1][0] && isFinite(uM)) out.push([uT, Math.max(uM, m)]);
+  return out;
+}
+
+// O código da sala: cinco letras sem as que se confundem ditadas em voz alta
+// (O e 0, I e 1...) e, no fim, o número do retransmissor que a sala usa. Quem
+// entra digitando o código cai no mesmo retransmissor de quem criou.
+const DESAFIO_LETRAS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+function novoCodigoSala(rnd, broker) {
+  const r = rnd || Math.random;
+  let c = "";
+  for (let i = 0; i < 5; i++) c += DESAFIO_LETRAS[Math.floor(r() * DESAFIO_LETRAS.length)];
+  return c + (broker || 1);
+}
+function lerCodigoSala(txt) {
+  const c = String(txt || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!/^[A-Z2-9]{5}[1-9]$/.test(c)) return null;
+  return { codigo: c, broker: +c[5] };
+}
+// O texto das metas, para a tela e para a voz
+function nomeMetaDesafio(meta) {
+  if (meta.tipo === "distancia") return meta.alvo === 21097 ? "meia maratona" : (meta.alvo % 1000 ? num1(meta.alvo / 1000) : meta.alvo / 1000) + " km";
+  return Math.round(meta.alvo / 60000) + " min";
+}
+function ordinal(n) { return n + "º"; }
+function falaGap(m) {
+  const a = Math.abs(Math.round(m));
+  return a >= 1000 ? num1(a / 1000).replace(".", ",") + " quilômetros" : a + (a === 1 ? " metro" : " metros");
+}
+
+// ---- O link do desafio (#corrida=) ----
+// Leva a sala (código, meta, atividade) e os resultados de quem já correu. Quem
+// recebe pode correr na hora contra eles, sem internet nenhuma, e ao entrar na
+// sala ao vivo o próprio resultado volta para todos.
+function linkDesafio(sala, participantes) {
+  const p = (participantes || []).filter((x) => x.fim && x.trilha && x.trilha.length > 1).slice(0, 8).map((x) => ({
+    i: x.id, n: String(x.nome || "").slice(0, 24), tr: codificarTrilha(x.trilha, 10000), f: Math.round(x.fim.ms), fm: Math.round(x.fim.m), dt: x.dt || null,
+  }));
+  const obj = { v: 1, c: sala.codigo, mt: sala.meta.tipo === "distancia" ? "d" : "t", al: sala.meta.alvo, at: sala.atividade || "corrida", p: p };
+  return LINK_APP + "#corrida=" + b64Codificar(JSON.stringify(obj));
+}
+function lerLinkDesafio(b64) {
+  try {
+    const o = JSON.parse(b64Decodificar(b64));
+    if (!o || o.v !== 1 || !lerCodigoSala(o.c) || !(o.al > 0)) return null;
+    return {
+      codigo: o.c, meta: { tipo: o.mt === "t" ? "tempo" : "distancia", alvo: +o.al }, atividade: o.at === "caminhada" ? "caminhada" : "corrida",
+      fantasmas: (o.p || []).map((x) => ({ id: String(x.i), nome: String(x.n || "Alguém"), trilha: decodificarTrilha(x.tr), fim: x.f ? { ms: +x.f, m: +x.fm || 0 } : null, aoVivo: false, dt: x.dt || null }))
+        .filter((x) => x.trilha.length > 1),
+    };
+  } catch (e) { return null; }
+}
+
+// ---- O retransmissor ao vivo (MQTT por WebSocket) ----
+// Sem servidor próprio, celulares em lugares diferentes só se enxergam por um
+// intermediário. Usamos retransmissores MQTT públicos e gratuitos, sem conta
+// e sem chave: cada pessoa publica a própria trilha num tópico da sala e lê a
+// dos outros. Passa só o apelido, a distância e o tempo — nunca a localização.
+// A mensagem fica guardada no retransmissor (retain): quem entra depois, ou
+// corre amanhã, recebe a trilha de quem já correu.
+//
+// O protocolo é o MQTT 3.1.1, só o pedaço que usamos (conectar, assinar,
+// publicar QoS 0, ping). Escrito aqui para não pôr uma biblioteca de 80 KB
+// no meio megabyte do app.
+const DESAFIO_BROKERS = ["wss://broker.emqx.io:8084/mqtt", "wss://broker.hivemq.com:8884/mqtt", "wss://test.mosquitto.org:8081/mqtt"];
+const DESAFIO_TOPICO = "treinolivre/desafio/v1/";
+function urlBroker(n) {
+  try { const x = localStorage.getItem("treinolivre:desafio-broker"); if (x) return x; } catch (e) {}
+  return DESAFIO_BROKERS[(n || 1) - 1] || DESAFIO_BROKERS[0];
+}
+function mqttBytes(s) { return Array.from(new TextEncoder().encode(s)); }
+function mqttTexto(s) { const b = mqttBytes(s); return [b.length >> 8, b.length & 255].concat(b); }
+function mqttTamanho(n) {
+  const out = [];
+  do { let x = n % 128; n = Math.floor(n / 128); if (n > 0) x |= 128; out.push(x); } while (n > 0);
+  return out;
+}
+function mqttPacote(cab, corpo) { return new Uint8Array([cab].concat(mqttTamanho(corpo.length), corpo)); }
+function mqttConectar(id, keep) { return mqttPacote(0x10, mqttTexto("MQTT").concat([4, 2, keep >> 8, keep & 255], mqttTexto(id))); }
+function mqttAssinar(pid, filtro) { return mqttPacote(0x82, [pid >> 8, pid & 255].concat(mqttTexto(filtro), [0])); }
+function mqttPublicar(topico, texto, reter) { return mqttPacote(0x30 | (reter ? 1 : 0), mqttTexto(topico).concat(mqttBytes(texto))); }
+// Lê o que chegou. O WebSocket pode partir um pacote em dois ou juntar vários:
+// o que sobra volta como "resto" para a próxima leitura.
+function mqttLer(buf) {
+  const pacotes = [];
+  let i = 0;
+  const dec = new TextDecoder();
+  while (i + 2 <= buf.length) {
+    let mult = 1, tam = 0, k = i + 1, ok = false;
+    for (let n = 0; n < 4 && k < buf.length; n++, k++) {
+      tam += (buf[k] & 127) * mult; mult *= 128;
+      if (!(buf[k] & 128)) { ok = true; k++; break; }
+    }
+    if (!ok || k + tam > buf.length) break;
+    const cab = buf[i], tipo = cab >> 4, corpo = buf.subarray(k, k + tam);
+    if (tipo === 2) pacotes.push({ tipo: 2, rc: corpo[1] });
+    else if (tipo === 3) {
+      const qos = (cab >> 1) & 3, tl = (corpo[0] << 8) | corpo[1];
+      const topico = dec.decode(corpo.subarray(2, 2 + tl));
+      const ini = 2 + tl + (qos ? 2 : 0);
+      pacotes.push({ tipo: 3, topico: topico, texto: dec.decode(corpo.subarray(ini)), reter: !!(cab & 1) });
+    } else pacotes.push({ tipo: tipo });
+    i = k + tam;
+  }
+  return { pacotes: pacotes, resto: buf.slice(i) };
+}
+// A sala ao vivo. Reconecta sozinha (o 4G cai no meio da corrida) e, ao
+// voltar, publica de novo a última trilha.
+function criarSalaAoVivo(o) {
+  const base = DESAFIO_TOPICO + o.codigo + "/";
+  let ws = null, buf = new Uint8Array(0), ping = null, vivo = false, fechado = false, tentativas = 0, prazo = null;
+  const ultimos = {};   // tópico → última mensagem: publicada de novo a cada reconexão
+  const estado = (e) => { try { o.aoEstado && o.aoEstado(e); } catch (x) {} };
+  const enviar = (bytes) => { try { if (ws && ws.readyState === 1) ws.send(bytes); } catch (e) {} };
+  function abrir() {
+    if (fechado) return;
+    estado(tentativas ? "reconectando" : "conectando");
+    try { ws = new WebSocket(o.url, "mqtt"); } catch (e) { cair(); return; }
+    ws.binaryType = "arraybuffer";
+    clearTimeout(prazo);
+    prazo = setTimeout(() => { if (!vivo) { try { ws.close(); } catch (e) {} } }, 9000);
+    ws.onopen = () => enviar(mqttConectar("tl-" + String(o.id).slice(-10) + "-" + Math.random().toString(36).slice(2, 7), 45));
+    ws.onmessage = (ev) => {
+      const novo = new Uint8Array(ev.data), junto = new Uint8Array(buf.length + novo.length);
+      junto.set(buf); junto.set(novo, buf.length);
+      const r = mqttLer(junto);
+      buf = r.resto;
+      r.pacotes.forEach((p) => {
+        if (p.tipo === 2) {
+          if (p.rc !== 0) { estado("recusado"); return; }
+          vivo = true; tentativas = 0; clearTimeout(prazo);
+          enviar(mqttAssinar(1, base + "+"));
+          clearInterval(ping);
+          ping = setInterval(() => enviar(new Uint8Array([0xc0, 0])), 25000);
+          Object.keys(ultimos).forEach((tp) => enviar(mqttPublicar(tp, ultimos[tp], true)));
+          estado("conectado");
+        } else if (p.tipo === 3 && p.texto && p.topico.indexOf(base) === 0) {
+          const uid = p.topico.slice(base.length);
+          if (uid === o.id) return;
+          try { o.aoParticipante(uid, JSON.parse(p.texto)); } catch (e) {}
+        }
+      });
+    };
+    ws.onerror = () => {};
+    ws.onclose = cair;
+  }
+  function cair() {
+    const era = vivo;
+    vivo = false; clearInterval(ping); clearTimeout(prazo);
+    if (fechado) return;
+    tentativas++;
+    estado(era || tentativas > 1 ? "reconectando" : "falhou");
+    setTimeout(abrir, Math.min(15000, 1000 * Math.pow(2, tentativas)));
+  }
+  abrir();
+  return {
+    publicar(obj) { const tp = base + o.id; ultimos[tp] = JSON.stringify(obj); if (vivo) enviar(mqttPublicar(tp, ultimos[tp], true)); },
+    // a meta da sala, para quem entra só com o código
+    publicarSala(obj) { const tp = base + "sala"; ultimos[tp] = JSON.stringify(obj); if (vivo) enviar(mqttPublicar(tp, ultimos[tp], true)); },
+    fechar() { fechado = true; clearInterval(ping); clearTimeout(prazo); enviar(new Uint8Array([0xe0, 0])); try { ws && ws.close(); } catch (e) {} },
+    get conectado() { return vivo; },
+  };
+}
+// O que cada um publica: apelido, meta, estado, tempo e distância de agora, e a
+// trilha inteira (é ela que deixa quem entra depois comparar desde o começo).
+function mensagemDesafio(eu) {
+  return { n: eu.nome, at: eu.atividade, st: eu.st, t: Math.round(eu.t), d: Math.round(eu.d), tr: codificarTrilha(eu.trilha, DESAFIO_AMOSTRA_MS),
+    f: eu.fim ? Math.round(eu.fim.ms) : null, fm: eu.fim ? Math.round(eu.fim.m) : null, ts: Date.now(), dt: eu.dt || null, amb: eu.ambiente || null };
+}
+function participanteDaMensagem(uid, m) {
+  if (!m || typeof m !== "object") return null;
+  const tr = decodificarTrilha(m.tr);
+  const ult = fimDaTrilha(tr);
+  if (m.t > ult[0] && m.d >= ult[1]) tr.push([m.t, m.d]);
+  if (!tr.length) tr.push([0, 0]);
+  return { id: uid, nome: String(m.n || "Alguém").slice(0, 24), trilha: tr, st: m.st || "correndo", fim: m.f ? { ms: +m.f, m: +m.fm || 0 } : null,
+    ts: +m.ts || 0, aoVivo: true, dt: m.dt || null, ambiente: m.amb || null };
+}
+// ---------------- FIM DO MOTOR DESAFIO
+// ---- O desafio na tela ----
+// Configurar (apelido, meta, lugar) → sala (código, convite, quem está) →
+// corrida (posição ao vivo, a pista, quem alcança quem) → fim (classificação,
+// salvar, mandar o resultado). A simulação roda tudo sem retransmissor, com
+// dois corredores de mentira e o relógio dez vezes mais rápido.
+const DESAFIO_DEMO = [
+  { id: "demo-rita", nome: "Rita (simulada)", v: (t) => 3.05 },
+  { id: "demo-beto", nome: "Beto (simulado)", v: (t) => (t < 240000 ? 3.35 : 2.85) },
+];
+function trilhaDemo(fv, t) {
+  const tr = [[0, 0]];
+  let d = 0;
+  for (let s = 1000; s <= t; s += 1000) { d += fv(s); if (s % DESAFIO_AMOSTRA_MS === 0 || s + 1000 > t) tr.push([s, d]); }
+  return tr;
+}
+function CartaoDesafio({ d }) {
+  const ps = d.participantes || [];
+  return (
+    <div>
+      <div style={{ fontWeight: 900, fontSize: 13.5, marginBottom: 6 }}>
+        🏁 Desafio {nomeMetaDesafio(d.meta)} · {d.posicao ? ordinal(d.posicao) + " de " + d.total : "não concluído"}
+      </div>
+      {ps.map((p, i) => (
+        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12.5, padding: "3px 0", borderBottom: "1px solid var(--borda)", fontWeight: p.eu ? 900 : 500, color: p.eu ? "#E1306C" : "var(--texto)" }}>
+          <span>{p.pos ? p.pos + "º " : ""}{p.eu ? "Você" : p.n}</span>
+          <span style={{ fontVariantNumeric: "tabular-nums" }}>
+            {d.meta.tipo === "distancia" ? (p.fim ? fmtTempoRota(p.ms) : num1(p.m / 1000) + " km (não terminou)") : num1(p.m / 1000) + " km"}
+          </span>
+        </div>
+      ))}
+      <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 6 }}>Sala {d.codigo} · comparado pelo mesmo tempo de prova de cada um</div>
+    </div>
+  );
+}
+
+function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsado, onSalvar, onVoltar }) {
+  const meuId = useMemo(() => {
+    try {
+      let x = localStorage.getItem("treinolivre:desafio-id");
+      if (!x) { x = "p" + novoUid().slice(1); localStorage.setItem("treinolivre:desafio-id", x); }
+      return x;
+    } catch (e) { return "p" + novoUid().slice(1); }
+  }, []);
+  const [cfg, setCfg] = useState({ nome: (corredor && corredor.apelido) || "", tipo: "distancia", alvo: 5000, atividade: "corrida", ambiente: "rua" });
+  const [etapa, setEtapa] = useState("config");          // config, sala, corrida, fim
+  const [sala, setSala] = useState(null);                // { codigo, broker, meta, atividade, demo }
+  const [conexao, setConexao] = useState("desligada");
+  const [codigoDigitado, setCodigoDigitado] = useState("");
+  const [erro, setErro] = useState("");
+  const [contagem, setContagem] = useState(0);
+  const [, setTique] = useState(0);
+  const [legenda, setLegenda] = useState("");
+  const [salvo, setSalvo] = useState(false);
+  const [kmh, setKmh] = useState(9);
+  const outros = useRef({}), conRef = useRef(null), filaR = useRef(null), euR = useRef(null), pts = useRef([]);
+  const kmhRef = useRef(9), salaR = useRef(null), cfgR = useRef(cfg), etapaR = useRef(etapa);
+  const narr = useRef({ commit: null, pend: null, nPend: 0, avisos: {}, proxKm: 1000, proxMin: 5, finalAvisado: false });
+  salaR.current = sala; cfgR.current = cfg; etapaR.current = etapa; kmhRef.current = kmh;
+  const up = (k, v) => setCfg((c) => Object.assign({}, c, { [k]: v }));
+  const meta = sala && sala.meta ? sala.meta : { tipo: cfg.tipo, alvo: cfg.alvo };
+  const demo = !!(sala && sala.demo);
+  const esteira = cfg.ambiente === "esteira" || demo;
+  useEffect(() => { try { window.scrollTo(0, 0); } catch (e) {} }, [etapa]);
+  useEffect(() => () => { if (conRef.current) conRef.current.fechar(); desligarTravaTela(); }, []);
+
+  // ---- conexão ----
+  const publicar = () => {
+    const c = conRef.current, e = euR.current, cf = cfgR.current;
+    if (!c || (salaR.current && salaR.current.demo)) return;
+    const st = !e ? "esperando" : e.fim ? "fim" : e.pausado ? "pausado" : "correndo";
+    c.publicar(mensagemDesafio({ nome: cf.nome || "Alguém", atividade: cf.atividade, st: st, t: e ? e.t : 0, d: e ? e.d : 0,
+      trilha: e ? e.trilha.concat([[e.t, e.d]]) : [[0, 0]], fim: e ? e.fim : null, dt: e ? e.inicio : null, ambiente: cf.ambiente }));
+  };
+  const conectar = (s, ehDono) => {
+    if (conRef.current) conRef.current.fechar();
+    conRef.current = criarSalaAoVivo({
+      url: urlBroker(s.broker), codigo: s.codigo, id: meuId,
+      aoEstado: (x) => setConexao(x),
+      aoParticipante: (uid, m) => {
+        if (uid === "sala") {
+          // quem entrou pelo código descobre aqui a meta da sala
+          if (m && m.mt && !(salaR.current && salaR.current.meta)) {
+            const metaS = { tipo: m.mt === "t" ? "tempo" : "distancia", alvo: +m.al };
+            setSala((x) => Object.assign({}, x, { meta: metaS, atividade: m.at === "caminhada" ? "caminhada" : "corrida" }));
+            setCfg((c) => Object.assign({}, c, { tipo: metaS.tipo, alvo: metaS.alvo, atividade: m.at === "caminhada" ? "caminhada" : "corrida" }));
+          }
+          return;
+        }
+        const p = participanteDaMensagem(uid, m);
+        if (!p) return;
+        outros.current[uid] = Object.assign({}, outros.current[uid] || {}, p);
+        setTique((x) => x + 1);
+      },
+    });
+    if (ehDono && s.meta) conRef.current.publicarSala({ mt: s.meta.tipo === "tempo" ? "t" : "d", al: s.meta.alvo, at: s.atividade });
+    publicar();
+  };
+  // Lembrar o apelido: é o mesmo em todo desafio
+  const guardarNome = () => { if (setCorredor && cfg.nome && (!corredor || corredor.apelido !== cfg.nome)) setCorredor((c) => Object.assign({}, c, { apelido: cfg.nome.trim().slice(0, 24) })); };
+
+  // Chegou por um link: a sala, a meta e os resultados de quem já correu
+  useEffect(() => {
+    if (!convite) return;
+    const s = { codigo: convite.codigo, broker: lerCodigoSala(convite.codigo).broker, meta: convite.meta, atividade: convite.atividade };
+    (convite.fantasmas || []).forEach((f) => { if (f.id !== meuId) outros.current[f.id] = f; });
+    setCfg((c) => Object.assign({}, c, { tipo: s.meta.tipo, alvo: s.meta.alvo, atividade: s.atividade }));
+    setSala(s);
+    setEtapa("sala");
+    conectar(s, false);
+    if (onConviteUsado) onConviteUsado();
+  }, [convite]);
+
+  const criarSala = () => {
+    if (!cfg.nome.trim()) { setErro("Escolha um apelido: é como os outros vão te ver."); return; }
+    guardarNome();
+    const s = { codigo: novoCodigoSala(null, 1), broker: 1, meta: { tipo: cfg.tipo, alvo: cfg.alvo }, atividade: cfg.atividade };
+    outros.current = {};
+    setSala(s); setEtapa("sala"); setErro("");
+    conectar(s, true);
+  };
+  const entrarComCodigo = () => {
+    const c = lerCodigoSala(codigoDigitado);
+    if (!c) { setErro("O código tem 5 letras e um número no fim, como KQ7MZ1."); return; }
+    if (!cfg.nome.trim()) { setErro("Escolha um apelido: é como os outros vão te ver."); return; }
+    guardarNome();
+    const s = { codigo: c.codigo, broker: c.broker, meta: null, atividade: cfg.atividade };
+    outros.current = {};
+    setSala(s); setEtapa("sala"); setErro("");
+    conectar(s, false);
+  };
+  const simular = () => {
+    const s = { codigo: "SIMUL1", broker: 1, meta: { tipo: cfg.tipo, alvo: cfg.alvo }, atividade: cfg.atividade, demo: true };
+    outros.current = {};
+    DESAFIO_DEMO.forEach((b) => { outros.current[b.id] = { id: b.id, nome: b.nome, trilha: [[0, 0]], fim: null, aoVivo: true, ts: Date.now(), st: "esperando", demo: b }; });
+    setSala(s); setEtapa("sala"); setErro(""); setConexao("simulacao");
+  };
+  // Quem chegou num link antigo mas o retransmissor mudou: a sala nunca responde
+  const [procurando, setProcurando] = useState(0);
+  useEffect(() => {
+    if (etapa !== "sala" || !sala || sala.meta) return;
+    const t = setTimeout(() => setProcurando(1), 10000);
+    return () => clearTimeout(t);
+  }, [etapa, sala && sala.meta]);
+  useEffect(() => {
+    if (etapa !== "sala" || demo) return;
+    const iv = setInterval(publicar, 10000);
+    return () => clearInterval(iv);
+  }, [etapa, demo]);
+
+  // ---- a voz ----
+  const falarUma = (texto, fim) => {
+    setLegenda(texto);
+    const ok = jarvisFalar(texto, { falar: true, vozNome: vozCfg && vozCfg.vozNome, velocidade: (vozCfg && vozCfg.velocidade) || 1.1, animado: vozCfg ? vozCfg.animado : true, aoTerminar: fim });
+    if (!ok) setTimeout(fim, 400);
+  };
+  const dizer = (texto, prioridade) => { if (filaR.current) filaR.current.por({ texto: texto, prioridade: prioridade || 2 }, () => true); };
+
+  // ---- os participantes vistos agora ----
+  const todos = () => {
+    const e = euR.current, lista = [];
+    if (e) lista.push({ id: meuId, nome: cfg.nome || "Você", eu: true, trilha: e.trilha.concat([[e.t, e.d]]), fim: e.fim, aoVivo: true, ts: Date.now() });
+    Object.keys(outros.current).forEach((k) => {
+      const p = outros.current[k];
+      if (p.demo) return lista.push(p);
+      // quem só entrou na sala e não largou não entra na classificação
+      if (p.trilha && (p.trilha.length > 1 || p.fim)) lista.push(p);
+    });
+    return lista;
+  };
+  const tAgora = () => {
+    const e = euR.current;
+    if (!e) return 0;
+    return e.fim ? (meta.tipo === "tempo" ? meta.alvo : 1e12) : e.t;
+  };
+
+  // ---- a corrida ----
+  const comecar = () => {
+    if (!cfg.nome.trim() && !demo) { setErro("Escolha um apelido antes de largar."); return; }
+    if (!meta || !(meta.alvo > 0)) return;
+    guardarNome();
+    filaR.current = criarFilaFalas(falarUma);
+    let n = 3;
+    setContagem(n);
+    if (som) beep(760, 0.15, 0.3);
+    const iv = setInterval(() => {
+      n--;
+      if (n > 0) { setContagem(n); if (som) beep(760, 0.15, 0.3); return; }
+      clearInterval(iv);
+      setContagem(0);
+      if (som) beep(1200, 0.4, 0.35);
+      try { navigator.vibrate && navigator.vibrate(300); } catch (e) {}
+      euR.current = { t: 0, d: 0, trilha: [[0, 0]], fim: null, pausado: false, inicio: new Date().toISOString(), id: "dsf-" + Date.now(), seg: 0, ultAmostra: 0, ultPub: 0, ultNarr: 0, kmhSoma: 0 };
+      pts.current = [];
+      narr.current = { commit: null, pend: null, nPend: 0, avisos: {}, proxKm: 1000, proxMin: 5, finalAvisado: false };
+      ligarTravaTela();
+      setSalvo(false);
+      setEtapa("corrida");
+      dizer("Valendo! Desafio de " + nomeMetaDesafio(meta) + ".", 4);
+      publicar();
+    }, 1000);
+  };
+  const pausar = () => {
+    const e = euR.current;
+    if (!e || e.pausado || e.fim) return;
+    e.pausado = true; e.seg++;
+    publicar(); setTique((x) => x + 1);
+  };
+  const retomar = () => { const e = euR.current; if (e) { e.pausado = false; publicar(); setTique((x) => x + 1); } };
+  const terminar = (chegou) => {
+    const e = euR.current;
+    if (!e) return;
+    if (!e.fim && !chegou) e.desistiu = true;
+    if (salaR.current && salaR.current.demo) Object.keys(outros.current).forEach((k) => {
+      const b = outros.current[k];
+      if (!b.demo || b.fim) return;
+      const tMax = meta.tipo === "tempo" ? meta.alvo : 7200000;
+      let tr = trilhaDemo(b.demo.v, Math.max(e.t, 1000));
+      for (let tt = e.t; tt < tMax && fimDaTrilha(tr)[1] < (meta.tipo === "distancia" ? meta.alvo : Infinity); tt += 60000) tr = trilhaDemo(b.demo.v, tt + 60000);
+      b.trilha = tr;
+      b.fim = meta.tipo === "distancia" ? { ms: tempoNaDistancia(tr, meta.alvo), m: meta.alvo } : { ms: meta.alvo, m: distanciaNaTrilha(tr, meta.alvo) };
+    });
+    e.pausado = true;
+    desligarTravaTela();
+    e.trilha.push([e.t, e.d]);
+    publicar();
+    setEtapa("fim");
+  };
+
+  // GPS: a distância é a do percurso (mesmo filtro e mesmas cordas de 12 m)
+  const lerGps = (pos) => {
+    const c = pos.coords, e = euR.current;
+    if (!e || Date.now() - pos.timestamp > 5000) return;
+    const p = { lat: c.latitude, lng: c.longitude, acc: c.accuracy, t: Date.now(), alt: null, seg: e.seg };
+    if (e.pausado) return;
+    const lista = pts.current, ult = lista.length && lista[lista.length - 1].seg === p.seg ? lista[lista.length - 1] : null;
+    const v = aceitarPonto(ult, p, cfgR.current.atividade === "caminhada" ? 12 : 30);
+    if (v === "ok" || v === "substitui") { if (v === "substitui") lista.pop(); lista.push(p); }
+  };
+  useEffect(() => {
+    if (etapa !== "corrida" || esteira || !navigator.geolocation) return;
+    const id = navigator.geolocation.watchPosition(lerGps, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+    return () => navigator.geolocation.clearWatch(id);
+  }, [etapa]);
+
+  useEffect(() => {
+    if (etapa !== "corrida") return;
+    let ant = performance.now(), ultGps = 0;
+    const iv = setInterval(() => {
+      const e = euR.current;
+      if (!e || e.fim) return;
+      const agora = performance.now();
+      let dt = agora - ant;
+      ant = agora;
+      if (dt > 5000 && !e.pausado) { pausar(); setLegenda("Pausado: o app ficou em segundo plano e não acompanhou esse tempo."); return; }
+      if (!e.pausado) {
+        if (demo) dt *= 10;
+        const dAntes = e.d, tAntes = e.t;
+        e.t += dt;
+        if (esteira) { e.d += (kmhRef.current / 3.6) * (dt / 1000); e.kmhSoma += kmhRef.current * dt; }
+        else if (agora - ultGps >= 1000) { ultGps = agora; const r = resumoRota(pts.current); if (r.m > e.d) e.d = r.m; }
+        if (demo) Object.keys(outros.current).forEach((k) => {
+          const b = outros.current[k];
+          if (!b.demo) return;
+          b.trilha = trilhaDemo(b.demo.v, e.t);
+          b.ts = Date.now();
+          const fimB = fimDaTrilha(b.trilha);
+          if (!b.fim && meta.tipo === "distancia" && fimB[1] >= meta.alvo) b.fim = { ms: tempoNaDistancia(b.trilha, meta.alvo), m: meta.alvo };
+          if (!b.fim && meta.tipo === "tempo" && e.t >= meta.alvo) b.fim = { ms: meta.alvo, m: distanciaNaTrilha(b.trilha, meta.alvo) };
+        });
+        if (e.t - e.ultAmostra >= DESAFIO_AMOSTRA_MS) { e.trilha.push([e.t, e.d]); e.ultAmostra = e.t; }
+        // a linha de chegada, no instante exato em que foi cruzada
+        if (meta.tipo === "distancia" && e.d >= meta.alvo) {
+          const ms = e.d > dAntes ? tAntes + ((e.t - tAntes) * (meta.alvo - dAntes)) / (e.d - dAntes) : e.t;
+          e.t = ms; e.d = meta.alvo; e.fim = { ms: ms, m: meta.alvo };
+        } else if (meta.tipo === "tempo" && e.t >= meta.alvo) {
+          e.d = dAntes + ((e.d - dAntes) * (meta.alvo - tAntes)) / Math.max(1, e.t - tAntes);
+          e.t = meta.alvo; e.fim = { ms: meta.alvo, m: e.d };
+        }
+      }
+      if (agora - e.ultPub >= 3000 || e.fim) { e.ultPub = agora; publicar(); }
+      if (agora - e.ultNarr >= 1000 || e.fim) { e.ultNarr = agora; narrar(); }
+      if (e.fim) {
+        const linhas = classificarDesafio(todos(), e.fim.ms, meta, Date.now());
+        const minha = linhas.find((l) => l.p.eu);
+        if (som) beep(1300, 0.5, 0.35);
+        try { navigator.vibrate && navigator.vibrate([200, 100, 200, 100, 400]); } catch (x) {}
+        dizer("Chegada! " + (meta.tipo === "distancia" ? nomeMetaDesafio(meta) + " em " + textoDuracao(Math.round(e.fim.ms / 1000)) : num1(e.fim.m / 1000) + " quilômetros em " + nomeMetaDesafio(meta)) +
+          (linhas.length > 1 && minha ? ". Você chegou em " + ordinal(minha.pos) + " de " + linhas.length + "." : "."), 5);
+        terminar(true);
+      }
+      setTique((x) => x + 1);
+    }, 200);
+    return () => clearInterval(iv);
+  }, [etapa]);
+
+  // O narrador: posição, ultrapassagem e o quanto falta. Quem passou quem só
+  // é dito depois de a nova ordem durar dois segundos — o GPS tremendo com
+  // dois corredores lado a lado trocaria de posição dez vezes.
+  const narrar = () => {
+    const e = euR.current, n = narr.current;
+    const linhas = classificarDesafio(todos(), e.t, meta, Date.now());
+    const eu = linhas.find((l) => l.p.eu);
+    if (!eu) return;
+    if (esteira && !e.pausado) eu.v = kmhRef.current / 3.6;
+    const chave = linhas.map((l) => l.p.id).join(",");
+    if (!n.commit) n.commit = linhas;
+    if (n.pend === chave) n.nPend++; else { n.pend = chave; n.nPend = 1; }
+    if (e.t < 15000) n.commit = linhas;
+    else if (n.nPend === 2 && chave !== n.commit.map((l) => l.p.id).join(",")) {
+      eventosDesafio(n.commit, linhas, meuId).forEach((ev) => {
+        if (ev.tipo === "passei") { dizer("Você passou " + ev.quem.nome + "! Agora em " + ordinal(eu.pos) + (eu.pos === 1 ? ", na liderança." : "."), 4); if (som) beep(1100, 0.12, 0.3); }
+        if (ev.tipo === "passou") { dizer(ev.quem.nome + " te passou. Você está em " + ordinal(eu.pos) + ".", 4); if (som) beep(420, 0.2, 0.3); }
+      });
+      n.commit = linhas;
+    }
+    const frente = linhas[eu.pos - 2], atras = linhas[eu.pos];
+    const avisar = (id, texto) => {
+      const k = id, u = n.avisos[k] || 0;
+      if (Date.now() - u < 60000) return;
+      n.avisos[k] = Date.now();
+      dizer(texto, 3);
+    };
+    if (frente) {
+      const p = previsaoUltrapassagem(eu, frente, e.t, meta);
+      if (p && p.tipo === "alcanca" && p.viavel && p.s >= 10 && p.s <= 120) avisar("a-" + frente.p.id, "Nesse ritmo, você alcança " + frente.p.nome + " em " + textoDuracao(Math.round(p.s)) + ".");
+    }
+    if (atras) {
+      const p = previsaoUltrapassagem(eu, atras, e.t, meta);
+      if (p && p.tipo === "chega" && p.viavel && p.s >= 10 && p.s <= 90) avisar("c-" + atras.p.id, atras.p.nome + " está chegando: te alcança em " + textoDuracao(Math.round(p.s)) + ". Acelere!");
+    }
+    // a cada km (prova de distância) ou a cada 5 min (prova de tempo), a situação
+    const situacao = () => {
+      if (linhas.length < 2) return "";
+      if (eu.pos === 1) return " Você lidera" + (atras ? ", " + falaGap(eu.d - atras.d) + " na frente de " + atras.p.nome : "") + ".";
+      return " Você está em " + ordinal(eu.pos) + " de " + linhas.length + ", " + falaGap(frente.d - eu.d) + " atrás de " + frente.p.nome + ".";
+    };
+    if (e.d >= n.proxKm) {
+      const km = Math.floor(e.d / 1000);
+      n.proxKm = (km + 1) * 1000;
+      dizer(km + (km === 1 ? " quilômetro" : " quilômetros") + " em " + textoDuracao(Math.round(e.t / 1000)) + "." + situacao(), 3);
+    }
+    if (meta.tipo === "tempo" && e.t >= n.proxMin * 60000 && e.t < meta.alvo - 30000) {
+      n.proxMin += 5;
+      dizer(textoDuracao(Math.round(e.t / 1000)) + ": " + num1(e.d / 1000) + " quilômetros." + situacao(), 3);
+    }
+    if (!n.finalAvisado && ((meta.tipo === "distancia" && meta.alvo - e.d <= 200 && meta.alvo >= 1000) || (meta.tipo === "tempo" && meta.alvo - e.t <= 60000))) {
+      n.finalAvisado = true;
+      dizer(meta.tipo === "distancia" ? "Últimos 200 metros!" + situacao() : "Último minuto!" + situacao(), 4);
+    }
+  };
+
+  // "Jarvis, como estou", "pausa", "continua", "encerra"
+  useEffect(() => {
+    if (etapa !== "corrida") return;
+    CONTROLE_AULA = {
+      comando(f) {
+        const e = euR.current;
+        if (!e) return null;
+        if (/\b(pausa|pausar|espera)\b/.test(f) && !e.pausado) { pausar(); return { acao: "pausar", resposta: "Pausado." }; }
+        if (/\b(continua|continuar|retoma|retomar|voltei|segue)\b/.test(f) && e.pausado) { retomar(); return { acao: "continuar", resposta: "Continuando." }; }
+        if (/\b(encerra|encerrar|desisto|termina|terminar)\b/.test(f)) { terminar(false); return { acao: "encerrar", resposta: "Encerrado." }; }
+        if (/\b(como estou|como to|posicao|lugar|quem|ganhando|frente|status)\b/.test(f)) {
+          const linhas = classificarDesafio(todos(), e.t, meta, Date.now());
+          const eu = linhas.find((l) => l.p.eu), fr = linhas[eu.pos - 2];
+          const t = num1(e.d / 1000) + " quilômetros em " + textoDuracao(Math.round(e.t / 1000)) + ". " +
+            (linhas.length < 2 ? "Ninguém mais correndo ainda." : eu.pos === 1 ? "Você lidera." : "Você está em " + ordinal(eu.pos) + ", " + falaGap(fr.d - eu.d) + " atrás de " + fr.p.nome + ".");
+          dizer(t, 5);
+          return { acao: "status", resposta: t };
+        }
+        return null;
+      },
+    };
+    return () => { CONTROLE_AULA = null; };
+  }, [etapa]);
+
+  // ---- o registro ----
+  const montarRegistro = () => {
+    const e = euR.current;
+    const linhas = classificarDesafio(todos(), tAgora(), meta, Date.now());
+    const eu = linhas.find((l) => l.p.eu);
+    const tipo = cfg.atividade === "caminhada" ? "caminhada" : "corrida";
+    const exId = esteira ? "esteira-" + tipo : tipo + "-rua";
+    const serie = { segundos: String(Math.round(e.t / 1000)), mod: esteira ? tipo : "rua-" + tipo };
+    if (e.d > 50) serie.km = String(Math.round(e.d / 10) / 100);
+    if (esteira && e.t > 0) serie.vel = String(Math.round((e.kmhSoma / e.t) * 10) / 10);
+    return {
+      id: e.id, nome: "Desafio " + nomeMetaDesafio(meta), data: e.inicio,
+      duracaoMin: Math.max(1, Math.min(300, Math.round(e.t / 60000))),
+      itens: [{ exercicioId: exId, obs: "", series: [serie] }],
+      desafio: {
+        codigo: sala.codigo, meta: meta, atividade: cfg.atividade, ambiente: cfg.ambiente,
+        posicao: e.fim && eu ? eu.pos : null, total: linhas.length,
+        participantes: linhas.map((l) => ({ n: l.p.eu ? cfg.nome : l.p.nome, eu: !!l.p.eu, pos: l.pos, m: Math.round(l.d), ms: Math.round(l.terminou ? l.msFim : Math.min(tAgora(), fimDaTrilha(l.p.trilha)[0])), fim: !!l.terminou })),
+      },
+    };
+  };
+  const compartilhar = async (comResultado) => {
+    const e = euR.current;
+    const lista = comResultado && e && e.fim ? todos() : Object.keys(outros.current).map((k) => outros.current[k]).filter((p) => !p.demo);
+    const url = linkDesafio(sala, lista.map((p) => (p.eu ? Object.assign({}, p, { trilha: e.trilha, dt: e.inicio }) : p)));
+    const texto = (comResultado && e && e.fim
+      ? "🏁 Fiz " + (meta.tipo === "distancia" ? nomeMetaDesafio(meta) + " em " + fmtTempoRota(e.fim.ms) : num1(e.fim.m / 1000) + " km em " + nomeMetaDesafio(meta)) + " no desafio. Consegue me passar?"
+      : "🏁 Te desafio: " + nomeMetaDesafio(meta) + " de " + (sala.atividade === "caminhada" ? "caminhada" : "corrida") + ". Sala " + sala.codigo + ".") +
+      " Corre de onde estiver, agora ou depois: o app compara pelo mesmo tempo de prova. (Treino Livre, app gratuito do @" + INSTAGRAM + ")";
+    if (navigator.share) {
+      try { await navigator.share({ text: texto, url: url }); return; } catch (x) { if (x && x.name === "AbortError") return; }
+    }
+    try { await navigator.clipboard.writeText(texto + " " + url); setLegenda("Convite copiado: cole no WhatsApp."); } catch (x) { setLegenda(texto + " " + url); }
+  };
+
+  // ---- pedaços da tela ----
+  const voltar = (
+    <button onClick={() => { if (etapa === "corrida") pausar(); onVoltar(); }} style={{ display: "block", background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 14, cursor: "pointer", padding: "4px 0 12px" }}>← Voltar</button>
+  );
+  const chip = (ativo, rot, onClick, k) => (
+    <button key={k || rot} onClick={onClick} aria-pressed={ativo}
+      style={{ flex: "1 1 auto", padding: "9px 10px", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 13,
+        border: "1px solid " + (ativo ? "#E1306C" : "var(--borda2)"), background: ativo ? "#E1306C18" : "transparent", color: ativo ? "#E1306C" : "var(--texto)" }}>{rot}</button>
+  );
+  const luzConexao = {
+    conectado: ["🟢", "Ao vivo: todos da sala se veem"], conectando: ["🟡", "Conectando ao retransmissor..."], reconectando: ["🟡", "Sinal caiu, reconectando... a sua corrida continua contando"],
+    falhou: ["🔴", "Sem conexão ao vivo. Dá para correr assim: o resultado vai num link no fim, e os outros comparam com ele"],
+    recusado: ["🔴", "O retransmissor recusou a conexão"], simulacao: ["🧪", "Simulação: dois corredores de mentira, relógio 10× mais rápido, nada é salvo"],
+    desligada: ["⚪", ""],
+  }[conexao] || ["⚪", ""];
+  const campoNome = (
+    <input value={cfg.nome} maxLength={24} placeholder="Seu apelido (como os outros te veem)" aria-label="Seu apelido"
+      onChange={(e) => up("nome", e.target.value)} style={{ ...S.input, marginBottom: 12 }} />
+  );
+  const lugar = (
+    <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+      {chip(cfg.ambiente === "rua", "🌆 Rua (GPS)", () => up("ambiente", "rua"))}
+      {chip(cfg.ambiente === "esteira", "🏃 Esteira", () => up("ambiente", "esteira"))}
+    </div>
+  );
+
+  if (etapa === "config") {
+    const opcoes = cfg.tipo === "distancia" ? DESAFIO_DISTANCIAS : DESAFIO_TEMPOS;
+    return (
+      <div>
+        {voltar}
+        <div style={{ ...S.logo, fontSize: 26, display: "block" }}>🏁 Desafio</div>
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", marginBottom: 12, lineHeight: 1.5 }}>
+          Corra contra os amigos — juntos ou cada um na sua cidade, agora ou em outro dia. O app põe todo mundo na mesma régua: <b>aos 10 minutos da sua corrida, onde cada um estava aos 10 minutos da dele</b>. A voz diz quem está na frente, quem passou quem e em quanto tempo você alcança quem está à frente.
+        </div>
+        <div style={S.card}>
+          <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Seu apelido</div>
+          {campoNome}
+          <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>O desafio</div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+            {chip(cfg.tipo === "distancia", "📏 Distância: quem faz mais rápido", () => setCfg((c) => Object.assign({}, c, { tipo: "distancia", alvo: 5000 })))}
+          </div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+            {chip(cfg.tipo === "tempo", "⏱ Tempo: quem vai mais longe", () => setCfg((c) => Object.assign({}, c, { tipo: "tempo", alvo: 30 * 60000 })))}
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+            {opcoes.map((v) => chip(cfg.alvo === v, nomeMetaDesafio({ tipo: cfg.tipo, alvo: v }), () => up("alvo", v), String(v)))}
+          </div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+            {chip(cfg.atividade === "corrida", "🏃 Corrida", () => up("atividade", "corrida"))}
+            {chip(cfg.atividade === "caminhada", "🚶 Caminhada", () => up("atividade", "caminhada"))}
+          </div>
+          {lugar}
+          {erro && <div style={{ fontSize: 12.5, color: "var(--perigo)", marginBottom: 8 }}>⚠️ {erro}</div>}
+          <button onClick={criarSala} style={{ ...S.btn, width: "100%" }}>➕ Criar sala e convidar</button>
+          <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+            <input value={codigoDigitado} onChange={(e) => setCodigoDigitado(e.target.value)} placeholder="Código da sala" aria-label="Código da sala" maxLength={8}
+              style={{ ...S.input, margin: 0, flex: 1, textTransform: "uppercase", letterSpacing: 2, fontWeight: 800 }} />
+            <button onClick={entrarComCodigo} style={{ ...S.btnGhost, width: "auto", padding: "10px 14px", fontWeight: 900 }}>Entrar</button>
+          </div>
+          <button onClick={simular} style={{ ...S.btnGhost, width: "100%", marginTop: 10, fontSize: 13 }}>🧪 Ver como funciona (simulação, nada é salvo)</button>
+          <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
+            Ao vivo, os celulares conversam por um retransmissor público e gratuito. Passam só o apelido, a distância e o tempo — <b>nunca onde você está</b>. Quem tem o código da sala vê esses números.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (etapa === "sala" && sala) {
+    const lista = Object.keys(outros.current).map((k) => outros.current[k]);
+    const agoraW = Date.now();
+    return (
+      <div>
+        {voltar}
+        <div style={{ ...S.card, textAlign: "center" }}>
+          <div style={{ ...S.label, fontSize: 10 }}>{demo ? "Simulação" : "Sala"}</div>
+          <div style={{ fontSize: 40, fontWeight: 900, letterSpacing: 6, margin: "2px 0 4px", fontVariantNumeric: "tabular-nums" }}>{sala.codigo}</div>
+          <div style={{ fontSize: 14, fontWeight: 800 }}>
+            {sala.meta ? (meta.tipo === "distancia" ? "📏 " + nomeMetaDesafio(meta) + ": quem faz mais rápido" : "⏱ " + nomeMetaDesafio(meta) + ": quem vai mais longe") : "Procurando a sala..."}
+            {" · "}{(sala.atividade || cfg.atividade) === "caminhada" ? "caminhada" : "corrida"}
+          </div>
+          {!sala.meta && procurando ? <div style={{ fontSize: 12.5, color: "var(--perigo)", marginTop: 6 }}>A sala não respondeu. Confira o código com quem criou, ou peça o link.</div> : null}
+          <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 8 }}>{luzConexao[0]} {luzConexao[1]}</div>
+          {!demo && (
+            <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
+              <button onClick={() => compartilhar(false)} disabled={!sala.meta} style={{ ...S.btn, flex: 2 }}>📤 Convidar</button>
+              <button onClick={() => { try { navigator.clipboard.writeText(sala.codigo); setLegenda("Código copiado."); } catch (e) {} }} style={{ ...S.btnGhost, flex: 1 }}>Copiar código</button>
+            </div>
+          )}
+          {legenda && <div style={{ fontSize: 12, marginTop: 8 }}>{legenda}</div>}
+        </div>
+        <div style={S.card}>
+          <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Quem está no desafio</div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, padding: "5px 0", borderBottom: "1px solid var(--borda)", fontWeight: 900, color: "#E1306C" }}>
+            <span>{cfg.nome ? cfg.nome + " (você)" : "Você"}</span><span>na largada</span>
+          </div>
+          {lista.length ? lista.map((p) => {
+            const vivo = p.aoVivo && agoraW - (p.ts || 0) < DESAFIO_SEM_SINAL_MS;
+            const u = fimDaTrilha(p.trilha);
+            const st = p.demo ? "na largada" : p.fim ? (meta.tipo === "distancia" ? "terminou em " + fmtTempoRota(p.fim.ms) : num1(p.fim.m / 1000) + " km") :
+              p.st === "esperando" ? (vivo ? "na largada" : "saiu") : vivo ? (p.st === "pausado" ? "⏸ pausado" : "correndo · " + num1(u[1] / 1000) + " km") : "sem sinal · " + num1(u[1] / 1000) + " km";
+            return (
+              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 13.5, padding: "5px 0", borderBottom: "1px solid var(--borda)" }}>
+                <span>{p.aoVivo ? "📡" : "👻"} {p.nome}</span><span style={{ color: "var(--cinza)" }}>{st}</span>
+              </div>
+            );
+          }) : <div style={{ fontSize: 12.5, color: "var(--cinza)", padding: "6px 0" }}>Ninguém ainda. Mande o convite: quem abrir o link entra na sala.</div>}
+          <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>
+            📡 ao vivo · 👻 resultado de quem já correu. <b>Juntos?</b> Contem até três e toquem em Largar ao mesmo tempo. <b>Separados?</b> Cada um larga quando quiser: a comparação é sempre pelo mesmo tempo de prova.
+          </div>
+        </div>
+        <div style={S.card}>
+          {!cfg.nome.trim() && !demo && campoNome}
+          {!demo && lugar}
+          {erro && <div style={{ fontSize: 12.5, color: "var(--perigo)", marginBottom: 8 }}>⚠️ {erro}</div>}
+          {contagem > 0
+            ? <div style={{ textAlign: "center", fontSize: 72, fontWeight: 900, color: "#E1306C" }} aria-live="assertive">{contagem}</div>
+            : <button onClick={comecar} disabled={!sala.meta} style={{ ...S.btn, width: "100%", padding: "16px 10px", fontSize: 17, opacity: sala.meta ? 1 : 0.5 }}>▶ Largar</button>}
+          {!esteira && <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 8 }}>Na rua, deixe a tela ligada: com a tela apagada o navegador para o GPS.</div>}
+        </div>
+      </div>
+    );
+  }
+
+  const e = euR.current;
+  if ((etapa === "corrida" || etapa === "fim") && e) {
+    const t = tAgora();
+    const linhas = classificarDesafio(todos(), t, meta, Date.now());
+    const eu = linhas.find((l) => l.p.eu) || { pos: 1, d: e.d, v: 0 };
+    // na esteira, a minha velocidade de agora é a do painel: a trilha demora a perceber a subida
+    if (esteira && !e.pausado && etapa !== "fim") eu.v = kmh / 3.6;
+    const frente = linhas[eu.pos - 2], atras = linhas[eu.pos];
+    const pf = frente ? previsaoUltrapassagem(eu, frente, t, meta) : null;
+    const pa = atras ? previsaoUltrapassagem(eu, atras, t, meta) : null;
+    const vAgora = esteira ? kmh / 3.6 : velocidadeNaTrilha(e.trilha.concat([[e.t, e.d]]), e.t);
+    const escala = meta.tipo === "distancia" ? meta.alvo : Math.max(1000, ...linhas.map((l) => l.d)) * 1.08;
+    const fim = etapa === "fim";
+    return (
+      <div>
+        {voltar}
+        <div style={{ ...S.card, textAlign: "center", borderColor: eu.pos === 1 && linhas.length > 1 ? "#7CFF3C" : "var(--borda)" }}>
+          <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--cinza)" }}>
+            {fim ? (e.fim ? "🏁 Chegada" : "Encerrado") : e.pausado ? "⏸ Pausado" : "🏁 Desafio " + nomeMetaDesafio(meta)}{demo ? " · simulação" : ""}
+          </div>
+          <div style={{ fontSize: 64, fontWeight: 900, lineHeight: 1.05, background: "linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
+            {ordinal(eu.pos)}<span style={{ fontSize: 22 }}> de {linhas.length}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-around", marginTop: 6, fontVariantNumeric: "tabular-nums" }}>
+            <div><div style={{ fontSize: 26, fontWeight: 900 }}>{num1(e.d / 1000)}</div><div style={{ fontSize: 11, color: "var(--cinza)" }}>km</div></div>
+            <div><div style={{ fontSize: 26, fontWeight: 900 }}>{fmtTempoRota(e.t)}</div><div style={{ fontSize: 11, color: "var(--cinza)" }}>tempo</div></div>
+            <div><div style={{ fontSize: 26, fontWeight: 900 }}>{vAgora > 0.3 ? fmtPaceSeg(1000 / vAgora) : "—"}</div><div style={{ fontSize: 11, color: "var(--cinza)" }}>ritmo /km</div></div>
+          </div>
+          <div style={{ height: 6, borderRadius: 3, background: "var(--borda)", marginTop: 10, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: Math.min(100, meta.tipo === "distancia" ? (e.d / meta.alvo) * 100 : (e.t / meta.alvo) * 100) + "%", background: "linear-gradient(90deg,#3FA34D,#7CFF3C)" }} />
+          </div>
+          <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 4 }}>
+            {meta.tipo === "distancia" ? "faltam " + (e.fim ? "0" : num1(Math.max(0, meta.alvo - e.d) / 1000)) + " km" : "faltam " + fmtTempoRota(Math.max(0, meta.alvo - e.t))}
+          </div>
+        </div>
+
+        {/* a pista: todos na mesma régua */}
+        <div style={S.card}>
+          <div style={{ ...S.label, fontSize: 10, marginBottom: 8 }}>{fim ? "Classificação" : "A pista, aos " + fmtTempoRota(e.t) + " de prova de cada um"}</div>
+          {/* uma raia por corredor: lado a lado, os pontos não se escondem um atrás do outro */}
+          <div style={{ position: "relative", margin: "0 14px 12px" }}>
+            {meta.tipo === "distancia" && <div style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 4, background: "repeating-linear-gradient(#fff 0 4px,#000 4px 8px)", borderRadius: 1 }} title="chegada" />}
+            {linhas.map((l) => (
+              <div key={l.p.id} style={{ position: "relative", height: 24, borderBottom: "1px dashed var(--borda2)" }}>
+                <div title={l.p.nome} style={{ position: "absolute", top: 2, left: "calc(" + Math.min(100, (l.d / escala) * 100) + "% - 10px)", width: 20, height: 20, borderRadius: 10,
+                  background: l.p.eu ? "#E1306C" : l.terminou ? "#4ADE80" : "var(--card)", border: "2px solid " + (l.p.eu ? "#fff" : "var(--borda2)"),
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8.5, fontWeight: 900, color: l.p.eu ? "#fff" : l.terminou ? "#062" : "var(--texto)", opacity: l.aindaNao ? 0.5 : 1 }}>
+                  {l.p.eu ? "EU" : String(l.p.nome || "?").slice(0, 2).toUpperCase()}
+                </div>
+              </div>
+            ))}
+          </div>
+          {linhas.map((l) => {
+            // a diferença para mim, dita do jeito do corredor: metros e segundos à frente ou atrás
+            let rel = null, naFrente = false;
+            if (!l.p.eu) {
+              if (meta.tipo === "distancia" && l.terminou && eu.terminou) {
+                const s = Math.round((l.msFim - eu.msFim) / 1000);
+                naFrente = s < 0; rel = Math.abs(s) + " s " + (naFrente ? "antes" : "depois");
+              } else {
+                const dif = l.d - eu.d;
+                naFrente = dif > 0;
+                const seg = naFrente ? diferencaSegundos(l, eu, t) : diferencaSegundos(eu, l, t);
+                rel = Math.abs(Math.round(dif)) + " m " + (naFrente ? "à frente" : "atrás") + (seg ? " · " + seg + " s" : "");
+              }
+            }
+            return (
+              <div key={l.p.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, padding: "6px 0", borderBottom: "1px solid var(--borda)", fontWeight: l.p.eu ? 900 : 600, color: l.p.eu ? "#E1306C" : "var(--texto)" }}>
+                <span style={{ width: 26, fontWeight: 900 }}>{l.pos}º</span>
+                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {l.p.eu ? "Você" : (l.p.aoVivo ? "📡 " : "👻 ") + l.p.nome}
+                  {l.aindaNao && !l.p.eu ? <span style={{ fontSize: 11, color: "var(--cinza)", fontWeight: 600 }}> · ainda em {fmtTempoRota(fimDaTrilha(l.p.trilha)[0])}</span> : null}
+                </span>
+                <span style={{ fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+                  {l.terminou && meta.tipo === "distancia" ? "🏁 " + fmtTempoRota(l.msFim) : (l.projetado ? "~" : "") + num1(l.d / 1000) + " km"}
+                  {rel && <div style={{ fontSize: 11, fontWeight: 700, color: naFrente ? "#F58529" : "var(--ok)" }}>{rel}</div>}
+                </span>
+              </div>
+            );
+          })}
+          {linhas.length < 2 && <div style={{ fontSize: 12.5, color: "var(--cinza)", padding: "6px 0" }}>Só você por enquanto. Quem entrar na sala aparece aqui, comparado pelo mesmo tempo de prova.</div>}
+        </div>
+
+        {!fim && (pf || pa) && (
+          <div style={S.card}>
+            <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Ultrapassagem</div>
+            {pf && (
+              <div style={{ fontSize: 13.5, lineHeight: 1.5, marginBottom: 6 }}>
+                ⬆️ <b>{frente.p.nome}</b> {falaGap(pf.gapM)} à frente.{" "}
+                {pf.tipo === "alcanca"
+                  ? (pf.viavel ? <span>Nesse ritmo você alcança em <b style={{ color: "var(--ok)" }}>{fmtTempoRota(pf.s * 1000)}</b>.</span> : <span>Você está chegando, mas não alcança antes da {meta.tipo === "distancia" ? "linha" : "hora"}.</span>)
+                  : <span>{pf.kmhEm1Min ? "Para alcançar em 1 min: " + num1(pf.kmhEm1Min) + " km/h" : ""}{pf.kmhAteChegada ? (pf.kmhEm1Min ? " · " : "") + "até o fim: " + num1(pf.kmhAteChegada) + " km/h" : ""} (você: {num1(eu.v * 3.6)} km/h).</span>}
+              </div>
+            )}
+            {pa && (
+              <div style={{ fontSize: 13.5, lineHeight: 1.5 }}>
+                ⬇️ <b>{atras.p.nome}</b> {falaGap(-pa.gapM)} atrás.{" "}
+                {pa.tipo === "chega" ? (pa.viavel ? <span style={{ color: "#F58529" }}>Está chegando: te alcança em <b>{fmtTempoRota(pa.s * 1000)}</b> se nada mudar.</span> : "Está chegando, mas não dá tempo.") : pa.tipo === "afasta" ? <span style={{ color: "var(--ok)" }}>Ficando para trás.</span> : "Mesma velocidade."}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!fim && (
+          <React.Fragment>
+            {esteira && (
+              <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ flex: 1, fontSize: 13 }}>{demo ? "Sua velocidade (simulada)" : "Velocidade da esteira"}</span>
+                <button onClick={() => setKmh((k) => Math.max(2, Math.round((k - 0.5) * 10) / 10))} style={{ ...S.btnGhost, width: 48, padding: 8, fontSize: 18 }} aria-label="Diminuir velocidade">−</button>
+                <b style={{ minWidth: 70, textAlign: "center", fontSize: 18, fontVariantNumeric: "tabular-nums" }}>{num1(kmh)} km/h</b>
+                <button onClick={() => setKmh((k) => Math.min(25, Math.round((k + 0.5) * 10) / 10))} style={{ ...S.btnGhost, width: 48, padding: 8, fontSize: 18 }} aria-label="Aumentar velocidade">+</button>
+              </div>
+            )}
+            {legenda && <div style={{ fontSize: 12.5, margin: "0 4px 10px" }} aria-live="polite">🔊 {legenda}</div>}
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", margin: "0 4px 10px" }}>{luzConexao[0]} {luzConexao[1]}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+              {e.pausado
+                ? <button onClick={retomar} style={{ ...S.btn, gridColumn: "1 / 3", padding: "16px 10px", fontSize: 16 }}>▶ Retomar</button>
+                : <button onClick={pausar} style={{ ...S.btn, gridColumn: "1 / 3", padding: "16px 10px", fontSize: 16 }}>⏸ Pausar</button>}
+              <button onClick={() => terminar(false)} style={{ ...S.btnGhost, gridColumn: "1 / 3", padding: "14px 8px", fontWeight: 900, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}>■ Encerrar</button>
+            </div>
+          </React.Fragment>
+        )}
+
+        {fim && (
+          <div style={S.card}>
+            <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 10 }}>
+              {e.fim
+                ? (meta.tipo === "distancia" ? "Você fez " + nomeMetaDesafio(meta) + " em " + fmtTempoRota(e.fim.ms) + "." : "Você fez " + num1(e.fim.m / 1000) + " km em " + nomeMetaDesafio(meta) + ".")
+                : "Você encerrou antes do fim: " + num1(e.d / 1000) + " km em " + fmtTempoRota(e.t) + "."}
+              {!demo && " Quem ainda está correndo continua aparecendo aqui, e a classificação se ajusta sozinha."}
+            </div>
+            {legenda && <div style={{ fontSize: 12.5, marginBottom: 8 }}>🔊 {legenda}</div>}
+            {!demo && <button disabled={salvo} onClick={() => { onSalvar(montarRegistro()); setSalvo(true); }} style={{ ...S.btn, width: "100%", opacity: salvo ? 0.5 : 1 }}>{salvo ? "✓ Salvo no histórico" : "Salvar no histórico"}</button>}
+            {!demo && e.fim && <button onClick={() => compartilhar(true)} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontWeight: 900 }}>📤 Mandar meu resultado (quem abrir corre contra você)</button>}
+            <button onClick={() => { euR.current = null; setEtapa("sala"); publicar(); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>↻ Correr de novo nesta sala</button>
+            <button onClick={() => { if (conRef.current) conRef.current.fechar(); conRef.current = null; euR.current = null; setSala(null); setConexao("desligada"); setEtapa("config"); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>Sair da sala</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+  return null;
+}
+
 // O percurso salvo, reaberto do histórico
 function ModalRota({ h, onFechar }) {
   const divRef = useRef(null);
@@ -16401,6 +17472,11 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
         </div>
       )}
       {verRota && <ModalRota h={h} onFechar={() => setVerRota(false)} />}
+      {h.desafio && (
+        <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 12, background: "var(--bg2)", border: "1px solid var(--borda2)" }}>
+          <CartaoDesafio d={h.desafio} />
+        </div>
+      )}
       {h.intervalado && (
         <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 12, background: "var(--bg2)", border: "1px solid var(--borda2)" }}>
           <CartaoIntervalado iv={h.intervalado} />
@@ -17241,6 +18317,8 @@ function TreinoLivre() {
   const [meta, setMeta] = useState(3);
   // { idade }: só para a FC máxima e as zonas do painel do corredor
   const [corredor, setCorredor] = useState({ idade: null });
+  // o link #corrida= que abriu o app: a sala e os resultados de quem já correu
+  const [conviteDesafio, setConviteDesafio] = useState(null);
   const [medidas, setMedidas] = useState([]);
   const [fotos, setFotos] = useState([]);   // só as datas; a imagem vive no IndexedDB
   const [lembrete, setLembrete] = useState({ ativo: false, hora: "18:00", dias: [1, 2, 3, 4, 5] });
@@ -17637,7 +18715,7 @@ function TreinoLivre() {
           if (d.som !== undefined) setSom(d.som);
           if (d.tema) setTema(d.tema);
           if (d.meta) setMeta(d.meta);
-          if (d.corredor && typeof d.corredor === "object") setCorredor({ idade: d.corredor.idade || null });
+          if (d.corredor && typeof d.corredor === "object") setCorredor({ idade: d.corredor.idade || null, apelido: typeof d.corredor.apelido === "string" ? d.corredor.apelido.slice(0, 24) : null });
           if (d.medidas) setMedidas(d.medidas);
           if (d.lembrete) setLembrete(d.lembrete);
           if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
@@ -17687,7 +18765,7 @@ function TreinoLivre() {
         if (d.entrou) setEntrou(true);
         if (d.dicas && typeof d.dicas === "object") setDicas(d.dicas);
         if (d.botaoVoz && typeof d.botaoVoz.y === "number") setBotaoVoz(d.botaoVoz);
-        if (d.corredor && typeof d.corredor === "object") setCorredor({ idade: d.corredor.idade || null });
+        if (d.corredor && typeof d.corredor === "object") setCorredor({ idade: d.corredor.idade || null, apelido: typeof d.corredor.apelido === "string" ? d.corredor.apelido.slice(0, 24) : null });
         if (d.meta) mt = d.meta;
         md = d.medidas || [];
         ft = d.fotos || [];
@@ -17740,13 +18818,18 @@ function TreinoLivre() {
       const mP = hash.match(/#prog=([^&]+)/);
       const mD = hash.match(/#desafio=([^&]+)/);
       const mA = hash.match(/#atalho=([a-z]+)/);
-      if (mF || mP || mD || mA) {
+      const mC = hash.match(/#corrida=([^&]+)/);
+      if (mF || mP || mD || mA || mC) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e2) {}
       }
       // Atalhos do ícone do app na tela inicial (definidos no manifest.json)
       if (mA && !ss) {
         if (mA[1] === "historico") setAba("historico");
         else if (mA[1] === "livre") setTimeout(() => iniciarTreinoLivre(), 0);
+      }
+      if (mC) {
+        const c = lerLinkDesafio(mC[1]);
+        if (c) { setConviteDesafio(c); setAba("desafio"); }
       }
       if (mF) {
         const p = JSON.parse(b64Decodificar(mF[1]));
@@ -18366,8 +19449,8 @@ function TreinoLivre() {
             if (d.som !== undefined) setSom(d.som);
             if (d.tema) setTema(d.tema);
             if (d.meta) setMeta(d.meta);
-            if (d.corredor && typeof d.corredor === "object") setCorredor({ idade: d.corredor.idade || null });
-          if (d.corredor && typeof d.corredor === "object") setCorredor({ idade: d.corredor.idade || null });
+            if (d.corredor && typeof d.corredor === "object") setCorredor({ idade: d.corredor.idade || null, apelido: typeof d.corredor.apelido === "string" ? d.corredor.apelido.slice(0, 24) : null });
+          if (d.corredor && typeof d.corredor === "object") setCorredor({ idade: d.corredor.idade || null, apelido: typeof d.corredor.apelido === "string" ? d.corredor.apelido.slice(0, 24) : null });
             if (d.lembrete) setLembrete(d.lembrete);
             if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
               vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false,
@@ -18781,6 +19864,7 @@ function TreinoLivre() {
             onPercurso={() => setAba("percurso")}
             onZumbi={() => setAbrindoZumbi(true)}
             onIntervalado={() => setAba("intervalado")}
+            onDesafio={() => setAba("desafio")}
             onEscolaVoz={() => setAba("escolaVoz")}
             convite={convite}
             onSeguir={() => {
@@ -18813,7 +19897,7 @@ function TreinoLivre() {
         )}
         {aba === "percurso" && (
           <TelaPercurso exPorId={exPorId} vozCfg={voz} som={som} pesoCorporal={pesoCorporal} historico={historico}
-            bpm={bpm} onConectarCardio={conectarCardio} corredor={corredor} onPainel={() => setAba("corredor")} onZumbi={() => setAbrindoZumbi(true)} onIntervalado={() => setAba("intervalado")}
+            bpm={bpm} onConectarCardio={conectarCardio} corredor={corredor} onPainel={() => setAba("corredor")} onZumbi={() => setAbrindoZumbi(true)} onIntervalado={() => setAba("intervalado")} onDesafio={() => setAba("desafio")}
             pedirConfirmacao={pedirConfirmacao}
             onVoltar={() => setAba("inicio")}
             onSalvar={(registro, pts) => {
@@ -18822,6 +19906,15 @@ function TreinoLivre() {
               guardarRota(registro.id, pts)
                 .catch(() => { registro.rota = Object.assign({}, registro.rota, { semTraco: true }); })
                 .then(() => guardarTreino(registro, "percurso-concluido"));
+            }} />
+        )}
+        {aba === "desafio" && (
+          <TelaDesafio vozCfg={voz} som={som} corredor={corredor} setCorredor={setCorredor}
+            convite={conviteDesafio} onConviteUsado={() => setConviteDesafio(null)}
+            onVoltar={() => setAba("inicio")}
+            onSalvar={(registro) => {
+              if (historico.some((x) => x.id === registro.id)) return;
+              guardarTreino(registro, "desafio-concluido");
             }} />
         )}
         {aba === "intervalado" && (

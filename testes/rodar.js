@@ -1,4 +1,4 @@
-// Roda as treze suites e devolve um resumo.
+// Roda as catorze suites e devolve um resumo.
 //
 //   node rodar.js
 //
@@ -24,6 +24,7 @@ const SUITES = [
   ["teste-corrida", "o corredor: recordes, VDOT, ritmos, relevo, passos e carga"],
   ["teste-zumbi", "a modalidade zumbi: perseguicao, plano, historia e falas"],
   ["teste-intervalado", "o intervalado: modelos, alvos, relogio dos blocos e resumo"],
+  ["teste-desafio", "o desafio: mesma regua de tempo, posicoes, ultrapassagem e MQTT"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");

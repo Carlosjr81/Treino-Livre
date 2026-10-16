@@ -32,6 +32,9 @@ Leia esta seção antes de propor qualquer mudança de arquitetura.
 2. **Não existe backend.** Nada de contas, servidor ou banco. Todos os dados do
    usuário vivem no `localStorage` do aparelho. Qualquer recurso "social" precisa
    caber em link compartilhado (ver *Compartilhamento*) ou não entra.
+   **Exceção única, decidida com o dono:** o ao vivo do *Desafio* passa por um
+   retransmissor MQTT público e gratuito (sem conta, sem dados guardados por
+   nós, sem localização). Tudo nele continua funcionando por link sem ele.
 3. **Arquivos estáticos que abrem direto.** `index.html` precisa funcionar
    sozinho; nada de imports de módulos locais.
 4. **Português em tudo.** Nomes de variáveis, funções, comentários e textos de
@@ -96,7 +99,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 522 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 568 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -137,7 +140,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 522 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 568 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -212,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v47) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v48) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1531,6 +1534,110 @@ Modelos (`MODELOS_INTERVALO`), cada um com a explicação na tela:
 
 Coberto por `teste-intervalado.js` (38 checagens).
 
+## Desafio (`TelaDesafio`, aba `desafio`)
+
+Pedido do dono: pessoas se desafiando a correr a mesma distância ou o mesmo
+tempo, **juntas ou em lugares separados, ao mesmo tempo ou em dias
+diferentes**, vendo ao vivo quem está na frente, a posição de todos e em
+quanto tempo um alcança o outro quando acelera. Botão **🏁 Desafio** na tela
+inicial e no preparo do percurso.
+
+### A régua: o tempo de prova de cada um
+
+O que põe todo mundo na mesma conta é o **tempo de prova**: a posição é sempre
+"aos 12:30 da sua corrida, quanto cada um tinha andado aos 12:30 da dele".
+Largar junto, largar uma hora depois em outra cidade ou correr amanhã contra o
+resultado de hoje é **a mesma comparação**, e ninguém precisa sincronizar
+relógio. É também o que torna justo quem pausa: o relógio de cada um só anda
+fora da pausa.
+
+Cada pessoa é uma **trilha** `[[ms de prova, metros], ...]`, uma amostra a cada
+5 s. Tudo sai dela (bloco `DESAFIO: MOTOR`, puro, coberto por
+`teste-desafio.js`, 46 checagens):
+
+| Conta | Função | Regra |
+|---|---|---|
+| metros num tempo de prova | `distanciaNaTrilha` | interpola entre amostras; depois da última, fica nela |
+| velocidade de agora | `velocidadeNaTrilha` | últimos **15 s**. Com 30 s, quem subia a esteira de 9 para 16 km/h esperava meio minuto para a previsão perceber |
+| a pessoa num tempo de prova | `estadoNoTempo` | ao vivo e com leitura fresca: estima pelo ritmo de agora, no máximo 20 s. Mais que isso, ou sem estar ao vivo: **"ainda não chegou"** a esse tempo (largou depois, parou, perdeu o sinal) — nunca inventa |
+| classificação | `classificarDesafio` | distância: quem cruzou a linha vem primeiro, pelo tempo; os outros por metros. Tempo: só metros |
+| diferença em segundos | `diferencaSegundos` | há quanto tempo de prova o da frente passou onde o de trás está — exato, da trilha, sem supor ritmo |
+| ultrapassagem | `previsaoUltrapassagem` | diferença ÷ (minha velocidade − a dele). `alcanca` (eu chego nele) ou `chega` (ele chega em mim), e `viavel` diz se acontece antes da linha ou do fim do tempo. Ninguém alcançando: a velocidade para alcançar em 1 min e até a chegada |
+| quem passou quem | `eventosDesafio` | só a vizinhança de quem usa o app |
+
+### Como os celulares se enxergam: o retransmissor
+
+**É a única exceção à regra "sem servidor", decidida com o dono.** Celulares em
+cidades diferentes só se veem ao vivo por um intermediário. Usamos
+retransmissores **MQTT públicos e gratuitos, sem conta e sem chave**
+(`DESAFIO_BROKERS`: EMQX, HiveMQ, Mosquitto), por WebSocket.
+
+- **Passa só apelido, distância, tempo e a trilha** (`mensagemDesafio`) —
+  **nunca a localização**; o teste confere que não há `lat`/`lng` na mensagem.
+  A tela de configuração diz isso, e que quem tem o código vê esses números.
+- **O MQTT é escrito aqui** (`mqttConectar`, `mqttAssinar`, `mqttPublicar`,
+  `mqttLer`): só o pedaço do 3.1.1 que usamos (conectar, assinar, publicar
+  QoS 0, ping). Uma biblioteca seriam 80 KB no meio mega do app, e mais um SRI.
+  `mqttLer` junta pacote partido entre dois quadros do WebSocket — o teste
+  cobra isso.
+- **Cada pessoa publica num tópico com `retain`**
+  (`treinolivre/desafio/v1/<CÓDIGO>/<id>`): a mensagem fica guardada no
+  retransmissor, e quem entra depois — ou corre no dia seguinte — recebe a
+  trilha de quem já correu. A meta da sala vai em `.../<CÓDIGO>/sala`, para quem
+  entra só com o código.
+- **O código da sala** (`novoCodigoSala`) são cinco letras sem as que se
+  confundem ditadas (O/0, I/1) e, no fim, **o número do retransmissor**: quem
+  digita o código cai no mesmo retransmissor de quem criou.
+- **Reconecta sozinho** (o 4G cai no meio da corrida) e publica de novo ao
+  voltar. Sem conexão nenhuma, a corrida continua contando, e o resultado vai
+  num link no fim.
+- **O retransmissor público pode sair do ar** — é serviço de terceiro. Trocar
+  é uma linha em `DESAFIO_BROKERS` (e o número no código de sala novo).
+- Para testar sem internet: `localStorage["treinolivre:desafio-broker"] =
+  "ws://localhost:8888"` desvia todas as salas para um retransmissor local
+  (aedes + ws, uns 10 linhas). **A sessão na nuvem não alcança os públicos.**
+
+### O link (`#corrida=`), que funciona sem retransmissor nenhum
+
+`linkDesafio` leva a sala (código, meta, atividade) e as trilhas de **quem já
+terminou**, em texto curto (`codificarTrilha`: uma amostra a cada 10 s, metros
+desde a anterior em base 36 — uma hora de corrida em menos de 2 KB). Quem abre
+o link cai na sala, corre na hora contra esses resultados (👻) e, se houver
+conexão, entra também ao vivo. `#desafio=` já existia e é outra coisa (comparar
+estatísticas gerais com um amigo): não confundir.
+
+### Na tela
+
+- **Configurar**: apelido (guardado em `corredor.apelido`, vai no backup),
+  distância (1, 3, 5, 10 km, meia) ou tempo (10 a 60 min), corrida ou
+  caminhada, rua (GPS, o mesmo filtro e as mesmas cordas de 12 m do percurso)
+  ou esteira (velocidade no − e +). **🧪 Simulação**: dois corredores de
+  mentira, relógio 10× mais rápido, nada é salvo nem publicado — é como se
+  conhece o modo sem ter amigo à mão.
+- **Sala**: o código grande, convidar (link pelo `navigator.share`), quem está
+  (📡 ao vivo, 👻 resultado), o estado da conexão, e **Largar** com 3-2-1.
+- **Corrida**: posição grande, km, tempo e ritmo; **a pista com uma raia por
+  corredor** (lado a lado, numa raia só os pontos se escondiam um atrás do
+  outro); a lista com metros e segundos à frente/atrás; o cartão de
+  ultrapassagem; na esteira, a minha velocidade é a do painel (a trilha demora
+  a perceber a subida).
+- **Voz** (`narrar`, fila de falas): "Você passou a Ana! Agora em 1º", "Bia te
+  passou", "Nesse ritmo, você alcança a Ana em 1 minuto e 7 segundos", "Bia
+  está chegando: te alcança em 40 segundos. Acelere!" (no máximo uma vez por
+  minuto por pessoa), a situação a cada km (ou 5 min), últimos 200 m / último
+  minuto, e a chegada. **A troca de posição só é dita depois de durar 2 s, e
+  nos primeiros 15 s não é dita**: lado a lado na largada a ordem troca a cada
+  metro. "Jarvis, como estou / pausa / continua / encerra" pelo `CONTROLE_AULA`.
+- **Fim**: classificação (quem ainda corre continua chegando), salvar no
+  histórico (série aeróbica comum + `historico[].desafio`, que o
+  `CartaoDesafio` mostra), mandar o resultado por link, correr de novo.
+
+**Não está validado em aparelho**: dois celulares de verdade em redes móveis,
+e os três retransmissores públicos (a sessão na nuvem não os alcança). Foi
+testado com um retransmissor local e dois navegadores: sala por código,
+largada, ultrapassagem narrada, previsão, link com fantasma, simulação até a
+chegada, e o registro no histórico.
+
 ## Monitor cardíaco, e o que a web não alcança
 
 **Funciona:** qualquer monitor que exponha o serviço padrão de frequência
@@ -2073,11 +2180,11 @@ aqui**; o lugar do resto é:
 ## Como testar
 
 Há uma suíte automatizada, **fora do repositório**, na pasta irmã
-`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 522
-checagens em treze suítes, e elas recortam as funções do próprio `index.html`:
+`Treino-Livre-testes` (ver *Trabalhar de qualquer computador*). São 568
+checagens em catorze suítes, e elas recortam as funções do próprio `index.html`:
 
 ```bash
-node rodar.js      # as treze suítes, contra o index.html da pasta ao lado
+node rodar.js      # as catorze suítes, contra o index.html da pasta ao lado
 node servir.js     # sobe o app em http://localhost:8765
 ```
 
@@ -2156,6 +2263,11 @@ Roteiro mínimo depois de mexer no app:
      perseguição marcada vai para o histórico uma vez só. Repetir na esteira
      com a velocidade informada e com o celular parado no suporte (estimativa
      por passos não pode aparecer).
+33ü. **O desafio entre dois celulares.** Um cria a sala (esteira, 1 km) e manda
+     o convite; o outro abre o link. Os dois largam: cada um vê o outro na
+     pista, a posição troca quando um acelera, e a voz diz quem passou quem e
+     em quanto tempo alcança. Depois, um terceiro abre o link do resultado num
+     outro dia: o 👻 aparece e a comparação é pelo mesmo tempo de prova.
 33è. ⏱ Intervalado na esteira, modelo corre-caminha: a voz anuncia cada bloco
      com a velocidade para pôr no painel, o 3-2-1 apita antes da troca, e ao
      encerrar no meio o histórico guarda só os blocos feitos. No Monster, Run!,

@@ -199,6 +199,16 @@ Cada número vem com explicação do que significa:
 🎯 **Tiros**, 🎲 **Fartlek**, 🔺 **Pirâmide**, 📈 **Progressivo**, ✏️ **Personalizado**.
 A voz anuncia cada bloco, apita no 3-2-1 e, na esteira, diz a velocidade para colocar no painel.
 
+### 3.9b 🏁 Desafio — corra contra os amigos (juntos ou cada um na sua cidade)
+- Duas ou mais pessoas se desafiam numa **distância** (1, 3, 5, 10 km, meia maratona: quem faz mais rápido) ou num **tempo** (10 a 60 min: quem vai mais longe), correndo ou caminhando, na rua (GPS) ou na esteira.
+- **Juntas ou em lugares diferentes, ao mesmo tempo ou em dias diferentes**: o app põe todo mundo na mesma régua — o **tempo de prova** de cada um. "Aos 10 minutos da sua corrida, onde cada um estava aos 10 minutos da dele."
+- Cria-se uma **sala** com um código (ex.: KQ7MZ1) e manda o convite pelo WhatsApp. Ao vivo, todos se veem numa **pista com uma raia por corredor**, com a **posição de cada um**, os metros e os segundos de diferença.
+- **Previsão de ultrapassagem:** quando alguém acelera, o app calcula **em quanto tempo alcança** quem está na frente ("Nesse ritmo, você alcança a Ana em 1 minuto e 7 segundos") e avisa quem está sendo caçado ("A Bia está chegando: te alcança em 40 segundos. Acelere!"). Também diz a velocidade necessária para alcançar em 1 minuto ou até a chegada.
+- A voz narra: "Você passou o João! Agora em 1º", a situação a cada km, últimos 200 metros, a chegada e a posição final.
+- Correu sozinho hoje? **Manda o resultado por link** e quem abrir corre contra o seu "fantasma" 👻 quando quiser.
+- **Privacidade:** ao vivo passam só o apelido, a distância e o tempo — **nunca a localização**. Sem conta.
+- Tem um modo **🧪 Simulação** (dois corredores de mentira, relógio acelerado) ótimo para gravar vídeo mostrando como funciona.
+
 ### 3.10 Monster, Run! 🧟 — fuja dos monstros correndo
 Treino intervalado **com história narrada**. Você ouve a aventura, um monstro se aproxima, você precisa
 **acelerar dentro do ritmo que você escolheu**, escapar... e recuperar. Funciona na rua (GPS) e na
@@ -301,6 +311,8 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 - "Um app de academia grátis, sem cadastro e sem anúncio. Sério."
 - "Corri de um lobisomem na esteira hoje."
 - "Seu app de treino sabe seu VO2máx? O meu sabe."
+- "Corri contra meu amigo que mora em outra cidade. Ao vivo."
+- "O app me avisou: 'você alcança a Ana em 40 segundos'. Alcancei."
 
 ### Formatos sugeridos
 1. **Demonstração Jarvis:** pessoa no supino, fala "Jarvis, anota 80 por 10", corta para a tela marcando ✓ e a voz confirmando.
@@ -340,5 +352,6 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 | **Minha evolução** | o gráfico de progresso por exercício |
 | **Painel do corredor** | os números avançados de corrida |
 | **Intervalado** | o modo de corrida/caminhada com ritmo variado |
+| **Desafio** | corrida contra amigos, ao vivo ou por link, com posições e previsão de ultrapassagem |
 | **Aulas guiadas** | Express, Queima, Luta, Potência e Sem barulho |
 | **Carlos Jr — O Zeus** | o criador, @carlos.jr.81 |

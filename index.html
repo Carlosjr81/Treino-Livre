@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16j";
+const VERSAO_APP = "2026-10-16k";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3585,6 +3585,100 @@ const TERMOS_GRUPO = [
   ["abdomen", "abdomen"], ["abdominal", "abdomen"], ["barriga", "abdomen"], ["core", "abdomen"],
   ["gluteos", "gluteos"], ["gluteo", "gluteos"], ["bumbum", "gluteos"],
 ];
+// ---- A busca de exercícios ----
+// Pedido do dono, no meio de um treino: digitou "ombros" e o desenvolvimento no
+// Smith não apareceu, porque a busca só olhava o nome. Quem procura pensa no
+// músculo, no apelido da academia ou no aparelho, não no nome do catálogo.
+// Então cada palavra digitada pode casar com o nome, o apelido, o grupo, o
+// músculo principal, o equipamento ou o nome em inglês — e TODAS as palavras
+// têm de casar com alguma coisa, que é o que mantém a busca precisa: "ombro
+// halter" traz só ombro com halter.
+//
+// Músculo secundário não conta: o supino trabalha ombro, mas quem busca
+// "ombro" não quer o supino. A única exceção é glúteo em "perna", com nota
+// baixa, porque dia de perna inclui glúteo em qualquer academia.
+const CONCEITOS_BUSCA = [
+  [["peito", "peitoral", "peitorais"], { grupos: ["peito"] }],
+  [["costas", "dorsal", "dorsais", "latissimo"], { grupos: ["costas"] }],
+  [["trapezio"], { musc: ["trapezio"] }],
+  [["lombar"], { musc: ["lombar"] }],
+  [["perna", "pernas", "coxa", "coxas", "inferiores", "membros inferiores"], { grupos: ["pernas"], fraco: ["gluteos"] }],
+  [["quadriceps"], { musc: ["quadriceps"] }],
+  [["posterior", "posteriores", "isquiotibiais", "isquios"], { musc: ["posteriores"] }],
+  [["panturrilha", "panturrilhas", "gemeos", "batata"], { musc: ["panturrilha"] }],
+  [["adutor", "adutores"], { musc: ["adutores"] }],
+  [["ombro", "ombros", "deltoide", "deltoides", "delts"], { grupos: ["ombros"] }],
+  [["biceps"], { grupos: ["biceps"] }],
+  [["triceps"], { grupos: ["triceps"] }],
+  [["braco", "bracos"], { grupos: ["biceps", "triceps"], musc: ["antebraco"] }],
+  [["antebraco", "antebracos", "punho"], { musc: ["antebraco"] }],
+  [["abdomen", "abdome", "abdominal", "abdominais", "barriga", "core", "abs"], { grupos: ["abdomen"] }],
+  [["obliquo", "obliquos"], { musc: ["obliquos"] }],
+  [["gluteo", "gluteos", "bumbum", "bunda"], { grupos: ["gluteos"] }],
+  [["aerobico", "aerobicos", "cardio"], { cardio: true }],
+  [["funcional", "funcionais"], { func: true }],
+];
+const PALAVRAS_VAZIAS_BUSCA = ["de", "do", "da", "dos", "das", "no", "na", "nos", "nas", "com", "para", "pra", "e", "o", "a", "os", "as", "em", "um", "uma"];
+const radicalBusca = (p) => (p.length > 3 && p.endsWith("s") ? p.slice(0, -1) : p);
+const palavrasBusca = (t) => semAcento(t).split(/[^a-z0-9]+/).filter(Boolean);
+// "omb" já é ombro, enquanto se digita; plural e singular são a mesma palavra.
+const casaPalavra = (palavra, token) =>
+  palavra === token || palavra.startsWith(token) || radicalBusca(palavra) === radicalBusca(token);
+
+let APELIDOS_POR_ID = null;
+function apelidosDe(id) {
+  if (!APELIDOS_POR_ID) {
+    APELIDOS_POR_ID = {};
+    APELIDOS_EXERCICIO.forEach(([frase, alvo]) => {
+      (APELIDOS_POR_ID[alvo] = APELIDOS_POR_ID[alvo] || []).push(...palavrasBusca(frase));
+    });
+  }
+  return APELIDOS_POR_ID[id] || [];
+}
+
+// Nota de uma palavra num exercício: 0 quando não casa.
+function notaPalavraBusca(ex, token) {
+  const nome = palavrasBusca(ex.nome);
+  let nota = 0;
+  if (nome.length && casaPalavra(nome[0], token)) nota = 12;
+  else if (nome.some((p) => casaPalavra(p, token))) nota = 10;
+  if (nota < 8 && apelidosDe(ex.id).some((p) => casaPalavra(p, token))) nota = 8;
+  if (nota < 6) {
+    const principais = (ex.musc && ex.musc.p) || [];
+    for (const [termos, c] of CONCEITOS_BUSCA) {
+      if (!termos.some((t) => t === token || (token.length >= 3 && t.startsWith(token)) || radicalBusca(t) === radicalBusca(token))) continue;
+      if ((c.grupos && c.grupos.includes(ex.grupo)) || (c.musc && c.musc.some((m) => principais.includes(m))) ||
+          (c.cardio && ex.cardio) || (c.func && ex.func)) { nota = 6; break; }
+      if (c.fraco && c.fraco.includes(ex.grupo)) nota = Math.max(nota, 2);
+    }
+  }
+  if (nota < 4 && (palavrasBusca(ex.equip).some((p) => casaPalavra(p, token)) ||
+      palavrasBusca(ex.en).some((p) => casaPalavra(p, token)))) nota = 4;
+  return nota;
+}
+
+// A lista ordenada do que mais casa para o que menos casa. Sem texto, a lista
+// inteira, na ordem em que veio.
+function buscarExercicios(lista, texto) {
+  const tokens = palavrasBusca(texto).filter((t) => !PALAVRAS_VAZIAS_BUSCA.includes(t));
+  if (!tokens.length) return semAcento(texto).trim() ? [] : lista;
+  const frase = semAcento(texto).trim();
+  const achados = [];
+  lista.forEach((ex, i) => {
+    let total = 0;
+    for (const t of tokens) {
+      const n = notaPalavraBusca(ex, t);
+      if (!n) return;
+      total += n;
+    }
+    if (semAcento(ex.nome).includes(frase)) total += 5;
+    achados.push({ ex, total, i });
+  });
+  achados.sort((a, b) => b.total - a.total || a.i - b.i);
+  return achados.map((a) => a.ex);
+}
+// ---- fim da busca de exercícios
+
 function grupoDito(f) {
   for (let i = 0; i < TERMOS_GRUPO.length; i++) {
     if (f.indexOf(" " + TERMOS_GRUPO[i][0]) >= 0) return TERMOS_GRUPO[i][1];
@@ -8360,12 +8454,10 @@ function TelaExercicios({ todos, exPorId, historico, grupoAberto, setGrupoAberto
 
   const fam = equip ? FAMILIAS_EQUIP.find((f) => f.id === equip) : null;
   const porEquip = (lista) => (fam ? lista.filter((e) => naFamilia(e, fam)) : lista);
-  // A busca olha nome E equipamento: "halteres" e "polia" passam a achar coisa.
+  // A busca olha nome, apelido, músculo e equipamento (buscarExercicios).
   const alvo = semAcento(busca.trim());
   const buscando = alvo.length > 0;
-  const resultados = buscando
-    ? porEquip(todos.filter((e) => semAcento(e.nome).includes(alvo) || semAcento(e.equip).includes(alvo)))
-    : [];
+  const resultados = buscando ? porEquip(buscarExercicios(todos, busca)) : [];
 
   if (grupoAberto && !buscando) {
     const g = grupoPorId(grupoAberto);
@@ -8384,7 +8476,7 @@ function TelaExercicios({ todos, exPorId, historico, grupoAberto, setGrupoAberto
 
   return (
     <div style={{ padding: "0 18px" }}>
-      <input style={{ ...S.input, marginBottom: 10 }} placeholder="Buscar por nome ou equipamento..."
+      <input style={{ ...S.input, marginBottom: 10 }} placeholder="Buscar: nome, músculo ou aparelho..."
         type="search" aria-label="Buscar exercício por nome ou equipamento"
         value={busca} onChange={(e) => setBusca(e.target.value)} />
 
@@ -8862,7 +8954,7 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
     setT({ ...t, itens: copia });
   };
 
-  const filtrados = todos.filter((e) => e.nome.toLowerCase().includes(busca.toLowerCase()));
+  const filtrados = buscarExercicios(todos, busca);
   const exPorId = (id) => todos.find((e) => e.id === id);
 
   return (
@@ -8947,7 +9039,7 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
       <button style={{ ...S.btn, marginBottom: 18 }} onClick={salvar}>Salvar ficha</button>
 
       <div style={S.label}>Adicionar exercício</div>
-      <input style={{ ...S.input, margin: "8px 0 10px" }} placeholder="Buscar exercício..."
+      <input style={{ ...S.input, margin: "8px 0 10px" }} placeholder="Buscar: nome, músculo ou aparelho..."
         type="search" aria-label="Buscar exercício para adicionar à ficha"
         value={busca} onChange={(e) => setBusca(e.target.value)} />
       {filtrados.slice(0, LIMITE_LISTA).map((ex) => (
@@ -19131,14 +19223,11 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
             <button onClick={() => { setMostrarAdd(false); setBuscaEx(""); }} aria-label="Fechar a busca de exercícios"
               style={{ background: "none", border: "none", color: "var(--cinza)", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>✕</button>
           </div>
-          <input autoFocus style={{ ...S.input, marginBottom: 10 }} placeholder="Buscar exercício (ex.: leg press)..."
+          <input autoFocus style={{ ...S.input, marginBottom: 10 }} placeholder="Buscar: nome, músculo ou aparelho (ex.: ombro)"
             aria-label="Buscar exercício para adicionar ao treino"
             value={buscaEx} onChange={(e) => setBuscaEx(e.target.value)} />
           <div style={{ maxHeight: 320, overflowY: "auto" }}>
-            {(buscaEx.trim()
-              ? todos.filter((e) => e.nome.toLowerCase().includes(buscaEx.trim().toLowerCase()))
-              : todos
-            ).slice(0, 40).map((e) => (
+            {buscarExercicios(todos, buscaEx).slice(0, 60).map((e) => (
               <button key={e.id} type="button" onClick={() => addExercicio(e.id)}
                 aria-label={"Adicionar " + e.nome + " ao treino"}
                 style={{ width: "100%", textAlign: "left", font: "inherit", color: "var(--texto)", background: "none",

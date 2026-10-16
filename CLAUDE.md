@@ -84,7 +84,7 @@ Treino-Livre/
 ├── CLAUDE.md            ← este arquivo: o contexto do projeto
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
-└── testes/              ← as 18 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 19 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -99,7 +99,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 757 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 786 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -140,7 +140,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 757 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 786 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v57) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v58) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2072,6 +2072,19 @@ compartilhados por aí precisam continuar abrindo.
   hipertrofia. É um guia, e o texto na tela diz isso: não vire prescrição.
 - **Fotos de progresso** — o registro que mostra mudança quando a balança não
   mostra. Reduzidas para 1080px em JPEG antes de guardar.
+- **Busca de exercícios** (`buscarExercicios`, coberta por `teste-busca.js`) — as
+  três buscas (aba Exercícios, editor de ficha e "adicionar" no treino) usam a
+  mesma função. Pedido do dono, no meio de um treino: "ombros" não trazia o
+  desenvolvimento no Smith, porque só o nome era olhado. Hoje cada palavra pode
+  casar com o nome (12 se for a primeira palavra, 10 no resto), o apelido de
+  `APELIDOS_EXERCICIO` (8), o grupo ou o músculo **principal** pelos
+  `CONCEITOS_BUSCA` ("braço", "barriga", "bumbum", "posterior", "gêmeos",
+  "aeróbico"...) (6), o equipamento ou o nome em inglês (4). **Precisa**: todas
+  as palavras têm de casar ("ombro smith" traz só ombro no Smith), e músculo
+  secundário não conta — o supino trabalha ombro, mas quem busca "ombro" não
+  quer o supino. A exceção é glúteo em "perna", com nota 2, depois dos de
+  perna. Prefixo vale ("omb" já acha) e plural é singular. Conceito novo entra
+  em `CONCEITOS_BUSCA`, não num `if` na tela.
 - **Filtro por equipamento** (`FAMILIAS_EQUIP`) — responde "só tenho halteres em
   casa". Um exercício pode cair em mais de uma família, e isso não é problema.
 - **Duplicar ficha e programa** — ao copiar, os ids de `conjunto` são regerados
@@ -2555,7 +2568,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 18 suítes (757 checagens)
+node testes/rodar.js      # as 19 suítes (786 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

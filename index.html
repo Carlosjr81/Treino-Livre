@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16f";
+const VERSAO_APP = "2026-10-16g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -19934,19 +19934,21 @@ function Portaria({ temDados, podeInstalar, onInstalar, onCopiarLink, onEntrar }
       <div style={{ height: 4, width: 90, background: GRAD_LINHA, borderRadius: 2, margin: "10px 0 24px" }} />
 
       <div style={{ fontSize: 19, fontWeight: 900, lineHeight: 1.4, marginBottom: 12, maxWidth: 350 }}>
-        {temDados ? "Primeiro treino feito! 🎉 Siga e baixe o app" : "Siga e baixe o app"}
+        Siga para liberar o app
       </div>
       <div style={{ fontSize: 14.5, color: "var(--cinza)", lineHeight: 1.7, maxWidth: 350, marginBottom: 24 }}>
-        Siga para ter sempre acesso ao app e acompanhar as novidades. É por lá que saem as
-        atualizações e os treinos novos. Tudo de graça, sem anúncio e sem cadastro.
+        O Treino Livre é gratuito, sem anúncio e sem cadastro. Em troca, siga
+        @{INSTAGRAM} no Instagram: é por lá que saem as atualizações, os treinos
+        novos e as dicas.
       </div>
 
       <button style={{ ...S.btn, width: "100%", maxWidth: 340, marginBottom: 10, fontSize: 16 }} onClick={seguir}>
         Seguir e baixar o app
       </button>
-      <button style={{ ...S.btnGhost, width: "100%", maxWidth: 340, fontWeight: 800 }}
-        onClick={() => onEntrar({ seguiu: false })}>
-        Entrar no app →
+      <button onClick={() => onEntrar({ seguiu: false })}
+        style={{ border: "none", background: "transparent", color: "var(--cinza)", fontSize: 13.5,
+          fontWeight: 700, cursor: "pointer", marginTop: 4, padding: "10px 12px" }}>
+        Já sigo — entrar no app →
       </button>
 
       <button onClick={() => setAjuda(true)}
@@ -21506,16 +21508,13 @@ function TreinoLivre() {
   // acima faria o link compartilhado morrer na porta.
   if (abertura) return <Abertura onFim={() => setAbertura(false)} />;
 
-  // A portaria só depois do primeiro treino concluído, e só na tela inicial.
-  // Antes ela era a primeira coisa do app: pedir para seguir alguém antes de a
-  // pessoa ver uma tela sequer era o primeiro motivo para fechar e não voltar.
-  // Depois do primeiro treino o app já mostrou para que serve. Na tela inicial
-  // e fora do treino: no meio da sessão ou por cima do resumo do fim, ela
-  // atropelaria o que a pessoa está fazendo. No navegador embutido continua
-  // logo na entrada, porque ali o recado é outro: tire o app daqui, ou os
-  // dados se perdem.
-  if (!entrou && (NAVEGADOR_INAPP || (historico.length > 0 && aba === "inicio" && !sessao && !modal))) {
-    return <Portaria temDados={historico.length > 0 || treinos.length > 0}
+  // A portaria fica na entrada, antes de qualquer tela: é decisão do dono. Ela
+  // já foi para depois do primeiro treino e voltou — o perfil no Instagram é o
+  // que sustenta o app, e o pedido feito no primeiro contato é o que traz
+  // seguidores. O "entrar" continua sempre visível, só mais discreto: escondê-lo
+  // foi o que causou o looping de quem não conseguia passar.
+  if (!entrou) {
+    return <Portaria temDados={historico.length > 0}
       podeInstalar={!!promptInstalar} onInstalar={instalarApp} onCopiarLink={copiarLink}
       onEntrar={liberarPortaria} />;
   }

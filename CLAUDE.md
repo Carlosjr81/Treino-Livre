@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v53) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v54) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -796,17 +796,16 @@ lugares, e um @ errado num story já publicado não tem como ser corrigido.
 
 ### A portaria (`Portaria`, campo `entrou`)
 
-**Hoje ela aparece depois do primeiro treino concluído, não na entrada**
-(pedido do dono: "faça tudo" para quem chega não desistir). Pedir para seguir
-alguém antes de a pessoa ver uma tela sequer era o primeiro motivo para fechar
-o app. Ela aparece quando a pessoa volta à tela inicial com um treino no
-histórico, fora do treino e sem modal aberto — por cima do resumo do fim ela
-atropelaria o que a pessoa está lendo — e com o título "Primeiro treino feito!
-🎉". **No navegador embutido continua na entrada**: ali o recado é outro (tire
-o app daqui, ou os dados se perdem). Um link `#ficha=` de quem nunca abriu o
-app chega direto na pergunta da ficha, sem porta nenhuma.
+**Ela fica na entrada, antes de qualquer tela — decisão do dono.** Chegou a
+ir para depois do primeiro treino (para quem chega não desistir) e voltou, a
+pedido dele: o perfil no Instagram é o que sustenta o app, e é o pedido no
+primeiro contato que traz seguidores. **Não mude de novo sem falar com ele.**
+O que ficou da ida e volta: "Seguir e baixar o app" é o botão principal, e o
+entrar virou um link discreto, "Já sigo — entrar no app →". Discreto, nunca
+escondido (ver o looping abaixo). O rodapé "seus treinos continuam salvos" só
+aparece com treino no histórico: as fichas que vêm prontas não contam.
 
-A tela que pede para seguir. **Ela não verifica nada, e isso é
+A tela que pede para seguir. **Ela não verifica nada, e isso éA tela que pede para seguir. **Ela não verifica nada, e isso é
 uma decisão tomada com o dono, não um descuido:** saber se alguém segue uma
 conta exige servidor e uma API que o Instagram não oferece nem ao dono do
 perfil. O que existe é o pedido feito na cara limpa, no único lugar por onde

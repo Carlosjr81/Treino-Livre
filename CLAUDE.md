@@ -1659,8 +1659,24 @@ Kinomap. Nada aqui é engenharia reversa, e os bytes saem da especificação.
 seria um rastreador pronto. Quem lista é o navegador, na janela dele. O que dá
 para fazer — e é o que muda a experiência — é **filtrar pelo serviço `0x1826`**,
 para que só apareça máquina de academia e não o fone nem a TV do vizinho.
-Da segunda vez não há janela: `getDevices()` devolve o que já foi autorizado e
-`reconectar()` volta sozinho.
+**E nunca reconecta sozinha. Esta é a decisão de segurança central do módulo,**
+e veio do dono: academia tem uma bateria de esteiras iguais. A de ontem pode
+ter outra pessoa correndo nela hoje — e o app não teria como saber. Ele veria
+um aparelho conhecido, conectaria, e comandaria a velocidade de um estranho.
+
+Por isso:
+
+- **Não existe `reconectar()`.** Conexão é sempre um ato deliberado, no
+  momento. Se um dia alguém for tentado a acrescentar: a pergunta é como o app
+  saberia que a esteira conhecida é a que está na frente da pessoa. Não saberia.
+- **Ao sair, o app devolve a permissão** (`device.forget()`), em vez de
+  guardá-la para depois. O toque a mais na próxima vez é o preço, e é barato.
+- **Conectar não é o mesmo que poder comandar.** Depois de conectar, a tela
+  pede a confirmação: *"mude a velocidade no painel; se o número aqui mudar, é
+  a sua"*. Só então o controle é pedido. Numa academia com dez máquinas iguais
+  o nome no Bluetooth não distingue nada; o painel, sim.
+- Se a esteira já estiver **andando** no instante da conexão, a tela avisa: é
+  o sinal mais forte de que tem alguém nela.
 
 ### As regras de segurança, e por que cada uma existe
 
@@ -1672,8 +1688,13 @@ de formulário. Quem está correndo não consegue ler a tela, discutir nem recua
    o máximo da esteira e um padrão — nessa ordem. Nenhum treino passa disso.
 2. **O app não liga nem desliga a esteira.** Quem começa e para é a pessoa, no
    painel. O app só muda a velocidade de uma esteira que já está andando.
-3. **A troca vem anunciada.** Os três bipes do 3-2-1 já existiam antes de cada
-   bloco; a velocidade muda junto com o anúncio, nunca antes dele.
+3. **A troca vem anunciada duas vezes.** Onze segundos antes, a voz diz o que
+   vem: *"Em 11 segundos, a esteira acelera para 12,3 por hora"*
+   (`falaTrocaEsteira`, `AVISO_TROCA_MS`). A frase diz o **sentido antes do
+   número** — "acelera" chega ao ouvido antes de "doze", e é o sentido que muda
+   o que o corpo faz. Depois vem a contagem regressiva falada, 3-2-1, que só
+   existe quando o app comanda: na rua o bipe basta, porque ali a troca é de
+   esforço; na esteira a correia vai mudar debaixo do pé.
 4. **A tela diz o que foi pedido.** Sem isso, uma esteira que recusa o comando
    calada deixaria a pessoa correndo no ritmo errado achando que o app cuidava.
 5. **⏹ PARAR A ESTEIRA é um botão separado do Encerrar.** Na hora do aperto
@@ -1684,6 +1705,50 @@ de formulário. Quem está correndo não consegue ler a tela, discutir nem recua
 7. **A velocidade encaixa no degrau da máquina.** Pedir 8,37 numa esteira de
    passo 0,1 é pedir algo que ela arredonda sozinha — e aí a tela mostra um
    número e a esteira faz outro.
+
+### A história manda na correia (Monster Run)
+
+O Monster Run na esteira ganhou as duas pontas: a esteira vira **fonte de
+movimento** (`fonte: "esteira"` — a melhor leitura possível ali, melhor que
+estimar por passos) e vira **a correia que a história conduz**.
+
+- O comando segue a **fase**, não o evento narrativo (`kmhDaFaseZumbi`). Evento
+  é quando a história tem algo a dizer; fase é o que está acontecendo com o
+  corpo, e entre um e outro cabem trocas sem fala nenhuma.
+- **A fase de aviso NÃO acelera.** Ali a história está dizendo que a ameaça
+  vem; quem acelera antes da hora chega cansado na perseguição. A correia muda
+  na transição, e a voz anuncia o ritmo durante o aviso.
+- O alvo da perseguição já era calculado pelo motor (em m/s): o que mudou é
+  que agora ele vira velocidade de verdade em vez de um número para a pessoa
+  perseguir no painel.
+
+### Métodos que só existem com a esteira comandada (`MODELOS_ESTEIRA`)
+
+Os modelos do intervalado falam em **nível** ("forte", "leve") porque quem
+ajusta a esteira é a pessoa, e pedir "11,3 km/h" a quem está correndo e precisa
+achar o botão é pedir demais. Com o app comandando, a conta inverte: velocidade
+exata deixa de ser incômodo e vira o próprio treino.
+
+**O critério para entrar aqui é ser desconfortável ou impossível de fazer à
+mão** — não "mais um modelo":
+
+| Método | O que é |
+|---|---|
+| 🪜 Rampa | +0,5 km/h a cada minuto, sem teto, até você não segurar. É o teste incremental de laboratório, e só dá para fazer sozinho se a máquina obedecer ao relógio |
+| 🌊 Onda | sobe e desce de meio em meio minuto, sem parar. Meio minuto é curto demais para alguém ficar mexendo no painel |
+| 📶 Escada de velocidade | um minuto por degrau, subindo e descendo. Na pirâmide cresce o TEMPO; aqui cresce a VELOCIDADE |
+| 🎰 Surpresa | o app muda quando quer, dentro do seu teto. Treina o que ritmo combinado não treina — e avisa por voz antes, sempre |
+
+- Os blocos carregam **`dkmh`**: quanto a velocidade fica acima (ou abaixo) do
+  ritmo confortável da pessoa. `alvoDoBloco` resolve isso; `alvoDoNivel`
+  continua valendo para todo o resto.
+- **Sem histórico não há velocidade para pedir.** Sem ritmo confortável medido,
+  `alvoDoBloco` devolve `null` em vez de chutar um número para mandar a uma
+  máquina.
+- Eles **só aparecem na lista quando a esteira aceita comando**, e se ela sair
+  de cena o app volta sozinho para um modelo que funciona sem ela. Oferecer uma
+  rampa automática a quem vai ter de girar o botão a cada minuto é oferecer
+  frustração.
 
 ### O que pode dar errado, e o que o app faz
 
@@ -1711,7 +1776,7 @@ na lista, não é compatível.
 
 ### Como isso foi testado sem uma esteira
 
-`teste-esteira.js` (57 checagens) tem duas metades. A primeira monta pacotes
+`teste-esteira.js` (88 checagens) tem três partes. A primeira monta pacotes
 **byte a byte a partir da especificação** e confere a leitura: é código de bits,
 em que ler um campo na ordem errada não dá erro — dá número errado, que é pior,
 porque aparece na tela com cara de verdade.
@@ -1721,6 +1786,11 @@ projeto usa para falar com o Jarvis sem microfone. Ela prova a coreografia que
 é o risco real: pedir controle antes de comandar, casar cada resposta com a
 ordem certa, e os três casos ruins — a que recusa, a que não responde e a que
 só conta.
+
+A terceira cobre os métodos de velocidade: que a rampa **só sobe**, que a onda
+alterna sempre, que a escada é simétrica, que a surpresa com a mesma semente dá
+o mesmo treino, e que a frase do aviso diz o sentido certo nos quatro casos
+(acelera, reduz, vai para, segue em).
 
 No navegador, a mesma esteira falsa foi injetada no lugar do `requestDevice` e o
 treino rodou inteiro: conectar, pedir controle, `[0x02, 0x66, 0x03]` = 8,70 km/h
@@ -2276,7 +2346,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 15 suítes (668 checagens)
+node testes/rodar.js      # as 15 suítes (699 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

@@ -259,6 +259,96 @@ async function conversa() {
   teste("comandar ali da erro claro", "sem controle da esteira", erro4);
 }
 
+// ---------------------------------------------------------------------------
+// OS METODOS QUE SO EXISTEM COM A ESTEIRA COMANDADA
+//
+// Estes modelos montam blocos com VELOCIDADE, nao com nivel. A conta e curta,
+// mas errar nela e mandar a esteira para um numero que ninguem pediu.
+const ehBloco = require("./app").lerApp();
+function pedaco2(de, ate) {
+  const i = ehBloco.indexOf(de), f = ehBloco.indexOf(ate, i);
+  if (i < 0 || f < 0) { console.error("nao achei: " + de); process.exit(1); }
+  return ehBloco.slice(i, f);
+}
+eval(
+  pedaco2("function aleatorioComSemente", "\n}\n") + "\n}\n" +
+  pedaco2("const MODELOS_ESTEIRA = [", "// O plano em blocos:") +
+  pedaco2("function montarEsteira", "// O ritmo-alvo de um nível") +
+  "\nglobalThis.M = { MODELOS_ESTEIRA, modeloEsteira, montarEsteira, alvoDoBloco };"
+);
+const M = globalThis.M;
+
+// `falaTrocaEsteira` usa estes dois, que moram longe no arquivo.
+const num1 = (n) => (Math.round((n || 0) * 10) / 10).toLocaleString("pt-BR");
+const fmtKmhFala = (k) => num1(k) + " por hora";
+
+function metodos() {
+  console.log("\n--- os metodos da esteira ---");
+  teste("sao quatro", 4, M.MODELOS_ESTEIRA.length);
+  teste("todos tem explicacao", true, M.MODELOS_ESTEIRA.every((m) => m.explica && m.explica.length > 80));
+  teste("todos geram blocos", true, M.MODELOS_ESTEIRA.every((m) => typeof m.gerar === "function"));
+
+  console.log("\n--- a rampa so sobe ---");
+  const r = M.montarEsteira(M.modeloEsteira("rampa"), { baseKmh: 9, semente: 1 });
+  const degraus = r.blocos.filter((b) => b.dkmh !== undefined);
+  teste("dezesseis degraus", 16, degraus.length);
+  teste("cada um de um minuto", true, degraus.every((b) => b.dur === 60000));
+  teste("e nenhum desce", true, degraus.every((b, i) => i === 0 || b.dkmh > degraus[i - 1].dkmh));
+  teste("comeca abaixo do confortavel", -1.5, degraus[0].dkmh);
+  teste("e termina bem acima", 6, degraus[15].dkmh);
+  // 9 km/h de base: o primeiro degrau e 7,5 e o ultimo 15
+  teste("o primeiro degrau em km/h", 7.5, M.alvoDoBloco(degraus[0], { confortoKmh: 9 }).kmh);
+  teste("o ultimo degrau em km/h", 15, M.alvoDoBloco(degraus[15], { confortoKmh: 9 }).kmh);
+
+  console.log("\n--- a onda sobe e desce sem parar ---");
+  const o = M.montarEsteira(M.modeloEsteira("onda"), { baseKmh: 9, reps: 8, semente: 1 });
+  const ondas = o.blocos.filter((b) => b.dkmh !== undefined);
+  teste("oito subidas e oito descidas", 16, ondas.length);
+  teste("alterna sempre", true, ondas.every((b, i) => i === 0 || (b.dkmh > 0) !== (ondas[i - 1].dkmh > 0)));
+  teste("meio minuto cada", true, ondas.every((b) => b.dur === 30000));
+
+  console.log("\n--- a escada sobe e volta ---");
+  const e = M.montarEsteira(M.modeloEsteira("escada"), { baseKmh: 10, semente: 1 });
+  const deg = e.blocos.filter((b) => b.dkmh !== undefined).map((b) => b.dkmh);
+  teste("o desenho da escada", [0, 0.5, 1, 1.5, 2, 1.5, 1, 0.5, 0], deg);
+  teste("e e simetrica", true, JSON.stringify(deg) === JSON.stringify(deg.slice().reverse()));
+
+  console.log("\n--- a surpresa e sempre a mesma com a mesma semente ---");
+  const s1 = M.montarEsteira(M.modeloEsteira("surpresa"), { baseKmh: 9, reps: 10, semente: 42 });
+  const s2 = M.montarEsteira(M.modeloEsteira("surpresa"), { baseKmh: 9, reps: 10, semente: 42 });
+  const s3 = M.montarEsteira(M.modeloEsteira("surpresa"), { baseKmh: 9, reps: 10, semente: 43 });
+  const dk = (p) => p.blocos.filter((b) => b.dkmh !== undefined).map((b) => b.dkmh);
+  teste("mesma semente, mesmo treino", dk(s1), dk(s2));
+  teste("outra semente, outro treino", true, JSON.stringify(dk(s1)) !== JSON.stringify(dk(s3)));
+  teste("nenhum bloco curto demais", true, s1.blocos.every((b) => b.dur >= 15000));
+
+  console.log("\n--- todo plano tem aquecimento e desaquecimento ---");
+  ["rampa", "onda", "escada", "surpresa"].forEach((id) => {
+    const p = M.montarEsteira(M.modeloEsteira(id), { baseKmh: 9, reps: 6, semente: 7 });
+    const temA = p.blocos.some((b) => b.fase === "aquecimento");
+    const temD = p.blocos.some((b) => b.fase === "desaquecimento");
+    const temE = p.blocos.some((b) => b.fase === "esforco");
+    teste(id + ": aquece, esforca e desaquece", true, temA && temD && temE);
+  });
+
+  console.log("\n--- sem historico nao ha velocidade para pedir ---");
+  // Sem ritmo confortavel medido, o bloco nao vira velocidade nenhuma: o app
+  // nao pode chutar um numero para mandar a uma esteira.
+  teste("sem base, sem alvo", null, M.alvoDoBloco({ dkmh: 2 }, { confortoKmh: 0 }));
+  teste("nem com ref vazia", null, M.alvoDoBloco({ dkmh: 2 }, {}));
+  teste("velocidade nunca fica abaixo de 1", 1, M.alvoDoBloco({ dkmh: -8 }, { confortoKmh: 5 }).kmh);
+
+  console.log("\n--- a frase do aviso diz o SENTIDO antes do numero ---");
+  teste("acelerando", true, /acelera para/.test(falaTrocaEsteira(12, 9, 10)));
+  teste("reduzindo", true, /reduz para/.test(falaTrocaEsteira(8, 11, 10)));
+  teste("sem velocidade anterior", true, /vai para/.test(falaTrocaEsteira(9, 0, 10)));
+  teste("mesma velocidade", true, /segue em/.test(falaTrocaEsteira(9, 9, 10)));
+  teste("os segundos entram arredondados", true, /Em 11 segundos/.test(falaTrocaEsteira(12, 9, 10.6)));
+  teste("nunca anuncia zero segundo", true, /Em 1 segundo/.test(falaTrocaEsteira(12, 9, 0.2)));
+}
+
+metodos();
+
 conversa().then(() => {
   console.log("\n" + ok + " passou / " + mal + " falhou");
   process.exit(mal ? 1 : 0);

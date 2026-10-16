@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16b";
+const VERSAO_APP = "2026-10-16c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2031,6 +2031,20 @@ const ESTEIRA_TETO_PADRAO = 16;
 // Para onde a esteira vai quando o treino acaba. Caminhada firme: a pessoa
 // desce o fôlego andando e para no painel quando quiser.
 const VEL_DESAQUECIMENTO = 5;
+// Quanto antes avisar. Dez segundos é o que dá para ouvir a frase inteira,
+// entender e se preparar — e ainda sobra a contagem de 3. Menos que isso e a
+// esteira muda antes de a pessoa processar; muito mais e ela esquece.
+const AVISO_TROCA_MS = 11000;
+
+// A frase do aviso. Diz o SENTIDO antes do número: "acelera" chega ao ouvido
+// antes de "onze", e é o sentido que muda o que o corpo faz.
+function falaTrocaEsteira(kmhNovo, kmhAtual, segundos) {
+  const s = Math.max(1, Math.round(segundos));
+  const sentido = !(kmhAtual > 0) ? "vai para"
+    : kmhNovo > kmhAtual + 0.05 ? "acelera para"
+    : kmhNovo < kmhAtual - 0.05 ? "reduz para" : "segue em";
+  return "Em " + s + " segundos, a esteira " + sentido + " " + fmtKmhFala(kmhNovo) + ".";
+}
 function velocidadePermitida(kmh, faixa, teto) {
   const f = faixa || {};
   let v = Number(kmh) || 0;
@@ -2053,8 +2067,14 @@ function velocidadePermitida(kmh, faixa, teto) {
 // é **filtrar pelo serviço 0x1826**, para que só apareçam máquinas de
 // academia, e não o fone, a TV e a geladeira do vizinho.
 //
-// Da segunda vez não há janela nenhuma: `getDevices()` devolve o que já foi
-// autorizado e a reconexão é automática.
+// **Nunca reconecta sozinha, e isso é a decisão de segurança central deste
+// módulo.** Academia tem uma bateria de esteiras iguais. A de ontem pode ter
+// outra pessoa correndo nela hoje — e o app não teria como saber: ele veria
+// um aparelho conhecido, conectaria e comandaria a velocidade de alguém.
+//
+// Por isso: conexão é sempre um ato deliberado, no momento, e ao sair o app
+// **devolve a permissão** (`forget()`) em vez de guardá-la para depois. O
+// toque a mais na próxima vez é o preço, e é barato.
 function criarEsteira(opcoes) {
   const o = opcoes || {};
   let dispositivo = null, servidor = null, dados = null, controle = null;
@@ -2141,18 +2161,10 @@ function criarEsteira(opcoes) {
       });
       return montar(dev);
     },
-    // Da segunda vez em diante, sem janela nenhuma.
-    async reconectar() {
-      if (!ESTEIRA_DISPONIVEL || !navigator.bluetooth.getDevices) return null;
-      const lista = await navigator.bluetooth.getDevices().catch(() => []);
-      if (!lista || !lista.length) return null;
-      avisar("procurando");
-      for (const dev of lista) {
-        try { return await montar(dev); } catch (e) { /* tenta o próximo */ }
-      }
-      avisar("desligado");
-      return null;
-    },
+    // NÃO existe `reconectar()`, e a ausência é proposital — ver o comentário
+    // do topo. Se um dia alguém for tentado a acrescentar, a pergunta é: como
+    // o app sabe que a esteira conhecida é a que está na frente da pessoa?
+    // Não sabe.
     // Pedir o controle é obrigatório antes de qualquer comando: a esteira
     // recusa com "Control Not Permitted" se não for pedido.
     async pedirControle() {
@@ -2186,7 +2198,10 @@ function criarEsteira(opcoes) {
       try { if (dados) dados.removeEventListener("characteristicvaluechanged", aoDado); } catch (e) {}
       try { if (controle) controle.removeEventListener("characteristicvaluechanged", aoResposta); } catch (e) {}
       try { if (dispositivo && dispositivo.gatt.connected) dispositivo.gatt.disconnect(); } catch (e) {}
-      dados = null; controle = null; temControle = false;
+      // Devolve a permissão. Sem isto o navegador guarda a esteira de hoje e o
+      // app poderia alcançá-la amanhã — quando ela for de outra pessoa.
+      try { if (dispositivo && dispositivo.forget) dispositivo.forget(); } catch (e) {}
+      dados = null; controle = null; temControle = false; dispositivo = null;
       avisar("desligado");
     },
     ligada() { return !!dados; },
@@ -10009,7 +10024,8 @@ function validarConfigZumbi(cfg) {
   if (["caminhada", "corrida", "alternada"].indexOf(cfg.atividade) < 0) erros.push("Escolha caminhada, corrida ou alternada.");
   if (["adaptativa", "intervalos", "historia"].indexOf(cfg.experiencia) < 0) erros.push("Escolha a experiência.");
   if (!(cfg.aumentoPct >= 5 && cfg.aumentoPct <= 25)) erros.push("O aumento de ritmo vai de 5% a 25%.");
-  if (cfg.ambiente === "esteira" && cfg.fonte === "gps") erros.push("Na esteira o GPS não mede a corrida: escolha velocidade informada, passos ou guiado.");
+  if (cfg.ambiente === "esteira" && cfg.fonte === "gps") erros.push("Na esteira o GPS não mede a corrida: escolha a esteira conectada, velocidade informada, passos ou guiado.");
+  if (cfg.ambiente === "rua" && cfg.fonte === "esteira") erros.push("A esteira conectada só vale na esteira.");
   if (cfg.ambiente === "rua" && cfg.fonte === "declarado") erros.push("Na rua a velocidade vem do GPS (ou use o modo guiado).");
   if (cfg.fonte === "passos" && !(cfg.passada > 0.3)) erros.push("Estimar pelos passos exige a sua passada calibrada: faça antes uma corrida na rua com o GPS.");
   if (cfg.atividade === "caminhada" && cfg.tetoKmh > ZUMBI_PADRAO.tetoCaminhadaKmh) erros.push("Na caminhada o teto é " + ZUMBI_PADRAO.tetoCaminhadaKmh + " km/h: acima disso a pessoa precisaria correr.");
@@ -11440,9 +11456,68 @@ function serieFartlek(n, rnd) {
   }
   return out;
 }
+// ---- Métodos que só existem com a esteira comandada ----
+//
+// Os modelos de cima falam em NÍVEL ("forte", "leve") porque quem ajusta a
+// esteira é a pessoa, e pedir "11,3 km/h" a quem está correndo e precisa achar
+// o botão é pedir demais. Com o app comandando, a conta inverte: velocidade
+// exata deixa de ser um incômodo e vira o próprio treino.
+//
+// Cada um destes é desconfortável ou impossível de fazer à mão. É esse o
+// critério para entrar aqui — não "mais um modelo".
+const MODELOS_ESTEIRA = [
+  {
+    id: "rampa", nome: "Rampa (teste incremental)", icone: "🪜", para: "ambos", reps: 1,
+    explica: "A velocidade sobe 0,5 km/h a cada minuto e não para de subir. Você encerra quando não conseguir mais segurar — e o minuto em que parou diz onde está o seu limite hoje. É o teste que os laboratórios fazem na esteira, e só dá para fazer sozinho se a máquina obedecer ao relógio.",
+    aquec: [["leve", 300]], desaq: [["caminhada", 300]],
+    gerar: () => {
+      const o = [];
+      // começa abaixo do confortável e sobe sem teto até o limite da pessoa
+      for (let k = 0; k < 16; k++) o.push({ seg: 60, dkmh: -1.5 + k * 0.5, fase: k < 2 ? "recuperacao" : "esforco" });
+      return o;
+    },
+  },
+  {
+    id: "onda", nome: "Onda", icone: "🌊", para: "ambos", reps: 8,
+    explica: "A velocidade sobe e desce de meio em meio minuto, sem parar e sem você tocar em nada. O corpo nunca se acomoda num ritmo, que é o que faz o fôlego subir — e meio minuto é curto demais para alguém ficar mexendo no painel.",
+    aquec: [["leve", 300]], desaq: [["caminhada", 240]],
+    gerar: () => [{ seg: 30, dkmh: 1.8, fase: "esforco" }, { seg: 30, dkmh: -0.6, fase: "recuperacao" }],
+  },
+  {
+    id: "escada", nome: "Escada de velocidade", icone: "📶", para: "ambos", reps: 1,
+    explica: "Um minuto em cada degrau, subindo e descendo: confortável, +0,5, +1, +1,5, +2 e de volta. Diferente da pirâmide, aqui o que cresce é a VELOCIDADE e não o tempo — e a volta ensina a terminar firme em vez de desabar.",
+    aquec: [["leve", 300]], desaq: [["caminhada", 300]],
+    gerar: () => [0, 0.5, 1, 1.5, 2, 1.5, 1, 0.5, 0].map((d, i) => ({ seg: 60, dkmh: d, fase: d >= 1 ? "esforco" : "recuperacao" })),
+  },
+  {
+    id: "surpresa", nome: "Surpresa", icone: "🎰", para: "ambos", reps: 10,
+    explica: "O app muda a velocidade na hora que quiser, dentro do que você aguenta. Você não sabe quando vem nem quanto — e é justamente por não dar para se preparar que isso treina o que o ritmo combinado não treina. Avisa por voz alguns segundos antes, sempre.",
+    aquec: [["leve", 360]], desaq: [["caminhada", 300]],
+    gerar: (semUso, rnd) => {
+      const o = [];
+      for (let k = 0; k < 2; k++) {
+        const r = rnd();
+        const forte = r < 0.5;
+        o.push({
+          seg: forte ? 30 + Math.round(rnd() * 4) * 15 : 60 + Math.round(rnd() * 4) * 15,
+          dkmh: forte ? 1.2 + Math.round(rnd() * 4) * 0.4 : -0.5 + Math.round(rnd() * 2) * 0.3,
+          fase: forte ? "esforco" : "recuperacao",
+        });
+      }
+      return o;
+    },
+  },
+];
+const modeloEsteira = (id) => MODELOS_ESTEIRA.find((m) => m.id === id) || null;
+
 // O plano em blocos: { id, nivel, dur (ms), ini, fase } — fase é aquecimento,
 // esforco, recuperacao ou desaquecimento. Na caminhada os níveis viram de caminhada.
 function montarIntervalado(o) {
+  // Os modelos de esteira montam blocos com VELOCIDADE (dkmh, relativa ao
+  // ritmo confortável da pessoa) em vez de nível. O resto do caminho é o
+  // mesmo: mesmo relógio, mesmo resumo, mesmo histórico.
+  const me = modeloEsteira(o.modelo);
+  if (me) return montarEsteira(me, o);
   const m = modeloIntervalo(o.modelo);
   const reps = Math.max(1, Math.min(20, o.reps || m.reps));
   const rnd = aleatorioComSemente(o.semente || 1);
@@ -11469,6 +11544,43 @@ function montarIntervalado(o) {
   if (blocos.some((b) => b.dur < 15000)) return { erro: "Cada bloco precisa de pelo menos 15 segundos." };
   if (ini > 120 * 60000) return { erro: "O treino passou de 2 horas. Diminua as repetições." };
   return { blocos: blocos, total: ini, modelo: m.id };
+}
+
+// Monta um plano de esteira. Cada bloco leva `dkmh`: quanto a velocidade fica
+// acima (ou abaixo) do ritmo confortável da pessoa.
+function montarEsteira(m, o) {
+  const reps = Math.max(1, Math.min(20, o.reps || m.reps));
+  const rnd = aleatorioComSemente(o.semente || 1);
+  const lista = [];
+  m.aquec.forEach(([n, s]) => lista.push({ nivel: n, seg: s, fase: "aquecimento" }));
+  const vezes = m.id === "rampa" || m.id === "escada" ? 1 : reps;
+  for (let r = 0; r < vezes; r++) {
+    m.gerar(null, rnd).forEach((b) => lista.push({ nivel: b.fase === "esforco" ? "forte" : "leve", seg: b.seg, dkmh: b.dkmh, fase: b.fase }));
+  }
+  m.desaq.forEach(([n, s]) => lista.push({ nivel: n, seg: s, fase: "desaquecimento" }));
+  let ini = 0;
+  const blocos = lista.map((b, i) => {
+    const x = { id: "i" + i, nivel: b.nivel, dur: Math.round(b.seg * 1000), ini: ini, fase: b.fase };
+    if (b.dkmh !== undefined) x.dkmh = b.dkmh;
+    ini += x.dur;
+    return x;
+  });
+  if (!blocos.some((b) => b.fase === "esforco")) return { erro: "O treino precisa de pelo menos um bloco mais forte que o leve." };
+  if (blocos.some((b) => b.dur < 15000)) return { erro: "Cada bloco precisa de pelo menos 15 segundos." };
+  if (ini > 120 * 60000) return { erro: "O treino passou de 2 horas. Diminua as repetições." };
+  return { blocos: blocos, total: ini, modelo: m.id, esteira: true };
+}
+
+// O alvo de um BLOCO. Quando ele traz `dkmh`, a velocidade é a conta direta
+// sobre o ritmo confortável — e aí não há nível nenhum no meio do caminho.
+function alvoDoBloco(b, ref) {
+  if (b && b.dkmh !== undefined) {
+    const base = (ref && ref.confortoKmh) || 0;
+    if (!(base > 0)) return null;
+    const kmh = Math.max(1, Math.round((base + b.dkmh) * 10) / 10);
+    return { kmh: kmh, paceSeg: 3600 / kmh, fonte: "esteira" };
+  }
+  return alvoDoNivel(b ? b.nivel : null, ref);
 }
 
 // O ritmo-alvo de um nível. ref: { ritmos (Daniels) | null, confortoKmh | null, atividade }
@@ -13280,6 +13392,21 @@ function ResumoZumbiCard({ z }) {
   );
 }
 
+// Traduz a fase da história em velocidade de esteira. A perseguição já tem
+// alvo calculado pelo motor (em m/s); o resto é o ritmo confortável da pessoa,
+// que é o que a história chama de "leve".
+function kmhDaFaseZumbi(fase, alvoMs, confortoMs) {
+  const conf = confortoMs > 0 ? kmhDeMs(confortoMs) : 0;
+  if (fase === "desaquecimento") return VEL_DESAQUECIMENTO;
+  if (fase === "transicao" || fase === "perseguicao" || fase === "fuga") {
+    return alvoMs > 0 ? kmhDeMs(alvoMs) : conf;
+  }
+  // aquecimento, leve, aviso e recuperação: o confortável. No aviso a correia
+  // NÃO muda — a história está avisando que a ameaça vem, e quem acelera
+  // antes da hora chega cansado na perseguição.
+  return conf;
+}
+
 function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   const passada = useMemo(() => passadaCalibrada(historico), [historico]);
   const [cfg, setCfg] = useState({
@@ -13308,6 +13435,35 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   const monstroVisto = missaoVista ? monstroDe(missaoVista).id : cfg.monstro !== "todos" ? cfg.monstro : "zumbi";
   const passosR = useRef(null), velDeclR = useRef(velDecl), mult = useRef(1);
   velDeclR.current = velDecl;
+
+  // A esteira: fonte de movimento e, quando aceita comando, a correia que a
+  // história conduz.
+  const bt = usarEsteira();
+  const btR = useRef(null);
+  btR.current = bt;
+  const [tetoZ, setTetoZ] = useState(ESTEIRA_TETO_PADRAO);
+  const tetoZR = useRef(ESTEIRA_TETO_PADRAO);
+  tetoZR.current = tetoZ;
+  const comandaEsteira = cfg.ambiente === "esteira" && bt.est.ligada && bt.est.comanda;
+  const comandaR = useRef(false);
+  comandaR.current = comandaEsteira;
+  const [pedidoZ, setPedidoZ] = useState(null);
+  // A última velocidade mandada, para não repetir a mesma ordem a cada evento.
+  const ultVelR = useRef(null);
+  const mandarEsteira = (kmh) => {
+    const m = btR.current && btR.current.motor();
+    if (!m || !(kmh > 0)) return;
+    const v = velocidadePermitida(kmh, btR.current.est.faixa, tetoZR.current);
+    if (ultVelR.current !== null && Math.abs(ultVelR.current - v) < 0.05) return;
+    ultVelR.current = v;
+    m.definirVelocidade(v, tetoZR.current)
+      .then((f) => setPedidoZ({ kmh: f, cortado: f < kmh - 0.05, em: Date.now() }))
+      .catch((x) => setPedidoZ({ erro: x.message || "a esteira recusou", em: Date.now() }));
+  };
+  const mandarR = useRef(null);
+  mandarR.current = mandarEsteira;
+  const faseAntR = useRef(null);
+  const avisouR = useRef(false);
   const up = (k, v) => setCfg((c) => Object.assign({}, c, { [k]: v }));
   const cfgFinal = Object.assign({}, cfg, { passada: passada, tetoKmh: cfg.atividade === "caminhada" ? Math.min(cfg.tetoKmh, 7.5) : cfg.tetoKmh,
     fonte: cfg.demo ? "simulado" : cfg.fonte, semente: Date.now() % 100000 });
@@ -13417,6 +13573,13 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
       if (!u || Date.now() - u.t > 5000 || u.valor === null) return null;
       return { valor: u.valor, origem: "gps", qualidade: u.qualidade };
     }
+    // A própria esteira dizendo a velocidade: é a melhor leitura que existe
+    // aqui dentro. Sem GPS e sem estimativa — é o número do painel.
+    if (f === "esteira") {
+      const d = btR.current && btR.current.est.dado;
+      if (!d || d.vel === undefined) return null;
+      return { valor: msDeKmh(d.vel), origem: "esteira", qualidade: 1 };
+    }
     if (f === "declarado") return { valor: msDeKmh(velDeclR.current), origem: "declarado", qualidade: 1 };
     if (f === "passos") {
       // celular parado no suporte da esteira não tem passo: aí não há estimativa
@@ -13456,6 +13619,39 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
         if (l) m.amostra(l);
       }
       tratarEventos(m.avancar(dt * mult.current));
+      // A história manda na correia.
+      //
+      // Segue a FASE e não o evento narrativo: evento é quando a história tem
+      // algo a dizer, e a fase é o que está acontecendo com o corpo. Entre um
+      // e outro cabem trocas sem fala nenhuma — e a correia precisa acompanhar
+      // todas.
+      //
+      // O aviso é a única fase que NÃO muda a velocidade: ali a história está
+      // dizendo que a ameaça vem, e quem acelera antes da hora chega cansado
+      // na perseguição. A narração já anuncia o ritmo que vai ser pedido.
+      if (comandaR.current && !m.s.pausado) {
+        const faseAgora = m.s.fase;
+        if (faseAgora !== faseAntR.current) {
+          const p = m.perseguicaoAtual();
+          const alvoMs = p && p.alvo ? p.alvo : 0;
+          if (faseAntR.current === "aviso" && (faseAgora === "transicao" || faseAgora === "perseguicao")) {
+            // a contagem curta antes de a correia acelerar: a pessoa já foi
+            // avisada na fase anterior, aqui é o "agora"
+            filaR.current.por({ texto: "Acelerando. Três, dois, um.", prioridade: 5 }, () => true);
+          }
+          faseAntR.current = faseAgora;
+          const v = kmhDaFaseZumbi(faseAgora, alvoMs, m.s.conforto);
+          if (v > 0) mandarR.current(v);
+        } else if (faseAgora === "aviso" && !avisouR.current) {
+          avisouR.current = true;
+          const p = m.perseguicaoAtual();
+          if (p && p.alvo) {
+            const vNovo = velocidadePermitida(kmhDeMs(p.alvo), btR.current.est.faixa, tetoZR.current);
+            filaR.current.por({ texto: falaTrocaEsteira(vNovo, ultVelR.current || 0, Math.max(3, Math.round(cfgFinal.avisoMs / 1000))), prioridade: 2 }, () => true);
+          }
+        }
+        if (faseAgora !== "aviso") avisouR.current = false;
+      }
       if (paisagem.current) paisagem.current.setAmeaca(m.ameaca());
       if (agora - ultCp > 5000 && !cfg.demo) {
         ultCp = agora;
@@ -13574,7 +13770,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   if (etapa === "config" || etapa === "plano") {
     const fontes = cfg.ambiente === "rua"
       ? [["gps", "Medido pelo GPS"], ["guiado", "Guiado (sem medir)"]]
-      : [["declarado", "Velocidade que eu informar"], ["passos", "Estimada pelos passos"], ["guiado", "Guiado (sem medir)"]];
+      : [["esteira", "Da esteira conectada"], ["declarado", "Velocidade que eu informar"], ["passos", "Estimada pelos passos"], ["guiado", "Guiado (sem medir)"]];
     if (!fontes.some((f) => f[0] === cfg.fonte)) setTimeout(() => up("fonte", fontes[0][0]), 0);
     return (
       <div>
@@ -13655,6 +13851,9 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
             {linha("De onde vem o ritmo", fontes.map(([v, r]) => chip("fonte", v, r)))}
             <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: -6, marginBottom: 12, lineHeight: 1.5 }}>
               {cfg.fonte === "gps" && "O GPS mede de verdade. A tela precisa ficar ligada: com ela apagada o navegador para o GPS."}
+              {cfg.fonte === "esteira" && (bt.est.ligada
+                ? "A própria esteira diz a velocidade: é a melhor leitura possível aqui, e a história passa a acelerar e reduzir a correia sozinha."
+                : "Conecte a esteira abaixo. A velocidade vem do painel dela — e, se ela aceitar comando, a história conduz a correia.")}
               {cfg.fonte === "declarado" && "Você informa a velocidade da esteira nos botões + e −. É informação sua, não medição: a fuga fica marcada como \"pela velocidade informada\"."}
               {cfg.fonte === "passos" && (passada ? "Cadência × a sua passada medida na rua (" + num1(passada) + " m). Celular no bolso ou no braço — parado no suporte da esteira ele não vê passo, e aí não há estimativa." : "Precisa da sua passada: faça antes uma corrida na rua com o GPS.")}
               {cfg.fonte === "guiado" && "A história conduz pelo tempo e você ajusta o ritmo; nada é medido nem validado."}
@@ -13715,6 +13914,11 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
             </label>
             {erros.concat(plano.erro ? [plano.erro] : []).map((e) => <div key={e} style={{ fontSize: 12.5, color: "var(--perigo)", marginBottom: 6 }}>⚠️ {e}</div>)}
             <button disabled={!!erros.length || !!plano.erro} onClick={() => setEtapa("plano")} style={{ ...S.btn, width: "100%", opacity: erros.length || plano.erro ? 0.5 : 1 }}>Ver o plano</button>
+            {cfg.ambiente === "esteira" && (
+              <div style={{ margin: "12px -14px -14px" }}>
+                <CartaoEsteira est={bt.est} onConectar={bt.conectar} onConfirmar={bt.confirmar} onDesconectar={bt.desconectar} teto={tetoZ} setTeto={setTetoZ} />
+              </div>
+            )}
           </div>
         )}
         {etapa === "plano" && !plano.erro && (
@@ -13888,7 +14092,7 @@ function FaixaIntervalo({ blocos, atual, tAtivo }) {
 // página não pode listar aparelhos por perto, e ainda bem — mas o filtro pelo
 // serviço 0x1826 faz com que só apareça máquina de academia, nunca o fone nem
 // a TV do vizinho. Da segunda vez não aparece janela nenhuma.
-function CartaoEsteira({ est, onConectar, onDesconectar, teto, setTeto }) {
+function CartaoEsteira({ est, onConectar, onConfirmar, onDesconectar, teto, setTeto }) {
   if (!ESTEIRA_DISPONIVEL) {
     return (
       <div style={{ ...S.card, fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.55 }}>
@@ -13937,7 +14141,24 @@ function CartaoEsteira({ est, onConectar, onDesconectar, teto, setTeto }) {
             {d.bpm ? <NumeroCorrida rot="❤ bpm" val={d.bpm} cor="#ED4956" /> : null}
           </div>
 
-          {est.comanda ? (
+          {/* A prova de que é a esteira certa está no painel dela: numa
+              academia com dez máquinas iguais, o nome no Bluetooth não
+              distingue nada. Mexer na velocidade e ver o número mudar aqui,
+              sim. */}
+          {!est.confirmada ? (
+            <React.Fragment>
+              <div style={{ fontSize: 12.5, color: "var(--texto)", marginTop: 12, lineHeight: 1.55, padding: 10, borderRadius: 10, background: "var(--bg2)" }}>
+                <b>Confira que é esta a sua esteira.</b> Mude a velocidade no painel dela:
+                se o número acima mudar junto, é a sua.
+                {d.vel > 0 && (
+                  <div style={{ color: "var(--obs)", marginTop: 6 }}>
+                    ⚠ Esta esteira já está andando a {num1(d.vel)} km/h. Se não for você em cima dela, desconecte.
+                  </div>
+                )}
+              </div>
+              <button onClick={onConfirmar} style={{ ...S.btn, width: "100%", marginTop: 10 }}>✓ É esta a minha esteira</button>
+            </React.Fragment>
+          ) : est.comanda ? (
             <React.Fragment>
               <div style={{ fontSize: 12.5, color: "var(--ok)", marginTop: 10, lineHeight: 1.5 }}>
                 ✓ Esta esteira aceita comando. O app vai acertar a velocidade de cada bloco sozinho.
@@ -13960,11 +14181,17 @@ function CartaoEsteira({ est, onConectar, onDesconectar, teto, setTeto }) {
                 Quem começa e para a esteira é você, no painel dela. O app só muda a velocidade
                 de uma esteira que já está andando — e avisa por voz antes de cada troca.
               </div>
+              <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>
+                <b>A conexão vale só para este treino.</b> Na próxima vez você escolhe de novo:
+                numa academia com várias esteiras, reconectar sozinho poderia pegar a máquina
+                de outra pessoa.
+              </div>
             </React.Fragment>
           ) : (
             <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
-              Esta esteira transmite os números mas não aceita comando do app. Já ajuda: a
-              velocidade e a distância entram sozinhas, sem digitar nada.
+              {est.podeComandar
+                ? "Conectada e confirmada, mas o comando não foi assumido. A velocidade e a distância entram sozinhas; a troca de ritmo é no painel."
+                : "Esta esteira transmite os números mas não aceita comando do app. Já ajuda: a velocidade e a distância entram sozinhas, sem digitar nada."}
             </div>
           )}
           {est.erro && <div style={{ fontSize: 12, color: "var(--perigo)", marginTop: 8, lineHeight: 1.45 }}>{est.erro}</div>}
@@ -13978,7 +14205,7 @@ function CartaoEsteira({ est, onConectar, onDesconectar, teto, setTeto }) {
 // qualquer outra que venha a usar isso não precisam repetir nada disso.
 function usarEsteira() {
   const ref = useRef(null);
-  const [est, setEst] = useState({ ligada: false, nome: "", comanda: false, dado: null, faixa: null, estado: "desligado", erro: "" });
+  const [est, setEst] = useState({ ligada: false, nome: "", comanda: false, confirmada: false, podeComandar: false, dado: null, faixa: null, estado: "desligado", erro: "" });
   const estRef = useRef(est);
   estRef.current = est;
 
@@ -13997,14 +14224,12 @@ function usarEsteira() {
     setEst((s) => Object.assign({}, s, { erro: "" }));
     try {
       const info = await e.procurar();
-      let comanda = false;
-      if (info.podeComandar) {
-        // Pedir o controle agora, e não na hora do primeiro bloco: melhor
-        // descobrir que a esteira não aceita antes de a pessoa começar a correr.
-        try { await e.pedirControle(); comanda = true; }
-        catch (x) { setEst((s) => Object.assign({}, s, { erro: "Conectou, mas não assumiu o comando: " + x.message })); }
-      }
-      setEst((s) => Object.assign({}, s, { ligada: true, nome: info.nome, comanda: comanda, faixa: info.faixaVel }));
+      // Conectar NÃO é o mesmo que poder comandar. O controle só é pedido
+      // depois que a pessoa confirmar que é esta a esteira à frente dela —
+      // ver `confirmar`. Pedir controle antes seria assumir uma máquina que
+      // pode ser de outra pessoa.
+      setEst((s) => Object.assign({}, s, { ligada: true, nome: info.nome, podeComandar: info.podeComandar,
+        comanda: false, confirmada: false, faixa: info.faixaVel }));
     } catch (x) {
       const msg = /cancel|User cancelled|chooser/i.test(x.message || "")
         ? "" : "Não consegui conectar: " + (x.message || "erro desconhecido");
@@ -14012,16 +14237,30 @@ function usarEsteira() {
     }
   };
 
+  // "É esta a minha esteira." Só depois disto o app pede o controle.
+  const confirmar = async () => {
+    const e = ref.current;
+    if (!e) return;
+    setEst((s) => Object.assign({}, s, { confirmada: true, erro: "" }));
+    if (!estRef.current.podeComandar) return;
+    try {
+      await e.pedirControle();
+      setEst((s) => Object.assign({}, s, { comanda: true }));
+    } catch (x) {
+      setEst((s) => Object.assign({}, s, { erro: "Conectou, mas não assumiu o comando: " + x.message }));
+    }
+  };
+
   const desconectar = () => {
     if (ref.current) ref.current.desconectar();
-    setEst({ ligada: false, nome: "", comanda: false, dado: null, faixa: null, estado: "desligado", erro: "" });
+    setEst({ ligada: false, nome: "", comanda: false, confirmada: false, podeComandar: false, dado: null, faixa: null, estado: "desligado", erro: "" });
   };
 
   // Ao sair da tela, solta a esteira: deixar a conexão aberta impede que outro
   // app (ou a própria esteira) a use depois.
   useEffect(() => () => { if (ref.current) ref.current.desconectar(); }, []);
 
-  return { est: est, conectar: conectar, desconectar: desconectar, motor: () => ref.current, estRef: estRef };
+  return { est: est, conectar: conectar, confirmar: confirmar, desconectar: desconectar, motor: () => ref.current, estRef: estRef };
 }
 function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, onPainel }) {
   const [cfg, setCfg] = useState({ modelo: "tiros", atividade: "corrida", ambiente: "rua", reps: null, blocos: [{ nivel: "forte", seg: 90 }, { nivel: "leve", seg: 120 }], semente: Date.now() % 100000 });
@@ -14031,7 +14270,7 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
   const [salvo, setSalvo] = useState(false);
   const sessao = useRef(null), filaR = useRef(null), meta = useRef({}), ultimaPos = useRef(null), pts = useRef([]);
   const up = (k, v) => setCfg((c) => Object.assign({}, c, { [k]: v }));
-  const modelo = modeloIntervalo(cfg.modelo);
+  const modelo = modeloIntervalo(cfg.modelo) || modeloEsteira(cfg.modelo);
   const reps = cfg.reps || modelo.reps;
   const plano = useMemo(() => montarIntervalado({ modelo: cfg.modelo, atividade: cfg.atividade, reps: reps, blocos: cfg.blocos, semente: cfg.semente }),
     [cfg.modelo, cfg.atividade, reps, JSON.stringify(cfg.blocos), cfg.semente]);
@@ -14041,12 +14280,20 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
     const tipo = cfg.atividade === "caminhada" ? "caminhada" : "corrida";
     return { ritmos: tipo === "corrida" ? P.ritmos : null, confortoKmh: confortoDoHistorico(historico, exPorId, tipo), atividade: cfg.atividade };
   }, [historico, cfg.atividade]);
-  const alvo = (nivel) => alvoDoNivel(nivel, ref);
+  // Recebe o BLOCO, não o nível: os modelos de esteira trazem a velocidade no
+  // próprio bloco (`dkmh`), e o nível ali é só rótulo para a tela.
+  const alvo = (b) => (b && typeof b === "object" ? alvoDoBloco(b, ref) : alvoDoNivel(b, ref));
   const esteira = cfg.ambiente === "esteira";
   const bt = usarEsteira();
   // O teto fica aqui e não na esteira: é da pessoa, não da máquina.
   const [teto, setTeto] = useState(ESTEIRA_TETO_PADRAO);
   const comandando = esteira && bt.est.ligada && bt.est.comanda;
+  // Se a esteira sair de cena com um método dela escolhido, volta para um que
+  // funciona sem ela. Sem isto o plano ficaria pedindo velocidade a uma
+  // máquina que não está mais ouvindo.
+  useEffect(() => {
+    if (!comandando && modeloEsteira(cfg.modelo)) setCfg((c) => Object.assign({}, c, { modelo: "tiros", reps: null }));
+  }, [comandando, cfg.modelo]);
   // A última velocidade mandada, para a tela dizer o que o app pediu — e para
   // a pessoa perceber na hora se a esteira não obedeceu.
   const [pedido, setPedido] = useState(null);
@@ -14074,8 +14321,34 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
   // comando nunca sairia, porque na montagem a esteira ainda não existia.
   const comandandoR = useRef(false);
   comandandoR.current = comandando;
+  const btR = useRef(null);
+  btR.current = bt;
   const mandarVelocidadeR = useRef(null);
   mandarVelocidadeR.current = mandarVelocidade;
+
+  // Avisa uma vez por bloco que vem. A marca é o id do PRÓXIMO bloco: sem
+  // isso o aviso sairia a cada 200 ms durante os últimos onze segundos.
+  const avisadoR = useRef(null);
+  const avisarTroca = (se) => {
+    const prox = se.proximo();
+    const resta = se.restanteBloco();
+    if (!prox || se.s.pausado || resta <= 0 || resta > AVISO_TROCA_MS) return;
+    if (avisadoR.current === prox.id) return;
+    avisadoR.current = prox.id;
+    const aProx = alvo(prox), b = se.blocoAtual();
+    const aAgora = b ? alvo(b) : null;
+    if (!aProx) return;
+    const vNovo = velocidadePermitida(aProx.kmh, (btR.current && btR.current.est.faixa) || null, tetoR.current);
+    const vAgora = aAgora ? velocidadePermitida(aAgora.kmh, (btR.current && btR.current.est.faixa) || null, tetoR.current) : 0;
+    // Mesma velocidade não merece aviso: a esteira não vai mudar nada.
+    if (Math.abs(vNovo - vAgora) < 0.05) return;
+    filaR.current.por({ texto: falaTrocaEsteira(vNovo, vAgora, resta / 1000), prioridade: 2 },
+      () => se.proximo() && se.proximo().id === prox.id);
+  };
+  const avisarTrocaR = useRef(null);
+  avisarTrocaR.current = avisarTroca;
+  const tetoR = useRef(ESTEIRA_TETO_PADRAO);
+  tetoR.current = teto;
 
   const tratar = (evs) => {
     const se = sessao.current;
@@ -14083,11 +14356,15 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
       if (ev.tipo === "conta") {
         if (som) beep(ev.n === 1 ? 1100 : 760, 0.12, 0.3);
         try { navigator.vibrate && navigator.vibrate(ev.n === 1 ? 250 : 80); } catch (e) {}
+        // O número falado entra só quando o app comanda a esteira. Na rua o
+        // bipe basta: ali a troca é de esforço. Na esteira a correia vai mudar
+        // debaixo do pé, e três bipes iguais não dizem quanto falta.
+        if (comandandoR.current) filaR.current.por({ texto: String(ev.n), prioridade: 5 }, () => true);
         return;
       }
       if (ev.tipo === "bloco") {
         const b = ev.bloco, N = NIVEIS_INTERVALO[b.nivel];
-        const a = alvo(b.nivel);
+        const a = alvo(b);
         const texto = (ev.indice === 0 ? "Vamos lá. " : "") + N.nome + " por " + textoDuracao(Math.round(b.dur / 1000)) + "." +
           (a ? textoAlvoFala(a, esteira, comandandoR.current) : " Esforço " + N.rpe + " de 10: " + N.sente + ".") +
           (ev.proximo && b.dur >= 60000 ? " Depois: " + NIVEIS_INTERVALO[ev.proximo.nivel].nome.toLowerCase() + "." : "");
@@ -14144,7 +14421,16 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
       const agora = performance.now(), dt = agora - ant;
       ant = agora;
       if (dt > 5000 && !se.s.pausado) { pausar(); setLegenda("Pausado: o app ficou em segundo plano e não acompanhou esse tempo."); return; }
-      if (agora - ultL >= 1000 && !esteira) { ultL = agora; se.amostra(kmhAgora()); }
+      // Com a esteira conectada, a velocidade real vem dela — e aí a constância
+      // do treino passa a ser medida também na esteira, não só na rua.
+      if (agora - ultL >= 1000) {
+        ultL = agora;
+        const dEsteira = btR.current && btR.current.est.dado;
+        se.amostra(esteira ? (dEsteira && dEsteira.vel !== undefined ? dEsteira.vel : null) : kmhAgora());
+      }
+      // Aviso antecipado: a esteira vai mudar debaixo dos pés de alguém, e a
+      // pessoa precisa saber antes — não no instante em que a correia muda.
+      if (comandandoR.current) avisarTrocaR.current(se);
       tratar(se.avancar(dt));
       setTique((x) => x + 1);
     }, 200);
@@ -14197,7 +14483,7 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
     let series;
     if (esteira) {
       series = res.filter((b) => b.dur >= 1000).map((b) => {
-        const a = alvo(b.nivel);
+        const a = alvo(b);
         const x = { segundos: String(Math.round(b.dur / 1000)), mod: mod };
         if (a) x.vel = String(a.kmh);
         return x;
@@ -14212,7 +14498,7 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
       duracaoMin: Math.max(1, Math.min(300, Math.round(ativo / 60000))),
       itens: [{ exercicioId: exId, obs: "", series: series }],
       intervalado: { modelo: modelo.id, nomeModelo: modelo.nome, atividade: cfg.atividade, ambiente: cfg.ambiente, ativoMs: ativo, pausadoMs: meta.current.pausadoMs,
-        blocos: res.filter((b) => b.dur > 0).map((b) => ({ nivel: b.nivel, fase: b.fase, dur: b.dur, kmh: esteira ? null : b.kmh, alvoKmh: (alvo(b.nivel) || {}).kmh || null, pulado: b.pulado })),
+        blocos: res.filter((b) => b.dur > 0).map((b) => ({ nivel: b.nivel, fase: b.fase, dur: b.dur, kmh: esteira ? null : b.kmh, alvoKmh: (alvo(b) || {}).kmh || null, pulado: b.pulado })),
         consistencia: cons ? Math.round(cons.variacao * 1000) / 1000 : null, velIndicada: esteira },
     };
   };
@@ -14241,6 +14527,25 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
           <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>{chip("atividade", "caminhada", "🚶 Caminhada")}{chip("atividade", "corrida", "🏃 Corrida")}</div>
           <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>{chip("ambiente", "rua", "🌆 Rua (GPS)")}{chip("ambiente", "esteira", "🏃 Esteira")}</div>
           <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Modelo</div>
+          {/* Os métodos de esteira só aparecem quando ela aceita comando:
+              oferecer uma rampa automática a quem vai ter de girar o botão a
+              cada minuto é oferecer frustração. */}
+          {comandando && (
+            <React.Fragment>
+              <div style={{ fontSize: 11.5, color: "var(--ok)", marginBottom: 6, lineHeight: 1.45 }}>
+                🔗 Com a esteira comandada, estes aqui ficam possíveis:
+              </div>
+              {MODELOS_ESTEIRA.map((m) => (
+                <button key={m.id} onClick={() => setCfg((c) => Object.assign({}, c, { modelo: m.id, reps: null }))} aria-pressed={cfg.modelo === m.id}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", marginBottom: 6, borderRadius: 12, cursor: "pointer", color: "var(--texto)",
+                    border: "1px solid " + (cfg.modelo === m.id ? "var(--ok)" : "var(--borda2)"), background: cfg.modelo === m.id ? "#4CD13722" : "transparent" }}>
+                  <div style={{ fontWeight: 800, fontSize: 13.5 }}>{m.icone} {m.nome}</div>
+                  {cfg.modelo === m.id && <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 4, lineHeight: 1.5 }}>{m.explica}</div>}
+                </button>
+              ))}
+              <div style={{ height: 10 }} />
+            </React.Fragment>
+          )}
           {MODELOS_INTERVALO.map((m) => (
             <button key={m.id} onClick={() => setCfg((c) => Object.assign({}, c, { modelo: m.id, reps: null }))} aria-pressed={cfg.modelo === m.id}
               style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", marginBottom: 6, borderRadius: 12, cursor: "pointer", color: "var(--texto)",
@@ -14302,7 +14607,7 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
               <button onClick={comecar} style={{ ...S.btn, width: "100%", marginTop: 12 }}>▶ Começar</button>
               {esteira && (
                 <div style={{ margin: "12px -14px -14px" }}>
-                  <CartaoEsteira est={bt.est} onConectar={bt.conectar} onDesconectar={bt.desconectar} teto={teto} setTeto={setTeto} />
+                  <CartaoEsteira est={bt.est} onConectar={bt.conectar} onConfirmar={bt.confirmar} onDesconectar={bt.desconectar} teto={teto} setTeto={setTeto} />
                 </div>
               )}
               {onPainel && <button onClick={onPainel} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13 }}>📊 Ver meus ritmos no painel do corredor</button>}
@@ -14316,7 +14621,7 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
   const se = sessao.current;
   if (etapa === "sessao" && se) {
     const b = se.blocoAtual() || se.blocos[se.blocos.length - 1];
-    const N = NIVEIS_INTERVALO[b.nivel], a = alvo(b.nivel), prox = se.proximo();
+    const N = NIVEIS_INTERVALO[b.nivel], a = alvo(b), prox = se.proximo();
     // Com a esteira conectada, a velocidade real vem dela — e aí dá para
     // comparar com o alvo do bloco igual se faz na rua com o GPS.
     const kmh = esteira ? (bt.est.dado && bt.est.dado.vel !== undefined ? bt.est.dado.vel : null) : kmhAgora();

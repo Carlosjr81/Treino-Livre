@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16l";
+const VERSAO_APP = "2026-10-16m";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -14541,7 +14541,12 @@ function usarEsteira() {
   const montar = () => {
     if (ref.current) return ref.current;
     ref.current = criarEsteira({
-      aoDado: (d) => setEst((s) => Object.assign({}, s, { dado: d })),
+      // Junta, não substitui. O padrão manda dividir o que não cabe num pacote
+      // ("more data"), e muita esteira alterna dois: um com velocidade e tempo,
+      // outro com distância. Substituindo, a cada meio segundo metade dos
+      // números sumia — o cartão mudava de altura e a tela inteira tremia
+      // (achado no celular do dono), e o intervalado lia "sem velocidade".
+      aoDado: (d) => setEst((s) => Object.assign({}, s, { dado: Object.assign({}, s.dado, d) })),
       aoEstado: (e) => setEst((s) => Object.assign({}, s, { estado: e },
         e === "caiu" ? { ligada: false, comanda: false, erro: "A esteira desconectou." } : {})),
     });

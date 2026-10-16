@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v59) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v60) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1924,6 +1924,13 @@ já avisa que ele existe.
 
 ### O que pode dar errado, e o que o app faz
 
+- **A esteira manda os números em pacotes alternados.** O padrão divide o que
+  não cabe num pacote ("more data"), e muita esteira alterna dois: um com
+  velocidade e tempo, outro só com distância. O gancho (`usarEsteira`)
+  **junta** cada pacote no anterior. Substituindo, metade dos números sumia a
+  cada meio segundo, o cartão mudava de altura e **a tela inteira tremia** —
+  achado no celular do dono, no primeiro treino real. Medido no navegador: a
+  altura do cartão alternava 782/770 px a cada pacote, e fica fixa juntando.
 - **A esteira só conta e não aceita comando.** É comum, e continua valendo: a
   velocidade e a distância entram sozinhas, sem digitar. A tela diz isso.
 - **A esteira recusa** (`Control Not Permitted` etc.): vira frase em português

@@ -14,7 +14,7 @@ const leitores = pedaco("const ehAquecimento", "// ---------- ESTATÍSTICAS DE U
 const sugestao = pedaco("function ultimaExecucao", "// ---------- RECUPERAÇÃO POR GRUPO MUSCULAR");
 const duracao = pedaco("function textoDuracao", "function narrarVoz");
 eval(leitores + sugestao + duracao +
-  "\nglobalThis.API = { falaRitmo, relatoCardio, medirCardio, resumoCardio, cardioDaSemana, fmtRitmo, textoCardio, falaCardio, ehCardio, montarSeries, sugerirCarga, copiaCardio, destaquesCardio };");
+  "\nglobalThis.API = { falaRitmo, relatoCardio, medirCardio, resumoCardio, cardioDaSemana, fmtRitmo, textoCardio, falaCardio, ehCardio, montarSeries, sugerirCarga, copiaCardio, moldeCardio, destaquesCardio };");
 const A = globalThis.API;
 
 let ok = 0, mal = 0;
@@ -141,6 +141,19 @@ teste("esteira 30 min a 6 km/h",
   A.relatoCardio({ segundos: "1800", vel: "6", incl: "0", mod: "caminhada" }, 75, "caminhada"));
 teste("bike na rua fala a media, nao o ritmo", true,
   /media de 25 por hora|média de 25 por hora/.test(A.relatoCardio({ segundos: "3600", km: "25", mod: "bike-rua" }, 75, "bike-rua")));
+
+console.log("\n--- o que a esteira mediu: grava, soma, e nao se copia ---");
+const medida = { segundos: "1200", mod: "corrida", vel: "9", incl: "1", km: "3.05", kcal: "260", bpm: "150", bpmMax: "171", subida: "30", feito: true };
+teste("a serie terminada leva tudo o que a esteira mediu", ["vel", "incl", "km", "kcal", "bpm", "bpmMax", "subida"],
+  Object.keys(A.copiaCardio(medida)).filter((k) => k !== "mod"));
+teste("a serie nova copia so o molde (sem km, kcal, bpm, subida)", { mod: "corrida", vel: "9", incl: "1" }, A.moldeCardio(medida));
+teste("na rua o km e o que a pessoa digita: o molde mantem", { mod: "rua-corrida", km: "5" }, A.moldeCardio({ segundos: "1800", mod: "rua-corrida", km: "5", bpm: "140" }));
+teste("a distancia medida vence a conta de tempo x velocidade", 3.05, r1(A.medirCardio(medida, 75, "corrida").km * 100) / 100);
+const duas = A.resumoCardio([medida, { segundos: "600", mod: "caminhada", vel: "5", bpm: "120", bpmMax: "130", kcal: "40", feito: true }], 75, "corrida");
+teste("bpm medio pesado pelo tempo (20 min a 150, 10 a 120)", 140, duas.bpm);
+teste("bpm maximo do treino", 171, duas.bpmMax);
+teste("kcal do painel somadas", 300, duas.kcalEsteira);
+teste("subida somada", 30, duas.subida);
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

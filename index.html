@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16m";
+const VERSAO_APP = "2026-10-16n";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -878,7 +878,9 @@ const serieConta = (s) => !ehAquecimento(s);
 // prancha — volume, recorde, histórico, evolução — funciona sem saber que
 // aeróbico existe. "mod" é o perfil, gravado na própria série; a esteira de
 // antes dele (só vel e incl) continua sendo reconhecida.
-const CAMPOS_CARDIO = ["vel", "incl", "km", "m", "watts", "nivel", "cad"];
+// kcal, bpm, bpmMax e subida vêm do painel da esteira conectada: o que a
+// máquina mediu fica gravado na série, ao lado da conta do app.
+const CAMPOS_CARDIO = ["vel", "incl", "km", "m", "watts", "nivel", "cad", "kcal", "bpm", "bpmMax", "subida"];
 const temValor = (v) => v !== undefined && v !== null && v !== "";
 const ehCardio = (s) => ehTempo(s) && (!!s.mod || temValor(s.vel));
 const exCardio = (ex) => !!(ex && ex.cardio);
@@ -911,6 +913,17 @@ function copiaCardio(s) {
   const o = {};
   if (!s) return o;
   ["mod"].concat(CAMPOS_CARDIO).forEach((k) => { if (temValor(s[k])) o[k] = s[k]; });
+  return o;
+}
+// Para a série que ainda vai ser feita (a sugestão da próxima vez, o "+ série"):
+// o que a pessoa ajusta no painel vem junto; o que a esteira MEDIU não. A
+// distância da esteira, copiada, venceria a conta de tempo × velocidade e a
+// série nova nasceria com os quilômetros da antiga.
+const CAMPOS_MEDIDOS = ["kcal", "bpm", "bpmMax", "subida"];
+function moldeCardio(s) {
+  const o = copiaCardio(s);
+  CAMPOS_MEDIDOS.forEach((k) => delete o[k]);
+  if (s && (ehEsteiraPerfil(s.mod) || (!s.mod && temValor(s.vel)))) delete o.km;
   return o;
 }
 // Linha quebrada entre pontos conhecidos; abaixo do primeiro, o primeiro; acima
@@ -1011,8 +1024,11 @@ function partesCardio(s, falado) {
 function textoCardio(s) {
   const m = medirCardio(s);
   if (ehEsteiraPerfil(m.perfil)) {
+    // o que a esteira conectada mediu vem junto: é o que se quer rever depois
+    const extra = [numDe(s.bpm) > 0 ? "\u2764 " + Math.round(numDe(s.bpm)) + (numDe(s.bpmMax) > numDe(s.bpm) ? "/" + Math.round(numDe(s.bpmMax)) : "") : "",
+      numDe(s.kcal) > 0 ? Math.round(numDe(s.kcal)) + " kcal" : "", numDe(s.subida) > 0 ? "\u2191" + Math.round(numDe(s.subida)) + " m" : ""].filter(Boolean);
     return Math.round(m.min) + " min a " + num1(m.vel) + " km/h" + (m.incl ? ", " + num1(m.incl) + "%" : "") +
-      (m.km >= 0.05 ? " (" + num1(m.km) + " km)" : "");
+      (m.km >= 0.05 ? " (" + num1(m.km) + " km)" : "") + (extra.length ? " · " + extra.join(" · ") : "");
   }
   return [Math.round(m.min) + " min"].concat(partesCardio(s, false)).join(" · ");
 }
@@ -1054,8 +1070,9 @@ function relatoCardio(s, pesoKg, perfil) {
 // (5 minutos andando, 2 correndo...): a intensidade, os watts e a cadência são
 // médias pesadas pelo tempo.
 function resumoCardio(series, pesoKg, perfil) {
-  const r = { min: 0, km: 0, kcal: 0, met: 0, series: 0, metros: 0, watts: 0, cad: 0, estimado: false };
-  let minW = 0, minC = 0;
+  const r = { min: 0, km: 0, kcal: 0, met: 0, series: 0, metros: 0, watts: 0, cad: 0, estimado: false,
+    bpm: 0, bpmMax: 0, kcalEsteira: 0, subida: 0 };
+  let minW = 0, minC = 0, minB = 0;
   (series || []).forEach((s) => {
     if (!serieConta(s) || !ehCardio(s)) return;
     const m = medirCardio(s, pesoKg, perfil);
@@ -1064,7 +1081,12 @@ function resumoCardio(series, pesoKg, perfil) {
     if (m.watts) { r.watts += m.watts * m.min; minW += m.min; }
     if (m.cad) { r.cad += m.cad * m.min; minC += m.min; }
     if (m.estimado) r.estimado = true;
+    if (numDe(s.bpm) > 0) { r.bpm += numDe(s.bpm) * m.min; minB += m.min; }
+    r.bpmMax = Math.max(r.bpmMax, numDe(s.bpmMax), numDe(s.bpm));
+    r.kcalEsteira += numDe(s.kcal);
+    r.subida += numDe(s.subida);
   });
+  r.bpm = minB ? Math.round(r.bpm / minB) : 0;
   r.met = r.min ? r.met / r.min : 0;
   r.watts = minW ? r.watts / minW : 0;
   r.cad = minC ? r.cad / minC : 0;
@@ -1377,7 +1399,7 @@ function sugerirCarga(historico, exercicioId, repsAlvo) {
   // na esteira quem decide se hoje é dia de forçar é o fôlego, não a planilha.
   if (validas.every(ehCardio)) {
     const u = validas[validas.length - 1];
-    return Object.assign({ cardio: true, tempo: true, subiu: false, segundos: segundosDe(u) }, copiaCardio(u));
+    return Object.assign({ cardio: true, tempo: true, subiu: false, segundos: segundosDe(u) }, moldeCardio(u));
   }
   // Isometria: a progressão é em segundos, subindo 5s quando a última vez fechou
   if (validas.every(ehTempo)) {
@@ -2088,7 +2110,7 @@ function velocidadePermitida(kmh, faixa, teto) {
 // toque a mais na próxima vez é o preço, e é barato.
 function criarEsteira(opcoes) {
   const o = opcoes || {};
-  let dispositivo = null, servidor = null, dados = null, controle = null;
+  let dispositivo = null, servidor = null, dados = null, controle = null, sensorFc = null;
   let faixaVel = null, faixaIncl = null, temControle = false;
   let esperando = null;   // { op, resolve, reject, relogio }
 
@@ -2097,6 +2119,12 @@ function criarEsteira(opcoes) {
   const aoDado = (ev) => {
     const d = lerDadosEsteira(ev.target.value);
     if (d && o.aoDado) o.aoDado(d);
+  };
+  // O pegador com sensor (ou a cinta pareada na esteira) costuma vir como o
+  // serviço padrão de batimento, ao lado do FTMS: o mesmo 0x2A37 da cinta.
+  const aoFc = (ev) => {
+    const b = lerBpm(ev.target.value);
+    if (b > 25 && b < 240 && o.aoDado) o.aoDado({ bpm: b });
   };
 
   // O ponto de controle responde por indicação, não no retorno da escrita.
@@ -2156,6 +2184,12 @@ function criarEsteira(opcoes) {
       await controle.startNotifications();
       controle.addEventListener("characteristicvaluechanged", aoResposta);
     } catch (e) { controle = null; }
+    try {
+      const fc = await servidor.getPrimaryService("heart_rate");
+      sensorFc = await fc.getCharacteristic("heart_rate_measurement");
+      await sensorFc.startNotifications();
+      sensorFc.addEventListener("characteristicvaluechanged", aoFc);
+    } catch (e) { sensorFc = null; }
 
     avisar("ligado");
     return { nome: dispositivo.name || "Esteira", faixaVel: faixaVel, faixaIncl: faixaIncl, podeComandar: !!controle };
@@ -2208,6 +2242,8 @@ function criarEsteira(opcoes) {
     desconectar() {
       try { if (dados) dados.removeEventListener("characteristicvaluechanged", aoDado); } catch (e) {}
       try { if (controle) controle.removeEventListener("characteristicvaluechanged", aoResposta); } catch (e) {}
+      try { if (sensorFc) sensorFc.removeEventListener("characteristicvaluechanged", aoFc); } catch (e) {}
+      sensorFc = null;
       try { if (dispositivo && dispositivo.gatt.connected) dispositivo.gatt.disconnect(); } catch (e) {}
       // Devolve a permissão. Sem isto o navegador guarda a esteira de hoje e o
       // app poderia alcançá-la amanhã — quando ela for de outra pessoa.
@@ -14385,6 +14421,9 @@ function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onA
         {d.incl !== undefined ? <NumeroCorrida rot="inclinação" val={num1(d.incl) + "%"} /> : null}
         {km !== null ? <NumeroCorrida rot="distância" val={num1(km)} sub="km" /> : null}
         {seg ? <NumeroCorrida rot="tempo" val={Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0")} /> : null}
+        {d.bpm ? <NumeroCorrida rot="❤ bpm" val={d.bpm} cor="#ED4956" /> : null}
+        {d.kcal ? <NumeroCorrida rot="kcal" val={d.kcal} sub="no painel" /> : null}
+        {d.subida ? <NumeroCorrida rot="subida" val={Math.round(d.subida)} sub="m" /> : null}
       </div>
       {!est.confirmada ? (
         <React.Fragment>
@@ -14546,7 +14585,11 @@ function usarEsteira() {
       // outro com distância. Substituindo, a cada meio segundo metade dos
       // números sumia — o cartão mudava de altura e a tela inteira tremia
       // (achado no celular do dono), e o intervalado lia "sem velocidade".
-      aoDado: (d) => setEst((s) => Object.assign({}, s, { dado: Object.assign({}, s.dado, d) })),
+      aoDado: (d) => setEst((s) => {
+        const novo = Object.assign({}, s.dado, d);
+        if (d.bpm !== undefined && !(d.bpm > 25 && d.bpm < 240)) delete novo.bpm;
+        return Object.assign({}, s, { dado: novo });
+      }),
       aoEstado: (e) => setEst((s) => Object.assign({}, s, { estado: e },
         e === "caiu" ? { ligada: false, comanda: false, erro: "A esteira desconectou." } : {})),
     });
@@ -17856,6 +17899,13 @@ function PainelCardio({ it, ex, historico, exPorId, pesoCorporal, vozCfg, onCorr
           )}
         </div>
       )}
+      {(r.bpm > 0 || r.kcalEsteira > 0 || r.subida > 0) && (
+        <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: "2px 12px" }}>
+          {r.bpm > 0 && <span><b style={{ color: "#ED4956" }}>❤ {r.bpm}</b> <span style={{ color: "var(--cinza)" }}>bpm médio{r.bpmMax > r.bpm ? " · máx " + r.bpmMax : ""}</span></span>}
+          {r.kcalEsteira > 0 && <span><b>{Math.round(r.kcalEsteira)} kcal</b> <span style={{ color: "var(--cinza)" }}>no painel da esteira</span></span>}
+          {r.subida > 0 && <span><b>{Math.round(r.subida)} m</b> <span style={{ color: "var(--cinza)" }}>de subida</span></span>}
+        </div>
+      )}
       {dica && <div style={{ marginTop: 6, color: "var(--obs)" }}>💡 {dica}</div>}
       {ehEsteiraPerfil(perfil) && r.ritmo > 0 && (() => {
         // a inclinação média (pesada pelo tempo) vale como relevo: o pace "de rua plana" do mesmo esforço
@@ -17896,7 +17946,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   bpm, cardioEstado, onConectarCardio, onDesconectarCardio, vozCfg, contarAlto, onAlternarContagem,
   autoSerie, onAlternarAuto,
   acoesVoz, vozAtiva, vozBarra, vozAnimado, onDescansando, responderVoz,
-  dicas, onDicaVista, onLigarVoz, onEscolaVoz, onCorredor }) {
+  dicas, onDicaVista, onLigarVoz, onEscolaVoz, onCorredor, onBpmEsteira }) {
   // Recorde e última execução de cada exercício: servem de referência ao lado de
   // cada série e permitem festejar o recorde no instante em que ele acontece.
   const recordes = useMemo(() => recordesPorExercicio(historico), [historico]);
@@ -18119,7 +18169,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       const ult = it.series[it.series.length - 1];
       // repete o formato da última série: segundos na isometria, peso/reps no resto
       if (ult && ehTempo(ult)) {
-        const extra = ehCardio(ult) ? copiaCardio(ult) : {};
+        const extra = ehCardio(ult) ? moldeCardio(ult) : {};
         return { ...it, series: [...it.series, { segundos: ult.segundos || "30", ...extra, feito: false }] };
       }
       const base = ult || { peso: "", reps: "12" };
@@ -18322,17 +18372,59 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // série anotada levaria junto os minutos da 1ª. Então cada anotação conta a
   // partir da anterior (baseEst), e uma série marcada por outro caminho (✓, fim
   // do cronômetro) também move a régua.
-  const [baseEst, setBaseEst] = useState({ seg: 0, m: 0 });
+  const ZERO_EST = { seg: 0, m: 0, kcal: 0, subida: 0 };
+  const [baseEst, setBaseEst] = useState(ZERO_EST);
   const dadoBruto = btSessao.est.dado || {};
-  const baseValida = (dadoBruto.segundos || 0) >= baseEst.seg ? baseEst : { seg: 0, m: 0 };
+  const baseValida = (dadoBruto.segundos || 0) >= baseEst.seg ? baseEst : ZERO_EST;
   const segEst = Math.max(0, (dadoBruto.segundos || 0) - baseValida.seg);
   const mEst = dadoBruto.metros !== undefined ? Math.max(0, dadoBruto.metros - baseValida.m) : null;
-  const feitasEst = sessao.itens.reduce((n, it, i) => n + (ehEsteiraItem(i) ? it.series.filter((s) => s.feito).length : 0), 0);
-  const feitasEstAntes = useRef(feitasEst);
+  // O batimento de cada série, desde a última anotação: média e pico.
+  const bpmSerie = useRef({ soma: 0, n: 0, max: 0 });
+  const bpmAgora = btSessao.est.confirmada ? dadoBruto.bpm : undefined;
   useEffect(() => {
-    if (feitasEst > feitasEstAntes.current && btSessao.est.confirmada && btSessao.est.dado)
-      setBaseEst({ seg: btSessao.est.dado.segundos || 0, m: btSessao.est.dado.metros || 0 });
-    feitasEstAntes.current = feitasEst;
+    if (!(bpmAgora > 0)) return;
+    const b = bpmSerie.current;
+    b.soma += bpmAgora; b.n += 1; if (bpmAgora > b.max) b.max = bpmAgora;
+    if (onBpmEsteira) onBpmEsteira(bpmAgora);
+  }, [dadoBruto, bpmAgora]);
+  useEffect(() => { if (!btSessao.est.ligada && onBpmEsteira) onBpmEsteira(null); }, [btSessao.est.ligada]);
+  // O que a máquina mediu na série que fecha agora: distância exata, calorias
+  // do painel, subida e batimento. Só entra o que ela de fato mandou.
+  const extrasEsteira = () => {
+    const d = btSessao.est.dado || {};
+    const x = {};
+    if (mEst > 0) x.km = String(Math.round(mEst) / 1000);
+    if (d.kcal !== undefined && d.kcal - baseValida.kcal > 0) x.kcal = String(Math.round(d.kcal - baseValida.kcal));
+    if (d.subida !== undefined && d.subida - baseValida.subida > 0) x.subida = String(Math.round((d.subida - baseValida.subida) * 10) / 10);
+    const b = bpmSerie.current;
+    if (b.n) { x.bpm = String(Math.round(b.soma / b.n)); x.bpmMax = String(b.max); }
+    return x;
+  };
+  const moverRegua = () => {
+    const d = btSessao.est.dado || {};
+    setBaseEst({ seg: d.segundos || 0, m: d.metros || 0, kcal: d.kcal || 0, subida: d.subida || 0 });
+    bpmSerie.current = { soma: 0, n: 0, max: 0 };
+  };
+  // Série marcada por qualquer caminho (✓, fim do ▶, ditada): recebe o que a
+  // esteira mediu desde a anterior, sem apagar o que já tem, e a régua anda.
+  const chavesFeitas = sessao.itens.flatMap((it, i) => (ehEsteiraItem(i) ? it.series.map((s, j) => (s.feito ? i + ":" + j : null)).filter(Boolean) : []));
+  const feitasEst = chavesFeitas.length;
+  const feitasEstAntes = useRef(chavesFeitas);
+  useEffect(() => {
+    const antes = feitasEstAntes.current;
+    feitasEstAntes.current = chavesFeitas;
+    const novas = chavesFeitas.filter((k) => antes.indexOf(k) < 0);
+    if (!novas.length || !btSessao.est.confirmada || !btSessao.est.dado) return;
+    const [ei, si] = novas[novas.length - 1].split(":").map(Number);
+    const s = sessao.itens[ei].series[si];
+    const x = extrasEsteira();
+    const falta = {};
+    Object.keys(x).forEach((k) => { if (!temValor(s[k])) falta[k] = x[k]; });
+    if (Object.keys(falta).length) {
+      setSessao({ ...sessao, itens: sessao.itens.map((it, i) => i !== ei ? it
+        : { ...it, series: it.series.map((y, j) => (j !== si ? y : { ...y, ...falta })) }) });
+    }
+    moverRegua();
   }, [feitasEst]);
   // Com a esteira confirmada, velocidade e inclinação da série seguem o painel.
   // Só grava quando o número muda: a esteira manda um pacote por segundo.
@@ -18364,12 +18456,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       const ei = alvo && ehEsteiraItem(alvo.ei) ? alvo.ei : sessao.itens.findIndex((_, i) => ehEsteiraItem(i));
       if (ei < 0) return;
       const ult = sessao.itens[ei].series[sessao.itens[ei].series.length - 1];
-      const nova = Object.assign({}, ult ? copiaCardio(ult) : {}, { segundos: "60", feito: false });
+      const nova = Object.assign({}, ult ? moldeCardio(ult) : {}, { segundos: "60", feito: false });
       itens = itens.map((it, i) => (i !== ei ? it : { ...it, series: [...it.series, nova] }));
       alvoE = { ei, si: itens[ei].series.length - 1 };
     }
     const media = mEst > 0 ? (mEst / segEst) * 3.6 : d.velMedia > 0 ? d.velMedia : d.vel;
-    const novo = { segundos: String(segEst) };
+    const novo = Object.assign({ segundos: String(segEst) }, extrasEsteira());
     if (media > 0) novo.vel = String(Math.round(media * 10) / 10);
     if (d.incl !== undefined) novo.incl = String(Math.round(d.incl * 10) / 10);
     if (crono && crono.ei === alvoE.ei && crono.si === alvoE.si) setCrono(null);
@@ -18467,7 +18559,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     if (si < 0) {
       const ult = series[series.length - 1] || {};
       series = series.concat([isometria || ehTempo(ult)
-        ? { segundos: ult.segundos || "", ...(ehCardio(ult) ? copiaCardio(ult) : {}), feito: false }
+        ? { segundos: ult.segundos || "", ...(ehCardio(ult) ? moldeCardio(ult) : {}), feito: false }
         : { peso: ult.peso || "", reps: ult.reps || "", feito: false }]);
       si = series.length - 1;
     }
@@ -19395,6 +19487,16 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
   });
   const listaGrupos = Object.keys(grupos).filter((g) => grupos[g] > 0).sort((a, b) => grupos[b] - grupos[a]);
   const totalG = listaGrupos.reduce((a, g) => a + grupos[g], 0) || 1;
+  // A parte aeróbica do treino: o cartão de uma corrida na esteira mostrava
+  // "0 reps" e escondia o batimento, as calorias e a distância que a esteira
+  // mediu. Agora o que importa numa corrida aparece na mesma faixa.
+  const aero = h.itens.reduce((a, it) => {
+    const e = exPorId(it.exercicioId);
+    if (!exCardio(e)) return a;
+    const r = resumoCardio(it.series, pesoCorporal, e.cardio);
+    a.km += r.km; a.kcal += r.kcalEsteira || r.kcal; a.subida += r.subida; a.min += r.min;
+    return a;
+  }, { km: 0, kcal: 0, subida: 0, min: 0 });
 
   return (
     <div style={S.card}>
@@ -19417,7 +19519,11 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, background: "var(--input)", border: "1px solid var(--borda)", borderRadius: 12, padding: "12px 14px" }}>
         {st.volume > 0 && <MiniStat valor={fmtKg(st.volume)} nome="volume" cor="#E1306C" />}
         <MiniStat valor={st.series} nome="séries" />
-        <MiniStat valor={st.reps} nome="reps" />
+        {(st.reps > 0 || !aero.min) && <MiniStat valor={st.reps} nome="reps" />}
+        {aero.km >= 0.05 && <MiniStat valor={num1(aero.km) + " km"} nome="distância" cor="#4C9BE8" />}
+        {aero.min > 0 && aero.kcal > 0 && <MiniStat valor={Math.round(aero.kcal)} nome="kcal" />}
+        {h.bpm && h.bpm.medio > 0 && <MiniStat valor={"\u2764 " + h.bpm.medio} nome={"bpm · máx " + h.bpm.max} cor="#ED4956" />}
+        {aero.subida > 0 && <MiniStat valor={Math.round(aero.subida) + " m"} nome="subida" />}
         <MiniStat valor={st.exercicios} nome="exercícios" />
         {st.cargaMax > 0 && <MiniStat valor={st.cargaMax + "kg"} nome="carga máx." />}
         {st.densidade > 0 && <MiniStat valor={st.densidade + " kg/min"} nome="densidade" />}
@@ -20397,6 +20503,19 @@ function TreinoLivre() {
     }
   }, []);
   const desconectarCardio = useCallback(() => { if (cardioRef.current) cardioRef.current.desconectar(); }, []);
+  // O batimento que a esteira manda (pegador ou cinta pareada nela) vale como o
+  // da cinta: aparece no treino e a média vai para o histórico. Com a cinta do
+  // app ligada, ela manda — duas fontes somadas dariam uma média de ninguém.
+  const cardioEstadoRef = useRef(cardioEstado);
+  cardioEstadoRef.current = cardioEstado;
+  const aoBpmEsteira = useCallback((v) => {
+    if (cardioEstadoRef.current === "ligado") return;
+    setBpm(v);
+    if (v > 0) {
+      if (!resumoCardioRef.current) resumoCardioRef.current = criarResumoCardio();
+      resumoCardioRef.current.somar(v);
+    }
+  }, []);
 
   const celebrar = useCallback((dados) => setFesta(dados), []);
   const fecharFesta = useCallback(() => setFesta(null), []);
@@ -22035,7 +22154,7 @@ function TreinoLivre() {
             som={som} setSom={setSom}
             acoesVoz={acoesVoz} vozAtiva={vozAtiva} vozBarra={voz.barra} vozAnimado={voz.animado !== false}
             pesoCorporal={pesoCorporal}
-            bpm={bpm} cardioEstado={cardioEstado}
+            bpm={bpm} cardioEstado={cardioEstado} onBpmEsteira={aoBpmEsteira}
             vozCfg={voz} contarAlto={voz.contarAlto !== false}
             onAlternarContagem={() => setVoz((v) => ({ ...v, contarAlto: v.contarAlto === false }))}
             autoSerie={voz.autoSerie !== false}

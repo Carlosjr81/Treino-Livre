@@ -99,7 +99,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 786 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 794 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -140,7 +140,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 786 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 794 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v60) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v61) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1922,6 +1922,39 @@ já avisa que ele existe.
   (esteira parada e religada) zera a régua. Sem série pendente, "Anotar" cria
   uma série nova no exercício de esteira.
 
+### Tudo o que a esteira mede fica gravado
+
+Pedido do dono: "aproveite o máximo de dados que a esteira tem, inclusive o
+batimento". Na série que fecha (pelo "Anotar", pelo ✓ ou pelo fim do ▶),
+entra o que a máquina mediu **desde a série anterior** (`extrasEsteira`,
+`moverRegua`):
+
+| Campo da série | De onde vem |
+|---|---|
+| `km` | os metros do painel — a distância exata, que vence a conta tempo × velocidade |
+| `kcal` | as calorias que o painel marcou (o app continua mostrando a sua conta pelo ACSM, com o peso da pessoa; as duas aparecem) |
+| `subida` | o ganho de elevação do painel, em metros |
+| `bpm`, `bpmMax` | média e pico do batimento naquela série |
+
+- **O batimento vem de dois lugares da esteira**: o campo de FC do FTMS
+  (pegador com sensor) e o **serviço padrão de batimento** que muita esteira
+  expõe ao lado (`sensorFc`, o mesmo 0x2A37 da cinta). **Zero é "sem as mãos
+  no pegador"**, não um número: é descartado.
+- **O batimento da esteira vale como o da cinta** (`onBpmEsteira` →
+  `aoBpmEsteira` no raiz): aparece no treino e a média e o máximo vão para
+  `historico[].bpm`. Com a cinta do app ligada, ela manda — duas fontes
+  somadas dariam uma média de ninguém.
+- **O que foi medido não se copia** (`moldeCardio`, coberto em
+  `teste-cardio.js`): a sugestão da próxima vez e o "+ série" levam
+  velocidade e inclinação, nunca km, kcal, bpm e subida. O km copiado venceria
+  a conta da série nova, que nasceria com os quilômetros da antiga. Na rua o km
+  é o que a pessoa digita, e fica.
+- Onde aparece: o cartão da conexão (bpm, kcal, subida ao vivo), o
+  `PainelCardio` ("❤ 153 bpm médio · máx 170", "90 kcal no painel da
+  esteira"), o texto da série (`textoCardio`) e o cartão do histórico, que
+  num treino de esteira mostrava "0 reps" e agora mostra distância, kcal,
+  batimento e subida.
+
 ### O que pode dar errado, e o que o app faz
 
 - **A esteira manda os números em pacotes alternados.** O padrão divide o que
@@ -2586,7 +2619,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 19 suítes (786 checagens)
+node testes/rodar.js      # as 19 suítes (794 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

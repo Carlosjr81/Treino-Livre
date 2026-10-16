@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v56) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v57) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -633,6 +633,20 @@ quadro ruim do modelo estica a janela inteira por quatro segundos.
   próprio scanner, guardado em `voz.autoSerie`.
 - `−` e `+` corrigem a conta antes de registrar, e **cancelam o fechamento
   automático desta série**: mexer na conta à mão é dizer "ainda não acabei".
+- **Botões fantasma** (`usarFantasma`, pedido do dono): depois do enquadramento,
+  3,5 s sem toque deixam ✕, câmera, contar alto, auto e o quadro de calorias
+  translúcidos (0,3) — o vídeo é o que importa ali. **O primeiro toque só os
+  acende; o segundo age.** De quebra, um esbarrão no ✕ não fecha mais a
+  câmera no meio da série. O toque é lido no `onPointerDownCapture` do
+  contêiner, antes do clique: o React re-renderiza entre os dois, e o botão
+  acharia que já estava aceso. **Não viram fantasma, de propósito**: "Já estou
+  na posição" (antes do enquadramento a tela guia), "Registrando em…" (4 s não
+  cabem dois toques), o palpite do movimento (aparece sempre) e o contador (é
+  o que se lê de longe). Botão novo por cima do vídeo: envolva a ação em
+  `fant.agir` e espalhe `fant.estilo`.
+- **"Não estou te vendo" só depois do enquadramento**, e sem pegar toque: antes
+  ele caía em cima do "Já estou na posição" e engolia o toque justamente de
+  quem não estava sendo visto.
 - **Ao fechar, as trilhas da câmera são encerradas** (`getTracks().forEach(stop)`).
   Sem isso a luz da câmera fica acesa depois de sair da tela — e com razão a
   pessoa desinstala o app.
@@ -2260,7 +2274,9 @@ A queixa era sempre a mesma: o botão cobre o ✕ do exercício, o ✓ da série
 número do descanso. Duas respostas, porque o problema tem duas metades:
 
 - **Ler o que está atrás**: parado e sem ouvir por 4 segundos, ele fica
-  translúcido (0,34) e encolhe. Um toque o traz de volta inteiro.
+  translúcido (0,34) e encolhe. Um toque o traz de volta inteiro — **e só
+  isso**: translúcido, o primeiro toque acende e o segundo liga o microfone
+  (`acordou` no `inicioRef`). É o combinado dos botões fantasma (ver Eyes Scan).
 - **Clicar no que está atrás**: arrastar o botão para outro lugar. A posição é
   guardada em `botaoVoz` (`{ lado, y }`) — quem o tirou da frente uma vez não
   quer encontrá-lo de volta no caminho na próxima abertura. Ao soltar, ele

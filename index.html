@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16i";
+const VERSAO_APP = "2026-10-16j";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5123,6 +5123,8 @@ function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando
     inicioRef.current = {
       px: e.clientX, py: e.clientY, x: r.left, y: r.top, w: r.width, h: r.height,
       acao: alvo ? alvo.getAttribute("data-acao") : null,
+      // translúcido, o primeiro toque só o acende (ver usarFantasma)
+      acordou: apagado,
     };
     // A captura precisa valer desde já, senão um arrasto rápido perde os eventos
     // assim que o dedo sai de cima do botão. Em troca, o navegador passa a mandar
@@ -5151,6 +5153,7 @@ function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando
       setArrasto(null);
       // Foi um toque, não um arrasto: age aqui, porque o clique vai para a caixa.
       agiuRef.current = Date.now();
+      if (i && i.acordou) return;
       if (i && i.acao === "ajuda") onAjuda();
       else if (i && i.acao === "mic") onAlternar();
       return;
@@ -5580,6 +5583,38 @@ function EscolaJarvis({ acoes, ouvindo, vozBarra, todos, onLigarVoz, onDesligarV
 // A tela do scanner. Fica POR CIMA da tela de treino, e não numa aba própria:
 // assim ela usa o mesmo caminho de registrar série que o botão ✓ e a voz usam —
 // descanso, recorde e festa saem de graça, sem nenhuma lógica duplicada.
+// ---- Botões fantasma ----
+// Por cima do vídeo, todo botão tapa um pedaço do corpo que a pessoa quer ver.
+// Pedido do dono: parado, o botão fica translúcido; o primeiro toque só o traz
+// de volta, o segundo é que age. Ganha-se a tela sem perder o comando — e de
+// quebra um esbarrão no ✕ deixa de fechar a câmera no meio da série.
+// O toque é lido na CAPTURA do contêiner, antes do clique: o React re-renderiza
+// entre o pointerdown e o click, e o botão acharia que já estava aceso.
+function usarFantasma(ativo, ms) {
+  const [fantasma, setFantasma] = useState(false);
+  const [tique, setTique] = useState(0);
+  const fantasmaRef = useRef(false);
+  fantasmaRef.current = ativo && fantasma;
+  const acordouRef = useRef(false);
+  useEffect(() => {
+    if (!ativo) { setFantasma(false); return; }
+    setFantasma(false);
+    const t = setTimeout(() => setFantasma(true), ms || 3500);
+    return () => clearTimeout(t);
+  }, [ativo, tique]);
+  const aoTocar = () => {
+    acordouRef.current = fantasmaRef.current;
+    setTique((n) => n + 1);
+  };
+  // Envolve a ação: se o toque só acordou os botões, não faz mais nada.
+  const agir = (fn) => (e) => {
+    if (acordouRef.current) { acordouRef.current = false; return; }
+    if (fn) fn(e);
+  };
+  const estilo = { opacity: ativo && fantasma ? 0.3 : 1, transition: "opacity .35s" };
+  return { fantasma: ativo && fantasma, aoTocar: aoTocar, agir: agir, estilo: estilo };
+}
+
 function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, serieTotal, som, bpm,
   vozCfg, contarAlto, onAlternarContagem, autoSerie, onAlternarAuto,
   livre, exPorId, onGuardarLivre, onRegistrar, onFechar }) {
@@ -5637,6 +5672,9 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   // voz guia até lá. Sem isso, quem usa a câmera de trás não tem como saber que
   // está fora — e descobre depois da série inteira não ter contado nada.
   const [enquadrado, setEnquadrado] = useState(false);
+  // Só depois do enquadramento: antes dele o botão da câmera tem nome e guia a
+  // pessoa, e esconder isso seria esconder o caminho.
+  const fant = usarFantasma(enquadrado);
   const [guia, setGuia] = useState(null);          // { chave, texto, seta }
   const prontoRef = useRef(false);
   const calibRef = useRef("");
@@ -6015,7 +6053,8 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   return (
     <div style={{ position: "fixed", inset: 0, background: "#000000", zIndex: 60, display: "flex", flexDirection: "column" }}>
       {/* a imagem */}
-      <div style={{ position: "relative", flex: 1, overflow: "hidden", background: "#000000" }}>
+      <div onPointerDownCapture={fant.aoTocar}
+        style={{ position: "relative", flex: 1, overflow: "hidden", background: "#000000" }}>
         <video ref={videoRef} playsInline muted
           style={{ width: "100%", height: "100%", objectFit: "cover", transform: frente ? "scaleX(-1)" : "none" }} />
         <canvas ref={canvasRef}
@@ -6024,7 +6063,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
 
         {/* calorias e tempo, como no canto do aparelho */}
         <div style={{ position: "absolute", top: "calc(10px + env(safe-area-inset-top))", left: 12,
-          background: "rgba(0,0,0,0.55)", borderRadius: 12, padding: "8px 12px" }}>
+          background: "rgba(0,0,0,0.55)", borderRadius: 12, padding: "8px 12px", ...fant.estilo }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: "#FFFFFF", lineHeight: 1.1 }}>
             {caloriasEstimadas(segundos, pesoCorporal)} <span style={{ fontSize: 12, color: "#FF6B6B" }}>kcal</span>
           </div>
@@ -6036,17 +6075,17 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
           )}
         </div>
 
-        <button onClick={onFechar} aria-label="Fechar o scanner"
-          style={{ position: "absolute", top: "calc(10px + env(safe-area-inset-top))", right: 12,
+        <button onClick={fant.agir(onFechar)} aria-label="Fechar o scanner"
+          style={{ ...fant.estilo, position: "absolute", top: "calc(10px + env(safe-area-inset-top))", right: 12,
             width: 42, height: 42, borderRadius: 21, border: "none", background: "rgba(0,0,0,0.55)",
             color: "#FFFFFF", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>✕</button>
 
         {/* Enquanto enquadra, este botão ganha nome: com a câmera de trás a pessoa
             não vê a tela, e trocar para a da frente é o que permite ver as setas.
             Escondido atrás de um ícone, ninguém achava. */}
-        <button onClick={() => setFrente((f) => !f)}
+        <button onClick={fant.agir(() => setFrente((f) => !f))}
           aria-label={frente ? "Usar a câmera de trás" : "Usar a câmera da frente"}
-          style={{ position: "absolute", top: "calc(60px + env(safe-area-inset-top))", right: 12,
+          style={{ ...fant.estilo, position: "absolute", top: "calc(60px + env(safe-area-inset-top))", right: 12,
             height: 42, borderRadius: 21, border: "none", background: "rgba(0,0,0,0.55)",
             color: "#FFFFFF", fontSize: enquadrado ? 17 : 13, fontWeight: 800,
             padding: enquadrado ? 0 : "0 14px", width: enquadrado ? 42 : "auto", cursor: "pointer" }}>
@@ -6056,10 +6095,10 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         {/* Contar alto é o retorno que serve de costas para a tela — mas em
             academia cheia nem sempre é bem-vindo. Por isso o botão fica aqui,
             à mão, e não escondido nos ajustes. */}
-        <button onClick={onAlternarContagem}
+        <button onClick={fant.agir(onAlternarContagem)}
           aria-pressed={!!contarAlto}
           aria-label={contarAlto ? "Desligar a contagem em voz alta" : "Ligar a contagem em voz alta"}
-          style={{ position: "absolute", top: "calc(110px + env(safe-area-inset-top))", right: 12,
+          style={{ ...fant.estilo, position: "absolute", top: "calc(110px + env(safe-area-inset-top))", right: 12,
             minWidth: 42, height: 42, borderRadius: 21, border: "none",
             background: contarAlto ? "rgba(124,255,60,0.85)" : "rgba(0,0,0,0.55)",
             color: contarAlto ? "#0A2A00" : "#FFFFFF", fontSize: 15, fontWeight: 900,
@@ -6067,10 +6106,10 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
           {contarAlto ? "🔊 1,2,3" : "🔇"}
         </button>
 
-        <button onClick={onAlternarAuto}
+        <button onClick={fant.agir(onAlternarAuto)}
           aria-pressed={!!autoSerie}
           aria-label={autoSerie ? "Desligar o fechamento automático da série" : "Ligar o fechamento automático da série"}
-          style={{ position: "absolute", top: "calc(160px + env(safe-area-inset-top))", right: 12,
+          style={{ ...fant.estilo, position: "absolute", top: "calc(160px + env(safe-area-inset-top))", right: 12,
             minWidth: 42, height: 42, borderRadius: 21, border: "none",
             background: autoSerie ? "rgba(47,212,138,0.85)" : "rgba(0,0,0,0.55)",
             color: autoSerie ? "#042016" : "#FFFFFF", fontSize: 14, fontWeight: 900,
@@ -6228,8 +6267,10 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
             ◎ Olhando a forma · fique {vistaPedida === "perfil" ? "de lado" : "de frente"}
           </div>
         )}
-        {fase === "pronto" && !vendo && (
-          <div style={{ position: "absolute", left: 12, right: 150, bottom: 18,
+        {/* Só depois do enquadramento: antes, a tela dele já guia, e este aviso
+            caía bem em cima do "Já estou na posição" e engolia o toque. */}
+        {fase === "pronto" && enquadrado && !vendo && (
+          <div style={{ position: "absolute", left: 12, right: 150, bottom: 18, pointerEvents: "none",
             background: "rgba(0,0,0,0.6)", borderRadius: 12, padding: "10px 12px", color: "#FFFFFF", fontSize: 13, lineHeight: 1.5 }}>
             Não estou te vendo. Apoie o celular de pé, uns 2 metros de distância, com o corpo inteiro na tela.
           </div>

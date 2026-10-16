@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16r";
+const VERSAO_APP = "2026-10-16s";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -14479,7 +14479,7 @@ function FaixaIntervalo({ blocos, atual, tAtivo }) {
 // inclinação à mão, sem saber que a máquina podia dizê-las sozinha. Aqui ela
 // só é LIDA — nunca comandada — e as mesmas regras valem: conexão por toque,
 // conferência no painel, nada de reconectar sozinha.
-function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onAnotar, segAnotar, kmAnotar, seguindo, fcSerie, kmSomado, metaSerie }) {
+function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onAnotar, segAnotar, kmAnotar, seguindo, fcSerie, kmSomado, metaSerie, retomar, onAnotarAteAqui }) {
   if (!ESTEIRA_DISPONIVEL) {
     return (
       <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, margin: "2px 0 10px", padding: "8px 10px", borderRadius: 10, background: "var(--bg2)" }}>
@@ -14494,9 +14494,18 @@ function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onA
   if (!est.ligada) {
     return (
       <div style={caixa}>
+        {retomar ? (
+          <div style={{ fontSize: 12.5, lineHeight: 1.55, marginBottom: 10, padding: 10, borderRadius: 10, background: "var(--bg2)", border: "1px solid var(--obs)" }}>
+            <b style={{ color: "var(--obs)" }}>⏸ A tela apagou e o celular cortou o Bluetooth.</b> Nada se perdeu:
+            a série continua aberta em <b>{Math.floor(retomar.seg / 60) + ":" + String(retomar.seg % 60).padStart(2, "0")}</b>
+            {retomar.km ? " · " + num1(retomar.km) + " km" : ""}. Reconecte e confirme no painel: a contagem segue de onde
+            parou, com o tempo em que a tela ficou apagada.
+            <button onClick={onAnotarAteAqui} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>Já terminei: anotar a série até aqui</button>
+          </div>
+        ) : null}
         <button onClick={onConectar} disabled={est.estado === "procurando"}
           style={{ ...S.btn, width: "100%", background: "linear-gradient(135deg, #4C9BE8, #2F6FD0)", fontSize: 15 }}>
-          {est.estado === "procurando" ? "Procurando a esteira…" : "📶 Conectar a esteira"}
+          {est.estado === "procurando" ? "Procurando a esteira…" : retomar ? "📶 Reconectar a esteira" : "📶 Conectar a esteira"}
         </button>
         <div style={{ fontSize: 12, color: "var(--texto)", marginTop: 8, lineHeight: 1.5 }}>
           A velocidade, a inclinação e a distância entram sozinhas — sem digitar nada.
@@ -18543,6 +18552,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // Reaberto o treino com um rascunho recuperado, a régua começa onde o painel
   // estava: a esteira continua contando, e o que já foi gravado não pode
   // entrar de novo na série seguinte.
+  const confirmouEst = useRef(false);
+  if (btSessao.est.confirmada) confirmouEst.current = true;
   const [baseEst, setBaseEst] = useState(() => (sessao.esteiraParcial && sessao.esteiraParcial.painel) || ZERO_EST);
   const dadoBruto = btSessao.est.dado || {};
   // Tudo conta pelo odômetro (ver criarOdometroEsteira): o painel zerado ao
@@ -18592,7 +18603,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const antes = feitasEstAntes.current;
     feitasEstAntes.current = chavesFeitas;
     const novas = chavesFeitas.filter((k) => antes.indexOf(k) < 0);
-    if (!novas.length || !btSessao.est.confirmada || !btSessao.est.dado) return;
+    if (!novas.length || !confirmouEst.current || !btSessao.est.dado) return;
     const [ei, si] = novas[novas.length - 1].split(":").map(Number);
     const s = sessao.itens[ei].series[si];
     const x = extrasEsteira();
@@ -18650,6 +18661,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     setSessao({ ...sessao, itens: itens.map((it, i) => i !== alvoE.ei ? it
       : { ...it, series: it.series.map((x, j) => (j !== alvoE.si ? x : { ...x, ...novo, feito: false })) }) });
     setAnotarEsteira(alvoE);
+    return alvoE;
   };
   useEffect(() => {
     if (!anotarEsteira) return;
@@ -18659,10 +18671,34 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // A série termina quando a esteira para, não quando um relógio do app diz:
   // parada por 15 s (o gole d'água não divide a série), painel zerado ou
   // Bluetooth caído. Antes disso, nada fecha — e nada se perde.
+  // Tela apagada: o Chrome do Android corta o Bluetooth das páginas que somem
+  // da vista. Antes, isso era lido como "a esteira desligou": a série fechava
+  // com a pessoa ainda caminhando, e o resto virava outra série. Hoje a queda
+  // com a tela apagada (ou logo ao acender) deixa a série ABERTA e pausada; a
+  // pessoa reconecta e confirma no painel, e a contagem segue de onde estava —
+  // o painel não parou de contar, então o tempo de tela apagada entra junto.
+  const voltouEm = useRef(0);
+  useEffect(() => {
+    const aoVer = () => { if (document.visibilityState === "visible") voltouEm.current = Date.now(); };
+    document.addEventListener("visibilitychange", aoVer);
+    return () => document.removeEventListener("visibilitychange", aoVer);
+  }, []);
+  const telaApagou = () => typeof document !== "undefined" && (document.visibilityState !== "visible" || Date.now() - voltouEm.current < 5000);
+  const [quedaBloqueio, setQuedaBloqueio] = useState(false);
+  const ligadaAntes = useRef(btSessao.est.ligada);
+  useEffect(() => {
+    const antes = ligadaAntes.current;
+    ligadaAntes.current = btSessao.est.ligada;
+    if (btSessao.est.ligada) { setQuedaBloqueio(false); return; }
+    if (antes && btSessao.est.confirmada && segEst >= 60 && telaApagou()) {
+      setQuedaBloqueio(true);
+      falarRef.current("A tela apagou e o Bluetooth da esteira caiu. A série continua aberta: reconecte para seguir contando de onde parou.");
+    }
+  }, [btSessao.est.ligada]);
   const anotarEstRef = useRef(null);
   anotarEstRef.current = anotarDaEsteira;
   const estadoParada = useRef({});
-  estadoParada.current = { ligada: btSessao.est.ligada, vel: dadoBruto.vel, seg: segEst, reinicio: cumEst.reiniciouEm };
+  estadoParada.current = { ligada: btSessao.est.ligada, vel: dadoBruto.vel, seg: segEst, reinicio: cumEst.reiniciouEm, bloqueio: quedaBloqueio };
   const parada = useRef({ desde: null, anotouEm: 0 });
   useEffect(() => {
     if (!btSessao.est.confirmada) return;
@@ -18671,6 +18707,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       if (!(e.seg >= 60) || agora - p.anotouEm < 5000) { p.desde = null; return; }
       const zerou = e.reinicio && agora - e.reinicio < 10000;
       if (e.ligada && !zerou && e.vel !== 0) { p.desde = null; return; }
+      if (!e.ligada && (e.bloqueio || telaApagou())) { p.desde = null; return; }
       if (p.desde === null) p.desde = agora;
       if (!e.ligada || zerou || agora - p.desde >= 15000) {
         p.desde = null; p.anotouEm = agora;
@@ -18686,7 +18723,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   const desconectarEsteira = () => {
     if (segEst >= 60) anotarDaEsteira();
     btSessao.desconectar();
+    confirmouEst.current = false;
   };
+  const anotarAteAqui = () => { anotarDaEsteira(); setQuedaBloqueio(false); };
   const fcResumoSerie = btSessao.est.confirmada ? fcSerie.current.fechar(segEst) : null;
   // Um treino só. Treino real do dono: o cartão da esteira contava o tempo do
   // painel e, embaixo, o ▶ da série contava 40 minutos por conta própria — dois
@@ -18694,7 +18733,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // esteira confirmada, a série É a da esteira: o tempo que corre embaixo é o
   // dela (desde a última anotação), os minutos da ficha viram meta, e não
   // existe ▶ à parte. Sem esteira conectada, o ▶ continua sendo o relógio.
-  const esteiraConduz = !!(btSessao.est.confirmada && btSessao.est.ligada);
+  const esteiraConduz = !!(btSessao.est.confirmada && btSessao.est.ligada) || quedaBloqueio;
   useEffect(() => {
     if (esteiraConduz && crono && ehEsteiraItem(crono.ei)) setCrono(null);
   }, [esteiraConduz, crono]);
@@ -18737,7 +18776,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // última anotação.
   const [finalizarPend, setFinalizarPend] = useState(null);
   const finalizar = () => {
-    if (serieConduzida && segEst >= 60) { setFinalizarPend(serieConduzida); anotarDaEsteira(); }
+    const aberta = confirmouEst.current && segEst >= 60 ? anotarDaEsteira() : null;
+    if (aberta) setFinalizarPend(aberta);
     else onFinalizar();
   };
   useEffect(() => {
@@ -19515,6 +19555,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               <ConexaoEsteiraSessao est={btSessao.est} onConectar={btSessao.conectar} onConfirmar={() => btSessao.confirmar(true)}
                 onDesconectar={desconectarEsteira} onAnotar={anotarDaEsteira} segAnotar={segEst} kmAnotar={mEst !== null ? mEst / 1000 : null}
                 fcSerie={fcResumoSerie} kmSomado={!cumEst.mDoPainel} metaSerie={metaConduzida}
+                retomar={quedaBloqueio ? { seg: segEst, km: mEst !== null ? mEst / 1000 : null } : null} onAnotarAteAqui={anotarAteAqui}
                 seguindo={(() => { const a = serieDaEsteira(); return a && a.ei === ei ? a.si + 1 : null; })()} />
             )}
             <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>

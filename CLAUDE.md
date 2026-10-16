@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v65) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v66) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1988,6 +1988,20 @@ distância e batimento reais sumiram. Daí:
 - **Esteira desligada no botão** derruba o Bluetooth (`gattserverdisconnected`
   → `ligada: false`): conta como parada, e a série é anotada com o último
   pacote. Conferido no navegador.
+- **Tela apagada não é esteira desligada** (`quedaBloqueio`, `telaApagou`).
+  O Chrome do Android corta o Bluetooth da página que some da vista, e isso
+  era lido como parada: a série fechava ("série anotada") com o dono ainda
+  caminhando, e o resto virava outra série. Hoje a queda com a página
+  escondida, ou nos 5 s depois de ela voltar, deixa a série **aberta e
+  pausada**: o tempo fica congelado na linha da série, o ▶ não volta, a voz e
+  o cartão dizem "nada se perdeu, reconecte" (o botão vira "Reconectar a
+  esteira"), e há "Já terminei: anotar a série até aqui". Reconectada e
+  confirmada (a confirmação continua obrigatória), a mesma série segue de
+  onde estava, com o tempo de tela apagada junto — o painel não parou.
+  `confirmouEst` lembra que a série é da esteira entre a queda e a nova
+  confirmação (o `confirmada` da conexão nova começa falso). Conferido no
+  navegador: 1:47, tela apagada, 2 min depois reconecta → 3:47, e uma série
+  só de 247 s ao parar; e finalizar sem reconectar grava os 107 s.
 - **"Finalizar treino" com a esteira andando** (`finalizar`, `finalizarPend`):
   anota a série aberta primeiro e só fecha o treino quando ela aparece feita
   na sessão — o `onFinalizar` do raiz lê a sessão dele, e chamar no mesmo

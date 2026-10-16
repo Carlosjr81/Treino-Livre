@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16a";
+const VERSAO_APP = "2026-10-16b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -1905,6 +1905,298 @@ function criarCardio(opcoes) {
     ligado() { return !!caracteristica; },
   };
 }
+
+// ---------------- ESTEIRA POR BLUETOOTH (FTMS) ----------------
+//
+// O padrão aberto das máquinas de academia: Fitness Machine Service, 0x1826,
+// publicado pelo Bluetooth SIG. A esteira transmite velocidade, inclinação,
+// distância e tempo, e aceita receber uma velocidade alvo. É o mesmo caminho
+// que o Zwift e o Kinomap usam — nada aqui é engenharia reversa.
+//
+// **Isto desfaz uma limitação que este arquivo já afirmou.** Durante muito
+// tempo valeu que "uma página não fala com a esteira" e o app só dizia a
+// velocidade para a pessoa pôr no painel. Fala, quando a esteira expõe FTMS.
+//
+// O que NÃO mudou: no iPhone não funciona. O Web Bluetooth existe no Chrome
+// do Android e no computador, e a Apple disse que não pretende implementar —
+// a mesma limitação que a cinta cardíaca já tem. A tela diz isso em vez de
+// oferecer um botão que não vai funcionar.
+
+const ESTEIRA_SERVICO = 0x1826;
+const ESTEIRA_DADOS = 0x2acd;          // Treadmill Data (notifica)
+const ESTEIRA_RECURSOS = 0x2acc;       // Fitness Machine Feature (lê)
+const ESTEIRA_FAIXA_VEL = 0x2ad4;      // Supported Speed Range (lê)
+const ESTEIRA_FAIXA_INCL = 0x2ad5;     // Supported Inclination Range (lê)
+const ESTEIRA_CONTROLE = 0x2ad9;       // Fitness Machine Control Point
+
+// Op Codes do ponto de controle (Tabela 4.15 da especificação)
+const FTMS_PEDIR_CONTROLE = 0x00;
+const FTMS_RESET = 0x01;
+const FTMS_VELOCIDADE = 0x02;          // UINT16, km/h, resolução 0,01
+const FTMS_INCLINACAO = 0x03;          // SINT16, %, resolução 0,1
+const FTMS_COMECAR = 0x07;
+const FTMS_PARAR = 0x08;               // parâmetro 0x01 = parar, 0x02 = pausar
+const FTMS_RESPOSTA = 0x80;
+const FTMS_SUCESSO = 0x01;
+
+const ESTEIRA_DISPONIVEL = typeof navigator !== "undefined" && !!navigator.bluetooth;
+
+// ---- Ler o pacote de dados (0x2ACD) ----
+//
+// Formato de bits: dois bytes de flags e, depois, só os campos que as flags
+// acusam, na ordem dos bits. Ler na ordem errada não dá erro — dá número
+// errado, que é pior. Por isso cada campo anda o tamanho exato dele.
+//
+// A flag 0 é invertida de propósito na especificação: "More Data" ligada quer
+// dizer que a velocidade NÃO veio neste pacote.
+function lerDadosEsteira(dv) {
+  if (!dv || dv.byteLength < 2) return null;
+  const flags = dv.getUint16(0, true);
+  let i = 2;
+  const out = {};
+  const tem = (bit) => (flags & (1 << bit)) !== 0;
+  const u8 = () => { const v = dv.getUint8(i); i += 1; return v; };
+  const u16 = () => { const v = dv.getUint16(i, true); i += 2; return v; };
+  const s16 = () => { const v = dv.getInt16(i, true); i += 2; return v; };
+  const u24 = () => { const v = dv.getUint8(i) | (dv.getUint8(i + 1) << 8) | (dv.getUint8(i + 2) << 16); i += 3; return v; };
+  const cabe = (n) => i + n <= dv.byteLength;
+
+  if (!tem(0) && cabe(2)) out.vel = u16() / 100;              // km/h
+  if (tem(1) && cabe(2)) out.velMedia = u16() / 100;
+  if (tem(2) && cabe(3)) out.metros = u24();
+  if (tem(3) && cabe(4)) { out.incl = s16() / 10; out.rampa = s16() / 10; }
+  if (tem(4) && cabe(4)) { out.subida = u16() / 10; out.descida = u16() / 10; }
+  if (tem(5) && cabe(1)) out.ritmo = u8() / 10;
+  if (tem(6) && cabe(1)) out.ritmoMedio = u8() / 10;
+  if (tem(7) && cabe(5)) { out.kcal = u16(); out.kcalHora = u16(); out.kcalMin = u8(); }
+  if (tem(8) && cabe(1)) out.bpm = u8();
+  if (tem(9) && cabe(1)) out.met = u8() / 10;
+  if (tem(10) && cabe(2)) out.segundos = u16();
+  if (tem(11) && cabe(2)) out.restante = u16();
+  if (tem(12) && cabe(4)) { out.forca = s16(); out.watts = s16(); }
+  return out;
+}
+
+// ---- As faixas que a máquina aceita ----
+// Mandar uma velocidade fora do que a esteira suporta é a receita para ela
+// recusar calada, ou pior, aceitar e fazer outra coisa. Ela mesma diz os
+// limites, então é com eles que se trabalha.
+function lerFaixaVelocidade(dv) {
+  if (!dv || dv.byteLength < 6) return null;
+  return { min: dv.getUint16(0, true) / 100, max: dv.getUint16(2, true) / 100, passo: dv.getUint16(4, true) / 100 };
+}
+function lerFaixaInclinacao(dv) {
+  if (!dv || dv.byteLength < 6) return null;
+  return { min: dv.getInt16(0, true) / 10, max: dv.getInt16(2, true) / 10, passo: dv.getUint16(4, true) / 10 };
+}
+
+// ---- A resposta do ponto de controle ----
+// [0x80, op pedido, resultado]. Resultado 0x01 é sucesso; o resto é recusa, e
+// a tela precisa saber qual para dizer algo útil.
+const MOTIVO_FTMS = {
+  0x02: "a esteira não aceita esse comando",
+  0x03: "valor fora do que a esteira aceita",
+  0x04: "a esteira não conseguiu executar",
+  0x05: "a esteira não está no modo que aceita comando do app",
+};
+function lerRespostaControle(dv) {
+  if (!dv || dv.byteLength < 3) return null;
+  if (dv.getUint8(0) !== FTMS_RESPOSTA) return null;
+  const op = dv.getUint8(1), res = dv.getUint8(2);
+  return { op: op, ok: res === FTMS_SUCESSO, codigo: res, motivo: res === FTMS_SUCESSO ? null : (MOTIVO_FTMS[res] || "a esteira recusou") };
+}
+
+// ---- Montar os comandos ----
+// A velocidade vai em centésimos de km/h e a inclinação em décimos de por
+// cento, os dois em little-endian — é o que a tabela 4.15 manda.
+function bytesVelocidade(kmh) {
+  const v = Math.round(Math.max(0, kmh) * 100);
+  return new Uint8Array([FTMS_VELOCIDADE, v & 0xff, (v >> 8) & 0xff]);
+}
+function bytesInclinacao(pct) {
+  const v = Math.round(pct * 10);
+  return new Uint8Array([FTMS_INCLINACAO, v & 0xff, (v >> 8) & 0xff]);
+}
+
+// ---- O limite que vale ----
+//
+// Três coisas limitam a velocidade que o app pode pedir, e a menor delas é a
+// que vale: o que a esteira aceita, o teto que a pessoa escolheu antes de
+// começar, e o bom senso de não existir comando sem teto nenhum.
+//
+// O teto da pessoa é o que importa de verdade. Quem está na esteira não
+// consegue ler a tela nem discutir: se o número for alto demais, ela cai. O
+// app precisa de um número que ela mesma disse que aguenta.
+const ESTEIRA_TETO_PADRAO = 16;
+// Para onde a esteira vai quando o treino acaba. Caminhada firme: a pessoa
+// desce o fôlego andando e para no painel quando quiser.
+const VEL_DESAQUECIMENTO = 5;
+function velocidadePermitida(kmh, faixa, teto) {
+  const f = faixa || {};
+  let v = Number(kmh) || 0;
+  const max = Math.min(f.max > 0 ? f.max : ESTEIRA_TETO_PADRAO, teto > 0 ? teto : ESTEIRA_TETO_PADRAO);
+  const min = f.min > 0 ? f.min : 0;
+  if (v > max) v = max;
+  if (v < min) v = min;
+  // encaixa no degrau que a máquina usa: pedir 8,37 numa esteira de passo 0,1
+  // é pedir algo que ela vai arredondar sozinha, e aí o app mostra um número
+  // e a esteira faz outro
+  if (f.passo > 0) v = Math.round(v / f.passo) * f.passo;
+  return Math.round(v * 100) / 100;
+}
+
+// ---- A conexão ----
+//
+// Uma página web NÃO consegue listar os aparelhos por perto, e isso é de
+// propósito: seria um rastreador pronto. Quem lista é o navegador, na janela
+// dele, e a pessoa escolhe. O que dá para fazer — e é o que faz a diferença —
+// é **filtrar pelo serviço 0x1826**, para que só apareçam máquinas de
+// academia, e não o fone, a TV e a geladeira do vizinho.
+//
+// Da segunda vez não há janela nenhuma: `getDevices()` devolve o que já foi
+// autorizado e a reconexão é automática.
+function criarEsteira(opcoes) {
+  const o = opcoes || {};
+  let dispositivo = null, servidor = null, dados = null, controle = null;
+  let faixaVel = null, faixaIncl = null, temControle = false;
+  let esperando = null;   // { op, resolve, reject, relogio }
+
+  const avisar = (e) => { if (o.aoEstado) o.aoEstado(e); };
+
+  const aoDado = (ev) => {
+    const d = lerDadosEsteira(ev.target.value);
+    if (d && o.aoDado) o.aoDado(d);
+  };
+
+  // O ponto de controle responde por indicação, não no retorno da escrita.
+  // Então toda ordem vira uma promessa que espera a resposta casada pelo op.
+  const aoResposta = (ev) => {
+    const r = lerRespostaControle(ev.target.value);
+    if (!r) return;
+    if (esperando && (esperando.op === r.op || r.op === FTMS_PEDIR_CONTROLE)) {
+      clearTimeout(esperando.relogio);
+      const e = esperando; esperando = null;
+      if (r.ok) e.resolve(r); else e.reject(new Error(r.motivo));
+    }
+    if (o.aoResposta) o.aoResposta(r);
+  };
+
+  const aoCair = () => {
+    dados = null; controle = null; temControle = false;
+    if (esperando) { clearTimeout(esperando.relogio); esperando.reject(new Error("a esteira desconectou")); esperando = null; }
+    avisar("caiu");
+  };
+
+  // Escreve no ponto de controle e espera a resposta. Sem prazo, uma esteira
+  // que simplesmente ignora o comando deixaria a tela presa em "mandando...".
+  function ordenar(bytes, op) {
+    if (!controle) return Promise.reject(new Error("sem controle da esteira"));
+    if (esperando) return Promise.reject(new Error("uma ordem ainda está em curso"));
+    return new Promise((resolve, reject) => {
+      esperando = { op: op, resolve: resolve, reject: reject,
+        relogio: setTimeout(() => { esperando = null; reject(new Error("a esteira não respondeu")); }, 4000) };
+      const escrever = controle.writeValueWithResponse
+        ? controle.writeValueWithResponse(bytes)
+        : controle.writeValue(bytes);
+      escrever.catch((err) => {
+        if (esperando) { clearTimeout(esperando.relogio); esperando = null; }
+        reject(err);
+      });
+    });
+  }
+
+  async function montar(dev) {
+    dispositivo = dev;
+    dispositivo.addEventListener("gattserverdisconnected", aoCair);
+    servidor = await dispositivo.gatt.connect();
+    const servico = await servidor.getPrimaryService(ESTEIRA_SERVICO);
+
+    dados = await servico.getCharacteristic(ESTEIRA_DADOS);
+    await dados.startNotifications();
+    dados.addEventListener("characteristicvaluechanged", aoDado);
+
+    // As faixas e o ponto de controle são opcionais na especificação: há
+    // esteira que só conta e não aceita comando. Ela continua valendo — a
+    // leitura sozinha já tira a digitação do caminho.
+    try { faixaVel = lerFaixaVelocidade(await (await servico.getCharacteristic(ESTEIRA_FAIXA_VEL)).readValue()); } catch (e) { faixaVel = null; }
+    try { faixaIncl = lerFaixaInclinacao(await (await servico.getCharacteristic(ESTEIRA_FAIXA_INCL)).readValue()); } catch (e) { faixaIncl = null; }
+    try {
+      controle = await servico.getCharacteristic(ESTEIRA_CONTROLE);
+      await controle.startNotifications();
+      controle.addEventListener("characteristicvaluechanged", aoResposta);
+    } catch (e) { controle = null; }
+
+    avisar("ligado");
+    return { nome: dispositivo.name || "Esteira", faixaVel: faixaVel, faixaIncl: faixaIncl, podeComandar: !!controle };
+  }
+
+  return {
+    // A janela do navegador, filtrada para só mostrar máquina de academia.
+    async procurar() {
+      if (!ESTEIRA_DISPONIVEL) throw new Error("sem bluetooth");
+      avisar("procurando");
+      const dev = await navigator.bluetooth.requestDevice({
+        filters: [{ services: [ESTEIRA_SERVICO] }],
+        optionalServices: [ESTEIRA_SERVICO, "heart_rate"],
+      });
+      return montar(dev);
+    },
+    // Da segunda vez em diante, sem janela nenhuma.
+    async reconectar() {
+      if (!ESTEIRA_DISPONIVEL || !navigator.bluetooth.getDevices) return null;
+      const lista = await navigator.bluetooth.getDevices().catch(() => []);
+      if (!lista || !lista.length) return null;
+      avisar("procurando");
+      for (const dev of lista) {
+        try { return await montar(dev); } catch (e) { /* tenta o próximo */ }
+      }
+      avisar("desligado");
+      return null;
+    },
+    // Pedir o controle é obrigatório antes de qualquer comando: a esteira
+    // recusa com "Control Not Permitted" se não for pedido.
+    async pedirControle() {
+      if (!controle) throw new Error("esta esteira não aceita comando do app");
+      await ordenar(new Uint8Array([FTMS_PEDIR_CONTROLE]), FTMS_PEDIR_CONTROLE);
+      temControle = true;
+      return true;
+    },
+    async definirVelocidade(kmh, teto) {
+      const v = velocidadePermitida(kmh, faixaVel, teto);
+      await ordenar(bytesVelocidade(v), FTMS_VELOCIDADE);
+      return v;
+    },
+    async definirInclinacao(pct) {
+      const f = faixaIncl;
+      let p = Number(pct) || 0;
+      if (f) { if (p > f.max) p = f.max; if (p < f.min) p = f.min; }
+      await ordenar(bytesInclinacao(p), FTMS_INCLINACAO);
+      return p;
+    },
+    // Parar é o único comando que nunca espera resposta para valer: se a
+    // esteira não responder, a pessoa aperta o botão vermelho dela. Mas a
+    // ordem sai assim mesmo.
+    parar() {
+      if (!controle) return Promise.resolve(false);
+      const bytes = new Uint8Array([FTMS_PARAR, 0x01]);
+      const p = controle.writeValueWithResponse ? controle.writeValueWithResponse(bytes) : controle.writeValue(bytes);
+      return p.then(() => true).catch(() => false);
+    },
+    desconectar() {
+      try { if (dados) dados.removeEventListener("characteristicvaluechanged", aoDado); } catch (e) {}
+      try { if (controle) controle.removeEventListener("characteristicvaluechanged", aoResposta); } catch (e) {}
+      try { if (dispositivo && dispositivo.gatt.connected) dispositivo.gatt.disconnect(); } catch (e) {}
+      dados = null; controle = null; temControle = false;
+      avisar("desligado");
+    },
+    ligada() { return !!dados; },
+    comanda() { return !!controle && temControle; },
+    faixas() { return { vel: faixaVel, incl: faixaIncl }; },
+    nome() { return dispositivo ? dispositivo.name || "Esteira" : ""; },
+  };
+}
+
+// ---------------- FIM DO MOTOR DA ESTEIRA ----------------
 
 // Acumula os batimentos do treino para virar média e máximo no histórico.
 // Um número por treino diz mais do que o gráfico que ninguém abre.
@@ -13566,9 +13858,15 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
 // GPS mostra se está no ritmo; na esteira o app diz a velocidade para pôr no
 // painel, e quem ajusta a esteira é a pessoa.
 const fmtKmhFala = (k) => num1(k) + " por hora";
-function textoAlvoFala(alvo, esteira) {
+// `comandada` muda o verbo, e isso importa mais do que parece: mandar alguém
+// "ajustar a esteira" logo depois de o app ter ajustado é a diferença entre
+// uma ferramenta que cuida e uma que dá ordem. Quem está correndo vai procurar
+// o painel sem necessidade — e tirar os olhos do caminho na esteira custa caro.
+function textoAlvoFala(alvo, esteira, comandada) {
   if (!alvo) return "";
-  if (esteira) return " Ajuste a esteira para " + fmtKmhFala(alvo.kmh) + ".";
+  if (esteira) return comandada
+    ? " Esteira indo para " + fmtKmhFala(alvo.kmh) + "."
+    : " Ajuste a esteira para " + fmtKmhFala(alvo.kmh) + ".";
   const p = alvo.paceSeg, m = Math.floor(p / 60), s = Math.round(p - m * 60);
   return " Ritmo de " + m + " minutos" + (s ? " e " + s : "") + " por quilômetro.";
 }
@@ -13583,6 +13881,147 @@ function FaixaIntervalo({ blocos, atual, tAtivo }) {
       {tAtivo != null && <div style={{ position: "absolute", top: 0, bottom: 0, left: (tAtivo / total) * 100 + "%", width: 3, background: "#FFFFFF" }} />}
     </div>
   );
+}
+// ---- O cartão de conexão com a esteira ----
+//
+// Conectar tem de ser um toque. A janela que aparece é a do navegador — uma
+// página não pode listar aparelhos por perto, e ainda bem — mas o filtro pelo
+// serviço 0x1826 faz com que só apareça máquina de academia, nunca o fone nem
+// a TV do vizinho. Da segunda vez não aparece janela nenhuma.
+function CartaoEsteira({ est, onConectar, onDesconectar, teto, setTeto }) {
+  if (!ESTEIRA_DISPONIVEL) {
+    return (
+      <div style={{ ...S.card, fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.55 }}>
+        <b style={{ color: "var(--texto)" }}>🔗 Conectar à esteira</b><br />
+        Este navegador não fala Bluetooth. Funciona no Chrome do Android e do computador;
+        no iPhone a Apple não oferece esse recurso a nenhum site. O treino continua
+        normal — o app diz a velocidade e você põe no painel.
+      </div>
+    );
+  }
+  const d = est.dado || {};
+  const faixa = est.faixa || {};
+  return (
+    <div style={S.card}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={S.label}>🔗 Esteira por Bluetooth</div>
+        {est.ligada && (
+          <button onClick={onDesconectar} style={{ background: "none", border: "none", color: "var(--cinza)", fontSize: 12, cursor: "pointer", padding: 0, textDecoration: "underline" }}>Desconectar</button>
+        )}
+      </div>
+
+      {!est.ligada ? (
+        <React.Fragment>
+          <div style={{ fontSize: 12.5, color: "var(--cinza)", margin: "8px 0 10px", lineHeight: 1.55 }}>
+            Se a sua esteira tem Bluetooth no padrão das academias (FTMS), o app lê a
+            velocidade sozinho — e pode conduzir o intervalado sem você tocar no painel.
+          </div>
+          <button onClick={onConectar} disabled={est.estado === "procurando"} style={{ ...S.btn, width: "100%" }}>
+            {est.estado === "procurando" ? "Procurando…" : "🔍 Procurar esteira"}
+          </button>
+          <div style={{ fontSize: 11, color: "var(--cinza)", marginTop: 7, lineHeight: 1.45 }}>
+            O navegador vai abrir a lista de aparelhos. Só aparecem máquinas de academia.
+            Ligue a esteira antes — desligada ela não anuncia nada.
+          </div>
+          {est.erro && <div style={{ fontSize: 12, color: "var(--perigo)", marginTop: 8, lineHeight: 1.45 }}>{est.erro}</div>}
+        </React.Fragment>
+      ) : (
+        <React.Fragment>
+          <div style={{ fontSize: 13.5, fontWeight: 800, margin: "6px 0 8px" }}>
+            <span style={{ color: "var(--ok)" }}>●</span> {est.nome}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <NumeroCorrida rot="velocidade" val={d.vel !== undefined ? num1(d.vel) : "—"} sub="km/h" cor="#E1306C" />
+            {d.incl !== undefined ? <NumeroCorrida rot="inclinação" val={num1(d.incl) + "%"} /> : null}
+            {d.metros !== undefined ? <NumeroCorrida rot="distância" val={num1(d.metros / 1000)} sub="km" /> : null}
+            {d.bpm ? <NumeroCorrida rot="❤ bpm" val={d.bpm} cor="#ED4956" /> : null}
+          </div>
+
+          {est.comanda ? (
+            <React.Fragment>
+              <div style={{ fontSize: 12.5, color: "var(--ok)", marginTop: 10, lineHeight: 1.5 }}>
+                ✓ Esta esteira aceita comando. O app vai acertar a velocidade de cada bloco sozinho.
+              </div>
+              <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 12, fontSize: 13.5 }}>
+                <span>Velocidade máxima que eu aguento</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <input type="number" inputMode="decimal" min="1" max={faixa.max || 25} step="0.5" aria-label="Velocidade máxima"
+                    value={teto || ""} onChange={(e) => setTeto(Math.max(0, parseFloat(e.target.value) || 0))}
+                    style={{ ...S.input, width: 86, padding: "9px 10px", textAlign: "right" }} />
+                  <span style={{ fontSize: 12, color: "var(--cinza)" }}>km/h</span>
+                </span>
+              </label>
+              <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 6, lineHeight: 1.5 }}>
+                <b style={{ color: "var(--obs)" }}>O app nunca passa desse número</b>, mesmo que o treino peça mais.
+                Quem está na esteira não consegue discutir com ela: escolha um valor que você
+                aguenta sem pensar.{faixa.max ? " Esta esteira vai até " + num1(faixa.max) + " km/h." : ""}
+              </div>
+              <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>
+                Quem começa e para a esteira é você, no painel dela. O app só muda a velocidade
+                de uma esteira que já está andando — e avisa por voz antes de cada troca.
+              </div>
+            </React.Fragment>
+          ) : (
+            <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
+              Esta esteira transmite os números mas não aceita comando do app. Já ajuda: a
+              velocidade e a distância entram sozinhas, sem digitar nada.
+            </div>
+          )}
+          {est.erro && <div style={{ fontSize: 12, color: "var(--perigo)", marginTop: 8, lineHeight: 1.45 }}>{est.erro}</div>}
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
+// O estado da esteira e a conexão, num gancho só: a tela do intervalado e
+// qualquer outra que venha a usar isso não precisam repetir nada disso.
+function usarEsteira() {
+  const ref = useRef(null);
+  const [est, setEst] = useState({ ligada: false, nome: "", comanda: false, dado: null, faixa: null, estado: "desligado", erro: "" });
+  const estRef = useRef(est);
+  estRef.current = est;
+
+  const montar = () => {
+    if (ref.current) return ref.current;
+    ref.current = criarEsteira({
+      aoDado: (d) => setEst((s) => Object.assign({}, s, { dado: d })),
+      aoEstado: (e) => setEst((s) => Object.assign({}, s, { estado: e },
+        e === "caiu" ? { ligada: false, comanda: false, erro: "A esteira desconectou." } : {})),
+    });
+    return ref.current;
+  };
+
+  const conectar = async () => {
+    const e = montar();
+    setEst((s) => Object.assign({}, s, { erro: "" }));
+    try {
+      const info = await e.procurar();
+      let comanda = false;
+      if (info.podeComandar) {
+        // Pedir o controle agora, e não na hora do primeiro bloco: melhor
+        // descobrir que a esteira não aceita antes de a pessoa começar a correr.
+        try { await e.pedirControle(); comanda = true; }
+        catch (x) { setEst((s) => Object.assign({}, s, { erro: "Conectou, mas não assumiu o comando: " + x.message })); }
+      }
+      setEst((s) => Object.assign({}, s, { ligada: true, nome: info.nome, comanda: comanda, faixa: info.faixaVel }));
+    } catch (x) {
+      const msg = /cancel|User cancelled|chooser/i.test(x.message || "")
+        ? "" : "Não consegui conectar: " + (x.message || "erro desconhecido");
+      setEst((s) => Object.assign({}, s, { erro: msg, estado: "desligado" }));
+    }
+  };
+
+  const desconectar = () => {
+    if (ref.current) ref.current.desconectar();
+    setEst({ ligada: false, nome: "", comanda: false, dado: null, faixa: null, estado: "desligado", erro: "" });
+  };
+
+  // Ao sair da tela, solta a esteira: deixar a conexão aberta impede que outro
+  // app (ou a própria esteira) a use depois.
+  useEffect(() => () => { if (ref.current) ref.current.desconectar(); }, []);
+
+  return { est: est, conectar: conectar, desconectar: desconectar, motor: () => ref.current, estRef: estRef };
 }
 function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, onPainel }) {
   const [cfg, setCfg] = useState({ modelo: "tiros", atividade: "corrida", ambiente: "rua", reps: null, blocos: [{ nivel: "forte", seg: 90 }, { nivel: "leve", seg: 120 }], semente: Date.now() % 100000 });
@@ -13604,6 +14043,24 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
   }, [historico, cfg.atividade]);
   const alvo = (nivel) => alvoDoNivel(nivel, ref);
   const esteira = cfg.ambiente === "esteira";
+  const bt = usarEsteira();
+  // O teto fica aqui e não na esteira: é da pessoa, não da máquina.
+  const [teto, setTeto] = useState(ESTEIRA_TETO_PADRAO);
+  const comandando = esteira && bt.est.ligada && bt.est.comanda;
+  // A última velocidade mandada, para a tela dizer o que o app pediu — e para
+  // a pessoa perceber na hora se a esteira não obedeceu.
+  const [pedido, setPedido] = useState(null);
+
+  // Manda a esteira para a velocidade do bloco. Nunca levanta exceção para
+  // cima: uma recusa da esteira não pode derrubar o treino inteiro — ela vira
+  // aviso na tela e a pessoa ajusta no painel, como sempre fez.
+  const mandarVelocidade = (kmh) => {
+    const m = bt.motor();
+    if (!m || !kmh) return;
+    m.definirVelocidade(kmh, teto)
+      .then((v) => setPedido({ kmh: v, cortado: v < kmh - 0.05, em: Date.now() }))
+      .catch((x) => setPedido({ erro: x.message || "a esteira recusou", em: Date.now() }));
+  };
   useEffect(() => { try { window.scrollTo(0, 0); } catch (e) {} }, [etapa]);
   useEffect(() => () => desligarTravaTela(), []);
 
@@ -13612,6 +14069,14 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
     const ok = jarvisFalar(texto, { falar: true, vozNome: vozCfg && vozCfg.vozNome, velocidade: (vozCfg && vozCfg.velocidade) || 1.1, animado: vozCfg ? vozCfg.animado : true, aoTerminar: fim });
     if (!ok) setTimeout(fim, 400);
   };
+  // `tratar` é chamada de dentro do relógio, que foi montado uma vez. Sem as
+  // refs ela enxergaria para sempre o primeiro valor de `comandando` — e o
+  // comando nunca sairia, porque na montagem a esteira ainda não existia.
+  const comandandoR = useRef(false);
+  comandandoR.current = comandando;
+  const mandarVelocidadeR = useRef(null);
+  mandarVelocidadeR.current = mandarVelocidade;
+
   const tratar = (evs) => {
     const se = sessao.current;
     evs.forEach((ev) => {
@@ -13624,15 +14089,25 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
         const b = ev.bloco, N = NIVEIS_INTERVALO[b.nivel];
         const a = alvo(b.nivel);
         const texto = (ev.indice === 0 ? "Vamos lá. " : "") + N.nome + " por " + textoDuracao(Math.round(b.dur / 1000)) + "." +
-          (a ? textoAlvoFala(a, esteira) : " Esforço " + N.rpe + " de 10: " + N.sente + ".") +
+          (a ? textoAlvoFala(a, esteira, comandandoR.current) : " Esforço " + N.rpe + " de 10: " + N.sente + ".") +
           (ev.proximo && b.dur >= 60000 ? " Depois: " + NIVEIS_INTERVALO[ev.proximo.nivel].nome.toLowerCase() + "." : "");
         filaR.current.limpar();
         try { window.speechSynthesis.cancel(); } catch (e) {}
         filaR.current.por({ texto: texto, prioridade: 3 }, () => se.blocoAtual() && se.blocoAtual().id === b.id);
+        // A esteira acerta a velocidade junto com o anúncio. Os três bipes do
+        // 3-2-1 já tocaram antes: a pessoa sabe que a troca vem.
+        if (comandandoR.current && a) mandarVelocidadeR.current(a.kmh);
         return;
       }
       if (ev.tipo === "metade") { filaR.current.por({ texto: "Metade. Segura.", prioridade: 1 }, () => se.blocoAtual() && se.blocoAtual().id === ev.bloco.id); return; }
-      if (ev.tipo === "fim") { filaR.current.por({ texto: "Treino concluído. Muito bem!", prioridade: 4 }, () => true); encerrar(); }
+      if (ev.tipo === "fim") {
+        filaR.current.por({ texto: "Treino concluído. Muito bem!", prioridade: 4 }, () => true);
+        // Não para a esteira no fim: largar alguém em 14 km/h é ruim, mas
+        // parar de repente com a pessoa correndo é pior. Desacelera para
+        // caminhada e deixa ela parar no painel, como se faz na vida.
+        if (comandandoR.current && mandarVelocidadeR.current) mandarVelocidadeR.current(VEL_DESAQUECIMENTO);
+        encerrar();
+      }
     });
   };
   // GPS: velocidade nativa se a precisão deixar; senão distância ÷ tempo de 5 a 15 s
@@ -13818,10 +14293,18 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
               </div>
               <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>
                 {fonteRef ? "Ritmos calculados " + fonteRef + ". " : "Sem histórico de " + (cfg.atividade === "caminhada" ? "caminhada" : "corrida") + " ainda: os blocos são guiados pela sensação de esforço (0 a 10). Depois de algumas atividades, o app passa a sugerir o ritmo. "}
-                {esteira ? "Na esteira, o app diz a velocidade a pôr no painel; quem ajusta é você." : "Na rua, o GPS mostra se você está no ritmo. Deixe a tela ligada."}
+                {!esteira ? "Na rua, o GPS mostra se você está no ritmo. Deixe a tela ligada."
+                  : comandando ? "A esteira está conectada e o app acerta a velocidade de cada bloco sozinho."
+                  : bt.est.ligada ? "A esteira está conectada: a velocidade entra sozinha. A troca de ritmo quem faz é você, no painel."
+                  : "Na esteira, o app diz a velocidade a pôr no painel; quem ajusta é você — ou conecte a esteira abaixo."}
               </div>
               {cfg.modelo === "fartlek" && <button onClick={() => up("semente", Date.now() % 100000)} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13 }}>🎲 Sortear outro fartlek</button>}
               <button onClick={comecar} style={{ ...S.btn, width: "100%", marginTop: 12 }}>▶ Começar</button>
+              {esteira && (
+                <div style={{ margin: "12px -14px -14px" }}>
+                  <CartaoEsteira est={bt.est} onConectar={bt.conectar} onDesconectar={bt.desconectar} teto={teto} setTeto={setTeto} />
+                </div>
+              )}
               {onPainel && <button onClick={onPainel} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13 }}>📊 Ver meus ritmos no painel do corredor</button>}
             </React.Fragment>
           )}
@@ -13834,7 +14317,9 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
   if (etapa === "sessao" && se) {
     const b = se.blocoAtual() || se.blocos[se.blocos.length - 1];
     const N = NIVEIS_INTERVALO[b.nivel], a = alvo(b.nivel), prox = se.proximo();
-    const kmh = esteira ? null : kmhAgora();
+    // Com a esteira conectada, a velocidade real vem dela — e aí dá para
+    // comparar com o alvo do bloco igual se faz na rua com o GPS.
+    const kmh = esteira ? (bt.est.dado && bt.est.dado.vel !== undefined ? bt.est.dado.vel : null) : kmhAgora();
     const cmp = comparaRitmo(kmh, a);
     const resta = se.restanteBloco();
     return (
@@ -13849,6 +14334,24 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
           <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8 }}>
             {a ? (esteira ? "Esteira em " + num1(a.kmh) + " km/h" : "Alvo " + fmtPaceSeg(a.paceSeg) + " /km · " + num1(a.kmh) + " km/h") : "Esforço " + N.rpe + " de 10 · " + N.sente}
           </div>
+          {esteira && bt.est.ligada && (
+            <div style={{ fontSize: 14, marginTop: 6 }}>
+              Na esteira agora: <b>{kmh !== null ? num1(kmh) + " km/h" : "—"}</b>
+              {cmp && <span style={{ marginLeft: 8, padding: "2px 8px", borderRadius: 8, fontWeight: 900, fontSize: 12,
+                background: cmp === "no ritmo" ? "#4CD13733" : "#F5852933", color: cmp === "no ritmo" ? "var(--ok)" : "#F58529" }}>
+                {cmp === "no ritmo" ? "✓ no ritmo" : cmp === "abaixo" ? "↑ abaixo do alvo" : "↓ acima do alvo"}</span>}
+            </div>
+          )}
+          {/* O que o app PEDIU. Sem isto, uma esteira que recusa o comando
+              calada deixaria a pessoa correndo no ritmo errado achando que o
+              app estava cuidando disso. */}
+          {comandando && pedido && (
+            <div style={{ fontSize: 12.5, marginTop: 6, color: pedido.erro ? "var(--perigo)" : pedido.cortado ? "var(--obs)" : "var(--cinza)" }}>
+              {pedido.erro ? "⚠ A esteira não aceitou o comando (" + pedido.erro + "). Ajuste no painel dela."
+                : pedido.cortado ? "Pedi " + num1(pedido.kmh) + " km/h — o seu limite de " + num1(teto) + " km/h segurou aí."
+                : "Pedi " + num1(pedido.kmh) + " km/h à esteira."}
+            </div>
+          )}
           {!esteira && (
             <div style={{ fontSize: 14, marginTop: 6 }}>
               Agora: <b>{kmh ? fmtPaceSeg(3600 / kmh) + " /km" : "sem leitura do GPS"}</b>
@@ -13868,6 +14371,16 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
             : <button onClick={pausar} style={{ ...S.btn, gridColumn: "1 / 3", padding: "16px 10px", fontSize: 16 }}>⏸ Pausar</button>}
           <button disabled={se.s.pausado} onClick={() => { se.pular(); }} style={{ ...S.btnGhost, padding: "14px 8px", fontWeight: 900 }}>⏭ Pular bloco</button>
           <button disabled={se.s.pausado} onClick={() => { se.estender(30000); setLegenda("Mais 30 segundos neste bloco."); }} style={{ ...S.btnGhost, padding: "14px 8px", fontWeight: 900 }}>+30 s</button>
+          {/* Parar a esteira é separado de encerrar o treino de propósito: na
+              hora do aperto ninguém procura o botão certo, e o que a pessoa
+              quer é a esteira parando. O botão vermelho da própria esteira
+              continua sendo o caminho mais rápido — este é o que está na mão. */}
+          {comandando && (
+            <button onClick={() => { const m = bt.motor(); if (m) m.parar(); pausar(); setPedido({ kmh: 0, em: Date.now() }); }}
+              style={{ ...S.btn, gridColumn: "1 / 3", padding: "16px 10px", fontSize: 16, background: "var(--perigo)" }}>
+              ⏹ PARAR A ESTEIRA
+            </button>
+          )}
           <button onClick={() => { pausar(); encerrar(); }} style={{ ...S.btnGhost, gridColumn: "1 / 3", padding: "14px 8px", fontWeight: 900, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}>■ Encerrar</button>
         </div>
       </div>

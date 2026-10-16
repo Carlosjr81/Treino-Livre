@@ -26,6 +26,7 @@ const SUITES = [
   ["teste-metas", "metas, esforco relativo e a forma (condicionamento x fadiga)"],
   ["teste-zumbi", "a modalidade zumbi: perseguicao, plano, historia e falas"],
   ["teste-intervalado", "o intervalado: modelos, alvos, relogio dos blocos e resumo"],
+  ["teste-esteira", "a esteira por bluetooth: pacote FTMS, comandos e a conversa"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");
@@ -41,7 +42,11 @@ for (const [nome, oque] of SUITES) {
     saida = (e.stdout || "") + (e.stderr || "");
     erro = true;
   }
-  const m = saida.match(/(\d+) passou \/ (\d+) falhou/);
+  // A ÚLTIMA ocorrência, não a primeira. Uma suíte que imprima um placar no
+  // meio — e já houve — fazia o total sair menor sem ninguém notar: 38 de 57
+  // contadas, e nada vermelho na tela para denunciar.
+  const todas = saida.match(/(\d+) passou \/ (\d+) falhou/g);
+  const m = todas && todas.length ? todas[todas.length - 1].match(/(\d+) passou \/ (\d+) falhou/) : null;
   if (!m) {
     quebrados++;
     console.log("  !!  " + nome.padEnd(22) + "nao rodou");

@@ -1593,9 +1593,13 @@ em aparelho**: GPS de verdade, esteira física, celular bloqueado, Bluetooth.
 
 "Caminhada e corrida em que o ritmo varia" — o dono não sabia o nome; é o
 **treino intervalado**. Botão **⏱ Intervalado** na tela inicial e no preparo do
-percurso. Rua (GPS mostra se está no ritmo) ou esteira (o app diz a velocidade
-para pôr no painel: **quem ajusta a esteira é a pessoa**, uma página não fala com
-a esteira).
+percurso. Rua (GPS mostra se está no ritmo) ou esteira.
+
+**Na esteira há dois caminhos hoje.** Sem conexão, o app diz a velocidade e quem
+ajusta é a pessoa. **Com a esteira conectada por Bluetooth, o app acerta a
+velocidade de cada bloco sozinho** — ver *A esteira por Bluetooth*. Esta linha
+já afirmou que "uma página não fala com a esteira"; fala, quando a esteira expõe
+o padrão FTMS.
 
 Modelos (`MODELOS_INTERVALO`), cada um com a explicação na tela:
 
@@ -1633,11 +1637,105 @@ Modelos (`MODELOS_INTERVALO`), cada um com a explicação na tela:
 
 Coberto por `teste-intervalado.js` (38 checagens).
 
+## A esteira por Bluetooth (FTMS)
+
+Pedido do dono: conectar o app à esteira, de um jeito fácil, e deixar o
+intervalado conduzir a velocidade sem as mãos.
+
+**Funciona pelo padrão aberto das máquinas de academia**: Fitness Machine
+Service, `0x1826`, publicado pelo Bluetooth SIG — o mesmo caminho do Zwift e do
+Kinomap. Nada aqui é engenharia reversa, e os bytes saem da especificação.
+
+| O que | Onde |
+|---|---|
+| velocidade, inclinação, distância, tempo, bpm | `0x2ACD`, notificado ~1×/s |
+| o que a máquina aceita de velocidade | `0x2AD4` (min, max, passo) |
+| mandar velocidade / inclinação | `0x2AD9`, op `0x02` / `0x03` |
+| parar | `0x2AD9`, op `0x08` com parâmetro `0x01` |
+
+### A varredura é do navegador, e tem de ser
+
+**Uma página não pode listar os aparelhos por perto**, e isso é de propósito:
+seria um rastreador pronto. Quem lista é o navegador, na janela dele. O que dá
+para fazer — e é o que muda a experiência — é **filtrar pelo serviço `0x1826`**,
+para que só apareça máquina de academia e não o fone nem a TV do vizinho.
+Da segunda vez não há janela: `getDevices()` devolve o que já foi autorizado e
+`reconectar()` volta sozinho.
+
+### As regras de segurança, e por que cada uma existe
+
+Mudar a velocidade de uma esteira com alguém em cima não é como mudar um campo
+de formulário. Quem está correndo não consegue ler a tela, discutir nem recuar.
+
+1. **O teto é da pessoa, não da máquina.** Antes de começar ela diz a velocidade
+   máxima que aguenta, e `velocidadePermitida` toma **o menor** entre esse teto,
+   o máximo da esteira e um padrão — nessa ordem. Nenhum treino passa disso.
+2. **O app não liga nem desliga a esteira.** Quem começa e para é a pessoa, no
+   painel. O app só muda a velocidade de uma esteira que já está andando.
+3. **A troca vem anunciada.** Os três bipes do 3-2-1 já existiam antes de cada
+   bloco; a velocidade muda junto com o anúncio, nunca antes dele.
+4. **A tela diz o que foi pedido.** Sem isso, uma esteira que recusa o comando
+   calada deixaria a pessoa correndo no ritmo errado achando que o app cuidava.
+5. **⏹ PARAR A ESTEIRA é um botão separado do Encerrar.** Na hora do aperto
+   ninguém procura o botão certo. (O botão vermelho da própria esteira continua
+   sendo o caminho mais rápido — este é o que está na mão.)
+6. **No fim, desacelera para caminhada** (`VEL_DESAQUECIMENTO`) em vez de parar:
+   largar alguém em 14 km/h é ruim, parar de repente com a pessoa correndo é pior.
+7. **A velocidade encaixa no degrau da máquina.** Pedir 8,37 numa esteira de
+   passo 0,1 é pedir algo que ela arredonda sozinha — e aí a tela mostra um
+   número e a esteira faz outro.
+
+### O que pode dar errado, e o que o app faz
+
+- **A esteira só conta e não aceita comando.** É comum, e continua valendo: a
+  velocidade e a distância entram sozinhas, sem digitar. A tela diz isso.
+- **A esteira recusa** (`Control Not Permitted` etc.): vira frase em português
+  (`MOTIVO_FTMS`), não código de erro.
+- **A esteira ignora o comando**: toda ordem tem prazo de 4 s. Sem isso a tela
+  ficaria presa em "mandando…" para sempre.
+- **A conexão cai**: o estado volta para desconectado e a tela avisa.
+- **Recusa no meio do treino não derruba o treino.** Vira aviso; a pessoa ajusta
+  no painel como sempre fez.
+
+### O que não funciona, e não é escolha nossa
+
+**No iPhone não funciona.** O Web Bluetooth existe no Chrome do Android e do
+computador; a Apple não o oferece a nenhum site e disse que não pretende. É a
+mesma limitação da cinta cardíaca. **A tela diz isso em vez de mostrar um botão
+que não vai funcionar.**
+
+**Nem toda esteira expõe FTMS.** Muita máquina de academia grande usa protocolo
+próprio e só conversa com o app da marca. O jeito de descobrir é a esteira
+anunciar o `0x1826` — e o filtro da busca já faz essa prova: se ela não aparece
+na lista, não é compatível.
+
+### Como isso foi testado sem uma esteira
+
+`teste-esteira.js` (57 checagens) tem duas metades. A primeira monta pacotes
+**byte a byte a partir da especificação** e confere a leitura: é código de bits,
+em que ler um campo na ordem errada não dá erro — dá número errado, que é pior,
+porque aparece na tela com cara de verdade.
+
+A segunda é uma **esteira de mentira** (`esteiraFalsa`), o mesmo molde que o
+projeto usa para falar com o Jarvis sem microfone. Ela prova a coreografia que
+é o risco real: pedir controle antes de comandar, casar cada resposta com a
+ordem certa, e os três casos ruins — a que recusa, a que não responde e a que
+só conta.
+
+No navegador, a mesma esteira falsa foi injetada no lugar do `requestDevice` e o
+treino rodou inteiro: conectar, pedir controle, `[0x02, 0x66, 0x03]` = 8,70 km/h
+no primeiro bloco, `[0x02, 0x4C, 0x04]` = 11,00 no seguinte, e `[0x08, 0x01]` no
+botão de parar. **O que só aparece assim**: a voz mandava "ajuste a esteira para
+8,7" logo depois de o app ter ajustado. `textoAlvoFala` agora sabe se o app
+comandou — e a diferença entre as duas frases é a diferença entre uma ferramenta
+que cuida e uma que dá ordem.
+
 ## Monitor cardíaco, e o que a web não alcança
 
 **Funciona:** qualquer monitor que exponha o serviço padrão de frequência
 cardíaca do Bluetooth (0x180D) — cintas peitorais Polar, Garmin, Wahoo e
-sensores de braço. O navegador fala direto com o aparelho, sem app no meio e
+sensores de braço. E, pelo mesmo caminho, a esteira que expõe o `0x1826`
+(ver *A esteira por Bluetooth*). O navegador fala direto com o aparelho, sem app no meio e
 sem servidor. A pessoa escolhe o dispositivo na janela do próprio navegador.
 O batimento aparece no treino e a média e o máximo entram no registro (`bpm`).
 
@@ -2178,7 +2276,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 14 suítes (611 checagens)
+node testes/rodar.js      # as 15 suítes (668 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

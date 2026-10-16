@@ -84,7 +84,7 @@ Treino-Livre/
 ├── CLAUDE.md            ← este arquivo: o contexto do projeto
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
-└── testes/              ← as 19 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 20 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -99,7 +99,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 794 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 805 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -140,7 +140,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 794 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 805 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v61) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v62) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1955,6 +1955,44 @@ entra o que a máquina mediu **desde a série anterior** (`extrasEsteira`,
   num treino de esteira mostrava "0 reps" e agora mostra distância, kcal,
   batimento e subida.
 
+### O batimento em pedaços (`criarLeituraFc`, coberto por `teste-fc.js`)
+
+Pedido do dono: "nem sempre estarei com as mãos onde capta o batimento".
+Ninguém corre segurando o pegador, então o que chega são trechos. As regras:
+
+- **Só leitura nova conta** (`bpmEm`, a hora em que o batimento chegou).
+  Juntar os pacotes deixa o último número parado no objeto; somado a cada
+  pacote, com as mãos fora do pegador, a média congelaria nele.
+- **Cada leitura vale até a seguinte, no máximo 3 s.** A média é pelo tempo
+  medido: quatro minutos sem as mãos não puxam a média nem a inventam.
+- **Salto de mais de 20 bpm por segundo é ruído** do pegador mal tocado.
+- **O pico é a maior mediana de três leituras seguidas**: um número solto não
+  vira o recorde do treino.
+- **A série guarda `bpmCob`**, a parte do tempo que foi medida, e a tela diz
+  "medido em 40% do tempo" abaixo de 90%. No resumo de várias séries, cada
+  média pesa pelo tempo medido nela.
+
+### Sem esteira conectada (a maioria das academias)
+
+Nem toda esteira tem FTMS, e o dono lembrou disso. Dois caminhos, nenhum
+depende da máquina:
+
+- **Passos e cadência pelo celular** enquanto o ▶ de uma série de esteira roda
+  (`passosEst`, o mesmo `criarContadorPassos` do percurso). O toque no ▶ é o
+  gesto que o iPhone exige para liberar o acelerômetro. **Celular parado no
+  suporte não balança**: abaixo de 40 passos/min, ou com menos de 30 passos, ou
+  em menos de meio minuto, nada é gravado — melhor do que um zero. Ficam
+  `passos` e `cad` na série; o painel mostra "👣 2.410 passos · 159 por minuto".
+- **"📟 Confira no painel da esteira"**: depois de marcar uma série sem
+  conexão, uma linha opcional pede a distância e as kcal do painel. Quem muda a
+  velocidade no meio da série erra a conta tempo × velocidade; a distância do
+  painel corrige, porque o `km` digitado vence a conta (`medirCardio`).
+- `cad` de esteira também é medida: o `moldeCardio` não a copia para a
+  série seguinte (na escada, onde a cadência é o número do painel, copia).
+- **Achado no teste**: o painel dividia os passos pelo minuto planejado da
+  série, e não pelo tempo em que foram contados (91/min em vez de 159). Mostra
+  a cadência gravada.
+
 ### O que pode dar errado, e o que o app faz
 
 - **A esteira manda os números em pacotes alternados.** O padrão divide o que
@@ -2619,7 +2657,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 19 suítes (794 checagens)
+node testes/rodar.js      # as 20 suítes (805 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

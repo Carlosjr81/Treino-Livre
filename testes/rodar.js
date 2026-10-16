@@ -1,4 +1,4 @@
-// Roda as 17 suites e devolve um resumo.
+// Roda as 18 suites e devolve um resumo.
 //
 //   node rodar.js
 //
@@ -27,6 +27,7 @@ const SUITES = [
   ["teste-zumbi", "a modalidade zumbi: perseguicao, plano, historia e falas"],
   ["teste-intervalado", "o intervalado: modelos, alvos, relogio dos blocos e resumo"],
   ["teste-esteira", "a esteira por bluetooth: pacote FTMS, comandos e a conversa"],
+  ["teste-inicio", "a tela inicial: qual e o treino de hoje"],
   ["teste-desafio", "o desafio: mesma regua de tempo, posicoes, ultrapassagem e MQTT"],
 ];
 

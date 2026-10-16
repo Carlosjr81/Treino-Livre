@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16d";
+const VERSAO_APP = "2026-10-16e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -7297,12 +7297,67 @@ function FaixaProgresso({ est, historico, meta, onAbrirProgresso }) {
 }
 
 // ---------------- TELA INICIAL ----------------
+// ---- O treino de hoje ----
+// Quem abre o app quer saber uma coisa: "o que eu faço hoje?". Uma lista de
+// seis fichas do mesmo tamanho não responde — a pessoa tinha de decidir sozinha,
+// e quem chega pela primeira vez não sabe nem por onde começar. Então o app
+// escolhe uma, diz por quê, e as outras ficam a um toque.
+//
+//   1. a ficha com o dia de hoje no nome ("Sexta - Pernas e Ombros");
+//   2. senão, a que vem depois da última feita, no mesmo programa (A → B → C → A);
+//   3. senão, a primeira.
+const DIAS_FICHA = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
+function fichaDeHoje(programas, treinos, historico, agora) {
+  const comItens = (treinos || []).filter((t) => t.itens && t.itens.length);
+  if (!comItens.length) return null;
+  const ordem = [];
+  (programas || []).forEach((p) => comItens.forEach((t) => { if (t.programaId === p.id) ordem.push(t); }));
+  comItens.forEach((t) => { if (ordem.indexOf(t) < 0) ordem.push(t); });
+  const hoje = DIAS_FICHA[(agora || new Date()).getDay()];
+  const doDia = ordem.find((t) => new RegExp("\\b" + hoje + "\\b").test(semAcento(t.nome)));
+  if (doDia) return { ficha: doDia, motivo: "Hoje é " + (hoje === "terca" ? "terça" : hoje === "sabado" ? "sábado" : hoje) + "." };
+  const ultimo = (historico || [])[0];
+  const feita = ultimo && ordem.find((t) => t.nome === ultimo.nome);
+  if (feita) {
+    const irmas = ordem.filter((t) => t.programaId === feita.programaId);
+    const prox = irmas[(irmas.indexOf(feita) + 1) % irmas.length];
+    if (prox && prox !== feita) return { ficha: prox, motivo: "A última foi " + feita.nome + "; agora é a vez desta." };
+  }
+  return { ficha: ordem[0], motivo: (historico || []).length ? "" : "Uma boa para começar." };
+}
+// ---- fim do treino de hoje
+
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
   avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
   convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi, onIntervalado, onDesafio }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
+  const hoje = useMemo(() => fichaDeHoje(programas, treinos, historico), [programas, treinos, historico]);
+  const [verTodas, setVerTodas] = useState(false);
+  const novato = !historico.length;
+  // Os outros jeitos de treinar, lado a lado: cada um com uma linha dizendo para
+  // que serve. Sete botões coloridos do mesmo tamanho, um embaixo do outro, era
+  // uma parede — ninguém sabia qual tocar.
+  const jeitos = [
+    { icone: "🧭", nome: "Montar pra mim", diz: "responda 3 perguntas", cor: "#E1306C", onClick: onAssistente },
+    { icone: "🏋️", nome: "Treino livre", diz: "escolha na hora", cor: "var(--texto)", onClick: onTreinoLivre, se: temFichas },
+    { icone: "⚡", nome: "Funcional", diz: "em casa, a câmera conta", cor: "#4CD137", onClick: onFuncional },
+    { icone: "🗺", nome: "Corrida na rua", diz: "GPS, mapa e ritmo", cor: "#4C9BE8", onClick: onPercurso },
+    { icone: "⏱", nome: "Intervalado", diz: "o ritmo que varia", cor: "#F5A623", onClick: onIntervalado },
+    { icone: "🏁", nome: "Desafio", diz: "corra contra amigos", cor: "#E1306C", onClick: onDesafio },
+    { icone: "🧟", nome: NOME_ZUMBI, diz: "fuja dos monstros correndo", cor: "#7CFF3C", onClick: onZumbi, largo: true },
+  ].filter((j) => j.onClick && j.se !== false);
+  const cartaoInstalar = !instalado && (
+    <div style={{ ...S.card, borderColor: "#E1306C44" }}>
+      <div style={S.label}>📲 Instalar na tela inicial</div>
+      <div style={{ fontSize: 14, lineHeight: 1.6, margin: "8px 0 12px", color: "var(--cinza)" }}>
+        Abre em tela cheia, direto do ícone, e funciona na academia mesmo sem internet.
+        Seus treinos também ficam mais seguros do que numa aba perdida.
+      </div>
+      <button style={S.btn} onClick={onInstalar}>Baixar o app</button>
+    </div>
+  );
   return (
     <div style={{ padding: "0 18px" }}>
       {NAVEGADOR_INAPP && (
@@ -7329,84 +7384,77 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
           este cartão não depende mais do navegador se manifestar: quando não há
           diálogo, ele ensina o caminho à mão. Era a maior parte do "não consegui
           instalar". */}
-      {!instalado && (
-        <div style={{ ...S.card, borderColor: "#E1306C44" }}>
-          <div style={S.label}>📲 Instalar na tela inicial</div>
-          <div style={{ fontSize: 14, lineHeight: 1.6, margin: "8px 0 12px", color: "var(--cinza)" }}>
-            Abre em tela cheia, direto do ícone, e funciona na academia mesmo sem internet.
-            Seus treinos também ficam mais seguros do que numa aba perdida.
-          </div>
-          <button style={S.btn} onClick={onInstalar}>Baixar o app</button>
-        </div>
-      )}
 
-      {/* Só enquanto não há nenhum treino feito. A tela inicial continua enxuta:
-          este painel some sozinho depois do primeiro. */}
-      {!historico.length && (
-        <BemVindo onAssistente={onAssistente} onFuncional={onFuncional} onEscolaVoz={onEscolaVoz} />
-      )}
 
-      {/* O que a pessoa vem fazer aqui: começar o treino */}
+      {/* O que a pessoa vem fazer aqui: começar o treino. O app escolhe a ficha
+          de hoje e diz por quê; as outras ficam a um toque. */}
       <div style={{ ...S.card, borderColor: "#E1306C44" }}>
-        <div style={S.label}>Começar agora</div>
-        <div style={{ fontSize: 18, fontWeight: 800, margin: "6px 0 12px" }}>
-          {temFichas ? "Escolha sua ficha e bora treinar" : "Vamos montar seu primeiro treino"}
-        </div>
-        {temFichas ? (
-          programas.map((p) => {
-            const fichas = treinos.filter((t) => t.programaId === p.id);
-            if (!fichas.length) return null;
-            return (
-              <div key={p.id} style={{ marginBottom: 8 }}>
-                <div style={{ ...S.label, margin: "8px 0 8px" }}>📋 {p.nome}</div>
-                {fichas.map((t) => (
-                  <button key={t.id} style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}>▶ {t.nome}</button>
-                ))}
+        {hoje ? (
+          <React.Fragment>
+            <div style={S.label}>Seu treino de hoje</div>
+            <div style={{ fontSize: 21, fontWeight: 900, margin: "6px 0 2px", lineHeight: 1.25 }}>{hoje.ficha.nome}</div>
+            <div style={{ fontSize: 13, color: "var(--cinza)", marginBottom: 12, lineHeight: 1.5 }}>
+              {hoje.ficha.itens.length} {plural(hoje.ficha.itens.length, "exercício", "exercícios")}
+              {" · cerca de " + Math.max(20, Math.round(hoje.ficha.itens.reduce((a, it) => a + (Number(it.series) || 3), 0) * 2.2 / 5) * 5) + " min"}
+              {hoje.motivo ? " · " + hoje.motivo : ""}
+            </div>
+            <button style={{ ...S.btn, fontSize: 17, padding: "16px 12px" }} onClick={() => onTreinar(hoje.ficha)}>▶ Começar este treino</button>
+            {novato && (
+              <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
+                É uma ficha de exemplo. Achou puxada demais, ou de menos?{" "}
+                <button onClick={onAssistente} style={{ background: "none", border: "none", padding: 0, color: "#E1306C", fontWeight: 800, fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}>
+                  Monte uma no seu nível
+                </button>{" "}— leva um minuto.
               </div>
-            );
-          })
+            )}
+            {treinos.length > 1 && (
+              <button style={{ ...S.btnGhost, marginTop: 10, fontWeight: 800 }} onClick={() => setVerTodas((v) => !v)} aria-expanded={verTodas}>
+                {verTodas ? "▴ Esconder as outras fichas" : "▾ Escolher outra ficha (" + (treinos.length - 1) + ")"}
+              </button>
+            )}
+            {verTodas && programas.map((p) => {
+              const fichas = treinos.filter((t) => t.programaId === p.id && t !== hoje.ficha);
+              if (!fichas.length) return null;
+              return (
+                <div key={p.id} style={{ marginTop: 8 }}>
+                  <div style={{ ...S.label, margin: "8px 0 8px" }}>📋 {p.nome}</div>
+                  {fichas.map((t) => (
+                    <button key={t.id} style={{ ...S.btnGhost, marginBottom: 8, fontWeight: 800, textAlign: "left" }} onClick={() => onTreinar(t)}>▶ {t.nome}</button>
+                  ))}
+                </div>
+              );
+            })}
+          </React.Fragment>
         ) : (
           <React.Fragment>
+            <div style={S.label}>Começar agora</div>
+            <div style={{ fontSize: 18, fontWeight: 800, margin: "6px 0 12px" }}>Vamos montar seu primeiro treino</div>
             <button style={{ ...S.btn, marginBottom: 8 }} onClick={onAssistente}>🧭 Montar treino pra mim</button>
             <button style={S.btnGhost} onClick={onCriarPrograma}>+ Criar treino do zero</button>
           </React.Fragment>
         )}
-        {temFichas && (
-          <React.Fragment>
-            <button style={{ ...S.btnGhost, marginTop: 4, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onAssistente}>
-              🧭 Montar treino pra mim (assistente)
+      </div>
+
+      {/* Só enquanto não há nenhum treino feito, e DEPOIS do treino de hoje: a
+          primeira coisa da tela é o que fazer, a explicação vem em seguida. */}
+      {novato && (
+        <BemVindo onAssistente={onAssistente} onFuncional={onFuncional} onEscolaVoz={onEscolaVoz} />
+      )}
+
+      {novato && cartaoInstalar}
+
+      <div style={S.card}>
+        <div style={S.label}>Outros jeitos de treinar</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+          {jeitos.map((j) => (
+            <button key={j.nome} onClick={j.onClick}
+              style={{ gridColumn: j.largo ? "1 / 3" : "auto", textAlign: "left", padding: "11px 12px", borderRadius: 12, cursor: "pointer",
+                background: "var(--bg2)", border: "1px solid var(--borda2)", color: "var(--texto)", minHeight: 64 }}>
+              <div style={{ fontSize: 14, fontWeight: 900, color: j.cor }}>{j.icone} {j.nome}</div>
+              <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 3, lineHeight: 1.35 }}>{j.diz}</div>
             </button>
-            <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800 }} onClick={onTreinoLivre}>
-              🏋️ Treino livre (montar na hora)
-            </button>
-          </React.Fragment>
-        )}
-        {/* Funcional não depende de ter ficha montada: é o caminho mais curto
-            entre abrir o app e estar suando, e por isso aparece sempre. */}
-        <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800, color: "#4CD137", borderColor: "#4CD13766" }}
-          onClick={onFuncional}>
-          ⚡ Treino funcional (a câmera conta)
-        </button>
-        {/* Também fora do temFichas: sair para correr não depende de ficha montada */}
-        <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800, color: "#4C9BE8", borderColor: "#4C9BE866" }}
-          onClick={onPercurso}>
-          🗺 Caminhada ou corrida na rua (GPS)
-        </button>
-        {onZumbi && (
-          <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 900, color: "#7CFF3C", borderColor: "#7CFF3C66" }} onClick={onZumbi}>
-            🧟 {NOME_ZUMBI} — corra da história
-          </button>
-        )}
-        {onIntervalado && (
-          <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 900, color: "#F5A623", borderColor: "#F5A62366" }} onClick={onIntervalado}>
-            ⏱ Intervalado — o ritmo que varia
-          </button>
-        )}
-        {onDesafio && (
-          <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 900, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onDesafio}>
-            🏁 Desafio — corra contra os amigos
-          </button>
-        )}
+          ))}
+        </div>
       </div>
 
       <OQueTreinarHoje historico={historico} exPorId={exPorId} onAbrirGrupo={onAbrirGrupo} />
@@ -7432,6 +7480,8 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
       {historico.length > 0 && (
         <FaixaProgresso est={est} historico={historico} meta={meta} onAbrirProgresso={onAbrirProgresso} />
       )}
+
+      {!novato && cartaoInstalar}
 
       {ultima && (
         <div style={S.card}>
@@ -7512,7 +7562,7 @@ function BemVindo({ onAssistente, onFuncional, onEscolaVoz }) {
       {linha("👁", "Ou deixe a câmera contar.", "Ela conta em voz alta, corrige a forma e registra sozinha.")}
       {linha("📶", "Funciona sem internet.", "Tudo fica no seu aparelho. Sem cadastro, sem anúncio, de graça.")}
       <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, margin: "4px 0 12px" }}>
-        Já deixei algumas fichas prontas aqui embaixo — é só tocar numa e começar.
+        O treino de hoje já está escolhido logo acima — é só tocar em Começar.
       </div>
       <button style={{ ...S.btnGhost, marginBottom: 8, color: "#E1306C", borderColor: "#E1306C66", fontWeight: 800 }}
         onClick={onAssistente}>
@@ -18387,6 +18437,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     </button>
   );
 
+  const primeiroTreino = !(historico && historico.length) && feitas === 0;
   return (
     <div style={{ padding: "0 18px", paddingBottom: (fimDescanso ? 210 : 20) + (vozAtiva ? 60 : 0) }}>
       <button style={S.voltar} onClick={onVoltar}>← Voltar (o treino continua salvo)</button>
@@ -18414,7 +18465,30 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       {/* As duas coisas que ninguém descobre sozinho. Uma de cada vez, e só
           fora do descanso — ali a tela já tem cronômetro e a pessoa está
           contando os segundos. */}
-      {VOZ_OUVE && !dicas.voz && !fimDescanso && (
+      {/* O primeiro treino de todos: três passos, até a primeira série marcada.
+          Antes disto, quem chegava via uma lista de 30 linhas com campos e
+          botões, e a primeira dica falava de voz — sem ninguém ter dito ainda
+          que é só digitar e tocar no ✓. Enquanto este guia está na tela, a dica
+          da voz espera (uma dica de cada vez). */}
+      {primeiroTreino && (
+        <div style={{ ...S.card, borderColor: "#4ADE8066", background: "var(--ok-bg)" }}>
+          <div style={{ ...S.label, color: "var(--ok)" }}>👋 Como anotar o seu treino</div>
+          {[
+            ["1", "Digite o peso que você vai usar. As repetições já vêm sugeridas — mude se quiser."],
+            ["2", "Fez a série? Toque no ✓. O descanso começa sozinho e avisa quando acabar."],
+            ["3", "Terminou tudo? Toque em Finalizar treino, lá no fim da lista."],
+          ].map((p) => (
+            <div key={p[0]} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 10, fontSize: 14, lineHeight: 1.5 }}>
+              <span style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 12, background: "var(--ok)", color: "#062", fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>{p[0]}</span>
+              <span>{p[1]}</span>
+            </div>
+          ))}
+          <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 12, lineHeight: 1.5 }}>
+            Não sabe fazer um exercício? Toque em <b>ver execução</b> embaixo do nome. Aparelho ocupado? O <b>⇄</b> troca por outro parecido.
+          </div>
+        </div>
+      )}
+      {VOZ_OUVE && !dicas.voz && !fimDescanso && !primeiroTreino && (
         <DicaInicial icone="🎤" titulo="Dá para ditar em vez de digitar"
           texto={"Diga “Jarvis, anote 80 por 10” e ele preenche a série, marca o ✓ e já começa o descanso. Suas mãos ficam no ferro."}
           onFechar={() => onDicaVista("voz")}
@@ -19436,7 +19510,7 @@ function TelaCorpo({ medidas, historico, fotos, onAdicionarFoto, onExcluirFoto, 
 function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedirConfirmacao,
   medidas, onSalvarMedida, onExcluirMedida, avisar,
   fotos, onAdicionarFoto, onExcluirFoto,
-  meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor }) {
+  meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor, onComecar }) {
   const [secao, setSecao] = useState(secaoInicial || "treinos");
   const recordes = useMemo(() => calcularRecordes(historico), [historico]);
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
@@ -19460,6 +19534,8 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedir
       {historico.length === 0 && secao !== "corpo" && (
         <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
           Seus treinos concluídos aparecem aqui, com volume, séries e recordes de cada exercício.
+          {/* tela vazia sem caminho é tela onde a pessoa desiste: o botão leva ao treino de hoje */}
+          {onComecar && <button style={{ ...S.btn, marginTop: 14 }} onClick={onComecar}>▶ Fazer meu primeiro treino</button>}
         </div>
       )}
 
@@ -21540,7 +21616,7 @@ function TreinoLivre() {
             medidas={medidas} onSalvarMedida={salvarMedida} onExcluirMedida={excluirMedida} avisar={avisar}
             fotos={fotos} onAdicionarFoto={adicionarFoto} onExcluirFoto={excluirFoto}
             meta={meta} setMeta={setMeta} secaoInicial={secaoHistorico}
-            onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} pesoCorporal={pesoCorporal} vozCfg={voz} onCorredor={() => setAba("corredor")} />
+            onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} pesoCorporal={pesoCorporal} vozCfg={voz} onCorredor={() => setAba("corredor")} onComecar={() => setAba("inicio")} />
         )}
         {aba === "editarHistorico" && editandoHistorico && (
           <TelaEditarHistorico key={editandoHistorico.id} registro={editandoHistorico} exPorId={exPorId} avisar={avisar}

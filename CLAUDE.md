@@ -84,7 +84,7 @@ Treino-Livre/
 ├── CLAUDE.md            ← este arquivo: o contexto do projeto
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
-└── testes/              ← as 17 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 18 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -99,7 +99,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 745 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 757 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -140,7 +140,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 745 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 757 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v48) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v52) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -764,6 +764,12 @@ pequeno, e quem não sabia que existiam não ia procurar.
   faz, e a lista de fichas sozinha não conta — ela parece uma agenda.
 - **`DicaInicial`** mostra, dentro do treino, uma dica de cada vez: primeiro a da
   voz (que é quando digitar incomoda), e só depois da primeira a da câmera.
+- **O guia do primeiro treino** (`primeiroTreino`) vem antes de tudo: três
+  passos numerados — digite o peso, toque no ✓ (o descanso começa sozinho),
+  Finalizar treino no fim — e onde ver a execução e trocar o aparelho. Aparece
+  só no primeiro treino e some na primeira série marcada. Enquanto ele está na
+  tela, a dica da voz espera: antes, a primeira coisa que o app ensinava era
+  ditar para o Jarvis, sem ninguém ter dito que bastava digitar e tocar no ✓.
 
 As regras são o que separa isso de propaganda dentro do app:
 
@@ -2413,6 +2419,31 @@ aqui**; o lugar do resto é:
 - **Ajustes** (engrenagem no cabeçalho) — tema, som, descanso padrão, meta,
   lembrete, backup e créditos.
 
+### O treino de hoje (`fichaDeHoje`), e os outros jeitos em grade
+
+Pedido do dono: "facilite tudo para as pessoas não ficarem com dúvidas e
+desistirem". Olhando a tela de quem chega, o defeito era claro: cartão de
+instalar, boas-vindas, **seis fichas do mesmo tamanho** e **sete botões
+coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
+
+- **O app escolhe a ficha e diz por quê** (`fichaDeHoje`, coberto por
+  `teste-inicio.js`): a que tem o dia de hoje no nome ("Sexta - Pernas"), senão
+  a que vem depois da última feita no mesmo programa (A → B → C → A), senão a
+  primeira. Um botão grande, "▶ Começar este treino", com o número de
+  exercícios e o tempo aproximado. As outras fichas ficam atrás de "Escolher
+  outra ficha", a um toque.
+- **Para quem nunca treinou**, embaixo do botão: "É uma ficha de exemplo...
+  Monte uma no seu nível" — as fichas que vêm prontas são de um programa
+  avançado, e começar por ali assusta quem é iniciante.
+- **Ordem da tela**: o treino de hoje primeiro, depois as boas-vindas, depois o
+  instalar. A primeira coisa da tela é o que fazer; a explicação vem em seguida.
+- **Os outros jeitos de treinar** (assistente, livre, funcional, rua,
+  intervalado, desafio, Monster Run) viraram uma **grade de dois**, cada um com
+  uma linha dizendo para que serve. Modo novo entra no vetor `jeitos`, não
+  como mais um botão solto.
+- **O histórico vazio tem botão** ("▶ Fazer meu primeiro treino"): tela vazia
+  sem caminho é tela onde a pessoa desiste.
+
 ## Treino em andamento
 
 - **Miniatura + demonstração** — cada exercício da sessão mostra a figura ao lado
@@ -2453,7 +2484,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 17 suítes (745 checagens)
+node testes/rodar.js      # as 18 suítes (757 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

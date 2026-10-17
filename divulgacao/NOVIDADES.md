@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-10-17e — O tempo da esteira cabe no quadrinho
+
+**Em uma frase:** com a esteira conectada, o tempo da série e a meta agora
+aparecem um embaixo do outro, sem sair do quadrinho.
+
+**O que mudou**
+- Antes, "14:37 / 40 min" ficava numa linha só e o "min" passava da borda do
+  campo. Agora o tempo fica grande em cima e "meta 40 min" pequeno embaixo.
+
+**Por que importa para quem treina:** dá para ler o tempo de longe, andando
+na esteira, sem número cortado.
+
+**Como usar:** nada muda. Conecte a esteira no treino e o tempo aparece na
+linha da série.
+
+**Ideias de vídeo**
+- Não rende vídeo sozinho; entra de fundo em qualquer vídeo da esteira
+  conectada.
+
+**Não prometer:** nada novo aqui; é só o ajuste da tela.
+
+---
+
 ## 2026-10-17d — A câmera conta os dois braços no exercício unilateral
 
 **Em uma frase:** no tríceps unilateral na polia (e em todo exercício feito um

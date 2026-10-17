@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-17d";
+const VERSAO_APP = "2026-10-17e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -20062,10 +20062,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                   {ehAerobico ? (
                     <React.Fragment>
                       {serieConduzida && serieConduzida.ei === ei && serieConduzida.si === si ? (
-                        <div style={{ ...S.inputMini, flex: 1.6, minWidth: 0, padding: "10px 2px", background: "#4C9BE815", borderColor: "#4C9BE8", color: "#4C9BE8", fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: "20px", textAlign: "center", whiteSpace: "nowrap" }}
+                        // Tempo em cima e meta embaixo: na mesma linha, "14:37 / 40 min"
+                        // passava da borda da caixa num celular comum.
+                        <div style={{ ...S.inputMini, flex: 1.6, minWidth: 0, padding: metaConduzida ? "4px 2px" : "10px 2px", background: "#4C9BE815", borderColor: "#4C9BE8", color: "#4C9BE8", fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: "20px", textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
                           role="timer" aria-live="off" aria-label={"Tempo no aparelho: " + textoDuracao(segEst) + (metaConduzida ? ", meta de " + textoDuracao(metaConduzida) : "")}>
-                          {Math.floor(segEst / 60) + ":" + String(segEst % 60).padStart(2, "0")}
-                          {metaConduzida ? <span style={{ fontSize: 10.5, opacity: 0.75, fontWeight: 700 }}> / {Math.round(metaConduzida / 60)} min</span> : null}
+                          <span>{Math.floor(segEst / 60) + ":" + String(segEst % 60).padStart(2, "0")}</span>
+                          {metaConduzida ? <span style={{ fontSize: 10, lineHeight: "12px", opacity: 0.75, fontWeight: 700 }}>meta {Math.round(metaConduzida / 60)} min</span> : null}
                         </div>
                       ) : contando ? (
                         <div style={{ ...S.inputMini, flex: 1, minWidth: 0, padding: "10px 2px", background: "var(--ok-bg)", borderColor: "var(--ok)", color: "var(--ok)", fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: "20px" }}

@@ -52,6 +52,17 @@ if (mApp && mJson) {
 }
 if (mSw) ok("cache do sw.js: " + mSw[1]);
 
+// O ChatGPT do dono lê divulgacao/NOVIDADES.md para montar os vídeos do app.
+// Versão publicada sem entrada ali é novidade que ninguém vai mostrar — e a
+// regra de escrever "depois" é a que sempre fica para trás.
+if (mApp) {
+  let novidades = null;
+  try { novidades = fs.readFileSync(path.join(RAIZ, "divulgacao", "NOVIDADES.md"), "utf8"); } catch (e) {}
+  if (novidades === null) erro("não achei divulgacao/NOVIDADES.md — é por ele que o ChatGPT monta os vídeos");
+  else if (!novidades.includes(mApp[1])) erro("divulgacao/NOVIDADES.md não fala da versão " + mApp[1] + " — escreva o que mudou antes de publicar (o ChatGPT monta os vídeos por ele)");
+  else ok("divulgacao/NOVIDADES.md tem a versão " + mApp[1]);
+}
+
 // A parte que ninguém lembra: mudou o app e esqueceu de subir a versão.
 // Só dá para saber comparando com o que já está publicado.
 // Contra o que comparar. Na máquina é `origin/main`, o que está no ar. Na

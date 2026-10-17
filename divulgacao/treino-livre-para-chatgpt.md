@@ -5,6 +5,10 @@
 > Use-o como fonte única de verdade ao criar roteiros de vídeo, legendas, posts, carrosséis, stories,
 > Reels, textos de anúncio e prompts de imagem. **Não invente funções que não estão aqui**, e respeite
 > a seção "O que NÃO prometer". Sempre escreva em **português do Brasil**.
+>
+> **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
+> publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-17a**.
 
 ---
 
@@ -105,8 +109,14 @@ quebrando a tela) como linguagem visual em vídeos.
 - **Exercício próprio com foto do aparelho:** a academia tem uma máquina que não existe em catálogo
   nenhum? Fotografa e cadastra. Dá para criar "variações" em segundos (Remada baixa 2, 3...).
 - **Compartilhar ficha ou programa por link** (WhatsApp, Direct): quem recebe abre e importa com um toque.
+- **Busca inteligente:** entende o músculo ("ombros", "bumbum", "posterior", "gêmeos"), o apelido da
+  academia ("agacho", "extensora") e o aparelho ("smith", "halter") — e é precisa: "ombro smith" traz
+  só os de ombro no Smith.
 
 ### 3.2 Durante o treino
+- **O treino de hoje:** ao abrir, o app escolhe a ficha do dia e diz por quê ("Sexta - Pernas", ou a
+  que vem depois da última feita), com um botão grande **▶ Começar este treino**. Quem instala hoje recebe
+  um **programa de iniciante** (A/B/C só de máquinas) e um **guia de 3 passos** no primeiro treino.
 - Toca em **Treinar**: a carga **já vem preenchida com a da última vez**, e se você bateu todas as
   repetições, o app **sugere subir a carga** (sobrecarga progressiva automática).
 - Marca a série com ✓ → **cronômetro de descanso começa sozinho**, com bipe e aviso no fim, mesmo com a
@@ -156,6 +166,8 @@ O principal diferencial. A pessoa **fala** e ele anota, sem tocar no celular, co
   reconhece o movimento.
 - **Privacidade:** tudo roda no celular. **Nenhuma imagem é enviada para lugar nenhum.**
 - Quem nunca usar a câmera não baixa nada a mais (a parte da câmera só carrega na primeira vez).
+- **Botões fantasma:** sobre o vídeo os botões ficam translúcidos; o 1º toque acende, o 2º age — um
+  esbarrão não fecha a câmera no meio da série.
 
 ### 3.5 Treino funcional e aulas guiadas ⚡
 - 14 movimentos funcionais: polichinelo, burpee, agachamento com salto, salto vertical, afundo
@@ -177,11 +189,36 @@ O principal diferencial. A pessoa **fala** e ele anota, sem tocar no celular, co
   "**nadei mil metros em 25 minutos**".
 - Na esteira, de fone, a voz fala cada quilômetro, a metade e o último minuto.
 
+### 3.6b Aparelhos conectados por Bluetooth 📶 (esteira, bike, spinning, elíptico, escada, remo)
+- Atalho na tela inicial: **"Esteira e aparelhos"**. No treino, cada aparelho tem o botão **📶 Conectar**.
+- O app **lê o painel sozinho**:
+  - **esteira:** velocidade, inclinação, distância, tempo, calorias e batimento do pegador;
+  - **bicicleta:** watts, rpm e carga;
+  - **elíptico:** passos por minuto e nível;
+  - **escada:** degraus por minuto e andares;
+  - **remo:** watts, remadas por minuto e ritmo por 500 m.
+- **Um relógio só:** os minutos da ficha viram meta; o tempo que vale é o do aparelho. Passou da meta?
+  "Meta cumprida, pode continuar".
+- **Parou, a série fecha sozinha** com o tempo real, a distância, as calorias, o batimento (média e
+  pico, mesmo segurando o pegador só de vez em quando) e a média de watts e de giro.
+- **Nada se perde:**
+  - tela apagada: a série fica pausada e continua ao reconectar;
+  - app fechado no meio: "Recuperei a série";
+  - Finalizar treino com o aparelho andando: a série é anotada antes.
+- **Segurança:**
+  - você confirma que é a sua máquina mexendo no painel;
+  - o app avisa se ela já estiver em uso;
+  - nunca reconecta sozinho;
+  - no treino comum só **lê**, nunca comanda.
+- **Esteira sem Bluetooth:** o celular no bolso conta passos e cadência, e a linha "Confira no painel"
+  pede a distância e as calorias.
+
 ### 3.7 Corrida e caminhada na rua com GPS 🗺
 - Mapa ao vivo (OpenStreetMap) com **nome da rua e do bairro**, sem conta e sem chave.
 - Voz avisa **cada km com a parcial**. Pausa automática no semáforo.
 - **Modo bolso**: tela preta para gastar menos bateria.
-- O percurso fica salvo e **abre no mapa** no histórico.
+- O percurso fica salvo e **abre no mapa** no histórico, **colorido pelo ritmo** (onde você abriu, onde a
+  subida pesou) e com o **perfil de elevação**.
 
 ### 3.8 Painel do corredor (números de corredor de verdade)
 Cada número vem com explicação do que significa:
@@ -192,12 +229,19 @@ Cada número vem com explicação do que significa:
 - **Cadência e passada** (pelo sensor do celular),
 - **Frequência cardíaca e zonas** (com cinta Bluetooth),
 - **Split negativo**, **carga de treino** e **regra dos 10%**.
+- **Metas** de distância, tempo, subida ou atividades por semana, mês ou ano, respondendo **"estou em
+  dia?"**; **prova alvo** (quanto falta para o tempo desejado e se o prazo comporta); **esforço relativo**
+  e **forma** (condicionamento × cansaço), como nos relógios de corrida.
 
 ### 3.9 Treino intervalado ⏱
 "Corrida e caminhada em que o ritmo varia". Modelos prontos, cada um explicado:
 🐢 **Corre-caminha** (para começar a correr), 🚶 **Japonês** (caminhada 3 min rápido / 3 devagar),
 🎯 **Tiros**, 🎲 **Fartlek**, 🔺 **Pirâmide**, 📈 **Progressivo**, ✏️ **Personalizado**.
 A voz anuncia cada bloco, apita no 3-2-1 e, na esteira, diz a velocidade para colocar no painel.
+**Com a esteira conectada por Bluetooth, o app muda a velocidade sozinho** a cada bloco, avisando por
+voz 11 s antes ("a esteira acelera para 12 por hora") e com 3-2-1. A pessoa define o teto; o app nunca
+liga nem desliga a esteira; botão grande ⏹ PARAR A ESTEIRA. Métodos que só existem assim: 🪜 **Rampa**,
+🌊 **Onda**, 📶 **Escada de velocidade**, 🎰 **Surpresa**. No Monster, Run! a história manda na correia.
 
 ### 3.9b 🏁 Desafio — corra contra os amigos (juntos ou cada um na sua cidade)
 - Duas ou mais pessoas se desafiam numa **distância** (1, 3, 5, 10 km, meia maratona: quem faz mais rápido) ou num **tempo** (10 a 60 min: quem vai mais longe), correndo ou caminhando, na rua (GPS) ou na esteira.
@@ -293,6 +337,9 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 - ❌ Não está nas lojas (Play Store / App Store): instala-se pelo navegador ("Adicionar à tela inicial").
 - ❌ Não prometa emagrecimento ou ganho de massa garantidos.
 - ⚠️ A voz (Jarvis) funciona melhor no Chrome; no iPhone o reconhecimento de voz é mais irregular.
+- ❌ A conexão com esteira, bike, elíptico, escada e remo **não funciona no iPhone** (a Apple não libera
+  Bluetooth para sites) e só vale para aparelhos com o Bluetooth padrão de academia (FTMS) — muita
+  máquina grande só fala com o app da própria marca. Sem conexão, digita-se o painel.
 
 ## 5. Como instalar (para tutoriais)
 - **Android (Chrome):** abrir o link → tocar em "Baixar o app" / "Instalar" → confirmar.
@@ -354,4 +401,6 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 | **Intervalado** | o modo de corrida/caminhada com ritmo variado |
 | **Desafio** | corrida contra amigos, ao vivo ou por link, com posições e previsão de ultrapassagem |
 | **Aulas guiadas** | Express, Queima, Luta, Potência e Sem barulho |
+| **Esteira e aparelhos** | o atalho para esteira, bike, spinning, elíptico, escada, remo e SkiErg |
+| **📶 Conectar** | o botão que liga o app ao painel do aparelho por Bluetooth |
 | **Carlos Jr — O Zeus** | o criador, @carlos.jr.81 |

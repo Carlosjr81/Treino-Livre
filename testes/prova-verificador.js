@@ -43,6 +43,13 @@ const CASOS = [
     },
   },
   {
+    nome: "NOVIDADES.md sem a versao nova",
+    espera: /NOVIDADES\.md não fala da versão/,
+    quebra(d) {
+      fs.writeFileSync(path.join(d, "divulgacao", "NOVIDADES.md"), "# Novidades\n\n## 2020-01-01a — antiga\n");
+    },
+  },
+  {
     nome: "endereco do sw.js diferente do index.html",
     espera: /mas o index\.html não pede esse endereço/,
     quebra(d) {
@@ -78,6 +85,7 @@ function copiarArquivosDe(origem, destino) {
 function copiar(dest) {
   copiarArquivosDe(ORIG, dest);
   copiarArquivosDe(path.join(ORIG, "testes"), path.join(dest, "testes"));
+  copiarArquivosDe(path.join(ORIG, "divulgacao"), path.join(dest, "divulgacao"));
 }
 
 let ok = 0, mal = 0;

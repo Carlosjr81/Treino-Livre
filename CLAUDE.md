@@ -48,6 +48,19 @@ Leia esta seção antes de propor qualquer mudança de arquitetura.
 2. `versao.json` com o mesmo valor
 3. `CACHE` no `sw.js` (`treinolivre-vN`)
 
+**E escreva a novidade para o ChatGPT do dono** (pedido dele): toda versão
+publicada ganha uma entrada no topo de **`divulgacao/NOVIDADES.md`**, com o
+número da versão no título e o molde de lá (em uma frase · o que mudou · por
+que importa para quem treina · como usar · ideias de vídeo · não prometer).
+O ChatGPT dele lê esse arquivo no GitHub para montar os vídeos do app, e
+novidade que não está lá é novidade que ninguém mostra. Mudou o que o app faz
+(função nova, tela nova, o que não prometer), atualize também o retrato
+completo em **`divulgacao/treino-livre-para-chatgpt.md`** e a linha "atualizado
+até a versão" do topo dele. **O `verificar.js` reprova** a publicação se o
+`NOVIDADES.md` não tiver a versão do `VERSAO_APP` — a regra de escrever
+"depois" é a que sempre fica para trás. Linguagem de quem treina, não de
+programador: nada de nome de função ali.
+
 Por que isso virou regra: um conserto ficou publicado horas sem chegar ao
 celular do dono, e o diagnóstico que ele mandou apontava para um defeito já
 corrigido. Duas rodadas de depuração foram gastas num bug que não existia mais.
@@ -84,6 +97,7 @@ Treino-Livre/
 ├── CLAUDE.md            ← este arquivo: o contexto do projeto
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
+├── divulgacao/          ← o que o ChatGPT do dono lê para criar vídeos: o guia e o NOVIDADES
 └── testes/              ← as 21 suítes, o servidor local e o LEIA-ME delas
 ```
 

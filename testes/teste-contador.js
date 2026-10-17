@@ -351,6 +351,83 @@ teste("o mesmo com o quadril escondido atras do assento: 10", 10, decE.total);
 teste("e le o cotovelo", true, /^cotovelo/.test(decE.sinal || ""));
 console.log("  (so com a imagem plana e o quadril escondido: " + supinoDeclinado(true, false).total + " de 10)");
 
+console.log("\n--- um braco de cada vez (triceps unilateral na polia) ---");
+// Relato do dono: o primeiro braco contava certo e o segundo nao contava
+// nada. O contador escolhia o cotovelo que mais se mexia e travava nele na
+// primeira repeticao; trocando de braco, o cotovelo que se mexia passava a ser
+// o outro, e ele continuava olhando o braco parado. Aqui: 10 com o direito,
+// uma troca (parado, ou girando o corpo para o outro lado da polia), 10 com o
+// esquerdo. A conta tem de chegar a 20.
+function unilateral(opc) {
+  const o = opc || {};
+  semear();
+  const cont = A.criarContador({ preferidos: ["cotovelo-e", "cotovelo-d"], tronco: true });
+  const ruido = (k) => (sorte() - 0.5) * k;
+  let t = 0;
+  const passo = 1000 / 30;
+  // cE, cD: angulo de cada cotovelo; cx: o meio do corpo; w: meia largura dos ombros
+  const quadro = (cE, cD, cx, w) => {
+    const l = [];
+    for (let i = 0; i < 33; i++) l[i] = { x: cx, y: 0.3, visibility: 0.9 };
+    const p = (x, y) => ({ x: x + ruido(0.006), y: y + ruido(0.006), z: 0, visibility: 0.9 });
+    l[0] = p(cx, 0.2);
+    l[11] = p(cx - w, 0.3); l[12] = p(cx + w, 0.3);
+    l[23] = p(cx - w * 0.7, 0.58); l[24] = p(cx + w * 0.7, 0.58);
+    [[13, 15, -1, cE], [14, 16, 1, cD]].forEach(([ic, im, lado, c]) => {
+      const ac = Math.PI - (c * Math.PI) / 180;
+      const ex = cx + lado * (w + 0.02);
+      l[ic] = p(ex, 0.44);
+      l[im] = p(ex - lado * 0.15 * Math.sin(ac), 0.44 + 0.15 * Math.cos(ac));
+    });
+    for (let i = 25; i <= 32; i++) l[i] = p(cx + (i % 2 ? -0.05 : 0.05), 0.75 + 0.03 * (i - 25));
+    return l;
+  };
+  const PARADO = 160;
+  // a polia puxa a mao para cima: o cotovelo vai de 60 graus (em cima) a 170 (estendido)
+  const rep = (i, q) => 115 - 55 * Math.cos((i / q) * 2 * Math.PI);
+  for (let i = 0; i < 60; i++) { cont.processar(quadro(PARADO, 60, 0.45, 0.09), t); t += passo; }
+  for (let r = 0; r < 10; r++) {
+    const q = Math.round(2200 / passo);
+    for (let i = 0; i < q; i++) { cont.processar(quadro(PARADO, rep(i, q), 0.45, 0.09), t); t += passo; }
+    // no meio da serie, um respiro: o braco que trabalha para la em cima e o
+    // outro coca o rosto (sobe e desce uma vez). Isso nao e o outro lado.
+    if (o.coca && r === 4) {
+      const q2 = Math.round(3000 / passo);
+      for (let i = 0; i < q2; i++) {
+        const f = i / q2;
+        cont.processar(quadro(PARADO - 110 * Math.sin(Math.min(1, f * 1.6) * Math.PI), 60, 0.45, 0.09), t); t += passo;
+      }
+    }
+  }
+  if (o.soUmLado) { for (let i = 0; i < 400; i++) { cont.processar(quadro(PARADO, 60, 0.45, 0.09), t); t += passo; } return cont.estado(); }
+  // a troca: solta a pegada, gira o corpo (os ombros se estreitam e alargam) e da um passo
+  const troca = Math.round((o.trocaMs || 4000) / passo);
+  for (let i = 0; i < troca; i++) {
+    const f = i / troca;
+    const w = o.gira ? 0.09 * Math.max(0.15, Math.abs(Math.cos(f * Math.PI))) : 0.09;
+    const cx = o.gira ? 0.45 + 0.1 * f : 0.45;
+    // o braco direito desce a pegada e para; o esquerdo sobe ate a polia
+    cont.processar(quadro(PARADO + (60 - PARADO) * Math.min(1, f * 1.5), 60 + (PARADO - 60) * Math.min(1, f * 2), cx, w), t);
+    t += passo;
+  }
+  const cx2 = o.gira ? 0.55 : 0.45;
+  for (let r = 0; r < 10; r++) {
+    const q = Math.round(2200 / passo);
+    for (let i = 0; i < q; i++) { cont.processar(quadro(rep(i, q), PARADO, cx2, 0.09), t); t += passo; }
+  }
+  for (let i = 0; i < 60; i++) { cont.processar(quadro(60, PARADO, cx2, 0.09), t); t += passo; }
+  return cont.estado();
+}
+const u1 = unilateral({});
+teste("triceps unilateral, 10 de cada braco, parado no lugar: 20", 20, u1.total);
+teste("e termina lendo o cotovelo esquerdo", "cotovelo-e", u1.sinal);
+const u2 = unilateral({ gira: true });
+teste("girando o corpo e dando um passo na troca: 20", 20, u2.total);
+const u3 = unilateral({ trocaMs: 1500 });
+teste("trocando depressa (1,5 s): 20", 20, u3.total);
+const u4 = unilateral({ coca: true, soUmLado: true });
+teste("o outro braco coca o rosto no meio da serie: continua 10", 10, u4.total);
+
 console.log("\n--- calorias ---");
 console.log("  30 min, 80 kg: " + A.caloriasEstimadas(1800, 80) + " kcal");
 

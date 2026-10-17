@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-17c**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-17d**.
 
 ---
 
@@ -158,6 +158,9 @@ O principal diferencial. A pessoa **fala** e ele anota, sem tocar no celular, co
 - Em exercício sentado (puxada, supino máquina, rosca), basta aparecer **do quadril para cima**.
 - **Deitado ou inclinado no banco** (supino reto, supino inclinado com barra): celular **de lado** para
   a pessoa, na altura do banco, a uns 1,5 m, mostrando do quadril para cima com os braços.
+- **Um lado de cada vez** (tríceps unilateral, rosca concentrada, extensora de uma perna): conta o
+  primeiro braço, percebe a troca e continua no segundo. Nos exercícios "unilateral" a meta da ficha é
+  **por lado**: diz "troca de lado" na metade e registra o número de um lado.
 - **Técnico virtual:** compara cada repetição — "essa foi mais completa", "desce mais um pouco",
   "controla a descida", "última, segura!".
 - **Correção de postura** (só quando tem certeza): joelho caindo para dentro no agachamento; quadril

@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-17c";
+const VERSAO_APP = "2026-10-17d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3298,6 +3298,21 @@ function criarContador(opcoes) {
   let escolhido = null;
 
   const faixaDe = (s) => (s && s.max > s.min && isFinite(s.min) ? s.max - s.min : 0);
+  // O quanto o sinal se mexeu só no último segundo e meio. A janela de 4 s
+  // ainda lembra o braço que acabou de parar; esta, não.
+  const recenteDe = (s, agora) => {
+    if (!s) return 0;
+    let mn = Infinity, mx = -Infinity;
+    for (let i = 0; i < s.hist.length; i += 2) {
+      if (agora - s.hist[i] > 1500) continue;
+      const v = s.hist[i + 1];
+      if (v < mn) mn = v; if (v > mx) mx = v;
+    }
+    return mx > mn ? mx - mn : 0;
+  };
+  // O mesmo sinal do outro lado do corpo: cotovelo-e ↔ cotovelo-d, punho-e-alto ↔ punho-d-alto.
+  const espelhoDe = (id) => (id && /-[ed](?=-|$)/.test(id)
+    ? id.replace(/-([ed])(?=-|$)/, (x, l) => (l === "e" ? "-d" : "-e")) : null);
 
   // Decide se a máquina m, lendo o sinal id, acabou de completar uma repetição
   function passo(m, id, agora) {
@@ -3358,6 +3373,7 @@ function criarContador(opcoes) {
       });
 
       // 2. escolhe em qual sinal contar
+      let trocouLado = false, tirarNaTroca = 0;
       if (alternado) {
         // no alternado cada lado já tem o seu sinal, definido pelo perfil
         escolhido = perfil.par.join(" + ");
@@ -3379,6 +3395,29 @@ function criarContador(opcoes) {
           // repetição medida em outro sinal tem outra amplitude — a própria
           // calibração recusa a mistura.
           if (!escolhido || (total === 0 && novo !== escolhido)) escolhido = novo;
+          // **Um braço de cada vez** (tríceps unilateral, rosca concentrada,
+          // extensora de uma perna): acabou um lado, o mesmo movimento começa
+          // no outro, e o sinal travado continuava olhando o braço parado — o
+          // segundo lado não contava nada. Troca para o espelho quando o lado
+          // contado está parado há um segundo e meio e o outro se mexe. A conta
+          // continua; só a régua recomeça, porque o outro braço tem outra
+          // amplitude (e o giro do corpo na troca não pode virar repetição: a
+          // calibração confere o lado novo como conferiu o primeiro).
+          else if (!perfil && total > 0) {
+            const esp = espelhoDe(escolhido);
+            const m = maquinas[0];
+            if (esp && AUTO.indexOf(esp) >= 0 &&
+                recenteDe(amostras[escolhido], agora) < minAmp * 0.5 &&
+                recenteDe(amostras[esp], agora) >= minAmp) {
+              escolhido = esp;
+              // o que o lado que parou ainda tinha em conferência não era série
+              // (coçar o rosto com o outro braço no meio do descanso, por exemplo)
+              tirarNaTroca = m.travado ? 0 : m.prov.length;
+              recalibrar(m);
+              trocouLado = true;
+              if (o.aoTrocarLado) o.aoTrocarLado(esp);
+            }
+          }
           maquinas[0].id = escolhido;
         }
         if (!maquinas[0].id) return { total: total, pronto: false };
@@ -3395,6 +3434,7 @@ function criarContador(opcoes) {
         retirou += tira;
         if (o.aoRetirar && tira) o.aoRetirar(total, tira);
       };
+      retirarDe(0, tirarNaTroca);
       if (!perfil && deslocando(lm, agora)) {
         maquinas.forEach((m, k) => {
           // o lado de descanso já aprendido continua valendo: andar não o muda
@@ -3448,7 +3488,7 @@ function criarContador(opcoes) {
         if (aoContar) aoContar(total, qualidade);
       }
       amplitude = maiorFaixa;
-      const calib = { conferindo: maquinas.some((m) => !m.travado) && total > 0, retirou: retirou };
+      const calib = { conferindo: maquinas.some((m) => !m.travado) && total > 0, retirou: retirou, trocouLado: trocouLado };
       if (amplitude < minAmp) return Object.assign({ total: total, pronto: false, amplitude: amplitude, sinal: escolhido, viu: viu }, calib);
       return Object.assign({ total: total, pronto: true, contou: contou, qualidade: qualidade, amplitude: amplitude, sinal: escolhido, viu: viu }, calib);
     },
@@ -6137,8 +6177,18 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const tecnicoRef = useRef(null);
   const posturaRef = useRef(null);
   const [dica, setDica] = useState(null);     // { texto, tipo, em }
+  // **Um lado de cada vez.** Nos unilaterais as repetições da ficha são por
+  // lado, e a câmera conta os dois: a série fecha no dobro, e o que vai para a
+  // ficha é o número de um lado. Fechar na meta, como nos outros, registrava a
+  // série e desligava a câmera no fim do primeiro braço.
+  const uni = !livre && !!ex && /unilateral/i.test((ex.nome || "") + " " + (ex.id || ""));
+  const uniRef = useRef(uni);
+  uniRef.current = uni;
+  const trocouRef = useRef(false);    // o contador já passou para o outro lado
+  const [trocou, setTrocou] = useState(false);
+  const porLado = (n) => (uniRef.current && trocouRef.current ? Math.round(n / 2) : n);
   const alvoRef = useRef(0);
-  alvoRef.current = parseInt(repsAlvo) || 0;
+  alvoRef.current = (parseInt(repsAlvo) || 0) * (uni ? 2 : 1);
   // Bateu o número combinado, a série está feita: insistir num toque na tela
   // depois disso é pedir para a pessoa interromper o treino para confirmar o
   // óbvio. Ela fecha sozinha em quatro segundos, e dá para cancelar nesse meio
@@ -6184,6 +6234,8 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   // no modo livre ele é trocado no meio: o movimento só é descoberto depois de
   // alguns segundos de câmera, e aí o perfil certo entra no lugar do automático.
   const montarContador = (exAlvo) => {
+    trocouRef.current = false;
+    setTrocou(false);
     setReps(0);
     repsRef.current = 0;
     setFechando(0);
@@ -6201,6 +6253,14 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
       perfil: perfil,
       preferidos: (exAlvo && EYES_PREFERENCIA[exAlvo.grupo]) || [],
       tronco: eyesSoTronco(exAlvo),
+      // O braço que trabalha mudou. Dito e escrito: sem isso, a primeira do
+      // segundo lado, que fica em conferência, parece contagem perdida.
+      aoTrocarLado: () => {
+        trocouRef.current = true;
+        setTrocou(true);
+        setDica({ texto: "↔ Outro lado: continuo contando daqui.", tipo: "elogia", em: Date.now() });
+        if (som) { beep(880, 0.06, 0.12); setTimeout(() => beep(1180, 0.08, 0.12), 100); }
+      },
       // Desconto da calibração: aparece e soa diferente da contagem, para a
       // pessoa entender que o número desceu de propósito.
       aoRetirar: (n, quantas) => {
@@ -6235,17 +6295,26 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
           em: Date.now(),
         });
 
+        if (uniRef.current && alvoN > 0 && n === alvoN / 2) {
+          setDica({ texto: "✋ Fim do primeiro lado: troque de braço.", tipo: "elogia", em: Date.now() });
+        }
         if (!contarAltoRef.current) return;
         // Número seco e rápido, como um parceiro contando. A última ganha a
         // palavra que encerra a série, porque é a informação que muda o que fazer.
         const cfg = vozRef2.current || {};
-        const fim = alvoN > 0 && n >= alvoN;
-        const voz = {
+        const voz0 = () => ({
           falar: true,
           vozNome: cfg.vozNome,
           velocidade: Math.min(1.6, (cfg.velocidade || 1.1) + 0.25),
           animado: cfg.animado,
-        };
+        });
+        const fim = alvoN > 0 && n >= alvoN;
+        // a metade do unilateral é o fim do primeiro lado: é a hora de trocar
+        if (uniRef.current && alvoN > 0 && n === alvoN / 2) {
+          jarvisFalar(n + ". Troca de lado.", voz0());
+          return;
+        }
+        const voz = voz0();
         jarvisFalar(fim ? n + ". Completou." : String(n), voz);
         // Em fila: entra depois do número em vez de cortá-lo. E num tom um
         // pouco mais calmo, porque é frase e não contagem.
@@ -6482,7 +6551,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     const t = setTimeout(() => {
       if (fechando > 1) { setFechando(fechando - 1); return; }
       setFechando(0);
-      onRegistrar(repsRef.current, pesoRef.current);
+      onRegistrar(porLado(repsRef.current), pesoRef.current);
     }, 1000);
     return () => clearTimeout(t);
   }, [fechando]);
@@ -6496,7 +6565,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
 
   if (!aberto) return null;
 
-  const alvo = parseInt(repsAlvo) || 0;
+  const alvo = (parseInt(repsAlvo) || 0) * (uni ? 2 : 1);
   const completou = alvo > 0 && reps >= alvo;
   // No modo livre o exercício é o que foi descoberto; no normal é o da ficha.
   const exAtual = livre ? (movLivre && exPorId ? exPorId(movLivre) : null) : ex;
@@ -6709,6 +6778,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
             alignItems: "center", justifyContent: "center", border: "3px solid " + (completou ? "#2FD48A" : "rgba(255,255,255,0.35)") }}>
             <div style={{ fontSize: 44, fontWeight: 900, color: "#FFFFFF", lineHeight: 1 }}>{reps}</div>
             {alvo > 0 && <div style={{ fontSize: 15, fontWeight: 800, color: "rgba(255,255,255,0.8)" }}>de {alvo}</div>}
+            {alvo > 0 && uni && <div style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.7)" }}>{alvo / 2} por lado</div>}
           </div>
         )}
 
@@ -6833,12 +6903,14 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
             onChange={(e) => setPeso(e.target.value)}
             style={{ ...S.inputMini, flex: 1 }} />
           <button
-            onClick={() => onRegistrar(reps, peso)}
+            onClick={() => onRegistrar(porLado(reps), peso)}
             disabled={reps <= 0}
             style={{ flex: 2.4, background: reps > 0 ? "linear-gradient(45deg,#1FA463,#2FD48A)" : "var(--borda)",
               color: "#FFFFFF", border: "none", borderRadius: 12, padding: "14px 10px",
               fontWeight: 900, fontSize: 15, cursor: reps > 0 ? "pointer" : "default" }}>
-            ✓ Registrar {reps > 0 ? reps + (reps === 1 ? " rep" : " reps") : "série"}
+            ✓ Registrar {reps <= 0 ? "série"
+              : uni && trocou ? porLado(reps) + " por lado"
+              : reps + (reps === 1 ? " rep" : " reps")}
           </button>
         </div>
         )}

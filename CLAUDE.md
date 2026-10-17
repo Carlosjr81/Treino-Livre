@@ -113,7 +113,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 857 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 862 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -154,7 +154,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 857 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 862 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -229,7 +229,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v69) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v70) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -658,6 +658,33 @@ Achado ao mexer nisto: **o botão de contar pela câmera só aparecia com o Jarv
 ligado.** Ele vivia dentro da condição `ehAlvo`, que exigia `vozAtiva` — então
 quem nunca ligou a voz nunca soube que o Eyes Scan existia. Hoje "é a vez deste
 exercício" (`ehVez`) e "a voz está ouvindo" (`ehAlvo`) são coisas separadas.
+
+### Um lado de cada vez (`espelhoDe`, `aoTrocarLado`)
+
+Relato do dono, no tríceps unilateral na polia: o primeiro braço contava
+certo, o segundo não contava nada. Eram dois defeitos:
+
+1. **O sinal travava no primeiro braço.** O contador escolhe o que mais se
+   mexe e, depois da primeira repetição, não troca mais (trocar no meio da
+   série perderia a conta). No segundo braço ele continuava olhando o
+   cotovelo parado. Hoje, com a conta já andando, ele passa para o **espelho**
+   do sinal (`cotovelo-d` ↔ `cotovelo-e`, `espelhoDe`) quando o lado contado
+   ficou parado no último segundo e meio (`recenteDe` < metade do `minAmp`)
+   e o espelho se mexeu ao menos `minAmp`. A janela de 4 s não serve aqui: ela
+   ainda lembra o braço que acabou de parar. **A conta continua; a régua
+   recomeça** (`recalibrar`), e o lado novo passa pela calibração como o
+   primeiro — é o que impede o giro do corpo na troca de virar repetição. O
+   que o lado que parou ainda tinha **em conferência** sai da conta na troca:
+   é o outro braço coçando o rosto no meio da série, não o segundo lado.
+2. **A série fechava no fim do primeiro braço.** Com 12 na ficha, o
+   fechamento automático registrava 12 e desligava a câmera. Nos exercícios
+   com "unilateral" no nome ou no id (`uni`, no `ScannerEyes`), a meta é
+   **por lado**: a câmera conta até o dobro, diz "12. Troca de lado." na
+   metade, e registra o número de um lado (`porLado`: metade do total,
+   depois que a troca aconteceu).
+
+`teste-contador.js` tem os dois braços parado no lugar, girando o corpo com
+um passo, trocando em 1,5 s, e a prova contrária do braço que coça o rosto.
 
 ### A janela corrida de 4 segundos
 
@@ -2877,7 +2904,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 21 suítes (857 checagens)
+node testes/rodar.js      # as 21 suítes (862 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

@@ -16,6 +16,50 @@
 
 ---
 
+## 2026-10-17d — A câmera conta os dois braços no exercício unilateral
+
+**Em uma frase:** no tríceps unilateral na polia (e em todo exercício feito um
+lado de cada vez), a câmera agora conta o primeiro braço, percebe a troca e
+continua contando o segundo.
+
+**O que mudou**
+- Antes, a câmera "grudava" no braço que começou a série. Quando você trocava
+  de braço, ela continuava olhando o braço parado, e o segundo lado não contava
+  nada.
+- Agora, quando um braço para e o outro começa, a câmera troca sozinha de lado,
+  avisa na tela ("↔ Outro lado: continuo contando daqui") e com um bipe duplo.
+  Girar o corpo para o outro lado da polia não vira repetição.
+- Nos exercícios com **"unilateral"** no nome, a meta da ficha vale **por
+  lado**: com 12 na ficha, a câmera conta até 24, diz **"12. Troca de lado."**
+  no fim do primeiro braço, e só fecha a série no fim do segundo. Antes ela
+  fechava a série (e desligava a câmera) assim que o primeiro braço chegava
+  a 12.
+- Na ficha entra o número **por lado** (24 contadas viram 12), e o botão diz
+  "Registrar 12 por lado".
+- Mexer o outro braço no meio da série (coçar o rosto, ajeitar a roupa) não
+  conta como repetição.
+
+**Por que importa para quem treina:** treino unilateral é justamente o que
+mostra a diferença de força entre os lados, e agora dá para fazer os dois
+braços sem tocar no celular.
+
+**Como usar:** no exercício unilateral, toque no 👁 → faça o primeiro braço →
+ao ouvir "troca de lado", troque de braço e continue. Não precisa tocar em
+nada.
+
+**Ideias de vídeo**
+- Gancho: "A câmera percebeu que eu troquei de braço." Tríceps na polia: 12 com
+  o direito, a voz diz "troca de lado", 12 com o esquerdo, a série fecha
+  sozinha.
+- Comparar os dois lados: "qual braço é o mais fraco?"
+
+**Não prometer:** a câmera precisa ver o braço que está trabalhando. Se o
+corpo esconder o segundo braço depois de girar, mude o celular de lugar. A
+meta "por lado" vale para os exercícios com "unilateral" no nome; nos outros,
+os dois lados entram na mesma conta.
+
+---
+
 ## 2026-10-17c — A câmera conta nas máquinas de peito, sentado e de frente
 
 **Em uma frase:** no supino declinado e nas outras máquinas de peito em que

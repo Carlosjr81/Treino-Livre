@@ -113,7 +113,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 846 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 854 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -154,7 +154,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 846 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 854 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -229,7 +229,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v67) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v68) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -611,6 +611,25 @@ há menos de 3,5 s** (`m.desde`).
 `teste-contador.js` tem a puxada sintética (tronco inclinando, pernas
 inventadas tremendo, com e sem saber que é sentado) e `teste-enquadramento.js`
 o enquadramento sentado.
+
+**Deitado ou inclinado no banco (supino, supino inclinado).** Relato do dono:
+"não está me enxergando, pede para ir a 2 metros, e nenhuma posição consegue
+contar". Medido com o **modelo de verdade** (pose_landmarker lite e full,
+rodando no Chromium, a foto real do Marombeiro girada a 0°, 45° e 70°, com
+barra e anilhas na frente do peito, banco escondendo o quadril, e longe): o
+detector viu a pessoa em **todos** os casos. O defeito era o enquadramento,
+que pensava em gente sentada ereta: media o tronco só na vertical (inclinado,
+encolhe — "aproxime" para sempre) e centralizava só na horizontal (o meio do
+tronco inclinado cai de lado — "vá para a sua direita", com a pessoa deitada).
+Hoje `enquadrarTronco` mede o tronco na diagonal (`aspecto`, a largura ÷
+altura do vídeo), centraliza nos dois eixos com folga (0,3–0,7 e 0,18–0,82),
+corta em qualquer borda e manda **virar o celular** em vez de andar. E o "Não
+estou te vendo" dos grupos de tronco diz o que serve no banco: celular de lado,
+na altura do banco, a uns 1,5 m, do quadril para cima. A contagem já servia
+(ângulo do cotovelo não depende de posição): `teste-contador.js` tem o supino
+inclinado visto de lado (a 45° e a 75°, um braço escondido, pernas
+inventadas) contando 10 de 10, e `teste-enquadramento.js` os casos deitados
+— três deles reprovavam a versão anterior.
 
 Achado ao mexer nisto: **o botão de contar pela câmera só aparecia com o Jarvis
 ligado.** Ele vivia dentro da condição `ehAlvo`, que exigia `vozAtiva` — então
@@ -2835,7 +2854,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 21 suítes (846 checagens)
+node testes/rodar.js      # as 21 suítes (854 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

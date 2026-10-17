@@ -16,6 +16,40 @@
 
 ---
 
+## 2026-10-17b — A câmera conta o supino inclinado (e todo exercício deitado no banco)
+
+**Em uma frase:** a contagem pela câmera agora libera e conta no supino reto e
+no inclinado com barra, com a pessoa deitada ou inclinada no banco.
+
+**O que mudou**
+- Antes, no supino inclinado, a câmera ficava pedindo "aproxime" ou "vá para a
+  sua direita" sem parar, e mostrava "não estou te vendo, fique a 2 metros".
+  A calibração tinha sido pensada para quem treina em pé ou sentado ereto.
+- Agora ela entende o corpo inclinado ou deitado, e a instrução virou **"vire o
+  celular um pouco na sua direção"**: deitado no banco, ninguém anda para o lado.
+- A mensagem de ajuda dos exercícios de banco diz o que funciona: **celular de
+  lado para você, na altura do banco, a uns 1,5 metro, mostrando do quadril
+  para cima**.
+- A contagem lê o ângulo do cotovelo e conta igual em pé, sentado ou deitado.
+
+**Por que importa para quem treina:** supino é o exercício mais feito da
+academia, e agora dá para apoiar o celular e deixar a câmera contar.
+
+**Como usar:** no treino, no supino, toque no 👁 (contar pela câmera) → apoie o
+celular de lado para o banco, na altura do banco → deite e faça a série.
+
+**Ideias de vídeo**
+- Gancho: "Meu celular conta meu supino." Plano lateral do supino inclinado,
+  esqueleto verde sobre o corpo, o número subindo a cada repetição.
+- Bastidor: "Onde apoiar o celular para a câmera contar o supino" (mostrar a
+  posição de lado, na altura do banco).
+
+**Não prometer:** a câmera precisa ver os dois braços ou pelo menos o braço do
+lado do celular; luz forte atrás da pessoa e o celular aos pés do banco
+atrapalham.
+
+---
+
 ## 2026-10-17a — Bicicleta, elíptico, escada e remo conectados por Bluetooth
 
 **Em uma frase:** o controle que a esteira ganhou chegou a todos os aparelhos

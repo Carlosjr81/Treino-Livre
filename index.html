@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-17a";
+const VERSAO_APP = "2026-10-17b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2774,7 +2774,7 @@ const EYES_PONTOS_TRONCO = [11, 12, 13, 14, 23, 24];
 
 function avaliarEnquadramento(lm, opcoes) {
   if (!lm) return { chave: "corpo", texto: "Não estou te vendo", fala: "Não estou te vendo. Fique de frente para a câmera." };
-  if (opcoes && opcoes.tronco) return enquadrarTronco(lm);
+  if (opcoes && opcoes.tronco) return enquadrarTronco(lm, opcoes.aspecto);
   const faltando = EYES_PONTOS_ENQUADRA.some((i) => !visivel(lm[i]));
   if (faltando) {
     return {
@@ -2818,32 +2818,49 @@ function avaliarEnquadramento(lm, opcoes) {
 }
 
 // A mesma conversa, medindo dos ombros ao quadril. Num corpo em pé o tronco é
-// uns 30% da altura; sentado e enquadrado do quadril para cima, de 15% a 55%
+// uns 30% da altura; sentado e enquadrado do quadril para cima, de 12% a 55%
 // da tela é a faixa em que o modelo enxerga bem os cotovelos.
-function enquadrarTronco(lm) {
+//
+// **Deitado ou inclinado no banco também** (supino, supino inclinado, crucifixo):
+// a primeira versão media o tronco só na vertical e centralizava só na
+// horizontal, pensando em quem senta ereto. Com o dono no supino inclinado, o
+// detector o via inteiro (conferido com o modelo de verdade, foto real girada a
+// 45° e 70°, com barra e banco na frente), e o enquadramento pedia "aproxime" e
+// "vá para a sua direita" sem parar — a 45° o tronco encolhe na vertical, e o
+// meio do tronco inclinado cai fora do centro com a pessoa no meio da tela.
+// Hoje o tronco é medido na diagonal (com o formato da tela, `aspecto` =
+// largura ÷ altura do vídeo), o centro vale nos dois eixos com mais folga, o
+// corte vale em qualquer borda, e a instrução é mover o celular — quem está
+// deitado no banco não anda para lado nenhum.
+function enquadrarTronco(lm, aspecto) {
   if (EYES_PONTOS_TRONCO.some((i) => !visivel(lm[i]))) {
     return {
       chave: "corpo", texto: "Mostre do quadril para cima",
       fala: "Não estou te vendo direito. Preciso ver do quadril para cima, com os braços.",
     };
   }
+  const a = aspecto > 0 ? aspecto : 0.75;
   const nariz = lm[0];
-  const ombroY = (lm[11].y + lm[12].y) / 2, quadrilY = (lm[23].y + lm[24].y) / 2;
-  if (quadrilY > 0.985 || Math.min(lm[11].y, lm[12].y) < 0.03 || (visivel(nariz) && nariz.y < 0.025)) {
+  const naBorda = (p) => p.x < 0.015 || p.x > 0.985 || p.y < 0.02 || p.y > 0.985;
+  if (EYES_PONTOS_TRONCO.some((i) => naBorda(lm[i])) || (visivel(nariz) && naBorda(nariz))) {
     return { chave: "afaste", texto: "Afaste-se", fala: "Você está cortado. Afaste um pouco o celular.", seta: "afasta" };
   }
   const cx = (lm[11].x + lm[12].x + lm[23].x + lm[24].x) / 4;
-  if (cx < 0.38 || cx > 0.62) {
-    const precisaMais = cx < 0.5;
+  const cy = (lm[11].y + lm[12].y + lm[23].y + lm[24].y) / 4;
+  if (cx < 0.3 || cx > 0.7 || cy < 0.18 || cy > 0.82) {
+    // a seta (câmera da frente) segue valendo para o lado; a fala serve para
+    // qualquer lado, em pé, sentado ou deitado
+    const lado = cx < 0.3 ? "esq" : cx > 0.7 ? "dir" : "centro";
     return {
-      chave: precisaMais ? "esq" : "dir",
-      texto: precisaMais ? "Vá para a sua esquerda" : "Vá para a sua direita",
-      fala: precisaMais ? "Ande para a sua esquerda." : "Ande para a sua direita.",
-      seta: precisaMais ? "maisX" : "menosX",
+      chave: lado, texto: "Centralize na tela",
+      fala: "Você está na beirada da imagem. Vire o celular um pouco na sua direção.",
+      seta: lado === "esq" ? "maisX" : lado === "dir" ? "menosX" : undefined,
     };
   }
-  const tronco = quadrilY - ombroY;
-  if (tronco < 0.15) return { chave: "aproxime", texto: "Aproxime o celular", fala: "Você está longe. Aproxime o celular.", seta: "aproxima" };
+  const ox = (lm[11].x + lm[12].x) / 2, oy = (lm[11].y + lm[12].y) / 2;
+  const qx = (lm[23].x + lm[24].x) / 2, qy = (lm[23].y + lm[24].y) / 2;
+  const tronco = Math.hypot((ox - qx) * a, oy - qy);
+  if (tronco < 0.12) return { chave: "aproxime", texto: "Aproxime o celular", fala: "Você está longe. Aproxime o celular.", seta: "aproxima" };
   if (tronco > 0.55) return { chave: "afaste", texto: "Afaste-se", fala: "Você está muito perto. Afaste um pouco o celular.", seta: "afasta" };
   return { chave: "ok", texto: "Enquadrado", fala: "Enquadrado. Pode começar.", ok: true };
 }
@@ -6306,7 +6323,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
             });
             return;
           }
-          const g = avaliarEnquadramento(lm, { tronco: soTroncoRef.current });
+          const g = avaliarEnquadramento(lm, { tronco: soTroncoRef.current, aspecto: vid.videoWidth / vid.videoHeight });
           setGuia(g);
           // A voz repete só quando a instrução muda, ou de três em três
           // segundos. Guia que fala sem parar vira ruído e atrapalha quem está
@@ -6694,7 +6711,9 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         {fase === "pronto" && enquadrado && !vendo && (
           <div style={{ position: "absolute", left: 12, right: 150, bottom: 18, pointerEvents: "none",
             background: "rgba(0,0,0,0.6)", borderRadius: 12, padding: "10px 12px", color: "#FFFFFF", fontSize: 13, lineHeight: 1.5 }}>
-            Não estou te vendo. Apoie o celular de pé, uns 2 metros de distância, com o corpo inteiro na tela.
+            {soTroncoRef.current
+              ? "Não estou te vendo. Apoie o celular de lado para você, na altura do banco, a uns 1,5 metro, mostrando do quadril para cima com os dois braços. Luz atrás de você atrapalha."
+              : "Não estou te vendo. Apoie o celular de pé, uns 2 metros de distância, com o corpo inteiro na tela."}
           </div>
         )}
       </div>

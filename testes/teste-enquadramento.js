@@ -95,5 +95,28 @@ teste("sem ver o cotovelo nao libera", "corpo", tr(semCot));
 const quadrilFora = sentado(0.5, 0.3, 0.2); quadrilFora[23].y = 0.995; quadrilFora[24].y = 0.995;
 teste("quadril na borda de baixo", "afaste", tr(quadrilFora));
 
+console.log("\n--- deitado ou inclinado no banco (supino) ---");
+// O enquadramento media o tronco so na vertical e centralizava so na
+// horizontal: no supino inclinado ele pedia "aproxime" e "va para a sua
+// direita" para sempre, com a pessoa no meio da tela. Agora o tronco e medido
+// na diagonal, e a instrucao e mover o celular.
+function inclinado(graus, cx, cy, L) {
+  const l = [];
+  for (let i = 0; i < 33; i++) l[i] = { x: 0.5, y: 0.5, visibility: 0.2 };
+  const a = graus * Math.PI / 180, dx = Math.sin(a) * L / 0.75, dy = Math.cos(a) * L;
+  const o = { x: cx - dx / 2, y: cy - dy / 2 }, q = { x: cx + dx / 2, y: cy + dy / 2 };
+  l[11] = { x: o.x, y: o.y, visibility: 0.95 }; l[12] = { x: o.x + 0.02, y: o.y + 0.01, visibility: 0.9 };
+  l[23] = { x: q.x, y: q.y, visibility: 0.9 }; l[24] = { x: q.x + 0.02, y: q.y + 0.01, visibility: 0.9 };
+  l[13] = { x: o.x + 0.05, y: o.y + 0.06, visibility: 0.9 }; l[14] = { x: o.x + 0.06, y: o.y + 0.07, visibility: 0.8 };
+  return l;
+}
+const ti = (l) => A.avaliarEnquadramento(l, { tronco: true, aspecto: 0.75 });
+teste("inclinado a 45 graus, no meio da tela", "ok", ti(inclinado(45, 0.5, 0.5, 0.3)).chave);
+teste("quase deitado (75 graus), no meio da tela", "ok", ti(inclinado(75, 0.5, 0.5, 0.3)).chave);
+teste("deitado de lado, longe", "aproxime", ti(inclinado(80, 0.5, 0.5, 0.08)).chave);
+teste("deitado, na beirada: pede para virar o celular, nao para andar", true,
+  /celular/.test(ti(inclinado(70, 0.2, 0.5, 0.3)).fala) && !/Ande/.test(ti(inclinado(70, 0.2, 0.5, 0.3)).fala));
+teste("deitado, cortado na borda do lado", "afaste", ti(inclinado(85, 0.15, 0.5, 0.3)).chave);
+
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

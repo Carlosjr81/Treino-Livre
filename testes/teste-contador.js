@@ -242,6 +242,52 @@ const pa = puxada({});
 teste("sem saber que e sentado, tambem conta 10", 10, pa.total);
 teste("e tambem nao le perna escondida", true, !/joelho|quadril|pe-|abertura-pes/.test(pa.sinal || ""));
 
+console.log("\n--- deitado no banco (supino inclinado, visto de lado) ---");
+// Pedido do dono: "nenhuma posição consegue enxergar a contagem" no supino
+// inclinado com barra. O tronco fica a uns 45 graus, a camera ve de lado: um
+// braco aparece, o outro fica atras do corpo (visibilidade baixa), e as pernas
+// somem atras do banco. O sinal que vale e o cotovelo do lado de ca.
+function supinoInclinado(opc) {
+  const o = opc || {};
+  semear();
+  const cont = A.criarContador({ preferidos: ["cotovelo-e", "cotovelo-d"], tronco: true });
+  const ruido = (k) => (sorte() - 0.5) * k;
+  let t = 0;
+  const passo = 1000 / 30;
+  const inc = (o.graus || 45) * Math.PI / 180;     // inclinacao do encosto, a partir da vertical
+  const quadril = { x: 0.62, y: 0.62 };
+  const ombro = { x: quadril.x - 0.24 * Math.sin(inc), y: quadril.y - 0.24 * Math.cos(inc) };
+  const quadro = (f) => {
+    // f: 0 = barra no peito, 1 = bracos estendidos (a barra sobe na vertical)
+    const l = [];
+    for (let i = 0; i < 33; i++) l[i] = { x: 0.5, y: 0.5, visibility: 0.9 };
+    const p = (x, y, v) => ({ x: x + ruido(0.006), y: y + ruido(0.006), z: 0, visibility: v === undefined ? 0.9 : v });
+    const mao = { x: ombro.x + 0.02 * (1 - f), y: ombro.y - 0.07 - 0.16 * f };
+    // em baixo o cotovelo desce abaixo da linha do banco; em cima, fica no meio do braco reto
+    const cot = { x: ombro.x + 0.07 * (1 - f) + 0.01 * f, y: ombro.y + 0.08 * (1 - f) - 0.115 * f };
+    l[0] = p(ombro.x - 0.06 * Math.sin(inc), ombro.y - 0.06 * Math.cos(inc) - 0.02);
+    l[11] = p(ombro.x, ombro.y); l[12] = p(ombro.x + 0.01, ombro.y + 0.005, 0.45);
+    l[13] = p(cot.x, cot.y); l[14] = p(cot.x + 0.01, cot.y, 0.4);
+    l[15] = p(mao.x, mao.y); l[16] = p(mao.x + 0.01, mao.y, 0.4);
+    l[23] = p(quadril.x, quadril.y); l[24] = p(quadril.x + 0.01, quadril.y, 0.5);
+    for (let i = 25; i <= 32; i++) l[i] = { x: 0.7 + ruido(0.12), y: 0.85 + ruido(0.15), z: 0, visibility: 0.56 };
+    return l;
+  };
+  for (let i = 0; i < 60; i++) { cont.processar(quadro(1), t); t += passo; }
+  const n = o.reps || 10;
+  for (let r = 0; r < n; r++) {
+    const q = Math.round(2600 / passo);
+    for (let i = 0; i < q; i++) { cont.processar(quadro((1 + Math.cos((i / q) * 2 * Math.PI)) / 2), t); t += passo; }
+  }
+  for (let i = 0; i < 60; i++) { cont.processar(quadro(1), t); t += passo; }
+  return cont.estado();
+}
+const si = supinoInclinado({});
+teste("supino inclinado a 45 graus, 10 repeticoes", 10, si.total);
+teste("e le o cotovelo", true, /^cotovelo/.test(si.sinal || ""));
+const sr = supinoInclinado({ graus: 75 });
+teste("quase deitado (supino reto, 75 graus), 10 repeticoes", 10, sr.total);
+
 console.log("\n--- calorias ---");
 console.log("  30 min, 80 kg: " + A.caloriasEstimadas(1800, 80) + " kcal");
 

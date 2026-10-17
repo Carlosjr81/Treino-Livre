@@ -84,7 +84,7 @@ Treino-Livre/
 ├── CLAUDE.md            ← este arquivo: o contexto do projeto
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
-└── testes/              ← as 20 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 21 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -99,7 +99,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 815 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 846 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -140,7 +140,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 815 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 846 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -215,7 +215,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v66) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v67) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1983,8 +1983,11 @@ distância e batimento reais sumiram. Daí:
   continuar". Quem decide quando acabou é a esteira parando.
   (`seguirEsteiraRef` ainda cobre o fim de um ▶, por segurança.)
 - **Parar a esteira anota a série sozinha**, com o tempo real: o painel
-  zerado, a esteira dizendo que parou, 15 s a 0 km/h ou o Desconectar —
-  qualquer um dos quatro, com pelo menos 1 minuto desde a anotação anterior.
+  zerado, a conexão caindo (com a tela à vista), 15 s parado (0 km/h; nos
+  outros aparelhos, pedal, passada e watts em zero), 15 s sem pacote nenhum
+  com a tela à vista há mais de 5 s (a máquina parou de falar sem derrubar a
+  conexão — `em`, a hora de cada pacote) ou o Desconectar. Sempre com pelo
+  menos 1 minuto desde a anotação anterior.
 - **Esteira desligada no botão** derruba o Bluetooth (`gattserverdisconnected`
   → `ligada: false`): conta como parada, e a série é anotada com o último
   pacote. Conferido no navegador.
@@ -2064,6 +2067,95 @@ depende da máquina:
 - **Achado no teste**: o painel dividia os passos pelo minuto planejado da
   série, e não pelo tempo em que foram contados (91/min em vez de 159). Mostra
   a cadência gravada.
+
+### Bicicleta, elíptico, escada e remo (o mesmo controle da esteira)
+
+Pedido do dono: "replique esse controle da esteira para todos os outros
+equipamentos". O FTMS é um serviço só (`0x1826`) com uma característica de
+dados por aparelho, e cada uma tem o seu pacote — escrito byte a byte pela
+especificação, como o da esteira:
+
+| Aparelho | Característica | Leitor | O que vem |
+|---|---|---|---|
+| esteira | `0x2ACD` | `lerDadosEsteira` | velocidade, inclinação, distância, tempo, kcal, bpm |
+| bicicleta | `0x2AD2` | `lerDadosBike` | velocidade, rpm (meias rotações), carga, watts, distância |
+| elíptico | `0x2ACE` (flags de **3** bytes) | `lerDadosEliptico` | passos/min, nível, watts, inclinação, distância |
+| escada (stepmill) | `0x2AD0` | `lerDadosEscada` | degraus/min, andares, subida |
+| escada (degrau) | `0x2ACF` | `lerDadosDegrau` | andares, degraus, degraus/min |
+| remo (e SkiErg) | `0x2AD1` | `lerDadosRemo` | remadas/min (meias), watts, distância, ritmo por 500 m |
+
+- **Todos saem com os mesmos nomes** (`watts`, `cad`, `nivel`, `metros`,
+  `segundos`...): o resto do app não sabe de que aparelho veio o número.
+- **O perfil do exercício diz o aparelho** (`FTMS_DO_PERFIL`,
+  `aparelhoDoEx`), e a conexão (`procurar(pedido)`) só aceita a
+  característica dele: tocar numa bicicleta quando se pediu o elíptico é
+  recusado com "este aparelho não é um elíptico", e a permissão é devolvida.
+  Sem pedido (intervalado, Monster Run), continua sendo a esteira.
+  **Comando, só na esteira**: nos outros o ponto de controle nem é aberto.
+- **A escadaria de prédio** usa a conta da escada mas não tem Bluetooth
+  (`semBluetooth: true` no exercício): nada de "Conectar a escada" ali.
+- **Nível sem unidade**: cada fabricante escolhe a escala (8 ou 80 para o
+  mesmo nível 8 do painel); acima de 40 é décimo (`nivelFtms`).
+- **"Não disponível" não é número**: a especificação marca com 0xFFFF/0xFF, e
+  lido como número uma esteira sem contador gravava **65.535 kcal** na série
+  (e o odômetro somava isso como reinício). `energiaFtms` descarta. Esse
+  defeito valia para a esteira desde o começo.
+- Na série, **o que segue o painel ao vivo** é velocidade e inclinação na
+  esteira e o nível nos outros; **watts e cadência entram no fim como média**
+  (`criarMediaAparelho`): pelo tempo, só do tempo em movimento (zero é parado,
+  não esforço), e menos de 10 s medidos não vira número. No ✓ o medido vence a
+  sugestão da ficha.
+- **O odômetro conta o tempo de quem se mexe** quando o painel não manda
+  relógio (muita bicicleta não manda): velocidade, rpm ou watts acima de zero.
+- Tudo o resto é o da esteira, sem código novo: um relógio só, a série fecha
+  ao parar, a tela apagada não fecha nada, o rascunho de 10 s, finalizar
+  anotando, o batimento em pedaços. O cartão (`ConexaoEsteiraSessao`, com
+  `CARTAO_APARELHO`) diz o nome certo, o jeito de confirmar de cada um
+  ("pedale ou mude a carga: se os números mudarem junto, é a sua") e mostra
+  os números daquele painel. **Uma conexão por vez**: com a bicicleta
+  conectada, o cartão da esteira diz isso em vez de mostrar números que não
+  são dela (`outro`).
+- **Entrada**: o azulejo da tela inicial virou **"Esteira e aparelhos"**, com
+  as opções da esteira e, abaixo, bicicleta, spinning, elíptico, escada, remo
+  e SkiErg (`iniciarEsteira` serve a todos). O guia do primeiro treino cita o
+  aparelho certo.
+
+Coberto por `teste-aparelhos.js` (26 checagens: os cinco pacotes, o 0xFFFF, a
+escolha na conexão, a recusa do aparelho errado, pacote torto) e pelo
+`teste-fc.js` (a média e o tempo de quem pedala). Conferido no navegador com
+uma bicicleta falsa: 40 s a 200 W/90 rpm, 40 s a 120 W/70 rpm, parou de
+pedalar → série de 83 s com 160 W, 80 rpm, nível 8.
+
+### A varredura de erros (revisão independente + simulação)
+
+Pedido do dono: "faça uma varredura de possíveis erros, simule e corrija".
+Um revisor leu o fluxo inteiro só procurando defeito, e cada achado foi
+simulado no navegador antes e depois do conserto:
+
+1. **A esteira de um estranho entrava na série.** Conectada por engano e
+   desconectada, ela anotava os 30 min dele como seus; e a conexão seguinte
+   começava com esse tempo no odômetro. Hoje o odômetro só lê máquina
+   **confirmada**, desconectar só anota máquina confirmada, e `confirmouEst`
+   só sobrevive à queda da tela apagada.
+2. **Desconectar contava a série duas vezes**: a régua não andava (o efeito
+   das séries feitas saía cedo sem o `dado`), e o rascunho velho virava um
+   falso "Recuperei a série" na volta. `anotarDaEsteira` move a régua na hora.
+3. **Remover um exercício deslocava as séries**: a medição caía no exercício
+   de baixo, até num de força. As chaves agora são o `uid` do item, no efeito
+   e no rascunho.
+4. **Um ✓ numa série que a máquina não conduzia** (remarcar uma feita,
+   marcar uma digitada) levava o tempo em curso. Só a série conduzida no
+   render anterior (`conduzidaAntes`) recebe o que a máquina mediu.
+5. **Depois da última série planejada**, quem continuava andando ficava sem
+   rascunho e sem voz. Hoje a máquina conduz uma série "a criar" (`serieAlem`),
+   que o rascunho guarda e a recuperação cria.
+6. **Os números da conexão anterior** apareciam na nova (batimento velho,
+   distância congelada): `conectar` começa com `dado: null`.
+7. **A máquina que para de mandar** sem derrubar a conexão nunca fechava a
+   série: ver a regra dos 15 s sem pacote, acima.
+8. **Uma gravação apagava a outra** quando chegavam juntas (o efeito que
+   segue o painel escrevia a sessão inteira de uma cópia velha): é funcional
+   agora, e não mexe em série já feita.
 
 ### O que pode dar errado, e o que o app faz
 
@@ -2729,7 +2821,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 20 suítes (815 checagens)
+node testes/rodar.js      # as 21 suítes (846 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

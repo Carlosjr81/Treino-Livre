@@ -577,7 +577,7 @@ const EXERCICIOS = [
   { id: "bike-braco", grupo: "ombros", nome: "Bicicleta de braço (ergômetro de braço)", en: "Arm Ergometer", tempo: true, cardio: "bike-braco", padrao: { min: 15, watts: 50 }, equip: "Ergômetro de braço", musc: { p: ["ombros"], s: ["biceps", "triceps", "dorsal"] }, passos: ["Sente com o eixo das manivelas na altura dos ombros.", "Gire os braços em ritmo constante, tronco parado.", "Troque o sentido na metade do tempo."], dica: "Aeróbico para quem está com lesão nas pernas: o coração treina igual." },
   { id: "eliptico", grupo: "pernas", nome: "Elíptico (transport)", en: "Elliptical Trainer", tempo: true, cardio: "eliptico", padrao: { min: 30, nivel: 8, cad: 130 }, equip: "Elíptico", musc: { p: ["quadriceps", "gluteos"], s: ["posteriores", "ombros", "dorsal"] }, passos: ["Suba com os pés inteiros nos pedais.", "Empurre e puxe os braços móveis no ritmo das pernas.", "Tronco ereto, sem se debruçar no painel."], dica: "Movimento de corrida sem impacto: o pé nunca sai do pedal." },
   { id: "escada", grupo: "pernas", nome: "Simulador de escada (stepmill)", en: "Stair Climber", tempo: true, cardio: "escada", padrao: { min: 15, nivel: 6, cad: 60 }, equip: "Simulador de escada", musc: { p: ["gluteos", "quadriceps"], s: ["panturrilha", "posteriores"] }, passos: ["Suba com o pé inteiro em cada degrau.", "Tronco levemente à frente, mãos só encostando no corrimão.", "Comece num nível em que dá para manter 10 minutos."], dica: "Pendurar o peso no corrimão tira o trabalho das pernas e derruba o gasto." },
-  { id: "escadaria", grupo: "pernas", nome: "Subir escadaria (prédio)", en: "Stair Climbing", tempo: true, cardio: "escada", padrao: { min: 10, cad: 60 }, equip: "Escadaria", musc: { p: ["gluteos", "quadriceps"], s: ["panturrilha"] }, passos: ["Suba degrau por degrau, com o pé inteiro.", "Desça devagar, que a descida é que cansa o joelho.", "Use o corrimão só para equilíbrio."], dica: "Contar degraus por minuto é o jeito de comparar um dia com o outro." },
+  { id: "escadaria", semBluetooth: true, grupo: "pernas", nome: "Subir escadaria (prédio)", en: "Stair Climbing", tempo: true, cardio: "escada", padrao: { min: 10, cad: 60 }, equip: "Escadaria", musc: { p: ["gluteos", "quadriceps"], s: ["panturrilha"] }, passos: ["Suba degrau por degrau, com o pé inteiro.", "Desça devagar, que a descida é que cansa o joelho.", "Use o corrimão só para equilíbrio."], dica: "Contar degraus por minuto é o jeito de comparar um dia com o outro." },
   { id: "remo-ergometro", grupo: "costas", nome: "Remo ergômetro", en: "Rowing Machine", tempo: true, cardio: "remo", padrao: { min: 20, watts: 120, cad: 24 }, equip: "Remo ergômetro", musc: { p: ["dorsal", "quadriceps"], s: ["gluteos", "biceps", "posteriores", "abdomen"] }, passos: ["Pés presos, joelhos dobrados e braços estendidos.", "Empurre com as pernas, depois incline o tronco e só então puxe com os braços.", "Volte na ordem inversa: braços, tronco, pernas."], dica: "60% da força vem das pernas. Puxar só com os braços cansa rápido e rende pouco." },
   { id: "ski-erg", grupo: "costas", nome: "Simulador de esqui (SkiErg)", en: "Ski Ergometer", tempo: true, cardio: "ski", padrao: { min: 10, watts: 120, cad: 30 }, equip: "Simulador de esqui", musc: { p: ["dorsal", "triceps"], s: ["abdomen", "ombros", "gluteos"] }, passos: ["Segure as manoplas acima da cabeça, em pé de frente para o aparelho.", "Puxe para baixo dobrando o quadril e os joelhos juntos.", "Volte esticando o corpo e levando as mãos ao alto."], dica: "A força vem do tronco descendo, não só dos braços." },
   { id: "caminhada-rua", grupo: "pernas", nome: "Caminhada na rua", en: "Walking", tempo: true, cardio: "rua-caminhada", padrao: { min: 40, km: 4 }, equip: "Ao ar livre", musc: { p: ["quadriceps", "panturrilha"], s: ["gluteos", "posteriores"] }, passos: ["Use um tênis confortável e comece num passo leve por 5 minutos.", "Acelere até um ritmo em que ainda dá para conversar, mas não cantar.", "Anote o tempo e a distância que o celular ou o relógio marcaram."], dica: "Caminhar firme 30 minutos por dia cumpre a meta de atividade da OMS." },
@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-16s";
+const VERSAO_APP = "2026-10-17a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -926,6 +926,7 @@ function moldeCardio(s) {
   // na esteira, km e cadência são medidos (painel, acelerômetro); na rua o km
   // é o que a pessoa digita, e na escada a cadência é o número do painel
   if (s && (ehEsteiraPerfil(s.mod) || (!s.mod && temValor(s.vel)))) { delete o.km; delete o.cad; }
+  else if (s && s.mod && !camposCardio(s.mod).some((c) => c[0] === "km")) delete o.km;
   return o;
 }
 // Linha quebrada entre pontos conhecidos; abaixo do primeiro, o primeiro; acima
@@ -2011,7 +2012,7 @@ function lerDadosEsteira(dv) {
   if (tem(4) && cabe(4)) { out.subida = u16() / 10; out.descida = u16() / 10; }
   if (tem(5) && cabe(1)) out.ritmo = u8() / 10;
   if (tem(6) && cabe(1)) out.ritmoMedio = u8() / 10;
-  if (tem(7) && cabe(5)) { out.kcal = u16(); out.kcalHora = u16(); out.kcalMin = u8(); }
+  if (tem(7) && cabe(5)) energiaFtms(u16(), u16(), u8(), out);
   if (tem(8) && cabe(1)) out.bpm = u8();
   if (tem(9) && cabe(1)) out.met = u8() / 10;
   if (tem(10) && cabe(2)) out.segundos = u16();
@@ -2019,6 +2020,149 @@ function lerDadosEsteira(dv) {
   if (tem(12) && cabe(4)) { out.forca = s16(); out.watts = s16(); }
   return out;
 }
+
+// A especificação marca "não disponível" com o maior número que cabe no campo
+// (0xFFFF, 0xFF). Lido como número, uma esteira sem contador de calorias
+// gravava 65.535 kcal na série — e o odômetro somava isso como reinício.
+function energiaFtms(kcal, kcalHora, kcalMin, out) {
+  if (kcal !== 0xffff) out.kcal = kcal;
+  if (kcalHora !== 0xffff) out.kcalHora = kcalHora;
+  if (kcalMin !== 0xff) out.kcalMin = kcalMin;
+}
+
+// ---- Os outros aparelhos do mesmo padrão ----
+//
+// Bicicleta, elíptico, escada e remo falam o mesmo FTMS (serviço 0x1826), cada
+// um com o seu pacote de dados. A lógica é a mesma da esteira — flags e, depois,
+// só os campos que elas acusam, na ordem dos bits — e os nomes de saída são os
+// mesmos para todos: o resto do app lê "watts", "cad" e "nivel" sem saber de
+// que aparelho vieram.
+function leitorFtms(dv, bytesFlags) {
+  const flags = bytesFlags === 3 ? dv.getUint16(0, true) | (dv.getUint8(2) << 16) : dv.getUint16(0, true);
+  let i = bytesFlags;
+  const r = {
+    tem: (bit) => (flags & (1 << bit)) !== 0,
+    cabe: (n) => i + n <= dv.byteLength,
+    u8: () => { const v = dv.getUint8(i); i += 1; return v; },
+    u16: () => { const v = dv.getUint16(i, true); i += 2; return v; },
+    s16: () => { const v = dv.getInt16(i, true); i += 2; return v; },
+    u24: () => { const v = dv.getUint8(i) | (dv.getUint8(i + 1) << 8) | (dv.getUint8(i + 2) << 16); i += 3; return v; },
+  };
+  return r;
+}
+// O nível de resistência vem sem unidade, e cada fabricante escolhe a escala:
+// uns mandam 8, outros 80 para o mesmo "nível 8" do painel. Painel de academia
+// vai até uns 20 ou 30; acima de 40 é décimo.
+const nivelFtms = (v) => (v > 40 ? Math.round(v) / 10 : v);
+// Cross Trainer Data, 0x2ACE. Único com flags de 3 bytes.
+function lerDadosEliptico(dv) {
+  if (!dv || dv.byteLength < 3) return null;
+  const r = leitorFtms(dv, 3), out = {};
+  if (!r.tem(0) && r.cabe(2)) out.vel = r.u16() / 100;
+  if (r.tem(1) && r.cabe(2)) out.velMedia = r.u16() / 100;
+  if (r.tem(2) && r.cabe(3)) out.metros = r.u24();
+  if (r.tem(3) && r.cabe(4)) { out.cad = r.u16(); out.cadMedia = r.u16(); }
+  if (r.tem(4) && r.cabe(2)) r.u16();                         // passadas: só anda o ponteiro
+  if (r.tem(5) && r.cabe(4)) { out.subida = r.u16(); r.u16(); }
+  if (r.tem(6) && r.cabe(4)) { out.incl = r.s16() / 10; r.s16(); }
+  if (r.tem(7) && r.cabe(2)) out.nivel = nivelFtms(r.s16());
+  if (r.tem(8) && r.cabe(2)) out.watts = r.s16();
+  if (r.tem(9) && r.cabe(2)) out.wattsMedia = r.s16();
+  if (r.tem(10) && r.cabe(5)) energiaFtms(r.u16(), r.u16(), r.u8(), out);
+  if (r.tem(11) && r.cabe(1)) out.bpm = r.u8();
+  if (r.tem(12) && r.cabe(1)) out.met = r.u8() / 10;
+  if (r.tem(13) && r.cabe(2)) out.segundos = r.u16();
+  if (r.tem(14) && r.cabe(2)) out.restante = r.u16();
+  return out;
+}
+// Step Climber Data, 0x2ACF (o "degrau" que sobe e desce no lugar).
+function lerDadosDegrau(dv) {
+  if (!dv || dv.byteLength < 2) return null;
+  const r = leitorFtms(dv, 2), out = {};
+  if (!r.tem(0) && r.cabe(4)) { out.andares = r.u16(); out.passos = r.u16(); }
+  if (r.tem(1) && r.cabe(2)) out.cad = r.u16();
+  if (r.tem(2) && r.cabe(2)) out.cadMedia = r.u16();
+  if (r.tem(3) && r.cabe(2)) out.subida = r.u16();
+  if (r.tem(4) && r.cabe(5)) energiaFtms(r.u16(), r.u16(), r.u8(), out);
+  if (r.tem(5) && r.cabe(1)) out.bpm = r.u8();
+  if (r.tem(6) && r.cabe(1)) out.met = r.u8() / 10;
+  if (r.tem(7) && r.cabe(2)) out.segundos = r.u16();
+  if (r.tem(8) && r.cabe(2)) out.restante = r.u16();
+  return out;
+}
+// Stair Climber Data, 0x2AD0 (a escada rolante de degraus, o stepmill).
+function lerDadosEscada(dv) {
+  if (!dv || dv.byteLength < 2) return null;
+  const r = leitorFtms(dv, 2), out = {};
+  if (!r.tem(0) && r.cabe(2)) out.andares = r.u16();
+  if (r.tem(1) && r.cabe(2)) out.cad = r.u16();
+  if (r.tem(2) && r.cabe(2)) out.cadMedia = r.u16();
+  if (r.tem(3) && r.cabe(2)) out.subida = r.u16();
+  if (r.tem(4) && r.cabe(2)) r.u16();                         // passadas
+  if (r.tem(5) && r.cabe(5)) energiaFtms(r.u16(), r.u16(), r.u8(), out);
+  if (r.tem(6) && r.cabe(1)) out.bpm = r.u8();
+  if (r.tem(7) && r.cabe(1)) out.met = r.u8() / 10;
+  if (r.tem(8) && r.cabe(2)) out.segundos = r.u16();
+  if (r.tem(9) && r.cabe(2)) out.restante = r.u16();
+  return out;
+}
+// Rower Data, 0x2AD1. A cadência vem em meias remadas por minuto, e o ritmo
+// em segundos por 500 m — a régua de quem rema.
+function lerDadosRemo(dv) {
+  if (!dv || dv.byteLength < 2) return null;
+  const r = leitorFtms(dv, 2), out = {};
+  if (!r.tem(0) && r.cabe(3)) { out.cad = r.u8() / 2; out.passos = r.u16(); }
+  if (r.tem(1) && r.cabe(1)) out.cadMedia = r.u8() / 2;
+  if (r.tem(2) && r.cabe(3)) out.metros = r.u24();
+  if (r.tem(3) && r.cabe(2)) out.ritmo500 = r.u16();
+  if (r.tem(4) && r.cabe(2)) out.ritmo500Medio = r.u16();
+  if (r.tem(5) && r.cabe(2)) out.watts = r.s16();
+  if (r.tem(6) && r.cabe(2)) out.wattsMedia = r.s16();
+  if (r.tem(7) && r.cabe(2)) out.nivel = nivelFtms(r.s16());
+  if (r.tem(8) && r.cabe(5)) energiaFtms(r.u16(), r.u16(), r.u8(), out);
+  if (r.tem(9) && r.cabe(1)) out.bpm = r.u8();
+  if (r.tem(10) && r.cabe(1)) out.met = r.u8() / 10;
+  if (r.tem(11) && r.cabe(2)) out.segundos = r.u16();
+  if (r.tem(12) && r.cabe(2)) out.restante = r.u16();
+  return out;
+}
+// Indoor Bike Data, 0x2AD2. Cadência em meias rotações por minuto.
+function lerDadosBike(dv) {
+  if (!dv || dv.byteLength < 2) return null;
+  const r = leitorFtms(dv, 2), out = {};
+  if (!r.tem(0) && r.cabe(2)) out.vel = r.u16() / 100;
+  if (r.tem(1) && r.cabe(2)) out.velMedia = r.u16() / 100;
+  if (r.tem(2) && r.cabe(2)) out.cad = r.u16() / 2;
+  if (r.tem(3) && r.cabe(2)) out.cadMedia = r.u16() / 2;
+  if (r.tem(4) && r.cabe(3)) out.metros = r.u24();
+  if (r.tem(5) && r.cabe(2)) out.nivel = nivelFtms(r.s16());
+  if (r.tem(6) && r.cabe(2)) out.watts = r.s16();
+  if (r.tem(7) && r.cabe(2)) out.wattsMedia = r.s16();
+  if (r.tem(8) && r.cabe(5)) energiaFtms(r.u16(), r.u16(), r.u8(), out);
+  if (r.tem(9) && r.cabe(1)) out.bpm = r.u8();
+  if (r.tem(10) && r.cabe(1)) out.met = r.u8() / 10;
+  if (r.tem(11) && r.cabe(2)) out.segundos = r.u16();
+  if (r.tem(12) && r.cabe(2)) out.restante = r.u16();
+  return out;
+}
+// Cada aparelho: a característica de dados, o leitor, e como chamá-lo na tela.
+const APARELHOS_FTMS = {
+  esteira:  { uuid: 0x2acd, ler: lerDadosEsteira, nome: "esteira", um: "uma esteira", oNome: "a esteira" },
+  bike:     { uuid: 0x2ad2, ler: lerDadosBike, nome: "bicicleta", um: "uma bicicleta", oNome: "a bicicleta" },
+  eliptico: { uuid: 0x2ace, ler: lerDadosEliptico, nome: "elíptico", um: "um elíptico", oNome: "o elíptico" },
+  escada:   { uuid: 0x2ad0, ler: lerDadosEscada, nome: "escada", um: "uma escada", oNome: "a escada" },
+  degrau:   { uuid: 0x2acf, ler: lerDadosDegrau, nome: "escada", um: "uma escada", oNome: "a escada" },
+  remo:     { uuid: 0x2ad1, ler: lerDadosRemo, nome: "remo", um: "um remo", oNome: "o remo" },
+};
+// O perfil aeróbico do exercício diz que aparelho procurar. Escada aceita os
+// dois tipos (degrau e stepmill); o ski de parede, quando fala FTMS, se
+// apresenta como remo.
+const FTMS_DO_PERFIL = { caminhada: ["esteira"], corrida: ["esteira"], bike: ["bike"], "bike-braco": ["bike"],
+  eliptico: ["eliptico"], escada: ["escada", "degrau"], remo: ["remo"], ski: ["remo"] };
+const aparelhoDoPerfil = (perfil) => (FTMS_DO_PERFIL[perfil] || [null])[0];
+// escadaria de prédio usa a conta da escada, mas não tem Bluetooth nenhum
+const aparelhoDoEx = (ex) => (ex && !ex.semBluetooth ? aparelhoDoPerfil(ex.cardio) : null);
+const nomeAparelho = (tipo) => (APARELHOS_FTMS[tipo] || APARELHOS_FTMS.esteira);
 
 // ---- As faixas que a máquina aceita ----
 // Mandar uma velocidade fora do que a esteira suporta é a receita para ela
@@ -2121,13 +2265,15 @@ function velocidadePermitida(kmh, faixa, teto) {
 function criarEsteira(opcoes) {
   const o = opcoes || {};
   let dispositivo = null, servidor = null, dados = null, controle = null, sensorFc = null;
+  let tipo = "esteira", leitor = lerDadosEsteira;
   let faixaVel = null, faixaIncl = null, temControle = false;
   let esperando = null;   // { op, resolve, reject, relogio }
 
   const avisar = (e) => { if (o.aoEstado) o.aoEstado(e); };
 
   const aoDado = (ev) => {
-    const d = lerDadosEsteira(ev.target.value);
+    let d = null;
+    try { d = leitor(ev.target.value); } catch (e) { d = null; }   // pacote torto não derruba o treino
     if (d && o.aoDado) o.aoDado(d);
   };
   // O pegador com sensor (ou a cinta pareada na esteira) costuma vir como o
@@ -2174,13 +2320,26 @@ function criarEsteira(opcoes) {
     });
   }
 
-  async function montar(dev) {
+  async function montar(dev, pedido) {
     dispositivo = dev;
     dispositivo.addEventListener("gattserverdisconnected", aoCair);
     servidor = await dispositivo.gatt.connect();
     const servico = await servidor.getPrimaryService(ESTEIRA_SERVICO);
 
-    dados = await servico.getCharacteristic(ESTEIRA_DADOS);
+    // O mesmo serviço serve bicicleta, elíptico, escada e remo; o que diz qual
+    // aparelho é este é a característica de dados que ele tem. Escolhido o
+    // elíptico e tocado numa bicicleta, a conexão é recusada com o nome certo,
+    // em vez de mostrar números que não são do exercício.
+    const aceitos = FTMS_DO_PERFIL[pedido] || [pedido && APARELHOS_FTMS[pedido] ? pedido : "esteira"];
+    dados = null;
+    for (const t of aceitos) {
+      try { dados = await servico.getCharacteristic(APARELHOS_FTMS[t].uuid); tipo = t; leitor = APARELHOS_FTMS[t].ler; break; } catch (e) { dados = null; }
+    }
+    if (!dados) {
+      try { dispositivo.gatt.disconnect(); } catch (e) {}
+      try { if (dispositivo.forget) dispositivo.forget(); } catch (e) {}
+      throw new Error("este aparelho não é " + nomeAparelho(aceitos[0]).um);
+    }
     await dados.startNotifications();
     dados.addEventListener("characteristicvaluechanged", aoDado);
 
@@ -2189,7 +2348,8 @@ function criarEsteira(opcoes) {
     // leitura sozinha já tira a digitação do caminho.
     try { faixaVel = lerFaixaVelocidade(await (await servico.getCharacteristic(ESTEIRA_FAIXA_VEL)).readValue()); } catch (e) { faixaVel = null; }
     try { faixaIncl = lerFaixaInclinacao(await (await servico.getCharacteristic(ESTEIRA_FAIXA_INCL)).readValue()); } catch (e) { faixaIncl = null; }
-    try {
+    // comando só na esteira: é o único aparelho que o app conduz
+    if (tipo === "esteira") try {
       controle = await servico.getCharacteristic(ESTEIRA_CONTROLE);
       await controle.startNotifications();
       controle.addEventListener("characteristicvaluechanged", aoResposta);
@@ -2202,20 +2362,21 @@ function criarEsteira(opcoes) {
     } catch (e) { sensorFc = null; }
 
     avisar("ligado");
-    return { nome: dispositivo.name || "Esteira", faixaVel: faixaVel, faixaIncl: faixaIncl, podeComandar: !!controle };
+    return { nome: dispositivo.name || "Esteira", faixaVel: faixaVel, faixaIncl: faixaIncl, podeComandar: !!controle, tipo: tipo };
   }
 
   return {
     // A janela do navegador, filtrada para só mostrar máquina de academia.
-    async procurar() {
+    async procurar(pedido) {
       if (!ESTEIRA_DISPONIVEL) throw new Error("sem bluetooth");
       avisar("procurando");
       const dev = await navigator.bluetooth.requestDevice({
         filters: [{ services: [ESTEIRA_SERVICO] }],
         optionalServices: [ESTEIRA_SERVICO, "heart_rate"],
       });
-      return montar(dev);
+      return montar(dev, pedido);
     },
+    tipo() { return tipo; },
     // NÃO existe `reconectar()`, e a ausência é proposital — ver o comentário
     // do topo. Se um dia alguém for tentado a acrescentar, a pergunta é: como
     // o app sabe que a esteira conhecida é a que está na frente da pessoa?
@@ -2338,7 +2499,7 @@ function criarLeituraFc() {
 const ODO_CAMPOS = [["segundos", "seg", 5], ["metros", "m", 20], ["kcal", "kcal", 5], ["subida", "subida", 2]];
 function criarOdometroEsteira() {
   const saldo = { seg: 0, m: 0, kcal: 0, subida: 0 }, ultimo = {};
-  let ultimoPacote = null, tVel = null, vel = 0, mSomado = 0, segSomado = 0, reiniciouEm = 0;
+  let ultimoPacote = null, tVel = null, vel = 0, mexe = false, mSomado = 0, segSomado = 0, reiniciouEm = 0;
   const odo = {
     // d: o pacote juntado; agora: ms. Chamado a cada render, conta cada pacote uma vez.
     ler(d, agora) {
@@ -2349,12 +2510,13 @@ function criarOdometroEsteira() {
           if (ultimo[nome] !== undefined && d[campo] + folga < ultimo[nome]) { saldo[nome] += ultimo[nome]; reiniciouEm = agora; }
           ultimo[nome] = d[campo];
         });
-        if (tVel !== null && vel > 0) {
+        if (tVel !== null) {
           const dt = Math.min(agora - tVel, 5000) / 1000;
-          if (dt > 0) { mSomado += (vel / 3.6) * dt; segSomado += dt; }
+          if (dt > 0) { if (vel > 0) mSomado += (vel / 3.6) * dt; if (mexe) segSomado += dt; }
         }
         tVel = agora;
         vel = d.vel !== undefined ? d.vel : vel;
+        mexe = vel > 0 || d.cad > 0 || d.watts > 0;
       }
       return odo.total();
     },
@@ -2373,6 +2535,32 @@ function criarOdometroEsteira() {
   return odo;
 }
 // ---- fim do odômetro da esteira
+
+// ---- Média do aparelho na série ----
+// Watts e cadência mudam a cada pedalada: o que vale para a série é a média
+// pelo tempo, e só do tempo em movimento (zero é parado, não esforço). Menos de
+// 10 s medidos não vira número.
+function criarMediaAparelho() {
+  const soma = {}, tempo = {};
+  let ultimo = null, ant = null, tAnt = null;
+  return {
+    ler(d, agora) {
+      if (!d || d === ultimo) return;
+      ultimo = d;
+      if (ant && tAnt !== null) {
+        const dt = Math.min(agora - tAnt, 5000) / 1000;
+        if (dt > 0) ["watts", "cad"].forEach((k) => { if (ant[k] > 0) { soma[k] = (soma[k] || 0) + ant[k] * dt; tempo[k] = (tempo[k] || 0) + dt; } });
+      }
+      ant = d; tAnt = agora;
+    },
+    fechar() {
+      const o = {};
+      ["watts", "cad"].forEach((k) => { if (tempo[k] >= 10) o[k] = Math.round(soma[k] / tempo[k]); });
+      return o;
+    },
+  };
+}
+// ---- fim da média do aparelho
 
 // ---------------- JARVIS EYES SCAN: CONTAR REPETIÇÃO PELA CÂMERA ----------------
 // Apoia o celular, o app enxerga o corpo inteiro e conta as repetições sozinho.
@@ -7633,7 +7821,8 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
     { icone: "🗺", nome: "Corrida na rua", diz: "GPS, mapa e ritmo", cor: "#4C9BE8", onClick: onPercurso },
     // A esteira era só um exercício escondido dentro das fichas: quem ia à
     // academia só para correr não achava por onde começar.
-    { icone: "\u{1F3C3}", nome: "Esteira", diz: "corrida ou caminhada", cor: "#4C9BE8", onClick: onEsteira && (() => setEscolhaEsteira((v) => !v)), ativo: escolhaEsteira },
+    // e, junto, os outros aparelhos de academia que o app lê por Bluetooth
+    { icone: "\u{1F3C3}", nome: "Esteira e aparelhos", diz: "esteira, bike, elíptico, remo", cor: "#4C9BE8", onClick: onEsteira && (() => setEscolhaEsteira((v) => !v)), ativo: escolhaEsteira },
     { icone: "⏱", nome: "Intervalado", diz: "o ritmo que varia", cor: "#F5A623", onClick: onIntervalado },
     { icone: "🏁", nome: "Desafio", diz: "corra contra amigos", cor: "#E1306C", onClick: onDesafio },
     { icone: "🧟", nome: NOME_ZUMBI, diz: "fuja dos monstros correndo", cor: "#7CFF3C", onClick: onZumbi },
@@ -7748,7 +7937,7 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
         </div>
         {escolhaEsteira && onEsteira && (
           <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: "1px solid #4C9BE866", background: "#4C9BE80D" }}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>O que você vai fazer na esteira?</div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>Na esteira</div>
             {[
               ["esteira-corrida", "\u{1F3C3} Correr", "começa com 9 km/h, 20 min"],
               ["esteira-caminhada", "\u{1F6B6} Caminhar", "começa com 5,5 km/h, 30 min"],
@@ -7761,8 +7950,26 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
                 <span style={{ display: "block", fontSize: 12, color: "var(--cinza)", marginTop: 2 }}>{o[2]}</span>
               </button>
             ))}
-            <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 4 }}>
-              Esteira com Bluetooth? Na tela do treino tem o botão <b>Conectar a esteira</b>: a velocidade e a inclinação entram sozinhas. Sem ele, você digita o que o painel mostra. Quer variar o ritmo? Use o <b>Intervalado</b>.
+            <div style={{ fontSize: 13, fontWeight: 800, margin: "10px 0 8px" }}>Outros aparelhos</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+              {[
+                ["bike-vertical", "\u{1F6B2} Bicicleta", "watts, rpm e carga"],
+                ["bike-spinning", "\u{1F6B4} Spinning", "bike indoor"],
+                ["eliptico", "\u{1F3BF} Elíptico", "nível e passos/min"],
+                ["escada", "\u{1FA9C} Escada", "degraus por minuto"],
+                ["remo-ergometro", "\u{1F6A3} Remo", "watts e ritmo por 500 m"],
+                ["ski-erg", "\u26F7\uFE0F SkiErg", "watts e puxadas/min"],
+              ].map((o) => (
+                <button key={o[0]} onClick={() => onEsteira(o[0])}
+                  style={{ textAlign: "left", padding: "9px 10px", borderRadius: 10, cursor: "pointer",
+                    background: "var(--card)", border: "1px solid var(--borda2)", color: "var(--texto)" }}>
+                  <span style={{ display: "block", fontWeight: 900, fontSize: 13.5 }}>{o[1]}</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--cinza)", marginTop: 2 }}>{o[2]}</span>
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 8 }}>
+              Aparelho com Bluetooth? Na tela do treino tem o botão <b>Conectar</b>: os números do painel entram sozinhos e a série fecha quando você parar. Sem ele, você digita o que o painel mostra. Quer variar o ritmo na esteira? Use o <b>Intervalado</b>.
             </div>
           </div>
         )}
@@ -14479,13 +14686,46 @@ function FaixaIntervalo({ blocos, atual, tAtivo }) {
 // inclinação à mão, sem saber que a máquina podia dizê-las sozinha. Aqui ela
 // só é LIDA — nunca comandada — e as mesmas regras valem: conexão por toque,
 // conferência no painel, nada de reconectar sozinha.
-function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onAnotar, segAnotar, kmAnotar, seguindo, fcSerie, kmSomado, metaSerie, retomar, onAnotarAteAqui }) {
+// O que o painel de cada aparelho chama de cadência, e como confirmar que a
+// máquina conectada é a que está na frente da pessoa (numa academia com dez
+// iguais o nome no Bluetooth não distingue nada; o painel, sim).
+const CARTAO_APARELHO = {
+  esteira: { cad: "passos/min", confirmar: "Mude a velocidade no painel dela: se o número acima mudar junto, é a sua.",
+    leitura: "a velocidade e a inclinação do painel. Quem muda a velocidade continua sendo você.",
+    entra: "A velocidade, a inclinação e a distância entram sozinhas — sem digitar nada." },
+  bike: { cad: "rpm", confirmar: "Pedale ou mude a carga no painel: se os números acima mudarem junto, é a sua.",
+    leitura: "a carga do painel; no fim entram a média de watts e de rpm.",
+    entra: "Watts, rpm, carga, distância e calorias entram sozinhos — sem digitar nada." },
+  eliptico: { cad: "passos/min", confirmar: "Comece a pedalar ou mude o nível no painel: se os números acima mudarem junto, é o seu.",
+    leitura: "o nível do painel; no fim entram a média de passos por minuto e de watts.",
+    entra: "Nível, passos por minuto, distância e calorias entram sozinhos — sem digitar nada." },
+  escada: { cad: "degraus/min", confirmar: "Suba alguns degraus ou mude o nível no painel: se os números acima mudarem junto, é a sua.",
+    leitura: "o nível do painel; no fim entra a média de degraus por minuto.",
+    entra: "Degraus por minuto, andares, subida e calorias entram sozinhos — sem digitar nada." },
+  remo: { cad: "remadas/min", confirmar: "Dê algumas remadas: se os números acima mudarem junto, é o seu.",
+    leitura: "a carga do painel; no fim entram a média de watts e de remadas por minuto.",
+    entra: "Watts, remadas por minuto, distância e o ritmo por 500 m entram sozinhos — sem digitar nada." },
+};
+const mmssSeg = (s) => Math.floor(s / 60) + ":" + String(Math.round(s) % 60).padStart(2, "0");
+function ConexaoEsteiraSessao({ est, tipo, outro, onConectar, onConfirmar, onDesconectar, onAnotar, segAnotar, kmAnotar, seguindo, fcSerie, kmSomado, metaSerie, retomar, onAnotarAteAqui }) {
+  const t = tipo || "esteira", ap = nomeAparelho(t), txt = CARTAO_APARELHO[t] || CARTAO_APARELHO.esteira;
+  const Ap = ap.nome.charAt(0).toUpperCase() + ap.nome.slice(1);
   if (!ESTEIRA_DISPONIVEL) {
     return (
       <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, margin: "2px 0 10px", padding: "8px 10px", borderRadius: 10, background: "var(--bg2)" }}>
-        📶 <b style={{ color: "var(--texto)" }}>Esteira com Bluetooth?</b> O app lê a velocidade dela
+        📶 <b style={{ color: "var(--texto)" }}>{Ap} com Bluetooth?</b> O app lê os números do painel
         sozinho no Chrome do Android e do computador. No iPhone a Apple não libera isso para
-        nenhum site: digite a velocidade e a inclinação do painel aqui embaixo.
+        nenhum site: digite os números do painel aqui embaixo.
+      </div>
+    );
+  }
+  // Uma conexão por vez: com a bicicleta conectada, o cartão da esteira não
+  // mostra os números da bicicleta como se fossem dela.
+  if (outro) {
+    return (
+      <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, margin: "2px 0 10px", padding: "8px 10px", borderRadius: 10, background: "var(--bg2)" }}>
+        📶 Conectado agora: <b style={{ color: "var(--texto)" }}>{nomeAparelho(outro).nome}</b>. Para ler {ap.oNome},
+        termine e desconecte {nomeAparelho(outro).oNome} no cartão dele{nomeAparelho(outro).oNome.startsWith("a ") ? "a" : ""}.
       </div>
     );
   }
@@ -14497,7 +14737,7 @@ function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onA
         {retomar ? (
           <div style={{ fontSize: 12.5, lineHeight: 1.55, marginBottom: 10, padding: 10, borderRadius: 10, background: "var(--bg2)", border: "1px solid var(--obs)" }}>
             <b style={{ color: "var(--obs)" }}>⏸ A tela apagou e o celular cortou o Bluetooth.</b> Nada se perdeu:
-            a série continua aberta em <b>{Math.floor(retomar.seg / 60) + ":" + String(retomar.seg % 60).padStart(2, "0")}</b>
+            a série continua aberta em <b>{mmssSeg(retomar.seg)}</b>
             {retomar.km ? " · " + num1(retomar.km) + " km" : ""}. Reconecte e confirme no painel: a contagem segue de onde
             parou, com o tempo em que a tela ficou apagada.
             <button onClick={onAnotarAteAqui} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>Já terminei: anotar a série até aqui</button>
@@ -14505,14 +14745,12 @@ function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onA
         ) : null}
         <button onClick={onConectar} disabled={est.estado === "procurando"}
           style={{ ...S.btn, width: "100%", background: "linear-gradient(135deg, #4C9BE8, #2F6FD0)", fontSize: 15 }}>
-          {est.estado === "procurando" ? "Procurando a esteira…" : retomar ? "📶 Reconectar a esteira" : "📶 Conectar a esteira"}
+          {est.estado === "procurando" ? "Procurando " + ap.oNome + "…" : (retomar ? "📶 Reconectar " : "📶 Conectar ") + ap.oNome}
         </button>
-        <div style={{ fontSize: 12, color: "var(--texto)", marginTop: 8, lineHeight: 1.5 }}>
-          A velocidade, a inclinação e a distância entram sozinhas — sem digitar nada.
-        </div>
+        <div style={{ fontSize: 12, color: "var(--texto)", marginTop: 8, lineHeight: 1.5 }}>{txt.entra}</div>
         <div style={{ fontSize: 11, color: "var(--cinza)", marginTop: 4, lineHeight: 1.45 }}>
-          Ligue a esteira antes e toque acima: abre a lista de aparelhos por perto, e só
-          aparecem máquinas de academia. Se a sua não aparecer, ela não tem esse Bluetooth —
+          Ligue {ap.oNome} antes e toque acima: abre a lista de aparelhos por perto, e só
+          aparecem máquinas de academia. Se {ap.oNome.startsWith("a ") ? "a sua" : "o seu"} não aparecer, não tem esse Bluetooth —
           é só digitar os números do painel.
         </div>
         {est.erro && <div style={{ fontSize: 12, color: "var(--perigo)", marginTop: 8, lineHeight: 1.45 }}>{est.erro}</div>}
@@ -14521,26 +14759,33 @@ function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onA
   }
   const km = d.metros !== undefined ? d.metros / 1000 : null;
   const seg = d.segundos || 0;
+  // em uso por outra pessoa: a esteira andando, o pedal girando, o remo remando
+  const emUso = t === "esteira" ? d.vel > 0 : d.cad > 0 || d.watts > 0;
   return (
     <div style={caixa}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <div style={{ fontSize: 13.5, fontWeight: 800, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          <span style={{ color: "var(--ok)" }}>●</span> {est.nome || "Esteira"}
+          <span style={{ color: "var(--ok)" }}>●</span> {est.nome || Ap}
         </div>
         <button onClick={onDesconectar} style={{ background: "none", border: "none", color: "var(--cinza)", fontSize: 12, cursor: "pointer", padding: 0, textDecoration: "underline", flexShrink: 0 }}>Desconectar</button>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-        <NumeroCorrida rot="velocidade" val={d.vel !== undefined ? num1(d.vel) : "—"} sub="km/h" cor="#4C9BE8" />
+        {t === "esteira" || d.vel !== undefined
+          ? <NumeroCorrida rot="velocidade" val={d.vel !== undefined ? num1(d.vel) : "—"} sub="km/h" cor="#4C9BE8" /> : null}
+        {d.watts !== undefined && t !== "esteira" ? <NumeroCorrida rot="potência" val={Math.max(0, d.watts)} sub="W" cor="#4C9BE8" /> : null}
+        {d.cad !== undefined ? <NumeroCorrida rot="cadência" val={num1(d.cad)} sub={txt.cad} /> : null}
+        {d.nivel !== undefined ? <NumeroCorrida rot="nível" val={num1(d.nivel)} /> : null}
         {d.incl !== undefined ? <NumeroCorrida rot="inclinação" val={num1(d.incl) + "%"} /> : null}
         {/* confirmada, o tempo e a distância são os da série — os mesmos da
             linha de baixo. Antes era o total do painel, e pareciam dois treinos */}
         {est.confirmada
-          ? <NumeroCorrida rot="tempo da série" val={Math.floor((segAnotar || 0) / 60) + ":" + String((segAnotar || 0) % 60).padStart(2, "0")} sub={metaSerie ? "meta: " + Math.round(metaSerie / 60) + " min" : null} cor="var(--ok)" />
-          : seg ? <NumeroCorrida rot="tempo" val={Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0")} /> : null}
+          ? <NumeroCorrida rot="tempo da série" val={mmssSeg(segAnotar || 0)} sub={metaSerie ? "meta: " + Math.round(metaSerie / 60) + " min" : null} cor="var(--ok)" />
+          : seg ? <NumeroCorrida rot="tempo" val={mmssSeg(seg)} /> : null}
         {est.confirmada
           ? (kmAnotar !== null ? <NumeroCorrida rot="distância da série" val={num1(kmAnotar)} sub={kmSomado ? "km, pela velocidade" : "km"} /> : null)
           : km !== null ? <NumeroCorrida rot="distância" val={num1(km)} sub="km" /> : null}
-        {d.vel > 0 ? <NumeroCorrida rot="ritmo" val={fmtRitmo(60 / d.vel)} /> : null}
+        {t === "esteira" && d.vel > 0 ? <NumeroCorrida rot="ritmo" val={fmtRitmo(60 / d.vel)} /> : null}
+        {t === "remo" && d.ritmo500 > 0 ? <NumeroCorrida rot="ritmo" val={mmssSeg(d.ritmo500)} sub="por 500 m" /> : null}
         {d.velMedia > 0 ? <NumeroCorrida rot="vel. média" val={num1(d.velMedia)} sub="km/h" /> : null}
         {/* o batimento só vale fresco: com as mãos fora do pegador o último
             número fica parado, e mostrá-lo como atual seria mentir */}
@@ -14548,9 +14793,10 @@ function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onA
           ? <NumeroCorrida rot="❤ bpm" val={d.bpm} cor="#ED4956" />
           : <NumeroCorrida rot="❤ bpm" val="—" sub="segure o pegador" />) : null}
         {d.kcal ? <NumeroCorrida rot="kcal" val={d.kcal} sub="no painel" /> : null}
+        {d.andares ? <NumeroCorrida rot="andares" val={d.andares} /> : null}
         {d.subida ? <NumeroCorrida rot="subida" val={Math.round(d.subida)} sub="m" /> : null}
         {d.met ? <NumeroCorrida rot="MET" val={num1(d.met)} /> : null}
-        {d.watts > 0 ? <NumeroCorrida rot="potência" val={d.watts} sub="W" /> : null}
+        {t === "esteira" && d.watts > 0 ? <NumeroCorrida rot="potência" val={d.watts} sub="W" /> : null}
       </div>
       {est.confirmada && fcSerie ? (
         <div style={{ fontSize: 12, marginTop: 8, lineHeight: 1.5, padding: "7px 10px", borderRadius: 10, background: "var(--bg2)" }}>
@@ -14561,23 +14807,24 @@ function ConexaoEsteiraSessao({ est, onConectar, onConfirmar, onDesconectar, onA
       {!est.confirmada ? (
         <React.Fragment>
           <div style={{ fontSize: 12.5, marginTop: 10, lineHeight: 1.55, padding: 10, borderRadius: 10, background: "var(--bg2)" }}>
-            <b>É esta a sua esteira?</b> Mude a velocidade no painel dela: se o número acima
-            mudar junto, é a sua. Numa academia com várias iguais, o nome não diz qual é.
-            {d.vel > 0 && (
+            <b>É {ap.oNome.startsWith("a ") ? "esta a sua" : "este o seu"} {ap.nome}?</b> {txt.confirmar} Numa academia
+            com várias iguais, o nome não diz qual é.
+            {emUso && (
               <div style={{ color: "var(--obs)", marginTop: 6 }}>
-                ⚠ Esta esteira já está andando a {num1(d.vel)} km/h. Se não for você em cima dela, desconecte.
+                ⚠ {t === "esteira" ? "Esta esteira já está andando a " + num1(d.vel) + " km/h" : Ap + " já está em uso"}. Se não for você, desconecte.
               </div>
             )}
           </div>
-          <button onClick={onConfirmar} style={{ ...S.btn, width: "100%", marginTop: 10 }}>✓ É esta a minha esteira</button>
+          <button onClick={onConfirmar} style={{ ...S.btn, width: "100%", marginTop: 10 }}>
+            ✓ É {ap.oNome.startsWith("a ") ? "esta a minha" : "este o meu"} {ap.nome}
+          </button>
         </React.Fragment>
       ) : (
         <React.Fragment>
           <div style={{ fontSize: 12, color: "var(--ok)", marginTop: 8, lineHeight: 1.5 }}>
-            ✓ Lendo a esteira: {seguindo ? "a série " + seguindo + " acompanha" : "a próxima série acompanha"} a
-            velocidade e a inclinação do painel. Quem muda a velocidade continua sendo você.
-            {" "}<b>O tempo da série é o da esteira</b>: os minutos da ficha viram a meta, e não há
-            cronômetro à parte. <b>Quando você parar a esteira, a série é anotada sozinha</b>, com o tempo e tudo o que ela mediu.
+            ✓ Lendo {ap.oNome}: {seguindo ? "a série " + seguindo + " acompanha" : "a próxima série acompanha"} {txt.leitura}
+            {" "}<b>O tempo da série é o {ap.oNome.startsWith("a ") ? "da" : "do"} {ap.nome}</b>: os minutos da ficha viram a meta, e não há
+            cronômetro à parte. <b>Quando você parar, a série é anotada sozinha</b>, com o tempo e tudo o que {ap.oNome} mediu.
           </div>
           {segAnotar >= 60 ? (
             <button onClick={onAnotar} style={{ ...S.btn, width: "100%", marginTop: 10 }}>
@@ -14721,7 +14968,7 @@ function usarEsteira() {
       // números sumia — o cartão mudava de altura e a tela inteira tremia
       // (achado no celular do dono), e o intervalado lia "sem velocidade".
       aoDado: (d) => setEst((s) => {
-        const novo = Object.assign({}, s.dado, d);
+        const novo = Object.assign({}, s.dado, d, { em: Date.now() });
         if (d.bpm !== undefined && !(d.bpm > 25 && d.bpm < 240)) delete novo.bpm;
         // Juntar os pacotes deixa o último batimento parado no objeto. Sem a
         // hora da leitura, esse número velho seria somado de novo a cada
@@ -14730,22 +14977,24 @@ function usarEsteira() {
         return Object.assign({}, s, { dado: novo });
       }),
       aoEstado: (e) => setEst((s) => Object.assign({}, s, { estado: e },
-        e === "caiu" ? { ligada: false, comanda: false, erro: "A esteira desconectou." } : {})),
+        e === "caiu" ? { ligada: false, comanda: false, erro: "A conexão com o aparelho caiu." } : {})),
     });
     return ref.current;
   };
 
-  const conectar = async () => {
+  const conectar = async (pedido) => {
     const e = montar();
     setEst((s) => Object.assign({}, s, { erro: "" }));
     try {
-      const info = await e.procurar();
+      const info = await e.procurar(typeof pedido === "string" ? pedido : undefined);
       // Conectar NÃO é o mesmo que poder comandar. O controle só é pedido
       // depois que a pessoa confirmar que é esta a esteira à frente dela —
       // ver `confirmar`. Pedir controle antes seria assumir uma máquina que
       // pode ser de outra pessoa.
+      // dado: null — os números da conexão anterior (outra máquina, ou a
+      // mesma antes de cair) não podem aparecer como se fossem desta
       setEst((s) => Object.assign({}, s, { ligada: true, nome: info.nome, podeComandar: info.podeComandar,
-        comanda: false, confirmada: false, faixa: info.faixaVel }));
+        comanda: false, confirmada: false, faixa: info.faixaVel, tipo: info.tipo, dado: null }));
     } catch (x) {
       const msg = /cancel|User cancelled|chooser/i.test(x.message || "")
         ? "" : "Não consegui conectar: " + (x.message || "erro desconhecido");
@@ -18236,7 +18485,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         const alvo = crono;
         setCrono(null);
         if (seguirEsteiraRef.current(alvo.ei)) {
-          falar("Meta de " + textoDuracao(total) + " cumprida. Pode continuar: a série fecha quando você parar a esteira.");
+          falar("Meta de " + textoDuracao(total) + " cumprida. Pode continuar: a série fecha quando você parar " + apLigado.oNome + ".");
         } else marcarSerieRef.current(alvo.ei, alvo.si);
       }
     };
@@ -18511,7 +18760,13 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // 40 min no ▶ — e a velocidade parou de acompanhar, porque só série pendente
   // era seguida. A série com o cronômetro rodando é a que está acontecendo, e
   // vem antes de tudo.
-  const ehEsteiraItem = (i) => { const it = sessao.itens[i]; const e = it && exPorId(it.exercicioId); return !!(e && ehEsteiraPerfil(e.cardio)); };
+  // Vale para todo aparelho do FTMS (esteira, bicicleta, elíptico, escada,
+  // remo): o nome ficou "esteira" porque foi ela que inaugurou o caminho. Com
+  // um aparelho conectado, só os exercícios dele; o resto segue à mão.
+  const tipoDoItem = (i) => { const it = sessao.itens[i]; const e = it && exPorId(it.exercicioId); return aparelhoDoEx(e); };
+  const tipoLigado = btSessao.est.tipo ? (btSessao.est.tipo === "degrau" ? "escada" : btSessao.est.tipo) : null;
+  const ehEsteiraItem = (i) => { const t = tipoDoItem(i); return !!t && (!tipoLigado || t === tipoLigado); };
+  const apLigado = nomeAparelho(tipoLigado || "esteira");
   const serieDaEsteira = () => {
     if (crono && ehEsteiraItem(crono.ei) && sessao.itens[crono.ei].series[crono.si]) return { ei: crono.ei, si: crono.si };
     const pend = (i) => sessao.itens[i].series.findIndex((s) => !s.feito);
@@ -18552,14 +18807,19 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // Reaberto o treino com um rascunho recuperado, a régua começa onde o painel
   // estava: a esteira continua contando, e o que já foi gravado não pode
   // entrar de novo na série seguinte.
+  // "esta série é de uma máquina confirmada" — sobrevive à queda da tela
+  // apagada (a conexão nova nasce sem confirmação), e mais nada
   const confirmouEst = useRef(false);
   if (btSessao.est.confirmada) confirmouEst.current = true;
+  const confirmadaAgora = btSessao.est.confirmada;
   const [baseEst, setBaseEst] = useState(() => (sessao.esteiraParcial && sessao.esteiraParcial.painel) || ZERO_EST);
   const dadoBruto = btSessao.est.dado || {};
   // Tudo conta pelo odômetro (ver criarOdometroEsteira): o painel zerado ao
   // parar não apaga nada, e o que ele já tinha mostrado continua valendo.
   const odoEst = useRef(criarOdometroEsteira());
-  const cumEst = odoEst.current.ler(btSessao.est.dado, Date.now());
+  const cumEst = odoEst.current.ler(btSessao.est.confirmada ? btSessao.est.dado : null, Date.now());
+  const mediaAp = useRef(criarMediaAparelho());
+  mediaAp.current.ler(btSessao.est.confirmada ? btSessao.est.dado : null, Date.now());
   // ...a não ser que o painel tenha sido zerado nesse meio tempo: aí a régua
   // velha não vale, e conta do zero.
   const reguaVelha = cumEst.seg > 0 && cumEst.seg + 5 < baseEst.seg;
@@ -18586,32 +18846,53 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     if (cumEst.subida !== null && cumEst.subida - baseUsada.subida > 0) x.subida = String(Math.round((cumEst.subida - baseUsada.subida) * 10) / 10);
     const fc = fcSerie.current.fechar(segEst);
     if (fc) { x.bpm = String(fc.medio); x.bpmMax = String(fc.max); if (fc.cob !== null) x.bpmCob = String(fc.cob); }
+    // bicicleta, elíptico, escada, remo: a média da série e o nível do painel
+    if (tipoLigado && tipoLigado !== "esteira") {
+      const m = mediaAp.current.fechar();
+      if (m.watts) x.watts = String(m.watts);
+      if (m.cad) x.cad = String(m.cad);
+      if (d.nivel !== undefined) x.nivel = String(d.nivel);
+    }
     return x;
   };
   const moverRegua = () => {
     const t = odoEst.current.total();
     setBaseEst({ seg: t.seg, m: t.m, kcal: t.kcal || 0, subida: t.subida || 0 });
     fcSerie.current = criarLeituraFc();
+    mediaAp.current = criarMediaAparelho();
     setSessao((ss) => (ss && ss.esteiraParcial ? { ...ss, esteiraParcial: null } : ss));
   };
   // Série marcada por qualquer caminho (✓, fim do ▶, ditada): recebe o que a
   // esteira mediu desde a anterior, sem apagar o que já tem, e a régua anda.
-  const chavesFeitas = sessao.itens.flatMap((it, i) => (ehEsteiraItem(i) ? it.series.map((s, j) => (s.feito ? i + ":" + j : null)).filter(Boolean) : []));
-  const feitasEst = chavesFeitas.length;
+  // A chave é o uid do item, não a posição: remover um exercício do meio
+  // deslocava os índices, e a medição caía na série de outro exercício.
+  const chaveSerie = (ei, si) => ((sessao.itens[ei] && sessao.itens[ei].uid) || "i" + ei) + ":" + si;
+  const chavesFeitas = sessao.itens.flatMap((it, i) => (ehEsteiraItem(i) ? it.series.map((s, j) => (s.feito ? chaveSerie(i, j) : null)).filter(Boolean) : []));
+  const feitasEst = chavesFeitas.join("|");
   const feitasEstAntes = useRef(chavesFeitas);
+  // a série que a máquina conduzia no render anterior (o efeito abaixo roda
+  // depois do render em que a marcação já a trocou pela seguinte)
+  const conduzidaAntes = useRef(null);
   useEffect(() => {
     const antes = feitasEstAntes.current;
     feitasEstAntes.current = chavesFeitas;
     const novas = chavesFeitas.filter((k) => antes.indexOf(k) < 0);
-    if (!novas.length || !confirmouEst.current || !btSessao.est.dado) return;
-    const [ei, si] = novas[novas.length - 1].split(":").map(Number);
-    const s = sessao.itens[ei].series[si];
+    if (!novas.length || !confirmouEst.current) return;
+    // ✓ numa série que a máquina não estava conduzindo (remarcar uma já feita,
+    // marcar uma digitada à mão) não leva nada: o tempo em curso é de outra
+    const k = novas[novas.length - 1];
+    if (k !== conduzidaAntes.current) return;
+    const ei = sessao.itens.findIndex((it, i) => k.startsWith(chaveSerie(i, "")));
+    const si = Number(k.slice(k.lastIndexOf(":") + 1));
+    const s = ei >= 0 && sessao.itens[ei].series[si];
+    if (!s) return;
     const x = extrasEsteira();
     const falta = {};
     Object.keys(x).forEach((k) => { if (!temValor(s[k])) falta[k] = x[k]; });
     if (segEst >= 60) {
       falta.segundos = String(segEst);
-      if (mEst > 0) falta.vel = String(Math.round(((mEst / segEst) * 3.6) * 10) / 10);
+      if (tipoDoItem(ei) === "esteira" && mEst > 0) falta.vel = String(Math.round(((mEst / segEst) * 3.6) * 10) / 10);
+      ["watts", "cad", "nivel"].forEach((k) => { if (x[k]) falta[k] = x[k]; });
     }
     if (Object.keys(falta).length) {
       setSessao((ss) => ss && { ...ss, itens: ss.itens.map((it, i) => i !== ei ? it
@@ -18619,6 +18900,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     }
     moverRegua();
   }, [feitasEst]);
+  useEffect(() => { conduzidaAntes.current = serieConduzida ? chaveSerie(serieConduzida.ei, serieConduzida.si) : null; });
   // Com a esteira confirmada, velocidade e inclinação da série seguem o painel.
   // Só grava quando o número muda: a esteira manda um pacote por segundo.
   const dadoEst = btSessao.est.confirmada ? btSessao.est.dado : null;
@@ -18628,11 +18910,13 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     if (!alvoE) return;
     const s = sessao.itens[alvoE.ei].series[alvoE.si];
     const novo = {};
-    if (dadoEst.vel > 0 && String(Math.round(dadoEst.vel * 10) / 10) !== String(s.vel || "")) novo.vel = String(Math.round(dadoEst.vel * 10) / 10);
-    if (dadoEst.incl !== undefined && String(Math.round(dadoEst.incl * 10) / 10) !== String(s.incl || "0")) novo.incl = String(Math.round(dadoEst.incl * 10) / 10);
+    if (tipoDoItem(alvoE.ei) === "esteira") {
+      if (dadoEst.vel > 0 && String(Math.round(dadoEst.vel * 10) / 10) !== String(s.vel || "")) novo.vel = String(Math.round(dadoEst.vel * 10) / 10);
+      if (dadoEst.incl !== undefined && String(Math.round(dadoEst.incl * 10) / 10) !== String(s.incl || "0")) novo.incl = String(Math.round(dadoEst.incl * 10) / 10);
+    } else if (dadoEst.nivel !== undefined && String(dadoEst.nivel) !== String(s.nivel || "")) novo.nivel = String(dadoEst.nivel);
     if (!Object.keys(novo).length) return;
-    setSessao({ ...sessao, itens: sessao.itens.map((it, i) => i !== alvoE.ei ? it
-      : { ...it, series: it.series.map((x, j) => (j !== alvoE.si ? x : { ...x, ...novo })) }) });
+    setSessao((ss) => ss && { ...ss, itens: ss.itens.map((it, i) => i !== alvoE.ei ? it
+      : { ...it, series: it.series.map((x, j) => (j !== alvoE.si || x.feito ? x : { ...x, ...novo })) }) });
   }, [dadoEst]);
   // "Anotar a série": o tempo e a velocidade MÉDIA da esteira (a de agora
   // mentiria sobre quem subiu e desceu o ritmo), e marca. Em dois passos porque
@@ -18655,12 +18939,15 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     }
     const media = mEst > 0 ? (mEst / segEst) * 3.6 : d.velMedia > 0 ? d.velMedia : d.vel;
     const novo = Object.assign({ segundos: String(segEst) }, extrasEsteira());
-    if (media > 0) novo.vel = String(Math.round(media * 10) / 10);
-    if (d.incl !== undefined) novo.incl = String(Math.round(d.incl * 10) / 10);
+    if (tipoDoItem(alvoE.ei) === "esteira") {
+      if (media > 0) novo.vel = String(Math.round(media * 10) / 10);
+      if (d.incl !== undefined) novo.incl = String(Math.round(d.incl * 10) / 10);
+    }
     if (crono && crono.ei === alvoE.ei && crono.si === alvoE.si) setCrono(null);
     setSessao({ ...sessao, itens: itens.map((it, i) => i !== alvoE.ei ? it
       : { ...it, series: it.series.map((x, j) => (j !== alvoE.si ? x : { ...x, ...novo, feito: false })) }) });
     setAnotarEsteira(alvoE);
+    moverRegua();
     return alvoE;
   };
   useEffect(() => {
@@ -18692,13 +18979,17 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     if (btSessao.est.ligada) { setQuedaBloqueio(false); return; }
     if (antes && btSessao.est.confirmada && segEst >= 60 && telaApagou()) {
       setQuedaBloqueio(true);
-      falarRef.current("A tela apagou e o Bluetooth da esteira caiu. A série continua aberta: reconecte para seguir contando de onde parou.");
+      falarRef.current("A tela apagou e o Bluetooth " + (apLigado.oNome.startsWith("a ") ? "da " : "do ") + apLigado.nome + " caiu. A série continua aberta: reconecte para seguir contando de onde parou.");
     }
   }, [btSessao.est.ligada]);
   const anotarEstRef = useRef(null);
   anotarEstRef.current = anotarDaEsteira;
   const estadoParada = useRef({});
-  estadoParada.current = { ligada: btSessao.est.ligada, vel: dadoBruto.vel, seg: segEst, reinicio: cumEst.reiniciouEm, bloqueio: quedaBloqueio };
+  // aparelho que não manda nem velocidade nem cadência nem watts não tem como
+  // dizer que parou: aí só o painel zerado ou a conexão caindo fecham a série
+  const mexeAp = dadoBruto.vel > 0 || dadoBruto.cad > 0 || dadoBruto.watts > 0
+    || (dadoBruto.vel === undefined && dadoBruto.cad === undefined && dadoBruto.watts === undefined);
+  estadoParada.current = { ligada: btSessao.est.ligada, mexe: mexeAp, em: dadoBruto.em, seg: segEst, reinicio: cumEst.reiniciouEm, bloqueio: quedaBloqueio };
   const parada = useRef({ desde: null, anotouEm: 0 });
   useEffect(() => {
     if (!btSessao.est.confirmada) return;
@@ -18706,7 +18997,10 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       const e = estadoParada.current, p = parada.current, agora = Date.now();
       if (!(e.seg >= 60) || agora - p.anotouEm < 5000) { p.desde = null; return; }
       const zerou = e.reinicio && agora - e.reinicio < 10000;
-      if (e.ligada && !zerou && e.vel !== 0) { p.desde = null; return; }
+      // 15 s sem pacote nenhum, com a tela à vista há tempo: a máquina parou de
+      // falar sem derrubar a conexão (ou parou e desligou o envio)
+      const mudo = e.em && agora - e.em > 15000 && !telaApagou();
+      if (e.ligada && !zerou && e.mexe && !mudo) { p.desde = null; return; }
       if (!e.ligada && (e.bloqueio || telaApagou())) { p.desde = null; return; }
       if (p.desde === null) p.desde = agora;
       if (!e.ligada || zerou || agora - p.desde >= 15000) {
@@ -18718,13 +19012,16 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   }, [btSessao.est.confirmada]);
   // O fim do ▶ com a esteira ainda andando não fecha a série: quem passou da
   // meta e continuou andando fez mais, e é isso que tem de ficar gravado.
-  seguirEsteiraRef.current = (ei) => !!(btSessao.est.confirmada && btSessao.est.ligada && ehEsteiraItem(ei) && dadoBruto.vel > 0);
+  seguirEsteiraRef.current = (ei) => !!(btSessao.est.confirmada && btSessao.est.ligada && ehEsteiraItem(ei) && mexeAp);
   // Desconectar com série em aberto anota antes: depois a esteira já não diz nada.
   const desconectarEsteira = () => {
-    if (segEst >= 60) anotarDaEsteira();
+    if (btSessao.est.confirmada && segEst >= 60) anotarDaEsteira();
     btSessao.desconectar();
     confirmouEst.current = false;
   };
+  // confirmação perdida sem ser pela tela apagada (desconectou, conectou outra
+  // máquina): a próxima série só é dela depois de confirmar de novo
+  useEffect(() => { if (!confirmadaAgora && !quedaBloqueio) confirmouEst.current = false; }, [confirmadaAgora]);
   const anotarAteAqui = () => { anotarDaEsteira(); setQuedaBloqueio(false); };
   const fcResumoSerie = btSessao.est.confirmada ? fcSerie.current.fechar(segEst) : null;
   // Um treino só. Treino real do dono: o cartão da esteira contava o tempo do
@@ -18744,8 +19041,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // série.
   const rascunhoEst = () => {
     if (!serieConduzida || !(segEst >= 60)) return null;
-    const media = mEst > 0 ? (mEst / segEst) * 3.6 : 0;
-    const r = Object.assign({ ei: serieConduzida.ei, si: serieConduzida.si, seg: segEst }, extrasEsteira());
+    const media = mEst > 0 && tipoDoItem(serieConduzida.ei) === "esteira" ? (mEst / segEst) * 3.6 : 0;
+    const r = Object.assign({ ei: serieConduzida.ei, si: serieConduzida.si, uid: sessao.itens[serieConduzida.ei].uid || null, seg: segEst }, extrasEsteira());
     // onde o painel estava (os números crus dele, não os somados): é de onde
     // a série seguinte conta, se o app reabrir com a esteira ainda andando
     r.painel = { seg: dadoBruto.segundos || 0, m: cumEst.mDoPainel ? dadoBruto.metros || 0 : 0, kcal: dadoBruto.kcal || 0, subida: dadoBruto.subida || 0 };
@@ -18756,19 +19053,25 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const r = rascunhoEst();
     if (!r) return;
     const p = sessao.esteiraParcial;
-    if (p && p.ei === r.ei && p.si === r.si && r.seg - p.seg < 10) return;
+    if (p && p.uid === r.uid && p.si === r.si && r.seg - p.seg < 10) return;
     setSessao((ss) => ss && { ...ss, esteiraParcial: r });
   }, [segEst]);
   const [recuperadoEst, setRecuperadoEst] = useState(null);
   useEffect(() => {
     const p = sessao.esteiraParcial;
     if (!p) return;
-    const s = sessao.itens[p.ei] && sessao.itens[p.ei].series[p.si];
-    const { ei, si, seg, painel, ...medido } = p;
-    if (!s || !(seg >= 60)) { setSessao((ss) => ss && { ...ss, esteiraParcial: null }); return; }
-    const novo = Object.assign({}, medido, { segundos: String(seg), feito: true });
+    const { ei: eiGuardado, si, seg, painel, uid, ...medido } = p;
+    const ei = uid ? sessao.itens.findIndex((it) => it.uid === uid) : eiGuardado;
+    const it0 = ei >= 0 ? sessao.itens[ei] : null;
+    const s = it0 && it0.series[si];
+    // a série "a criar" (passou da última planejada) nasce agora; uma que já
+    // está feita foi anotada depois do rascunho, e não se mexe nela
+    const nova = !!it0 && !s && si === it0.series.length;
+    if (!it0 || (!s && !nova) || (s && s.feito) || !(seg >= 60)) { setSessao((ss) => ss && { ...ss, esteiraParcial: null }); return; }
+    const ult = it0.series[it0.series.length - 1];
+    const novo = Object.assign(nova && ult ? moldeCardio(ult) : {}, medido, { segundos: String(seg), feito: true });
     setSessao((ss) => ss && { ...ss, esteiraParcial: null, itens: ss.itens.map((it, i) => i !== ei ? it
-      : { ...it, series: it.series.map((x, j) => (j !== si ? x : { ...x, ...novo })) }) });
+      : { ...it, series: nova ? it.series.concat([novo]) : it.series.map((x, j) => (j !== si ? x : { ...x, ...novo })) }) });
     setRecuperadoEst({ ei: ei, seg: seg, km: medido.km });
   }, []);
   // "Finalizar treino" com a esteira andando: a série aberta é anotada antes,
@@ -18796,7 +19099,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       a.meta = true; a.meio = true; a.km = km;
       if (som) { beep(660, 0.2, 0.3); setTimeout(() => beep(990, 0.4, 0.3), 220); }
       try { if (navigator.vibrate) navigator.vibrate([250, 100, 250]); } catch (e) {}
-      falarRef.current("Meta de " + textoDuracao(meta) + " cumprida. Pode continuar: a série fecha quando você parar a esteira.");
+      falarRef.current("Meta de " + textoDuracao(meta) + " cumprida. Pode continuar: a série fecha quando você parar " + apLigado.oNome + ".");
     } else if (km > a.km) {
       a.km = km;
       falarRef.current(km + (km === 1 ? " quilômetro." : " quilômetros.") + (meta > segEst + 30 ? " Faltam " + textoDuracao(Math.round((meta - segEst) / 60) * 60) + "." : ""));
@@ -18820,8 +19123,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // "Jarvis, 80 por 10", sem repetir o nome do exercício. Ver alvoDaSessao.
   const alvo = useMemo(() => alvoDaSessao(sessao.itens, focoEi), [sessao, focoEi]);
   // a série que a esteira conduz (ver esteiraConduz): depende do alvo
-  const serieConduzida = esteiraConduz ? serieDaEsteira() : null;
-  const metaConduzida = serieConduzida ? segundosDe(sessao.itens[serieConduzida.ei].series[serieConduzida.si]) || 0 : 0;
+  const serieAlem = () => {
+    const ei = alvo && ehEsteiraItem(alvo.ei) ? alvo.ei : sessao.itens.findIndex((_, i) => ehEsteiraItem(i));
+    return ei >= 0 ? { ei: ei, si: sessao.itens[ei].series.length, nova: true } : null;
+  };
+  const serieConduzida = esteiraConduz ? serieDaEsteira() || serieAlem() : null;
+  const metaConduzida = serieConduzida && !serieConduzida.nova ? segundosDe(sessao.itens[serieConduzida.ei].series[serieConduzida.si]) || 0 : 0;
 
   const nomeDoItem = (ei) => {
     const it = sessao.itens[ei];
@@ -19263,8 +19570,13 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         <div style={{ ...S.card, borderColor: "#4ADE8066", background: "var(--ok-bg)" }}>
           <div style={{ ...S.label, color: "var(--ok)" }}>👋 Como anotar o seu treino</div>
           {(soTempo ? [
-            ["1", "Confira os minutos e ponha a velocidade e a inclinação que você vai usar na esteira."],
-            ["2", "Toque no ▶ para o app cronometrar e avisar o fim — ou no ✓ quando terminar."],
+            // o primeiro aeróbico da sessão diz qual painel citar: na bicicleta
+            // não há velocidade e inclinação a pôr, há carga e nível
+            (() => { const t = sessao.itens.map((_, i) => tipoDoItem(i)).find(Boolean);
+              return ["1", t && t !== "esteira"
+                ? "Confira os minutos. Os números do painel (watts, nível, cadência) você digita, ou o app lê sozinho se " + nomeAparelho(t).oNome + " tiver Bluetooth: toque em Conectar."
+                : "Confira os minutos e ponha a velocidade e a inclinação que você vai usar na esteira."]; })(),
+            ["2", "Toque no ▶ para o app cronometrar e avisar o fim — ou no ✓ quando terminar. Com o aparelho conectado, a série fecha sozinha quando você parar."],
           ] : [
             ["1", "Digite o peso que você vai usar. As repetições já vêm sugeridas — mude se quiser."],
             ["2", "Fez a série? Toque no ✓. O descanso começa sozinho e avisa quando acabar."],
@@ -19551,8 +19863,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 <button onClick={() => setRecuperadoEst(null)} style={{ background: "none", border: "none", color: "var(--ok)", textDecoration: "underline", cursor: "pointer", padding: 0, marginLeft: 6, fontSize: 12 }}>ok</button>
               </div>
             )}
-            {ehAerobico && ehEsteiraPerfil(ex.cardio) && (
-              <ConexaoEsteiraSessao est={btSessao.est} onConectar={btSessao.conectar} onConfirmar={() => btSessao.confirmar(true)}
+            {ehAerobico && aparelhoDoEx(ex) && (
+              <ConexaoEsteiraSessao est={btSessao.est} onConectar={() => btSessao.conectar(aparelhoDoEx(ex))} onConfirmar={() => btSessao.confirmar(true)}
+                tipo={aparelhoDoEx(ex)} outro={tipoLigado && tipoLigado !== aparelhoDoEx(ex) ? tipoLigado : null}
                 onDesconectar={desconectarEsteira} onAnotar={anotarDaEsteira} segAnotar={segEst} kmAnotar={mEst !== null ? mEst / 1000 : null}
                 fcSerie={fcResumoSerie} kmSomado={!cumEst.mDoPainel} metaSerie={metaConduzida}
                 retomar={quedaBloqueio ? { seg: segEst, km: mEst !== null ? mEst / 1000 : null } : null} onAnotarAteAqui={anotarAteAqui}
@@ -19602,7 +19915,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                     <React.Fragment>
                       {serieConduzida && serieConduzida.ei === ei && serieConduzida.si === si ? (
                         <div style={{ ...S.inputMini, flex: 1.6, minWidth: 0, padding: "10px 2px", background: "#4C9BE815", borderColor: "#4C9BE8", color: "#4C9BE8", fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: "20px", textAlign: "center", whiteSpace: "nowrap" }}
-                          role="timer" aria-live="off" aria-label={"Tempo na esteira: " + textoDuracao(segEst) + (metaConduzida ? ", meta de " + textoDuracao(metaConduzida) : "")}>
+                          role="timer" aria-live="off" aria-label={"Tempo no aparelho: " + textoDuracao(segEst) + (metaConduzida ? ", meta de " + textoDuracao(metaConduzida) : "")}>
                           {Math.floor(segEst / 60) + ":" + String(segEst % 60).padStart(2, "0")}
                           {metaConduzida ? <span style={{ fontSize: 10.5, opacity: 0.75, fontWeight: 700 }}> / {Math.round(metaConduzida / 60)} min</span> : null}
                         </div>
@@ -21510,7 +21823,7 @@ function TreinoLivre() {
     };
     const comecar = () => { comecarSessao(treino); registrarEvento("esteira-iniciada"); };
     if (sessao) {
-      pedirConfirmacao("Você já tem um treino em andamento (" + sessao.nome + "). Começar a esteira vai descartá-lo. Continuar?", comecar);
+      pedirConfirmacao("Você já tem um treino em andamento (" + sessao.nome + "). Começar " + ex.nome + " vai descartá-lo. Continuar?", comecar);
       return;
     }
     comecar();

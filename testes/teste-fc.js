@@ -10,6 +10,7 @@ function pedaco(de, ate) {
 }
 eval(pedaco("// ---- Batimento em pedaços ----", "// ---- fim do batimento em pedaços") + "\nglobalThis.F = { criarLeituraFc };");
 eval(pedaco("// ---- Odômetro da esteira ----", "// ---- fim do odômetro da esteira") + "\nglobalThis.O = { criarOdometroEsteira };");
+eval(pedaco("// ---- Média do aparelho na série ----", "// ---- fim da média do aparelho") + "\nglobalThis.M = { criarMediaAparelho };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -100,6 +101,32 @@ console.log("\n--- o odometro da esteira (parar a esteira nao apaga o treino) --
   const o = O.criarOdometroEsteira();
   o.ler({ segundos: 100 }, 0); o.ler({ segundos: 98 }, 1000);
   teste("recuo pequeno (pacote atrasado) nao e reinicio", 98, o.total().seg);
+}
+
+console.log("\n--- bicicleta, eliptico, remo: o que nao e esteira ---");
+{
+  // bicicleta sem relogio no painel: o tempo e o de pedal girando
+  const o = O.criarOdometroEsteira();
+  for (let s = 0; s <= 120; s++) o.ler({ cad: s < 60 || s > 90 ? 80 : 0, watts: 150 }, s * 1000);
+  teste("sem relogio no painel, conta o tempo pedalando (watts > 0)", 120, o.total().seg);
+  const o2 = O.criarOdometroEsteira();
+  for (let s = 0; s <= 120; s++) o2.ler({ cad: s < 60 || s > 90 ? 80 : 0, watts: s < 60 || s > 90 ? 150 : 0 }, s * 1000);
+  teste("parado do 60 ao 91 (pedal e watts em zero) nao conta", 89, o2.total().seg);
+}
+{
+  const m = M.criarMediaAparelho();
+  // 60 s a 200 W e 90 rpm, 30 s parado bebendo agua, 60 s a 100 W e 70 rpm
+  for (let s = 0; s < 150; s++) {
+    const p = s < 60 ? { watts: 200, cad: 90 } : s < 90 ? { watts: 0, cad: 0 } : { watts: 100, cad: 70 };
+    m.ler(p, s * 1000);
+  }
+  teste("media de watts so do tempo em movimento", { watts: 150, cad: 80 }, m.fechar());
+  const curta = M.criarMediaAparelho();
+  for (let s = 0; s < 5; s++) curta.ler({ watts: 300 }, s * 1000);
+  teste("menos de 10 s medidos nao vira numero", {}, curta.fechar());
+  const mesmo = M.criarMediaAparelho(), d = { watts: 100 };
+  mesmo.ler({ watts: 100 }, 0); for (let s = 1; s <= 30; s++) mesmo.ler(d, s * 1000);
+  teste("o mesmo pacote relido nao soma de novo (so o 1o intervalo)", {}, mesmo.fechar());
 }
 
 function criar() { return F.criarLeituraFc(); }

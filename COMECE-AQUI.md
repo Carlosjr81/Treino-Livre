@@ -13,7 +13,7 @@ Dois caminhos, conforme o aparelho:
 
 Abra **`claude.ai/code`** no navegador do celular, entre na sua conta e conecte
 a conta do GitHub. A sessão trabalha num clone do repositório na nuvem: lê,
-edita, roda os 815 testes e publica.
+edita, roda os 846 testes e publica.
 
 **Não precisa do Google Drive no celular.** O Drive é a conveniência de quem
 está num computador; no celular o GitHub é o caminho, e é por isso que tudo —
@@ -143,7 +143,7 @@ no Windows o `PATH` só muda em sessão nova.
 | **Node.js** | para os testes e o servidor local. Instala por `winget` (Windows) ou `brew` (Mac) |
 | **git e GitHub CLI** | para publicar daqui com `git push` |
 | **Identidade dos commits** | define só neste repositório, com o e-mail `noreply` para não expor seu endereço pessoal |
-| **Os 815 testes** | roda e mostra o resultado |
+| **Os 846 testes** | roda e mostra o resultado |
 
 Duas coisas ele **detecta mas não resolve**, e avisa:
 
@@ -161,7 +161,7 @@ git são para testar e publicar — não para trabalhar.
 | Para | Precisa de |
 |---|---|
 | Editar o app com o Claude | nada além do Drive |
-| Rodar os 815 testes | Node.js |
+| Rodar os 846 testes | Node.js |
 | Abrir o app em `localhost` | Node.js |
 | Publicar com `git push` | git + `gh auth login` |
 | Publicar sem instalar nada | nada: a interface web do GitHub |
@@ -217,7 +217,7 @@ projeto foi publicado até aqui.
 node testes/rodar.js
 ```
 
-As 20 suítes, 815 checagens. Prova que a **lógica** não quebrou. Rode antes e
+As 21 suítes, 846 checagens. Prova que a **lógica** não quebrou. Rode antes e
 depois de mexer no app.
 
 ```bash
@@ -255,5 +255,5 @@ O **`CLAUDE.md`** é a memória do projeto: por que não há etapa de build, com
 funcionam o Jarvis e o Eyes Scan, as regras da portaria, o roteiro de teste
 manual. O Claude o lê sozinho ao abrir esta pasta — você não precisa pedir.
 
-O **`testes/LEIA-ME.md`** explica as 20 suítes e as armadilhas de mexer
+O **`testes/LEIA-ME.md`** explica as 21 suítes e as armadilhas de mexer
 nelas.

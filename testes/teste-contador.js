@@ -288,6 +288,69 @@ teste("e le o cotovelo", true, /^cotovelo/.test(si.sinal || ""));
 const sr = supinoInclinado({ graus: 75 });
 teste("quase deitado (supino reto, 75 graus), 10 repeticoes", 10, sr.total);
 
+console.log("\n--- sentado na maquina, quadril escondido (supino declinado sentado) ---");
+// Relato do dono, com foto da maquina: no supino declinado sentado (alavanca
+// de anilhas, empurra para a frente e para baixo) a camera nao contava. Ele
+// desconfiou do angulo diagonal, mas a conta nao confirmou: de frente, na
+// diagonal ou de lado, o cotovelo varia 57 a 80 graus na imagem. O defeito era
+// outro: sentado ali, o quadril fica escondido atras do assento e das pegadas,
+// o modelo inventa o ponto (visibilidade perto de 0,57) e ele treme — e o
+// "voce esta andando" lia esse tremor como deslocamento, descontando e
+// recomecando a calibracao. Contava 3 de 10.
+function supinoDeclinado(quadrilEscondido, com3d) {
+  semear();
+  const cont = A.criarContador({ preferidos: ["cotovelo-e", "cotovelo-d"], tronco: true });
+  const ruido = (k) => (sorte() - 0.5) * k;
+  let t = 0;
+  const passo = 1000 / 30;
+  const norm = (v) => { const n = Math.hypot(v[0], v[1], v[2]); return v.map((c) => c / n); };
+  const soma = (a, b, k) => a.map((c, i) => c + b[i] * k);
+  // mundo em metros (x para a direita, y para baixo, z para longe da camera); a camera ve de frente
+  const ombro = { e: [0.19, -0.45, 0], d: [-0.19, -0.45, 0] };
+  const quadro = (f) => {
+    // f: 0 = maos na pegada junto ao peito, 1 = bracos estendidos para a frente e para baixo
+    const p3 = [];
+    for (let i = 0; i < 33; i++) p3[i] = [0, -0.3, 0];
+    ["e", "d"].forEach((lado) => {
+      const s = lado === "e" ? 1 : -1, o = ombro[lado];
+      const dirEst = norm([-0.06 * s, 0.35, -0.93]);
+      const cotRep = soma(o, norm([0.55 * s, 0.35, 0.75]), 0.3);
+      const maoRep = soma(cotRep, norm([-0.04 * s, -0.06, -0.99]), 0.3);
+      const cotEst = soma(o, dirEst, 0.3), maoEst = soma(o, dirEst, 0.6);
+      const io = lado === "e" ? 11 : 12;
+      p3[io] = o;
+      p3[io + 2] = cotRep.map((c, i) => c + (cotEst[i] - c) * f);
+      p3[io + 4] = maoRep.map((c, i) => c + (maoEst[i] - c) * f);
+      p3[lado === "e" ? 23 : 24] = [0.12 * s, 0, 0.02];
+    });
+    p3[0] = [0, -0.62, -0.05];
+    const l = p3.map((p) => ({ x: 0.5 + p[0] * 0.6 + ruido(0.004), y: 0.55 + p[1] * 0.6 + ruido(0.004), z: 0, visibility: 0.9 }));
+    for (let i = 25; i <= 32; i++) l[i] = { x: 0.5 + ruido(0.1), y: 0.9 + ruido(0.1), z: 0, visibility: 0.56 };
+    if (quadrilEscondido) [23, 24].forEach((i) => { l[i] = { x: l[i].x + ruido(0.16), y: l[i].y + ruido(0.08), z: 0, visibility: 0.57 }; });
+    // os pontos do mundo que o modelo tambem manda, em metros, com o tremor
+    // medido no modelo de verdade (uns 2 cm)
+    if (com3d) l.mundo = p3.map((p) => ({ x: p[0] + ruido(0.02), y: p[1] + ruido(0.02), z: p[2] + ruido(0.03), visibility: 0.9 }));
+    return l;
+  };
+  for (let i = 0; i < 60; i++) { cont.processar(quadro(0), t); t += passo; }
+  for (let r = 0; r < 10; r++) {
+    const q = Math.round(2600 / passo);
+    for (let i = 0; i < q; i++) { cont.processar(quadro((1 - Math.cos((i / q) * 2 * Math.PI)) / 2), t); t += passo; }
+  }
+  for (let i = 0; i < 60; i++) { cont.processar(quadro(0), t); t += passo; }
+  return cont.estado();
+}
+// O antebraco apontado para a lente vira quase um ponto na imagem, e o angulo
+// do cotovelo pula na posicao de partida: um falso comeco que a calibracao
+// desconta levando junto a primeira repeticao. Em 3D o antebraco tem o
+// tamanho de verdade, e o angulo nao pula.
+const decV = supinoDeclinado(false, true);
+teste("supino declinado sentado, de frente, quadril a vista: 10", 10, decV.total);
+const decE = supinoDeclinado(true, true);
+teste("o mesmo com o quadril escondido atras do assento: 10", 10, decE.total);
+teste("e le o cotovelo", true, /^cotovelo/.test(decE.sinal || ""));
+console.log("  (so com a imagem plana e o quadril escondido: " + supinoDeclinado(true, false).total + " de 10)");
+
 console.log("\n--- calorias ---");
 console.log("  30 min, 80 kg: " + A.caloriasEstimadas(1800, 80) + " kcal");
 

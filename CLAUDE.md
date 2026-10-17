@@ -113,7 +113,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 854 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 857 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -154,7 +154,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 854 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 857 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -229,7 +229,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v68) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v69) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -630,6 +630,29 @@ na altura do banco, a uns 1,5 m, do quadril para cima. A contagem já servia
 inclinado visto de lado (a 45° e a 75°, um braço escondido, pernas
 inventadas) contando 10 de 10, e `teste-enquadramento.js` os casos deitados
 — três deles reprovavam a versão anterior.
+
+**Sentado na máquina, de frente (supino declinado na alavanca).** Relato do
+dono, com foto da máquina: não contava, e ele desconfiou do ângulo diagonal
+encurtando o movimento. A conta não confirmou isso (de frente, na diagonal ou
+de lado, o cotovelo varia 57 a 80 graus na imagem). Eram dois defeitos, e o
+`teste-contador.js` reproduz os dois com o boneco sentado de frente:
+
+1. **O quadril escondido virava "você está andando".** Atrás do assento e das
+   pegadas o modelo inventa o quadril (visibilidade ~0,57) e ele treme; o
+   `deslocando` lia o tremor como deslocamento e descontava a série: 3 ou 4
+   de 10. Hoje, sem o quadril bem visto (`visivelBem`), a régua do andar são
+   os ombros (o meio deles, e a largura como tamanho; o limite de lado vira
+   0,8 largura), e `escalaTorso` usa 1,3 × a largura dos ombros quando ela
+   aparece (de frente; acima de 0,06).
+2. **O antebraço apontado para a lente vira um ponto na imagem**, e o ângulo
+   do cotovelo pulava na posição de partida: um falso começo que a calibração
+   descontava levando junto a 1ª repetição (9 de 10). Os oito ângulos do
+   contador agora saem dos **pontos do mundo, em 3D** (`anguloDe`, com
+   `lm.mundo` posto pelo scanner a partir de `worldLandmarks`); sem eles
+   (os testes antigos), continua o plano. Medido no modelo real antes de
+   adotar: o tremor do ângulo em 3D é o mesmo do plano (1 a 3 graus) e o valor
+   não muda com a foto girada (114° e 113°, contra 70° e 61° no plano). A
+   visibilidade continua sendo a da imagem.
 
 Achado ao mexer nisto: **o botão de contar pela câmera só aparecia com o Jarvis
 ligado.** Ele vivia dentro da condição `ehAlvo`, que exigia `vozAtiva` — então
@@ -2854,7 +2877,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 21 suítes (854 checagens)
+node testes/rodar.js      # as 21 suítes (857 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

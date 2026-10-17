@@ -16,6 +16,40 @@
 
 ---
 
+## 2026-10-17c — A câmera conta nas máquinas de peito, sentado e de frente
+
+**Em uma frase:** no supino declinado e nas outras máquinas de peito em que
+você senta e empurra para a frente, a câmera agora conta, mesmo de frente para
+o celular.
+
+**O que mudou**
+- Sentado na máquina, o quadril fica escondido atrás do assento e das pegadas.
+  O app achava que você estava **andando** e descontava a contagem. Agora, sem
+  ver o quadril, ele usa os ombros.
+- Com as mãos na pegada e o antebraço apontado para o celular, o braço parecia
+  "sumir" na imagem e confundia o começo da série. Agora a câmera mede o
+  ângulo do cotovelo **em 3D**, do tamanho real do braço, e a primeira
+  repetição não se perde.
+- Vale para qualquer exercício em que o braço ou a perna vai na direção do
+  celular.
+
+**Por que importa para quem treina:** máquina de peito é das mais usadas da
+academia, e de frente é o jeito mais fácil de apoiar o celular.
+
+**Como usar:** no exercício, toque no 👁 → apoie o celular de frente ou de lado
+para a máquina, mostrando do quadril para cima → faça a série.
+
+**Ideias de vídeo**
+- Gancho: "A câmera contou meu supino declinado na máquina." Celular de frente,
+  esqueleto verde sobre os braços empurrando, número subindo.
+- "Pode apoiar o celular de frente": mostrar que funciona mesmo com o braço
+  indo na direção da câmera.
+
+**Não prometer:** se a própria máquina (alavancas, anilhas) cobrir os dois
+braços na imagem, a câmera não tem o que medir; troque o celular de lugar.
+
+---
+
 ## 2026-10-17b — A câmera conta o supino inclinado (e todo exercício deitado no banco)
 
 **Em uma frase:** a contagem pela câmera agora libera e conta no supino reto e

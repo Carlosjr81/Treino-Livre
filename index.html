@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-17b";
+const VERSAO_APP = "2026-10-17c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2623,6 +2623,27 @@ function anguloEntre(a, b, c) {
   cos = Math.max(-1, Math.min(1, cos));
   return (Math.acos(cos) * 180) / Math.PI;
 }
+// O ângulo de verdade, quando dá. O modelo manda, além dos pontos na imagem,
+// os mesmos pontos no mundo, em metros e em 3D (`lm.mundo`, posto pelo
+// scanner). Na imagem plana, membro que aponta para a lente encolhe: no supino
+// declinado sentado, de frente, o antebraço na pegada vira quase um ponto, e o
+// ângulo do cotovelo pulava na posição de partida — um falso começo que a
+// calibração descontava levando junto a primeira repetição. Em 3D o antebraço
+// tem o tamanho de verdade. Medido no modelo real com a foto do Marombeiro: o
+// tremor do ângulo em 3D é o mesmo do plano (1 a 3 graus), e o valor não muda
+// quando a foto gira. A visibilidade continua sendo a da imagem.
+function anguloDe(l, a, b, c) {
+  const A = pt(l, a), B = pt(l, b), C = pt(l, c);
+  if (!A || !B || !C) return null;
+  const m = l.mundo;
+  if (!m || !m[a] || !m[b] || !m[c]) return anguloEntre(A, B, C);
+  const v1 = [m[a].x - m[b].x, m[a].y - m[b].y, m[a].z - m[b].z];
+  const v2 = [m[c].x - m[b].x, m[c].y - m[b].y, m[c].z - m[b].z];
+  const n1 = Math.hypot(v1[0], v1[1], v1[2]), n2 = Math.hypot(v2[0], v2[1], v2[2]);
+  if (n1 < 1e-6 || n2 < 1e-6) return null;
+  const cos = Math.max(-1, Math.min(1, (v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2]) / (n1 * n2)));
+  return (Math.acos(cos) * 180) / Math.PI;
+}
 // Ponto só vale se o modelo tiver alguma confiança nele. Membro escondido atrás
 // do corpo devolve coordenada inventada, e contar por cima disso é contar lixo.
 const visivel = (p) => p && (p.visibility === undefined || p.visibility > 0.5);
@@ -2632,14 +2653,14 @@ const pt = (lm, i) => (visivel(lm[i]) ? lm[i] : null);
 // exercício — impossível com 204 exercícios e as máquinas que ninguém catalogou —
 // o scanner mede todos e fica com o que mais se mexe.
 const EYES_SINAIS = [
-  { id: "cotovelo-e", nome: "cotovelo esquerdo", calc: (l) => anguloEntre(pt(l, 11), pt(l, 13), pt(l, 15)) },
-  { id: "cotovelo-d", nome: "cotovelo direito", calc: (l) => anguloEntre(pt(l, 12), pt(l, 14), pt(l, 16)) },
-  { id: "joelho-e", nome: "joelho esquerdo", calc: (l) => anguloEntre(pt(l, 23), pt(l, 25), pt(l, 27)) },
-  { id: "joelho-d", nome: "joelho direito", calc: (l) => anguloEntre(pt(l, 24), pt(l, 26), pt(l, 28)) },
-  { id: "quadril-e", nome: "quadril esquerdo", calc: (l) => anguloEntre(pt(l, 11), pt(l, 23), pt(l, 25)) },
-  { id: "quadril-d", nome: "quadril direito", calc: (l) => anguloEntre(pt(l, 12), pt(l, 24), pt(l, 26)) },
-  { id: "ombro-e", nome: "ombro esquerdo", calc: (l) => anguloEntre(pt(l, 23), pt(l, 11), pt(l, 13)) },
-  { id: "ombro-d", nome: "ombro direito", calc: (l) => anguloEntre(pt(l, 24), pt(l, 12), pt(l, 14)) },
+  { id: "cotovelo-e", nome: "cotovelo esquerdo", calc: (l) => anguloDe(l, 11, 13, 15) },
+  { id: "cotovelo-d", nome: "cotovelo direito", calc: (l) => anguloDe(l, 12, 14, 16) },
+  { id: "joelho-e", nome: "joelho esquerdo", calc: (l) => anguloDe(l, 23, 25, 27) },
+  { id: "joelho-d", nome: "joelho direito", calc: (l) => anguloDe(l, 24, 26, 28) },
+  { id: "quadril-e", nome: "quadril esquerdo", calc: (l) => anguloDe(l, 11, 23, 25) },
+  { id: "quadril-d", nome: "quadril direito", calc: (l) => anguloDe(l, 12, 24, 26) },
+  { id: "ombro-e", nome: "ombro esquerdo", calc: (l) => anguloDe(l, 23, 11, 13) },
+  { id: "ombro-d", nome: "ombro direito", calc: (l) => anguloDe(l, 24, 12, 14) },
 ];
 
 // Qual sinal o grupo muscular sugere. Não decide sozinho — só desempata quando
@@ -2684,6 +2705,16 @@ const EYES_PONTOS_PERNA = {
 // escala dos ângulos — os mesmos limiares servem para os dois.
 function escalaTorso(l) {
   const oE = pt(l, 11), oD = pt(l, 12), qE = pt(l, 23), qD = pt(l, 24);
+  // Quadril escondido (sentado atrás do assento e das pegadas, de frente): o
+  // modelo inventa o ponto e ele treme, e toda medida dividida pelo tronco
+  // tremia junto — no supino declinado do dono, o "alcance" parecia se mexer
+  // mais que o cotovelo e levava a primeira repetição. De frente, a largura dos
+  // ombros não treme, e um tronco mede uns 1,3 dela. De lado ela some (abaixo
+  // de 0,06), e aí fica o tronco de sempre.
+  if (oE && oD && !(qE && qD && visivelBem(l[23]) && visivelBem(l[24]))) {
+    const w = Math.hypot(oE.x - oD.x, oE.y - oD.y);
+    if (w > 0.06) return w * 1.3;
+  }
   if (!oE || !oD || !qE || !qD) return null;
   const d = Math.hypot((oE.x + oD.x) / 2 - (qE.x + qD.x) / 2, (oE.y + oD.y) / 2 - (qE.y + qD.y) / 2);
   return d > 0.02 ? d : null;
@@ -3212,11 +3243,35 @@ function criarContador(opcoes) {
   //   visto de frente, em que o tronco também encolhe na imagem, mas volta.
   // Aí a calibração recomeça. Só no modo automático: no funcional o skater salta
   // de lado de propósito.
-  const centro = [];   // pares tempo, [x do quadril na imagem, tamanho do tronco]
+  //
+  // **Quadril escondido não serve de régua.** Sentado numa máquina de peito vista
+  // de frente (o supino declinado do dono, com a alavanca e o assento na frente),
+  // o modelo inventa o quadril com visibilidade perto de 0,57 — passa no
+  // `visivel` e treme o bastante para parecer gente andando. A contagem era
+  // descontada e recomeçava sem parar: 3 ou 4 de 10. Sem o quadril bem visto, a
+  // régua são os ombros: o meio deles para o lado, a largura deles para o
+  // tamanho (o deslocamento de lado passa a ser medido em larguras de ombro,
+  // 0,8 delas — uns 0,6 tronco).
+  const centro = [];   // pares tempo, [x do meio do corpo na imagem, tamanho]
+  let reguaOmbros = null;
   function deslocando(lm, agora) {
-    const e = escalaTorso(lm), q1 = pt(lm, 23), q2 = pt(lm, 24);
-    if (!e || !q1 || !q2) return false;
-    centro.push(agora, [(q1.x + q2.x) / 2, e]);
+    const q1 = pt(lm, 23), q2 = pt(lm, 24), o1 = pt(lm, 11), o2 = pt(lm, 12);
+    const peloQuadril = !!(q1 && q2 && visivelBem(lm[23]) && visivelBem(lm[24]));
+    // trocou de régua: as medidas guardadas eram de outra coisa
+    if (reguaOmbros !== null && reguaOmbros === peloQuadril) centro.length = 0;
+    reguaOmbros = !peloQuadril;
+    let x, e, limite;
+    if (peloQuadril) {
+      e = escalaTorso(lm);
+      if (!e) return false;
+      x = (q1.x + q2.x) / 2; limite = 0.6;
+    } else {
+      if (!o1 || !o2) return false;
+      e = Math.hypot(o1.x - o2.x, o1.y - o2.y);
+      if (e < 0.02) return false;
+      x = (o1.x + o2.x) / 2; limite = 0.8;
+    }
+    centro.push(agora, [x, e]);
     while (centro.length > 2 && agora - centro[0] > 3000) centro.splice(0, 2);
     let mn = Infinity, mx = -Infinity;
     for (let i = 1; i < centro.length; i += 2) {
@@ -3226,7 +3281,7 @@ function criarContador(opcoes) {
     }
     // o quanto o quadril andou, medido em troncos (dividir a posição antes de
     // subtrair fazia o tronco encolhendo parecer deslocamento)
-    if ((mx - mn) / e > 0.6) return true;
+    if ((mx - mn) / e > limite) return true;
     if (agora - centro[0] < 2700) return false;
     // cinco amostras ao longo dos 3 s: andando, cada uma menor (ou maior) que a anterior
     const am = [0, 0.25, 0.5, 0.75, 1].map((p) => {
@@ -3403,7 +3458,7 @@ function criarContador(opcoes) {
       total = 0;
       maquinas.forEach((m) => { recalibrar(m); m.conta = 0; });
       Object.keys(amostras).forEach((k) => { delete amostras[k]; });
-      centro.length = 0;
+      centro.length = 0; reguaOmbros = null;
       if (!alternado) { escolhido = null; maquinas[0].id = null; }
       melhorAmp = 0; somaAmp = 0; nAmp = 0; somaDur = 0; nDur = 0;
     },
@@ -6279,6 +6334,8 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         let res;
         try { res = detector.detectForVideo(vid, agora); } catch (e) { return; }
         const lm = res && res.landmarks && res.landmarks[0];
+        // os pontos no mundo, em 3D: os ângulos do contador saem deles (anguloDe)
+        if (lm && res.worldLandmarks && res.worldLandmarks[0]) lm.mundo = res.worldLandmarks[0];
         const ctx = cv.getContext("2d");
         if (cv.width !== vid.videoWidth) { cv.width = vid.videoWidth; cv.height = vid.videoHeight; }
         ctx.clearRect(0, 0, cv.width, cv.height);

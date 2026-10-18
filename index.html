@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-17e";
+const VERSAO_APP = "2026-10-18a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -1469,6 +1469,64 @@ function montarSeries(ex, qtdSeries, repsAlvo, sug) {
     feito: false,
   }));
 }
+
+// ---- A ficha muda com o treino ----
+// Pedido do dono: reorganizar a ficha avançada trocando os exercícios no próprio
+// treino, e que a troca fique na ficha. Até aqui só a observação e o descanso
+// voltavam para a ficha ao finalizar: o exercício trocado no meio do treino
+// voltava a ser o antigo na vez seguinte, e a pessoa trocava de novo, toda vez.
+// Esta função compara a ficha com o treino que acabou e devolve o que mudou
+// (em frases, para a pergunta) e a ficha nova. Devolve null quando a lista de
+// exercícios é a mesma, na mesma ordem: aí não há o que perguntar.
+// - `origem` é a posição do item na ficha quando o treino começou; `trocadoDe`,
+//   o exercício que estava ali antes do ⇄ (o primeiro, se trocou duas vezes).
+// - Item que veio da ficha guarda séries, repetições e descanso de lá: as séries
+//   a mais feitas hoje não viram regra sem ninguém pedir. O trocado leva as
+//   repetições do treino, que já são as do exercício novo; o acrescentado leva
+//   tudo do treino.
+// - Bi-set só vale entre vizinhos: a marca que ficou sem par é limpa.
+function mudancasNaFicha(fichaItens, sessaoItens, nomeDe) {
+  const fi = fichaItens || [], si = sessaoItens || [];
+  const ant = fi.map((x) => x.exercicioId), dep = si.map((x) => x.exercicioId);
+  if (ant.join("|") === dep.join("|")) return null;
+  const nome = (id) => (nomeDe ? nomeDe(id) : id);
+  const trocas = {};
+  si.forEach((s) => {
+    if (s.trocadoDe && s.trocadoDe !== s.exercicioId && ant.indexOf(s.trocadoDe) >= 0 && dep.indexOf(s.trocadoDe) < 0) trocas[s.trocadoDe] = s.exercicioId;
+  });
+  const entraramPorTroca = Object.keys(trocas).map((k) => trocas[k]);
+  const linhas = [];
+  Object.keys(trocas).forEach((a) => linhas.push("⇄ " + nome(a) + " → " + nome(trocas[a])));
+  ant.filter((id) => dep.indexOf(id) < 0 && !trocas[id]).forEach((id) => linhas.push("✕ Saiu: " + nome(id)));
+  dep.filter((id) => ant.indexOf(id) < 0 && entraramPorTroca.indexOf(id) < 0).forEach((id) => linhas.push("+ Entrou: " + nome(id)));
+  if (!linhas.length) linhas.push("↕ Nova ordem dos exercícios");
+  const repsDoTreino = (s) => {
+    const s0 = s.series && s.series[0];
+    if (!s0) return 0;
+    if (s0.mod || s0.vel) return Math.round((parseInt(s0.segundos) || 0) / 60);
+    return parseInt(s0.reps) || 0;
+  };
+  const itens = si.map((s) => {
+    const daOrigem = typeof s.origem === "number" ? fi[s.origem] : null;
+    const base = daOrigem && (daOrigem.exercicioId === s.exercicioId || daOrigem.exercicioId === s.trocadoDe) ? daOrigem
+      : fi.find((f) => f.exercicioId === s.exercicioId) || fi.find((f) => s.trocadoDe && f.exercicioId === s.trocadoDe) || null;
+    const comum = { exercicioId: s.exercicioId, obs: s.obs || "", conjunto: s.conjunto || null };
+    if (base && base.exercicioId === s.exercicioId) {
+      return { ...base, ...comum, descanso: s.descanso || base.descanso || null };
+    }
+    if (base) {
+      return { ...base, ...comum, reps: repsDoTreino(s) || base.reps || 12, descanso: s.descanso || base.descanso || null };
+    }
+    return { uid: s.uid, ...comum, series: Math.max(1, (s.series || []).length), reps: repsDoTreino(s) || 12, descanso: s.descanso || null };
+  });
+  itens.forEach((it, i) => {
+    if (!it.conjunto) return;
+    const vizinho = (itens[i - 1] && itens[i - 1].conjunto === it.conjunto) || (itens[i + 1] && itens[i + 1].conjunto === it.conjunto);
+    if (!vizinho) itens[i] = { ...it, conjunto: null };
+  });
+  return { linhas: linhas, itens: itens };
+}
+// ---- fim da ficha muda
 
 // Onde cai a próxima frase do Jarvis, e de que série fala o "Próxima:" do fim
 // do descanso. Antes era a primeira série pendente da ficha inteira: quem pulava
@@ -9401,10 +9459,22 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
     itens: (treinoInicial.itens || []).map((it) => ({ ...it, uid: it.uid || novoUid() })),
   }));
   const [busca, setBusca] = useState("");
+  // ⇄ Trocar: o exercício novo entra no MESMO lugar, com as séries, as
+  // repetições, o descanso e o bi-set do antigo. Tirar e acrescentar mandava o
+  // novo para o fim da lista, e eram dez toques no ▲ para voltá-lo ao lugar.
+  const [trocandoI, setTrocandoI] = useState(null);
+  const buscaRef = useRef(null);
 
   const salvar = () => {
     if (!t.nome.trim()) { avisar("Dê um nome para a ficha (ex.: Treino A - Peito e Tríceps)"); return; }
     onSalvar(t);
+  };
+  const trocarEx = (id) => {
+    const i = trocandoI;
+    setTrocandoI(null);
+    setBusca("");
+    if (i === null || !t.itens[i]) return;
+    setT({ ...t, itens: t.itens.map((it, k) => (k === i ? { ...it, exercicioId: id, obs: "" } : it)) });
   };
   const addEx = (id) => {
     const e = todos.find((x) => x.id === id);
@@ -9449,8 +9519,12 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
     setT({ ...t, itens: copia });
   };
 
-  const filtrados = buscarExercicios(todos, busca);
   const exPorId = (id) => todos.find((e) => e.id === id);
+  const trocado = trocandoI !== null && t.itens[trocandoI] ? exPorId(t.itens[trocandoI].exercicioId) : null;
+  // Trocando e sem busca: os do mesmo grupo primeiro, que é a troca mais comum
+  const filtrados = trocado && !busca.trim()
+    ? todos.filter((e) => e.grupo === trocado.grupo && e.id !== trocado.id)
+    : buscarExercicios(todos, busca);
 
   return (
     <div style={{ padding: "0 18px" }}>
@@ -9486,6 +9560,9 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
                   style={{ background: "none", border: "1px solid var(--borda2)", borderRadius: 7, width: 28, height: 28, color: i === 0 ? "var(--borda2)" : "var(--texto)", fontSize: 13, cursor: i === 0 ? "default" : "pointer" }}>▲</button>
                 <button aria-label={"Mover " + nomeEx + " para baixo"} disabled={i === t.itens.length - 1} onClick={() => moverItem(i, 1)}
                   style={{ background: "none", border: "1px solid var(--borda2)", borderRadius: 7, width: 28, height: 28, color: i === t.itens.length - 1 ? "var(--borda2)" : "var(--texto)", fontSize: 13, cursor: "pointer" }}>▼</button>
+                <button aria-label={"Trocar " + nomeEx + " por outro exercício"}
+                  onClick={() => { setTrocandoI(i); setBusca(""); setTimeout(() => { if (buscaRef.current) { buscaRef.current.scrollIntoView({ behavior: "smooth", block: "center" }); buscaRef.current.focus(); } }, 50); }}
+                  style={{ background: trocandoI === i ? "#E1306C" : "none", border: "1px solid " + (trocandoI === i ? "#E1306C" : "var(--borda2)"), borderRadius: 7, height: 28, padding: "0 7px", color: trocandoI === i ? "#FFFFFF" : "var(--texto)", fontSize: 12, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>⇄ Trocar</button>
                 <button aria-label={"Tirar " + nomeEx + " da ficha"}
                   style={{ background: "none", border: "none", color: "var(--perigo)", fontSize: 18, cursor: "pointer" }} onClick={() => rmEx(i)}>✕</button>
               </div>
@@ -9533,9 +9610,21 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
 
       <button style={{ ...S.btn, marginBottom: 18 }} onClick={salvar}>Salvar ficha</button>
 
-      <div style={S.label}>Adicionar exercício</div>
-      <input style={{ ...S.input, margin: "8px 0 10px" }} placeholder="Buscar: nome, músculo ou aparelho..."
-        type="search" aria-label="Buscar exercício para adicionar à ficha"
+      {trocado ? (
+        <div style={{ ...S.card, padding: 12, borderColor: "#E1306C", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1, fontSize: 14 }}>
+            <div style={{ ...S.label, color: "#E1306C", fontSize: 10 }}>⇄ Trocando</div>
+            <div style={{ fontWeight: 800 }}>{trocado.nome}</div>
+            <div style={{ fontSize: 12, color: "var(--cinza)" }}>Escolha abaixo. O novo fica no mesmo lugar, com as mesmas séries e repetições.</div>
+          </div>
+          <button style={{ ...S.btnGhost, width: "auto", padding: "8px 12px" }} onClick={() => { setTrocandoI(null); setBusca(""); }}>Cancelar</button>
+        </div>
+      ) : (
+        <div style={S.label}>Adicionar exercício</div>
+      )}
+      <input ref={buscaRef} style={{ ...S.input, margin: "8px 0 10px" }}
+        placeholder={trocado ? "Ou busque outro exercício..." : "Buscar: nome, músculo ou aparelho..."}
+        type="search" aria-label={trocado ? "Buscar exercício para trocar" : "Buscar exercício para adicionar à ficha"}
         value={busca} onChange={(e) => setBusca(e.target.value)} />
       {filtrados.slice(0, LIMITE_LISTA).map((ex) => (
         <div key={ex.id} style={{ ...S.card, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -9545,9 +9634,9 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
             </div>
             <div style={{ fontSize: 12, color: corGrupo(grupoPorId(ex.grupo)) }}>{grupoPorId(ex.grupo).nome}</div>
           </div>
-          <button aria-label={"Adicionar " + ex.nome + " à ficha"}
-            style={{ background: GRAD, color: "#FFFFFF", border: "none", borderRadius: 10, width: 34, height: 34, fontWeight: 900, fontSize: 18, cursor: "pointer" }}
-            onClick={() => addEx(ex.id)}>+</button>
+          <button aria-label={trocado ? "Trocar por " + ex.nome : "Adicionar " + ex.nome + " à ficha"}
+            style={{ background: GRAD, color: "#FFFFFF", border: "none", borderRadius: 10, width: 34, height: 34, fontWeight: 900, fontSize: trocado ? 16 : 18, cursor: "pointer" }}
+            onClick={() => (trocado ? trocarEx(ex.id) : addEx(ex.id))}>{trocado ? "⇄" : "+"}</button>
         </div>
       ))}
       {filtrados.length > LIMITE_LISTA && (
@@ -18771,6 +18860,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       itens: sessao.itens.map((it, i) => (i !== ei ? it : {
         ...it,
         exercicioId: novoId,
+        trocadoDe: it.trocadoDe || it.exercicioId,
         obs: "",
         sugerido: sug || null,
         // as séries são mantidas em quantidade, mas a carga passa a ser a do exercício novo
@@ -21907,7 +21997,7 @@ function TreinoLivre() {
       treinoId: treino.id,
       nome: treino.nome,
       inicio: Date.now(),
-      itens: treino.itens.map((it) => {
+      itens: treino.itens.map((it, i) => {
         // A carga já vem preenchida com a da última vez, e sobe sozinha quando
         // todas as séries fecharam as repetições combinadas. É a sobrecarga
         // progressiva acontecendo sem ninguém precisar consultar o histórico.
@@ -21916,6 +22006,7 @@ function TreinoLivre() {
         return {
           uid: novoUid(),
           exercicioId: it.exercicioId,
+          origem: i,                       // posição na ficha (mudancasNaFicha)
           obs: it.obs || "",
           conjunto: it.conjunto || null,   // bi-set/tri-set definido na ficha
           descanso: it.descanso || null,   // descanso próprio deste exercício
@@ -22210,10 +22301,27 @@ function TreinoLivre() {
   };
   tratarFalaRef.current = tratarFala;
 
-  const finalizarSessao = () => {
+  // salvarNaFicha: true ou false depois da pergunta; qualquer outra coisa (o
+  // clique, a voz) ainda não decidiu.
+  const finalizarSessao = (salvarNaFicha) => {
     const feitas = sessao.itens.reduce((a, it) => a + it.series.filter((s) => s.feito).length, 0);
     if (!feitas) {
       avisar("Marque pelo menos uma série com ✓ antes de finalizar o treino.");
+      return;
+    }
+    const fichaDoTreino = treinos.find((t) => t.id === sessao.treinoId);
+    const nomeDoEx = (id) => { const e = exPorId(id); return e ? e.nome : "exercício removido"; };
+    const mudou = fichaDoTreino ? mudancasNaFicha(fichaDoTreino.itens, sessao.itens, nomeDoEx) : null;
+    if (mudou && salvarNaFicha !== true && salvarNaFicha !== false) {
+      setModal({
+        msg: "Você mudou os exercícios da ficha “" + fichaDoTreino.nome + "” neste treino:\n\n" +
+          mudou.linhas.join("\n") + "\n\nGuardar a ficha assim para os próximos treinos?",
+        positivo: true,
+        labelSim: "Salvar na ficha",
+        labelNao: "Só hoje",
+        onSim: () => finalizarSessao(true),
+        onNao: () => finalizarSessao(false),
+      });
       return;
     }
     const registro = {
@@ -22251,6 +22359,8 @@ function TreinoLivre() {
     });
     setTreinos(treinos.map((t) => {
       if (t.id !== sessao.treinoId) return t;
+      // a ficha nova já leva a observação e o descanso de cada exercício
+      if (mudou && salvarNaFicha === true) return { ...t, itens: mudou.itens };
       return {
         ...t,
         itens: t.itens.map((it) => {
@@ -23076,7 +23186,7 @@ function TreinoLivre() {
             <div style={{ display: "flex", gap: 10 }}>
               {modal.onSim ? (
                 <React.Fragment>
-                  <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => setModal(null)}>Cancelar</button>
+                  <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => { const f = modal.onNao; setModal(null); if (f) f(); }}>{modal.labelNao || "Cancelar"}</button>
                   <button style={{ ...S.btn, flex: 1, background: modal.positivo ? GRAD : "#ED4956", color: "#FFFFFF" }}
                     onClick={() => { const f = modal.onSim; setModal(null); f(); }}>{modal.labelSim || (modal.positivo ? "Adicionar" : "Confirmar")}</button>
                 </React.Fragment>

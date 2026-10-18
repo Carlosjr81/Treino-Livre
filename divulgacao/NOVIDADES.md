@@ -16,6 +16,42 @@
 
 ---
 
+## 2026-10-18a — Troque os exercícios no treino e a ficha fica salva assim
+
+**Em uma frase:** trocou, tirou ou acrescentou exercício no meio do treino? Ao
+finalizar, o app pergunta se você quer guardar a ficha assim para as próximas
+vezes.
+
+**O que mudou**
+- Antes, trocar um exercício no treino (aparelho ocupado, vontade de variar)
+  valia só para aquele dia: na vez seguinte a ficha voltava ao exercício antigo.
+- Agora, ao tocar em **Finalizar treino**, se a lista de exercícios mudou, o app
+  mostra o que mudou ("Crucifixo → Peck deck", "Saiu: ...", "Entrou: ...") e
+  pergunta: **Salvar na ficha** ou **Só hoje**.
+- O exercício novo fica no mesmo lugar do antigo, com as mesmas séries e o
+  mesmo descanso. Observação e descanso ajustados no treino vão junto.
+- No editor de fichas há um botão novo, **⇄ Trocar**, em cada exercício: o novo
+  entra no lugar do antigo, sem ir parar no fim da lista. Sem digitar nada, ele
+  já mostra os exercícios do mesmo grupo.
+
+**Por que importa para quem treina:** reorganizar a ficha deixa de ser uma
+tarefa separada. Você treina, troca o que quiser, e a ficha acompanha.
+
+**Como usar:** no treino, toque no ⇄ ao lado do nome do exercício e escolha o
+outro → termine o treino → **Salvar na ficha**. Ou, fora do treino: Fichas →
+abra a ficha → Editar → **⇄ Trocar** no exercício → escolha → Salvar ficha.
+
+**Ideias de vídeo**
+- "Mudei minha ficha sem sair do treino": troca na academia, finaliza, toca em
+  Salvar na ficha, abre a ficha e mostra o exercício novo no lugar.
+- "Aparelho ocupado? Troca só hoje": o mesmo, tocando em Só hoje.
+
+**Não prometer:** a pergunta só aparece quando a lista de exercícios mudou;
+séries a mais feitas no dia não mudam a ficha. Treino livre (sem ficha) não
+pergunta nada.
+
+---
+
 ## 2026-10-17e — O tempo da esteira cabe no quadrinho
 
 **Em uma frase:** com a esteira conectada, o tempo da série e a meta agora

@@ -1,0 +1,77 @@
+// A ficha muda com o treino: trocar, tirar, acrescentar e reordenar exercícios
+// no meio do treino e guardar a ficha assim. Errar aqui é apagar a ficha de
+// alguém ou guardar uma ficha que não é a que a pessoa treinou.
+const html = require("./app").lerApp();
+function pedaco(de, ate) {
+  const i = html.indexOf(de), f = html.indexOf(ate, i);
+  if (i < 0 || f < 0) { console.error("nao achei: " + de); process.exit(1); }
+  return html.slice(i, f);
+}
+eval(pedaco("// ---- A ficha muda com o treino ----", "// ---- fim da ficha muda") + "\nglobalThis.H = { mudancasNaFicha };");
+
+let ok = 0, mal = 0;
+function teste(nome, esperado, obtido) {
+  if (JSON.stringify(obtido) === JSON.stringify(esperado)) { ok++; console.log("  ok   " + nome.padEnd(62) + JSON.stringify(obtido)); }
+  else { mal++; console.log("  X    " + nome.padEnd(62) + JSON.stringify(obtido) + ", esperava " + JSON.stringify(esperado)); }
+}
+const NOMES = { supino: "Supino", crucifixo: "Crucifixo", peck: "Peck deck", triceps: "Tríceps corda", esteira: "Esteira" };
+const nome = (id) => NOMES[id] || id;
+const ficha = [
+  { uid: "f1", exercicioId: "supino", series: 4, reps: 8, obs: "banco 3", descanso: 120 },
+  { uid: "f2", exercicioId: "crucifixo", series: 3, reps: 12, obs: "", conjunto: "cj1" },
+  { uid: "f3", exercicioId: "triceps", series: 3, reps: 15, obs: "", conjunto: "cj1" },
+];
+// a sessão como o app monta ao começar a ficha
+const sessaoDe = (f) => f.map((it, i) => ({
+  uid: "s" + i, exercicioId: it.exercicioId, origem: i, obs: it.obs, descanso: it.descanso || null, conjunto: it.conjunto || null,
+  series: Array.from({ length: it.series }, () => ({ peso: "40", reps: String(it.reps), feito: true })),
+}));
+
+console.log("--- nada mudou ---");
+teste("mesma lista, mesma ordem: nada a perguntar", null, H.mudancasNaFicha(ficha, sessaoDe(ficha), nome));
+const comSerieAMais = sessaoDe(ficha); comSerieAMais[0].series.push({ peso: "40", reps: "8", feito: true });
+teste("uma série a mais não é mudar a ficha", null, H.mudancasNaFicha(ficha, comSerieAMais, nome));
+
+console.log("\n--- trocar ---");
+let s = sessaoDe(ficha);
+s[1] = { ...s[1], exercicioId: "peck", trocadoDe: "crucifixo", obs: "", series: s[1].series.map((x) => ({ ...x, reps: "10" })) };
+let r = H.mudancasNaFicha(ficha, s, nome);
+teste("a frase da troca", ["⇄ Crucifixo → Peck deck"], r.linhas);
+teste("o novo fica no mesmo lugar", ["supino", "peck", "triceps"], r.itens.map((x) => x.exercicioId));
+teste("mantém séries e o bi-set do antigo", [3, "cj1"], [r.itens[1].series, r.itens[1].conjunto]);
+teste("repetições: as do treino (do exercício novo)", 10, r.itens[1].reps);
+teste("o que não mudou fica igual (obs, descanso)", { uid: "f1", exercicioId: "supino", series: 4, reps: 8, obs: "banco 3", descanso: 120, conjunto: null }, r.itens[0]);
+// trocou duas vezes: crucifixo → peck → supino-inclinado
+s[1] = { ...s[1], exercicioId: "inclinado", trocadoDe: "crucifixo" };
+teste("trocou duas vezes: fala do primeiro para o último", ["⇄ Crucifixo → inclinado"], H.mudancasNaFicha(ficha, s, nome).linhas);
+// trocou e destrocou
+s[1] = { ...s[1], exercicioId: "crucifixo", trocadoDe: "crucifixo" };
+teste("trocou e voltou ao mesmo: nada a perguntar", null, H.mudancasNaFicha(ficha, s, nome));
+
+console.log("\n--- tirar e acrescentar ---");
+s = sessaoDe(ficha).filter((x) => x.exercicioId !== "triceps");
+r = H.mudancasNaFicha(ficha, s, nome);
+teste("tirou um", ["✕ Saiu: Tríceps corda"], r.linhas);
+teste("o bi-set que ficou sem par é desfeito", null, r.itens[1].conjunto);
+s = sessaoDe(ficha).concat([{ uid: "novo", exercicioId: "esteira", obs: "", series: [{ segundos: "1200", mod: "corrida", vel: "9", feito: true }] }]);
+r = H.mudancasNaFicha(ficha, s, nome);
+teste("acrescentou um", ["+ Entrou: Esteira"], r.linhas);
+teste("o acrescentado: 1 série, minutos da esteira", { exercicioId: "esteira", series: 1, reps: 20 }, (({ exercicioId, series, reps }) => ({ exercicioId, series, reps }))(r.itens[3]));
+s = sessaoDe(ficha); s.push({ uid: "n2", exercicioId: "peck", obs: "", series: [{ peso: "30", reps: "12" }, { peso: "30", reps: "12" }] });
+teste("acrescentado de força: séries e reps do treino", [2, 12], (() => { const x = H.mudancasNaFicha(ficha, s, nome).itens[3]; return [x.series, x.reps]; })());
+
+console.log("\n--- reordenar ---");
+s = sessaoDe(ficha); s = [s[2], s[0], s[1]];
+r = H.mudancasNaFicha(ficha, s, nome);
+teste("só a ordem mudou", ["↕ Nova ordem dos exercícios"], r.linhas);
+teste("a ordem nova", ["triceps", "supino", "crucifixo"], r.itens.map((x) => x.exercicioId));
+teste("separados, o bi-set some (só vale entre vizinhos)", [null, null, null], r.itens.map((x) => x.conjunto));
+
+console.log("\n--- sessão antiga, sem origem ---");
+s = sessaoDe(ficha).map(({ origem, ...x }) => x);
+s[0] = { ...s[0], exercicioId: "peck", trocadoDe: "supino" };
+r = H.mudancasNaFicha(ficha, s, nome);
+teste("acha o item da ficha pelo exercício trocado", [4, 120], [r.itens[0].series, r.itens[0].descanso]);
+
+console.log("\n" + ok + " passou / " + mal + " falhou");
+process.exit(mal ? 1 : 0);

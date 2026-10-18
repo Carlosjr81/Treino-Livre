@@ -1,4 +1,4 @@
-// Roda as 21 suites e devolve um resumo.
+// Roda as 22 suites e devolve um resumo.
 //
 //   node rodar.js
 //
@@ -32,6 +32,7 @@ const SUITES = [
   ["teste-fc", "o batimento em pedacos: media pelo tempo medido, ruido e pico"],
   ["teste-busca", "a busca de exercicios: musculo, apelido e aparelho, sem perder a precisao"],
   ["teste-desafio", "o desafio: mesma regua de tempo, posicoes, ultrapassagem e MQTT"],
+  ["teste-ficha", "a ficha muda com o treino: trocar, tirar, acrescentar e reordenar"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");

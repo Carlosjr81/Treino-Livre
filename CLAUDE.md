@@ -98,7 +98,7 @@ Treino-Livre/
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
 ├── divulgacao/          ← o que o ChatGPT do dono lê para criar vídeos: o guia e o NOVIDADES
-└── testes/              ← as 21 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 22 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -113,7 +113,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 862 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 880 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -154,7 +154,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 862 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 880 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -229,7 +229,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v71) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v72) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2878,6 +2878,20 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   No editor de ficha, o botão "juntar com o de baixo" liga e desliga.
 - **Descanso por exercício** — controle na própria linha do exercício, além do
   seletor no editor de ficha.
+- **A ficha muda com o treino** (`mudancasNaFicha`, coberto por
+  `teste-ficha.js`). Pedido do dono, ao reorganizar a ficha avançada: trocar
+  os exercícios no próprio treino e que a troca fique na ficha. Antes só obs e
+  descanso voltavam; o exercício trocado voltava a ser o antigo na vez
+  seguinte. Hoje, ao finalizar com a lista diferente da ficha (trocou, tirou,
+  acrescentou ou mudou a ordem), o app pergunta, listando o que mudou:
+  **Salvar na ficha** ou **Só hoje**. Para saber o que mudou, a sessão guarda
+  `origem` (a posição na ficha) e `trocadoDe` (o exercício de antes do ⇄).
+  Item que veio da ficha mantém séries e repetições de lá: série a mais feita
+  hoje não vira regra sem pedir. Bi-set que ficou sem vizinho é desfeito. O
+  modal ganhou `labelNao`/`onNao` para isso; tocar fora dele não finaliza.
+- **⇄ Trocar no editor de ficha**: o exercício novo entra no mesmo lugar, com
+  as séries, repetições, descanso e bi-set do antigo; sem busca, a lista
+  mostra o mesmo grupo. Antes era tirar e acrescentar, e o novo ia para o fim.
 
 ## Corpo, backup e lembretes
 
@@ -2904,7 +2918,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 21 suítes (862 checagens)
+node testes/rodar.js      # as 22 suítes (880 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

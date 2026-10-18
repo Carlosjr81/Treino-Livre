@@ -18,7 +18,7 @@ estes arquivos, e ninguém os pede.
 node testes/rodar.js
 ```
 
-As 21 suítes (862 checagens) contra o `index.html` da raiz. Prova que a
+As 22 suítes (880 checagens) contra o `index.html` da raiz. Prova que a
 **lógica** não quebrou. Vale rodar **antes e depois** de qualquer mexida.
 
 ```bash
@@ -72,6 +72,7 @@ Precisa de Node.js. Nenhuma dependência: não há `package.json`, não há
 |---|---|
 | `teste-parser` | o interpretador de voz: 91 frases viram (ou não viram) comandos |
 | `teste-contador` | a contagem de repetições, com corpo sintético |
+| `teste-ficha` | a ficha muda com o treino: trocar, tirar, acrescentar e reordenar |
 | `teste-tecnico` | os comentários do técnico — **e o silêncio dele** |
 | `teste-funcional` | os movimentos funcionais e o modo alternado |
 | `teste-postura` | a correção de postura, principalmente o que ela **não** pode falar |

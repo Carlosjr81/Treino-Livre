@@ -7,7 +7,7 @@ function pedaco(de, ate) {
   if (i < 0 || f < 0) { console.error("nao achei: " + de); process.exit(1); }
   return html.slice(i, f);
 }
-eval(pedaco("// ---- A ficha muda com o treino ----", "// ---- fim da ficha muda") + "\nglobalThis.H = { mudancasNaFicha };");
+eval(pedaco("// ---- A ficha muda com o treino ----", "// ---- fim da ficha muda") + "\nglobalThis.H = { mudancasNaFicha, fichaDoTreino };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -72,6 +72,23 @@ s = sessaoDe(ficha).map(({ origem, ...x }) => x);
 s[0] = { ...s[0], exercicioId: "peck", trocadoDe: "supino" };
 r = H.mudancasNaFicha(ficha, s, nome);
 teste("acha o item da ficha pelo exercício trocado", [4, 120], [r.itens[0].series, r.itens[0].descanso]);
+
+console.log("\n--- o treino livre vira ficha ---");
+const livre = [
+  { exercicioId: "supino", obs: "banco 3", series: [{ peso: "20", reps: "15", aquec: true }, { peso: "60", reps: "12" }, { peso: "60", reps: "10" }, { peso: "60", reps: "10" }] },
+  { exercicioId: "prancha", obs: "", series: [{ segundos: "45" }, { segundos: "45" }] },
+  { exercicioId: "esteira", obs: "", series: [{ segundos: "1200", mod: "corrida", vel: "9" }] },
+  { exercicioId: "so-aquecimento", obs: "", series: [{ peso: "10", reps: "20", aquec: true }] },
+  { exercicioId: "nada", obs: "", series: [] },
+];
+const f = H.fichaDoTreino(livre, (i) => "id" + i);
+teste("exercício sem série feita fica de fora", ["supino", "prancha", "esteira", "so-aquecimento"], f.map((x) => x.exercicioId));
+teste("aquecimento não conta série; reps = as que mais apareceram", [3, 10, "banco 3"], [f[0].series, f[0].reps, f[0].obs]);
+teste("isometria: os segundos", [2, 45], [f[1].series, f[1].reps]);
+teste("aeróbico: minutos", [1, 20], [f[2].series, f[2].reps]);
+teste("só aquecimento: vira 1 série, não some", [1, 20], [f[3].series, f[3].reps]);
+teste("item de ficha completo", { uid: "id0", exercicioId: "supino", series: 3, reps: 10, obs: "banco 3", descanso: null, conjunto: null }, f[0]);
+teste("empate nas repetições: a primeira", 12, H.fichaDoTreino([{ exercicioId: "x", series: [{ reps: "12" }, { reps: "10" }] }])[0].reps);
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-18a**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-18b**.
 
 ---
 
@@ -128,6 +128,8 @@ quebrando a tela) como linguagem visual em vídeos.
 - **A ficha acompanha as trocas:** trocou, tirou ou acrescentou exercício no treino? Ao finalizar, o app
   pergunta se quer **salvar na ficha** ou deixar **só hoje**. No editor de fichas, o botão **⇄ Trocar**
   põe o exercício novo no lugar do antigo, com as mesmas séries.
+- **Treino livre vira ficha:** ao finalizar um treino livre, o app oferece **Salvar como ficha** (com nome
+  e programa sugeridos). No Histórico, qualquer treino tem **📋 Virar ficha**.
 - Fechou o app no meio do treino? **Nada se perde** — ao abrir, o treino continua de onde parou.
 - **Comemoração com confete** ao bater recorde.
 - No fim: **resumo** com volume total, séries, recordes, comparação com o treino anterior, e a voz

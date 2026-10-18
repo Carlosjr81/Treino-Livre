@@ -16,6 +16,42 @@
 
 ---
 
+## 2026-10-18b — O treino livre vira ficha
+
+**Em uma frase:** fez um treino livre que ficou bom? Agora ele vira uma ficha
+salva com um toque, na hora de finalizar ou depois, pelo histórico.
+
+**O que mudou**
+- Ao **finalizar um treino livre** (com dois exercícios ou mais), o app
+  pergunta se você quer guardá-lo como ficha. Mostra os exercícios com as
+  séries e repetições, sugere um nome ("Treino de Peito e Tríceps") e o
+  programa onde guardar. É só tocar em **Salvar como ficha**, ou **Agora não**.
+- No **Histórico**, cada treino ganhou o botão **📋 Virar ficha**: dá para
+  transformar os treinos livres dos dias anteriores em fichas.
+- A ficha leva as séries que valeram (aquecimento não conta) e as repetições
+  que você mais fez. A observação de cada exercício (altura do banco, polia)
+  vai junto.
+
+**Por que importa para quem treina:** muita gente monta o treino na academia,
+testando aparelho por aparelho. Agora essa semana de testes vira a ficha
+fixa, sem precisar montar tudo de novo.
+
+**Como usar:** termine o treino livre → **Salvar como ficha** → confira o nome
+e o programa. Ou: **Histórico** → no treino → **📋 Virar ficha**. Depois a
+ficha aparece em Fichas, pronta, e dá para ajustar em Editar.
+
+**Ideias de vídeo**
+- "Montei minha ficha treinando": uma semana de treinos livres, e no fim cada
+  dia vira uma ficha com um toque.
+- O antes e depois: o histórico com os treinos livres → a lista de fichas
+  pronta.
+
+**Não prometer:** percurso na rua, Monster Run, desafio e intervalado não
+viram ficha. Treino livre com um exercício só não faz a pergunta (dá para
+usar o botão do histórico).
+
+---
+
 ## 2026-10-18a — Troque os exercícios no treino e a ficha fica salva assim
 
 **Em uma frase:** trocou, tirou ou acrescentou exercício no meio do treino? Ao

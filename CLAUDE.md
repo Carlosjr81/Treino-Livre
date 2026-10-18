@@ -113,7 +113,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 880 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 887 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -154,7 +154,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 880 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 887 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -229,7 +229,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v72) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v73) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2889,6 +2889,21 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   Item que veio da ficha mantém séries e repetições de lá: série a mais feita
   hoje não vira regra sem pedir. Bi-set que ficou sem vizinho é desfeito. O
   modal ganhou `labelNao`/`onNao` para isso; tocar fora dele não finaliza.
+- **O treino vira ficha** (`fichaDoTreino`, `virarFicha`, coberto por
+  `teste-ficha.js`). Pedido do dono: a ficha da semana estava montada nos
+  treinos livres dos últimos dias, sem jeito de guardá-los. Dois caminhos:
+  **📋 Virar ficha** em cada treino do histórico (menos rua, Monster Run,
+  desafio e intervalado), e a pergunta ao **finalizar um treino livre** com
+  dois exercícios ou mais ("Salvar como ficha" ou "Agora não"; a frase da
+  ficha salva entra no resumo, por `nota` no `guardarTreino`). A ficha leva
+  as séries que valeram (aquecimento fora) e as repetições que mais
+  apareceram; o nome sugerido são os dois grupos com mais séries ("Treino de
+  Peito e Tríceps"); o programa sugerido é o da ficha treinada por último. O
+  modal ganhou `escolha` (um seletor, lido por `escolhaRef`).
+  **Achado no navegador**: a ficha nova sumia ao finalizar, porque o
+  `finalizarSessao` regravava `treinos` a partir da cópia do render, que
+  ainda não a tinha. Gravação que pode vir logo depois de outra é funcional
+  (`setTreinos((prev) => ...)`).
 - **⇄ Trocar no editor de ficha**: o exercício novo entra no mesmo lugar, com
   as séries, repetições, descanso e bi-set do antigo; sem busca, a lista
   mostra o mesmo grupo. Antes era tirar e acrescentar, e o novo ia para o fim.
@@ -2918,7 +2933,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 22 suítes (880 checagens)
+node testes/rodar.js      # as 22 suítes (887 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

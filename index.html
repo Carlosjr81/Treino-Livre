@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-18a";
+const VERSAO_APP = "2026-10-18b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -1525,6 +1525,35 @@ function mudancasNaFicha(fichaItens, sessaoItens, nomeDe) {
     if (!vizinho) itens[i] = { ...it, conjunto: null };
   });
   return { linhas: linhas, itens: itens };
+}
+// O treino feito vira ficha. Pedido do dono: a ficha da semana estava montada
+// nos treinos livres dos últimos dias, e não havia como guardar nenhum deles.
+// Recebe os itens no formato do histórico (só as séries feitas) e devolve os
+// itens de uma ficha: quantas séries valeram (aquecimento fica de fora, mas não
+// zera o exercício) e as repetições que mais apareceram — quem fez 12, 10, 10
+// combinou 10 consigo mesmo. No aeróbico, as "repetições" da ficha são minutos.
+function fichaDoTreino(itens, gerarUid) {
+  const uid = gerarUid || ((i) => "u" + i);
+  const maisComum = (vals) => {
+    const c = {};
+    let melhor = null;
+    vals.forEach((v) => { c[v] = (c[v] || 0) + 1; if (melhor === null || c[v] > c[melhor]) melhor = v; });
+    return melhor;
+  };
+  return (itens || []).map((it, i) => {
+    const todas = it.series || [];
+    const valem = todas.filter((s) => !s.aquec);
+    const usar = valem.length ? valem : todas;
+    if (!usar.length) return null;
+    const cardio = !!(usar[0].mod || usar[0].vel);
+    const reps = maisComum(usar.map((s) => (cardio
+      ? Math.max(1, Math.round((parseInt(s.segundos) || 0) / 60))
+      : parseInt(s.reps) || parseInt(s.segundos) || 0)).filter((v) => v > 0));
+    return {
+      uid: uid(i), exercicioId: it.exercicioId, series: usar.length,
+      reps: reps || (cardio ? 20 : 12), obs: it.obs || "", descanso: it.descanso || null, conjunto: null,
+    };
+  }).filter(Boolean);
 }
 // ---- fim da ficha muda
 
@@ -20399,7 +20428,7 @@ function MiniStat({ valor, nome, cor }) {
   );
 }
 
-function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEditar, pedirConfirmacao, historico, pesoCorporal, vozCfg }) {
+function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEditar, onVirarFicha, pedirConfirmacao, historico, pesoCorporal, vozCfg }) {
   const [aberto, setAberto] = useState(false);
   const [verRota, setVerRota] = useState(false);
   const st = statsTreino(h);
@@ -20572,6 +20601,12 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
           style={{ ...S.btnGhost, flex: 1, fontSize: 13, padding: "10px 12px" }}>
           ✎ Corrigir
         </button>
+        {onVirarFicha && !h.rota && !h.zumbi && !h.desafio && !h.intervalado && (h.itens || []).length >= 1 && (
+          <button onClick={() => onVirarFicha(h)} aria-label={"Transformar o treino " + h.nome + " numa ficha"}
+            style={{ ...S.btnGhost, flex: 1.3, fontSize: 13, padding: "10px 8px" }}>
+            📋 Virar ficha
+          </button>
+        )}
       </div>
     </div>
   );
@@ -20945,7 +20980,7 @@ function TelaCorpo({ medidas, historico, fotos, onAdicionarFoto, onExcluirFoto, 
   );
 }
 
-function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedirConfirmacao,
+function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVirarFicha, pedirConfirmacao,
   medidas, onSalvarMedida, onExcluirMedida, avisar,
   fotos, onAdicionarFoto, onExcluirFoto,
   meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor, onComecar }) {
@@ -21009,7 +21044,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, pedir
       {secao === "treinos" && historico.map((h) => (
         <CardTreino key={h.id} h={h} exPorId={exPorId} recordes={recordes} historico={historico} pesoCorporal={pesoCorporal} vozCfg={vozCfg}
           comparacao={compararAnterior(historico, h)}
-          onExcluir={onExcluir} onStory={onStory} onEditar={onEditar} pedirConfirmacao={pedirConfirmacao} />
+          onExcluir={onExcluir} onStory={onStory} onEditar={onEditar} onVirarFicha={onVirarFicha} pedirConfirmacao={pedirConfirmacao} />
       ))}
     </div>
   );
@@ -21484,6 +21519,7 @@ function TreinoLivre() {
   const [copiado, setCopiado] = useState(false);
   const [desfazer, setDesfazer] = useState(null);
   const importRef = useRef("");
+  const escolhaRef = useRef("");
   const pedirConfirmacao = (msg, onSim) => setModal({ msg, onSim });
   // Um aviso nunca atropela uma pergunta. A ficha recebida por link abre um
   // "deseja adicionar?", e o aviso do microfone — que chega sozinho logo depois,
@@ -22303,11 +22339,23 @@ function TreinoLivre() {
 
   // salvarNaFicha: true ou false depois da pergunta; qualquer outra coisa (o
   // clique, a voz) ainda não decidiu.
-  const finalizarSessao = (salvarNaFicha) => {
+  // nota: a frase que entra no resumo (a ficha que acabou de ser salva)
+  const finalizarSessao = (salvarNaFicha, nota) => {
     const feitas = sessao.itens.reduce((a, it) => a + it.series.filter((s) => s.feito).length, 0);
     if (!feitas) {
       avisar("Marque pelo menos uma série com ✓ antes de finalizar o treino.");
       return;
+    }
+    // Treino livre com dois exercícios ou mais: é a hora de perguntar se ele
+    // vira ficha. Depois, só pelo histórico — e quem treinou a semana inteira
+    // no livre teria de lembrar de ir lá.
+    if (String(sessao.treinoId).indexOf("livre-") === 0 && salvarNaFicha !== true && salvarNaFicha !== false) {
+      const feitos = sessao.itens.map((it) => ({ exercicioId: it.exercicioId, obs: it.obs, descanso: it.descanso, series: it.series.filter((s) => s.feito) }))
+        .filter((it) => it.series.length);
+      if (feitos.length >= 2) {
+        virarFicha({ nome: sessao.nome, itens: feitos }, (frase) => finalizarSessao(false, frase));
+        return;
+      }
     }
     const fichaDoTreino = treinos.find((t) => t.id === sessao.treinoId);
     const nomeDoEx = (id) => { const e = exPorId(id); return e ? e.nome : "exercício removido"; };
@@ -22357,7 +22405,9 @@ function TreinoLivre() {
       obsPorEx[it.exercicioId] = it.obs || "";
       if (it.descanso) descansoPorEx[it.exercicioId] = it.descanso;
     });
-    setTreinos(treinos.map((t) => {
+    // Funcional: a ficha que o treino livre acabou de virar foi gravada no mesmo
+    // instante, e a cópia de `treinos` deste render ainda não a tem.
+    setTreinos((prev) => prev.map((t) => {
       if (t.id !== sessao.treinoId) return t;
       // a ficha nova já leva a observação e o descanso de cada exercício
       if (mudou && salvarNaFicha === true) return { ...t, itens: mudou.itens };
@@ -22373,21 +22423,21 @@ function TreinoLivre() {
       };
     }));
     setSessao(null);
-    guardarTreino(registro);
+    guardarTreino(registro, undefined, nota);
   };
 
   // Tudo que acontece depois que um treino vira registro: guardar, somar,
   // comparar, comemorar e contar em voz alta. A aula de circuito entra por aqui
   // também — ela não tem ficha nem sessão, mas o resumo, os recordes, as
   // conquistas e o nível são exatamente os mesmos.
-  const guardarTreino = (registro, evento) => {
+  const guardarTreino = (registro, evento, nota) => {
     setHistorico([registro, ...historico]);
     setAba("historico");
     const st = statsTreino(registro);
     const nRec = contarRecordesNovos(historico, registro);
     const comp = compararAnterior([registro, ...historico], registro);
     registrarEvento(evento || "treino-concluido");
-    let msg = "Treino concluído! 🎉\n\n";
+    let msg = "Treino concluído! 🎉\n\n" + (nota ? nota + "\n\n" : "");
     if (st.volume > 0) msg += "🏋️ " + fmtKg(st.volume) + " de volume total\n";
     msg += st.series + " " + plural(st.series, "série", "séries") + (st.reps > 0 ? " · " + st.reps + " " + plural(st.reps, "repetição", "repetições") : "") + " · " + st.exercicios + " " + plural(st.exercicios, "exercício", "exercícios") + "\n";
     if (st.segundos > 0) msg += "⏳ " + st.segundos + "s de isometria\n";
@@ -22862,6 +22912,52 @@ function TreinoLivre() {
     setTimeout(() => avisar('Ficha "' + (p.n || "recebida") + '" adicionada às suas fichas! 💪'), 150);
   };
 
+  // ---- O treino vira ficha (histórico e fim do treino livre) ----
+  // `depois` existe para o fim do treino livre: salvando ou não, o treino é
+  // finalizado em seguida, e a frase de confirmação vai no resumo dele.
+  const virarFicha = (reg, depois) => {
+    const itens = fichaDoTreino(reg.itens, () => novoUid());
+    if (!itens.length) { avisar("Este treino não tem séries feitas para virar ficha."); if (depois) depois(""); return; }
+    // O nome sugerido diz o que a ficha treina: "Peito e Tríceps". O do treino
+    // livre ("Treino livre (segunda-feira)") não diz nada na lista de fichas.
+    const contaGrupo = {};
+    itens.forEach((it) => { const e = exPorId(it.exercicioId); if (e && !exCardio(e)) contaGrupo[e.grupo] = (contaGrupo[e.grupo] || 0) + it.series; });
+    const grupos = Object.keys(contaGrupo).sort((a, b) => contaGrupo[b] - contaGrupo[a]).slice(0, 2).map((g) => grupoPorId(g).nome);
+    const nomeSug = grupos.length ? "Treino de " + grupos.join(" e ") : reg.nome;
+    // O programa sugerido é o da ficha treinada por último: é onde a pessoa
+    // está montando a semana. Sem nenhum, um "Meus treinos" novo.
+    const fichaRecente = historico.map((x) => treinos.find((t) => t.nome === x.nome)).find(Boolean);
+    const progs = programas.filter((p) => p.id !== "prog-iniciante").concat(programas.filter((p) => p.id === "prog-iniciante"));
+    const opcoes = progs.map((p) => ({ id: p.id, nome: p.nome }));
+    if (!programas.some((p) => p.id === "prog-meus")) opcoes.push({ id: "__novo", nome: "+ Novo programa: Meus treinos" });
+    const progSug = fichaRecente && opcoes.some((o) => o.id === fichaRecente.programaId) ? fichaRecente.programaId : opcoes[0].id;
+    importRef.current = nomeSug;
+    escolhaRef.current = progSug;
+    const nomes = itens.map((it) => { const e = exPorId(it.exercicioId); return "• " + (e ? e.nome : it.exercicioId) + " — " + it.series + "×" + it.reps + (e && exCardio(e) ? " min" : ""); });
+    setModal({
+      msg: (depois ? "Guardar este treino livre como ficha, para repetir nos próximos dias?" : "Transformar este treino numa ficha?") +
+        "\n\n" + nomes.join("\n") + "\n\nDepois dá para ajustar tudo em Fichas › Editar.",
+      prompt: "Nome da ficha", valor: nomeSug,
+      escolha: { rotulo: "Guardar no programa", opcoes: opcoes, valor: progSug },
+      positivo: true, labelSim: "Salvar como ficha", labelNao: depois ? "Agora não" : "Cancelar",
+      onSim: () => {
+        const nome = (importRef.current || "").trim() || nomeSug;
+        let pid = escolhaRef.current || progSug;
+        if (pid === "__novo") {
+          pid = "prog-meus";
+          setProgramas((prev) => (prev.some((x) => x.id === pid) ? prev : [...prev, { id: pid, nome: "Meus treinos" }]));
+        }
+        const prog = programas.find((p) => p.id === pid);
+        setTreinos((prev) => [...prev, { id: "ficha-" + Date.now(), nome: nome, programaId: pid, itens: itens }]);
+        registrarEvento("treino-virou-ficha");
+        const frase = "📋 Ficha “" + nome + "” salva em " + (prog ? prog.nome : "Meus treinos") + ".";
+        if (depois) depois(frase);
+        else avisar(frase + "\n\nEla já aparece em Fichas, pronta para o próximo treino.");
+      },
+      onNao: depois ? () => depois("") : undefined,
+    });
+  };
+
   const salvarTreino = (t) => {
     const existe = treinos.some((x) => x.id === t.id);
     setTreinos(existe ? treinos.map((x) => (x.id === t.id ? t : x)) : [...treinos, t]);
@@ -23117,6 +23213,7 @@ function TreinoLivre() {
           <TelaHistorico historico={historico} exPorId={exPorId}
             onExcluir={excluirHistorico} onStory={storyDeTreino} pedirConfirmacao={pedirConfirmacao}
             onEditar={(hh) => { setEditandoHistorico(hh); setAba("editarHistorico"); }}
+            onVirarFicha={(hh) => virarFicha(hh)}
             medidas={medidas} onSalvarMedida={salvarMedida} onExcluirMedida={excluirMedida} avisar={avisar}
             fotos={fotos} onAdicionarFoto={adicionarFoto} onExcluirFoto={excluirFoto}
             meta={meta} setMeta={setMeta} secaoInicial={secaoHistorico}
@@ -23142,6 +23239,15 @@ function TreinoLivre() {
               <input placeholder={modal.prompt} defaultValue={modal.valor || ""} autoFocus aria-label={modal.prompt}
                 onChange={(e) => { importRef.current = e.target.value; }}
                 style={{ ...S.input, marginBottom: 12 }} />
+            )}
+            {modal.escolha && (
+              <label style={{ display: "block", marginBottom: 12 }}>
+                <span style={{ ...S.label, fontSize: 10 }}>{modal.escolha.rotulo}</span>
+                <select defaultValue={modal.escolha.valor} onChange={(e) => { escolhaRef.current = e.target.value; }}
+                  style={{ ...S.input, marginTop: 6 }}>
+                  {modal.escolha.opcoes.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
+                </select>
+              </label>
             )}
             {modal.resumoRegistro && (
               <button style={{ ...S.btn, marginBottom: 10 }} onClick={() => {

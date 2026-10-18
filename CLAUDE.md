@@ -229,7 +229,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v73) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v74) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2900,6 +2900,13 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   apareceram; o nome sugerido são os dois grupos com mais séries ("Treino de
   Peito e Tríceps"); o programa sugerido é o da ficha treinada por último. O
   modal ganhou `escolha` (um seletor, lido por `escolhaRef`).
+  **Um nome só, para o treino e a ficha** (pedido do dono): o campo é "Nome do
+  treino e da ficha", e salvar renomeia também o registro do histórico (ou dá
+  o nome ao treino que está sendo finalizado). Não é cosmético: `fichaDeHoje`
+  casa o histórico com as fichas **pelo nome**, e um "Treino livre (quinta)"
+  nunca contaria como a ficha feita. No treino livre, o nome no cabeçalho é
+  tocável ("✎ dar nome", `editandoNome`); no treino de ficha não, pelo mesmo
+  motivo. Nome dado à mão vence a sugestão pelos grupos.
   **Achado no navegador**: a ficha nova sumia ao finalizar, porque o
   `finalizarSessao` regravava `treinos` a partir da cópia do render, que
   ainda não a tinha. Gravação que pode vir logo depois de outra é funcional

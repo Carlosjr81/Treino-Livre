@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-10-18c — Dê nome ao seu treino livre
+
+**Em uma frase:** o treino livre agora pode ter nome, e o nome que você dá vale
+para o treino no histórico e para a ficha que ele vira.
+
+**O que mudou**
+- Durante o treino livre, toque no nome lá em cima (**✎ dar nome**) e escreva o
+  que quiser: "Quinta - Pernas", "Costas pesado".
+- Ao virar ficha, o campo é **"Nome do treino e da ficha"**: já vem com o nome
+  que você deu, e o treino no histórico passa a ter o mesmo nome da ficha.
+- Funciona também pelo **📋 Virar ficha** do histórico: o treino antigo deixa de
+  se chamar "Treino livre (quarta-feira)" e ganha o nome da ficha.
+
+**Por que importa para quem treina:** o histórico fica legível, e o app passa
+a reconhecer aquele treino como a ficha feita, para sugerir a próxima na tela
+inicial.
+
+**Como usar:** no treino livre, toque em **✎ dar nome** → escreva → finalize →
+**Salvar como ficha** (o nome já vem preenchido).
+
+**Ideias de vídeo**
+- "Meu treino tem nome": dar nome no meio do treino e ver o mesmo nome na
+  ficha e no histórico.
+
+**Não prometer:** o treino de uma ficha usa o nome da ficha; para mudar, edite
+a ficha em Fichas.
+
+---
+
 ## 2026-10-18b — O treino livre vira ficha
 
 **Em uma frase:** fez um treino livre que ficou bom? Agora ele vira uma ficha

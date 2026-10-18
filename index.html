@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-18b";
+const VERSAO_APP = "2026-10-18c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -18605,6 +18605,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // Recorde e última execução de cada exercício: servem de referência ao lado de
   // cada série e permitem festejar o recorde no instante em que ele acontece.
   const recordes = useMemo(() => recordesPorExercicio(historico), [historico]);
+  const [editandoNome, setEditandoNome] = useState(false);
+  const livreSessao = String(sessao.treinoId).indexOf("livre-") === 0;
   const ultimas = useMemo(() => {
     const m = {};
     [...historico]
@@ -19808,7 +19810,27 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <div style={{ minWidth: 0 }}>
             <div style={S.label}>Treinando agora</div>
-            <div style={{ fontWeight: 900, fontSize: 18 }}>{sessao.nome}</div>
+            {/* O treino livre nasce "Treino livre (quinta-feira)", que não diz nada
+                no histórico. Tocar no nome deixa dar o nome de verdade. Só no livre:
+                o treino de ficha leva o nome da ficha, e é por ele que o app sabe
+                qual ficha vem a seguir (fichaDeHoje). */}
+            {editandoNome ? (
+              <input autoFocus defaultValue={sessao.nome} aria-label="Nome do treino" maxLength={60}
+                style={{ ...S.input, fontWeight: 900, fontSize: 16, padding: "6px 10px", marginTop: 2 }}
+                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditandoNome(false); }}
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  setEditandoNome(false);
+                  if (v && v !== sessao.nome) setSessao((s) => (s ? { ...s, nome: v } : s));
+                }} />
+            ) : livreSessao ? (
+              <button onClick={() => setEditandoNome(true)} aria-label={"Dar nome ao treino (agora: " + sessao.nome + ")"}
+                style={{ background: "none", border: "none", padding: 0, font: "inherit", color: "var(--texto)", fontWeight: 900, fontSize: 18, textAlign: "left", cursor: "pointer" }}>
+                {sessao.nome} <span style={{ fontSize: 13, color: "#E1306C", fontWeight: 800, whiteSpace: "nowrap" }}>✎ dar nome</span>
+              </button>
+            ) : (
+              <div style={{ fontWeight: 900, fontSize: 18 }}>{sessao.nome}</div>
+            )}
           </div>
           <div style={{ textAlign: "right", flexShrink: 0 }}>
             <div style={{ fontSize: 22, fontWeight: 900, color: "#E1306C" }}>{feitas}/{total}</div>
@@ -22340,7 +22362,8 @@ function TreinoLivre() {
   // salvarNaFicha: true ou false depois da pergunta; qualquer outra coisa (o
   // clique, a voz) ainda não decidiu.
   // nota: a frase que entra no resumo (a ficha que acabou de ser salva)
-  const finalizarSessao = (salvarNaFicha, nota) => {
+  // nomeFicha: o nome dado na hora de virar ficha, que vale para o treino também
+  const finalizarSessao = (salvarNaFicha, nota, nomeFicha) => {
     const feitas = sessao.itens.reduce((a, it) => a + it.series.filter((s) => s.feito).length, 0);
     if (!feitas) {
       avisar("Marque pelo menos uma série com ✓ antes de finalizar o treino.");
@@ -22353,7 +22376,7 @@ function TreinoLivre() {
       const feitos = sessao.itens.map((it) => ({ exercicioId: it.exercicioId, obs: it.obs, descanso: it.descanso, series: it.series.filter((s) => s.feito) }))
         .filter((it) => it.series.length);
       if (feitos.length >= 2) {
-        virarFicha({ nome: sessao.nome, itens: feitos }, (frase) => finalizarSessao(false, frase));
+        virarFicha({ nome: sessao.nome, itens: feitos }, (frase, nome) => finalizarSessao(false, frase, nome));
         return;
       }
     }
@@ -22374,7 +22397,7 @@ function TreinoLivre() {
     }
     const registro = {
       id: String(Date.now()),
-      nome: sessao.nome,
+      nome: nomeFicha || sessao.nome,
       data: new Date().toISOString(),
       // O relógio conta desde o início da sessão; o teto de 5h evita que um treino
       // esquecido aberto vire "480 min" e distorça as médias.
@@ -22923,7 +22946,9 @@ function TreinoLivre() {
     const contaGrupo = {};
     itens.forEach((it) => { const e = exPorId(it.exercicioId); if (e && !exCardio(e)) contaGrupo[e.grupo] = (contaGrupo[e.grupo] || 0) + it.series; });
     const grupos = Object.keys(contaGrupo).sort((a, b) => contaGrupo[b] - contaGrupo[a]).slice(0, 2).map((g) => grupoPorId(g).nome);
-    const nomeSug = grupos.length ? "Treino de " + grupos.join(" e ") : reg.nome;
+    // O nome que a pessoa já deu ao treino livre vence a sugestão.
+    const nomeDado = reg.nome && !/^Treino livre \(/.test(reg.nome) ? reg.nome : "";
+    const nomeSug = nomeDado || (grupos.length ? "Treino de " + grupos.join(" e ") : reg.nome);
     // O programa sugerido é o da ficha treinada por último: é onde a pessoa
     // está montando a semana. Sem nenhum, um "Meus treinos" novo.
     const fichaRecente = historico.map((x) => treinos.find((t) => t.nome === x.nome)).find(Boolean);
@@ -22936,8 +22961,8 @@ function TreinoLivre() {
     const nomes = itens.map((it) => { const e = exPorId(it.exercicioId); return "• " + (e ? e.nome : it.exercicioId) + " — " + it.series + "×" + it.reps + (e && exCardio(e) ? " min" : ""); });
     setModal({
       msg: (depois ? "Guardar este treino livre como ficha, para repetir nos próximos dias?" : "Transformar este treino numa ficha?") +
-        "\n\n" + nomes.join("\n") + "\n\nDepois dá para ajustar tudo em Fichas › Editar.",
-      prompt: "Nome da ficha", valor: nomeSug,
+        "\n\n" + nomes.join("\n") + "\n\nO nome vale para a ficha e para este treino no histórico. Depois dá para ajustar tudo em Fichas › Editar.",
+      prompt: "Nome do treino e da ficha", valor: nomeSug,
       escolha: { rotulo: "Guardar no programa", opcoes: opcoes, valor: progSug },
       positivo: true, labelSim: "Salvar como ficha", labelNao: depois ? "Agora não" : "Cancelar",
       onSim: () => {
@@ -22949,9 +22974,12 @@ function TreinoLivre() {
         }
         const prog = programas.find((p) => p.id === pid);
         setTreinos((prev) => [...prev, { id: "ficha-" + Date.now(), nome: nome, programaId: pid, itens: itens }]);
+        // o treino do histórico passa a ter o mesmo nome da ficha: é por ele que
+        // a tela inicial sabe qual ficha já foi feita e qual vem a seguir
+        if (reg.id) setHistorico((prev) => prev.map((x) => (x.id === reg.id ? { ...x, nome: nome } : x)));
         registrarEvento("treino-virou-ficha");
         const frase = "📋 Ficha “" + nome + "” salva em " + (prog ? prog.nome : "Meus treinos") + ".";
-        if (depois) depois(frase);
+        if (depois) depois(frase, nome);
         else avisar(frase + "\n\nEla já aparece em Fichas, pronta para o próximo treino.");
       },
       onNao: depois ? () => depois("") : undefined,

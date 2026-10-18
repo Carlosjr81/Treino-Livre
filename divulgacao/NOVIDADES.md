@@ -16,6 +16,41 @@
 
 ---
 
+## 2026-10-18d — Leve qualquer ficha para qualquer treino
+
+**Em uma frase:** cada ficha ganhou o botão **📂 Levar para outro treino**, para
+copiá-la ou movê-la para o Avançado, para outro treino seu ou para um treino
+novo criado na hora.
+
+**O que mudou**
+- Em Fichas, dentro de um treino, cada ficha tem **📂 Levar para outro treino**.
+- Escolha o treino de destino e:
+  - **Copiar**: a ficha fica nos dois treinos. São duas fichas separadas:
+    mudar uma não muda a outra.
+  - **Mover**: a ficha sai de onde estava e vai para o destino.
+- Na lista há **+ Criar um treino novo…**: você dá o nome e a ficha já vai para
+  lá.
+- O mesmo "criar um treino novo" aparece ao transformar um treino livre em
+  ficha.
+
+**Por que importa para quem treina:** dá para montar a semana com fichas
+vindas de qualquer lugar (treino livre, cópia, ficha recebida) e organizar
+cada treino do jeito que fizer sentido, sem montar nada de novo.
+
+**Como usar:** Fichas → abra o treino → na ficha, **📂 Levar para outro treino**
+→ escolha o destino → **Copiar** ou **Mover**.
+
+**Ideias de vídeo**
+- "Montei meu Avançado juntando fichas": três treinos livres viram fichas e
+  vão todas para o mesmo treino.
+- "Um treino para cada fase": copiar a ficha para um treino novo ("Projeto
+  Verão") e ajustar só a cópia.
+
+**Não prometer:** a cópia não acompanha as mudanças da original (e
+vice-versa).
+
+---
+
 ## 2026-10-18c — Dê nome ao seu treino livre
 
 **Em uma frase:** o treino livre agora pode ter nome, e o nome que você dá vale

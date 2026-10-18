@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-18c";
+const VERSAO_APP = "2026-10-18d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -9357,7 +9357,7 @@ function FormNovoExercicio({ grupoSugerido, base, onSalvar, onCancelar, avisar }
 
 function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, onTreinar, onNovaFicha,
   onEditar, onExcluirFicha, onCompartilharFicha, onNovoPrograma, onRenomearPrograma, onExcluirPrograma,
-  onCompartilharPrograma, onDuplicarFicha, onDuplicarPrograma, onAssistente, onTreinoLivre, pedirConfirmacao }) {
+  onCompartilharPrograma, onDuplicarFicha, onDuplicarPrograma, onLevarFicha, onAssistente, onTreinoLivre, pedirConfirmacao }) {
   // Dentro de um treino: lista de fichas. Se o programa aberto foi excluído,
   // cai de volta na lista em vez de alterar estado durante o render.
   const prog = progAberto ? programas.find((p) => p.id === progAberto) : null;
@@ -9385,6 +9385,8 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
               <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onDuplicarFicha(t)}
                 aria-label={"Duplicar a ficha " + t.nome}>⧉ Duplicar</button>
             </div>
+            <button style={{ ...S.btnGhost, marginBottom: 8 }} onClick={() => onLevarFicha(t)}
+              aria-label={"Levar a ficha " + t.nome + " para outro treino"}>📂 Levar para outro treino</button>
             <div style={{ display: "flex", gap: 8 }}>
               <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66" }} onClick={() => onCompartilharFicha(t)}>📤 Enviar</button>
               <button style={{ ...S.btnGhost, flex: 1, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}
@@ -22954,7 +22956,7 @@ function TreinoLivre() {
     const fichaRecente = historico.map((x) => treinos.find((t) => t.nome === x.nome)).find(Boolean);
     const progs = programas.filter((p) => p.id !== "prog-iniciante").concat(programas.filter((p) => p.id === "prog-iniciante"));
     const opcoes = progs.map((p) => ({ id: p.id, nome: p.nome }));
-    if (!programas.some((p) => p.id === "prog-meus")) opcoes.push({ id: "__novo", nome: "+ Novo programa: Meus treinos" });
+    opcoes.push({ id: "__novo", nome: "+ Criar um treino novo…" });
     const progSug = fichaRecente && opcoes.some((o) => o.id === fichaRecente.programaId) ? fichaRecente.programaId : opcoes[0].id;
     importRef.current = nomeSug;
     escolhaRef.current = progSug;
@@ -22963,26 +22965,76 @@ function TreinoLivre() {
       msg: (depois ? "Guardar este treino livre como ficha, para repetir nos próximos dias?" : "Transformar este treino numa ficha?") +
         "\n\n" + nomes.join("\n") + "\n\nO nome vale para a ficha e para este treino no histórico. Depois dá para ajustar tudo em Fichas › Editar.",
       prompt: "Nome do treino e da ficha", valor: nomeSug,
-      escolha: { rotulo: "Guardar no programa", opcoes: opcoes, valor: progSug },
+      escolha: { rotulo: "Guardar no treino", opcoes: opcoes, valor: progSug },
       positivo: true, labelSim: "Salvar como ficha", labelNao: depois ? "Agora não" : "Cancelar",
       onSim: () => {
         const nome = (importRef.current || "").trim() || nomeSug;
-        let pid = escolhaRef.current || progSug;
-        if (pid === "__novo") {
-          pid = "prog-meus";
-          setProgramas((prev) => (prev.some((x) => x.id === pid) ? prev : [...prev, { id: pid, nome: "Meus treinos" }]));
-        }
-        const prog = programas.find((p) => p.id === pid);
-        setTreinos((prev) => [...prev, { id: "ficha-" + Date.now(), nome: nome, programaId: pid, itens: itens }]);
-        // o treino do histórico passa a ter o mesmo nome da ficha: é por ele que
-        // a tela inicial sabe qual ficha já foi feita e qual vem a seguir
-        if (reg.id) setHistorico((prev) => prev.map((x) => (x.id === reg.id ? { ...x, nome: nome } : x)));
-        registrarEvento("treino-virou-ficha");
-        const frase = "📋 Ficha “" + nome + "” salva em " + (prog ? prog.nome : "Meus treinos") + ".";
-        if (depois) depois(frase, nome);
-        else avisar(frase + "\n\nEla já aparece em Fichas, pronta para o próximo treino.");
+        const pid = escolhaRef.current || progSug;
+        if (pid === "__novo") { pedirTreinoNovo((p) => salvarEm(nome, p)); return; }
+        salvarEm(nome, programas.find((p) => p.id === pid));
       },
       onNao: depois ? () => depois("") : undefined,
+    });
+    function salvarEm(nome, prog) {
+      if (!prog) return;
+      setTreinos((prev) => [...prev, { id: "ficha-" + Date.now(), nome: nome, programaId: prog.id, itens: itens }]);
+      // o treino do histórico passa a ter o mesmo nome da ficha: é por ele que
+      // a tela inicial sabe qual ficha já foi feita e qual vem a seguir
+      if (reg.id) setHistorico((prev) => prev.map((x) => (x.id === reg.id ? { ...x, nome: nome } : x)));
+      registrarEvento("treino-virou-ficha");
+      const frase = "📋 Ficha “" + nome + "” salva em " + prog.nome + ".";
+      if (depois) depois(frase, nome);
+      else avisar(frase + "\n\nEla já aparece em Fichas, pronta para o próximo treino.");
+    }
+  };
+
+  // Um treino (programa) novo, com o nome que a pessoa escolher, para receber
+  // uma ficha. Serve ao "virar ficha" e ao "levar para outro treino".
+  const pedirTreinoNovo = (depois) => {
+    importRef.current = "";
+    setModal({
+      msg: "Nome do novo treino (ex.: Avançado 2, Projeto Verão):", prompt: "Nome do treino", positivo: true, labelSim: "Criar",
+      onSim: () => {
+        const nome = (importRef.current || "").trim() || "Meus treinos";
+        const p = { id: "prog-" + Date.now(), nome: nome };
+        setProgramas((prev) => [...prev, p]);
+        depois(p);
+      },
+    });
+  };
+
+  // ---- Levar uma ficha para outro treino ----
+  // Pedido do dono: a ficha que nasceu do treino livre (ou qualquer outra) tem
+  // de poder entrar no Avançado ou num treino que ele ainda vai criar. Copiar
+  // deixa a ficha nos dois lugares, com bi-set próprio (clonarItens); mover
+  // tira de onde estava. O histórico não muda: ele guarda o nome, e o nome é o
+  // mesmo nos dois casos.
+  const levarFicha = (t) => {
+    const outros = programas.filter((p) => p.id !== t.programaId);
+    const opcoes = outros.map((p) => ({ id: p.id, nome: p.nome })).concat([{ id: "__novo", nome: "+ Criar um treino novo…" }]);
+    const origem = programas.find((p) => p.id === t.programaId);
+    escolhaRef.current = opcoes[0].id;
+    const aplicar = (prog, mover) => {
+      if (mover) setTreinos((prev) => prev.map((x) => (x.id === t.id ? { ...x, programaId: prog.id } : x)));
+      else setTreinos((prev) => [...prev, { ...t, id: "ficha-" + Date.now(), programaId: prog.id, itens: clonarItens(t.itens) }]);
+      registrarEvento(mover ? "ficha-movida" : "ficha-copiada-para-treino");
+      setProgAberto(prog.id);
+      setTimeout(() => avisar("📋 “" + t.nome + "” " + (mover ? "agora está em " : "também está em ") + prog.nome + "." +
+        (mover ? "" : "\n\nSão duas fichas separadas: mudar uma não muda a outra.")), 150);
+    };
+    const escolher = (mover) => {
+      const pid = escolhaRef.current || opcoes[0].id;
+      if (pid === "__novo") pedirTreinoNovo((p) => aplicar(p, mover));
+      else aplicar(programas.find((p) => p.id === pid), mover);
+    };
+    setModal({
+      msg: "Levar a ficha “" + t.nome + "” para qual treino?\n\n" +
+        "Copiar: ela fica " + (origem ? "em " + origem.nome + " e " : "aqui e ") + "no treino escolhido.\n" +
+        "Mover: ela sai " + (origem ? "de " + origem.nome : "daqui") + ".",
+      escolha: { rotulo: "Treino", opcoes: opcoes, valor: opcoes[0].id },
+      positivo: true, labelSim: "Copiar", labelNao: "Mover",
+      onSim: () => escolher(false),
+      onNao: () => escolher(true),
     });
   };
 
@@ -23208,6 +23260,7 @@ function TreinoLivre() {
             onExcluirPrograma={excluirPrograma}
             onCompartilharPrograma={compartilharPrograma}
             onDuplicarFicha={duplicarFicha}
+            onLevarFicha={levarFicha}
             onDuplicarPrograma={duplicarPrograma}
             onAssistente={() => setAba("assistente")}
             onTreinoLivre={iniciarTreinoLivre} />

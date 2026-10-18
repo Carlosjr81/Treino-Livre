@@ -229,7 +229,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v74) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v75) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2911,6 +2911,14 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   `finalizarSessao` regravava `treinos` a partir da cópia do render, que
   ainda não a tinha. Gravação que pode vir logo depois de outra é funcional
   (`setTreinos((prev) => ...)`).
+- **Levar a ficha para outro treino** (`levarFicha`, botão "📂 Levar para
+  outro treino" em cada ficha). Pedido do dono: pôr a ficha nascida do treino
+  livre no Avançado, ou num treino que ainda vai criar. **Copiar** deixa nos
+  dois (cópia com `clonarItens`, bi-set próprio: mudar uma não muda a outra);
+  **Mover** só troca o `programaId`. "+ Criar um treino novo…" pede o nome na
+  hora (`pedirTreinoNovo`), e o mesmo vale no "virar ficha", que antes só
+  sabia criar um "Meus treinos" sem nome escolhido. Depois de levar, a tela
+  abre o treino de destino.
 - **⇄ Trocar no editor de ficha**: o exercício novo entra no mesmo lugar, com
   as séries, repetições, descanso e bi-set do antigo; sem busca, a lista
   mostra o mesmo grupo. Antes era tirar e acrescentar, e o novo ia para o fim.

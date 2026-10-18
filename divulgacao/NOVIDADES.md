@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-10-18e — Mude a ordem das fichas no treino
+
+**Em uma frase:** dentro de qualquer treino (o Avançado ou os seus), cada ficha
+tem ▲ ▼ para subir ou descer na lista.
+
+**O que mudou**
+- Em Fichas → Abrir fichas, cada ficha ganhou um número (1., 2., 3.) e as setas
+  **▲ ▼** ao lado do nome.
+- A ordem fica salva.
+- A tela inicial segue essa ordem para sugerir o treino de hoje: depois da
+  ficha 1 vem a 2, depois a 3, e no fim volta para a 1. (Ficha com o dia da
+  semana no nome, como "Sexta - Pernas", continua aparecendo no dia dela.)
+
+**Por que importa para quem treina:** a semana fica na ordem em que você
+treina de verdade, e o app sugere a ficha certa a cada dia.
+
+**Como usar:** Fichas → no treino, **Abrir fichas** → toque em ▲ ou ▼ na ficha
+que quer mudar de lugar.
+
+**Ideias de vídeo**
+- "Organizei minha semana em 10 segundos": reordenar as fichas e mostrar a
+  tela inicial sugerindo a próxima certa.
+
+**Não prometer:** as setas mudam a ordem dentro do mesmo treino; para levar a
+ficha a outro treino, use **📂 Levar para outro treino**.
+
+---
+
 ## 2026-10-18d — Leve qualquer ficha para qualquer treino
 
 **Em uma frase:** cada ficha ganhou o botão **📂 Levar para outro treino**, para

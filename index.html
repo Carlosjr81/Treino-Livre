@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-18d";
+const VERSAO_APP = "2026-10-18e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -1554,6 +1554,23 @@ function fichaDoTreino(itens, gerarUid) {
       reps: reps || (cardio ? 20 : 12), obs: it.obs || "", descanso: it.descanso || null, conjunto: null,
     };
   }).filter(Boolean);
+}
+// Sobe ou desce uma ficha entre as do mesmo treino. A ordem das fichas é a
+// ordem em `treinos` filtrada pelo programa, e é ela que a tela inicial segue
+// para sugerir a próxima (A → B → C, fichaDeHoje). A troca é com a vizinha do
+// MESMO programa: a vizinha na lista inteira pode ser de outro treino, e aí a
+// seta não mudaria nada na tela.
+function moverFicha(treinos, id, delta) {
+  const i = treinos.findIndex((t) => t.id === id);
+  if (i < 0) return treinos;
+  const prog = treinos[i].programaId;
+  let j = i + delta;
+  while (j >= 0 && j < treinos.length && treinos[j].programaId !== prog) j += delta;
+  if (j < 0 || j >= treinos.length) return treinos;
+  const copia = treinos.slice();
+  copia[i] = treinos[j];
+  copia[j] = treinos[i];
+  return copia;
 }
 // ---- fim da ficha muda
 
@@ -9357,7 +9374,7 @@ function FormNovoExercicio({ grupoSugerido, base, onSalvar, onCancelar, avisar }
 
 function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, onTreinar, onNovaFicha,
   onEditar, onExcluirFicha, onCompartilharFicha, onNovoPrograma, onRenomearPrograma, onExcluirPrograma,
-  onCompartilharPrograma, onDuplicarFicha, onDuplicarPrograma, onLevarFicha, onAssistente, onTreinoLivre, pedirConfirmacao }) {
+  onCompartilharPrograma, onDuplicarFicha, onDuplicarPrograma, onLevarFicha, onMoverFicha, onAssistente, onTreinoLivre, pedirConfirmacao }) {
   // Dentro de um treino: lista de fichas. Se o programa aberto foi excluído,
   // cai de volta na lista em vez de alterar estado durante o render.
   const prog = progAberto ? programas.find((p) => p.id === progAberto) : null;
@@ -9373,9 +9390,26 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
             Nenhuma ficha aqui ainda. Crie a primeira (ex.: Treino A - Peito).
           </div>
         )}
-        {fichas.map((t) => (
+        {fichas.length > 1 && (
+          <div style={{ fontSize: 12, color: "var(--cinza)", margin: "-4px 0 10px" }}>
+            ▲ ▼ mudam a ordem das fichas. O treino de hoje segue esta ordem: depois da 1ª vem a 2ª, e assim por diante.
+          </div>
+        )}
+        {fichas.map((t, i) => (
           <div key={t.id} style={S.card}>
-            <div style={{ fontWeight: 900, fontSize: 18 }}>{t.nome}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ fontWeight: 900, fontSize: 18, flex: 1, minWidth: 0 }}>
+                {fichas.length > 1 && <span style={{ color: "#E1306C", marginRight: 6 }}>{i + 1}.</span>}{t.nome}
+              </div>
+              {fichas.length > 1 && (
+                <React.Fragment>
+                  <button aria-label={"Subir a ficha " + t.nome} disabled={i === 0} onClick={() => onMoverFicha(t.id, -1)}
+                    style={{ background: "none", border: "1px solid var(--borda2)", borderRadius: 8, width: 36, height: 36, flexShrink: 0, color: i === 0 ? "var(--borda2)" : "var(--texto)", fontSize: 14, cursor: i === 0 ? "default" : "pointer" }}>▲</button>
+                  <button aria-label={"Descer a ficha " + t.nome} disabled={i === fichas.length - 1} onClick={() => onMoverFicha(t.id, 1)}
+                    style={{ background: "none", border: "1px solid var(--borda2)", borderRadius: 8, width: 36, height: 36, flexShrink: 0, color: i === fichas.length - 1 ? "var(--borda2)" : "var(--texto)", fontSize: 14, cursor: i === fichas.length - 1 ? "default" : "pointer" }}>▼</button>
+                </React.Fragment>
+              )}
+            </div>
             <div style={{ color: "var(--cinza)", fontSize: 13, margin: "4px 0 12px" }}>
               {t.itens.map((it) => { const e = exPorId(it.exercicioId); return e ? e.nome : null; }).filter(Boolean).join(" · ") || "Sem exercícios"}
             </div>
@@ -23261,6 +23295,7 @@ function TreinoLivre() {
             onCompartilharPrograma={compartilharPrograma}
             onDuplicarFicha={duplicarFicha}
             onLevarFicha={levarFicha}
+            onMoverFicha={(id, d) => setTreinos((prev) => moverFicha(prev, id, d))}
             onDuplicarPrograma={duplicarPrograma}
             onAssistente={() => setAba("assistente")}
             onTreinoLivre={iniciarTreinoLivre} />

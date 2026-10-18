@@ -113,7 +113,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 887 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 894 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -154,7 +154,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 887 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 894 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -229,7 +229,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v75) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v76) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2919,6 +2919,12 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   hora (`pedirTreinoNovo`), e o mesmo vale no "virar ficha", que antes só
   sabia criar um "Meus treinos" sem nome escolhido. Depois de levar, a tela
   abre o treino de destino.
+- **A ordem das fichas no treino** (`moverFicha`, ▲ ▼ em cada ficha, coberto
+  por `teste-ficha.js`). A ordem é a de `treinos` filtrada pelo programa, e é
+  a que `fichaDeHoje` segue (A → B → C): mudar a ordem muda a sugestão da
+  tela inicial, e a tela diz isso. A troca é com a vizinha do **mesmo**
+  programa — a vizinha na lista inteira pode ser de outro treino, e a seta não
+  faria nada visível. As fichas ganharam número (1., 2., 3.).
 - **⇄ Trocar no editor de ficha**: o exercício novo entra no mesmo lugar, com
   as séries, repetições, descanso e bi-set do antigo; sem busca, a lista
   mostra o mesmo grupo. Antes era tirar e acrescentar, e o novo ia para o fim.
@@ -2948,7 +2954,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 22 suítes (887 checagens)
+node testes/rodar.js      # as 22 suítes (894 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

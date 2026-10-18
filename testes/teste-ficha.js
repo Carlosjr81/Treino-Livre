@@ -7,7 +7,7 @@ function pedaco(de, ate) {
   if (i < 0 || f < 0) { console.error("nao achei: " + de); process.exit(1); }
   return html.slice(i, f);
 }
-eval(pedaco("// ---- A ficha muda com o treino ----", "// ---- fim da ficha muda") + "\nglobalThis.H = { mudancasNaFicha, fichaDoTreino };");
+eval(pedaco("// ---- A ficha muda com o treino ----", "// ---- fim da ficha muda") + "\nglobalThis.H = { mudancasNaFicha, fichaDoTreino, moverFicha };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -89,6 +89,17 @@ teste("aeróbico: minutos", [1, 20], [f[2].series, f[2].reps]);
 teste("só aquecimento: vira 1 série, não some", [1, 20], [f[3].series, f[3].reps]);
 teste("item de ficha completo", { uid: "id0", exercicioId: "supino", series: 3, reps: 10, obs: "banco 3", descanso: null, conjunto: null }, f[0]);
 teste("empate nas repetições: a primeira", 12, H.fichaDoTreino([{ exercicioId: "x", series: [{ reps: "12" }, { reps: "10" }] }])[0].reps);
+
+console.log("\n--- a ordem das fichas no treino ---");
+const lista = [{ id: "a", programaId: "av" }, { id: "x", programaId: "meus" }, { id: "b", programaId: "av" }, { id: "c", programaId: "av" }];
+const ordem = (l, p) => l.filter((t) => t.programaId === p).map((t) => t.id).join("");
+teste("descer a 1ª: troca com a 2ª do mesmo treino, pulando a de outro", "bac", ordem(H.moverFicha(lista, "a", 1), "av"));
+teste("o outro treino não muda", "x", ordem(H.moverFicha(lista, "a", 1), "meus"));
+teste("subir a última", "acb", ordem(H.moverFicha(lista, "c", -1), "av"));
+teste("subir a primeira: nada muda", "abc", ordem(H.moverFicha(lista, "a", -1), "av"));
+teste("descer a última: nada muda", "abc", ordem(H.moverFicha(lista, "c", 1), "av"));
+teste("ficha sozinha no treino: nada muda", lista, H.moverFicha(lista, "x", 1));
+teste("não mexe na lista original", "abc", ordem(lista, "av"));
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

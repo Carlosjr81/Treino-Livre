@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "br.com.treinolivre.app"
-        minSdk = 26
+        minSdk = 29
         targetSdk = 35
         // o número de cada build do GitHub Actions: cada APK novo é uma versão maior
         versionCode = (System.getenv("TL_VERSAO_CODIGO") ?: "1").toInt()
@@ -41,6 +41,9 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    packaging {
+        resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+    }
 }
 
 dependencies {
@@ -50,4 +53,7 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.9.3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    // a câmera dos óculos Ray-Ban Meta (kit da Meta, Maven Central)
+    implementation("com.meta.wearable:mwdat-core:1.0.1")
+    implementation("com.meta.wearable:mwdat-camera:1.0.1")
 }

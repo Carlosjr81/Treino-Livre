@@ -2140,6 +2140,87 @@ function nomeAppSaude(pacote) {
 }
 // ---- fim da saúde
 
+// ---- ÓCULOS META: a câmera dos óculos no Eyes Scan (app Android) ----
+// A parte nativa (OculosService, pasta android/) recebe o vídeo dos Ray-Ban
+// Meta pelo kit da Meta e serve o quadro mais novo em http://127.0.0.1, só
+// para quem mostrar a chave que a página sorteou ao ligar. A página desenha
+// cada quadro num canvas e faz dele um vídeo (captureStream): para o resto do
+// Eyes Scan é uma câmera como outra qualquer — contagem, postura e espelho
+// não sabem de onde a imagem veio.
+const PORTA_OCULOS = 47890;
+function novaChaveOculos() {
+  const a = new Uint8Array(12);
+  try { crypto.getRandomValues(a); } catch (e) { for (let i = 0; i < a.length; i++) a[i] = Math.floor(Math.random() * 256); }
+  return Array.from(a, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+// Ligar passa pelo app (o Chrome só abre outro app depois de um toque);
+// sem o app instalado, o Chrome baixa o APK.
+function linkOculos(chave) {
+  return "intent://oculos?k=" + encodeURIComponent(chave) + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID +
+    ";S.browser_fallback_url=" + encodeURIComponent(LINK_APK) + ";end";
+}
+function enderecoOculos(caminho, chave) {
+  return "http://127.0.0.1:" + PORTA_OCULOS + caminho + "?k=" + encodeURIComponent(chave);
+}
+const ESTADOS_OCULOS = {
+  iniciando: "Ligando a conexão com os óculos…",
+  registrando: "Confirme o Treino Livre no app Meta AI e volte para cá.",
+  permissao: "Libere a câmera dos óculos para o Treino Livre no app Meta AI.",
+  procurando: "Procurando os óculos. Eles precisam estar ligados, no rosto e conectados ao app Meta AI.",
+  conectando: "Conectando à câmera dos óculos…",
+  transmitindo: "Recebendo a imagem dos óculos.",
+  "sem-oculos": "Não achei os óculos. No app Meta AI, ligue o modo de desenvolvedor (Configurações → Sobre → toque 5 vezes na versão) e tente de novo.",
+  "sem-permissao": "Sem a permissão da câmera dos óculos, não há imagem. Libere no app Meta AI e toque em 👓 de novo.",
+  "android-antigo": "A câmera dos óculos precisa do Android 10 ou mais novo.",
+  erro: "A conexão com os óculos falhou. Toque em 👓 para tentar de novo.",
+};
+// O vídeo dos óculos, montado a partir dos quadros. Devolve um MediaStream
+// (o mesmo tipo do getUserMedia) e a função de parar.
+function abrirFluxoOculos(chave, aoEstado) {
+  const cv = document.createElement("canvas");
+  cv.width = 504; cv.height = 896;
+  const ctx = cv.getContext("2d");
+  const fluxo = cv.captureStream(15);
+  let vivo = true, quadros = 0, ultimoEstado = "";
+  const contar = (e) => { if (e && e !== ultimoEstado) { ultimoEstado = e; if (aoEstado) aoEstado(e, quadros); } };
+  (async () => {
+    let n = 0;
+    while (vivo) {
+      const t0 = performance.now();
+      try {
+        const r = await fetch(enderecoOculos("/quadro.jpg", chave) + "&n=" + (n++), { cache: "no-store" });
+        contar(r.headers.get("X-Estado") || "");
+        if (r.status === 200) {
+          const img = await createImageBitmap(await r.blob());
+          if (cv.width !== img.width || cv.height !== img.height) { cv.width = img.width; cv.height = img.height; }
+          ctx.drawImage(img, 0, 0);
+          if (img.close) img.close();
+          quadros++;
+          if (quadros === 1 && aoEstado) aoEstado("transmitindo", quadros);
+        } else {
+          await new Promise((ok) => setTimeout(ok, 200));
+        }
+      } catch (e) {
+        // o serviço ainda não subiu (ou já parou): tenta de novo daqui a pouco
+        contar("iniciando");
+        await new Promise((ok) => setTimeout(ok, 500));
+      }
+      const resta = 60 - (performance.now() - t0);
+      if (resta > 0) await new Promise((ok) => setTimeout(ok, resta));
+    }
+  })();
+  return {
+    fluxo: fluxo,
+    recebeu: () => quadros > 0,
+    parar: () => {
+      vivo = false;
+      fluxo.getTracks().forEach((t) => t.stop());
+      try { fetch(enderecoOculos("/parar", chave), { cache: "no-store", keepalive: true }).catch(() => {}); } catch (e) {}
+    },
+  };
+}
+// ---- fim dos óculos
+
 // Onde cai a próxima frase do Jarvis, e de que série fala o "Próxima:" do fim
 // do descanso. Antes era a primeira série pendente da ficha inteira: quem pulava
 // o hack e ia para a flexora ouvia "próxima: agachamento no hack" a cada série,
@@ -7252,6 +7333,23 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const [sinal, setSinal] = useState("");
   const [calib, setCalib] = useState(null);       // { provisorias, trava } enquanto calibra
   const [frente, setFrente] = useState(false);
+  // 👓 A câmera dos óculos Meta (app Android). A chave é sorteada a cada
+  // ligada: é o que impede outro site ou app de ver a imagem.
+  const [oculos, setOculos] = useState(false);
+  const [oculosEstado, setOculosEstado] = useState("");
+  const chaveOculosRef = useRef("");
+  const oculosFluxoRef = useRef(null);
+  const oculosEstadoRef = useRef("");
+  oculosEstadoRef.current = oculosEstado;
+  const ligarOculos = () => {
+    if (oculos) { setOculos(false); return; }
+    const chave = novaChaveOculos();
+    chaveOculosRef.current = chave;
+    setOculosEstado("iniciando");
+    setFrente(false);
+    setOculos(true);
+    try { window.location.href = linkOculos(chave); } catch (e) {}
+  };
   // O espelho fica guardado junto da contagem em voz alta: quem treina no
   // espelho treina sempre no espelho, e reativar a cada série cansa.
   const [espelho, setEspelho] = useState(() => !!(vozCfg && vozCfg.espelho));
@@ -7461,10 +7559,29 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
       if (!vivo) return;
       let fluxo;
       try {
-        fluxo = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: frente ? "user" : { ideal: "environment" }, width: { ideal: 960 } },
-          audio: false,
-        });
+        if (oculos) {
+          const o = abrirFluxoOculos(chaveOculosRef.current, (e) => { if (vivo) setOculosEstado(e); });
+          oculosFluxoRef.current = o;
+          // sem nenhum quadro em 40 s, alguma coisa ficou pelo caminho
+          const t0 = Date.now();
+          while (vivo && !o.recebeu() && Date.now() - t0 < 40000) await new Promise((ok) => setTimeout(ok, 250));
+          if (!vivo) { o.parar(); return; }
+          if (!o.recebeu()) {
+            o.parar();
+            oculosFluxoRef.current = null;
+            setFase("erro");
+            setErro((ESTADOS_OCULOS[oculosEstadoRef.current] && oculosEstadoRef.current !== "iniciando" && oculosEstadoRef.current !== "transmitindo"
+              ? ESTADOS_OCULOS[oculosEstadoRef.current] + " "
+              : "") + "Não chegou imagem dos óculos. Confira: o app Treino Livre (APK) instalado, os óculos no rosto e conectados ao app Meta AI, e o modo de desenvolvedor ligado no Meta AI.");
+            return;
+          }
+          fluxo = o.fluxo;
+        } else {
+          fluxo = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: frente ? "user" : { ideal: "environment" }, width: { ideal: 960 } },
+            audio: false,
+          });
+        }
       } catch (e) {
         if (!vivo) return;
         setFase("erro");
@@ -7610,9 +7727,10 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         fluxoRef.current.getTracks().forEach((t) => t.stop());
         fluxoRef.current = null;
       }
+      if (oculosFluxoRef.current) { oculosFluxoRef.current.parar(); oculosFluxoRef.current = null; }
       desligarTravaTela();
     };
-  }, [aberto, frente, ex, som]);
+  }, [aberto, frente, ex, som, oculos]);
 
   // A dica fica cinco segundos e sai: é um aviso, não um letreiro. A dica de
   // forma do movimento funcional fica um pouco mais: ela aparece antes da
@@ -7742,7 +7860,18 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         {/* Enquanto enquadra, este botão ganha nome: com a câmera de trás a pessoa
             não vê a tela, e trocar para a da frente é o que permite ver as setas.
             Escondido atrás de um ícone, ninguém achava. */}
-        <button onClick={fant.agir(() => setFrente((f) => !f))}
+        {EH_ANDROID && (
+          <button onClick={fant.agir(ligarOculos)} aria-pressed={oculos}
+            aria-label={oculos ? "Voltar para a câmera do celular" : "Usar a câmera dos óculos Meta"}
+            style={{ ...fant.estilo, position: "absolute", top: "calc(110px + env(safe-area-inset-top))", right: 12,
+              height: 42, minWidth: 42, borderRadius: 21, border: "none",
+              background: oculos ? "rgba(124,255,60,0.85)" : "rgba(0,0,0,0.55)",
+              color: oculos ? "#0B2400" : "#FFFFFF", fontSize: oculos ? 13 : 18, fontWeight: 900,
+              padding: oculos ? "0 12px" : 0, cursor: "pointer" }}>
+            {oculos ? "👓 óculos" : "👓"}
+          </button>
+        )}
+        <button onClick={fant.agir(() => { setOculos(false); setFrente((f) => !f); })}
           aria-label={frente ? "Usar a câmera de trás" : "Usar a câmera da frente"}
           style={{ ...fant.estilo, position: "absolute", top: "calc(60px + env(safe-area-inset-top))", right: 12,
             height: 42, borderRadius: 21, border: "none", background: "rgba(0,0,0,0.55)",
@@ -7905,9 +8034,11 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         {fase === "carregando" && (
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 28 }}>
             <div style={{ textAlign: "center", color: "#FFFFFF" }}>
-              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 8 }}>Preparando o reconhecimento...</div>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 8 }}>{oculos ? "👓 Ligando os óculos..." : "Preparando o reconhecimento..."}</div>
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>
-                Na primeira vez ele baixa uns 8 MB. Depois disso funciona sem internet.
+                {oculos
+                  ? (ESTADOS_OCULOS[oculosEstado] || ESTADOS_OCULOS.iniciando) + " Dica: olhe para o espelho da academia e ligue o 🪞 — assim os óculos veem o seu corpo inteiro."
+                  : "Na primeira vez ele baixa uns 8 MB. Depois disso funciona sem internet."}
               </div>
             </div>
           </div>

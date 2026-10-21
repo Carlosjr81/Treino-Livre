@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-10-22c — Óculos: a série volta direto para o treino
+
+**Em uma frase:** ao terminar a série contada pelos óculos, o app volta para o treino
+sem a vinheta do logo.
+
+**O que mudou**
+- Ao registrar a série contada pelos óculos, aparecia a abertura animada do app, como
+  se ele tivesse reiniciado. Agora a volta é direta: o treino aparece com a série
+  anotada e a confirmação falada.
+- Vale também para a volta da sincronização de saúde.
+
+**Por que importa para quem treina:** ninguém fica achando que o app travou no meio
+do treino.
+
+**Como usar:** nada a fazer.
+
+**Ideias de vídeo**
+- "12 repetições contadas pelos óculos": rosca direta no espelho e, no fim, o app
+  anotando sozinho a série.
+
+**Não prometer:** os óculos no Eyes Scan continuam em teste; precisam do espelho
+para ver o corpo inteiro.
+
+---
+
 ## 2026-10-22b — Óculos: a contagem não pausa quando você vira a cabeça
 
 **Em uma frase:** contando pelos óculos, o Eyes Scan não confunde mais o movimento

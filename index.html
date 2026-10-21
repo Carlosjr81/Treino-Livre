@@ -655,7 +655,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-22b";
+const VERSAO_APP = "2026-10-22c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -23887,8 +23887,12 @@ function TreinoLivre() {
   // recarga e a fechar o app, e acompanha o backup.
   const [entrou, setEntrou] = useState(false);
   // A abertura roda uma vez por carregamento. Não fica guardada: é a marca do
-  // app, não um aviso a ser dispensado.
-  const [abertura, setAbertura] = useState(true);
+  // app, não um aviso a ser dispensado. Exceção: a volta do app Android (a
+  // série dos óculos, a leitura da saúde) recarrega a página no meio do
+  // treino, e a vinheta ali parecia o app reiniciando.
+  const [abertura, setAbertura] = useState(() => {
+    try { return !/#(oculosSerie|saude)=/.test(window.location.hash || ""); } catch (e) { return true; }
+  });
   // Quais dicas de primeiro contato já foram vistas. Some para sempre: dica que
   // volta não é dica, é propaganda.
   const [dicas, setDicas] = useState({});

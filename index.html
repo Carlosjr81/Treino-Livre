@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-21b";
+const VERSAO_APP = "2026-10-21c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -774,6 +774,335 @@ function base64ParaBlob(b64, tipo) {
 
 // ---------- GAMIFICAÇÃO ----------
 function diaStr(x) { const dd = new Date(x); return dd.getFullYear() + "-" + (dd.getMonth() + 1) + "-" + dd.getDate(); }
+// ---- Trazer o histórico de outro app ----
+//
+// Quem já treina há dois anos tem dois anos de histórico em outro aplicativo,
+// e **nenhum app de treino vale a pena se a conta começa do zero**: o recorde,
+// a evolução, a sugestão de carga e o nível todos saem do histórico. Sem
+// importar, o Treino Livre é um caderno em branco para quem já escreveu um
+// caderno inteiro. A ideia de importar veio do openGym; o código é daqui.
+//
+// **Mapeia por NOME de coluna, nunca por posição.** Os três formatos têm
+// variantes, e a posição muda entre elas:
+//
+//   Strong    Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,
+//             Distance,Seconds,Notes,Workout Notes,RPE
+//             — sem coluna de unidade: o peso sai na unidade que a pessoa usava
+//               e o arquivo não diz qual. Daí a pergunta na tela.
+//             — versão antiga: separador `;` e uma coluna de unidade.
+//   Hevy      title,start_time,…,exercise_title,superset_id,…,set_index,
+//             set_type,weight_kg|weight_lbs,reps,distance_km|distance_miles,
+//             duration_seconds,rpe
+//             — a unidade está no NOME da coluna, que é o melhor dos três.
+//   FitNotes  Android: Date,Exercise,Category,Weight,Weight Unit,Reps,…
+//             iPhone:  Date,Exercise,Category,Weight (kg),Weight (lbs),Reps,…
+//             — no iPhone as DUAS colunas de peso existem, e vale a preenchida.
+//
+// Por isso o peso é uma *lista* de colunas candidatas, cada uma com a unidade
+// que o próprio nome revela.
+
+// Campo canônico -> como cada app o chama. Nome novo entra aqui, não num `if`.
+const COLUNAS_IMPORT = {
+  data: ["date", "start_time", "data", "workout date"],
+  treino: ["workout name", "title", "workout", "treino"],
+  exercicio: ["exercise name", "exercise_title", "exercise", "exercicio", "exercício"],
+  ordem: ["set order", "set_index", "set", "serie"],
+  reps: ["reps", "repetitions", "repeticoes", "repetições"],
+  segundos: ["seconds", "duration_seconds", "time", "tempo"],
+  tipo: ["set_type", "kind", "tipo"],
+  unidade: ["weight unit", "unit", "unidade"],
+  duracao: ["duration"],
+  obs: ["notes", "exercise_notes", "observacao"],
+};
+
+// As colunas de peso, e a unidade que o nome de cada uma já entrega.
+const PESOS_IMPORT = [
+  { nome: "weight_kg", un: "kg" }, { nome: "weight (kg)", un: "kg" }, { nome: "peso (kg)", un: "kg" },
+  { nome: "weight_lbs", un: "lb" }, { nome: "weight (lbs)", un: "lb" }, { nome: "weight_lb", un: "lb" },
+  { nome: "weight", un: null }, { nome: "peso", un: null }, { nome: "carga", un: null },
+];
+
+const LB_EM_KG = 0.45359237;
+
+// RFC 4180: campo entre aspas pode ter o separador, quebra de linha e aspas
+// dobradas ("" vale uma aspa). Um `split(",")` simples parte o nome de um
+// exercício com vírgula no meio e desloca TODAS as colunas daquela linha.
+function lerCsv(texto, sep) {
+  const t = String(texto || "").replace(/^﻿/, "");
+  const linhas = [];
+  let campo = "", linha = [], aspas = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t.charAt(i);
+    if (aspas) {
+      if (c === '"') {
+        if (t.charAt(i + 1) === '"') { campo += '"'; i++; } else aspas = false;
+      } else campo += c;
+      continue;
+    }
+    if (c === '"') { aspas = true; continue; }
+    if (c === sep) { linha.push(campo); campo = ""; continue; }
+    if (c === "\n") { linha.push(campo); linhas.push(linha); linha = []; campo = ""; continue; }
+    if (c === "\r") continue;
+    campo += c;
+  }
+  if (campo !== "" || linha.length) { linha.push(campo); linhas.push(linha); }
+  return linhas.filter((l) => l.length > 1 || (l[0] || "").trim() !== "");
+}
+
+// O Strong antigo usa `;`, e planilha salva em português costuma usar `;`
+// também. Conta no cabeçalho, que é onde não há texto livre.
+function separadorCsv(texto) {
+  const cab = String(texto || "").replace(/^﻿/, "").split("\n")[0] || "";
+  const cand = [",", ";", "\t"];
+  let melhor = ",", n = 0;
+  cand.forEach((c) => {
+    const q = cab.split(c).length - 1;
+    if (q > n) { n = q; melhor = c; }
+  });
+  return melhor;
+}
+
+const chaveColuna = (s) => semAcento(String(s || "")).toLowerCase().trim().replace(/\s+/g, " ");
+
+// "82,5" é oitenta e dois e meio em português e em boa parte da Europa.
+// "1,234.5" é mil duzentos e trinta e quatro e meio em inglês. Ler os dois
+// como ponto decimal daria 1,2 kg num agachamento de 1234 libras.
+function numeroCsv(s) {
+  let t = String(s == null ? "" : s).trim().replace(/[^\d,.\-]/g, "");
+  if (!t) return 0;
+  const temP = t.indexOf(".") >= 0, temV = t.indexOf(",") >= 0;
+  if (temP && temV) t = t.lastIndexOf(",") > t.lastIndexOf(".") ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, "");
+  else if (temV) t = t.replace(",", ".");
+  const n = parseFloat(t);
+  return isFinite(n) ? n : 0;
+}
+
+// `new Date("2026-03-14")` é meia-noite em UTC, que no Brasil é dia 13 às 21h:
+// o treino muda de dia sozinho. Por isso as partes são montadas à mão, na
+// hora local.
+function dataDoCsv(txt) {
+  const s = String(txt || "").trim();
+  if (!s) return null;
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 12), +(m[5] || 0), +(m[6] || 0)).getTime();
+  // dd/mm/aaaa — nunca mm/dd: o app é em português, e um exportador em inglês
+  // escreve a data em ISO, não com barras.
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ ,]+(\d{1,2}):(\d{2}))?/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 12), +(m[5] || 0)).getTime();
+  const t = Date.parse(s);
+  return isFinite(t) ? t : null;
+}
+
+// "1h 15min", "45m", "1:15" -> minutos
+function duracaoDoCsv(txt) {
+  const s = String(txt || "").trim().toLowerCase();
+  if (!s) return 0;
+  let m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (m) return +m[1] * 60 + +m[2];
+  let min = 0, achou = false;
+  m = s.match(/(\d+)\s*h/); if (m) { min += +m[1] * 60; achou = true; }
+  m = s.match(/(\d+)\s*m(?!s)/); if (m) { min += +m[1]; achou = true; }
+  if (!achou) { const n = numeroCsv(s); return n > 0 && n < 600 ? Math.round(n) : 0; }
+  return min;
+}
+
+// Id estável a partir do conteúdo: reimportar o mesmo arquivo não duplica
+// nada, porque o treino de 14/03 chega com o mesmo id das duas vezes.
+function idDeImportacao(chave) {
+  let h = 5381;
+  for (let i = 0; i < chave.length; i++) h = ((h * 33) ^ chave.charCodeAt(i)) >>> 0;
+  return "imp-" + h.toString(36);
+}
+
+const ehAquecimentoImport = (t) => /warm|aquec|^w$/i.test(String(t || "").trim());
+
+// `acharId(nome)` resolve o nome do exercício no catálogo daqui e devolve o id
+// ou null. Entra por parâmetro para esta função continuar pura — e para o
+// teste poder provar o resto sem carregar os 274 exercícios.
+function interpretarCsvTreinos(texto, acharId, opcoes) {
+  const op = opcoes || {};
+  const sep = separadorCsv(texto);
+  const linhas = lerCsv(texto, sep);
+  if (linhas.length < 2) return { erro: "O arquivo está vazio ou não é um CSV." };
+
+  const cab = linhas[0].map(chaveColuna);
+  const col = {};
+  Object.keys(COLUNAS_IMPORT).forEach((campo) => {
+    for (const apelido of COLUNAS_IMPORT[campo]) {
+      const i = cab.indexOf(apelido);
+      if (i >= 0) { col[campo] = i; break; }
+    }
+  });
+  // todas as colunas de peso que existirem, na ordem de preferência
+  const pesos = [];
+  PESOS_IMPORT.forEach((p) => { const i = cab.indexOf(p.nome); if (i >= 0) pesos.push({ i: i, un: p.un }); });
+
+  if (col.exercicio == null || col.data == null) {
+    return { erro: "Não achei as colunas de data e de exercício. Confira se o arquivo é o CSV exportado pelo outro app." };
+  }
+
+  let formato = "CSV";
+  if (cab.indexOf("exercise_title") >= 0) formato = "Hevy";
+  else if (cab.indexOf("exercise name") >= 0 && cab.indexOf("set order") >= 0) formato = "Strong";
+  else if (cab.indexOf("exercise") >= 0 && cab.indexOf("category") >= 0) formato = "FitNotes";
+
+  // a unidade: a do nome da coluna manda; depois a coluna de unidade da
+  // linha; e só então a que a pessoa escolheu na tela
+  const padrao = op.unidade === "lb" ? "lb" : "kg";
+  const temPesoSemUnidade = pesos.some((p) => !p.un) && col.unidade == null;
+
+  const porTreino = {};
+  const ordem = [];
+  const naoRec = {};
+  let series = 0, ignoradas = 0;
+
+  for (let r = 1; r < linhas.length; r++) {
+    const ln = linhas[r];
+    const nomeEx = String(ln[col.exercicio] || "").trim();
+    const quando = dataDoCsv(ln[col.data]);
+    if (!nomeEx || quando == null) { ignoradas++; continue; }
+
+    let peso = 0, un = null;
+    for (const p of pesos) {
+      const v = numeroCsv(ln[p.i]);
+      if (v) { peso = v; un = p.un; break; }
+    }
+    if (!un) {
+      const uCol = col.unidade != null ? String(ln[col.unidade] || "").toLowerCase() : "";
+      un = /lb|libra|pound/.test(uCol) ? "lb" : (/kg|quilo/.test(uCol) ? "kg" : padrao);
+    }
+    if (un === "lb") peso = Math.round(peso * LB_EM_KG * 10) / 10;
+
+    const reps = col.reps != null ? Math.round(numeroCsv(ln[col.reps])) : 0;
+    const segs = col.segundos != null ? Math.round(numeroCsv(ln[col.segundos])) : 0;
+    // linha sem nada medido é o "0,0,0" que o Strong escreve em campo não
+    // usado: não é uma série, é uma casa vazia
+    if (!peso && !reps && !segs) { ignoradas++; continue; }
+
+    const id = acharId(nomeEx);
+    if (!id) naoRec[nomeEx] = (naoRec[nomeEx] || 0) + 1;
+
+    const nomeTreino = col.treino != null ? String(ln[col.treino] || "").trim() : "";
+    const chave = String(ln[col.data] || "").trim() + "|" + nomeTreino;
+    if (!porTreino[chave]) {
+      porTreino[chave] = {
+        id: idDeImportacao(chave + "|" + formato),
+        nome: nomeTreino || "Treino importado",
+        data: quando,
+        duracaoMin: col.duracao != null ? duracaoDoCsv(ln[col.duracao]) : 0,
+        itens: [], _porEx: {},
+      };
+      ordem.push(chave);
+    }
+    const t = porTreino[chave];
+
+    // séries do mesmo exercício no mesmo treino entram no mesmo item, como
+    // em qualquer treino daqui
+    if (!t._porEx[nomeEx]) {
+      t._porEx[nomeEx] = { exercicioId: id, nomeOriginal: nomeEx, obs: "", series: [] };
+      t.itens.push(t._porEx[nomeEx]);
+    }
+    const item = t._porEx[nomeEx];
+    if (col.obs != null && !item.obs) item.obs = String(ln[col.obs] || "").trim();
+
+    // isometria e aeróbico vêm só com segundos; o resto é peso × reps — a
+    // mesma distinção que `ehTempo` faz no resto do app
+    const s = segs && !reps ? { segundos: segs } : { peso: peso, reps: reps };
+    if (col.tipo != null && ehAquecimentoImport(ln[col.tipo])) s.aquec = true;
+    else if (col.ordem != null && ehAquecimentoImport(ln[col.ordem])) s.aquec = true;
+    item.series.push(s);
+    series++;
+  }
+
+  const treinos = ordem.map((k) => {
+    const t = porTreino[k];
+    delete t._porEx;
+    t.itens.forEach((it) => { if (!it.exercicioId) it.exercicioId = null; });
+    return t;
+  }).sort((a, b) => a.data - b.data);
+
+  const avisos = [];
+  if (temPesoSemUnidade) {
+    avisos.push("Este arquivo não diz se o peso está em quilos ou em libras. " +
+      "Está sendo lido como " + (padrao === "lb" ? "libras (convertido para quilos)" : "quilos") + ".");
+  }
+  if (ignoradas) avisos.push(ignoradas + " " + plural(ignoradas, "linha foi ignorada", "linhas foram ignoradas") + " por não ter nenhum número.");
+
+  return {
+    formato: formato,
+    treinos: treinos,
+    series: series,
+    naoReconhecidos: Object.keys(naoRec).map((n) => ({ nome: n, series: naoRec[n] })).sort((a, b) => b.series - a.series),
+    avisos: avisos,
+    temPesoSemUnidade: temPesoSemUnidade,
+  };
+}
+
+// Casar nome de exercício na importação é ESTRITO de propósito: só vale o
+// nome igual (sem acento, sem caixa, sem o que está entre parênteses) ao
+// nome daqui ou ao nome em inglês do wger.
+//
+// Um palpite errado é muito pior que um "não reconhecido": ele junta o
+// histórico de duas máquinas diferentes num exercício só, e ninguém
+// descobre — o recorde passa a ser de um aparelho que a pessoa nunca usou.
+// O que não casar vira exercício dela, com o nome original preservado.
+function acharExercicioImportado(todos, nome) {
+  const limpar = (s) => semAcento(s).replace(/\([^)]*\)/g, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  const alvo = limpar(nome);
+  if (!alvo) return null;
+  for (const e of todos || []) {
+    if (limpar(e.nome) === alvo) return e.id;
+    if (e.en && limpar(e.en) === alvo) return e.id;
+  }
+  return null;
+}
+
+// O grupo muscular de um exercício que o catálogo não tem.
+//
+// É palpite, e a tela diz que é — o seletor fica à vista e editável. Mas
+// palpite ruim é trabalho para quem importa, e o grupo decide o mapa
+// muscular, as séries da semana e o "parou de treinar": chutar sempre o
+// primeiro grupo jogaria **toda** máquina de academia em Peito.
+//
+// A busca do app exige que TODAS as palavras casem, e nome de máquina
+// ("Hammer Strength Iso Row") nunca casa inteiro. Sem resultado, vale a
+// palavra: quase todo nome de aparelho traz o movimento dentro — row,
+// press, curl, fly, pulldown, squat — e é ele que diz o grupo.
+//
+// `buscar` entra por parâmetro para a função continuar pura.
+// Dizem o equipamento, a marca ou a posição — nunca o músculo. O Strong e
+// o Hevy põem tudo isso no nome do exercício, e sem esta lista o palpite
+// vira a média do catálogo em vez do grupo certo.
+const PALAVRAS_SEM_GRUPO_IMPORT = [
+  "machine", "maquina", "cable", "cables", "barbell", "dumbbell", "dumbbells",
+  "smith", "hammer", "strength", "iso", "lateral", "plate", "loaded", "lever",
+  "seated", "standing", "lying", "bench", "banco", "halter", "halteres", "barra",
+  "polia", "cabo", "maquina", "aparelho", "livre", "free", "weight", "peso",
+  "assisted", "assistida", "unilateral", "alternado", "alternating", "single",
+  "double", "wide", "close", "neutral", "grip", "pegada", "the", "and", "with",
+];
+
+function grupoPalpiteImport(buscar, nome, grupoPadrao) {
+  const inteiro = buscar(nome) || [];
+  if (inteiro.length && inteiro[0].grupo) return { grupo: inteiro[0].grupo, certo: true };
+
+  // cada palavra vota, e os primeiros achados pesam mais
+  const votos = {};
+  semAcento(nome).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).forEach((p) => {
+    if (p.length < 3) return;
+    if (PALAVRAS_SEM_GRUPO_IMPORT.indexOf(p) >= 0) return;
+    (buscar(p) || []).slice(0, 5).forEach((e, i) => {
+      if (e && e.grupo) votos[e.grupo] = (votos[e.grupo] || 0) + (5 - i);
+    });
+  });
+  const ordem = Object.keys(votos).sort((a, b) => votos[b] - votos[a]);
+  // `certo: false` não esconde nada — faz a linha aparecer marcada, para o
+  // olho ir justamente onde o app não sabe.
+  return ordem.length ? { grupo: ordem[0], certo: true } : { grupo: grupoPadrao, certo: false };
+}
+
+// ---------------- FIM DAS CONTAS DA IMPORTAÇÃO ----------------
+
 function calcularEstatisticas(historico) {
   const dias = {};
   let volumeTotal = 0;
@@ -1643,6 +1972,86 @@ function recuperacaoMuscular(historico, exPorId) {
     return vb - va;
   });
 }
+
+// ---- O músculo que você parou de treinar ----
+//
+// `recuperacaoMuscular` responde "o que posso treinar HOJE": tudo com dois dias
+// ou mais sai como "pronto". Tecnicamente certo e inútil para um grupo que não
+// é tocado há dois meses — ele aparece como pronto, igual ao que você treinou
+// anteontem, e some no meio da lista. A pergunta que falta é outra: **o que eu
+// parei de treinar?**
+//
+// A ideia veio do openGym (o "detrained" no mapa muscular); o código é daqui.
+//
+// **A régua é o ritmo da própria pessoa, não uma tabela.** Quem treina seis
+// vezes por semana volta a cada grupo a cada 3 ou 4 dias; quem treina duas,
+// a cada 7 ou 10. Um corte fixo em "14 dias" chamaria o primeiro de relapso e
+// daria alta ao segundo. Então cada grupo é comparado com **o intervalo
+// mediano daquela pessoa naquele grupo** — a mediana, e não a média, porque
+// uma viagem de três semanas no meio do ano não pode virar o normal dela.
+//
+// Sem histórico suficiente (menos de três sessões no grupo) não há ritmo para
+// medir, e aí vale uma semana — que é o ciclo mais comum de divisão de treino.
+const RITMO_PADRAO_GRUPO = 7;
+// Três semanas é parar, em qualquer ritmo: o teto existe para quem treinava
+// um grupo a cada 15 dias não ouvir que está tudo bem aos 40.
+const TETO_PAROU_DIAS = 21;
+
+function musculosEsquecidos(historico, exPorId, agora) {
+  const hoje = new Date(agora); hoje.setHours(0, 0, 0, 0);
+  const diasDe = (ms) => {
+    const d = new Date(ms); d.setHours(0, 0, 0, 0);
+    return Math.round((hoje - d) / 86400000);
+  };
+
+  // os dias distintos em que cada grupo foi treinado
+  const porGrupo = {};
+  historico.forEach((h) => {
+    const t = new Date(h.data).getTime();
+    (h.itens || []).forEach((it) => {
+      const e = exPorId(it.exercicioId);
+      // aeróbico não é treino de grupo muscular — a mesma regra do
+      // `seriesSemanaisPorGrupo` e do `recuperacaoMuscular`
+      if (!e || e.cardio) return;
+      if (!porGrupo[e.grupo]) porGrupo[e.grupo] = {};
+      porGrupo[e.grupo][diaStr(t)] = t;
+    });
+  });
+
+  return GRUPOS.map((g) => {
+    const mapa = porGrupo[g.id] || {};
+    const quando = Object.keys(mapa).map((k) => mapa[k]).sort((a, b) => a - b);
+    if (!quando.length) {
+      return { id: g.id, nome: g.nome, dias: null, ritmo: null, vezes: 0, estado: "nunca" };
+    }
+
+    const dias = Math.max(0, diasDe(quando[quando.length - 1]));
+
+    // o intervalo mediano entre uma sessão e a seguinte, naquele grupo
+    const vaos = [];
+    for (let i = 1; i < quando.length; i++) {
+      vaos.push(Math.max(1, Math.round((quando[i] - quando[i - 1]) / 86400000)));
+    }
+    vaos.sort((a, b) => a - b);
+    const ritmo = vaos.length >= 2 ? vaos[Math.floor(vaos.length / 2)] : null;
+    const regua = ritmo || RITMO_PADRAO_GRUPO;
+
+    // 1,6× o próprio ritmo ainda é a vida acontecendo; 3× já é outra rotina
+    let estado = "emDia";
+    if (dias > TETO_PAROU_DIAS || dias > regua * 3) estado = "parou";
+    else if (dias > regua * 1.6) estado = "sumindo";
+
+    return { id: g.id, nome: g.nome, dias: dias, ritmo: ritmo, vezes: quando.length, estado: estado };
+  }).sort((a, b) => {
+    // o que mais precisa de atenção primeiro; nunca treinado por último,
+    // porque não é um hábito perdido — é um que nunca existiu
+    const peso = { parou: 0, sumindo: 1, emDia: 2, nunca: 3 };
+    if (peso[a.estado] !== peso[b.estado]) return peso[a.estado] - peso[b.estado];
+    return (b.dias === null ? -1 : b.dias) - (a.dias === null ? -1 : a.dias);
+  });
+}
+
+// ---------------- FIM DAS CONTAS DO ESQUECIMENTO ----------------
 
 const CONQUISTAS = [
   // --- constância ---
@@ -5200,16 +5609,122 @@ function GraficoSemanal({ historico }) {
 }
 
 // ---------------- ESTATÍSTICAS: VOLUME POR MÚSCULO ----------------
-function VolumeMusculos({ historico, exPorId }) {
+// O que você parou de treinar, com a régua do seu próprio ritmo.
+//
+// Separado do `VolumeMusculos` porque responde outra pergunta: aquele diz
+// **para onde** o esforço foi, este diz **o que ficou de fora**. Um treino de
+// perna todo dia enche a barra de perna e não diz nada sobre as costas que
+// sumiram há seis semanas.
+const ESTADO_ESQUECIDO = {
+  parou: { rot: "Você parou", cor: "var(--perigo)", icone: "💤" },
+  sumindo: { rot: "Está sumindo", cor: "var(--obs)", icone: "⚠" },
+  emDia: { rot: "Em dia", cor: "var(--ok)", icone: "✓" },
+  nunca: { rot: "Nunca treinou", cor: "var(--cinza2)", icone: "—" },
+};
+
+function MusculosEsquecidos({ historico, exPorId, onAbrirGrupo }) {
+  const lista = useMemo(() => musculosEsquecidos(historico, exPorId, Date.now()), [historico, exPorId]);
+  const atencao = lista.filter((g) => g.estado === "parou" || g.estado === "sumindo");
+  const bem = lista.filter((g) => g.estado === "emDia");
+  const nunca = lista.filter((g) => g.estado === "nunca");
+
+  const linha = (g) => {
+    const e = ESTADO_ESQUECIDO[g.estado];
+    const cor = corGrupo(GRUPOS.find((x) => x.id === g.id));
+    const conteudo = (
+      <React.Fragment>
+        <div style={{ width: 4, alignSelf: "stretch", borderRadius: 2, background: cor, flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 800 }}>{g.nome}</div>
+          <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 2, lineHeight: 1.45 }}>
+            {g.estado === "nunca"
+              ? "nenhum treino registrado"
+              : "há " + g.dias + " " + plural(g.dias, "dia", "dias") +
+                (g.ritmo ? " · você costuma a cada " + g.ritmo + " " + plural(g.ritmo, "dia", "dias") : "")}
+          </div>
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 800, color: e.cor, whiteSpace: "nowrap", flexShrink: 0 }}>
+          {e.icone} {e.rot}
+        </div>
+      </React.Fragment>
+    );
+    const estilo = { display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
+      background: "var(--input)", border: "1px solid var(--borda)", borderRadius: 10,
+      padding: "10px 12px", marginBottom: 6, cursor: onAbrirGrupo ? "pointer" : "default", color: "var(--texto)" };
+    // Sem o botão isto seria um relatório. O caminho entre "parei de treinar
+    // costas" e fazer algo a respeito é a lista de exercícios de costas.
+    return onAbrirGrupo
+      ? <button key={g.id} onClick={() => onAbrirGrupo(g.id)} style={estilo}
+          aria-label={"Ver exercícios de " + g.nome}>{conteudo}</button>
+      : <div key={g.id} style={estilo}>{conteudo}</div>;
+  };
+
+  return (
+    <div>
+      {atencao.length === 0 ? (
+        <div style={{ fontSize: 13, color: "var(--ok)", lineHeight: 1.6, marginBottom: 12 }}>
+          ✓ Nenhum grupo ficou para trás. Todos foram treinados dentro do seu ritmo de sempre.
+        </div>
+      ) : (
+        <React.Fragment>
+          <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.6, marginBottom: 10 }}>
+            A régua é a <b style={{ color: "var(--texto)" }}>sua</b>: cada grupo é comparado com o
+            intervalo com que <b style={{ color: "var(--texto)" }}>você</b> costuma voltar nele, e não
+            com uma tabela.
+          </div>
+          {atencao.map(linha)}
+        </React.Fragment>
+      )}
+
+      {bem.length > 0 && (
+        <div style={{ marginTop: atencao.length ? 14 : 0 }}>
+          <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Em dia</div>
+          {bem.map(linha)}
+        </div>
+      )}
+
+      {nunca.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Ainda não treinou</div>
+          {nunca.map(linha)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VolumeMusculos({ historico, exPorId, onAbrirGrupo }) {
   const [dias, setDias] = useState(30);
+  const [modo, setModo] = useState("volume");
   const desde = dias ? Date.now() - dias * 86400000 : 0;
   const lista = volumePorGrupo(historico, exPorId, desde);
   const total = lista.reduce((a, x) => a + x.volume, 0);
   const vmax = lista.length ? lista[0].volume : 1;
   return (
     <div style={S.card}>
-      <div style={S.label}>Volume por músculo</div>
-      <div style={{ display: "flex", gap: 8, margin: "10px 0 14px" }}>
+      <div style={S.label}>Músculos</div>
+      {/* Dois modos, não três: "o que posso treinar hoje" já é a
+          `OQueTreinarHoje` da tela inicial, e repetir aqui seria o mesmo
+          cartão duas vezes. Estes dois respondem perguntas diferentes:
+          para onde o esforço foi, e o que ficou de fora. */}
+      <div style={{ display: "flex", gap: 8, margin: "10px 0 12px" }}>
+        {[["volume", "📊 Volume"], ["esquecidos", "💤 Esquecidos"]].map(([m, nome]) => (
+          <button key={m} onClick={() => setModo(m)}
+            style={{
+              flex: 1, border: "1px solid", borderColor: modo === m ? "var(--marca)" : "var(--borda2)",
+              background: modo === m ? "var(--card)" : "transparent",
+              color: modo === m ? "var(--texto)" : "var(--cinza)",
+              borderRadius: 8, padding: "9px 6px", fontWeight: 800, fontSize: 12.5, cursor: "pointer",
+            }}>
+            {nome}
+          </button>
+        ))}
+      </div>
+      {modo === "esquecidos" ? (
+        <MusculosEsquecidos historico={historico} exPorId={exPorId} onAbrirGrupo={onAbrirGrupo} />
+      ) : (
+      <React.Fragment>
+      <div style={{ display: "flex", gap: 8, margin: "0 0 14px" }}>
         {[[7, "7 dias"], [30, "30 dias"], [0, "Sempre"]].map(([d, nome]) => (
           <button key={d} onClick={() => setDias(d)}
             style={{
@@ -5242,6 +5757,8 @@ function VolumeMusculos({ historico, exPorId }) {
             </div>
           );
         })
+      )}
+      </React.Fragment>
       )}
     </div>
   );
@@ -8826,9 +9343,218 @@ function CartaoRecursos() {
   );
 }
 
+// Trazer o histórico de outro app, com conferência antes.
+//
+// **Nada entra sem a pessoa ver o que vai entrar.** O histórico dela é o
+// único lugar onde esses dados existem, e escrever nele a partir de um
+// arquivo que o app nunca viu é o tipo de coisa que não se faz calado. Daí a
+// prévia: o formato reconhecido, quantos treinos, de quando a quando, o que
+// não foi reconhecido e o que vai acontecer com cada um.
+//
+// **E dá para desfazer.** Todo treino importado nasce com id `imp-…` e todo
+// exercício criado aqui com `custom-imp-…`, então remover exatamente o que
+// entrou é uma linha. Era isso ou um aviso em vermelho dizendo que não tem
+// volta — e aviso não conserta dado nenhum.
+function ImportarDeOutroApp({ todos, onAplicar, onDesfazer, onBaixarBackup, avisar }) {
+  const [res, setRes] = useState(null);
+  const [nomeArq, setNomeArq] = useState("");
+  const [texto, setTexto] = useState("");
+  const [unidade, setUnidade] = useState("kg");
+  const [grupos, setGrupos] = useState({});
+  // os que nem por palavra deram sinal: a linha sai marcada, para o olho
+  // ir onde o app não sabe em vez de confiar num chute calado
+  const [conferir, setConferir] = useState({});
+  const [feito, setFeito] = useState(null);
+  const entradaRef = useRef(null);
+
+  const ler = (conteudo, unid) => {
+    const r = interpretarCsvTreinos(conteudo, (n) => acharExercicioImportado(todos, n), { unidade: unid });
+    if (r.erro) { avisar(r.erro); setRes(null); return; }
+    if (!r.treinos.length) { avisar("Não achei nenhum treino com números nesse arquivo."); setRes(null); return; }
+    setRes(r);
+    // Palpite de grupo para o que não foi reconhecido: a busca do próprio app
+    // acha "chest press" mesmo sem o nome bater exatamente, e o grupo do que
+    // ela devolve é um bom chute. Fica à vista e editável — é palpite, não
+    // decisão.
+    const semPalpite = {};
+    setGrupos((g) => {
+      const novo = { ...g };
+      r.naoReconhecidos.forEach((n) => {
+        if (novo[n.nome] !== undefined) return;
+        const p = grupoPalpiteImport((t) => buscarExercicios(todos, t), n.nome, GRUPOS[0].id);
+        novo[n.nome] = p.grupo;
+        if (!p.certo) semPalpite[n.nome] = true;
+      });
+      return novo;
+    });
+    setConferir(semPalpite);
+  };
+
+  const aoEscolherArquivo = (arq) => {
+    if (!arq) return;
+    setFeito(null);
+    setNomeArq(arq.name || "arquivo.csv");
+    const fr = new FileReader();
+    fr.onload = () => { const t = String(fr.result || ""); setTexto(t); ler(t, unidade); };
+    fr.onerror = () => avisar("Não consegui ler esse arquivo.");
+    fr.readAsText(arq);
+  };
+
+  const trocarUnidade = (u) => { setUnidade(u); if (texto) ler(texto, u); };
+
+  const aplicar = () => {
+    const idPorNome = {}, novosEx = [];
+    res.naoReconhecidos.forEach((n) => {
+      const g = grupos[n.nome];
+      if (!g) return;                       // "não importar este"
+      const id = "custom-" + idDeImportacao(n.nome);
+      idPorNome[n.nome] = id;
+      novosEx.push({ id: id, custom: true, nome: n.nome, grupo: g, equip: "",
+        musc: { p: [], s: [] }, passos: [], dica: "", foto: false });
+    });
+
+    const treinos = res.treinos.map((t) => ({
+      id: t.id, nome: t.nome, data: t.data, duracaoMin: t.duracaoMin,
+      itens: t.itens
+        .map((it) => ({ exercicioId: it.exercicioId || idPorNome[it.nomeOriginal] || null, obs: it.obs || "", series: it.series }))
+        .filter((it) => it.exercicioId),
+    })).filter((t) => t.itens.length);
+
+    const r = onAplicar({ treinos: treinos, novosEx: novosEx });
+    setFeito({ novos: r.novos, repetidos: r.repetidos, ids: r.ids, exIds: r.exIds });
+    setRes(null); setTexto(""); setNomeArq("");
+  };
+
+  const quantos = res ? res.treinos.length : 0;
+  const de = res && quantos ? new Date(res.treinos[0].data) : null;
+  const ate = res && quantos ? new Date(res.treinos[quantos - 1].data) : null;
+  const dt = (d) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+
+  return (
+    <div style={S.card}>
+      <div style={S.label}>Vim de outro app</div>
+      <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, margin: "8px 0 12px" }}>
+        Já treinava com o <b>Strong</b>, o <b>Hevy</b> ou o <b>FitNotes</b>? Exporte o CSV
+        lá e traga para cá. Recorde, evolução e sugestão de carga saem do histórico —
+        sem ele, o app começa do zero com quem já tem anos de treino.
+      </div>
+
+      <input ref={entradaRef} type="file" accept=".csv,text/csv,text/plain" style={{ display: "none" }}
+        aria-hidden="true" tabIndex={-1}
+        onChange={(e) => { const a = e.target.files && e.target.files[0]; e.target.value = ""; aoEscolherArquivo(a); }} />
+
+      {!res && (
+        <button style={S.btnGhost} onClick={() => entradaRef.current && entradaRef.current.click()}>
+          📄 Escolher o arquivo CSV
+        </button>
+      )}
+
+      {feito && (
+        <div style={{ background: "var(--ok-bg)", border: "1px solid var(--ok)", borderRadius: 12, padding: 12, marginTop: 10 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--ok)", marginBottom: 4 }}>
+            ✓ {feito.novos} {plural(feito.novos, "treino importado", "treinos importados")}
+          </div>
+          {feito.repetidos > 0 && (
+            <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.5 }}>
+              {feito.repetidos} {plural(feito.repetidos, "já estava", "já estavam")} no seu histórico e {plural(feito.repetidos, "foi ignorado", "foram ignorados")}.
+            </div>
+          )}
+          <button style={{ ...S.btnGhost, marginTop: 10, fontSize: 13 }}
+            onClick={() => { onDesfazer(feito.ids, feito.exIds); setFeito(null); }}>
+            ↩ Desfazer esta importação
+          </button>
+        </div>
+      )}
+
+      {res && (
+        <div style={{ marginTop: 4 }}>
+          <div style={{ background: "var(--input)", border: "1px solid var(--borda)", borderRadius: 12, padding: 12, marginBottom: 10 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 800 }}>
+              {res.formato === "CSV" ? "Arquivo CSV" : "Arquivo do " + res.formato} · {nomeArq}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--cinza)", marginTop: 6, lineHeight: 1.6 }}>
+              <b style={{ color: "var(--texto)" }}>{quantos} {plural(quantos, "treino", "treinos")}</b>
+              {" · " + res.series + " " + plural(res.series, "série", "séries")}
+              {de && ate ? <span><br />de {dt(de)} a {dt(ate)}</span> : null}
+            </div>
+          </div>
+
+          {res.temPesoSemUnidade && (
+            <div style={{ marginBottom: 10 }}>
+              {/* O Strong não grava a unidade no arquivo. Ler 225 libras como
+                  225 quilos inventa um recorde que ninguém fez — e a partir
+                  dele a sugestão de carga passa a mandar o dobro. */}
+              <div style={{ fontSize: 12.5, color: "var(--texto)", marginBottom: 6, lineHeight: 1.5 }}>
+                ⚠ Este arquivo não diz a unidade do peso. No outro app você usava:
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {[["kg", "Quilos (kg)"], ["lb", "Libras (lb)"]].map(([u, nome]) => (
+                  <button key={u} onClick={() => trocarUnidade(u)}
+                    style={{ flex: 1, border: "1px solid", borderColor: unidade === u ? "var(--marca)" : "var(--borda2)",
+                      background: "transparent", color: unidade === u ? "var(--texto)" : "var(--cinza)",
+                      borderRadius: 8, padding: "9px 6px", fontWeight: 800, fontSize: 12.5, cursor: "pointer" }}>
+                    {nome}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {res.naoReconhecidos.length > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12.5, color: "var(--texto)", lineHeight: 1.55, marginBottom: 8 }}>
+                {res.naoReconhecidos.length} {plural(res.naoReconhecidos.length, "exercício não está", "exercícios não estão")} no
+                catálogo daqui. {plural(res.naoReconhecidos.length, "Ele vira", "Eles viram")} exercício seu, com o
+                nome original. Confira o grupo de cada um:
+              </div>
+              {res.naoReconhecidos.map((n) => (
+                <div key={n.nome} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.nome}</div>
+                    <div style={{ fontSize: 10.5, color: conferir[n.nome] ? "var(--obs)" : "var(--cinza2)" }}>
+                      {n.series} {plural(n.series, "série", "séries")}
+                      {conferir[n.nome] ? " · ⚠ confira o grupo" : ""}
+                    </div>
+                  </div>
+                  <select value={grupos[n.nome] || ""} onChange={(e) => setGrupos((g) => ({ ...g, [n.nome]: e.target.value }))}
+                    aria-label={"Grupo muscular de " + n.nome}
+                    style={{ ...S.input, width: "auto", flexShrink: 0, padding: "8px 10px", fontSize: 12.5 }}>
+                    {GRUPOS.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
+                    <option value="">Não importar</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {res.avisos.map((a, i) => (
+            <div key={i} style={{ fontSize: 11.5, color: "var(--cinza2)", lineHeight: 1.5, marginBottom: 6 }}>• {a}</div>
+          ))}
+
+          <button style={{ ...S.btnGhost, marginBottom: 8, fontSize: 13 }} onClick={onBaixarBackup}>
+            ⬇ Baixar um backup antes
+          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => { setRes(null); setTexto(""); setNomeArq(""); }}>
+              Cancelar
+            </button>
+            <button style={{ ...S.btn, flex: 1 }} onClick={aplicar}>Importar</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 10, lineHeight: 1.5 }}>
+        No Strong: Perfil → ⚙ → Export Workouts. No Hevy: Perfil → ⚙ → Export &amp; Import Data.
+        No FitNotes: Menu → Export → CSV. O arquivo é lido aqui no aparelho e não sai dele.
+      </div>
+    </div>
+  );
+}
+
 function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, setMeta,
   lembrete, setLembrete, avisar, ultimoBackup, totalEx, historico,
   onBaixarBackup, onRestaurarArquivo, onExportar, onImportar, onInstalar, instalado, onVoltar,
+  todos, onImportarCsv, onDesfazerCsv,
   pedirAvisoDescanso,
   voz, setVoz, vozAtiva, onAlternarVoz, onAjudaVoz, onEscolaVoz, onDiagnosticoVoz, onAtualizar }) {
   const fmtSeg = (sg) => Math.floor(sg / 60) + ":" + (sg % 60 < 10 ? "0" : "") + (sg % 60);
@@ -9086,6 +9812,9 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
           {" "}Guarde o arquivo no Google Drive, no e-mail ou numa conversa sua no WhatsApp.
         </div>
       </div>
+
+      <ImportarDeOutroApp todos={todos} onAplicar={onImportarCsv} onDesfazer={onDesfazerCsv}
+        onBaixarBackup={onBaixarBackup} avisar={avisar} />
 
       <div style={S.card}>
         <div style={S.label}>Este app</div>
@@ -21257,9 +21986,183 @@ function GraficoMedida({ medidas, campo, unidade }) {
 }
 
 // ---------------- FOTOS DE PROGRESSO (interface) ----------------
-function PainelFotos({ fotos, onAdicionar, onExcluir, pedirConfirmacao }) {
+// ---- O antes e depois ----
+//
+// Duas fotos lado a lado quase não dizem nada: o corpo muda devagar, e a
+// memória de como a pessoa estava em março é péssima. Sobrepostas, com a
+// divisória correndo entre elas, a mudança aparece — é por isso que todo app
+// de progresso tem essa tela, e a ideia aqui veio do openGym (o código é
+// daqui).
+//
+// **Duas contas e não uma imagem.** O que faz a comparação valer é o texto
+// embaixo: quanto tempo passou, e quanto a balança mudou nesse meio-tempo.
+// Sem isso são duas fotos; com isso é um resultado.
+
+// "8 meses e 3 dias". Sai das duas datas, não da diferença em milissegundos:
+// mês não tem duração fixa, e dividir por 30 erra uma semana por semestre.
+function textoIntervalo(a, b) {
+  const A = new Date(Math.min(a, b)), B = new Date(Math.max(a, b));
+  A.setHours(0, 0, 0, 0); B.setHours(0, 0, 0, 0);
+  const dias = Math.round((B - A) / 86400000);
+  if (dias <= 0) return "no mesmo dia";
+
+  let m = (B.getFullYear() - A.getFullYear()) * 12 + (B.getMonth() - A.getMonth());
+  const ref = new Date(A);
+  ref.setMonth(ref.getMonth() + m);
+  // 31 de janeiro + 1 mês cai em 3 de março: se passou do alvo, volta um
+  if (ref > B) { m -= 1; ref.setMonth(ref.getMonth() - 1); }
+  const resto = Math.round((B - ref) / 86400000);
+
+  // O corte é por mês de calendário, não por um número redondo de dias. Com
+  // "menos de 60 dias vira dias", 15 de janeiro a 15 de março — dois meses
+  // cravados, e 59 dias — saía como "59 dias", que não é como ninguém conta.
+  // Abaixo de 45 dias o mês ainda atrapalha mais do que ajuda ("1 mês e 2
+  // dias" por 32 dias), então ali vale o dia.
+  if (dias < 45 || m < 1) return dias + " " + plural(dias, "dia", "dias");
+
+  const txtM = m + " " + plural(m, "mês", "meses");
+  return resto > 0 ? txtM + " e " + resto + " " + plural(resto, "dia", "dias") : txtM;
+}
+
+// O peso medido mais perto daquela data. A janela existe porque ninguém se
+// pesa no dia da foto: pegar a pesagem de dois meses depois e chamar de "o
+// peso da foto" seria inventar um resultado que não aconteceu ali.
+function pesoPerto(medidas, data, janelaDias) {
+  const janela = (janelaDias || 14) * 86400000;
+  const alvo = new Date(data).getTime();
+  let melhor = null, menor = Infinity;
+  (medidas || []).forEach((m) => {
+    const p = Number(m.peso);
+    if (!p) return;
+    const d = Math.abs(new Date(m.data).getTime() - alvo);
+    if (d <= janela && d < menor) { menor = d; melhor = p; }
+  });
+  return melhor;
+}
+
+// ---------------- FIM DAS CONTAS DO ANTES E DEPOIS ----------------
+
+// A divisória que corre entre as duas fotos.
+//
+// Duas decisões de desenho:
+// - **`objectFit: contain`**, não `cover`. Recortar duas fotos de proporções
+//   diferentes em quadrados iguais muda o corpo de tamanho entre uma e outra,
+//   e aí a comparação mostra uma mudança que não houve.
+// - **A de cima é a mais nova**, revelada da direita para a esquerda. Arrastar
+//   para a esquerda "apaga o depois" e mostra o antes embaixo, que é o gesto
+//   que as pessoas já conhecem.
+function AntesDepois({ fotos, urls, medidas, onFechar }) {
+  const ordem = [...fotos].sort((a, b) => new Date(a.data) - new Date(b.data));
+  const [antes, setAntes] = useState(ordem[0]);
+  const [depois, setDepois] = useState(ordem[ordem.length - 1]);
+  const [corte, setCorte] = useState(50);
+  const caixaRef = useRef(null);
+
+  const mover = (clientX) => {
+    const el = caixaRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (!r.width) return;
+    setCorte(Math.max(0, Math.min(100, ((clientX - r.left) / r.width) * 100)));
+  };
+
+  const dias = textoIntervalo(new Date(antes.data).getTime(), new Date(depois.data).getTime());
+  const pA = pesoPerto(medidas, antes.data);
+  const pB = pesoPerto(medidas, depois.data);
+  const dif = pA && pB ? Math.round((pB - pA) * 10) / 10 : null;
+
+  const seletor = (rot, valor, onEscolher) => (
+    <label style={{ flex: 1, minWidth: 0 }}>
+      <span style={{ display: "block", fontSize: 10, color: "var(--cinza2)", fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{rot}</span>
+      <select value={valor.id} onChange={(e) => onEscolher(ordem.filter((f) => f.id === e.target.value)[0])}
+        style={{ ...S.input, padding: "9px 10px", fontSize: 13 }}>
+        {ordem.map((f) => (
+          <option key={f.id} value={f.id}>
+            {new Date(f.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Antes e depois"
+      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.94)", zIndex: 49, overflowY: "auto", padding: "18px 16px calc(24px + env(safe-area-inset-bottom))" }}>
+      <div style={{ maxWidth: 520, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ color: "#F2F0EC", fontWeight: 900, fontSize: 16 }}>⇆ Antes e depois</div>
+          <button onClick={onFechar} aria-label="Fechar"
+            style={{ background: "none", border: "1px solid #FFFFFF44", color: "#F2F0EC", borderRadius: 8, width: 32, height: 32, fontSize: 15, cursor: "pointer" }}>✕</button>
+        </div>
+
+        <div ref={caixaRef}
+          onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); mover(e.clientX); }}
+          onPointerMove={(e) => { if (e.buttons) mover(e.clientX); }}
+          style={{ position: "relative", width: "100%", aspectRatio: "3/4", background: "#000000",
+            borderRadius: 14, overflow: "hidden", touchAction: "none", cursor: "ew-resize", userSelect: "none" }}>
+          {urls[antes.id] && (
+            <img src={urls[antes.id]} alt={"Antes, " + new Date(antes.data).toLocaleDateString("pt-BR")}
+              draggable={false}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }} />
+          )}
+          {urls[depois.id] && (
+            <img src={urls[depois.id]} alt={"Depois, " + new Date(depois.data).toLocaleDateString("pt-BR")}
+              draggable={false}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain",
+                clipPath: "inset(0 0 0 " + corte + "%)" }} />
+          )}
+
+          {/* a linha e o punho */}
+          <div style={{ position: "absolute", top: 0, bottom: 0, left: corte + "%", width: 2, background: "#FFFFFF", boxShadow: "0 0 8px rgba(0,0,0,.7)", pointerEvents: "none" }} />
+          <div role="slider" aria-label="Posição da divisória" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(corte)}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft") { e.preventDefault(); setCorte((c) => Math.max(0, c - 4)); }
+              if (e.key === "ArrowRight") { e.preventDefault(); setCorte((c) => Math.min(100, c + 4)); }
+            }}
+            style={{ position: "absolute", top: "50%", left: corte + "%", transform: "translate(-50%, -50%)",
+              width: 38, height: 38, borderRadius: 19, background: "#FFFFFF", color: "#111111",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900,
+              boxShadow: "0 2px 10px rgba(0,0,0,.6)", cursor: "ew-resize" }}>⇆</div>
+
+          {/* os rótulos, para ninguém se perder sobre qual lado é qual */}
+          <div style={{ position: "absolute", left: 10, top: 10, background: "rgba(0,0,0,.6)", color: "#F2F0EC", fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 6, pointerEvents: "none" }}>
+            ANTES · {new Date(antes.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" })}
+          </div>
+          <div style={{ position: "absolute", right: 10, top: 10, background: "rgba(0,0,0,.6)", color: "#F2F0EC", fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 6, pointerEvents: "none" }}>
+            DEPOIS · {new Date(depois.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" })}
+          </div>
+        </div>
+
+        {/* O que faz a comparação valer: quanto tempo passou, e o que a
+            balança disse. Sem isso são duas fotos. */}
+        <div style={{ textAlign: "center", color: "#F2F0EC", margin: "14px 0 4px", fontSize: 15, fontWeight: 800 }}>
+          {dias === "no mesmo dia" ? "As duas do mesmo dia" : dias + " entre as duas"}
+        </div>
+        {dif !== null && (
+          <div style={{ textAlign: "center", color: "#BDBDBD", fontSize: 13, marginBottom: 4 }}>
+            {num1(pA)} kg → {num1(pB)} kg
+            <b style={{ color: "#F2F0EC" }}>{" · " + (dif > 0 ? "+" : "") + num1(dif) + " kg"}</b>
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          {seletor("Antes", antes, setAntes)}
+          {seletor("Depois", depois, setDepois)}
+        </div>
+
+        <div style={{ fontSize: 11.5, color: "#8a8a8a", textAlign: "center", marginTop: 14, lineHeight: 1.6 }}>
+          Arraste a divisória para comparar. O peso vem da pesagem mais perto de cada foto.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PainelFotos({ fotos, medidas, onAdicionar, onExcluir, pedirConfirmacao }) {
   const [urls, setUrls] = useState({});
   const [aberta, setAberta] = useState(null);
+  const [comparar, setComparar] = useState(false);
   const entradaRef = useRef(null);
 
   // Carrega as miniaturas do IndexedDB e devolve os endereços temporários no fim,
@@ -21297,6 +22200,11 @@ function PainelFotos({ fotos, onAdicionar, onExcluir, pedirConfirmacao }) {
       <button style={S.btn} onClick={() => entradaRef.current && entradaRef.current.click()}>
         📷 Adicionar foto de hoje
       </button>
+      {ordenadas.length >= 2 && (
+        <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800 }} onClick={() => setComparar(true)}>
+          ⇆ Antes e depois
+        </button>
+      )}
 
       {ordenadas.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 14 }}>
@@ -21313,6 +22221,10 @@ function PainelFotos({ fotos, onAdicionar, onExcluir, pedirConfirmacao }) {
             </button>
           ))}
         </div>
+      )}
+
+      {comparar && (
+        <AntesDepois fotos={ordenadas} urls={urls} medidas={medidas} onFechar={() => setComparar(false)} />
       )}
 
       {aberta && (
@@ -21426,7 +22338,7 @@ function TelaCorpo({ medidas, historico, fotos, onAdicionarFoto, onExcluirFoto, 
         </div>
       )}
 
-      <PainelFotos fotos={fotos} onAdicionar={onAdicionarFoto} onExcluir={onExcluirFoto} pedirConfirmacao={pedirConfirmacao} />
+      <PainelFotos fotos={fotos} medidas={medidas} onAdicionar={onAdicionarFoto} onExcluir={onExcluirFoto} pedirConfirmacao={pedirConfirmacao} />
 
       {medidas.length === 0 && (
         <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)", fontSize: 14, lineHeight: 1.6 }}>
@@ -21440,7 +22352,7 @@ function TelaCorpo({ medidas, historico, fotos, onAdicionarFoto, onExcluirFoto, 
 function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVirarFicha, pedirConfirmacao,
   medidas, onSalvarMedida, onExcluirMedida, avisar,
   fotos, onAdicionarFoto, onExcluirFoto,
-  meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor, onComecar }) {
+  meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor, onComecar, onAbrirGrupo }) {
   const [secao, setSecao] = useState(secaoInicial || "treinos");
   const recordes = useMemo(() => calcularRecordes(historico), [historico]);
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
@@ -21492,7 +22404,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
           <VolumeRecomendado historico={historico} exPorId={exPorId} />
           <NumerosGerais historico={historico} />
           <GraficoSemanal historico={historico} />
-          <VolumeMusculos historico={historico} exPorId={exPorId} />
+          <VolumeMusculos historico={historico} exPorId={exPorId} onAbrirGrupo={onAbrirGrupo} />
           <MapaDoAno historico={historico} />
           <CalendarioTreinos historico={historico} />
           <GraficoEvolucao historico={historico} exPorId={exPorId} />
@@ -22280,6 +23192,35 @@ function TreinoLivre() {
   vozRef.current = voz;
   somRef.current = som;
   const todos = useMemo(() => [...EXERCICIOS, ...customEx], [customEx]);
+
+  // Trazer o histórico de outro app. Os ids dos treinos são calculados a
+  // partir do conteúdo (`imp-…`), e é isso que faz reimportar o mesmo
+  // arquivo não duplicar nada — e faz o desfazer ser exato.
+  //
+  // A conta de novos e repetidos sai do `historico` deste render, e não de
+  // dentro do `setHistorico`: o atualizador roda depois, e os números
+  // voltariam zerados para a tela que os mostra.
+  const importarCsv = ({ treinos, novosEx }) => {
+    const tem = {};
+    (historico || []).forEach((x) => { tem[x.id] = true; });
+    const entrar = treinos.filter((t) => !tem[t.id]);
+    const exEntrar = novosEx.filter((n) => !(customEx || []).some((p) => p.id === n.id));
+    if (exEntrar.length) setCustomEx((prev) => prev.concat(exEntrar.filter((n) => !prev.some((p) => p.id === n.id))));
+    if (entrar.length) setHistorico((prev) => prev.concat(entrar).sort((a, b) => new Date(b.data) - new Date(a.data)));
+    // devolve O QUE ENTROU, não o que o arquivo tinha: é essa lista que o
+    // desfazer usa, e desfazer o que já estava lá apagaria treino de outra
+    // importação que a pessoa quis manter
+    return { novos: entrar.length, repetidos: treinos.length - entrar.length,
+      ids: entrar.map((t) => t.id), exIds: exEntrar.map((e) => e.id) };
+  };
+
+  const desfazerCsv = (ids, exIds) => {
+    const fora = {}, foraEx = {};
+    (ids || []).forEach((i) => { fora[i] = true; });
+    (exIds || []).forEach((i) => { foraEx[i] = true; });
+    setHistorico((prev) => prev.filter((x) => !fora[x.id]));
+    if (exIds && exIds.length) setCustomEx((prev) => prev.filter((e) => !foraEx[e.id]));
+  };
   // Busca por id via índice. Antes era uma varredura da lista inteira, chamada
   // uma vez por série ao montar o histórico — ou seja, lento na proporção do quadrado.
   const indiceEx = useMemo(() => {
@@ -23587,6 +24528,7 @@ function TreinoLivre() {
             avisar={avisar} ultimoBackup={ultimoBackup} totalEx={todos.length} historico={historico}
             onBaixarBackup={baixarBackup} onRestaurarArquivo={restaurarDeArquivo}
             onExportar={exportarDados} onImportar={importarDados}
+            todos={todos} onImportarCsv={importarCsv} onDesfazerCsv={desfazerCsv}
             onInstalar={baixarApp} instalado={JA_INSTALADO}
             pedirAvisoDescanso={pedirAvisoDescanso}
             voz={voz} setVoz={setVoz} vozAtiva={vozAtiva}
@@ -23725,7 +24667,8 @@ function TreinoLivre() {
             medidas={medidas} onSalvarMedida={salvarMedida} onExcluirMedida={excluirMedida} avisar={avisar}
             fotos={fotos} onAdicionarFoto={adicionarFoto} onExcluirFoto={excluirFoto}
             meta={meta} setMeta={setMeta} secaoInicial={secaoHistorico}
-            onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} pesoCorporal={pesoCorporal} vozCfg={voz} onCorredor={() => setAba("corredor")} onComecar={() => setAba("inicio")} />
+            onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} pesoCorporal={pesoCorporal} vozCfg={voz} onCorredor={() => setAba("corredor")} onComecar={() => setAba("inicio")}
+            onAbrirGrupo={(g) => { setGrupoAberto(g); setExercicioAberto(null); setAba("exercicios"); }} />
         )}
         {aba === "editarHistorico" && editandoHistorico && (
           <TelaEditarHistorico key={editandoHistorico.id} registro={editandoHistorico} exPorId={exPorId} avisar={avisar}

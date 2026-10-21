@@ -98,7 +98,7 @@ Treino-Livre/
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
 ├── divulgacao/          ← o que o ChatGPT do dono lê para criar vídeos: o guia e o NOVIDADES
-└── testes/              ← as 22 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 28 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -113,7 +113,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 894 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 1.115 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -154,7 +154,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 894 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.115 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -229,7 +229,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v76) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v79) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -997,6 +997,126 @@ mais coisa de lá, a regra é a mesma — ler, entender, escrever aqui.
 - Abre rolado até o fim: o que interessa é como está agora, não janeiro.
 
 Coberto por `teste-ano.js` (32 checagens).
+
+## O músculo que você parou de treinar (`musculosEsquecidos`)
+
+Segundo modo do cartão de músculos, em Histórico › Números.
+`recuperacaoMuscular` responde "o que posso treinar HOJE": tudo com dois
+dias ou mais sai como "pronto". Certo, e inútil para um grupo que não é
+tocado há dois meses — ele aparece como pronto, igual ao de anteontem, e
+some no meio da lista. A pergunta que faltava é **o que eu parei de
+treinar?** Ideia do openGym ("detrained"); código daqui, pelo mesmo motivo
+de licença da seção acima.
+
+- **A régua é o ritmo da própria pessoa.** Quem treina seis vezes por
+  semana volta a cada grupo a cada 3 ou 4 dias; quem treina duas, a cada 7
+  ou 10. Um corte fixo em 14 dias chamaria o primeiro de relapso e daria
+  alta ao segundo. Cada grupo é comparado com o **intervalo mediano daquela
+  pessoa naquele grupo** — mediana, e não média, porque uma viagem de três
+  semanas no meio do ano não pode virar o normal dela. 1,6× ainda é a vida
+  acontecendo; 3× já é outra rotina. Com menos de três sessões não há ritmo
+  para medir, e aí vale uma semana.
+- **Três semanas é parar, em qualquer ritmo** (`TETO_PAROU_DIAS`): o teto
+  existe para quem treinava um grupo a cada 15 dias não ouvir que está tudo
+  bem aos 40.
+- **"Nunca treinou" não se mistura com "parou"**, e vem por último: um é
+  hábito que nunca existiu, o outro é hábito perdido, e só o segundo é
+  alerta.
+- Aeróbico não conta como treino de grupo, como no `seriesSemanaisPorGrupo`.
+- Cada linha é um botão que abre a lista daquele grupo (`onAbrirGrupo`, o
+  mesmo da tela inicial): sem isso seria um relatório, não um caminho.
+
+**Dois modos no cartão, não três:** "o que treinar hoje" já é a
+`OQueTreinarHoje` da tela inicial, e repetir aqui seria o mesmo cartão duas
+vezes. Estes dois respondem perguntas diferentes — para onde o esforço foi,
+e o que ficou de fora.
+
+Coberto por `teste-esquecidos.js` (28 checagens).
+
+## O antes e depois das fotos (`AntesDepois`, `textoIntervalo`, `pesoPerto`)
+
+Botão **⇆ Antes e depois** no cartão de fotos, a partir de duas fotos.
+Duas imagens lado a lado quase não dizem nada — o corpo muda devagar e a
+memória de como a pessoa estava em março é péssima. Sobrepostas, com a
+divisória correndo entre elas, a mudança aparece. Ideia do openGym.
+
+- **O que faz valer são os dois números embaixo**, não a imagem: quanto
+  tempo passou e quanto a balança mudou. Sem isso são duas fotos.
+- **`textoIntervalo` sai das duas datas, não da diferença em milissegundos.**
+  Mês não tem duração fixa, e dividir por 30 erra uma semana por semestre.
+  O corte entre "dias" e "meses" é por mês de calendário: com "menos de 60
+  dias vira dias", 15 de janeiro a 15 de março — dois meses cravados, e 59
+  dias — saía como "59 dias". 31/ago a 30/out não vira "2 meses".
+- **`pesoPerto` tem janela de 14 dias.** Ninguém se pesa no dia da foto;
+  pegar a pesagem de dois meses depois e chamá-la de "o peso da foto" seria
+  inventar um resultado que não aconteceu ali.
+- `objectFit: contain`, não `cover`: recortar duas fotos de proporções
+  diferentes em quadrados iguais muda o corpo de tamanho entre uma e outra,
+  e aí a comparação mostra uma mudança que não houve.
+
+Coberto por `teste-fotos.js` (24 checagens).
+
+## Trazer o histórico de outro app (`interpretarCsvTreinos`)
+
+Cartão **Vim de outro app** em Ajustes, junto do backup. Quem já treina há
+dois anos tem dois anos de histórico em outro aplicativo, e recorde,
+evolução, sugestão de carga e nível saem todos do histórico: sem importar,
+o Treino Livre é um caderno em branco para quem já escreveu um caderno
+inteiro. Ideia do openGym; código daqui.
+
+**Mapeia por NOME de coluna, nunca por posição** (`COLUNAS_IMPORT`,
+`PESOS_IMPORT`). Os três formatos têm variantes, e a posição muda entre
+elas:
+
+| App | Cabeçalho | O que complica |
+|---|---|---|
+| Strong | `Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,…` | **não diz a unidade**; versão antiga usa `;` e tem coluna de unidade |
+| Hevy | `title,start_time,…,exercise_title,set_index,set_type,weight_kg\|weight_lbs,…` | a unidade está no nome da coluna — o melhor dos três |
+| FitNotes | Android `…,Weight,Weight Unit,Reps,…` · iPhone `…,Weight (kg),Weight (lbs),…` | no iPhone as **duas** colunas de peso existem, e vale a preenchida |
+
+Por isso o peso é uma **lista** de colunas candidatas, cada uma com a
+unidade que o próprio nome revela. A ordem de quem manda: o nome da coluna,
+depois a coluna de unidade da linha, e só então a escolha da tela.
+
+As decisões que protegem o histórico de quem importa:
+
+1. **A unidade não é adivinhada.** 225 libras são 102 kg; lidas como quilos
+   viram um supino de 225 kg que ninguém fez — e a partir dele a sugestão de
+   carga passa a mandar o dobro. Sem coluna de unidade, a tela **pergunta**.
+2. **Casar nome de exercício é estrito** (`acharExercicioImportado`): só
+   nome igual, sem acento, sem caixa e sem o que está entre parênteses, ao
+   nome daqui ou ao nome em inglês do wger. Um palpite errado é pior que um
+   "não reconhecido": junta o histórico de duas máquinas num exercício só, e
+   ninguém descobre. O que não casa vira exercício da pessoa, com o nome
+   original.
+3. **O grupo do exercício novo é escolhido na tela**, com palpite
+   (`grupoPalpiteImport`). A busca do app exige que todas as palavras casem,
+   e nome de máquina ("Hammer Strength Iso Row") nunca casa inteiro — então,
+   sem resultado, **vale a palavra**: quase todo nome traz o movimento
+   dentro (row, press, curl, fly, pulldown). **Palavra de equipamento e de
+   marca não vota** (`PALAVRAS_SEM_GRUPO_IMPORT`) — é a mesma lição do
+   `PALAVRAS_DE_APARELHO` do Jarvis: "machine" casa com dezenas de
+   exercícios, a maioria de perna, e punha toda máquina em Pernas. Sem
+   sinal nenhum a linha sai marcada **⚠ confira o grupo**, em vez de chutar
+   calado — o grupo decide o mapa muscular, as séries da semana e o
+   "parou de treinar".
+4. **A data não pode andar um dia.** `new Date("2026-03-14")` é meia-noite
+   em UTC, que no Brasil é dia 13 às 21h: o treino muda de dia sozinho. As
+   partes são montadas à mão, na hora local.
+5. **É CSV de verdade** (`lerCsv`, RFC 4180): nome de exercício com vírgula
+   dentro de aspas desloca TODAS as colunas da linha num `split(",")`.
+   `numeroCsv` separa "82,5" (oitenta e dois e meio) de "1,234.5" (mil
+   duzentos e trinta e quatro e meio).
+6. **Reimportar não duplica**: o id do treino sai do conteúdo
+   (`idDeImportacao`, `imp-…`), então o mesmo arquivo chega com os mesmos
+   ids das duas vezes.
+7. **Dá para desfazer**, e por isso não há aviso de "não tem volta": aviso
+   não conserta dado nenhum. O desfazer usa **o que aquela importação
+   acrescentou**, e não o que o arquivo continha — achado no navegador:
+   com dois arquivos que se cruzam, desfazer o segundo levava junto os
+   treinos do primeiro.
+
+Coberto por `teste-importar.js` (80 checagens).
 
 ## Evolução por exercício (`EvolucaoExercicio`)
 
@@ -3092,7 +3212,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 24 suítes (951 checagens)
+node testes/rodar.js      # as 28 suítes (1.115 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

@@ -36,6 +36,9 @@ const SUITES = [
   ["teste-recursos", "o que este aparelho suporta, e o que se perde sem cada coisa"],
   ["teste-espelho", "o modo espelho: o sentido, os nomes dos lados e a seta"],
   ["teste-ano", "o mapa dos 12 meses: dia treinado, a regua da pessoa e a sequencia"],
+  ["teste-esquecidos", "o musculo que voce parou de treinar, na regua do seu ritmo"],
+  ["teste-fotos", "o antes e depois: o tempo entre as fotos e o peso de cada uma"],
+  ["teste-importar", "trazer o historico do Strong, Hevy e FitNotes"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");

@@ -16,6 +16,75 @@
 
 ---
 
+## 2026-10-21c — Traga seus treinos de outro app, veja o antes e depois, e o músculo que você largou
+
+**Em uma frase:** três coisas novas — importar o histórico do Strong, do
+Hevy ou do FitNotes; comparar duas fotos de progresso com a divisória
+correndo entre elas; e descobrir qual músculo você parou de treinar.
+
+**O que mudou**
+
+*1. 📄 Vim de outro app (⚙ Ajustes)*
+- Já treinava com o **Strong**, o **Hevy** ou o **FitNotes**? Exporte o
+  arquivo CSV lá e traga para cá: os treinos entram no seu histórico com
+  data, peso e repetições.
+- **Por que importa:** recorde, evolução, sugestão de carga e nível saem
+  todos do histórico. Sem trazer, o app começa do zero com quem já tem anos
+  de treino.
+- Antes de entrar, o app mostra o que vai entrar: quantos treinos, de quando
+  a quando, e quais exercícios ele não conhece (esses viram exercícios seus,
+  com o nome original — você só confere o grupo muscular).
+- Se o arquivo não disser se o peso está em **quilos ou libras**, ele
+  pergunta. 225 libras são 102 quilos, e ler errado inventaria um recorde.
+- **Dá para desfazer** com um toque, e importar o mesmo arquivo duas vezes
+  não duplica nada.
+
+*2. ⇆ Antes e depois (Histórico › Corpo)*
+- Com duas fotos de progresso ou mais, um botão novo põe as duas uma sobre a
+  outra, com uma divisória que você arrasta para comparar.
+- Embaixo, o que faz a comparação valer: **quanto tempo passou** entre as
+  duas e **quanto a balança mudou** nesse meio-tempo.
+- Dá para escolher quais duas fotos comparar.
+
+*3. 💤 Esquecidos (Histórico › Números)*
+- O cartão de músculos ganhou um segundo modo. O primeiro mostra **para onde
+  o esforço foi**; o novo mostra **o que ficou de fora**.
+- **A régua é a sua.** Cada grupo é comparado com o intervalo em que *você*
+  costuma voltar nele — quem treina 6× por semana e quem treina 2× têm
+  "normal" diferente, e uma tabela fixa erraria com os dois.
+- Toque num grupo e a lista de exercícios dele abre.
+
+**Por que importa para quem treina:** importar tira o maior motivo para não
+trocar de app — perder o histórico. O antes e depois é onde o esforço de
+meses finalmente aparece. E "esquecidos" responde a pergunta que ninguém
+faz sozinho: qual músculo sumiu da rotina sem você perceber.
+
+**Como usar**
+- **Importar:** ⚙ Ajustes → role até *Vim de outro app* → **📄 Escolher o
+  arquivo CSV**. No Strong: Perfil → ⚙ → Export Workouts. No Hevy: Perfil →
+  ⚙ → Export & Import Data. No FitNotes: Menu → Export → CSV.
+- **Antes e depois:** Histórico → **📏 Corpo** → **⇆ Antes e depois**.
+- **Esquecidos:** Histórico → **📊 Números** → cartão *Músculos* → **💤
+  Esquecidos**.
+
+**Ideias de vídeo**
+- "Mudei de app e não perdi nada": exportar do Strong no celular e importar
+  aqui, mostrando os treinos entrando no histórico.
+- "6 meses de diferença": arrastar a divisória no antes e depois, com o peso
+  aparecendo embaixo.
+- "Qual músculo você largou?": abrir Esquecidos e mostrar o grupo marcado.
+
+**Não prometer**
+- A importação lê o **CSV** desses apps. Arquivo de backup (que não é CSV)
+  não serve, e os apps mudam o formato de vez em quando.
+- Exercício que não está no catálogo daqui vira exercício seu, mas **sem
+  figura e sem os passos** — o nome e os números vêm, o resto não.
+- O antes e depois compara fotos que **você** tirou: o app não edita, não
+  alinha e não corrige nada na imagem.
+- "Esquecidos" é um guia pela sua própria rotina, não prescrição de treino.
+
+---
+
 ## 2026-10-21b — O ano inteiro numa tela, e um app que parece mais sério
 
 **Em uma frase:** um mapa dos últimos 12 meses mostra, de relance, se você é

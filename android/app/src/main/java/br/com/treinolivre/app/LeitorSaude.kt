@@ -6,6 +6,8 @@ import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.DistanceRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
+import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
@@ -40,6 +42,8 @@ object LeitorSaude {
         HealthPermission.getReadPermission(SleepSessionRecord::class),
         HealthPermission.getReadPermission(WeightRecord::class),
         HealthPermission.getReadPermission(ExerciseSessionRecord::class),
+        HealthPermission.getReadPermission(OxygenSaturationRecord::class),
+        HealthPermission.getReadPermission(HeartRateVariabilityRmssdRecord::class),
     )
     val ESCRITA = setOf(HealthPermission.getWritePermission(ExerciseSessionRecord::class))
     val TODAS = LEITURA + ESCRITA
@@ -212,6 +216,26 @@ object LeitorSaude {
             } catch (e: Exception) { }
         }
         saida.put("repouso", repouso)
+
+        // oxigenação e VFC: o que o relógio e o anel medem à noite
+        val spo2 = JSONArray()
+        if (tem(HealthPermission.getReadPermission(OxygenSaturationRecord::class))) {
+            try {
+                client.readRecords(ReadRecordsRequest(OxygenSaturationRecord::class, janela, ascendingOrder = false, pageSize = 120)).records.forEach {
+                    spo2.put(JSONObject().put("t", it.time.toEpochMilli()).put("pct", it.percentage.value))
+                }
+            } catch (e: Exception) { }
+        }
+        saida.put("spo2", spo2)
+        val vfc = JSONArray()
+        if (tem(HealthPermission.getReadPermission(HeartRateVariabilityRmssdRecord::class))) {
+            try {
+                client.readRecords(ReadRecordsRequest(HeartRateVariabilityRmssdRecord::class, janela, ascendingOrder = false, pageSize = 120)).records.forEach {
+                    vfc.put(JSONObject().put("t", it.time.toEpochMilli()).put("ms", it.heartRateVariabilityMillis))
+                }
+            } catch (e: Exception) { }
+        }
+        saida.put("vfc", vfc)
 
         val atividades = JSONArray()
         if (tem(HealthPermission.getReadPermission(ExerciseSessionRecord::class))) {

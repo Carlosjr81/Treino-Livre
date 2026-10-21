@@ -1967,6 +1967,9 @@ function lerPacoteSaude(texto, decodificar) {
       .filter((s) => s.ini && s.fim && s.fim > s.ini && s.fim - s.ini < 24 * 3600000).slice(-60),
     peso: lista(p.peso).map((x) => ({ t: t(x && x.t), kg: num(x && x.kg, 20, 400) })).filter((x) => x.t && x.kg).slice(-120),
     repouso: lista(p.repouso).map((x) => ({ t: t(x && x.t), bpm: num(x && x.bpm, 25, 150) })).filter((x) => x.t && x.bpm).slice(-120),
+    // oxigenação (%) e variabilidade da frequência cardíaca (RMSSD, ms): o que relógio e anel medem à noite
+    spo2: lista(p.spo2).map((x) => ({ t: t(x && x.t), pct: num(x && x.pct, 70, 100) })).filter((x) => x.t && x.pct).slice(-120),
+    vfc: lista(p.vfc).map((x) => ({ t: t(x && x.t), ms: num(x && x.ms, 5, 300) })).filter((x) => x.t && x.ms).slice(-120),
     atividades: lista(p.atividades).map((a) => ({
       ini: t(a && a.ini), fim: t(a && a.fim), tipo: txt(a && a.tipo, 20), nome: txt(a && a.nome, 60), app: txt(a && a.app, 80),
     })).filter((a) => a.ini && a.fim && a.fim > a.ini).slice(-60),
@@ -2044,8 +2047,20 @@ function resumoSaude(s, agora) {
     mediaSono: comSono.length ? Math.round(comSono.reduce((a, x) => a + x.min, 0) / comSono.length) : null,
     peso: ultPeso ? { kg: ultPeso.kg, t: ultPeso.t, dif: pesoAntes ? Math.round((ultPeso.kg - pesoAntes.kg) * 10) / 10 : null } : null,
     repouso: rep.length ? rep[rep.length - 1].bpm : null,
+    spo2: ultimaEMedia(s.spo2, "pct", agora),
+    vfc: ultimaEMedia(s.vfc, "ms", agora),
     atividades: (s.atividades || []).slice().sort((a, b) => b.ini - a.ini).slice(0, 6),
   };
+}
+
+// A leitura mais nova e a média dos últimos 7 dias. Uma leitura solta diz
+// pouco: a VFC muda de um dia para o outro, e o que importa é a tendência.
+function ultimaEMedia(lista, campo, agora) {
+  const l = (lista || []).slice().sort((a, b) => a.t - b.t);
+  if (!l.length) return null;
+  const sem = l.filter((x) => agora - x.t < 7 * 86400000);
+  const med = sem.length ? sem.reduce((a, x) => a + x[campo], 0) / sem.length : null;
+  return { ultima: Math.round(l[l.length - 1][campo]), t: l[l.length - 1].t, media: med === null ? null : Math.round(med) };
 }
 
 // O tipo de atividade que o Health Connect entende, a partir do treino
@@ -22778,6 +22793,23 @@ function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCar
                 {r.repouso && <div>{numero(r.repouso, "bpm")}<div style={{ fontSize: 12, color: "var(--cinza)" }}>em repouso</div></div>}
                 {r.fcSemana && <div>{numero(r.fcSemana, "bpm")}<div style={{ fontSize: 12, color: "var(--cinza)" }}>média da semana</div></div>}
               </div>
+            </div>
+          )}
+
+          {(r.spo2 || r.vfc) && (
+            <div style={cartao}>
+              {titulo("🫁 Oxigenação e recuperação")}
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                {r.spo2 && <div>{numero(r.spo2.ultima, "%")}<div style={{ fontSize: 12, color: "var(--cinza)" }}>oxigênio no sangue{r.spo2.media ? " · média " + r.spo2.media + "%" : ""}</div></div>}
+                {r.vfc && <div>{numero(r.vfc.ultima, "ms")}<div style={{ fontSize: 12, color: "var(--cinza)" }}>VFC{r.vfc.media ? " · média da semana " + r.vfc.media + " ms" : ""}</div></div>}
+              </div>
+              {r.vfc && r.vfc.media && (
+                <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>
+                  {r.vfc.ultima < r.vfc.media * 0.85
+                    ? "VFC bem abaixo da sua média: o corpo ainda está se recuperando. Dia bom para um treino mais leve."
+                    : "A VFC (variabilidade do batimento) sobe quando o corpo está recuperado. Compare com a sua média, não com a de outra pessoa."}
+                </div>
+              )}
             </div>
           )}
 

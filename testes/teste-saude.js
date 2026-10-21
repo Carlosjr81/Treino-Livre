@@ -43,6 +43,8 @@ const pac = H.lerPacoteSaude(link({
   sono: [{ ini: AGORA - 15 * 3600000, fim: AGORA - 8 * 3600000 }, { ini: AGORA, fim: AGORA - 1 }],
   peso: [{ t: AGORA - 40 * DIA, kg: 84 }, { t: AGORA - DIA, kg: 81.5 }, { t: AGORA, kg: 5000 }],
   repouso: [{ t: AGORA - DIA, bpm: 58 }],
+  spo2: [{ t: AGORA - 2 * DIA, pct: 95 }, { t: AGORA - DIA, pct: 97 }, { t: AGORA, pct: 40 }],
+  vfc: [{ t: AGORA - 20 * DIA, ms: 90 }, { t: AGORA - 2 * DIA, ms: 60 }, { t: AGORA - DIA, ms: 40 }],
   atividades: [{ ini: AGORA - 5 * 3600000, fim: AGORA - 4 * 3600000, tipo: "corrida", nome: "Corrida", app: "com.sec.android.app.shealth", lixo: "<script>" }],
   enviados: ["t1"],
   fcTreinos: [{ id: "t2", medio: 128, max: 166, amostras: 300 }, { id: "t3", medio: 0, max: 0 }],
@@ -74,6 +76,8 @@ teste("a noite conta no dia em que a pessoa acordou: 7 h", 420, r.ultimaNoite);
 teste("peso: o último, e a diferença de um mês atrás", { kg: 81.5, dif: -2.5 }, { kg: r.peso.kg, dif: r.peso.dif });
 teste("batimento de hoje", { med: 70, min: 55, max: 120 }, r.fcHoje);
 teste("repouso", 58, r.repouso);
+teste("oxigenação impossível fica de fora; a última e a média", { ultima: 97, t: AGORA - DIA, media: 96 }, r.spo2);
+teste("VFC: a média é só da semana", { ultima: 40, t: AGORA - DIA, media: 50 }, r.vfc);
 teste("sem leitura nenhuma, sem resumo", null, H.resumoSaude(null, AGORA));
 const soPeso = H.resumoSaude({ dias: [], peso: [{ t: AGORA, kg: 80 }] }, AGORA);
 teste("um peso só: sem diferença inventada", null, soPeso.peso.dif);

@@ -20,7 +20,7 @@ class PrivacidadeActivity : ComponentActivity() {
             text = """
 Treino Livre — o que acontece com os seus dados de saúde
 
-O que o app lê no Health Connect: passos, distância, calorias em atividade, frequência cardíaca (inclusive em repouso), sono, peso e as atividades gravadas por outros apps, dos últimos 30 dias (peso: 120 dias).
+O que o app lê no Health Connect: passos, distância, calorias em atividade, frequência cardíaca (inclusive em repouso e a variabilidade), oxigenação do sangue, sono, peso e as atividades gravadas por outros apps, dos últimos 30 dias (peso: 120 dias).
 
 Para quê: mostrar esses números na aba Saúde, usar o seu peso na conta de calorias do treino e pôr no histórico o batimento que o relógio gravou durante cada treino.
 

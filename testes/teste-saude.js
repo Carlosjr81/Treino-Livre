@@ -7,7 +7,8 @@ function pedaco(de, ate) {
   if (i < 0 || f < 0) { console.error("nao achei: " + de); process.exit(1); }
   return html.slice(i, f);
 }
-eval(pedaco("// ---- SAÚDE: o que vem do Health Connect", "// ---- fim da saúde") +
+const PACOTE_ANDROID = "br.com.treinolivre.app", LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk";
+eval(pedaco("// ---- SAÚDE: o que vem do Health Connect", "// ---- fim da saúde").replace(/^const (LINK_APK|PACOTE_ANDROID) .*$/gm, "") +
   "\nglobalThis.H = { semRepetir, lerPacoteSaude, juntarSaude, resumoSaude, treinosParaSaude, batimentoNosTreinos, b64UrlParaPadrao, padraoParaB64Url, diaLocal };");
 
 let ok = 0, mal = 0;
@@ -112,6 +113,15 @@ teste("o treino sem batimento ganha o do relógio", { medio: 121, max: 150, amos
 teste("o treino que já tinha batimento fica com o dele", 130, b.historico[2].bpm.medio);
 teste("conta quantos mudaram", 1, b.mudou);
 teste("nada a mudar: a mesma lista (sem regravar)", true, H.batimentoNosTreinos(hist, []).historico === hist);
+
+console.log("\n--- os óculos Meta ---");
+eval(pedaco("// ---- ÓCULOS META", "// ---- fim dos óculos").replace(/^const /gm, "var ") + "\nglobalThis.O = { novaChaveOculos, linkOculos, enderecoOculos, ESTADOS_OCULOS };");
+const ch = O.novaChaveOculos();
+teste("a chave: 24 letras hexadecimais, sorteada a cada vez", [true, false], [/^[0-9a-f]{24}$/.test(ch), ch === O.novaChaveOculos()]);
+teste("o link abre o app pelo esquema treinolivre://oculos, com a chave", true, O.linkOculos(ch).startsWith("intent://oculos?k=" + ch + "#Intent;scheme=treinolivre;package=br.com.treinolivre.app;"));
+teste("sem o app, o Chrome baixa o APK", true, O.linkOculos(ch).includes("S.browser_fallback_url=" + encodeURIComponent("https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk")));
+teste("o quadro vem só do próprio aparelho (127.0.0.1)", "http://127.0.0.1:47890/quadro.jpg?k=" + ch, O.enderecoOculos("/quadro.jpg", ch));
+teste("todo estado que o app manda tem frase", true, ["iniciando", "registrando", "permissao", "procurando", "conectando", "transmitindo", "sem-oculos", "sem-permissao", "erro"].every((e) => !!O.ESTADOS_OCULOS[e]));
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

@@ -16,6 +16,45 @@
 
 ---
 
+## 2026-10-21h — Óculos Ray-Ban Meta como câmera do Eyes Scan (teste)
+
+**Em uma frase:** no Android, o Eyes Scan ganhou o botão **👓**: a contagem de
+repetições pode usar a câmera dos óculos Ray-Ban Meta, olhando para o espelho da
+academia.
+
+**O que mudou**
+- No Eyes Scan, o botão **👓** troca a câmera do celular pela câmera dos óculos.
+- Com o **🪞 espelho** ligado e você olhando para o espelho, os óculos enxergam o
+  seu corpo inteiro, e a contagem, a postura e o resto funcionam como sempre.
+- Também serve para o personal: ele de óculos, olhando o aluno.
+- A conexão com os óculos é feita pelo app Android do Treino Livre (APK).
+
+**Por que importa para quem treina:** não precisa achar onde apoiar o celular.
+Basta o espelho que toda academia tem.
+
+**Como usar**
+1. No app **Meta AI**, ligue o **modo de desenvolvedor**.
+2. Abra o Treino Livre pelo ícone do app Android, comece o treino e abra o Eyes Scan.
+3. Toque em **👓**, confirme o Treino Livre no app Meta AI (só na primeira vez) e
+   toque em **Permitir** se o Chrome perguntar sobre "outros apps e serviços deste
+   aparelho".
+4. Olhe para o espelho, ligue o **🪞** e treine.
+
+**Ideias de vídeo**
+- "Meus óculos contam minhas repetições": agachamento de frente para o espelho,
+  com o número subindo na tela do celular no banco.
+- Personal de óculos contando a série do aluno.
+
+**Não prometer**
+- **É um recurso em teste:** ainda não foi experimentado com os óculos de verdade.
+- Precisa de Android 10 ou mais novo, do app Android do Treino Livre, do app Meta
+  AI com o modo de desenvolvedor ligado e dos óculos Ray-Ban Meta. Não funciona no
+  iPhone.
+- Sem espelho, os óculos não veem o próprio corpo de quem os usa.
+- A imagem aparece em preto e branco.
+
+---
+
 ## 2026-10-21g — Uma caminhada é uma caminhada
 
 **Em uma frase:** na aba ❤ Saúde, a caminhada que o Samsung Health e o Google

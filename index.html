@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-21g";
+const VERSAO_APP = "2026-10-21h";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2163,7 +2163,7 @@ function enderecoOculos(caminho, chave) {
   return "http://127.0.0.1:" + PORTA_OCULOS + caminho + "?k=" + encodeURIComponent(chave);
 }
 const ESTADOS_OCULOS = {
-  iniciando: "Ligando a conexão com os óculos…",
+  iniciando: "Ligando a conexão com os óculos… Se o Chrome perguntar se o site pode acessar outros apps e serviços deste aparelho, toque em Permitir: é assim que a imagem sai do app Treino Livre e chega aqui.",
   registrando: "Confirme o Treino Livre no app Meta AI e volte para cá.",
   permissao: "Libere a câmera dos óculos para o Treino Livre no app Meta AI.",
   procurando: "Procurando os óculos. Eles precisam estar ligados, no rosto e conectados ao app Meta AI.",
@@ -7863,7 +7863,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         {EH_ANDROID && (
           <button onClick={fant.agir(ligarOculos)} aria-pressed={oculos}
             aria-label={oculos ? "Voltar para a câmera do celular" : "Usar a câmera dos óculos Meta"}
-            style={{ ...fant.estilo, position: "absolute", top: "calc(110px + env(safe-area-inset-top))", right: 12,
+            style={{ ...fant.estilo, position: "absolute", top: "calc(260px + env(safe-area-inset-top))", right: 12,
               height: 42, minWidth: 42, borderRadius: 21, border: "none",
               background: oculos ? "rgba(124,255,60,0.85)" : "rgba(0,0,0,0.55)",
               color: oculos ? "#0B2400" : "#FFFFFF", fontSize: oculos ? 13 : 18, fontWeight: 900,

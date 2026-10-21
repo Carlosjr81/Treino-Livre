@@ -156,7 +156,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.166 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.171 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v83) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v84) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2667,6 +2667,53 @@ volta para o site no meio de um treino em andamento (ele continua lá).
 **Não validado**: VFC (o relógio dele não mandou nenhuma). Coberto por
 `teste-saude.js` só o lado do site (o pacote, o resumo, o batimento nos treinos).
 
+## Os óculos Ray-Ban Meta no Eyes Scan (👓, app Android)
+
+Pedido do dono: usar a câmera dos óculos no Eyes Scan. **A câmera dos óculos
+vê o que a pessoa vê, não a pessoa** — sozinha, ela não enxerga joelho,
+quadril nem postura de quem os usa. O que faz valer é o **espelho da
+academia**: olhando para ele, os óculos veem o corpo inteiro, e o modo 🪞 do
+scanner já sabe ler o reflexo. Serve também para o personal ver o aluno.
+
+**O caminho** (nada passa por servidor):
+1. O 👓 do scanner (só no Android) sorteia uma chave (`novaChaveOculos`) e
+   chama `treinolivre://oculos?k=<chave>` (`linkOculos`). Precisa de toque: o
+   Chrome não abre outro app sem gesto. Sem o APK, o Chrome baixa o APK.
+2. `OculosActivity` pede o Bluetooth do Android, registra o Treino Livre no
+   app **Meta AI** (`Wearables.startRegistration`, uma vez) e a câmera dos
+   óculos (`Wearables.RequestPermissionContract`), e passa ao `OculosService`.
+   A tela some e o scanner volta para a frente, esperando.
+3. `OculosService` (serviço em primeiro plano, `connectedDevice`) abre a
+   sessão (`Wearables.createSession(AutoDeviceSelector())`), a câmera
+   (`addCamera`, 504×896 a 15 quadros) e serve o quadro mais novo em
+   **`http://127.0.0.1:47890/quadro.jpg?k=<chave>`**. Sem a chave, 403; o CORS
+   é só do site do Treino Livre. Para sozinho quando ninguém pede quadro por
+   20 s (o scanner fechou) ou pelo "Parar" da notificação.
+4. A página (`abrirFluxoOculos`) desenha cada quadro num canvas e faz dele um
+   vídeo (`captureStream`). **Para o resto do Eyes Scan é uma câmera como
+   outra qualquer**: contagem, calibração, postura, espelho e enquadramento não
+   sabem de onde a imagem veio. Fechar o scanner manda `/parar`.
+
+**Decisões que parecem estranhas:**
+- **A imagem vai em tons de cinza.** A Meta não documenta o arranjo de cor do
+  quadro decodificado; o plano de luminância (Y) vem primeiro em qualquer um
+  deles. O reconhecimento do corpo não precisa de cor.
+- **O kit roda em modo de desenvolvedor**: `APPLICATION_ID` e `CLIENT_TOKEN`
+  "0" no manifesto, e a pessoa liga o modo de desenvolvedor no app Meta AI.
+  Publicar para todo mundo exige registrar o app no Wearables Developer Center,
+  e a Meta diz que a câmera ainda não vale para publicação em produção.
+- **O Chrome pede a permissão de rede local** ("acessar outros apps e serviços
+  deste aparelho") na primeira vez: é o 127.0.0.1. A tela de espera avisa.
+- **O app Android passou a exigir Android 10** (`minSdk 29`), o mínimo do kit
+  da Meta. Quem tem Android 8 ou 9 continua com tudo pelo navegador.
+
+**Testado só no navegador**, com óculos de mentira (um servidor local que
+manda quadros): os quadros viram o vídeo do scanner, o ✕ fecha e manda
+`/parar`, e nada mais é pedido depois. O teste não pode usar o `intent://`
+de verdade: no Chromium de computador ele abre uma janela que trava os
+cliques. **Nada do lado nativo dos óculos foi visto num aparelho.**
+`teste-saude.js` cobre a chave, o link e o endereço.
+
 ## Foto do aparelho (exercício do usuário)
 
 Academia tem três máquinas de remada que não estão em catálogo nenhum, e o
@@ -3321,7 +3368,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 29 suítes (1.166 checagens)
+node testes/rodar.js      # as 29 suítes (1.171 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

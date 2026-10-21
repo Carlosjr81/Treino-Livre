@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-21g**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-21h**.
 
 ---
 
@@ -143,6 +143,9 @@ quebrando a tela) como linguagem visual em vídeos.
   também grava lá os treinos feitos no app. O batimento que o relógio mediu durante um treino entra no histórico
   dele. Na mesma aba, **batimento ao vivo** com cinta ou relógio que transmite (Garmin, Polar, Coros, Amazfit,
   Xiaomi, Huawei). No iPhone, a aba mostra os números do próprio app.
+- **👓 Óculos Ray-Ban Meta no Eyes Scan (Android, em teste):** o botão 👓 do scanner usa a câmera dos óculos;
+  olhando para o espelho da academia (com o 🪞 ligado), os óculos veem o corpo inteiro e contam as repetições.
+  Precisa do app Android do Treino Livre e do modo de desenvolvedor ligado no app Meta AI. Imagem em preto e branco.
 - **Ordem das fichas:** dentro de cada treino, ▲ ▼ mudam a ordem das fichas; a tela inicial segue essa
   ordem para sugerir o treino do dia.
 - Fechou o app no meio do treino? **Nada se perde** — ao abrir, o treino continua de onde parou.

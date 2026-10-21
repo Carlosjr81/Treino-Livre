@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.widget.Toast
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsCallback
 import androidx.browser.customtabs.CustomTabsClient
@@ -33,19 +34,31 @@ object Canal {
     @Volatile var aoMensagem: ((String) -> Unit)? = null
     private var conexao: CustomTabsServiceConnection? = null
     private val principal = Handler(Looper.getMainLooper())
+    @Volatile private var contexto: Context? = null
+    // Avisos curtos enquanto o canal é montado: é o diagnóstico no celular.
+    private fun aviso(msg: String) {
+        val c = contexto ?: return
+        principal.post { Toast.makeText(c, "Canal: " + msg, Toast.LENGTH_SHORT).show() }
+    }
 
     private val retorno = object : CustomTabsCallback() {
         override fun onNavigationEvent(navigationEvent: Int, extras: Bundle?) {
             // a cada página carregada, um canal novo (a página velha levou o dela)
             if (navigationEvent != NAVIGATION_FINISHED) return
             pronto = false
-            try { sessao?.requestPostMessageChannel(ORIGEM, ORIGEM, Bundle()) } catch (e: Exception) { }
+            val ok = try { sessao?.requestPostMessageChannel(ORIGEM, ORIGEM, Bundle()) ?: false } catch (e: Exception) { false }
+            if (!ok) aviso("o Chrome recusou o pedido do canal")
+        }
+
+        override fun onRelationshipValidationResult(relation: Int, requestedOrigin: Uri, result: Boolean, extras: Bundle?) {
+            if (!result) aviso("o Chrome ainda não confirmou o app como do site (pode levar até 1 h)")
         }
 
         override fun onMessageChannelReady(extras: Bundle?) {
             pronto = true
             // a primeira mensagem entrega a porta à página
-            try { sessao?.postMessage("ola", null) } catch (e: Exception) { }
+            val r = try { sessao?.postMessage("ola", null) ?: -1 } catch (e: Exception) { -1 }
+            aviso(if (r == CustomTabsService.RESULT_SUCCESS) "ligado ✓" else "aberto, mas a página não recebeu ($r)")
         }
 
         override fun onPostMessage(message: String, extras: Bundle?) {
@@ -62,10 +75,11 @@ object Canal {
     // Abre o site com a sessão do canal. Devolve false se não deu para tentar
     // (aí quem chamou usa o caminho antigo).
     fun abrir(activity: Activity, pacote: String, uri: Uri, cores: CustomTabColorSchemeParams, depois: () -> Unit, senao: () -> Unit): Boolean {
+        contexto = activity.applicationContext
         val pronta = sessao
         if (pronta != null) { lancar(activity, pronta, uri, cores, depois, senao); return true }
         var resolvido = false
-        val desistir = Runnable { if (!resolvido) { resolvido = true; senao() } }
+        val desistir = Runnable { if (!resolvido) { resolvido = true; aviso("o Chrome demorou; abrindo sem o canal"); senao() } }
         val conn = object : CustomTabsServiceConnection() {
             override fun onCustomTabsServiceConnected(name: ComponentName, client: CustomTabsClient) {
                 if (resolvido) return

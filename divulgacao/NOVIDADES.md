@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-10-21k — Óculos: o canal aceita o app antes da confirmação do Chrome
+
+**Em uma frase:** ajuste no caminho da imagem dos óculos até o Eyes Scan, com mais
+pistas na tela quando ele não liga.
+
+**O que mudou**
+- A página passou a aceitar o canal do app mesmo antes de o Chrome terminar de
+  confirmar que o app é do mesmo dono do site (isso pode levar até uma hora).
+- Ao abrir o app, avisos rápidos dizem como está o canal ("Canal: ligado ✓" ou o
+  motivo).
+- O diagnóstico do scanner diz se o Treino Livre foi aberto pelo app e quantas
+  mensagens do app chegaram.
+
+**Por que importa para quem treina:** é o ajuste para a imagem dos óculos chegar à
+tela.
+
+**Como usar:** atualize o APK, feche o Treino Livre de vez (tire dos recentes) e
+abra pelo ícone. Veja o aviso "Canal: …" e depois toque em 👓 no Eyes Scan.
+
+**Ideias de vídeo:** ainda não.
+
+**Não prometer:** os óculos no Eyes Scan continuam em teste.
+
+---
+
 ## 2026-10-21j — Óculos: a imagem por um caminho novo
 
 **Em uma frase:** a imagem dos óculos Ray-Ban Meta agora chega ao Eyes Scan por

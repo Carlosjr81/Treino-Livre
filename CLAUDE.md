@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v86) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v87) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2739,6 +2739,14 @@ Chrome barra o 127.0.0.1 **sem perguntar**. Por isso a imagem passou a ir pelo
 - **O ouvido do canal fica no primeiro script** (`CANAL_APP`), a única
   exceção ao "só dados ali": a porta chega quando a página termina de
   carregar, antes de o Babel acabar de compilar o app, e se perderia.
+- **A origem da mensagem não é confiável como filtro.** Enquanto a validação
+  do `use_as_origin` não chega ao aparelho (o Chrome guarda o assetlinks por
+  até uma hora), a mensagem do app vem com a origem vazia, "null" ou
+  `android-app://`. O primeiro filtro (só a origem do site) descartava a porta
+  calado: no celular do dono, "Canal do app: não" com os óculos bipando. Hoje
+  vale também a mensagem "ola" e as origens do app, o diagnóstico conta as
+  mensagens vistas e de onde vieram, e o app avisa (Toast) cada etapa do
+  canal: recusado, não confirmado, demorou, ligado.
 - Protocolo: app → página `Q:<jpeg em base64>` (no máximo ~12 por segundo, a
   câmera em 360×640) e `E:<estado>`; página → app `vivo` a cada 5 s e
   `parar` ao fechar o scanner. O 127.0.0.1 continua como reserva.

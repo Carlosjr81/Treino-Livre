@@ -293,9 +293,15 @@
    O app (Canal.kt) entrega uma porta de mensagens logo que a página termina de
    carregar — antes de o Babel acabar de compilar o app. Escutando só no
    segundo script, a porta se perderia. Por ela chega a imagem dos óculos. */
-var CANAL_APP = { porta: null, ouvintes: [] };
+var CANAL_APP = { porta: null, ouvintes: [], vistos: 0, origem: "" };
 window.addEventListener("message", function (e) {
-  if (e.origin && e.origin !== location.origin) return;
+  CANAL_APP.vistos++;
+  CANAL_APP.origem = String(e.origin);
+  // O Chrome identifica o app pela origem validada no assetlinks — mas,
+  // enquanto a validação não chega ao aparelho, a origem vem diferente (vazia,
+  // "null" ou android-app://). A porta do app é a que chega com "ola".
+  var doApp = e.origin === location.origin || e.data === "ola" || !e.origin || e.origin === "null" || String(e.origin).indexOf("android-app://") === 0;
+  if (!doApp) return;
   var receber = function (dado) {
     CANAL_APP.ouvintes.forEach(function (f) { try { f(dado); } catch (x) {} });
   };
@@ -649,7 +655,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-21j";
+const VERSAO_APP = "2026-10-21k";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2210,7 +2216,7 @@ function abrirFluxoOculos(chave, aoEstado) {
   const diag = { tentativas: 0, respostas: 0, erro: "", estado: "" };
   const contar = (e) => { if (e && e !== ultimoEstado) { ultimoEstado = e; if (aoEstado) aoEstado(e, quadros); } };
   // 1º caminho: o canal do TWA (sem rede). Os quadros chegam como "Q:<base64>".
-  const viaCanal = typeof CANAL_APP !== "undefined" && CANAL_APP.porta;
+  const viaCanal = typeof CANAL_APP !== "undefined" && !!CANAL_APP.porta;
   let ouvinte = null, batida = null;
   if (viaCanal) {
     diag.estado = "canal do app";
@@ -8128,7 +8134,9 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
                 <div style={{ marginTop: 14, fontSize: 12, color: "rgba(255,255,255,0.75)", lineHeight: 1.55, textAlign: "left",
                   background: "rgba(255,255,255,0.08)", borderRadius: 10, padding: "8px 10px" }}>
                   <b>Diagnóstico</b><br />
-                  Canal do app: {oculosDiag.canal ? "ligado ✓" : "não (abra o Treino Livre pelo ícone do app)"}<br />
+                  Canal do app: {oculosDiag.canal ? "ligado ✓" : "não (abra o Treino Livre pelo ícone do app)"}
+                  {typeof CANAL_APP !== "undefined" ? " · mensagens vistas: " + CANAL_APP.vistos + (CANAL_APP.origem ? " (de " + CANAL_APP.origem + ")" : "") : ""}<br />
+                  Aberto pelo app: {NO_APP_ANDROID ? "sim" : "não"}<br />
                   App Treino Livre respondeu: {oculosDiag.respostas ? "sim (" + oculosDiag.respostas + "×) · " + oculosDiag.estado : "ainda não (" + oculosDiag.tentativas + " tentativas)"}<br />
                   {oculosDiag.erro ? <span>Último erro: {oculosDiag.erro}<br /></span> : null}
                   Permissão de rede local do Chrome: {({ granted: "permitida", denied: "NEGADA — libere no cadeado/⋮ → Permissões do site", prompt: "ainda não perguntada" })[oculosDiag.perm] || "o navegador não informa"}

@@ -217,7 +217,7 @@ projeto foi publicado até aqui.
 node testes/rodar.js
 ```
 
-As 22 suítes, 894 checagens. Prova que a **lógica** não quebrou. Rode antes e
+As 29 suítes, 1.165 checagens. Prova que a **lógica** não quebrou. Rode antes e
 depois de mexer no app.
 
 ```bash
@@ -255,5 +255,5 @@ O **`CLAUDE.md`** é a memória do projeto: por que não há etapa de build, com
 funcionam o Jarvis e o Eyes Scan, as regras da portaria, o roteiro de teste
 manual. O Claude o lê sozinho ao abrir esta pasta — você não precisa pedir.
 
-O **`testes/LEIA-ME.md`** explica as 22 suítes e as armadilhas de mexer
+O **`testes/LEIA-ME.md`** explica as 29 suítes e as armadilhas de mexer
 nelas.

@@ -16,6 +16,78 @@
 
 ---
 
+## 2026-10-21d — Saúde do Samsung Health, Google Fit, relógio e anel; ordem e cópia de exercícios
+
+**Em uma frase:** no Android, o Treino Livre ganhou um app que traz para a nova aba
+**❤ Saúde** os seus passos, sono, batimento e peso do Samsung Health, do Google Fit,
+do relógio e do anel — e as fichas ganharam **↕ Ordem** (mudar a ordem dos
+exercícios) e **📋 Copiar** (mandar exercícios escolhidos para outra ficha).
+
+**O que mudou**
+- **Aba ❤ Saúde** (Histórico → ❤ Saúde), no estilo dos apps de saúde:
+  - passos do dia com anel da meta (8.000) e a semana em barras;
+  - batimento médio, mínimo, máximo e em repouso;
+  - sono da última noite e da semana;
+  - peso, com quanto mudou em um mês;
+  - oxigênio no sangue (SpO2) e variabilidade do batimento (VFC), com um aviso
+    quando a VFC está bem abaixo da sua média (dia de treino mais leve);
+  - as atividades gravadas em outros apps (corrida no Samsung Health, caminhada no
+    Google Fit...).
+- **App Android do Treino Livre** (arquivo APK). É o mesmo app, com os mesmos
+  treinos, mas ele consegue ler o **Health Connect**, onde o Samsung Health, o
+  Google Fit, os relógios e os anéis guardam tudo.
+  - Cada vez que você abre o app, ele lê de novo sozinho.
+  - Os treinos feitos no Treino Livre vão para o Health Connect, e aparecem também no
+    Samsung Health e no Google Fit.
+  - **O batimento que o relógio gravou durante o seu treino** entra no histórico do
+    treino, mesmo sem cinta.
+- **Batimento ao vivo** na aba Saúde: conecte uma cinta ou um relógio que transmite
+  o batimento (Garmin, Polar, Coros, Amazfit, Xiaomi, Huawei).
+- **↕ Ordem**: em Fichas, cada ficha tem o botão **↕ Ordem**. A lista vira uma
+  linha por exercício, com setas grandes, ou toque no número e escolha a posição.
+  No editor da ficha, o mesmo botão: **↕ Mudar a ordem**.
+- **📋 Copiar exercícios para outra ficha**: no editor da ficha, toque em **📋 Copiar**,
+  marque os exercícios (ou "Marcar todos"), escolha a ficha de destino — de qualquer
+  treino — ou **+ Criar uma ficha nova**, e confirme. A ficha de origem continua igual.
+  O que o destino já tem não entra repetido, e o app diz quais ficaram de fora.
+
+**Por que importa para quem treina:** o treino deixa de ser uma ilha. O que o
+relógio mede no dia todo — passos, sono, batimento — fica ao lado do que você
+levanta, e o batimento do relógio passa a contar no histórico do treino.
+
+**Como usar**
+- **Saúde (Android):** Histórico → ❤ Saúde → **Baixar o app Android (APK)** →
+  abra o arquivo e permita instalar → abra o Treino Livre pelo ícone novo →
+  Histórico → ❤ Saúde → **🔄 Sincronizar** → **Permitir tudo**.
+- **No Samsung Health:** Configurações → Health Connect → ligue a sincronização.
+- **Ordem:** Fichas → Abrir fichas → **↕ Ordem** na ficha → ▲ ▼ ou o número →
+  **💾 Salvar a ordem**.
+- **Copiar:** Fichas → Abrir fichas → Editar → **📋 Copiar** → marque → escolha a
+  ficha → **📋 Copiar N exercícios**.
+
+**Ideias de vídeo**
+- "Meu Samsung Health dentro do app de treino": abrir a aba Saúde e mostrar os
+  passos, o sono e o batimento do relógio.
+- "O relógio mediu, o treino guardou": treinar só com o relógio no pulso e mostrar
+  o batimento aparecendo no histórico depois de sincronizar.
+- "Reorganizei minha ficha em 5 segundos": levar o último exercício para o topo
+  tocando no número.
+- "Montei a ficha nova sem digitar nada": copiar o bloco de perna da ficha A
+  para uma ficha nova.
+
+**Não prometer**
+- **iPhone:** o app Saúde da Apple **não** é lido (a Apple não deixa sites lerem).
+  No iPhone tudo o mais continua igual, pelo navegador.
+- O app Android **não está na Play Store**: é um arquivo (APK) instalado à mão.
+- O Samsung Health só aparece se a sincronização com o Health Connect estiver
+  ligada nele.
+- Os números do Health Connect **não são ao vivo**: chegam quando o app do
+  relógio sincroniza. Ao vivo, só o batimento de cinta ou relógio que transmite.
+- Galaxy Watch e anéis (Galaxy Ring, Oura) **não** transmitem batimento ao vivo:
+  os dados deles chegam pelo Health Connect.
+
+---
+
 ## 2026-10-21c — Traga seus treinos de outro app, veja o antes e depois, e o músculo que você largou
 
 **Em uma frase:** três coisas novas — importar o histórico do Strong, do

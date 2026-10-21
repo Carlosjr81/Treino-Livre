@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-18e**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-21d**.
 
 ---
 
@@ -133,6 +133,16 @@ quebrando a tela) como linguagem visual em vídeos.
   nome (**✎ dar nome**, no topo do treino), e o nome vale para o treino no histórico e para a ficha.
 - **📂 Levar para outro treino:** qualquer ficha pode ser **copiada** ou **movida** para outro treino
   (o Avançado, outro seu, ou um treino novo criado na hora, com o nome que você escolher).
+- **↕ Ordem dos exercícios:** cada ficha tem o botão **↕ Ordem** (e o editor, **↕ Mudar a ordem**): setas
+  grandes ou o número da posição, e **💾 Salvar a ordem**.
+- **📋 Copiar exercícios:** no editor da ficha, marcar exercícios e copiá-los para outra ficha (de qualquer
+  treino) ou para uma ficha nova; a origem não muda e o que o destino já tem não entra repetido.
+- **❤ Saúde (Histórico → ❤ Saúde):** passos com anel da meta, batimento, sono, peso e atividades de outros
+  apps, oxigênio (SpO2) e VFC, no estilo dos apps de saúde. No **Android**, vem do Samsung Health, do Google Fit, dos relógios e anéis,
+  pelo **app Android do Treino Livre** (APK, fora da Play Store), que lê o Health Connect toda vez que abre e
+  também grava lá os treinos feitos no app. O batimento que o relógio mediu durante um treino entra no histórico
+  dele. Na mesma aba, **batimento ao vivo** com cinta ou relógio que transmite (Garmin, Polar, Coros, Amazfit,
+  Xiaomi, Huawei). No iPhone, a aba mostra os números do próprio app.
 - **Ordem das fichas:** dentro de cada treino, ▲ ▼ mudam a ordem das fichas; a tela inicial segue essa
   ordem para sugerir o treino do dia.
 - Fechou o app no meio do treino? **Nada se perde** — ao abrir, o treino continua de onde parou.
@@ -345,11 +355,14 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 ---
 
 ## 4. O que NÃO prometer (importante)
-- ❌ Não lê Google Fit, Apple Saúde/Health, Samsung Health nem anéis inteligentes.
+- ❌ Não lê o Apple Saúde/Health no iPhone. Samsung Health, Google Fit, relógios e anéis: **só no Android, com o
+  app Android** (APK) e a sincronização deles com o Health Connect ligada. Não é ao vivo (chega quando o app do
+  relógio sincroniza).
 - ❌ Não grava GPS com a tela bloqueada (é um app de navegador: a tela precisa ficar ligada; existe o modo bolso).
 - ❌ Não é avaliação física nem prescrição médica; a correção de postura é um "parceiro atento", não um profissional.
 - ❌ Não existe conta, nuvem ou sincronização entre aparelhos (o backup é por arquivo).
-- ❌ Não está nas lojas (Play Store / App Store): instala-se pelo navegador ("Adicionar à tela inicial").
+- ❌ Não está nas lojas (Play Store / App Store): instala-se pelo navegador ("Adicionar à tela inicial") ou, no
+  Android, pelo APK baixado na aba ❤ Saúde.
 - ❌ Não prometa emagrecimento ou ganho de massa garantidos.
 - ⚠️ A voz (Jarvis) funciona melhor no Chrome; no iPhone o reconhecimento de voz é mais irregular.
 - ❌ A conexão com esteira, bike, elíptico, escada e remo **não funciona no iPhone** (a Apple não libera

@@ -94,11 +94,13 @@ GitHub e a cópia do Google Drive.
 ```
 Treino-Livre/
 ├── index.html, sw.js, manifest.json, versao.json, ícones   ← o app publicado
+├── privacidade.html     ← a política (exigida pelo Health Connect)
+├── android/             ← o app Android: a porta para o Health Connect (ver *O app Android*)
 ├── CLAUDE.md            ← este arquivo: o contexto do projeto
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
 ├── divulgacao/          ← o que o ChatGPT do dono lê para criar vídeos: o guia e o NOVIDADES
-└── testes/              ← as 28 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 29 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -154,7 +156,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.115 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.165 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -229,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v79) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v80) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2564,13 +2566,91 @@ sensores de braço. E, pelo mesmo caminho, a esteira que expõe o `0x1826`
 sem servidor. A pessoa escolhe o dispositivo na janela do próprio navegador.
 O batimento aparece no treino e a média e o máximo entram no registro (`bpm`).
 
-**Não funciona, e não é limitação do aparelho:** ler o Google Fit, o Health
-Connect ou o Apple Health. São APIs de sistema operacional, só alcançáveis por
-um aplicativo instalado pela loja. A API REST do Google Fit, que permitiria
-algo parecido, foi descontinuada pelo próprio Google. Anéis inteligentes, no
-geral, também não expõem o serviço padrão — guardam os dados para o app da
-marca. **Não prometa isso na interface.** O caminho real seria empacotar o PWA
-num aplicativo nativo (TWA + Health Connect no Android), que é outro projeto.
+**Pelo site, não funciona:** ler o Google Fit, o Health Connect ou o Apple
+Health. São APIs de sistema operacional. **No Android, o app Android faz isso**
+(ver *O app Android e o Health Connect*). No iPhone continua impossível: a
+Apple não abre o Apple Saúde para site nenhum, e não há app nativo para iOS.
+
+Os relógios que **transmitem** o batimento (Garmin, Polar, Coros, Amazfit,
+Xiaomi, Huawei, cada um com o seu "transmitir FC" nos ajustes) conectam pelo
+mesmo 0x180D da cinta e dão o número ao vivo. O Galaxy Watch e os anéis
+(Galaxy Ring, Oura) não transmitem: os números deles chegam pelo Health
+Connect, depois que o app da marca sincroniza.
+
+## O app Android e o Health Connect (pasta `android/`, aba ❤ Saúde)
+
+Pedido do dono: usar os dados do Samsung Health, do Google Fit, do relógio e
+do anel. Todos depositam no **Health Connect**, a central de saúde do Android,
+e só um app instalado lê de lá. Então existe um APK — e ele **é o próprio
+site**, aberto no Chrome em tela cheia (Trusted Web Activity), com uma parte
+nativa pequena que só fala com o Health Connect.
+
+**Por que TWA e não WebView**, e não mude isso sem pesar os três:
+1. **Os dados de quem já usa estão no Chrome.** O TWA abre no Chrome (forçado
+   em `Site.kt`, mesmo com outro navegador padrão) e enxerga o mesmo
+   `localStorage`. Uma WebView começaria vazia: todo mundo perderia o histórico.
+2. **Bluetooth da esteira e da cinta e o reconhecimento de voz** só existem no
+   Chrome. A WebView não tem Web Bluetooth.
+3. **O site continua sendo o app.** Publicar o `index.html` atualiza o app
+   instalado; o APK só muda quando a parte nativa muda.
+
+**O caminho dos dados** (sem servidor nenhum, como o resto):
+- **Ida**: o botão 🔄 Sincronizar chama `intent://saude?d=…#Intent;scheme=treinolivre;package=br.com.treinolivre.app`.
+  O `d` leva os treinos dos últimos 30 dias que ainda têm o que fazer lá
+  (`treinosParaSaude`): ser gravados (`g`) ou buscar o batimento do relógio.
+  **Tem de ser um toque**: o Chrome não abre outro app sem gesto.
+- **Lá**: `SaudeActivity` pede a permissão (só na primeira vez), grava os
+  treinos como `ExerciseSessionRecord` (`clientRecordId` = "treinolivre-" + id:
+  mandar de novo substitui, não duplica) e `LeitorSaude.ler` junta 30 dias
+  por dia (passos, distância, kcal ativas, batimento), sono, peso (120 dias),
+  repouso, oxigenação (SpO2), VFC, atividades dos outros apps e o batimento **dentro da janela de cada
+  treino** (`fcTreinos`). Cada parte só roda com a sua permissão.
+- **Volta**: abre o site com `?app=android#saude=<base64url>`, numa tarefa
+  nova (`CLEAR_TASK`): a página recarrega e lê o hash, como `#ficha=`.
+  `lerPacoteSaude` confere campo a campo (é dado vindo de link);
+  `juntarSaude` guarda em `saude` (persistido, **fora do backup**: é cópia);
+  `batimentoNosTreinos` põe o batimento do relógio nos treinos **sem** `bpm`
+  — o medido ao vivo (cinta, esteira) vale mais.
+- **Ao abrir pelo ícone** (`AberturaActivity`): com a leitura já permitida,
+  passa no Health Connect antes de abrir o site (no máximo 4 s, e no máximo uma
+  vez a cada 10 min) e manda o pacote com `s: 1` (`silencioso`): sem aviso e
+  sem trocar de aba. Só roda com o app fechado: aberto, o ícone traz a tarefa
+  de volta e o treino em andamento não recarrega.
+- **Erros voltam pelo mesmo link** (`erro`: `indisponivel`, `atualizar`,
+  `sem-permissao`, `falhou`), e o site diz o que fazer (`ERROS_SAUDE`). Um
+  erro não apaga o que já estava na tela.
+
+**A tela** (`TelaSaude`, Histórico › ❤ Saúde): no app, Sincronizar e a hora
+da última leitura; Android sem o app, o link do APK com os três passos;
+iPhone e computador, a explicação. Depois o batimento ao vivo (a cinta ou o
+relógio que transmite), passos com anel e barras da semana (meta 8.000,
+`META_PASSOS`), frequência cardíaca, sono (barras com a linha de 7 h), peso,
+as atividades dos outros apps (`nomeAppSaude`) e os números do próprio Treino
+Livre, que valem em qualquer aparelho. **O peso do Health Connect entra no
+`pesoCorporal`** quando é mais novo que a última pesagem daqui.
+
+**O APK é montado pelo GitHub Actions** (`.github/workflows/android.yml`) a
+cada push que mexe em `android/`, e só o do `main` vira versão (Release)
+— é ela que `LINK_APK` baixa (`releases/latest/download/treino-livre.apk`).
+**A sessão na nuvem não monta o APK**: `dl.google.com` (onde ficam o Android
+SDK e as bibliotecas do Google) está fora da lista de rede dela. Compilar é
+pelo Actions, e os erros se leem no log do job.
+
+**A chave do APK.** Sem o segredo `ANDROID_KEYSTORE_B64` (o `.jks` em
+base64) e `ANDROID_KEYSTORE_PASS` no repositório, o Actions gera uma chave e
+a guarda no cache, que some depois de 7 dias sem uso. Chave nova obriga a
+desinstalar o app antes de instalar a versão nova (os treinos ficam no
+Chrome e não se perdem; as permissões do Health Connect sim). Para fixar:
+`keytool -genkeypair -keystore treinolivre.jks -alias treinolivre -keyalg RSA -validity 10000`,
+e o `base64` dele em Settings › Secrets › Actions. **Nunca suba o `.jks`.**
+
+**A barra de endereço.** Sem o `assetlinks.json` na raiz do domínio
+(`carlosjr81.github.io/.well-known/`, que é outro repositório), o Chrome
+mostra uma barra fina com o endereço no topo do app. Funciona igual; tirar a
+barra exige criar o repositório `carlosjr81.github.io` com esse arquivo.
+
+**O que não está validado em aparelho**: tudo do lado nativo. Coberto por
+`teste-saude.js` só o lado do site (o pacote, o resumo, o batimento nos treinos).
 
 ## Foto do aparelho (exercício do usuário)
 
@@ -3073,6 +3153,7 @@ aqui**; o lugar do resto é:
 - **Histórico › Números** — nível, meta, conquistas, story, desafio, séries da
   semana por grupo, e os gráficos.
 - **Histórico › Corpo** — medidas e fotos de progresso.
+- **Histórico › ❤ Saúde** — o Health Connect (app Android) e o batimento ao vivo.
 - **Ajustes** (engrenagem no cabeçalho) — tema, som, descanso padrão, meta,
   lembrete, backup e créditos. Os ajustes finos do Jarvis (como ouve, fone,
   jeito de falar, voz, velocidade, barra) ficam fechados atrás de "⚙ Ajustes da
@@ -3183,6 +3264,19 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   tela inicial, e a tela diz isso. A troca é com a vizinha do **mesmo**
   programa — a vizinha na lista inteira pode ser de outro treino, e a seta não
   faria nada visível. As fichas ganharam número (1., 2., 3.).
+- **↕ Ordem dos exercícios** (`moverPara`, `limparConjuntos`, coberto por
+  `teste-ficha.js`). Pedido do dono: as setas pequenas no meio dos cartões do
+  editor ninguém achava. Hoje há **↕ Ordem** em cada ficha da lista e **↕ Mudar
+  a ordem** no editor: a lista vira uma linha por exercício, com ▲ ▼ grandes e
+  a posição para escolher (o último vai ao topo num toque). Bi-set que ficou
+  sem vizinho perde a marca.
+- **📋 Copiar exercícios para outra ficha** (`copiarItensPara`, coberto por
+  `teste-ficha.js`). No editor, **📋 Copiar** marca exercícios e os manda para
+  o fim de outra ficha (de qualquer treino) ou de uma nova no mesmo treino. Cada
+  cópia ganha uid e bi-set próprios; bi-set com só um lado marcado vira solto; o
+  exercício que o destino já tem não entra de novo, e o aviso diz quais. O
+  `salvarTreino` virou funcional: copiar e depois salvar a ficha aberta não pode
+  desfazer a cópia.
 - **⇄ Trocar no editor de ficha**: o exercício novo entra no mesmo lugar, com
   as séries, repetições, descanso e bi-set do antigo; sem busca, a lista
   mostra o mesmo grupo. Antes era tirar e acrescentar, e o novo ia para o fim.
@@ -3212,7 +3306,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 28 suítes (1.115 checagens)
+node testes/rodar.js      # as 29 suítes (1.165 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

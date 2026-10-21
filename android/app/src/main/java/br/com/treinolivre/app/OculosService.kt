@@ -69,7 +69,7 @@ class OculosService : Service() {
     companion object {
         const val PORTA = 47890
         private const val CANAL = "oculos"
-        private const val PARAR = "br.com.treinolivre.app.OCULOS_PARAR"
+        const val PARAR = "br.com.treinolivre.app.OCULOS_PARAR"
         private const val ORIGEM = "https://carlosjr81.github.io"
 
         fun ligar(contexto: Context, chave: String) {
@@ -128,7 +128,7 @@ class OculosService : Service() {
         Oculos.ultimoPedido = System.currentTimeMillis()
         if (!rodando) {
             rodando = true
-            Toast.makeText(applicationContext, "Óculos: serviço ligado. Voltando ao Eyes Scan…", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "Óculos: serviço ligado", Toast.LENGTH_SHORT).show()
             abrirServidor()
             escopo.launch {
                 try { conectar() } catch (e: Exception) {

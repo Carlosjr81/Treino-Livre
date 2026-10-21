@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-10-21l — Óculos: o Eyes Scan abre dentro do app
+
+**Em uma frase:** ao tocar em 👓, o app Treino Livre abre o Eyes Scan numa tela
+dele, com a imagem dos óculos chegando direto, e devolve a série contada ao treino.
+
+**O que mudou**
+- O Chrome barrava a imagem dos óculos a caminho da página. Agora a contagem pelos
+  óculos acontece numa tela do próprio app, sem passar pelo Chrome.
+- Ao tocar em **Registrar série**, o app volta ao treino com a série anotada, o
+  descanso começa e a confirmação aparece, como no Eyes Scan de sempre.
+
+**Por que importa para quem treina:** é o caminho que não depende do navegador.
+
+**Como usar:** atualize o APK → abra o Treino Livre pelo ícone → treino → Eyes Scan
+→ **👓**. Olhe para o espelho, conte a série e toque em **Registrar série**.
+
+**Ideias de vídeo:** ainda não — esperar o teste com os óculos.
+
+**Não prometer**
+- Continua em teste.
+- Na tela dos óculos não há contagem falada (só o bipe).
+
+---
+
 ## 2026-10-21k — Óculos: o canal aceita o app antes da confirmação do Chrome
 
 **Em uma frase:** ajuste no caminho da imagem dos óculos até o Eyes Scan, com mais

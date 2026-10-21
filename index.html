@@ -655,7 +655,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-21k";
+const VERSAO_APP = "2026-10-21l";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2177,9 +2177,31 @@ function novaChaveOculos() {
 }
 // Ligar passa pelo app (o Chrome só abre outro app depois de um toque);
 // sem o app instalado, o Chrome baixa o APK.
-function linkOculos(chave) {
-  return "intent://oculos?k=" + encodeURIComponent(chave) + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID +
+// Os dados da série vão junto (`extra`): a tela dos óculos roda no app, num
+// navegador próprio, sem os treinos guardados — ela só precisa saber o que contar.
+function linkOculos(chave, extra) {
+  let q = "k=" + encodeURIComponent(chave);
+  Object.keys(extra || {}).forEach((c) => {
+    const v = extra[c];
+    if (v !== undefined && v !== null && v !== "") q += "&" + c + "=" + encodeURIComponent(String(v));
+  });
+  return "intent://oculos?" + q + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID +
     ";S.browser_fallback_url=" + encodeURIComponent(LINK_APK) + ";end";
+}
+// A tela dos óculos: o app Android abre esta página num navegador dele
+// (WebView, OculosActivity) com ?modo=oculos. Ali a imagem chega pela ponte
+// `OculosNativo`, direto do app — o Chrome barrava os dois caminhos entre o app
+// e a página aberta nele (a rede local e o canal de mensagens). A série volta
+// para o treino no link (#oculosSerie=), como a saúde volta por #saude=.
+const MODO_OCULOS = typeof location !== "undefined" && /[?&]modo=oculos\b/.test(location.search);
+function lerSerieOculos(texto, decodificar) {
+  try {
+    const p = JSON.parse(decodificar(b64UrlParaPadrao(texto)));
+    const reps = parseInt(p && p.reps, 10);
+    if (!(reps > 0 && reps < 1000)) return null;
+    const peso = p.peso === "" || p.peso == null ? "" : String(p.peso).slice(0, 8);
+    return { reps: reps, peso: /^\d+([.,]\d+)?$/.test(peso) ? peso.replace(",", ".") : "", em: Date.now() };
+  } catch (e) { return null; }
 }
 function enderecoOculos(caminho, chave) {
   return "http://127.0.0.1:" + PORTA_OCULOS + caminho + "?k=" + encodeURIComponent(chave);
@@ -2215,6 +2237,40 @@ function abrirFluxoOculos(chave, aoEstado) {
   // o diagnóstico da espera: o app respondeu? qual foi o último erro?
   const diag = { tentativas: 0, respostas: 0, erro: "", estado: "" };
   const contar = (e) => { if (e && e !== ultimoEstado) { ultimoEstado = e; if (aoEstado) aoEstado(e, quadros); } };
+  // Caminho 0: dentro do app (modo óculos), a ponte entrega o quadro direto.
+  const ponte = typeof window !== "undefined" && window.OculosNativo;
+  if (ponte) {
+    diag.estado = "ponte do app";
+    const desenhar = async () => {
+      while (vivo) {
+        try {
+          const est = ponte.estado ? String(ponte.estado()) : "";
+          if (est) contar(est);
+          const b64 = String(ponte.quadro() || "");
+          if (b64) {
+            diag.respostas++;
+            const bin = atob(b64);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            const img = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" }));
+            if (cv.width !== img.width || cv.height !== img.height) { cv.width = img.width; cv.height = img.height; }
+            ctx.drawImage(img, 0, 0);
+            if (img.close) img.close();
+            quadros++;
+            if (quadros === 1 && aoEstado) aoEstado("transmitindo", quadros);
+          }
+        } catch (e) { diag.erro = (e && e.message) || String(e); }
+        await new Promise((ok) => setTimeout(ok, 66));
+      }
+    };
+    desenhar();
+    return {
+      fluxo: fluxo,
+      recebeu: () => quadros > 0,
+      diag: () => ({ ...diag, quadros: quadros, canal: true }),
+      parar: () => { vivo = false; fluxo.getTracks().forEach((t) => t.stop()); },
+    };
+  }
   // 1º caminho: o canal do TWA (sem rede). Os quadros chegam como "Q:<base64>".
   const viaCanal = typeof CANAL_APP !== "undefined" && !!CANAL_APP.porta;
   let ouvinte = null, batida = null;
@@ -7388,7 +7444,7 @@ function usarFantasma(ativo, ms) {
 
 function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, serieTotal, som, bpm,
   vozCfg, contarAlto, onAlternarContagem, autoSerie, onAlternarAuto, onEspelho,
-  livre, exPorId, onGuardarLivre, onRegistrar, onFechar }) {
+  livre, exPorId, onGuardarLivre, onRegistrar, onFechar, fonteOculos }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fluxoRef = useRef(null);
@@ -7405,7 +7461,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const [frente, setFrente] = useState(false);
   // 👓 A câmera dos óculos Meta (app Android). A chave é sorteada a cada
   // ligada: é o que impede outro site ou app de ver a imagem.
-  const [oculos, setOculos] = useState(false);
+  const [oculos, setOculos] = useState(!!fonteOculos);
   const [oculosEstado, setOculosEstado] = useState("");
   const chaveOculosRef = useRef("");
   const oculosFluxoRef = useRef(null);
@@ -7431,14 +7487,18 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     setTentativaOculos((n) => n + 1);
     try { window.location.href = linkOculos(chave); } catch (e) {}
   };
+  // O 👓 entrega a série ao app: ele abre a tela dos óculos (modo óculos) e
+  // devolve a série contada ao treino. O scanner daqui fecha.
   const ligarOculos = () => {
-    if (oculos) { setOculos(false); return; }
+    if (fonteOculos) return;
     const chave = novaChaveOculos();
-    chaveOculosRef.current = chave;
-    setOculosEstado("iniciando");
-    setFrente(false);
-    setOculos(true);
-    try { window.location.href = linkOculos(chave); } catch (e) {}
+    const extra = {
+      ex: ex && ex.id, nome: ex && ex.nome, grupo: ex && ex.grupo, func: ex && ex.func,
+      reps: repsAlvo, peso: pesoRef.current, serie: serieNum, total: serieTotal,
+      esp: espelhoRef.current ? 1 : 0, contar: contarAlto === false ? 0 : 1, auto: autoSerie === false ? 0 : 1,
+    };
+    try { window.location.href = linkOculos(chave, extra); } catch (e) {}
+    if (onFechar) setTimeout(onFechar, 300);
   };
   // O espelho fica guardado junto da contagem em voz alta: quem treina no
   // espelho treina sempre no espelho, e reativar a cada série cansa.
@@ -7950,7 +8010,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         {/* Enquanto enquadra, este botão ganha nome: com a câmera de trás a pessoa
             não vê a tela, e trocar para a da frente é o que permite ver as setas.
             Escondido atrás de um ícone, ninguém achava. */}
-        {EH_ANDROID && (
+        {EH_ANDROID && !fonteOculos && (
           <button onClick={fant.agir(ligarOculos)} aria-pressed={oculos}
             aria-label={oculos ? "Voltar para a câmera do celular" : "Usar a câmera dos óculos Meta"}
             style={{ ...fant.estilo, position: "absolute", top: "calc(260px + env(safe-area-inset-top))", right: 12,
@@ -7961,14 +8021,14 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
             {oculos ? "👓 óculos" : "👓"}
           </button>
         )}
-        <button onClick={fant.agir(() => { setOculos(false); setFrente((f) => !f); })}
+        {!fonteOculos && <button onClick={fant.agir(() => { setOculos(false); setFrente((f) => !f); })}
           aria-label={frente ? "Usar a câmera de trás" : "Usar a câmera da frente"}
           style={{ ...fant.estilo, position: "absolute", top: "calc(60px + env(safe-area-inset-top))", right: 12,
             height: 42, borderRadius: 21, border: "none", background: "rgba(0,0,0,0.55)",
             color: "#FFFFFF", fontSize: enquadrado ? 17 : 13, fontWeight: 800,
             padding: enquadrado ? 0 : "0 14px", width: enquadrado ? 42 : "auto", cursor: "pointer" }}>
           {enquadrado ? "⟲" : (frente ? "⟲ câmera de trás" : "⟲ câmera da frente")}
-        </button>
+        </button>}
 
         {/* Dito uma vez, enquanto a pessoa se posiciona: sem isso ninguém
             descobre que o botão do espelho existe, e o modo serve justamente
@@ -21362,6 +21422,17 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
 
   // O scanner conta; quem grava é o mesmo anotarPorVoz de sempre. A contagem
   // entra como repetições da série da vez, com o peso que estiver na barra.
+  // A série contada pelos óculos chega pela volta do app (#oculosSerie=):
+  // entra como se o scanner daqui a tivesse registrado.
+  const registrarRef = useRef(null);
+  useEffect(() => {
+    let pend = null;
+    try { pend = JSON.parse(localStorage.getItem("treinolivre:oculosSerie") || "null"); } catch (e) {}
+    if (!pend) return;
+    try { localStorage.removeItem("treinolivre:oculosSerie"); } catch (e) {}
+    if (Date.now() - (pend.em || 0) > 10 * 60000) return;
+    setTimeout(() => { if (registrarRef.current) registrarRef.current(pend.reps, pend.peso); }, 400);
+  }, []);
   const registrarDoScanner = (repsContadas, pesoDito) => {
     const r = anotarPorVoz({
       tipo: "anotar",
@@ -21373,6 +21444,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     if (r && responderVoz) responderVoz(r.fala, r.ok);
     return r;
   };
+  registrarRef.current = registrarDoScanner;
 
   const executarVoz = (c) => {
     const itens = sessao.itens;
@@ -23254,6 +23326,40 @@ function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCar
 }
 // ---- fim da tela de saúde
 
+// A tela que o app Android abre para contar pelos óculos (?modo=oculos).
+// Só o scanner: sem portaria, sem abertura, sem treinos — ele nem tem acesso a
+// eles (é outro navegador). Registrar devolve a série ao app pela ponte.
+function TelaOculosNativa() {
+  const p = new URLSearchParams(location.search);
+  const id = p.get("ex") || "";
+  const doCatalogo = EXERCICIOS.find((e) => e.id === id);
+  const ex = doCatalogo || { id: id || "oculos", nome: p.get("nome") || "Exercício", grupo: p.get("grupo") || "", func: p.get("func") || undefined };
+  const [contar, setContar] = useState(p.get("contar") !== "0");
+  const [auto, setAuto] = useState(p.get("auto") !== "0");
+  const ponte = window.OculosNativo;
+  useEffect(() => {
+    try { document.documentElement.setAttribute("data-tema", "escuro"); } catch (e) {}
+  }, []);
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000", color: "#FFFFFF", fontFamily: S.app.fontFamily }}>
+      <ScannerEyes aberto ex={ex} repsAlvo={p.get("reps") || ""} pesoAtual={p.get("peso") || ""}
+        pesoCorporal={null} bpm={null} som={true}
+        serieNum={parseInt(p.get("serie"), 10) || 1} serieTotal={parseInt(p.get("total"), 10) || 1}
+        vozCfg={{ falar: true, animado: true, espelho: p.get("esp") === "1" }}
+        contarAlto={contar} onAlternarContagem={() => setContar((c) => !c)}
+        autoSerie={auto} onAlternarAuto={() => setAuto((a) => !a)} onEspelho={() => {}}
+        fonteOculos
+        onRegistrar={(reps, peso) => { if (ponte) ponte.registrar(JSON.stringify({ reps: reps, peso: peso })); }}
+        onFechar={() => { if (ponte) ponte.fechar(); }} />
+      {!ponte && (
+        <div style={{ position: "absolute", left: 16, right: 16, top: 80, color: "#FFFFFF", textAlign: "center" }}>
+          Esta tela é aberta pelo app Android do Treino Livre, no 👓 do Eyes Scan.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVirarFicha, pedirConfirmacao,
   medidas, onSalvarMedida, onExcluirMedida, avisar,
   fotos, onAdicionarFoto, onExcluirFoto,
@@ -24224,13 +24330,22 @@ function TreinoLivre() {
       const mA = hash.match(/#atalho=([a-z]+)/);
       const mC = hash.match(/#corrida=([^&]+)/);
       const mS = hash.match(/#saude=([^&]+)/);
-      if (mF || mP || mD || mA || mC || mS) {
+      const mO = hash.match(/#oculosSerie=([^&]+)/);
+      if (mF || mP || mD || mA || mC || mS || mO) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e2) {}
       }
       // Atalhos do ícone do app na tela inicial (definidos no manifest.json)
       if (mA && !ss) {
         if (mA[1] === "historico") setAba("historico");
         else if (mA[1] === "livre") setTimeout(() => iniciarTreinoLivre(), 0);
+      }
+      // A volta da tela dos óculos: a série contada vai para o treino aberto
+      if (mO) {
+        const serie = lerSerieOculos(mO[1], b64Decodificar);
+        if (serie && ss) {
+          try { localStorage.setItem("treinolivre:oculosSerie", JSON.stringify(serie)); } catch (e) {}
+          setAba("sessao");
+        }
       }
       // A volta do app Android, com o que ele leu do Health Connect
       if (mS) {
@@ -25856,7 +25971,7 @@ function TreinoLivre() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<TreinoLivre />);
+ReactDOM.createRoot(document.getElementById("root")).render(MODO_OCULOS ? <TelaOculosNativa /> : <TreinoLivre />);
 
 // Modo offline: depois da primeira visita, o app abre mesmo sem internet.
 // (localhost entra na lista para dar pra testar o modo offline antes de publicar)

@@ -11,6 +11,10 @@
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowCloseOnTouchOutside">false</item>
     </style>
+    <!-- A tela dos óculos: tela cheia, preta, o Eyes Scan dentro do app -->
+    <style name="Tema.Oculos" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
     <style name="Tema.Privacidade" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowBackground">@android:color/white</item>
     </style>

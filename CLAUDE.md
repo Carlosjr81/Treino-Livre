@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v87) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v88) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2753,6 +2753,34 @@ Chrome barra o 127.0.0.1 **sem perguntar**. Por isso a imagem passou a ir pelo
 - Testado no navegador fingindo o app (uma `MessageChannel` entregue à
   página): os quadros viram o vídeo sem nenhum pedido de rede, e o ✕ manda
   `parar`.
+
+**E o canal também não chegou** ("mensagens vistas: 0", aberto pelo app).
+O Chrome do celular do dono não entregou nem a rede local nem o canal do
+TWA. Daí a solução que não depende do Chrome: **o Eyes Scan dos óculos roda
+dentro do app**.
+- O 👓 do site manda ao app os dados da série (`linkOculos(chave, extra)`:
+  exercício, nome, grupo, repetições, peso, série, espelho, contar alto, auto)
+  e **fecha o scanner do site**.
+- `OculosActivity`, depois das permissões, abre a mesma página num navegador
+  do próprio app (WebView) com `?modo=oculos`. O site, nesse modo
+  (`MODO_OCULOS`), desenha só `TelaOculosNativa`: o `ScannerEyes` com
+  `fonteOculos`, sem portaria, abertura nem treinos (o WebView não enxerga os
+  dados do Chrome, e não precisa).
+- O quadro passa pela ponte `window.OculosNativo` (`addJavascriptInterface`):
+  `quadro()` devolve o JPEG mais novo em base64 (vazio se não há outro),
+  `estado()`, `registrar(json)` e `fechar()`. Nenhuma rede.
+- **Registrar** volta ao app de verdade pelo link `#oculosSerie=` (como a
+  saúde volta por `#saude=`); o site guarda a série em
+  `localStorage["treinolivre:oculosSerie"]`, abre o treino, e a `TelaSessao`
+  a registra pelo mesmo `registrarDoScanner` do scanner (descanso, recorde e
+  voz incluídos). Pendência com mais de 10 min é descartada.
+- No WebView não há voz do navegador: a contagem em voz alta vira só o bipe.
+- O app avisa a página que está vivo a cada 5 s enquanto ela carrega o
+  reconhecimento (8 MB na primeira vez), senão o serviço desligaria os óculos.
+- Canal do TWA e 127.0.0.1 continuam no código, sem uso no caminho principal.
+- Testado no navegador com a ponte de mentira: a imagem chega, Registrar
+  devolve a série pela ponte, e a volta com `#oculosSerie=` marca a série,
+  começa o descanso e fala a confirmação.
 
 **Testado só no navegador**, com óculos de mentira (um servidor local que
 manda quadros): os quadros viram o vídeo do scanner, o ✕ fecha e manda

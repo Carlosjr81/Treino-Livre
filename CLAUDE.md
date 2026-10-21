@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v88) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v89) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2785,6 +2785,11 @@ dentro do app**.
   escondida atrás — "autorizei e voltou para o treino". E a resposta "negado"
   do Meta AI não é final: ele pode devolvê-la antes do toque em Permitir, então
   o app confere a permissão de novo por 15 s antes de desistir.
+- **Lento no primeiro teste.** A página pedia quadro a cada 66 ms depois de
+  desenhar o anterior, o vídeo do canvas saía a 15 por segundo e os óculos
+  mandavam 15 em JPEG 70. Hoje: pergunta a cada 25 ms (sem quadro novo a ponte
+  devolve vazio), o base64 é decodificado pelo navegador (`fetch` de um
+  `data:`), o canvas sai a 30, e os óculos mandam 24 por segundo, 360×640, JPEG 60.
 - No WebView não há voz do navegador: a contagem em voz alta vira só o bipe.
 - O app avisa a página que está vivo a cada 5 s enquanto ela carrega o
   reconhecimento (8 MB na primeira vez), senão o serviço desligaria os óculos.

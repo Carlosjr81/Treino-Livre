@@ -171,7 +171,7 @@ class OculosService : Service() {
         if (pronta == null) { Oculos.estado = "sem-oculos"; return }
 
         Oculos.estado = "conectando"
-        s.addCamera(StreamConfiguration(videoQuality = VideoQuality.LOW, frameRate = 15))
+        s.addCamera(StreamConfiguration(videoQuality = VideoQuality.LOW, frameRate = 24))
             .onSuccess { cam ->
                 camera = cam
                 escopo.launch { cam.stream.videoStream.collect { quadro -> receber(quadro) } }
@@ -208,7 +208,7 @@ class OculosService : Service() {
         val nv21 = ByteArray(w * h * 3 / 2)
         CoresYuv.paraNv21(dados, w, h, passo, arranjo, nv21)
         val saida = ByteArrayOutputStream(w * h / 4)
-        YuvImage(nv21, ImageFormat.NV21, w, h, null).compressToJpeg(Rect(0, 0, w, h), 70, saida)
+        YuvImage(nv21, ImageFormat.NV21, w, h, null).compressToJpeg(Rect(0, 0, w, h), 60, saida)
         val jpg = saida.toByteArray()
         Oculos.quadro = jpg
         // pelo canal do TWA, no máximo uns 12 quadros por segundo

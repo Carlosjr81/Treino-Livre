@@ -655,7 +655,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-21l";
+const VERSAO_APP = "2026-10-22a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2232,7 +2232,7 @@ function abrirFluxoOculos(chave, aoEstado) {
   const cv = document.createElement("canvas");
   cv.width = 504; cv.height = 896;
   const ctx = cv.getContext("2d");
-  const fluxo = cv.captureStream(15);
+  const fluxo = cv.captureStream(30);
   let vivo = true, quadros = 0, ultimoEstado = "";
   // o diagnóstico da espera: o app respondeu? qual foi o último erro?
   const diag = { tentativas: 0, respostas: 0, erro: "", estado: "" };
@@ -2249,10 +2249,9 @@ function abrirFluxoOculos(chave, aoEstado) {
           const b64 = String(ponte.quadro() || "");
           if (b64) {
             diag.respostas++;
-            const bin = atob(b64);
-            const bytes = new Uint8Array(bin.length);
-            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-            const img = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" }));
+            // o navegador decodifica o base64 por conta própria, bem mais rápido que um laço aqui
+            const blob = await (await fetch("data:image/jpeg;base64," + b64)).blob();
+            const img = await createImageBitmap(blob);
             if (cv.width !== img.width || cv.height !== img.height) { cv.width = img.width; cv.height = img.height; }
             ctx.drawImage(img, 0, 0);
             if (img.close) img.close();
@@ -2260,7 +2259,8 @@ function abrirFluxoOculos(chave, aoEstado) {
             if (quadros === 1 && aoEstado) aoEstado("transmitindo", quadros);
           }
         } catch (e) { diag.erro = (e && e.message) || String(e); }
-        await new Promise((ok) => setTimeout(ok, 66));
+        // pergunta de novo logo: sem quadro novo, a ponte devolve vazio e não custa nada
+        await new Promise((ok) => setTimeout(ok, 25));
       }
     };
     desenhar();

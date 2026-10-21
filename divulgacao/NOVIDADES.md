@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-10-22a — Óculos: imagem mais rápida e colorida
+
+**Em uma frase:** a câmera dos óculos no Eyes Scan ficou mais fluida e passou a
+mostrar a imagem colorida.
+
+**O que mudou**
+- Os óculos mandam mais quadros por segundo (24), e o app entrega cada quadro à
+  tela mais depressa.
+- A imagem dos óculos é colorida (as cores entram nos primeiros segundos).
+
+**Por que importa para quem treina:** a contagem acompanha melhor o movimento.
+
+**Como usar:** atualize o app Android (APK) e use o 👓 no Eyes Scan.
+
+**Ideias de vídeo**
+- "Meus óculos contam minhas repetições": rosca de frente para o espelho, a tela do
+  celular mostrando o esqueleto verde e o número subindo.
+
+**Não prometer:** continua em teste; na tela dos óculos não há contagem falada (só
+o bipe).
+
+---
+
 ## 2026-10-21l — Óculos: o Eyes Scan abre dentro do app
 
 **Em uma frase:** ao tocar em 👓, o app Treino Livre abre o Eyes Scan numa tela

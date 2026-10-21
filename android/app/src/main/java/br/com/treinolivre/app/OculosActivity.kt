@@ -149,6 +149,13 @@ class OculosActivity : ComponentActivity() {
     // rede local e o canal de mensagens). Aqui a página do scanner roda num
     // navegador do próprio app, e o quadro passa pela ponte `OculosNativo`.
     private var web: WebView? = null
+    private var cobertura: android.view.View? = null
+
+    private fun tirarEspera() {
+        val c = cobertura ?: return
+        cobertura = null
+        c.animate().alpha(0f).setDuration(200L).withEndAction { (c.parent as? android.view.ViewGroup)?.removeView(c) }.start()
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun abrirScanner() {
@@ -171,7 +178,28 @@ class OculosActivity : ComponentActivity() {
         w.webViewClient = WebViewClient()
         w.webChromeClient = WebChromeClient()
         w.addJavascriptInterface(Ponte(), "OculosNativo")
-        setContentView(w)
+        // A página carrega (tela de carregamento do site, vídeo vazio) por baixo
+        // de uma tela preta daqui; ela sai quando a imagem dos óculos está na
+        // tela (`pronto()`), ou em 30 s, para um erro da página ficar visível.
+        val raiz = android.widget.FrameLayout(this)
+        raiz.addView(w)
+        val espera = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setBackgroundColor(Color.BLACK)
+            addView(ProgressBar(this@OculosActivity))
+            addView(TextView(this@OculosActivity).apply {
+                text = "👓 Ligando os óculos…"
+                setTextColor(Color.WHITE)
+                textSize = 17f
+                gravity = Gravity.CENTER
+                setPadding(0, 28, 0, 0)
+            })
+        }
+        cobertura = espera
+        raiz.addView(espera)
+        setContentView(raiz)
+        android.os.Handler(mainLooper).postDelayed({ tirarEspera() }, 30_000L)
         w.loadUrl(Site.ENDERECO + "?" + q)
         // Na primeira vez, o reconhecimento (8 MB) ainda baixa antes de pedir o
         // primeiro quadro: sem isto, o serviço acharia que ninguém quer a imagem.
@@ -200,6 +228,11 @@ class OculosActivity : ComponentActivity() {
         }
 
         @JavascriptInterface fun estado(): String = Oculos.estado
+
+        // A imagem dos óculos chegou à tela da página: sai a tela de espera
+        @JavascriptInterface fun pronto() {
+            runOnUiThread { tirarEspera() }
+        }
 
         // A série contada volta ao treino, no link (#oculosSerie=)
         @JavascriptInterface fun registrar(json: String) {

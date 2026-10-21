@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-10-22d — Óculos: entrada limpa
+
+**Em uma frase:** ao ligar os óculos, aparece só "👓 Ligando os óculos…" numa tela
+preta, e em seguida a imagem.
+
+**O que mudou**
+- Antes, ao ligar os óculos, passavam a tela de carregamento, um ícone de "play"
+  grande em fundo cinza e um botão "Tentar de novo". Agora fica tudo escondido até
+  a imagem dos óculos chegar.
+
+**Por que importa para quem treina:** menos telas no meio do caminho, sem parecer
+que algo deu errado.
+
+**Como usar:** atualize o app Android (APK) e use o 👓 no Eyes Scan.
+
+**Ideias de vídeo:** junto com o vídeo dos óculos contando a série.
+
+**Não prometer:** continua em teste.
+
+---
+
 ## 2026-10-22c — Óculos: a série volta direto para o treino
 
 **Em uma frase:** ao terminar a série contada pelos óculos, o app volta para o treino

@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v91) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v92) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2798,6 +2798,13 @@ dentro do app**.
   que a série chega), e a vinheta do logo no meio do treino parecia o app
   reiniciando — relato do dono, no primeiro teste que contou as 12 certas.
   Com `#oculosSerie=` ou `#saude=` no endereço, a `Abertura` não roda.
+- **A entrada também não mostra nada do site.** Ao ligar os óculos apareciam a
+  tela de carregamento do site, o vídeo vazio (que o WebView desenha como um
+  "play" enorme em cinza) e o "Tentar de novo" do caminho antigo. Hoje o app
+  cobre a página com uma tela preta própria, "👓 Ligando os óculos…", até a
+  página chamar `OculosNativo.pronto()` (fase "pronto" do scanner) — ou 30 s.
+  O `<video>` tem um `poster` transparente, e no modo óculos o diagnóstico,
+  o "Tentar de novo" e a dica do espelho em baixo não aparecem.
 - No WebView não há voz do navegador: a contagem em voz alta vira só o bipe.
 - O app avisa a página que está vivo a cada 5 s enquanto ela carrega o
   reconhecimento (8 MB na primeira vez), senão o serviço desligaria os óculos.

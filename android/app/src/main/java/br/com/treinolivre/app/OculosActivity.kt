@@ -149,6 +149,7 @@ class OculosActivity : ComponentActivity() {
     // rede local e o canal de mensagens). Aqui a página do scanner roda num
     // navegador do próprio app, e o quadro passa pela ponte `OculosNativo`.
     private var web: WebView? = null
+    private var lancadorVolta: com.google.androidbrowserhelper.trusted.TwaLauncher? = null
     private var cobertura: android.view.View? = null
 
     private fun tirarEspera() {
@@ -160,6 +161,7 @@ class OculosActivity : ComponentActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     private fun abrirScanner() {
         if (web != null) return
+        Oculos.coresInvertidas = getSharedPreferences("oculos", MODE_PRIVATE).getBoolean("cores_invertidas", false)
         aviso("Óculos: abrindo o Eyes Scan")
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val p = intent?.data
@@ -229,6 +231,13 @@ class OculosActivity : ComponentActivity() {
 
         @JavascriptInterface fun estado(): String = Oculos.estado
 
+        // 🎨: troca as cores (U e V) e guarda a escolha para as próximas vezes
+        @JavascriptInterface fun trocarCores(): Boolean {
+            Oculos.coresInvertidas = !Oculos.coresInvertidas
+            getSharedPreferences("oculos", MODE_PRIVATE).edit().putBoolean("cores_invertidas", Oculos.coresInvertidas).apply()
+            return Oculos.coresInvertidas
+        }
+
         // A imagem dos óculos chegou à tela da página: sai a tela de espera
         @JavascriptInterface fun pronto() {
             runOnUiThread { tirarEspera() }
@@ -238,12 +247,12 @@ class OculosActivity : ComponentActivity() {
         @JavascriptInterface fun registrar(json: String) {
             runOnUiThread {
                 pararOculos()
-                startActivity(
-                    Intent(this@OculosActivity, AberturaActivity::class.java)
-                        .setData(Uri.parse(Site.ENDERECO + "?app=android#oculosSerie=" + Site.codificar(json)))
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                )
-                finish()
+                // Reabre a MESMA página do treino, com a sessão do app: para o
+                // Chrome é o mesmo endereço com outro fragmento (#oculosSerie=),
+                // e ele não recarrega. Fechar a tarefa e abrir de novo remontava
+                // o site inteiro — segundos de tela de carregamento.
+                val uri = Uri.parse(Site.ENDERECO + "?app=android#oculosSerie=" + Site.codificar(json))
+                Site.abrir(this@OculosActivity, uri, { lancadorVolta = it }) { finish() }
             }
         }
 
@@ -266,6 +275,7 @@ class OculosActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        lancadorVolta?.destroy()
         web?.destroy()
         web = null
         super.onDestroy()

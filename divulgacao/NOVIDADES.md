@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-10-22e — Óculos: a volta para o treino sem recarregar
+
+**Em uma frase:** depois da série contada pelos óculos, o treino volta na hora, sem
+tela de carregamento.
+
+**O que mudou**
+- A volta dos óculos recarregava o app inteiro, e a demora parecia travamento.
+  Agora o app só reabre a tela do treino que já estava aberta, e a série entra
+  anotada na hora.
+- As cores da imagem dos óculos podiam sair trocadas (pele azulada). O app agora
+  usa a ordem de cores padrão, e a tela dos óculos ganhou o botão **🎨 cores**: se
+  ainda sair estranho, um toque corrige, e o app guarda a escolha.
+
+**Por que importa para quem treina:** do fim da série ao descanso sem espera.
+
+**Como usar:** atualize o app Android (APK).
+
+**Ideias de vídeo:** o vídeo dos óculos contando a série, agora com a volta direta
+ao treino.
+
+**Não prometer:** continua em teste.
+
+---
+
 ## 2026-10-22d — Óculos: entrada limpa
 
 **Em uma frase:** ao ligar os óculos, aparece só "👓 Ligando os óculos…" numa tela

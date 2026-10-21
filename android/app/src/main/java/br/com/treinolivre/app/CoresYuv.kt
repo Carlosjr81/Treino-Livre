@@ -23,6 +23,13 @@ object CoresYuv {
 
     private fun b(d: ByteArray, i: Int) = d[i].toInt() and 0xFF
 
+    // Só a estrutura: em planos (I420) ou intercalado (NV12). Em planos, bytes
+    // vizinhos são vizinhos na imagem e quase iguais; intercalados, U e V se
+    // alternam e diferem mais do que os de duas casas. Isso o quadro diz com
+    // segurança. A ORDEM (U ou V primeiro) a cena não diz: no celular do dono, a
+    // regra "V acima de U" acertou num dia e trocou as cores no outro (chão
+    // cinza, tela do celular laranja na imagem). Fica U primeiro, que é o que
+    // os decodificadores de vídeo do Android entregam, e o botão 🎨 inverte.
     fun votar(d: ByteArray, w: Int, h: Int, passo: Int): Int {
         val base = passo * h
         val n = minOf(6000, d.size - base - 2)
@@ -34,24 +41,19 @@ object CoresYuv {
             d1 += abs(a - b(d, base + i + 1))
             d2 += abs(a - b(d, base + i + 2))
         }
-        if (d1 > d2 * 3 / 2 && d1 - d2 > n / 2) {
-            var par = 0L
-            var impar = 0L
-            var k = 0
-            var i = 0
-            while (i + 1 < n) { par += b(d, base + i); impar += b(d, base + i + 1); i += 2; k++ }
-            if (abs(par - impar) < k * 2L) return -1
-            return if (par > impar) NV21 else NV12
-        }
-        val cp = passo / 2
-        val plano = cp * (h / 2)
-        if (d.size < base + 2 * plano) return -1
-        val m = minOf(6000, plano)
-        var s1 = 0L
-        var s2 = 0L
-        for (i in 0 until m) { s1 += b(d, base + i); s2 += b(d, base + plano + i) }
-        if (abs(s1 - s2) < m * 2L) return -1
-        return if (s1 > s2) YV12 else I420
+        // intercalado: o vizinho é a outra cor (difere mais que o de duas casas)
+        if (d1 > d2 * 3 / 2 && d1 - d2 > n / 2) return NV12
+        // em planos: o vizinho é o pixel ao lado (difere menos que o de duas casas)
+        if (d2 > d1 * 23 / 20 && d2 - d1 > n / 8) return I420
+        return -1
+    }
+
+    fun invertido(arranjo: Int): Int = when (arranjo) {
+        I420 -> YV12
+        YV12 -> I420
+        NV12 -> NV21
+        NV21 -> NV12
+        else -> arranjo
     }
 
     // Monta o NV21 (o formato que o Android comprime em JPEG). Sem arranjo

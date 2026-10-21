@@ -655,7 +655,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-22d";
+const VERSAO_APP = "2026-10-22e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -8019,6 +8019,17 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         {/* Enquanto enquadra, este botão ganha nome: com a câmera de trás a pessoa
             não vê a tela, e trocar para a da frente é o que permite ver as setas.
             Escondido atrás de um ícone, ninguém achava. */}
+        {/* 🎨 Na tela dos óculos: a ordem das cores da câmera não é documentada,
+            e um toque troca (o app guarda a escolha). */}
+        {fonteOculos && typeof window !== "undefined" && window.OculosNativo && window.OculosNativo.trocarCores && (
+          <button onClick={fant.agir(() => { try { window.OculosNativo.trocarCores(); } catch (e) {} })}
+            aria-label="Trocar as cores da imagem dos óculos"
+            style={{ ...fant.estilo, position: "absolute", top: "calc(260px + env(safe-area-inset-top))", right: 12,
+              height: 42, borderRadius: 21, border: "none", background: "rgba(0,0,0,0.55)",
+              color: "#FFFFFF", fontSize: 13, fontWeight: 900, padding: "0 12px", cursor: "pointer" }}>
+            🎨 cores
+          </button>
+        )}
         {EH_ANDROID && !fonteOculos && (
           <button onClick={fant.agir(ligarOculos)} aria-pressed={oculos}
             aria-label={oculos ? "Voltar para a câmera do celular" : "Usar a câmera dos óculos Meta"}
@@ -21436,13 +21447,20 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // A série contada pelos óculos chega pela volta do app (#oculosSerie=):
   // entra como se o scanner daqui a tivesse registrado.
   const registrarRef = useRef(null);
+  // Na abertura da tela (volta com recarga) e no aviso do raiz (volta sem
+  // recarga, só o endereço mudando: evento "treinolivre:oculosSerie").
   useEffect(() => {
-    let pend = null;
-    try { pend = JSON.parse(localStorage.getItem("treinolivre:oculosSerie") || "null"); } catch (e) {}
-    if (!pend) return;
-    try { localStorage.removeItem("treinolivre:oculosSerie"); } catch (e) {}
-    if (Date.now() - (pend.em || 0) > 10 * 60000) return;
-    setTimeout(() => { if (registrarRef.current) registrarRef.current(pend.reps, pend.peso); }, 400);
+    const aplicar = () => {
+      let pend = null;
+      try { pend = JSON.parse(localStorage.getItem("treinolivre:oculosSerie") || "null"); } catch (e) {}
+      if (!pend) return;
+      try { localStorage.removeItem("treinolivre:oculosSerie"); } catch (e) {}
+      if (Date.now() - (pend.em || 0) > 10 * 60000) return;
+      setTimeout(() => { if (registrarRef.current) registrarRef.current(pend.reps, pend.peso); }, 400);
+    };
+    aplicar();
+    window.addEventListener("treinolivre:oculosSerie", aplicar);
+    return () => window.removeEventListener("treinolivre:oculosSerie", aplicar);
   }, []);
   const registrarDoScanner = (repsContadas, pesoDito) => {
     const r = anotarPorVoz({
@@ -24422,6 +24440,27 @@ function TreinoLivre() {
         }
       }
     } catch (e) {}
+  }, []);
+
+  // A volta dos óculos sem recarregar: o app reabre a mesma página com
+  // #oculosSerie= no endereço, e o Chrome só troca o fragmento (hashchange).
+  // Recarregar remontava o site inteiro — segundos de tela de carregamento no
+  // meio do treino, que pareciam o app travado.
+  const temSessaoRef = useRef(false);
+  temSessaoRef.current = !!sessao;
+  useEffect(() => {
+    const aoHash = () => {
+      const m = (window.location.hash || "").match(/#oculosSerie=([^&]+)/);
+      if (!m) return;
+      try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
+      const serie = lerSerieOculos(m[1], b64Decodificar);
+      if (!serie || !temSessaoRef.current) return;
+      try { localStorage.setItem("treinolivre:oculosSerie", JSON.stringify(serie)); } catch (e) {}
+      setAba("sessao");
+      setTimeout(() => { try { window.dispatchEvent(new Event("treinolivre:oculosSerie")); } catch (e) {} }, 50);
+    };
+    window.addEventListener("hashchange", aoHash);
+    return () => window.removeEventListener("hashchange", aoHash);
   }, []);
 
   // Gravação com um respiro de 400ms: durante o treino cada tecla digitada muda o

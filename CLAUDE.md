@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v92) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v93) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2695,14 +2695,15 @@ scanner já sabe ler o reflexo. Serve também para o personal ver o aluno.
    sabem de onde a imagem veio. Fechar o scanner manda `/parar`.
 
 **Decisões que parecem estranhas:**
-- **A cor é descoberta no aparelho** (`CoresYuv`). A Meta não documenta o
-  arranjo YUV do quadro decodificado, e a primeira versão mandava só o brilho
-  (Y): no primeiro teste que deu certo, a imagem saiu em preto e branco. Hoje
-  os primeiros quadros votam: intercalado ou em planos (em planos, bytes
-  vizinhos quase não diferem; intercalados, U e V se alternam) e a ordem (o V
-  costuma ficar acima do U em cena com gente e luz quente). Seis votos iguais
-  decidem; cena cinza não vota; até lá sai o brilho. A lógica foi conferida
-  numa cópia em JavaScript com os quatro arranjos (I420, YV12, NV12, NV21).
+- **A cor** (`CoresYuv`). A Meta não documenta o arranjo YUV do quadro
+  decodificado. A primeira versão mandava só o brilho (preto e branco). A
+  segunda adivinhava também a ordem (V acima de U em cena com gente) — acertou
+  num dia e, no outro, com chão cinza e a tela laranja do celular na imagem,
+  deixou a pele azul. Hoje os quadros decidem só a **estrutura** (em planos ou
+  intercalado: bytes vizinhos quase iguais ou alternando), que é medida com
+  segurança, e a ordem é **U primeiro** (o que os decodificadores do Android
+  entregam). O **🎨 cores** da tela dos óculos inverte U e V, e a escolha fica
+  guardada no aparelho (`cores_invertidas`).
 - **O kit roda em modo de desenvolvedor**: `APPLICATION_ID` e `CLIENT_TOKEN`
   "0" no manifesto, e a pessoa liga o modo de desenvolvedor no app Meta AI.
   Publicar para todo mundo exige registrar o app no Wearables Developer Center,
@@ -2794,6 +2795,14 @@ dentro do app**.
   `criarContador`). A câmera vai na cabeça: cada olhada para o lado move o
   corpo inteiro na imagem, e o `deslocando` pausava a contagem com "🎯
   Andando" (visto no celular do dono, já com a imagem colorida).
+- **A volta não recarrega a página.** Mesmo sem a vinheta, a volta fechava a
+  tarefa e abria o site de novo, e o Babel compilando o app inteiro levava
+  segundos de tela de carregamento ("achei que tinha travado"). Hoje o app
+  reabre a página com a mesma sessão (`Site.abrir` dentro da
+  `OculosActivity`): mesmo endereço, outro fragmento, e o Chrome só dispara
+  `hashchange`. O raiz grava a série pendente e avisa a `TelaSessao` pelo
+  evento `treinolivre:oculosSerie`. Se o Chrome recarregar mesmo assim, o
+  caminho antigo (ler na abertura) continua valendo.
 - **A volta não mostra a abertura.** Registrar recarrega a página (é assim
   que a série chega), e a vinheta do logo no meio do treino parecia o app
   reiniciando — relato do dono, no primeiro teste que contou as 12 certas.

@@ -47,6 +47,8 @@ object Oculos {
     @Volatile var quadro: ByteArray? = null
     @Volatile var numero = 0L
     @Volatile var ultimoPedido = 0L
+    // O 🎨 da tela dos óculos: U e V trocados. Guardado no aparelho.
+    @Volatile var coresInvertidas = false
     private val iniciado = AtomicBoolean(false)
 
     fun iniciar(contexto: Context): Boolean {
@@ -206,7 +208,8 @@ class OculosService : Service() {
             }
         }
         val nv21 = ByteArray(w * h * 3 / 2)
-        CoresYuv.paraNv21(dados, w, h, passo, arranjo, nv21)
+        val usar = if (arranjo >= 0 && Oculos.coresInvertidas) CoresYuv.invertido(arranjo) else arranjo
+        CoresYuv.paraNv21(dados, w, h, passo, usar, nv21)
         val saida = ByteArrayOutputStream(w * h / 4)
         YuvImage(nv21, ImageFormat.NV21, w, h, null).compressToJpeg(Rect(0, 0, w, h), 60, saida)
         val jpg = saida.toByteArray()

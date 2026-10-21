@@ -2650,9 +2650,15 @@ Chrome e não se perdem; as permissões do Health Connect sim). Para fixar:
 e o `base64` dele em Settings › Secrets › Actions. **Nunca suba o `.jks`.**
 
 **A barra de endereço.** Sem o `assetlinks.json` na raiz do domínio
-(`carlosjr81.github.io/.well-known/`, que é outro repositório), o Chrome
-mostra uma barra fina com o endereço no topo do app. Funciona igual; tirar a
-barra exige criar o repositório `carlosjr81.github.io` com esse arquivo.
+(`carlosjr81.github.io/.well-known/`, que é **outro repositório**,
+`carlosjr81.github.io`), o Chrome abre o app com uma barra de endereço e um ✕
+que fecha tudo. O conteúdo desse repositório está pronto em `dominio/` (com a
+impressão digital da chave atual, o `.nojekyll` sem o qual o Pages esconde o
+`.well-known`, e um `index.html` que leva ao app). A sessão na nuvem não
+consegue **criar** repositório na conta do dono (403): ele cria o
+`carlosjr81.github.io`, público, e os arquivos de `dominio/` vão para lá.
+**A chave não pode mudar**: o `manter-chave.yml` lê o cache duas vezes por
+semana para ele não expirar; o definitivo é o segredo `ANDROID_KEYSTORE_B64`.
 
 **Validado no celular do dono (Galaxy + Watch8, 21/10/2026)**: permissão,
 leitura (passos, distância, kcal, batimento, repouso, SpO2, sono, peso,

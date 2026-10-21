@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "br.com.treinolivre.app",
+      "sha256_cert_fingerprints": [
+        "9B:1E:D2:74:17:8A:95:9A:E9:13:19:27:CB:AA:3C:DF:54:03:69:6B:56:6D:0B:C5:E0:B1:3A:EA:C4:EE:D4:23"
+      ]
+    }
+  }
+]

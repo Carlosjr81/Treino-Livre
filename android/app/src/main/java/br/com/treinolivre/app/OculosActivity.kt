@@ -41,10 +41,25 @@ class OculosActivity : ComponentActivity() {
     private val pedirBluetooth = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         lifecycleScope.launch { seguir() }
     }
+    // O Meta AI pode devolver a resposta antes de a pessoa tocar em "Permitir"
+    // (quando ele abre em tarefa própria). Antes de desistir, confere de novo,
+    // algumas vezes, a permissão de verdade.
     private val pedirCamera = registerForActivityResult(Wearables.RequestPermissionContract()) { resultado ->
         val status = resultado.getOrDefault(PermissionStatus.Denied)
-        if (status == PermissionStatus.Granted) ligarServico()
-        else { Oculos.estado = "sem-permissao"; aviso("Óculos: a câmera dos óculos não foi liberada."); finish() }
+        if (status == PermissionStatus.Granted) { ligarServico(); return@registerForActivityResult }
+        lifecycleScope.launch {
+            repeat(10) {
+                kotlinx.coroutines.delay(1500L)
+                var ok = false
+                Wearables.checkPermissionStatus(Permission.CAMERA)
+                    .onSuccess { st -> ok = st == PermissionStatus.Granted }
+                    .onFailure { _, _ -> ok = false }
+                if (ok) { ligarServico(); return@launch }
+            }
+            Oculos.estado = "sem-permissao"
+            aviso("Óculos: a câmera dos óculos não foi liberada no Meta AI.")
+            finish()
+        }
     }
 
     private lateinit var texto: TextView
@@ -137,6 +152,8 @@ class OculosActivity : ComponentActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun abrirScanner() {
+        if (web != null) return
+        aviso("Óculos: abrindo o Eyes Scan")
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val p = intent?.data
         val campos = listOf("ex", "nome", "grupo", "func", "reps", "peso", "serie", "total", "esp", "contar", "auto")

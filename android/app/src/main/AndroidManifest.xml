@@ -45,12 +45,13 @@
         <meta-data android:name="com.meta.wearable.mwdat.CLIENT_TOKEN" android:value="0" />
         <meta-data android:name="com.meta.wearable.mwdat.ANALYTICS_OPT_OUT" android:value="true" />
 
-        <!-- O 👓 do Eyes Scan chama treinolivre://oculos -->
+        <!-- O 👓 do Eyes Scan chama treinolivre://oculos. Fica na MESMA tarefa do
+             app (sem taskAffinity vazia): o Meta AI abre por cima para registrar e
+             liberar a câmera, e a volta dele tem de cair aqui, não no treino. -->
         <activity
             android:name=".OculosActivity"
             android:exported="true"
-            android:excludeFromRecents="true"
-            android:taskAffinity=""
+            android:launchMode="singleTop"
             android:screenOrientation="portrait"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@style/Tema.Oculos">

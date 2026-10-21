@@ -2774,6 +2774,12 @@ dentro do app**.
   `localStorage["treinolivre:oculosSerie"]`, abre o treino, e a `TelaSessao`
   a registra pelo mesmo `registrarDoScanner` do scanner (descanso, recorde e
   voz incluídos). Pendência com mais de 10 min é descartada.
+- **`OculosActivity` mora na mesma tarefa do app** (sem `taskAffinity=""`).
+  No celular do dono, com ela numa tarefa à parte, a volta do Meta AI (registro
+  e permissão da câmera) caía no treino do Chrome e a tela dos óculos ficava
+  escondida atrás — "autorizei e voltou para o treino". E a resposta "negado"
+  do Meta AI não é final: ele pode devolvê-la antes do toque em Permitir, então
+  o app confere a permissão de novo por 15 s antes de desistir.
 - No WebView não há voz do navegador: a contagem em voz alta vira só o bipe.
 - O app avisa a página que está vivo a cada 5 s enquanto ela carrega o
   reconhecimento (8 MB na primeira vez), senão o serviço desligaria os óculos.

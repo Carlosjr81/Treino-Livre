@@ -156,7 +156,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.165 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.166 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v82) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v83) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2630,7 +2630,7 @@ Chrome cai no APK. Fora do app e sem dados ainda, o link do APK fica embaixo;
 iPhone e computador, a explicação. Depois o batimento ao vivo (a cinta ou o
 relógio que transmite), passos com anel e barras da semana (meta 8.000,
 `META_PASSOS`), frequência cardíaca, sono (barras com a linha de 7 h), peso,
-as atividades dos outros apps (`nomeAppSaude`) e os números do próprio Treino
+as atividades dos outros apps (`nomeAppSaude`; `semRepetir` junta a mesma caminhada gravada pelo Samsung Health e pelo Google Fit) e os números do próprio Treino
 Livre, que valem em qualquer aparelho. **O peso do Health Connect entra no
 `pesoCorporal`** quando é mais novo que a última pesagem daqui.
 
@@ -2654,7 +2654,11 @@ e o `base64` dele em Settings › Secrets › Actions. **Nunca suba o `.jks`.**
 mostra uma barra fina com o endereço no topo do app. Funciona igual; tirar a
 barra exige criar o repositório `carlosjr81.github.io` com esse arquivo.
 
-**O que não está validado em aparelho**: tudo do lado nativo. Coberto por
+**Validado no celular do dono (Galaxy + Watch8, 21/10/2026)**: permissão,
+leitura (passos, distância, kcal, batimento, repouso, SpO2, sono, peso,
+atividades), gravação de 6 treinos e batimento do relógio em 4 deles, e a
+volta para o site no meio de um treino em andamento (ele continua lá).
+**Não validado**: VFC (o relógio dele não mandou nenhuma). Coberto por
 `teste-saude.js` só o lado do site (o pacote, o resumo, o batimento nos treinos).
 
 ## Foto do aparelho (exercício do usuário)
@@ -3311,7 +3315,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 29 suítes (1.165 checagens)
+node testes/rodar.js      # as 29 suítes (1.166 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

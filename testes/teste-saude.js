@@ -8,7 +8,7 @@ function pedaco(de, ate) {
   return html.slice(i, f);
 }
 eval(pedaco("// ---- SAÚDE: o que vem do Health Connect", "// ---- fim da saúde") +
-  "\nglobalThis.H = { lerPacoteSaude, juntarSaude, resumoSaude, treinosParaSaude, batimentoNosTreinos, b64UrlParaPadrao, padraoParaB64Url, diaLocal };");
+  "\nglobalThis.H = { semRepetir, lerPacoteSaude, juntarSaude, resumoSaude, treinosParaSaude, batimentoNosTreinos, b64UrlParaPadrao, padraoParaB64Url, diaLocal };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -81,6 +81,15 @@ teste("VFC: a média é só da semana", { ultima: 40, t: AGORA - DIA, media: 50 
 teste("sem leitura nenhuma, sem resumo", null, H.resumoSaude(null, AGORA));
 const soPeso = H.resumoSaude({ dias: [], peso: [{ t: AGORA, kg: 80 }] }, AGORA);
 teste("um peso só: sem diferença inventada", null, soPeso.peso.dif);
+
+const M = 60000;
+const dup = H.semRepetir([
+  { ini: AGORA - 60 * M, fim: AGORA - 49 * M, app: "com.sec.android.app.shealth" },
+  { ini: AGORA - 59 * M, fim: AGORA - 48 * M, app: "com.google.android.apps.fitness" },
+  { ini: AGORA - 300 * M, fim: AGORA - 278 * M, app: "com.sec.android.app.shealth" },
+  { ini: AGORA - 301 * M, fim: AGORA - 245 * M, app: "com.google.android.apps.fitness" },
+]);
+teste("a mesma caminhada em dois apps vira uma; durações bem diferentes ficam", 3, dup.length);
 
 console.log("\n--- o que vai para o Health Connect ---");
 const ex = { esteira: { cardio: "corrida" }, bike: { cardio: "bike" }, supino: {} };

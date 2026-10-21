@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-10-21g — Uma caminhada é uma caminhada
+
+**Em uma frase:** na aba ❤ Saúde, a caminhada que o Samsung Health e o Google
+Fit gravaram ao mesmo tempo aparece uma vez só.
+
+**O que mudou**
+- Atividades que começam no mesmo minuto e duram o mesmo tempo, vindas de apps
+  diferentes, viram uma só na lista "Atividades dos outros apps".
+
+**Por que importa para quem treina:** a lista mostra o que você fez, e não
+quantos apps estavam ligados.
+
+**Como usar:** nada a fazer: Histórico → ❤ Saúde → Atividades dos outros apps.
+
+**Ideias de vídeo**
+- Mostrar a aba Saúde completa num Galaxy com Watch: passos, batimento,
+  oxigênio, sono, peso e as atividades, tudo dentro do app de treino.
+
+**Não prometer:** atividades com horário ou duração bem diferentes continuam
+aparecendo separadas.
+
+---
+
 ## 2026-10-21f — Sincronizar de qualquer ícone
 
 **Em uma frase:** no Android, o botão **🔄 Sincronizar** da aba ❤ Saúde agora

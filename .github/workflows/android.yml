@@ -74,6 +74,16 @@ jobs:
           TL_VERSAO_NOME: "1.${{ github.run_number }}"
         run: gradle -p android assembleRelease --no-daemon --stacktrace
 
+      # A impressão digital da chave (pública, não é segredo): é ela que vai no
+      # assetlinks.json do repositório carlosjr81.github.io, e é o que faz o
+      # Chrome confiar no app e esconder a barra de endereço.
+      - name: Impressão digital da chave
+        run: |
+          DIGITAL=$(keytool -list -v -keystore "$TL_KEYSTORE" -storepass "$TL_STORE_PASS" -alias treinolivre | grep -m1 "SHA256:" | sed 's/.*SHA256: *//')
+          echo "IMPRESSAO_DIGITAL=$DIGITAL"
+          echo "### Impressão digital SHA-256 da chave do APK" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`$DIGITAL\`" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Renomear
         run: cp android/app/build/outputs/apk/release/app-release.apk treino-livre.apk
 

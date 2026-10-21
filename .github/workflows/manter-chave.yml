@@ -1,0 +1,26 @@
+# Mantém viva a chave que assina o APK.
+#
+# Sem o segredo ANDROID_KEYSTORE_B64, a chave fica no cache do Actions, e o
+# GitHub apaga o cache que passa 7 dias sem ser lido. Chave nova quebraria duas
+# coisas: o app novo não instalaria por cima do antigo, e o assetlinks.json do
+# carlosjr81.github.io deixaria de bater (a barra de endereço voltaria).
+# Uma vez por semana, isto só lê o cache. Não monta nada nem publica nada.
+# Com o segredo cadastrado, este arquivo pode ser apagado.
+name: Manter a chave do APK
+
+on:
+  schedule:
+    - cron: "17 9 * * 1,4"
+  workflow_dispatch:
+
+jobs:
+  ler:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ler a chave guardada
+        id: chave
+        uses: actions/cache/restore@v4
+        with:
+          path: android/app/treinolivre.jks
+          key: chave-treinolivre-v1
+          fail-on-cache-miss: true

@@ -655,7 +655,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-22a";
+const VERSAO_APP = "2026-10-22b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4486,7 +4486,10 @@ function criarContador(opcoes) {
         if (o.aoRetirar && tira) o.aoRetirar(total, tira);
       };
       retirarDe(0, tirarNaTroca);
-      if (!perfil && deslocando(lm, agora)) {
+      // Câmera nos óculos (semAndar): ela anda com a cabeça, e o corpo "anda"
+      // na imagem a cada olhada para o lado. Aí não há como saber se a pessoa
+      // andou, e a checagem só pausaria a contagem à toa.
+      if (!perfil && !o.semAndar && deslocando(lm, agora)) {
         maquinas.forEach((m, k) => {
           // o lado de descanso já aprendido continua valendo: andar não o muda
           m.estado = m.estado === null ? null : m.polo; m.repMin = Infinity; m.repMax = -Infinity;
@@ -7590,6 +7593,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     soTroncoRef.current = eyesSoTronco(exAlvo);
     contadorRef.current = criarContador({
       perfil: perfil,
+      semAndar: !!fonteOculos,
       preferidos: (exAlvo && EYES_PREFERENCIA[exAlvo.grupo]) || [],
       tronco: eyesSoTronco(exAlvo),
       // O braço que trabalha mudou. Dito e escrito: sem isso, a primeira do

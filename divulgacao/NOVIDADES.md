@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-10-22b — Óculos: a contagem não pausa quando você vira a cabeça
+
+**Em uma frase:** contando pelos óculos, o Eyes Scan não confunde mais o movimento
+da cabeça com você andando.
+
+**O que mudou**
+- Com a câmera dos óculos, cada olhada para o lado mexia a imagem inteira, e o app
+  mostrava "Andando: a contagem espera você parar". Com os óculos, esse aviso não
+  pausa mais a contagem.
+
+**Por que importa para quem treina:** a série conta do começo ao fim, mesmo olhando
+em volta.
+
+**Como usar:** nada a fazer; vale para o 👓 do Eyes Scan.
+
+**Ideias de vídeo:** junto com o vídeo dos óculos contando a rosca no espelho.
+
+**Não prometer:** continua em teste.
+
+---
+
 ## 2026-10-22a — Óculos: imagem mais rápida e colorida
 
 **Em uma frase:** a câmera dos óculos no Eyes Scan ficou mais fluida e passou a

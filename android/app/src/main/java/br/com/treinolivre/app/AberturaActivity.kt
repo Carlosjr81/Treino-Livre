@@ -48,7 +48,7 @@ class AberturaActivity : ComponentActivity() {
     }
 
     private fun abrir(uri: android.net.Uri) {
-        lancador = Site.abrir(this, uri) { abriu = true }
+        Site.abrir(this, uri, { lancador = it }) { abriu = true }
     }
 
     // A pessoa voltou do site para cá (botão voltar): o app fecha

@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-10-21j — Óculos: a imagem por um caminho novo
+
+**Em uma frase:** a imagem dos óculos Ray-Ban Meta agora chega ao Eyes Scan por
+dentro do próprio app, sem depender da "rede local" que o Chrome bloqueava.
+
+**O que mudou**
+- No primeiro teste, os óculos ligavam a câmera (dava para ouvir o bipe), mas a
+  imagem não chegava à tela: o Chrome barrava o caminho sem avisar.
+- O app agora abre o Treino Livre com um canal de mensagens próprio, e a imagem
+  passa por ele.
+- O quadro "Diagnóstico" do scanner mostra se esse canal está ligado.
+
+**Por que importa para quem treina:** é o passo que faltava para a contagem pelos
+óculos funcionar.
+
+**Como usar:** atualize o app Android (APK), abra o Treino Livre **pelo ícone**,
+comece o treino, abra o Eyes Scan e toque em 👓.
+
+**Ideias de vídeo:** ainda não — esperar o teste com os óculos dar certo.
+
+**Não prometer:** os óculos no Eyes Scan continuam em teste.
+
+---
+
 ## 2026-10-21i — Óculos: diagnóstico na tela
 
 **Em uma frase:** quando a câmera dos óculos não conecta, o Eyes Scan agora mostra

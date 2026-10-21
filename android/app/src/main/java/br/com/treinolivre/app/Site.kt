@@ -39,15 +39,22 @@ object Site {
         null
     }
 
-    fun abrir(activity: Activity, uri: Uri, depois: () -> Unit): TwaLauncher {
+    // Abre com a sessão do canal (Canal.kt), que é o que leva a imagem dos
+    // óculos até a página. Se não der, o TwaLauncher de sempre: o app abre
+    // igual, só sem o canal.
+    fun abrir(activity: Activity, uri: Uri, guardar: (TwaLauncher) -> Unit, depois: () -> Unit) {
         val cor = Color.parseColor("#0B0B0F")
         val cores = CustomTabColorSchemeParams.Builder()
             .setToolbarColor(cor)
             .setNavigationBarColor(cor)
             .build()
-        val pedido = TrustedWebActivityIntentBuilder(uri).setDefaultColorSchemeParams(cores)
-        val lancador = TwaLauncher(activity, provedor(activity))
-        lancador.launch(pedido, null, null) { depois() }
-        return lancador
+        val pacote = provedor(activity)
+        val antigo = {
+            val pedido = TrustedWebActivityIntentBuilder(uri).setDefaultColorSchemeParams(cores)
+            val lancador = TwaLauncher(activity, pacote)
+            guardar(lancador)
+            lancador.launch(pedido, null, null) { depois() }
+        }
+        if (pacote == null || !Canal.abrir(activity, pacote, uri, cores, depois) { antigo() }) antigo()
     }
 }

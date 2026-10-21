@@ -289,6 +289,22 @@
   </div>
 </noscript>
 <script>
+/* A única exceção a "só dados aqui": o ouvido do canal com o app Android.
+   O app (Canal.kt) entrega uma porta de mensagens logo que a página termina de
+   carregar — antes de o Babel acabar de compilar o app. Escutando só no
+   segundo script, a porta se perderia. Por ela chega a imagem dos óculos. */
+var CANAL_APP = { porta: null, ouvintes: [] };
+window.addEventListener("message", function (e) {
+  if (e.origin && e.origin !== location.origin) return;
+  var receber = function (dado) {
+    CANAL_APP.ouvintes.forEach(function (f) { try { f(dado); } catch (x) {} });
+  };
+  if (e.ports && e.ports[0]) {
+    CANAL_APP.porta = e.ports[0];
+    CANAL_APP.porta.onmessage = function (ev) { receber(ev.data); };
+  }
+  if (typeof e.data === "string") receber(e.data);
+});
 /* Dados puros, fora do script que o Babel compila: são 100 KB que não têm JSX
    nenhum e não precisam passar por compilador. Com eles aqui dentro, o script
    compilado passava de 500 KB e o Babel desistia de otimizar — o que se paga em
@@ -633,7 +649,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-21i";
+const VERSAO_APP = "2026-10-21j";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2193,9 +2209,38 @@ function abrirFluxoOculos(chave, aoEstado) {
   // o diagnóstico da espera: o app respondeu? qual foi o último erro?
   const diag = { tentativas: 0, respostas: 0, erro: "", estado: "" };
   const contar = (e) => { if (e && e !== ultimoEstado) { ultimoEstado = e; if (aoEstado) aoEstado(e, quadros); } };
+  // 1º caminho: o canal do TWA (sem rede). Os quadros chegam como "Q:<base64>".
+  const viaCanal = typeof CANAL_APP !== "undefined" && CANAL_APP.porta;
+  let ouvinte = null, batida = null;
+  if (viaCanal) {
+    diag.estado = "canal do app";
+    ouvinte = async (dado) => {
+      if (!vivo || typeof dado !== "string") return;
+      diag.respostas++;
+      if (dado.startsWith("E:")) { contar(dado.slice(2)); return; }
+      if (!dado.startsWith("Q:")) return;
+      try {
+        const bin = atob(dado.slice(2));
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const img = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" }));
+        if (cv.width !== img.width || cv.height !== img.height) { cv.width = img.width; cv.height = img.height; }
+        ctx.drawImage(img, 0, 0);
+        if (img.close) img.close();
+        quadros++;
+        if (quadros === 1 && aoEstado) aoEstado("transmitindo", quadros);
+      } catch (e) { diag.erro = (e && e.message) || String(e); }
+    };
+    CANAL_APP.ouvintes.push(ouvinte);
+    const avisarApp = () => { try { CANAL_APP.porta.postMessage("vivo"); } catch (e) {} };
+    avisarApp();
+    batida = setInterval(avisarApp, 5000);
+  }
+  // 2º caminho, de reserva: o 127.0.0.1 (o Chrome pode barrar, "rede local")
   (async () => {
     let n = 0;
     while (vivo) {
+      if (viaCanal && (quadros > 0 || diag.respostas > 0)) { await new Promise((ok) => setTimeout(ok, 1000)); continue; }
       const t0 = performance.now();
       try {
         diag.tentativas++;
@@ -2227,9 +2272,12 @@ function abrirFluxoOculos(chave, aoEstado) {
   return {
     fluxo: fluxo,
     recebeu: () => quadros > 0,
-    diag: () => ({ ...diag, quadros: quadros }),
+    diag: () => ({ ...diag, quadros: quadros, canal: !!viaCanal }),
     parar: () => {
       vivo = false;
+      if (ouvinte) CANAL_APP.ouvintes = CANAL_APP.ouvintes.filter((f) => f !== ouvinte);
+      if (batida) clearInterval(batida);
+      if (viaCanal) { try { CANAL_APP.porta.postMessage("parar"); } catch (e) {} }
       fluxo.getTracks().forEach((t) => t.stop());
       try { fetch(enderecoOculos("/parar", chave), { cache: "no-store", keepalive: true }).catch(() => {}); } catch (e) {}
     },
@@ -8080,6 +8128,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
                 <div style={{ marginTop: 14, fontSize: 12, color: "rgba(255,255,255,0.75)", lineHeight: 1.55, textAlign: "left",
                   background: "rgba(255,255,255,0.08)", borderRadius: 10, padding: "8px 10px" }}>
                   <b>Diagnóstico</b><br />
+                  Canal do app: {oculosDiag.canal ? "ligado ✓" : "não (abra o Treino Livre pelo ícone do app)"}<br />
                   App Treino Livre respondeu: {oculosDiag.respostas ? "sim (" + oculosDiag.respostas + "×) · " + oculosDiag.estado : "ainda não (" + oculosDiag.tentativas + " tentativas)"}<br />
                   {oculosDiag.erro ? <span>Último erro: {oculosDiag.erro}<br /></span> : null}
                   Permissão de rede local do Chrome: {({ granted: "permitida", denied: "NEGADA — libere no cadeado/⋮ → Permissões do site", prompt: "ainda não perguntada" })[oculosDiag.perm] || "o navegador não informa"}

@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v85) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v86) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2720,6 +2720,31 @@ procurando, conectando, imagem chegando, ou o motivo da falha. **Se for a
 permissão de rede local e o Chrome não a oferecer dentro do app**, o caminho
 seguinte é o canal de mensagens do próprio TWA (postMessage do Custom Tabs),
 que não passa pela rede.
+
+**O resultado do diagnóstico, e a troca de caminho.** No celular do dono os
+óculos **bipavam** (a parte nativa ligava a câmera) e a página mostrava
+"Failed to fetch" com a rede local "ainda não perguntada": dentro do app, o
+Chrome barra o 127.0.0.1 **sem perguntar**. Por isso a imagem passou a ir pelo
+**canal de mensagens do TWA** (`Canal.kt`, postMessage do Custom Tabs, Chrome
+115+), que não é rede:
+- O app abre o site com uma sessão sua (`CustomTabsClient` →
+  `newSession` → `TrustedWebActivityIntentBuilder(...).build(sessao)`), e não
+  mais pelo `TwaLauncher`. A cada página carregada (`NAVIGATION_FINISHED`) ele
+  pede o canal (`requestPostMessageChannel`) e, pronto, manda "ola": é essa
+  mensagem que entrega a porta à página. **Se a ligação com o Chrome falhar ou
+  passar de 3 s, cai no `TwaLauncher` de sempre** — o app abre igual, sem o canal.
+- O assetlinks do domínio ganhou `delegate_permission/common.use_as_origin`
+  (é o que deixa o app falar como `https://carlosjr81.github.io`), e o
+  manifesto declara o `PostMessageService`.
+- **O ouvido do canal fica no primeiro script** (`CANAL_APP`), a única
+  exceção ao "só dados ali": a porta chega quando a página termina de
+  carregar, antes de o Babel acabar de compilar o app, e se perderia.
+- Protocolo: app → página `Q:<jpeg em base64>` (no máximo ~12 por segundo, a
+  câmera em 360×640) e `E:<estado>`; página → app `vivo` a cada 5 s e
+  `parar` ao fechar o scanner. O 127.0.0.1 continua como reserva.
+- Testado no navegador fingindo o app (uma `MessageChannel` entregue à
+  página): os quadros viram o vídeo sem nenhum pedido de rede, e o ✕ manda
+  `parar`.
 
 **Testado só no navegador**, com óculos de mentira (um servidor local que
 manda quadros): os quadros viram o vídeo do scanner, o ✕ fecha e manda

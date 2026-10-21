@@ -6,7 +6,7 @@ repositório: `carlosjr81.github.io`.
 
 | Arquivo | Para quê |
 |---|---|
-| `.well-known/assetlinks.json` | Diz ao Chrome que o app Android `br.com.treinolivre.app`, assinado com esta chave, é do mesmo dono do site. Com ele, o app abre em tela cheia, **sem a barra de endereço** |
+| `.well-known/assetlinks.json` | Diz ao Chrome que o app Android `br.com.treinolivre.app`, assinado com esta chave, é do mesmo dono do site. `handle_all_urls`: o app abre em tela cheia, **sem a barra de endereço**. `use_as_origin`: o app pode falar com a página pelo canal de mensagens do TWA (é por onde passa a imagem dos óculos) |
 | `.nojekyll` | Sem ele, o GitHub Pages ignora pastas que começam com ponto, e o `.well-known` nunca seria publicado |
 | `index.html` | Quem abre `carlosjr81.github.io` cai no Treino Livre |
 

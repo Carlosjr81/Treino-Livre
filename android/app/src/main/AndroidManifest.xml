@@ -60,6 +60,11 @@
             </intent-filter>
         </activity>
 
+        <!-- O canal de mensagens com a página (postMessage do TWA) -->
+        <service
+            android:name="androidx.browser.customtabs.PostMessageService"
+            android:exported="true" />
+
         <service
             android:name=".OculosService"
             android:exported="false"

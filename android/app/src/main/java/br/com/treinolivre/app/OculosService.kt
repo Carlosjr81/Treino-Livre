@@ -83,6 +83,7 @@ class OculosService : Service() {
     private var sessao: DeviceSession? = null
     private var camera: Camera? = null
     private var rodando = false
+    @Volatile private var ultimoEnvio = 0L
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -101,7 +102,16 @@ class OculosService : Service() {
         }
         if (intent?.action == PARAR) { encerrar(); return START_NOT_STICKY }
 
+        // A página fala com o serviço pelo canal do TWA: "vivo" mantém a
+        // câmera ligada, "parar" desliga.
+        Canal.aoMensagem = { m ->
+            when {
+                m.startsWith("vivo") -> Oculos.ultimoPedido = System.currentTimeMillis()
+                m.startsWith("parar") -> Handler(Looper.getMainLooper()).post { encerrar() }
+            }
+        }
         Oculos.aoMudar = { e ->
+            Canal.enviar("E:" + e)
             val frase = when (e) {
                 "procurando" -> "Óculos: procurando os óculos…"
                 "conectando" -> "Óculos: conectando à câmera…"
@@ -161,7 +171,7 @@ class OculosService : Service() {
         if (pronta == null) { Oculos.estado = "sem-oculos"; return }
 
         Oculos.estado = "conectando"
-        s.addCamera(StreamConfiguration(videoQuality = VideoQuality.MEDIUM, frameRate = 15))
+        s.addCamera(StreamConfiguration(videoQuality = VideoQuality.LOW, frameRate = 15))
             .onSuccess { cam ->
                 camera = cam
                 escopo.launch { cam.stream.videoStream.collect { quadro -> receber(quadro) } }
@@ -194,7 +204,14 @@ class OculosService : Service() {
         java.util.Arrays.fill(nv21, w * h, nv21.size, 128.toByte())
         val saida = ByteArrayOutputStream(w * h / 4)
         YuvImage(nv21, ImageFormat.NV21, w, h, null).compressToJpeg(Rect(0, 0, w, h), 70, saida)
-        Oculos.quadro = saida.toByteArray()
+        val jpg = saida.toByteArray()
+        Oculos.quadro = jpg
+        // pelo canal do TWA, no máximo uns 12 quadros por segundo
+        val agora = System.currentTimeMillis()
+        if (agora - ultimoEnvio >= 80L && Canal.pronto) {
+            ultimoEnvio = agora
+            Canal.enviar("Q:" + android.util.Base64.encodeToString(jpg, android.util.Base64.NO_WRAP))
+        }
         Oculos.numero++
         Oculos.estado = "transmitindo"
     }
@@ -291,6 +308,8 @@ class OculosService : Service() {
         try { servidor?.close() } catch (e: Exception) { }
         servidor = null
         Oculos.quadro = null
+        Canal.enviar("E:parado")
+        Canal.aoMensagem = null
         Oculos.estado = "iniciando"
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()

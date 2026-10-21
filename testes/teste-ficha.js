@@ -7,7 +7,7 @@ function pedaco(de, ate) {
   if (i < 0 || f < 0) { console.error("nao achei: " + de); process.exit(1); }
   return html.slice(i, f);
 }
-eval(pedaco("// ---- A ficha muda com o treino ----", "// ---- fim da ficha muda") + "\nglobalThis.H = { mudancasNaFicha, fichaDoTreino, moverFicha, moverPara };");
+eval(pedaco("// ---- A ficha muda com o treino ----", "// ---- fim da ficha muda") + "\nglobalThis.H = { mudancasNaFicha, fichaDoTreino, moverFicha, moverPara, copiarItensPara };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -112,6 +112,25 @@ teste("não mexe na lista original", "abcd", ids(ex));
 const bi = [{ uid: "a", conjunto: "k" }, { uid: "b", conjunto: "k" }, { uid: "c" }, { uid: "d" }];
 teste("separar o bi-set apaga a marca dos dois", [null, null, null], H.moverPara(bi, 0, 3).map((x) => x.conjunto || null).slice(0, 3));
 teste("o bi-set que continua junto fica", ["k", "k"], H.moverPara(bi, 3, 0).slice(1, 3).map((x) => x.conjunto));
+
+console.log("\n--- copiar exercícios para outra ficha ---");
+let n = 0; const id = () => "n" + (++n);
+const dest = [{ uid: "d1", exercicioId: "supino", series: 4, reps: 8 }];
+const origem = [
+  { uid: "o1", exercicioId: "crucifixo", series: 3, reps: 12, obs: "banco 2", conjunto: "k" },
+  { uid: "o2", exercicioId: "triceps", series: 3, reps: 15, conjunto: "k" },
+  { uid: "o3", exercicioId: "supino", series: 3, reps: 10 },
+  { uid: "o4", exercicioId: "peck", series: 3, reps: 12, conjunto: "z" },
+];
+const c = H.copiarItensPara(dest, origem, id);
+teste("entram no fim; o que a ficha já tem fica de fora", ["supino", "crucifixo", "triceps", "peck"], c.itens.map((x) => x.exercicioId));
+teste("conta copiados e repetidos", [3, ["supino"]], [c.copiados, c.repetidos]);
+teste("cópia leva séries, reps e obs", [3, 12, "banco 2"], [c.itens[1].series, c.itens[1].reps, c.itens[1].obs]);
+teste("uid novo em cada cópia", true, c.itens.slice(1).every((x) => /^n/.test(x.uid)));
+teste("bi-set copiado inteiro continua junto, com id próprio", true, c.itens[1].conjunto === c.itens[2].conjunto && c.itens[1].conjunto !== "k");
+teste("bi-set com um lado só vira exercício solto", null, c.itens[3].conjunto);
+teste("a ficha de destino original não muda", 1, dest.length);
+teste("ficha nova (vazia)", 2, H.copiarItensPara([], origem.slice(0, 2), id).copiados);
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

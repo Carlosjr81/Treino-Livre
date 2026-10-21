@@ -1921,6 +1921,29 @@ function limparConjuntos(itens) {
     return junto ? it : { ...it, conjunto: null };
   });
 }
+// Copia os exercícios escolhidos para o fim de outra ficha. Cada cópia ganha
+// uid e bi-set próprios: mexer numa ficha não pode mexer na outra. Bi-set que
+// só teve um dos lados escolhido vira exercício solto. O exercício que a
+// ficha de destino já tem não entra de novo: duas linhas de supino na mesma
+// ficha é quase sempre engano, e a tela diz quais ficaram de fora.
+function copiarItensPara(destino, itens, gerarId) {
+  const ja = {};
+  (destino || []).forEach((it) => { ja[it.exercicioId] = true; });
+  const repetidos = [];
+  const mapa = {};
+  const novos = [];
+  (itens || []).forEach((it) => {
+    if (ja[it.exercicioId]) { repetidos.push(it.exercicioId); return; }
+    ja[it.exercicioId] = true;
+    const c = { ...it, uid: gerarId() };
+    if (it.conjunto) {
+      if (!mapa[it.conjunto]) mapa[it.conjunto] = "cj" + gerarId();
+      c.conjunto = mapa[it.conjunto];
+    }
+    novos.push(c);
+  });
+  return { itens: (destino || []).concat(limparConjuntos(novos)), copiados: novos.length, repetidos: repetidos };
+}
 // ---- fim da ficha muda
 
 // ---- SAÚDE: o que vem do Health Connect (app Android) ----
@@ -10855,7 +10878,7 @@ function TelaAssistente({ onGerar, onCancelar }) {
   );
 }
 
-function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, ordemInicial }) {
+function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, ordemInicial, fichas, programas, onCopiarPara }) {
   // Cada item ganha um identificador estável para que remover um do meio da lista
   // não desloque os campos de séries/repetições dos itens seguintes.
   const [t, setT] = useState(() => ({
@@ -10872,6 +10895,26 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, 
   // a posição para escolher. Com os cartões abertos (séries, reps, obs), as
   // setas pequenas sumiam entre os campos e ninguém achava.
   const [ordenando, setOrdenando] = useState(!!ordemInicial);
+  // 📋 Copiar para outra ficha: marcar exercícios e mandar a cópia para outra
+  // ficha (de qualquer treino) ou para uma ficha nova.
+  const [copiando, setCopiando] = useState(false);
+  const [marcados, setMarcados] = useState({});
+  const [destinoCopia, setDestinoCopia] = useState("");
+  const outrasFichas = (fichas || []).filter((f) => f.id !== t.id);
+  const qtdMarcados = t.itens.filter((it) => marcados[it.uid]).length;
+  const copiar = () => {
+    const escolhidos = t.itens.filter((it) => marcados[it.uid]);
+    if (!escolhidos.length) { avisar("Marque pelo menos um exercício para copiar."); return; }
+    if (!destinoCopia) { avisar("Escolha a ficha que vai receber os exercícios."); return; }
+    let nomeNova = null;
+    if (destinoCopia === "__nova") {
+      nomeNova = (window.prompt("Nome da ficha nova:", "") || "").trim();
+      if (!nomeNova) return;
+    }
+    onCopiarPara(destinoCopia === "__nova" ? null : destinoCopia, escolhidos, nomeNova);
+    setCopiando(false);
+    setMarcados({});
+  };
   const [movido, setMovido] = useState(null);
   const mover = (de, para) => {
     if (para < 0 || para >= t.itens.length) return;
@@ -10952,7 +10995,14 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, 
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div style={{ ...S.label, flex: 1 }}>Exercícios da ficha</div>
-        {t.itens.length > 1 && (
+        {t.itens.length > 0 && onCopiarPara && !ordenando && (
+          <button onClick={() => { setCopiando(!copiando); setTrocandoI(null); }}
+            aria-pressed={copiando}
+            style={{ background: copiando ? "#E1306C" : "none", border: "1px solid #E1306C", color: copiando ? "#FFFFFF" : "#E1306C", borderRadius: 999, padding: "6px 12px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+            {copiando ? "✕ Fechar" : "📋 Copiar"}
+          </button>
+        )}
+        {t.itens.length > 1 && !copiando && (
           <button onClick={() => { setOrdenando(!ordenando); setTrocandoI(null); }}
             aria-pressed={ordenando}
             style={{ background: ordenando ? "#E1306C" : "none", border: "1px solid #E1306C", color: ordenando ? "#FFFFFF" : "#E1306C", borderRadius: 999, padding: "6px 12px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
@@ -10960,6 +11010,58 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, 
           </button>
         )}
       </div>
+      {copiando && (
+        <div style={{ margin: "8px 0 16px" }}>
+          <div style={{ fontSize: 13, color: "var(--cinza)", marginBottom: 10 }}>
+            Marque os exercícios e escolha a ficha que vai recebê-los. Esta ficha continua igual: é uma cópia.
+          </div>
+          <button onClick={() => {
+              const todosMarcados = qtdMarcados === t.itens.length;
+              const m = {};
+              if (!todosMarcados) t.itens.forEach((it) => { m[it.uid] = true; });
+              setMarcados(m);
+            }}
+            style={{ background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 13, padding: "0 0 8px", cursor: "pointer" }}>
+            {qtdMarcados === t.itens.length ? "Desmarcar todos" : "Marcar todos"}
+          </button>
+          {t.itens.map((it, i) => {
+            const e = exPorId(it.exercicioId);
+            const nomeEx = e ? e.nome : "Exercício removido";
+            const sim = !!marcados[it.uid];
+            return (
+              <label key={it.uid || i} style={{ ...S.card, padding: 10, marginBottom: 6, display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
+                borderColor: sim ? "#E1306C" : "var(--borda)", background: sim ? "#E1306C14" : S.card.background }}>
+                <input type="checkbox" checked={sim} onChange={() => setMarcados({ ...marcados, [it.uid]: !sim })}
+                  aria-label={"Copiar " + nomeEx}
+                  style={{ width: 24, height: 24, accentColor: "#E1306C", flexShrink: 0 }} />
+                <MiniaturaExercicio ex={e} tamanho={36} />
+                <div style={{ flex: 1, minWidth: 0, fontWeight: 800, fontSize: 14, lineHeight: 1.25 }}>
+                  {nomeEx}
+                  <div style={{ fontSize: 12, color: "var(--cinza)", fontWeight: 600 }}>{it.series} × {it.reps}</div>
+                </div>
+              </label>
+            );
+          })}
+          <div style={{ ...S.label, marginTop: 12 }}>Copiar para</div>
+          <select value={destinoCopia} onChange={(ev) => setDestinoCopia(ev.target.value)} aria-label="Ficha que recebe os exercícios"
+            style={{ ...S.input, marginTop: 6, marginBottom: 10 }}>
+            <option value="">Escolha a ficha…</option>
+            {(programas || []).map((p) => {
+              const fs2 = outrasFichas.filter((f) => f.programaId === p.id);
+              return fs2.length ? (
+                <optgroup key={p.id} label={p.nome}>
+                  {fs2.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+                </optgroup>
+              ) : null;
+            })}
+            {outrasFichas.filter((f) => !(programas || []).some((p) => p.id === f.programaId)).map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+            <option value="__nova">+ Criar uma ficha nova…</option>
+          </select>
+          <button style={S.btn} onClick={copiar} disabled={!qtdMarcados}>
+            📋 Copiar {qtdMarcados ? qtdMarcados + " " + plural(qtdMarcados, "exercício", "exercícios") : "exercícios"}
+          </button>
+        </div>
+      )}
       {ordenando && (
         <div style={{ margin: "8px 0 16px" }}>
           <div style={{ fontSize: 13, color: "var(--cinza)", marginBottom: 10 }}>
@@ -10994,7 +11096,7 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, 
           )}
         </div>
       )}
-      <div style={{ margin: "8px 0 16px", display: ordenando ? "none" : "block" }}>
+      <div style={{ margin: "8px 0 16px", display: ordenando || copiando ? "none" : "block" }}>
         {t.itens.length === 0 && <div style={{ color: "var(--cinza)", fontSize: 14, padding: "8px 0" }}>Adicione exercícios da lista abaixo.</div>}
         {t.itens.map((it, i) => {
           const e = exPorId(it.exercicioId);
@@ -24707,6 +24809,24 @@ function TreinoLivre() {
       return novo;
     });
   };
+  // Exercícios marcados no editor vão para o fim de outra ficha (ou de uma nova,
+  // no mesmo treino da que está aberta). A ficha de origem não muda.
+  const copiarExerciciosPara = (destId, itens, nomeNova) => {
+    const nomeDe = (id) => { const e = exPorId(id); return e ? e.nome : id; };
+    if (!destId) {
+      const r = copiarItensPara([], itens, novoUid);
+      const pid = (editandoTreino && editandoTreino.programaId) || (programas[0] && programas[0].id);
+      setTreinos((prev) => [...prev, { id: "ficha-" + Date.now(), nome: nomeNova, programaId: pid, itens: r.itens }]);
+      avisar("✓ Ficha \"" + nomeNova + "\" criada com " + r.copiados + " " + plural(r.copiados, "exercício", "exercícios") + ".");
+      return;
+    }
+    const dest = treinos.find((x) => x.id === destId);
+    if (!dest) return;
+    const r = copiarItensPara(dest.itens, itens, novoUid);
+    if (r.copiados) setTreinos((prev) => prev.map((x) => (x.id === destId ? { ...x, itens: copiarItensPara(x.itens, itens, novoUid).itens } : x)));
+    avisar((r.copiados ? "✓ " + r.copiados + " " + plural(r.copiados, "exercício copiado", "exercícios copiados") + " para \"" + dest.nome + "\"." : "Nada copiado.") +
+      (r.repetidos.length ? " Já estava" + (r.repetidos.length > 1 ? "m" : "") + " lá: " + r.repetidos.map(nomeDe).join(", ") + "." : ""));
+  };
   const duplicarFicha = (t) => {
     const nova = { ...t, id: "ficha-" + Date.now(), nome: t.nome + " (cópia)", itens: clonarItens(t.itens) };
     setTreinos((prev) => [nova, ...prev]);
@@ -24986,8 +25106,8 @@ function TreinoLivre() {
   };
 
   const salvarTreino = (t) => {
-    const existe = treinos.some((x) => x.id === t.id);
-    setTreinos(existe ? treinos.map((x) => (x.id === t.id ? t : x)) : [...treinos, t]);
+    // funcional: a cópia de exercícios para outra ficha pode ter acabado de mudar a lista
+    setTreinos((prev) => (prev.some((x) => x.id === t.id) ? prev.map((x) => (x.id === t.id ? t : x)) : [...prev, t]));
     setEditandoTreino(null);
     setAba("treinos");
   };
@@ -25217,6 +25337,7 @@ function TreinoLivre() {
         )}
         {aba === "editarTreino" && editandoTreino && (
           <TelaEditarTreino key={editandoTreino.id} treinoInicial={editandoTreino} todos={todos} avisar={avisar} ordemInicial={editarOrdem}
+            fichas={treinos} programas={programas} onCopiarPara={copiarExerciciosPara}
             onSalvar={salvarTreino}
             onCancelar={() => { setEditandoTreino(null); setAba("treinos"); }} />
         )}

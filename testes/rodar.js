@@ -1,4 +1,4 @@
-// Roda as 23 suites e devolve um resumo.
+// Roda as 29 suites e devolve um resumo.
 //
 //   node rodar.js
 //
@@ -33,6 +33,12 @@ const SUITES = [
   ["teste-busca", "a busca de exercicios: musculo, apelido e aparelho, sem perder a precisao"],
   ["teste-desafio", "o desafio: mesma regua de tempo, posicoes, ultrapassagem e MQTT"],
   ["teste-ficha", "a ficha muda com o treino, e o treino livre que vira ficha"],
+  ["teste-recursos", "o que este aparelho suporta, e o que se perde sem cada coisa"],
+  ["teste-espelho", "o modo espelho: o sentido, os nomes dos lados e a seta"],
+  ["teste-ano", "o mapa dos 12 meses: dia treinado, a regua da pessoa e a sequencia"],
+  ["teste-esquecidos", "o musculo que voce parou de treinar, na regua do seu ritmo"],
+  ["teste-fotos", "o antes e depois: o tempo entre as fotos e o peso de cada uma"],
+  ["teste-importar", "trazer o historico do Strong, Hevy e FitNotes"],
   ["teste-saude", "a saude do Health Connect: o pacote, o resumo e o batimento nos treinos"],
 ];
 

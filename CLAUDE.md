@@ -98,7 +98,7 @@ Treino-Livre/
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
 ├── divulgacao/          ← o que o ChatGPT do dono lê para criar vídeos: o guia e o NOVIDADES
-└── testes/              ← as 22 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 28 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -113,7 +113,7 @@ de unidade e qualquer nome de usuário.
 **Numa máquina nova**, o `COMECE-AQUI.md` tem o passo a passo e o
 `preparar.ps1` (ou `preparar.sh`, no Mac) faz o trabalho: confere o que falta,
 instala por `winget`/`brew`, define a identidade dos commits só neste
-repositório e termina rodando os 894 testes. Não desinstala nada, não atualiza
+repositório e termina rodando os 1.115 testes. Não desinstala nada, não atualiza
 o que já existe e não mexe em configuração global.
 
 Duas coisas ele detecta mas não resolve, e as duas têm motivo:
@@ -154,7 +154,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 894 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.115 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -229,7 +229,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v76) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v79) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -964,6 +964,159 @@ sendo salvo precisa tropeçar nisso.
 
 A checagem vale nos dois caminhos de gravação: o respiro de 400 ms e a descarga
 de emergência do `pagehide`.
+
+## Os últimos 12 meses (`MapaDoAno`, `contarAnoDeTreino`)
+
+Um quadradinho por dia, um ano inteiro de uma vez, em Histórico › Números.
+O `CalendarioTreinos` logo abaixo mostra **um mês por vez** e responde "em
+que dias treinei neste mês". Este responde a outra pergunta, que é a que faz
+alguém mudar de hábito: **eu sou constante, e quando foi que eu parei?** A
+falha de três semanas em julho não aparece em calendário de mês nenhum — é
+preciso ter o ano à vista para ela saltar.
+
+**A ideia veio do openGym; o código não.** Aquele projeto é AGPL-3.0, que é
+copyleft forte: copiar um trecho obrigaria o Treino Livre inteiro a virar
+AGPL. Função e ideia não têm dono; código tem. Se um dia alguém for buscar
+mais coisa de lá, a regra é a mesma — ler, entender, escrever aqui.
+
+- **A régua é o tempo, não o volume.** Volume é a unidade da musculação e
+  vale zero no aeróbico: 40 minutos de corrida apareceriam como dia vazio.
+  Minuto vale igual nos dois, e o `duracaoMin` já tem teto de 300 — uma
+  sessão esquecida aberta não estica a escala do ano inteiro. Treino sem
+  `duracaoMin` (histórico antigo, aula interrompida) conta como 1 minuto:
+  sem esse piso o mapa diria que não houve treino num dia em que houve.
+- **As faixas saem dos quantis de quem treina, não de uma tabela fixa.** É a
+  mesma regra do mapa do percurso pintado por ritmo, e pelo mesmo motivo: 25
+  minutos é dia cheio para quem faz funcional e é aquecimento para quem faz
+  musculação. Com corte fixo, o mapa de um sairia todo claro e o do outro
+  todo escuro. `teste-ano.js` prova isso pela invariância — a mesma rotina
+  feita em dez vezes o tempo sai com **exatamente** o mesmo desenho.
+- **A conta é um bloco puro** (`contarAnoDeTreino`, entre marcadores), e
+  recebe `agora` por parâmetro em vez de ler o relógio: sem isso o teste
+  passaria em outubro e reprovaria em novembro. O componente só desenha.
+- Abre rolado até o fim: o que interessa é como está agora, não janeiro.
+
+Coberto por `teste-ano.js` (32 checagens).
+
+## O músculo que você parou de treinar (`musculosEsquecidos`)
+
+Segundo modo do cartão de músculos, em Histórico › Números.
+`recuperacaoMuscular` responde "o que posso treinar HOJE": tudo com dois
+dias ou mais sai como "pronto". Certo, e inútil para um grupo que não é
+tocado há dois meses — ele aparece como pronto, igual ao de anteontem, e
+some no meio da lista. A pergunta que faltava é **o que eu parei de
+treinar?** Ideia do openGym ("detrained"); código daqui, pelo mesmo motivo
+de licença da seção acima.
+
+- **A régua é o ritmo da própria pessoa.** Quem treina seis vezes por
+  semana volta a cada grupo a cada 3 ou 4 dias; quem treina duas, a cada 7
+  ou 10. Um corte fixo em 14 dias chamaria o primeiro de relapso e daria
+  alta ao segundo. Cada grupo é comparado com o **intervalo mediano daquela
+  pessoa naquele grupo** — mediana, e não média, porque uma viagem de três
+  semanas no meio do ano não pode virar o normal dela. 1,6× ainda é a vida
+  acontecendo; 3× já é outra rotina. Com menos de três sessões não há ritmo
+  para medir, e aí vale uma semana.
+- **Três semanas é parar, em qualquer ritmo** (`TETO_PAROU_DIAS`): o teto
+  existe para quem treinava um grupo a cada 15 dias não ouvir que está tudo
+  bem aos 40.
+- **"Nunca treinou" não se mistura com "parou"**, e vem por último: um é
+  hábito que nunca existiu, o outro é hábito perdido, e só o segundo é
+  alerta.
+- Aeróbico não conta como treino de grupo, como no `seriesSemanaisPorGrupo`.
+- Cada linha é um botão que abre a lista daquele grupo (`onAbrirGrupo`, o
+  mesmo da tela inicial): sem isso seria um relatório, não um caminho.
+
+**Dois modos no cartão, não três:** "o que treinar hoje" já é a
+`OQueTreinarHoje` da tela inicial, e repetir aqui seria o mesmo cartão duas
+vezes. Estes dois respondem perguntas diferentes — para onde o esforço foi,
+e o que ficou de fora.
+
+Coberto por `teste-esquecidos.js` (28 checagens).
+
+## O antes e depois das fotos (`AntesDepois`, `textoIntervalo`, `pesoPerto`)
+
+Botão **⇆ Antes e depois** no cartão de fotos, a partir de duas fotos.
+Duas imagens lado a lado quase não dizem nada — o corpo muda devagar e a
+memória de como a pessoa estava em março é péssima. Sobrepostas, com a
+divisória correndo entre elas, a mudança aparece. Ideia do openGym.
+
+- **O que faz valer são os dois números embaixo**, não a imagem: quanto
+  tempo passou e quanto a balança mudou. Sem isso são duas fotos.
+- **`textoIntervalo` sai das duas datas, não da diferença em milissegundos.**
+  Mês não tem duração fixa, e dividir por 30 erra uma semana por semestre.
+  O corte entre "dias" e "meses" é por mês de calendário: com "menos de 60
+  dias vira dias", 15 de janeiro a 15 de março — dois meses cravados, e 59
+  dias — saía como "59 dias". 31/ago a 30/out não vira "2 meses".
+- **`pesoPerto` tem janela de 14 dias.** Ninguém se pesa no dia da foto;
+  pegar a pesagem de dois meses depois e chamá-la de "o peso da foto" seria
+  inventar um resultado que não aconteceu ali.
+- `objectFit: contain`, não `cover`: recortar duas fotos de proporções
+  diferentes em quadrados iguais muda o corpo de tamanho entre uma e outra,
+  e aí a comparação mostra uma mudança que não houve.
+
+Coberto por `teste-fotos.js` (24 checagens).
+
+## Trazer o histórico de outro app (`interpretarCsvTreinos`)
+
+Cartão **Vim de outro app** em Ajustes, junto do backup. Quem já treina há
+dois anos tem dois anos de histórico em outro aplicativo, e recorde,
+evolução, sugestão de carga e nível saem todos do histórico: sem importar,
+o Treino Livre é um caderno em branco para quem já escreveu um caderno
+inteiro. Ideia do openGym; código daqui.
+
+**Mapeia por NOME de coluna, nunca por posição** (`COLUNAS_IMPORT`,
+`PESOS_IMPORT`). Os três formatos têm variantes, e a posição muda entre
+elas:
+
+| App | Cabeçalho | O que complica |
+|---|---|---|
+| Strong | `Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,…` | **não diz a unidade**; versão antiga usa `;` e tem coluna de unidade |
+| Hevy | `title,start_time,…,exercise_title,set_index,set_type,weight_kg\|weight_lbs,…` | a unidade está no nome da coluna — o melhor dos três |
+| FitNotes | Android `…,Weight,Weight Unit,Reps,…` · iPhone `…,Weight (kg),Weight (lbs),…` | no iPhone as **duas** colunas de peso existem, e vale a preenchida |
+
+Por isso o peso é uma **lista** de colunas candidatas, cada uma com a
+unidade que o próprio nome revela. A ordem de quem manda: o nome da coluna,
+depois a coluna de unidade da linha, e só então a escolha da tela.
+
+As decisões que protegem o histórico de quem importa:
+
+1. **A unidade não é adivinhada.** 225 libras são 102 kg; lidas como quilos
+   viram um supino de 225 kg que ninguém fez — e a partir dele a sugestão de
+   carga passa a mandar o dobro. Sem coluna de unidade, a tela **pergunta**.
+2. **Casar nome de exercício é estrito** (`acharExercicioImportado`): só
+   nome igual, sem acento, sem caixa e sem o que está entre parênteses, ao
+   nome daqui ou ao nome em inglês do wger. Um palpite errado é pior que um
+   "não reconhecido": junta o histórico de duas máquinas num exercício só, e
+   ninguém descobre. O que não casa vira exercício da pessoa, com o nome
+   original.
+3. **O grupo do exercício novo é escolhido na tela**, com palpite
+   (`grupoPalpiteImport`). A busca do app exige que todas as palavras casem,
+   e nome de máquina ("Hammer Strength Iso Row") nunca casa inteiro — então,
+   sem resultado, **vale a palavra**: quase todo nome traz o movimento
+   dentro (row, press, curl, fly, pulldown). **Palavra de equipamento e de
+   marca não vota** (`PALAVRAS_SEM_GRUPO_IMPORT`) — é a mesma lição do
+   `PALAVRAS_DE_APARELHO` do Jarvis: "machine" casa com dezenas de
+   exercícios, a maioria de perna, e punha toda máquina em Pernas. Sem
+   sinal nenhum a linha sai marcada **⚠ confira o grupo**, em vez de chutar
+   calado — o grupo decide o mapa muscular, as séries da semana e o
+   "parou de treinar".
+4. **A data não pode andar um dia.** `new Date("2026-03-14")` é meia-noite
+   em UTC, que no Brasil é dia 13 às 21h: o treino muda de dia sozinho. As
+   partes são montadas à mão, na hora local.
+5. **É CSV de verdade** (`lerCsv`, RFC 4180): nome de exercício com vírgula
+   dentro de aspas desloca TODAS as colunas da linha num `split(",")`.
+   `numeroCsv` separa "82,5" (oitenta e dois e meio) de "1,234.5" (mil
+   duzentos e trinta e quatro e meio).
+6. **Reimportar não duplica**: o id do treino sai do conteúdo
+   (`idDeImportacao`, `imp-…`), então o mesmo arquivo chega com os mesmos
+   ids das duas vezes.
+7. **Dá para desfazer**, e por isso não há aviso de "não tem volta": aviso
+   não conserta dado nenhum. O desfazer usa **o que aquela importação
+   acrescentou**, e não o que o arquivo continha — achado no navegador:
+   com dois arquivos que se cruzam, desfazer o segundo levava junto os
+   treinos do primeiro.
+
+Coberto por `teste-importar.js` (80 checagens).
 
 ## Evolução por exercício (`EvolucaoExercicio`)
 
@@ -2297,6 +2450,111 @@ botão de parar. **O que só aparece assim**: a voz mandava "ajuste a esteira pa
 comandou — e a diferença entre as duas frases é a diferença entre uma ferramenta
 que cuida e uma que dá ordem.
 
+## O espelho da academia (`guiaNoEspelho`, botão 🪞 no scanner)
+
+Em academia cheia quase nunca há onde apoiar o celular de frente para quem
+treina — **mas sempre há um espelho**. Apoiar o celular apontado para ele
+resolve: a câmera vê o corpo inteiro, de longe, de qualquer canto da sala.
+
+**Duas coisas mudam, e as duas vêm da mesma geometria.** No uso normal a
+pessoa está de FRENTE para a câmera; no espelho ela está de COSTAS (ela olha
+o espelho, e a câmera olha o reflexo dela).
+
+1. **O lado dela passa a coincidir com o lado da imagem.** De frente, a mão
+   esquerda aparece à direita do quadro, e por isso "o corpo tem de ir para a
+   direita da imagem" vira *"ande para a sua esquerda"*. De costas é o
+   contrário — e inverter errado manda a pessoa para fora do quadro, que é
+   justamente o que o enquadramento existe para evitar.
+2. **Os nomes de esquerda e direita saem trocados.** O reflexo é um corpo de
+   verdade para o modelo de pose, e ele nomeia os lados pelo que vê: o que ele
+   chama de ombro esquerdo é o ombro **direito** de quem está ali. Isso não
+   muda a contagem (no alternado os dois lados são somados), mas muda o que a
+   tela diz — e dizer "braço esquerdo" apontando para o direito é pior que
+   não dizer nada.
+
+**O que NÃO muda: a posição do corpo no quadro.** O espelho reflete a
+profundidade, não a largura — quem anda para a direita da sala aparece andando
+para a direita do quadro, com ou sem espelho. Por isso a **seta continua
+saindo do mesmo cálculo**, e `guiaNoEspelho` devolve `seta` intacta. Inverter
+a seta junto com o texto seria o erro fácil aqui.
+
+- A escolha fica em `voz.espelho`: quem treina no espelho treina sempre no
+  espelho, e reativar a cada série cansa.
+- A dica ("sem espaço para apoiar o celular? aponte para o espelho") aparece
+  só enquanto a pessoa se posiciona, e só com o modo desligado. Sem ela
+  ninguém descobre o botão — e o modo serve justamente a quem não conseguiu
+  apoiar o celular de frente.
+- **Limite conhecido:** com outras pessoas no reflexo, o modelo segue um
+  corpo só. A tela diz para preferir um pedaço do espelho sem gente atrás.
+
+Coberto por `teste-espelho.js` (26 checagens), que cobra o sentido antes de
+qualquer outra coisa.
+
+## O que este aparelho suporta (`recursosDoAparelho`, Ajustes › Este app)
+
+"O Jarvis não funciona no meu celular" é um sintoma com seis causas, e nenhuma
+aparecia em lugar nenhum. As bandeiras já existiam espalhadas pelo arquivo
+(`VOZ_OUVE`, `CARDIO_DISPONIVEL`, `ESTEIRA_DISPONIVEL`, `AVISO_DISPONIVEL`…),
+cada uma escondendo um botão em silêncio — e quem ficava sem o recurso
+concluía que o app estava quebrado.
+
+- **A coluna que importa não é o nome da API: é o que se perde sem ela.** Uma
+  lista de "Web Bluetooth: não" não ajuda ninguém; "a cinta e a esteira não
+  vão conectar" ajuda. E a explicação só aparece no que **falta**: repetir o
+  que funciona é encher a tela de texto que ninguém lê.
+- **Gravar é o único que não dá para saber olhando: tem de tentar escrever.**
+  Em janela anônima e em navegador embutido o `localStorage` existe e a
+  escrita é recusada — que é exatamente o caso que derruba o app. Por isso é
+  o único marcado como `grave`, e a leitura dele vence a de todos os outros.
+- Recebe o ambiente por parâmetro em vez de ler o `window` direto. É o que
+  permite ao teste simular um WebView, um iPhone e o navegador do Instagram
+  sem ter os três na mão — e foi assim que a decisão sobre o app nativo
+  (abaixo) deixou de ser palpite.
+- Só mede quando a pessoa abre o cartão: a checagem de gravação escreve de
+  verdade no armazenamento.
+
+Coberto por `teste-recursos.js` (31 checagens).
+
+## Óculos inteligentes e app nativo: o que foi apurado e decidido
+
+Pedido do dono: usar os Ray-Ban Meta olhando para um espelho, com a câmera
+dos óculos contando as repetições. **Não dá, e o motivo não é preguiça de
+implementar.** Fica registrado aqui para não se refazer a pesquisa:
+
+1. **A câmera dos óculos é exclusiva do SDK nativo.** O *Meta Wearables Device
+   Access Toolkit* dá vídeo ao vivo — para app **iOS/Android** em Swift ou
+   Kotlin. A plataforma de *Web Apps* da Meta recebe posição do aparelho,
+   localização, movimento do Neural Band e entrada de texto. **Câmera e
+   microfone não.**
+2. **E os Web Apps nem rodam no Ray-Ban Meta comum**: são do Ray-Ban
+   **Display**, o modelo com tela.
+3. **A Meta ainda não abriu a publicação** de apps que usam o toolkit. Mesmo
+   construindo, não haveria como distribuir.
+
+**E transformar o Treino Livre num app nativo não resolveria.** A escolha da
+embalagem decide tudo:
+
+| | TWA | WebView |
+|---|---|---|
+| Histórico de quem já usa | preservado (compartilha o armazenamento do Chrome) | **perdido** (armazenamento separado) |
+| Ponte para código nativo | não tem | tem — é o que os óculos exigiriam |
+
+Ou seja: **a única embalagem que alcança os óculos é a que apaga o histórico
+de todo mundo** — e num app em que os dados vivem só no aparelho, esse é o
+pior risco que existe. Pior ainda: o WebView não é o Chrome, e justamente os
+recursos centrais deste app são os que ele não garante (reconhecimento de
+fala, que é serviço do navegador e não do Chromium; e Web Bluetooth, de que
+dependem a cinta e a esteira).
+
+**O que os óculos JÁ fazem hoje, de graça:** eles pareiam como fone Bluetooth
+comum. O Jarvis fala no ouvido e o microfone deles ouve os comandos. Os óculos
+podem ser a boca e os ouvidos; não podem ser os olhos.
+
+**Se um dia a Meta abrir a publicação**, o formato certo não é transformar
+este app: é um app nativo **separado** que só pega o vídeo dos óculos, roda o
+MediaPipe ali e entrega os pontos do corpo — como a cinta cardíaca faz hoje.
+O app web continua sendo o app; o nativo vira um sensor.
+
 ## Monitor cardíaco, e o que a web não alcança
 
 **Funciona:** qualquer monitor que exponha o serviço padrão de frequência
@@ -2954,7 +3212,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 22 suítes (894 checagens)
+node testes/rodar.js      # as 28 suítes (1.115 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```
@@ -3144,6 +3402,54 @@ Roteiro mínimo depois de mexer no app:
     depois a frase.
 38. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
     Todas precisam fechar com ✓, e nada pode aparecer no histórico depois.
+
+## A cor significa alguma coisa
+
+O app tinha um sistema de cores pela metade: as variáveis de tema certas
+existiam (`--marca`, `--ok`, `--perigo`, `--cinza`, nos dois temas) e boa
+parte da interface passava por fora delas. O resultado media-se: **três
+verdes** (`#7CFF3C`, `#4CD137`, `#8FBF96`), **três vermelhos** e **dois
+rosas** para os mesmos significados, e sete atalhos irmãos em seis cores.
+
+Não era questão de gosto. Era o mesmo significado pintado de cores
+diferentes conforme o lugar — e é isso que faz uma tela parecer amadora.
+As regras, em ordem:
+
+1. **A marca é o que se toca.** `--marca` fica para a ação principal e para
+   link. Uma ação principal em destaque **por tela**: a inicial tinha dois
+   botões de degradê disputando ("Baixar backup agora" e "Começar este
+   treino"), e dois primários é nenhum primário.
+2. **Número é neutro** (`--texto`). Quando todo dado sai na cor de destaque,
+   a cor deixa de dirigir o olho e vira textura — era o caso dos oito blocos
+   de "Seus números" e do `0/15` da tela do treino. O tamanho já dá a
+   hierarquia, e o rótulo embaixo já diz o que o número é.
+3. **Verde é resultado** (`--ok`): feito, deu certo, conectado. Gastar verde
+   numa oferta ("👁 Contar pela câmera") é não ter verde quando a série
+   fechar de verdade.
+4. **Vermelho é aviso ou destruição** (`--perigo`). **Estado normal nunca é
+   vermelho**: a cinta desconectada é o normal de quase todo mundo, e pintar
+   isso de vermelho gasta o alarme — quando algo quebrar de verdade, o
+   vermelho já não vai querer dizer nada. Exceção mantida de propósito: o
+   batimento em `#ED4956`, porque coração vermelho é convenção universal e
+   ali a cor diz mesmo o que o número é.
+5. **Item irmão tem a cor do irmão.** O comentário sobre os atalhos da tela
+   inicial já dizia a lição ("sete botões coloridos era uma parede") e ela
+   tinha sido aplicada ao **tamanho**; a cor ficou para trás. O emoji já
+   distingue um do outro.
+6. **Barra de progresso tem uma cor só.** Havia um segundo degradê, de cinco
+   cores, usado como preenchimento: barra que muda de cor ao longo do
+   comprimento não informa nada, porque o comprimento já é a informação.
+
+**O que NÃO passa por variável de tema, e é de propósito:** cor sobre vídeo,
+mapa ou canvas — o esqueleto do Eyes Scan, os anéis do radar, os marcadores
+do Leaflet, o texto do vídeo do story. Ali a cor fixa e berrante é
+obrigatória: ela precisa contrastar com uma imagem qualquer, e `var(--x)`
+não alcança canvas. Antes de trocar uma cor fixa por variável, veja em que
+contexto ela desenha.
+
+A passada foi **dirigida às telas de mais uso**, não exaustiva: ainda há
+`#E1306C` literal espalhado pelo arquivo. Ao mexer num deles, aplique as
+regras acima em vez de repetir o literal.
 
 ## Convenções
 

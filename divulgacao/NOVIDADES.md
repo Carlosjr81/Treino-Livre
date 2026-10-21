@@ -16,6 +16,184 @@
 
 ---
 
+## 2026-10-21c — Traga seus treinos de outro app, veja o antes e depois, e o músculo que você largou
+
+**Em uma frase:** três coisas novas — importar o histórico do Strong, do
+Hevy ou do FitNotes; comparar duas fotos de progresso com a divisória
+correndo entre elas; e descobrir qual músculo você parou de treinar.
+
+**O que mudou**
+
+*1. 📄 Vim de outro app (⚙ Ajustes)*
+- Já treinava com o **Strong**, o **Hevy** ou o **FitNotes**? Exporte o
+  arquivo CSV lá e traga para cá: os treinos entram no seu histórico com
+  data, peso e repetições.
+- **Por que importa:** recorde, evolução, sugestão de carga e nível saem
+  todos do histórico. Sem trazer, o app começa do zero com quem já tem anos
+  de treino.
+- Antes de entrar, o app mostra o que vai entrar: quantos treinos, de quando
+  a quando, e quais exercícios ele não conhece (esses viram exercícios seus,
+  com o nome original — você só confere o grupo muscular).
+- Se o arquivo não disser se o peso está em **quilos ou libras**, ele
+  pergunta. 225 libras são 102 quilos, e ler errado inventaria um recorde.
+- **Dá para desfazer** com um toque, e importar o mesmo arquivo duas vezes
+  não duplica nada.
+
+*2. ⇆ Antes e depois (Histórico › Corpo)*
+- Com duas fotos de progresso ou mais, um botão novo põe as duas uma sobre a
+  outra, com uma divisória que você arrasta para comparar.
+- Embaixo, o que faz a comparação valer: **quanto tempo passou** entre as
+  duas e **quanto a balança mudou** nesse meio-tempo.
+- Dá para escolher quais duas fotos comparar.
+
+*3. 💤 Esquecidos (Histórico › Números)*
+- O cartão de músculos ganhou um segundo modo. O primeiro mostra **para onde
+  o esforço foi**; o novo mostra **o que ficou de fora**.
+- **A régua é a sua.** Cada grupo é comparado com o intervalo em que *você*
+  costuma voltar nele — quem treina 6× por semana e quem treina 2× têm
+  "normal" diferente, e uma tabela fixa erraria com os dois.
+- Toque num grupo e a lista de exercícios dele abre.
+
+**Por que importa para quem treina:** importar tira o maior motivo para não
+trocar de app — perder o histórico. O antes e depois é onde o esforço de
+meses finalmente aparece. E "esquecidos" responde a pergunta que ninguém
+faz sozinho: qual músculo sumiu da rotina sem você perceber.
+
+**Como usar**
+- **Importar:** ⚙ Ajustes → role até *Vim de outro app* → **📄 Escolher o
+  arquivo CSV**. No Strong: Perfil → ⚙ → Export Workouts. No Hevy: Perfil →
+  ⚙ → Export & Import Data. No FitNotes: Menu → Export → CSV.
+- **Antes e depois:** Histórico → **📏 Corpo** → **⇆ Antes e depois**.
+- **Esquecidos:** Histórico → **📊 Números** → cartão *Músculos* → **💤
+  Esquecidos**.
+
+**Ideias de vídeo**
+- "Mudei de app e não perdi nada": exportar do Strong no celular e importar
+  aqui, mostrando os treinos entrando no histórico.
+- "6 meses de diferença": arrastar a divisória no antes e depois, com o peso
+  aparecendo embaixo.
+- "Qual músculo você largou?": abrir Esquecidos e mostrar o grupo marcado.
+
+**Não prometer**
+- A importação lê o **CSV** desses apps. Arquivo de backup (que não é CSV)
+  não serve, e os apps mudam o formato de vez em quando.
+- Exercício que não está no catálogo daqui vira exercício seu, mas **sem
+  figura e sem os passos** — o nome e os números vêm, o resto não.
+- O antes e depois compara fotos que **você** tirou: o app não edita, não
+  alinha e não corrige nada na imagem.
+- "Esquecidos" é um guia pela sua própria rotina, não prescrição de treino.
+
+---
+
+## 2026-10-21b — O ano inteiro numa tela, e um app que parece mais sério
+
+**Em uma frase:** um mapa dos últimos 12 meses mostra, de relance, se você é
+constante — e o app inteiro passou por uma faxina de cores em que cada cor
+voltou a querer dizer alguma coisa.
+
+**O que mudou**
+
+*1. 📅 Os últimos 12 meses (Histórico › Números)*
+- Um quadradinho por dia, do mais claro ao mais forte conforme o tempo que
+  você treinou naquele dia. Um ano inteiro de uma vez.
+- Embaixo, quantos dias de treino e a sua **maior sequência** de dias seguidos.
+- O calendário do mês continua logo abaixo: ele responde *em que dias treinei
+  neste mês*, e o mapa do ano responde *quando foi que eu parei*. A falha de
+  três semanas em julho não aparece em calendário de mês nenhum.
+- **A régua é a sua.** O tom mais forte é o seu dia mais cheio, não um número
+  fixo de minutos: quem faz 25 minutos de funcional e quem faz 90 de
+  musculação veem o próprio mapa, não o mapa de outra pessoa.
+
+*2. A cor voltou a significar alguma coisa*
+- Antes havia três verdes, três vermelhos e dois rosas para as mesmas coisas,
+  e sete atalhos irmãos pintados de seis cores diferentes. Agora:
+  **rosa é o que se toca**, **verde é o que deu certo**, **vermelho é aviso**,
+  e **número é branco** — para dar para ler.
+- A barra arco-íris do topo virou uma régua curta na cor da marca.
+- As barras de progresso passaram a ter uma cor só (uma barra que muda de cor
+  ao longo do comprimento não informa nada: o comprimento já é a informação).
+- O botão **❤ Conectar** da cinta cardíaca deixou de ser vermelho: não ter
+  cinta não é erro, é o normal de quase todo mundo.
+- Cada tela voltou a ter **uma** ação principal em destaque.
+
+**Por que importa para quem treina:** o mapa do ano é o espelho da
+constância — é nele que se vê o mês em que a rotina caiu, que é a informação
+que faz alguém voltar. E a faxina de cores deixa os números legíveis e o
+botão certo na frente, em vez de tudo gritando junto.
+
+**Como usar**
+- **O mapa:** Histórico → **📊 Números** → role até *📅 Os últimos 12 meses*.
+  Arraste para o lado para ver os meses anteriores; toque e segure um
+  quadradinho para ver o dia e os minutos.
+
+**Ideias de vídeo**
+- "Como está a sua constância?": abrir o mapa do ano e mostrar os buracos —
+  e a sequência mais longa do ano.
+- Antes e depois da faxina de cores, lado a lado: a mesma tela, uma gritando
+  e a outra calma.
+
+**Não prometer**
+- O mapa mostra **tempo de treino por dia**, não volume nem intensidade. Um
+  dia forte e curto aparece mais claro que um dia longo e leve.
+- Ele só enxerga o que está no histórico deste aparelho.
+
+---
+
+## 2026-10-21a — Treine de frente para o espelho, e saiba o que o seu celular aguenta
+
+**Em uma frase:** a câmera agora conta as repetições apontada para o espelho
+da academia — e uma tela nova diz, em português, o que funciona e o que não
+funciona no seu aparelho.
+
+**O que mudou**
+
+*1. Modo espelho (🪞) no contar pela câmera*
+- Em academia cheia quase nunca há onde apoiar o celular de frente para você.
+  Mas sempre há um espelho. Apoie o celular **apontado para o espelho** e
+  toque no botão **🪞** no canto da tela do scanner.
+- Com ele ligado, o app entende que está vendo o seu reflexo: as instruções
+  de "vá para a sua esquerda / direita" saem no sentido certo, e o braço
+  esquerdo é o esquerdo mesmo.
+- A escolha fica salva: quem treina no espelho não precisa ligar de novo a
+  cada série.
+
+*2. "O que este aparelho suporta" (⚙ Ajustes)*
+- Uma lista do que funciona no seu celular: Jarvis ouvir, Jarvis falar,
+  câmera, cinta cardíaca e esteira, GPS, cadência, manter a tela ligada,
+  avisos, modo offline e vídeo do story.
+- O que **falta** vem com a frase do que se perde — não com o nome técnico.
+  Em vez de "Web Bluetooth: não", lê-se "a cinta de frequência cardíaca e a
+  esteira por Bluetooth não aparecem".
+- Tem um botão para copiar tudo e mandar junto quando for relatar um problema.
+
+**Por que importa para quem treina:** o espelho resolve o problema de sempre —
+não ter onde pôr o celular para ele te ver inteiro. E a lista acaba com o
+"não funciona no meu celular": agora dá para ver em dez segundos se é o
+aparelho ou se é outra coisa.
+
+**Como usar**
+- **Espelho:** no treino → **👁 Contar pela câmera** → apoie o celular
+  apontado para o espelho → toque em **🪞** → siga a voz até o enquadramento
+  confirmar.
+- **A lista:** ⚙ Ajustes → role até *Este app* → **🔎 O que este aparelho
+  suporta**.
+
+**Ideias de vídeo**
+- "A academia tá cheia e não tem onde pôr o celular": mostrar o celular no
+  chão apontado para o espelho, contando a série de rosca direta.
+- "Por que o Jarvis não funciona no seu celular?": abrir a lista e mostrar os
+  ✓ e ✕ com a explicação de cada um.
+
+**Não prometer**
+- O modo espelho é para a **câmera do celular** apontada para um espelho. Não
+  tem relação com óculos inteligentes: o Ray-Ban Meta não entrega vídeo para
+  app web nenhum.
+- Com outras pessoas no reflexo, o app segue **um** corpo — prefira um
+  pedaço do espelho só seu.
+- O que falta na lista não é defeito do app: é o que aquele navegador oferece.
+
+---
+
 ## 2026-10-18e — Mude a ordem das fichas no treino
 
 **Em uma frase:** dentro de qualquer treino (o Avançado ou os seus), cada ficha

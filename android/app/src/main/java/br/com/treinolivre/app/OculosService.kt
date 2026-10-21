@@ -180,9 +180,11 @@ class OculosService : Service() {
             .onFailure { _, _ -> Oculos.estado = "sem-permissao" }
     }
 
-    // O formato de cor do quadro decodificado não é documentado pela Meta; o
-    // plano de luminância (Y) vem primeiro em qualquer um deles. A imagem vai
-    // em tons de cinza — para achar o corpo, o reconhecimento não precisa de cor.
+    // A cor: o arranjo YUV do quadro é descoberto nos primeiros quadros
+    // (CoresYuv). Até a decisão, a imagem sai em tons de cinza.
+    private val votos = IntArray(4)
+    @Volatile private var arranjo = -1
+
     private fun receber(f: VideoFrame) {
         if (f.isCompressed) return
         val w = f.width
@@ -193,15 +195,18 @@ class OculosService : Service() {
         // passo da linha: o tamanho exato de um YUV 4:2:0 sem folga, ou com folga no fim de cada linha
         val passo = if (total >= w * h * 3 / 2) maxOf(w, (total * 2 / 3) / h) else w
         if (total < passo * (h - 1) + w) return
-        val nv21 = ByteArray(w * h * 3 / 2)
-        val linha = ByteArray(passo)
-        val inicio = buf.position()
-        for (y in 0 until h) {
-            buf.position(inicio + y * passo)
-            buf.get(linha, 0, minOf(passo, buf.remaining()))
-            System.arraycopy(linha, 0, nv21, y * w, w)
+        val dados = ByteArray(total)
+        buf.get(dados)
+        if (arranjo < 0) {
+            val v = CoresYuv.votar(dados, w, h, passo)
+            if (v >= 0) {
+                votos[v]++
+                val melhor = votos.indices.maxByOrNull { votos[it] } ?: 0
+                if (votos[melhor] >= 6) arranjo = melhor
+            }
         }
-        java.util.Arrays.fill(nv21, w * h, nv21.size, 128.toByte())
+        val nv21 = ByteArray(w * h * 3 / 2)
+        CoresYuv.paraNv21(dados, w, h, passo, arranjo, nv21)
         val saida = ByteArrayOutputStream(w * h / 4)
         YuvImage(nv21, ImageFormat.NV21, w, h, null).compressToJpeg(Rect(0, 0, w, h), 70, saida)
         val jpg = saida.toByteArray()

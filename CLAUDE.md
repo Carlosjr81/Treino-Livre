@@ -2695,9 +2695,14 @@ scanner já sabe ler o reflexo. Serve também para o personal ver o aluno.
    sabem de onde a imagem veio. Fechar o scanner manda `/parar`.
 
 **Decisões que parecem estranhas:**
-- **A imagem vai em tons de cinza.** A Meta não documenta o arranjo de cor do
-  quadro decodificado; o plano de luminância (Y) vem primeiro em qualquer um
-  deles. O reconhecimento do corpo não precisa de cor.
+- **A cor é descoberta no aparelho** (`CoresYuv`). A Meta não documenta o
+  arranjo YUV do quadro decodificado, e a primeira versão mandava só o brilho
+  (Y): no primeiro teste que deu certo, a imagem saiu em preto e branco. Hoje
+  os primeiros quadros votam: intercalado ou em planos (em planos, bytes
+  vizinhos quase não diferem; intercalados, U e V se alternam) e a ordem (o V
+  costuma ficar acima do U em cena com gente e luz quente). Seis votos iguais
+  decidem; cena cinza não vota; até lá sai o brilho. A lógica foi conferida
+  numa cópia em JavaScript com os quatro arranjos (I420, YV12, NV12, NV21).
 - **O kit roda em modo de desenvolvedor**: `APPLICATION_ID` e `CLIENT_TOKEN`
   "0" no manifesto, e a pessoa liga o modo de desenvolvedor no app Meta AI.
   Publicar para todo mundo exige registrar o app no Wearables Developer Center,
@@ -2787,6 +2792,10 @@ dentro do app**.
 - Testado no navegador com a ponte de mentira: a imagem chega, Registrar
   devolve a série pela ponte, e a volta com `#oculosSerie=` marca a série,
   começa o descanso e fala a confirmação.
+
+**Funcionou no celular do dono (Galaxy + Ray-Ban Meta, 22/10/2026)**, depois
+de pôr a tela dos óculos na mesma tarefa do app: imagem chegando, esqueleto e
+enquadramento. Faltava a cor.
 
 **Testado só no navegador**, com óculos de mentira (um servidor local que
 manda quadros): os quadros viram o vídeo do scanner, o ✕ fecha e manda

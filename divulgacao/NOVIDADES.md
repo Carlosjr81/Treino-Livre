@@ -37,6 +37,8 @@ dele, com a imagem dos óculos chegando direto, e devolve a série contada ao tr
 **Não prometer**
 - Continua em teste.
 - Na tela dos óculos não há contagem falada (só o bipe).
+- Atualização do app Android (sem mudar o site): a imagem dos óculos passou a sair **colorida**. As cores
+  aparecem depois dos primeiros segundos, quando o app reconhece o formato da câmera.
 
 ---
 
@@ -148,7 +150,6 @@ Basta o espelho que toda academia tem.
   AI com o modo de desenvolvedor ligado e dos óculos Ray-Ban Meta. Não funciona no
   iPhone.
 - Sem espelho, os óculos não veem o próprio corpo de quem os usa.
-- A imagem aparece em preto e branco.
 
 ---
 

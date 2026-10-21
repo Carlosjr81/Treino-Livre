@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v81) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v82) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2622,8 +2622,11 @@ nativa pequena que só fala com o Health Connect.
   `sem-permissao`, `falhou`), e o site diz o que fazer (`ERROS_SAUDE`). Um
   erro não apaga o que já estava na tela.
 
-**A tela** (`TelaSaude`, Histórico › ❤ Saúde): no app, Sincronizar e a hora
-da última leitura; Android sem o app, o link do APK com os três passos;
+**A tela** (`TelaSaude`, Histórico › ❤ Saúde): **em todo Android**, Sincronizar
+e a hora da última leitura. Achado no celular do dono: o ícone que o Chrome
+criou (o PWA) e o do APK são iguais, e ele abria o antigo, onde só havia o link
+do APK. O botão chama `treinolivre://saude` de qualquer lugar; sem o app, o
+Chrome cai no APK. Fora do app e sem dados ainda, o link do APK fica embaixo;
 iPhone e computador, a explicação. Depois o batimento ao vivo (a cinta ou o
 relógio que transmite), passos com anel e barras da semana (meta 8.000,
 `META_PASSOS`), frequência cardíaca, sono (barras com a linha de 7 h), peso,

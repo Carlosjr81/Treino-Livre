@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-21e";
+const VERSAO_APP = "2026-10-21f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -22800,14 +22800,18 @@ function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCar
 
   return (
     <React.Fragment>
-      {/* ---- de onde vêm os números ---- */}
-      {NO_APP_ANDROID ? (
+      {/* ---- de onde vêm os números ----
+          Todo Android vê o Sincronizar: o botão chama o app instalado pelo
+          esquema treinolivre://, venha a página do ícone do APK, do ícone que o
+          Chrome criou antes (igual, lado a lado) ou do navegador. Sem o app, o
+          Chrome cai no link do APK (browser_fallback_url). */}
+      {NO_APP_ANDROID || EH_ANDROID ? (
         <div style={{ ...cartao, borderColor: saude && saude.erro ? "var(--perigo-borda)" : "#E1306C66" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ flex: 1, fontSize: 13, color: "var(--cinza)", lineHeight: 1.45 }}>
               <b style={{ color: "var(--texto)" }}>Health Connect</b>
               {saude && saude.em ? " · lido " + haQuanto(saude.em, agora) : " · ainda não sincronizado"}
-              <br />O app lê de novo toda vez que você o abre.
+              <br />{NO_APP_ANDROID ? "O app lê de novo toda vez que você o abre." : "Sincronizar abre o app Treino Livre, lê e volta."}
             </div>
             <button style={{ ...S.btn, width: "auto", padding: "10px 14px", fontSize: 14 }} onClick={onSincronizar}>🔄 Sincronizar</button>
           </div>
@@ -22816,13 +22820,24 @@ function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCar
           )}
           {!tem && !(saude && saude.erro) && (
             <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5 }}>
-              No celular, o Health Connect se chama <b>Conexão Saúde</b>: Configurações → busque <b>Conexão Saúde</b> → Permissões de apps →
+              No celular, o Health Connect se chama <b>Conexão Saúde</b>: Configurações → busque <b>Conexão Saúde</b> → Permissões de apps →{" "}
               <b>Samsung Health</b> → Permitir tudo. O Google Fit, o Garmin Connect,
               o Mi Fitness e os apps de anel fazem o mesmo nos ajustes deles. Depois toque em <b>Sincronizar</b>.
             </div>
           )}
+          {!NO_APP_ANDROID && !tem && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--borda)" }}>
+              <div style={{ fontSize: 13.5, lineHeight: 1.55, marginBottom: 10 }}>
+                Ainda não instalou o <b>app Android do Treino Livre</b>? É ele que lê o Health Connect: é este mesmo app, com os mesmos treinos.
+              </div>
+              <a href={LINK_APK} style={{ ...S.btnGhost, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none", marginBottom: 8 }}>⬇ Baixar o app Android (APK)</a>
+              <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.55 }}>
+                Abra o arquivo baixado e permita instalar (o app não está na Play Store). Depois volte aqui e toque em Sincronizar.
+              </div>
+            </div>
+          )}
         </div>
-      ) : EH_ANDROID ? (
+      ) : false ? (
         <div style={{ ...cartao, borderColor: "#E1306C66" }}>
           {titulo("📲 Traga o Samsung Health, o Google Fit e o seu relógio para cá")}
           <div style={{ fontSize: 14, lineHeight: 1.55, marginBottom: 12 }}>

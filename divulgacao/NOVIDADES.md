@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-10-21f — Sincronizar de qualquer ícone
+
+**Em uma frase:** no Android, o botão **🔄 Sincronizar** da aba ❤ Saúde agora
+aparece sempre, e funciona mesmo abrindo o Treino Livre pelo ícone antigo ou pelo
+navegador.
+
+**O que mudou**
+- Quem instalou o app Android ficava com dois ícones "Treino Livre" iguais. Pelo
+  ícone antigo, a aba Saúde só mostrava o botão de baixar o app.
+- Agora o Sincronizar está lá em qualquer caso: ele chama o app instalado, lê o
+  Samsung Health e volta com os números.
+- Sem o app instalado, o mesmo botão baixa o app.
+
+**Por que importa para quem treina:** não precisa adivinhar qual dos dois ícones
+abrir.
+
+**Como usar:** Histórico → ❤ Saúde → **🔄 Sincronizar**.
+
+**Ideias de vídeo**
+- Mostrar o Sincronizar trazendo passos e sono em segundos.
+
+**Não prometer:** continua exigindo o app Android instalado e a Conexão Saúde
+liberada para o Samsung Health.
+
+---
+
 ## 2026-10-21e — "Conexão Saúde": o nome que o celular mostra
 
 **Em uma frase:** a aba ❤ Saúde agora diz o caminho com o nome que aparece no

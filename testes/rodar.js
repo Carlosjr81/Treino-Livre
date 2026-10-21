@@ -1,4 +1,4 @@
-// Roda as 22 suites e devolve um resumo.
+// Roda as 23 suites e devolve um resumo.
 //
 //   node rodar.js
 //
@@ -33,6 +33,7 @@ const SUITES = [
   ["teste-busca", "a busca de exercicios: musculo, apelido e aparelho, sem perder a precisao"],
   ["teste-desafio", "o desafio: mesma regua de tempo, posicoes, ultrapassagem e MQTT"],
   ["teste-ficha", "a ficha muda com o treino, e o treino livre que vira ficha"],
+  ["teste-saude", "a saude do Health Connect: o pacote, o resumo e o batimento nos treinos"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");

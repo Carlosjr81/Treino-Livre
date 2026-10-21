@@ -1572,7 +1572,189 @@ function moverFicha(treinos, id, delta) {
   copia[j] = treinos[i];
   return copia;
 }
+// Leva o exercício da posição `de` para a posição `para` (os do meio andam
+// uma casa). Trocar só com o vizinho obrigava dez toques para levar o último
+// ao topo; escolher a posição é um toque só.
+function moverPara(itens, de, para) {
+  if (de === para || de < 0 || para < 0 || de >= itens.length || para >= itens.length) return itens;
+  const copia = itens.slice();
+  const [it] = copia.splice(de, 1);
+  copia.splice(para, 0, it);
+  return limparConjuntos(copia);
+}
+// Bi-set só existe entre vizinhos: quem ficou sem vizinho do mesmo conjunto
+// perde a marca, senão a borda rosa e o rótulo "Bi-set" sobrariam num
+// exercício sozinho depois de mudar a ordem.
+function limparConjuntos(itens) {
+  return itens.map((it, k) => {
+    if (!it.conjunto) return it;
+    const junto = (itens[k - 1] && itens[k - 1].conjunto === it.conjunto) || (itens[k + 1] && itens[k + 1].conjunto === it.conjunto);
+    return junto ? it : { ...it, conjunto: null };
+  });
+}
 // ---- fim da ficha muda
+
+// ---- SAÚDE: o que vem do Health Connect (app Android) ----
+// O Samsung Health, o Google Fit e os relógios depositam passos, sono,
+// batimento e peso no Health Connect, a central de saúde do Android. Uma página
+// não alcança essa central — só um app instalado. Por isso existe o app
+// Android (pasta android/): ele abre este mesmo site no Chrome (os dados do
+// navegador continuam os mesmos) e, no toque de "Sincronizar", uma parte
+// nativa lê o Health Connect e devolve tudo para cá num link (#saude=), do
+// mesmo jeito que uma ficha chega por #ficha=. No caminho de ida, os treinos
+// do Treino Livre vão no link (?t=) e o app grava cada um no Health Connect.
+// No iPhone nada disso existe: a Apple não abre o Apple Saúde para sites.
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk";
+const PACOTE_ANDROID = "br.com.treinolivre.app";
+const META_PASSOS = 8000;
+
+function b64UrlParaPadrao(s) {
+  let r = String(s || "").replace(/-/g, "+").replace(/_/g, "/");
+  while (r.length % 4) r += "=";
+  return r;
+}
+function padraoParaB64Url(s) {
+  return String(s || "").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// O pacote chega por URL: tudo é conferido antes de entrar no app, campo a campo.
+function lerPacoteSaude(texto, decodificar) {
+  let p;
+  try { p = JSON.parse(decodificar(b64UrlParaPadrao(texto))); } catch (e) { return null; }
+  if (!p || typeof p !== "object" || p.v !== 1) return null;
+  const num = (x, mn, mx) => (typeof x === "number" && isFinite(x) && x >= mn && x <= mx ? x : null);
+  const txt = (x, n) => (typeof x === "string" ? x.slice(0, n) : "");
+  const lista = (x) => (Array.isArray(x) ? x : []);
+  const t = (x) => num(x, 946684800000, 4102444800000);   // 2000 a 2100, em ms
+  return {
+    em: t(p.em) || Date.now(),
+    erro: p.erro ? txt(p.erro, 40) : null,
+    silencioso: !!p.s,   // a leitura automática de quando o app abre: sem aviso na tela
+    dias: lista(p.dias).filter((d) => d && typeof d.d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d.d)).map((d) => ({
+      d: d.d, passos: num(d.passos, 0, 200000), m: num(d.m, 0, 500000), kcal: num(d.kcal, 0, 20000),
+      fc: num(d.fc, 25, 250), fcMin: num(d.fcMin, 25, 250), fcMax: num(d.fcMax, 25, 250),
+    })).slice(-60),
+    sono: lista(p.sono).map((s) => ({ ini: t(s && s.ini), fim: t(s && s.fim) }))
+      .filter((s) => s.ini && s.fim && s.fim > s.ini && s.fim - s.ini < 24 * 3600000).slice(-60),
+    peso: lista(p.peso).map((x) => ({ t: t(x && x.t), kg: num(x && x.kg, 20, 400) })).filter((x) => x.t && x.kg).slice(-120),
+    repouso: lista(p.repouso).map((x) => ({ t: t(x && x.t), bpm: num(x && x.bpm, 25, 150) })).filter((x) => x.t && x.bpm).slice(-120),
+    atividades: lista(p.atividades).map((a) => ({
+      ini: t(a && a.ini), fim: t(a && a.fim), tipo: txt(a && a.tipo, 20), nome: txt(a && a.nome, 60), app: txt(a && a.app, 80),
+    })).filter((a) => a.ini && a.fim && a.fim > a.ini).slice(-60),
+    enviados: lista(p.enviados).filter((x) => typeof x === "string").map((x) => x.slice(0, 40)),
+    // o batimento que o relógio (ou o anel) gravou durante cada treino daqui
+    fcTreinos: lista(p.fcTreinos).map((x) => ({
+      id: txt(x && x.id, 40), medio: num(x && x.medio, 25, 250), max: num(x && x.max, 25, 250), amostras: num(x && x.amostras, 1, 100000),
+    })).filter((x) => x.id && x.medio && x.max),
+  };
+}
+
+// O treino feito sem cinta, com o relógio no pulso, ganha o batimento que o
+// relógio gravou naquela janela de tempo. Treino que já tem batimento (cinta,
+// esteira) fica com o que tem: a medida feita aqui, ao vivo, vale mais.
+function batimentoNosTreinos(historico, fcTreinos) {
+  const por = {};
+  (fcTreinos || []).forEach((x) => { por[x.id] = x; });
+  let mudou = 0;
+  const novo = (historico || []).map((r) => {
+    const f = por[String(r.id)];
+    if (!f || (r.bpm && r.bpm.medio)) return r;
+    mudou++;
+    return { ...r, bpm: { medio: Math.round(f.medio), max: Math.round(f.max), amostras: f.amostras || 0, fonte: "relogio" } };
+  });
+  return { historico: mudou ? novo : historico, mudou: mudou };
+}
+
+// A sincronização nova substitui a leitura velha, mas a lista do que já foi
+// gravado no Health Connect só cresce: é ela que impede mandar o mesmo treino
+// duas vezes. Um erro não apaga os dados que já estavam na tela.
+function juntarSaude(antes, novo) {
+  const ja = (antes && antes.enviados) || [];
+  if (novo.erro) return { ...(antes || {}), erro: novo.erro, em: novo.em, enviados: ja };
+  const todos = ja.concat(novo.enviados.filter((id) => ja.indexOf(id) < 0)).slice(-500);
+  return { ...novo, erro: null, enviados: todos };
+}
+
+function diaLocal(ms) {
+  const d = new Date(ms);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+// O que a tela de Saúde mostra. A noite de sono pertence ao dia em que a
+// pessoa acordou: quem dormiu de domingo para segunda dormiu "na segunda".
+function resumoSaude(s, agora) {
+  if (!s || !s.dias) return null;
+  const hoje = diaLocal(agora);
+  const ultimos = [];
+  for (let i = 6; i >= 0; i--) ultimos.push(diaLocal(agora - i * 86400000));
+  const porDia = {};
+  s.dias.forEach((d) => { porDia[d.d] = d; });
+  const dHoje = porDia[hoje] || {};
+  const semana = ultimos.map((d) => ({ d: d, passos: (porDia[d] && porDia[d].passos) || 0 }));
+  const comPassos = semana.filter((x) => x.passos > 0);
+  const sonoPorDia = {};
+  (s.sono || []).forEach((x) => { const d = diaLocal(x.fim); sonoPorDia[d] = (sonoPorDia[d] || 0) + (x.fim - x.ini); });
+  const noites = ultimos.map((d) => ({ d: d, min: Math.round((sonoPorDia[d] || 0) / 60000) }));
+  const comSono = noites.filter((x) => x.min > 0);
+  const pesos = (s.peso || []).slice().sort((a, b) => a.t - b.t);
+  const ultPeso = pesos.length ? pesos[pesos.length - 1] : null;
+  const pesoAntes = ultPeso ? pesos.filter((x) => x.t <= ultPeso.t - 25 * 86400000).pop() : null;
+  const rep = (s.repouso || []).slice().sort((a, b) => a.t - b.t);
+  const fcSemana = s.dias.filter((d) => ultimos.indexOf(d.d) >= 0 && d.fc);
+  return {
+    passosHoje: dHoje.passos || 0,
+    kmHoje: dHoje.m ? dHoje.m / 1000 : 0,
+    kcalHoje: dHoje.kcal || 0,
+    fcHoje: dHoje.fc ? { med: Math.round(dHoje.fc), min: dHoje.fcMin ? Math.round(dHoje.fcMin) : null, max: dHoje.fcMax ? Math.round(dHoje.fcMax) : null } : null,
+    fcSemana: fcSemana.length ? Math.round(fcSemana.reduce((a, d) => a + d.fc, 0) / fcSemana.length) : null,
+    semana: semana,
+    mediaPassos: comPassos.length ? Math.round(comPassos.reduce((a, x) => a + x.passos, 0) / comPassos.length) : 0,
+    noites: noites,
+    ultimaNoite: noites[6].min || null,
+    mediaSono: comSono.length ? Math.round(comSono.reduce((a, x) => a + x.min, 0) / comSono.length) : null,
+    peso: ultPeso ? { kg: ultPeso.kg, t: ultPeso.t, dif: pesoAntes ? Math.round((ultPeso.kg - pesoAntes.kg) * 10) / 10 : null } : null,
+    repouso: rep.length ? rep[rep.length - 1].bpm : null,
+    atividades: (s.atividades || []).slice().sort((a, b) => b.ini - a.ini).slice(0, 6),
+  };
+}
+
+// O tipo de atividade que o Health Connect entende, a partir do treino
+const TIPO_SAUDE_POR_CARDIO = {
+  corrida: "corrida", "rua-corrida": "corrida", caminhada: "caminhada", "rua-caminhada": "caminhada",
+  trilha: "trilha", bike: "pedalada", "bike-rua": "pedalada", "bike-braco": "pedalada", eliptico: "eliptico",
+  escada: "escada", remo: "remo", ski: "remo", corda: "corda", natacao: "natacao",
+};
+// Os treinos dos últimos 30 dias que ainda têm o que fazer lá: ser gravados no
+// Health Connect (`g`) ou buscar o batimento do relógio (os sem `bpm`). No
+// máximo 40 por vez: cabem no link com folga.
+function treinosParaSaude(historico, enviados, exPorId, agora) {
+  const ja = {};
+  (enviados || []).forEach((id) => { ja[id] = true; });
+  return (historico || []).filter((r) => r && r.id && r.data && agora - new Date(r.data).getTime() < 30 * 86400000)
+    .filter((r) => !ja[r.id] || !(r.bpm && r.bpm.medio))
+    .slice(0, 40).map((r) => {
+      const fim = new Date(r.data).getTime();
+      const ini = fim - Math.max(1, r.duracaoMin || 1) * 60000;
+      const cardios = (r.itens || []).map((it) => { const e = exPorId(it.exercicioId); return e && e.cardio; });
+      const soCardio = cardios.length > 0 && cardios.every(Boolean);
+      const tipo = soCardio ? TIPO_SAUDE_POR_CARDIO[cardios[0]] || "aerobico" : "musculacao";
+      return { id: String(r.id), nome: String(r.nome || "Treino").slice(0, 60), ini: ini, fim: fim, tipo: tipo, g: !ja[r.id] };
+    });
+}
+// O nome que a pessoa reconhece, no lugar do pacote do Android
+const APPS_SAUDE = {
+  "com.sec.android.app.shealth": "Samsung Health", "com.google.android.apps.fitness": "Google Fit",
+  "com.garmin.android.apps.connectmobile": "Garmin Connect", "com.strava": "Strava", "com.fitbit.FitbitMobile": "Fitbit",
+  "com.ouraring.oura": "Oura", "com.xiaomi.wearable": "Mi Fitness", "com.huami.watch.hmwatchmanager": "Zepp",
+  "com.mi.health": "Mi Fitness", "com.huawei.health": "Huawei Saúde", "com.polar.polarflow": "Polar Flow",
+  "com.withings.wiscale2": "Withings", "com.google.android.apps.healthdata": "Health Connect",
+  "com.samsung.android.wear.shealth": "Galaxy Watch", "com.ultrahuman.android": "Ultrahuman", "com.whoop.android": "WHOOP",
+};
+function nomeAppSaude(pacote) {
+  if (!pacote) return "";
+  return APPS_SAUDE[pacote] || pacote.split(".").slice(-1)[0];
+}
+// ---- fim da saúde
 
 // Onde cai a próxima frase do Jarvis, e de que série fala o "Próxima:" do fim
 // do descanso. Antes era a primeira série pendente da ficha inteira: quem pulava
@@ -2006,6 +2188,15 @@ const abrirVideoDe = (nome) => {
 //   expõem o serviço padrão — guardam os dados para o app da marca.
 
 const CARDIO_DISPONIVEL = typeof navigator !== "undefined" && !!navigator.bluetooth;
+// Aberto pelo app Android (o ícone instalado pelo APK abre ?app=android). A
+// marca fica na sessão da aba: a navegação dentro do app tira o ?app da barra.
+const NO_APP_ANDROID = (() => {
+  const daUrl = typeof location !== "undefined" && /[?&]app=android\b/.test(location.search);
+  try {
+    if (daUrl) { sessionStorage.setItem("treinolivre:app", "1"); localStorage.setItem("treinolivre:temApp", "1"); }
+    return daUrl || sessionStorage.getItem("treinolivre:app") === "1";
+  } catch (e) { return daUrl; }
+})();
 
 // Lê o padrão 0x2A37: o primeiro byte diz se o valor vem em 1 ou 2 bytes.
 function lerBpm(dv) {
@@ -9416,6 +9607,10 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
             <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}>▶ Treinar</button>
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onEditar(t)}>Editar</button>
+              {t.itens.length > 1 && (
+                <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onEditar(t, true)}
+                  aria-label={"Mudar a ordem dos exercícios da ficha " + t.nome}>↕ Ordem</button>
+              )}
               <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onDuplicarFicha(t)}
                 aria-label={"Duplicar a ficha " + t.nome}>⧉ Duplicar</button>
             </div>
@@ -9516,7 +9711,7 @@ function TelaAssistente({ onGerar, onCancelar }) {
   );
 }
 
-function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }) {
+function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, ordemInicial }) {
   // Cada item ganha um identificador estável para que remover um do meio da lista
   // não desloque os campos de séries/repetições dos itens seguintes.
   const [t, setT] = useState(() => ({
@@ -9529,6 +9724,21 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
   // novo para o fim da lista, e eram dez toques no ▲ para voltá-lo ao lugar.
   const [trocandoI, setTrocandoI] = useState(null);
   const buscaRef = useRef(null);
+  // ↕ Mudar a ordem: a lista vira uma linha por exercício, com setas grandes e
+  // a posição para escolher. Com os cartões abertos (séries, reps, obs), as
+  // setas pequenas sumiam entre os campos e ninguém achava.
+  const [ordenando, setOrdenando] = useState(!!ordemInicial);
+  const [movido, setMovido] = useState(null);
+  const mover = (de, para) => {
+    if (para < 0 || para >= t.itens.length) return;
+    setMovido(t.itens[de].uid);
+    setT({ ...t, itens: moverPara(t.itens, de, para) });
+  };
+  useEffect(() => {
+    if (!movido) return undefined;
+    const id = setTimeout(() => setMovido(null), 900);
+    return () => clearTimeout(id);
+  }, [movido, t]);
 
   const salvar = () => {
     if (!t.nome.trim()) { avisar("Dê um nome para a ficha (ex.: Treino A - Peito e Tríceps)"); return; }
@@ -9554,9 +9764,7 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
   const moverItem = (i, delta) => {
     const j = i + delta;
     if (j < 0 || j >= t.itens.length) return;
-    const copia = [...t.itens];
-    const tmp = copia[i]; copia[i] = copia[j]; copia[j] = tmp;
-    setT({ ...t, itens: copia });
+    setT({ ...t, itens: moverPara(t.itens, i, j) });
   };
   // Liga/desliga o agrupamento deste item com o de baixo (bi-set / tri-set)
   const alternarConjunto = (i) => {
@@ -9598,8 +9806,51 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar }
         aria-label="Nome da ficha"
         value={t.nome} onChange={(e) => setT({ ...t, nome: e.target.value })} />
 
-      <div style={S.label}>Exercícios da ficha</div>
-      <div style={{ margin: "8px 0 16px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ ...S.label, flex: 1 }}>Exercícios da ficha</div>
+        {t.itens.length > 1 && (
+          <button onClick={() => { setOrdenando(!ordenando); setTrocandoI(null); }}
+            aria-pressed={ordenando}
+            style={{ background: ordenando ? "#E1306C" : "none", border: "1px solid #E1306C", color: ordenando ? "#FFFFFF" : "#E1306C", borderRadius: 999, padding: "6px 12px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+            {ordenando ? "✓ Pronto" : "↕ Mudar a ordem"}
+          </button>
+        )}
+      </div>
+      {ordenando && (
+        <div style={{ margin: "8px 0 16px" }}>
+          <div style={{ fontSize: 13, color: "var(--cinza)", marginBottom: 10 }}>
+            Use ▲ ▼, ou toque no número e escolha a posição. O treino segue esta ordem.
+          </div>
+          {t.itens.map((it, i) => {
+            const e = exPorId(it.exercicioId);
+            const nomeEx = e ? e.nome : "Exercício removido";
+            const seta = (desab) => ({ background: "none", border: "1px solid var(--borda2)", borderRadius: 10, width: 44, height: 44, flexShrink: 0, color: desab ? "var(--borda2)" : "var(--texto)", fontSize: 16, cursor: desab ? "default" : "pointer" });
+            return (
+              <div key={it.uid || i} style={{ ...S.card, padding: 8, marginBottom: 6, display: "flex", alignItems: "center", gap: 8,
+                transition: "background .4s", background: movido === it.uid ? "#E1306C22" : S.card.background }}>
+                <select value={i} onChange={(ev) => mover(i, parseInt(ev.target.value, 10))}
+                  aria-label={"Posição de " + nomeEx}
+                  style={{ width: 52, height: 44, flexShrink: 0, borderRadius: 10, border: "1px solid #E1306C66", background: "var(--card)", color: "#E1306C", fontWeight: 900, fontSize: 16, textAlign: "center" }}>
+                  {t.itens.map((_, k) => <option key={k} value={k}>{k + 1}º</option>)}
+                </select>
+                <MiniaturaExercicio ex={e} tamanho={36} />
+                <div style={{ flex: 1, minWidth: 0, fontWeight: 800, fontSize: 14, lineHeight: 1.25 }}>
+                  {nomeEx}
+                  {it.conjunto && <span style={{ color: "#E1306C", fontSize: 11, marginLeft: 6 }}>⛓</span>}
+                </div>
+                <button aria-label={"Subir " + nomeEx} disabled={i === 0} onClick={() => mover(i, i - 1)} style={seta(i === 0)}>▲</button>
+                <button aria-label={"Descer " + nomeEx} disabled={i === t.itens.length - 1} onClick={() => mover(i, i + 1)} style={seta(i === t.itens.length - 1)}>▼</button>
+              </div>
+            );
+          })}
+          {ordemInicial ? (
+            <button style={{ ...S.btn, marginTop: 8 }} onClick={salvar}>💾 Salvar a ordem</button>
+          ) : (
+            <button style={{ ...S.btnGhost, marginTop: 8 }} onClick={() => setOrdenando(false)}>✓ Pronto, voltar à edição</button>
+          )}
+        </div>
+      )}
+      <div style={{ margin: "8px 0 16px", display: ordenando ? "none" : "block" }}>
         {t.itens.length === 0 && <div style={{ color: "var(--cinza)", fontSize: 14, padding: "8px 0" }}>Adicione exercícios da lista abaixo.</div>}
         {t.itens.map((it, i) => {
           const e = exPorId(it.exercicioId);
@@ -21038,10 +21289,255 @@ function TelaCorpo({ medidas, historico, fotos, onAdicionarFoto, onExcluirFoto, 
   );
 }
 
+// ---- A tela de Saúde ----
+// Os números que o Samsung Health, o Google Fit, o relógio e o anel juntam no
+// Health Connect, lidos pelo app Android. Fora dele (iPhone, computador,
+// Android sem o app), a tela explica o porquê e mostra o que dá para ter aqui
+// mesmo: o batimento ao vivo pela cinta ou pelo relógio que transmite, e os
+// números do próprio Treino Livre.
+function BarrasSaude({ itens, meta, cor, fmt }) {
+  const max = Math.max(meta || 0, ...itens.map((x) => x.v), 1);
+  const L = 280, A = 86, larg = L / itens.length;
+  const sem = "DSTQQSS";
+  return (
+    <svg viewBox={"0 0 " + L + " " + (A + 18)} style={{ width: "100%", height: "auto", display: "block" }} role="img"
+      aria-label={itens.map((x) => fmt(x.v)).join(", ")}>
+      {meta ? <line x1="0" x2={L} y1={A - (meta / max) * A} y2={A - (meta / max) * A} stroke={cor} strokeOpacity="0.45" strokeDasharray="4 4" /> : null}
+      {itens.map((x, i) => {
+        const alt = Math.max(x.v > 0 ? 3 : 0, (x.v / max) * A);
+        const p = x.d.split("-").map(Number);
+        const dia = sem[new Date(p[0], p[1] - 1, p[2]).getDay()];
+        const hoje = i === itens.length - 1;
+        return (
+          <g key={x.d}>
+            <rect x={i * larg + larg * 0.22} y={A - alt} width={larg * 0.56} height={alt} rx="4"
+              fill={cor} fillOpacity={hoje ? 1 : (meta && x.v >= meta ? 0.85 : 0.45)} />
+            <text x={i * larg + larg / 2} y={A + 14} textAnchor="middle" fontSize="11" fontWeight={hoje ? 900 : 600}
+              fill={hoje ? "var(--texto)" : "var(--cinza)"}>{dia}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function AnelSaude({ valor, meta, cor, centro, sub }) {
+  const p = Math.min(1, meta ? valor / meta : 0);
+  const r = 46, c = 2 * Math.PI * r;
+  return (
+    <svg viewBox="0 0 110 110" style={{ width: 118, height: 118, flexShrink: 0 }}>
+      <circle cx="55" cy="55" r={r} fill="none" stroke="var(--borda2)" strokeWidth="10" />
+      <circle cx="55" cy="55" r={r} fill="none" stroke={cor} strokeWidth="10" strokeLinecap="round"
+        strokeDasharray={c} strokeDashoffset={c * (1 - p)} transform="rotate(-90 55 55)" style={{ transition: "stroke-dashoffset .8s" }} />
+      <text x="55" y="55" textAnchor="middle" fontSize="20" fontWeight="900" fill="var(--texto)">{centro}</text>
+      <text x="55" y="72" textAnchor="middle" fontSize="10" fill="var(--cinza)">{sub}</text>
+    </svg>
+  );
+}
+
+const ERROS_SAUDE = {
+  indisponivel: "Este celular não tem o Health Connect. No Android 14 ou mais novo ele já vem no sistema; no 9 a 13, instale \"Health Connect\" na Play Store e toque em Sincronizar de novo.",
+  atualizar: "O Health Connect deste celular precisa ser atualizado na Play Store.",
+  "sem-permissao": "Sem permissão, o app não lê nada. Toque em Sincronizar e marque \"Permitir tudo\" — dá para tirar a permissão quando quiser, no próprio Health Connect.",
+  falhou: "A leitura do Health Connect falhou desta vez. Toque em Sincronizar para tentar de novo.",
+};
+
+function haQuanto(ms, agora) {
+  const min = Math.round((agora - ms) / 60000);
+  if (min < 2) return "agora mesmo";
+  if (min < 60) return "há " + min + " min";
+  const hs = Math.round(min / 60);
+  if (hs < 24) return "há " + hs + " h";
+  const dd = Math.round(hs / 24);
+  return "há " + dd + " " + plural(dd, "dia", "dias");
+}
+const horasMin = (min) => Math.floor(min / 60) + "h" + String(min % 60).padStart(2, "0");
+
+function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizar }) {
+  const agora = Date.now();
+  const r = useMemo(() => resumoSaude(saude, agora), [saude]);
+  const tem = !!(r && saude && saude.dias && saude.dias.length);
+  const cartao = { ...S.card, padding: 16 };
+  const titulo = (t) => <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 10 }}>{t}</div>;
+  const numero = (v, u) => (
+    <span><span style={{ fontSize: 28, fontWeight: 900 }}>{v}</span>{u ? <span style={{ fontSize: 13, color: "var(--cinza)", marginLeft: 4 }}>{u}</span> : null}</span>
+  );
+  // Os números do próprio Treino Livre, que valem em qualquer aparelho
+  const semana = historico.filter((x) => agora - new Date(x.data).getTime() < 7 * 86400000);
+  const minSemana = semana.reduce((a, x) => a + (x.duracaoMin || 0), 0);
+  const comBpm = historico.filter((x) => x.bpm && x.bpm.medio).slice(0, 5);
+  const pesoApp = [...(medidas || [])].filter((m) => m.peso).sort((a, b) => new Date(b.data) - new Date(a.data))[0];
+
+  return (
+    <React.Fragment>
+      {/* ---- de onde vêm os números ---- */}
+      {NO_APP_ANDROID ? (
+        <div style={{ ...cartao, borderColor: saude && saude.erro ? "var(--perigo-borda)" : "#E1306C66" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ flex: 1, fontSize: 13, color: "var(--cinza)", lineHeight: 1.45 }}>
+              <b style={{ color: "var(--texto)" }}>Health Connect</b>
+              {saude && saude.em ? " · lido " + haQuanto(saude.em, agora) : " · ainda não sincronizado"}
+              <br />O app lê de novo toda vez que você o abre.
+            </div>
+            <button style={{ ...S.btn, width: "auto", padding: "10px 14px", fontSize: 14 }} onClick={onSincronizar}>🔄 Sincronizar</button>
+          </div>
+          {saude && saude.erro && (
+            <div style={{ marginTop: 10, fontSize: 13, color: "var(--perigo)", lineHeight: 1.45 }}>{ERROS_SAUDE[saude.erro] || ERROS_SAUDE.falhou}</div>
+          )}
+          {!tem && !(saude && saude.erro) && (
+            <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5 }}>
+              No Samsung Health: <b>Configurações → Health Connect</b> → ligue a sincronização. O Google Fit, o Garmin Connect,
+              o Mi Fitness e os apps de anel fazem o mesmo nos ajustes deles. Depois toque em <b>Sincronizar</b>.
+            </div>
+          )}
+        </div>
+      ) : EH_ANDROID ? (
+        <div style={{ ...cartao, borderColor: "#E1306C66" }}>
+          {titulo("📲 Traga o Samsung Health, o Google Fit e o seu relógio para cá")}
+          <div style={{ fontSize: 14, lineHeight: 1.55, marginBottom: 12 }}>
+            Passos, sono, batimento e peso ficam no <b>Health Connect</b> do Android, e um site não tem permissão de ler lá.
+            O <b>app Android do Treino Livre</b> tem: ele é este mesmo app, com os mesmos treinos, e lê esses números para você.
+          </div>
+          <a href={LINK_APK} style={{ ...S.btn, display: "block", textAlign: "center", textDecoration: "none", marginBottom: 10 }}>⬇ Baixar o app Android (APK)</a>
+          <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.55 }}>
+            1. Abra o arquivo baixado e permita instalar (o app não está na Play Store).<br />
+            2. Abra o Treino Livre pelo ícone novo: seus treinos estão lá, porque ele usa o mesmo Chrome.<br />
+            3. Em Histórico → ❤ Saúde, toque em Sincronizar e permita a leitura.
+          </div>
+        </div>
+      ) : (
+        <div style={cartao}>
+          {titulo(EH_IOS ? "🍎 No iPhone" : "💻 Neste aparelho")}
+          <div style={{ fontSize: 14, lineHeight: 1.55 }}>
+            {EH_IOS
+              ? "A Apple não deixa nenhum site ler o app Saúde do iPhone. Todo o resto do Treino Livre continua funcionando aqui no navegador, sem perder nada — e o batimento ao vivo funciona com cinta ou relógio pelo Chrome do Android ou do computador."
+              : "Passos, sono e os dados do relógio ficam no celular. No Android, o app do Treino Livre lê o Health Connect (Samsung Health, Google Fit, relógios e anéis) e mostra tudo aqui."}
+          </div>
+        </div>
+      )}
+
+      {/* ---- ao vivo ---- */}
+      <div style={cartao}>
+        {titulo("❤ Batimento ao vivo")}
+        {cardioEstado === "ligado" ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ fontSize: 40, fontWeight: 900, color: "#FF4D6D" }}>{bpm || "—"}</div>
+            <div style={{ flex: 1, fontSize: 13, color: "var(--cinza)" }}>bpm, direto do sensor. No treino, a média e o pico vão para o histórico.</div>
+            <button style={{ ...S.btnGhost, width: "auto", padding: "8px 12px" }} onClick={onDesconectarCardio}>Desligar</button>
+          </div>
+        ) : (
+          <React.Fragment>
+            <button style={{ ...S.btn, marginBottom: 10 }} onClick={onConectarCardio} disabled={!CARDIO_DISPONIVEL || cardioEstado === "conectando"}>
+              {cardioEstado === "conectando" ? "Conectando…" : "📶 Conectar cinta ou relógio"}
+            </button>
+            <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.55 }}>
+              {CARDIO_DISPONIVEL
+                ? <span>Funciona com tudo o que <b>transmite o batimento por Bluetooth</b>: cintas (Polar, Garmin, Wahoo, Coospo), e relógios no modo de transmitir — Garmin (<i>Transmitir FC</i>), Polar e Coros, Amazfit (Zepp: <i>Compartilhar FC</i>), Xiaomi e Redmi (<i>Transmissão de frequência cardíaca</i>) e Huawei (<i>Transmitir FC</i>). O Galaxy Watch e os anéis (Galaxy Ring, Oura) não transmitem ao vivo: os números deles chegam pelo Health Connect, logo depois de sincronizar no app deles.</span>
+                : "Este navegador não fala Bluetooth (o iPhone não deixa). No Chrome do Android ou do computador, a cinta e os relógios que transmitem o batimento conectam aqui."}
+            </div>
+          </React.Fragment>
+        )}
+      </div>
+
+      {tem && (
+        <React.Fragment>
+          {/* ---- passos ---- */}
+          <div style={cartao}>
+            {titulo("👣 Passos")}
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
+              <AnelSaude valor={r.passosHoje} meta={META_PASSOS} cor="#4ADE80" centro={r.passosHoje.toLocaleString("pt-BR")} sub={"de " + META_PASSOS.toLocaleString("pt-BR")} />
+              <div style={{ fontSize: 13.5, lineHeight: 1.8 }}>
+                <div>📏 <b>{fmtNum(r.kmHoje)} km</b> hoje</div>
+                {r.kcalHoje > 0 && <div>🔥 <b>{Math.round(r.kcalHoje)} kcal</b> em atividade</div>}
+                <div style={{ color: "var(--cinza)" }}>Média da semana: {r.mediaPassos.toLocaleString("pt-BR")}</div>
+              </div>
+            </div>
+            <BarrasSaude itens={r.semana.map((x) => ({ d: x.d, v: x.passos }))} meta={META_PASSOS} cor="#4ADE80" fmt={(v) => v + " passos"} />
+          </div>
+
+          {/* ---- batimento ---- */}
+          {(r.fcHoje || r.repouso || r.fcSemana) && (
+            <div style={cartao}>
+              {titulo("💓 Frequência cardíaca")}
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                {r.fcHoje && <div>{numero(r.fcHoje.med, "bpm")}<div style={{ fontSize: 12, color: "var(--cinza)" }}>média de hoje{r.fcHoje.min ? " · " + r.fcHoje.min + " a " + r.fcHoje.max : ""}</div></div>}
+                {r.repouso && <div>{numero(r.repouso, "bpm")}<div style={{ fontSize: 12, color: "var(--cinza)" }}>em repouso</div></div>}
+                {r.fcSemana && <div>{numero(r.fcSemana, "bpm")}<div style={{ fontSize: 12, color: "var(--cinza)" }}>média da semana</div></div>}
+              </div>
+            </div>
+          )}
+
+          {/* ---- sono ---- */}
+          {r.mediaSono && (
+            <div style={cartao}>
+              {titulo("😴 Sono")}
+              <div style={{ display: "flex", gap: 16, marginBottom: 10 }}>
+                <div>{numero(r.ultimaNoite ? horasMin(r.ultimaNoite) : "—")}<div style={{ fontSize: 12, color: "var(--cinza)" }}>última noite</div></div>
+                <div>{numero(horasMin(r.mediaSono))}<div style={{ fontSize: 12, color: "var(--cinza)" }}>média da semana</div></div>
+              </div>
+              <BarrasSaude itens={r.noites.map((x) => ({ d: x.d, v: x.min }))} meta={420} cor="#8B7CFF" fmt={(v) => horasMin(v)} />
+              <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 6 }}>A linha é 7 horas. O músculo cresce no descanso: noite curta pesa no treino do dia seguinte.</div>
+            </div>
+          )}
+
+          {/* ---- peso ---- */}
+          {r.peso && (
+            <div style={cartao}>
+              {titulo("⚖ Peso")}
+              {numero(fmtNum(r.peso.kg), "kg")}
+              <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 4 }}>
+                {new Date(r.peso.t).toLocaleDateString("pt-BR")}
+                {r.peso.dif !== null ? " · " + (r.peso.dif > 0 ? "+" : "") + fmtNum(r.peso.dif) + " kg em um mês" : ""}
+                {" · usado na conta de calorias do treino"}
+              </div>
+            </div>
+          )}
+
+          {/* ---- atividades de outros apps ---- */}
+          {r.atividades.length > 0 && (
+            <div style={cartao}>
+              {titulo("🏅 Atividades dos outros apps")}
+              {r.atividades.map((a, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, padding: "7px 0", borderTop: i ? "1px solid var(--borda)" : "none", fontSize: 13.5 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <b>{a.nome || "Atividade"}</b>
+                    <div style={{ fontSize: 12, color: "var(--cinza)" }}>{new Date(a.ini).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })} · {nomeAppSaude(a.app)}</div>
+                  </div>
+                  <div style={{ fontWeight: 800 }}>{Math.round((a.fim - a.ini) / 60000)} min</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {saude.enviados && saude.enviados.length > 0 && (
+            <div style={{ fontSize: 12.5, color: "var(--cinza)", textAlign: "center", margin: "0 0 14px" }}>
+              ✓ {saude.enviados.length} {plural(saude.enviados.length, "treino daqui foi gravado", "treinos daqui foram gravados")} no Health Connect
+              — o Samsung Health e o Google Fit também os enxergam.
+            </div>
+          )}
+        </React.Fragment>
+      )}
+
+      {/* ---- do próprio Treino Livre: vale em qualquer aparelho ---- */}
+      <div style={cartao}>
+        {titulo("💪 Do Treino Livre")}
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <div>{numero(semana.length)}<div style={{ fontSize: 12, color: "var(--cinza)" }}>{plural(semana.length, "treino", "treinos")} em 7 dias</div></div>
+          <div>{numero(minSemana, "min")}<div style={{ fontSize: 12, color: "var(--cinza)" }}>de treino</div></div>
+          {comBpm.length > 0 && <div>{numero(Math.round(comBpm.reduce((a, x) => a + x.bpm.medio, 0) / comBpm.length), "bpm")}<div style={{ fontSize: 12, color: "var(--cinza)" }}>média nos treinos</div></div>}
+          {!tem && pesoApp && <div>{numero(fmtNum(pesoApp.peso), "kg")}<div style={{ fontSize: 12, color: "var(--cinza)" }}>última pesagem</div></div>}
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+// ---- fim da tela de saúde
+
 function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVirarFicha, pedirConfirmacao,
   medidas, onSalvarMedida, onExcluirMedida, avisar,
   fotos, onAdicionarFoto, onExcluirFoto,
-  meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor, onComecar }) {
+  meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor, onComecar,
+  saude, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizarSaude }) {
   const [secao, setSecao] = useState(secaoInicial || "treinos");
   const recordes = useMemo(() => calcularRecordes(historico), [historico]);
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
@@ -21049,25 +21545,30 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
   return (
     <div style={{ padding: "0 18px" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {[["treinos", "📋 Treinos"], ["stats", "📊 Números"], ["corpo", "📏 Corpo"]].map(([s, nome]) => (
+        {[["treinos", "📋 Treinos"], ["stats", "📊 Números"], ["corpo", "📏 Corpo"], ["saude", "❤ Saúde"]].map(([s, nome]) => (
           <button key={s} onClick={() => setSecao(s)}
             style={{
               flex: 1, border: "1px solid", borderColor: secao === s ? "#E1306C" : "var(--borda2)",
               background: secao === s ? "#E1306C22" : "transparent",
               color: secao === s ? "#E1306C" : "var(--cinza)",
-              borderRadius: 10, padding: "11px 10px", fontWeight: 800, fontSize: 13, cursor: "pointer",
+              borderRadius: 10, padding: "11px 2px", fontWeight: 800, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap",
             }}>
             {nome}
           </button>
         ))}
       </div>
 
-      {historico.length === 0 && secao !== "corpo" && (
+      {historico.length === 0 && secao !== "corpo" && secao !== "saude" && (
         <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
           Seus treinos concluídos aparecem aqui, com volume, séries e recordes de cada exercício.
           {/* tela vazia sem caminho é tela onde a pessoa desiste: o botão leva ao treino de hoje */}
           {onComecar && <button style={{ ...S.btn, marginTop: 14 }} onClick={onComecar}>▶ Fazer meu primeiro treino</button>}
         </div>
+      )}
+
+      {secao === "saude" && (
+        <TelaSaude saude={saude} historico={historico} medidas={medidas} bpm={bpm} cardioEstado={cardioEstado}
+          onConectarCardio={onConectarCardio} onDesconectarCardio={onDesconectarCardio} onSincronizar={onSincronizarSaude} />
       )}
 
       {secao === "corpo" && (
@@ -21567,6 +22068,10 @@ function TreinoLivre() {
   const marcarDica = (k) => setDicas((d) => (d[k] ? d : { ...d, [k]: 1 }));
   const [exercicioAberto, setExercicioAberto] = useState(null);
   const [editandoTreino, setEditandoTreino] = useState(null);
+  const [editarOrdem, setEditarOrdem] = useState(false);
+  // O que veio do Health Connect pelo app Android (fica só neste aparelho e
+  // não vai no backup: é cópia, a fonte é o próprio Health Connect)
+  const [saude, setSaude] = useState(null);
   const [baseNovoEx, setBaseNovoEx] = useState(null);   // exercício copiado ao criar variação
   const trocaFotoRef = useRef(null);                    // qual exercício está trocando a foto
   const [sessao, setSessao] = useState(null);
@@ -21914,6 +22419,7 @@ function TreinoLivre() {
         if (d.dicas && typeof d.dicas === "object") setDicas(d.dicas);
         if (d.botaoVoz && typeof d.botaoVoz.y === "number") setBotaoVoz(d.botaoVoz);
         if (d.corredor && typeof d.corredor === "object") setCorredor(lerCorredor(d.corredor));
+        if (d.saude && typeof d.saude === "object" && Array.isArray(d.saude.dias)) setSaude(d.saude);
         if (d.meta) mt = d.meta;
         md = d.medidas || [];
         ft = d.fotos || [];
@@ -21972,13 +22478,38 @@ function TreinoLivre() {
       const mD = hash.match(/#desafio=([^&]+)/);
       const mA = hash.match(/#atalho=([a-z]+)/);
       const mC = hash.match(/#corrida=([^&]+)/);
-      if (mF || mP || mD || mA || mC) {
+      const mS = hash.match(/#saude=([^&]+)/);
+      if (mF || mP || mD || mA || mC || mS) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e2) {}
       }
       // Atalhos do ícone do app na tela inicial (definidos no manifest.json)
       if (mA && !ss) {
         if (mA[1] === "historico") setAba("historico");
         else if (mA[1] === "livre") setTimeout(() => iniciarTreinoLivre(), 0);
+      }
+      // A volta do app Android, com o que ele leu do Health Connect
+      if (mS) {
+        const pac = lerPacoteSaude(mS[1], b64Decodificar);
+        if (pac) {
+          const { fcTreinos, ...resto } = pac;
+          setSaude((antes) => juntarSaude(antes, resto));
+          let comFc = 0;
+          if (fcTreinos.length) {
+            const b = batimentoNosTreinos(hi, fcTreinos);
+            comFc = b.mudou;
+            if (b.mudou) setHistorico((prev) => batimentoNosTreinos(prev, fcTreinos).historico);
+          }
+          if (!ss && !pac.silencioso) { setSecaoHistorico("saude"); setAba("historico"); }
+          if (pac.erro) setTimeout(() => avisar(ERROS_SAUDE[pac.erro] || ERROS_SAUDE.falhou), 300);
+          else if (!pac.silencioso) {
+            const hoje = pac.dias.find((x) => x.d === diaLocal(Date.now()));
+            const novos = pac.enviados.length;
+            setTimeout(() => avisar("❤ Health Connect sincronizado." +
+              (hoje && hoje.passos ? " " + hoje.passos.toLocaleString("pt-BR") + " passos hoje." : "") +
+              (novos ? " " + novos + " " + plural(novos, "treino gravado", "treinos gravados") + " lá." : "") +
+              (comFc ? " Batimento do relógio em " + comFc + " " + plural(comFc, "treino", "treinos") + "." : "")), 300);
+          }
+        }
       }
       if (mC) {
         const c = lerLinkDesafio(mC[1]);
@@ -22023,13 +22554,13 @@ function TreinoLivre() {
   const dadosRef = useRef("");
   useEffect(() => {
     if (!carregado) return;
-    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, seedV3: true });
+    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, saude, seedV3: true });
     const t = setTimeout(() => {
       const deu = store.set(STORAGE_KEY, dadosRef.current);
       setSemGravar((antes) => (antes === !deu ? antes : !deu));
     }, 400);
     return () => clearTimeout(t);
-  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, carregado]);
+  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, saude, carregado]);
 
   // Fechou o app ou trocou de aba no meio do treino? Grava na hora, sem esperar o respiro.
   useEffect(() => {
@@ -22682,8 +23213,24 @@ function TreinoLivre() {
   // Sem medida, o cálculo usa 75 kg e o número é claramente uma estimativa.
   const pesoCorporal = useMemo(() => {
     const comPeso = [...medidas].filter((m) => m.peso).sort((a, b) => new Date(b.data) - new Date(a.data));
-    return comPeso.length ? parseFloat(comPeso[0].peso) : null;
-  }, [medidas]);
+    // a pesagem mais nova vence, venha daqui ou da balança ligada ao Health Connect
+    const daqui = comPeso.length ? { kg: parseFloat(comPeso[0].peso), t: new Date(comPeso[0].data).getTime() } : null;
+    const hc = saude && saude.peso && saude.peso.length ? saude.peso.reduce((a, x) => (x.t > a.t ? x : a)) : null;
+    if (hc && (!daqui || hc.t > daqui.t)) return hc.kg;
+    return daqui ? daqui.kg : null;
+  }, [medidas, saude]);
+
+  // Ida para o app Android: os treinos que ainda não estão no Health Connect
+  // vão no link, e a parte nativa grava, lê tudo e volta para cá com #saude=.
+  // O Chrome só abre outro app depois de um toque — por isso é um botão.
+  const sincronizarSaude = () => {
+    const t = treinosParaSaude(historico, saude && saude.enviados, exPorId, Date.now());
+    const d = padraoParaB64Url(b64Codificar(JSON.stringify({ v: 1, t: t })));
+    try { store.set(STORAGE_KEY, dadosRef.current); } catch (e) {}
+    registrarEvento("saude-sincronizar");
+    window.location.href = "intent://saude?d=" + d + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID +
+      ";S.browser_fallback_url=" + encodeURIComponent(LINK_APK) + ";end";
+  };
 
   const avisoBackup = useMemo(() => {
     if (historico.length < 5) return null;
@@ -23286,7 +23833,7 @@ function TreinoLivre() {
             pedirConfirmacao={pedirConfirmacao}
             onTreinar={iniciarSessao}
             onNovaFicha={novaFicha}
-            onEditar={(t) => { setEditandoTreino(JSON.parse(JSON.stringify(t))); setAba("editarTreino"); }}
+            onEditar={(t, ordem) => { setEditandoTreino(JSON.parse(JSON.stringify(t))); setEditarOrdem(!!ordem); setAba("editarTreino"); }}
             onExcluirFicha={(id) => setTreinos(treinos.filter((x) => x.id !== id))}
             onCompartilharFicha={compartilharFicha}
             onNovoPrograma={criarPrograma}
@@ -23301,7 +23848,7 @@ function TreinoLivre() {
             onTreinoLivre={iniciarTreinoLivre} />
         )}
         {aba === "editarTreino" && editandoTreino && (
-          <TelaEditarTreino key={editandoTreino.id} treinoInicial={editandoTreino} todos={todos} avisar={avisar}
+          <TelaEditarTreino key={editandoTreino.id} treinoInicial={editandoTreino} todos={todos} avisar={avisar} ordemInicial={editarOrdem}
             onSalvar={salvarTreino}
             onCancelar={() => { setEditandoTreino(null); setAba("treinos"); }} />
         )}
@@ -23333,7 +23880,9 @@ function TreinoLivre() {
             medidas={medidas} onSalvarMedida={salvarMedida} onExcluirMedida={excluirMedida} avisar={avisar}
             fotos={fotos} onAdicionarFoto={adicionarFoto} onExcluirFoto={excluirFoto}
             meta={meta} setMeta={setMeta} secaoInicial={secaoHistorico}
-            onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} pesoCorporal={pesoCorporal} vozCfg={voz} onCorredor={() => setAba("corredor")} onComecar={() => setAba("inicio")} />
+            onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} pesoCorporal={pesoCorporal} vozCfg={voz} onCorredor={() => setAba("corredor")} onComecar={() => setAba("inicio")}
+            saude={saude} bpm={bpm} cardioEstado={cardioEstado} onConectarCardio={conectarCardio} onDesconectarCardio={desconectarCardio}
+            onSincronizarSaude={sincronizarSaude} />
         )}
         {aba === "editarHistorico" && editandoHistorico && (
           <TelaEditarHistorico key={editandoHistorico.id} registro={editandoHistorico} exPorId={exPorId} avisar={avisar}

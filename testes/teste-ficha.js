@@ -7,7 +7,7 @@ function pedaco(de, ate) {
   if (i < 0 || f < 0) { console.error("nao achei: " + de); process.exit(1); }
   return html.slice(i, f);
 }
-eval(pedaco("// ---- A ficha muda com o treino ----", "// ---- fim da ficha muda") + "\nglobalThis.H = { mudancasNaFicha, fichaDoTreino, moverFicha };");
+eval(pedaco("// ---- A ficha muda com o treino ----", "// ---- fim da ficha muda") + "\nglobalThis.H = { mudancasNaFicha, fichaDoTreino, moverFicha, moverPara };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -100,6 +100,18 @@ teste("subir a primeira: nada muda", "abc", ordem(H.moverFicha(lista, "a", -1), 
 teste("descer a última: nada muda", "abc", ordem(H.moverFicha(lista, "c", 1), "av"));
 teste("ficha sozinha no treino: nada muda", lista, H.moverFicha(lista, "x", 1));
 teste("não mexe na lista original", "abc", ordem(lista, "av"));
+
+console.log("\n--- a ordem dos exercícios na ficha ---");
+const ex = ["a", "b", "c", "d"].map((x) => ({ uid: x, exercicioId: x }));
+const ids = (l) => l.map((x) => x.uid).join("");
+teste("o último vai para o topo, os outros descem", "dabc", ids(H.moverPara(ex, 3, 0)));
+teste("o primeiro vai para o fim", "bcda", ids(H.moverPara(ex, 0, 3)));
+teste("um passo para baixo é trocar com o vizinho", "bacd", ids(H.moverPara(ex, 0, 1)));
+teste("posição fora da lista: nada muda", "abcd", ids(H.moverPara(ex, 0, 9)));
+teste("não mexe na lista original", "abcd", ids(ex));
+const bi = [{ uid: "a", conjunto: "k" }, { uid: "b", conjunto: "k" }, { uid: "c" }, { uid: "d" }];
+teste("separar o bi-set apaga a marca dos dois", [null, null, null], H.moverPara(bi, 0, 3).map((x) => x.conjunto || null).slice(0, 3));
+teste("o bi-set que continua junto fica", ["k", "k"], H.moverPara(bi, 3, 0).slice(1, 3).map((x) => x.conjunto));
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

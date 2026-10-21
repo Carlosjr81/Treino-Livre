@@ -33,6 +33,8 @@ const SUITES = [
   ["teste-busca", "a busca de exercicios: musculo, apelido e aparelho, sem perder a precisao"],
   ["teste-desafio", "o desafio: mesma regua de tempo, posicoes, ultrapassagem e MQTT"],
   ["teste-ficha", "a ficha muda com o treino, e o treino livre que vira ficha"],
+  ["teste-recursos", "o que este aparelho suporta, e o que se perde sem cada coisa"],
+  ["teste-espelho", "o modo espelho: o sentido, os nomes dos lados e a seta"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");

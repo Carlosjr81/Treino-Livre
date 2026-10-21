@@ -16,6 +16,61 @@
 
 ---
 
+## 2026-10-21a — Treine de frente para o espelho, e saiba o que o seu celular aguenta
+
+**Em uma frase:** a câmera agora conta as repetições apontada para o espelho
+da academia — e uma tela nova diz, em português, o que funciona e o que não
+funciona no seu aparelho.
+
+**O que mudou**
+
+*1. Modo espelho (🪞) no contar pela câmera*
+- Em academia cheia quase nunca há onde apoiar o celular de frente para você.
+  Mas sempre há um espelho. Apoie o celular **apontado para o espelho** e
+  toque no botão **🪞** no canto da tela do scanner.
+- Com ele ligado, o app entende que está vendo o seu reflexo: as instruções
+  de "vá para a sua esquerda / direita" saem no sentido certo, e o braço
+  esquerdo é o esquerdo mesmo.
+- A escolha fica salva: quem treina no espelho não precisa ligar de novo a
+  cada série.
+
+*2. "O que este aparelho suporta" (⚙ Ajustes)*
+- Uma lista do que funciona no seu celular: Jarvis ouvir, Jarvis falar,
+  câmera, cinta cardíaca e esteira, GPS, cadência, manter a tela ligada,
+  avisos, modo offline e vídeo do story.
+- O que **falta** vem com a frase do que se perde — não com o nome técnico.
+  Em vez de "Web Bluetooth: não", lê-se "a cinta de frequência cardíaca e a
+  esteira por Bluetooth não aparecem".
+- Tem um botão para copiar tudo e mandar junto quando for relatar um problema.
+
+**Por que importa para quem treina:** o espelho resolve o problema de sempre —
+não ter onde pôr o celular para ele te ver inteiro. E a lista acaba com o
+"não funciona no meu celular": agora dá para ver em dez segundos se é o
+aparelho ou se é outra coisa.
+
+**Como usar**
+- **Espelho:** no treino → **👁 Contar pela câmera** → apoie o celular
+  apontado para o espelho → toque em **🪞** → siga a voz até o enquadramento
+  confirmar.
+- **A lista:** ⚙ Ajustes → role até *Este app* → **🔎 O que este aparelho
+  suporta**.
+
+**Ideias de vídeo**
+- "A academia tá cheia e não tem onde pôr o celular": mostrar o celular no
+  chão apontado para o espelho, contando a série de rosca direta.
+- "Por que o Jarvis não funciona no seu celular?": abrir a lista e mostrar os
+  ✓ e ✕ com a explicação de cada um.
+
+**Não prometer**
+- O modo espelho é para a **câmera do celular** apontada para um espelho. Não
+  tem relação com óculos inteligentes: o Ray-Ban Meta não entrega vídeo para
+  app web nenhum.
+- Com outras pessoas no reflexo, o app segue **um** corpo — prefira um
+  pedaço do espelho só seu.
+- O que falta na lista não é defeito do app: é o que aquele navegador oferece.
+
+---
+
 ## 2026-10-18e — Mude a ordem das fichas no treino
 
 **Em uma frase:** dentro de qualquer treino (o Avançado ou os seus), cada ficha

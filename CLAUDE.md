@@ -2297,6 +2297,111 @@ botão de parar. **O que só aparece assim**: a voz mandava "ajuste a esteira pa
 comandou — e a diferença entre as duas frases é a diferença entre uma ferramenta
 que cuida e uma que dá ordem.
 
+## O espelho da academia (`guiaNoEspelho`, botão 🪞 no scanner)
+
+Em academia cheia quase nunca há onde apoiar o celular de frente para quem
+treina — **mas sempre há um espelho**. Apoiar o celular apontado para ele
+resolve: a câmera vê o corpo inteiro, de longe, de qualquer canto da sala.
+
+**Duas coisas mudam, e as duas vêm da mesma geometria.** No uso normal a
+pessoa está de FRENTE para a câmera; no espelho ela está de COSTAS (ela olha
+o espelho, e a câmera olha o reflexo dela).
+
+1. **O lado dela passa a coincidir com o lado da imagem.** De frente, a mão
+   esquerda aparece à direita do quadro, e por isso "o corpo tem de ir para a
+   direita da imagem" vira *"ande para a sua esquerda"*. De costas é o
+   contrário — e inverter errado manda a pessoa para fora do quadro, que é
+   justamente o que o enquadramento existe para evitar.
+2. **Os nomes de esquerda e direita saem trocados.** O reflexo é um corpo de
+   verdade para o modelo de pose, e ele nomeia os lados pelo que vê: o que ele
+   chama de ombro esquerdo é o ombro **direito** de quem está ali. Isso não
+   muda a contagem (no alternado os dois lados são somados), mas muda o que a
+   tela diz — e dizer "braço esquerdo" apontando para o direito é pior que
+   não dizer nada.
+
+**O que NÃO muda: a posição do corpo no quadro.** O espelho reflete a
+profundidade, não a largura — quem anda para a direita da sala aparece andando
+para a direita do quadro, com ou sem espelho. Por isso a **seta continua
+saindo do mesmo cálculo**, e `guiaNoEspelho` devolve `seta` intacta. Inverter
+a seta junto com o texto seria o erro fácil aqui.
+
+- A escolha fica em `voz.espelho`: quem treina no espelho treina sempre no
+  espelho, e reativar a cada série cansa.
+- A dica ("sem espaço para apoiar o celular? aponte para o espelho") aparece
+  só enquanto a pessoa se posiciona, e só com o modo desligado. Sem ela
+  ninguém descobre o botão — e o modo serve justamente a quem não conseguiu
+  apoiar o celular de frente.
+- **Limite conhecido:** com outras pessoas no reflexo, o modelo segue um
+  corpo só. A tela diz para preferir um pedaço do espelho sem gente atrás.
+
+Coberto por `teste-espelho.js` (26 checagens), que cobra o sentido antes de
+qualquer outra coisa.
+
+## O que este aparelho suporta (`recursosDoAparelho`, Ajustes › Este app)
+
+"O Jarvis não funciona no meu celular" é um sintoma com seis causas, e nenhuma
+aparecia em lugar nenhum. As bandeiras já existiam espalhadas pelo arquivo
+(`VOZ_OUVE`, `CARDIO_DISPONIVEL`, `ESTEIRA_DISPONIVEL`, `AVISO_DISPONIVEL`…),
+cada uma escondendo um botão em silêncio — e quem ficava sem o recurso
+concluía que o app estava quebrado.
+
+- **A coluna que importa não é o nome da API: é o que se perde sem ela.** Uma
+  lista de "Web Bluetooth: não" não ajuda ninguém; "a cinta e a esteira não
+  vão conectar" ajuda. E a explicação só aparece no que **falta**: repetir o
+  que funciona é encher a tela de texto que ninguém lê.
+- **Gravar é o único que não dá para saber olhando: tem de tentar escrever.**
+  Em janela anônima e em navegador embutido o `localStorage` existe e a
+  escrita é recusada — que é exatamente o caso que derruba o app. Por isso é
+  o único marcado como `grave`, e a leitura dele vence a de todos os outros.
+- Recebe o ambiente por parâmetro em vez de ler o `window` direto. É o que
+  permite ao teste simular um WebView, um iPhone e o navegador do Instagram
+  sem ter os três na mão — e foi assim que a decisão sobre o app nativo
+  (abaixo) deixou de ser palpite.
+- Só mede quando a pessoa abre o cartão: a checagem de gravação escreve de
+  verdade no armazenamento.
+
+Coberto por `teste-recursos.js` (31 checagens).
+
+## Óculos inteligentes e app nativo: o que foi apurado e decidido
+
+Pedido do dono: usar os Ray-Ban Meta olhando para um espelho, com a câmera
+dos óculos contando as repetições. **Não dá, e o motivo não é preguiça de
+implementar.** Fica registrado aqui para não se refazer a pesquisa:
+
+1. **A câmera dos óculos é exclusiva do SDK nativo.** O *Meta Wearables Device
+   Access Toolkit* dá vídeo ao vivo — para app **iOS/Android** em Swift ou
+   Kotlin. A plataforma de *Web Apps* da Meta recebe posição do aparelho,
+   localização, movimento do Neural Band e entrada de texto. **Câmera e
+   microfone não.**
+2. **E os Web Apps nem rodam no Ray-Ban Meta comum**: são do Ray-Ban
+   **Display**, o modelo com tela.
+3. **A Meta ainda não abriu a publicação** de apps que usam o toolkit. Mesmo
+   construindo, não haveria como distribuir.
+
+**E transformar o Treino Livre num app nativo não resolveria.** A escolha da
+embalagem decide tudo:
+
+| | TWA | WebView |
+|---|---|---|
+| Histórico de quem já usa | preservado (compartilha o armazenamento do Chrome) | **perdido** (armazenamento separado) |
+| Ponte para código nativo | não tem | tem — é o que os óculos exigiriam |
+
+Ou seja: **a única embalagem que alcança os óculos é a que apaga o histórico
+de todo mundo** — e num app em que os dados vivem só no aparelho, esse é o
+pior risco que existe. Pior ainda: o WebView não é o Chrome, e justamente os
+recursos centrais deste app são os que ele não garante (reconhecimento de
+fala, que é serviço do navegador e não do Chromium; e Web Bluetooth, de que
+dependem a cinta e a esteira).
+
+**O que os óculos JÁ fazem hoje, de graça:** eles pareiam como fone Bluetooth
+comum. O Jarvis fala no ouvido e o microfone deles ouve os comandos. Os óculos
+podem ser a boca e os ouvidos; não podem ser os olhos.
+
+**Se um dia a Meta abrir a publicação**, o formato certo não é transformar
+este app: é um app nativo **separado** que só pega o vídeo dos óculos, roda o
+MediaPipe ali e entrega os pontos do corpo — como a cinta cardíaca faz hoje.
+O app web continua sendo o app; o nativo vira um sensor.
+
 ## Monitor cardíaco, e o que a web não alcança
 
 **Funciona:** qualquer monitor que exponha o serviço padrão de frequência
@@ -2954,7 +3059,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 22 suítes (894 checagens)
+node testes/rodar.js      # as 24 suítes (951 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

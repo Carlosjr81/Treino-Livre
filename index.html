@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-18e";
+const VERSAO_APP = "2026-10-21a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2906,6 +2906,88 @@ const MOV_FUNCIONAIS = {
 const EYES_PONTOS_ENQUADRA = [11, 12, 23, 24, 25, 26, 27, 28];
 // Sentado, com as pernas atrás do banco: ombros, cotovelos e quadril bastam.
 const EYES_PONTOS_TRONCO = [11, 12, 13, 14, 23, 24];
+
+// ---- O espelho da academia ----
+//
+// Em academia cheia quase nunca há onde apoiar o celular para ele ver o
+// corpo inteiro — mas sempre há um espelho. Apoiar o celular apontado para o
+// espelho resolve: a câmera vê de longe, de qualquer canto da sala.
+//
+// **Duas coisas mudam, e as duas vêm da mesma geometria.** No uso normal a
+// pessoa está DE FRENTE para a câmera; no espelho ela está de COSTAS para a
+// câmera (ela olha o espelho, e a câmera olha o reflexo dela).
+//
+// 1. **O lado dela passa a coincidir com o lado da imagem.** De frente, a mão
+//    esquerda dela aparece à direita do quadro, e por isso "o corpo tem de ir
+//    para a direita da imagem" vira "ande para a sua esquerda". De costas, é
+//    o contrário — e inverter errado manda a pessoa para fora do quadro, que
+//    é justamente o defeito que o enquadramento existe para evitar.
+// 2. **Os nomes de esquerda e direita saem trocados.** O reflexo é um corpo
+//    de verdade para o modelo de pose, e ele nomeia os lados pelo que vê: o
+//    que ele chama de ombro esquerdo é o ombro DIREITO de quem está ali. Isso
+//    não muda a contagem (no alternado os dois lados são somados), mas muda
+//    o que a tela diz — e dizer "braço esquerdo" apontando para o direito é
+//    pior que não dizer nada.
+//
+// O que NÃO muda: a posição do corpo no quadro. O espelho reflete a
+// profundidade, não a largura — quem anda para a direita da sala aparece
+// andando para a direita do quadro, com ou sem espelho. Por isso a seta na
+// tela continua saindo do mesmo cálculo.
+const LADOS_TROCA = { esquerdo: "direito", direito: "esquerdo", esquerda: "direita", direita: "esquerda" };
+
+// Troca "esquerdo" por "direito" (e vice-versa) dentro de uma frase, sem
+// mexer no resto dela.
+function trocarLados(texto) {
+  return String(texto || "").replace(/\b(esquerdo|direito|esquerda|direita)\b/gi, (p) => {
+    const t = LADOS_TROCA[p.toLowerCase()] || p;
+    return p[0] === p[0].toUpperCase() ? t[0].toUpperCase() + t.slice(1) : t;
+  });
+}
+
+// A orientação de enquadramento vista do espelho. Só o que fala de lado
+// muda; "aproxime-se" e "afaste-se" valem igual.
+function guiaNoEspelho(g) {
+  if (!g || (g.chave !== "esq" && g.chave !== "dir")) return g;
+  return {
+    chave: g.chave === "esq" ? "dir" : "esq",
+    texto: trocarLados(g.texto),
+    fala: trocarLados(g.fala),
+    seta: g.seta,   // a seta é em coordenada de imagem: não muda
+  };
+}
+
+// O equilíbrio entre os lados, com os nomes no lugar certo.
+function ladosNoEspelho(lados) {
+  if (!lados || !Array.isArray(lados) || lados.length !== 2) return lados;
+  return [lados[1], lados[0]];
+}
+
+// Lê as preferências de voz de um backup ou do armazenamento.
+//
+// Existe pelo mesmo motivo que o `lerCorredor`: os três pontos que carregam
+// dados remontavam o objeto campo a campo, e **campo novo era gravado e sumia
+// na recarga seguinte, calado**. Aconteceu com o `espelho` no dia em que ele
+// nasceu. Com um lugar só, o campo novo entra aqui e os três caminhos passam
+// a conhecê-lo.
+function lerVoz(v) {
+  const o = v && typeof v === "object" ? v : {};
+  return {
+    preferido: !!o.preferido,
+    falar: o.falar !== false,
+    barra: o.barra === undefined ? 20 : o.barra,
+    vozNome: o.vozNome || null,
+    velocidade: o.velocidade || 1.1,
+    animado: o.animado !== false,
+    modo: o.modo === "toque" ? "toque" : "continuo",
+    botaoFone: !!o.botaoFone,
+    contarAlto: o.contarAlto !== false,
+    autoSerie: o.autoSerie !== false,
+    narrar: o.narrar !== false,
+    espelho: !!o.espelho,
+  };
+}
+
+// ---------------- FIM DAS CONTAS DO ESPELHO ----------------
 
 function avaliarEnquadramento(lm, opcoes) {
   if (!lm) return { chave: "corpo", texto: "Não estou te vendo", fala: "Não estou te vendo. Fique de frente para a câmera." };
@@ -6254,7 +6336,7 @@ function usarFantasma(ativo, ms) {
 }
 
 function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, serieTotal, som, bpm,
-  vozCfg, contarAlto, onAlternarContagem, autoSerie, onAlternarAuto,
+  vozCfg, contarAlto, onAlternarContagem, autoSerie, onAlternarAuto, onEspelho,
   livre, exPorId, onGuardarLivre, onRegistrar, onFechar }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -6270,6 +6352,11 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const [sinal, setSinal] = useState("");
   const [calib, setCalib] = useState(null);       // { provisorias, trava } enquanto calibra
   const [frente, setFrente] = useState(false);
+  // O espelho fica guardado junto da contagem em voz alta: quem treina no
+  // espelho treina sempre no espelho, e reativar a cada série cansa.
+  const [espelho, setEspelho] = useState(() => !!(vozCfg && vozCfg.espelho));
+  const espelhoRef = useRef(espelho);
+  espelhoRef.current = espelho;
   const inicioRef = useRef(0);
   const [segundos, setSegundos] = useState(0);
   // Em ref, e não em closure: o laço de contagem é montado uma vez, e ligar ou
@@ -6553,7 +6640,10 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
             });
             return;
           }
-          const g = avaliarEnquadramento(lm, { tronco: soTroncoRef.current, aspecto: vid.videoWidth / vid.videoHeight });
+          let g = avaliarEnquadramento(lm, { tronco: soTroncoRef.current, aspecto: vid.videoWidth / vid.videoHeight });
+          // No espelho a pessoa está de costas para a câmera: o lado dela
+          // coincide com o lado da imagem, ao contrário do uso normal.
+          if (espelhoRef.current) g = guiaNoEspelho(g);
           setGuia(g);
           // A voz repete só quando a instrução muda, ou de três em três
           // segundos. Guia que fala sem parar vira ruído e atrapalha quem está
@@ -6761,6 +6851,16 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
           {enquadrado ? "⟲" : (frente ? "⟲ câmera de trás" : "⟲ câmera da frente")}
         </button>
 
+        {/* Dito uma vez, enquanto a pessoa se posiciona: sem isso ninguém
+            descobre que o botão do espelho existe, e o modo serve justamente
+            a quem não consegue apoiar o celular de frente. */}
+        {!enquadrado && !espelho && !frente && (
+          <div style={{ position: "absolute", left: 12, right: 64, bottom: "calc(96px + env(safe-area-inset-bottom))",
+            fontSize: 11.5, color: "rgba(255,255,255,0.72)", lineHeight: 1.45, pointerEvents: "none", textShadow: "0 1px 3px #000" }}>
+            Sem espaço para apoiar o celular? Aponte para o espelho e ligue o 🪞.
+          </div>
+        )}
+
         {/* Contar alto é o retorno que serve de costas para a tela — mas em
             academia cheia nem sempre é bem-vindo. Por isso o botão fica aqui,
             à mão, e não escondido nos ajustes. */}
@@ -6773,6 +6873,21 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
             color: contarAlto ? "#0A2A00" : "#FFFFFF", fontSize: 15, fontWeight: 900,
             padding: "0 12px", cursor: "pointer" }}>
           {contarAlto ? "🔊 1,2,3" : "🔇"}
+        </button>
+
+        {/* O espelho é a resposta para a academia em que não há onde apoiar o
+            celular de frente para quem treina — e sempre há um espelho. Fica
+            ao lado da troca de câmera porque é a mesma decisão: de onde o app
+            vai te ver. */}
+        <button onClick={fant.agir(() => { const v = !espelho; setEspelho(v); if (onEspelho) onEspelho(v); })}
+          aria-pressed={!!espelho}
+          aria-label={espelho ? "Desligar o modo espelho" : "Ligar o modo espelho: a câmera está apontada para um espelho"}
+          style={{ ...fant.estilo, position: "absolute", top: "calc(210px + env(safe-area-inset-top))", right: 12,
+            minWidth: 42, height: 42, borderRadius: 21, border: "none",
+            background: espelho ? "rgba(120,190,255,0.85)" : "rgba(0,0,0,0.55)",
+            color: espelho ? "#032038" : "#FFFFFF", fontSize: 14, fontWeight: 900,
+            padding: "0 12px", cursor: "pointer" }}>
+          {espelho ? "🪞 espelho" : "🪞"}
         </button>
 
         <button onClick={fant.agir(onAlternarAuto)}
@@ -6971,9 +7086,14 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
             {medidas && medidas.ritmo > 0 && (
               <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 3 }}>
                 ⏱ {String(medidas.ritmo).replace(".", ",")}s por repetição · {medidas.tut}s sob tensão
-                {medidas.lados && medidas.lados.length === 2 &&
-                  " · " + medidas.lados[0].total + " / " + medidas.lados[1].total +
-                  (Math.abs(medidas.lados[0].total - medidas.lados[1].total) > 2 ? " ⚠ desigual" : "")}
+                {/* No espelho o modelo nomeia os lados pelo reflexo: o que ele
+                    chama de esquerdo é o direito de quem está ali. O total não
+                    muda (os dois lados somam), mas qual foi o mais forte, sim. */}
+                {medidas.lados && medidas.lados.length === 2 && (() => {
+                  const ld = espelho ? ladosNoEspelho(medidas.lados) : medidas.lados;
+                  return " · " + ld[0].total + " / " + ld[1].total +
+                    (Math.abs(ld[0].total - ld[1].total) > 2 ? " ⚠ desigual" : "");
+                })()}
               </div>
             )}
           </div>
@@ -7467,7 +7587,7 @@ const CIRCUITOS = [
 ];
 
 function TelaFuncional({ todos, exPorId, som, vozCfg, aulaInicial, onAulaAberta,
-  vozAtiva, onLigarVoz, sessaoAtiva, onAlternarContagem, onComecar, onConcluirAula, onVoltar }) {
+  vozAtiva, onLigarVoz, sessaoAtiva, onAlternarContagem, onEspelho, onComecar, onConcluirAula, onVoltar }) {
   const [aula, setAula] = useState(null);
   // Começar a aula é o gesto que o navegador exige para abrir o microfone — e
   // sem microfone não dá para dizer "pausa" com as mãos no chão.
@@ -7629,6 +7749,7 @@ function TelaFuncional({ todos, exPorId, som, vozCfg, aulaInicial, onAulaAberta,
         som={som} vozCfg={vozCfg}
         contarAlto={vozCfg ? vozCfg.contarAlto !== false : true}
         onAlternarContagem={onAlternarContagem}
+        onEspelho={onEspelho}
         autoSerie={false}
         onGuardarLivre={(id, reps) => feitosLivre.current.push({ id: id, reps: reps })}
         onRegistrar={() => {}}
@@ -8428,6 +8549,146 @@ function SeletorVoz({ voz, setVoz }) {
 
 const AVISO_DISPONIVEL = typeof Notification !== "undefined";
 
+// ---------------- O QUE ESTE APARELHO SUPORTA ----------------
+//
+// "O Jarvis não funciona no meu celular" é um sintoma com seis causas, e
+// nenhuma aparecia em lugar nenhum. As bandeiras existiam espalhadas pelo
+// arquivo (`VOZ_OUVE`, `CARDIO_DISPONIVEL`, `ESTEIRA_DISPONIVEL`…), cada uma
+// escondendo um botão em silêncio — e quem ficava sem o recurso concluía que
+// o app estava quebrado.
+//
+// **A coluna que importa não é o nome da API: é o que se perde sem ela.** Uma
+// lista de "WebBluetooth: não" não ajuda ninguém; "a cinta e a esteira não
+// vão conectar" ajuda.
+//
+// Recebe o ambiente por parâmetro em vez de ler o `window` direto: é o que
+// permite ao teste simular um WebView, um iPhone e um navegador embutido sem
+// ter os três na mão.
+function recursosDoAparelho(amb) {
+  const a = amb || (typeof window !== "undefined" ? window : {});
+  const nav = a.navigator || {};
+  const ua = String(nav.userAgent || "");
+
+  // Gravar é o único que não dá para saber olhando: tem de tentar escrever.
+  // Em janela anônima e em navegador embutido o objeto existe e a escrita
+  // falha — que é exatamente o caso que derruba o app.
+  const gravaMesmo = () => {
+    try {
+      const k = "treinolivre:teste";
+      a.localStorage.setItem(k, "1");
+      a.localStorage.removeItem(k);
+      return true;
+    } catch (e) { return false; }
+  };
+
+  const itens = [
+    { id: "gravar", nome: "Gravar os treinos neste aparelho", ok: gravaMesmo(),
+      perde: "NADA é salvo: o treino some ao fechar o app. Baixe o backup e abra em outro navegador.", grave: true },
+    { id: "ouvir", nome: "Jarvis ouvir você", ok: !!(a.SpeechRecognition || a.webkitSpeechRecognition),
+      perde: "Os comandos de voz não funcionam. Os campos continuam todos digitáveis." },
+    { id: "falar", nome: "Jarvis falar com você", ok: !!a.speechSynthesis,
+      perde: "Nenhum aviso falado: nem série anotada, nem fim do descanso, nem a contagem da câmera." },
+    { id: "camera", nome: "Câmera (Eyes Scan)", ok: !!(nav.mediaDevices && nav.mediaDevices.getUserMedia),
+      perde: "Contar repetição pela câmera e fotografar o aparelho." },
+    { id: "bluetooth", nome: "Cinta cardíaca e esteira", ok: !!nav.bluetooth,
+      perde: "A cinta de frequência cardíaca e a esteira por Bluetooth não aparecem." },
+    { id: "gps", nome: "Percurso na rua (GPS)", ok: !!nav.geolocation,
+      perde: "Correr ou caminhar na rua com mapa e distância." },
+    { id: "movimento", nome: "Cadência pelo movimento", ok: typeof a.DeviceMotionEvent !== "undefined",
+      perde: "A cadência e a passada na corrida. O resto do percurso continua." },
+    { id: "tela", nome: "Manter a tela ligada", ok: !!nav.wakeLock,
+      perde: "A tela apaga no meio do descanso e do percurso, e o aviso pode não tocar." },
+    { id: "aviso", nome: "Avisar com o app fechado", ok: typeof a.Notification !== "undefined",
+      perde: "O aviso de fim de descanso com o celular no bolso." },
+    { id: "offline", nome: "Funcionar sem internet", ok: !!(nav.serviceWorker),
+      perde: "O app precisa de internet para abrir. Na academia sem sinal, não abre." },
+    { id: "video", nome: "Vídeo do story", ok: typeof a.VideoEncoder !== "undefined",
+      perde: "O resumo animado em vídeo. A imagem do story continua." },
+  ];
+
+  const faltando = itens.filter((i) => !i.ok);
+  return {
+    itens: itens,
+    faltando: faltando.length,
+    grave: itens.some((i) => i.grave && !i.ok),
+    instalado: (() => { try { return a.matchMedia("(display-mode: standalone)").matches || nav.standalone === true; } catch (e) { return false; } })(),
+    embutido: /Instagram|FBAN|FBAV|FB_IAB|Line\/|; wv\)/i.test(ua),
+    // `; wv)` no user agent é a marca do WebView do Android. Vale dizer o nome:
+    // é a diferença entre "o app está quebrado" e "este navegador é limitado".
+    webview: /; wv\)/i.test(ua),
+    ua: ua,
+  };
+}
+
+// A frase do veredito. Curta, e dizendo o que fazer — não só o que falta.
+function leituraRecursos(r) {
+  if (r.grave) return { cor: "var(--perigo)", texto: "Este navegador não salva nada. Use o Chrome (Android) ou o Safari (iPhone), ou instale o app na tela de início." };
+  if (r.embutido) return { cor: "var(--obs)", texto: "Você está num navegador embutido (Instagram, Facebook, WhatsApp). Ele é limitado e apaga os dados: abra o app no navegador do celular." };
+  if (!r.faltando) return { cor: "var(--ok)", texto: "Tudo o que o app faz funciona neste aparelho." };
+  if (r.faltando <= 2) return { cor: "var(--ok)", texto: "Quase tudo funciona aqui. O que falta está marcado abaixo, com o que muda." };
+  return { cor: "var(--obs)", texto: "Vários recursos não existem neste navegador. O registro do treino continua funcionando; o que falta está abaixo." };
+}
+
+// ---------------- FIM DOS RECURSOS DO APARELHO ----------------
+
+// A lista do que este navegador tem. Fica em Ajustes › Este app: quem procura
+// isso está investigando um problema, e é lá que se investiga.
+function CartaoRecursos() {
+  const [aberto, setAberto] = useState(false);
+  // Só mede quando a pessoa abre: a checagem de gravação escreve de verdade
+  // no armazenamento, e não há por que fazer isso em todo render dos ajustes.
+  const r = useMemo(() => (aberto ? recursosDoAparelho() : null), [aberto]);
+  const lr = r ? leituraRecursos(r) : null;
+  const [copiou, setCopiou] = useState(false);
+
+  const copiar = () => {
+    const linhas = ["Treino Livre " + VERSAO_APP, r.ua, ""]
+      .concat(r.itens.map((i) => (i.ok ? "[ok] " : "[--] ") + i.nome))
+      .concat(["", "instalado: " + (r.instalado ? "sim" : "não"),
+        "navegador embutido: " + (r.embutido ? "sim" : "não"),
+        "webview: " + (r.webview ? "sim" : "não")]);
+    try {
+      navigator.clipboard.writeText(linhas.join("\n"));
+      setCopiou(true);
+      setTimeout(() => setCopiou(false), 2500);
+    } catch (e) {}
+  };
+
+  return (
+    <React.Fragment>
+      <button onClick={() => setAberto(!aberto)} style={{ ...S.btnGhost, width: "100%", marginTop: 12, fontSize: 13 }}>
+        {aberto ? "Esconder" : "🔎 O que este aparelho suporta"}
+      </button>
+      {aberto && r && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 12.5, color: lr.cor, lineHeight: 1.5, marginBottom: 10 }}>{lr.texto}</div>
+          {r.itens.map((i) => (
+            <div key={i.id} style={{ display: "flex", gap: 9, padding: "7px 0", borderBottom: "1px solid var(--borda)" }}>
+              <span style={{ fontSize: 13, lineHeight: 1.35, color: i.ok ? "var(--ok)" : i.grave ? "var(--perigo)" : "var(--obs)" }}>
+                {i.ok ? "✓" : "✕"}
+              </span>
+              <span style={{ flex: 1 }}>
+                <span style={{ fontSize: 13, fontWeight: i.ok ? 600 : 800 }}>{i.nome}</span>
+                {/* O que se perde só aparece no que FALTA: repetir a explicação
+                    do que funciona é encher a tela de texto que ninguém lê. */}
+                {!i.ok && <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 2, lineHeight: 1.45 }}>{i.perde}</div>}
+              </span>
+            </div>
+          ))}
+          <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 10, lineHeight: 1.5 }}>
+            {r.instalado ? "Instalado na tela de início. " : ""}
+            {r.webview ? "Este é um navegador embutido em outro app (WebView), e por isso é mais limitado. " : ""}
+            O que falta aqui não é defeito do app: é o que este navegador oferece.
+          </div>
+          <button onClick={copiar} style={{ ...S.btnGhost, width: "100%", marginTop: 10, fontSize: 12.5 }}>
+            {copiou ? "✓ Copiado" : "📋 Copiar para relatar um problema"}
+          </button>
+        </div>
+      )}
+    </React.Fragment>
+  );
+}
+
 function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, setMeta,
   lembrete, setLembrete, avisar, ultimoBackup, totalEx, historico,
   onBaixarBackup, onRestaurarArquivo, onExportar, onImportar, onInstalar, instalado, onVoltar,
@@ -8704,6 +8965,7 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
         <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 8, lineHeight: 1.5 }}>
           Limpa o que ficou guardado no aparelho e recarrega. Seus treinos não são afetados.
         </div>
+        <CartaoRecursos />
       </div>
 
       <div style={{ ...S.card, borderStyle: "dashed" }}>
@@ -18635,7 +18897,7 @@ function PainelCardio({ it, ex, historico, exPorId, pesoCorporal, vozCfg, onCorr
 
 function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, descanso, setDescanso, som, setSom, onFinalizar, onDescartar, onVoltar, pedirConfirmacao, pesoCorporal,
   bpm, cardioEstado, onConectarCardio, onDesconectarCardio, vozCfg, contarAlto, onAlternarContagem,
-  autoSerie, onAlternarAuto,
+  autoSerie, onAlternarAuto, onEspelho,
   acoesVoz, vozAtiva, vozBarra, vozAnimado, onDescansando, responderVoz,
   dicas, onDicaVista, onLigarVoz, onEscolaVoz, onCorredor, onBpmEsteira }) {
   // Recorde e última execução de cada exercício: servem de referência ao lado de
@@ -20467,7 +20729,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         pesoCorporal={pesoCorporal}
         bpm={bpm}
         vozCfg={vozCfg} contarAlto={contarAlto} onAlternarContagem={onAlternarContagem}
-        autoSerie={autoSerie} onAlternarAuto={onAlternarAuto}
+        autoSerie={autoSerie} onAlternarAuto={onAlternarAuto} onEspelho={onEspelho}
         serieNum={alvo ? alvo.si + 1 : 1}
         serieTotal={alvo ? sessao.itens[alvo.ei].series.length : 1}
         som={som}
@@ -21865,11 +22127,7 @@ function TreinoLivre() {
           if (d.corredor && typeof d.corredor === "object") setCorredor(lerCorredor(d.corredor));
           if (d.medidas) setMedidas(d.medidas);
           if (d.lembrete) setLembrete(d.lembrete);
-          if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
-            vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false,
-            modo: d.voz.modo === "toque" ? "toque" : "continuo", botaoFone: !!d.voz.botaoFone,
-            contarAlto: d.voz.contarAlto !== false, autoSerie: d.voz.autoSerie !== false,
-            narrar: d.voz.narrar !== false });
+          if (d.voz) setVoz(lerVoz(d.voz));
           setSessao(null);
           setAba("inicio");
           setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 100);
@@ -21954,9 +22212,7 @@ function TreinoLivre() {
     setTreinos(tr); setHistorico(hi); setCustomEx(ce); setDescanso(de); setSom(so); setProgramas(pg); setMeta(mt);
     setMedidas(md); setFotos(ft); setUltimoBackup(ub);
     if (lb) setLembrete({ ativo: !!lb.ativo, hora: lb.hora || "18:00", dias: Array.isArray(lb.dias) ? lb.dias : [1, 2, 3, 4, 5] });
-    if (vz) setVoz({ preferido: !!vz.preferido, falar: vz.falar !== false, barra: vz.barra === undefined ? 20 : vz.barra,
-      vozNome: vz.vozNome || null, velocidade: vz.velocidade || 1.1, animado: vz.animado !== false,
-      modo: vz.modo === "toque" ? "toque" : "continuo", botaoFone: !!vz.botaoFone, contarAlto: vz.contarAlto !== false, autoSerie: vz.autoSerie !== false, narrar: vz.narrar !== false });
+    if (vz) setVoz(lerVoz(vz));
     if (ss) { setSessao(ss); setAba("sessao"); }
     // Recarregou no meio do treino (ou o sistema descarregou o app): quem já
     // escolheu treinar por voz volta ouvindo. A permissão do microfone já foi
@@ -22659,11 +22915,7 @@ function TreinoLivre() {
             if (d.corredor && typeof d.corredor === "object") setCorredor(lerCorredor(d.corredor));
           if (d.corredor && typeof d.corredor === "object") setCorredor(lerCorredor(d.corredor));
             if (d.lembrete) setLembrete(d.lembrete);
-            if (d.voz) setVoz({ preferido: !!d.voz.preferido, falar: d.voz.falar !== false, barra: d.voz.barra === undefined ? 20 : d.voz.barra,
-              vozNome: d.voz.vozNome || null, velocidade: d.voz.velocidade || 1.1, animado: d.voz.animado !== false,
-              modo: d.voz.modo === "toque" ? "toque" : "continuo", botaoFone: !!d.voz.botaoFone,
-              contarAlto: d.voz.contarAlto !== false, autoSerie: d.voz.autoSerie !== false,
-            narrar: d.voz.narrar !== false });
+            if (d.voz) setVoz(lerVoz(d.voz));
             setSessao(null);
             setAba("inicio");
             setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 120);
@@ -23257,6 +23509,7 @@ function TreinoLivre() {
             aulaInicial={aulaPedida} onAulaAberta={() => setAulaPedida(null)} sessaoAtiva={!!sessao}
             vozAtiva={vozAtiva} onLigarVoz={ligarVoz}
             onAlternarContagem={() => setVoz((v) => ({ ...v, contarAlto: v.contarAlto === false }))}
+            onEspelho={(x) => setVoz((v) => ({ ...v, espelho: !!x }))}
             onVoltar={() => setAba("inicio")}
             onComecar={(ids) => iniciarFuncional(ids)}
             onConcluirAula={(registro) => guardarTreino(registro, "aula-concluida")} />
@@ -23315,6 +23568,7 @@ function TreinoLivre() {
             bpm={bpm} cardioEstado={cardioEstado} onBpmEsteira={aoBpmEsteira}
             vozCfg={voz} contarAlto={voz.contarAlto !== false}
             onAlternarContagem={() => setVoz((v) => ({ ...v, contarAlto: v.contarAlto === false }))}
+            onEspelho={(x) => setVoz((v) => ({ ...v, espelho: !!x }))}
             autoSerie={voz.autoSerie !== false}
             onAlternarAuto={() => setVoz((v) => ({ ...v, autoSerie: v.autoSerie === false }))}
             onConectarCardio={conectarCardio} onDesconectarCardio={desconectarCardio} onCorredor={() => setAba("corredor")}

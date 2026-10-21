@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-10-21i — Óculos: diagnóstico na tela
+
+**Em uma frase:** quando a câmera dos óculos não conecta, o Eyes Scan agora mostra
+o porquê e tem um botão **🔁 Tentar de novo**.
+
+**O que mudou**
+- Enquanto espera a imagem dos óculos, o scanner mostra se o app Treino Livre
+  respondeu, o último erro e se o Chrome liberou a "rede local" (o caminho da
+  imagem dentro do próprio celular).
+- O app avisa na tela cada passo: serviço ligado, procurando os óculos,
+  conectando, imagem chegando, ou o motivo da falha.
+
+**Por que importa para quem treina:** em vez de ficar esperando sem saber, você
+vê onde parou.
+
+**Como usar:** Eyes Scan → 👓. Se não conectar, leia o quadro "Diagnóstico" e
+toque em 🔁 Tentar de novo.
+
+**Ideias de vídeo:** nenhuma; é um recurso de bastidor.
+
+**Não prometer:** os óculos no Eyes Scan continuam em teste.
+
+---
+
 ## 2026-10-21h — Óculos Ray-Ban Meta como câmera do Eyes Scan (teste)
 
 **Em uma frase:** no Android, o Eyes Scan ganhou o botão **👓**: a contagem de

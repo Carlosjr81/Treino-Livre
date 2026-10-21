@@ -12,7 +12,10 @@ import android.graphics.ImageFormat
 import android.graphics.Rect
 import android.graphics.YuvImage
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.widget.Toast
 import com.meta.wearable.dat.camera.Camera
 import com.meta.wearable.dat.camera.addCamera
 import com.meta.wearable.dat.camera.types.StreamConfiguration
@@ -39,6 +42,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 // O estado dos óculos, visto pelo site em /estado e no cabeçalho de cada quadro.
 object Oculos {
     @Volatile var estado = "iniciando"
+        set(v) { val mudou = field != v; field = v; if (mudou) aoMudar?.invoke(v) }
+    @Volatile var aoMudar: ((String) -> Unit)? = null
     @Volatile var quadro: ByteArray? = null
     @Volatile var numero = 0L
     @Volatile var ultimoPedido = 0L
@@ -96,13 +101,33 @@ class OculosService : Service() {
         }
         if (intent?.action == PARAR) { encerrar(); return START_NOT_STICKY }
 
+        Oculos.aoMudar = { e ->
+            val frase = when (e) {
+                "procurando" -> "Óculos: procurando os óculos…"
+                "conectando" -> "Óculos: conectando à câmera…"
+                "transmitindo" -> "Óculos: imagem chegando ✓"
+                "sem-oculos" -> "Óculos: não achei os óculos (ligados, no rosto e conectados ao Meta AI?)"
+                "sem-permissao" -> "Óculos: a câmera dos óculos não foi liberada no Meta AI"
+                "erro" -> "Óculos: a conexão falhou"
+                else -> null
+            }
+            if (frase != null) Handler(Looper.getMainLooper()).post { Toast.makeText(applicationContext, frase, Toast.LENGTH_LONG).show() }
+        }
         val nova = intent?.getStringExtra("k").orEmpty()
         if (nova.length >= 16) chave = nova
         Oculos.ultimoPedido = System.currentTimeMillis()
         if (!rodando) {
             rodando = true
+            Toast.makeText(applicationContext, "Óculos: serviço ligado. Voltando ao Eyes Scan…", Toast.LENGTH_SHORT).show()
             abrirServidor()
-            escopo.launch { conectar() }
+            escopo.launch {
+                try { conectar() } catch (e: Exception) {
+                    Oculos.estado = "erro"
+                    Handler(Looper.getMainLooper()).post {
+                        Toast.makeText(applicationContext, "Óculos: " + (e.message ?: e.javaClass.simpleName), Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
             escopo.launch { vigiar() }
         }
         return START_NOT_STICKY
@@ -184,9 +209,20 @@ class OculosService : Service() {
 
     // ---- o servidor local ----
     private fun abrirServidor() {
-        val s = ServerSocket(PORTA, 8, InetAddress.getByName("127.0.0.1"))
-        servidor = s
         Thread {
+            val s = try {
+                ServerSocket().apply {
+                    reuseAddress = true
+                    bind(java.net.InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORTA), 8)
+                }
+            } catch (e: Exception) {
+                Oculos.estado = "erro"
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(applicationContext, "Óculos: não consegui abrir a porta local (" + (e.message ?: e.javaClass.simpleName) + ")", Toast.LENGTH_LONG).show()
+                }
+                return@Thread
+            }
+            servidor = s
             while (!s.isClosed) {
                 val cliente = try { s.accept() } catch (e: Exception) { break }
                 Thread { atender(cliente) }.start()

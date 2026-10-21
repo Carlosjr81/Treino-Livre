@@ -9,6 +9,7 @@ import android.view.Gravity
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -35,7 +36,7 @@ class OculosActivity : ComponentActivity() {
     private val pedirCamera = registerForActivityResult(Wearables.RequestPermissionContract()) { resultado ->
         val status = resultado.getOrDefault(PermissionStatus.Denied)
         if (status == PermissionStatus.Granted) ligarServico()
-        else { Oculos.estado = "sem-permissao"; finish() }
+        else { Oculos.estado = "sem-permissao"; aviso("Óculos: a câmera dos óculos não foi liberada."); finish() }
     }
 
     private lateinit var texto: TextView
@@ -72,8 +73,22 @@ class OculosActivity : ComponentActivity() {
     private fun permissoesBluetooth(): List<String> =
         if (Build.VERSION.SDK_INT >= 31) listOf(Manifest.permission.BLUETOOTH_CONNECT) else emptyList()
 
+    private fun aviso(msg: String) = Toast.makeText(applicationContext, msg, Toast.LENGTH_LONG).show()
+
     private suspend fun seguir() {
-        if (!Oculos.iniciar(applicationContext)) { Oculos.estado = "erro"; finish(); return }
+        try { seguirPassos() } catch (e: Exception) {
+            Oculos.estado = "erro"
+            aviso("Óculos: " + (e.message ?: e.javaClass.simpleName))
+            finish()
+        }
+    }
+
+    private suspend fun seguirPassos() {
+        if (permissoesBluetooth().any { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }) {
+            aviso("Óculos: sem a permissão de dispositivos próximos (Bluetooth), não dá para falar com os óculos.")
+            Oculos.estado = "erro"; finish(); return
+        }
+        if (!Oculos.iniciar(applicationContext)) { aviso("Óculos: o kit da Meta não iniciou."); Oculos.estado = "erro"; finish(); return }
 
         // 1. o Treino Livre registrado no app Meta AI (uma vez só)
         val atual = Wearables.registrationState.first()
@@ -84,7 +99,8 @@ class OculosActivity : ComponentActivity() {
             val ok = withTimeoutOrNull(120_000L) {
                 Wearables.registrationState.first { it == RegistrationState.REGISTERED }
             }
-            if (ok == null) { Oculos.estado = "erro"; finish(); return }
+            if (ok == null) { aviso("Óculos: o Treino Livre não foi confirmado no app Meta AI."); Oculos.estado = "erro"; finish(); return }
+            aviso("Óculos: Treino Livre confirmado no Meta AI ✓")
         }
 
         // 2. a câmera dos óculos liberada para o Treino Livre

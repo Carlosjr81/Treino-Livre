@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v84) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v85) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2706,6 +2706,20 @@ scanner já sabe ler o reflexo. Serve também para o personal ver o aluno.
   deste aparelho") na primeira vez: é o 127.0.0.1. A tela de espera avisa.
 - **O app Android passou a exigir Android 10** (`minSdk 29`), o mínimo do kit
   da Meta. Quem tem Android 8 ou 9 continua com tudo pelo navegador.
+
+**Primeiro teste no celular do dono (21/10/2026): parou em "Ligando a
+conexão"** — a página nunca recebeu resposta do app. Os suspeitos: a
+permissão de rede local do Chrome (no Chromium de teste ela vem negada por
+padrão, e com ela negada o `fetch` ao 127.0.0.1 falha com "Failed to
+fetch"), ou o serviço caindo ao abrir a porta (ela abria na linha principal
+do Android; hoje abre numa linha própria, e uma falha vira aviso). Desde
+então a espera mostra um **diagnóstico** (o app respondeu? o último erro, e a
+permissão de rede local do Chrome, `permissaoRedeLocal`), tem **🔁 Tentar de
+novo**, e o app mostra um aviso (Toast) a cada passo: serviço ligado,
+procurando, conectando, imagem chegando, ou o motivo da falha. **Se for a
+permissão de rede local e o Chrome não a oferecer dentro do app**, o caminho
+seguinte é o canal de mensagens do próprio TWA (postMessage do Custom Tabs),
+que não passa pela rede.
 
 **Testado só no navegador**, com óculos de mentira (um servidor local que
 manda quadros): os quadros viram o vídeo do scanner, o ✕ fecha e manda

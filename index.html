@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-21h";
+const VERSAO_APP = "2026-10-21i";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2176,19 +2176,33 @@ const ESTADOS_OCULOS = {
 };
 // O vídeo dos óculos, montado a partir dos quadros. Devolve um MediaStream
 // (o mesmo tipo do getUserMedia) e a função de parar.
+// O Chrome pede licença para um site falar com o próprio aparelho (127.0.0.1).
+// O nome da permissão mudou entre versões; responde o que o navegador souber.
+async function permissaoRedeLocal() {
+  for (const nome of ["local-network-access", "loopback-network", "local-network"]) {
+    try { const p = await navigator.permissions.query({ name: nome }); return p.state; } catch (e) {}
+  }
+  return "";
+}
 function abrirFluxoOculos(chave, aoEstado) {
   const cv = document.createElement("canvas");
   cv.width = 504; cv.height = 896;
   const ctx = cv.getContext("2d");
   const fluxo = cv.captureStream(15);
   let vivo = true, quadros = 0, ultimoEstado = "";
+  // o diagnóstico da espera: o app respondeu? qual foi o último erro?
+  const diag = { tentativas: 0, respostas: 0, erro: "", estado: "" };
   const contar = (e) => { if (e && e !== ultimoEstado) { ultimoEstado = e; if (aoEstado) aoEstado(e, quadros); } };
   (async () => {
     let n = 0;
     while (vivo) {
       const t0 = performance.now();
       try {
+        diag.tentativas++;
         const r = await fetch(enderecoOculos("/quadro.jpg", chave) + "&n=" + (n++), { cache: "no-store" });
+        diag.respostas++;
+        diag.estado = r.headers.get("X-Estado") || ("HTTP " + r.status);
+        if (r.status === 403) diag.erro = "o app recusou a chave (toque em 👓 de novo)";
         contar(r.headers.get("X-Estado") || "");
         if (r.status === 200) {
           const img = await createImageBitmap(await r.blob());
@@ -2201,7 +2215,8 @@ function abrirFluxoOculos(chave, aoEstado) {
           await new Promise((ok) => setTimeout(ok, 200));
         }
       } catch (e) {
-        // o serviço ainda não subiu (ou já parou): tenta de novo daqui a pouco
+        // o serviço ainda não subiu (ou já parou), ou o Chrome barrou a rede local
+        diag.erro = (e && e.message) || String(e);
         contar("iniciando");
         await new Promise((ok) => setTimeout(ok, 500));
       }
@@ -2212,6 +2227,7 @@ function abrirFluxoOculos(chave, aoEstado) {
   return {
     fluxo: fluxo,
     recebeu: () => quadros > 0,
+    diag: () => ({ ...diag, quadros: quadros }),
     parar: () => {
       vivo = false;
       fluxo.getTracks().forEach((t) => t.stop());
@@ -7339,8 +7355,28 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
   const [oculosEstado, setOculosEstado] = useState("");
   const chaveOculosRef = useRef("");
   const oculosFluxoRef = useRef(null);
+  const [oculosDiag, setOculosDiag] = useState(null);
+  useEffect(() => {
+    if (!oculos || fase !== "carregando") { setOculosDiag(null); return undefined; }
+    const id = setInterval(async () => {
+      const o = oculosFluxoRef.current;
+      if (!o) return;
+      const perm = await permissaoRedeLocal();
+      setOculosDiag({ ...o.diag(), perm: perm });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [oculos, fase]);
   const oculosEstadoRef = useRef("");
   oculosEstadoRef.current = oculosEstado;
+  // 🔁 Tentar de novo: chave nova, o app chamado de novo e a espera recomeça
+  const [tentativaOculos, setTentativaOculos] = useState(0);
+  const religarOculos = () => {
+    const chave = novaChaveOculos();
+    chaveOculosRef.current = chave;
+    setOculosEstado("iniciando");
+    setTentativaOculos((n) => n + 1);
+    try { window.location.href = linkOculos(chave); } catch (e) {}
+  };
   const ligarOculos = () => {
     if (oculos) { setOculos(false); return; }
     const chave = novaChaveOculos();
@@ -7730,7 +7766,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
       if (oculosFluxoRef.current) { oculosFluxoRef.current.parar(); oculosFluxoRef.current = null; }
       desligarTravaTela();
     };
-  }, [aberto, frente, ex, som, oculos]);
+  }, [aberto, frente, ex, som, oculos, tentativaOculos]);
 
   // A dica fica cinco segundos e sai: é um aviso, não um letreiro. A dica de
   // forma do movimento funcional fica um pouco mais: ela aparece antes da
@@ -8040,6 +8076,22 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
                   ? (ESTADOS_OCULOS[oculosEstado] || ESTADOS_OCULOS.iniciando) + " Dica: olhe para o espelho da academia e ligue o 🪞 — assim os óculos veem o seu corpo inteiro."
                   : "Na primeira vez ele baixa uns 8 MB. Depois disso funciona sem internet."}
               </div>
+              {oculos && oculosDiag && (
+                <div style={{ marginTop: 14, fontSize: 12, color: "rgba(255,255,255,0.75)", lineHeight: 1.55, textAlign: "left",
+                  background: "rgba(255,255,255,0.08)", borderRadius: 10, padding: "8px 10px" }}>
+                  <b>Diagnóstico</b><br />
+                  App Treino Livre respondeu: {oculosDiag.respostas ? "sim (" + oculosDiag.respostas + "×) · " + oculosDiag.estado : "ainda não (" + oculosDiag.tentativas + " tentativas)"}<br />
+                  {oculosDiag.erro ? <span>Último erro: {oculosDiag.erro}<br /></span> : null}
+                  Permissão de rede local do Chrome: {({ granted: "permitida", denied: "NEGADA — libere no cadeado/⋮ → Permissões do site", prompt: "ainda não perguntada" })[oculosDiag.perm] || "o navegador não informa"}
+                </div>
+              )}
+              {oculos && (
+                <button onClick={religarOculos}
+                  style={{ marginTop: 12, border: "1px solid rgba(255,255,255,0.45)", background: "rgba(0,0,0,0.6)", color: "#FFFFFF",
+                    borderRadius: 22, padding: "10px 18px", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
+                  🔁 Tentar de novo
+                </button>
+              )}
             </div>
           </div>
         )}

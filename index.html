@@ -633,7 +633,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-21d";
+const VERSAO_APP = "2026-10-21e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -22765,9 +22765,9 @@ function AnelSaude({ valor, meta, cor, centro, sub }) {
 }
 
 const ERROS_SAUDE = {
-  indisponivel: "Este celular não tem o Health Connect. No Android 14 ou mais novo ele já vem no sistema; no 9 a 13, instale \"Health Connect\" na Play Store e toque em Sincronizar de novo.",
+  indisponivel: "Este celular não tem o Health Connect (em português, \"Conexão Saúde\"). No Android 14 ou mais novo ele já vem no sistema; no 9 a 13, instale \"Health Connect\" na Play Store e toque em Sincronizar de novo.",
   atualizar: "O Health Connect deste celular precisa ser atualizado na Play Store.",
-  "sem-permissao": "Sem permissão, o app não lê nada. Toque em Sincronizar e marque \"Permitir tudo\" — dá para tirar a permissão quando quiser, no próprio Health Connect.",
+  "sem-permissao": "Sem permissão, o app não lê nada. Toque em Sincronizar e marque \"Permitir tudo\" — dá para tirar a permissão quando quiser, no próprio Health Connect (Conexão Saúde, nas Configurações do celular).",
   falhou: "A leitura do Health Connect falhou desta vez. Toque em Sincronizar para tentar de novo.",
 };
 
@@ -22816,7 +22816,8 @@ function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCar
           )}
           {!tem && !(saude && saude.erro) && (
             <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5 }}>
-              No Samsung Health: <b>Configurações → Health Connect</b> → ligue a sincronização. O Google Fit, o Garmin Connect,
+              No celular, o Health Connect se chama <b>Conexão Saúde</b>: Configurações → busque <b>Conexão Saúde</b> → Permissões de apps →
+              <b>Samsung Health</b> → Permitir tudo. O Google Fit, o Garmin Connect,
               o Mi Fitness e os apps de anel fazem o mesmo nos ajustes deles. Depois toque em <b>Sincronizar</b>.
             </div>
           )}
@@ -22825,14 +22826,15 @@ function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCar
         <div style={{ ...cartao, borderColor: "#E1306C66" }}>
           {titulo("📲 Traga o Samsung Health, o Google Fit e o seu relógio para cá")}
           <div style={{ fontSize: 14, lineHeight: 1.55, marginBottom: 12 }}>
-            Passos, sono, batimento e peso ficam no <b>Health Connect</b> do Android, e um site não tem permissão de ler lá.
+            Passos, sono, batimento e peso ficam no <b>Health Connect</b> do Android (no menu do celular, <b>Conexão Saúde</b>), e um site não tem permissão de ler lá.
             O <b>app Android do Treino Livre</b> tem: ele é este mesmo app, com os mesmos treinos, e lê esses números para você.
           </div>
           <a href={LINK_APK} style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none", marginBottom: 10 }}>⬇ Baixar o app Android (APK)</a>
           <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.55 }}>
             1. Abra o arquivo baixado e permita instalar (o app não está na Play Store).<br />
             2. Abra o Treino Livre pelo ícone novo: seus treinos estão lá, porque ele usa o mesmo Chrome.<br />
-            3. Em Histórico → ❤ Saúde, toque em Sincronizar e permita a leitura.
+            3. Em Histórico → ❤ Saúde, toque em Sincronizar e permita a leitura.<br />
+            No Samsung Health: Configurações do celular → busque <b>Conexão Saúde</b> → Permissões de apps → Samsung Health → Permitir tudo.
             {temAppInstalado() && <div style={{ marginTop: 8, color: "var(--texto)" }}>Já instalou? Abra o Treino Livre pelo <b>ícone do app</b>: aqui no navegador comum o Health Connect não chega.</div>}
           </div>
         </div>

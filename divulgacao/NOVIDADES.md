@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-10-21e — "Conexão Saúde": o nome que o celular mostra
+
+**Em uma frase:** a aba ❤ Saúde agora diz o caminho com o nome que aparece no
+celular em português: **Conexão Saúde** (o Health Connect).
+
+**O que mudou**
+- As instruções da aba ❤ Saúde mostram o caminho completo: Configurações do
+  celular → busque **Conexão Saúde** → Permissões de apps → Samsung Health →
+  Permitir tudo.
+
+**Por que importa para quem treina:** quem procurava "Health Connect" nas
+Configurações não achava nada, porque em português o menu se chama Conexão
+Saúde. Sem esse passo, os dados do Samsung Health e do relógio não chegam.
+
+**Como usar:** Configurações do celular → lupa → **Conexão Saúde** →
+Permissões de apps → **Samsung Health** → **Permitir tudo**. Depois, no app
+Treino Livre: Histórico → ❤ Saúde → 🔄 Sincronizar.
+
+**Ideias de vídeo**
+- "O menu escondido do Samsung": mostrar a busca por Conexão Saúde e o
+  Permitir tudo, em 15 segundos.
+
+**Não prometer:** o nome do menu pode variar com a versão do Android e da
+Samsung; a busca por "Conexão Saúde" é o caminho mais seguro.
+
+---
+
 ## 2026-10-21d — Saúde do Samsung Health, Google Fit, relógio e anel; ordem e cópia de exercícios
 
 **Em uma frase:** no Android, o Treino Livre ganhou um app que traz para a nova aba

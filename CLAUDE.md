@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v80) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v81) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2580,7 +2580,9 @@ Connect, depois que o app da marca sincroniza.
 ## O app Android e o Health Connect (pasta `android/`, aba ❤ Saúde)
 
 Pedido do dono: usar os dados do Samsung Health, do Google Fit, do relógio e
-do anel. Todos depositam no **Health Connect**, a central de saúde do Android,
+do anel. **Em português o Health Connect se chama "Conexão Saúde"** nas
+Configurações do celular — buscar "Health Connect" não acha nada, e foi onde o
+dono travou. Todo texto da tela que manda a pessoa até lá diz os dois nomes. Todos depositam no **Health Connect**, a central de saúde do Android,
 e só um app instalado lê de lá. Então existe um APK — e ele **é o próprio
 site**, aberto no Chrome em tela cheia (Trusted Web Activity), com uma parte
 nativa pequena que só fala com o Health Connect.

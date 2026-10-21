@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-21d**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-21e**.
 
 ---
 
@@ -139,7 +139,7 @@ quebrando a tela) como linguagem visual em vídeos.
   treino) ou para uma ficha nova; a origem não muda e o que o destino já tem não entra repetido.
 - **❤ Saúde (Histórico → ❤ Saúde):** passos com anel da meta, batimento, sono, peso e atividades de outros
   apps, oxigênio (SpO2) e VFC, no estilo dos apps de saúde. No **Android**, vem do Samsung Health, do Google Fit, dos relógios e anéis,
-  pelo **app Android do Treino Livre** (APK, fora da Play Store), que lê o Health Connect toda vez que abre e
+  pelo **app Android do Treino Livre** (APK, fora da Play Store), que lê o Health Connect (no celular em português, **Conexão Saúde**) toda vez que abre e
   também grava lá os treinos feitos no app. O batimento que o relógio mediu durante um treino entra no histórico
   dele. Na mesma aba, **batimento ao vivo** com cinta ou relógio que transmite (Garmin, Polar, Coros, Amazfit,
   Xiaomi, Huawei). No iPhone, a aba mostra os números do próprio app.

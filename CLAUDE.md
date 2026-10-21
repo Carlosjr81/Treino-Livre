@@ -965,6 +965,39 @@ sendo salvo precisa tropeçar nisso.
 A checagem vale nos dois caminhos de gravação: o respiro de 400 ms e a descarga
 de emergência do `pagehide`.
 
+## Os últimos 12 meses (`MapaDoAno`, `contarAnoDeTreino`)
+
+Um quadradinho por dia, um ano inteiro de uma vez, em Histórico › Números.
+O `CalendarioTreinos` logo abaixo mostra **um mês por vez** e responde "em
+que dias treinei neste mês". Este responde a outra pergunta, que é a que faz
+alguém mudar de hábito: **eu sou constante, e quando foi que eu parei?** A
+falha de três semanas em julho não aparece em calendário de mês nenhum — é
+preciso ter o ano à vista para ela saltar.
+
+**A ideia veio do openGym; o código não.** Aquele projeto é AGPL-3.0, que é
+copyleft forte: copiar um trecho obrigaria o Treino Livre inteiro a virar
+AGPL. Função e ideia não têm dono; código tem. Se um dia alguém for buscar
+mais coisa de lá, a regra é a mesma — ler, entender, escrever aqui.
+
+- **A régua é o tempo, não o volume.** Volume é a unidade da musculação e
+  vale zero no aeróbico: 40 minutos de corrida apareceriam como dia vazio.
+  Minuto vale igual nos dois, e o `duracaoMin` já tem teto de 300 — uma
+  sessão esquecida aberta não estica a escala do ano inteiro. Treino sem
+  `duracaoMin` (histórico antigo, aula interrompida) conta como 1 minuto:
+  sem esse piso o mapa diria que não houve treino num dia em que houve.
+- **As faixas saem dos quantis de quem treina, não de uma tabela fixa.** É a
+  mesma regra do mapa do percurso pintado por ritmo, e pelo mesmo motivo: 25
+  minutos é dia cheio para quem faz funcional e é aquecimento para quem faz
+  musculação. Com corte fixo, o mapa de um sairia todo claro e o do outro
+  todo escuro. `teste-ano.js` prova isso pela invariância — a mesma rotina
+  feita em dez vezes o tempo sai com **exatamente** o mesmo desenho.
+- **A conta é um bloco puro** (`contarAnoDeTreino`, entre marcadores), e
+  recebe `agora` por parâmetro em vez de ler o relógio: sem isso o teste
+  passaria em outubro e reprovaria em novembro. O componente só desenha.
+- Abre rolado até o fim: o que interessa é como está agora, não janeiro.
+
+Coberto por `teste-ano.js` (32 checagens).
+
 ## Evolução por exercício (`EvolucaoExercicio`)
 
 "Estou melhorando no supino?" é a pergunta que faz alguém abrir um app de treino
@@ -3249,6 +3282,54 @@ Roteiro mínimo depois de mexer no app:
     depois a frase.
 38. "Jarvis, modo treino": percorrer as 9 lições dizendo a frase de cada uma.
     Todas precisam fechar com ✓, e nada pode aparecer no histórico depois.
+
+## A cor significa alguma coisa
+
+O app tinha um sistema de cores pela metade: as variáveis de tema certas
+existiam (`--marca`, `--ok`, `--perigo`, `--cinza`, nos dois temas) e boa
+parte da interface passava por fora delas. O resultado media-se: **três
+verdes** (`#7CFF3C`, `#4CD137`, `#8FBF96`), **três vermelhos** e **dois
+rosas** para os mesmos significados, e sete atalhos irmãos em seis cores.
+
+Não era questão de gosto. Era o mesmo significado pintado de cores
+diferentes conforme o lugar — e é isso que faz uma tela parecer amadora.
+As regras, em ordem:
+
+1. **A marca é o que se toca.** `--marca` fica para a ação principal e para
+   link. Uma ação principal em destaque **por tela**: a inicial tinha dois
+   botões de degradê disputando ("Baixar backup agora" e "Começar este
+   treino"), e dois primários é nenhum primário.
+2. **Número é neutro** (`--texto`). Quando todo dado sai na cor de destaque,
+   a cor deixa de dirigir o olho e vira textura — era o caso dos oito blocos
+   de "Seus números" e do `0/15` da tela do treino. O tamanho já dá a
+   hierarquia, e o rótulo embaixo já diz o que o número é.
+3. **Verde é resultado** (`--ok`): feito, deu certo, conectado. Gastar verde
+   numa oferta ("👁 Contar pela câmera") é não ter verde quando a série
+   fechar de verdade.
+4. **Vermelho é aviso ou destruição** (`--perigo`). **Estado normal nunca é
+   vermelho**: a cinta desconectada é o normal de quase todo mundo, e pintar
+   isso de vermelho gasta o alarme — quando algo quebrar de verdade, o
+   vermelho já não vai querer dizer nada. Exceção mantida de propósito: o
+   batimento em `#ED4956`, porque coração vermelho é convenção universal e
+   ali a cor diz mesmo o que o número é.
+5. **Item irmão tem a cor do irmão.** O comentário sobre os atalhos da tela
+   inicial já dizia a lição ("sete botões coloridos era uma parede") e ela
+   tinha sido aplicada ao **tamanho**; a cor ficou para trás. O emoji já
+   distingue um do outro.
+6. **Barra de progresso tem uma cor só.** Havia um segundo degradê, de cinco
+   cores, usado como preenchimento: barra que muda de cor ao longo do
+   comprimento não informa nada, porque o comprimento já é a informação.
+
+**O que NÃO passa por variável de tema, e é de propósito:** cor sobre vídeo,
+mapa ou canvas — o esqueleto do Eyes Scan, os anéis do radar, os marcadores
+do Leaflet, o texto do vídeo do story. Ali a cor fixa e berrante é
+obrigatória: ela precisa contrastar com uma imagem qualquer, e `var(--x)`
+não alcança canvas. Antes de trocar uma cor fixa por variável, veja em que
+contexto ela desenha.
+
+A passada foi **dirigida às telas de mais uso**, não exaustiva: ainda há
+`#E1306C` literal espalhado pelo arquivo. Ao mexer num deles, aplique as
+regras acima em vez de repetir o literal.
 
 ## Convenções
 

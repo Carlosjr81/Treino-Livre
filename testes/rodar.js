@@ -35,6 +35,7 @@ const SUITES = [
   ["teste-ficha", "a ficha muda com o treino, e o treino livre que vira ficha"],
   ["teste-recursos", "o que este aparelho suporta, e o que se perde sem cada coisa"],
   ["teste-espelho", "o modo espelho: o sentido, os nomes dos lados e a seta"],
+  ["teste-ano", "o mapa dos 12 meses: dia treinado, a regua da pessoa e a sequencia"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");

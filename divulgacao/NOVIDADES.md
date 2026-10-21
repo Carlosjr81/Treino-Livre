@@ -16,6 +16,60 @@
 
 ---
 
+## 2026-10-21b — O ano inteiro numa tela, e um app que parece mais sério
+
+**Em uma frase:** um mapa dos últimos 12 meses mostra, de relance, se você é
+constante — e o app inteiro passou por uma faxina de cores em que cada cor
+voltou a querer dizer alguma coisa.
+
+**O que mudou**
+
+*1. 📅 Os últimos 12 meses (Histórico › Números)*
+- Um quadradinho por dia, do mais claro ao mais forte conforme o tempo que
+  você treinou naquele dia. Um ano inteiro de uma vez.
+- Embaixo, quantos dias de treino e a sua **maior sequência** de dias seguidos.
+- O calendário do mês continua logo abaixo: ele responde *em que dias treinei
+  neste mês*, e o mapa do ano responde *quando foi que eu parei*. A falha de
+  três semanas em julho não aparece em calendário de mês nenhum.
+- **A régua é a sua.** O tom mais forte é o seu dia mais cheio, não um número
+  fixo de minutos: quem faz 25 minutos de funcional e quem faz 90 de
+  musculação veem o próprio mapa, não o mapa de outra pessoa.
+
+*2. A cor voltou a significar alguma coisa*
+- Antes havia três verdes, três vermelhos e dois rosas para as mesmas coisas,
+  e sete atalhos irmãos pintados de seis cores diferentes. Agora:
+  **rosa é o que se toca**, **verde é o que deu certo**, **vermelho é aviso**,
+  e **número é branco** — para dar para ler.
+- A barra arco-íris do topo virou uma régua curta na cor da marca.
+- As barras de progresso passaram a ter uma cor só (uma barra que muda de cor
+  ao longo do comprimento não informa nada: o comprimento já é a informação).
+- O botão **❤ Conectar** da cinta cardíaca deixou de ser vermelho: não ter
+  cinta não é erro, é o normal de quase todo mundo.
+- Cada tela voltou a ter **uma** ação principal em destaque.
+
+**Por que importa para quem treina:** o mapa do ano é o espelho da
+constância — é nele que se vê o mês em que a rotina caiu, que é a informação
+que faz alguém voltar. E a faxina de cores deixa os números legíveis e o
+botão certo na frente, em vez de tudo gritando junto.
+
+**Como usar**
+- **O mapa:** Histórico → **📊 Números** → role até *📅 Os últimos 12 meses*.
+  Arraste para o lado para ver os meses anteriores; toque e segure um
+  quadradinho para ver o dia e os minutos.
+
+**Ideias de vídeo**
+- "Como está a sua constância?": abrir o mapa do ano e mostrar os buracos —
+  e a sequência mais longa do ano.
+- Antes e depois da faxina de cores, lado a lado: a mesma tela, uma gritando
+  e a outra calma.
+
+**Não prometer**
+- O mapa mostra **tempo de treino por dia**, não volume nem intensidade. Um
+  dia forte e curto aparece mais claro que um dia longo e leve.
+- Ele só enxerga o que está no histórico deste aparelho.
+
+---
+
 ## 2026-10-21a — Treine de frente para o espelho, e saiba o que o seu celular aguenta
 
 **Em uma frase:** a câmera agora conta as repetições apontada para o espelho

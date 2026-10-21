@@ -1,0 +1,96 @@
+# O app Android (pasta android/): monta o APK e o publica como versão
+# ("Release") no GitHub, onde o link do site o encontra:
+#   https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk
+#
+# Isto não é etapa de build do SITE: o GitHub Pages continua servindo o
+# index.html do jeito que está. O APK é só a porta para o Health Connect, que
+# um site não alcança. Apagar este arquivo não muda nada no site.
+#
+# A chave que assina o APK: o segredo ANDROID_KEYSTORE_B64 (o .jks em base64)
+# com ANDROID_KEYSTORE_PASS. Sem o segredo, uma chave é gerada e guardada no
+# cache do Actions — que expira depois de 7 dias sem uso. Chave diferente
+# obriga a desinstalar o app antigo antes de instalar o novo (os treinos não
+# se perdem: ficam no Chrome). O CLAUDE.md explica como criar o segredo.
+name: App Android
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths: ["android/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      TEM_SEGREDO: ${{ secrets.ANDROID_KEYSTORE_B64 != '' && 'sim' || 'nao' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Chave guardada no cache (quando não há segredo)
+        if: ${{ env.TEM_SEGREDO != 'sim' }}
+        uses: actions/cache@v4
+        with:
+          path: android/app/treinolivre.jks
+          key: chave-treinolivre-v1
+
+      - name: Preparar a chave
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > android/app/treinolivre.jks
+            echo "TL_STORE_PASS=$KEYSTORE_PASS" >> "$GITHUB_ENV"
+            echo "chave: segredo do repositório"
+          else
+            if [ ! -f android/app/treinolivre.jks ]; then
+              keytool -genkeypair -v -keystore android/app/treinolivre.jks -alias treinolivre \
+                -keyalg RSA -keysize 2048 -validity 10000 -storepass treinolivre -keypass treinolivre \
+                -dname "CN=Treino Livre, O=Treino Livre, C=BR"
+              echo "chave: gerada agora (guardada no cache)"
+            else
+              echo "chave: a do cache"
+            fi
+            echo "TL_STORE_PASS=treinolivre" >> "$GITHUB_ENV"
+          fi
+          echo "TL_KEYSTORE=$PWD/android/app/treinolivre.jks" >> "$GITHUB_ENV"
+
+      - name: Montar o APK
+        env:
+          TL_VERSAO_CODIGO: ${{ github.run_number }}
+          TL_VERSAO_NOME: "1.${{ github.run_number }}"
+        run: gradle -p android assembleRelease --no-daemon --stacktrace
+
+      - name: Renomear
+        run: cp android/app/build/outputs/apk/release/app-release.apk treino-livre.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treino-livre-apk
+          path: treino-livre.apk
+
+      - name: Publicar a versão (só do main)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-${{ github.run_number }}
+          name: App Android ${{ github.run_number }}
+          make_latest: "true"
+          files: treino-livre.apk
+          body: |
+            O app Android do Treino Livre: o mesmo app do site, com a aba ❤ Saúde lendo o Health Connect
+            (Samsung Health, Google Fit, relógios e anéis).
+            Baixe o treino-livre.apk abaixo no celular, abra e permita instalar.

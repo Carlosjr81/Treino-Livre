@@ -2039,7 +2039,8 @@ function resumoSaude(s, agora) {
     semana: semana,
     mediaPassos: comPassos.length ? Math.round(comPassos.reduce((a, x) => a + x.passos, 0) / comPassos.length) : 0,
     noites: noites,
-    ultimaNoite: noites[6].min || null,
+    // aberto antes de o relógio mandar a noite de hoje, vale a de ontem
+    ultimaNoite: noites[6].min || noites[5].min || null,
     mediaSono: comSono.length ? Math.round(comSono.reduce((a, x) => a + x.min, 0) / comSono.length) : null,
     peso: ultPeso ? { kg: ultPeso.kg, t: ultPeso.t, dif: pesoAntes ? Math.round((ultPeso.kg - pesoAntes.kg) * 10) / 10 : null } : null,
     repouso: rep.length ? rep[rep.length - 1].bpm : null,
@@ -22662,6 +22663,7 @@ function haQuanto(ms, agora) {
   const dd = Math.round(hs / 24);
   return "há " + dd + " " + plural(dd, "dia", "dias");
 }
+function temAppInstalado() { try { return localStorage.getItem("treinolivre:temApp") === "1"; } catch (e) { return false; } }
 const horasMin = (min) => Math.floor(min / 60) + "h" + String(min % 60).padStart(2, "0");
 
 function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizar }) {
@@ -22714,6 +22716,7 @@ function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCar
             1. Abra o arquivo baixado e permita instalar (o app não está na Play Store).<br />
             2. Abra o Treino Livre pelo ícone novo: seus treinos estão lá, porque ele usa o mesmo Chrome.<br />
             3. Em Histórico → ❤ Saúde, toque em Sincronizar e permita a leitura.
+            {temAppInstalado() && <div style={{ marginTop: 8, color: "var(--texto)" }}>Já instalou? Abra o Treino Livre pelo <b>ícone do app</b>: aqui no navegador comum o Health Connect não chega.</div>}
           </div>
         </div>
       ) : (

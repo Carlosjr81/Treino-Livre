@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "br.com.treinolivre.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "br.com.treinolivre.app"

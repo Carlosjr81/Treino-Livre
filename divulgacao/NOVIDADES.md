@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-10-22h — Mudar a ordem, à mão no fim da lista
+
+**Em uma frase:** o botão de mudar a ordem dos exercícios agora fica também
+embaixo, ao lado de "+ Adicionar exercício", onde o dedo já está no meio do treino.
+
+**O que mudou**
+- No fim da lista do treino aberto há dois botões lado a lado: **+ Adicionar
+  exercício** e **↕ Mudar a ordem**.
+- O botão do topo continua lá; agora não é preciso rolar até ele.
+
+**Por que importa para quem treina**
+- O aparelho que você queria está ocupado e o de baixo vagou: você muda a ordem
+  sem largar o exercício em que está.
+
+**Como usar**
+- No treino, role até o fim da lista e toque em **↕ Mudar a ordem**. Use ▲ ▼ ou
+  escolha a posição. As séries já feitas vão junto.
+
+**Ideias de vídeo**
+- "Academia lotada? Mude a ordem do treino em dois toques" — mostrando o botão no
+  fim da lista.
+
+**Não prometer**
+- Não muda a ficha sozinho: ao finalizar, o app pergunta se a ordem nova fica na ficha.
+
+---
+
 ## 2026-10-22g — Drop set
 
 **Em uma frase:** o treino ganhou o drop set: terminou a série, toque em **↓ Drop**

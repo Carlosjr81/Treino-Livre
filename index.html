@@ -655,7 +655,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-22g";
+const VERSAO_APP = "2026-10-22h";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -22417,10 +22417,20 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           </div>
         </div>
       ) : (
-        <button style={{ ...S.btnGhost, marginBottom: 12, color: "#E1306C", borderColor: "#E1306C66", fontWeight: 800 }}
-          onClick={() => setMostrarAdd(true)}>
-          + Adicionar exercício ao treino
-        </button>
+        // O ↕ também aqui embaixo: o de cima some da vista quando a pessoa
+        // rola até o exercício da vez, e foi lá que o dono o procurou.
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66", fontWeight: 800 }}
+            onClick={() => setMostrarAdd(true)}>
+            + Adicionar exercício
+          </button>
+          {sessao.itens.length > 1 && (
+            <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66", fontWeight: 800 }}
+              onClick={() => setOrdenandoSessao(true)}>
+              ↕ Mudar a ordem
+            </button>
+          )}
+        </div>
       )}
 
       <button style={{ ...S.btn, marginTop: 4 }} onClick={finalizar}>Finalizar treino</button>

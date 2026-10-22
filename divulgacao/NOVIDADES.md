@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-10-22f — Mude a ordem dos exercícios no meio do treino
+
+**Em uma frase:** com o treino aberto, o botão **↕ Mudar a ordem dos exercícios**
+reorganiza a lista na hora.
+
+**O que mudou**
+- Dentro do treino em andamento, acima dos exercícios, há o botão **↕ Mudar a ordem
+  dos exercícios**.
+- Use ▲ ▼ ou toque no número e escolha a posição. As séries já feitas vão junto.
+- Ao finalizar, o app pergunta se a ordem nova fica salva na ficha.
+
+**Por que importa para quem treina:** aparelho ocupado? Faça outro antes, sem sair
+do treino e sem perder nada do que já foi feito.
+
+**Como usar:** no treino, toque em **↕ Mudar a ordem dos exercícios** → ▲ ▼ ou o
+número → **✓ Pronto**. No fim, **Salvar na ficha** ou **Só hoje**.
+
+**Ideias de vídeo**
+- "Leg press ocupado? Muda a ordem em 3 segundos": mover o próximo exercício para
+  frente no meio do treino.
+
+**Não prometer:** a ordem só vai para a ficha se você escolher "Salvar na ficha" ao
+finalizar.
+
+---
+
 ## 2026-10-22e — Óculos: a volta para o treino sem recarregar
 
 **Em uma frase:** depois da série contada pelos óculos, o treino volta na hora, sem

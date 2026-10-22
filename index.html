@@ -655,7 +655,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-22e";
+const VERSAO_APP = "2026-10-22f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -20735,6 +20735,25 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   };
 
   // Remove um exercício inteiro do treino
+  // ↕ Mudar a ordem no meio do treino. O que guarda posição (o foco do
+  // Jarvis, o cronômetro da isometria) acompanha o exercício que andou; o
+  // resto da sessão já se guia pelo uid. Ao finalizar, mudancasNaFicha pergunta
+  // se a ordem nova fica na ficha.
+  const [ordenandoSessao, setOrdenandoSessao] = useState(false);
+  const reordenarSessao = (de, para) => {
+    if (para < 0 || para >= sessao.itens.length || de === para) return;
+    const novoIndice = (i) => {
+      if (i === de) return para;
+      if (de < para && i > de && i <= para) return i - 1;
+      if (de > para && i >= para && i < de) return i + 1;
+      return i;
+    };
+    setSessao({ ...sessao, itens: moverPara(sessao.itens, de, para) });
+    if (focoEi !== null) setFocoEi(novoIndice(focoEi));
+    if (crono) setCrono({ ...crono, ei: novoIndice(crono.ei) });
+    setTrocando(null);
+    setAnotarEsteira(null);
+  };
   const rmExercicio = (ei) => {
     const ex = exPorId(sessao.itens[ei].exercicioId);
     pedirConfirmacao("Remover " + (ex ? ex.nome : "este exercício") + " do treino?", () => {
@@ -21853,6 +21872,52 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           <div style={{ color: "var(--cinza)", fontSize: 14, lineHeight: 1.6 }}>
             Vá adicionando os exercícios conforme os aparelhos ficarem livres.
             Toque em <b>+ Adicionar exercício</b> abaixo para começar.
+          </div>
+        </div>
+      )}
+
+      {sessao.itens.length > 1 && (
+        <button onClick={() => setOrdenandoSessao(true)}
+          style={{ ...S.btnGhost, marginBottom: 10, fontSize: 14, color: "#E1306C", borderColor: "#E1306C66" }}>
+          ↕ Mudar a ordem dos exercícios
+        </button>
+      )}
+      {ordenandoSessao && (
+        <div role="dialog" aria-label="Mudar a ordem dos exercícios"
+          style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+          onClick={() => setOrdenandoSessao(false)}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ background: "var(--bg)", width: "100%", maxWidth: 520, maxHeight: "85vh", overflowY: "auto", borderRadius: "20px 20px 0 0",
+              padding: "16px 16px calc(16px + env(safe-area-inset-bottom))", boxSizing: "border-box" }}>
+            <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 4 }}>↕ Ordem dos exercícios</div>
+            <div style={{ fontSize: 13, color: "var(--cinza)", marginBottom: 12 }}>
+              Use ▲ ▼, ou toque no número e escolha a posição. As séries feitas vão junto. Ao finalizar, o app pergunta se a ordem nova fica na ficha.
+            </div>
+            {sessao.itens.map((it, i) => {
+              const e = exPorId(it.exercicioId);
+              const nomeEx = e ? e.nome : "Exercício";
+              const feitasIt = it.series.filter((s) => s.feito).length;
+              const seta = (desab) => ({ background: "none", border: "1px solid var(--borda2)", borderRadius: 10, width: 44, height: 44, flexShrink: 0, color: desab ? "var(--borda2)" : "var(--texto)", fontSize: 16, cursor: desab ? "default" : "pointer" });
+              return (
+                <div key={it.uid || i} style={{ ...S.card, padding: 8, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                  <select value={i} onChange={(ev) => reordenarSessao(i, parseInt(ev.target.value, 10))}
+                    aria-label={"Posição de " + nomeEx}
+                    style={{ width: 52, height: 44, flexShrink: 0, borderRadius: 10, border: "1px solid #E1306C66", background: "var(--card)", color: "#E1306C", fontWeight: 900, fontSize: 16, textAlign: "center" }}>
+                    {sessao.itens.map((_, k) => <option key={k} value={k}>{k + 1}º</option>)}
+                  </select>
+                  <MiniaturaExercicio ex={e} tamanho={36} />
+                  <div style={{ flex: 1, minWidth: 0, fontWeight: 800, fontSize: 14, lineHeight: 1.25 }}>
+                    {nomeEx}
+                    <div style={{ fontSize: 12, color: feitasIt === it.series.length && feitasIt ? "var(--ok)" : "var(--cinza)", fontWeight: 600 }}>
+                      {feitasIt === it.series.length && feitasIt ? "✓ feito" : feitasIt + " de " + it.series.length + " feitas"}
+                    </div>
+                  </div>
+                  <button aria-label={"Subir " + nomeEx} disabled={i === 0} onClick={() => reordenarSessao(i, i - 1)} style={seta(i === 0)}>▲</button>
+                  <button aria-label={"Descer " + nomeEx} disabled={i === sessao.itens.length - 1} onClick={() => reordenarSessao(i, i + 1)} style={seta(i === sessao.itens.length - 1)}>▼</button>
+                </div>
+              );
+            })}
+            <button style={{ ...S.btn, marginTop: 8 }} onClick={() => setOrdenandoSessao(false)}>✓ Pronto</button>
           </div>
         </div>
       )}

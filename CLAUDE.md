@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v93) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v94) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3451,6 +3451,14 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   a ordem** no editor: a lista vira uma linha por exercício, com ▲ ▼ grandes e
   a posição para escolher (o último vai ao topo num toque). Bi-set que ficou
   sem vizinho perde a marca.
+- **↕ Mudar a ordem no meio do treino** (`reordenarSessao`, na `TelaSessao`).
+  Pedido do dono, com o treino aberto: "não achei o botão de trocar a ordem
+  na ficha que estou usando" — o ↕ só existia no editor e na lista de fichas.
+  O botão abre uma folha com ▲ ▼ e a posição; as séries feitas vão junto. O
+  que guarda **índice** acompanha o exercício que andou (o foco do Jarvis,
+  `focoEi`, e o cronômetro da isometria, `crono.ei`); a troca em curso e a
+  anotação da esteira pendente são canceladas. Ao finalizar,
+  `mudancasNaFicha` já pergunta se a ordem nova fica na ficha.
 - **📋 Copiar exercícios para outra ficha** (`copiarItensPara`, coberto por
   `teste-ficha.js`). No editor, **📋 Copiar** marca exercícios e os manda para
   o fim de outra ficha (de qualquer treino) ou de uma nova no mesmo treino. Cada

@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v96) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v97) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3467,7 +3467,10 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
 - **↕ Mudar a ordem no meio do treino** (`reordenarSessao`, na `TelaSessao`).
   Pedido do dono, com o treino aberto: "não achei o botão de trocar a ordem
   na ficha que estou usando" — o ↕ só existia no editor e na lista de fichas.
-  O botão abre uma folha com ▲ ▼ e a posição; as séries feitas vão junto. O
+  O ↕ está no topo da lista, ao lado do "+ Adicionar exercício" e em cada
+  quadro de exercício (aberto ou fechado); o do quadro abre a folha com aquele
+  exercício marcado (`ordenandoSessao.uid`).
+  A folha tem ▲ ▼ e a posição; as séries feitas vão junto. O
   que guarda **índice** acompanha o exercício que andou (o foco do Jarvis,
   `focoEi`, e o cronômetro da isometria, `crono.ei`); a troca em curso e a
   anotação da esteira pendente são canceladas. Ao finalizar,

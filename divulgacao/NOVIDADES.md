@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-10-22i — ↕ em cada exercício do treino
+
+**Em uma frase:** cada exercício do treino aberto ganhou o botão **↕**, que muda a
+posição dele na hora.
+
+**O que mudou**
+- O **↕** fica ao lado do ⇄ (trocar) em cada quadro de exercício, e também nas
+  linhas dos exercícios fechados.
+- Tocar nele abre a lista da ordem com aquele exercício marcado em rosa.
+
+**Por que importa para quem treina**
+- O aparelho do próximo exercício está ocupado? Toque no ↕ do exercício que está
+  livre e suba ele para agora, sem procurar botão no topo da tela.
+
+**Como usar**
+- No treino, toque no **↕** do exercício. Use ▲ ▼ ou escolha a posição, e toque
+  em **✓ Pronto**.
+
+**Ideias de vídeo**
+- "Leg press ocupado? Um toque no ↕ e a cadeira extensora vem primeiro."
+
+**Não prometer**
+- Não muda a ficha sozinho: ao finalizar, o app pergunta se a ordem nova fica na ficha.
+
+---
+
 ## 2026-10-22h — Mudar a ordem, à mão no fim da lista
 
 **Em uma frase:** o botão de mudar a ordem dos exercícios agora fica também

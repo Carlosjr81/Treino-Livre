@@ -655,7 +655,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-22h";
+const VERSAO_APP = "2026-10-22i";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -21978,7 +21978,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               const feitasIt = it.series.filter((s) => s.feito).length;
               const seta = (desab) => ({ background: "none", border: "1px solid var(--borda2)", borderRadius: 10, width: 44, height: 44, flexShrink: 0, color: desab ? "var(--borda2)" : "var(--texto)", fontSize: 16, cursor: desab ? "default" : "pointer" });
               return (
-                <div key={it.uid || i} style={{ ...S.card, padding: 8, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                <div key={it.uid || i} style={{ ...S.card, padding: 8, marginBottom: 6, display: "flex", alignItems: "center", gap: 8,
+                  ...(ordenandoSessao.uid && ordenandoSessao.uid === it.uid ? { borderColor: "#E1306C", boxShadow: "0 0 0 1px #E1306C" } : {}) }}>
                   <select value={i} onChange={(ev) => reordenarSessao(i, parseInt(ev.target.value, 10))}
                     aria-label={"Posição de " + nomeEx}
                     style={{ width: 52, height: 44, flexShrink: 0, borderRadius: 10, border: "1px solid #E1306C66", background: "var(--card)", color: "#E1306C", fontWeight: 900, fontSize: 16, textAlign: "center" }}>
@@ -22034,13 +22035,18 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         if (!aberto) {
           const nFeitas = it.series.filter((s) => s.feito).length, nTot = it.series.length;
           const pronto = nTot > 0 && nFeitas === nTot;
+          // A linha é um quadro com dois botões (abrir e ↕): botão dentro de
+          // botão não vale no HTML.
           return (
-            <button key={chave} id={"item-" + chave} type="button"
+            <div key={chave} id={"item-" + chave}
+              style={{ ...S.card, width: "100%", boxSizing: "border-box", display: "flex", alignItems: "center", gap: 8,
+                padding: "10px 12px", opacity: pronto ? 0.7 : 1,
+                ...(noConjunto ? { borderLeft: "3px solid #E1306C", marginBottom: fechaConjunto ? 12 : 4 } : {}) }}>
+            <button type="button"
               onClick={() => { setAbertos((a) => Object.assign({}, a, { [chave]: true })); setFocoEi(ei); }}
               aria-label={"Abrir " + (ex ? ex.nome : "o exercício") + (pronto ? ", já feito" : "")}
-              style={{ ...S.card, width: "100%", display: "flex", alignItems: "center", gap: 10, textAlign: "left", font: "inherit",
-                color: "var(--texto)", cursor: "pointer", padding: "10px 12px", opacity: pronto ? 0.7 : 1,
-                ...(noConjunto ? { borderLeft: "3px solid #E1306C", marginBottom: fechaConjunto ? 12 : 4 } : {}) }}>
+              style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, textAlign: "left", font: "inherit",
+                background: "none", border: "none", padding: 0, color: "var(--texto)", cursor: "pointer" }}>
               <MiniaturaExercicio ex={ex} tamanho={40} />
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontWeight: 800, fontSize: 14.5, lineHeight: 1.25, textDecoration: pronto ? "line-through" : "none" }}>{ex ? ex.nome : "Exercício"}</span>
@@ -22050,6 +22056,15 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               </span>
               <span aria-hidden="true" style={{ fontSize: 13, fontWeight: 900, color: pronto ? "var(--ok)" : "#E1306C" }}>{pronto ? "✓" : "abrir ▾"}</span>
             </button>
+            {sessao.itens.length > 1 && (
+              <button type="button" onClick={() => setOrdenandoSessao({ uid: it.uid })}
+                title="Mudar a ordem dos exercícios"
+                aria-label={"Mudar a posição de " + (ex ? ex.nome : "este exercício")}
+                style={{ border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", borderRadius: 8, padding: "7px 9px", fontWeight: 800, fontSize: 14, cursor: "pointer", flexShrink: 0 }}>
+                ↕
+              </button>
+            )}
+            </div>
           );
         }
         return (
@@ -22102,6 +22117,16 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                   title="Recolher" aria-label={"Recolher " + (ex ? ex.nome : "este exercício")}
                   style={{ border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", borderRadius: 8, padding: "7px 9px", fontWeight: 900, fontSize: 13, cursor: "pointer" }}>
                   ▴
+                </button>
+              )}
+              {sessao.itens.length > 1 && (
+                // ↕ em cada cartão (pedido do dono): abre a ordem com este
+                // exercício marcado. Guarda o uid, não o índice: ele muda ao mover.
+                <button onClick={() => setOrdenandoSessao({ uid: it.uid })}
+                  title="Mudar a ordem dos exercícios"
+                  aria-label={"Mudar a posição de " + (ex ? ex.nome : "este exercício")}
+                  style={{ border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", borderRadius: 8, padding: "7px 9px", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
+                  ↕
                 </button>
               )}
               <button onClick={() => setTrocando(trocando === ei ? null : ei)}

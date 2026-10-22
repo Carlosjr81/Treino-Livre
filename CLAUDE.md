@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v101) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v102) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2818,7 +2818,10 @@ dentro do app**.
 - **A volta não mostra a abertura.** Registrar recarrega a página (é assim
   que a série chega), e a vinheta do logo no meio do treino parecia o app
   reiniciando — relato do dono, no primeiro teste que contou as 12 certas.
-  Com `#oculosSerie=` ou `#saude=` no endereço, a `Abertura` não roda.
+  Com `#oculosSerie=` ou `#saude=` no endereço, a `Abertura` não roda — **menos
+  quando o `#saude=` é a leitura automática de quando o app abre** (pacote
+  `silencioso`): ali é a abertura do app, e a vinheta sumia do APK inteiro
+  (relato do dono).
 - **A entrada também não mostra nada do site.** Ao ligar os óculos apareciam a
   tela de carregamento do site, o vídeo vazio (que o WebView desenha como um
   "play" enorme em cinza) e o "Tentar de novo" do caminho antigo. Hoje o app

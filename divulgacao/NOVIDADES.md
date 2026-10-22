@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-10-22n — A vinheta de abertura no app Android
+
+**Em uma frase:** o app Android voltou a abrir com a vinheta do Treino Livre.
+
+**O que mudou**
+- Ao abrir pelo ícone do app Android, a abertura (a silhueta virando esqueleto e o halter
+  rachando a tela) aparece de novo. Ela sumia porque o app lê o relógio ao abrir.
+- Na volta de uma sincronização ou da câmera dos óculos no meio do treino, a vinheta
+  continua não aparecendo, para não parecer que o app reiniciou.
+
+**Por que importa para quem treina**
+- É a marca do app, e o primeiro contato de quem instala.
+
+**Como usar**
+- Feche o app e abra pelo ícone.
+
+**Ideias de vídeo**
+- A abertura em câmera lenta, do ícone até a tela inicial.
+
+**Não prometer**
+- Um toque pula a vinheta; com "reduzir movimento" ligado no celular, ela mostra só o
+  quadro final.
+
+---
+
 ## 2026-10-22m — O app Android à vista de quem usa pelo navegador
 
 **Em uma frase:** quem usa o Treino Livre pelo navegador do Android agora vê, logo na tela

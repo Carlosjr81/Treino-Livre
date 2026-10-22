@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-10-22j — Os óculos contam em voz alta
+
+**Em uma frase:** com os óculos Ray-Ban Meta no Eyes Scan, a contagem das repetições
+agora é falada no ouvido, e não só no bipe.
+
+**O que mudou**
+- Na tela dos óculos, o número de cada repetição, o "completou" e os comentários do
+  técnico ("desce mais um pouco") saem em voz, no som dos óculos.
+- A voz é a do próprio celular (a mesma do leitor de tela do Android).
+
+**Por que importa para quem treina**
+- Olhando o espelho, você não vê a tela. Ouvir o número no ouvido é saber quanto falta
+  sem tirar o olho do movimento.
+
+**Como usar**
+- Atualize o app Android (o link de baixar fica em Histórico › ❤ Saúde) e abra o 👓
+  no Eyes Scan. O botão 🔊 1,2,3 liga e desliga a contagem falada.
+
+**Ideias de vídeo**
+- Série de rosca no espelho com os óculos, e a voz contando no ouvido até o "completou".
+
+**Não prometer**
+- Comandos falados para o Jarvis ("Jarvis, anota") ainda não funcionam na tela dos óculos.
+- Só no Android, com o app Android instalado.
+
+---
+
 ## 2026-10-22i — ↕ em cada exercício do treino
 
 **Em uma frase:** cada exercício do treino aberto ganhou o botão **↕**, que muda a

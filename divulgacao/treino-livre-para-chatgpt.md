@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-22i**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-22j**.
 
 ---
 
@@ -151,7 +151,8 @@ quebrando a tela) como linguagem visual em vídeos.
 - **👓 Óculos Ray-Ban Meta no Eyes Scan (Android, em teste):** o botão 👓 do scanner usa a câmera dos óculos;
   olhando para o espelho da academia (com o 🪞 ligado), os óculos veem o corpo inteiro e contam as repetições.
   Precisa do app Android do Treino Livre e do modo de desenvolvedor ligado no app Meta AI. A imagem é colorida
-  (as cores entram nos primeiros segundos).
+  (as cores entram nos primeiros segundos). A contagem é falada em voz alta no som dos óculos, com a voz
+  do celular; os comandos falados para o Jarvis ainda não funcionam nessa tela.
 - **Ordem das fichas:** dentro de cada treino, ▲ ▼ mudam a ordem das fichas; a tela inicial segue essa
   ordem para sugerir o treino do dia.
 - Fechou o app no meio do treino? **Nada se perde** — ao abrir, o treino continua de onde parou.

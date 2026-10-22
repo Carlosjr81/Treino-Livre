@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v97) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v98) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2814,7 +2814,14 @@ dentro do app**.
   página chamar `OculosNativo.pronto()` (fase "pronto" do scanner) — ou 30 s.
   O `<video>` tem um `poster` transparente, e no modo óculos o diagnóstico,
   o "Tentar de novo" e a dica do espelho em baixo não aparecem.
-- No WebView não há voz do navegador: a contagem em voz alta vira só o bipe.
+- **A voz da contagem é a do Android.** O WebView não tem a voz do navegador,
+  e a contagem em voz alta saía só no bipe. No modo óculos, o primeiro script
+  troca o `speechSynthesis` por um que fala pela ponte (`OculosNativo.falar`,
+  `calar`) com o `TextToSpeech` do Android, que toca no som do aparelho — com
+  os óculos pareados, nos alto-falantes deles. Cada fala devolve o fim
+  (`__fimFalaOculos`): a fila do técnico e o `aoTerminar` esperam por ele.
+  Fica no primeiro script porque o `VOZ_FALA` é decidido ao carregar.
+  O microfone (comandos do Jarvis) continua sem caminho no WebView.
 - O app avisa a página que está vivo a cada 5 s enquanto ela carrega o
   reconhecimento (8 MB na primeira vez), senão o serviço desligaria os óculos.
 - Canal do TWA e 127.0.0.1 continuam no código, sem uso no caminho principal.

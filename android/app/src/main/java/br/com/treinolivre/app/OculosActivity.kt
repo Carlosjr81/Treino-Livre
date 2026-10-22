@@ -5,6 +5,9 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import java.util.Locale
 import android.net.Uri
 import android.view.Gravity
 import android.widget.LinearLayout
@@ -152,6 +155,57 @@ class OculosActivity : ComponentActivity() {
     private var lancadorVolta: com.google.androidbrowserhelper.trusted.TwaLauncher? = null
     private var cobertura: android.view.View? = null
 
+    // ---- a voz ----
+    // O WebView não tem a voz do navegador, e a contagem em voz alta saía só
+    // no bipe. A página fala pela ponte (falar/calar) e a voz do Android toca
+    // no som do aparelho — com os óculos pareados, nos alto-falantes deles.
+    // Cada fala devolve o fim à página (__fimFalaOculos), porque a fila do
+    // técnico e a contagem esperam uma frase acabar para dizer a seguinte.
+    private var tts: TextToSpeech? = null
+    private var ttsPronto = false
+    private var ttsFalhou = false
+    private val ttsEspera = mutableListOf<Triple<String, String, FloatArray>>()
+
+    private fun avisarFimFala(id: String, erro: Boolean) {
+        if (!Regex("^f\\d{1,9}$").matches(id)) return
+        runOnUiThread { web?.evaluateJavascript("window.__fimFalaOculos&&window.__fimFalaOculos('" + id + "'," + erro + ")", null) }
+    }
+
+    private fun ligarVoz() {
+        if (tts != null) return
+        tts = TextToSpeech(applicationContext) { st ->
+            runOnUiThread {
+                val t = tts
+                if (st != TextToSpeech.SUCCESS || t == null) {
+                    ttsFalhou = true
+                    ttsEspera.forEach { avisarFimFala(it.first, true) }
+                    ttsEspera.clear()
+                    return@runOnUiThread
+                }
+                val r = t.setLanguage(Locale("pt", "BR"))
+                if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) t.setLanguage(Locale("pt"))
+                t.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                    override fun onStart(id: String?) {}
+                    override fun onDone(id: String?) = avisarFimFala(id ?: "", false)
+                    @Deprecated("API antiga") override fun onError(id: String?) = avisarFimFala(id ?: "", true)
+                    override fun onError(id: String?, codigo: Int) = avisarFimFala(id ?: "", true)
+                    override fun onStop(id: String?, interrompida: Boolean) = avisarFimFala(id ?: "", true)
+                })
+                ttsPronto = true
+                ttsEspera.forEach { dizer(it.first, it.second, it.third[0], it.third[1]) }
+                ttsEspera.clear()
+            }
+        }
+    }
+
+    private fun dizer(id: String, texto: String, vel: Float, tom: Float) {
+        val t = tts ?: return avisarFimFala(id, true)
+        t.setSpeechRate(vel.coerceIn(0.5f, 2.5f))
+        t.setPitch(tom.coerceIn(0.5f, 2f))
+        val ok = t.speak(texto.take(600), TextToSpeech.QUEUE_ADD, null, id)
+        if (ok != TextToSpeech.SUCCESS) avisarFimFala(id, true)
+    }
+
     private fun tirarEspera() {
         val c = cobertura ?: return
         cobertura = null
@@ -162,6 +216,7 @@ class OculosActivity : ComponentActivity() {
     private fun abrirScanner() {
         if (web != null) return
         Oculos.coresInvertidas = getSharedPreferences("oculos", MODE_PRIVATE).getBoolean("cores_invertidas", false)
+        ligarVoz()
         aviso("Óculos: abrindo o Eyes Scan")
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val p = intent?.data
@@ -231,6 +286,25 @@ class OculosActivity : ComponentActivity() {
 
         @JavascriptInterface fun estado(): String = Oculos.estado
 
+        // A voz: a página chama como chamaria o speechSynthesis do navegador
+        @JavascriptInterface fun falar(id: String, texto: String, velocidade: Double, tom: Double) {
+            runOnUiThread {
+                when {
+                    ttsFalhou -> avisarFimFala(id, true)
+                    !ttsPronto -> ttsEspera.add(Triple(id, texto, floatArrayOf(velocidade.toFloat(), tom.toFloat())))
+                    else -> dizer(id, texto, velocidade.toFloat(), tom.toFloat())
+                }
+            }
+        }
+
+        @JavascriptInterface fun calar() {
+            runOnUiThread {
+                ttsEspera.forEach { avisarFimFala(it.first, true) }
+                ttsEspera.clear()
+                tts?.stop()
+            }
+        }
+
         // 🎨: troca as cores (U e V) e guarda a escolha para as próximas vezes
         @JavascriptInterface fun trocarCores(): Boolean {
             Oculos.coresInvertidas = !Oculos.coresInvertidas
@@ -275,6 +349,9 @@ class OculosActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        tts?.stop()
+        tts?.shutdown()
+        tts = null
         lancadorVolta?.destroy()
         web?.destroy()
         web = null

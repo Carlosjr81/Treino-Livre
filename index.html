@@ -294,6 +294,49 @@
    carregar — antes de o Babel acabar de compilar o app. Escutando só no
    segundo script, a porta se perderia. Por ela chega a imagem dos óculos. */
 var CANAL_APP = { porta: null, ouvintes: [], vistos: 0, origem: "" };
+/* A voz na tela dos óculos. Ela roda num navegador do próprio app (WebView),
+   que não tem a voz do navegador: a contagem em voz alta saía só no bipe. Aqui
+   a fala passa pela ponte para a voz do Android (TextToSpeech), que toca no
+   som dos óculos. Fica neste primeiro script porque o app inteiro decide se
+   há voz (VOZ_FALA) olhando o speechSynthesis ao carregar. Mesma interface do
+   navegador: fila, cancel, onend e onerror — quem espera o fim não trava. */
+(function () {
+  try {
+    if (!/[?&]modo=oculos\b/.test(location.search)) return;
+    var p = window.OculosNativo;
+    if (!p || !p.falar) return;
+    var falas = {}, n = 0;
+    function Fala(t) { this.text = t || ""; this.lang = "pt-BR"; this.rate = 1; this.pitch = 1; this.volume = 1; this.voice = null; }
+    function fim(id, erro) {
+      var u = falas[id]; if (!u) return;
+      delete falas[id];
+      sint.speaking = Object.keys(falas).length > 0;
+      try { if (erro) { if (u.onerror) u.onerror({ error: "interrupted" }); } else if (u.onend) u.onend({}); } catch (e) {}
+    }
+    window.__fimFalaOculos = function (id, erro) { fim(String(id), !!erro); };
+    var sint = {
+      speaking: false, pending: false, paused: false, onvoiceschanged: null,
+      getVoices: function () { return []; },
+      addEventListener: function () {}, removeEventListener: function () {},
+      speak: function (u) {
+        var id = "f" + (++n);
+        falas[id] = u; sint.speaking = true;
+        try { if (u.onstart) u.onstart({}); } catch (e) {}
+        try { p.falar(id, String(u.text || ""), Number(u.rate) || 1, Number(u.pitch) || 1); }
+        catch (e) { setTimeout(function () { fim(id, true); }, 0); }
+      },
+      cancel: function () {
+        try { p.calar(); } catch (e) {}
+        var ids = Object.keys(falas);
+        setTimeout(function () { ids.forEach(function (id) { fim(id, true); }); }, 0);
+      },
+      pause: function () {}, resume: function () {},
+    };
+    // speechSynthesis é só leitura onde existe: defineProperty vence isso
+    try { Object.defineProperty(window, "speechSynthesis", { value: sint, configurable: true, writable: true }); } catch (e) { window.speechSynthesis = sint; }
+    try { Object.defineProperty(window, "SpeechSynthesisUtterance", { value: Fala, configurable: true, writable: true }); } catch (e) { window.SpeechSynthesisUtterance = Fala; }
+  } catch (e) {}
+})();
 window.addEventListener("message", function (e) {
   CANAL_APP.vistos++;
   CANAL_APP.origem = String(e.origin);
@@ -655,7 +698,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-22i";
+const VERSAO_APP = "2026-10-22j";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".

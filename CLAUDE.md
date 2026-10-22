@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v99) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v100) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2860,6 +2860,22 @@ que deu errado de verdade.
   "Conectar aparelhos" nos Ajustes (todos fechados). Quem abre está a vários
   níveis do raiz: `ABRIR_GUIA` é um ponteiro de módulo, como o `CONTROLE_AULA`.
 - Não vai para a tela inicial (regra dela).
+
+**A dica aparece onde a pessoa tropeça**, não só no guia (pedido do dono:
+"ele vai tentar, não vai conseguir, e ali mesmo ele vai ter a dica"):
+
+| Onde trava | O que aparece ali |
+|---|---|
+| Fechou a lista do Bluetooth sem achar a cinta | aviso com o que conferir (eletrodos, modo de transmitir de cada marca, Bluetooth e Localização) + **🔌 Como resolver** |
+| Fechou a lista sem achar a esteira | `est.dica` (cinza, não é erro) embaixo do botão + "Como conectar o aparelho" (`AvisoConexaoAparelho`) |
+| Microfone negado ou ocupado | aviso com o caminho da permissão + Como resolver |
+| Sincronizou e nenhum número veio | a frase do Samsung Health sem permissão de **gravar** na Conexão Saúde |
+| Os óculos não ligaram | o app volta com `#oculosErro=<codigo>` (`bluetooth`, `kit`, `registro`, `camera`, `erro`) e o guia abre nos óculos com "O que aconteceu" (`OCULOS_ERROS`). Antes a tela só fechava com um aviso de 3 s |
+| Sem imagem na tela dos óculos | o que conferir no Meta AI, com os nomes de agora |
+
+`avisarComGuia(msg, id)` é o `avisar` com o botão do passo a passo. Fechar a
+lista do Bluetooth quase sempre é não ter achado o aparelho nela: por isso o
+`NotFoundError` deixou de ser silêncio.
 
 ## Foto do aparelho (exercício do usuário)
 

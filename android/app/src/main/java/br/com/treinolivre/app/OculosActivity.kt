@@ -61,7 +61,7 @@ class OculosActivity : ComponentActivity() {
             }
             Oculos.estado = "sem-permissao"
             aviso("Óculos: a câmera dos óculos não foi liberada no Meta AI.")
-            finish()
+            voltarComErro("camera")
         }
     }
 
@@ -105,16 +105,16 @@ class OculosActivity : ComponentActivity() {
         try { seguirPassos() } catch (e: Exception) {
             Oculos.estado = "erro"
             aviso("Óculos: " + (e.message ?: e.javaClass.simpleName))
-            finish()
+            voltarComErro("erro")
         }
     }
 
     private suspend fun seguirPassos() {
         if (permissoesBluetooth().any { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }) {
             aviso("Óculos: sem a permissão de dispositivos próximos (Bluetooth), não dá para falar com os óculos.")
-            Oculos.estado = "erro"; finish(); return
+            Oculos.estado = "erro"; voltarComErro("bluetooth"); return
         }
-        if (!Oculos.iniciar(applicationContext)) { aviso("Óculos: o kit da Meta não iniciou."); Oculos.estado = "erro"; finish(); return }
+        if (!Oculos.iniciar(applicationContext)) { aviso("Óculos: o kit da Meta não iniciou."); Oculos.estado = "erro"; voltarComErro("kit"); return }
 
         // 1. o Treino Livre registrado no app Meta AI (uma vez só)
         val atual = Wearables.registrationState.first()
@@ -125,7 +125,7 @@ class OculosActivity : ComponentActivity() {
             val ok = withTimeoutOrNull(120_000L) {
                 Wearables.registrationState.first { it == RegistrationState.REGISTERED }
             }
-            if (ok == null) { aviso("Óculos: o Treino Livre não foi confirmado no app Meta AI."); Oculos.estado = "erro"; finish(); return }
+            if (ok == null) { aviso("Óculos: o Treino Livre não foi confirmado no app Meta AI."); Oculos.estado = "erro"; voltarComErro("registro"); return }
             aviso("Óculos: Treino Livre confirmado no Meta AI ✓")
         }
 
@@ -140,6 +140,16 @@ class OculosActivity : ComponentActivity() {
             Oculos.estado = "permissao"
             pedirCamera.launch(Permission.CAMERA)
         }
+    }
+
+    // Os óculos não ligaram: volta ao treino com o motivo (#oculosErro=), e o
+    // site abre ali mesmo o passo a passo dos óculos com o que fazer. Antes a
+    // tela só fechava, com um aviso que some em 3 segundos.
+    private fun voltarComErro(codigo: String) {
+        try {
+            val uri = Uri.parse(Site.ENDERECO + "?app=android#oculosErro=" + codigo)
+            Site.abrir(this, uri, { lancadorVolta = it }) { finish() }
+        } catch (e: Exception) { finish() }
     }
 
     private fun ligarServico() {

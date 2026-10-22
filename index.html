@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-22k";
+const VERSAO_APP = "2026-10-22l";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2399,7 +2399,7 @@ const ESTADOS_OCULOS = {
   procurando: "Procurando os óculos. Eles precisam estar ligados, no rosto e conectados ao app Meta AI.",
   conectando: "Conectando à câmera dos óculos…",
   transmitindo: "Recebendo a imagem dos óculos.",
-  "sem-oculos": "Não achei os óculos. No app Meta AI, ligue o modo de desenvolvedor (Configurações → Sobre → toque 5 vezes na versão) e tente de novo.",
+  "sem-oculos": "Não achei os óculos. No app Meta AI, confira a bolinha verde dos óculos e ligue o Modo de desenvolvedor (⚙ → Informações do app → toque 5 vezes, rápido, em Versão do app → ligue a chave). Depois tente de novo.",
   "sem-permissao": "Sem a permissão da câmera dos óculos, não há imagem. Libere no app Meta AI e toque em 👓 de novo.",
   "android-antigo": "A câmera dos óculos precisa do Android 10 ou mais novo.",
   erro: "A conexão com os óculos falhou. Toque em 👓 para tentar de novo.",
@@ -7916,7 +7916,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
             setFase("erro");
             setErro((ESTADOS_OCULOS[oculosEstadoRef.current] && oculosEstadoRef.current !== "iniciando" && oculosEstadoRef.current !== "transmitindo"
               ? ESTADOS_OCULOS[oculosEstadoRef.current] + " "
-              : "") + "Não chegou imagem dos óculos. Confira: o app Treino Livre (APK) instalado, os óculos no rosto e conectados ao app Meta AI, e o modo de desenvolvedor ligado no Meta AI.");
+              : "") + "Não chegou imagem dos óculos. Confira no app Meta AI: os óculos com a bolinha verde (ligados, carregados e conectados) e o Modo de desenvolvedor ligado (⚙ → Informações do app → 5 toques rápidos em Versão do app). Depois feche aqui e toque no 👓 de novo.");
             return;
           }
           fluxo = o.fluxo;
@@ -17051,6 +17051,21 @@ const CARTAO_APARELHO = {
     entra: "Watts, remadas por minuto, distância e o ritmo por 500 m entram sozinhos — sem digitar nada." },
 };
 const mmssSeg = (s) => Math.floor(s / 60) + ":" + String(Math.round(s) % 60).padStart(2, "0");
+// O que deu errado na conexão com a esteira (ou bicicleta, elíptico...), e o
+// caminho para resolver ali mesmo, sem procurar nos Ajustes.
+function AvisoConexaoAparelho({ est }) {
+  if (!est || (!est.erro && !est.dica)) return null;
+  return (
+    <div style={{ marginTop: 8, fontSize: 12.5, lineHeight: 1.5 }}>
+      {est.erro && <div style={{ color: "var(--perigo)" }}>{est.erro}</div>}
+      {est.dica && <div style={{ color: "var(--cinza)" }}>{est.dica}</div>}
+      <button onClick={() => abrirGuia("esteira")}
+        style={{ background: "none", border: "none", padding: 0, marginTop: 4, color: "var(--marca)", fontWeight: 800, fontSize: 12.5, cursor: "pointer", font: "inherit" }}>
+        🔌 Como conectar o aparelho ›
+      </button>
+    </div>
+  );
+}
 function ConexaoEsteiraSessao({ est, tipo, outro, onConectar, onConfirmar, onDesconectar, onAnotar, segAnotar, kmAnotar, seguindo, fcSerie, kmSomado, metaSerie, retomar, onAnotarAteAqui }) {
   const t = tipo || "esteira", ap = nomeAparelho(t), txt = CARTAO_APARELHO[t] || CARTAO_APARELHO.esteira;
   const Ap = ap.nome.charAt(0).toUpperCase() + ap.nome.slice(1);
@@ -17097,7 +17112,7 @@ function ConexaoEsteiraSessao({ est, tipo, outro, onConectar, onConfirmar, onDes
           aparecem máquinas de academia. Se {ap.oNome.startsWith("a ") ? "a sua" : "o seu"} não aparecer, não tem esse Bluetooth —
           é só digitar os números do painel.
         </div>
-        {est.erro && <div style={{ fontSize: 12, color: "var(--perigo)", marginTop: 8, lineHeight: 1.45 }}>{est.erro}</div>}
+        <AvisoConexaoAparelho est={est} />
       </div>
     );
   }
@@ -17181,7 +17196,7 @@ function ConexaoEsteiraSessao({ est, tipo, outro, onConectar, onConfirmar, onDes
           )}
         </React.Fragment>
       )}
-      {est.erro && <div style={{ fontSize: 12, color: "var(--perigo)", marginTop: 8, lineHeight: 1.45 }}>{est.erro}</div>}
+      <AvisoConexaoAparelho est={est} />
     </div>
   );
 }
@@ -17221,7 +17236,7 @@ function CartaoEsteira({ est, onConectar, onConfirmar, onDesconectar, teto, setT
             O navegador vai abrir a lista de aparelhos. Só aparecem máquinas de academia.
             Ligue a esteira antes — desligada ela não anuncia nada.
           </div>
-          {est.erro && <div style={{ fontSize: 12, color: "var(--perigo)", marginTop: 8, lineHeight: 1.45 }}>{est.erro}</div>}
+          <AvisoConexaoAparelho est={est} />
         </React.Fragment>
       ) : (
         <React.Fragment>
@@ -17288,7 +17303,7 @@ function CartaoEsteira({ est, onConectar, onConfirmar, onDesconectar, teto, setT
                 : "Esta esteira transmite os números mas não aceita comando do app. Já ajuda: a velocidade e a distância entram sozinhas, sem digitar nada."}
             </div>
           )}
-          {est.erro && <div style={{ fontSize: 12, color: "var(--perigo)", marginTop: 8, lineHeight: 1.45 }}>{est.erro}</div>}
+          <AvisoConexaoAparelho est={est} />
         </React.Fragment>
       )}
     </div>
@@ -17328,7 +17343,7 @@ function usarEsteira() {
 
   const conectar = async (pedido) => {
     const e = montar();
-    setEst((s) => Object.assign({}, s, { erro: "" }));
+    setEst((s) => Object.assign({}, s, { erro: "", dica: "" }));
     try {
       const info = await e.procurar(typeof pedido === "string" ? pedido : undefined);
       // Conectar NÃO é o mesmo que poder comandar. O controle só é pedido
@@ -17340,9 +17355,13 @@ function usarEsteira() {
       setEst((s) => Object.assign({}, s, { ligada: true, nome: info.nome, podeComandar: info.podeComandar,
         comanda: false, confirmada: false, faixa: info.faixaVel, tipo: info.tipo, dado: null }));
     } catch (x) {
-      const msg = /cancel|User cancelled|chooser/i.test(x.message || "")
-        ? "" : "Não consegui conectar: " + (x.message || "erro desconhecido");
-      setEst((s) => Object.assign({}, s, { erro: msg, estado: "desligado" }));
+      // Fechar a lista quase sempre é não ter achado a máquina nela: em vez de
+      // silêncio, o que fazer (dica, não erro — nada quebrou)
+      const fechou = /cancel|User cancelled|chooser/i.test(x.message || "");
+      setEst((s) => Object.assign({}, s, {
+        erro: fechou ? "" : "Não consegui conectar: " + (x.message || "erro desconhecido"),
+        dica: fechou ? "A sua máquina não apareceu na lista? Ela pode não ter o Bluetooth aberto das máquinas de academia (FTMS): aí é só digitar os números do painel. Confira também o Bluetooth e a Localização do celular ligados, e se ninguém mais está conectado a ela." : "",
+        estado: "desligado" }));
     }
   };
 
@@ -23502,7 +23521,16 @@ function textoGuia(t) {
   return String(t).split(/(\*\*[^*]+\*\*|\*[^*]+\*)/).map((p, i) =>
     /^\*\*/.test(p) ? <b key={i}>{p.slice(2, -2)}</b> : /^\*[^*]/.test(p) ? <i key={i}>{p.slice(1, -1)}</i> : p);
 }
-function GuiaConectar({ inicial, onFechar }) {
+// O que o app Android manda de volta quando os óculos não ligam
+// (#oculosErro=<codigo>): o guia abre nos óculos, com o que aconteceu no topo.
+const OCULOS_ERROS = {
+  bluetooth: "O Android não deu a permissão de Dispositivos próximos, e sem ela o app não fala com os óculos. Toque no 👓 de novo e escolha Permitir. Se a pergunta não aparecer: Configurações → Apps → Treino Livre → Permissões → Dispositivos próximos → Permitir.",
+  kit: "O app não conseguiu falar com o Meta AI. Atualize o Meta AI na Play Store e confira que os óculos aparecem nele com a bolinha verde.",
+  registro: "O Treino Livre não foi confirmado no Meta AI. Quase sempre é o modo de desenvolvedor desligado (passo 2 abaixo). Depois toque no 👓 de novo e, quando o Meta AI abrir, confirme o Treino Livre.",
+  camera: "A câmera dos óculos não foi liberada. Toque no 👓 de novo e, no Meta AI, escolha Sempre permitir.",
+  erro: "Os óculos não ligaram desta vez. Confira a bolinha verde dos óculos no Meta AI e toque no 👓 de novo.",
+};
+function GuiaConectar({ inicial, onFechar, problema }) {
   const [aberto, setAberto] = useState(inicial || null);
   const refs = useRef({});
   useEffect(() => {
@@ -23521,6 +23549,12 @@ function GuiaConectar({ inicial, onFechar }) {
         <div style={{ fontSize: 13.5, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 14 }}>
           O passo a passo de cada um, com os nomes que aparecem no celular. Toque no que você quer ligar.
         </div>
+        {problema && (
+          <div style={{ ...S.card, borderColor: "#E1306C99", fontSize: 14, lineHeight: 1.55 }}>
+            <div style={{ fontWeight: 900, marginBottom: 4 }}>O que aconteceu</div>
+            {problema}
+          </div>
+        )}
         {GUIA_CONECTAR.map((g) => {
           const ab = aberto === g.id;
           return (
@@ -23568,7 +23602,7 @@ function GuiaConectar({ inicial, onFechar }) {
 // um ponteiro de módulo, como o CONTROLE_AULA, em vez de descer a função por
 // toda a árvore. Existe um guia só por vez.
 let ABRIR_GUIA = null;
-const abrirGuia = (id) => { if (ABRIR_GUIA) ABRIR_GUIA(id); };
+const abrirGuia = (id, problema) => { if (ABRIR_GUIA) ABRIR_GUIA(id, problema); };
 
 function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizar }) {
   const agora = Date.now();
@@ -23605,6 +23639,15 @@ function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCar
           {saude && saude.erro && (
             <div style={{ marginTop: 10, fontSize: 13, color: "var(--perigo)", lineHeight: 1.45 }}>{ERROS_SAUDE[saude.erro] || ERROS_SAUDE.falhou}</div>
           )}
+          {saude && saude.em && !saude.erro && !tem && (
+            // Sincronizou e não veio nada: quase sempre é o Samsung Health (ou o
+            // app do relógio) sem permissão de GRAVAR na Conexão Saúde
+            <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5 }}>
+              <b>Sincronizou, mas nenhum número chegou.</b> Quase sempre é o app do relógio sem permissão de <b>gravar</b> na Conexão Saúde:
+              Configurações do celular → busque <b>Conexão Saúde</b> → Permissões de apps → <b>Samsung Health</b> → Permitir tudo.
+              Depois abra o Samsung Health, puxe a tela para baixo e toque em Sincronizar aqui de novo.
+            </div>
+          )}
           <button onClick={() => abrirGuia("relogio")}
             style={{ background: "none", border: "none", padding: 0, marginTop: 10, color: "var(--marca)", fontWeight: 800, fontSize: 13.5, cursor: "pointer", font: "inherit", textAlign: "left" }}>
             🔌 Passo a passo: relógio, anel, óculos e aparelhos ›
@@ -23623,7 +23666,7 @@ function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCar
               </div>
               <a href={LINK_APK} style={{ ...S.btnGhost, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none", marginBottom: 8 }}>⬇ Baixar o app Android (APK)</a>
               <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.55 }}>
-                Abra o arquivo baixado e permita instalar (o app não está na Play Store). Depois volte aqui e toque em Sincronizar.
+                Abra o arquivo baixado e permita <b>Instalar apps desconhecidos</b> para o Chrome. Se o Play Protect avisar, toque em <b>Mais detalhes → Instalar mesmo assim</b> (o aviso aparece porque o app não está na Play Store). Depois abra pelo <b>ícone novo</b> e toque em Sincronizar.
               </div>
             </div>
           )}
@@ -24275,6 +24318,7 @@ function TreinoLivre() {
   const [ajudaVoz, setAjudaVoz] = useState(false);
   const [diagVoz, setDiagVoz] = useState(false);
   const [guia, setGuia] = useState(false);
+  const [problemaGuia, setProblemaGuia] = useState("");
   const [avisoToque, setAvisoToque] = useState(false);
   const [versaoNova, setVersaoNova] = useState(null);
   const acoesVoz = useRef({});
@@ -24314,8 +24358,12 @@ function TreinoLivre() {
       setTimeout(() => avisar("Conectado a " + nome + ". O batimento aparece no treino e a média entra no histórico."), 100);
     } catch (e) {
       setCardioEstado("desligado");
-      if (e && e.name === "NotFoundError") return;   // a pessoa fechou a lista
-      avisar("Não consegui conectar. Confira se o monitor está ligado, perto, e não pareado com outro app.");
+      // Fechar a lista quase sempre é não ter achado o aparelho nela
+      if (e && e.name === "NotFoundError") {
+        avisarComGuia("Não achou a cinta ou o relógio na lista?\n\n• Cinta: molhe os eletrodos e vista — ela só liga no peito.\n• Relógio: ligue o modo de transmitir o batimento (Garmin: Transmitir FC; Amazfit: Compartilhar FC; Xiaomi: Transmissão de frequência cardíaca).\n• Ligue o Bluetooth e a Localização do celular.\n\nO Galaxy Watch e os anéis não transmitem ao vivo: os números deles chegam pela Conexão Saúde.", "bpm");
+        return;
+      }
+      avisarComGuia("Não consegui conectar. Confira se o monitor está ligado, perto, e não pareado com outro app (desligue o Bluetooth do app da marca e tente de novo).", "bpm");
     }
   }, []);
   const desconectarCardio = useCallback(() => { if (cardioRef.current) cardioRef.current.desconectar(); }, []);
@@ -24355,7 +24403,7 @@ function TreinoLivre() {
   // série dos óculos, a leitura da saúde) recarrega a página no meio do
   // treino, e a vinheta ali parecia o app reiniciando.
   const [abertura, setAbertura] = useState(() => {
-    try { return !/#(oculosSerie|saude)=/.test(window.location.hash || ""); } catch (e) { return true; }
+    try { return !/#(oculosSerie|oculosErro|saude)=/.test(window.location.hash || ""); } catch (e) { return true; }
   });
   // Quais dicas de primeiro contato já foram vistas. Some para sempre: dica que
   // volta não é dica, é propaganda.
@@ -24389,6 +24437,8 @@ function TreinoLivre() {
   // para quem deixou a voz ligada — trocava a pergunta pelo aviso. A ficha se
   // perdia sem ninguém saber: o link compartilhado morria em silêncio.
   const avisar = (msg) => setModal((m) => (m && m.onSim ? m : { msg: msg }));
+  // O mesmo aviso, com o botão que abre o passo a passo daquele aparelho
+  const avisarComGuia = (msg, guia) => setModal((m) => (m && m.onSim ? m : { msg: msg, guia: guia }));
 
   // ---------- JARVIS: ouvir, responder e encaminhar ----------
   const mostrarVoz = useCallback((ouvi, resposta, ok) => {
@@ -24434,9 +24484,9 @@ function TreinoLivre() {
         },
         aoErro: (tipo) => {
           setVozAtiva(false);
-          avisar(tipo === "permissao"
-            ? "Preciso da permissão do microfone para ouvir. Toque no cadeado ao lado do endereço e libere o microfone para este site."
-            : "Não consegui abrir o microfone. Confira se outro app não está usando.");
+          avisarComGuia(tipo === "permissao"
+            ? "Preciso da permissão do microfone para ouvir. Toque no cadeado ao lado do endereço (ou ⋮ → ⓘ no app) → Permissões → Microfone → Permitir."
+            : "Não consegui abrir o microfone. Confira se outro app (ligação, gravador, Meta AI) não está usando.", "voz");
         },
       });
     }
@@ -24682,7 +24732,7 @@ function TreinoLivre() {
   };
 
   TEMA_APP = tema;
-  ABRIR_GUIA = (id) => setGuia(id || "");
+  ABRIR_GUIA = (id, problema) => { setProblemaGuia(problema || ""); setGuia(id || ""); };
   vozRef.current = voz;
   somRef.current = som;
   const todos = useMemo(() => [...EXERCICIOS, ...customEx], [customEx]);
@@ -24804,7 +24854,9 @@ function TreinoLivre() {
       const mC = hash.match(/#corrida=([^&]+)/);
       const mS = hash.match(/#saude=([^&]+)/);
       const mO = hash.match(/#oculosSerie=([^&]+)/);
-      if (mF || mP || mD || mA || mC || mS || mO) {
+      const mOE = hash.match(/#oculosErro=([a-z-]+)/);
+      if (mOE) setTimeout(() => abrirGuia("oculos", OCULOS_ERROS[mOE[1]] || OCULOS_ERROS.erro), 300);
+      if (mF || mP || mD || mA || mC || mS || mO || mOE) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e2) {}
       }
       // Atalhos do ícone do app na tela inicial (definidos no manifest.json)
@@ -24890,6 +24942,12 @@ function TreinoLivre() {
   temSessaoRef.current = !!sessao;
   useEffect(() => {
     const aoHash = () => {
+      const mE = (window.location.hash || "").match(/#oculosErro=([a-z-]+)/);
+      if (mE) {
+        try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
+        abrirGuia("oculos", OCULOS_ERROS[mE[1]] || OCULOS_ERROS.erro);
+        return;
+      }
       const m = (window.location.hash || "").match(/#oculosSerie=([^&]+)/);
       if (!m) return;
       try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
@@ -26334,6 +26392,12 @@ function TreinoLivre() {
                   <button style={{ ...S.btn, flex: 1, background: modal.positivo ? GRAD : "#ED4956", color: "#FFFFFF" }}
                     onClick={() => { const f = modal.onSim; setModal(null); f(); }}>{modal.labelSim || (modal.positivo ? "Adicionar" : "Confirmar")}</button>
                 </React.Fragment>
+              ) : modal.guia ? (
+                // A dica no lugar do tropeço: o aviso da falha já leva ao passo a passo
+                <React.Fragment>
+                  <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => setModal(null)}>OK</button>
+                  <button style={{ ...S.btn, flex: 1.4 }} onClick={() => { const g = modal.guia; setModal(null); abrirGuia(g); }}>🔌 Como resolver</button>
+                </React.Fragment>
               ) : (
                 <button style={{ ...S.btn, flex: 1 }} onClick={() => setModal(null)}>OK</button>
               )}
@@ -26424,7 +26488,7 @@ function TreinoLivre() {
         onEscola={() => { setAjudaVoz(false); setAba("escolaVoz"); }}
         onDiagnostico={() => { setAjudaVoz(false); setDiagVoz(true); }}
         falaLigada={voz.falar} onAlternarFala={() => setVoz((v) => ({ ...v, falar: !v.falar }))} />
-      {guia !== false && <GuiaConectar inicial={guia || null} onFechar={() => setGuia(false)} />}
+      {guia !== false && <GuiaConectar inicial={guia || null} problema={problemaGuia} onFechar={() => { setGuia(false); setProblemaGuia(""); }} />}
       <ModalDiagnosticoJarvis aberto={diagVoz} ligado={vozAtiva} estado={vozEstado} voz={voz} noToque={noToque}
         onFechar={() => setDiagVoz(false)} />
 

@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-22k**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-22l**.
 
 ---
 
@@ -155,7 +155,8 @@ quebrando a tela) como linguagem visual em vídeos.
   do celular; os comandos falados para o Jarvis ainda não funcionam nessa tela.
 - **Passo a passo para conectar aparelhos:** em Ajustes → Conectar aparelhos (e na aba ❤ Saúde), um guia
   tela por tela para o app Android, relógio e anel Samsung, outros relógios, cinta, esteira, óculos Ray-Ban
-  Meta e fone, com um "Se travar" em cada um.
+  Meta e fone, com um "Se travar" em cada um. E quando uma conexão falha, a dica aparece ali mesmo, no aviso,
+  com o botão "Como resolver".
 - **Ordem das fichas:** dentro de cada treino, ▲ ▼ mudam a ordem das fichas; a tela inicial segue essa
   ordem para sugerir o treino do dia.
 - Fechou o app no meio do treino? **Nada se perde** — ao abrir, o treino continua de onde parou.

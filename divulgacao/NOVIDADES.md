@@ -16,6 +16,42 @@
 
 ---
 
+## 2026-10-22l — A dica aparece onde você travou
+
+**Em uma frase:** quando uma conexão não dá certo, o app diz ali mesmo o que fazer, com um
+botão que abre o passo a passo daquele aparelho.
+
+**O que mudou**
+- **Cinta ou relógio que não aparece na lista:** o app explica o que conferir (molhar os
+  eletrodos da cinta, ligar o "transmitir batimento" do relógio, Bluetooth e Localização)
+  e tem o botão **🔌 Como resolver**.
+- **Esteira que não aparece:** embaixo do botão de conectar aparece o que fazer, inclusive
+  quando a máquina não tem Bluetooth (aí é só digitar o painel).
+- **Microfone do Jarvis bloqueado:** o caminho para liberar, com o passo a passo.
+- **Relógio sincronizado sem números:** o app avisa que falta a permissão de gravar do
+  Samsung Health na Conexão Saúde, e onde ligar.
+- **Óculos Ray-Ban Meta que não ligam:** o app volta ao treino e abre o passo a passo dos
+  óculos dizendo o que aconteceu (modo de desenvolvedor, câmera não liberada, permissão de
+  Bluetooth) e o que fazer.
+
+**Por que importa para quem treina**
+- Ninguém vai até os Ajustes procurar ajuda no meio do treino. A dica chega na hora em
+  que a pessoa ia desistir.
+
+**Como usar**
+- Não precisa fazer nada: tente conectar, e se não der, a dica aparece. Para os óculos,
+  atualize o app Android.
+
+**Ideias de vídeo**
+- "Não achei minha cinta... e o próprio app me disse o que fazer": a tela do aviso, depois
+  a cinta conectada.
+
+**Não prometer**
+- Não conserta a conexão sozinho: diz o caminho. Relógio, óculos e Bluetooth continuam
+  só no Android.
+
+---
+
 ## 2026-10-22k — Passo a passo para conectar os aparelhos
 
 **Em uma frase:** o app ganhou um guia que ensina, tela por tela, a ligar o relógio,

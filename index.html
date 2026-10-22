@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-22l";
+const VERSAO_APP = "2026-10-22m";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -9582,6 +9582,46 @@ function fichaDeHoje(programas, treinos, historico, agora) {
 }
 // ---- fim do treino de hoje
 
+// O app Android para quem ainda usa o Treino Livre pelo navegador (ou pelo
+// atalho que o Chrome criou). Sem ele não chegam o relógio, o Samsung Health
+// nem os óculos — e quem não sabe que o app existe não vai procurar. Dois
+// casos: nunca abriu o app (convite) e já tem o app mas abriu o atalho antigo
+// (os ícones são iguais: dizer qual usar e apagar o outro).
+function CartaoAppAndroid({ onDepois }) {
+  const jaTem = temAppInstalado();
+  const link = { background: "none", border: "none", padding: 0, color: "var(--marca)", fontWeight: 800, fontSize: 13, cursor: "pointer", font: "inherit" };
+  if (jaTem) return (
+    <div style={{ ...S.card, borderColor: "#E1306C66" }}>
+      <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6 }}>📲 Você abriu o atalho antigo</div>
+      <div style={{ fontSize: 13.5, lineHeight: 1.55 }}>
+        Você já tem o <b>app Android do Treino Livre</b>, mas está no atalho do navegador: aqui não chegam o relógio, o Samsung Health nem os óculos.
+        Abra pelo <b>ícone do app</b>. Para não confundir, apague este atalho: segure o ícone dele na tela inicial → <b>Desinstalar</b>. Os treinos não somem.
+      </div>
+      {onDepois && <button style={{ ...link, color: "var(--cinza)", marginTop: 10 }} onClick={onDepois}>Agora não</button>}
+    </div>
+  );
+  return (
+    <div style={{ ...S.card, borderColor: "#E1306C99" }}>
+      <div style={{ fontWeight: 900, fontSize: 17, marginBottom: 4 }}>📲 Baixe o app Android do Treino Livre</div>
+      <div style={{ fontSize: 13, color: "var(--cinza)", marginBottom: 10 }}>Grátis, com os mesmos treinos — e com o que o navegador não alcança:</div>
+      <div style={{ fontSize: 14, lineHeight: 1.7, marginBottom: 12 }}>
+        <div>⌚ <b>Relógio, anel e Samsung Health</b>: passos, sono e batimento no app</div>
+        <div>❤ O batimento do relógio entra em <b>cada treino</b></div>
+        <div>👓 Contar a série com os <b>óculos Ray-Ban Meta</b></div>
+        <div>📱 Abre direto do ícone, em tela cheia</div>
+      </div>
+      <a href={LINK_APK} style={{ ...S.btnGhost, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 900 }}>⬇ Baixar o app Android</a>
+      <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 8 }}>
+        Seus treinos vão junto: o app usa o mesmo Chrome. Abra o arquivo baixado e permita instalar; se o Play Protect avisar, toque em <b>Mais detalhes → Instalar mesmo assim</b>.
+      </div>
+      <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
+        <button style={link} onClick={() => abrirGuia("app")}>Passo a passo ›</button>
+        {onDepois && <button style={{ ...link, color: "var(--cinza)" }} onClick={onDepois}>Agora não</button>}
+      </div>
+    </div>
+  );
+}
+
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
   avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
   convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi, onIntervalado, onDesafio, onEsteira }) {
@@ -9608,7 +9648,20 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
     { icone: "🏁", nome: "Desafio", diz: "corra contra amigos", onClick: onDesafio },
     { icone: "🧟", nome: NOME_ZUMBI, diz: "fuja dos monstros correndo", onClick: onZumbi },
   ].filter((j) => j.onClick && j.se !== false);
-  const cartaoInstalar = !instalado && (
+  // "Agora não" esconde por uma semana: convite que volta todo dia vira barulho
+  const [apkDepois, setApkDepois] = useState(() => {
+    try { return Date.now() < Number(localStorage.getItem("treinolivre:apkDepois") || 0); } catch (e) { return false; }
+  });
+  const androidNoNavegador = EH_ANDROID && !NO_APP_ANDROID;
+  const cartaoApk = androidNoNavegador && !apkDepois && (
+    <CartaoAppAndroid onDepois={() => {
+      try { localStorage.setItem("treinolivre:apkDepois", String(Date.now() + 7 * 86400000)); } catch (e) {}
+      setApkDepois(true);
+    }} />
+  );
+  // No Android, o app de verdade é o APK: o cartão de "instalar na tela inicial"
+  // (o atalho do Chrome) daria um segundo ícone igual sem o que importa
+  const cartaoInstalar = !instalado && !androidNoNavegador && (
     <div style={{ ...S.card, borderColor: "#E1306C44" }}>
       <div style={S.label}>📲 Instalar na tela inicial</div>
       <div style={{ fontSize: 14, lineHeight: 1.6, margin: "8px 0 12px", color: "var(--cinza)" }}>
@@ -9701,6 +9754,7 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
         <BemVindo onAssistente={onAssistente} onFuncional={onFuncional} onEscolaVoz={onEscolaVoz} />
       )}
 
+      {cartaoApk}
       {novato && cartaoInstalar}
 
       <div style={S.card}>
@@ -10545,7 +10599,7 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
         <button style={S.btnGhost} onClick={() => abrirGuia(null)}>Ver o passo a passo</button>
       </div>
 
-      {!instalado && (
+      {EH_ANDROID && !NO_APP_ANDROID ? <CartaoAppAndroid /> : !instalado && (
         <div style={{ ...S.card, borderColor: "#E1306C44" }}>
           <div style={S.label}>📲 Instalar na tela inicial</div>
           <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, margin: "8px 0 12px" }}>

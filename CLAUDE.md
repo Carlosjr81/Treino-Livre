@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v100) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v101) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2621,6 +2621,18 @@ nativa pequena que só fala com o Health Connect.
 - **Erros voltam pelo mesmo link** (`erro`: `indisponivel`, `atualizar`,
   `sem-permissao`, `falhou`), e o site diz o que fazer (`ERROS_SAUDE`). Um
   erro não apaga o que já estava na tela.
+
+**O convite para o app** (`CartaoAppAndroid`, pedido do dono): quem usa o
+Treino Livre pelo navegador no Android não sabe que o app existe, e sem ele
+não chegam relógio, Samsung Health nem óculos. Então, no Android fora do app
+(`EH_ANDROID && !NO_APP_ANDROID`), o cartão aparece **logo abaixo do treino
+de hoje** (é a exceção à regra da tela inicial, decidida pelo dono) e nos
+Ajustes, no lugar do "Instalar na tela inicial" — que no Android daria um
+segundo ícone igual sem o que importa. "Agora não" esconde por 7 dias
+(`treinolivre:apkDepois`). Quem **já tem o app** (`temAppInstalado`) e abriu
+o atalho antigo vê outra coisa: qual ícone usar e como apagar o atalho. O
+botão é contornado, não de degradê: a ação principal da tela continua sendo
+o treino.
 
 **A tela** (`TelaSaude`, Histórico › ❤ Saúde): **em todo Android**, Sincronizar
 e a hora da última leitura. Achado no celular do dono: o ícone que o Chrome

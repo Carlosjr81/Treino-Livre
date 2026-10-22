@@ -16,6 +16,37 @@
 
 ---
 
+## 2026-10-22m — O app Android à vista de quem usa pelo navegador
+
+**Em uma frase:** quem usa o Treino Livre pelo navegador do Android agora vê, logo na tela
+inicial, o convite para baixar o app Android — com tudo o que ele traz a mais.
+
+**O que mudou**
+- Na tela inicial, logo abaixo do treino de hoje, um cartão **📲 Baixe o app Android**
+  lista o que só o app faz: relógio, anel e Samsung Health (passos, sono, batimento), o
+  batimento do relógio em cada treino e os óculos Ray-Ban Meta. O botão baixa na hora.
+- O mesmo cartão aparece nos **Ajustes**.
+- Quem já instalou o app mas abriu pelo atalho antigo do navegador (os dois ícones são
+  iguais) vê qual usar e como apagar o atalho, sem perder treino.
+- "Agora não" esconde o convite por uma semana.
+
+**Por que importa para quem treina**
+- Muita gente usa pelo navegador e nunca soube que existe um app com mais funções.
+
+**Como usar**
+- No celular Android, abra o Treino Livre pelo navegador: o convite está na tela inicial.
+  Toque em **⬇ Baixar o app Android**, abra o arquivo e permita instalar.
+
+**Ideias de vídeo**
+- "Você usa o Treino Livre pelo navegador? Baixe o app e ligue seu relógio": a tela com o
+  cartão, o download e os passos do relógio aparecendo no app.
+
+**Não prometer**
+- Só Android. No iPhone não há app: tudo continua pelo navegador.
+- O app não está na Play Store: a instalação é pelo arquivo, com o aviso do Play Protect.
+
+---
+
 ## 2026-10-22l — A dica aparece onde você travou
 
 **Em uma frase:** quando uma conexão não dá certo, o app diz ali mesmo o que fazer, com um

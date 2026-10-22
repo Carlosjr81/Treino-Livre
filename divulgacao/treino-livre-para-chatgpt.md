@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-22l**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-22m**.
 
 ---
 
@@ -153,6 +153,9 @@ quebrando a tela) como linguagem visual em vídeos.
   Precisa do app Android do Treino Livre e do modo de desenvolvedor ligado no app Meta AI. A imagem é colorida
   (as cores entram nos primeiros segundos). A contagem é falada em voz alta no som dos óculos, com a voz
   do celular; os comandos falados para o Jarvis ainda não funcionam nessa tela.
+- **Convite para o app Android:** quem usa pelo navegador no Android vê, na tela inicial e nos Ajustes,
+  o cartão "Baixe o app Android" com o que só o app faz (relógio, Samsung Health, óculos). Quem já tem o
+  app e abriu o atalho antigo é avisado de qual ícone usar.
 - **Passo a passo para conectar aparelhos:** em Ajustes → Conectar aparelhos (e na aba ❤ Saúde), um guia
   tela por tela para o app Android, relógio e anel Samsung, outros relógios, cinta, esteira, óculos Ray-Ban
   Meta e fone, com um "Se travar" em cada um. E quando uma conexão falha, a dica aparece ali mesmo, no aviso,

@@ -7,7 +7,7 @@ function pedaco(de, ate) {
   if (i < 0 || f < 0) { console.error("nao achei: " + de); process.exit(1); }
   return html.slice(i, f);
 }
-eval(pedaco("// ---- A ficha muda com o treino ----", "// ---- fim da ficha muda") + "\nglobalThis.H = { mudancasNaFicha, fichaDoTreino, moverFicha, moverPara, copiarItensPara };");
+eval(pedaco("// ---- A ficha muda com o treino ----", "// ---- fim da ficha muda") + "\nglobalThis.H = { mudancasNaFicha, fichaDoTreino, moverFicha, moverPara, copiarItensPara, pesoDoDrop, inserirDrop, dropsNoFim };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -131,6 +131,19 @@ teste("bi-set copiado inteiro continua junto, com id próprio", true, c.itens[1]
 teste("bi-set com um lado só vira exercício solto", null, c.itens[3].conjunto);
 teste("a ficha de destino original não muda", 1, dest.length);
 teste("ficha nova (vazia)", 2, H.copiarItensPara([], origem.slice(0, 2), id).copiados);
+
+console.log("\n--- drop set ---");
+teste("drop: uns 20% a menos, no degrau de 2,5 kg", "32.5", H.pesoDoDrop("40"));
+teste("drop leve: degrau de 1 kg", "12", H.pesoDoDrop("15"));
+teste("drop nunca igual ao peso de antes", "1", H.pesoDoDrop("2"));
+teste("sem peso, sem sugestão", "", H.pesoDoDrop(""));
+const ss = [{ peso: "40", reps: "10", feito: true }, { peso: "40", reps: "10" }];
+const d1 = H.inserirDrop(ss, 0);
+teste("o drop entra logo depois da série", [false, true, false], d1.map((s) => !!s.drop));
+teste("o segundo drop entra depois do primeiro, mais leve", ["40", "32.5", "25", "40"], H.inserirDrop(d1, 0).map((s) => s.peso));
+teste("conta os drops do fim", 2, H.dropsNoFim([{ peso: "40" }, { peso: "32", drop: true }, { peso: "25", drop: true }]));
+const fd = H.fichaDoTreino([{ exercicioId: "x", series: [{ peso: "40", reps: "10" }, { peso: "40", reps: "10" }, { peso: "32", reps: "8", drop: true }] }]);
+teste("treino com drop vira ficha: 2 séries e 1 drop", [2, 10, 1], [fd[0].series, fd[0].reps, fd[0].drops]);
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

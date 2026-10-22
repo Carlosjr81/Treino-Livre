@@ -156,7 +156,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.171 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.179 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v94) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v95) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3451,6 +3451,19 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   a ordem** no editor: a lista vira uma linha por exercício, com ▲ ▼ grandes e
   a posição para escolher (o último vai ao topo num toque). Bi-set que ficou
   sem vizinho perde a marca.
+- **Drop set** (`ehDrop`, `pesoDoDrop`, `inserirDrop`, `dropsNoFim`, coberto
+  por `teste-ficha.js`). Pedido do dono. O drop é uma série com `drop: true`
+  logo depois da que ele continua. No treino, **↓ Drop** emenda um na última
+  série feita (uns 20% a menos: degrau de 1 kg abaixo de 20, 2,5 kg acima) e
+  para o descanso se ele já tinha começado; marcar uma série com drop por fazer
+  logo depois **não abre descanso** e a voz diz "Agora o drop: X quilos". O
+  número da série pula os drops (1, ↓, 2), e tocar no ↓ tira o drop. Na ficha,
+  **Drops** (—/1/2/3) põe os drops depois da última série ao começar o treino
+  (`montarSeries(..., drops)`).
+  **O que o drop NÃO conta**: série da semana (`seriesSemanaisPorGrupo`), a
+  sugestão de carga (`sugerirCarga` — mais leve de propósito, faria a carga
+  nunca subir) e o número de séries da ficha (`fichaDoTreino` grava `drops`
+  à parte, `mudancasNaFicha` conta só as de trabalho). **Conta** no volume.
 - **↕ Mudar a ordem no meio do treino** (`reordenarSessao`, na `TelaSessao`).
   Pedido do dono, com o treino aberto: "não achei o botão de trocar a ordem
   na ficha que estou usando" — o ↕ só existia no editor e na lista de fichas.
@@ -3495,7 +3508,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 29 suítes (1.171 checagens)
+node testes/rodar.js      # as 29 suítes (1.179 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 ```

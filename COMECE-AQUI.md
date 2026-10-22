@@ -217,7 +217,7 @@ projeto foi publicado até aqui.
 node testes/rodar.js
 ```
 
-As 29 suítes, 1.171 checagens. Prova que a **lógica** não quebrou. Rode antes e
+As 29 suítes, 1.179 checagens. Prova que a **lógica** não quebrou. Rode antes e
 depois de mexer no app.
 
 ```bash

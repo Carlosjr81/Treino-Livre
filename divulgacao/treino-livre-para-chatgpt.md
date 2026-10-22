@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-22f**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-22g**.
 
 ---
 
@@ -133,6 +133,9 @@ quebrando a tela) como linguagem visual em vídeos.
   nome (**✎ dar nome**, no topo do treino), e o nome vale para o treino no histórico e para a ficha.
 - **📂 Levar para outro treino:** qualquer ficha pode ser **copiada** ou **movida** para outro treino
   (o Avançado, outro seu, ou um treino novo criado na hora, com o nome que você escolher).
+- **↓ Drop set:** no treino, **↓ Drop** emenda uma série com uns 20% a menos de peso, sem descanso (o
+  cronômetro só começa depois do último drop). Na ficha, o campo **Drops** (1 a 3) deixa os drops prontos. O drop
+  conta no volume, mas não como série a mais na semana.
 - **↕ Ordem no meio do treino:** com o treino aberto, **↕ Mudar a ordem dos exercícios** reorganiza a lista
   (as séries feitas vão junto); ao finalizar, o app pergunta se a ordem nova fica na ficha.
 - **↕ Ordem dos exercícios:** cada ficha tem o botão **↕ Ordem** (e o editor, **↕ Mudar a ordem**): setas

@@ -16,6 +16,41 @@
 
 ---
 
+## 2026-10-22g — Drop set
+
+**Em uma frase:** o treino ganhou o drop set: terminou a série, toque em **↓ Drop**
+e siga com menos peso, sem descanso.
+
+**O que mudou**
+- No treino, cada exercício de carga tem o botão **↓ Drop**. Ele acrescenta um drop
+  logo depois da série que você acabou de fazer, já com uns 20% a menos de peso.
+- O drop aparece com um **↓** laranja no lugar do número. Dá para fazer dois ou três
+  seguidos.
+- Entre a série e o drop **não há descanso**: o cronômetro só começa depois do
+  último drop, e a voz avisa "Agora o drop: 32,5 quilos, sem descanso".
+- Na ficha, o campo **Drops** (1, 2 ou 3) já deixa os drops prontos na última série
+  de cada exercício.
+- O drop entra no volume do treino, mas não conta como série a mais na semana e não
+  atrapalha a sugestão de carga da próxima vez.
+
+**Por que importa para quem treina:** drop set é uma das técnicas mais usadas para
+levar o músculo à falha. Agora ela é anotada do jeito que é feita.
+
+**Como usar**
+- No treino: marque a série ✓ → **↓ Drop** → ajuste o peso se quiser → ✓.
+- Na ficha: Editar → no exercício, **Drops** → 1, 2 ou 3.
+- Para tirar um drop, toque no **↓**.
+
+**Ideias de vídeo**
+- "Drop set em 3 toques": rosca, ✓, ↓ Drop, ✓, ↓ Drop, ✓ — e o descanso só começando
+  no fim.
+- "Monte a ficha com drop": o campo Drops no editor.
+
+**Não prometer:** o peso do drop é uma sugestão (uns 20% a menos); quem decide
+quanto tirar é você.
+
+---
+
 ## 2026-10-22f — Mude a ordem dos exercícios no meio do treino
 
 **Em uma frase:** com o treino aberto, o botão **↕ Mudar a ordem dos exercícios**

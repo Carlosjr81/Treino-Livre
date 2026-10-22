@@ -655,7 +655,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-22f";
+const VERSAO_APP = "2026-10-22g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -1754,7 +1754,8 @@ const PASSO_CARGA = (peso) => (peso >= 60 ? 5 : peso >= 20 ? 2.5 : 1);
 function sugerirCarga(historico, exercicioId, repsAlvo) {
   const ult = ultimaExecucao(historico, exercicioId);
   if (!ult) return null;
-  const validas = ult.series.filter(serieConta);
+  // o drop é mais leve de propósito: contá-lo faria a carga nunca subir
+  const validas = ult.series.filter((s) => serieConta(s) && !ehDrop(s));
   if (!validas.length) return null;
 
   // Esteira: repete velocidade e inclinação da última vez. Subir sozinho não:
@@ -1791,7 +1792,7 @@ function sugerirCarga(historico, exercicioId, repsAlvo) {
 
 // Monta as séries de um exercício ao iniciar o treino. Isometria entra em
 // segundos; o resto, em peso e repetições, já com a carga sugerida.
-function montarSeries(ex, qtdSeries, repsAlvo, sug) {
+function montarSeries(ex, qtdSeries, repsAlvo, sug, drops) {
   const n = Math.max(1, parseInt(qtdSeries) || 1);
   // Aeróbico: na ficha, "repetições" são os minutos. Os números do painel vêm
   // da última vez; sem histórico, do padrão do exercício.
@@ -1814,11 +1815,13 @@ function montarSeries(ex, qtdSeries, repsAlvo, sug) {
     const seg = sug && sug.segundos ? String(sug.segundos) : "30";
     return Array.from({ length: n }, () => ({ segundos: seg, feito: false }));
   }
-  return Array.from({ length: n }, () => ({
+  let series = Array.from({ length: n }, () => ({
     peso: sug && sug.peso ? String(sug.peso) : "",
     reps: String(repsAlvo || ""),
     feito: false,
   }));
+  for (let k = 0; k < Math.min(3, parseInt(drops) || 0); k++) series = inserirDrop(series, series.length - 1);
+  return series;
 }
 
 // ---- A ficha muda com o treino ----
@@ -1868,7 +1871,7 @@ function mudancasNaFicha(fichaItens, sessaoItens, nomeDe) {
     if (base) {
       return { ...base, ...comum, reps: repsDoTreino(s) || base.reps || 12, descanso: s.descanso || base.descanso || null };
     }
-    return { uid: s.uid, ...comum, series: Math.max(1, (s.series || []).length), reps: repsDoTreino(s) || 12, descanso: s.descanso || null };
+    return { uid: s.uid, ...comum, series: Math.max(1, (s.series || []).filter((x) => !ehDrop(x)).length), reps: repsDoTreino(s) || 12, descanso: s.descanso || null };
   });
   itens.forEach((it, i) => {
     if (!it.conjunto) return;
@@ -1883,6 +1886,42 @@ function mudancasNaFicha(fichaItens, sessaoItens, nomeDe) {
 // itens de uma ficha: quantas séries valeram (aquecimento fica de fora, mas não
 // zera o exercício) e as repetições que mais apareceram — quem fez 12, 10, 10
 // combinou 10 consigo mesmo. No aeróbico, as "repetições" da ficha são minutos.
+// ---- Drop set ----
+// O drop é a série que emenda na anterior sem descanso, com menos peso, até a
+// falha. Ele fica na lista de séries com `drop: true`, logo depois da série
+// que ele continua. Conta no volume (é trabalho de verdade), mas não é uma
+// série a mais na semana nem entra na conta da sugestão de carga: com ele, a
+// "última vez" pareceria uma série fraca e a carga nunca subiria.
+function ehDrop(s) { return !!(s && s.drop); }
+// O peso do drop: uns 20% a menos, no degrau que a academia tem (1 kg até 20,
+// 2,5 kg acima). Nunca igual ao de antes, nunca zero.
+function pesoDoDrop(peso) {
+  const p = parseFloat(String(peso || "").replace(",", ".")) || 0;
+  if (p <= 0) return "";
+  const passo = p * 0.8 < 20 ? 1 : 2.5;
+  let d = Math.round((p * 0.8) / passo) * passo;
+  if (d >= p) d = p - passo;
+  if (d <= 0) return "";
+  return String(Math.round(d * 10) / 10);
+}
+function serieDeDrop(base) {
+  return { peso: pesoDoDrop(base && base.peso), reps: (base && base.reps) || "", drop: true, feito: false };
+}
+// Acrescenta um drop logo depois da série `si` (e dos drops que já a seguem).
+function inserirDrop(series, si) {
+  let fim = si;
+  while (series[fim + 1] && ehDrop(series[fim + 1])) fim++;
+  const novo = serieDeDrop(series[fim]);
+  return series.slice(0, fim + 1).concat([novo], series.slice(fim + 1));
+}
+// Quantos drops seguem a última série de trabalho (o que a ficha guarda)
+function dropsNoFim(series) {
+  let n = 0;
+  for (let i = (series || []).length - 1; i >= 0 && ehDrop(series[i]); i--) n++;
+  return n;
+}
+// ---- fim do drop set
+
 function fichaDoTreino(itens, gerarUid) {
   const uid = gerarUid || ((i) => "u" + i);
   const maisComum = (vals) => {
@@ -1893,17 +1932,20 @@ function fichaDoTreino(itens, gerarUid) {
   };
   return (itens || []).map((it, i) => {
     const todas = it.series || [];
-    const valem = todas.filter((s) => !s.aquec);
+    const drops = dropsNoFim(todas);
+    const valem = todas.filter((s) => !s.aquec && !ehDrop(s));
     const usar = valem.length ? valem : todas;
     if (!usar.length) return null;
     const cardio = !!(usar[0].mod || usar[0].vel);
     const reps = maisComum(usar.map((s) => (cardio
       ? Math.max(1, Math.round((parseInt(s.segundos) || 0) / 60))
       : parseInt(s.reps) || parseInt(s.segundos) || 0)).filter((v) => v > 0));
-    return {
+    const item = {
       uid: uid(i), exercicioId: it.exercicioId, series: usar.length,
       reps: reps || (cardio ? 20 : 12), obs: it.obs || "", descanso: it.descanso || null, conjunto: null,
     };
+    if (drops) item.drops = drops;
+    return item;
   }).filter(Boolean);
 }
 // Sobe ou desce uma ficha entre as do mesmo treino. A ordem das fichas é a
@@ -9206,8 +9248,8 @@ function seriesSemanaisPorGrupo(historico, exPorId) {
     (h.itens || []).forEach((it) => {
       const e = exPorId(it.exercicioId);
       if (!e || e.cardio) return;
-      // aquecimento não conta como série de trabalho
-      const n = (it.series || []).filter(serieConta).length;
+      // aquecimento não conta como série de trabalho; o drop é a mesma série
+      const n = (it.series || []).filter((s) => serieConta(s) && !ehDrop(s)).length;
       acc[e.grupo] = (acc[e.grupo] || 0) + n;
     });
   });
@@ -11479,6 +11521,19 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, 
                     aria-label={(exCardioId(it.exercicioId) ? "Minutos de " : "Número de repetições de ") + nomeEx}
                     onChange={(ev) => upItem(i, "reps", Math.max(1, parseInt(ev.target.value) || 1))} />
                 </div>
+                {!exCardioId(it.exercicioId) && !(e && e.tempo) && (
+                  <div style={{ flex: 1 }}>
+                    <div style={{ ...S.label, fontSize: 10 }}>Drops</div>
+                    <select style={{ ...S.inputMini, padding: "10px 4px" }} value={it.drops || 0}
+                      aria-label={"Drop sets na última série de " + nomeEx}
+                      onChange={(ev) => upItem(i, "drops", parseInt(ev.target.value) || 0)}>
+                      <option value={0}>—</option>
+                      <option value={1}>1</option>
+                      <option value={2}>2</option>
+                      <option value={3}>3</option>
+                    </select>
+                  </div>
+                )}
                 <div style={{ flex: 1 }}>
                   <div style={{ ...S.label, fontSize: 10 }}>Descanso</div>
                   <select style={{ ...S.inputMini, padding: "10px 4px" }} value={it.descanso || 0}
@@ -20709,6 +20764,23 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     setSessao({ ...sessao, itens });
   };
 
+  // ↓ Drop: emenda um drop na última série feita (ou na última da lista), com
+  // uns 20% a menos de peso. Se o descanso já começou, ele para: drop é sem
+  // descanso.
+  const addDrop = (ei) => {
+    const it = sessao.itens[ei];
+    let si = -1;
+    it.series.forEach((s, k) => { if (s.feito && !ehDrop(s)) si = k; });
+    if (si < 0) si = it.series.length - 1;
+    while (it.series[si + 1] && ehDrop(it.series[si + 1]) && it.series[si + 1].feito) si++;
+    const itens = sessao.itens.map((x, i) => (i !== ei ? x : { ...x, series: inserirDrop(x.series, si) }));
+    setSessao({ ...sessao, itens });
+    if (fimDescanso) fecharDescanso();
+  };
+  const rmDrop = (ei, si) => {
+    const itens = sessao.itens.map((x, i) => (i !== ei ? x : { ...x, series: x.series.filter((_, k) => k !== si) }));
+    setSessao({ ...sessao, itens });
+  };
   // Remove a última série (não deixa ficar sem nenhuma)
   const rmSerie = (ei) => {
     const itens = sessao.itens.map((it, i) => {
@@ -20821,9 +20893,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     upSerie(ei, si, "feito", !jaFeita);
     if (jaFeita) return;
     // Em bi-set/tri-set não se descansa no meio: o cronômetro só começa depois
-    // da série do último exercício do conjunto.
+    // da série do último exercício do conjunto. No drop set também não: com um
+    // drop por fazer logo depois, ele vem emendado.
     const seguinte = sessao.itens[ei + 1];
-    const noMeioDoConjunto = !!(item.conjunto && seguinte && seguinte.conjunto === item.conjunto);
+    const proxSerie = item.series[si + 1];
+    const vaiDrop = !!(proxSerie && ehDrop(proxSerie) && !proxSerie.feito);
+    const noMeioDoConjunto = vaiDrop || !!(item.conjunto && seguinte && seguinte.conjunto === item.conjunto);
     if (!noMeioDoConjunto) iniciarDescanso(descansoDe(item));
     // Confirmar em voz o que acabou de ser anotado: com o celular no bolso, o ✓
     // na tela não existe. Frase curta de propósito — é confirmação, não relatório.
@@ -20848,9 +20923,13 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         ? " Meta da semana batida: " + total + " minutos."
         : " Na semana, " + total + " de " + META_CARDIO_SEMANA + " minutos da meta.";
     }
+    // o número da série não conta os drops ("série 2 de 3", com ou sem drop)
+    const ordem = item.series.slice(0, si + 1).filter((x) => !ehDrop(x)).length;
+    const deTrabalho = item.series.filter((x) => !ehDrop(x)).length || quantas;
     narrarVoz(
-      "Série " + (si + 1) + " de " + quantas + " anotada." + relato +
-      (seg ? " Descanso de " + textoDuracao(seg) + "." : " Emenda no próximo."),
+      (ehDrop(serie) ? "Drop anotado." : "Série " + ordem + " de " + deTrabalho + " anotada.") + relato +
+      (vaiDrop ? " Agora o drop" + (proxSerie.peso ? ": " + fmtNum(proxSerie.peso) + " quilos" : "") + ", sem descanso."
+        : seg ? " Descanso de " + textoDuracao(seg) + "." : " Emenda no próximo."),
       vozCfg
     );
     // O ✓ na tela também merece a comemoração falada quando o Jarvis está ouvindo
@@ -22081,7 +22160,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 )}
                 {ult && (
                   <span style={{ color: "var(--cinza)" }}>
-                    última vez: {ult.slice(0, 5).map((s) => (ehCardio(s) ? textoCardio(s) : ehTempo(s) ? segundosDe(s) + "s" : fmtNum(s.peso) + "×" + repsDe(s)) + (ehAquecimento(s) ? " (aq.)" : "")).join(" · ")}
+                    última vez: {ult.slice(0, 6).map((s) => (ehDrop(s) ? "↓" : "") + (ehCardio(s) ? textoCardio(s) : ehTempo(s) ? segundosDe(s) + "s" : fmtNum(s.peso) + "×" + repsDe(s)) + (ehAquecimento(s) ? " (aq.)" : "")).join(" · ")}
                   </span>
                 )}
               </div>
@@ -22142,9 +22221,20 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               const nomeEx = ex ? ex.nome : "exercício";
               const aquec = ehAquecimento(s);
               const contando = crono && crono.ei === ei && crono.si === si;
+              const drop = ehDrop(s);
+              const numero = it.series.slice(0, si + 1).filter((x) => !ehDrop(x)).length;
               return (
                 <div key={si} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, opacity: s.feito ? 0.55 : 1 }}>
-                  {/* O número da série também liga/desliga o aquecimento */}
+                  {drop ? (
+                    // o drop: emendado na série de cima. Tocar no ↓ tira o drop.
+                    <button onClick={() => rmDrop(ei, si)} title="Drop: sem descanso, menos peso. Toque para tirar."
+                      aria-label={"Tirar este drop de " + nomeEx}
+                      style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, cursor: "pointer",
+                        border: "1px solid #FF8A3D", background: "#FF8A3D22", color: "#FF8A3D", fontWeight: 900, fontSize: 15 }}>
+                      ↓
+                    </button>
+                  ) : (
+                  /* O número da série também liga/desliga o aquecimento */
                   <button onClick={() => alternarAquecimento(ei, si)} aria-pressed={aquec}
                     title={aquec ? "Série de aquecimento (fora do volume)" : "Marcar como aquecimento"}
                     aria-label={(aquec ? "Tirar" : "Marcar") + " a série " + (si + 1) + " de " + nomeEx + " como aquecimento"}
@@ -22152,8 +22242,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                       border: aquec ? "1px solid var(--obs)" : "1px solid transparent",
                       background: aquec ? "#C7A94B22" : "transparent",
                       color: aquec ? "var(--obs)" : "var(--cinza)", fontWeight: 900, fontSize: 13 }}>
-                    {aquec ? "A" : si + 1}
+                    {aquec ? "A" : numero}
                   </button>
+                  )}
 
                   {ehAerobico ? (
                     <React.Fragment>
@@ -22261,6 +22352,11 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 A = aquecimento: fica registrado, mas fora do volume e dos recordes.
               </div>
             )}
+            {it.series.some(ehDrop) && (
+              <div style={{ fontSize: 10, color: "#FF8A3D", marginBottom: 6 }}>
+                ↓ = drop: emenda na série de cima, sem descanso, com menos peso. Toque no ↓ para tirar.
+              </div>
+            )}
 
             <div style={{ display: "flex", gap: 8, marginTop: 4, marginBottom: 4 }}>
               <button onClick={() => addSerie(ei)}
@@ -22268,6 +22364,14 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 style={{ ...S.btnGhost, flex: 3, padding: "11px 12px", color: "#E1306C", borderColor: "#E1306C66", fontWeight: 800 }}>
                 + Adicionar série
               </button>
+              {!ehAerobico && !ehIsometria && (
+                <button onClick={() => addDrop(ei)}
+                  aria-label={"Acrescentar um drop set em " + (ex ? ex.nome : "este exercício")}
+                  title="Drop set: sem descanso, uns 20% a menos de peso"
+                  style={{ ...S.btnGhost, flex: 2, padding: "11px 8px", color: "#FF8A3D", borderColor: "#FF8A3D66", fontWeight: 800 }}>
+                  ↓ Drop
+                </button>
+              )}
               {it.series.length > 1 && (
                 <button onClick={() => rmSerie(ei)} title="Remover a última série"
                   aria-label={"Remover a última série de " + (ex ? ex.nome : "este exercício")}
@@ -24615,7 +24719,7 @@ function TreinoLivre() {
           conjunto: it.conjunto || null,   // bi-set/tri-set definido na ficha
           descanso: it.descanso || null,   // descanso próprio deste exercício
           sugerido: sug || null,
-          series: montarSeries(ex, it.series, it.reps, sug),
+          series: montarSeries(ex, it.series, it.reps, sug, it.drops),
         };
       }),
     });

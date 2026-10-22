@@ -16,6 +16,40 @@
 
 ---
 
+## 2026-10-22k — Passo a passo para conectar os aparelhos
+
+**Em uma frase:** o app ganhou um guia que ensina, tela por tela, a ligar o relógio,
+o anel, a cinta, a esteira, os óculos Ray-Ban Meta e o fone.
+
+**O que mudou**
+- Em **Ajustes → Conectar aparelhos** e na aba **Histórico → ❤ Saúde** há um
+  passo a passo para cada aparelho, com os nomes que aparecem no celular.
+- Cada item tem um "Se travar", com o que fazer quando o caminho não aparece.
+- Itens: instalar o app Android, relógio e anel Samsung, outros relógios e anéis
+  (Garmin, Xiaomi, Amazfit, Oura, Google Fit), batimento ao vivo com cinta ou
+  relógio, esteira e bicicleta por Bluetooth, óculos Ray-Ban Meta e o Jarvis no fone.
+
+**Por que importa para quem treina**
+- Ligar o relógio ao app passa por três apps diferentes, e o menu certo tem um nome
+  que ninguém adivinha ("Conexão Saúde"). Com o guia, quem trava encontra o caminho
+  sem desistir.
+
+**Como usar**
+- Ajustes (engrenagem) → **Conectar aparelhos → Ver o passo a passo**, e toque no
+  aparelho que quer ligar.
+
+**Ideias de vídeo**
+- "Liguei meu Galaxy Watch no Treino Livre em 1 minuto": seguindo o guia na tela.
+- "Óculos Ray-Ban Meta contando a série no espelho": o passo do modo de
+  desenvolvedor no Meta AI, depois a série.
+
+**Não prometer**
+- Relógio, anel e óculos só no Android, com o app Android instalado.
+- No iPhone, nada de Bluetooth nem Apple Saúde.
+- Os óculos funcionam no modo de desenvolvedor do Meta AI, ainda em teste.
+
+---
+
 ## 2026-10-22j — Os óculos contam em voz alta
 
 **Em uma frase:** com os óculos Ray-Ban Meta no Eyes Scan, a contagem das repetições

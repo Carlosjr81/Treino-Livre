@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v98) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v99) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2839,6 +2839,27 @@ manda quadros): os quadros viram o vídeo do scanner, o ✕ fecha e manda
 de verdade: no Chromium de computador ele abre uma janela que trava os
 cliques. **Nada do lado nativo dos óculos foi visto num aparelho.**
 `teste-saude.js` cobre a chave, o link e o endereço.
+
+## O passo a passo de conectar (`GuiaConectar`, `GUIA_CONECTAR`)
+
+Pedido do dono, depois de um dia inteiro ligando relógio, app Android e óculos
+pelo celular dele: "coloca todas as dicas para ficar fácil para os usuários".
+Cada item (app Android, relógio e anel Samsung, outros relógios, batimento ao
+vivo, esteira, óculos, Jarvis no fone) tem os passos e um "Se travar" com o
+que deu errado de verdade.
+
+- **Os nomes são os que o celular em português mostra.** "Conexão Saúde", e
+  não "Health Connect": foi buscando o nome em inglês que o dono travou. O
+  caminho do modo de desenvolvedor do Meta AI (⚙ → Informações do app → 5
+  toques na versão) saiu das telas dele.
+- **Os textos são dados** (`GUIA_CONECTAR`, no primeiro script), com `**x**`
+  para negrito (`textoGuia`). Mudou um caminho no Android ou no Meta AI, muda
+  o texto ali, sem mexer no componente.
+- **Abre no item que a pessoa veio procurar**: "🔌 Passo a passo" na aba
+  ❤ Saúde (relógio), "Como ligar a cinta" no batimento ao vivo, e o cartão
+  "Conectar aparelhos" nos Ajustes (todos fechados). Quem abre está a vários
+  níveis do raiz: `ABRIR_GUIA` é um ponteiro de módulo, como o `CONTROLE_AULA`.
+- Não vai para a tela inicial (regra dela).
 
 ## Foto do aparelho (exercício do usuário)
 

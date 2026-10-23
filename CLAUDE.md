@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v105) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v106) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -836,11 +836,13 @@ celular a diferença não aparece, e na primeira abertura são 16 MB a menos.
 - **Mudo, e o arquivo nem tem trilha de áudio.** Vídeo mudo o Chrome toca
   sozinho, sem toque nenhum. **Um toque pula**, e "toque para pular" fica
   escrito: 12 s é muito para quem só quer anotar uma série.
-- **Enquanto o vídeo não toca, o desenho de sempre ocupa a tela**
-  (`AberturaDesenho`, abaixo). Na primeira vez o vídeo ainda está baixando;
-  se ele não começar antes de o desenho acabar (3,8 s), a abertura termina
-  com o desenho. Vídeo que não abre (formato, rede) não deixa tela preta.
-  Movimento reduzido: só o desenho, que mostra direto o quadro final.
+- **Enquanto o vídeo não toca, a tela fica no escuro da marca** (`#060606`).
+  Antes, a primeira abertura (a animação desenhada da silhueta, do esqueleto e
+  do halter) cobria essa espera, e o dono a via **em lampejos** antes do vídeo:
+  parecia a abertura antiga voltando. Ela foi apagada do código; só o
+  `HalterAbertura` ficou, porque o resumo animado usa. Vídeo que não começa
+  em 5 s, ou que não abre (formato, rede), **encerra a abertura** em vez de
+  deixar tela preta. Movimento reduzido: sem abertura.
 - **Cache próprio, preservado entre versões** (`treinolivre-midia` no
   `sw.js`): no cache da versão, os 2 MB seriam baixados de novo a cada
   atualização do app. **Vinheta nova entra com outro nome** (`abertura-v3.mp4`),
@@ -850,33 +852,8 @@ celular a diferença não aparece, e na primeira abertura são 16 MB a menos.
   VP9 servida no lugar.
 - **Validado no celular do dono (23/10/2026)**, já sem som: "ficou ótimo".
 
-### A abertura desenhada (`AberturaDesenho`)
-
-A primeira abertura, que hoje é a reserva do vídeo. A marca do app em
-movimento, em três atos e pouco menos de quatro segundos:
-
-1. A **silhueta azul pontilhada** monta a pose. Ela é o contorno da imagem da
-   marca, traçado direto dela (`SILHUETA_ABERTURA`) — nenhum desenho à mão. Por
-   isso o esqueleto foi encaixado ponto a ponto nela: a varredura troca um pelo
-   outro sem a figura pular.
-2. Uma **linha de leitura desce** por ela e, onde a linha passa, a silhueta vira
-   o **esqueleto verde** — o mesmo, traço por traço, que aparece sobre o vídeo
-   quando a câmera conta as repetições.
-3. O **halter entra de frente, bate, e a tela racha**. O que fica é o halter com
-   o nome do app.
-
-O ato 2 é o único truque que vale explicar: são **duas máscaras com a mesma
-régua correndo dentro** — uma apaga a silhueta de cima para baixo, a outra
-revela o esqueleto no mesmo passo. É isso que faz a linha parecer *transformar*
-o corpo, em vez de passar por cima dele. Um cross-fade não teria esse efeito.
-
-Não é enfeite: é a promessa do produto dita em dois segundos, antes de qualquer
-texto. E é vetor nos mesmos onze pontos dos bonecos funcionais — nenhum arquivo
-novo, nada para baixar, funciona offline.
-
-**Um toque pula**, e `prefers-reduced-motion` mostra direto o quadro final. A
-abertura roda uma vez por carregamento e não é guardada: é a marca do app, não
-um aviso a ser dispensado.
+A abertura roda uma vez por carregamento e não é guardada: é a marca do app,
+não um aviso a ser dispensado.
 
 ## Primeiro contato (`BemVindo`, `DicaInicial`, campo `dicas`)
 

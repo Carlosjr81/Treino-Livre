@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-23c";
+const VERSAO_APP = "2026-10-23d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -24010,64 +24010,6 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
 
 // ---------------- APP ----------------
 // ---------------- ABERTURA ----------------
-// A marca do app em movimento, em três atos e menos de três segundos:
-//
-// 1. A silhueta azul pontilhada monta a pose.
-// 2. Uma linha de leitura desce por ela e, **onde a linha passa, a silhueta
-//    vira o esqueleto verde** — o mesmo, traço por traço, que aparece sobre o
-//    vídeo quando a câmera conta as repetições.
-// 3. O halter entra de frente, bate, racha a tela, e o que sobra é o halter com
-//    o nome do app.
-//
-// A troca do ato 2 é feita com duas máscaras que correm juntas: uma apaga a
-// silhueta de cima para baixo, a outra revela o esqueleto no mesmo passo. Por
-// isso a linha parece estar *transformando* o corpo, e não passando por cima.
-//
-// Tudo é vetor, nos mesmos onze pontos dos bonecos funcionais. Nenhum arquivo
-// novo, nada para baixar, e funciona offline como o resto. Um toque pula.
-// A silhueta e o contorno da imagem da marca, tracado direto dela (nenhum
-// desenho a mao): por isso o esqueleto abaixo foi encaixado ponto a ponto nela,
-// e a varredura troca um pelo outro sem a figura pular.
-const SILHUETA_ABERTURA = "M68.6 5L69.9 5.4L75.2 11.2L76.5 10.7L76.5 12L84 21.3L88.4 30.6L88.4 34.5L84.9 45.1L83.6 47.7L79.6 52.1L79.2 58.8L76.5 63.2L76.1 67.1L73.9 72L74.3 75.9L73 79L73 82.1L73.9 88.3L77 94.4L79.2 101.5L80.5 110.3L80.9 120.9L84.9 129.7L84.5 146.9L86.7 151.7L91.5 156.1L90.6 157L84.9 157L83.6 155.2L80.5 154.4L80 144.7L74.3 132.3L74.3 124L63.3 101.9L58.9 117.8L58.9 122.2L64.2 133.6L64.2 142L67.7 155.2L66.8 156.1L50.5 156.1L51.4 154.8L54.1 154.4L59.8 150L59.3 146L52.7 131.4L51.8 126.2L49.6 120.4L49.6 116.5L47.9 112.5L47 107.7L47.4 98.8L51.8 82.1L51.8 77.3L54.1 69.3L48.3 58.3L39.5 59.2L31.6 55.7L28.5 52.1L32 44.2L40.8 35.4L46.1 34.1L48.3 35.4L49.2 37.6L48.8 38.5L47.9 39.4L46.6 38.9L41.7 39.8L39.1 44.2L38.6 48.6L45.7 48.6L48.3 47.3L52.3 47.7L54.9 49.5L57.1 48.6L58 47.7L58 46L55.8 43.8L55.8 40.7L54.5 37.6L54.9 33.6L56.3 30.1L61.5 26.1L63.3 26.1L64.2 27L66.4 26.6L67.7 27.9L68.2 31L69.9 34.1L69.9 38.9L68.6 39.8L68.2 44.7L69.5 46L75.6 40.2L77.4 37.2L81.4 34.1L81.8 31.9L79.6 27.9L78.3 21.7L76.1 16.9L71.2 13.8L67.7 16L70.4 12.9L70.4 12L64.6 10.7L69 10.7L70.8 9.8L67.7 6.8L67.3 5.4L68.6 5.4Z";
-const POSE_ABERTURA = {
-  cab: [61, 34], om: [60, 53], qua: [58, 100],
-  coE: [31, 53], puE: [46, 38],
-  coD: [85, 44], puD: [70, 14],
-  joE: [51, 124], peE: [47, 152],
-  joD: [71, 122], peD: [79, 152],
-};
-const JUNTAS_ABERTURA = ["om", "qua", "coE", "puE", "coD", "puD", "joE", "peE", "joD", "peD"];
-
-// As rachaduras saem do ponto da pancada e passam da borda da tela de propósito:
-// trinco que termina no meio do nada não parece vidro quebrado.
-const RACHAS_ABERTURA = [
-  "60,74 48,42 55,10 39,-44",
-  "60,74 79,48 74,12 93,-40",
-  "60,74 98,68 134,76 190,58",
-  "60,74 101,99 139,97 196,124",
-  "60,74 71,113 63,152 80,210",
-  "60,74 43,111 50,153 31,212",
-  "60,74 23,89 -16,83 -72,104",
-  "60,74 25,59 -12,63 -68,45",
-  "60,74 86,31 122,23 158,-18",
-  "60,74 32,34 10,6",
-  "60,74 92,110 112,148",
-];
-
-function TracosAbertura({ largura }) {
-  const P = POSE_ABERTURA;
-  const L = (a, b) => <line key={a + b} x1={P[a][0]} y1={P[a][1]} x2={P[b][0]} y2={P[b][1]} strokeWidth={largura} />;
-  return (
-    <React.Fragment>
-      {L("om", "coE")}{L("coE", "puE")}
-      {L("om", "coD")}{L("coD", "puD")}
-      {L("qua", "joE")}{L("joE", "peE")}
-      {L("qua", "joD")}{L("joD", "peD")}
-      {L("om", "qua")}
-    </React.Fragment>
-  );
-}
-
 // O halter da marca: duas anilhas, barra e presilhas.
 function HalterAbertura() {
   const anilha = (x) => (
@@ -24093,10 +24035,11 @@ function HalterAbertura() {
 // às versões do app.
 const VIDEO_ABERTURA = "abertura-v2.mp4";
 
-// Enquanto o vídeo não começa a tocar (a primeira vez ele ainda baixa), o
-// desenho de sempre ocupa a tela; se o vídeo não começar antes de o desenho
-// acabar, fica o desenho e a abertura termina com ele. Movimento reduzido:
-// só o desenho, que já mostra direto o quadro final.
+// Só o vídeo. Enquanto ele não começa (na primeira vez ainda baixa), a tela
+// fica no escuro da marca: o desenho que vinha antes aparecia em lampejos e
+// parecia a abertura antiga voltando. Vídeo que não começa em 5 s, ou que não
+// abre, encerra a abertura em vez de prender alguém numa tela preta.
+// Movimento reduzido: sem abertura.
 function Abertura({ onFim }) {
   const reduzido = useMemo(() => {
     try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; }
@@ -24107,127 +24050,34 @@ function Abertura({ onFim }) {
   const videoRef = useRef(null);
   const fim = () => { if (acabouRef.current) return; acabouRef.current = true; try { videoRef.current && videoRef.current.pause(); } catch (e) {} onFim(); };
   useEffect(() => {
-    if (reduzido) return;
+    if (reduzido) { fim(); return; }
     const v = videoRef.current;
     if (!v) return;
     // Mudo: o vídeo não tem som, e mudo o Chrome deixa tocar sem toque nenhum
     v.muted = true;
     const p = v.play();
     if (p && p.catch) p.catch(() => {});
+    const espera = setTimeout(() => { if (!tocandoRef.current) fim(); }, 5000);
     // rede de segurança: vídeo que trava no meio não prende ninguém na abertura
-    const t = setTimeout(fim, 16000);
-    return () => clearTimeout(t);
+    const t = setTimeout(fim, 18000);
+    return () => { clearTimeout(espera); clearTimeout(t); };
   }, []);
-  if (reduzido) return <AberturaDesenho onFim={fim} />;
+  if (reduzido) return null;
   return (
     <div onClick={fim} role="img" aria-label="Treino Livre"
       style={{ position: "fixed", inset: 0, zIndex: 90, background: "#060606", overflow: "hidden", cursor: "pointer" }}>
-      {!tocando && <AberturaDesenho onFim={() => { if (!tocandoRef.current) fim(); }} />}
       <video ref={videoRef} src={VIDEO_ABERTURA} playsInline muted preload="auto"
         poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
         onPlaying={() => { tocandoRef.current = true; setTocando(true); }}
-        onEnded={fim} onError={() => { if (!tocandoRef.current) setTocando(false); }}
+        onEnded={fim} onError={() => { if (!tocandoRef.current) fim(); }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover",
-          background: "#060606", opacity: tocando ? 1 : 0, transition: "opacity 0.25s", zIndex: 91 }} />
+          background: "#060606", opacity: tocando ? 1 : 0, transition: "opacity 0.25s" }} />
       {tocando && (
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(18px + env(safe-area-inset-bottom))", zIndex: 92,
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(18px + env(safe-area-inset-bottom))", zIndex: 2,
           textAlign: "center", color: "rgba(255,255,255,0.55)", fontSize: 12, letterSpacing: 1, pointerEvents: "none", fontFamily: "system-ui, -apple-system, sans-serif" }}>
           toque para pular
         </div>
       )}
-    </div>
-  );
-}
-
-// A abertura desenhada (a silhueta virando esqueleto e o halter rachando a
-// tela): reserva do vídeo e a versão de quem pede movimento reduzido.
-function AberturaDesenho({ onFim }) {
-  const P = POSE_ABERTURA;
-  useEffect(() => {
-    const t = setTimeout(onFim, 3800);
-    return () => clearTimeout(t);
-  }, []);
-
-  return (
-    <div onClick={onFim} role="img" aria-label="Treino Livre"
-      style={{ position: "fixed", inset: 0, zIndex: 90, background: "#060606", overflow: "hidden",
-        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-      <div className="ab-tremor" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-        <svg viewBox="0 0 120 170" width="214" height="303" aria-hidden="true" style={{ overflow: "visible" }}>
-          <defs>
-            <pattern id="ab-pontos" width="4" height="4" patternUnits="userSpaceOnUse">
-              <rect width="4" height="4" fill="#1B76BC" />
-              <circle cx="1" cy="1" r="0.55" fill="#CFE8F7" />
-            </pattern>
-            <linearGradient id="ab-metal" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#FEDA75" />
-              <stop offset="38%" stopColor="#DD2A7B" />
-              <stop offset="100%" stopColor="#8134AF" />
-            </linearGradient>
-            {/* A mesma régua corre nas duas máscaras: uma apaga, a outra revela. */}
-            <mask id="ab-apaga">
-              <rect x="-220" y="-220" width="560" height="620" fill="#FFFFFF" />
-              <rect className="ab-regua" x="-220" y="-200" width="560" height="200" fill="#000000" />
-            </mask>
-            <mask id="ab-revela">
-              <rect x="-220" y="-220" width="560" height="620" fill="#000000" />
-              <rect className="ab-regua" x="-220" y="-200" width="560" height="200" fill="#FFFFFF" />
-            </mask>
-          </defs>
-
-          {/* ---- o corpo, que é o que se quebra ---- */}
-          <g className="ab-corpo">
-            <g className="ab-silhueta" mask="url(#ab-apaga)">
-              <path d={SILHUETA_ABERTURA} fill="url(#ab-pontos)" />
-            </g>
-
-            <g className="ab-esqueleto" mask="url(#ab-revela)">
-              <g stroke="#7CFF3C" strokeWidth="7" strokeLinecap="round" fill="none">
-                <TracosAbertura largura={7} />
-              </g>
-              <circle cx={P.cab[0]} cy={P.cab[1]} r="11" fill="#7CFF3C" />
-            </g>
-
-            <g className="ab-juntas">
-              {JUNTAS_ABERTURA.map((k, i) => (
-                <circle key={k} cx={P[k][0]} cy={P[k][1]} r="3.6" fill="#7CFF3C"
-                  style={{ animationDelay: 1.02 + i * 0.03 + "s", transformOrigin: P[k][0] + "px " + P[k][1] + "px" }} />
-              ))}
-            </g>
-
-            <g className="ab-linha">
-              <rect className="ab-regua" x="-220" y="-1.6" width="560" height="3.2" fill="#7CFF3C" />
-              <rect className="ab-regua" x="-220" y="-7" width="560" height="14" fill="#7CFF3C" opacity="0.18" />
-            </g>
-          </g>
-
-          {/* ---- a tela rachando ---- */}
-          <g className="ab-rachas" stroke="#F2F0EC" fill="none" strokeLinejoin="round" strokeLinecap="round">
-            {RACHAS_ABERTURA.map((p, i) => (
-              <polyline key={i} points={p} strokeWidth={i % 3 === 0 ? 1.9 : 1.1}
-                opacity={i % 3 === 0 ? 0.95 : 0.6} />
-            ))}
-          </g>
-
-          {/* ---- o halter, que entra de frente e fica ---- */}
-          <g className="ab-halter" style={{ transformOrigin: "60px 74px" }}>
-            <g transform="translate(60 74)">
-              <HalterAbertura />
-            </g>
-          </g>
-        </svg>
-
-        <div className="ab-marca" style={{ textAlign: "center", marginTop: 2 }}>
-          <div style={{ ...S.logo, fontSize: 32 }}>Treino Livre</div>
-          <div style={{ fontSize: 11.5, color: "#7CFF3C", fontWeight: 800, letterSpacing: 1.8,
-            textTransform: "uppercase", marginTop: 7 }}>
-            a câmera conta por você
-          </div>
-        </div>
-      </div>
-
-      {/* o estouro da pancada, por cima de tudo */}
-      <div className="ab-flash" style={{ position: "absolute", inset: 0, background: "#FFFFFF", pointerEvents: "none" }} />
     </div>
   );
 }

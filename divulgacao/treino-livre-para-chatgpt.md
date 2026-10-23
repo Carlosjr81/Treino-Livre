@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-23c**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-23d**.
 
 ---
 
@@ -53,7 +53,7 @@ as repetições.**
 | Fundo | `#000000` puro (tema escuro, o padrão) / `#060606` nas animações | tudo |
 | Cartões | `#121212`, borda `#262626` | cartões de exercício e listas |
 | Texto | `#F2F0EB` (off-white quente), secundário `#A8A8A8` | — |
-| Azul da silhueta | pontilhado azul | a silhueta da abertura antes de virar esqueleto |
+| Azul da silhueta | pontilhado azul | a silhueta da vinheta antes de virar esqueleto |
 
 Existe também **tema claro** (fundo branco, texto `#262626`), mas a cara do app — e de todo conteúdo —
 é o **tema escuro: preto absoluto, rosa e o degradê do Instagram, com verde neon de "scanner"**.
@@ -72,14 +72,11 @@ Existe também **tema claro** (fundo branco, texto `#262626`), mas a cara do app
 ### A abertura do app (ótima referência para vídeos)
 **Desde a versão 2026-10-23a a abertura é a vinheta em vídeo do dono** (12 s, sem som): a silhueta azul,
 o esqueleto verde e o nome "TREINO LIVRE" montado com cenas reais do Eyes Scan, fechando no halter com o
-nome e "Jarvis Eyes Scan". Um toque pula. A animação desenhada abaixo continua como reserva (primeira
-abertura, enquanto o vídeo carrega). Na animação desenhada, em menos de 4 segundos:
-1. Uma **silhueta azul pontilhada** de uma pessoa monta uma pose de treino.
-2. Uma **linha verde desce** por ela e, onde passa, a silhueta **vira o esqueleto verde** da câmera.
-3. Um **halter entra de frente, bate na tela e a tela racha**. Fica o halter com o nome "Treino Livre".
+nome e "Jarvis Eyes Scan". Um toque pula. Desde a 2026-10-23d a animação desenhada antiga não existe
+mais: enquanto a vinheta carrega, a tela fica escura.
 
-Mensagem por trás: "o app enxerga o seu treino". Use essa sequência (silhueta → scanner → halter
-quebrando a tela) como linguagem visual em vídeos.
+Mensagem por trás: "o app enxerga o seu treino". Use essa sequência (silhueta → esqueleto verde → nome
+com cenas reais → halter) como linguagem visual em vídeos.
 
 ### Estilo de interface
 - Celular em pé (vertical), cartões com cantos arredondados (12 px), botões largos de ponta a ponta.

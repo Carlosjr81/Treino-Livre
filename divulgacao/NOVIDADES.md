@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-10-23d — A abertura é só a vinheta nova
+
+**Em uma frase:** a abertura do app mostra só a vinheta nova, sem lampejos da animação antiga
+antes dela.
+
+**O que mudou**
+- Enquanto a vinheta carrega, a tela fica escura em vez de mostrar pedaços da abertura antiga.
+- Se a vinheta não carregar (sem internet na primeira vez, por exemplo), o app abre direto.
+
+**Por que importa para quem treina**
+- A primeira impressão do app fica limpa: a vinheta começa do começo.
+
+**Como usar**
+- Abra o app normalmente. Um toque continua pulando a vinheta.
+
+**Ideias de vídeo**
+- Gravação da tela abrindo o app, da vinheta até a tela do treino.
+
+**Não prometer**
+- Na primeira abertura, a vinheta pode levar um instante para começar enquanto baixa.
+
+---
+
 ## 2026-10-23c — Com os óculos, o modo espelho já vem ligado
 
 **Em uma frase:** ao contar a série com os óculos Ray-Ban Meta, o modo espelho 🪞 já começa

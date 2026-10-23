@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v106) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v107) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2806,7 +2806,15 @@ dentro do app**.
   desenhar o anterior, o vídeo do canvas saía a 15 por segundo e os óculos
   mandavam 15 em JPEG 70. Hoje: pergunta a cada 25 ms (sem quadro novo a ponte
   devolve vazio), o base64 é decodificado pelo navegador (`fetch` de um
-  `data:`), o canvas sai a 30, e os óculos mandam 24 por segundo, 360×640, JPEG 60.
+  `data:`), o canvas sai a 30, e os óculos mandam 24 por segundo.
+- **Borrado na tela do celular** (relato do dono, com a voz já perfeita). A
+  câmera dos óculos tem **foco fixo**: o kit da Meta (`StreamConfiguration`)
+  só oferece qualidade (LOW/MEDIUM/HIGH), quadros por segundo e compressão —
+  nada de foco nem exposição. O borrado era a LOW (360×640, escolhida no
+  tempo do canal do TWA, que não aguentava mais) esticada na tela, mais o
+  JPEG 60. Hoje: **HIGH** (720×1280), e MEDIUM (504×896) se os óculos
+  recusarem; JPEG 82. Com o Bluetooth apertado o próprio kit baixa a
+  qualidade. A página já acompanhava o tamanho do quadro.
 - **Com os óculos, o 🪞 começa ligado** (pedido do dono). A câmera dos
   óculos só vê o corpo pelo espelho, então o modo espelho é o normal ali, e
   a escolha do scanner do celular não vale para a tela dos óculos. Desligar

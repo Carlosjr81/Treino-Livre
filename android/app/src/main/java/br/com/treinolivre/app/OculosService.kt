@@ -173,13 +173,26 @@ class OculosService : Service() {
         if (pronta == null) { Oculos.estado = "sem-oculos"; return }
 
         Oculos.estado = "conectando"
-        s.addCamera(StreamConfiguration(videoQuality = VideoQuality.LOW, frameRate = 24))
+        // A câmera dos óculos tem foco fixo: o kit não oferece foco nem
+        // exposição, só a qualidade do vídeo. Em LOW (360×640, a do tempo do
+        // canal do TWA, que não aguentava mais) a imagem esticada na tela do
+        // celular saía borrada. Pela ponte do app cabe a HIGH (720×1280); se os
+        // óculos recusarem, a MEDIUM (504×896). Com o Bluetooth apertado o
+        // próprio kit baixa a qualidade sozinho.
+        ligarCamera(s, VideoQuality.HIGH) || ligarCamera(s, VideoQuality.MEDIUM)
+    }
+
+    private fun ligarCamera(s: DeviceSession, qualidade: VideoQuality): Boolean {
+        var ok = false
+        s.addCamera(StreamConfiguration(videoQuality = qualidade, frameRate = 24))
             .onSuccess { cam ->
+                ok = true
                 camera = cam
                 escopo.launch { cam.stream.videoStream.collect { quadro -> receber(quadro) } }
                 cam.stream.start().onFailure { _, _ -> Oculos.estado = "erro" }
             }
             .onFailure { _, _ -> Oculos.estado = "sem-permissao" }
+        return ok
     }
 
     // A cor: o arranjo YUV do quadro é descoberto nos primeiros quadros
@@ -211,7 +224,7 @@ class OculosService : Service() {
         val usar = if (arranjo >= 0 && Oculos.coresInvertidas) CoresYuv.invertido(arranjo) else arranjo
         CoresYuv.paraNv21(dados, w, h, passo, usar, nv21)
         val saida = ByteArrayOutputStream(w * h / 4)
-        YuvImage(nv21, ImageFormat.NV21, w, h, null).compressToJpeg(Rect(0, 0, w, h), 60, saida)
+        YuvImage(nv21, ImageFormat.NV21, w, h, null).compressToJpeg(Rect(0, 0, w, h), 82, saida)
         val jpg = saida.toByteArray()
         Oculos.quadro = jpg
         // pelo canal do TWA, no máximo uns 12 quadros por segundo

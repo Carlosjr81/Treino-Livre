@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-10-23e — Imagem dos óculos mais nítida
+
+**Em uma frase:** a imagem dos óculos Ray-Ban Meta no contador de repetições ficou com o
+dobro da resolução, bem mais nítida na tela do celular.
+
+**O que mudou**
+- O app Android pede aos óculos a imagem na qualidade mais alta (antes vinha na mais baixa,
+  que esticada na tela parecia desfocada).
+
+**Por que importa para quem treina**
+- Dá para ver bem o próprio corpo e o esqueleto verde por cima enquanto a série é contada.
+
+**Como usar**
+- Baixe e instale o app Android de novo (o link de sempre) e conte uma série com os óculos
+  de frente para o espelho.
+
+**Ideias de vídeo**
+- Antes e depois da imagem dos óculos na tela, na mesma série.
+
+**Não prometer**
+- A câmera dos óculos tem foco fixo: não há ajuste de foco. Com o Bluetooth fraco, os
+  próprios óculos baixam a qualidade.
+- Só no app Android, com os óculos Ray-Ban Meta.
+
+---
+
 ## 2026-10-23d — A abertura é só a vinheta nova
 
 **Em uma frase:** a abertura do app mostra só a vinheta nova, sem lampejos da animação antiga

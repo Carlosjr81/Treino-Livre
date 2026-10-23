@@ -126,7 +126,6 @@ class OculosActivity : ComponentActivity() {
                 Wearables.registrationState.first { it == RegistrationState.REGISTERED }
             }
             if (ok == null) { aviso("Óculos: o Treino Livre não foi confirmado no app Meta AI."); Oculos.estado = "erro"; voltarComErro("registro"); return }
-            aviso("Óculos: Treino Livre confirmado no Meta AI ✓")
         }
 
         // 2. a câmera dos óculos liberada para o Treino Livre
@@ -227,7 +226,6 @@ class OculosActivity : ComponentActivity() {
         if (web != null) return
         Oculos.coresInvertidas = getSharedPreferences("oculos", MODE_PRIVATE).getBoolean("cores_invertidas", false)
         ligarVoz()
-        aviso("Óculos: abrindo o Eyes Scan")
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val p = intent?.data
         val campos = listOf("ex", "nome", "grupo", "func", "reps", "peso", "serie", "total", "esp", "contar", "auto")

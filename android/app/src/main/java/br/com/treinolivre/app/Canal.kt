@@ -7,7 +7,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.widget.Toast
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsCallback
 import androidx.browser.customtabs.CustomTabsClient
@@ -35,10 +34,10 @@ object Canal {
     private var conexao: CustomTabsServiceConnection? = null
     private val principal = Handler(Looper.getMainLooper())
     @Volatile private var contexto: Context? = null
-    // Avisos curtos enquanto o canal é montado: é o diagnóstico no celular.
+    // Diagnóstico do canal só no log: na tela ele aparecia por cima da vinheta
+    // de abertura, e o canal nem é mais o caminho dos óculos.
     private fun aviso(msg: String) {
-        val c = contexto ?: return
-        principal.post { Toast.makeText(c, "Canal: " + msg, Toast.LENGTH_SHORT).show() }
+        android.util.Log.i("TreinoLivre", "Canal: " + msg)
     }
 
     private val retorno = object : CustomTabsCallback() {

@@ -120,9 +120,6 @@ class OculosService : Service() {
         Oculos.aoMudar = { e ->
             Canal.enviar("E:" + e)
             val frase = when (e) {
-                "procurando" -> "Óculos: procurando os óculos…"
-                "conectando" -> "Óculos: conectando à câmera…"
-                "transmitindo" -> "Óculos: imagem chegando ✓"
                 "sem-oculos" -> "Óculos: não achei os óculos (ligados, no rosto e conectados ao Meta AI?)"
                 "sem-permissao" -> "Óculos: a câmera dos óculos não foi liberada no Meta AI"
                 "erro" -> "Óculos: a conexão falhou"
@@ -135,7 +132,6 @@ class OculosService : Service() {
         Oculos.ultimoPedido = System.currentTimeMillis()
         if (!rodando) {
             rodando = true
-            Toast.makeText(applicationContext, "Óculos: serviço ligado", Toast.LENGTH_SHORT).show()
             abrirServidor()
             escopo.launch {
                 try { conectar() } catch (e: Exception) {
@@ -248,8 +244,7 @@ class OculosService : Service() {
             if (agora - medirDesde >= 4000L) {
                 medido = true
                 val qps = Math.round(medirQuadros * 1000.0 / (agora - medirDesde))
-                val frase = "Óculos: imagem de ${w}×${h}, $qps quadros por segundo"
-                Handler(Looper.getMainLooper()).post { Toast.makeText(applicationContext, frase, Toast.LENGTH_LONG).show() }
+                android.util.Log.i("TreinoLivre", "Óculos: imagem de ${w}×${h}, $qps quadros por segundo")
             }
         }
     }
@@ -273,7 +268,7 @@ class OculosService : Service() {
             } catch (e: Exception) {
                 Oculos.estado = "erro"
                 Handler(Looper.getMainLooper()).post {
-                    Toast.makeText(applicationContext, "Óculos: não consegui abrir a porta local (" + (e.message ?: e.javaClass.simpleName) + ")", Toast.LENGTH_LONG).show()
+                    android.util.Log.w("TreinoLivre", "Óculos: porta local (" + (e.message ?: e.javaClass.simpleName) + ")")
                 }
                 return@Thread
             }

@@ -2857,9 +2857,14 @@ dentro do app**.
   qualidade. A página já acompanhava o tamanho do quadro. Ainda mole no
   celular dele: a banda do Bluetooth é dividida entre os quadros, então os
   óculos passaram de 24 para **15 por segundo** (mais dados por quadro;
-  contar repetição não precisa de mais), e um aviso (Toast) diz, 4 s depois
-  de a imagem chegar, a resolução e os quadros por segundo que chegam de
-  verdade.
+  contar repetição não precisa de mais). A resolução e os quadros por
+  segundo que chegam de verdade vão para o log (`TreinoLivre`), 4 s depois de
+  a imagem chegar (no celular do dono: 720×1280 a 17).
+- **Na tela, só aviso de erro.** Os avisos (Toast) de diagnóstico — "Canal:
+  ligado ✓", "serviço ligado", "procurando", "imagem chegando", a resolução,
+  "confirmado no Meta AI" — apareciam por cima da vinheta de abertura e da tela
+  dos óculos (relato do dono). Foram para o log; ficam na tela só os que pedem
+  uma ação (óculos não achados, câmera não liberada, conexão falhou).
 - **Com os óculos, o 🪞 começa ligado** (pedido do dono). A câmera dos
   óculos só vê o corpo pelo espelho, então o modo espelho é o normal ali, e
   a escolha do scanner do celular não vale para a tela dos óculos. Desligar

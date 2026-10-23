@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-10-23b — Vinheta de abertura sem som
+
+**Em uma frase:** a vinheta de abertura agora toca sem som.
+
+**O que mudou**
+- O vídeo da abertura não tem mais trilha sonora, e o botão 🔊 saiu.
+
+**Por que importa para quem treina**
+- O app abre em silêncio: na academia, no ônibus ou com a música no fone, nada toca de
+  surpresa.
+
+**Como usar**
+- Abra o app normalmente. Um toque continua pulando a vinheta.
+
+**Ideias de vídeo**
+- Nos Reels, use a vinheta com a música do próprio vídeo.
+
+**Não prometer**
+- Não há opção de ligar o som da abertura.
+
+---
+
 ## 2026-10-23a — A vinheta nova na abertura do app
 
 **Em uma frase:** o app agora abre com a vinheta em vídeo do Treino Livre — a silhueta

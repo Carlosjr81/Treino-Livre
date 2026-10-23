@@ -231,11 +231,11 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v103) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v104) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
-| `abertura-v1.mp4` | A vinheta de abertura em vídeo (720×1280, 12 s, 2 MB), num cache próprio do `sw.js` (ver *A abertura*) |
+| `abertura-v2.mp4` | A vinheta de abertura em vídeo (720×1280, 12 s, 1,8 MB, sem som), num cache próprio do `sw.js` (ver *A abertura*) |
 | `marombeiro-corpo.webp`, `-braco.webp`, `-cabeca.webp`, `-inteiro.webp`, `marombeiro-rosto.jpg` | O avatar animado do dono na "Fuga do Marombeiro" (ver *Monster, Run!*) |
 
 ## Estrutura do `index.html`
@@ -827,16 +827,15 @@ chão.
 
 ## A abertura (`Abertura`)
 
-**Hoje a abertura é um vídeo, feito pelo dono** (`abertura-v1.mp4`,
+**Hoje a abertura é um vídeo, feito pelo dono** (`abertura-v2.mp4`,
 `VIDEO_ABERTURA`): a silhueta, o esqueleto e o nome entrando com cenas reais
-do Eyes Scan, 12 s, com som. O original tinha 1080×1920 e 16 MB; foi
+do Eyes Scan, 12 s, **sem som** (pedido do dono: a v1 tinha a trilha). O original tinha 1080×1920 e 16 MB; foi
 comprimido para 720×1280, H.264 + AAC, `faststart` (2 MB) — numa tela de
 celular a diferença não aparece, e na primeira abertura são 16 MB a menos.
 
-- **Com som quando o navegador deixa** (o app instalado deixa); senão toca
-  mudo, com um 🔊 no canto. Sem cair para o mudo o Chrome recusa o `play()`
-  e a tela fica preta. **Um toque pula**, e "toque para pular" fica escrito:
-  12 s é muito para quem só quer anotar uma série.
+- **Mudo, e o arquivo nem tem trilha de áudio.** Vídeo mudo o Chrome toca
+  sozinho, sem toque nenhum. **Um toque pula**, e "toque para pular" fica
+  escrito: 12 s é muito para quem só quer anotar uma série.
 - **Enquanto o vídeo não toca, o desenho de sempre ocupa a tela**
   (`AberturaDesenho`, abaixo). Na primeira vez o vídeo ainda está baixando;
   se ele não começar antes de o desenho acabar (3,8 s), a abertura termina
@@ -844,7 +843,7 @@ celular a diferença não aparece, e na primeira abertura são 16 MB a menos.
   Movimento reduzido: só o desenho, que mostra direto o quadro final.
 - **Cache próprio, preservado entre versões** (`treinolivre-midia` no
   `sw.js`): no cache da versão, os 2 MB seriam baixados de novo a cada
-  atualização do app. **Vinheta nova entra com outro nome** (`abertura-v2.mp4`),
+  atualização do app. **Vinheta nova entra com outro nome** (`abertura-v3.mp4`),
   senão o cache continua servindo a antiga. O `sw.js` busca o arquivo
   inteiro (sem o pedaço que o `<video>` pede) para poder guardá-lo.
 - O Chromium de teste não tem H.264: o teste no navegador usa uma cópia em

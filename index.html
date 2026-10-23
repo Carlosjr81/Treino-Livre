@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-23e";
+const VERSAO_APP = "2026-10-23f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3886,6 +3886,26 @@ function aberturaDe(l, iE, iD) {
   if (!e || !a || !b) return null;
   return (Math.abs(a.x - b.x) / e) * 100;
 }
+// O encolhimento de ombros (trapézio) não mexe ângulo nenhum: o cotovelo fica
+// estendido e o ombro sobe uns 5 cm. O que muda é a distância do ombro à
+// orelha. A régua é a LARGURA dos ombros, e não o tronco: o próprio
+// encolhimento estica o tronco (o ombro sobe e o quadril fica), e dividir pelo
+// tronco engolia metade do movimento. De lado a largura some, e aí vale o
+// tronco. Sem as orelhas à vista, o nariz.
+function subidaOmbros(l) {
+  const oE = pt(l, 11), oD = pt(l, 12);
+  if (!oE || !oD) return null;
+  const orelhas = [pt(l, 7), pt(l, 8)].filter(Boolean);
+  const cab = orelhas.length ? orelhas : [pt(l, 0)].filter(Boolean);
+  if (!cab.length) return null;
+  const largura = Math.hypot(oE.x - oD.x, oE.y - oD.y);
+  const e = largura > 0.06 ? largura : escalaTorso(l);
+  if (!e) return null;
+  const yCab = cab.reduce((s, p) => s + p.y, 0) / cab.length;
+  const yOmbro = (oE.y + oD.y) / 2;
+  // y cresce para baixo: ombro mais perto da orelha = número maior
+  return (-(yOmbro - yCab) / e) * 100;
+}
 function alcanceDe(l, iOmbro, iPunho) {
   const e = escalaTorso(l), o = pt(l, iOmbro), p = pt(l, iPunho);
   if (!e || !o || !p) return null;
@@ -3904,6 +3924,7 @@ const EYES_SINAIS_POS = [
   { id: "abertura-maos", nome: "abertura dos braços", calc: (l) => aberturaDe(l, 15, 16) },
   { id: "alcance-e", nome: "braço esquerdo", calc: (l) => alcanceDe(l, 11, 15) },
   { id: "alcance-d", nome: "braço direito", calc: (l) => alcanceDe(l, 12, 16) },
+  { id: "ombros-subindo", nome: "subida dos ombros", calc: subidaOmbros },
 ];
 
 // O rodape do scanner diz o que ele esta medindo: sem isso, contagem errada
@@ -3938,6 +3959,26 @@ const MOV_FUNCIONAIS = {
   "abdominal-remador": { sinais: ["quadril-e", "quadril-d"], minMs: 650, dica: "Sobe com o abdômen, sem puxar o pescoço." },
   "skater":            { par: ["pe-e-alto", "pe-d-alto"], minMs: 420, minAmp: 14, dica: "Salto lateral amplo, aterrissando numa perna só." },
 };
+
+// ---- Exercício de academia com movimento pequeno demais para o automático ----
+// O automático só conta o que se mexe mais de 22 (graus, ou centésimos de
+// tronco), e o encolhimento de ombros mexe uns 10 a 15 da sua régua: com os
+// óculos, o dono fez a série inteira e nada contou. Aqui o movimento é
+// conhecido, e o perfil diz onde olhar e quanto basta. Não entra no palpite do
+// modo livre nem nas aulas: é exercício de peso, não funcional.
+const MOV_ENCOLHIMENTO = { sinais: ["ombros-subindo"], minMs: 600, minAmp: 6,
+  dica: "Fique de frente, com ombros e orelhas à vista: suba os ombros até as orelhas e segure um instante.",
+  // "Desce mais um pouco" é o contrário do que o encolhimento pede
+  frases: {
+    caindo: ["Sobe mais: ombro até a orelha.", "Encolhe até o fim.", "Está encurtando. Sobe mais o ombro."],
+    rapida: ["Segura um instante lá em cima.", "Mais devagar. Segura no alto.", "Desce com controle."],
+  } };
+function perfilDoEx(ex) {
+  if (!ex) return null;
+  if (ex.func && MOV_FUNCIONAIS[ex.func]) return MOV_FUNCIONAIS[ex.func];
+  if (/encolhimento|shrug/i.test((ex.id || "") + " " + (ex.nome || ""))) return MOV_ENCOLHIMENTO;
+  return null;
+}
 
 // ---- Enquadramento: pôr a pessoa na posição antes de contar ----
 // Com a câmera de trás — que é a boa, porque é a que enxerga melhor — a pessoa
@@ -4393,7 +4434,7 @@ function criarContador(opcoes) {
   // de fora: é posição absoluta dividida pelo tronco, e na puxada o tronco
   // encurta na imagem a cada repetição — o número pulava sem o quadril sair do
   // lugar, e ganhava do cotovelo. No funcional ela é o salto, e continua lá.
-  const AUTO = (o.tronco ? EYES_SINAIS_TRONCO : TODOS.map((s) => s.id).filter((id) => id !== "quadril-alto"));
+  const AUTO = (o.tronco ? EYES_SINAIS_TRONCO : TODOS.map((s) => s.id).filter((id) => id !== "quadril-alto" && id !== "ombros-subindo"));
   const amostras = {};
   let total = 0;
   let amplitude = 0;
@@ -4811,11 +4852,11 @@ const FRASES_TECNICO = {
     "Aguenta mais um pouco.",
   ],
 };
-function criarTecnico() {
+function criarTecnico(frases) {
   let ultimaEm = -99;      // em qual repetição falou pela última vez
   let ditas = {};          // última frase de cada tipo, para não repetir
   const escolher = (tipo) => {
-    const lista = FRASES_TECNICO[tipo] || [];
+    const lista = (frases && frases[tipo]) || FRASES_TECNICO[tipo] || [];
     if (!lista.length) return null;
     let i = Math.floor(Math.random() * lista.length);
     if (lista[i] === ditas[tipo] && lista.length > 1) i = (i + 1) % lista.length;
@@ -7772,13 +7813,13 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     repsRef.current = 0;
     setFechando(0);
     canceladoRef.current = false;
-    tecnicoRef.current = criarTecnico();
     posturaRef.current = criarPostura(exAlvo);
     setDica(null);
     // Exercício de máquina o contador descobre sozinho. Movimento funcional tem
     // forma conhecida, e dizer qual é rende uma contagem muito melhor — é a
     // diferença entre contar o salto e contar o balanço do braço durante o salto.
-    const perfil = (exAlvo && exAlvo.func && MOV_FUNCIONAIS[exAlvo.func]) || null;
+    const perfil = perfilDoEx(exAlvo);
+    tecnicoRef.current = criarTecnico(perfil && perfil.frases);
     if (perfil && perfil.dica) setDica({ texto: perfil.dica, tipo: "dica", em: Date.now() });
     soTroncoRef.current = eyesSoTronco(exAlvo);
     contadorRef.current = criarContador({

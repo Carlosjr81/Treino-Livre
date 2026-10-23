@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-10-23f — A câmera conta o encolhimento de ombros
+
+**Em uma frase:** o contador de repetições pela câmera (e pelos óculos) agora conta o
+encolhimento de ombros, um movimento pequeno que antes passava despercebido.
+
+**O que mudou**
+- No encolhimento (com halteres, barra ou máquina), a câmera mede o quanto os ombros sobem
+  em direção às orelhas — e conta subidas de 3 cm para cima.
+- As dicas faladas durante a série são as certas para esse exercício: "sobe mais: ombro até a
+  orelha", "segura um instante lá em cima".
+- Vale também para máquina cadastrada por você com "encolhimento" no nome.
+
+**Por que importa para quem treina**
+- O trapézio é treinado com um movimento curto, e era justamente o que a câmera não via.
+
+**Como usar**
+- No treino, abra a câmera no encolhimento e fique de frente (ou de frente para o espelho com
+  os óculos), com ombros e orelhas à vista. Suba os ombros e segure um instante em cima.
+
+**Ideias de vídeo**
+- Série de encolhimento de frente para o espelho com o contador subindo a cada repetição.
+
+**Não prometer**
+- Precisa ver ombros e cabeça: de costas, ou com a cabeça fora do quadro, não conta.
+- Movimento bem pequeno (menos de 2 a 3 cm) pode não contar.
+
+---
+
 ## 2026-10-23e — Imagem dos óculos mais nítida
 
 **Em uma frase:** a imagem dos óculos Ray-Ban Meta no contador de repetições ficou com o

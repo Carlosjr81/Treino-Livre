@@ -12,7 +12,7 @@ let src = html.slice(ini, fim).replace(/\r\n/g, "\n");
 // Tira o que so existe no navegador (import dinamico)
 src = src.replace(/let eyesDetector[\s\S]*?^}/m, "");
 src = src.replace(/const EYES_LIB[\s\S]*?pose_landmarker_lite\.task";/, "");
-eval(src + "\nglobalThis.API = { criarContador, anguloEntre, EYES_SINAIS, caloriasEstimadas };");
+eval(src + "\nglobalThis.API = { criarContador, anguloEntre, EYES_SINAIS, caloriasEstimadas, perfilDoEx };");
 const A = globalThis.API;
 
 // ---- ruido sorteado, mas sempre o mesmo sorteio ----
@@ -427,6 +427,48 @@ const u3 = unilateral({ trocaMs: 1500 });
 teste("trocando depressa (1,5 s): 20", 20, u3.total);
 const u4 = unilateral({ coca: true, soUmLado: true });
 teste("o outro braco coca o rosto no meio da serie: continua 10", 10, u4.total);
+
+// ---- encolhimento de ombros (trapezio) ----
+// Relato do dono, com os oculos no espelho: a serie inteira e nada contou. O
+// ombro sobe uns 5 cm e nenhum angulo muda; o automatico pedia 22 e o
+// movimento da uns 14 na regua da largura dos ombros.
+console.log("\n--- encolhimento de ombros ---");
+const P_ENC = A.perfilDoEx({ id: "encolhimento-halteres", nome: "Encolhimento com halteres", grupo: "ombros" });
+teste("o encolhimento tem perfil proprio", true, !!(P_ENC && P_ENC.sinais && P_ENC.sinais[0] === "ombros-subindo"));
+teste("exercicio criado pelo dono com o nome tambem", true, A.perfilDoEx({ id: "custom-1", nome: "Encolhimento na máquina da Hammer" }) === P_ENC);
+teste("rosca nao ganha perfil", null, A.perfilDoEx({ id: "rosca-direta", nome: "Rosca direta", grupo: "biceps" }));
+teste("funcional continua com o dele", true, A.perfilDoEx({ id: "polichinelo", func: "polichinelo" }) !== P_ENC && !!A.perfilDoEx({ id: "polichinelo", func: "polichinelo" }));
+// sobe = quanto os ombros (e os bracos junto) sobem; a cabeca fica
+function encolhendo(sobe, ruido) {
+  const l = corpo({ ruido: ruido });
+  const r = () => (sorte() - 0.5) * ruido;
+  l[0] = { x: 0.5 + r(), y: 0.215 + r(), z: 0, visibility: 0.9 };
+  l[7] = { x: 0.465 + r(), y: 0.2 + r(), z: 0, visibility: 0.9 };
+  l[8] = { x: 0.535 + r(), y: 0.2 + r(), z: 0, visibility: 0.9 };
+  [11, 12, 13, 14, 15, 16].forEach((i) => { l[i] = { ...l[i], y: l[i].y - sobe }; });
+  return l;
+}
+function serieEnc(trechos, ruido) {
+  semear();
+  const cont = A.criarContador({ perfil: P_ENC, semAndar: true, preferidos: [] });
+  let t = 0;
+  trechos.forEach((tr) => {
+    const n = Math.round(tr.ms / (1000 / 30));
+    for (let i = 0; i < n; i++) { cont.processar(encolhendo(tr.sobe(i / n), ruido || 0.004), t); t += 1000 / 30; }
+  });
+  return cont.estado();
+}
+const encs = (n, alto, ms) => ({ ms: n * (ms || 2000), sobe: (f) => alto * (1 - Math.cos(f * n * 2 * Math.PI)) / 2 });
+const paradoEnc = (ms) => ({ ms: ms, sobe: () => 0 });
+const respira = (ms) => ({ ms: ms, sobe: (f) => 0.002 * (1 - Math.cos(f * (ms / 4000) * 2 * Math.PI)) });
+const e1 = serieEnc([paradoEnc(2000), encs(10, 0.025), paradoEnc(2000)]);
+teste("10 encolhimentos (5 cm): 10", 10, e1.total);
+teste("e le a subida dos ombros", "ombros-subindo", e1.sinal);
+teste("10 encolhimentos curtos (3 cm): 10", 10, serieEnc([paradoEnc(2000), encs(10, 0.015), paradoEnc(2000)]).total);
+teste("12 encolhimentos segurando 1 s em cima (3 s cada): 12", 12, serieEnc([paradoEnc(2000), encs(12, 0.025, 3000), paradoEnc(2000)]).total);
+teste("10 encolhimentos com muito ruido: 10", 10, serieEnc([paradoEnc(2000), encs(10, 0.025), paradoEnc(2000)], 0.008).total);
+teste("20 s parado respirando e tremendo: 0", 0, serieEnc([respira(20000)]).total);
+teste("o tecnico pede para subir, nunca para descer", true, P_ENC.frases.caindo.every((f) => !/desce/i.test(f)));
 
 console.log("\n--- calorias ---");
 console.log("  30 min, 80 kg: " + A.caloriasEstimadas(1800, 80) + " kcal");

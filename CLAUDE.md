@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v104) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v105) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2830,6 +2830,11 @@ dentro do app**.
   mandavam 15 em JPEG 70. Hoje: pergunta a cada 25 ms (sem quadro novo a ponte
   devolve vazio), o base64 é decodificado pelo navegador (`fetch` de um
   `data:`), o canvas sai a 30, e os óculos mandam 24 por segundo, 360×640, JPEG 60.
+- **Com os óculos, o 🪞 começa ligado** (pedido do dono). A câmera dos
+  óculos só vê o corpo pelo espelho, então o modo espelho é o normal ali, e
+  a escolha do scanner do celular não vale para a tela dos óculos. Desligar
+  o 🪞 na tela dos óculos fica guardado (`treinolivre:oculosEspelho`, no
+  armazenamento do WebView do app, que não é o do Chrome).
 - **Com os óculos, o "andando" fica desligado** (`semAndar` no
   `criarContador`). A câmera vai na cabeça: cada olhada para o lado move o
   corpo inteiro na imagem, e o `deslocando` pausava a contagem com "🎯

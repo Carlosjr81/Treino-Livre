@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-10-23c — Com os óculos, o modo espelho já vem ligado
+
+**Em uma frase:** ao contar a série com os óculos Ray-Ban Meta, o modo espelho 🪞 já começa
+ligado — não é preciso lembrar de apertar.
+
+**O que mudou**
+- A tela dos óculos abre com o 🪞 ligado.
+- Quem treina sem espelho pode desligar no próprio 🪞, e o app lembra da escolha nas
+  próximas vezes.
+
+**Por que importa para quem treina**
+- Os óculos só enxergam o seu corpo pelo espelho da academia. Com o espelho ligado, a voz
+  que guia o enquadramento manda andar para o lado certo, e o braço direito é chamado de
+  direito.
+
+**Como usar**
+- No treino, abra a câmera do exercício e toque em 👓. Fique de frente para o espelho e
+  comece. Sem espelho, toque em 🪞 para desligar.
+
+**Ideias de vídeo**
+- De frente para o espelho com os óculos: "olha, ele conta pelo reflexo", com o número
+  subindo na tela e a voz contando.
+
+**Não prometer**
+- Só no app Android, com os óculos Ray-Ban Meta e o modo de desenvolvedor do Meta AI ligado.
+- A contagem não muda com o espelho ligado ou desligado: o que muda é a orientação de lado.
+
+---
+
 ## 2026-10-23b — Vinheta de abertura sem som
 
 **Em uma frase:** a vinheta de abertura agora toca sem som.

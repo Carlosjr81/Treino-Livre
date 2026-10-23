@@ -2814,7 +2814,12 @@ dentro do app**.
   tempo do canal do TWA, que não aguentava mais) esticada na tela, mais o
   JPEG 60. Hoje: **HIGH** (720×1280), e MEDIUM (504×896) se os óculos
   recusarem; JPEG 82. Com o Bluetooth apertado o próprio kit baixa a
-  qualidade. A página já acompanhava o tamanho do quadro.
+  qualidade. A página já acompanhava o tamanho do quadro. Ainda mole no
+  celular dele: a banda do Bluetooth é dividida entre os quadros, então os
+  óculos passaram de 24 para **15 por segundo** (mais dados por quadro;
+  contar repetição não precisa de mais), e um aviso (Toast) diz, 4 s depois
+  de a imagem chegar, a resolução e os quadros por segundo que chegam de
+  verdade.
 - **Com os óculos, o 🪞 começa ligado** (pedido do dono). A câmera dos
   óculos só vê o corpo pelo espelho, então o modo espelho é o normal ali, e
   a escolha do scanner do celular não vale para a tela dos óculos. Desligar

@@ -86,6 +86,11 @@ class OculosService : Service() {
     private var camera: Camera? = null
     private var rodando = false
     @Volatile private var ultimoEnvio = 0L
+    // O que chega de verdade (o kit pode baixar a qualidade pedida): dito uma
+    // vez num aviso, para quem relata "está borrado" saber em que resolução.
+    private var medirDesde = 0L
+    private var medirQuadros = 0
+    private var medido = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -178,13 +183,15 @@ class OculosService : Service() {
         // canal do TWA, que não aguentava mais) a imagem esticada na tela do
         // celular saía borrada. Pela ponte do app cabe a HIGH (720×1280); se os
         // óculos recusarem, a MEDIUM (504×896). Com o Bluetooth apertado o
-        // próprio kit baixa a qualidade sozinho.
+        // próprio kit baixa a qualidade sozinho — e a banda é dividida entre
+        // os quadros: 15 por segundo (contar repetição não precisa de mais)
+        // deixam cada quadro com mais dados, e por isso mais nítido, que 24.
         ligarCamera(s, VideoQuality.HIGH) || ligarCamera(s, VideoQuality.MEDIUM)
     }
 
     private fun ligarCamera(s: DeviceSession, qualidade: VideoQuality): Boolean {
         var ok = false
-        s.addCamera(StreamConfiguration(videoQuality = qualidade, frameRate = 24))
+        s.addCamera(StreamConfiguration(videoQuality = qualidade, frameRate = 15))
             .onSuccess { cam ->
                 ok = true
                 camera = cam
@@ -235,6 +242,16 @@ class OculosService : Service() {
         }
         Oculos.numero++
         Oculos.estado = "transmitindo"
+        if (!medido) {
+            if (medirDesde == 0L) medirDesde = agora
+            medirQuadros++
+            if (agora - medirDesde >= 4000L) {
+                medido = true
+                val qps = Math.round(medirQuadros * 1000.0 / (agora - medirDesde))
+                val frase = "Óculos: imagem de ${w}×${h}, $qps quadros por segundo"
+                Handler(Looper.getMainLooper()).post { Toast.makeText(applicationContext, frase, Toast.LENGTH_LONG).show() }
+            }
+        }
     }
 
     // A página parou de pedir: o Eyes Scan fechou. Nada de câmera ligada à toa.

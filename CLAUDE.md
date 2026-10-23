@@ -848,6 +848,7 @@ celular a diferença não aparece, e na primeira abertura são 16 MB a menos.
   inteiro (sem o pedaço que o `<video>` pede) para poder guardá-lo.
 - O Chromium de teste não tem H.264: o teste no navegador usa uma cópia em
   VP9 servida no lugar.
+- **Validado no celular do dono (23/10/2026)**, já sem som: "ficou ótimo".
 
 ### A abertura desenhada (`AberturaDesenho`)
 

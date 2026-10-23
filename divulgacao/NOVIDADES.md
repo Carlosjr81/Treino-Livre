@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-10-23g — Encolhimento de ombros contado de verdade com os óculos
+
+**Em uma frase:** o encolhimento de ombros agora é contado também com os óculos Ray-Ban Meta,
+que na versão anterior ainda não percebiam o movimento.
+
+**O que mudou**
+- A medida do quanto o ombro sobe estava saindo com metade do tamanho na imagem em pé dos
+  óculos. Foi corrigida, e agora encolhimentos de uns 3 cm já contam.
+- Quem estica o pescoço ao encolher (a cabeça sobe junto com os ombros) também é contado: o app
+  passa a comparar o ombro com o quadril, que não sai do lugar.
+- Parado, respirando, nada conta.
+
+**Por que importa para quem treina**
+- O trapézio era o exercício que a câmera não via.
+
+**Como usar**
+- Atualize o app. Abra a câmera no encolhimento, de frente (ou de frente para o espelho com
+  os óculos), com cabeça, ombros e quadril à vista. Suba os ombros e segure um instante.
+
+**Ideias de vídeo**
+- Série de encolhimento no espelho com os óculos, o contador subindo a cada repetição.
+
+**Não prometer**
+- Movimento muito curto (menos de 2 a 3 cm) pode não contar.
+
+---
+
 ## 2026-10-23f — A câmera conta o encolhimento de ombros
 
 **Em uma frase:** o contador de repetições pela câmera (e pelos óculos) agora conta o

@@ -434,40 +434,59 @@ teste("o outro braco coca o rosto no meio da serie: continua 10", 10, u4.total);
 // movimento da uns 14 na regua da largura dos ombros.
 console.log("\n--- encolhimento de ombros ---");
 const P_ENC = A.perfilDoEx({ id: "encolhimento-halteres", nome: "Encolhimento com halteres", grupo: "ombros" });
-teste("o encolhimento tem perfil proprio", true, !!(P_ENC && P_ENC.sinais && P_ENC.sinais[0] === "ombros-subindo"));
+teste("o encolhimento tem perfil proprio", true, !!(P_ENC && P_ENC.sinais && P_ENC.sinais.indexOf("ombros-subindo") >= 0));
 teste("exercicio criado pelo dono com o nome tambem", true, A.perfilDoEx({ id: "custom-1", nome: "Encolhimento na máquina da Hammer" }) === P_ENC);
 teste("rosca nao ganha perfil", null, A.perfilDoEx({ id: "rosca-direta", nome: "Rosca direta", grupo: "biceps" }));
 teste("funcional continua com o dele", true, A.perfilDoEx({ id: "polichinelo", func: "polichinelo" }) !== P_ENC && !!A.perfilDoEx({ id: "polichinelo", func: "polichinelo" }));
 // sobe = quanto os ombros (e os bracos junto) sobem; a cabeca fica
-function encolhendo(sobe, ruido) {
+// o = { aspecto, cabeca }: aspecto e a largura / altura da imagem (os oculos
+// mandam em pe, 720x1280 = 0,5625); cabeca e quanto a cabeca sobe junto
+function encolhendo(sobe, ruido, o) {
+  const op = o || {};
   const l = corpo({ ruido: ruido });
   const r = () => (sorte() - 0.5) * ruido;
-  l[0] = { x: 0.5 + r(), y: 0.215 + r(), z: 0, visibility: 0.9 };
-  l[7] = { x: 0.465 + r(), y: 0.2 + r(), z: 0, visibility: 0.9 };
-  l[8] = { x: 0.535 + r(), y: 0.2 + r(), z: 0, visibility: 0.9 };
+  const cab = sobe * (op.cabeca || 0);
+  l[0] = { x: 0.5 + r(), y: 0.215 - cab + r(), z: 0, visibility: 0.9 };
+  l[7] = { x: 0.465 + r(), y: 0.2 - cab + r(), z: 0, visibility: 0.9 };
+  l[8] = { x: 0.535 + r(), y: 0.2 - cab + r(), z: 0, visibility: 0.9 };
   [11, 12, 13, 14, 15, 16].forEach((i) => { l[i] = { ...l[i], y: l[i].y - sobe }; });
+  if (op.aspecto) l.aspecto = op.aspecto;
   return l;
 }
-function serieEnc(trechos, ruido) {
+function serieEnc(trechos, ruido, o) {
   semear();
   const cont = A.criarContador({ perfil: P_ENC, semAndar: true, preferidos: [] });
   let t = 0;
   trechos.forEach((tr) => {
     const n = Math.round(tr.ms / (1000 / 30));
-    for (let i = 0; i < n; i++) { cont.processar(encolhendo(tr.sobe(i / n), ruido || 0.004), t); t += 1000 / 30; }
+    for (let i = 0; i < n; i++) { cont.processar(encolhendo(tr.sobe(i / n), ruido || 0.004, o), t); t += 1000 / 30; }
   });
   return cont.estado();
 }
 const encs = (n, alto, ms) => ({ ms: n * (ms || 2000), sobe: (f) => alto * (1 - Math.cos(f * n * 2 * Math.PI)) / 2 });
 const paradoEnc = (ms) => ({ ms: ms, sobe: () => 0 });
-const respira = (ms) => ({ ms: ms, sobe: (f) => 0.002 * (1 - Math.cos(f * (ms / 4000) * 2 * Math.PI)) });
+// respirar sobe o ombro uns 9 mm (0,004 da largura da imagem), a cada 4 s
+const respira = (ms, k) => ({ ms: ms, sobe: (f) => 0.002 * (k || 1) * (1 - Math.cos(f * (ms / 4000) * 2 * Math.PI)) });
 const e1 = serieEnc([paradoEnc(2000), encs(10, 0.025), paradoEnc(2000)]);
 teste("10 encolhimentos (5 cm): 10", 10, e1.total);
-teste("e le a subida dos ombros", "ombros-subindo", e1.sinal);
+teste("e le a subida dos ombros", true, /^ombros-/.test(e1.sinal || ""));
 teste("10 encolhimentos curtos (3 cm): 10", 10, serieEnc([paradoEnc(2000), encs(10, 0.015), paradoEnc(2000)]).total);
 teste("12 encolhimentos segurando 1 s em cima (3 s cada): 12", 12, serieEnc([paradoEnc(2000), encs(12, 0.025, 3000), paradoEnc(2000)]).total);
 teste("10 encolhimentos com muito ruido: 10", 10, serieEnc([paradoEnc(2000), encs(10, 0.025), paradoEnc(2000)], 0.008).total);
 teste("20 s parado respirando e tremendo: 0", 0, serieEnc([respira(20000)]).total);
+// A serie do dono com os oculos: imagem em pe (720x1280), e o y do modelo e
+// fracao da ALTURA. 3 cm de subida, numa largura de ombros de 40 cm, sao
+// 0,0135 da largura da imagem e so 0,0076 da altura. Sem corrigir a proporcao
+// a subida saia com 56% do tamanho, abaixo do minimo, e nada contava.
+const PE = { aspecto: 720 / 1280 };
+teste("oculos (imagem em pe), 10 encolhimentos de 3 cm: 10", 10, serieEnc([paradoEnc(2000), encs(10, 0.0135 * 0.5625), paradoEnc(2000)], 0.003, PE).total);
+teste("oculos, 10 de 5 cm: 10", 10, serieEnc([paradoEnc(2000), encs(10, 0.0225 * 0.5625), paradoEnc(2000)], 0.003, PE).total);
+teste("oculos, 20 s parado respirando: 0", 0, serieEnc([respira(20000, 0.5625)], 0.003, PE).total);
+// A cabeca sobe junto (pescoco esticado): pela orelha sobra um terco do
+// movimento, e o quadril, que nao sai do lugar, mede inteiro.
+const cabSobe = serieEnc([paradoEnc(2000), encs(10, 0.025), paradoEnc(2000)], 0.004, { cabeca: 0.7 });
+teste("cabeca subindo junto com os ombros: 10", 10, cabSobe.total);
+teste("e le pelo quadril", "ombros-quadril", cabSobe.sinal);
 teste("o tecnico pede para subir, nunca para descer", true, P_ENC.frases.caindo.every((f) => !/desce/i.test(f)));
 
 console.log("\n--- calorias ---");

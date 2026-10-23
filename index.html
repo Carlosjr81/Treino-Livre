@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-23f";
+const VERSAO_APP = "2026-10-23g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3892,19 +3892,38 @@ function aberturaDe(l, iE, iD) {
 // encolhimento estica o tronco (o ombro sobe e o quadril fica), e dividir pelo
 // tronco engolia metade do movimento. De lado a largura some, e aí vale o
 // tronco. Sem as orelhas à vista, o nariz.
-function subidaOmbros(l) {
+//
+// **x e y não estão na mesma régua**: o modelo dá x em frações da largura da
+// imagem e y em frações da altura. Na imagem em pé dos óculos (720×1280), um
+// centímetro de subida valia 0,56 de um centímetro de largura, e o encolhimento
+// do dono no espelho saía com metade do tamanho, abaixo do mínimo: "lendo
+// subida dos ombros" e zero na conta. `l.aspecto` (largura ÷ altura, posto
+// pelo scanner) põe y na régua de x.
+//
+// Duas referências, e o contador fica com a que mais se mexe: a cabeça (que
+// sobe junto quando a pessoa estica o pescoço ao encolher, e aí a orelha some
+// com o movimento) e o quadril (que não sai do lugar, mas o modelo vê pior).
+function subidaOmbros(l, ref) {
   const oE = pt(l, 11), oD = pt(l, 12);
   if (!oE || !oD) return null;
-  const orelhas = [pt(l, 7), pt(l, 8)].filter(Boolean);
-  const cab = orelhas.length ? orelhas : [pt(l, 0)].filter(Boolean);
-  if (!cab.length) return null;
-  const largura = Math.hypot(oE.x - oD.x, oE.y - oD.y);
+  let base;
+  if (ref === "quadril") {
+    const q = [l[23], l[24]].filter(visivelBem);
+    if (q.length < 2) return null;
+    base = q;
+  } else {
+    const orelhas = [pt(l, 7), pt(l, 8)].filter(Boolean);
+    base = orelhas.length ? orelhas : [pt(l, 0)].filter(Boolean);
+  }
+  if (!base.length) return null;
+  const k = l.aspecto > 0 ? 1 / l.aspecto : 1;   // y na régua de x
+  const largura = Math.hypot(oE.x - oD.x, (oE.y - oD.y) * k);
   const e = largura > 0.06 ? largura : escalaTorso(l);
   if (!e) return null;
-  const yCab = cab.reduce((s, p) => s + p.y, 0) / cab.length;
+  const yBase = base.reduce((s, p) => s + p.y, 0) / base.length;
   const yOmbro = (oE.y + oD.y) / 2;
-  // y cresce para baixo: ombro mais perto da orelha = número maior
-  return (-(yOmbro - yCab) / e) * 100;
+  // y cresce para baixo: nas duas referências, ombro subindo = número maior
+  return (((yBase - yOmbro) * k) / e) * 100;
 }
 function alcanceDe(l, iOmbro, iPunho) {
   const e = escalaTorso(l), o = pt(l, iOmbro), p = pt(l, iPunho);
@@ -3924,7 +3943,10 @@ const EYES_SINAIS_POS = [
   { id: "abertura-maos", nome: "abertura dos braços", calc: (l) => aberturaDe(l, 15, 16) },
   { id: "alcance-e", nome: "braço esquerdo", calc: (l) => alcanceDe(l, 11, 15) },
   { id: "alcance-d", nome: "braço direito", calc: (l) => alcanceDe(l, 12, 16) },
-  { id: "ombros-subindo", nome: "subida dos ombros", calc: subidaOmbros },
+  // movimento lento e curto: suavizado mais que os outros (o tremor do modelo
+  // é do tamanho de meio encolhimento, e repetição de trapézio dura mais de 1 s)
+  { id: "ombros-subindo", nome: "subida dos ombros", suave: 0.2, calc: (l) => subidaOmbros(l, "cabeca") },
+  { id: "ombros-quadril", nome: "subida dos ombros (pelo quadril)", suave: 0.2, calc: (l) => subidaOmbros(l, "quadril") },
 ];
 
 // O rodape do scanner diz o que ele esta medindo: sem isso, contagem errada
@@ -3966,7 +3988,7 @@ const MOV_FUNCIONAIS = {
 // óculos, o dono fez a série inteira e nada contou. Aqui o movimento é
 // conhecido, e o perfil diz onde olhar e quanto basta. Não entra no palpite do
 // modo livre nem nas aulas: é exercício de peso, não funcional.
-const MOV_ENCOLHIMENTO = { sinais: ["ombros-subindo"], minMs: 600, minAmp: 6,
+const MOV_ENCOLHIMENTO = { sinais: ["ombros-subindo", "ombros-quadril"], minMs: 800, minAmp: 5,
   dica: "Fique de frente, com ombros e orelhas à vista: suba os ombros até as orelhas e segure um instante.",
   // "Desce mais um pouco" é o contrário do que o encolhimento pede
   frases: {
@@ -4434,7 +4456,7 @@ function criarContador(opcoes) {
   // de fora: é posição absoluta dividida pelo tronco, e na puxada o tronco
   // encurta na imagem a cada repetição — o número pulava sem o quadril sair do
   // lugar, e ganhava do cotovelo. No funcional ela é o salto, e continua lá.
-  const AUTO = (o.tronco ? EYES_SINAIS_TRONCO : TODOS.map((s) => s.id).filter((id) => id !== "quadril-alto" && id !== "ombros-subindo"));
+  const AUTO = (o.tronco ? EYES_SINAIS_TRONCO : TODOS.map((s) => s.id).filter((id) => id !== "quadril-alto" && !/^ombros-/.test(id)));
   const amostras = {};
   let total = 0;
   let amplitude = 0;
@@ -4637,7 +4659,7 @@ function criarContador(opcoes) {
         const a = amostras[s.id] || (amostras[s.id] = { hist: [], valor: v, suave: v, min: v, max: v });
         // um pouco de suavização antes de guardar: um quadro ruim do modelo não
         // pode esticar a janela inteira por quatro segundos
-        a.suave = a.suave + (v - a.suave) * 0.4;
+        a.suave = a.suave + (v - a.suave) * (s.suave || 0.4);
         a.valor = a.suave;
         a.hist.push(agora, a.suave);
         while (a.hist.length > 2 && agora - a.hist[0] > JANELA_MS) a.hist.splice(0, 2);
@@ -7998,6 +8020,7 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
         const lm = res && res.landmarks && res.landmarks[0];
         // os pontos no mundo, em 3D: os ângulos do contador saem deles (anguloDe)
         if (lm && res.worldLandmarks && res.worldLandmarks[0]) lm.mundo = res.worldLandmarks[0];
+        if (lm && vid.videoWidth && vid.videoHeight) lm.aspecto = vid.videoWidth / vid.videoHeight;
         const ctx = cv.getContext("2d");
         if (cv.width !== vid.videoWidth) { cv.width = vid.videoWidth; cv.height = vid.videoHeight; }
         ctx.clearRect(0, 0, cv.width, cv.height);

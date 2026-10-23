@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v108) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v109) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -702,8 +702,19 @@ estendido e o ombro sobe uns 5 cm —, e o automático só conta o que passa de
   pela **largura dos ombros**, e não pelo tronco: o próprio encolhimento
   estica o tronco (o ombro sobe e o quadril fica), e dividir por ele engolia
   metade do movimento. De lado a largura some, e aí vale o tronco.
-- **A régua mínima é 6, não 22**: 5 cm de subida dão uns 14 na largura dos
-  ombros; 3 cm, uns 8. Respirar parado mexe uns 2.
+- **A régua mínima é 5, não 22**: 5 cm de subida dão uns 12 na largura dos
+  ombros; 3 cm, uns 7. Respirar parado mexe uns 2.
+- **x e y não estão na mesma régua** (`l.aspecto`, posto pelo scanner). O
+  modelo dá x em frações da largura da imagem e y em frações da altura; na
+  imagem em pé dos óculos (720×1280) a subida saía com 56% do tamanho, e a
+  primeira versão leu "subida dos ombros" a série inteira do dono, com zero
+  na conta. Toda medida nova que misture x e y tem de passar por isso.
+- **Duas referências** (`ombros-subindo` pela orelha, `ombros-quadril` pelo
+  quadril bem visto), e o contador fica com a que mais se mexe: quem estica o
+  pescoço ao encolher leva a orelha junto, e aí o quadril mede.
+- **Suavizadas mais que os outros sinais** (`suave: 0.2` no sinal, contra
+  0,4): o tremor do modelo é do tamanho de meio encolhimento, e repetição de
+  trapézio dura mais de 1 s (`minMs` 800).
 - **O automático não olha esse sinal**: ele treme com a respiração e com a
   cabeça, e ganharia da rosca de quem balança os ombros.
 - **Qual exercício**: `perfilDoEx` dá o perfil pelo `func` (funcionais) ou,
@@ -714,8 +725,9 @@ estendido e o ombro sobe uns 5 cm —, e o automático só conta o que passa de
   mais: ombro até a orelha" e "segura um instante lá em cima".
 
 `teste-contador.js` tem 10 encolhimentos de 5 cm e de 3 cm, segurando em
-cima, com ruído forte, e 20 s parado respirando (zero). Com o automático de
-antes, as quatro séries contavam 0.
+cima, com ruído forte, 20 s parado respirando (zero), os mesmos na imagem em
+pé dos óculos, e a cabeça subindo junto (lido pelo quadril). Com o automático
+de antes, as séries contavam 0.
 
 ### A janela corrida de 4 segundos
 

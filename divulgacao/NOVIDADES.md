@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-10-23a — A vinheta nova na abertura do app
+
+**Em uma frase:** o app agora abre com a vinheta em vídeo do Treino Livre — a silhueta
+virando esqueleto e o nome montado com cenas reais do Eyes Scan.
+
+**O que mudou**
+- A abertura é o vídeo da vinheta (12 segundos, com som), no lugar da animação desenhada.
+- Um toque na tela pula a vinheta, e o aviso "toque para pular" fica embaixo.
+- Se o celular não deixar tocar com som, a vinheta toca muda, com um 🔊 no canto para
+  ligar o som.
+- Na primeira vez, enquanto o vídeo carrega, aparece a animação antiga; depois ele fica
+  guardado no celular e abre na hora, mesmo sem internet.
+
+**Por que importa para quem treina**
+- É a primeira coisa que todo mundo vê: mostra em segundos que o app conta as repetições
+  pela câmera.
+
+**Como usar**
+- Abra o app. Se aparecer a faixa de versão nova, toque em Atualizar.
+
+**Ideias de vídeo**
+- A própria vinheta é um vídeo pronto para o story e para os Reels.
+- "Abri o app e olha a abertura": gravação da tela do celular abrindo o Treino Livre.
+
+**Não prometer**
+- Em alguns celulares a vinheta começa sem som (é regra do navegador); o 🔊 liga.
+
+---
+
 ## 2026-10-22n — A vinheta de abertura no app Android
 
 **Em uma frase:** o app Android voltou a abrir com a vinheta do Treino Livre.

@@ -1,9 +1,12 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v102";
+const CACHE = "treinolivre-v103";
 const CACHE_VOZ = "treinolivre-voz";
 // As falas gravadas do Monster, Run! (vozes/*.mp3): baixadas quando a história
 // começa e guardadas fora do cache da versão, para não sumirem a cada atualização.
 const CACHE_FALAS = "treinolivre-falas";
+// A vinheta de abertura (2 MB) num cache só dela, preservado entre versões:
+// guardá-la no cache da versão a baixaria de novo a cada atualização do app.
+const CACHE_MIDIA = "treinolivre-midia";
 const ARQUIVOS = [
   "./",
   "./index.html",
@@ -46,7 +49,7 @@ self.addEventListener("activate", (e) => {
       // a troca de versao, senao o aviso morre a cada atualizacao do app.
       // "treinolivre-voz" guarda a voz do narrador do story (uns 90 MB): apagá-la a
       // cada versão obrigaria a pessoa a baixar tudo de novo.
-      .then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== "treinolivre-config" && k !== CACHE_VOZ && k !== CACHE_FALAS).map((k) => caches.delete(k))))
+      .then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== "treinolivre-config" && k !== CACHE_VOZ && k !== CACHE_FALAS && k !== CACHE_MIDIA).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -61,6 +64,16 @@ self.addEventListener("fetch", (e) => {
   // O arquivo da versao nunca e interceptado: ele existe para delatar que ha
   // versao nova, e serviria de pouco vindo do cache.
   if (url.pathname.indexOf("versao.json") >= 0) return;
+  // A vinheta: do cache próprio, e na falta, da rede inteira (sem o pedaço
+  // que o vídeo pede), guardada para as próximas aberturas.
+  if (/\/abertura-v\d+\.mp4$/.test(url.pathname)) {
+    const chave = url.origin + url.pathname;
+    e.respondWith(caches.open(CACHE_MIDIA).then((c) => c.match(chave).then((r) => r || fetch(chave).then((resp) => {
+      if (resp.ok && resp.status === 200) c.put(chave, resp.clone()).catch(() => {});
+      return resp;
+    }))));
+    return;
+  }
   // Os pedaços do mapa e a busca de endereço do percurso não entram no cache:
   // cada lugar do mapa é um arquivo, e guardar todos encheria o celular. O
   // navegador já guarda os recentes no cache dele, que se limpa sozinho.

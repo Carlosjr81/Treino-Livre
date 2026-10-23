@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-22n";
+const VERSAO_APP = "2026-10-23a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -24080,7 +24080,68 @@ function HalterAbertura() {
   );
 }
 
+// A vinheta da marca, em vídeo (feita pelo dono): abertura-v1.mp4, 720×1280,
+// 12 s, com som. Vinheta nova entra com outro nome (v2): o service worker
+// guarda o vídeo num cache próprio, que sobrevive às versões do app.
+const VIDEO_ABERTURA = "abertura-v1.mp4";
+
+// Enquanto o vídeo não começa a tocar (a primeira vez ele ainda baixa), o
+// desenho de sempre ocupa a tela; se o vídeo não começar antes de o desenho
+// acabar, fica o desenho e a abertura termina com ele. Movimento reduzido:
+// só o desenho, que já mostra direto o quadro final.
 function Abertura({ onFim }) {
+  const reduzido = useMemo(() => {
+    try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; }
+  }, []);
+  const [tocando, setTocando] = useState(false);
+  const [semSom, setSemSom] = useState(false);
+  const tocandoRef = useRef(false);
+  const acabouRef = useRef(false);
+  const videoRef = useRef(null);
+  const fim = () => { if (acabouRef.current) return; acabouRef.current = true; try { videoRef.current && videoRef.current.pause(); } catch (e) {} onFim(); };
+  useEffect(() => {
+    if (reduzido) return;
+    const v = videoRef.current;
+    if (!v) return;
+    // Com som quando o navegador deixa (app instalado deixa); senão, mudo,
+    // com o 🔊 para ligar — sem isso o Chrome recusa tocar e nada aparece.
+    v.muted = false;
+    const p = v.play();
+    if (p && p.catch) p.catch(() => { try { v.muted = true; setSemSom(true); v.play().catch(() => {}); } catch (e) {} });
+    // rede de segurança: vídeo que trava no meio não prende ninguém na abertura
+    const t = setTimeout(fim, 16000);
+    return () => clearTimeout(t);
+  }, []);
+  if (reduzido) return <AberturaDesenho onFim={fim} />;
+  return (
+    <div onClick={fim} role="img" aria-label="Treino Livre"
+      style={{ position: "fixed", inset: 0, zIndex: 90, background: "#060606", overflow: "hidden", cursor: "pointer" }}>
+      {!tocando && <AberturaDesenho onFim={() => { if (!tocandoRef.current) fim(); }} />}
+      <video ref={videoRef} src={VIDEO_ABERTURA} playsInline preload="auto"
+        poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+        onPlaying={() => { tocandoRef.current = true; setTocando(true); }}
+        onEnded={fim} onError={() => { if (!tocandoRef.current) setTocando(false); }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover",
+          background: "#060606", opacity: tocando ? 1 : 0, transition: "opacity 0.25s", zIndex: 91 }} />
+      {tocando && semSom && (
+        <button aria-label="Ligar o som da abertura"
+          onClick={(e) => { e.stopPropagation(); const v = videoRef.current; if (v) { v.muted = false; setSemSom(false); } }}
+          style={{ position: "absolute", right: 16, top: "calc(16px + env(safe-area-inset-top))", zIndex: 92, width: 44, height: 44,
+            borderRadius: 22, border: "1px solid rgba(255,255,255,0.4)", background: "rgba(0,0,0,0.5)", color: "#FFFFFF", fontSize: 18, cursor: "pointer" }}>🔊</button>
+      )}
+      {tocando && (
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(18px + env(safe-area-inset-bottom))", zIndex: 92,
+          textAlign: "center", color: "rgba(255,255,255,0.55)", fontSize: 12, letterSpacing: 1, pointerEvents: "none", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+          toque para pular
+        </div>
+      )}
+    </div>
+  );
+}
+
+// A abertura desenhada (a silhueta virando esqueleto e o halter rachando a
+// tela): reserva do vídeo e a versão de quem pede movimento reduzido.
+function AberturaDesenho({ onFim }) {
   const P = POSE_ABERTURA;
   useEffect(() => {
     const t = setTimeout(onFim, 3800);

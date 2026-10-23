@@ -231,10 +231,11 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v102) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v103) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
+| `abertura-v1.mp4` | A vinheta de abertura em vídeo (720×1280, 12 s, 2 MB), num cache próprio do `sw.js` (ver *A abertura*) |
 | `marombeiro-corpo.webp`, `-braco.webp`, `-cabeca.webp`, `-inteiro.webp`, `marombeiro-rosto.jpg` | O avatar animado do dono na "Fuga do Marombeiro" (ver *Monster, Run!*) |
 
 ## Estrutura do `index.html`
@@ -826,7 +827,33 @@ chão.
 
 ## A abertura (`Abertura`)
 
-A marca do app em movimento, em três atos e pouco menos de quatro segundos:
+**Hoje a abertura é um vídeo, feito pelo dono** (`abertura-v1.mp4`,
+`VIDEO_ABERTURA`): a silhueta, o esqueleto e o nome entrando com cenas reais
+do Eyes Scan, 12 s, com som. O original tinha 1080×1920 e 16 MB; foi
+comprimido para 720×1280, H.264 + AAC, `faststart` (2 MB) — numa tela de
+celular a diferença não aparece, e na primeira abertura são 16 MB a menos.
+
+- **Com som quando o navegador deixa** (o app instalado deixa); senão toca
+  mudo, com um 🔊 no canto. Sem cair para o mudo o Chrome recusa o `play()`
+  e a tela fica preta. **Um toque pula**, e "toque para pular" fica escrito:
+  12 s é muito para quem só quer anotar uma série.
+- **Enquanto o vídeo não toca, o desenho de sempre ocupa a tela**
+  (`AberturaDesenho`, abaixo). Na primeira vez o vídeo ainda está baixando;
+  se ele não começar antes de o desenho acabar (3,8 s), a abertura termina
+  com o desenho. Vídeo que não abre (formato, rede) não deixa tela preta.
+  Movimento reduzido: só o desenho, que mostra direto o quadro final.
+- **Cache próprio, preservado entre versões** (`treinolivre-midia` no
+  `sw.js`): no cache da versão, os 2 MB seriam baixados de novo a cada
+  atualização do app. **Vinheta nova entra com outro nome** (`abertura-v2.mp4`),
+  senão o cache continua servindo a antiga. O `sw.js` busca o arquivo
+  inteiro (sem o pedaço que o `<video>` pede) para poder guardá-lo.
+- O Chromium de teste não tem H.264: o teste no navegador usa uma cópia em
+  VP9 servida no lugar.
+
+### A abertura desenhada (`AberturaDesenho`)
+
+A primeira abertura, que hoje é a reserva do vídeo. A marca do app em
+movimento, em três atos e pouco menos de quatro segundos:
 
 1. A **silhueta azul pontilhada** monta a pose. Ela é o contorno da imagem da
    marca, traçado direto dela (`SILHUETA_ABERTURA`) — nenhum desenho à mão. Por

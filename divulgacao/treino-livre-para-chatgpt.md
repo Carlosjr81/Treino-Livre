@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-22n**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-23a**.
 
 ---
 
@@ -70,7 +70,10 @@ Existe também **tema claro** (fundo branco, texto `#262626`), mas a cara do app
 - **A linha de leitura** — uma linha verde horizontal que desce pela tela "escaneando" e revelando.
 
 ### A abertura do app (ótima referência para vídeos)
-Ao abrir, em menos de 4 segundos:
+**Desde a versão 2026-10-23a a abertura é a vinheta em vídeo do dono** (12 s, com som): a silhueta azul,
+o esqueleto verde e o nome "TREINO LIVRE" montado com cenas reais do Eyes Scan, fechando no halter com o
+nome e "Jarvis Eyes Scan". Um toque pula. A animação desenhada abaixo continua como reserva (primeira
+abertura, enquanto o vídeo carrega). Na animação desenhada, em menos de 4 segundos:
 1. Uma **silhueta azul pontilhada** de uma pessoa monta uma pose de treino.
 2. Uma **linha verde desce** por ela e, onde passa, a silhueta **vira o esqueleto verde** da câmera.
 3. Um **halter entra de frente, bate na tela e a tela racha**. Fica o halter com o nome "Treino Livre".

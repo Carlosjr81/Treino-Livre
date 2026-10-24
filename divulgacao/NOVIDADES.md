@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-10-24m — No desafio, sair do app não pausa e a voz fala tudo a cada minuto
+
+**Em uma frase:** no desafio de corrida e caminhada, a prova continua contando quando você sai do app, e a voz conta a
+cada minuto o seu tempo, a distância, o ritmo e onde está cada amigo, pelo nome.
+
+**O que mudou**
+- **Sair do app não pausa mais**: olhou o WhatsApp, trocou a música, voltou, e a prova continuou contando.
+- **Boletim a cada minuto**: "6 minutos. 1,1 quilômetro. Ritmo de 5 minutos e 40 por quilômetro. Faltam 1,9
+  quilômetros. Você em 2º de 3: Ana 120 metros à frente, Bia 300 metros atrás. Ana está a 5 minutos e 20 por
+  quilômetro." Dá para mudar o intervalo, ou pedir por distância (500 m, 1 km, 2 km), nos ajustes da voz.
+- **Com o celular travado no bolso**, no app Android, o boletim também sai.
+- **Chamar amigo a qualquer hora**: antes (o convite da sala), durante ("Chamar amigo para correr comigo agora") e
+  depois (o seu resultado vira um fantasma 👻 para o amigo correr contra).
+
+**Por que importa para quem treina**
+- Na rua ninguém olha a tela. Ouvir de minuto em minuto quanto falta e quem está perto é o que faz acelerar.
+
+**Como usar**
+- Desafio › criar a sala › Largar. A voz fala sozinha a cada minuto. Para correr com o celular travado no bolso, use o
+  app Android.
+
+**Ideias de vídeo**
+- A caminhada com fone, e a voz dizendo "Ana 120 metros à frente"; o amigo entrando no meio da prova pelo link.
+
+**Não prometer**
+- Pelo navegador, com a tela travada, o celular não mede o GPS nem fala: isso só no app Android.
+
+---
+
 ## 2026-10-24l — Desafio de corrida com o celular travado no bolso, e cada um pelo nome
 
 **Em uma frase:** no app Android, o desafio de corrida segue com o celular travado no bolso (GPS, voz e os amigos

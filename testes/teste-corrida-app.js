@@ -14,11 +14,12 @@ function funcao(nome) {
 }
 eval(pedaco("const LINK_APP", "\n") + "\n" + pedaco("const LINK_APK", "\n") + "\n" + pedaco("const PACOTE_ANDROID", "\n") + "\n" +
   pedaco("const num1 =", "\n") + "\n" +
-  funcao("b64Codificar") + funcao("b64Decodificar") + funcao("b64UrlParaPadrao") + funcao("padraoParaB64Url") + funcao("textoDuracao") + funcao("plural") +
+  funcao("b64Codificar") + funcao("b64Decodificar") + funcao("b64UrlParaPadrao") + funcao("padraoParaB64Url") + funcao("textoDuracao") + funcao("plural") + funcao("falaRitmo") +
+  pedaco("const BOLETIM_PADRAO", "\nfunction narrarVoz") +
   pedaco("// ---------------- PERCURSO NA RUA (GPS)", "// ---------------- FIM DAS CONTAS DO PERCURSO") +
   pedaco("// ---------------- DESAFIO: MOTOR", "// ---------------- FIM DO MOTOR DESAFIO") +
   "\nglobalThis.C = { criarCorridaApp, narrarDesafio, novoNarradorDesafio, falaLargada, falaChegada, situacaoDesafio, nomesDesafio, iniciaisDe, corDoParticipante," +
-  " classificarDesafio, lerPacoteCorrida, linkCorrida, mensagemDesafio, codificarTrilha };");
+  " classificarDesafio, lerPacoteCorrida, regraBoletimDesafio, linkCorrida, mensagemDesafio, codificarTrilha };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -139,6 +140,38 @@ contem("sem sinal há mais de um minuto, pelo nome", f1, "Ana está sem sinal h�
 const ana2 = Object.assign({}, ana, { fim: { ms: 400000, m: 3000 }, trilha: trilhaDe(3.5, 400000).concat([[400000, 3000]]), ts: agora0 + 200000 });
 const l2 = C.classificarDesafio([Object.assign({}, eu, { trilha: trilhaDe(3, 500000) }), ana2], 500000, META3K, agora0 + 200000);
 contem("chegada de outro, pelo nome", C.narrarDesafio(n, l2, { t: 500000, d: 1500 }, META3K, "peu", agora0 + 200000).map((f) => f.texto).join(" | "), "Ana cruzou a chegada em 6 minutos e 40 segundos.");
+
+console.log("\n--- o boletim falado (tempo, distância, ritmo, amigos pelo nome) ---");
+teste("sem ninguém escolher: a cada minuto", { tipo: "tempo", s: 60 }, C.regraBoletimDesafio({}));
+teste("boletim desligado", null, C.regraBoletimDesafio({ boletim: 0 }));
+teste("voz desligada, sem boletim", null, C.regraBoletimDesafio({ falar: false }));
+teste("por distância, a cada 500 m", { tipo: "distancia", m: 500 }, C.regraBoletimDesafio({ boletimPor: "distancia", boletimM: 500 }));
+function correr(regra, segundos) {
+  relogio = 20000000;
+  let ap = null;
+  const m = C.criarCorridaApp({ codigo: "ABCDE1", broker: 1, meta: META3K, atividade: "corrida", ambiente: "esteira", nome: "Carlos", id: "peu", kmh: 12, comeca: relogio, boletim: regra },
+    { agora: () => relogio, conectar: (o) => { ap = o.aoParticipante; return salaFalsa; } });
+  const ana = (s) => ap("pana", C.mensagemDesafio({ nome: "Ana", atividade: "corrida", st: "correndo", t: s * 1000, d: s * 3.5, trilha: trilhaDe(3.5, s * 1000), fim: null, dt: "x" }));
+  ana(0); m.tick();
+  const ditas = [];
+  for (let s = 1; s <= segundos; s++) { relogio += 1000; if (s % 5 === 0) ana(s); m.tick().falas.forEach((f) => ditas.push(f.texto)); }
+  return ditas;
+}
+const porTempo = correr({ tipo: "tempo", s: 60 }, 130);
+const b1 = porTempo.find((f) => /^1 minuto\./.test(f)) || "";
+contem("aos 60 s vem o boletim: tempo", b1, "1 minuto.");
+contem("a distância", b1, "200 metros.");
+contem("o meu ritmo", b1, "Ritmo de 5 minutos por quilômetro");
+contem("quanto falta", b1, "Faltam 2,8 quilômetros.");
+contem("onde está a amiga, pelo nome", b1, "Ana ");
+contem("e o ritmo dela", b1, "Ana está a 4 minutos e 4");
+teste("dois boletins em 130 s", 2, porTempo.filter((f) => /Ritmo de/.test(f)).length);
+const porDist = correr({ tipo: "distancia", m: 1000 }, 320);
+const km1 = porDist.filter((f) => /^1 quilômetro/.test(f));
+teste("por distância: um aviso só no km (não dois)", 1, km1.length);
+contem("com a parcial do trecho", km1[0], "Este quilômetro em 5 minutos");
+const semRegra = correr(null, 130);
+teste("sem boletim, nada de minuto em minuto", 0, semRegra.filter((f) => /Ritmo de/.test(f)).length);
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

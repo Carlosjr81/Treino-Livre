@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v121) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v122) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2168,6 +2168,34 @@ serviço, e a Ana pelo navegador — a do Carlos espelhou a corrida do "app"
 "Valendo! Desafio de 3 km com Ana". **Não validado num aparelho**: o
 `CorridaService` de verdade (GPS com a tela travada, a página escondida
 rodando com a tela travada, a notificação).
+
+### Sair do app não pausa, e o boletim fala tudo (`regraBoletimDesafio`, `boletimDesafio`)
+
+Relato do dono, numa caminhada na rua: "toda hora que eu saio da tela do app
+e volto, está pausado" e "não estou escutando nenhum feedback de tempo,
+distância, desafio, dos amigos e os meus".
+
+- **Sair do app não pausa mais.** Um salto de relógio maior que 5 s pausava
+  a prova ("o app não acompanhou esse tempo"). Quem sai do app continua
+  andando: hoje o tempo conta, a distância vem do GPS quando ele volta (o
+  trecho sem sinal entra em linha reta, como no percurso), e na esteira pela
+  velocidade. O relógio é o `Date.now`, não o `performance.now`, que pode
+  parar com o Android dormindo. Só a simulação ignora o salto.
+- **O boletim do desafio** sai do narrador (`narrarDesafio`), então vale na
+  página e no app com a tela travada (`bl` no link do `CorridaService`):
+  tempo, distância, o ritmo de agora, quanto falta, a posição com cada amigo
+  pelo nome e o ritmo de quem está logo à frente e logo atrás. Segue os
+  ajustes do boletim do aeróbico (`voz.boletim`, `boletimPor`), mas **sem
+  ninguém ter escolhido é a cada minuto** (`BOLETIM_DESAFIO_PADRAO`), não 2:
+  numa prova se quer ouvir mais. Por distância, ele substitui o aviso do km.
+  O boletim por tempo espera 15 s sem fala (`n.ultFala`).
+- **Chamar amigo durante a prova** ("📤 Chamar amigo para correr comigo
+  agora"), além do convite antes (na sala) e do resultado depois (o fantasma
+  👻). Quem entra no meio aparece na pista, comparado pelo tempo de prova.
+
+Coberto por `teste-corrida-app.js` (52 checagens). No navegador: 70 s com o
+relógio adiantado no meio da prova → 1:16 contados, sem pausa, e o boletim
+falado.
 
 **Não está validado em aparelho**: dois celulares de verdade em redes móveis,
 e os três retransmissores públicos (a sessão na nuvem não os alcança). Foi

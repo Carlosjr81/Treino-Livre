@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24l";
+const VERSAO_APP = "2026-10-24m";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -19001,8 +19001,40 @@ function situacaoDesafio(linhas, eu) {
 }
 // Tudo o que a voz diz numa leitura da corrida. n guarda o que já foi dito.
 //   devolve [{ texto, prioridade, som }] — som: "passei" | "passou" | null
-function novoNarradorDesafio() {
-  return { commit: null, pend: null, nPend: 0, avisos: {}, proxKm: 1000, proxMin: 5, finalAvisado: false, vistos: {}, chegaram: {}, semSinal: {} };
+// O boletim do desafio (pedido do dono: "não estou escutando feedback de
+// tempo, distância, desafio, dos amigos e os meus"). De tempo em tempo, ou a
+// cada marca de distância (voz.boletim/boletimPor, os mesmos ajustes do
+// aeróbico), a voz diz o tempo, a distância, o ritmo de agora, quanto falta e
+// onde está cada amigo, pelo nome. Sem ninguém ter escolhido, é a cada minuto:
+// numa prova a pessoa quer ouvir mais do que num treino.
+const BOLETIM_DESAFIO_PADRAO = 60;
+function regraBoletimDesafio(voz) {
+  const v = voz || {};
+  if (v.falar === false) return null;
+  if (v.boletimPor === "distancia") return { tipo: "distancia", m: BOLETIM_DISTANCIAS.indexOf(v.boletimM) >= 0 ? v.boletimM : 1000 };
+  const b = v.boletim === undefined || v.boletim === null ? BOLETIM_DESAFIO_PADRAO : Math.max(0, parseInt(v.boletim) || 0);
+  return b ? { tipo: "tempo", s: b } : null;
+}
+// "6 minutos. 1,1 quilômetro. Ritmo de 5 minutos e 40 por quilômetro. Faltam 1,9
+// quilômetros. Você em 2º de 3: Ana 120 metros à frente, Bia 300 metros atrás.
+// Ana está a 5 minutos e 20 por quilômetro."
+function boletimDesafio(linhas, eu, e, meta, q) {
+  const vEu = eu && eu.v > 0.3 ? eu.v : e.t > 0 ? e.d / (e.t / 1000) : 0;
+  const ritmo = vEu > 0.3 ? 1000 / vEu / 60 : 0;
+  let f = boletimCardio({ seg: Math.round(e.t / 1000), km: e.d / 1000, ritmo: ritmo, trecho: q && q.trecho,
+    falta: meta.tipo === "tempo" ? Math.round((meta.alvo - e.t) / 1000) : 0 });
+  if (meta.tipo === "distancia" && meta.alvo - e.d > 50) f += " Faltam " + falaDistancia((meta.alvo - e.d) / 1000) + ".";
+  f += situacaoDesafio(linhas, eu);
+  // o ritmo de quem está logo à frente e logo atrás: é com eles que se disputa
+  [linhas[eu.pos - 2], linhas[eu.pos]].forEach((l) => {
+    if (!l || l.terminou || !(l.v > 0.3)) return;
+    f += " " + l.p.nome + " está a " + falaRitmo(1000 / l.v / 60) + ".";
+  });
+  return f.trim();
+}
+function novoNarradorDesafio(regra) {
+  return { commit: null, pend: null, nPend: 0, avisos: {}, proxKm: 1000, proxMin: 5, finalAvisado: false, vistos: {}, chegaram: {}, semSinal: {},
+    bol: regra ? criarBoletim(regra, 0, 0) : null, ultFala: 0 };
 }
 function narrarDesafio(n, linhas, e, meta, meuId, agora) {
   const falas = [];
@@ -19054,7 +19086,16 @@ function narrarDesafio(n, linhas, e, meta, meuId, agora) {
   }
   // a chegada tem a frase dela (falaChegada): o km e o "últimos 200 m" não vêm depois
   if (e.fim) return falas;
-  if (e.d >= n.proxKm) {
+  const porDist = !!(n.bol && n.bol.porDistancia);
+  if (n.bol && !e.pausado) {
+    const q = n.bol.quando(e.t / 1000, e.d, falas.length === 0 && agora - (n.ultFala || 0) >= 15000);
+    if (q) {
+      if (porDist && e.d >= n.proxKm) n.proxKm = (Math.floor(e.d / 1000) + 1) * 1000;
+      dizer(boletimDesafio(linhas, eu, e, meta, q), 2);
+    }
+  }
+  // por distância, o boletim já é o aviso de cada marca
+  if (!porDist && e.d >= n.proxKm) {
     const km = Math.floor(e.d / 1000);
     n.proxKm = (km + 1) * 1000;
     dizer(km + (km === 1 ? " quilômetro" : " quilômetros") + " em " + textoDuracao(Math.round(e.t / 1000)) + "." + situacaoDesafio(linhas, eu), 3);
@@ -19067,6 +19108,7 @@ function narrarDesafio(n, linhas, e, meta, meuId, agora) {
     n.finalAvisado = true;
     dizer((meta.tipo === "distancia" ? "Últimos 200 metros!" : "Último minuto!") + situacaoDesafio(linhas, eu), 4);
   }
+  if (falas.length) n.ultFala = agora;
   return falas;
 }
 function falaChegada(meta, e, linhas) {
@@ -19093,7 +19135,7 @@ function criarCorridaApp(cfg, deps) {
   const meta = cfg.meta;
   const esteira = cfg.ambiente === "esteira";
   const outros = {};
-  const n = novoNarradorDesafio();
+  const n = novoNarradorDesafio(cfg.boletim || null);
   const pts = [];
   let kmh = cfg.kmh || 9, ant = null, largou = false, ultPub = 0, sala = null;
   const e = { t: cfg.t0 || 0, d: cfg.d0 || 0, trilha: cfg.trilha0 && cfg.trilha0.length ? cfg.trilha0.slice() : [[0, 0]], fim: null, pausado: false,
@@ -20313,7 +20355,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
   const [kmh, setKmh] = useState(9);
   const outros = useRef({}), conRef = useRef(null), filaR = useRef(null), euR = useRef(null), pts = useRef([]);
   const kmhRef = useRef(9), salaR = useRef(null), cfgR = useRef(cfg), etapaR = useRef(etapa);
-  const narr = useRef(novoNarradorDesafio());
+  const narr = useRef(novoNarradorDesafio(regraBoletimDesafio(vozCfg)));
   // No app Android, a corrida é conduzida pelo CorridaService (tela travada no
   // bolso) e esta tela é espelho: { dt, comeca } da corrida que o app corre.
   const [conduzido, setConduzido] = useState(null);
@@ -20483,7 +20525,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
       const comeca = Date.now() + 3200;
       cond = { dt: new Date(comeca).toISOString(), comeca: comeca };
       mandarApp({ d: padraoParaB64Url(b64Codificar(JSON.stringify({ c: sala.codigo, b: sala.broker, mt: meta.tipo === "tempo" ? "t" : "d", al: meta.alvo,
-        at: cfg.atividade, am: cfg.ambiente, n: cfg.nome.trim(), i: meuId, k: kmh, co: comeca }))) });
+        at: cfg.atividade, am: cfg.ambiente, n: cfg.nome.trim(), i: meuId, k: kmh, co: comeca, bl: regraBoletimDesafio(vozCfg) }))) });
     }
     condR.current = cond; setConduzido(cond);
     let n = 3;
@@ -20500,7 +20542,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
       euR.current = { t: 0, d: 0, trilha: [[0, 0]], fim: null, pausado: false, inicio: c ? c.dt : new Date().toISOString(), id: "dsf-" + (c ? c.comeca : Date.now()), seg: 0, ultAmostra: 0, ultPub: 0, ultNarr: 0, kmhSoma: 0,
         tBase: 0, recebidoEm: Date.now() };
       pts.current = [];
-      narr.current = novoNarradorDesafio();
+      narr.current = novoNarradorDesafio(regraBoletimDesafio(vozCfg));
       Object.keys(outros.current).forEach((k) => { narr.current.vistos[k] = true; });
       ligarTravaTela();
       setSalvo(false);
@@ -20562,7 +20604,9 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
 
   useEffect(() => {
     if (etapa !== "corrida") return;
-    let ant = performance.now(), ultGps = 0;
+    // Date.now e não performance.now: com o celular dormindo, o relógio
+    // monotônico do Android pode parar, e a volta perderia esse tempo
+    let ant = Date.now(), ultGps = 0;
     const iv = setInterval(() => {
       const e = euR.current;
       if (!e) return;
@@ -20574,10 +20618,17 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
         return;
       }
       if (e.fim) return;
-      const agora = performance.now();
-      let dt = agora - ant;
+      const agora = Date.now();
+      let dt = Math.max(0, agora - ant);
       ant = agora;
-      if (dt > 5000 && !e.pausado) { pausar(); setLegenda("Pausado: o app ficou em segundo plano e não acompanhou esse tempo."); return; }
+      // Relato do dono: cada vez que saía do app e voltava, a prova estava
+      // pausada. Quem sai do app continua andando: o tempo conta, e a distância
+      // vem do GPS quando ele volta (o trecho sem sinal entra em linha reta).
+      if (dt > 5000 && !e.pausado) {
+        if (demo) dt = 200;
+        else setLegenda("O app ficou " + textoDuracao(Math.round(dt / 1000)) + " em segundo plano e a prova continuou contando." +
+          (esteira ? "" : peloApp ? "" : " Com a tela travada o navegador não mede o GPS nem fala: " + (EH_ANDROID ? "no app Android, a corrida segue no bolso." : "deixe a tela ligada.")));
+      }
       if (!e.pausado) {
         if (demo) dt *= 10;
         const dAntes = e.d, tAntes = e.t;
@@ -20679,9 +20730,11 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
   };
   const compartilhar = async (comResultado) => {
     const e = euR.current;
-    const lista = comResultado && e && e.fim ? todos() : Object.keys(outros.current).map((k) => outros.current[k]).filter((p) => !p.demo);
+    const lista = comResultado === true && e && e.fim ? todos() : Object.keys(outros.current).map((k) => outros.current[k]).filter((p) => !p.demo);
     const url = linkDesafio(sala, lista.map((p) => (p.eu ? Object.assign({}, p, { trilha: e.trilha, dt: e.inicio }) : p)));
-    const texto = (comResultado && e && e.fim
+    const texto = (comResultado === "agora"
+      ? "🏁 Estou correndo agora o desafio de " + nomeMetaDesafio(meta) + " (sala " + sala.codigo + "). Entra e corre comigo: você aparece na minha pista e eu na sua."
+      : comResultado && e && e.fim
       ? "🏁 Fiz " + (meta.tipo === "distancia" ? nomeMetaDesafio(meta) + " em " + fmtTempoRota(e.fim.ms) : num1(e.fim.m / 1000) + " km em " + nomeMetaDesafio(meta)) + " no desafio. Consegue me passar?"
       : "🏁 Te desafio: " + nomeMetaDesafio(meta) + " de " + (sala.atividade === "caminhada" ? "caminhada" : "corrida") + ". Sala " + sala.codigo + ".") +
       " Corre de onde estiver, agora ou depois: o app compara pelo mesmo tempo de prova. (Treino Livre, app gratuito do @" + INSTAGRAM + ")";
@@ -20973,6 +21026,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
                 ? <button onClick={retomar} style={{ ...S.btn, gridColumn: "1 / 3", padding: "16px 10px", fontSize: 16 }}>▶ Retomar</button>
                 : <button onClick={pausar} style={{ ...S.btn, gridColumn: "1 / 3", padding: "16px 10px", fontSize: 16 }}>⏸ Pausar</button>}
               <button onClick={() => terminar(false)} style={{ ...S.btnGhost, gridColumn: "1 / 3", padding: "14px 8px", fontWeight: 900, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}>■ Encerrar</button>
+              {!demo && <button onClick={() => compartilhar("agora")} style={{ ...S.btnGhost, gridColumn: "1 / 3", padding: "12px 8px", fontWeight: 800 }}>📤 Chamar amigo para correr comigo agora</button>}
             </div>
           </React.Fragment>
         )}
@@ -20987,7 +21041,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
             </div>
             {legenda && <div style={{ fontSize: 12.5, marginBottom: 8 }}>🔊 {legenda}</div>}
             {!demo && <button disabled={salvo} onClick={() => { onSalvar(montarRegistro()); setSalvo(true); }} style={{ ...S.btn, width: "100%", opacity: salvo ? 0.5 : 1 }}>{salvo ? "✓ Salvo no histórico" : "Salvar no histórico"}</button>}
-            {!demo && e.fim && <button onClick={() => compartilhar(true)} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontWeight: 900 }}>📤 Mandar meu resultado (quem abrir corre contra você)</button>}
+            {!demo && e.fim && <button onClick={() => compartilhar(true)} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontWeight: 900 }}>📤 Mandar meu resultado: quem abrir corre contra o seu fantasma 👻</button>}
             <button onClick={() => { euR.current = null; condR.current = null; setConduzido(null); setEtapa("sala"); publicar(); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>↻ Correr de novo nesta sala</button>
             <button onClick={() => { if (condR.current) mandarApp({ acao: "parar" }); condR.current = null; setConduzido(null); if (conRef.current) conRef.current.fechar(); conRef.current = null; euR.current = null; setSala(null); setConexao("desligada"); setEtapa("config"); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>Sair da sala</button>
           </div>
@@ -28943,6 +28997,7 @@ if (MODO_CORRIDA) {
         codigo: cod.codigo, broker: cod.broker, meta: { tipo: c.mt === "t" ? "tempo" : "distancia", alvo: Number(c.al) },
         atividade: c.at === "caminhada" ? "caminhada" : "corrida", ambiente: c.am === "esteira" ? "esteira" : "rua",
         nome: String(c.n || "").slice(0, 24), id: String(c.i || ""), kmh: Number(c.k) || 9, comeca: Number(c.co) || Date.now(),
+        boletim: c.bl && (c.bl.tipo === "tempo" ? c.bl.s > 0 : c.bl.m > 0) ? { tipo: c.bl.tipo === "distancia" ? "distancia" : "tempo", s: Number(c.bl.s) || 0, m: Number(c.bl.m) || 0 } : null,
       }, {
         agora: () => Date.now(),
         conectar: (o) => criarSalaAoVivo({ url: urlBroker(o.broker), codigo: o.codigo, id: o.id, aoEstado: () => {}, aoParticipante: o.aoParticipante }),

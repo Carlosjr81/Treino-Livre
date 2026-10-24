@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24j";
+const VERSAO_APP = "2026-10-24k";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -18985,7 +18985,7 @@ const metricasDoFoco = (foco) => {
 const reguaDoFoco = (foco) => (foco === "corrida" ? "ks" : "ts");
 // O que a pessoa está fazendo agora (ag.t) e o que fez por último (uc.t)
 const TEXTO_AO_VIVO = { "rua-corrida": "correndo na rua", "rua-caminhada": "caminhando na rua", "rua-bike": "pedalando na rua",
-  "esteira-corrida": "correndo na esteira", "esteira-caminhada": "caminhando na esteira", "aparelho": "no aeróbico" };
+  "esteira-corrida": "correndo na esteira", "esteira-caminhada": "caminhando na esteira", "aparelho": "no aeróbico", "academia": "treinando na academia" };
 const VERBO_CARDIO = { "rua-corrida": ["correu", " na rua"], "rua-caminhada": ["caminhou", " na rua"], "rua-bike": ["pedalou", " na rua"],
   "esteira-corrida": ["correu", " na esteira"], "esteira-caminhada": ["caminhou", " na esteira"], "aparelho": ["fez", ""] };
 const fmtRitmoGrupo = (s) => (s > 0 ? Math.floor(s / 60) + ":" + String(Math.round(s % 60)).padStart(2, "0") + " /km" : "—");
@@ -19102,7 +19102,8 @@ function lerMembroGrupo(m) {
     if (typeof m.uc.nm === "string") r.uc.nm = m.uc.nm.slice(0, 30);
   }
   if (m.ag && typeof m.ag === "object" && tipoOk(m.ag.t)) {
-    r.ag = { t: m.ag.t, km: Math.round(num(m.ag.km, 1e3) * 100) / 100, s: Math.round(num(m.ag.s, 1e6)), v: Math.round(num(m.ag.v, 100) * 10) / 10, em: num(m.ag.em, 1e14) };
+    r.ag = { t: m.ag.t, km: Math.round(num(m.ag.km, 1e3) * 100) / 100, s: Math.round(num(m.ag.s, 1e6)), v: Math.round(num(m.ag.v, 100) * 10) / 10, em: num(m.ag.em, 1e14),
+      se: Math.round(num(m.ag.se, 500)), vo: Math.round(num(m.ag.vo, 1e6)) };
     if (typeof m.ag.nm === "string") r.ag.nm = m.ag.nm.slice(0, 30);
   }
   let dd = 0;
@@ -19206,7 +19207,7 @@ function eventosGrupo(antes, depois, meuId, agora, regua) {
     if (!a) { if (temAntes) ev.push({ ico: "👋", txt: d.n + " entrou no desafio" }); return; }
     const corridaNova = d.uc && (!a.uc || d.uc.d > a.uc.d);
     if (corridaNova) ev.push({ ico: "🏃", txt: d.n + " " + textoCardioGrupo(d.uc) });
-    if (!agFresco(a.ag, agora) && agFresco(d.ag, agora)) ev.push({ ico: "🔴", txt: d.n + " começou agora: " + (TEXTO_AO_VIVO[d.ag.t] || "treinando") });
+    if (!agFresco(a.ag, agora) && agFresco(d.ag, agora)) ev.push({ ico: "🔴", txt: d.n + " começou agora: " + (TEXTO_AO_VIVO[d.ag.t] || "treinando") + (d.ag.t === "academia" && d.ag.nm ? " (" + d.ag.nm + ")" : "") });
     // o treino que foi só aquela corrida já está dito na linha de cima
     const soCorrida = corridaNova && d.ul && d.ul.d === d.uc.d && (d.tt || 0) - (a.tt || 0) === 1;
     if ((d.tt || 0) > (a.tt || 0) && d.ul && !soCorrida) {
@@ -19278,34 +19279,93 @@ function falaGrupo(g, meuId, agora) {
 // de cada amigo (com os de agora dele também, se ele estiver correndo), e
 // diz quando eu passo alguém, quando alguém me passa, quando falta pouco, e
 // quem mais está correndo. `est` guarda o que já foi dito: cada coisa uma vez.
-function falasAoVivoGrupo(est, membros, meuId, meuKm, agora) {
+// `regua`: "ks" na corrida (meuAgora em km) ou "vs" na academia (em kg). Quem
+// está treinando agora conta com o de agora também.
+function falasAoVivoGrupo(est, membros, meuId, meuAgora, agora, regua) {
+  const rg = regua === "vs" ? "vs" : "ks";
   const sem = segundaDaSemana(agora).getTime();
   const eu = membros && membros[meuId];
   if (!eu) return [];
-  const efetivo = (m) => (m.sem === sem ? m.ks || 0 : 0) + (agFresco(m.ag, agora) ? m.ag.km || 0 : 0);
-  const meu = (eu.sem === sem ? eu.ks || 0 : 0) + (meuKm || 0);
+  const doAgora = (ag) => (!agFresco(ag, agora) ? 0 : rg === "vs" ? (ag.t === "academia" ? ag.vo || 0 : 0) : ag.t === "academia" ? 0 : ag.km || 0);
+  const efetivo = (m) => (m.sem === sem ? m[rg] || 0 : 0) + doAgora(m.ag);
+  const meu = (eu.sem === sem ? eu[rg] || 0 : 0) + (meuAgora || 0);
+  // folga: 20 m de GPS que treme, 20 kg de anilha
+  const folga = rg === "vs" ? 20 : 0.02, perto = (d) => (rg === "vs" ? d <= Math.max(300, meu * 0.05) : d <= 0.5);
+  const nomeRg = rg === "vs" ? "no volume da semana" : "nos quilômetros da semana";
+  const falta = (d) => (rg === "vs" ? (d >= 1000 ? num1(d / 1000).replace(".", ",") + " toneladas" : Math.max(5, Math.round(d / 5) * 5) + " quilos")
+    : Math.max(10, Math.round((d * 1000) / 10) * 10) + " metros");
   const falas = [];
   Object.keys(membros).forEach((id) => {
     if (id === meuId) return;
     const m = membros[id], deles = efetivo(m);
-    // 20 m de folga: o GPS que treme não pode ficar passando e sendo passado
-    const frente = est.frente[id] === undefined ? meu > deles : est.frente[id] ? meu > deles - 0.02 : meu > deles + 0.02;
+    const frente = est.frente[id] === undefined ? meu > deles : est.frente[id] ? meu > deles - folga : meu > deles + folga;
     if (est.frente[id] === undefined) est.frente[id] = frente;
     else if (frente !== est.frente[id]) {
       est.frente[id] = frente;
       est.perto[id] = false;
-      if (frente) falas.push("Você passou " + m.n + " nos quilômetros da semana!");
-      else if (agFresco(m.ag, agora)) falas.push(m.n + " passou você nos quilômetros da semana. Acelera!");
+      if (frente) falas.push("Você passou " + m.n + " " + nomeRg + "!");
+      else if (agFresco(m.ag, agora)) falas.push(m.n + " passou você " + nomeRg + ". Acelera!");
     }
-    if (!frente && deles > 0 && deles - meu <= 0.5 && !est.perto[id]) {
+    if (!frente && deles > 0 && perto(deles - meu) && !est.perto[id]) {
       est.perto[id] = true;
-      falas.push("Faltam " + Math.max(10, Math.round(((deles - meu) * 1000) / 10) * 10) + " metros para passar " + m.n + " nos quilômetros da semana.");
+      falas.push("Faltam " + falta(deles - meu) + " para passar " + m.n + " " + nomeRg + ".");
     }
     if (agFresco(m.ag, agora) && !est.vivo[id]) {
       est.vivo[id] = true;
-      falas.push(m.n + " também está " + (TEXTO_AO_VIVO[m.ag.t] || "treinando") + " agora" + (m.ag.km > 0 ? ", com " + num1(m.ag.km).replace(".", ",") + " quilômetros" : "") + ".");
+      falas.push(m.n + " também está " + (TEXTO_AO_VIVO[m.ag.t] || "treinando") + " agora" +
+        (m.ag.t === "academia" ? (m.ag.se ? ", com " + m.ag.se + " " + plural(m.ag.se, "série", "séries") : "") : m.ag.km > 0 ? ", com " + num1(m.ag.km).replace(".", ",") + " quilômetros" : "") + ".");
     }
   });
+  return falas;
+}
+// Em horários diferentes: cada um treina quando pode, e a comparação é com o
+// ÚLTIMO treino do amigo, no mesmo ponto do tempo. Na corrida, a cada km meu:
+// "no mesmo tempo da última corrida da Ana, ela tinha 2,1 km" (ritmo médio
+// dela, porque só o total viaja); e quando eu passo a distância toda dela. Na
+// academia, quando o volume de hoje passa o do último treino de cada um. Só
+// vale o que o amigo fez nos últimos 14 dias, e corrida com corrida.
+const classeCardio = (t) => (/corrida/.test(t) ? "corrida" : /caminhada/.test(t) ? "caminhada" : /bike/.test(t) ? "bike" : null);
+function falasFantasmaGrupo(est, membros, meuId, a, agora) {
+  const falas = [];
+  if (!membros || !a) return falas;
+  const recente = (d) => d && agora - d < 14 * 86400000;
+  if (a.t === "academia") {
+    Object.keys(membros).forEach((id) => {
+      const m = membros[id];
+      if (id === meuId || !m.ul || !recente(m.ul.d) || !(m.ul.v > 0) || est.passouTreino[id]) return;
+      if ((a.vol || 0) > m.ul.v) {
+        est.passouTreino[id] = true;
+        falas.push("Você passou o volume do último treino " + (m.n ? "de " + m.n : "") + ": " + (m.ul.v >= 1000 ? num1(m.ul.v / 1000).replace(".", ",") + " toneladas" : m.ul.v + " quilos") + ".");
+      }
+    });
+    return falas;
+  }
+  const cl = classeCardio(a.t);
+  if (!cl) return falas;
+  const nome = cl === "corrida" ? "corrida" : cl === "caminhada" ? "caminhada" : "pedalada";
+  const rivais = Object.keys(membros).filter((id) => {
+    const m = membros[id];
+    return id !== meuId && m.uc && recente(m.uc.d) && classeCardio(m.uc.t) === cl && m.uc.km > 0 && m.uc.s > 0;
+  }).map((id) => membros[id]);
+  rivais.forEach((m) => {
+    const key = m.n + m.uc.d;
+    if (!est.passouDist[key] && a.km > m.uc.km) {
+      est.passouDist[key] = true;
+      falas.push("Você passou os " + num1(m.uc.km).replace(".", ",") + " quilômetros da última " + nome + " de " + m.n + ".");
+    }
+  });
+  const marca = Math.floor(a.km || 0);
+  if (marca >= 1 && marca > (est.kmFantasma || 0)) {
+    est.kmFantasma = marca;
+    // o rival que ainda corria neste tempo e está mais perto de mim
+    const comp = rivais.filter((m) => a.seg <= m.uc.s).map((m) => ({ m: m, km: (m.uc.km * a.seg) / m.uc.s }))
+      .sort((x, y) => Math.abs(x.km - a.km) - Math.abs(y.km - a.km))[0];
+    if (comp) {
+      const dif = Math.round((a.km - comp.km) * 100) * 10;
+      falas.push("No mesmo tempo, na última " + nome + " de " + comp.m.n + ", eram " + num1(comp.km).replace(".", ",") + (num1(comp.km) === "1" ? " quilômetro" : " quilômetros") + ": você está " +
+        (Math.abs(dif) < 20 ? "empatado." : Math.abs(dif) + " metros " + (dif > 0 ? "à frente." : "atrás.")));
+    }
+  }
   return falas;
 }
 function linkGrupo(g) {
@@ -19415,25 +19475,29 @@ const AO_VIVO_GRUPO = (() => {
     });
   });
   return {
-    // a: { t, km, seg, v, nm }. Devolve a frase a dizer, ou null.
-    tick(a) {
+    // a: { t, km, seg, v, nm, se, vol }. Devolve a frase a dizer, ou null.
+    // `forcar`: publica e confere já (a série que acabou de ser marcada).
+    tick(a, forcar) {
       const id = meuIdGrupo();
       const gs = lerGrupos().filter((g) => g.membros && g.membros[id]);
       if (!gs.length || !a) return null;
       const agora = Date.now();
       ag = { t: TEXTO_AO_VIVO[a.t] ? a.t : "aparelho", km: Math.round((a.km || 0) * 100) / 100, s: Math.round(a.seg || 0), v: Math.round((a.v || 0) * 10) / 10, em: agora };
       if (a.nm) ag.nm = String(a.nm).slice(0, 30);
-      if (agora - ultimo > 15000) {
+      if (a.t === "academia") { ag.se = a.se || 0; ag.vo = Math.round(a.vol || 0); }
+      if (forcar || agora - ultimo > 15000) {
         ultimo = agora;
         abrir(gs);
         gs.forEach((g) => { const s = salas[g.codigo]; if (s) s.publicar(Object.assign({}, g.membros[id], { ag: ag })); });
       }
-      if (!est) est = { frente: {}, perto: {}, vivo: {}, em: 0 };
-      if (agora - est.em < 5000) return null;
+      if (!est || est.t !== a.t) est = { t: a.t, frente: {}, perto: {}, vivo: {}, em: 0, passouTreino: {}, passouDist: {}, kmFantasma: Math.floor(a.km || 0) };
+      if (!forcar && agora - est.em < 5000) return null;
       est.em = agora;
       const todos = {};
       gs.forEach((g) => Object.assign(todos, g.membros));
-      const f = falasAoVivoGrupo(est, todos, id, ag.km, agora);
+      const academia = a.t === "academia";
+      const f = falasAoVivoGrupo(est, todos, id, academia ? a.vol || 0 : ag.km, agora, academia ? "vs" : "ks")
+        .concat(falasFantasmaGrupo(est, todos, id, { t: a.t, km: a.km || 0, seg: a.seg || 0, vol: a.vol || 0 }, agora));
       return f.length ? f.join(" ") : null;
     },
     parar() {
@@ -19705,6 +19769,13 @@ function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar, onDesaf
               {correndo.map((m, i) => (
                 <div key={i} style={{ padding: "6px 0", borderTop: i ? "1px solid var(--borda)" : "none" }}>
                   <div style={{ fontSize: 14, fontWeight: 800 }}>{m.n} · {TEXTO_AO_VIVO[m.ag.t] || "treinando"}{m.ag.nm ? " (" + m.ag.nm + ")" : ""}</div>
+                  {m.ag.t === "academia" ? (
+                  <div style={{ fontSize: 13, color: "var(--cinza)", marginTop: 2 }}>
+                    {fmtMetricaGrupo("se", m.ag.se)} · {fmtMetricaGrupo("vs", m.ag.vo)} · {durGrupo(m.ag.s)}
+                    {" · na semana " + fmtMetricaGrupo("vs", (m.sem === semAtual ? m.vs || 0 : 0) + (m.ag.vo || 0))}
+                    <span style={{ color: "var(--cinza2)" }}> · {quandoFoi(m.ag.em, agora) === "agora" ? "agora" : "atualizado " + quandoFoi(m.ag.em, agora)}</span>
+                  </div>
+                  ) : (
                   <div style={{ fontSize: 13, color: "var(--cinza)", marginTop: 2 }}>
                     {m.ag.km > 0 ? num1(m.ag.km) + " km · " : ""}{durGrupo(m.ag.s)}
                     {m.ag.km >= 0.2 && m.ag.s > 0 && !/bike|aparelho/.test(m.ag.t) ? " · " + fmtRitmoGrupo(m.ag.s / m.ag.km) : ""}
@@ -19712,9 +19783,10 @@ function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar, onDesaf
                     {" · na semana " + num1((m.sem === semAtual ? m.ks || 0 : 0) + (m.ag.km || 0)) + " km"}
                     <span style={{ color: "var(--cinza2)" }}> · {quandoFoi(m.ag.em, agora) === "agora" ? "agora" : "atualizado " + quandoFoi(m.ag.em, agora)}</span>
                   </div>
+                  )}
                 </div>
               ))}
-              <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 4 }}>Corra também: com o app aberto na rua ou na esteira, a voz avisa quando você passar alguém.</div>
+              <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 4 }}>Treine também: com o app aberto, na academia, na rua ou na esteira, a voz avisa quando você passar alguém.</div>
             </div>
           )}
 
@@ -19789,7 +19861,7 @@ function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar, onDesaf
                     </div>
                     {coroas[x.id] && <div style={{ fontSize: 11.5, color: "var(--ok)", fontWeight: 700, marginTop: 5 }}>👑 Lidera em {coroas[x.id].join(", ")}</div>}
                     {!eu && agFresco(m.ag, agora) && (
-                      <div style={{ fontSize: 12.5, color: "var(--ok)", fontWeight: 800, marginTop: 5 }}>🔴 {TEXTO_AO_VIVO[m.ag.t]} agora{m.ag.km > 0 ? ": " + num1(m.ag.km) + " km" : ""}</div>
+                      <div style={{ fontSize: 12.5, color: "var(--ok)", fontWeight: 800, marginTop: 5 }}>🔴 {TEXTO_AO_VIVO[m.ag.t]} agora{m.ag.t === "academia" ? (m.ag.se ? ": " + fmtMetricaGrupo("se", m.ag.se) + " · " + fmtMetricaGrupo("vs", m.ag.vo) : "") : m.ag.km > 0 ? ": " + num1(m.ag.km) + " km" : ""}</div>
                     )}
                     <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 5, lineHeight: 1.5 }}>
                       {focoG === "corrida" ? (
@@ -19862,8 +19934,9 @@ function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar, onDesaf
             </div>
             <div style={{ fontSize: 12, color: "var(--cinza)", marginBottom: 8, lineHeight: 1.5 }}>
               {focoNovo === "corrida"
-                ? "Km na rua e na esteira, ritmo, maior distância, e quem está correndo agora. Durante a sua corrida a voz avisa quando você passar alguém."
-                : "Treinos, dias, minutos, volume, séries e recordes da semana."}
+                ? "Km na rua e na esteira, ritmo, maior distância, e quem está correndo agora. Durante a sua corrida a voz avisa quando você passar alguém, e compara com a última corrida de cada um no mesmo tempo."
+                : "Treinos, dias, minutos, volume, séries e recordes da semana, e quem está treinando agora. Durante o treino a voz avisa quando você passar alguém no volume."}
+              {" Vale ao vivo, todos ao mesmo tempo, e em horários diferentes: cada um treina quando pode."}
             </div>
             <button onClick={criar} style={{ ...S.btn, marginTop: 0 }}>Criar e convidar os amigos</button>
           </div>
@@ -22389,6 +22462,40 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     if (vozAtiva && responderVoz) responderVoz(frase, true);
     else narrarVoz(frase, vozCfg);
   };
+  // O desafio entre amigos, no treino de academia: a cada série marcada os
+  // amigos veem "treinando agora" com as séries e o volume, e eu ouço quando
+  // passo alguém no volume da semana ou o volume do último treino dele. De
+  // minuto em minuto renova o "agora" (ele vale 2 min). Com o ▶ de uma série
+  // aeróbica ou a esteira conduzindo, quem fala ao grupo são eles.
+  const academiaAgora = useMemo(() => {
+    let se = 0, vol = 0;
+    sessao.itens.forEach((it) => (it.series || []).forEach((s) => {
+      if (!s.feito || !serieConta(s) || ehCardio(s)) return;
+      se++;
+      if (!ehTempo(s)) vol += cargaDe(s) * repsDe(s);
+    }));
+    return { se: se, vol: Math.round(vol) };
+  }, [sessao]);
+  const academiaRef = useRef(academiaAgora);
+  academiaRef.current = academiaAgora;
+  const cardioNoGrupo = useRef(false);
+  cardioNoGrupo.current = !!crono;
+  const tickAcademia = (forcar) => {
+    const a = academiaRef.current;
+    if (!a.se || cardioNoGrupo.current) return null;
+    return AO_VIVO_GRUPO.tick({ t: "academia", nm: String(sessao.nome || "").slice(0, 30), se: a.se, vol: a.vol, seg: Math.round((Date.now() - (sessao.inicio || Date.now())) / 1000) }, forcar);
+  };
+  useEffect(() => {
+    if (!academiaAgora.se) return undefined;
+    const fg = tickAcademia(true);
+    // depois da confirmação da série, para não cortar a frase dela
+    const tm = fg ? setTimeout(() => falarRef.current(fg), 4500) : null;
+    return () => { if (tm) clearTimeout(tm); };
+  }, [academiaAgora.se, academiaAgora.vol]);
+  useEffect(() => {
+    const iv = setInterval(() => { tickAcademia(true); }, 60000);
+    return () => { clearInterval(iv); AO_VIVO_GRUPO.parar(); };
+  }, []);
   // A tela acendeu: cala a repetição da melodia e diz o que ficou guardado.
   // Depois de três minutos a frase já não é notícia, e não é dita.
   useEffect(() => {
@@ -23243,6 +23350,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     return ei >= 0 ? { ei: ei, si: sessao.itens[ei].series.length, nova: true } : null;
   };
   const serieConduzida = esteiraConduz ? serieDaEsteira() || serieAlem() : null;
+  cardioNoGrupo.current = cardioNoGrupo.current || !!serieConduzida;
   // o desafio entre amigos: a esteira parou, o "correndo agora" para junto
   useEffect(() => { if (!serieConduzida) AO_VIVO_GRUPO.parar(); }, [!!serieConduzida]);
   const metaConduzida = serieConduzida && !serieConduzida.nova ? segundosDe(sessao.itens[serieConduzida.ei].series[serieConduzida.si]) || 0 : 0;

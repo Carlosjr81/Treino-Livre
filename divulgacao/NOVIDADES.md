@@ -16,6 +16,37 @@
 
 ---
 
+## 2026-10-24k — Desafio entre amigos ao vivo e em horários diferentes, na academia e na corrida
+
+**Em uma frase:** o desafio entre amigos funciona com todo mundo treinando junto, ao vivo, e com cada um treinando
+na sua hora: a voz compara você com o último treino ou a última corrida de cada amigo.
+
+**O que mudou**
+- **Academia ao vivo**: quem está treinando aparece para a galera, "🔴 Ana · treinando na academia (Peito) · 12 séries ·
+  4,2 t", e no mural "Ana começou agora".
+- **Durante o seu treino de academia** a voz avisa: "faltam 250 quilos para passar a Ana no volume da semana", "você
+  passou a Ana!", "a Ana também está treinando agora", e "você passou o volume do último treino da Ana".
+- **Corrida em horários diferentes**: a cada quilômetro, "no mesmo tempo, na última corrida da Ana, eram 2,1 km: você
+  está 200 metros atrás". E "você passou os 5 km da última corrida da Ana".
+- Vale para quem corre na rua, na esteira e para caminhada (caminhada compara com caminhada).
+
+**Por que importa para quem treina**
+- Nem todo mundo treina no mesmo horário. Agora o amigo que correu de manhã vira o "rival fantasma" de quem corre
+  à noite, e a galera que treina junta se vê ao vivo.
+
+**Como usar**
+- Entre num desafio entre amigos (Histórico › Números) e treine com o app aberto, na academia, na rua ou na esteira.
+
+**Ideias de vídeo**
+- Na esteira, de fone: "no mesmo tempo, na última corrida do Carlos, eram 3 km: você está 150 metros à frente".
+- Dois amigos em academias diferentes, um vendo o outro "treinando agora" com as séries subindo.
+
+**Não prometer**
+- A comparação com a corrida do amigo usa o ritmo médio dele, não o trecho a trecho. Precisa de internet e do app
+  aberto. Só vale o que o amigo fez nos últimos 14 dias.
+
+---
+
 ## 2026-10-24j — Desafio entre amigos de corrida e caminhada, na rua e na esteira
 
 **Em uma frase:** dá para criar um desafio de corrida e caminhada com a galera: ranking de km na rua e na

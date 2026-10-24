@@ -26,7 +26,7 @@ const fonte = [
   "const GRUPO_POR_EXERCICIO = { \"supino-reto\": \"peito\", agachamento: \"pernas\" };",
   html.slice(ini, fim),
 ].join("\n");
-eval(fonte + "\nglobalThis.G = { falasAoVivoGrupo, textoCardioGrupo, metricasDoFoco, tipoCardioGrupo, minhasPosicoesGrupo, totaisGrupo, eventosGrupo, aplicarMembrosGrupo, falaGrupo, numerosDoGrupo, lerMembroGrupo, rankingGrupo, fraseGrupo, linkGrupo, lerPacoteGrupo, fmtMetricaGrupo, juntarGrupoRecebido, b64Decodificar };");
+eval(fonte + "\nglobalThis.G = { falasFantasmaGrupo, falasAoVivoGrupo, textoCardioGrupo, metricasDoFoco, tipoCardioGrupo, minhasPosicoesGrupo, totaisGrupo, eventosGrupo, aplicarMembrosGrupo, falaGrupo, numerosDoGrupo, lerMembroGrupo, rankingGrupo, fraseGrupo, linkGrupo, lerPacoteGrupo, fmtMetricaGrupo, juntarGrupoRecebido, b64Decodificar };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -244,6 +244,29 @@ contem("o Jarvis fala dos km e de quem corre agora", G.falaGrupo({ nome: "Galera
 const lkc = G.lerPacoteGrupo(G.linkGrupo({ codigo: "ABCDE2", nome: "Corrida", foco: "corrida", membros: {} }).split("#grupo=")[1], G.b64Decodificar);
 teste("o foco viaja no link", "corrida", lkc.foco);
 teste("e entra no grupo recebido", "corrida", G.juntarGrupoRecebido([], lkc)[0].foco);
+
+console.log("\n[13] Academia ao vivo e horários diferentes");
+const novoEst = () => ({ frente: {}, perto: {}, vivo: {}, passouTreino: {}, passouDist: {}, kmFantasma: 0 });
+const AM = { eu: { n: "Carlos", vs: 3000, sem }, ana1: { n: "Ana", vs: 3200, sem, ul: { d: agora - 86400000, n: "Peito", v: 2500 },
+  ag: { t: "academia", se: 6, vo: 1500, em: agora - 5000 } }, bia1: { n: "Bia", vs: 2000, sem, ul: { d: agora - 20 * 86400000, n: "Perna", v: 900 } } };
+const ea = novoEst();
+const a0 = G.falasAoVivoGrupo(ea, AM, "eu", 0, agora, "vs").join(" ");
+contem("quem está na academia agora", a0, "Ana também está treinando na academia agora, com 6 séries.");
+contem("falta pouco no volume (com o de agora dela)", G.falasAoVivoGrupo(ea, AM, "eu", 1450, agora, "vs").join(" "), "Faltam 250 quilos para passar Ana no volume da semana.");
+contem("passou no volume", G.falasAoVivoGrupo(ea, AM, "eu", 1800, agora, "vs").join(" "), "Você passou Ana no volume da semana!");
+const fa = novoEst();
+teste("ainda não passou o último treino", "", G.falasFantasmaGrupo(fa, AM, "eu", { t: "academia", vol: 2400 }, agora).join(" "));
+contem("passou o volume do último treino dela", G.falasFantasmaGrupo(fa, AM, "eu", { t: "academia", vol: 2600 }, agora).join(" "), "Você passou o volume do último treino de Ana: 2,5 toneladas.");
+teste("uma vez só, e treino de 20 dias atrás não conta", "", G.falasFantasmaGrupo(fa, AM, "eu", { t: "academia", vol: 9000 }, agora).join(" "));
+const CM = { eu: { n: "Carlos" }, ana1: { n: "Ana", uc: { d: agora - 2 * 86400000, t: "rua-corrida", km: 5, s: 1800 } },
+  bia1: { n: "Bia", uc: { d: agora - 86400000, t: "rua-caminhada", km: 4, s: 2400 } } };
+const fc = novoEst();
+teste("antes do 1º km, nada", "", G.falasFantasmaGrupo(fc, CM, "eu", { t: "esteira-corrida", km: 0.9, seg: 320 }, agora).join(" "));
+contem("no mesmo tempo, a corrida dela (a caminhada da Bia não entra)", G.falasFantasmaGrupo(fc, CM, "eu", { t: "esteira-corrida", km: 1.05, seg: 360 }, agora).join(" "),
+  "No mesmo tempo, na última corrida de Ana, eram 1 quilômetro: você está 50 metros à frente.");
+contem("atrás", G.falasFantasmaGrupo(fc, CM, "eu", { t: "esteira-corrida", km: 2, seg: 800 }, agora).join(" "), "você está 220 metros atrás.");
+contem("passou a distância toda dela", G.falasFantasmaGrupo(fc, CM, "eu", { t: "rua-corrida", km: 5.1, seg: 1900 }, agora).join(" "), "Você passou os 5 quilômetros da última corrida de Ana.");
+teste("pedalada não compara com corrida", "", G.falasFantasmaGrupo(novoEst(), CM, "eu", { t: "rua-bike", km: 3, seg: 600 }, agora).join(" "));
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v119) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v120) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2202,7 +2202,40 @@ galera, o cartão de cada um e a resposta do Jarvis.
   corrida (mesma distância ou mesmo tempo, posição ao vivo): um é o ranking
   da semana, o outro a prova de agora.
 
-Coberto por `teste-grupo.js` (117 checagens). Testado no navegador com dois
+### Ao vivo e em horários diferentes, nos dois focos
+
+Pedido do dono: "precisa funcionar no treino ao vivo e em treinos em momentos
+de tempo separados". As duas pontas, para academia e para corrida:
+
+| | Ao vivo (todos agora) | Em horários diferentes |
+|---|---|---|
+| Academia | `ag.t = "academia"` com séries (`se`) e volume (`vo`) do treino aberto: "🔴 Ana · treinando na academia (Peito) · 12 séries · 4,2 t"; a voz avisa quando eu passo alguém **no volume da semana**, contando o de agora dele | "Você passou o volume do último treino da Ana" (`ul.v`) |
+| Corrida | o que já existia (`ag` com km) | a cada km meu, **no mesmo tempo da última corrida** de cada amigo: "na última corrida de Ana, eram 2,1 quilômetros: você está 200 metros atrás"; e "você passou os 5 km da última corrida da Ana" |
+
+- **`falasFantasmaGrupo`**: só o que o amigo fez nos últimos 14 dias, e
+  corrida com corrida, caminhada com caminhada, pedalada com pedalada
+  (`classeCardio`). O tempo é comparado pelo **ritmo médio dele** (só o
+  total, `uc.km`/`uc.s`, viaja na mensagem). Entre vários amigos, fala do
+  que está mais perto de mim, e só de quem ainda corria naquele tempo. A
+  diferença sai em dezenas de metros, e menos de 20 m é "empatado".
+- **`falasAoVivoGrupo(…, regua)`**: "ks" na corrida, "vs" na academia, com
+  a folga de 20 kg (o GPS que treme lá, a anilha aqui) e "falta pouco" abaixo
+  de 300 kg ou 5% do meu volume.
+- **Na `TelaSessao`** (`academiaAgora`, `tickAcademia`): cada série marcada
+  publica na hora (`tick(a, true)`) e a frase vem 4,5 s depois, para não
+  cortar a confirmação da série. De minuto em minuto renova o "agora" (que
+  vale 2 min). Com o ▶ de uma série aeróbica ou a esteira conduzindo
+  (`cardioNoGrupo`), quem fala ao grupo são eles. Sair do treino para o ao
+  vivo.
+- Trocar de tipo (academia para esteira no mesmo treino) recomeça o que já
+  foi dito (`est.t`).
+
+Coberto por `teste-grupo.js` (128 checagens). Testado no navegador: a Ana
+marca três séries e o Carlos, com o desafio aberto, vê "🔴 Ana · treinando na
+academia · 3 séries" e "Ana começou agora" no mural; antes, a esteira, com o
+"faltam 400 metros".
+
+Testado no navegador com dois
 aparelhos e um retransmissor local: o Carlos cria um desafio de corrida, a
 Ana entra pelo link e aperta o ▶ da esteira; ela ouve "Faltam 400 metros para
 passar Carlos" e ele vê "🔴 Ana · correndo na esteira" e "Ana começou agora"

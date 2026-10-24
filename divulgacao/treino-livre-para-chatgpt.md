@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24h**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24i**.
 
 ---
 
@@ -364,6 +364,9 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 - **Desafio entre amigos, em grupo:** cria um desafio, manda o convite para quantos amigos quiser, e todos veem o
   ranking de todos ao vivo (treinos, minutos, volume e km da semana, sequência e total), com o cartão de cada um
   e o último treino. Os números vão sozinhos depois de cada treino. Passa só apelido e números.
+  Tem mural ("Ana treinou Perna", "Bia bateu um recorde", "Ana passou você"), aviso ao abrir o app quando alguém
+  passa você, os totais da galera na semana, sua posição em nove rankings com quanto falta, o placar para mandar no
+  WhatsApp, e o Jarvis responde "como estou no desafio?".
 
 ### 3.14 Resumo animado e vídeo para o story 🎬
 - Qualquer treino vira um **resumo animado** no estilo da abertura: fundo preto, a **linha verde

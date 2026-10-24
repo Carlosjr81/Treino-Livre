@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v117) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v118) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2110,10 +2110,36 @@ acabava ali. Hoje o botão é **⚔️ Desafio entre amigos** e abre um grupo.
   convite é um link `#grupo=` (e o código de 6, igual ao da sala de corrida).
   Quem abre entra no grupo, escolhe o apelido (`corredor.apelido`, o mesmo
   do desafio de corrida) e aparece no ranking de **todos**.
-- **Seis réguas** (`METRICAS_GRUPO`): treinos, minutos, volume e km na
-  semana, sequência e treinos no total. Cada cartão mostra todos os números
-  da pessoa e o último treino, e a frase de cima diz quem lidera e quanto
-  falta (`fraseGrupo`). Empate divide a posição.
+- **Nove réguas** (`METRICAS_GRUPO`): treinos, dias treinados, minutos,
+  volume, séries, km e recordes na semana, sequência e treinos no total. A
+  frase de cima diz quem lidera e quanto falta (`fraseGrupo`). Empate divide
+  a posição.
+- **"Quanto mais feedback, melhor"** (pedido do dono, logo depois):
+  - **O mural** (`eventosGrupo`, `aplicarMembrosGrupo`, `g.feed`, 40
+    linhas): compara o que se sabia de cada um com o que acabou de chegar —
+    quem treinou (com nome, minutos, volume e km), quem entrou, recorde de
+    carga, marco de sequência (3, 5, 7, 10, 14, 21, 30...), quem passou quem
+    e a liderança, na régua de treinos da semana. O que chegou depois da
+    última visita (`g.visto`) aparece em negrito.
+  - **A galera nesta semana** (`totaisGrupo`): treinos, horas, toneladas,
+    séries, km, quantos já treinaram e quantos treinaram hoje.
+  - **Você em cada ranking** (`minhasPosicoesGrupo`): a posição nas nove
+    réguas e quanto falta para passar quem está logo acima.
+  - **O cartão de cada um**: os sete dias da semana acesos (`ds`, bits de
+    segunda a domingo), ✅ se treinou hoje, 👑 nas réguas que lidera, e,
+    aberto, séries, recordes, o grupo que mais treinou (`gs`), a semana
+    passada (`sa`) e o último treino com minutos, volume e km.
+  - **📤 Mandar o placar no grupo**: o ranking em texto, com o link.
+  - **O aviso ao abrir o app** (`sincronizarGrupoUmaVez` no raiz, ao abrir,
+    ao voltar depois de 10 min e depois de cada treino): recebe os números de
+    todos com a tela fechada, escreve no mural, e o que mexe comigo (`eu:
+    true`: me passaram, passei alguém, liderança) vira um aviso com "Ver o
+    ranking". Nunca no meio do treino.
+  - **O Jarvis responde** "como estou no desafio?", "quem está ganhando?",
+    "como está o ranking?" (`grupoDesafio`, `falaGrupo`): a posição, quanto
+    falta para passar o de cima e em que outras réguas a pessoa lidera.
+  - **Recorde na semana** é passar a maior carga daquele exercício até ali;
+    o primeiro registro não conta, como em `recordesNovos`.
 - **A semana é a do calendário** (segunda a domingo), igual para todos: com
   "últimos 7 dias" cada um teria uma régua. Número publicado numa semana que
   já passou (`sem`) vale zero na nova.
@@ -2132,7 +2158,7 @@ acabava ali. Hoje o botão é **⚔️ Desafio entre amigos** e abre um grupo.
 - **Sem conexão, vale o link**: ele leva o ranking que quem mandou conhecia.
 - Os links `#desafio=` já mandados continuam abrindo o aviso antigo.
 
-Coberto por `teste-grupo.js` (47 checagens). Testado no navegador com três
+Coberto por `teste-grupo.js` (82 checagens). Testado no navegador com três
 aparelhos num retransmissor local: criar, convidar pelo link, entrar com
 apelido, e os três vendo o mesmo ranking ao vivo. **Não validado** nos
 retransmissores públicos (a sessão na nuvem não os alcança).

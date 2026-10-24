@@ -23,10 +23,10 @@ const fonte = [
   trecho("const DESAFIO_LETRAS = "), trecho("function lerCodigoSala("),
   // a conta do aeróbico é coberta pelo teste-cardio; aqui só o km digitado
   "function medirCardio(s) { return { km: numDe(s.km) }; }",
+  "const GRUPO_POR_EXERCICIO = { \"supino-reto\": \"peito\", agachamento: \"pernas\" };",
   html.slice(ini, fim),
-  trecho("function juntarGrupoRecebido("),
 ].join("\n");
-eval(fonte + "\nglobalThis.G = { numerosDoGrupo, lerMembroGrupo, rankingGrupo, fraseGrupo, linkGrupo, lerPacoteGrupo, fmtMetricaGrupo, juntarGrupoRecebido, b64Decodificar };");
+eval(fonte + "\nglobalThis.G = { minhasPosicoesGrupo, totaisGrupo, eventosGrupo, aplicarMembrosGrupo, falaGrupo, numerosDoGrupo, lerMembroGrupo, rankingGrupo, fraseGrupo, linkGrupo, lerPacoteGrupo, fmtMetricaGrupo, juntarGrupoRecebido, b64Decodificar };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -40,7 +40,7 @@ function contem(nome, texto, pedaco) {
   else { mal++; console.log("  X    " + nome.padEnd(60) + JSON.stringify(texto) + "\n         esperava conter " + JSON.stringify(pedaco)); }
 }
 
-// quarta-feira, 22/10/2026, 20h (hora local)
+// quinta-feira, 22/10/2026, 20h (hora local)
 const agora = new Date(2026, 9, 22, 20, 0).getTime();
 const dia = (d, h) => new Date(2026, 9, d, h || 10).toISOString();
 const forca = (data, peso, reps, min) => ({ nome: "Peito", data, duracaoMin: min, itens: [{ series: [{ peso: String(peso), reps: String(reps) }, { peso: "20", reps: "10", aquec: true }] }] });
@@ -117,6 +117,8 @@ teste("números voltam", 4, pac.membros.ana001.ts);
 teste("código inválido não abre", null, G.lerPacoteGrupo(Buffer.from(JSON.stringify({ c: "OI", m: [] })).toString("base64"), G.b64Decodificar));
 teste("lixo não abre", null, G.lerPacoteGrupo("%%%", G.b64Decodificar));
 const mal1 = Buffer.from(JSON.stringify({ c: "ABCDE2", m: [{ i: "../x", n: "Hack" }, { i: "ok12", n: "Bom" }] })).toString("base64");
+const mal2 = Buffer.from(JSON.stringify({ c: "ABCDE2", m: [{ i: "sala", n: "Galera" }] })).toString("base64");
+teste("\"sala\" é o nome do desafio, não gente", [], Object.keys(G.lerPacoteGrupo(mal2, G.b64Decodificar).membros));
 teste("id esquisito fica de fora", ["ok12"], Object.keys(G.lerPacoteGrupo(mal1, G.b64Decodificar).membros));
 
 console.log("\n[6] Juntar o grupo recebido");
@@ -127,6 +129,63 @@ teste("quem criou mantém o nome", "Meu nome", junta[1].nome);
 teste("o que já se sabia vence o link (é mais novo)", 9, junta[1].membros.ana001.ts);
 teste("membro novo do link entra", true, !!junta[1].membros.carl01);
 teste("grupo novo entra com o nome do link", "Galera do treino", G.juntarGrupoRecebido([], pac)[0].nome);
+
+console.log("\n[7] Os números a mais");
+const sup = (data, peso) => ({ nome: "Peito", data, duracaoMin: 40, itens: [{ exercicioId: "supino-reto", series: [{ peso: String(peso), reps: "8" }, { peso: String(peso), reps: "8" }] }] });
+const h2 = [sup(dia(12), 60), sup(dia(14), 70), sup(dia(20), 70), sup(dia(21), 75), sup(dia(22, 9), 80)];
+const n2 = G.numerosDoGrupo(h2, agora);
+teste("recordes na semana (75 e 80 passaram de 70)", 2, n2.pr);
+teste("séries na semana", 6, n2.se);
+teste("treinos da semana passada", 2, n2.sa);
+teste("dias da semana: terça, quarta e quinta (bits 1, 2 e 3)", 14, n2.ds);
+teste("dias treinados", 3, n2.dd);
+teste("grupo que mais treinou", "peito", n2.gs);
+teste("último treino com minutos e volume", { min: 40, v: 1280 }, { min: n2.ul.min, v: n2.ul.v });
+teste("o primeiro registro não é recorde", 0, G.numerosDoGrupo([sup(dia(20), 50)], agora).pr);
+const lm = G.lerMembroGrupo({ n: "Bia", ds: 999, gs: "<x>", se: 12, ul: { d: 1, n: "A", min: 9999 } });
+teste("dias fora da semana são cortados", 127, lm.ds);
+teste("grupo esquisito fica de fora", undefined, lm.gs);
+teste("minutos do último limitados", 300, lm.ul.min);
+
+console.log("\n[8] Você em cada ranking e os totais");
+const ps = G.minhasPosicoesGrupo(membros, "eu", agora);
+teste("uma linha por régua", 9, ps.length);
+teste("treinos: 2º, falta 1 para a Ana", { pos: 2, alvo: { n: "Ana", falta: 1 } }, { pos: ps[0].pos, alvo: ps[0].alvo });
+const psq = ps.find((x) => x.met.id === "sq");
+teste("sequência: alvo é quem está logo acima (Bia, 6)", { n: "Bia", falta: 6 }, psq.alvo);
+teste("quem não está no grupo não tem posição", [], G.minhasPosicoesGrupo(membros, "zzz", agora));
+const tot = G.totaisGrupo(membros, agora);
+teste("totais só da semana (Rui é da passada)", { ts: 10, ativos: 3, pessoas: 4 }, { ts: tot.ts, ativos: tot.ativos, pessoas: tot.pessoas });
+
+console.log("\n[9] O mural");
+const A = { eu: { n: "Carlos", ts: 3, tt: 10, sq: 2, sem }, ana1: { n: "Ana", ts: 2, tt: 8, sq: 4, pr: 0, sem } };
+const D = { eu: A.eu, ana1: { n: "Ana", ts: 4, tt: 9, sq: 5, pr: 1, sem, ul: { d: agora, n: "Perna", min: 50, v: 6200, km: 0 } }, bia1: { n: "Bia", ts: 1, tt: 1, sem } };
+const ev = G.eventosGrupo(A, D, "eu", agora);
+const txts = ev.map((e) => e.txt);
+contem("quem entrou", txts.join("|"), "Bia entrou no desafio");
+contem("quem treinou, com os números", txts.join("|"), "Ana treinou: Perna · 50 min · 6,2 t");
+contem("recorde", txts.join("|"), "Ana bateu um recorde de carga");
+contem("marco da sequência", txts.join("|"), "Ana chegou a 5 dias seguidos");
+contem("quem me passou", txts.join("|"), "Ana passou você em treinos na semana (4 a 3)");
+contem("nova líder", txts.join("|"), "Ana assumiu a liderança");
+teste("o que mexe comigo vem marcado", 2, ev.filter((e) => e.eu).length);
+const ev2 = G.eventosGrupo(D, Object.assign({}, D, { eu: { n: "Carlos", ts: 5, tt: 12, sq: 3, sem } }), "eu", agora).map((e) => e.txt).join("|");
+contem("eu passei", ev2, "Você passou Ana em treinos na semana (5 a 4)");
+contem("eu assumi", ev2, "Você assumiu a liderança");
+contem("vários treinos de uma vez", G.eventosGrupo(A, Object.assign({}, A, { ana1: Object.assign({}, D.ana1, { tt: 11 }) }), "eu", agora).map((e) => e.txt).join("|"), "Ana treinou 3 vezes; o último: Perna");
+teste("nada mudou, nada no mural", [], G.eventosGrupo(D, D, "eu", agora));
+teste("virada de semana não é ultrapassagem", 0, G.eventosGrupo(
+  { eu: { n: "C", ts: 5, tt: 5, sem: sem - 7 * 86400000 }, ana1: { n: "A", ts: 1, tt: 5, sem: sem - 7 * 86400000 } },
+  { eu: { n: "C", ts: 5, tt: 5, sem: sem - 7 * 86400000 }, ana1: { n: "A", ts: 0, tt: 5, sem } }, "eu", agora).length);
+const ap = G.aplicarMembrosGrupo({ codigo: "ABCDE2", membros: A, feed: [{ em: 1, ico: "x", txt: "velho" }] }, { ana1: D.ana1 }, "eu", agora);
+teste("o mural guarda o novo na frente", "velho", ap.g.feed[ap.g.feed.length - 1].txt);
+teste("e com a hora", agora, ap.g.feed[0].em);
+
+console.log("\n[10] O Jarvis");
+contem("posição e quanto falta", G.falaGrupo({ nome: "Galera", membros }, "eu", agora), "você está em 2º de 4 em treinos na semana, com 3. Para passar Ana, falta 1 treino.");
+contem("liderando em outras réguas", G.falaGrupo({ nome: "Galera", membros }, "bia", agora), "Você também lidera em");
+contem("sozinho", G.falaGrupo({ nome: "G", membros: { eu: membros.eu } }, "eu", agora), "só tem você");
+contem("sem apelido", G.falaGrupo({ nome: "G", membros: {} }, "eu", agora), "ainda não entrou");
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

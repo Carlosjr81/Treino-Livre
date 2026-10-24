@@ -16,6 +16,41 @@
 
 ---
 
+## 2026-10-24i — Desafio entre amigos: mural, aviso de ultrapassagem e muito mais número
+
+**Em uma frase:** o desafio entre amigos ganhou um mural do que a galera fez, avisa quando alguém passa você,
+mostra sua posição em nove rankings com quanto falta, e o Jarvis responde "como estou no desafio?".
+
+**O que mudou**
+- **📣 O que aconteceu**: "Ana treinou: Perna · 50 min · 6,2 t", "Bia bateu um recorde de carga",
+  "Rui chegou a 7 dias seguidos", "Ana passou você em treinos na semana (4 a 3)", "Você assumiu a liderança".
+- **Aviso ao abrir o app** quando alguém passa você (ou você passa alguém), com o botão "Ver o ranking".
+  Os números chegam mesmo sem abrir a tela do desafio.
+- **A galera nesta semana**: treinos, horas, toneladas, séries e km somados, e quantos já treinaram hoje.
+- **🎯 Você em cada ranking**: sua posição em nove rankings e quanto falta para passar quem está logo acima.
+- Nove rankings: treinos, dias treinados, minutos, volume, séries, km e recordes na semana, sequência e total.
+- Cartão de cada amigo com os dias da semana acesos, ✅ de quem treinou hoje, 👑 onde ele lidera e, ao tocar,
+  séries, recordes, o músculo que mais treinou, a comparação com a semana passada e o último treino.
+- **📤 Mandar o placar no grupo**: o ranking em texto, pronto para colar no WhatsApp.
+- **Jarvis, como estou no desafio?** Ele responde a posição e quanto falta para passar o próximo.
+
+**Por que importa para quem treina**
+- Saber na hora que o amigo te passou é o empurrão para não pular o treino de amanhã.
+
+**Como usar**
+- Histórico › Números › "⚔️ Desafio entre amigos". Toque no cartão de um amigo para ver tudo dele.
+
+**Ideias de vídeo**
+- Abrir o app e aparecer "⚠️ Ana passou você em treinos na semana". Corta para o treino.
+- "Jarvis, como estou no desafio?" respondendo no meio da academia.
+- Mandar o placar no grupo do WhatsApp e a galera reagindo.
+
+**Não prometer**
+- Não é notificação com o app fechado: o aviso aparece quando você abre o app. Precisa de internet.
+  Passa só o apelido e os números de treino.
+
+---
+
 ## 2026-10-24h — Desafio entre amigos para a galera toda
 
 **Em uma frase:** o desafio entre amigos virou um grupo: manda o convite para quantos amigos quiser e todo

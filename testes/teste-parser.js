@@ -128,6 +128,9 @@ t("Jarvis, ha quanto tempo eu nao treino costas?", { tipo: "recuperacaoGrupo", g
 t("Jarvis, ja posso treinar perna?", { tipo: "recuperacaoGrupo", grupo: "pernas" });
 t("Jarvis, quando foi meu ultimo treino?", { tipo: "ultimoTreino" });
 t("Jarvis, qual meu nivel?", { tipo: "progresso" });
+t("Jarvis, como estou no desafio?", { tipo: "grupoDesafio" });
+t("Jarvis, quem esta ganhando o desafio dos amigos?", { tipo: "grupoDesafio" });
+t("Jarvis, como esta o ranking?", { tipo: "grupoDesafio" });
 t("Jarvis, quantos treinos eu fiz?", { tipo: "progresso" });
 t("Jarvis, como esta minha meta?", { tipo: "progresso" });
 t("Jarvis, quanto eu peso?", { tipo: "medida" });

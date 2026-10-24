@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24n";
+const VERSAO_APP = "2026-10-24o";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3156,7 +3156,48 @@ async function compartilharImagem(blob, texto, avisarFn) {
 // Concordância de número, para os textos não saírem como "recorde(s)"
 function plural(n, singular, pluralTxt) { return n === 1 ? singular : pluralTxt; }
 
+// Relato do dono, depois de 1 km de caminhada: a imagem dizia "0 kg de volume
+// total" e "0 kg/min". Treino sem carga (caminhada, corrida, esteira, bicicleta)
+// sai com os números dele: distância, tempo, ritmo e gasto.
+function linhasStoryCardio(d) {
+  const c = d.cardio;
+  const p = c.perfil || "";
+  const tipo = /caminhada|trilha/.test(p) ? "de caminhada" : /corrida/.test(p) ? "de corrida" : /bike/.test(p) ? "de pedalada" : "de aeróbico";
+  const l = [
+    { t: "TREINO CONCLUÍDO! 🎉", tam: 58, cor: "#E1306C", esp: 70 },
+    { t: d.nome, tam: 44, cor: "#F2F0EC", esp: 100 },
+  ];
+  if (c.km >= 0.05) {
+    l.push({ t: c.km < 1 ? Math.round(c.km * 1000) + " m" : num1(c.km) + " km", tam: 108, cor: "#ED4956", esp: 18 });
+    l.push({ t: tipo, tam: 36, cor: "#A8A8A9", esp: 80 });
+    l.push({ t: "⏱ " + fmtTempoRota(c.min * 60000) + (c.km >= 0.2 ? " · " + fmtRitmo(c.min / c.km) : ""), tam: 46, esp: 60 });
+  } else {
+    l.push({ t: Math.round(c.min) + " min", tam: 108, cor: "#ED4956", esp: 18 });
+    l.push({ t: tipo, tam: 36, cor: "#A8A8A9", esp: 80 });
+  }
+  if (c.kcal >= 1) l.push({ t: "🔥 cerca de " + Math.round(c.kcal) + " kcal", tam: 40, cor: "#A8A8A9", esp: 60 });
+  if (c.posicao) l.push({ t: "🏁 " + c.posicao, tam: 44, cor: "#E1306C", esp: 60 });
+  if (d.recordes > 0) l.push({ t: "🏆 " + d.recordes + " " + plural(d.recordes, "novo recorde pessoal!", "novos recordes pessoais!"), tam: 44, cor: "#E1306C", esp: 40 });
+  return l;
+}
+// o aeróbico de um treino, para a imagem: a rota vence a conta das séries
+function cardioParaStory(h, exPorId, pesoKg) {
+  let min = 0, km = 0, kcal = 0, perfil = "", maior = -1;
+  (h.itens || []).forEach((it) => {
+    const e = exPorId(it.exercicioId);
+    const r = resumoCardio(it.series, pesoKg, e && e.cardio);
+    if (!r.min) return;
+    min += r.min; km += r.km; kcal += r.kcal;
+    if (r.min > maior) { maior = r.min; perfil = (e && e.cardio) || ""; }
+  });
+  if (!min) return null;
+  if (h.rota && h.rota.km) { km = h.rota.km; if (h.rota.ms) min = h.rota.ms / 60000; }
+  const ds = h.desafio;
+  const posicao = ds && ds.posicao && ds.total > 1 ? ds.posicao + "º de " + ds.total + " no desafio" : "";
+  return { min: min, km: km, kcal: kcal, perfil: perfil || (ds && ds.atividade) || "", posicao: posicao };
+}
 function linhasStoryTreino(d) {
+  if (!(d.volume > 0) && d.cardio && d.cardio.min > 0) return linhasStoryCardio(d);
   const eq = equivalencia(d.volume);
   const l = [
     { t: "TREINO CONCLUÍDO! 🎉", tam: 58, cor: "#E1306C", esp: 70 },
@@ -3168,6 +3209,8 @@ function linhasStoryTreino(d) {
   l.push({ t: d.series + " " + plural(d.series, "série", "séries") + " · " + d.reps + " " + plural(d.reps, "repetição", "repetições"), tam: 46, esp: 60 });
   l.push({ t: "⏱ " + d.duracao + " min · " + d.densidade + " kg/min", tam: 40, cor: "#A8A8A9", esp: 60 });
   if (d.cargaMax) l.push({ t: "🏋️ carga máxima " + d.cargaMax + " kg", tam: 40, cor: "#A8A8A9", esp: 60 });
+  // musculação com esteira no fim: o aeróbico entra numa linha
+  if (d.cardio && d.cardio.min > 0) l.push({ t: "🏃 " + (d.cardio.km >= 0.05 ? num1(d.cardio.km) + " km em " : "") + Math.round(d.cardio.min) + " min de aeróbico", tam: 40, cor: "#A8A8A9", esp: 60 });
   if (d.recordes > 0) l.push({ t: "🏆 " + d.recordes + " " + plural(d.recordes, "novo recorde pessoal!", "novos recordes pessoais!"), tam: 44, cor: "#E1306C", esp: 40 });
   return l;
 }
@@ -20943,7 +20986,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
             {ordinal(eu.pos)}<span style={{ fontSize: 22 }}> de {linhas.length}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-around", marginTop: 6, fontVariantNumeric: "tabular-nums" }}>
-            <div><div style={{ fontSize: 26, fontWeight: 900 }}>{num1(e.d / 1000)}</div><div style={{ fontSize: 11, color: "var(--cinza)" }}>km</div></div>
+            <div><div style={{ fontSize: 26, fontWeight: 900 }}>{e.d < 1000 ? Math.round(e.d) : num1(e.d / 1000)}</div><div style={{ fontSize: 11, color: "var(--cinza)" }}>{e.d < 1000 ? "metros" : "km"}</div></div>
             <div><div style={{ fontSize: 26, fontWeight: 900 }}>{fmtTempoRota(e.t)}</div><div style={{ fontSize: 11, color: "var(--cinza)" }}>tempo</div></div>
             <div><div style={{ fontSize: 26, fontWeight: 900 }}>{vAgora > 0.3 ? fmtPaceSeg(1000 / vAgora) : "—"}</div><div style={{ fontSize: 11, color: "var(--cinza)" }}>ritmo /km</div></div>
           </div>
@@ -20983,7 +21026,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
             {linhas.map((l) => (
               <div key={l.p.id} style={{ display: "flex", alignItems: "center", gap: 6, height: 34 }}>
                 <span style={{ width: 66, flexShrink: 0, fontSize: 11.5, fontWeight: 900, color: l.p.eu ? "#E1306C" : corDoParticipante(l.p.id), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {l.p.eu ? "Você" : l.p.nome}
+                  {l.p.eu ? cfg.nome || "Você" : l.p.nome}
                 </span>
                 <div style={{ position: "relative", flex: 1, height: 34, borderBottom: "1px dashed var(--borda2)", marginRight: 14 }}>
                   {meta.tipo === "distancia" && <div style={{ position: "absolute", right: -3, top: 4, bottom: 4, width: 4, background: "repeating-linear-gradient(#fff 0 4px,#000 4px 8px)", borderRadius: 1 }} title="chegada" />}
@@ -20994,7 +21037,9 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
               </div>
             ))}
           </div>
-          {linhas.map((l) => {
+          {/* Sozinho, a lista repetia a raia, e o dono via "dois eus": um andando em
+              cima e outro parado embaixo. A lista só aparece com mais gente. */}
+          {(linhas.length > 1 || fim) && linhas.map((l) => {
             // a diferença para mim, dita do jeito do corredor: metros e segundos à frente ou atrás
             let rel = null, naFrente = false;
             if (!l.p.eu) {
@@ -21017,7 +21062,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
                   {(() => { const s = statusParticipante(l, Date.now()); return s ? <span style={{ display: "block", fontSize: 11, color: s.cor, fontWeight: 600, lineHeight: 1.35 }}>{s.txt}</span> : null; })()}
                 </span>
                 <span style={{ fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
-                  {l.terminou && meta.tipo === "distancia" ? "🏁 " + fmtTempoRota(l.msFim) : (l.projetado ? "~" : "") + num1(l.d / 1000) + " km"}
+                  {l.terminou && meta.tipo === "distancia" ? "🏁 " + fmtTempoRota(l.msFim) : (l.projetado ? "~" : "") + (l.d < 1000 ? Math.round(l.d) + " m" : num1(l.d / 1000) + " km")}
                   {rel && <div style={{ fontSize: 11, fontWeight: 700, color: naFrente ? "#F58529" : "var(--ok)" }}>{rel}</div>}
                 </span>
               </div>
@@ -27921,7 +27966,8 @@ function TreinoLivre() {
     registrarEvento(evento || "treino-concluido");
     let msg = "Treino concluído! 🎉\n\n" + (nota ? nota + "\n\n" : "");
     if (st.volume > 0) msg += "🏋️ " + fmtKg(st.volume) + " de volume total\n";
-    msg += st.series + " " + plural(st.series, "série", "séries") + (st.reps > 0 ? " · " + st.reps + " " + plural(st.reps, "repetição", "repetições") : "") + " · " + st.exercicios + " " + plural(st.exercicios, "exercício", "exercícios") + "\n";
+    const soCardio = st.volume <= 0 && st.reps <= 0 && st.cardioMin > 0;
+    if (!soCardio) msg += st.series + " " + plural(st.series, "série", "séries") + (st.reps > 0 ? " · " + st.reps + " " + plural(st.reps, "repetição", "repetições") : "") + " · " + st.exercicios + " " + plural(st.exercicios, "exercício", "exercícios") + "\n";
     if (st.segundos > 0) msg += "⏳ " + st.segundos + "s de isometria\n";
     // A esteira com a conta de gasto do ACSM, com o peso de quem treina
     let kcalCardio = 0;
@@ -27929,7 +27975,11 @@ function TreinoLivre() {
       const e = exPorId(it.exercicioId);
       if (exCardio(e)) kcalCardio += resumoCardio(it.series, pesoCorporal, e.cardio).kcal;
     });
-    if (st.cardioMin > 0) msg += "🏃 Aeróbico: " + Math.round(st.cardioMin) + " min" + (st.cardioKm >= 0.05 ? " · " + num1(st.cardioKm) + " km" : "") + " · ~" + Math.round(kcalCardio) + " kcal\n";
+    if (st.cardioMin > 0) {
+      const cs = cardioParaStory(registro, exPorId, pesoCorporal) || { min: st.cardioMin, km: st.cardioKm };
+      msg += "🏃 " + (soCardio ? "" : "Aeróbico: ") + (cs.km >= 0.05 ? num1(cs.km) + " km em " + fmtTempoRota(cs.min * 60000) + (cs.km >= 0.2 ? " · " + fmtRitmo(cs.min / cs.km) : "") : Math.round(cs.min) + " min") + " · ~" + Math.round(kcalCardio) + " kcal\n";
+      if (cs.posicao) msg += "🏁 " + cs.posicao + "\n";
+    }
     if (st.seriesAquec > 0) msg += "(mais " + st.seriesAquec + " " + plural(st.seriesAquec, "série", "séries") + " de aquecimento, fora da conta)\n";
     msg += "⏱ " + registro.duracaoMin + " min";
     if (st.densidade > 0) msg += " · " + st.densidade + " kg/min · carga máx. " + st.cargaMax + " kg";
@@ -27946,7 +27996,8 @@ function TreinoLivre() {
     // O resumo na tela exige parar e ler. Falado, chega enquanto a pessoa guarda
     // a anilha — e é o momento em que o número do volume significa alguma coisa.
     if (vozAtiva) {
-      let dito = "Treino fechado. " + st.series + " " + plural(st.series, "série", "séries") +
+      let dito = soCardio ? "Treino fechado em " + registro.duracaoMin + " " + plural(registro.duracaoMin, "minuto", "minutos") + ". "
+        : "Treino fechado. " + st.series + " " + plural(st.series, "série", "séries") +
         " em " + registro.duracaoMin + " " + plural(registro.duracaoMin, "minuto", "minutos") + ". ";
       if (st.volume > 0) dito += fmtPeso(st.volume) + " movidos. ";
       if (st.cardioMin > 0) dito += st.cardioKm >= 0.05 ? num1(st.cardioKm) + " quilômetros de aeróbico. " : Math.round(st.cardioMin) + " minutos de aeróbico. ";
@@ -27962,6 +28013,7 @@ function TreinoLivre() {
       storyTreino: {
         nome: registro.nome, series: st.series, reps: st.reps, volume: st.volume,
         duracao: registro.duracaoMin, densidade: st.densidade, cargaMax: st.cargaMax, recordes: nRec,
+        cardio: cardioParaStory(registro, exPorId, pesoCorporal),
       },
     });
 
@@ -28301,6 +28353,7 @@ function TreinoLivre() {
     const blob = await gerarImagemStory(linhasStoryTreino({
       nome: h.nome, series: st.series, reps: st.reps, volume: st.volume,
       duracao: h.duracaoMin, densidade: st.densidade, cargaMax: st.cargaMax, recordes: nRec,
+      cardio: cardioParaStory(h, exPorId, pesoCorporal),
     }));
     compartilharImagem(blob, "Treino concluído no Treino Livre! 💪 " + LINK_APP, avisar);
   };
@@ -28894,7 +28947,9 @@ function TreinoLivre() {
       <Celebracao festa={festa} onFechar={fecharFesta} />
       {comoInstalar && <ComoInstalar onFechar={() => setComoInstalar(false)} onCopiarLink={copiarLink} />}
 
-      {versaoNova && (
+      {/* Atualizar recarrega a página: no meio de uma prova, perdia a prova (relato
+          do dono). A faixa espera ela acabar. */}
+      {versaoNova && !Object.keys(vivos).some((k) => vivos[k]) && (
         <div role="status" style={{ position: "fixed", left: 12, right: 12, zIndex: 47,
           top: "calc(10px + env(safe-area-inset-top))" }}>
           <div style={{ background: "var(--card)", border: "1px solid #E1306C", borderRadius: 14,

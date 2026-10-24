@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v123) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v124) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2216,6 +2216,22 @@ distância andada fora do app sumia inteira. A regra virou do sistema todo:
   `setInterval` atrasado em segundo plano fazia a aula andar mais devagar
   que o tempo.
 - O percurso, o ▶ das séries e o descanso já contavam pelo relógio de parede.
+- **A faixa "Tem versão nova" espera a prova acabar** (some com `vivos`):
+  o Atualizar recarrega a página, e o dono perdeu uma prova assim.
+
+**Mais dois relatos do mesmo teste:**
+
+- **"Eu contra eu mesmo."** Sozinho na sala, a raia ("Você", andando) e a
+  lista ("Fulano (você)", parada embaixo) pareciam duas pessoas. A raia
+  passou a ter o nome, e a lista só aparece com mais gente (ou no fim).
+  Abaixo de 1 km a distância aparece em metros: "0 km" depois de um minuto
+  andando parecia que nada media.
+- **A imagem do story de uma caminhada dizia "0 kg de volume".** Treino sem
+  carga sai com os números dele (`linhasStoryCardio`, `cardioParaStory`):
+  distância (a da rota, quando há), tempo, ritmo, calorias e a posição no
+  desafio. O texto do resumo também (sem "0 repetições"), e a fala do fim.
+  Musculação com aeróbico no fim ganha uma linha de aeróbico na imagem.
+  Coberto em `teste-corrida-app.js` (58 checagens).
 
 **Não está validado em aparelho**: dois celulares de verdade em redes móveis,
 e os três retransmissores públicos (a sessão na nuvem não os alcança). Foi

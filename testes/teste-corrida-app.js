@@ -14,12 +14,12 @@ function funcao(nome) {
 }
 eval(pedaco("const LINK_APP", "\n") + "\n" + pedaco("const LINK_APK", "\n") + "\n" + pedaco("const PACOTE_ANDROID", "\n") + "\n" +
   pedaco("const num1 =", "\n") + "\n" +
-  funcao("b64Codificar") + funcao("b64Decodificar") + funcao("b64UrlParaPadrao") + funcao("padraoParaB64Url") + funcao("textoDuracao") + funcao("plural") + funcao("falaRitmo") +
+  funcao("b64Codificar") + funcao("b64Decodificar") + funcao("b64UrlParaPadrao") + funcao("padraoParaB64Url") + funcao("textoDuracao") + funcao("plural") + funcao("falaRitmo") + funcao("fmtRitmo") + pedaco("function linhasStoryCardio", "function linhasStoryTreino") +
   pedaco("const BOLETIM_PADRAO", "\nfunction narrarVoz") +
   pedaco("// ---------------- PERCURSO NA RUA (GPS)", "// ---------------- FIM DAS CONTAS DO PERCURSO") +
   pedaco("// ---------------- DESAFIO: MOTOR", "// ---------------- FIM DO MOTOR DESAFIO") +
   "\nglobalThis.C = { criarCorridaApp, narrarDesafio, novoNarradorDesafio, falaLargada, falaChegada, situacaoDesafio, nomesDesafio, iniciaisDe, corDoParticipante," +
-  " classificarDesafio, lerPacoteCorrida, regraBoletimDesafio, linkCorrida, mensagemDesafio, codificarTrilha };");
+  " classificarDesafio, lerPacoteCorrida, regraBoletimDesafio, linhasStoryCardio, linkCorrida, mensagemDesafio, codificarTrilha };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -172,6 +172,15 @@ teste("por distância: um aviso só no km (não dois)", 1, km1.length);
 contem("com a parcial do trecho", km1[0], "Este quilômetro em 5 minutos");
 const semRegra = correr(null, 130);
 teste("sem boletim, nada de minuto em minuto", 0, semRegra.filter((f) => /Ritmo de/.test(f)).length);
+
+console.log("\n--- a imagem do resultado de uma caminhada: sem peso ---");
+const img = C.linhasStoryCardio({ nome: "Desafio 1 km", recordes: 0, cardio: { min: 13, km: 1, kcal: 62, perfil: "rua-caminhada", posicao: "" } }).map((x) => x.t).join(" | ");
+teste("nenhum kg na imagem", false, /kg/.test(img));
+contem("a distância", img, "1 km");
+contem("o tipo", img, "de caminhada");
+contem("o tempo e o ritmo", img, "13:00 · 13:00 /km");
+contem("o gasto", img, "62 kcal");
+contem("menos de 1 km sai em metros", C.linhasStoryCardio({ nome: "x", cardio: { min: 4, km: 0.45, kcal: 0, perfil: "rua-corrida" } }).map((x) => x.t).join(" | "), "450 m | de corrida");
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

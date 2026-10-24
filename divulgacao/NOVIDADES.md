@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-10-24o — Caminhada e corrida sem "kg" no resultado, e você uma vez só na prova
+
+**Em uma frase:** o resultado de caminhada, corrida e esteira mostra distância, tempo, ritmo e calorias (nada de
+peso), e na prova você aparece uma vez só.
+
+**O que mudou**
+- **Imagem do story e resumo de caminhada e corrida**: "1 km de caminhada · 13:00 · 13:00 /km · 62 kcal" e a posição
+  no desafio, no lugar de "0 kg de volume".
+- **Na prova sozinho**: só a sua raia, com o seu nome; a lista aparece quando alguém entra. Abaixo de 1 km a distância
+  aparece em metros.
+- **A faixa de versão nova espera a prova acabar**: atualizar no meio recarregava o app e perdia a prova.
+
+**Por que importa para quem treina**
+- Quem corre quer postar o km e o ritmo, não um peso que não existe.
+
+**Como usar**
+- Terminou a caminhada ou corrida: "Compartilhar no story".
+
+**Ideias de vídeo**
+- O story de uma corrida com o ritmo e a posição no desafio.
+
+**Não prometer**
+- Nada novo a ressalvar.
+
+---
+
 ## 2026-10-24n — Sair do app ou trocar de tela não pausa mais nenhum treino ao vivo
 
 **Em uma frase:** desafio, intervalado, Monster Run e aula guiada continuam contando quando você sai do app ou vai a

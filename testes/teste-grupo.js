@@ -18,15 +18,15 @@ const fonte = [
   trecho("const LINK_APP = "), trecho("function b64Codificar("), trecho("function b64Decodificar("),
   trecho("function b64UrlParaPadrao("), trecho("function padraoParaB64Url("),
   trecho("const ehAquecimento = "), trecho("const serieConta = "), trecho("const ehTempo = "), trecho("const temValor = "),
-  trecho("const ehCardio = "), trecho("const numDe = "), trecho("const cargaDe = "), trecho("const repsDe = "),
+  trecho("const ehCardio = "), trecho("const numDe = "), trecho("const segundosDe = "), trecho("const cargaDe = "), trecho("const repsDe = "),
   trecho("function plural("), trecho("const num1 = "), trecho("function segundaDaSemana("),
   trecho("const DESAFIO_LETRAS = "), trecho("function lerCodigoSala("),
   // a conta do aeróbico é coberta pelo teste-cardio; aqui só o km digitado
-  "function medirCardio(s) { return { km: numDe(s.km) }; }",
+  "function medirCardio(s) { return { km: numDe(s.km) || numDe(s.vel) * numDe(s.segundos) / 3600 }; }",
   "const GRUPO_POR_EXERCICIO = { \"supino-reto\": \"peito\", agachamento: \"pernas\" };",
   html.slice(ini, fim),
 ].join("\n");
-eval(fonte + "\nglobalThis.G = { minhasPosicoesGrupo, totaisGrupo, eventosGrupo, aplicarMembrosGrupo, falaGrupo, numerosDoGrupo, lerMembroGrupo, rankingGrupo, fraseGrupo, linkGrupo, lerPacoteGrupo, fmtMetricaGrupo, juntarGrupoRecebido, b64Decodificar };");
+eval(fonte + "\nglobalThis.G = { falasAoVivoGrupo, textoCardioGrupo, metricasDoFoco, tipoCardioGrupo, minhasPosicoesGrupo, totaisGrupo, eventosGrupo, aplicarMembrosGrupo, falaGrupo, numerosDoGrupo, lerMembroGrupo, rankingGrupo, fraseGrupo, linkGrupo, lerPacoteGrupo, fmtMetricaGrupo, juntarGrupoRecebido, b64Decodificar };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -149,7 +149,7 @@ teste("minutos do último limitados", 300, lm.ul.min);
 
 console.log("\n[8] Você em cada ranking e os totais");
 const ps = G.minhasPosicoesGrupo(membros, "eu", agora);
-teste("uma linha por régua", 9, ps.length);
+teste("uma linha por régua", 14, ps.length);
 teste("treinos: 2º, falta 1 para a Ana", { pos: 2, alvo: { n: "Ana", falta: 1 } }, { pos: ps[0].pos, alvo: ps[0].alvo });
 const psq = ps.find((x) => x.met.id === "sq");
 teste("sequência: alvo é quem está logo acima (Bia, 6)", { n: "Bia", falta: 6 }, psq.alvo);
@@ -186,6 +186,64 @@ contem("posição e quanto falta", G.falaGrupo({ nome: "Galera", membros }, "eu"
 contem("liderando em outras réguas", G.falaGrupo({ nome: "Galera", membros }, "bia", agora), "Você também lidera em");
 contem("sozinho", G.falaGrupo({ nome: "G", membros: { eu: membros.eu } }, "eu", agora), "só tem você");
 contem("sem apelido", G.falaGrupo({ nome: "G", membros: {} }, "eu", agora), "ainda não entrou");
+
+console.log("\n[11] Corrida e caminhada");
+const rua = (data, km, min, mod) => ({ nome: "Corrida na rua", data, duracaoMin: min, rota: mod === "rua-corrida" ? { km } : undefined,
+  itens: [{ exercicioId: "corrida-rua", series: [{ segundos: String(min * 60), mod: mod || "rua-corrida", km: String(km) }] }] });
+const est = (data, kmh, min) => ({ nome: "Esteira", data, duracaoMin: min, itens: [{ exercicioId: "esteira-corrida", series: [{ segundos: String(min * 60), mod: "corrida", vel: String(kmh) }] }] });
+const hc = [rua(dia(20), 5, 30), est(dia(21), 10, 30), rua(dia(22, 9), 3, 30, "rua-caminhada"), rua(dia(13), 20, 120)];
+const nc = G.numerosDoGrupo(hc, agora);
+teste("km na semana (rua + esteira)", 13, nc.ks);
+teste("km na rua", 8, nc.kr);
+teste("km na esteira", 5, nc.ke);
+teste("minutos de aeróbico", 90, nc.mc);
+teste("maior distância da semana", 5, nc.lg);
+teste("melhor ritmo: 6:00 /km (a esteira a 10 km/h e a rua a 6:00 empatam)", 360, nc.rp);
+teste("última atividade: a caminhada de hoje", { t: "rua-caminhada", km: 3, s: 1800 }, { t: nc.uc.t, km: nc.uc.km, s: nc.uc.s });
+teste("o tipo da série: esteira a 12 km/h é corrida", "esteira-corrida", G.tipoCardioGrupo({ vel: "12" }, {}));
+teste("bicicleta na rua", "rua-bike", G.tipoCardioGrupo({ mod: "bike-rua" }, {}));
+teste("elíptico é aparelho", "aparelho", G.tipoCardioGrupo({ mod: "eliptico" }, {}));
+contem("a frase da corrida", G.textoCardioGrupo({ t: "rua-corrida", km: 5.2, s: 1710 }), "correu 5,2 km na rua em 28:30 (5:29 /km)");
+contem("o aparelho tem nome", G.textoCardioGrupo({ t: "aparelho", nm: "Elíptico", km: 0, s: 1200 }), "fez Elíptico por 20:00");
+teste("ritmo vira texto", "5:29 /km", G.fmtMetricaGrupo("rp", 329));
+teste("o foco corrida põe as réguas de km primeiro", ["ks", "kr", "ke"], G.metricasDoFoco("corrida").slice(0, 3).map((x) => x.id));
+const mr = { eu: { n: "Eu", rp: 330, sem }, ana1: { n: "Ana", rp: 300, sem }, bia1: { n: "Bia", rp: 0, sem } };
+teste("ritmo: o menor ganha, e sem atividade vai por último", ["ana1", "eu", "bia1"], G.rankingGrupo(mr, "rp", agora).map((x) => x.id));
+const pr2 = G.minhasPosicoesGrupo(mr, "eu", agora).find((x) => x.met.id === "rp");
+teste("quanto falta no ritmo", { n: "Ana", falta: 30 }, pr2.alvo);
+contem("a frase do ritmo", G.fraseGrupo(G.rankingGrupo(mr, "rp", agora), "eu", "rp"), "Você está a 30 s/km da liderança");
+teste("quem não tem ritmo não tem alvo", null, G.minhasPosicoesGrupo(mr, "bia1", agora).find((x) => x.met.id === "rp").alvo);
+
+console.log("\n[12] O mural da corrida e o ao vivo");
+const C1 = { eu: { n: "Carlos", ks: 5, tt: 3, sem }, ana1: { n: "Ana", ks: 4, tt: 3, sem } };
+const C2 = { eu: C1.eu, ana1: { n: "Ana", ks: 9.2, tt: 4, sem, ul: { d: agora, n: "Corrida na rua" }, uc: { d: agora, t: "rua-corrida", km: 5.2, s: 1710 } } };
+const evc = G.eventosGrupo(C1, C2, "eu", agora, "ks").map((e) => e.txt).join("|");
+contem("a corrida no mural", evc, "Ana correu 5,2 km na rua em 28:30 (5:29 /km)");
+teste("e não repete como treino", false, /Ana treinou/.test(evc));
+contem("passou em km", evc, "Ana passou você em km na semana (9,2 km a 5 km)");
+const C3 = { eu: C1.eu, ana1: Object.assign({}, C1.ana1, { ag: { t: "esteira-corrida", km: 1.2, s: 400, em: agora - 3000 } }) };
+contem("começou agora", G.eventosGrupo(C1, C3, "eu", agora, "ks").map((e) => e.txt).join("|"), "Ana começou agora: correndo na esteira");
+const lidoAg = G.lerMembroGrupo({ n: "Ana", ag: { t: "rua-corrida", km: 2, s: 600, em: 5 }, uc: { t: "x", d: 1 } });
+teste("ao vivo lido", "rua-corrida", lidoAg.ag.t);
+teste("tipo desconhecido fica de fora", undefined, lidoAg.uc);
+
+const viv = { frente: {}, perto: {}, vivo: {} };
+const VM = { eu: { n: "Carlos", ks: 4, sem }, ana1: { n: "Ana", ks: 5, sem }, bia1: { n: "Bia", ks: 2, sem, ag: { t: "rua-corrida", km: 1.5, s: 500, em: agora - 2000 } } };
+const f0 = G.falasAoVivoGrupo(viv, VM, "eu", 0, agora).join(" ");
+contem("quem mais está correndo", f0, "Bia também está correndo na rua agora, com 1,5 quilômetros.");
+teste("no começo não anuncia ultrapassagem", false, /passou/.test(f0));
+const f1 = G.falasAoVivoGrupo(viv, VM, "eu", 0.6, agora).join(" ");
+contem("falta pouco", f1, "Faltam 400 metros para passar Ana");
+teste("e diz uma vez só", "", G.falasAoVivoGrupo(viv, VM, "eu", 0.7, agora).join(" "));
+contem("passou", G.falasAoVivoGrupo(viv, VM, "eu", 1.1, agora).join(" "), "Você passou Ana nos quilômetros da semana!");
+teste("o tremor do GPS não troca de novo", "", G.falasAoVivoGrupo(viv, VM, "eu", 0.99, agora).join(" "));
+const VM2 = Object.assign({}, VM, { bia1: Object.assign({}, VM.bia1, { ag: Object.assign({}, VM.bia1.ag, { km: 4 }) }) });
+contem("quem corre junto e me passa", G.falasAoVivoGrupo(viv, VM2, "eu", 1.5, agora).join(" "), "Bia passou você nos quilômetros da semana. Acelera!");
+teste("ao vivo velho não vale", "", G.falasAoVivoGrupo({ frente: {}, perto: {}, vivo: {} }, { eu: VM.eu, bia1: Object.assign({}, VM.bia1, { ag: { t: "rua-corrida", km: 1, em: agora - 300000 } }) }, "eu", 0, agora).join(" "));
+contem("o Jarvis fala dos km e de quem corre agora", G.falaGrupo({ nome: "Galera", foco: "corrida", membros: VM }, "eu", agora), "em km na semana, com 4 quilômetros. Para passar Ana, falta 1 quilômetros. Agora: Bia está correndo na rua.");
+const lkc = G.lerPacoteGrupo(G.linkGrupo({ codigo: "ABCDE2", nome: "Corrida", foco: "corrida", membros: {} }).split("#grupo=")[1], G.b64Decodificar);
+teste("o foco viaja no link", "corrida", lkc.foco);
+teste("e entra no grupo recebido", "corrida", G.juntarGrupoRecebido([], lkc)[0].foco);
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24i**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24j**.
 
 ---
 
@@ -367,6 +367,9 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
   Tem mural ("Ana treinou Perna", "Bia bateu um recorde", "Ana passou você"), aviso ao abrir o app quando alguém
   passa você, os totais da galera na semana, sua posição em nove rankings com quanto falta, o placar para mandar no
   WhatsApp, e o Jarvis responde "como estou no desafio?".
+  O desafio pode ser de **corrida e caminhada** (rua e esteira): ranking de km na rua, na esteira, ritmo e maior
+  distância, **quem está correndo agora** com os números ao vivo, e a voz avisando no meio da corrida quando você passa
+  um amigo ("faltam 400 metros para passar o Carlos").
 
 ### 3.14 Resumo animado e vídeo para o story 🎬
 - Qualquer treino vira um **resumo animado** no estilo da abertura: fundo preto, a **linha verde

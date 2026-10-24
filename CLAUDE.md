@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v118) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v119) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2158,7 +2158,60 @@ acabava ali. Hoje o botão é **⚔️ Desafio entre amigos** e abre um grupo.
 - **Sem conexão, vale o link**: ele leva o ranking que quem mandou conhecia.
 - Os links `#desafio=` já mandados continuam abrindo o aviso antigo.
 
-Coberto por `teste-grupo.js` (82 checagens). Testado no navegador com três
+### Corrida e caminhada, na rua e na esteira (`foco: "corrida"`)
+
+Pedido do dono: "na esteira e caminhada e corrida na rua, faça a mesma coisa
+de multiplayer". O desafio ganhou um **foco**, escolhido ao criar (🏋 Treinos
+da academia ou 🏃 Corrida e caminhada), que viaja no link (`f: "c"`) e na
+mensagem da sala. Ele decide as réguas que vêm primeiro (`metricasDoFoco`),
+a régua do mural e do aviso (`reguaDoFoco`: `ts` ou `ks`), os totais da
+galera, o cartão de cada um e a resposta do Jarvis.
+
+- **Seis réguas de corrida** (`grupo: "cardio"`): km na semana, km na rua
+  (`kr`), km na esteira (`ke`), minutos de aeróbico (`mc`), maior distância
+  (`lg`) e **melhor ritmo** (`rp`, s/km, só de quem anda ou corre, de 1 km
+  para cima). O ritmo é a régua em que **o menor ganha** (`menor: true`,
+  `ordGrupo`): zero é "sem atividade" e fica atrás de todos, e o que falta
+  é dito em "s/km" (`fmtFaltaGrupo`).
+- **Onde foi** (`tipoCardioGrupo`): rua (percurso ou `mod` de rua), esteira
+  (`mod` caminhada/corrida, ou a esteira antiga só com `vel`; acima de 7 km/h
+  é corrida) ou outro aparelho. A última atividade (`uc`) vira frase no
+  mural e no cartão: "Ana correu 5,2 km na rua em 28:30 (5:29 /km)"
+  (`textoCardioGrupo`). O treino que foi só aquela corrida não aparece de
+  novo como "treinou".
+- **Correndo agora** (`ag`, `AO_VIVO_GRUPO`): no percurso da rua, no ▶ de
+  uma série aeróbica e com a esteira (ou aparelho) conectada conduzindo a
+  série, cada segundo passa por `AO_VIVO_GRUPO.tick`. A cada 15 s ele publica
+  nos grupos (uma conexão por grupo, aberta na primeira vez) os meus números
+  com `ag` — o que estou fazendo, km, tempo, velocidade. Quem está com o
+  desafio aberto vê **🔴 Ao vivo agora**, e o mural escreve "Ana começou
+  agora". Ao parar (fim do percurso, fim ou cancelamento do ▶, esteira que
+  parou), `parar()` publica sem o `ag` e fecha. **O `ag` vale 2 minutos**
+  (`agFresco`): retido no retransmissor, o "correndo agora" de quem fechou o
+  app sem parar ficaria lá para sempre.
+- **A voz no meio da corrida** (`falasAoVivoGrupo`, de 5 em 5 s, com a mesma
+  folga de 8 s de silêncio que o resto): compara os meus km da semana, já com
+  os desta corrida, com os de cada amigo (com os da corrida dele, se ele
+  estiver correndo agora): "Faltam 400 metros para passar a Carlos", "Você
+  passou a Ana nos quilômetros da semana!", "Bia passou você. Acelera!" (só
+  quem está correndo agora passa alguém) e "Bia também está correndo na rua
+  agora". Cada coisa uma vez (`est`), e **20 m de folga** para o GPS que
+  treme não ficar passando e sendo passado. O ▶ conduzido pelo Android com a
+  tela travada não fala isso (a página dorme).
+- **🏁 Correr juntos ao vivo** no desafio de corrida leva ao *Desafio* de
+  corrida (mesma distância ou mesmo tempo, posição ao vivo): um é o ranking
+  da semana, o outro a prova de agora.
+
+Coberto por `teste-grupo.js` (117 checagens). Testado no navegador com dois
+aparelhos e um retransmissor local: o Carlos cria um desafio de corrida, a
+Ana entra pelo link e aperta o ▶ da esteira; ela ouve "Faltam 400 metros para
+passar Carlos" e ele vê "🔴 Ana · correndo na esteira" e "Ana começou agora"
+no mural. **Achado nesse teste**: o efeito que para o ao vivo quando a esteira
+para lia a série conduzida antes de ela existir e derrubava a tela do treino.
+**Não validado**: o percurso na rua com GPS de verdade e os retransmissores
+públicos.
+
+Testado no navegador com três
 aparelhos num retransmissor local: criar, convidar pelo link, entrar com
 apelido, e os três vendo o mesmo ranking ao vivo. **Não validado** nos
 retransmissores públicos (a sessão na nuvem não os alcança).

@@ -16,6 +16,40 @@
 
 ---
 
+## 2026-10-24j — Desafio entre amigos de corrida e caminhada, na rua e na esteira
+
+**Em uma frase:** dá para criar um desafio de corrida e caminhada com a galera: ranking de km na rua e na
+esteira, ritmo, quem está correndo agora, e a voz avisando no meio da sua corrida quando você passa um amigo.
+
+**O que mudou**
+- Ao criar o desafio, escolha **🏃 Corrida e caminhada** (ou 🏋 Treinos da academia).
+- Rankings de **km na semana, km na rua, km na esteira, minutos de aeróbico, maior distância e melhor ritmo**.
+- **🔴 Ao vivo agora**: quando um amigo está correndo ou caminhando (na rua com GPS ou no ▶ da esteira), aparece
+  "Ana · correndo na esteira · 2,3 km · 14:10 · 6:10 /km", atualizando sozinho.
+- **A voz durante a sua corrida**: "Faltam 400 metros para passar o Carlos nos quilômetros da semana", "Você passou
+  a Ana!", "A Bia também está correndo na rua agora", e se alguém correndo junto te passar, "Acelera!".
+- No mural: "Ana correu 5,2 km na rua em 28:30 (5:29 /km)" e "Ana começou agora: correndo na esteira".
+- Os totais da galera mostram os km juntos, na rua e na esteira.
+- Botão **🏁 Correr juntos ao vivo** para disputar a mesma distância na hora, cada um onde estiver.
+
+**Por que importa para quem treina**
+- Saber que o amigo está correndo agora, e ouvir que faltam 400 metros para passar ele, faz qualquer um correr
+  mais um pouco.
+
+**Como usar**
+- Histórico › Números › "⚔️ Desafio entre amigos" › "+ Outro desafio" › 🏃 Corrida e caminhada › convidar.
+- Depois é só correr: na rua (Caminhada ou corrida na rua) ou na esteira (o ▶ da série, ou a esteira conectada).
+
+**Ideias de vídeo**
+- Dois amigos em academias diferentes, um vendo no celular "🔴 Ana correndo na esteira".
+- Na esteira, de fone, o Jarvis dizendo "Você passou a Ana nos quilômetros da semana!".
+
+**Não prometer**
+- O ao vivo precisa de internet e do app aberto (na tela) durante a corrida. Não mostra onde a pessoa está, só os
+  números. Com a tela travada, a voz do desafio não fala.
+
+---
+
 ## 2026-10-24i — Desafio entre amigos: mural, aviso de ultrapassagem e muito mais número
 
 **Em uma frase:** o desafio entre amigos ganhou um mural do que a galera fez, avisa quando alguém passa você,

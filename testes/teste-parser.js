@@ -213,5 +213,12 @@ t("Jarvis, vai para o elíptico", { tipo: "irExercicio", ex: "eliptico" });
 // o triceps corda nao pode virar pular corda
 t("Jarvis, triceps corda 30 por 12", { tipo: "anotar", peso: 30, reps: 12, ex: "triceps-corda" });
 
+console.log("--- a camera e os oculos ---");
+t("Jarvis, óculos", { tipo: "oculos" });
+t("Jarvis, liga a câmera dos óculos", { tipo: "oculos" });
+t("Jarvis, conta pelos óculos", { tipo: "oculos" });
+t("Jarvis, câmera", { tipo: "scanner" });
+t("Jarvis, conta pra mim", { tipo: "scanner" });
+
 console.log("\n" + ok + " passou / " + falhou + " falhou");
 process.exit(falhou ? 1 : 0);

@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-23g**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24a**.
 
 ---
 
@@ -153,6 +153,9 @@ com cenas reais → halter) como linguagem visual em vídeos.
   Precisa do app Android do Treino Livre e do modo de desenvolvedor ligado no app Meta AI. A imagem é colorida
   (as cores entram nos primeiros segundos). A contagem é falada em voz alta no som dos óculos, com a voz
   do celular; os comandos falados para o Jarvis ainda não funcionam nessa tela.
+- **Ligar a contagem sem tocar no celular:** nos Ajustes da voz, o toque na haste dos óculos (ou no botão do fone)
+  pode abrir a contagem pela câmera do celular ou pelos óculos. Pela voz: "Jarvis, câmera" ou "Jarvis, óculos".
+  Em teste: alguns celulares podem pedir um toque na tela para abrir os óculos.
 - **Convite para o app Android:** quem usa pelo navegador no Android vê, na tela inicial e nos Ajustes,
   o cartão "Baixe o app Android" com o que só o app faz (relógio, Samsung Health, óculos). Quem já tem o
   app e abriu o atalho antigo é avisado de qual ícone usar.

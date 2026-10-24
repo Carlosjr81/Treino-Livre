@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-23g";
+const VERSAO_APP = "2026-10-24a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4093,7 +4093,8 @@ function lerVoz(v) {
     velocidade: o.velocidade || 1.1,
     animado: o.animado !== false,
     modo: o.modo === "toque" ? "toque" : "continuo",
-    botaoFone: !!o.botaoFone,
+    // true é o Jarvis (o valor antigo); "camera" e "oculos" ligam a contagem
+    botaoFone: o.botaoFone === "camera" || o.botaoFone === "oculos" ? o.botaoFone : !!o.botaoFone,
     contarAlto: o.contarAlto !== false,
     autoSerie: o.autoSerie !== false,
     narrar: o.narrar !== false,
@@ -5614,6 +5615,9 @@ function interpretarVoz(fala, ctx) {
   // pino: o detalhe que se esquece entre um treino e outro e que, até aqui, só
   // dava para escrever com o dedo.
   if (tem(/\bobserva/)) return { tipo: "observacao", frase: f };
+
+  // --- a câmera dos óculos (vem antes: "liga a câmera dos óculos" tem "câmera")
+  if (tem(/\b(oculos|ray ?ban)\b/)) return { tipo: "oculos" };
 
   // --- o scanner da câmera ---
   if (tem(/\b(scanner|escaner|camera|eyes|conta (pra|para) mim|contar (pra|para) mim|me conta as reps|olha e conta)\b/)) return { tipo: "scanner" };
@@ -10533,16 +10537,23 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
             </div>
 
             <div style={{ marginBottom: 18 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                <span style={{ fontSize: 15, fontWeight: 700 }}>Botão do fone aciona</span>
-                <button onClick={() => setVoz((v) => ({ ...v, botaoFone: !v.botaoFone }))} aria-pressed={!!voz.botaoFone}
-                  style={{ ...S.btnGhost, width: "auto", padding: "9px 14px" }}>
-                  {voz.botaoFone ? "🎧 Ligado" : "Desligado"}
-                </button>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Toque no fone ou nos óculos</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {[[false, "Nada"], [true, "🎙 Jarvis"], ["camera", "📷 Câmera"]].concat(EH_ANDROID ? [["oculos", "👓 Óculos"]] : []).map(([valor, rotulo]) => {
+                  const ativo = (voz.botaoFone || false) === valor;
+                  return (
+                    <button key={String(valor)} onClick={() => setVoz((v) => ({ ...v, botaoFone: valor }))} aria-pressed={ativo}
+                      style={{ ...S.btnGhost, width: "auto", padding: "9px 12px", borderColor: ativo ? "var(--marca)" : undefined, color: ativo ? "var(--marca)" : undefined, fontWeight: ativo ? 800 : 600 }}>
+                      {rotulo}
+                    </button>
+                  );
+                })}
               </div>
               <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 8, lineHeight: 1.5 }}>
-                O play/pause do fone passa a chamar o Jarvis, sem tirar o celular do bolso.
-                Em alguns aparelhos isso <b>pausa a sua música</b>; se acontecer, desligue aqui.
+                O play/pause do fone — nos óculos Ray-Ban Meta, um toque na haste — faz isto durante o treino,
+                sem tirar o celular do bolso. <b>Câmera</b> abre a contagem pelo celular; <b>Óculos</b>, a contagem
+                pela câmera dos óculos. Pela voz também: "Jarvis, câmera" ou "Jarvis, óculos".
+                Em alguns aparelhos isso <b>pausa a sua música</b>; se acontecer, escolha Nada.
               </div>
             </div>
 
@@ -21958,6 +21969,29 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         setScanner(true);
         return { ok: true, fala: "Scanner aberto. Apoie o celular de pé, com o corpo inteiro na tela." };
       }
+      // **O Chrome pode barrar a abertura de outro app sem um toque**, e a voz
+      // não conta como toque. Então tenta; se em 2,5 s a página continua na
+      // frente (o app dos óculos não abriu), o próximo toque na haste dos
+      // óculos — que chega como o play/pause de um fone — tenta de novo
+      // (`ARMAR_TOQUE`). Se nem o toque na haste passar, abre o contador do
+      // celular, onde o 👓 está à mão.
+      case "oculos": {
+        if (!EH_ANDROID) return { ok: false, fala: "A câmera dos óculos só liga pelo app Android." };
+        if (!alvo) return { ok: false, fala: "O treino está vazio. Adicione um exercício primeiro." };
+        irPara(alvo.ei);
+        ligarOculosSessao();
+        setTimeout(() => {
+          if (document.visibilityState !== "visible") return;
+          if (!c.doToque && ARMAR_TOQUE) {
+            ARMAR_TOQUE("oculos");
+            if (responderVoz) responderVoz("Toque uma vez na haste dos óculos para ligar a câmera deles.", true);
+          } else {
+            setScanner(true);
+            if (responderVoz) responderVoz("O Chrome pediu um toque na tela: toque no botão dos óculos, no alto do contador.", false);
+          }
+        }, 2500);
+        return { ok: true, fala: "Ligando os óculos." };
+      }
       case "tempoDescanso": {
         if (!fimDescanso) return { ok: true, fala: "Não tem descanso correndo agora." };
         const resta = Math.max(0, Math.ceil((fimDescanso - Date.now()) / 1000));
@@ -22044,6 +22078,22 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         return null;
     }
   };
+
+  // Os dados da série vão para a tela dos óculos, como no 👓 do scanner
+  function ligarOculosSessao() {
+    if (!alvo) return false;
+    const it = sessao.itens[alvo.ei];
+    const s = it.series[alvo.si] || {};
+    const e = exPorId(it.exercicioId);
+    const extra = {
+      ex: e && e.id, nome: e && e.nome, grupo: e && e.grupo, func: e && e.func,
+      reps: s.reps || "", peso: s.peso || "", serie: alvo.si + 1, total: it.series.length,
+      esp: 1, contar: contarAlto === false ? 0 : 1, auto: autoSerie === false ? 0 : 1,
+    };
+    setScanner(false);
+    try { window.location.href = linkOculos(novaChaveOculos(), extra); } catch (er) {}
+    return true;
+  }
 
   // Penduradas na ref a cada render, para o raiz sempre chamar a versão atual
   if (acoesVoz) {
@@ -23720,6 +23770,10 @@ function GuiaConectar({ inicial, onFechar, problema }) {
 // um ponteiro de módulo, como o CONTROLE_AULA, em vez de descer a função por
 // toda a árvore. Existe um guia só por vez.
 let ABRIR_GUIA = null;
+// O próximo toque no botão do fone (ou na haste dos óculos) faz uma ação.
+// Ponteiro de módulo pelo mesmo motivo do ABRIR_GUIA: quem arma é a sessão,
+// quem ouve o botão é o raiz.
+let ARMAR_TOQUE = null;
 const abrirGuia = (id, problema) => { if (ABRIR_GUIA) ABRIR_GUIA(id, problema); };
 
 function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizar }) {
@@ -24549,12 +24603,51 @@ function TreinoLivre() {
   // opção vem desligada e diz exatamente o que pode acontecer.
   const vozAtivaRef = useRef(false);
   vozAtivaRef.current = vozAtiva;
+  // **Atalho da contagem** (pedido do dono: ligar a câmera ou os óculos sem
+  // tocar no celular). O toque na haste dos óculos Ray-Ban Meta chega como o
+  // play/pause de um fone. O modo diz o que ele faz: o Jarvis, a câmera do
+  // celular ou a dos óculos. E "Jarvis, óculos" arma o próximo toque, porque o
+  // Chrome só abre outro app depois de um toque — e o toque na haste conta.
+  const [toqueArmado, setToqueArmado] = useState(null);   // { acao, ate }
+  const toqueArmadoRef = useRef(null);
+  toqueArmadoRef.current = toqueArmado;
+  ARMAR_TOQUE = (acao) => setToqueArmado({ acao: acao, ate: Date.now() + 60000 });
   useEffect(() => {
-    if (!voz.botaoFone || typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+    if (!toqueArmado) return undefined;
+    const t = setTimeout(() => setToqueArmado(null), Math.max(0, toqueArmado.ate - Date.now()));
+    return () => clearTimeout(t);
+  }, [toqueArmado]);
+  const executarToque = (acao) => {
+    const s = acoesVoz.current;
+    if (!s || !s.vivo) { mostrarVoz("", "Comece um treino para contar pela câmera.", false); return; }
+    setAba("sessao");
+    const r = s.executar({ tipo: acao === "oculos" ? "oculos" : "scanner", doToque: true });
+    if (r) mostrarVoz("", r.fala, r.ok);
+  };
+  const executarToqueRef = useRef(executarToque);
+  executarToqueRef.current = executarToque;
+  const teclaFone = !!voz.botaoFone || !!toqueArmado;
+  useEffect(() => {
+    if (!teclaFone || typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
     const el = document.createElement("audio");
     const url = urlSilencio();
     el.loop = true; el.volume = 0; el.src = url;
     const acionar = () => {
+      const armado = toqueArmadoRef.current;
+      if (armado && Date.now() < armado.ate) {
+        anotarDiario("", "toque no fone: " + armado.acao);
+        toqueArmadoRef.current = null;
+        setToqueArmado(null);
+        executarToqueRef.current(armado.acao);
+        return;
+      }
+      const modo = vozRef.current && vozRef.current.botaoFone;
+      if (modo === "camera" || modo === "oculos") {
+        anotarDiario("", "toque no fone: " + modo);
+        executarToqueRef.current(modo);
+        return;
+      }
+      if (!modo) return;
       anotarDiario("", "botão do fone acionado");
       if (!vozAtivaRef.current) ligarVoz();
       else if (ouvinte.current && ouvinte.current.noModoToque()) ligarVoz();
@@ -24576,7 +24669,7 @@ function TreinoLivre() {
         navigator.mediaSession.setActionHandler("nexttrack", null);
       } catch (e) {}
     };
-  }, [voz.botaoFone, ligarVoz]);
+  }, [teclaFone, ligarVoz]);
 
   // O navegador encerra o reconhecimento sozinho e nem sempre avisa. Esta
   // conferência periódica é o que mantém o microfone vivo o treino inteiro.

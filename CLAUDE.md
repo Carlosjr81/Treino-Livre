@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v109) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v110) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2921,6 +2921,32 @@ manda quadros): os quadros viram o vídeo do scanner, o ✕ fecha e manda
 de verdade: no Chromium de computador ele abre uma janela que trava os
 cliques. **Nada do lado nativo dos óculos foi visto num aparelho.**
 `teste-saude.js` cobre a chave, o link e o endereço.
+
+### Ligar a contagem sem tocar no celular (`ARMAR_TOQUE`, `voz.botaoFone`)
+
+Pedido do dono: ligar a contagem pela câmera do celular ou pelos óculos sem
+pôr a mão no celular, tocando nos óculos ou falando. **O toque na haste dos
+óculos Ray-Ban Meta chega ao Android como o play/pause de um fone**, e o
+"Botão do fone" (Ajustes do Jarvis) já sabia ouvir isso (`mediaSession` com um
+áudio em silêncio tocando). Ele virou uma escolha de quatro: Nada, 🎙 Jarvis
+(o `true` de antes), 📷 Câmera (`"camera"`, abre o contador do celular no
+exercício da vez) e 👓 Óculos (`"oculos"`, só no Android).
+
+- **Pela voz**: "Jarvis, câmera" já existia; "Jarvis, óculos" (`tipo:
+  "oculos"`, testado **antes** do scanner: "câmera dos óculos" tem "câmera")
+  manda a série ao app dos óculos sem abrir o scanner do celular
+  (`ligarOculosSessao`, os mesmos dados do 👓 do scanner).
+- **O Chrome pode barrar abrir outro app sem um toque, e a voz não é toque.**
+  Então a voz tenta; se em 2,5 s a página continua visível, ela **arma o
+  próximo toque na haste** (`ARMAR_TOQUE`, um minuto, ponteiro de módulo como
+  o `ABRIR_GUIA`) e diz "toque uma vez na haste dos óculos". Armado, o áudio
+  em silêncio e os atalhos de mídia entram mesmo com o botão do fone em Nada.
+- **Se nem o toque na haste passar** (`doToque`), abre o contador do celular e
+  diz para tocar no 👓 dele: a saída que sempre funciona fica à mão, em vez de
+  um silêncio.
+- **Não validado num aparelho**: se o Chrome deixa a voz ou o toque da haste
+  abrir o app dos óculos. No navegador de teste os três caminhos (câmera,
+  óculos, armado) chegam ao link com os dados da série.
 
 ## O passo a passo de conectar (`GuiaConectar`, `GUIA_CONECTAR`)
 

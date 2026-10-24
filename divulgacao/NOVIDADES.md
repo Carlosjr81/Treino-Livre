@@ -16,6 +16,39 @@
 
 ---
 
+## 2026-10-24a — Ligar a contagem pela câmera ou pelos óculos sem tocar no celular
+
+**Em uma frase:** um toque na haste dos óculos Ray-Ban Meta (ou no botão do fone) ou um comando de voz
+liga a contagem de repetições pela câmera, sem tirar o celular do bolso.
+
+**O que mudou**
+- Em ⚙ Ajustes › Jarvis › Ajustes da voz, "Toque no fone ou nos óculos" tem quatro escolhas: Nada, Jarvis,
+  Câmera (abre a contagem pela câmera do celular no exercício da vez) e Óculos (abre a contagem pela câmera
+  dos óculos, no app Android).
+- Novo comando de voz: "Jarvis, óculos" liga a contagem pelos óculos. "Jarvis, câmera" continua abrindo a do
+  celular.
+- Se o celular pedir um toque para abrir os óculos, o Jarvis avisa: "toque uma vez na haste dos óculos" — e o
+  toque na haste liga.
+
+**Por que importa para quem treina**
+- No meio do treino, com a mão no halter e o celular longe, ligar a câmera não pede mais andar até o celular.
+
+**Como usar**
+- Ajustes › Jarvis › Ajustes da voz › "Toque no fone ou nos óculos" › Óculos (ou Câmera). Durante o treino,
+  toque uma vez na haste dos óculos.
+- Ou, com o Jarvis ligado: "Jarvis, óculos" / "Jarvis, câmera".
+
+**Ideias de vídeo**
+- De frente para o espelho, um toque na haste dos óculos e a contagem começa, sem encostar no celular.
+
+**Não prometer**
+- Ainda em teste no celular: em alguns aparelhos o Chrome pode exigir um toque na tela para abrir os óculos;
+  aí o app abre o contador do celular com o botão dos óculos à mão.
+- Os óculos só pelo app Android. No iPhone, só a câmera do celular.
+- Pode pausar a música que estiver tocando no celular; se atrapalhar, escolha "Nada".
+
+---
+
 ## 2026-10-23g — Encolhimento de ombros contado de verdade com os óculos
 
 **Em uma frase:** o encolhimento de ombros agora é contado também com os óculos Ray-Ban Meta,

@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24r";
+const VERSAO_APP = "2026-10-24s";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -10219,7 +10219,10 @@ function planoAjuste(lista, catalogo, usados) {
 // programa antigo fica intacto (mexer na ficha de alguém sem pedir é proibido
 // aqui). Cada exercício novo vai para a ficha que já treina o grupo dele; sem
 // nenhuma, para a ficha com menos séries.
-function aplicarPlanoNasFichas(fichas, plano, exPorId, novoId) {
+// vezes: quantas vezes cada ficha é feita por semana (dias ÷ fichas). Numa
+// ficha feita duas vezes, 2 séries acrescentadas somam 4 na semana.
+function aplicarPlanoNasFichas(fichas, plano, exPorId, novoId, vezes) {
+  const fator = Math.max(1, vezes || 1);
   const novas = fichas.map((f) => ({ ...f, itens: (f.itens || []).map((it) => ({ ...it })) }));
   const mudancas = [];
   const seriesDa = (f) => f.itens.reduce((a, it) => a + (parseInt(it.series) || 0), 0);
@@ -10229,7 +10232,8 @@ function aplicarPlanoNasFichas(fichas, plano, exPorId, novoId) {
     const comGrupo = novas.filter((f) => gruposDa(f).indexOf(g) >= 0);
     const resto = novas.filter((f) => comGrupo.indexOf(f) < 0).sort((a, b) => seriesDa(a) - seriesDa(b));
     const destino = comGrupo.concat(resto);
-    fa.dias.forEach((n, k) => {
+    fa.dias.forEach((n0, k) => {
+      const n = Math.max(1, Math.round(n0 / fator));
       const f = destino[k % Math.max(1, destino.length)];
       if (!f) return;
       // a melhor sugestão nos dois dias: a segunda costuma carregar outro músculo
@@ -10289,6 +10293,97 @@ function seriesNaSemana(base, semana) {
 function diaDaOndulacao(indiceFicha, semana) {
   if (semana === 5) return DIAS_ONDULACAO[2];
   return DIAS_ONDULACAO[((indiceFicha % 3) + 3) % 3];
+}
+
+// ---- A troca para o treino ajustado: quando e como (transicaoAjuste) ----
+// Pedido do dono: "defina a melhor forma de ir para o treino de ajuste, pelos
+// treinos e resultados anteriores: por semana? no último dia da semana? dia
+// sim, dia não?".
+//
+// A regra do fisiculturismo baseado em evidência (RP/Israetel, Helms, Nippard):
+// programa novo começa no INÍCIO de um mesociclo, e mesociclo novo vem depois
+// de um deload quando há sinal de cansaço acumulado. Trocar no meio da semana
+// mistura duas réguas de volume na mesma semana; trocar ficha por ficha, em
+// dias alternados, impede de ver qual das duas está funcionando.
+// Por isso:
+// - progredindo, e com menos de 4 semanas puxadas seguidas: termine a semana
+//   com a ficha de agora e comece o ajustado na SEGUNDA seguinte, pela semana
+//   1 (base, uma série a menos), que já é a transição;
+// - 4 semanas ou mais sem semana leve, ou a carga parada nos últimos 14 dias:
+//   uma semana de DELOAD com a ficha de agora (metade das séries) e a troca na
+//   segunda depois dela.
+// Os dias saem da frequência da própria pessoa (mediana das últimas semanas):
+// 3 dias = dia sim, dia não (48 h para o músculo recuperar); 2 = segunda e
+// quinta; 4 = seg, ter, qui, sex; 5 = seg, ter, qua, sex, sáb; 6 = seg a sáb.
+const DIAS_SEMANA_NOME = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+const AGENDA_POR_FREQUENCIA = { 1: [1], 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 5, 6], 6: [1, 2, 3, 4, 5, 6], 7: [0, 1, 2, 3, 4, 5, 6] };
+function cargaMaxDe(series) {
+  let m = 0;
+  (series || []).forEach((s) => { if (serieConta(s) && !ehCardio(s) && !(s && s.segundos)) { const p = parseFloat(s.peso) || 0; if (p > m) m = p; } });
+  return m;
+}
+// Por semana completa (as 6 antes desta): quantos treinos e quantas séries.
+function semanasRecentes(historico, agora, n) {
+  const ini = segundaDaSemana(new Date(agora)).getTime();
+  const sem = [];
+  for (let k = 1; k <= (n || 6); k++) sem.push({ ini: ini - k * 7 * 864e5, treinos: 0, series: 0 });
+  (historico || []).forEach((h) => {
+    const t0 = new Date(h.data).getTime();
+    const s = sem.find((x) => t0 >= x.ini && t0 < x.ini + 7 * 864e5);
+    if (!s) return;
+    s.treinos++;
+    (h.itens || []).forEach((it) => { s.series += (it.series || []).filter((x) => serieConta(x) && !ehCardio(x)).length; });
+  });
+  return sem;   // sem[0] é a semana passada
+}
+const mediana = (v) => { const a = v.slice().sort((x, y) => x - y); return a.length ? (a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2) : 0; };
+// A carga subiu? A maior carga de cada exercício nos últimos 14 dias contra a
+// das 4 semanas antes. Só entra exercício feito nas duas janelas.
+function progressoRecente(historico, agora) {
+  const a = {}, b = {};
+  (historico || []).forEach((h) => {
+    const d = (agora - new Date(h.data).getTime()) / 864e5;
+    const alvo = d >= 0 && d < 14 ? a : d >= 14 && d < 42 ? b : null;
+    if (!alvo) return;
+    (h.itens || []).forEach((it) => { const m = cargaMaxDe(it.series); if (m > 0) alvo[it.exercicioId] = Math.max(alvo[it.exercicioId] || 0, m); });
+  });
+  const ids = Object.keys(a).filter((id) => b[id]);
+  const subiram = ids.filter((id) => a[id] > b[id] * 1.005).length;
+  const cairam = ids.filter((id) => a[id] < b[id] * 0.97).length;
+  return { comparados: ids.length, subiram: subiram, cairam: cairam, pct: ids.length ? subiram / ids.length : null };
+}
+function transicaoAjuste(historico, agora, nFichas) {
+  const sem = semanasRecentes(historico, agora, 6);
+  const comTreino = sem.filter((s) => s.treinos > 0);
+  const freq = Math.max(1, Math.min(7, Math.round(mediana(comTreino.slice(0, 4).map((s) => s.treinos)) || 3)));
+  // semanas puxadas seguidas: com treino e com pelo menos 60% das séries de costume
+  const base = mediana(comTreino.map((s) => s.series)) || 0;
+  let puxadas = 0;
+  for (const s of sem) { if (s.treinos > 0 && s.series >= base * 0.6) puxadas++; else break; }
+  const prog = progressoRecente(historico, agora);
+  const estagnado = prog.comparados >= 4 && prog.pct !== null && prog.pct < 0.25;
+  const deload = puxadas >= 4 || estagnado;
+  const proxSegunda = segundaDaSemana(new Date(agora)).getTime() + 7 * 864e5;
+  const inicio = deload ? proxSegunda + 7 * 864e5 : proxSegunda;
+  const dias = AGENDA_POR_FREQUENCIA[freq];
+  const n = Math.max(1, nFichas || 1);
+  const motivos = [];
+  if (puxadas >= 4) motivos.push(puxadas + " semanas seguidas de treino puxado, sem semana leve");
+  if (estagnado) motivos.push("a carga não subiu em " + (prog.comparados - prog.subiram) + " de " + prog.comparados + " exercícios nos últimos 14 dias");
+  if (!deload) motivos.push(prog.comparados ? "a carga subiu em " + prog.subiram + " de " + prog.comparados + " exercícios: você está progredindo" : "sem sinal de cansaço acumulado");
+  return {
+    frequencia: freq, dias: dias, vezes: Math.max(1, Math.round((freq / n) * 10) / 10), puxadas: puxadas, progresso: prog,
+    deload: deload, deloadInicio: deload ? proxSegunda : null, inicio: inicio, motivos: motivos,
+    agenda: dias.map((d, k) => ({ dia: DIAS_SEMANA_NOME[d], ficha: k % n })),
+  };
+}
+// O volume que as fichas dão por semana, para conferir que nenhum músculo
+// fica de fora depois do ajuste
+function volumeDasFichas(fichas, exPorId, vezes) {
+  const acc = {};
+  fichas.forEach((f) => somarVolumeFracionado(acc, { itens: (f.itens || []).map((it) => ({ exercicioId: it.exercicioId,
+    series: Array.from({ length: Math.round((parseInt(it.series) || 0) * (vezes || 1)) }, () => ({ peso: 1, reps: 1 })) })) }, exPorId));
+  return listaVolumeFracionado(acc, 1);
 }
 // ---------------- FIM DO PLANO DE AJUSTE
 
@@ -10374,7 +10469,16 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
     return (programas || []).find((p) => p.id === (f ? f.programaId : null)) || (programas || [])[0] || null;
   }, [historico, treinos, programas]);
   const [aberto, setAberto] = useState(false);
-  const meso = (programas || []).find((p) => p.meso && p.meso.inicio);
+  const fichasProg = useMemo(() => (prog ? (treinos || []).filter((f) => f.programaId === prog.id) : []), [prog, treinos]);
+  const tr = useMemo(() => transicaoAjuste(historico, Date.now(), fichasProg.length), [historico, fichasProg.length]);
+  const depois = useMemo(() => {
+    if (!fichasProg.length) return null;
+    const r2 = aplicarPlanoNasFichas(fichasProg, plano, exPorId, () => "x", tr.vezes);
+    return volumeDasFichas(r2.fichas, exPorId, tr.vezes);
+  }, [fichasProg, plano, tr]);
+  const abaixo = depois ? depois.filter((x) => x.total < (ALVO_MUSCULO[x.id] || 6) - 0.5) : [];
+  const dataTxt = (ms) => new Date(ms).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "numeric" });
+  const meso = (programas || []).find((p) => p.meso && p.meso.inicio && p.meso.inicio <= Date.now());
   const sm = meso ? semanaDoMeso(meso.meso, Date.now()) : null;
   if (!historico.length) return null;
   return (
@@ -10409,6 +10513,37 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
           ))}
         </React.Fragment>
       )}
+      {depois && (
+        <div style={{ fontSize: 12.5, lineHeight: 1.5, marginTop: 10 }}>
+          {abaixo.length
+            ? <>Depois do ajuste, ainda abaixo do mínimo: <b>{abaixo.map((x) => x.nome.replace(/ \(.*\)/, "")).join(", ")}</b>.</>
+            : <>✅ <b>Depois do ajuste, os {depois.length} músculos chegam ao mínimo</b> (estimado pelas fichas, {num1v(tr.vezes)}× cada por semana).</>}
+        </div>
+      )}
+      {prog && (
+        <div style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: "10px 12px", marginTop: 12, fontSize: 12.5, lineHeight: 1.55 }}>
+          <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>🔁 Quando e como trocar</div>
+          <div><b>Pelos seus treinos:</b> {tr.motivos.join("; ")}. Você treina <b>{tr.frequencia}×</b> por semana.</div>
+          {tr.deload ? (
+            <div style={{ marginTop: 6 }}>
+              <b>1. Semana leve primeiro</b> ({dataTxt(tr.deloadInicio)} em diante): a ficha de agora com <b>metade das séries</b> e a carga uns 10% abaixo.
+              Cansaço acumulado esconde o que você ganhou; começar o ajuste descansado mostra o resultado de verdade.<br />
+              <b>2. A troca</b>: {dataTxt(tr.inicio)}, na semana 1 (base) do ajustado.
+            </div>
+          ) : (
+            <div style={{ marginTop: 6 }}>
+              <b>Termine esta semana com a ficha de agora</b> e comece o ajustado <b>{dataTxt(tr.inicio)}</b>, na semana 1 (base, uma série a menos): ela já é a transição.
+              Trocar no meio da semana mistura duas contas de volume; trocar ficha por ficha em dias alternados não deixa ver qual está funcionando.
+            </div>
+          )}
+          <div style={{ marginTop: 6 }}><b>Os dias</b>: {tr.agenda.map((a) => a.dia + " (" + (fichasProg[a.ficha] ? fichasProg[a.ficha].nome.split(/ [-–] /)[0] : "ficha " + (a.ficha + 1)) + ")").join(", ")}.
+            {tr.frequencia === 3 ? " Dia sim, dia não: 48 horas entre um treino e outro." : tr.frequencia >= 5 ? " Dias seguidos funcionam porque cada ficha pega músculos diferentes." : ""}
+            {" "}Se perder um dia, siga a ordem das fichas (o app já sugere a próxima), sem pular.</div>
+          <div style={{ marginTop: 6, color: "var(--cinza)" }}>
+            Depois da semana 5 (deload), o ciclo recomeça. A cada fim de ciclo, volte aqui: o plano é refeito pelos novos treinos.
+          </div>
+        </div>
+      )}
       <button onClick={() => setAberto((v) => !v)} style={{ ...S.btnGhost, width: "100%", marginTop: 10, fontSize: 12.5, padding: "8px 10px" }}>
         {aberto ? "Fechar a periodização" : "📅 Como periodizar: diária, semanal ou quinzenal?"}
       </button>
@@ -10433,7 +10568,7 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
         </div>
       )}
       {prog && onCriar && (
-        <button onClick={() => onCriar(prog, plano)} style={{ ...S.btn, width: "100%", marginTop: 12 }}>
+        <button onClick={() => onCriar(prog, plano, tr)} style={{ ...S.btn, width: "100%", marginTop: 12 }}>
           ✨ Criar "{prog.nome} ajustado" com a periodização
         </button>
       )}
@@ -10605,7 +10740,11 @@ function fichaDeHoje(programas, treinos, historico, agora) {
   const comItens = (treinos || []).filter((t) => t.itens && t.itens.length);
   if (!comItens.length) return null;
   const ordem = [];
-  (programas || []).forEach((p) => comItens.forEach((t) => { if (t.programaId === p.id) ordem.push(t); }));
+  // o treino ajustado que já começou vem na frente: as fichas dele têm os mesmos
+  // nomes das antigas, e a última feita tem de levar à próxima DELE
+  const ag = agora ? agora.getTime() : Date.now();
+  const progs = (programas || []).slice().sort((x, y) => (y.meso && y.meso.inicio <= ag ? y.meso.inicio : 0) - (x.meso && x.meso.inicio <= ag ? x.meso.inicio : 0));
+  progs.forEach((p) => comItens.forEach((t) => { if (t.programaId === p.id) ordem.push(t); }));
   comItens.forEach((t) => { if (ordem.indexOf(t) < 0) ordem.push(t); });
   const hoje = DIAS_FICHA[(agora || new Date()).getDay()];
   const doDia = ordem.find((t) => new RegExp("\\b" + hoje + "\\b").test(semAcento(t.nome)));
@@ -24915,7 +25054,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           da voz espera (uma dica de cada vez). */}
       {sessao.meso && (
         <div style={{ ...S.card, padding: "10px 14px", fontSize: 12.5, lineHeight: 1.5 }}>
-          <b>📅 Semana {sessao.meso.semana} de {MESOCICLO.length} · {sessao.meso.nome} · {sessao.meso.dia}</b><br />
+          <b>📅 {sessao.meso.antes ? sessao.meso.nome : "Semana " + sessao.meso.semana + " de " + MESOCICLO.length + " · " + sessao.meso.nome} · {sessao.meso.dia}</b><br />
           {sessao.meso.reps[0]} a {sessao.meso.reps[1]} repetições, {sessao.meso.diaDica}. {sessao.meso.reserva.charAt(0).toUpperCase() + sessao.meso.reserva.slice(1)}: {sessao.meso.dica}.
         </div>
       )}
@@ -28041,14 +28180,16 @@ function TreinoLivre() {
   const comecarSessao = (treino) => {
     // treino de um programa com mesociclo: as séries da semana e o dia da ondulação
     const prog = programas.find((p) => p.id === treino.programaId);
-    const sm = prog && prog.meso ? semanaDoMeso(prog.meso, Date.now()) : null;
+    const agoraS = Date.now();
+    const deloadAntes = prog && prog.deload && agoraS >= prog.deload.inicio && agoraS < prog.deload.fim;
+    const sm = deloadAntes ? { semana: 5, ciclo: 0 } : prog && prog.meso ? semanaDoMeso(prog.meso, agoraS) : null;
     const irmas = sm ? treinos.filter((t) => t.programaId === prog.id) : [];
     const dia = sm ? diaDaOndulacao(Math.max(0, irmas.findIndex((t) => t.id === treino.id)), sm.semana) : null;
     setSessao({
       treinoId: treino.id,
       nome: treino.nome,
       inicio: Date.now(),
-      meso: sm ? { semana: sm.semana, nome: MESOCICLO[sm.semana - 1].nome, reserva: MESOCICLO[sm.semana - 1].reserva, dica: MESOCICLO[sm.semana - 1].dica, dia: dia.nome, reps: dia.reps, diaDica: dia.dica } : null,
+      meso: sm ? { semana: sm.semana, antes: deloadAntes, nome: deloadAntes ? "Semana leve antes da troca" : MESOCICLO[sm.semana - 1].nome, reserva: MESOCICLO[sm.semana - 1].reserva, dica: MESOCICLO[sm.semana - 1].dica, dia: dia.nome, reps: dia.reps, diaDica: dia.dica } : null,
       itens: treino.itens.map((it, i) => {
         // A carga já vem preenchida com a da última vez, e sobe sozinha quando
         // todas as séries fecharam as repetições combinadas. É a sobrecarga
@@ -28077,21 +28218,25 @@ function TreinoLivre() {
 
   // O plano vira um treino novo: cópia do programa de agora, com os exercícios
   // sugeridos e o mesociclo ligado (meso.inicio). O antigo fica intacto.
-  const criarProgramaAjustado = (prog, plano) => {
+  const criarProgramaAjustado = (prog, plano, tr) => {
     const fichas = treinos.filter((t) => t.programaId === prog.id);
     if (!fichas.length) { avisar("Esse treino ainda não tem fichas."); return; }
-    const r = aplicarPlanoNasFichas(fichas, plano, exPorId, novoUid);
+    tr = tr || transicaoAjuste(historico, Date.now(), fichas.length);
+    const r = aplicarPlanoNasFichas(fichas, plano, exPorId, novoUid, tr.vezes);
+    const quando = (ms) => new Date(ms).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "numeric" });
     const pid = "prog-aj-" + Date.now();
     const nome = prog.nome.replace(/ ajustado$/, "") + " ajustado";
     pedirConfirmacao("Criar \"" + nome + "\"?\n\n" + (r.mudancas.length ? r.mudancas.slice(0, 12).join("\n") + (r.mudancas.length > 12 ? "\n…" : "") : "Sem mudanças de exercício: só a periodização.") +
-      "\n\nCom o mesociclo de 5 semanas ligado (base, acúmulo, acúmulo, pico e deload) e as fichas alternando dia pesado, moderado e leve. O \"" + prog.nome + "\" continua como está.", () => {
+      "\n\n" + (tr.deload ? "Antes, uma semana leve com o \"" + prog.nome + "\" (" + quando(tr.deloadInicio) + "): metade das séries. " : "Termine esta semana com o \"" + prog.nome + "\". ") +
+      "O ajustado começa " + quando(tr.inicio) + ", com o mesociclo de 5 semanas (base, acúmulo, acúmulo, pico e deload) e as fichas alternando dia pesado, moderado e leve. O \"" + prog.nome + "\" continua guardado.", () => {
       const copias = r.fichas.map((f) => ({ ...f, id: "f-" + novoUid(), programaId: pid, itens: clonarItens(f.itens) }));
-      setProgramas((ps) => [...ps, { id: pid, nome: nome, meso: { inicio: segundaDaSemana(new Date()).getTime() } }]);
+      setProgramas((ps) => [...ps.map((p) => (p.id === prog.id && tr.deload ? { ...p, deload: { inicio: tr.deloadInicio, fim: tr.inicio } } : p)),
+        { id: pid, nome: nome, meso: { inicio: tr.inicio }, de: prog.id }]);
       setTreinos((ts) => [...ts, ...copias]);
       setProgAberto(pid);
       setAba("treinos");
       registrarEvento("plano-ajustado-criado");
-      setTimeout(() => avisar("Pronto: \"" + nome + "\" com " + copias.length + " fichas. Esta é a semana 1 do mesociclo (base): comece com folga."), 200);
+      setTimeout(() => avisar("Pronto: \"" + nome + "\" com " + copias.length + " fichas, começando " + quando(tr.inicio) + "." + (tr.deload ? " Antes, a semana leve com o \"" + prog.nome + "\": metade das séries." : " Até lá, siga o \"" + prog.nome + "\".")), 200);
     });
   };
 

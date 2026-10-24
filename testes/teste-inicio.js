@@ -42,5 +42,10 @@ teste("ficha vazia não é sugerida", "Treino B", H.fichaDeHoje([prog[1]], [Obje
 teste("sem ficha nenhuma: nada", null, H.fichaDeHoje([], [], [], dia(16)));
 teste("o dia vence a sequência", "Sexta - Pernas", H.fichaDeHoje(prog, semana.concat(abc), [{ nome: "Treino A" }], dia(16)).ficha.nome);
 
+// o treino ajustado que já começou vem na frente: as fichas têm os mesmos nomes
+const progAj = [{ id: "p2", nome: "ABC" }, { id: "p3", nome: "ABC ajustado", meso: { inicio: dia(12).getTime() } }];
+const abcAj = ["Treino A", "Treino B", "Treino C"].map((n, i) => ({ id: "j" + i, nome: n, programaId: "p3", itens: it }));
+teste("ajustado já começado: a próxima é a DELE", "j1", H.fichaDeHoje(progAj, abc.concat(abcAj), [{ nome: "Treino A" }], dia(16)).ficha.id);
+teste("ajustado que ainda não começou: segue o antigo", "a1", H.fichaDeHoje([{ id: "p2", nome: "ABC" }, { id: "p3", nome: "ABC ajustado", meso: { inicio: dia(26).getTime() } }], abc.concat(abcAj), [{ nome: "Treino A" }], dia(16)).ficha.id);
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

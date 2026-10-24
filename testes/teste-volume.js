@@ -25,7 +25,7 @@ eval(
   pedaco("const GRUPOS = [", "\n];") + "\n];\n" + pedaco("const MUSCULOS = {", "\n};") + "\n};\n" +
   pedaco("const FAIXA_SERIES = ", "\n") + "\n" +
   funcao("plural") + pedaco("// ---------------- VOLUME FRACIONADO", "// ---------------- FIM DO PLANO DE AJUSTE") +
-  "\nglobalThis.V = { volumeFracionadoTreino, volumeFracionadoPeriodo, alertasVolume, leituraVolume, textoComposicao, musculosDoEx, planoAjuste, aplicarPlanoNasFichas, seriesNaSemana, semanaDoMeso, diaDaOndulacao, exerciciosPara };"
+  "\nglobalThis.V = { volumeFracionadoTreino, volumeFracionadoPeriodo, alertasVolume, leituraVolume, textoComposicao, musculosDoEx, planoAjuste, aplicarPlanoNasFichas, seriesNaSemana, semanaDoMeso, diaDaOndulacao, exerciciosPara, transicaoAjuste, volumeDasFichas };"
 );
 const V = globalThis.V;
 
@@ -148,6 +148,33 @@ teste("semana do mesociclo, e o ciclo recomeça na 6ª semana", [[1, 1], [3, 1],
   [0, 15, 30, 36].map((d) => { const x = V.semanaDoMeso({ inicio: ini }, ini + d * 864e5); return [x.semana, x.ciclo]; }));
 teste("ondulação: ficha 1 pesada, 2 moderada, 3 leve, 4 pesada", ["pesado", "moderado", "leve", "pesado"], [0, 1, 2, 3].map((i) => V.diaDaOndulacao(i, 2).id));
 teste("no deload, todo dia é leve", "leve", V.diaDaOndulacao(0, 5).id);
+
+console.log("\n--- 8. a troca: quando e como ---");
+const sabado = new Date("2026-10-24T12:00:00").getTime();
+const semanaDe = (k, dias, series, carga) => dias.map((d) => ({ data: new Date(new Date("2026-10-19T10:00:00").getTime() - k * 7 * 864e5 + d * 864e5).toISOString(),
+  itens: [{ exercicioId: "supino", series: s(series).map((x) => ({ ...x, peso: carga })) }, { exercicioId: "agacho", series: s(series).map((x) => ({ ...x, peso: carga + 20 })) },
+    { exercicioId: "remada", series: s(series).map((x) => ({ ...x, peso: carga })) }, { exercicioId: "triceps", series: s(series).map((x) => ({ ...x, peso: carga / 2 })) }] }));
+// progredindo: 3 semanas (com uma leve no meio), carga subindo
+const prog3 = [].concat(semanaDe(1, [0, 2, 4], 4, 60), semanaDe(2, [0, 2, 4], 1, 55), semanaDe(3, [0, 2, 4], 4, 50), semanaDe(4, [0, 2, 4], 4, 50));
+const tA = V.transicaoAjuste(prog3, sabado, 3);
+teste("3 treinos por semana: dia sim, dia não (seg, qua, sex)", ["segunda", "quarta", "sexta"], tA.agenda.map((x) => x.dia));
+teste("progredindo: troca na próxima segunda, sem deload", [false, new Date("2026-10-26T00:00:00").getTime()], [tA.deload, tA.inicio]);
+// 4 semanas puxadas seguidas: deload antes
+const puxado = [].concat(semanaDe(1, [0, 2, 4], 4, 62), semanaDe(2, [0, 2, 4], 4, 58), semanaDe(3, [0, 2, 4], 4, 54), semanaDe(4, [0, 2, 4], 4, 50));
+const tB = V.transicaoAjuste(puxado, sabado, 3);
+teste("4 semanas puxadas: semana leve antes, troca uma semana depois", [true, 4, new Date("2026-11-02T00:00:00").getTime()], [tB.deload, tB.puxadas, tB.inicio]);
+contem("e o motivo é dito", tB.motivos.join("; "), "4 semanas seguidas de treino puxado");
+// estagnado: carga igual nas últimas semanas
+const parado = [].concat(semanaDe(1, [0, 3], 4, 60), semanaDe(2, [0, 3], 1, 60), semanaDe(3, [0, 3], 4, 60), semanaDe(4, [0, 3], 4, 60));
+const tC = V.transicaoAjuste(parado, sabado, 2);
+teste("carga parada: deload antes da troca", true, tC.deload);
+teste("2 treinos por semana: segunda e quinta", ["segunda", "quinta"], tC.agenda.map((x) => x.dia));
+teste("6 dias e 3 fichas: cada ficha 2× por semana", 2, V.transicaoAjuste([].concat(semanaDe(1, [0, 1, 2, 3, 4, 5], 4, 60), semanaDe(2, [0, 1, 2, 3, 4, 5], 4, 50)), sabado, 3).vezes);
+// ficha feita 2 vezes por semana: o acréscimo é pela metade
+const ap2 = V.aplicarPlanoNasFichas(fichas, pl, CATP, () => "n" + (++uidN), 2);
+teste("ficha feita 2× por semana: +1 série de abdômen em cada", [1, 1], ap2.fichas.map((f) => (f.itens.find((it) => it.exercicioId === "abd") || {}).series));
+const vd = V.volumeDasFichas(ap2.fichas, CATP, 2).find((x) => x.id === "abdomen");
+teste("e a semana soma os mesmos 4 de abdômen", 4, vd.direto);
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

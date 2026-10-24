@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24r**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24s**.
 
 ---
 
@@ -23,6 +23,9 @@
   exercícios clássicos, e cria um treino ajustado (cópia, o original não muda).
 - **Periodização ligada no treino ajustado**: dias pesado (6–8), moderado (8–12) e leve (12–15) em rodízio, e um ciclo de 5
   semanas (base, acúmulo, acúmulo, pico, deload). O treino abre dizendo a semana e o tipo do dia.
+- **Quando e como trocar** (novo em 2026-10-24s): pelo histórico, troca numa segunda-feira; com 4 semanas puxadas ou carga
+  parada, antes uma semana leve (metade das séries). Os dias seguem a frequência (3× = dia sim, dia não). O app confere
+  que todos os 15 músculos chegam ao mínimo.
 - Não prometer: a faixa de 10 a 20 séries e os mínimos por músculo são referência, não prescrição.
 
 ## 1. Em uma frase

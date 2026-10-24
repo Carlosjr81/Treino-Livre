@@ -16,6 +16,39 @@
 
 ---
 
+## 2026-10-24s — O app diz quando e como trocar para o treino ajustado
+
+**Em uma frase:** olhando os seus últimos treinos, o app decide se você troca para o treino ajustado já na próxima
+segunda ou depois de uma semana leve, e em quais dias da semana fazer cada ficha.
+
+**O que mudou**
+- **Quando trocar**: sempre numa segunda-feira, no começo de um ciclo. Se você está progredindo, termina a semana com a
+  ficha de agora e troca na segunda. Se fez 4 semanas puxadas seguidas ou a carga parou de subir, faz antes uma semana
+  leve (metade das séries) e troca na segunda depois dela.
+- **Por que não no meio da semana nem ficha por ficha**: misturar as duas fichas na mesma semana impede de saber qual
+  está funcionando. O app explica isso na tela.
+- **Os dias**: pela sua frequência. 3 vezes por semana é dia sim, dia não (segunda, quarta e sexta); 2 é segunda e
+  quinta; 4 é segunda, terça, quinta e sexta.
+- **Todos os músculos**: o app confere que, depois do ajuste, os 15 músculos chegam ao mínimo de séries por semana.
+- **A semana leve aparece no treino**: "Semana leve antes da troca · Dia leve", já com metade das séries. Na segunda da
+  troca, a tela inicial passa a sugerir as fichas novas.
+
+**Por que importa para quem treina**
+- Trocar de ficha na hora errada, cansado, faz parecer que a ficha nova não funciona. Começar descansado e no início
+  de um ciclo mostra o resultado de verdade.
+
+**Como usar**
+- Histórico › Números › "Plano para equilibrar a divisão" › "Quando e como trocar" › "Criar … ajustado".
+
+**Ideias de vídeo**
+- "Quando trocar de ficha?": mostrar o app dizendo "semana leve primeiro, troca na segunda 02/11" e o porquê.
+
+**Não prometer**
+- As datas e os sinais de cansaço são estimados pelo histórico; dor, sono ruim ou cansaço que não passa pedem a semana
+  leve antes. O app não substitui um treinador.
+
+---
+
 ## 2026-10-24r — O app monta o ajuste da sua divisão e periodiza o treino
 
 **Em uma frase:** a partir das séries de cada músculo (com o indireto), o app sugere o que acrescentar e o que cortar,

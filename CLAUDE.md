@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v127) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v128) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3613,6 +3613,34 @@ compartilhados por aí precisam continuar abrindo.
     recomeça (`semanaDoMeso`).
   - Conferido no navegador: plano, programa criado, e o treino abrindo na
     semana 1 com uma série a menos por exercício.
+  - **Quando e como trocar** (`transicaoAjuste`, pedido do dono: "por semana?
+    último dia da semana? dia sim, dia não?"). A regra do fisiculturismo
+    baseado em evidência: programa novo começa no **início de um mesociclo**,
+    numa **segunda-feira**, e com **deload antes** quando há cansaço
+    acumulado. Nunca no meio da semana (duas contas de volume na mesma
+    semana) nem ficha por ficha em dias alternados (não dá para ver qual das
+    duas funciona). Pelo histórico:
+    - **4 semanas puxadas seguidas** (com pelo menos 60% das séries de
+      costume) ou **carga parada** (subiu em menos de 25% dos exercícios
+      comparando os últimos 14 dias com as 4 semanas antes,
+      `progressoRecente`): semana leve com a ficha de agora a partir da
+      próxima segunda (`programa.deload`: metade das séries, dia leve, banner
+      "Semana leve antes da troca"), e a troca na segunda seguinte;
+    - **progredindo**: termine a semana e troque na próxima segunda; a semana 1
+      (base) é a transição.
+    - **Os dias** (`AGENDA_POR_FREQUENCIA`), pela mediana de treinos por
+      semana: 2 = seg e qui; 3 = seg, qua, sex (dia sim, dia não, 48 h); 4 =
+      seg, ter, qui, sex; 5 e 6 seguidos. Perdeu um dia: segue a ordem das fichas.
+    - **A frequência entra no acréscimo**: ficha feita 2× por semana recebe
+      metade das séries (`aplicarPlanoNasFichas(..., vezes)`), e
+      `volumeDasFichas` confere que, depois do ajuste, **todos os 15
+      músculos chegam ao mínimo** (ou diz quais não).
+    - O ajustado guarda `meso.inicio` na data da troca, e o `fichaDeHoje`
+      passa a preferir as fichas dele quando começa (as cópias têm os mesmos
+      nomes das antigas; coberto em `teste-inicio.js`).
+    Coberto em `teste-volume.js` (43 checagens). Conferido no navegador: a
+    troca para 02/11 com a semana leve antes, e o treino antigo abrindo, na
+    semana leve, com metade das séries.
 - **Filtro por equipamento** (`FAMILIAS_EQUIP`) — responde "só tenho halteres em
   casa". Um exercício pode cair em mais de uma família, e isso não é problema.
 - **Duplicar ficha e programa** — ao copiar, os ids de `conjunto` são regerados

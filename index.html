@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24k";
+const VERSAO_APP = "2026-10-24l";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2547,6 +2547,17 @@ function abrirFluxoOculos(chave, aoEstado) {
 // aplicarEventosBolso — a mesma função dos dois lados, para a cópia do app e o
 // treino da página não divergirem.
 const MODO_BOLSO = typeof location !== "undefined" && /[?&]modo=bolso\b/.test(location.search);
+// ?modo=corrida: o app Android abre esta página escondida para conduzir a
+// corrida do desafio com a tela travada (criarCorridaApp, CorridaService).
+const MODO_CORRIDA = typeof location !== "undefined" && /[?&]modo=corrida\b/.test(location.search);
+// O app que sabe conduzir a corrida abre o site com corrida=1 (guardado, como o bolso)
+const CORRIDA_APP = (() => {
+  try {
+    const m = typeof location !== "undefined" && location.search.match(/[?&]corrida=(\d+)/);
+    if (m) localStorage.setItem("treinolivre:corridaApp1", m[1]);
+    return parseInt(localStorage.getItem("treinolivre:corridaApp1")) || 0;
+  } catch (e) { return 0; }
+})();
 const FRASES_BOLSO_VOLTA = ["Bora!", "Vamos que vamos!", "Hora de voltar!", "Foco agora!", "É agora!", "Mais uma, você consegue!", "Respira e vai!"];
 const FRASES_BOLSO_FIM_EX = ["Esse já foi!", "Fechou esse!", "Mandou bem nesse!", "Um a menos!"];
 const BOLSO_SO_NA_TELA = "Essa eu faço com a tela destravada.";
@@ -18867,12 +18878,14 @@ function mqttLer(buf) {
 // voltar, publica de novo a última trilha.
 function criarSalaAoVivo(o) {
   const base = (o.base || DESAFIO_TOPICO) + o.codigo + "/";
-  let ws = null, buf = new Uint8Array(0), ping = null, vivo = false, fechado = false, tentativas = 0, prazo = null;
+  let ws = null, buf = new Uint8Array(0), ping = null, vivo = false, fechado = false, tentativas = 0, prazo = null, ultPing = 0;
   const ultimos = {};   // tópico → última mensagem: publicada de novo a cada reconexão
   const estado = (e) => { try { o.aoEstado && o.aoEstado(e); } catch (x) {} };
   const enviar = (bytes) => { try { if (ws && ws.readyState === 1) ws.send(bytes); } catch (e) {} };
   function abrir() {
     if (fechado) return;
+    // o relógio de fora (manter) e o da reconexão podem chegar juntos
+    if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
     estado(tentativas ? "reconectando" : "conectando");
     try { ws = new WebSocket(o.url, "mqtt"); } catch (e) { cair(); return; }
     ws.binaryType = "arraybuffer";
@@ -18890,12 +18903,14 @@ function criarSalaAoVivo(o) {
           vivo = true; tentativas = 0; clearTimeout(prazo);
           enviar(mqttAssinar(1, base + "+"));
           clearInterval(ping);
-          ping = setInterval(() => enviar(new Uint8Array([0xc0, 0])), 25000);
+          ultPing = Date.now();
+          ping = setInterval(() => { ultPing = Date.now(); enviar(new Uint8Array([0xc0, 0])); }, 25000);
           Object.keys(ultimos).forEach((tp) => enviar(mqttPublicar(tp, ultimos[tp], true)));
           estado("conectado");
         } else if (p.tipo === 3 && p.texto && p.topico.indexOf(base) === 0) {
           const uid = p.topico.slice(base.length);
-          if (uid === o.id) return;
+          // proprio: a página que é espelho do app lê o que ele publica no nome dela
+          if (uid === o.id && !o.proprio) return;
           try { o.aoParticipante(uid, JSON.parse(p.texto)); } catch (e) {}
         }
       });
@@ -18917,6 +18932,14 @@ function criarSalaAoVivo(o) {
     // a meta da sala, para quem entra só com o código
     publicarSala(obj) { const tp = base + "sala"; ultimos[tp] = JSON.stringify(obj); if (vivo) enviar(mqttPublicar(tp, ultimos[tp], true)); },
     fechar() { fechado = true; clearInterval(ping); clearTimeout(prazo); enviar(new Uint8Array([0xe0, 0])); try { ws && ws.close(); } catch (e) {} },
+    // Para quem roda escondido no app: com a tela travada os relógios da página
+    // podem atrasar até um minuto, e o retransmissor derruba quem não dá sinal.
+    // Quem chama a cada segundo é o app.
+    manter() {
+      if (fechado) return;
+      if (vivo && Date.now() - ultPing > 20000) { ultPing = Date.now(); enviar(new Uint8Array([0xc0, 0])); }
+      else if (!vivo && ws && ws.readyState === 3) abrir();
+    },
     get conectado() { return vivo; },
   };
 }
@@ -18934,6 +18957,255 @@ function participanteDaMensagem(uid, m) {
   if (!tr.length) tr.push([0, 0]);
   return { id: uid, nome: String(m.n || "Alguém").slice(0, 24), trilha: tr, st: m.st || "correndo", fim: m.f ? { ms: +m.f, m: +m.fm || 0 } : null,
     ts: +m.ts || 0, aoVivo: true, dt: m.dt || null, ambiente: m.amb || null };
+}
+
+// ---- Os nomes e a voz do desafio ----
+// Pedido do dono, depois de uma corrida de verdade: "melhore a identificação
+// dos participantes, com o nome, e transmita os nomes para falar as
+// estatísticas". A voz é uma só para a página e para o app com a tela
+// travada (criarCorridaApp): o que ela diz sai de narrarDesafio.
+// sem rosa: o rosa é o "EU" de quem está olhando
+const CORES_DESAFIO = ["#4C9BE8", "#F5A623", "#7ED321", "#BD10E0", "#50E3C2", "#00BCD4", "#F8E71C", "#9B9BFF"];
+function corDoParticipante(id) {
+  let h = 0;
+  const s = String(id || "");
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return CORES_DESAFIO[h % CORES_DESAFIO.length];
+}
+// "Ana Paula" → "AP", "Bia" → "BI", "B" → "B"
+function iniciaisDe(nome) {
+  const p = String(nome || "?").trim().split(/\s+/).filter(Boolean);
+  if (p.length >= 2) return (p[0][0] + p[1][0]).toUpperCase();
+  return (p[0] || "?").slice(0, 2).toUpperCase();
+}
+// "Ana", "Ana e Bia", "Ana, Bia e Rui"
+function nomesDesafio(lista) {
+  const n = (lista || []).filter(Boolean);
+  if (n.length <= 1) return n[0] || "";
+  return n.slice(0, -1).join(", ") + " e " + n[n.length - 1];
+}
+function falaLargada(meta, nomesOutros) {
+  const quem = nomesDesafio(nomesOutros);
+  return "Valendo! Desafio de " + nomeMetaDesafio(meta) + (quem ? " com " + quem + "." : ". Por enquanto só você: quem entrar aparece na pista.");
+}
+// A situação com o nome de cada um: "Você em 2º de 3: Ana 150 metros à frente, Bia 300 metros atrás."
+function situacaoDesafio(linhas, eu) {
+  if (!eu || linhas.length < 2) return "";
+  const outros = linhas.filter((l) => !l.p.eu).slice(0, 4).map((l) => {
+    const dif = Math.round(l.d - eu.d);
+    if (l.terminou) return l.p.nome + " já chegou";
+    if (Math.abs(dif) < 10) return l.p.nome + " lado a lado";
+    return l.p.nome + " " + falaGap(Math.abs(dif)) + (dif > 0 ? " à frente" : " atrás");
+  });
+  return " Você " + (eu.pos === 1 ? "lidera" : "em " + ordinal(eu.pos) + " de " + linhas.length) + ": " + outros.join(", ") + ".";
+}
+// Tudo o que a voz diz numa leitura da corrida. n guarda o que já foi dito.
+//   devolve [{ texto, prioridade, som }] — som: "passei" | "passou" | null
+function novoNarradorDesafio() {
+  return { commit: null, pend: null, nPend: 0, avisos: {}, proxKm: 1000, proxMin: 5, finalAvisado: false, vistos: {}, chegaram: {}, semSinal: {} };
+}
+function narrarDesafio(n, linhas, e, meta, meuId, agora) {
+  const falas = [];
+  const dizer = (texto, prioridade, som) => falas.push({ texto: texto, prioridade: prioridade || 2, som: som || null });
+  const eu = linhas.find((l) => l.p.eu);
+  if (!eu) return falas;
+  // quem apareceu e quem chegou, com o nome. Os primeiros 15 s são da largada.
+  linhas.forEach((l) => {
+    if (l.p.eu) return;
+    const id = l.p.id;
+    if (!n.vistos[id]) {
+      n.vistos[id] = true;
+      if (e.t >= 15000) dizer(l.p.aoVivo ? l.p.nome + " entrou no desafio agora." : "O resultado de " + l.p.nome + " entrou na disputa.", 3);
+    }
+    if (l.terminou && !n.chegaram[id]) {
+      n.chegaram[id] = true;
+      if (e.t >= 5000) dizer(l.p.nome + (meta.tipo === "distancia" ? " cruzou a chegada em " + textoDuracao(Math.round(l.msFim / 1000)) : " fechou o tempo com " + falaGap(l.d)) + ".", 3);
+    }
+    if (l.p.aoVivo && !l.p.fim && l.p.st !== "pausado" && agora - (l.p.ts || 0) > 60000 && !n.semSinal[id]) {
+      n.semSinal[id] = true;
+      dizer(l.p.nome + " está sem sinal há mais de um minuto.", 1);
+    }
+    if (agora - (l.p.ts || 0) < 30000) n.semSinal[id] = false;
+  });
+  const chave = linhas.map((l) => l.p.id).join(",");
+  if (!n.commit) n.commit = linhas;
+  if (n.pend === chave) n.nPend++; else { n.pend = chave; n.nPend = 1; }
+  if (e.t < 15000) n.commit = linhas;
+  else if (n.nPend === 2 && chave !== n.commit.map((l) => l.p.id).join(",")) {
+    eventosDesafio(n.commit, linhas, meuId).forEach((ev) => {
+      if (ev.tipo === "passei") dizer("Você passou " + ev.quem.nome + "! Agora em " + ordinal(eu.pos) + (eu.pos === 1 ? ", na liderança." : "."), 4, "passei");
+      if (ev.tipo === "passou") dizer(ev.quem.nome + " te passou. Você está em " + ordinal(eu.pos) + ".", 4, "passou");
+    });
+    n.commit = linhas;
+  }
+  const frente = linhas[eu.pos - 2], atras = linhas[eu.pos];
+  const avisar = (k, texto) => {
+    if (agora - (n.avisos[k] || 0) < 60000) return;
+    n.avisos[k] = agora;
+    dizer(texto, 3);
+  };
+  if (frente) {
+    const p = previsaoUltrapassagem(eu, frente, e.t, meta);
+    if (p && p.tipo === "alcanca" && p.viavel && p.s >= 10 && p.s <= 120) avisar("a-" + frente.p.id, "Nesse ritmo, você alcança " + frente.p.nome + " em " + textoDuracao(Math.round(p.s)) + ".");
+  }
+  if (atras) {
+    const p = previsaoUltrapassagem(eu, atras, e.t, meta);
+    if (p && p.tipo === "chega" && p.viavel && p.s >= 10 && p.s <= 90) avisar("c-" + atras.p.id, atras.p.nome + " está chegando: te alcança em " + textoDuracao(Math.round(p.s)) + ". Acelere!");
+  }
+  // a chegada tem a frase dela (falaChegada): o km e o "últimos 200 m" não vêm depois
+  if (e.fim) return falas;
+  if (e.d >= n.proxKm) {
+    const km = Math.floor(e.d / 1000);
+    n.proxKm = (km + 1) * 1000;
+    dizer(km + (km === 1 ? " quilômetro" : " quilômetros") + " em " + textoDuracao(Math.round(e.t / 1000)) + "." + situacaoDesafio(linhas, eu), 3);
+  }
+  if (meta.tipo === "tempo" && e.t >= n.proxMin * 60000 && e.t < meta.alvo - 30000) {
+    n.proxMin += 5;
+    dizer(textoDuracao(Math.round(e.t / 1000)) + ": " + num1(e.d / 1000) + " quilômetros." + situacaoDesafio(linhas, eu), 3);
+  }
+  if (!n.finalAvisado && ((meta.tipo === "distancia" && meta.alvo - e.d <= 200 && meta.alvo >= 1000) || (meta.tipo === "tempo" && meta.alvo - e.t <= 60000))) {
+    n.finalAvisado = true;
+    dizer((meta.tipo === "distancia" ? "Últimos 200 metros!" : "Último minuto!") + situacaoDesafio(linhas, eu), 4);
+  }
+  return falas;
+}
+function falaChegada(meta, e, linhas) {
+  const minha = linhas.find((l) => l.p.eu);
+  let f = "Chegada! " + (meta.tipo === "distancia" ? nomeMetaDesafio(meta) + " em " + textoDuracao(Math.round(e.fim.ms / 1000)) : num1(e.fim.m / 1000) + " quilômetros em " + nomeMetaDesafio(meta));
+  if (linhas.length < 2 || !minha) return f + ".";
+  f += ". Você chegou em " + ordinal(minha.pos) + " de " + linhas.length + ". ";
+  return f + linhas.filter((l) => !l.p.eu).slice(0, 4).map((l) => l.p.nome + (l.terminou
+    ? (meta.tipo === "distancia" ? " em " + textoDuracao(Math.round(l.msFim / 1000)) : " com " + falaGap(l.d))
+    : " ainda correndo")).join(", ") + ".";
+}
+
+// ---- A corrida conduzida pelo app (a tela travada no bolso) ----
+// Com a tela travada o Chrome suspende a página: o GPS, a conexão com os
+// outros e a voz param, e os amigos veem "ainda em 0:16" para sempre (foi o
+// que aconteceu na primeira corrida do dono). No app Android, quem corre é o
+// CorridaService: GPS do Android, voz do Android, e esta página aberta
+// escondida (?modo=corrida), que faz as contas com o mesmo motor. A página
+// visível vira espelho: lê do retransmissor o que o app publica em nome dela.
+//   cfg = { codigo, broker, meta, atividade, ambiente, nome, id, kmh, comeca }
+//   deps = { agora(), conectar(opcoes) } — no teste, relógio e sala de mentira
+function criarCorridaApp(cfg, deps) {
+  const agora = deps.agora;
+  const meta = cfg.meta;
+  const esteira = cfg.ambiente === "esteira";
+  const outros = {};
+  const n = novoNarradorDesafio();
+  const pts = [];
+  let kmh = cfg.kmh || 9, ant = null, largou = false, ultPub = 0, sala = null;
+  const e = { t: cfg.t0 || 0, d: cfg.d0 || 0, trilha: cfg.trilha0 && cfg.trilha0.length ? cfg.trilha0.slice() : [[0, 0]], fim: null, pausado: false,
+    inicio: new Date(cfg.comeca).toISOString(), id: "dsf-" + cfg.comeca, seg: 0, ultAmostra: cfg.t0 || 0, kmhSoma: 0 };
+  let dGps = e.d;
+  const todos = () => {
+    const lista = [{ id: cfg.id, nome: cfg.nome || "Você", eu: true, trilha: e.trilha.concat([[e.t, e.d]]), fim: e.fim, aoVivo: true, ts: agora() }];
+    Object.keys(outros).forEach((k) => { const p = outros[k]; if (p.trilha && (p.trilha.length > 1 || p.fim)) lista.push(p); });
+    return lista;
+  };
+  const publicar = () => {
+    if (!sala) return;
+    const st = e.fim ? "fim" : e.pausado ? "pausado" : largou ? "correndo" : "esperando";
+    sala.publicar(mensagemDesafio({ nome: cfg.nome || "Alguém", atividade: cfg.atividade, st: st, t: e.t, d: e.d,
+      trilha: e.trilha.concat([[e.t, e.d]]), fim: e.fim, dt: e.inicio, ambiente: cfg.ambiente }));
+  };
+  if (deps.conectar) sala = deps.conectar({
+    codigo: cfg.codigo, id: cfg.id, broker: cfg.broker,
+    aoParticipante: (uid, m) => {
+      if (uid === "sala" || uid === cfg.id) return;
+      const p = participanteDaMensagem(uid, m);
+      if (p) outros[uid] = Object.assign({}, outros[uid] || {}, p);
+    },
+  });
+  // na chegada, a classificação é a do instante em que eu cruzei a linha
+  const linhasAgora = () => classificarDesafio(todos(), e.fim ? e.fim.ms : e.t, meta, agora());
+  const api = {
+    gps(lat, lng, acc, ts) {
+      if (!largou || e.pausado || e.fim || esteira) return;
+      const p = { lat: lat, lng: lng, acc: acc, t: ts || agora(), alt: null, seg: e.seg };
+      const ult = pts.length && pts[pts.length - 1].seg === p.seg ? pts[pts.length - 1] : null;
+      const v = aceitarPonto(ult, p, cfg.atividade === "caminhada" ? 12 : 30);
+      if (v === "ok" || v === "substitui") { if (v === "substitui") pts.pop(); pts.push(p); }
+      const r = resumoRota(pts);
+      if (r.m + (cfg.d0 || 0) > dGps) dGps = r.m + (cfg.d0 || 0);
+    },
+    kmh(v) { if (v > 0) kmh = Math.max(2, Math.min(25, v)); },
+    pausar() { if (!e.pausado && !e.fim) { e.pausado = true; e.seg++; publicar(); } return "ok"; },
+    retomar() { if (e.pausado && !e.fim) { e.pausado = false; ant = agora(); publicar(); } return "ok"; },
+    encerrar() {
+      if (!e.fim) { e.desistiu = true; e.pausado = true; e.trilha.push([e.t, e.d]); publicar(); }
+      return "ok";
+    },
+    // A cada segundo, chamado pelo app (o relógio da página dorme com a tela)
+    tick() {
+      const ag = agora();
+      const falas = [];
+      if (!largou) {
+        if (ag < cfg.comeca) { if (ag - ultPub > 5000) { ultPub = ag; publicar(); } return { falas: falas, espera: Math.ceil((cfg.comeca - ag) / 1000) }; }
+        largou = true; ant = cfg.comeca;
+        // os primeiros a ver: quem está na sala. A largada já diz o nome deles
+        const nomes = Object.keys(outros).map((k) => outros[k].nome).filter(Boolean);
+        Object.keys(outros).forEach((k) => { n.vistos[k] = true; });
+        falas.push({ texto: falaLargada(meta, nomes), prioridade: 4 });
+        publicar(); ultPub = ag;
+      }
+      if (e.fim || e.desistiu) { if (ag - ultPub > 5000) { ultPub = ag; publicar(); } return { falas: falas, fim: !!e.fim, encerrado: !!e.desistiu }; }
+      let dt = Math.min(10000, Math.max(0, ag - ant));
+      ant = ag;
+      if (!e.pausado) {
+        const dAntes = e.d, tAntes = e.t;
+        e.t += dt;
+        if (esteira) { e.d += (kmh / 3.6) * (dt / 1000); e.kmhSoma += kmh * dt; } else if (dGps > e.d) e.d = dGps;
+        if (e.t - e.ultAmostra >= DESAFIO_AMOSTRA_MS) { e.trilha.push([e.t, e.d]); e.ultAmostra = e.t; }
+        if (meta.tipo === "distancia" && e.d >= meta.alvo) {
+          const ms = e.d > dAntes ? tAntes + ((e.t - tAntes) * (meta.alvo - dAntes)) / (e.d - dAntes) : e.t;
+          e.t = ms; e.d = meta.alvo; e.fim = { ms: ms, m: meta.alvo };
+        } else if (meta.tipo === "tempo" && e.t >= meta.alvo) {
+          e.d = dAntes + ((e.d - dAntes) * (meta.alvo - tAntes)) / Math.max(1, e.t - tAntes);
+          e.t = meta.alvo; e.fim = { ms: meta.alvo, m: e.d };
+        }
+      }
+      const linhas = linhasAgora();
+      narrarDesafio(n, linhas, e, meta, cfg.id, ag).forEach((f) => falas.push(f));
+      if (e.fim) { e.trilha.push([e.t, e.d]); falas.push({ texto: falaChegada(meta, e, linhas), prioridade: 5 }); }
+      if (ag - ultPub >= 3000 || e.fim) { ultPub = ag; publicar(); }
+      if (sala && sala.manter) sala.manter();
+      const eu = linhas.find((l) => l.p.eu) || { pos: 1 };
+      return { falas: falas.sort((a, b) => b.prioridade - a.prioridade), fim: !!e.fim, pos: eu.pos, total: linhas.length, km: e.d / 1000, t: e.t, pausado: e.pausado,
+        linha: linhas.filter((l) => !l.p.eu).slice(0, 3).map((l) => l.p.nome + " " + (l.d > eu.d ? Math.round(l.d - eu.d) + " m à frente" : Math.round(eu.d - l.d) + " m atrás")).join(" · ") };
+    },
+    // o que a página precisa para voltar a mostrar esta corrida (a notificação)
+    estado() {
+      return { c: cfg.codigo, b: cfg.broker, mt: meta.tipo === "tempo" ? "t" : "d", al: meta.alvo, at: cfg.atividade, am: cfg.ambiente, n: cfg.nome, i: cfg.id, k: kmh,
+        co: cfg.comeca, t: Math.round(e.t), d: Math.round(e.d), tr: codificarTrilha(e.trilha.concat([[e.t, e.d]]), DESAFIO_AMOSTRA_MS),
+        f: e.fim ? [Math.round(e.fim.ms), Math.round(e.fim.m)] : null, p: e.pausado ? 1 : 0, x: e.desistiu ? 1 : 0 };
+    },
+    fechar() { if (sala) sala.fechar(); },
+    get e() { return e; },
+  };
+  return api;
+}
+// O link que liga o app (um toque no Largar: o Chrome só abre outro app com gesto)
+function linkCorrida(params) {
+  const q = Object.keys(params).filter((k) => params[k] !== undefined && params[k] !== null).map((k) => k + "=" + encodeURIComponent(params[k])).join("&");
+  return "intent://corrida?" + q + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID + ";S.browser_fallback_url=" + encodeURIComponent(LINK_APK) + ";end";
+}
+// O que volta do app (#corridaApp=): conferido campo a campo, é dado de link
+function lerPacoteCorrida(texto, decodificar) {
+  try {
+    const p = JSON.parse(decodificar(b64UrlParaPadrao(texto)));
+    const cod = lerCodigoSala(p && p.c);
+    if (!cod || !(Number(p.al) > 0) || !(Number(p.co) > 0)) return null;
+    const num = (x) => (isFinite(Number(x)) && Number(x) >= 0 ? Number(x) : 0);
+    return {
+      codigo: cod.codigo, broker: cod.broker, meta: { tipo: p.mt === "t" ? "tempo" : "distancia", alvo: Number(p.al) },
+      atividade: p.at === "caminhada" ? "caminhada" : "corrida", ambiente: p.am === "esteira" ? "esteira" : "rua",
+      nome: String(p.n || "").slice(0, 24), id: typeof p.i === "string" ? p.i.slice(0, 40) : "", kmh: num(p.k) || 9, comeca: Number(p.co),
+      t: num(p.t), d: num(p.d), trilha: decodificarTrilha(p.tr), fim: Array.isArray(p.f) ? { ms: num(p.f[0]), m: num(p.f[1]) } : null,
+      pausado: !!p.p, desistiu: !!p.x,
+    };
+  } catch (e) { return null; }
 }
 // ---------------- FIM DO MOTOR DESAFIO
 
@@ -19992,6 +20264,34 @@ function CartaoDesafio({ d }) {
   );
 }
 
+// Cada pessoa com a sua cor e as iniciais: na pista, na lista e na sala.
+// Antes era um círculo cinza com duas letras, e quem corria não sabia quem era quem.
+function AvatarDesafio({ p, tam }) {
+  const s = tam || 30;
+  const cor = p.eu ? "#E1306C" : corDoParticipante(p.id);
+  return (
+    <div title={p.nome} aria-hidden="true" style={{ width: s, height: s, borderRadius: s / 2, flexShrink: 0, background: cor, border: "2px solid " + (p.eu ? "#fff" : "rgba(0,0,0,0.25)"),
+      display: "flex", alignItems: "center", justifyContent: "center", fontSize: s * 0.38, fontWeight: 900, color: "#111", letterSpacing: -0.5 }}>
+      <span style={{ color: p.eu ? "#fff" : "#111" }}>{p.eu ? "EU" : iniciaisDe(p.nome)}</span>
+    </div>
+  );
+}
+// Em que pé está cada um, com o motivo: "sem sinal" e "largou depois" eram o
+// mesmo "ainda em 0:16", e quem via não sabia se o amigo tinha parado.
+function statusParticipante(l, agoraW) {
+  const p = l.p;
+  if (p.eu) return null;
+  if (l.terminou) return { txt: "🏁 chegou", cor: "var(--ok)" };
+  const parou = fmtTempoRota(fimDaTrilha(p.trilha)[0]);
+  if (!p.aoVivo) return { txt: l.aindaNao ? "👻 resultado de outro dia · parou em " + parou : "👻 resultado de outro dia", cor: "var(--cinza)" };
+  const semSinal = agoraW - (p.ts || 0);
+  if (p.fim) return { txt: "encerrou", cor: "var(--cinza)" };
+  if (semSinal > DESAFIO_SEM_SINAL_MS) return { txt: "📵 sem sinal há " + fmtTempoRota(semSinal) + " (tela travada sem o app?)", cor: "#F58529" };
+  if (p.st === "pausado") return { txt: "⏸ pausado", cor: "var(--cinza)" };
+  if (l.aindaNao) return { txt: "📡 largou depois: está em " + parou + " de prova", cor: "var(--cinza)" };
+  return { txt: "📡 ao vivo", cor: "var(--ok)" };
+}
+
 function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsado, onSalvar, onVoltar }) {
   const meuId = useMemo(() => {
     try {
@@ -20013,8 +20313,15 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
   const [kmh, setKmh] = useState(9);
   const outros = useRef({}), conRef = useRef(null), filaR = useRef(null), euR = useRef(null), pts = useRef([]);
   const kmhRef = useRef(9), salaR = useRef(null), cfgR = useRef(cfg), etapaR = useRef(etapa);
-  const narr = useRef({ commit: null, pend: null, nPend: 0, avisos: {}, proxKm: 1000, proxMin: 5, finalAvisado: false });
+  const narr = useRef(novoNarradorDesafio());
+  // No app Android, a corrida é conduzida pelo CorridaService (tela travada no
+  // bolso) e esta tela é espelho: { dt, comeca } da corrida que o app corre.
+  const [conduzido, setConduzido] = useState(null);
+  const condR = useRef(null);
+  condR.current = conduzido;
+  const peloApp = CORRIDA_APP >= 1 && NO_APP_ANDROID;
   salaR.current = sala; cfgR.current = cfg; etapaR.current = etapa; kmhRef.current = kmh;
+  const mandarApp = (params) => { try { window.location.href = linkCorrida(params); } catch (x) {} };
   const up = (k, v) => setCfg((c) => Object.assign({}, c, { [k]: v }));
   const meta = sala && sala.meta ? sala.meta : { tipo: cfg.tipo, alvo: cfg.alvo };
   const demo = !!(sala && sala.demo);
@@ -20025,17 +20332,31 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
   // ---- conexão ----
   const publicar = () => {
     const c = conRef.current, e = euR.current, cf = cfgR.current;
-    if (!c || (salaR.current && salaR.current.demo)) return;
+    // conduzida pelo app, quem publica é ele: a página publicaria números velhos
+    if (!c || (salaR.current && salaR.current.demo) || condR.current) return;
     const st = !e ? "esperando" : e.fim ? "fim" : e.pausado ? "pausado" : "correndo";
     c.publicar(mensagemDesafio({ nome: cf.nome || "Alguém", atividade: cf.atividade, st: st, t: e ? e.t : 0, d: e ? e.d : 0,
       trilha: e ? e.trilha.concat([[e.t, e.d]]) : [[0, 0]], fim: e ? e.fim : null, dt: e ? e.inicio : null, ambiente: cf.ambiente }));
   };
+  // O que o app publica em meu nome vira a minha corrida na tela
+  const espelhar = (m) => {
+    const c = condR.current;
+    if (!c || !m || m.dt !== c.dt) return;
+    const p = participanteDaMensagem(meuId, m);
+    if (!p) return;
+    const desistiu = m.st === "fim" && !p.fim;
+    euR.current = Object.assign({}, euR.current || {}, { t: +m.t || 0, d: +m.d || 0, trilha: p.trilha, fim: p.fim, pausado: m.st === "pausado" || m.st === "fim",
+      inicio: m.dt, id: "dsf-" + c.comeca, seg: 0, ultAmostra: 0, kmhSoma: kmhRef.current * (+m.t || 0), tBase: +m.t || 0, recebidoEm: Date.now(), desistiu: desistiu });
+    if (etapaR.current === "sala") setEtapa("corrida");
+    setTique((x) => x + 1);
+  };
   const conectar = (s, ehDono) => {
     if (conRef.current) conRef.current.fechar();
     conRef.current = criarSalaAoVivo({
-      url: urlBroker(s.broker), codigo: s.codigo, id: meuId,
+      url: urlBroker(s.broker), codigo: s.codigo, id: meuId, proprio: true,
       aoEstado: (x) => setConexao(x),
       aoParticipante: (uid, m) => {
+        if (uid === meuId) { espelhar(m); return; }
         if (uid === "sala") {
           // quem entrou pelo código descobre aqui a meta da sala
           if (m && m.mt && !(salaR.current && salaR.current.meta)) {
@@ -20056,6 +20377,23 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
   };
   // Lembrar o apelido: é o mesmo em todo desafio
   const guardarNome = () => { if (setCorredor && cfg.nome && (!corredor || corredor.apelido !== cfg.nome)) setCorredor((c) => Object.assign({}, c, { apelido: cfg.nome.trim().slice(0, 24) })); };
+
+  useEffect(() => {
+    let pac = null;
+    try { pac = JSON.parse(localStorage.getItem("treinolivre:corridaApp") || "null"); localStorage.removeItem("treinolivre:corridaApp"); } catch (x) {}
+    if (!pac || !pac.codigo || !(Date.now() - pac.comeca < 6 * 3600000)) return;
+    const s = { codigo: pac.codigo, broker: pac.broker, meta: pac.meta, atividade: pac.atividade };
+    setCfg((c) => Object.assign({}, c, { nome: pac.nome || c.nome, tipo: pac.meta.tipo, alvo: pac.meta.alvo, atividade: pac.atividade, ambiente: pac.ambiente }));
+    setKmh(pac.kmh || 9); kmhRef.current = pac.kmh || 9;
+    const dt = new Date(pac.comeca).toISOString();
+    const cond = { dt: dt, comeca: pac.comeca };
+    condR.current = cond; setConduzido(cond);
+    euR.current = { t: pac.t, d: pac.d, trilha: pac.trilha.length ? pac.trilha : [[0, 0]], fim: pac.fim, pausado: pac.pausado || !!pac.fim, desistiu: pac.desistiu,
+      inicio: dt, id: "dsf-" + pac.comeca, seg: 0, ultAmostra: 0, kmhSoma: (pac.kmh || 9) * pac.t, tBase: pac.t, recebidoEm: Date.now() };
+    salaR.current = s;
+    setSala(s); setEtapa(pac.fim || pac.desistiu ? "fim" : "corrida");
+    conectar(s, false);
+  }, []);
 
   // Chegou por um link: a sala, a meta e os resultados de quem já correu
   useEffect(() => {
@@ -20134,10 +20472,20 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
 
   // ---- a corrida ----
   const comecar = () => {
-    if (!cfg.nome.trim() && !demo) { setErro("Escolha um apelido antes de largar."); return; }
+    if (!cfg.nome.trim() && !demo) { setErro("Escolha seu nome antes de largar: é ele que os outros veem e ouvem."); return; }
     if (!meta || !(meta.alvo > 0)) return;
     guardarNome();
     filaR.current = criarFilaFalas(falarUma);
+    // No app: o toque no Largar é o gesto que deixa a página chamar o app, e a
+    // largada fica marcada no relógio (comeca) para os dois contarem igual.
+    let cond = null;
+    if (peloApp && !demo) {
+      const comeca = Date.now() + 3200;
+      cond = { dt: new Date(comeca).toISOString(), comeca: comeca };
+      mandarApp({ d: padraoParaB64Url(b64Codificar(JSON.stringify({ c: sala.codigo, b: sala.broker, mt: meta.tipo === "tempo" ? "t" : "d", al: meta.alvo,
+        at: cfg.atividade, am: cfg.ambiente, n: cfg.nome.trim(), i: meuId, k: kmh, co: comeca }))) });
+    }
+    condR.current = cond; setConduzido(cond);
     let n = 3;
     setContagem(n);
     if (som) beep(760, 0.15, 0.3);
@@ -20148,26 +20496,37 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
       setContagem(0);
       if (som) beep(1200, 0.4, 0.35);
       try { navigator.vibrate && navigator.vibrate(300); } catch (e) {}
-      euR.current = { t: 0, d: 0, trilha: [[0, 0]], fim: null, pausado: false, inicio: new Date().toISOString(), id: "dsf-" + Date.now(), seg: 0, ultAmostra: 0, ultPub: 0, ultNarr: 0, kmhSoma: 0 };
+      const c = condR.current;
+      euR.current = { t: 0, d: 0, trilha: [[0, 0]], fim: null, pausado: false, inicio: c ? c.dt : new Date().toISOString(), id: "dsf-" + (c ? c.comeca : Date.now()), seg: 0, ultAmostra: 0, ultPub: 0, ultNarr: 0, kmhSoma: 0,
+        tBase: 0, recebidoEm: Date.now() };
       pts.current = [];
-      narr.current = { commit: null, pend: null, nPend: 0, avisos: {}, proxKm: 1000, proxMin: 5, finalAvisado: false };
+      narr.current = novoNarradorDesafio();
+      Object.keys(outros.current).forEach((k) => { narr.current.vistos[k] = true; });
       ligarTravaTela();
       setSalvo(false);
       setEtapa("corrida");
-      dizer("Valendo! Desafio de " + nomeMetaDesafio(meta) + ".", 4);
+      // conduzida pelo app, a voz é a dele (e continua com a tela travada)
+      if (!c) dizer(falaLargada(meta, Object.keys(outros.current).map((k) => outros.current[k].nome).filter(Boolean)), 4);
       publicar();
     }, 1000);
   };
   const pausar = () => {
     const e = euR.current;
     if (!e || e.pausado || e.fim) return;
+    if (condR.current) { mandarApp({ acao: "pausar" }); e.pausado = true; e.tBase = e.t; setTique((x) => x + 1); return; }
     e.pausado = true; e.seg++;
     publicar(); setTique((x) => x + 1);
   };
-  const retomar = () => { const e = euR.current; if (e) { e.pausado = false; publicar(); setTique((x) => x + 1); } };
+  const retomar = () => {
+    const e = euR.current;
+    if (!e) return;
+    if (condR.current) { mandarApp({ acao: "retomar" }); e.pausado = false; e.recebidoEm = Date.now(); e.tBase = e.t; setTique((x) => x + 1); return; }
+    e.pausado = false; publicar(); setTique((x) => x + 1);
+  };
   const terminar = (chegou) => {
     const e = euR.current;
     if (!e) return;
+    if (condR.current && !chegou && !e.fim) mandarApp({ acao: "encerrar" });
     if (!e.fim && !chegou) e.desistiu = true;
     if (salaR.current && salaR.current.demo) Object.keys(outros.current).forEach((k) => {
       const b = outros.current[k];
@@ -20196,7 +20555,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
     if (v === "ok" || v === "substitui") { if (v === "substitui") lista.pop(); lista.push(p); }
   };
   useEffect(() => {
-    if (etapa !== "corrida" || esteira || !navigator.geolocation) return;
+    if (etapa !== "corrida" || esteira || !navigator.geolocation || condR.current) return;
     const id = navigator.geolocation.watchPosition(lerGps, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
     return () => navigator.geolocation.clearWatch(id);
   }, [etapa]);
@@ -20206,7 +20565,15 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
     let ant = performance.now(), ultGps = 0;
     const iv = setInterval(() => {
       const e = euR.current;
-      if (!e || e.fim) return;
+      if (!e) return;
+      // espelho: o tempo anda daqui até a próxima mensagem do app
+      if (condR.current) {
+        e.t = e.fim ? e.fim.ms : e.pausado ? e.tBase : e.tBase + Math.min(10000, Date.now() - (e.recebidoEm || Date.now()));
+        if (e.fim || e.desistiu) { desligarTravaTela(); setEtapa("fim"); }
+        setTique((x) => x + 1);
+        return;
+      }
+      if (e.fim) return;
       const agora = performance.now();
       let dt = agora - ant;
       ant = agora;
@@ -20240,11 +20607,9 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
       if (agora - e.ultNarr >= 1000 || e.fim) { e.ultNarr = agora; narrar(); }
       if (e.fim) {
         const linhas = classificarDesafio(todos(), e.fim.ms, meta, Date.now());
-        const minha = linhas.find((l) => l.p.eu);
         if (som) beep(1300, 0.5, 0.35);
         try { navigator.vibrate && navigator.vibrate([200, 100, 200, 100, 400]); } catch (x) {}
-        dizer("Chegada! " + (meta.tipo === "distancia" ? nomeMetaDesafio(meta) + " em " + textoDuracao(Math.round(e.fim.ms / 1000)) : num1(e.fim.m / 1000) + " quilômetros em " + nomeMetaDesafio(meta)) +
-          (linhas.length > 1 && minha ? ". Você chegou em " + ordinal(minha.pos) + " de " + linhas.length + "." : "."), 5);
+        dizer(falaChegada(meta, e, linhas), 5);
         terminar(true);
       }
       setTique((x) => x + 1);
@@ -20256,57 +20621,16 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
   // é dito depois de a nova ordem durar dois segundos — o GPS tremendo com
   // dois corredores lado a lado trocaria de posição dez vezes.
   const narrar = () => {
-    const e = euR.current, n = narr.current;
+    const e = euR.current;
     const linhas = classificarDesafio(todos(), e.t, meta, Date.now());
     const eu = linhas.find((l) => l.p.eu);
-    if (!eu) return;
-    if (esteira && !e.pausado) eu.v = kmhRef.current / 3.6;
-    const chave = linhas.map((l) => l.p.id).join(",");
-    if (!n.commit) n.commit = linhas;
-    if (n.pend === chave) n.nPend++; else { n.pend = chave; n.nPend = 1; }
-    if (e.t < 15000) n.commit = linhas;
-    else if (n.nPend === 2 && chave !== n.commit.map((l) => l.p.id).join(",")) {
-      eventosDesafio(n.commit, linhas, meuId).forEach((ev) => {
-        if (ev.tipo === "passei") { dizer("Você passou " + ev.quem.nome + "! Agora em " + ordinal(eu.pos) + (eu.pos === 1 ? ", na liderança." : "."), 4); if (som) beep(1100, 0.12, 0.3); }
-        if (ev.tipo === "passou") { dizer(ev.quem.nome + " te passou. Você está em " + ordinal(eu.pos) + ".", 4); if (som) beep(420, 0.2, 0.3); }
-      });
-      n.commit = linhas;
-    }
-    const frente = linhas[eu.pos - 2], atras = linhas[eu.pos];
-    const avisar = (id, texto) => {
-      const k = id, u = n.avisos[k] || 0;
-      if (Date.now() - u < 60000) return;
-      n.avisos[k] = Date.now();
-      dizer(texto, 3);
-    };
-    if (frente) {
-      const p = previsaoUltrapassagem(eu, frente, e.t, meta);
-      if (p && p.tipo === "alcanca" && p.viavel && p.s >= 10 && p.s <= 120) avisar("a-" + frente.p.id, "Nesse ritmo, você alcança " + frente.p.nome + " em " + textoDuracao(Math.round(p.s)) + ".");
-    }
-    if (atras) {
-      const p = previsaoUltrapassagem(eu, atras, e.t, meta);
-      if (p && p.tipo === "chega" && p.viavel && p.s >= 10 && p.s <= 90) avisar("c-" + atras.p.id, atras.p.nome + " está chegando: te alcança em " + textoDuracao(Math.round(p.s)) + ". Acelere!");
-    }
-    // a cada km (prova de distância) ou a cada 5 min (prova de tempo), a situação
-    const situacao = () => {
-      if (linhas.length < 2) return "";
-      if (eu.pos === 1) return " Você lidera" + (atras ? ", " + falaGap(eu.d - atras.d) + " na frente de " + atras.p.nome : "") + ".";
-      return " Você está em " + ordinal(eu.pos) + " de " + linhas.length + ", " + falaGap(frente.d - eu.d) + " atrás de " + frente.p.nome + ".";
-    };
-    if (e.d >= n.proxKm) {
-      const km = Math.floor(e.d / 1000);
-      n.proxKm = (km + 1) * 1000;
-      dizer(km + (km === 1 ? " quilômetro" : " quilômetros") + " em " + textoDuracao(Math.round(e.t / 1000)) + "." + situacao(), 3);
-    }
-    if (meta.tipo === "tempo" && e.t >= n.proxMin * 60000 && e.t < meta.alvo - 30000) {
-      n.proxMin += 5;
-      dizer(textoDuracao(Math.round(e.t / 1000)) + ": " + num1(e.d / 1000) + " quilômetros." + situacao(), 3);
-    }
-    if (!n.finalAvisado && ((meta.tipo === "distancia" && meta.alvo - e.d <= 200 && meta.alvo >= 1000) || (meta.tipo === "tempo" && meta.alvo - e.t <= 60000))) {
-      n.finalAvisado = true;
-      dizer(meta.tipo === "distancia" ? "Últimos 200 metros!" + situacao() : "Último minuto!" + situacao(), 4);
-    }
-  };
+    if (eu && esteira && !e.pausado) eu.v = kmhRef.current / 3.6;
+    narrarDesafio(narr.current, linhas, e, meta, meuId, Date.now()).forEach((f) => {
+      dizer(f.texto, f.prioridade);
+      if (som && f.som === "passei") beep(1100, 0.12, 0.3);
+      if (som && f.som === "passou") beep(420, 0.2, 0.3);
+    });
+  };;
 
   // "Jarvis, como estou", "pausa", "continua", "encerra"
   useEffect(() => {
@@ -20320,9 +20644,9 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
         if (/\b(encerra|encerrar|desisto|termina|terminar)\b/.test(f)) { terminar(false); return { acao: "encerrar", resposta: "Encerrado." }; }
         if (/\b(como estou|como to|posicao|lugar|quem|ganhando|frente|status)\b/.test(f)) {
           const linhas = classificarDesafio(todos(), e.t, meta, Date.now());
-          const eu = linhas.find((l) => l.p.eu), fr = linhas[eu.pos - 2];
-          const t = num1(e.d / 1000) + " quilômetros em " + textoDuracao(Math.round(e.t / 1000)) + ". " +
-            (linhas.length < 2 ? "Ninguém mais correndo ainda." : eu.pos === 1 ? "Você lidera." : "Você está em " + ordinal(eu.pos) + ", " + falaGap(fr.d - eu.d) + " atrás de " + fr.p.nome + ".");
+          const eu = linhas.find((l) => l.p.eu);
+          const t = num1(e.d / 1000) + " quilômetros em " + textoDuracao(Math.round(e.t / 1000)) + "." +
+            (linhas.length < 2 ? " Ninguém mais correndo ainda." : situacaoDesafio(linhas, eu));
           dizer(t, 5);
           return { acao: "status", resposta: t };
         }
@@ -20460,9 +20784,11 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
           {legenda && <div style={{ fontSize: 12, marginTop: 8 }}>{legenda}</div>}
         </div>
         <div style={S.card}>
-          <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Quem está no desafio</div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, padding: "5px 0", borderBottom: "1px solid var(--borda)", fontWeight: 900, color: "#E1306C" }}>
-            <span>{cfg.nome ? cfg.nome + " (você)" : "Você"}</span><span>na largada</span>
+          <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>Quem está no desafio · {lista.length + 1} {lista.length ? "pessoas" : "pessoa"}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--borda)" }}>
+            <AvatarDesafio p={{ id: meuId, nome: cfg.nome, eu: true }} tam={34} />
+            <span style={{ flex: 1, fontSize: 15, fontWeight: 900 }}>{cfg.nome ? cfg.nome : "Você"} <span style={{ fontSize: 12, color: "var(--cinza)", fontWeight: 600 }}>(você)</span></span>
+            <span style={{ fontSize: 12.5, color: "var(--cinza)" }}>na largada</span>
           </div>
           {lista.length ? lista.map((p) => {
             const vivo = p.aoVivo && agoraW - (p.ts || 0) < DESAFIO_SEM_SINAL_MS;
@@ -20470,8 +20796,13 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
             const st = p.demo ? "na largada" : p.fim ? (meta.tipo === "distancia" ? "terminou em " + fmtTempoRota(p.fim.ms) : num1(p.fim.m / 1000) + " km") :
               p.st === "esperando" ? (vivo ? "na largada" : "saiu") : vivo ? (p.st === "pausado" ? "⏸ pausado" : "correndo · " + num1(u[1] / 1000) + " km") : "sem sinal · " + num1(u[1] / 1000) + " km";
             return (
-              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 13.5, padding: "5px 0", borderBottom: "1px solid var(--borda)" }}>
-                <span>{p.aoVivo ? "📡" : "👻"} {p.nome}</span><span style={{ color: "var(--cinza)" }}>{st}</span>
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--borda)" }}>
+                <AvatarDesafio p={p} tam={34} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 15, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nome}</span>
+                  <span style={{ fontSize: 11.5, color: "var(--cinza)" }}>{p.aoVivo ? "📡 ao vivo" : "👻 resultado de outro dia"}</span>
+                </span>
+                <span style={{ fontSize: 12.5, color: "var(--cinza)", textAlign: "right" }}>{st}</span>
               </div>
             );
           }) : <div style={{ fontSize: 12.5, color: "var(--cinza)", padding: "6px 0" }}>Ninguém ainda. Mande o convite: quem abrir o link entra na sala.</div>}
@@ -20486,7 +20817,13 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
           {contagem > 0
             ? <div style={{ textAlign: "center", fontSize: 72, fontWeight: 900, color: "#E1306C" }} aria-live="assertive">{contagem}</div>
             : <button onClick={comecar} disabled={!sala.meta} style={{ ...S.btn, width: "100%", padding: "16px 10px", fontSize: 17, opacity: sala.meta ? 1 : 0.5 }}>▶ Largar</button>}
-          {!esteira && <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 8 }}>Na rua, deixe a tela ligada: com a tela apagada o navegador para o GPS.</div>}
+          {peloApp && !demo
+            ? <div style={{ fontSize: 12, color: "var(--ok)", marginTop: 8, lineHeight: 1.5 }}>🔒 Pode travar a tela e pôr no bolso: o app segue com o GPS, a voz e os amigos.</div>
+            : !demo && <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>
+                {EH_ANDROID
+                  ? <>Pelo navegador, deixe a tela ligada: com ela travada o celular para o GPS e os outros te veem parado. <b>Com o app Android, dá para correr com o celular travado no bolso.</b> <a href={LINK_APK} style={{ color: "var(--marca)", fontWeight: 800 }}>Baixar o app</a></>
+                  : "Deixe a tela ligada: com ela travada o navegador para o GPS e os outros te veem parado."}
+              </div>}
         </div>
       </div>
     );
@@ -20526,20 +20863,43 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
           <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 4 }}>
             {meta.tipo === "distancia" ? "faltam " + (e.fim ? "0" : num1(Math.max(0, meta.alvo - e.d) / 1000)) + " km" : "faltam " + fmtTempoRota(Math.max(0, meta.alvo - e.t))}
           </div>
+          {(frente || atras) && !fim && (
+            <div style={{ display: "flex", gap: 8, marginTop: 10, textAlign: "left" }}>
+              {[[frente, "⬆ Na sua frente"], [atras, "⬇ Atrás de você"]].filter((x) => x[0]).map(([l, rot]) => (
+                <div key={rot} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 7, padding: "7px 8px", borderRadius: 10, background: "var(--borda)" }}>
+                  <AvatarDesafio p={l.p} tam={26} />
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 10.5, color: "var(--cinza)", fontWeight: 700 }}>{rot}</span>
+                    <span style={{ display: "block", fontSize: 13.5, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.p.nome}</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{falaGap(Math.abs(l.d - eu.d))}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+        {conduzido && !fim && (
+          <div style={{ ...S.card, borderColor: "var(--ok)", fontSize: 12.5, lineHeight: 1.5 }}>
+            🔒 <b>O app está conduzindo esta corrida.</b> Pode travar a tela e guardar no bolso: o GPS, a voz e os amigos seguem pelo app.
+            {Date.now() - (e.recebidoEm || 0) > 15000 && <div style={{ color: "#F58529", marginTop: 4 }}>⏳ Sem notícias do app há {fmtTempoRota(Date.now() - (e.recebidoEm || 0))}: os números voltam quando a conexão voltar. A corrida continua no app.</div>}
+          </div>
+        )}
 
         {/* a pista: todos na mesma régua */}
         <div style={S.card}>
           <div style={{ ...S.label, fontSize: 10, marginBottom: 8 }}>{fim ? "Classificação" : "A pista, aos " + fmtTempoRota(e.t) + " de prova de cada um"}</div>
           {/* uma raia por corredor: lado a lado, os pontos não se escondem um atrás do outro */}
-          <div style={{ position: "relative", margin: "0 14px 12px" }}>
-            {meta.tipo === "distancia" && <div style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 4, background: "repeating-linear-gradient(#fff 0 4px,#000 4px 8px)", borderRadius: 1 }} title="chegada" />}
+          <div style={{ marginBottom: 12 }}>
             {linhas.map((l) => (
-              <div key={l.p.id} style={{ position: "relative", height: 24, borderBottom: "1px dashed var(--borda2)" }}>
-                <div title={l.p.nome} style={{ position: "absolute", top: 2, left: "calc(" + Math.min(100, (l.d / escala) * 100) + "% - 10px)", width: 20, height: 20, borderRadius: 10,
-                  background: l.p.eu ? "#E1306C" : l.terminou ? "#4ADE80" : "var(--card)", border: "2px solid " + (l.p.eu ? "#fff" : "var(--borda2)"),
-                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8.5, fontWeight: 900, color: l.p.eu ? "#fff" : l.terminou ? "#062" : "var(--texto)", opacity: l.aindaNao ? 0.5 : 1 }}>
-                  {l.p.eu ? "EU" : String(l.p.nome || "?").slice(0, 2).toUpperCase()}
+              <div key={l.p.id} style={{ display: "flex", alignItems: "center", gap: 6, height: 34 }}>
+                <span style={{ width: 66, flexShrink: 0, fontSize: 11.5, fontWeight: 900, color: l.p.eu ? "#E1306C" : corDoParticipante(l.p.id), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {l.p.eu ? "Você" : l.p.nome}
+                </span>
+                <div style={{ position: "relative", flex: 1, height: 34, borderBottom: "1px dashed var(--borda2)", marginRight: 14 }}>
+                  {meta.tipo === "distancia" && <div style={{ position: "absolute", right: -3, top: 4, bottom: 4, width: 4, background: "repeating-linear-gradient(#fff 0 4px,#000 4px 8px)", borderRadius: 1 }} title="chegada" />}
+                  <div style={{ position: "absolute", top: 3, left: "calc(" + Math.min(100, (l.d / escala) * 100) + "% - 14px)", opacity: l.aindaNao ? 0.45 : 1 }}>
+                    <AvatarDesafio p={l.p} tam={28} />
+                  </div>
                 </div>
               </div>
             ))}
@@ -20559,11 +20919,12 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
               }
             }
             return (
-              <div key={l.p.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, padding: "6px 0", borderBottom: "1px solid var(--borda)", fontWeight: l.p.eu ? 900 : 600, color: l.p.eu ? "#E1306C" : "var(--texto)" }}>
-                <span style={{ width: 26, fontWeight: 900 }}>{l.pos}º</span>
-                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {l.p.eu ? "Você" : (l.p.aoVivo ? "📡 " : "👻 ") + l.p.nome}
-                  {l.aindaNao && !l.p.eu ? <span style={{ fontSize: 11, color: "var(--cinza)", fontWeight: 600 }}> · ainda em {fmtTempoRota(fimDaTrilha(l.p.trilha)[0])}</span> : null}
+              <div key={l.p.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, padding: "8px 0", borderBottom: "1px solid var(--borda)", fontWeight: l.p.eu ? 900 : 600, color: l.p.eu ? "#E1306C" : "var(--texto)" }}>
+                <span style={{ width: 26, fontWeight: 900, fontSize: 15 }}>{l.pos}º</span>
+                <AvatarDesafio p={l.p} tam={32} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 15, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.p.eu ? (cfg.nome || "Você") + " (você)" : l.p.nome}</span>
+                  {(() => { const s = statusParticipante(l, Date.now()); return s ? <span style={{ display: "block", fontSize: 11, color: s.cor, fontWeight: 600, lineHeight: 1.35 }}>{s.txt}</span> : null; })()}
                 </span>
                 <span style={{ fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
                   {l.terminou && meta.tipo === "distancia" ? "🏁 " + fmtTempoRota(l.msFim) : (l.projetado ? "~" : "") + num1(l.d / 1000) + " km"}
@@ -20600,9 +20961,9 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
             {esteira && (
               <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ flex: 1, fontSize: 13 }}>{demo ? "Sua velocidade (simulada)" : "Velocidade da esteira"}</span>
-                <button onClick={() => setKmh((k) => Math.max(2, Math.round((k - 0.5) * 10) / 10))} style={{ ...S.btnGhost, width: 48, padding: 8, fontSize: 18 }} aria-label="Diminuir velocidade">−</button>
+                <button onClick={() => setKmh((k) => { const v = Math.max(2, Math.round((k - 0.5) * 10) / 10); if (condR.current) mandarApp({ acao: "kmh", v: v }); return v; })} style={{ ...S.btnGhost, width: 48, padding: 8, fontSize: 18 }} aria-label="Diminuir velocidade">−</button>
                 <b style={{ minWidth: 70, textAlign: "center", fontSize: 18, fontVariantNumeric: "tabular-nums" }}>{num1(kmh)} km/h</b>
-                <button onClick={() => setKmh((k) => Math.min(25, Math.round((k + 0.5) * 10) / 10))} style={{ ...S.btnGhost, width: 48, padding: 8, fontSize: 18 }} aria-label="Aumentar velocidade">+</button>
+                <button onClick={() => setKmh((k) => { const v = Math.min(25, Math.round((k + 0.5) * 10) / 10); if (condR.current) mandarApp({ acao: "kmh", v: v }); return v; })} style={{ ...S.btnGhost, width: 48, padding: 8, fontSize: 18 }} aria-label="Aumentar velocidade">+</button>
               </div>
             )}
             {legenda && <div style={{ fontSize: 12.5, margin: "0 4px 10px" }} aria-live="polite">🔊 {legenda}</div>}
@@ -20627,8 +20988,8 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
             {legenda && <div style={{ fontSize: 12.5, marginBottom: 8 }}>🔊 {legenda}</div>}
             {!demo && <button disabled={salvo} onClick={() => { onSalvar(montarRegistro()); setSalvo(true); }} style={{ ...S.btn, width: "100%", opacity: salvo ? 0.5 : 1 }}>{salvo ? "✓ Salvo no histórico" : "Salvar no histórico"}</button>}
             {!demo && e.fim && <button onClick={() => compartilhar(true)} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontWeight: 900 }}>📤 Mandar meu resultado (quem abrir corre contra você)</button>}
-            <button onClick={() => { euR.current = null; setEtapa("sala"); publicar(); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>↻ Correr de novo nesta sala</button>
-            <button onClick={() => { if (conRef.current) conRef.current.fechar(); conRef.current = null; euR.current = null; setSala(null); setConexao("desligada"); setEtapa("config"); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>Sair da sala</button>
+            <button onClick={() => { euR.current = null; condR.current = null; setConduzido(null); setEtapa("sala"); publicar(); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>↻ Correr de novo nesta sala</button>
+            <button onClick={() => { if (condR.current) mandarApp({ acao: "parar" }); condR.current = null; setConduzido(null); if (conRef.current) conRef.current.fechar(); conRef.current = null; euR.current = null; setSala(null); setConexao("desligada"); setEtapa("config"); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>Sair da sala</button>
           </div>
         )}
       </div>
@@ -26171,6 +26532,7 @@ function TreinoLivre() {
   // na aba de números em vez de na lista de treinos.
   const [secaoHistorico, setSecaoHistorico] = useState("treinos");
   const [grupoChave, setGrupoChave] = useState(0);
+  const [desafioChave, setDesafioChave] = useState(0);
   const [festa, setFesta] = useState(null);
   // ---- Jarvis ----
   // "preferido" fica gravado (é a escolha de usar comandos por voz); "ativa" é
@@ -26777,6 +27139,11 @@ function TreinoLivre() {
       const mOE = hash.match(/#oculosErro=([a-z-]+)/);
       const mB = hash.match(/#bolso=([^&]+)/);
       const mG = hash.match(/#grupo=([^&]+)/);
+      const mCA = hash.match(/#corridaApp=([^&]+)/);
+      if (mCA) {
+        const pacC = lerPacoteCorrida(mCA[1], b64Decodificar);
+        if (pacC) { try { localStorage.setItem("treinolivre:corridaApp", JSON.stringify(pacC)); } catch (e) {} setAba("desafio"); }
+      }
       if (mG) {
         const pacG = lerPacoteGrupo(mG[1], b64Decodificar);
         if (pacG) { gravarGrupos(juntarGrupoRecebido(lerGrupos(), pacG)); if (!ss) setAba("amigos"); }
@@ -26790,7 +27157,7 @@ function TreinoLivre() {
         }
       }
       if (mOE) setTimeout(() => abrirGuia("oculos", OCULOS_ERROS[mOE[1]] || OCULOS_ERROS.erro), 300);
-      if (mF || mP || mD || mA || mC || mS || mO || mOE || mB || mG) {
+      if (mF || mP || mD || mA || mC || mS || mO || mOE || mB || mG || mCA) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e2) {}
       }
       // Atalhos do ícone do app na tela inicial (definidos no manifest.json)
@@ -26876,6 +27243,13 @@ function TreinoLivre() {
   temSessaoRef.current = !!sessao;
   useEffect(() => {
     const aoHash = () => {
+      const mCA = (window.location.hash || "").match(/#corridaApp=([^&]+)/);
+      if (mCA) {
+        try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
+        const pacC = lerPacoteCorrida(mCA[1], b64Decodificar);
+        if (pacC) { try { localStorage.setItem("treinolivre:corridaApp", JSON.stringify(pacC)); } catch (e) {} setDesafioChave((k) => k + 1); setAba("desafio"); }
+        return;
+      }
       const mG = (window.location.hash || "").match(/#grupo=([^&]+)/);
       if (mG) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
@@ -28196,7 +28570,7 @@ function TreinoLivre() {
             onVoltar={() => { setSecaoHistorico("stats"); setAba("historico"); }} />
         )}
         {aba === "desafio" && (
-          <TelaDesafio vozCfg={voz} som={som} corredor={corredor} setCorredor={setCorredor}
+          <TelaDesafio key={desafioChave} vozCfg={voz} som={som} corredor={corredor} setCorredor={setCorredor}
             convite={conviteDesafio} onConviteUsado={() => setConviteDesafio(null)}
             onVoltar={() => setAba("inicio")}
             onSalvar={(registro) => {
@@ -28555,7 +28929,37 @@ if (MODO_BOLSO) {
     entregue() { if (motorBolso) motorBolso.limpar(); return "ok"; },
   };
 }
-ReactDOM.createRoot(document.getElementById("root")).render(MODO_OCULOS ? <TelaOculosNativa /> : MODO_BOLSO ? <div /> : <TreinoLivre />);
+// ?modo=corrida: o app chama de fora, a cada segundo e a cada leitura do GPS
+if (MODO_CORRIDA) {
+  let motorCorrida = null;
+  const resp = (x) => JSON.stringify(x || {});
+  window.corrida = {
+    iniciar(cfgJson) {
+      if (motorCorrida) motorCorrida.fechar();
+      const c = JSON.parse(cfgJson);
+      const cod = lerCodigoSala(c.c);
+      if (!cod) return "erro";
+      motorCorrida = criarCorridaApp({
+        codigo: cod.codigo, broker: cod.broker, meta: { tipo: c.mt === "t" ? "tempo" : "distancia", alvo: Number(c.al) },
+        atividade: c.at === "caminhada" ? "caminhada" : "corrida", ambiente: c.am === "esteira" ? "esteira" : "rua",
+        nome: String(c.n || "").slice(0, 24), id: String(c.i || ""), kmh: Number(c.k) || 9, comeca: Number(c.co) || Date.now(),
+      }, {
+        agora: () => Date.now(),
+        conectar: (o) => criarSalaAoVivo({ url: urlBroker(o.broker), codigo: o.codigo, id: o.id, aoEstado: () => {}, aoParticipante: o.aoParticipante }),
+      });
+      return "ok";
+    },
+    gps(lat, lng, acc, ts) { if (motorCorrida) motorCorrida.gps(lat, lng, acc, ts); return ""; },
+    tick() { return resp(motorCorrida ? motorCorrida.tick() : null); },
+    estado() { return resp(motorCorrida ? motorCorrida.estado() : null); },
+    pausar() { return motorCorrida ? motorCorrida.pausar() : ""; },
+    retomar() { return motorCorrida ? motorCorrida.retomar() : ""; },
+    encerrar() { return motorCorrida ? motorCorrida.encerrar() : ""; },
+    kmh(v) { if (motorCorrida) motorCorrida.kmh(Number(v)); return ""; },
+    fechar() { if (motorCorrida) motorCorrida.fechar(); motorCorrida = null; return ""; },
+  };
+}
+ReactDOM.createRoot(document.getElementById("root")).render(MODO_OCULOS ? <TelaOculosNativa /> : MODO_BOLSO || MODO_CORRIDA ? <div /> : <TreinoLivre />);
 
 // Modo offline: depois da primeira visita, o app abre mesmo sem internet.
 // (localhost entra na lista para dar pra testar o modo offline antes de publicar)

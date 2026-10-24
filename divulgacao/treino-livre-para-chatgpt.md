@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24k**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24l**.
 
 ---
 
@@ -296,6 +296,10 @@ liga nem desliga a esteira; botão grande ⏹ PARAR A ESTEIRA. Métodos que só 
 🌊 **Onda**, 📶 **Escada de velocidade**, 🎰 **Surpresa**. No Monster, Run! a história manda na correia.
 
 ### 3.9b 🏁 Desafio — corra contra os amigos (juntos ou cada um na sua cidade)
+- **Com o celular travado no bolso (app Android):** toque em Largar, trave a tela e corra: o app segue com o GPS, a
+  voz e os amigos te vendo; a notificação mostra a posição e quem está perto. No navegador e no iPhone, a tela fica ligada.
+- **Cada um pelo nome:** cor e iniciais de cada participante na sala, na pista e na lista; "na sua frente / atrás de
+  você" com o nome; a voz fala os nomes ("Valendo! Desafio de 3 km com Ana e Bia", "Bia 131 metros à frente").
 - Duas ou mais pessoas se desafiam numa **distância** (1, 3, 5, 10 km, meia maratona: quem faz mais rápido) ou num **tempo** (10 a 60 min: quem vai mais longe), correndo ou caminhando, na rua (GPS) ou na esteira.
 - **Juntas ou em lugares diferentes, ao mesmo tempo ou em dias diferentes**: o app põe todo mundo na mesma régua — o **tempo de prova** de cada um. "Aos 10 minutos da sua corrida, onde cada um estava aos 10 minutos da dele."
 - Cria-se uma **sala** com um código (ex.: KQ7MZ1) e manda o convite pelo WhatsApp. Ao vivo, todos se veem numa **pista com uma raia por corredor**, com a **posição de cada um**, os metros e os segundos de diferença.

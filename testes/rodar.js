@@ -42,6 +42,7 @@ const SUITES = [
   ["teste-saude", "a saude do Health Connect: o pacote, o resumo e o batimento nos treinos"],
   ["teste-bolso", "o Jarvis com a tela travada: anotar, descanso e a volta ao treino"],
   ["teste-grupo", "o desafio entre amigos em grupo: números, ranking e o link"],
+  ["teste-corrida-app", "a corrida do desafio conduzida pelo app (tela travada) e a voz com os nomes"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");

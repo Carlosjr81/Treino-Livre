@@ -29,6 +29,10 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- O desafio de corrida com a tela travada (CorridaService): o GPS do Android -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
@@ -104,6 +108,25 @@
             android:name=".BolsoService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+
+        <!-- O Largar do desafio chama treinolivre://corrida: a corrida segue com a
+             tela travada no bolso (GPS, voz e os amigos), pelo CorridaService. -->
+        <activity
+            android:name=".CorridaActivity"
+            android:exported="true"
+            android:theme="@style/Tema.Bolso">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="treinolivre" android:host="corrida" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".CorridaService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <!-- O ícone. Abre o site no Chrome (os dados do navegador continuam os
              mesmos) e, se a leitura já foi permitida, leva junto o Health Connect. -->

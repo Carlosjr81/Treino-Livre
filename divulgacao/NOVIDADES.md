@@ -16,6 +16,40 @@
 
 ---
 
+## 2026-10-24l — Desafio de corrida com o celular travado no bolso, e cada um pelo nome
+
+**Em uma frase:** no app Android, o desafio de corrida segue com o celular travado no bolso (GPS, voz e os amigos
+vendo você correr), e cada participante aparece e é falado pelo nome.
+
+**O que mudou**
+- **Celular travado no bolso**: no app Android, toque em Largar, trave a tela e corra. O app continua medindo pelo
+  GPS, falando no fone e mandando os seus números para os amigos. A notificação mostra "2º de 3 · 1,42 km · 8:31 ·
+  Ana 120 m à frente".
+- **Cada um pelo nome**: cada pessoa tem uma cor e as iniciais, na sala, na pista (com o nome ao lado) e na lista. Logo
+  abaixo da sua posição: "Na sua frente: Ana, 120 metros" e "Atrás de você: Bia, 300 metros".
+- **A voz com os nomes**: "Valendo! Desafio de 3 km com Ana e Bia", e a cada quilômetro "Você em 2º de 3: Bia 131
+  metros à frente, Ana 200 metros atrás". Também "Ana entrou no desafio", "Bia cruzou a chegada em 13:40" e, na
+  chegada, a posição e o tempo de cada um.
+- **O que aconteceu com quem sumiu**: em vez de "ainda em 0:16", a tela diz "sem sinal há 2 minutos (tela travada
+  sem o app?)", "largou depois", "pausado" ou "resultado de outro dia".
+
+**Por que importa para quem treina**
+- Ninguém corre olhando o celular. Agora dá para correr o desafio com o celular no bolso e ouvir quem está na frente.
+
+**Como usar**
+- Instale o app Android novo (link no fim do post). Desafio › criar a sala › convidar › Largar › travar a tela.
+- Na primeira vez, permita a localização: é o que deixa o GPS funcionar com a tela travada.
+
+**Ideias de vídeo**
+- Largar, travar o celular, pôr no bolso e sair correndo; no fone: "Você passou a Ana!".
+- A tela de bloqueio com a notificação "2º de 3 · Ana 120 m à frente".
+
+**Não prometer**
+- Com a tela travada, só funciona no app Android. No navegador e no iPhone a tela tem de ficar ligada. Precisa de
+  internet para os amigos se verem.
+
+---
+
 ## 2026-10-24k — Desafio entre amigos ao vivo e em horários diferentes, na academia e na corrida
 
 **Em uma frase:** o desafio entre amigos funciona com todo mundo treinando junto, ao vivo, e com cada um treinando

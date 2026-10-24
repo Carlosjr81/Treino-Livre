@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v120) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v121) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2091,6 +2091,83 @@ entre amigos, ver *Desafio entre amigos*): não confundir.
 - **Fim**: classificação (quem ainda corre continua chegando), salvar no
   histórico (série aeróbica comum + `historico[].desafio`, que o
   `CartaoDesafio` mostra), mandar o resultado por link, correr de novo.
+
+### Com a tela travada no bolso (`CorridaService`, `criarCorridaApp`, `?modo=corrida`)
+
+Relato do dono, com prints de uma corrida de verdade: o amigo aparecia como
+"📡 B · ainda em 0:16" e depois "ainda em 1:13", parado. Era o celular dele
+com a tela travada: o Chrome suspende a página, e com ela o GPS, a conexão
+com a sala e a voz. Pedido: "precisa funcionar tudo com o celular travado no
+bolso", e cada participante identificado pelo nome, na tela e na voz.
+
+**No app Android, quem corre é o app.** O Largar (um toque: o Chrome só abre
+outro app com gesto) chama `treinolivre://corrida?d=` (`linkCorrida`) com a
+sala, a meta, o nome, o id e a hora exata da largada (`co`, 3,2 s à frente:
+a página e o app contam o 3-2-1 juntos). A `CorridaActivity` pede a
+localização (o serviço é do tipo "location": é o que o Android deixa medir o
+GPS com a tela travada) e liga o `CorridaService`:
+
+- **o GPS é o do Android** (`LocationManager`, 1 por segundo), entregue à
+  página escondida por `corrida.gps(...)`;
+- **as contas, a sala e o que a voz diz são do próprio site**, aberto escondido
+  com `?modo=corrida` (`MODO_CORRIDA`, `window.corrida`): `criarCorridaApp`
+  usa o mesmo filtro de GPS (`aceitarPonto`, `resumoRota`), o mesmo motor do
+  desafio e o mesmo narrador da página. Não há um segundo motor para manter;
+- **o relógio é o do app**: `corrida.tick()` a cada segundo. Os relógios da
+  página escondida podem atrasar até um minuto com a tela travada; por isso o
+  tick também chama `sala.manter()` (o ping do MQTT e a reconexão, que antes
+  dependiam de `setInterval`), e um salto de relógio conta no máximo 10 s;
+- **a voz é o TextToSpeech**, sem pedir o foco do áudio (a música segue);
+- **a notificação** mostra "🏁 2º de 3 · 1,42 km · 8:31" e "Ana 120 m à
+  frente · Bia 300 m atrás", com "Encerrar a corrida"; um toque abre a página
+  nesta corrida (`?ver=1` → `#corridaApp=`, `lerPacoteCorrida`), mesmo que o
+  Chrome a tenha fechado com a tela travada. Na chegada, "🏁 Chegada! Toque
+  para ver a classificação e salvar", e o serviço para 20 s depois (ainda
+  publicando o resultado).
+
+**A página visível vira espelho** (`conduzido`, `espelhar`): ela não publica
+(publicaria números velhos por cima do app) e não mede nada; lê do
+retransmissor o que o app publica em nome dela (`criarSalaAoVivo({ proprio:
+true })`, só a mensagem com o mesmo `dt` da largada), e entre uma mensagem e
+outra o tempo anda pelo relógio. Pausar, Encerrar, a velocidade da esteira e
+Sair viram `treinolivre://corrida?acao=...`. O app avisa "🔒 O app está
+conduzindo esta corrida: pode travar a tela", e "⏳ Sem notícias do app há…"
+quando a conexão some. Salvar no histórico continua sendo na página (é no
+Chrome que o histórico mora).
+
+A página só faz isso no app novo (`?corrida=1`, guardado em
+`treinolivre:corridaApp1`, como o `bolso=2`): um APK antigo mandaria o Chrome
+à loja. No navegador do Android, a sala diz que pelo navegador a tela tem de
+ficar ligada e oferece o app; no iPhone, só a primeira parte.
+
+**Os nomes** (`AvatarDesafio`, `corDoParticipante`, `iniciaisDe`,
+`statusParticipante`): cada pessoa com a sua cor (sem rosa, que é o "EU") e
+as iniciais, na sala, na pista (com o nome ao lado de cada raia), na lista e
+nos cartões "⬆ Na sua frente / ⬇ Atrás de você" logo abaixo da posição. O
+"ainda em 0:16" virou o motivo: "📵 sem sinal há 2:10 (tela travada sem o
+app?)", "📡 largou depois: está em 0:16 de prova", "👻 resultado de outro
+dia · parou em 0:16", "⏸ pausado", "🏁 chegou". Largar sem nome não deixa
+("é ele que os outros veem e ouvem").
+
+**A voz com os nomes** (`narrarDesafio`, `falaLargada`, `situacaoDesafio`,
+`falaChegada`, a mesma na página e no app): "Valendo! Desafio de 3 km com
+Ana e Bia", a cada km "Você em 2º de 3: Bia 131 metros à frente, Ana 200
+metros atrás", "Ana entrou no desafio agora", "Bia cruzou a chegada em
+13:40", "Ana está sem sinal há mais de um minuto", e na chegada a posição e
+o tempo de cada um. **Achados no teste do motor**: a classificação da
+chegada era feita num tempo de prova "infinito" (dizia 1º a quem chegou em
+2º), e o aviso do quilômetro saía depois do "Chegada!".
+
+Coberto por `teste-corrida-app.js` (38 checagens: esteira com relógio de
+mentira e dois amigos, pausar, encerrar, o app que dormiu 30 s, 1 km pela Av.
+Paulista com o GPS do Android, o pacote de volta, as falas com nome).
+Testado no navegador com um retransmissor local: a página do Carlos no app
+(`?app=android&corrida=1`), uma página `?modo=corrida` fazendo o papel do
+serviço, e a Ana pelo navegador — a do Carlos espelhou a corrida do "app"
+("1º de 2 · 0,1 km · 0:49", "Atrás de você: Ana, 120 m") e o "app" disse
+"Valendo! Desafio de 3 km com Ana". **Não validado num aparelho**: o
+`CorridaService` de verdade (GPS com a tela travada, a página escondida
+rodando com a tela travada, a notificação).
 
 **Não está validado em aparelho**: dois celulares de verdade em redes móveis,
 e os três retransmissores públicos (a sessão na nuvem não os alcança). Foi

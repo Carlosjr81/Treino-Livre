@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v116) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v117) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2063,8 +2063,8 @@ retransmissores **MQTT públicos e gratuitos, sem conta e sem chave**
 terminou**, em texto curto (`codificarTrilha`: uma amostra a cada 10 s, metros
 desde a anterior em base 36 — uma hora de corrida em menos de 2 KB). Quem abre
 o link cai na sala, corre na hora contra esses resultados (👻) e, se houver
-conexão, entra também ao vivo. `#desafio=` já existia e é outra coisa (comparar
-estatísticas gerais com um amigo): não confundir.
+conexão, entra também ao vivo. `#grupo=` é outra coisa (o ranking de treinos
+entre amigos, ver *Desafio entre amigos*): não confundir.
 
 ### Na tela
 
@@ -2097,6 +2097,45 @@ e os três retransmissores públicos (a sessão na nuvem não os alcança). Foi
 testado com um retransmissor local e dois navegadores: sala por código,
 largada, ultrapassagem narrada, previsão, link com fantasma, simulação até a
 chegada, e o registro no histórico.
+
+## Desafio entre amigos (`TelaGrupo`, aba `amigos`)
+
+Pedido do dono: "deixe para multiplayers, assim pode enviar o desafio para
+vários amigos e todos acompanhar os detalhes e resultados entre eles". O
+"⚔️ Desafiar amigo" de antes (Histórico › Números) era um contra um: um link
+`#desafio=` com os números de quem mandou, que o outro via num aviso e
+acabava ali. Hoje o botão é **⚔️ Desafio entre amigos** e abre um grupo.
+
+- **Quantos quiserem no mesmo desafio.** Quem cria dá um nome e convida; o
+  convite é um link `#grupo=` (e o código de 6, igual ao da sala de corrida).
+  Quem abre entra no grupo, escolhe o apelido (`corredor.apelido`, o mesmo
+  do desafio de corrida) e aparece no ranking de **todos**.
+- **Seis réguas** (`METRICAS_GRUPO`): treinos, minutos, volume e km na
+  semana, sequência e treinos no total. Cada cartão mostra todos os números
+  da pessoa e o último treino, e a frase de cima diz quem lidera e quanto
+  falta (`fraseGrupo`). Empate divide a posição.
+- **A semana é a do calendário** (segunda a domingo), igual para todos: com
+  "últimos 7 dias" cada um teria uma régua. Número publicado numa semana que
+  já passou (`sem`) vale zero na nova.
+- **O mesmo retransmissor do desafio de corrida**, outra raiz de tópico
+  (`treinolivre/grupo/v1/<CÓDIGO>/<id>`, `criarSalaAoVivo({ base })`), com
+  `retain`: quem abre o grupo recebe os números de todos, mesmo de quem não
+  está com o app aberto. Passa só apelido e números de treino.
+- **Os números saem sozinhos depois de cada treino** (efeito no raiz,
+  `publicarGrupoUmaVez`): sem isso o ranking só andaria quando cada um
+  abrisse a tela. Só publica quando mudaram (`treinolivre:grupoPub`).
+- **Só quem criou publica o nome** (`dono`): quem entra pelo código não sabe
+  o nome e apagaria o de verdade com "Desafio ABCDE2".
+- Os grupos ficam em `localStorage["treinolivre:grupos"]`, fora do registro
+  principal e do backup (é estado social: entrar de novo pelo link refaz), e
+  o id da pessoa em `treinolivre:grupoEu`.
+- **Sem conexão, vale o link**: ele leva o ranking que quem mandou conhecia.
+- Os links `#desafio=` já mandados continuam abrindo o aviso antigo.
+
+Coberto por `teste-grupo.js` (47 checagens). Testado no navegador com três
+aparelhos num retransmissor local: criar, convidar pelo link, entrar com
+apelido, e os três vendo o mesmo ranking ao vivo. **Não validado** nos
+retransmissores públicos (a sessão na nuvem não os alcança).
 
 ## A esteira por Bluetooth (FTMS)
 
@@ -3201,7 +3240,8 @@ Sem servidor, o conteúdo viaja dentro do próprio link, em base64 no hash:
 |---|---|
 | `#ficha=` | uma ficha (`{v, n, i, x}`) |
 | `#prog=` | um programa com todas as fichas (`{v, pn, fs, x}`) |
-| `#desafio=` | números do amigo para comparar (`{nm, t, s, v, w}`) |
+| `#desafio=` | números do amigo para comparar (`{nm, t, s, v, w}`) — o antigo, só lido |
+| `#grupo=` | o desafio entre amigos: código, nome e o ranking conhecido (`{c, n, m}`, base64 de URL) |
 | `#atalho=` | atalhos do ícone do app (`livre`, `historico`) |
 
 `b64Codificar`/`b64Decodificar` produzem exatamente o mesmo formato do antigo

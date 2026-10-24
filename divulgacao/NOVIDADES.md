@@ -16,6 +16,37 @@
 
 ---
 
+## 2026-10-24h — Desafio entre amigos para a galera toda
+
+**Em uma frase:** o desafio entre amigos virou um grupo: manda o convite para quantos amigos quiser e todo
+mundo vê o ranking de todos, ao vivo, com os números de cada um.
+
+**O que mudou**
+- O botão "⚔️ Desafio entre amigos" (Histórico › Números) cria um desafio com nome e um código.
+- "+ Convidar" manda o link; quem abre entra com um apelido e aparece no ranking de todos.
+- Seis rankings para escolher: treinos na semana, minutos na semana, volume na semana, km na semana,
+  sequência de dias e treinos no total. Medalhas 🥇🥈🥉 e uma frase dizendo quem lidera e quanto falta.
+- Cada amigo tem um cartão com a semana dele, a sequência, o total e o último treino ("Perna, há 2 h").
+- Depois de cada treino os seus números vão sozinhos para o grupo: os amigos veem sem você abrir nada.
+- Dá para participar de vários desafios (o da academia, o da família) e sair de um quando quiser.
+
+**Por que importa para quem treina**
+- Treinar com a galera olhando é o empurrão que falta no dia da preguiça. A semana zera na segunda, então
+  todo mundo tem chance de liderar de novo.
+
+**Como usar**
+- Histórico › Números › "⚔️ Desafio entre amigos" › dê um nome › "+ Convidar" › mande no grupo do WhatsApp.
+
+**Ideias de vídeo**
+- A tela do ranking com três amigos, alguém termina um treino e passa para o 1º lugar.
+- "Chamei a galera da academia para um desafio de treinos da semana. Quem perder paga o açaí."
+
+**Não prometer**
+- Não é rede social nem chat: passa só o apelido e os números de treino. Precisa de internet para atualizar
+  ao vivo; sem internet vale o ranking que veio no link. Quem tem o código vê esses números.
+
+---
+
 ## 2026-10-24g — Boletim por distância: a cada 500 m, 1 km ou 2 km
 
 **Em uma frase:** o boletim falado da esteira e da corrida agora pode vir por distância (a cada 500 metros,

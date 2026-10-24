@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24g";
+const VERSAO_APP = "2026-10-24h";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -18854,7 +18854,7 @@ function mqttLer(buf) {
 // A sala ao vivo. Reconecta sozinha (o 4G cai no meio da corrida) e, ao
 // voltar, publica de novo a última trilha.
 function criarSalaAoVivo(o) {
-  const base = DESAFIO_TOPICO + o.codigo + "/";
+  const base = (o.base || DESAFIO_TOPICO) + o.codigo + "/";
   let ws = null, buf = new Uint8Array(0), ping = null, vivo = false, fechado = false, tentativas = 0, prazo = null;
   const ultimos = {};   // tópico → última mensagem: publicada de novo a cada reconexão
   const estado = (e) => { try { o.aoEstado && o.aoEstado(e); } catch (x) {} };
@@ -18924,6 +18924,411 @@ function participanteDaMensagem(uid, m) {
     ts: +m.ts || 0, aoVivo: true, dt: m.dt || null, ambiente: m.amb || null };
 }
 // ---------------- FIM DO MOTOR DESAFIO
+
+// ==== GRUPO: DESAFIO ENTRE AMIGOS ====
+// Pedido do dono: o "Desafiar amigo" era um contra um, num link que mostrava
+// os números de quem mandou e acabava ali. Agora é um grupo: quantos amigos
+// quiserem no mesmo desafio, o ranking de todos e os números de cada um,
+// atualizando ao vivo. É o mesmo retransmissor do desafio de corrida (a única
+// exceção ao "sem servidor", decidida com o dono): cada um publica os SEUS
+// números, guardados no retransmissor (retain), e quem abre o grupo recebe os
+// de todos. Passa só apelido e números de treino; nada de localização.
+// Sem conexão, o link (#grupo=) leva o ranking que quem mandou conhecia.
+//
+// A semana é a do calendário (de segunda a domingo), igual para todos:
+// "últimos 7 dias" deixaria cada um com uma régua diferente. Número de uma
+// semana que já passou (sem) vale zero na semana nova.
+const GRUPO_TOPICO = "treinolivre/grupo/v1/";
+const METRICAS_GRUPO = [
+  { id: "ts", nome: "Treinos na semana", ico: "📅", semana: true },
+  { id: "ms", nome: "Minutos na semana", ico: "⏱", semana: true },
+  { id: "vs", nome: "Volume na semana", ico: "🏋", semana: true },
+  { id: "ks", nome: "Km na semana", ico: "🏃", semana: true },
+  { id: "sq", nome: "Sequência", ico: "🔥", semana: false },
+  { id: "tt", nome: "Treinos no total", ico: "🏆", semana: false },
+];
+function fmtMetricaGrupo(id, v) {
+  const n = v || 0;
+  if (id === "ts" || id === "tt") return n + " " + plural(n, "treino", "treinos");
+  if (id === "ms") return n + " min";
+  if (id === "vs") return n >= 1000 ? num1(n / 1000) + " t" : n + " kg";
+  if (id === "ks") return num1(n) + " km";
+  if (id === "sq") return n + " " + plural(n, "dia seguido", "dias seguidos");
+  return String(n);
+}
+// Os meus números, como os amigos vão ver. `agora` de fora: o teste não pode
+// depender do dia em que roda.
+function numerosDoGrupo(historico, agora) {
+  const seg = segundaDaSemana(agora).getTime();
+  const chave = (t) => { const d = new Date(t); return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); };
+  const dias = {};
+  let ts = 0, vs = 0, ms = 0, ks = 0, vt = 0, ul = null;
+  (historico || []).forEach((h) => {
+    const t = new Date(h.data).getTime();
+    if (!(t <= agora)) return;
+    dias[chave(t)] = true;
+    let vol = 0, km = 0;
+    (h.itens || []).forEach((it) => (it.series || []).forEach((s) => {
+      if (!serieConta(s)) return;
+      if (ehCardio(s)) { km += medirCardio(s, 75, s.mod).km || 0; return; }
+      if (!ehTempo(s)) vol += cargaDe(s) * repsDe(s);
+    }));
+    vt += vol;
+    if (t >= seg) { ts++; vs += vol; ks += km; ms += Math.min(300, h.duracaoMin || 0); }
+    if (!ul || t > ul.d) ul = { d: t, n: String(h.nome || "Treino").slice(0, 40) };
+  });
+  let sq = 0, cur = agora;
+  if (!dias[chave(cur)]) cur -= 86400000;
+  while (dias[chave(cur)]) { sq++; cur -= 86400000; }
+  return { tt: (historico || []).filter((h) => new Date(h.data).getTime() <= agora).length, sq: sq, vt: Math.round(vt),
+    ts: ts, vs: Math.round(vs), ms: Math.round(ms), ks: Math.round(ks * 10) / 10, sem: seg, ul: ul };
+}
+// O que chega do retransmissor ou do link é de outra pessoa: conferido campo a campo
+function lerMembroGrupo(m) {
+  if (!m || typeof m !== "object") return null;
+  const n = typeof m.n === "string" ? m.n.trim().slice(0, 24) : "";
+  if (!n) return null;
+  const num = (x, max) => { const v = Number(x); return isFinite(v) && v >= 0 ? Math.min(v, max) : 0; };
+  const r = { n: n, tt: Math.round(num(m.tt, 1e5)), sq: Math.round(num(m.sq, 1e4)), vt: Math.round(num(m.vt, 1e9)),
+    ts: Math.round(num(m.ts, 200)), vs: Math.round(num(m.vs, 1e8)), ms: Math.round(num(m.ms, 1e5)),
+    ks: Math.round(num(m.ks, 1e4) * 10) / 10, sem: num(m.sem, 1e14), at: num(m.at, 1e14) };
+  if (m.ul && typeof m.ul === "object" && isFinite(Number(m.ul.d))) r.ul = { d: Number(m.ul.d), n: String(m.ul.n || "Treino").slice(0, 40) };
+  return r;
+}
+// Ranking pela métrica escolhida. Empate divide a posição; quem empata fica
+// pelo total de treinos, e depois pelo nome.
+function rankingGrupo(membros, metrica, agora) {
+  const met = METRICAS_GRUPO.find((x) => x.id === metrica) || METRICAS_GRUPO[0];
+  const semAtual = segundaDaSemana(agora).getTime();
+  const lista = Object.keys(membros || {}).map((id) => {
+    const m = membros[id];
+    const valor = met.semana && m.sem !== semAtual ? 0 : m[met.id] || 0;
+    return { id: id, m: m, valor: valor };
+  }).sort((a, b) => b.valor - a.valor || (b.m.tt || 0) - (a.m.tt || 0) || String(a.m.n).localeCompare(String(b.m.n)));
+  let pos = 0, ant = null;
+  lista.forEach((x, i) => { if (x.valor !== ant) { pos = i + 1; ant = x.valor; } x.pos = pos; });
+  return lista;
+}
+// A frase de cima: quem lidera e quanto falta para chegar lá
+function fraseGrupo(ranking, meuId, metrica) {
+  if (!ranking.length) return "";
+  const met = METRICAS_GRUPO.find((x) => x.id === metrica) || METRICAS_GRUPO[0];
+  const lider = ranking[0];
+  if (!lider.valor) return met.semana ? "Ninguém pontuou nesta semana ainda. Quem sai na frente?" : "Tudo zerado. Quem começa?";
+  const eu = ranking.find((x) => x.id === meuId);
+  const nomeDe = (x) => (x.id === meuId ? "Você" : x.m.n);
+  const empatados = ranking.filter((x) => x.valor === lider.valor);
+  if (eu && eu.valor === lider.valor) {
+    if (empatados.length > 1) return "🤝 Você divide a liderança com " + empatados.filter((x) => x.id !== meuId).map((x) => x.m.n).join(", ") + ": " + fmtMetricaGrupo(met.id, lider.valor) + ".";
+    const seg = ranking[1];
+    return "👑 Você lidera com " + fmtMetricaGrupo(met.id, lider.valor) + "." +
+      (seg ? " " + seg.m.n + " vem atrás, a " + fmtMetricaGrupo(met.id, Math.round((lider.valor - seg.valor) * 10) / 10) + "." : "");
+  }
+  let f = "👑 " + nomeDe(lider) + " lidera com " + fmtMetricaGrupo(met.id, lider.valor) + ".";
+  if (eu) f += " Você está a " + fmtMetricaGrupo(met.id, Math.round((lider.valor - eu.valor) * 10) / 10) + " da liderança (" + eu.pos + "º).";
+  return f;
+}
+function linkGrupo(g) {
+  const m = Object.keys(g.membros || {}).slice(0, 30).map((id) => Object.assign({ i: id }, g.membros[id]));
+  return LINK_APP + "#grupo=" + padraoParaB64Url(b64Codificar(JSON.stringify({ c: g.codigo, n: g.nome, m: m })));
+}
+function lerPacoteGrupo(texto, decodificar) {
+  try {
+    const p = JSON.parse(decodificar(b64UrlParaPadrao(texto)));
+    const cod = lerCodigoSala(p && p.c);
+    if (!cod) return null;
+    const membros = {};
+    (Array.isArray(p.m) ? p.m : []).slice(0, 30).forEach((x) => {
+      const id = x && typeof x.i === "string" && /^[a-z0-9]{4,16}$/.test(x.i) ? x.i : null;
+      const m = lerMembroGrupo(x);
+      if (id && m) membros[id] = m;
+    });
+    return { codigo: cod.codigo, nome: String(p.n || "Desafio da galera").slice(0, 40), membros: membros };
+  } catch (e) { return null; }
+}
+// ==== FIM DO GRUPO ====
+
+// Os grupos ficam neste aparelho (fora do registro principal: é estado social,
+// que se refaz entrando de novo pelo link)
+function lerGrupos() { try { const l = JSON.parse(localStorage.getItem("treinolivre:grupos") || "[]"); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
+function gravarGrupos(l) { try { localStorage.setItem("treinolivre:grupos", JSON.stringify(l)); } catch (e) {} }
+function meuIdGrupo() {
+  try {
+    let id = localStorage.getItem("treinolivre:grupoEu");
+    if (!id) { id = Math.random().toString(36).slice(2, 12); localStorage.setItem("treinolivre:grupoEu", id); }
+    return id;
+  } catch (e) { return "eu" + Math.random().toString(36).slice(2, 8); }
+}
+// O grupo que chegou por link entra na lista (ou atualiza o que já estava),
+// e fica por último: é o que a tela abre
+function juntarGrupoRecebido(lista, pac) {
+  const antes = (lista || []).find((x) => x.codigo === pac.codigo);
+  const junto = Object.assign({ criado: Date.now() }, antes || {}, { codigo: pac.codigo, nome: antes && antes.dono ? antes.nome : pac.nome,
+    membros: Object.assign({}, pac.membros, (antes && antes.membros) || {}) });
+  return (lista || []).filter((x) => x.codigo !== pac.codigo).concat([junto]);
+}
+// Fora da tela do grupo: publica os meus números e fecha (depois de um treino
+// novo, para os amigos verem sem eu abrir nada)
+function publicarGrupoUmaVez(codigo, meuId, dados) {
+  const cod = lerCodigoSala(codigo);
+  if (!cod || typeof WebSocket === "undefined") return;
+  let ws;
+  try { ws = new WebSocket(urlBroker(cod.broker), "mqtt"); } catch (e) { return; }
+  ws.binaryType = "arraybuffer";
+  const fim = setTimeout(() => { try { ws.close(); } catch (e) {} }, 9000);
+  ws.onopen = () => { try { ws.send(mqttConectar("tl-" + meuId + "-" + Math.random().toString(36).slice(2, 6), 30)); } catch (e) {} };
+  ws.onmessage = (ev) => {
+    const r = mqttLer(new Uint8Array(ev.data));
+    if (!r.pacotes.some((p) => p.tipo === 2 && p.rc === 0)) return;
+    try {
+      ws.send(mqttPublicar(GRUPO_TOPICO + cod.codigo + "/" + meuId, JSON.stringify(dados), true));
+      setTimeout(() => { try { ws.send(new Uint8Array([0xe0, 0])); ws.close(); } catch (e) {} clearTimeout(fim); }, 400);
+    } catch (e) {}
+  };
+  ws.onerror = () => {};
+}
+
+function quandoFoi(t, agora) {
+  if (!t) return "";
+  const min = Math.round((agora - t) / 60000);
+  if (min < 2) return "agora";
+  if (min < 60) return "há " + min + " min";
+  const h = Math.round(min / 60);
+  if (h < 24) return "há " + h + " h";
+  const d = Math.round(h / 24);
+  return d === 1 ? "ontem" : "há " + d + " dias";
+}
+
+function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar }) {
+  const meuId = useMemo(() => meuIdGrupo(), []);
+  const [grupos, setGrupos] = useState(() => lerGrupos());
+  const [atual, setAtual] = useState(() => { const l = lerGrupos(); return l.length ? l[l.length - 1].codigo : null; });
+  const [metrica, setMetrica] = useState("ts");
+  const [estado, setEstado] = useState("");
+  const [criando, setCriando] = useState(false);
+  const [nomeGrupo, setNomeGrupo] = useState("Desafio da galera");
+  const [apelido, setApelido] = useState((corredor && corredor.apelido) || "");
+  const [codigoDigitado, setCodigoDigitado] = useState("");
+  const [, setTique] = useState(0);
+  const agora = Date.now();
+  const g = grupos.find((x) => x.codigo === atual) || null;
+  const nome = ((corredor && corredor.apelido) || "").trim();
+  const meus = useMemo(() => Object.assign({ n: nome || "Eu", at: Date.now() }, numerosDoGrupo(historico, Date.now())), [historico, nome]);
+  const salaRef = useRef(null);
+  const meusRef = useRef(meus);
+  meusRef.current = meus;
+  const nomeRef = useRef(nome);
+  nomeRef.current = nome;
+
+  const salvar = (fn) => setGrupos((prev) => { const l = fn(prev); gravarGrupos(l); return l; });
+  // o meu cartão sempre com os números de agora
+  useEffect(() => {
+    if (!g || !nome) return;
+    salvar((l) => l.map((x) => (x.codigo !== g.codigo ? x : Object.assign({}, x, { membros: Object.assign({}, x.membros, { [meuId]: meus }) }))));
+  }, [atual, meus]);
+
+  // ao vivo: recebe os números de todos, publica os meus
+  useEffect(() => {
+    if (!g) return undefined;
+    const cod = lerCodigoSala(g.codigo);
+    if (!cod) return undefined;
+    const sala = criarSalaAoVivo({
+      base: GRUPO_TOPICO, codigo: cod.codigo, id: meuId, url: urlBroker(cod.broker),
+      aoEstado: setEstado,
+      aoParticipante: (uid, obj) => {
+        if (uid === "sala") {
+          if (obj && typeof obj.n === "string") salvar((l) => l.map((x) => (x.codigo === cod.codigo ? Object.assign({}, x, { nome: obj.n.slice(0, 40) }) : x)));
+          return;
+        }
+        if (!/^[a-z0-9]{4,16}$/.test(uid)) return;
+        const m = lerMembroGrupo(obj);
+        if (!m) return;
+        salvar((l) => l.map((x) => (x.codigo !== cod.codigo ? x : Object.assign({}, x, { membros: Object.assign({}, x.membros, { [uid]: m }) }))));
+      },
+    });
+    salaRef.current = sala;
+    if (nomeRef.current) sala.publicar(meusRef.current);
+    // só quem criou diz o nome do desafio: quem entrou pelo código não sabe o
+    // nome e apagaria o de verdade com "Desafio ABCDE2"
+    if (g.dono) sala.publicarSala({ n: g.nome });
+    const iv = setInterval(() => setTique((t) => t + 1), 30000);
+    return () => { clearInterval(iv); salaRef.current = null; sala.fechar(); };
+  }, [atual]);
+  // números novos (um treino terminou com a tela aberta): publica na mesma conexão
+  useEffect(() => { if (salaRef.current && nome) salaRef.current.publicar(meus); }, [meus.tt, meus.ts, meus.ms, meus.vs, meus.ks, meus.sq, meus.n]);
+
+  const guardarApelido = (n) => { if (setCorredor && n) setCorredor((c) => Object.assign({}, c, { apelido: n.slice(0, 24) })); };
+  const criar = () => {
+    const ap = apelido.trim();
+    if (!ap) { avisar("Escolha um apelido: é como os amigos vão te ver."); return; }
+    guardarApelido(ap);
+    const broker = 1 + Math.floor(Math.random() * DESAFIO_BROKERS.length);
+    const codigo = novoCodigoSala(null, broker);
+    const novo = { codigo: codigo, nome: (nomeGrupo.trim() || "Desafio da galera").slice(0, 40), membros: {}, criado: Date.now(), dono: true };
+    salvar((l) => l.concat([novo]));
+    setAtual(codigo);
+    setCriando(false);
+  };
+  const entrarPorCodigo = () => {
+    const cod = lerCodigoSala(codigoDigitado);
+    if (!cod) { avisar("Código inválido: são 5 letras e 1 número, como ABCDE2."); return; }
+    const ap = apelido.trim();
+    if (!ap) { avisar("Escolha um apelido: é como os amigos vão te ver."); return; }
+    guardarApelido(ap);
+    if (!grupos.some((x) => x.codigo === cod.codigo)) salvar((l) => l.concat([{ codigo: cod.codigo, nome: "Desafio " + cod.codigo, membros: {}, criado: Date.now() }]));
+    setAtual(cod.codigo);
+    setCodigoDigitado("");
+  };
+  const convidar = async () => {
+    if (!g) return;
+    const url = linkGrupo(g);
+    const texto = "⚔️ Entra no meu desafio \"" + g.nome + "\" no Treino Livre! Código " + g.codigo + ". Ranking de treinos da semana, sequência, volume e km, ao vivo. (app gratuito do @" + INSTAGRAM + ")";
+    if (navigator.share) {
+      try { await navigator.share({ text: texto, url: url }); return; }
+      catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    try { await navigator.clipboard.writeText(texto + " " + url); avisar("Convite copiado. Cole no grupo dos amigos."); }
+    catch (e) { avisar(texto + " " + url); }
+  };
+  const sair = () => {
+    salvar((l) => l.filter((x) => x.codigo !== atual));
+    const resto = grupos.filter((x) => x.codigo !== atual);
+    setAtual(resto.length ? resto[resto.length - 1].codigo : null);
+  };
+
+  const chip = (ativo, rotulo, acao, chave) => (
+    <button key={chave} onClick={acao} aria-pressed={ativo}
+      style={{ ...S.btnGhost, width: "auto", padding: "7px 11px", fontSize: 13, borderColor: ativo ? "var(--marca)" : undefined, color: ativo ? "var(--marca)" : "var(--texto)", fontWeight: ativo ? 800 : 600 }}>
+      {rotulo}
+    </button>
+  );
+  const campoApelido = !(corredor && corredor.apelido) && (
+    <input style={{ ...S.input, marginBottom: 8 }} placeholder="Seu apelido (como os amigos vão te ver)" value={apelido} maxLength={24}
+      onChange={(e) => setApelido(e.target.value)} />
+  );
+
+  const ranking = g ? rankingGrupo(g.membros, metrica, agora) : [];
+  const met = METRICAS_GRUPO.find((x) => x.id === metrica);
+  const max = ranking.length ? Math.max(1, ranking[0].valor) : 1;
+
+  return (
+    <div>
+      <button onClick={onVoltar} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 700, fontSize: 14, cursor: "pointer", padding: "4px 0", marginBottom: 8 }}>← Voltar</button>
+      <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>⚔️ Desafio entre amigos</div>
+      <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 14 }}>
+        Quantos amigos quiserem no mesmo desafio: o ranking de todos, ao vivo, com os treinos, a sequência, o volume e os km de cada um.
+      </div>
+
+      {grupos.length > 1 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+          {grupos.map((x) => chip(x.codigo === atual, x.nome, () => setAtual(x.codigo), x.codigo))}
+        </div>
+      )}
+
+      {g && !criando ? (
+        <>
+          {!nome && (
+            <div style={{ ...S.card, borderColor: "var(--marca)" }}>
+              <div style={S.label}>Como os amigos vão te ver?</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input style={{ ...S.input, flex: 1 }} placeholder="Seu apelido" value={apelido} maxLength={24} onChange={(e) => setApelido(e.target.value)} />
+                <button onClick={() => { const ap = apelido.trim(); if (ap) guardarApelido(ap); else avisar("Escolha um apelido."); }}
+                  style={{ ...S.btn, width: "auto", padding: "10px 16px", marginTop: 0 }}>Entrar</button>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 6 }}>Seus números só entram no ranking dos amigos depois disso.</div>
+            </div>
+          )}
+          <div style={{ ...S.card }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 17, fontWeight: 900 }}>{g.nome}</div>
+                <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 2 }}>
+                  Código <b style={{ color: "var(--texto)", letterSpacing: 1 }}>{g.codigo}</b> · {ranking.length} {plural(ranking.length, "pessoa", "pessoas")} ·{" "}
+                  {estado === "conectado" ? <span style={{ color: "var(--ok)" }}>📡 ao vivo</span> : estado === "falhou" || estado === "recusado" ? "sem conexão: vale o link" : "conectando…"}
+                </div>
+              </div>
+              <button onClick={convidar} style={{ ...(nome ? S.btn : S.btnGhost), width: "auto", padding: "10px 14px", marginTop: 0 }}>+ Convidar</button>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+            {METRICAS_GRUPO.map((x) => chip(metrica === x.id, x.ico + " " + x.nome, () => setMetrica(x.id), x.id))}
+          </div>
+
+          <div style={{ ...S.card, fontSize: 14, fontWeight: 700, lineHeight: 1.5 }}>{fraseGrupo(ranking, meuId, metrica)}</div>
+
+          {ranking.map((x) => {
+            const eu = x.id === meuId;
+            const m = x.m;
+            const daSemana = m.sem === segundaDaSemana(agora).getTime();
+            const medalha = x.valor > 0 ? (x.pos === 1 ? "🥇" : x.pos === 2 ? "🥈" : x.pos === 3 ? "🥉" : x.pos + "º") : x.pos + "º";
+            return (
+              <div key={x.id} style={{ ...S.card, borderColor: eu ? "var(--marca)" : undefined }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ fontSize: x.valor > 0 && x.pos <= 3 ? 26 : 16, fontWeight: 900, width: 34, textAlign: "center", flexShrink: 0 }}>{medalha}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span style={{ fontWeight: 900, fontSize: 16, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{eu ? m.n + " (você)" : m.n}</span>
+                      <span style={{ marginLeft: "auto", fontWeight: 900, fontSize: 16, flexShrink: 0 }}>{fmtMetricaGrupo(met.id, x.valor)}</span>
+                    </div>
+                    <div style={{ height: 6, background: "var(--borda)", borderRadius: 3, marginTop: 6, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: Math.round((x.valor / max) * 100) + "%", background: "var(--marca)", borderRadius: 3 }} />
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 6, lineHeight: 1.5 }}>
+                      Semana: {fmtMetricaGrupo("ts", daSemana ? m.ts : 0)} · {fmtMetricaGrupo("ms", daSemana ? m.ms : 0)} · {fmtMetricaGrupo("vs", daSemana ? m.vs : 0)}
+                      {(daSemana ? m.ks : 0) > 0 ? " · " + fmtMetricaGrupo("ks", m.ks) : ""}
+                      <br />🔥 {fmtMetricaGrupo("sq", m.sq)} · 🏆 {fmtMetricaGrupo("tt", m.tt)}
+                      {m.ul ? <><br />Último treino: {m.ul.n}, {quandoFoi(m.ul.d, agora)}</> : null}
+                      {!eu && m.at ? <span style={{ color: "var(--cinza2)" }}> · atualizado {quandoFoi(m.at, agora)}</span> : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {ranking.length <= 1 && (
+            <div style={{ ...S.card, textAlign: "center", fontSize: 13.5, color: "var(--cinza)", lineHeight: 1.6 }}>
+              Só você por enquanto. Toque em <b>+ Convidar</b> e mande o link para quantos amigos quiser:
+              quem abrir entra no ranking.
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+            <button onClick={() => setCriando(true)} style={{ ...S.btnGhost, flex: 1 }}>+ Outro desafio</button>
+            <button onClick={sair} style={{ ...S.btnGhost, flex: 1 }}>Sair deste</button>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 10, lineHeight: 1.5 }}>
+            Passa pelo mesmo retransmissor público do desafio de corrida: só o apelido e os números de treino, nunca
+            onde você está. Quem tem o código vê esses números. A semana vai de segunda a domingo, igual para todos.
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ ...S.card }}>
+            <div style={S.label}>Criar um desafio</div>
+            {campoApelido}
+            <input style={{ ...S.input, marginBottom: 8 }} placeholder="Nome do desafio" value={nomeGrupo} maxLength={40}
+              onChange={(e) => setNomeGrupo(e.target.value)} />
+            <button onClick={criar} style={{ ...S.btn, marginTop: 0 }}>Criar e convidar os amigos</button>
+          </div>
+          <div style={{ ...S.card }}>
+            <div style={S.label}>Entrar com um código</div>
+            {campoApelido}
+            <div style={{ display: "flex", gap: 8 }}>
+              <input style={{ ...S.input, flex: 1, textTransform: "uppercase", letterSpacing: 2 }} placeholder="ABCDE2" value={codigoDigitado} maxLength={8}
+                onChange={(e) => setCodigoDigitado(e.target.value)} />
+              <button onClick={entrarPorCodigo} style={{ ...S.btnGhost, width: "auto", padding: "10px 16px" }}>Entrar</button>
+            </div>
+          </div>
+          {g && <button onClick={() => setCriando(false)} style={{ ...S.btnGhost }}>← Voltar ao desafio</button>}
+        </>
+      )}
+    </div>
+  );
+}
+
+
 // ---- O desafio na tela ----
 // Configurar (apelido, meta, lugar) → sala (código, convite, quem está) →
 // corrida (posição ao vivo, a pista, quem alcança quem) → fim (classificação,
@@ -24808,7 +25213,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
           <PainelConquistas est={est} />
           <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
             <button style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onStoryProgresso}>📸 Story</button>
-            <button style={{ ...S.btnGhost, flex: 1 }} onClick={onDesafiar}>⚔️ Desafiar amigo</button>
+            <button style={{ ...S.btnGhost, flex: 1 }} onClick={onDesafiar}>⚔️ Desafio entre amigos</button>
           </div>
           {onCorredor && (
             <button onClick={onCorredor} style={{ ...S.btnGhost, width: "100%", marginBottom: 12, fontWeight: 900, color: "#E1306C", borderColor: "#E1306C66" }}>
@@ -25090,6 +25495,7 @@ function TreinoLivre() {
   // Quando a faixa de progresso da tela inicial é tocada, o histórico abre já
   // na aba de números em vez de na lista de treinos.
   const [secaoHistorico, setSecaoHistorico] = useState("treinos");
+  const [grupoChave, setGrupoChave] = useState(0);
   const [festa, setFesta] = useState(null);
   // ---- Jarvis ----
   // "preferido" fica gravado (é a escolha de usar comandos por voz); "ativa" é
@@ -25695,6 +26101,11 @@ function TreinoLivre() {
       const mO = hash.match(/#oculosSerie=([^&]+)/);
       const mOE = hash.match(/#oculosErro=([a-z-]+)/);
       const mB = hash.match(/#bolso=([^&]+)/);
+      const mG = hash.match(/#grupo=([^&]+)/);
+      if (mG) {
+        const pacG = lerPacoteGrupo(mG[1], b64Decodificar);
+        if (pacG) { gravarGrupos(juntarGrupoRecebido(lerGrupos(), pacG)); if (!ss) setAba("amigos"); }
+      }
       if (mB) {
         const pacB = lerPacoteBolso(mB[1], b64Decodificar);
         if (pacB) {
@@ -25704,7 +26115,7 @@ function TreinoLivre() {
         }
       }
       if (mOE) setTimeout(() => abrirGuia("oculos", OCULOS_ERROS[mOE[1]] || OCULOS_ERROS.erro), 300);
-      if (mF || mP || mD || mA || mC || mS || mO || mOE || mB) {
+      if (mF || mP || mD || mA || mC || mS || mO || mOE || mB || mG) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e2) {}
       }
       // Atalhos do ícone do app na tela inicial (definidos no manifest.json)
@@ -25790,6 +26201,13 @@ function TreinoLivre() {
   temSessaoRef.current = !!sessao;
   useEffect(() => {
     const aoHash = () => {
+      const mG = (window.location.hash || "").match(/#grupo=([^&]+)/);
+      if (mG) {
+        try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
+        const pacG = lerPacoteGrupo(mG[1], b64Decodificar);
+        if (pacG) { gravarGrupos(juntarGrupoRecebido(lerGrupos(), pacG)); if (!temSessaoRef.current) { setGrupoChave((k) => k + 1); setAba("amigos"); } }
+        return;
+      }
       const mB = (window.location.hash || "").match(/#bolso=([^&]+)/);
       if (mB) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
@@ -25819,6 +26237,24 @@ function TreinoLivre() {
     window.addEventListener("hashchange", aoHash);
     return () => window.removeEventListener("hashchange", aoHash);
   }, []);
+
+  // Os desafios entre amigos: um treino novo publica os meus números em cada
+  // grupo, com a tela do grupo fechada. Só quando os números mudaram.
+  useEffect(() => {
+    if (!carregado || !(corredor && corredor.apelido)) return undefined;
+    const tm = setTimeout(() => {
+      const gs = lerGrupos();
+      if (!gs.length) return;
+      const agora = Date.now();
+      const dados = Object.assign({ n: corredor.apelido, at: agora }, numerosDoGrupo(historico, agora));
+      const marca = JSON.stringify(Object.assign({}, dados, { at: 0 }));
+      let feitos = {};
+      try { feitos = JSON.parse(localStorage.getItem("treinolivre:grupoPub") || "{}") || {}; } catch (e) {}
+      gs.forEach((g) => { if (feitos[g.codigo] !== marca) { publicarGrupoUmaVez(g.codigo, meuIdGrupo(), dados); feitos[g.codigo] = marca; } });
+      try { localStorage.setItem("treinolivre:grupoPub", JSON.stringify(feitos)); } catch (e) {}
+    }, 4000);
+    return () => clearTimeout(tm);
+  }, [carregado, historico, corredor && corredor.apelido]);
 
   // Gravação com um respiro de 400ms: durante o treino cada tecla digitada muda o
   // estado, e escrever o histórico inteiro a cada tecla trava o aparelho.
@@ -26700,24 +27136,9 @@ function TreinoLivre() {
   };
 
   // ---- Desafio entre amigos ----
-  const desafiarAmigo = () => {
-    importRef.current = "";
-    setModal({ msg: "Digite seu nome (vai aparecer para o amigo desafiado):", prompt: "Seu nome", positivo: true, labelSim: "Continuar", onSim: () => {
-      const nome = ((importRef.current || "").trim() || "Atleta").slice(0, 20);
-      const est = calcularEstatisticas(historico);
-      const payload = { nm: nome, t: est.total, s: est.streak, v: est.volumeTotal, w: est.treinosSemana };
-      const b64 = b64Codificar(JSON.stringify(payload));
-      const url = LINK_APP + "#desafio=" + b64;
-      const texto = "⚔️ " + nome + " te desafiou no Treino Livre! " + est.total + " treinos e " + est.streak + " dia(s) seguidos. Aceita o desafio? (app gratuito do @" + INSTAGRAM + ")";
-      setTimeout(async () => {
-        if (navigator.share) {
-          try { await navigator.share({ text: texto, url: url }); return; }
-          catch (e) { if (e && e.name === "AbortError") return; }
-        }
-        setModal({ msg: "Copie e envie o desafio para um amigo:", texto: texto + " " + url });
-      }, 100);
-    } });
-  };
+  // O 1 contra 1 de antes só mandava um link; hoje é um grupo (TelaGrupo).
+  // Os links #desafio= já enviados continuam abrindo.
+  const desafiarAmigo = () => setAba("amigos");
 
   // ---- Compartilhar um treino completo (programa com todas as fichas) ----
   const compartilharPrograma = async (p) => {
@@ -27054,6 +27475,10 @@ function TreinoLivre() {
                 .catch(() => { registro.rota = Object.assign({}, registro.rota, { semTraco: true }); })
                 .then(() => guardarTreino(registro, "percurso-concluido"));
             }} />
+        )}
+        {aba === "amigos" && (
+          <TelaGrupo key={grupoChave} historico={historico} corredor={corredor} setCorredor={setCorredor} avisar={avisar}
+            onVoltar={() => { setSecaoHistorico("stats"); setAba("historico"); }} />
         )}
         {aba === "desafio" && (
           <TelaDesafio vozCfg={voz} som={som} corredor={corredor} setCorredor={setCorredor}

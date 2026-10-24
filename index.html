@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24e";
+const VERSAO_APP = "2026-10-24f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2589,9 +2589,10 @@ function snapshotBolso(sessao, exPorId, cfg) {
     }),
   };
 }
-function linkBolso(snap, falar, fimFala, trazer) {
+function linkBolso(snap, falar, fimFala, trazer, crono) {
   const d = padraoParaB64Url(b64Codificar(JSON.stringify(snap)));
   let q = "d=" + d + (trazer ? "&t=1" : "");
+  if (crono) q += "&c=" + encodeURIComponent(JSON.stringify(crono));
   if (falar) q += "&f=" + encodeURIComponent(falar);
   if (fimFala) q += "&ff=" + encodeURIComponent(fimFala);
   return "intent://bolso?" + q + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID +
@@ -4465,6 +4466,7 @@ function lerVoz(v) {
     contarAlto: o.contarAlto !== false,
     autoSerie: o.autoSerie !== false,
     narrar: o.narrar !== false,
+    boletim: [0, 60, 120, 180, 300].indexOf(o.boletim) >= 0 ? o.boletim : BOLETIM_PADRAO,
     espelho: !!o.espelho,
   };
 }
@@ -4582,6 +4584,34 @@ function textoDuracao(seg) {
   if (!r) return base;
   if (r === 30) return base + " e meio";
   return base + " e " + r + (r === 1 ? " segundo" : " segundos");
+}
+
+// O boletim de quem anda, corre ou pedala (pedido do dono: "feedback mais
+// frequente, com os dados da prova"). Além do aviso de cada quilômetro, a cada
+// tanto (voz.boletim, em segundos; 2 min se ninguém escolheu) o que o painel
+// mostra, falado: tempo, distância, velocidade e ritmo, inclinação, watts,
+// calorias, coração, cadência e quanto falta. Só o que existe entra: número
+// zerado não é dito.
+const BOLETIM_PADRAO = 120;
+function boletimSeg(cfg) {
+  if (!cfg || cfg.falar === false || cfg.narrar === false) return 0;
+  const b = cfg.boletim;
+  return b === undefined || b === null ? BOLETIM_PADRAO : Math.max(0, parseInt(b) || 0);
+}
+function boletimCardio(d) {
+  const p = [];
+  if (d.seg > 0) p.push(textoDuracao(d.seg >= 60 ? Math.round(d.seg / 60) * 60 : d.seg) + ".");
+  if (d.km >= 0.05) p.push(num1(d.km) + (Math.abs(d.km - 1) < 0.05 ? " quilômetro." : " quilômetros."));
+  const ritmo = d.ritmo > 0 && d.ritmo < 40 ? falaRitmo(d.ritmo) : "";
+  if (d.kmh > 0) p.push("Velocidade " + num1(d.kmh) + " por hora" + (ritmo ? ", ritmo de " + ritmo : "") + ".");
+  else if (ritmo) p.push("Ritmo de " + ritmo + ".");
+  if (d.incl > 0) p.push("Inclinação " + num1(d.incl) + " por cento.");
+  if (d.watts > 0) p.push(Math.round(d.watts) + " watts.");
+  if (d.kcal >= 1) p.push("Cerca de " + Math.round(d.kcal) + " calorias.");
+  if (d.bpm > 0) p.push("Coração a " + Math.round(d.bpm) + ".");
+  if (d.cad > 0) p.push("Cadência " + Math.round(d.cad) + ".");
+  if (d.falta > 30) p.push("Faltam " + textoDuracao(d.falta >= 120 ? Math.round(d.falta / 60) * 60 : d.falta) + ".");
+  return p.join(" ");
 }
 
 function narrarVoz(texto, cfg, fila) {
@@ -10968,6 +10998,26 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
               </div>
             )}
             {voz.falar && voz.narrar !== false && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Boletim na esteira e na corrida</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {[[60, "1 min"], [120, "2 min"], [180, "3 min"], [300, "5 min"], [0, "Só o km"]].map(([valor, rotulo]) => {
+                    const ativo = (voz.boletim == null ? BOLETIM_PADRAO : voz.boletim) === valor;
+                    return (
+                      <button key={valor} onClick={() => setVoz((v) => ({ ...v, boletim: valor }))} aria-pressed={ativo}
+                        style={{ ...S.btnGhost, width: "auto", padding: "8px 12px", borderColor: ativo ? "var(--marca)" : undefined, color: ativo ? "var(--marca)" : undefined, fontWeight: ativo ? 800 : 600 }}>
+                        {rotulo}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 11.5, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>
+                  De tempo em tempo ele fala tempo, distância, velocidade e ritmo, inclinação, calorias,
+                  coração e quanto falta. O aviso de cada quilômetro continua.
+                </div>
+              </div>
+            )}
+            {voz.falar && voz.narrar !== false && (
               <div style={{ fontSize: 11.5, color: "var(--cinza2)", marginBottom: 14, lineHeight: 1.5 }}>
                 Série anotada, descanso começando e acabando, e qual exercício vem agora —
                 falado, sem precisar tirar o celular do bolso.
@@ -15259,7 +15309,9 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
   const mod = MODALIDADES_ROTA.find((m) => m.id === modo) || MODALIDADES_ROTA[0];
   const ex = exPorId(modo);
 
-  const falar = (t) => narrarVoz(t, vozCfg);
+  const falouEm = useRef(0);
+  const boletimN = useRef(0);
+  const falar = (t) => { falouEm.current = Date.now(); narrarVoz(t, vozCfg); };
   const anotarLugar = (e) => {
     if (!e) return;
     const L0 = lugares.current;
@@ -15403,7 +15455,7 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
     const p0 = leitura.current;
     if (!p0) { setAviso("Esperando o GPS achar você. Em lugar aberto leva alguns segundos."); return; }
     pts.current = [Object.assign({}, p0, { t: Date.now(), seg: 0 })];
-    seg.current = 0; saltos.current = 0; kmFalado.current = 0;
+    seg.current = 0; saltos.current = 0; kmFalado.current = 0; boletimN.current = 0;
     passos.current = criarContadorPassos();
     fcAmostras.current = [];
     setSemSensor(false);
@@ -15525,6 +15577,18 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
   const pedala = modo === "bike-rua";
   const cadAgora = passos.current && fase === "rodando" ? passos.current.cadencia(performance.now()) : 0;
   const tipoAtiv = modo === "corrida-rua" ? "corrida" : "caminhada";
+  // o boletim de tempo em tempo (ver boletimCardio), no tempo em movimento
+  useEffect(() => {
+    const intervalo = boletimSeg(vozCfg);
+    if (fase !== "rodando" || !intervalo) return;
+    const s = Math.round(r.ms / 1000);
+    const n = Math.floor(s / intervalo);
+    if (n <= boletimN.current || Date.now() - falouEm.current < 15000) return;
+    boletimN.current = n;
+    const kmhMedia = r.ms > 0 ? r.km / (r.ms / 3600000) : 0;
+    falar(boletimCardio({ seg: s, km: r.km, kmh: pedala ? kmhMedia : 0, ritmo: pedala ? 0 : ritmoAgora || r.ritmo,
+      kcal: kcal, bpm: bpmRef.current, cad: pedala ? 0 : cadAgora }));
+  });
   // a análise da tela de fim, com os recordes que esta atividade bateu
   const analiseFim = fase === "fim" && lista.length > 1 ? Object.assign({ ritmo: r.ritmo, km: r.km, ms: r.ms, ganho: Math.round(r.ganho), splits: r.splits }, analiseParaGuardar()) : null;
   const recNovosFim = useMemo(() => {
@@ -21340,7 +21404,11 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const sCrono = ((sessao.itens[crono.ei] || {}).series || [])[crono.si] || {};
     const cardio = ehCardio(sCrono);
     const kmh = cardio ? numDe(sCrono.vel) || (numDe(sCrono.km) ? numDe(sCrono.km) / (total / 3600) : 0) : 0;
-    const falar = (t) => falarRef.current(t);
+    const exCrono = exPorId((sessao.itens[crono.ei] || {}).exercicioId);
+    const perfilCrono = exCrono && exCrono.cardio;
+    const intervalo = boletimSeg(vozCfg);
+    const noBolso = cronoNoBolso.current === crono.inicio;
+    const falar = (t) => { avisado.em = Date.now(); if (!noBolso) falarRef.current(t); };
     const tick = () => {
       const resta = Math.max(0, Math.ceil((crono.fim - Date.now()) / 1000));
       setRestaCrono(resta);
@@ -21355,13 +21423,19 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           avisado.meio = true;
           falar("Metade." + (kmh ? " " + num1((kmh * feito) / 3600) + " quilômetros até aqui." : "") + " Faltam " + textoDuracao(resta) + ".");
         } else if (total >= 300 && resta === 60 && !avisado.dez) { avisado.dez = true; falar("Último minuto."); }
+        else if (intervalo && resta > 30 && Math.floor(feito / intervalo) > (avisado.bol || 0) && Date.now() - (avisado.em || 0) > 15000) {
+          avisado.bol = Math.floor(feito / intervalo);
+          const m = medirCardio({ segundos: String(feito), vel: String(kmh || ""), incl: sCrono.incl || "", mod: sCrono.mod || perfilCrono }, pesoCorporal, perfilCrono);
+          falar(boletimCardio({ seg: feito, km: m.km, kmh: kmh, ritmo: kmh > 0 && /esteira|caminhada|corrida/.test(String(perfilCrono)) ? 60 / kmh : 0,
+            incl: numDe(sCrono.incl), kcal: m.kcal, bpm: bpmSessaoRef.current, falta: resta }));
+        }
       } else {
         if (total >= 24 && resta === meio && !avisado.meio) { avisado.meio = true; falar("Metade."); }
         else if (total >= 16 && resta === 10 && !avisado.dez) { avisado.dez = true; falar("Faltam 10 segundos. Segura."); }
       }
-      if (resta <= 3 && resta > 0 && som) beep(880, 0.1, 0.22);
+      if (resta <= 3 && resta > 0 && som && !noBolso) beep(880, 0.1, 0.22);
       if (resta === 0) {
-        if (som) { beep(660, 0.2, 0.3); setTimeout(() => beep(990, 0.4, 0.3), 220); }
+        if (som && !noBolso) { beep(660, 0.2, 0.3); setTimeout(() => beep(990, 0.4, 0.3), 220); }
         try { if (navigator.vibrate) navigator.vibrate([250, 100, 250]); } catch (e) {}
         const alvo = crono;
         setCrono(null);
@@ -21374,6 +21448,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const iv = setInterval(tick, 1000);
     return () => clearInterval(iv);
   }, [crono, som, vozAtiva, responderVoz]);
+  const bpmSessaoRef = useRef(0);
+  bpmSessaoRef.current = bpm;
 
   // Segura a tela acesa enquanto o descanso corre e devolve o controle ao terminar
   useEffect(() => {
@@ -21570,7 +21646,28 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       }
     }
     setRestaCrono(seg);
-    setCrono({ ei, si, inicio: Date.now(), fim: Date.now() + seg * 1000 });
+    const inicioCrono = Date.now();
+    setCrono({ ei, si, inicio: inicioCrono, fim: inicioCrono + seg * 1000 });
+    const sC = sessao.itens[ei].series[si];
+    const eC = exPorId(sessao.itens[ei].exercicioId);
+    if (bolsoAuto && ehCardio(sC)) {
+      const kmhC = numDe(sC.vel) || (numDe(sC.km) ? numDe(sC.km) / (seg / 3600) : 0);
+      const umMin = medirCardio({ segundos: "60", vel: String(kmhC || ""), incl: sC.incl || "", watts: sC.watts || "", mod: sC.mod || (eC && eC.cardio) }, pesoCorporal, eC && eC.cardio);
+      cronoNoBolso.current = inicioCrono;
+      ligarBolso(null, ei, null, null, undefined, false, {
+        ini: inicioCrono, total: seg, kmh: Math.round(kmhC * 10) / 10, incl: numDe(sC.incl), kcalMin: Math.round(umMin.kcal * 100) / 100,
+        iv: boletimSeg(vozCfg), ritmo: eC && /esteira|caminhada|corrida/.test(String(eC.cardio)) ? 1 : 0,
+      });
+    }
+  };
+  // O ▶ que o app conduz (fala os avisos e o boletim com a tela travada)
+  const cronoNoBolso = useRef(0);
+  const pararCrono = () => {
+    if (crono && cronoNoBolso.current === crono.inicio) {
+      cronoNoBolso.current = 0;
+      ligarBolso(null, crono.ei, null, null, undefined, false, { parar: 1 });
+    }
+    setCrono(null);
   };
 
   const marcarSerie = (ei, si) => {
@@ -21618,7 +21715,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         : seg ? " Descanso de " + textoDuracao(seg) + "." : " Emenda no próximo.");
     // O ✓ na tela também merece a comemoração falada quando o Jarvis está ouvindo
     const recorde = conferirRecorde(item, serie);
-    if (bolsoAuto) {
+    let toque = false;
+    try { toque = !!(navigator.userActivation && navigator.userActivation.isActive); } catch (e) {}
+    if (bolsoAuto && toque) {
       // No app: quem fala é o Android, e o fim deste descanso também é dele
       const novos = sessao.itens.map((it, k) => (k !== ei ? it
         : Object.assign({}, it, { series: it.series.map((s, j) => (j === si ? Object.assign({}, s, { feito: true }) : s)) })));
@@ -22016,6 +22115,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // última anotação.
   const [finalizarPend, setFinalizarPend] = useState(null);
   const finalizar = () => {
+    // o ▶ que o app conduz para de falar junto com o treino
+    if (crono && cronoNoBolso.current === crono.inicio) { cronoNoBolso.current = 0; ligarBolso(null, crono.ei, null, null, undefined, false, { parar: 1 }); }
     const aberta = confirmouEst.current && segEst >= 60 ? anotarDaEsteira() : null;
     if (aberta) setFinalizarPend(aberta);
     else onFinalizar();
@@ -22031,18 +22132,33 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     if (!serieConduzida) return;
     const chave = serieConduzida.ei + ":" + serieConduzida.si + ":" + baseEst.seg;
     const a = avisosEst.current, km = Math.floor((mEst || 0) / 1000), meta = metaConduzida;
-    if (a.chave !== chave) { avisosEst.current = { chave: chave, km: km, meio: segEst >= meta / 2, meta: meta > 0 && segEst >= meta }; return; }
+    const intervalo = boletimSeg(vozCfg);
+    if (a.chave !== chave) { avisosEst.current = { chave: chave, km: km, meio: segEst >= meta / 2, meta: meta > 0 && segEst >= meta, bol: intervalo ? Math.floor(segEst / intervalo) : 0, em: 0 }; return; }
+    const falarEst = (txt) => { a.em = Date.now(); falarRef.current(txt); };
     if (meta > 0 && segEst >= meta && !a.meta) {
       a.meta = true; a.meio = true; a.km = km;
       if (som) { beep(660, 0.2, 0.3); setTimeout(() => beep(990, 0.4, 0.3), 220); }
       try { if (navigator.vibrate) navigator.vibrate([250, 100, 250]); } catch (e) {}
-      falarRef.current("Meta de " + textoDuracao(meta) + " cumprida. Pode continuar: a série fecha quando você parar " + apLigado.oNome + ".");
+      falarEst("Meta de " + textoDuracao(meta) + " cumprida. Pode continuar: a série fecha quando você parar " + apLigado.oNome + ".");
     } else if (km > a.km) {
       a.km = km;
-      falarRef.current(km + (km === 1 ? " quilômetro." : " quilômetros.") + (meta > segEst + 30 ? " Faltam " + textoDuracao(Math.round((meta - segEst) / 60) * 60) + "." : ""));
+      falarEst(km + (km === 1 ? " quilômetro." : " quilômetros.") + (meta > segEst + 30 ? " Faltam " + textoDuracao(Math.round((meta - segEst) / 60) * 60) + "." : ""));
     } else if (meta >= 240 && !a.meio && segEst >= meta / 2) {
       a.meio = true;
-      falarRef.current("Metade." + (mEst ? " " + num1(mEst / 1000) + " quilômetros até aqui." : ""));
+      falarEst("Metade." + (mEst ? " " + num1(mEst / 1000) + " quilômetros até aqui." : ""));
+    } else if (intervalo && Math.floor(segEst / intervalo) > (a.bol || 0) && Date.now() - (a.em || 0) > 15000) {
+      // o boletim, com o que o painel mandou
+      a.bol = Math.floor(segEst / intervalo);
+      const d = dadoBruto;
+      const it = sessao.itens[serieConduzida.ei];
+      const e = it && exPorId(it.exercicioId);
+      const ehEst = tipoDoItem(serieConduzida.ei) === "esteira";
+      const kmh = d.vel > 0 ? d.vel : mEst > 0 && segEst > 0 ? (mEst / segEst) * 3.6 : 0;
+      const kcalPainel = cumEst.kcal > 0 ? Math.max(0, cumEst.kcal - (baseUsada.kcal || 0)) : 0;
+      const kcal = kcalPainel || medirCardio({ segundos: String(segEst), vel: String(kmh || ""), incl: String(d.incl || ""), km: mEst ? String(mEst / 1000) : "", watts: String(d.watts || ""), mod: e && e.cardio }, pesoCorporal, e && e.cardio).kcal;
+      falarEst(boletimCardio({ seg: segEst, km: (mEst || 0) / 1000, kmh: kmh, ritmo: ehEst && kmh > 0 ? 60 / kmh : 0,
+        incl: ehEst ? d.incl : 0, watts: ehEst ? 0 : d.watts, kcal: kcal, bpm: d.bpm > 0 ? d.bpm : bpm,
+        cad: ehEst ? 0 : d.cad, falta: meta > 0 ? meta - segEst : 0 }));
     }
   }, [segEst]);
 
@@ -22295,7 +22411,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   }, []);
   // Ligar (ou atualizar) manda a cópia do treino ao app. É também o "Trazer":
   // o app devolve primeiro o que anotou e depois segue com a cópia nova.
-  const ligarBolso = (itensAgora, foco, falar, fimFala, ate, trazer) => {
+  const ligarBolso = (itensAgora, foco, falar, fimFala, ate, trazer, crono) => {
     // Sem descanso novo (Ligar, Trazer, a abertura do treino), segue o que está correndo
     let ateF = ate;
     if (ateF == null) { ateF = fimDescanso || 0; if (fimDescanso) descansoNoBolso.current = fimDescanso; }
@@ -22305,7 +22421,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     });
     try { localStorage.setItem("treinolivre:bolsoAtivo", String(Date.now())); } catch (e) {}
     setBolsoAtivo(true);
-    try { window.location.href = linkBolso(snap, falar, fimFala, trazer); } catch (e) {}
+    try { window.location.href = linkBolso(snap, falar, fimFala, trazer, crono); } catch (e) {}
   };
   const desligarBolso = () => {
     try { localStorage.removeItem("treinolivre:bolsoAtivo"); localStorage.setItem("treinolivre:bolsoAuto", "0"); } catch (e) {}
@@ -23136,7 +23252,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                           aria-label={rot + " da série " + (si + 1) + " de " + nomeEx}
                           onChange={(e) => upSerie(ei, si, k, e.target.value)} />
                       ))}
-                      {esteiraConduz && ehEsteiraItem(ei) ? null : <button onClick={() => (contando ? setCrono(null) : iniciarIsometria(ei, si))}
+                      {esteiraConduz && ehEsteiraItem(ei) ? null : <button onClick={() => (contando ? pararCrono() : iniciarIsometria(ei, si))}
                         aria-label={(contando ? "Parar" : "Iniciar") + " o cronômetro da série " + (si + 1) + " de " + nomeEx}
                         style={{ width: 44, height: 42, borderRadius: 8, cursor: "pointer", fontWeight: 900, fontSize: 15, flexShrink: 0,
                           border: "1px solid " + (contando ? "var(--perigo-borda)" : "#E1306C66"),
@@ -23157,7 +23273,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                           aria-label={"Segundos da série " + (si + 1) + " de " + nomeEx}
                           onChange={(e) => upSerie(ei, si, "segundos", e.target.value)} />
                       )}
-                      <button onClick={() => (contando ? setCrono(null) : iniciarIsometria(ei, si))}
+                      <button onClick={() => (contando ? pararCrono() : iniciarIsometria(ei, si))}
                         aria-label={(contando ? "Parar" : "Iniciar") + " a contagem da série " + (si + 1) + " de " + nomeEx}
                         style={{ width: 44, height: 42, borderRadius: 8, cursor: "pointer", fontWeight: 900, fontSize: 15,
                           border: "1px solid " + (contando ? "var(--perigo-borda)" : "#E1306C66"),

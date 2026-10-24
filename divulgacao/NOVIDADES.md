@@ -16,6 +16,37 @@
 
 ---
 
+## 2026-10-24f — Boletim falado na esteira e na corrida
+
+**Em uma frase:** na esteira e na corrida, o Jarvis fala os seus números de tempo em tempo: tempo,
+distância, velocidade, ritmo, inclinação, calorias, batimento e quanto falta.
+
+**O que mudou**
+- A cada 2 minutos (ou 1, 3, 5 minutos, à sua escolha) vem um boletim: "12 minutos. 1,8 quilômetros.
+  Velocidade 9 por hora, ritmo de 6 minutos e 40 por quilômetro. Inclinação 1 por cento. Cerca de 140
+  calorias. Coração a 152. Faltam 18 minutos."
+- Vale na esteira com o ▶, na esteira e na bicicleta conectadas por Bluetooth (com os números do painel)
+  e na caminhada e corrida na rua (com a cadência dos passos).
+- O aviso de cada quilômetro, a metade e o último minuto continuam.
+- No app Android, os avisos da esteira com o ▶ continuam com a tela travada.
+
+**Por que importa para quem treina**
+- Correndo de fone, sem olhar o celular, você sabe a cada pouco como está indo.
+
+**Como usar**
+- Já vem ligado (2 minutos). Para mudar: Ajustes › Jarvis › Ajustes da voz › "Boletim na esteira e na
+  corrida".
+
+**Ideias de vídeo**
+- Correndo na esteira de fone: o boletim chegando com velocidade, calorias e batimento.
+
+**Não prometer**
+- Batimento só com cinta, relógio que transmite ou esteira com sensor.
+- Com a tela travada, só a esteira com o ▶ no app Android continua falando (esteira conectada e GPS param
+  com a tela travada).
+
+---
+
 ## 2026-10-24e — A música não para mais com a tela travada
 
 **Em uma frase:** no app Android, o Jarvis da tela travada deixou de pausar e picotar a música do fone

@@ -161,6 +161,8 @@ class BolsoService : Service(), RecognitionListener {
             agendarDescanso(ate)
             val agora = intent?.getStringExtra("falar")
             if (!agora.isNullOrEmpty()) falar(agora)
+            val c = intent?.getStringExtra("crono")
+            if (!c.isNullOrEmpty()) try { receberCrono(JSONObject(c)) } catch (e: Exception) { }
         }
         return START_STICKY
     }
@@ -584,6 +586,96 @@ class BolsoService : Service(), RecognitionListener {
                 falar(texto.ifEmpty { reserva })
             }
         }, 1100L)
+    }
+
+    // ---- o ▶ da esteira ----
+    // Com a tela travada a página dorme, e os avisos do ▶ (cada km, o último
+    // minuto, o boletim de tempo em tempo e o fim) sumiam. A página manda o
+    // começo, a duração, a velocidade e as calorias por minuto, e a conta e a
+    // fala são feitas aqui, no relógio do Android.
+    private var crono: JSONObject? = null
+    private var cronoKm = 0
+    private var cronoBol = 0
+    private var cronoUltimo = false
+    private var cronoFalouEm = 0L
+    private val cronoTick = object : Runnable {
+        override fun run() {
+            tickCrono()
+            if (crono != null) linha.postDelayed(this, 1000L)
+        }
+    }
+
+    private fun receberCrono(j: JSONObject) {
+        linha.removeCallbacks(cronoTick)
+        if (j.optInt("parar", 0) == 1) { crono = null; anotar("▶ parado"); return }
+        crono = j
+        cronoKm = 0; cronoBol = 0; cronoUltimo = false; cronoFalouEm = System.currentTimeMillis()
+        anotar("▶ da esteira: " + j.optInt("total") + " s a " + j.optDouble("kmh", 0.0) + " km/h")
+        linha.postDelayed(cronoTick, 1000L)
+    }
+
+    private fun falarCrono(texto: String) { cronoFalouEm = System.currentTimeMillis(); falar(texto) }
+
+    private fun tickCrono() {
+        val c = crono ?: return
+        val total = c.optInt("total", 0)
+        val kmh = c.optDouble("kmh", 0.0)
+        val feito = ((System.currentTimeMillis() - c.optLong("ini", 0L)) / 1000L).toInt()
+        val resta = total - feito
+        val km = kmh * feito / 3600.0
+        val kcal = c.optDouble("kcalMin", 0.0) * feito / 60.0
+        if (resta <= 0) {
+            crono = null
+            try {
+                val tom = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
+                tom.startTone(ToneGenerator.TONE_PROP_BEEP2, 200)
+                linha.postDelayed({ tom.startTone(ToneGenerator.TONE_PROP_ACK, 300) }, 300L)
+                linha.postDelayed({ tom.release() }, 1000L)
+            } catch (e: Exception) { }
+            falarCrono("Meta de " + dur(total) + " cumprida." + (if (km >= 0.05) " " + num1(km) + " quilômetros." else "") +
+                (if (kcal >= 1) " Cerca de " + Math.round(kcal) + " calorias." else ""))
+            return
+        }
+        val kmInteiro = km.toInt()
+        val iv = c.optInt("iv", 0)
+        val calado = System.currentTimeMillis() - cronoFalouEm > 15000L
+        if (kmInteiro > cronoKm && resta > 30) {
+            cronoKm = kmInteiro
+            falarCrono(kmInteiro.toString() + (if (kmInteiro == 1) " quilômetro." else " quilômetros.") + " Faltam " + dur(Math.round(resta / 60.0).toInt() * 60) + ".")
+        } else if (total >= 300 && resta <= 60 && !cronoUltimo) {
+            cronoUltimo = true
+            falarCrono("Último minuto.")
+        } else if (iv > 0 && resta > 30 && feito / iv > cronoBol && calado) {
+            cronoBol = feito / iv
+            val p = mutableListOf(dur(if (feito >= 60) Math.round(feito / 60.0).toInt() * 60 else feito) + ".")
+            if (km >= 0.05) p.add(num1(km) + " quilômetros.")
+            if (kmh > 0) p.add("Velocidade " + num1(kmh) + " por hora" + (if (c.optInt("ritmo", 0) == 1) ", ritmo de " + ritmo(60.0 / kmh) else "") + ".")
+            val incl = c.optDouble("incl", 0.0)
+            if (incl > 0) p.add("Inclinação " + num1(incl) + " por cento.")
+            if (kcal >= 1) p.add("Cerca de " + Math.round(kcal) + " calorias.")
+            p.add("Faltam " + dur(if (resta >= 120) Math.round(resta / 60.0).toInt() * 60 else resta) + ".")
+            falarCrono(p.joinToString(" "))
+        }
+    }
+
+    // "90 segundos" se escreve; "um minuto e meio" se fala (o textoDuracao do site)
+    private fun dur(seg: Int): String {
+        val s = maxOf(0, seg)
+        if (s < 60) return s.toString() + (if (s == 1) " segundo" else " segundos")
+        val m = s / 60
+        val r = s % 60
+        val base = m.toString() + (if (m == 1) " minuto" else " minutos")
+        return when { r == 0 -> base; r == 30 -> "$base e meio"; else -> "$base e $r segundos" }
+    }
+    private fun num1(v: Double): String {
+        val r = Math.round(v * 10) / 10.0
+        return if (r == Math.floor(r)) r.toLong().toString() else r.toString().replace('.', ',')
+    }
+    private fun ritmo(minKm: Double): String {
+        var m = minKm.toInt()
+        var s = Math.round((minKm - m) * 60).toInt()
+        if (s == 60) { m++; s = 0 }
+        return m.toString() + (if (m == 1) " minuto" else " minutos") + (if (s > 0) " e $s" else "") + " por quilômetro"
     }
 
     // ---- falar ----

@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v114) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v115) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1300,6 +1300,35 @@ Então os números que a tela mostra também são ditos:
 - **Os avisos do cronômetro não dependem mais do microfone**: saem por
   `falarRef` (Jarvis ouvindo → resposta dele; senão → `narrarVoz`). Antes, a
   "metade" da prancha só era dita com o Jarvis ligado.
+
+### O boletim de tempo em tempo (`boletimCardio`, `voz.boletim`)
+
+Pedido do dono: "feedback mais frequente, com os dados da prova". Além do
+aviso de cada quilômetro, a cada intervalo (`voz.boletim` em segundos: 60,
+120, 180, 300 ou 0 = só o km; **2 min se ninguém escolheu**, `boletimSeg`)
+vem um boletim falado com o que existir: tempo, distância, velocidade e
+ritmo, inclinação, watts, calorias, coração, cadência e quanto falta. Número
+zerado não é dito. Ajuste em Jarvis › Ajustes da voz, junto de "Avisar o
+treino em voz" (desligar este desliga o boletim).
+- **Três lugares**: o ▶ da série de esteira (velocidade e inclinação da
+  série, gasto pelo `medirCardio`, coração da cinta), a esteira e os
+  aparelhos conectados (o que o painel manda; as kcal do painel quando há, e
+  watts e cadência na bicicleta e no remo) e o percurso na rua (ritmo dos
+  últimos 30 s, cadência dos passos, coração; na bicicleta, velocidade média).
+- **Nunca atropela**: só sai 15 s depois da última fala (o km, a metade, o
+  último minuto vêm antes e empurram o boletim para o segundo seguinte).
+- **No app Android, o ▶ da esteira é falado pelo Android** (`cronoNoBolso`,
+  `c=` no `treinolivre://bolso`): com a tela travada a página dorme, e os
+  avisos do ▶ sumiam. A página manda começo, duração, velocidade, inclinação e
+  calorias por minuto; o `BolsoService` faz a conta e fala cada km, o
+  boletim, o último minuto e a meta cumprida. A página fica calada nesse ▶, e
+  parar o ▶ ou finalizar o treino manda `parar`. O fim do ▶ marca a série
+  sem toque: o `marcarSerie` só chama o app com toque de verdade
+  (`navigator.userActivation`), senão narra pela página como sempre.
+- Esteira conectada e percurso **não** passam para o app: com a tela
+  travada o Chrome corta o Bluetooth e o GPS, e não haveria número para dizer.
+
+Coberto por `teste-cardio.js` (o texto e o intervalo).
 
 `falaRitmo` é para ritmo o que `textoDuracao` é para tempo: "10:30 /km" se
 escreve, "10 minutos e 30 por quilômetro" se fala. Coberto em `teste-cardio.js`.

@@ -14,7 +14,7 @@ const leitores = pedaco("const ehAquecimento", "// ---------- ESTATÍSTICAS DE U
 const sugestao = pedaco("function ultimaExecucao", "// ---------- RECUPERAÇÃO POR GRUPO MUSCULAR");
 const duracao = pedaco("function textoDuracao", "function narrarVoz");
 eval(leitores + sugestao + duracao +
-  "\nglobalThis.API = { falaRitmo, relatoCardio, medirCardio, resumoCardio, cardioDaSemana, fmtRitmo, textoCardio, falaCardio, ehCardio, montarSeries, sugerirCarga, copiaCardio, moldeCardio, destaquesCardio };");
+  "\nglobalThis.API = { boletimCardio, boletimSeg, falaRitmo, relatoCardio, medirCardio, resumoCardio, cardioDaSemana, fmtRitmo, textoCardio, falaCardio, ehCardio, montarSeries, sugerirCarga, copiaCardio, moldeCardio, destaquesCardio };");
 const A = globalThis.API;
 
 let ok = 0, mal = 0;
@@ -154,6 +154,19 @@ teste("bpm medio pesado pelo tempo (20 min a 150, 10 a 120)", 140, duas.bpm);
 teste("bpm maximo do treino", 171, duas.bpmMax);
 teste("kcal do painel somadas", 300, duas.kcalEsteira);
 teste("subida somada", 30, duas.subida);
+
+console.log("--- o boletim de tempo em tempo ---");
+const bol = A.boletimCardio({ seg: 720, km: 1.82, kmh: 9.1, ritmo: 60 / 9.1, incl: 1, kcal: 141.6, bpm: 152, falta: 1080 });
+teste("tempo, distancia e velocidade com ritmo", true, /^12 minutos\. 1,8 quilômetros\. Velocidade 9,1 por hora, ritmo de 6 minutos e 36 por quilômetro\./.test(bol));
+teste("inclinacao, calorias, coracao e o que falta", true, /Inclinação 1 por cento\. Cerca de 142 calorias\. Coração a 152\. Faltam 18 minutos\.$/.test(bol));
+teste("na rua: ritmo e cadencia, sem velocidade", "4 minutos. 0,7 quilômetros. Ritmo de 5 minutos e 30 por quilômetro. Coração a 160. Cadência 168.",
+  A.boletimCardio({ seg: 240, km: 0.73, ritmo: 5.5, bpm: 160, cad: 168 }));
+teste("numero zerado nao e dito", "2 minutos.", A.boletimCardio({ seg: 120, km: 0, kmh: 0, kcal: 0, bpm: 0 }));
+teste("na bicicleta: watts", true, /150 watts\./.test(A.boletimCardio({ seg: 300, watts: 150 })));
+teste("intervalo padrao: 2 minutos", 120, A.boletimSeg({ falar: true }));
+teste("escolhido: 1 minuto", 60, A.boletimSeg({ falar: true, boletim: 60 }));
+teste("so o km: desligado", 0, A.boletimSeg({ falar: true, boletim: 0 }));
+teste("sem avisos falados: desligado", 0, A.boletimSeg({ falar: true, narrar: false }));
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

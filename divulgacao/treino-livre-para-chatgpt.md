@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24f**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24g**.
 
 ---
 
@@ -156,8 +156,9 @@ com cenas reais → halter) como linguagem visual em vídeos.
 - **Ligar a contagem sem tocar no celular:** nos Ajustes da voz, o toque na haste dos óculos (ou no botão do fone)
   pode abrir a contagem pela câmera do celular ou pelos óculos. Pela voz: "Jarvis, câmera" ou "Jarvis, óculos".
   Em teste: alguns celulares podem pedir um toque na tela para abrir os óculos.
-- **Boletim falado na esteira e na corrida:** a cada 2 minutos (ajustável) o Jarvis fala tempo, distância,
-  velocidade, ritmo, inclinação, calorias, batimento e quanto falta, além do aviso de cada quilômetro.
+- **Boletim falado na esteira e na corrida:** por tempo (a cada 1, 2, 3 ou 5 minutos) ou por distância (a cada
+  500 m, 1 km ou 2 km), o Jarvis fala tempo, distância, velocidade, ritmo, inclinação, calorias, batimento e
+  quanto falta. Por distância ele diz quanto levou aquele trecho e se foi mais rápido que o anterior.
 - **🔒 Jarvis com a tela travada (app Android, em teste):** com o celular travado no bolso, o Jarvis ouve
   ("Jarvis, 80 por 10"), anota, avisa recorde, conta o descanso e chama de volta com a próxima série. Liga
   sozinho: marcar o ✓ e travar a tela já faz a confirmação e o fim do descanso serem falados. Ao

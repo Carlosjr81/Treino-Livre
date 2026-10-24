@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24f";
+const VERSAO_APP = "2026-10-24g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4467,6 +4467,8 @@ function lerVoz(v) {
     autoSerie: o.autoSerie !== false,
     narrar: o.narrar !== false,
     boletim: [0, 60, 120, 180, 300].indexOf(o.boletim) >= 0 ? o.boletim : BOLETIM_PADRAO,
+    boletimPor: o.boletimPor === "distancia" ? "distancia" : "tempo",
+    boletimM: BOLETIM_DISTANCIAS.indexOf(o.boletimM) >= 0 ? o.boletimM : 1000,
     espelho: !!o.espelho,
   };
 }
@@ -4598,10 +4600,73 @@ function boletimSeg(cfg) {
   const b = cfg.boletim;
   return b === undefined || b === null ? BOLETIM_PADRAO : Math.max(0, parseInt(b) || 0);
 }
+// Por tempo ou por distância (voz.boletimPor). Por distância (500 m, 1 km ou
+// 2 km), o boletim chega na marca e diz quanto aquele trecho levou e se foi
+// mais rápido ou mais devagar que o anterior: é a parcial do relógio de
+// corrida, falada. Nesse modo ele substitui o aviso de cada km.
+const BOLETIM_DISTANCIAS = [500, 1000, 2000];
+function boletimRegra(cfg) {
+  if (!cfg || cfg.falar === false || cfg.narrar === false) return null;
+  if (cfg.boletimPor === "distancia") {
+    return { tipo: "distancia", m: BOLETIM_DISTANCIAS.indexOf(cfg.boletimM) >= 0 ? cfg.boletimM : 1000 };
+  }
+  const s = boletimSeg(cfg);
+  return s ? { tipo: "tempo", s: s } : null;
+}
+// Diz quando é hora do próximo boletim. seg0/m0: onde a série começou a contar
+// (uma série retomada não fala de novo as marcas que já passaram).
+// calado: ninguém falou nos últimos 15 s (só o boletim por tempo espera;
+// a marca de distância é dita na hora).
+function criarBoletim(regra, seg0, m0) {
+  let n = !regra ? 0 : regra.tipo === "tempo" ? Math.floor((seg0 || 0) / regra.s) : Math.floor((m0 || 0) / regra.m);
+  let ultSeg = seg0 || 0, ultTrecho = 0;
+  return {
+    regra: regra,
+    porDistancia: !!(regra && regra.tipo === "distancia"),
+    quando(seg, metros, calado) {
+      if (!regra) return null;
+      if (regra.tipo === "tempo") {
+        const k = Math.floor((seg || 0) / regra.s);
+        if (k <= n || !calado) return null;
+        n = k;
+        return {};
+      }
+      const k = Math.floor((metros || 0) / regra.m);
+      if (k <= n) return null;
+      const quantos = k - n, dt = Math.max(0, (seg || 0) - ultSeg);
+      const dif = quantos === 1 && ultTrecho ? dt - ultTrecho : null;
+      n = k; ultSeg = seg || 0; ultTrecho = quantos === 1 ? dt : 0;
+      return { trecho: { m: regra.m * quantos, seg: dt, dif: dif, marca: k * regra.m } };
+    },
+  };
+}
+function falaDistancia(km) {
+  if (km < 1) return Math.round(km * 100) * 10 + " metros";
+  return num1(km) + (Math.abs(km - 1) < 0.05 ? " quilômetro" : " quilômetros");
+}
+function falaTrecho(tr) {
+  const nome = tr.m === 1000 ? "Este quilômetro" : tr.m > 1000 ? "Estes " + num1(tr.m / 1000) + " quilômetros" : "Estes " + tr.m + " metros";
+  let f = nome + " em " + textoDuracao(Math.round(tr.seg));
+  if (tr.dif !== null && tr.dif !== undefined) {
+    const d = Math.round(tr.dif);
+    f += Math.abs(d) < 2 ? ", no mesmo ritmo do anterior" : ", " + Math.abs(d) + " segundos " + (d < 0 ? "mais rápido" : "mais devagar") + " que o anterior";
+  }
+  return f + ".";
+}
 function boletimCardio(d) {
   const p = [];
-  if (d.seg > 0) p.push(textoDuracao(d.seg >= 60 ? Math.round(d.seg / 60) * 60 : d.seg) + ".");
-  if (d.km >= 0.05) p.push(num1(d.km) + (Math.abs(d.km - 1) < 0.05 ? " quilômetro." : " quilômetros."));
+  const tempo = d.seg > 0 ? textoDuracao(d.seg >= 60 ? Math.round(d.seg / 60) * 60 : d.seg) : "";
+  if (d.trecho) {
+    // por distância: a marca primeiro, depois a parcial, depois o total
+    // a marca redonda ("1 quilômetro"), e não o que o sensor mediu no segundo da fala
+    const km = d.trecho.marca ? d.trecho.marca / 1000 : d.km;
+    if (km >= 0.05) p.push(falaDistancia(km) + ".");
+    p.push(falaTrecho(d.trecho));
+    if (tempo) p.push("Tempo total, " + tempo + ".");
+  } else {
+    if (tempo) p.push(tempo + ".");
+    if (d.km >= 0.05) p.push(falaDistancia(d.km) + ".");
+  }
   const ritmo = d.ritmo > 0 && d.ritmo < 40 ? falaRitmo(d.ritmo) : "";
   if (d.kmh > 0) p.push("Velocidade " + num1(d.kmh) + " por hora" + (ritmo ? ", ritmo de " + ritmo : "") + ".");
   else if (ritmo) p.push("Ritmo de " + ritmo + ".");
@@ -10954,7 +11019,7 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
                   const ativo = (voz.botaoFone || false) === valor;
                   return (
                     <button key={String(valor)} onClick={() => setVoz((v) => ({ ...v, botaoFone: valor }))} aria-pressed={ativo}
-                      style={{ ...S.btnGhost, width: "auto", padding: "9px 12px", borderColor: ativo ? "var(--marca)" : undefined, color: ativo ? "var(--marca)" : undefined, fontWeight: ativo ? 800 : 600 }}>
+                      style={{ ...S.btnGhost, width: "auto", padding: "9px 12px", borderColor: ativo ? "var(--marca)" : undefined, color: ativo ? "var(--marca)" : "var(--texto)", fontWeight: ativo ? 800 : 600 }}>
                       {rotulo}
                     </button>
                   );
@@ -11000,21 +11065,42 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
             {voz.falar && voz.narrar !== false && (
               <div style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Boletim na esteira e na corrida</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {[[60, "1 min"], [120, "2 min"], [180, "3 min"], [300, "5 min"], [0, "Só o km"]].map(([valor, rotulo]) => {
-                    const ativo = (voz.boletim == null ? BOLETIM_PADRAO : voz.boletim) === valor;
-                    return (
-                      <button key={valor} onClick={() => setVoz((v) => ({ ...v, boletim: valor }))} aria-pressed={ativo}
-                        style={{ ...S.btnGhost, width: "auto", padding: "8px 12px", borderColor: ativo ? "var(--marca)" : undefined, color: ativo ? "var(--marca)" : undefined, fontWeight: ativo ? 800 : 600 }}>
-                        {rotulo}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div style={{ fontSize: 11.5, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>
-                  De tempo em tempo ele fala tempo, distância, velocidade e ritmo, inclinação, calorias,
-                  coração e quanto falta. O aviso de cada quilômetro continua.
-                </div>
+                {(() => {
+                  const por = voz.boletimPor === "distancia" ? "distancia" : "tempo";
+                  const chip = (ativo, rotulo, acao, chave) => (
+                    <button key={chave} onClick={acao} aria-pressed={ativo}
+                      style={{ ...S.btnGhost, width: "auto", padding: "8px 12px", borderColor: ativo ? "var(--marca)" : undefined, color: ativo ? "var(--marca)" : "var(--texto)", fontWeight: ativo ? 800 : 600 }}>
+                      {rotulo}
+                    </button>
+                  );
+                  const exemplo = por === "distancia"
+                    ? boletimCardio({ seg: 555, km: (voz.boletimM || 1000) * 3 / 1000, kmh: 9.7, ritmo: 6.18, kcal: 148, bpm: 151,
+                      trecho: { m: voz.boletimM || 1000, seg: (voz.boletimM || 1000) * 0.37, dif: -4 } })
+                    : boletimCardio({ seg: (voz.boletim || BOLETIM_PADRAO) * 4, km: 1.3 * ((voz.boletim || BOLETIM_PADRAO) / 120), kmh: 9.7, ritmo: 6.18, incl: 1, kcal: 92, bpm: 148, falta: 720 });
+                  return (
+                    <>
+                      <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                        {chip(por === "tempo", "⏱ Por tempo", () => setVoz((v) => ({ ...v, boletimPor: "tempo" })), "t")}
+                        {chip(por === "distancia", "📏 Por distância", () => setVoz((v) => ({ ...v, boletimPor: "distancia" })), "d")}
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {por === "tempo"
+                          ? [[60, "1 min"], [120, "2 min"], [180, "3 min"], [300, "5 min"], [0, "Só o km"]].map(([valor, rotulo]) =>
+                            chip((voz.boletim == null ? BOLETIM_PADRAO : voz.boletim) === valor, rotulo, () => setVoz((v) => ({ ...v, boletim: valor })), valor))
+                          : BOLETIM_DISTANCIAS.map((m) =>
+                            chip((voz.boletimM || 1000) === m, m < 1000 ? m + " m" : m / 1000 + " km", () => setVoz((v) => ({ ...v, boletimM: m })), m))}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>
+                        {por === "tempo"
+                          ? "De tempo em tempo: tempo, distância, velocidade e ritmo, inclinação, calorias, coração e quanto falta. O aviso de cada km continua."
+                          : "A cada marca: quanto levou aquele trecho e se foi mais rápido ou mais devagar que o anterior, mais o total, ritmo, calorias e coração."}
+                      </div>
+                      <div style={{ fontSize: 12, fontStyle: "italic", color: "var(--cinza)", marginTop: 6, lineHeight: 1.5 }}>“{exemplo}”</div>
+                      <button onClick={() => narrarVoz(exemplo, voz)}
+                        style={{ ...S.btnGhost, width: "auto", padding: "8px 12px", marginTop: 6 }}>🔊 Ouvir o exemplo</button>
+                    </>
+                  );
+                })()}
               </div>
             )}
             {voz.falar && voz.narrar !== false && (
@@ -15310,7 +15396,7 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
   const ex = exPorId(modo);
 
   const falouEm = useRef(0);
-  const boletimN = useRef(0);
+  const boletimR = useRef(null);
   const falar = (t) => { falouEm.current = Date.now(); narrarVoz(t, vozCfg); };
   const anotarLugar = (e) => {
     if (!e) return;
@@ -15387,7 +15473,10 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
     if (linhaRef.current) linhaRef.current.setLatLngs(trechosRota(lista));
     const r = resumoRota(lista);
     const km = Math.floor(r.m / 1000);
-    if (km > kmFalado.current && r.splits[km - 1]) {
+    // no boletim por distância, a marca dele substitui o aviso do km
+    if (km > kmFalado.current && r.splits[km - 1] && boletimRegra(vozCfg) && boletimRegra(vozCfg).tipo === "distancia") {
+      kmFalado.current = km;
+    } else if (km > kmFalado.current && r.splits[km - 1]) {
       kmFalado.current = km;
       const sp = r.splits[km - 1];
       if (som) beep(880, 0.15, 0.25);
@@ -15455,7 +15544,7 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
     const p0 = leitura.current;
     if (!p0) { setAviso("Esperando o GPS achar você. Em lugar aberto leva alguns segundos."); return; }
     pts.current = [Object.assign({}, p0, { t: Date.now(), seg: 0 })];
-    seg.current = 0; saltos.current = 0; kmFalado.current = 0; boletimN.current = 0;
+    seg.current = 0; saltos.current = 0; kmFalado.current = 0; boletimR.current = null;
     passos.current = criarContadorPassos();
     fcAmostras.current = [];
     setSemSensor(false);
@@ -15579,15 +15668,15 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
   const tipoAtiv = modo === "corrida-rua" ? "corrida" : "caminhada";
   // o boletim de tempo em tempo (ver boletimCardio), no tempo em movimento
   useEffect(() => {
-    const intervalo = boletimSeg(vozCfg);
-    if (fase !== "rodando" || !intervalo) return;
+    if (fase !== "rodando") return;
+    if (!boletimR.current) boletimR.current = criarBoletim(boletimRegra(vozCfg), Math.round(r.ms / 1000), r.m);
     const s = Math.round(r.ms / 1000);
-    const n = Math.floor(s / intervalo);
-    if (n <= boletimN.current || Date.now() - falouEm.current < 15000) return;
-    boletimN.current = n;
+    const b = boletimR.current.quando(s, r.m, Date.now() - falouEm.current > 15000);
+    if (!b) return;
+    if (b.trecho && som) beep(880, 0.15, 0.25);
     const kmhMedia = r.ms > 0 ? r.km / (r.ms / 3600000) : 0;
-    falar(boletimCardio({ seg: s, km: r.km, kmh: pedala ? kmhMedia : 0, ritmo: pedala ? 0 : ritmoAgora || r.ritmo,
-      kcal: kcal, bpm: bpmRef.current, cad: pedala ? 0 : cadAgora }));
+    falar(boletimCardio({ seg: s, km: r.km, kmh: pedala ? kmhMedia : 0, ritmo: pedala ? 0 : (b.trecho && b.trecho.seg > 0 ? b.trecho.seg / 60 / (b.trecho.m / 1000) : ritmoAgora || r.ritmo),
+      kcal: kcal, bpm: bpmRef.current, cad: pedala ? 0 : cadAgora, trecho: b.trecho }));
   });
   // a análise da tela de fim, com os recordes que esta atividade bateu
   const analiseFim = fase === "fim" && lista.length > 1 ? Object.assign({ ritmo: r.ritmo, km: r.km, ms: r.ms, ganho: Math.round(r.ganho), splits: r.splits }, analiseParaGuardar()) : null;
@@ -21406,7 +21495,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const kmh = cardio ? numDe(sCrono.vel) || (numDe(sCrono.km) ? numDe(sCrono.km) / (total / 3600) : 0) : 0;
     const exCrono = exPorId((sessao.itens[crono.ei] || {}).exercicioId);
     const perfilCrono = exCrono && exCrono.cardio;
-    const intervalo = boletimSeg(vozCfg);
+    const bol = criarBoletim(boletimRegra(vozCfg), 0, 0);
     const noBolso = cronoNoBolso.current === crono.inicio;
     const falar = (t) => { avisado.em = Date.now(); if (!noBolso) falarRef.current(t); };
     const tick = () => {
@@ -21416,15 +21505,19 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       const feito = total - resta;
       if (cardio) {
         const km = Math.floor((kmh * feito) / 3600);
-        if (km > avisado.km && resta > 30) {
+        const b = resta > 30 ? bol.quando(feito, (kmh * feito) / 3.6, Date.now() - (avisado.em || 0) > 15000) : null;
+        if (!bol.porDistancia && km > avisado.km && resta > 30) {
           avisado.km = km;
           falar(km + (km === 1 ? " quilômetro." : " quilômetros.") + " Faltam " + textoDuracao(Math.round(resta / 60) * 60 || resta) + ".");
+        } else if (b && b.trecho) {
+          const m = medirCardio({ segundos: String(feito), vel: String(kmh || ""), incl: sCrono.incl || "", mod: sCrono.mod || perfilCrono }, pesoCorporal, perfilCrono);
+          falar(boletimCardio({ seg: feito, km: m.km, kmh: kmh, ritmo: kmh > 0 && /esteira|caminhada|corrida/.test(String(perfilCrono)) ? 60 / kmh : 0,
+            incl: numDe(sCrono.incl), kcal: m.kcal, bpm: bpmSessaoRef.current, falta: resta, trecho: b.trecho }));
         } else if (total >= 240 && resta === meio && !avisado.meio) {
           avisado.meio = true;
           falar("Metade." + (kmh ? " " + num1((kmh * feito) / 3600) + " quilômetros até aqui." : "") + " Faltam " + textoDuracao(resta) + ".");
         } else if (total >= 300 && resta === 60 && !avisado.dez) { avisado.dez = true; falar("Último minuto."); }
-        else if (intervalo && resta > 30 && Math.floor(feito / intervalo) > (avisado.bol || 0) && Date.now() - (avisado.em || 0) > 15000) {
-          avisado.bol = Math.floor(feito / intervalo);
+        else if (b) {
           const m = medirCardio({ segundos: String(feito), vel: String(kmh || ""), incl: sCrono.incl || "", mod: sCrono.mod || perfilCrono }, pesoCorporal, perfilCrono);
           falar(boletimCardio({ seg: feito, km: m.km, kmh: kmh, ritmo: kmh > 0 && /esteira|caminhada|corrida/.test(String(perfilCrono)) ? 60 / kmh : 0,
             incl: numDe(sCrono.incl), kcal: m.kcal, bpm: bpmSessaoRef.current, falta: resta }));
@@ -21656,7 +21749,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       cronoNoBolso.current = inicioCrono;
       ligarBolso(null, ei, null, null, undefined, false, {
         ini: inicioCrono, total: seg, kmh: Math.round(kmhC * 10) / 10, incl: numDe(sC.incl), kcalMin: Math.round(umMin.kcal * 100) / 100,
-        iv: boletimSeg(vozCfg), ritmo: eC && /esteira|caminhada|corrida/.test(String(eC.cardio)) ? 1 : 0,
+        iv: (boletimRegra(vozCfg) || {}).s || 0, dm: (boletimRegra(vozCfg) || {}).m || 0, ritmo: eC && /esteira|caminhada|corrida/.test(String(eC.cardio)) ? 1 : 0,
       });
     }
   };
@@ -22132,23 +22225,22 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     if (!serieConduzida) return;
     const chave = serieConduzida.ei + ":" + serieConduzida.si + ":" + baseEst.seg;
     const a = avisosEst.current, km = Math.floor((mEst || 0) / 1000), meta = metaConduzida;
-    const intervalo = boletimSeg(vozCfg);
-    if (a.chave !== chave) { avisosEst.current = { chave: chave, km: km, meio: segEst >= meta / 2, meta: meta > 0 && segEst >= meta, bol: intervalo ? Math.floor(segEst / intervalo) : 0, em: 0 }; return; }
+    if (a.chave !== chave) { avisosEst.current = { chave: chave, km: km, meio: segEst >= meta / 2, meta: meta > 0 && segEst >= meta, bol: criarBoletim(boletimRegra(vozCfg), segEst, mEst || 0), em: 0 }; return; }
+    const b = a.bol ? a.bol.quando(segEst, mEst || 0, Date.now() - (a.em || 0) > 15000) : null;
     const falarEst = (txt) => { a.em = Date.now(); falarRef.current(txt); };
     if (meta > 0 && segEst >= meta && !a.meta) {
       a.meta = true; a.meio = true; a.km = km;
       if (som) { beep(660, 0.2, 0.3); setTimeout(() => beep(990, 0.4, 0.3), 220); }
       try { if (navigator.vibrate) navigator.vibrate([250, 100, 250]); } catch (e) {}
       falarEst("Meta de " + textoDuracao(meta) + " cumprida. Pode continuar: a série fecha quando você parar " + apLigado.oNome + ".");
-    } else if (km > a.km) {
+    } else if (km > a.km && !(a.bol && a.bol.porDistancia)) {
       a.km = km;
       falarEst(km + (km === 1 ? " quilômetro." : " quilômetros.") + (meta > segEst + 30 ? " Faltam " + textoDuracao(Math.round((meta - segEst) / 60) * 60) + "." : ""));
     } else if (meta >= 240 && !a.meio && segEst >= meta / 2) {
       a.meio = true;
       falarEst("Metade." + (mEst ? " " + num1(mEst / 1000) + " quilômetros até aqui." : ""));
-    } else if (intervalo && Math.floor(segEst / intervalo) > (a.bol || 0) && Date.now() - (a.em || 0) > 15000) {
+    } else if (b) {
       // o boletim, com o que o painel mandou
-      a.bol = Math.floor(segEst / intervalo);
       const d = dadoBruto;
       const it = sessao.itens[serieConduzida.ei];
       const e = it && exPorId(it.exercicioId);
@@ -22158,7 +22250,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       const kcal = kcalPainel || medirCardio({ segundos: String(segEst), vel: String(kmh || ""), incl: String(d.incl || ""), km: mEst ? String(mEst / 1000) : "", watts: String(d.watts || ""), mod: e && e.cardio }, pesoCorporal, e && e.cardio).kcal;
       falarEst(boletimCardio({ seg: segEst, km: (mEst || 0) / 1000, kmh: kmh, ritmo: ehEst && kmh > 0 ? 60 / kmh : 0,
         incl: ehEst ? d.incl : 0, watts: ehEst ? 0 : d.watts, kcal: kcal, bpm: d.bpm > 0 ? d.bpm : bpm,
-        cad: ehEst ? 0 : d.cad, falta: meta > 0 ? meta - segEst : 0 }));
+        cad: ehEst ? 0 : d.cad, falta: meta > 0 ? meta - segEst : 0, trecho: b.trecho }));
     }
   }, [segEst]);
 

@@ -14,7 +14,7 @@ const leitores = pedaco("const ehAquecimento", "// ---------- ESTATÍSTICAS DE U
 const sugestao = pedaco("function ultimaExecucao", "// ---------- RECUPERAÇÃO POR GRUPO MUSCULAR");
 const duracao = pedaco("function textoDuracao", "function narrarVoz");
 eval(leitores + sugestao + duracao +
-  "\nglobalThis.API = { boletimCardio, boletimSeg, falaRitmo, relatoCardio, medirCardio, resumoCardio, cardioDaSemana, fmtRitmo, textoCardio, falaCardio, ehCardio, montarSeries, sugerirCarga, copiaCardio, moldeCardio, destaquesCardio };");
+  "\nglobalThis.API = { boletimCardio, boletimSeg, boletimRegra, criarBoletim, falaRitmo, relatoCardio, medirCardio, resumoCardio, cardioDaSemana, fmtRitmo, textoCardio, falaCardio, ehCardio, montarSeries, sugerirCarga, copiaCardio, moldeCardio, destaquesCardio };");
 const A = globalThis.API;
 
 let ok = 0, mal = 0;
@@ -159,7 +159,7 @@ console.log("--- o boletim de tempo em tempo ---");
 const bol = A.boletimCardio({ seg: 720, km: 1.82, kmh: 9.1, ritmo: 60 / 9.1, incl: 1, kcal: 141.6, bpm: 152, falta: 1080 });
 teste("tempo, distancia e velocidade com ritmo", true, /^12 minutos\. 1,8 quilômetros\. Velocidade 9,1 por hora, ritmo de 6 minutos e 36 por quilômetro\./.test(bol));
 teste("inclinacao, calorias, coracao e o que falta", true, /Inclinação 1 por cento\. Cerca de 142 calorias\. Coração a 152\. Faltam 18 minutos\.$/.test(bol));
-teste("na rua: ritmo e cadencia, sem velocidade", "4 minutos. 0,7 quilômetros. Ritmo de 5 minutos e 30 por quilômetro. Coração a 160. Cadência 168.",
+teste("na rua: ritmo e cadencia, sem velocidade", "4 minutos. 730 metros. Ritmo de 5 minutos e 30 por quilômetro. Coração a 160. Cadência 168.",
   A.boletimCardio({ seg: 240, km: 0.73, ritmo: 5.5, bpm: 160, cad: 168 }));
 teste("numero zerado nao e dito", "2 minutos.", A.boletimCardio({ seg: 120, km: 0, kmh: 0, kcal: 0, bpm: 0 }));
 teste("na bicicleta: watts", true, /150 watts\./.test(A.boletimCardio({ seg: 300, watts: 150 })));
@@ -167,6 +167,21 @@ teste("intervalo padrao: 2 minutos", 120, A.boletimSeg({ falar: true }));
 teste("escolhido: 1 minuto", 60, A.boletimSeg({ falar: true, boletim: 60 }));
 teste("so o km: desligado", 0, A.boletimSeg({ falar: true, boletim: 0 }));
 teste("sem avisos falados: desligado", 0, A.boletimSeg({ falar: true, narrar: false }));
+console.log("--- o boletim por distancia ---");
+teste("a regra: 500 m", { tipo: "distancia", m: 500 }, A.boletimRegra({ falar: true, boletimPor: "distancia", boletimM: 500 }));
+teste("distancia que nao existe vira 1 km", 1000, A.boletimRegra({ falar: true, boletimPor: "distancia", boletimM: 700 }).m);
+const bd = A.criarBoletim({ tipo: "distancia", m: 500 }, 0, 0);
+teste("antes dos 500 m, nada", null, bd.quando(170, 480, true));
+teste("nos 500 m: o trecho e o tempo dele", { trecho: { m: 500, seg: 180, dif: null, marca: 500 } }, bd.quando(180, 505, true));
+teste("o segundo 500, 6 s mais rapido", { trecho: { m: 500, seg: 174, dif: -6, marca: 1000 } }, bd.quando(354, 1003, false));
+teste("o GPS pulou duas marcas: um trecho de 1 km, sem comparar", { trecho: { m: 1000, seg: 360, dif: null, marca: 2000 } }, bd.quando(714, 2010, true));
+const bt = A.criarBoletim({ tipo: "tempo", s: 60 }, 0, 0);
+teste("por tempo: espera o silencio de 15 s", null, bt.quando(61, 100, false));
+teste("por tempo: e fala quando calado", {}, bt.quando(62, 100, true));
+teste("serie retomada nao repete a marca que passou", null, A.criarBoletim({ tipo: "distancia", m: 1000 }, 300, 1200).quando(310, 1250, true));
+const fd = A.boletimCardio({ seg: 555, km: 1.5, kmh: 9.7, kcal: 148, trecho: { m: 500, seg: 183, dif: -4 } });
+teste("o texto por distancia: marca, trecho, total", true, /^1,5 quilômetros\. Estes 500 metros em 3 minutos e 3 segundos, 4 segundos mais rápido que o anterior\. Tempo total, 9 minutos\./.test(fd));
+teste("o quilometro: Este quilometro", true, /Este quilômetro em 6 minutos, no mesmo ritmo do anterior\./.test(A.boletimCardio({ seg: 720, km: 2, trecho: { m: 1000, seg: 360, dif: 1 } })));
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

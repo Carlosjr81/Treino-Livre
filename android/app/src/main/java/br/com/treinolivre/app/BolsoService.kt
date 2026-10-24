@@ -638,17 +638,31 @@ class BolsoService : Service(), RecognitionListener {
         }
         val kmInteiro = km.toInt()
         val iv = c.optInt("iv", 0)
+        val dm = c.optInt("dm", 0)
         val calado = System.currentTimeMillis() - cronoFalouEm > 15000L
-        if (kmInteiro > cronoKm && resta > 30) {
+        // por distância: a marca (500 m, 1 km, 2 km) no lugar do aviso do km
+        val marca = if (dm > 0) (km * 1000 / dm).toInt() else 0
+        if (dm > 0 && marca > cronoBol && resta > 30) {
+            val passos = marca - cronoBol
+            cronoBol = marca
+            val trechoM = dm * passos
+            val trechoSeg = if (kmh > 0) Math.round(trechoM / (kmh / 3.6)).toInt() else 0
+            val nome = if (trechoM == 1000) "Este quilômetro" else if (trechoM > 1000) "Estes " + num1(trechoM / 1000.0) + " quilômetros" else "Estes $trechoM metros"
+            val p = mutableListOf(falaDist(marca * dm / 1000.0) + ".", "$nome em " + dur(trechoSeg) + ".", "Tempo total, " + dur(if (feito >= 60) Math.round(feito / 60.0).toInt() * 60 else feito) + ".")
+            if (kmh > 0) p.add("Velocidade " + num1(kmh) + " por hora" + (if (c.optInt("ritmo", 0) == 1) ", ritmo de " + ritmo(60.0 / kmh) else "") + ".")
+            if (kcal >= 1) p.add("Cerca de " + Math.round(kcal) + " calorias.")
+            p.add("Faltam " + dur(if (resta >= 120) Math.round(resta / 60.0).toInt() * 60 else resta) + ".")
+            falarCrono(p.joinToString(" "))
+        } else if (dm == 0 && kmInteiro > cronoKm && resta > 30) {
             cronoKm = kmInteiro
             falarCrono(kmInteiro.toString() + (if (kmInteiro == 1) " quilômetro." else " quilômetros.") + " Faltam " + dur(Math.round(resta / 60.0).toInt() * 60) + ".")
         } else if (total >= 300 && resta <= 60 && !cronoUltimo) {
             cronoUltimo = true
             falarCrono("Último minuto.")
-        } else if (iv > 0 && resta > 30 && feito / iv > cronoBol && calado) {
+        } else if (dm == 0 && iv > 0 && resta > 30 && feito / iv > cronoBol && calado) {
             cronoBol = feito / iv
             val p = mutableListOf(dur(if (feito >= 60) Math.round(feito / 60.0).toInt() * 60 else feito) + ".")
-            if (km >= 0.05) p.add(num1(km) + " quilômetros.")
+            if (km >= 0.05) p.add(falaDist(km) + ".")
             if (kmh > 0) p.add("Velocidade " + num1(kmh) + " por hora" + (if (c.optInt("ritmo", 0) == 1) ", ritmo de " + ritmo(60.0 / kmh) else "") + ".")
             val incl = c.optDouble("incl", 0.0)
             if (incl > 0) p.add("Inclinação " + num1(incl) + " por cento.")
@@ -667,6 +681,9 @@ class BolsoService : Service(), RecognitionListener {
         val base = m.toString() + (if (m == 1) " minuto" else " minutos")
         return when { r == 0 -> base; r == 30 -> "$base e meio"; else -> "$base e $r segundos" }
     }
+    private fun falaDist(km: Double): String =
+        if (km < 1) (Math.round(km * 100) * 10).toString() + " metros"
+        else num1(km) + (if (Math.abs(km - 1) < 0.05) " quilômetro" else " quilômetros")
     private fun num1(v: Double): String {
         val r = Math.round(v * 10) / 10.0
         return if (r == Math.floor(r)) r.toLong().toString() else r.toString().replace('.', ',')

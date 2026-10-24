@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v115) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v116) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1328,7 +1328,21 @@ treino em voz" (desligar este desliga o boletim).
 - Esteira conectada e percurso **não** passam para o app: com a tela
   travada o Chrome corta o Bluetooth e o GPS, e não haveria número para dizer.
 
-Coberto por `teste-cardio.js` (o texto e o intervalo).
+- **Por tempo ou por distância** (`voz.boletimPor`, `voz.boletimM`: 500 m,
+  1 km ou 2 km; pedido do dono, "menor métrica 500 metros"). Por distância o
+  boletim chega **na marca**, diz a marca redonda ("1 quilômetro", e não o que
+  o sensor mediu no segundo da fala), **quanto aquele trecho levou** e se foi
+  mais rápido ou mais devagar que o anterior (a parcial do relógio de
+  corrida, `falaTrecho`), e depois o total. Nesse modo ele **substitui** o
+  aviso de cada km; por tempo, o aviso do km continua. Marca pulada (o GPS
+  voltou depois de um buraco) vira um trecho só, sem comparar.
+  `criarBoletim(regra, seg0, m0)` decide a hora: série retomada não repete
+  as marcas que já passaram, e o boletim por tempo espera 15 s de silêncio (a
+  marca de distância não espera). No app, o ▶ conduzido pelo Android também
+  segue a regra (`dm` no `c=`).
+- **O ajuste mostra um exemplo** do que vai ser dito, e "🔊 Ouvir o exemplo".
+
+Coberto por `teste-cardio.js` (o texto, o intervalo e as marcas).
 
 `falaRitmo` é para ritmo o que `textoDuracao` é para tempo: "10:30 /km" se
 escreve, "10 minutos e 30 por quilômetro" se fala. Coberto em `teste-cardio.js`.

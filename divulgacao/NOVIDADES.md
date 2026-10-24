@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-10-24g — Boletim por distância: a cada 500 m, 1 km ou 2 km
+
+**Em uma frase:** o boletim falado da esteira e da corrida agora pode vir por distância (a cada 500 metros,
+1 km ou 2 km) e diz quanto você levou naquele trecho e se foi mais rápido que o anterior.
+
+**O que mudou**
+- No ajuste do boletim dá para escolher "⏱ Por tempo" (1, 2, 3 ou 5 minutos) ou "📏 Por distância"
+  (500 m, 1 km ou 2 km).
+- Por distância, a cada marca: "1,5 quilômetros. Estes 500 metros em 3 minutos e 5 segundos, 4 segundos
+  mais rápido que o anterior. Tempo total, 9 minutos. Velocidade, ritmo, calorias e coração."
+- O ajuste mostra um exemplo do que vai ser falado, com o botão "🔊 Ouvir o exemplo".
+
+**Por que importa para quem treina**
+- É a parcial dos relógios de corrida, falada: dá para saber na hora se está acelerando ou cansando.
+
+**Como usar**
+- Ajustes › Jarvis › Ajustes da voz › "Boletim na esteira e na corrida" › Por distância › 500 m.
+
+**Ideias de vídeo**
+- Corrida na rua de fone, a cada 500 m o Jarvis dizendo "4 segundos mais rápido que o anterior".
+
+**Não prometer**
+- Na rua a distância vem do GPS (pode errar alguns metros); na esteira sem conexão, vem da velocidade digitada.
+
+---
+
 ## 2026-10-24f — Boletim falado na esteira e na corrida
 
 **Em uma frase:** na esteira e na corrida, o Jarvis fala os seus números de tempo em tempo: tempo,

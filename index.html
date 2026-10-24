@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24a";
+const VERSAO_APP = "2026-10-24b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2532,6 +2532,357 @@ function abrirFluxoOculos(chave, aoEstado) {
   };
 }
 // ---- fim dos óculos
+
+// ==== BOLSO: O JARVIS COM A TELA TRAVADA ====
+// Pedido do dono: o Jarvis ouvindo e falando com o celular travado no bolso.
+// Uma página não consegue: com a tela travada o Chrome suspende a página, o
+// microfone e a voz dela. Quem consegue é o app Android, com um serviço em
+// primeiro plano que usa o microfone (BolsoService). Ele ouve, e a frase é
+// entendida AQUI — esta mesma página, aberta pelo app num navegador escondido
+// com ?modo=bolso —, pelo mesmo interpretarVoz do Jarvis de sempre.
+//
+// O app recebe uma cópia do treino (snapshotBolso) ao ligar o modo, anota nela,
+// conta o descanso e diz o que vem. O que foi feito com a tela travada volta ao
+// treino de verdade como uma lista de acontecimentos (#bolso=), aplicada por
+// aplicarEventosBolso — a mesma função dos dois lados, para a cópia do app e o
+// treino da página não divergirem.
+const MODO_BOLSO = typeof location !== "undefined" && /[?&]modo=bolso\b/.test(location.search);
+const FRASES_BOLSO_VOLTA = ["Bora!", "Vamos que vamos!", "Hora de voltar!", "Foco agora!", "É agora!", "Mais uma, você consegue!", "Respira e vai!"];
+const FRASES_BOLSO_FIM_EX = ["Esse já foi!", "Fechou esse!", "Mandou bem nesse!", "Um a menos!"];
+const BOLSO_SO_NA_TELA = "Essa eu faço com a tela destravada.";
+
+// Só o que a voz precisa: as séries e, de cada exercício, o nome, o
+// equipamento (a barra no "de cada lado"), se é de tempo, o descanso e o recorde.
+function snapshotBolso(sessao, exPorId, cfg) {
+  const c = cfg || {};
+  return {
+    v: 1,
+    descanso: c.descanso || 90,
+    barra: c.barra != null ? c.barra : 20,
+    foco: c.foco != null ? c.foco : null,
+    itens: (sessao.itens || []).map((it) => {
+      const ex = exPorId(it.exercicioId) || {};
+      const rec = c.recordes && c.recordes[it.exercicioId];
+      return {
+        uid: it.uid, exercicioId: it.exercicioId, conjunto: it.conjunto || null, descanso: it.descanso || null,
+        nome: ex.nome || "exercício", equip: ex.equip || "", tempo: !!ex.tempo, cardio: !!ex.cardio,
+        rec: rec && rec.peso ? rec.peso : 0,
+        series: (it.series || []).map((s) => {
+          const o = {};
+          ["peso", "reps", "segundos", "feito", "drop", "aquec"].forEach((k) => {
+            if (s[k] !== undefined && s[k] !== null && s[k] !== "") o[k] = s[k];
+          });
+          return o;
+        }),
+      };
+    }),
+  };
+}
+function linkBolso(snap) {
+  const d = padraoParaB64Url(b64Codificar(JSON.stringify(snap)));
+  return "intent://bolso?d=" + d + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID +
+    ";S.browser_fallback_url=" + encodeURIComponent(LINK_APK) + ";end";
+}
+function linkBolsoParar() {
+  return "intent://bolso?parar=1#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID + ";end";
+}
+
+// Os acontecimentos: a (anotou), x (desfez), c (corrigiu), o (observação).
+// Anotar vai para a série combinada se ela ainda estiver por fazer; se alguém
+// a marcou na tela no meio tempo, vai para a próxima por fazer. Nunca apaga o
+// que foi feito à mão.
+function aplicarEventosBolso(itens, eventos) {
+  const out = (itens || []).map((it) => Object.assign({}, it, { series: (it.series || []).slice() }));
+  (eventos || []).forEach((e) => {
+    const k = out.findIndex((it) => it.uid === e.u);
+    if (k < 0) return;
+    const ss = out[k].series;
+    if (e.t === "a") {
+      let i = ss[e.i] && !ss[e.i].feito ? e.i : ss.findIndex((s) => !s.feito);
+      if (i < 0) {
+        const ult = ss[ss.length - 1] || {};
+        ss.push(e.sg != null ? { segundos: "", feito: false } : { peso: ult.peso || "", reps: ult.reps || "", feito: false });
+        i = ss.length - 1;
+      }
+      const v = { feito: true };
+      if (e.p != null) v.peso = String(e.p);
+      if (e.r != null) v.reps = String(e.r);
+      if (e.sg != null) v.segundos = String(e.sg);
+      if (e.aq) v.aquec = true;
+      ss[i] = Object.assign({}, ss[i], v);
+    } else if (e.t === "x") {
+      if (ss[e.i] && ss[e.i].feito) ss[e.i] = Object.assign({}, ss[e.i], { feito: false });
+    } else if (e.t === "c") {
+      if (ss[e.i] && e.campo) ss[e.i] = Object.assign({}, ss[e.i], { [e.campo]: String(e.valor) });
+    } else if (e.t === "o") {
+      const atual = out[k].obs || "";
+      out[k] = Object.assign({}, out[k], { obs: atual ? atual + " · " + e.o : e.o });
+    }
+  });
+  return out;
+}
+
+// O motor do bolso: frase entra, resposta sai. O relógio vem de fora (agora),
+// como no motor zumbi: o app agenda o fim do descanso no Android, porque com a
+// tela travada o relógio da página dorme.
+function criarBolso(snapInicial, catalogo) {
+  let snap = snapInicial;
+  let itens = [], foco = null, todos = [];
+  let fimDesc = 0, janelaAte = 0, ultimo = null, eventos = [];
+  const montar = (s) => {
+    snap = s;
+    itens = (s.itens || []).map((it) => Object.assign({}, it, { series: (it.series || []).map((x) => Object.assign({}, x)) }));
+    foco = s.foco != null && itens[s.foco] ? s.foco : null;
+    todos = itens.map((it) => (catalogo || []).find((e) => e.id === it.exercicioId) || { id: it.exercicioId, nome: it.nome, equip: it.equip, grupo: "" });
+  };
+  montar(snapInicial);
+  const nomeI = (ei) => nomeFalado(itens[ei] ? itens[ei].nome : "exercício");
+  const descDe = (it) => Math.max(5, Math.min(1800, (it && it.descanso) || snap.descanso || 90));
+  const pendentes = () => itens.reduce((n, it) => n + it.series.filter((s) => !s.feito).length, 0);
+  const comBarra = (it) => { const eq = semAcento(it.equip); return eq.indexOf("barra") >= 0 && eq.indexOf("fixa") < 0; };
+  const falaValores = (s) => (ehTempo(s) ? segundosDe(s) + " segundos"
+    : s.peso ? fmtNum(s.peso) + " quilos por " + repsDe(s) : repsDe(s) + " repetições");
+
+  // "Agora: série 2 de 3 do supino. Na anterior: 80 por 10."
+  function proxima() {
+    if (!pendentes()) return "Todas as séries feitas! Treino completo. Destrave a tela e toque em Finalizar treino.";
+    const a = alvoDaSessao(itens, foco);
+    if (!a) return "";
+    const it = itens[a.ei], s = it.series[a.si] || {};
+    const trab = it.series.filter((x) => !ehDrop(x));
+    const n = trab.indexOf(s) + 1;
+    let t = (ehDrop(s) ? "Agora o drop de " : "Agora: série " + n + " de " + trab.length + " de ") + nomeI(a.ei) + ".";
+    const ant = it.series.slice(0, a.si).reverse().find((x) => x.feito && !ehDrop(x));
+    if (ant && (ant.peso || ant.reps || ant.segundos)) t += " Na anterior: " + falaValores(ant) + ".";
+    else if (s.peso && s.reps) t += " Combinado: " + falaValores(s) + ".";
+    return t;
+  }
+
+  function anotar(c, agora, ei0) {
+    let ei = ei0 != null ? ei0 : -1;
+    if (ei < 0 && c.frase) {
+      const dito = acharExercicio(c.frase, todos, itens.map((it) => it.exercicioId));
+      if (dito) ei = itens.findIndex((it) => it.exercicioId === dito.id);
+    }
+    if (ei < 0) { const a = alvoDaSessao(itens, foco); ei = a ? a.ei : -1; }
+    if (ei < 0) return { falar: "O treino está vazio." };
+    const it = itens[ei];
+    if (it.cardio || c.cardio) return { falar: "Aeróbico se anota na tela. " + BOLSO_SO_NA_TELA };
+    let si = it.series.findIndex((s) => !s.feito);
+    if (si < 0) {
+      const ult = it.series[it.series.length - 1] || {};
+      it.series.push(it.tempo ? { segundos: ult.segundos || "", feito: false } : { peso: ult.peso || "", reps: ult.reps || "", feito: false });
+      si = it.series.length - 1;
+    }
+    const base = it.series[si];
+    const v = {};
+    let extra = "";
+    if (it.tempo) {
+      const seg = c.segundos != null ? c.segundos : (c.reps != null ? c.reps : parseInt(base.segundos) || 0);
+      if (!seg) return { falar: "Quantos segundos você segurou?" };
+      v.segundos = String(Math.round(seg));
+    } else {
+      let peso = c.peso;
+      if (peso != null && c.porLado) {
+        const barra = comBarra(it) ? (parseFloat(snap.barra) || 0) : 0;
+        const total = peso * 2 + barra;
+        extra = " " + fmtNum(peso) + " de cada lado" + (barra ? " mais a barra de " + fmtNum(barra) : "") + " dá " + fmtNum(total) + ".";
+        peso = total;
+      }
+      const reps = c.reps != null ? c.reps : parseInt(base.reps) || 0;
+      if (!reps) return { falar: "Faltou a repetição. Diga, por exemplo: 80 por 10." };
+      v.reps = String(Math.round(reps));
+      if (peso != null) v.peso = String(Math.round(peso * 100) / 100);
+    }
+    if (c.aquecimento) v.aquec = true;
+    const nova = Object.assign({}, base, v, { feito: true });
+    it.series[si] = nova;
+    foco = ei;
+    ultimo = { ei: ei, si: si };
+    const ev = { t: "a", u: it.uid, i: si };
+    if (v.peso != null) ev.p = v.peso;
+    if (v.reps != null) ev.r = v.reps;
+    if (v.segundos != null) ev.sg = v.segundos;
+    if (v.aquec) ev.aq = 1;
+    eventos.push(ev);
+
+    let recorde = "";
+    const p = parseFloat(v.peso) || 0;
+    if (!v.aquec && it.rec > 0 && p > it.rec) {
+      recorde = "Recorde no " + nomeI(ei) + "! " + fmtNum(p) + " quilos, " + fmtNum(p - it.rec) + " a mais que o seu melhor.";
+      it.rec = p;
+    }
+    const trab = it.series.filter((x) => !ehDrop(x));
+    const n = trab.indexOf(nova) + 1;
+    let fala = (recorde ? recorde + " " : "") + animo(ANIMO_ANOTOU, "bolso") + " Anotei " + nomeI(ei) + ", " + falaValores(nova) + "." + extra;
+    if (!ehDrop(nova) && n > 0) fala += " Série " + n + " de " + trab.length + ".";
+    const seguinte = itens[ei + 1];
+    const noConjunto = !!(it.conjunto && seguinte && seguinte.conjunto === it.conjunto && seguinte.series.some((s) => !s.feito));
+    const dropAgora = it.series[si + 1] && ehDrop(it.series[si + 1]) && !it.series[si + 1].feito;
+    if (!pendentes()) {
+      fimDesc = 0;
+      return { falar: fala + " " + proxima(), descansoAte: 0, mudou: true };
+    }
+    if (dropAgora) { fimDesc = 0; return { falar: fala + " Agora o drop, sem descanso.", descansoAte: 0, mudou: true }; }
+    if (noConjunto) { fimDesc = 0; return { falar: fala + " Emenda no " + nomeI(ei + 1) + ", sem descanso.", descansoAte: 0, mudou: true }; }
+    const seg = descDe(it);
+    fimDesc = agora + seg * 1000;
+    if (!it.series.some((s) => !s.feito)) fala += " " + animo(FRASES_BOLSO_FIM_EX, "bolsoFim");
+    fala += " Descanso de " + tempoFalado(seg) + ". Eu te chamo.";
+    return { falar: fala, descansoAte: fimDesc, mudou: true };
+  }
+
+  function executar(c, agora) {
+    switch (c.tipo) {
+      case "anotar": return anotar(c, agora);
+      case "repetir": {
+        const a = alvoDaSessao(itens, foco);
+        const it = a && itens[a.ei];
+        const ult = it && it.series.slice().reverse().find((s) => s.feito);
+        if (!ult) return { falar: "Ainda não há série marcada aqui para repetir." };
+        return anotar({
+          tipo: "anotar", frase: "",
+          peso: ehTempo(ult) ? null : (ult.peso ? parseFloat(ult.peso) : null),
+          reps: ehTempo(ult) ? null : (parseInt(ult.reps) || null),
+          segundos: ehTempo(ult) ? segundosDe(ult) : null,
+          aquecimento: !!ult.aquec,
+        }, agora, a.ei);
+      }
+      case "desfazer": {
+        if (!ultimo) return { falar: "Não tenho série anotada com a tela travada para apagar." };
+        const it = itens[ultimo.ei];
+        it.series[ultimo.si] = Object.assign({}, it.series[ultimo.si], { feito: false });
+        eventos.push({ t: "x", u: it.uid, i: ultimo.si });
+        const fala = "Desmarquei a série " + (ultimo.si + 1) + " de " + nomeI(ultimo.ei) + ". Pode ditar de novo.";
+        ultimo = null;
+        fimDesc = 0;
+        return { falar: fala, descansoAte: 0, mudou: true };
+      }
+      case "corrigir": {
+        if (!ultimo) return { falar: "Não tenho série anotada com a tela travada para corrigir." };
+        const it = itens[ultimo.ei];
+        const campo = c.campo || "peso";
+        it.series[ultimo.si] = Object.assign({}, it.series[ultimo.si], { [campo]: String(c.valor) });
+        eventos.push({ t: "c", u: it.uid, i: ultimo.si, campo: campo, valor: String(c.valor) });
+        const como = campo === "peso" ? fmtNum(c.valor) + " quilos" : campo === "reps" ? c.valor + " repetições" : c.valor + " segundos";
+        return { falar: "Corrigi para " + como + " na série " + (ultimo.si + 1) + " de " + nomeI(ultimo.ei) + ".", mudou: true };
+      }
+      case "observacao": {
+        const a = alvoDaSessao(itens, foco);
+        if (!a) return { falar: "O treino está vazio." };
+        const m = String(c.cru || c.frase || "").match(/observa\S*\s*(?:que|:|,)?\s*(.+)$/i);
+        const txt = (m && m[1] ? m[1] : "").trim().replace(/^[:,\s]+/, "");
+        if (txt.length < 2) return { falar: "O que eu anoto na observação?" };
+        eventos.push({ t: "o", u: itens[a.ei].uid, o: txt });
+        return { falar: "Anotei em " + nomeI(a.ei) + ": " + txt, mudou: true };
+      }
+      case "descanso": {
+        const a = alvoDaSessao(itens, foco);
+        const seg = Math.max(5, Math.min(1800, c.segundos || descDe(a && itens[a.ei])));
+        fimDesc = agora + seg * 1000;
+        return { falar: "Descansando " + tempoFalado(seg) + ". Eu te chamo na hora.", descansoAte: fimDesc };
+      }
+      case "esticarDescanso": {
+        const s = Math.max(5, Math.min(600, c.segundos || 15));
+        fimDesc = Math.max(fimDesc, agora) + s * 1000;
+        return { falar: "Mais " + tempoFalado(s) + ".", descansoAte: fimDesc };
+      }
+      case "pularDescanso":
+        if (!fimDesc) return { falar: "Não tem descanso correndo agora. " + proxima() };
+        fimDesc = 0;
+        return { falar: animo(FRASES_BOLSO_VOLTA, "bolsoVolta") + " " + proxima(), descansoAte: 0 };
+      case "tempoDescanso": {
+        if (!fimDesc) return { falar: "Não tem descanso correndo agora." };
+        const resta = Math.max(0, Math.ceil((fimDesc - agora) / 1000));
+        return { falar: resta <= 0 ? "Acabou. Pode ir." : "Faltam " + tempoFalado(resta) + "." };
+      }
+      case "proximo": case "anterior": case "irExercicio": {
+        const a = alvoDaSessao(itens, foco);
+        let ei = a ? a.ei : 0;
+        if (c.tipo === "proximo") ei = Math.min(itens.length - 1, ei + 1);
+        else if (c.tipo === "anterior") ei = Math.max(0, ei - 1);
+        else {
+          const dito = c.frase ? acharExercicio(c.frase, todos, itens.map((it) => it.exercicioId)) : null;
+          const k = dito ? itens.findIndex((it) => it.exercicioId === dito.id) : -1;
+          if (k < 0) return { falar: "Esse não está no treino de hoje. " + BOLSO_SO_NA_TELA };
+          ei = k;
+        }
+        foco = ei;
+        return { falar: proxima() };
+      }
+      case "situacao": {
+        const feitas = itens.reduce((n, it) => n + it.series.filter((s) => s.feito).length, 0);
+        const total = itens.reduce((n, it) => n + it.series.length, 0);
+        const resta = fimDesc > agora ? Math.ceil((fimDesc - agora) / 1000) : 0;
+        return { falar: (resta ? "Faltam " + tempoFalado(resta) + " de descanso. " : "") + feitas + " de " + total + " séries feitas. " + proxima() };
+      }
+      case "ajuda":
+        return { falar: "Com a tela travada eu anoto as séries, conto o descanso e digo o que vem. Diga: Jarvis, 80 por 10. Jarvis, repete. Jarvis, quanto falta. Ou: Jarvis, pula o descanso." };
+      case "desligar":
+        return { falar: "Desliguei a escuta da tela travada. Destrave para continuar pelo app.", parar: true };
+      case "scanner": case "oculos":
+        return { falar: "Para contar pela câmera, destrave a tela." };
+      case "finalizar":
+        return { falar: "Para finalizar, destrave a tela e toque em Finalizar treino." };
+      default:
+        return { falar: BOLSO_SO_NA_TELA };
+    }
+  }
+
+  return {
+    // alternativas: os palpites do reconhecedor, o mais provável primeiro
+    ouvir(alternativas, agora) {
+      const lista = (alternativas || []).map((a) => normalizarFala(a)).filter(Boolean);
+      if (!lista.length) return {};
+      const descansando = !!fimDesc && fimDesc > agora;
+      let melhor = null;
+      for (let k = 0; k < lista.length; k++) {
+        const d = depoisDeJarvis(lista[k]);
+        const corpo = d === null ? lista[k] : d;
+        const c = corpo ? interpretarVoz(corpo, { descansando: descansando, naSessao: true }) : null;
+        if (c) c.cru = (alternativas[k] || "");
+        const cand = { c: c, comNome: d !== null, corpo: corpo };
+        if (!melhor || (cand.c && (!melhor.c || (cand.comNome && !melhor.comNome)))) melhor = cand;
+        if (cand.c && cand.comNome) break;
+      }
+      const comNome = melhor.comNome;
+      // Só o nome: fica de orelha em pé. Aqui ele responde (o app não ouve
+      // enquanto fala, então não há eco a temer), porque no bolso não há tela
+      // para dizer que ouviu.
+      if (!melhor.c && comNome && !melhor.corpo) { janelaAte = agora + 25000; return { falar: "Pode falar." }; }
+      if (!comNome && agora > janelaAte) return {};
+      if (!melhor.c) return comNome ? { falar: "Não entendi. Pode repetir?" } : {};
+      const r = executar(melhor.c, agora);
+      janelaAte = agora + 15000;
+      return r;
+    },
+    // o app chama na hora: o descanso acabou
+    fimDescanso(agora) {
+      if (!fimDesc) return "";
+      fimDesc = 0;
+      return animo(FRASES_BOLSO_VOLTA, "bolsoVolta") + " Descanso acabou. " + proxima();
+    },
+    descansoAte() { return fimDesc; },
+    eventos() { return eventos.slice(); },
+    limpar() { eventos = []; },
+    semear(lista) { eventos = (lista || []).slice(); },
+    estado() { return itens; },
+  };
+}
+// O que volta do app (#bolso=): conferido campo a campo, é dado vindo de link.
+function lerPacoteBolso(texto, decodificar) {
+  try {
+    const p = JSON.parse(decodificar(b64UrlParaPadrao(texto)));
+    const ev = (Array.isArray(p && p.ev) ? p.ev : []).slice(0, 300).filter((e) =>
+      e && typeof e.u === "string" && e.u.length < 80 && ["a", "x", "c", "o"].indexOf(e.t) >= 0 &&
+      (e.i == null || (Number.isInteger(e.i) && e.i >= 0 && e.i < 100)) &&
+      (e.campo == null || ["peso", "reps", "segundos"].indexOf(e.campo) >= 0) &&
+      ["p", "r", "sg", "valor"].every((k) => e[k] == null || /^\d{1,4}([.,]\d{1,2})?$/.test(String(e[k]))) &&
+      (e.o == null || (typeof e.o === "string" && e.o.length < 300)));
+    return { ev: ev, fim: !!(p && p.fim), em: Date.now() };
+  } catch (e) { return null; }
+}
+// ==== FIM DO BOLSO ====
 
 // Onde cai a próxima frase do Jarvis, e de que série fala o "Próxima:" do fim
 // do descanso. Antes era a primeira série pendente da ficha inteira: quem pulava
@@ -21860,6 +22211,46 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     window.addEventListener("treinolivre:oculosSerie", aplicar);
     return () => window.removeEventListener("treinolivre:oculosSerie", aplicar);
   }, []);
+  // O que o Jarvis anotou com a tela travada (app Android, #bolso=) entra no
+  // treino como acontecimentos. Sem descanso nem festa: isso já aconteceu.
+  const [bolsoAtivo, setBolsoAtivo] = useState(() => {
+    try { return Date.now() - (parseInt(localStorage.getItem("treinolivre:bolsoAtivo")) || 0) < 4 * 3600000; } catch (e) { return false; }
+  });
+  useEffect(() => {
+    const aplicar = () => {
+      let pend = null;
+      try { pend = JSON.parse(localStorage.getItem("treinolivre:bolso") || "null"); } catch (e) {}
+      if (!pend) return;
+      try { localStorage.removeItem("treinolivre:bolso"); } catch (e) {}
+      if (pend.fim) { try { localStorage.removeItem("treinolivre:bolsoAtivo"); } catch (e) {} setBolsoAtivo(false); }
+      const ev = pend.ev || [];
+      if (!ev.length || Date.now() - (pend.em || 0) > 12 * 3600000) return;
+      setSessao((s) => (s ? Object.assign({}, s, { itens: aplicarEventosBolso(s.itens, ev) }) : s));
+      const n = ev.filter((e) => e.t === "a").length - ev.filter((e) => e.t === "x").length;
+      const frase = n > 0 ? "Com a tela travada, anotei " + n + " " + plural(n, "série", "séries") + ". " + plural(n, "Já está", "Já estão") + " no treino."
+        : "As mudanças da tela travada já estão no treino.";
+      setTimeout(() => { if (responderVoz) responderVoz(frase, true); }, 500);
+    };
+    aplicar();
+    window.addEventListener("treinolivre:bolso", aplicar);
+    return () => window.removeEventListener("treinolivre:bolso", aplicar);
+  }, []);
+  // Ligar (ou atualizar) manda a cópia do treino ao app. É também o "Trazer":
+  // o app devolve primeiro o que anotou e depois segue com a cópia nova.
+  const ligarBolso = () => {
+    const snap = snapshotBolso(sessao, exPorId, {
+      descanso: descanso, barra: parseFloat(vozBarra) || 20, foco: alvo ? alvo.ei : null, recordes: recordes,
+    });
+    try { localStorage.setItem("treinolivre:bolsoAtivo", String(Date.now())); } catch (e) {}
+    setBolsoAtivo(true);
+    try { window.location.href = linkBolso(snap); } catch (e) {}
+  };
+  const desligarBolso = () => {
+    try { localStorage.removeItem("treinolivre:bolsoAtivo"); } catch (e) {}
+    setBolsoAtivo(false);
+    try { window.location.href = linkBolsoParar(); } catch (e) {}
+  };
+
   const registrarDoScanner = (repsContadas, pesoDito) => {
     const r = anotarPorVoz({
       tipo: "anotar",
@@ -22283,6 +22674,27 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           {btnSom}
         </div>
       </div>
+
+      {EH_ANDROID && sessao.itens.length > 0 && (
+        <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 180px" }}>
+            <div style={S.label}>🔒 Jarvis com a tela travada</div>
+            <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 2, lineHeight: 1.5 }}>
+              {bolsoAtivo
+                ? <>Ligado. Trave a tela e diga <b>“Jarvis, 80 por 10”</b>: ele anota, conta o descanso e chama você. Ao destravar, toque em <b>Trazer</b>.</>
+                : <>Celular travado no bolso: ele ouve, anota as séries, conta o descanso e chama você na hora. Só no app Android.</>}
+            </div>
+          </div>
+          {bolsoAtivo ? (
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={ligarBolso} style={{ ...S.btnGhost, width: "auto", padding: "9px 12px", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>Trazer</button>
+              <button onClick={desligarBolso} style={{ ...S.btnGhost, width: "auto", padding: "9px 12px" }}>Desligar</button>
+            </div>
+          ) : (
+            <button onClick={ligarBolso} style={{ ...S.btnGhost, width: "auto", padding: "9px 14px", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>Ligar</button>
+          )}
+        </div>
+      )}
 
       {sessao.itens.length === 0 && (
         <div style={{ ...S.card, textAlign: "center" }}>
@@ -24490,7 +24902,7 @@ function TreinoLivre() {
   const [abertura, setAbertura] = useState(() => {
     try {
       const hash = window.location.hash || "";
-      if (/#(oculosSerie|oculosErro)=/.test(hash)) return false;
+      if (/#(oculosSerie|oculosErro|bolso)=/.test(hash)) return false;
       const m = hash.match(/#saude=([^&]+)/);
       if (!m) return true;
       const pac = lerPacoteSaude(m[1], b64Decodificar);
@@ -24986,8 +25398,16 @@ function TreinoLivre() {
       const mS = hash.match(/#saude=([^&]+)/);
       const mO = hash.match(/#oculosSerie=([^&]+)/);
       const mOE = hash.match(/#oculosErro=([a-z-]+)/);
+      const mB = hash.match(/#bolso=([^&]+)/);
+      if (mB) {
+        const pacB = lerPacoteBolso(mB[1], b64Decodificar);
+        if (pacB) {
+          try { localStorage.setItem("treinolivre:bolso", JSON.stringify(pacB)); } catch (e) {}
+          if (ss) setAba("sessao");
+        }
+      }
       if (mOE) setTimeout(() => abrirGuia("oculos", OCULOS_ERROS[mOE[1]] || OCULOS_ERROS.erro), 300);
-      if (mF || mP || mD || mA || mC || mS || mO || mOE) {
+      if (mF || mP || mD || mA || mC || mS || mO || mOE || mB) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e2) {}
       }
       // Atalhos do ícone do app na tela inicial (definidos no manifest.json)
@@ -25073,6 +25493,16 @@ function TreinoLivre() {
   temSessaoRef.current = !!sessao;
   useEffect(() => {
     const aoHash = () => {
+      const mB = (window.location.hash || "").match(/#bolso=([^&]+)/);
+      if (mB) {
+        try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
+        const pacB = lerPacoteBolso(mB[1], b64Decodificar);
+        if (!pacB) return;
+        try { localStorage.setItem("treinolivre:bolso", JSON.stringify(pacB)); } catch (e) {}
+        if (temSessaoRef.current) setAba("sessao");
+        setTimeout(() => { try { window.dispatchEvent(new Event("treinolivre:bolso")); } catch (e) {} }, 50);
+        return;
+      }
       const mE = (window.location.hash || "").match(/#oculosErro=([a-z-]+)/);
       if (mE) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
@@ -26661,7 +27091,33 @@ function TreinoLivre() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(MODO_OCULOS ? <TelaOculosNativa /> : <TreinoLivre />);
+// ?modo=bolso: o app Android abre esta página escondida só para entender as
+// frases ditas com a tela travada (ver BOLSO no começo do arquivo). O app chama
+// estas funções de fora; nada aqui grava no armazenamento.
+if (MODO_BOLSO) {
+  let motorBolso = null;
+  window.bolso = {
+    // snap: a cópia do treino; aplicar: o que já aconteceu nela e ainda não
+    // voltou ao treino (uma reabertura do serviço); pendentes: o que ainda vai voltar
+    iniciar(snapJson, aplicarJson, pendentesJson) {
+      const s = JSON.parse(snapJson);
+      const ja = aplicarJson ? JSON.parse(aplicarJson) : [];
+      if (ja.length) s.itens = aplicarEventosBolso(s.itens, ja);
+      motorBolso = criarBolso(s, EXERCICIOS);
+      motorBolso.semear(pendentesJson ? JSON.parse(pendentesJson) : []);
+      return "ok";
+    },
+    ouvir(altsJson, agora) {
+      if (!motorBolso) return "{}";
+      const r = motorBolso.ouvir(JSON.parse(altsJson), agora || Date.now());
+      return JSON.stringify(Object.assign({}, r, { ev: r.mudou ? motorBolso.eventos() : undefined }));
+    },
+    fimDescanso(agora) { return motorBolso ? motorBolso.fimDescanso(agora || Date.now()) : ""; },
+    pendentes() { return JSON.stringify(motorBolso ? motorBolso.eventos() : []); },
+    entregue() { if (motorBolso) motorBolso.limpar(); return "ok"; },
+  };
+}
+ReactDOM.createRoot(document.getElementById("root")).render(MODO_OCULOS ? <TelaOculosNativa /> : MODO_BOLSO ? <div /> : <TreinoLivre />);
 
 // Modo offline: depois da primeira visita, o app abre mesmo sem internet.
 // (localhost entra na lista para dar pra testar o modo offline antes de publicar)

@@ -100,7 +100,7 @@ Treino-Livre/
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
 ├── divulgacao/          ← o que o ChatGPT do dono lê para criar vídeos: o guia e o NOVIDADES
-└── testes/              ← as 29 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 30 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v110) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v111) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2947,6 +2947,63 @@ exercício da vez) e 👓 Óculos (`"oculos"`, só no Android).
 - **Não validado num aparelho**: se o Chrome deixa a voz ou o toque da haste
   abrir o app dos óculos. No navegador de teste os três caminhos (câmera,
   óculos, armado) chegam ao link com os dados da série.
+
+## O Jarvis com a tela travada (🔒, app Android: `BolsoService`, bloco BOLSO)
+
+Pedido do dono: o Jarvis ouvindo, falando e incentivando com o celular
+travado no bolso. **Uma página não consegue**: com a tela travada o Chrome
+suspende a página, e com ela o microfone, a voz e o relógio. Quem consegue é o
+app Android, com um serviço em primeiro plano do tipo microfone.
+
+**O caminho:**
+1. O cartão **🔒 Jarvis com a tela travada** da tela do treino (só no Android)
+   manda ao app uma cópia do treino (`snapshotBolso`: séries, nome,
+   equipamento, se é de tempo, descanso e o recorde de cada exercício) por
+   `treinolivre://bolso?d=` (`linkBolso`). É um toque: o Chrome não abre o
+   app sem gesto, e o Android só deixa o serviço usar o microfone em segundo
+   plano se ele foi ligado com o app à vista (`BolsoActivity` espera 0,7 s).
+2. `BolsoService` só ouve com a tela **travada ou apagada** (`SCREEN_OFF`,
+   `USER_PRESENT`, `KeyguardManager`). Destravada, quem ouve é o Jarvis da
+   página: dois microfones brigariam. Na primeira travada diz "Jarvis no bolso.
+   Estou ouvindo."
+3. **Quem entende a frase é o próprio site**, aberto pelo serviço num WebView
+   escondido com `?modo=bolso` (`MODO_BOLSO`: a página não desenha nada e
+   expõe `window.bolso`). O motor (`criarBolso`) usa o mesmo
+   `interpretarVoz`, `acharExercicio` e `alvoDaSessao`: não há um segundo
+   cérebro do Jarvis para manter.
+4. **O relógio é o do Android.** O motor devolve `descansoAte`, e o serviço
+   agenda o aviso de 10 s e o fim (três bipes e a frase do `fimDescanso`).
+   Uma trava de CPU (`PARTIAL_WAKE_LOCK`, até 4 h) impede o fim do descanso de
+   chegar atrasado. O relógio da página dorme com a tela travada.
+5. **A volta**: o que foi anotado são acontecimentos (`a` anotou, `x`
+   desfez, `c` corrigiu, `o` observação), guardados no app (`pend`). Ao
+   destravar, uma notificação "Toque para levar ao treino" abre
+   `treinolivre://bolso?entregar=1`, e o app reabre a página com `#bolso=`
+   (`lerPacoteBolso` confere campo a campo). O Android não deixa um serviço
+   abrir tela sozinho, por isso a notificação. O **Trazer** do cartão faz o
+   mesmo e ainda manda a cópia nova.
+6. `aplicarEventosBolso` é **a mesma função nos dois lados**: o app aplica na
+   cópia dele, a página no treino. Série marcada à mão no meio tempo não é
+   apagada: a anotação vai para a próxima por fazer.
+
+**O que ele faz com a tela travada**: anotar ("80 por 10", "30 de cada lado",
+"prancha 45 segundos"), repete, corrige, apaga a última, observação,
+descanso (começar, mais tempo, pular, quanto falta), próximo/anterior/ir para,
+"como estou". A confirmação diz exercício, carga, série e descanso; o recorde
+vem na frente ("Recorde no supino! 85 quilos, 3 a mais que o seu melhor"); o
+fim do descanso chama com uma frase de ânimo que varia (`FRASES_BOLSO_VOLTA`)
+e diz a próxima série e a anterior como referência. **Só na tela**: aeróbico,
+câmera, óculos, finalizar, acrescentar exercício.
+
+**A voz** abaixa a música enquanto fala (foco de áudio
+`GAIN_TRANSIENT_MAY_DUCK`, como o GPS). **O bipe do reconhecedor** a cada
+religada é abafado calando por 0,7 s os sons de notificação e de sistema.
+
+**Não validado num aparelho**: se o reconhecimento do Google aceita ouvir pelo
+serviço com a tela travada em todo Android, se o bipe some, e o WebView
+escondido no serviço. No navegador: a página `?modo=bolso` responde, o
+cartão manda a cópia, e a volta `#bolso=` marca a série e fala.
+Coberto por `teste-bolso.js` (41 checagens).
 
 ## O passo a passo de conectar (`GuiaConectar`, `GUIA_CONECTAR`)
 

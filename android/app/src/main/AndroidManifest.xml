@@ -24,11 +24,24 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- O Jarvis com a tela travada: o microfone num serviço em primeiro plano,
+         e a CPU acordada para o fim do descanso chegar na hora. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
         <package android:name="com.android.chrome" />
         <intent>
             <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+        <!-- o reconhecimento e a voz do Android, que o serviço da tela travada usa -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
         </intent>
     </queries>
 
@@ -72,6 +85,25 @@
             android:name=".OculosService"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
+
+        <!-- O 🔒 da tela do treino chama treinolivre://bolso. Na mesma tarefa do
+             app: ao sair, volta para o treino que estava aberto. -->
+        <activity
+            android:name=".BolsoActivity"
+            android:exported="true"
+            android:theme="@style/Tema.Saude">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="treinolivre" android:host="bolso" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".BolsoService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
 
         <!-- O ícone. Abre o site no Chrome (os dados do navegador continuam os
              mesmos) e, se a leitura já foi permitida, leva junto o Health Connect. -->

@@ -16,6 +16,39 @@
 
 ---
 
+## 2026-10-24b — O Jarvis com a tela travada, no bolso
+
+**Em uma frase:** no app Android, o Jarvis agora ouve, anota, conta o descanso e chama você com o
+celular travado no bolso.
+
+**O que mudou**
+- Na tela do treino há o cartão "🔒 Jarvis com a tela travada". Toque em Ligar e trave a tela.
+- Com a tela travada dá para dizer "Jarvis, 80 por 10", "Jarvis, repete", "Jarvis, 30 de cada lado,
+  10 repetições", "Jarvis, quanto falta", "Jarvis, pula o descanso", "Jarvis, apaga a última",
+  "Jarvis, observação: banco na altura 4".
+- Ele confirma o que entendeu, avisa recorde, conta o descanso, avisa "dez segundos" e, no fim, chama
+  com uma frase de ânimo e diz a próxima série e quanto foi a anterior.
+- A música abaixa enquanto ele fala e volta depois.
+- Ao destravar, uma notificação leva as séries anotadas para o treino. O botão "Trazer" faz o mesmo.
+
+**Por que importa para quem treina**
+- Celular no bolso e fone no ouvido: o treino inteiro anotado sem tirar o celular e sem destravar.
+
+**Como usar**
+- Atualize o app Android (baixe o APK de novo). No treino, toque em "Ligar" no cartão do cadeado,
+  permita o microfone e trave a tela. Fale começando com "Jarvis". Ao destravar, toque na notificação.
+
+**Ideias de vídeo**
+- Celular travado no bolso, série no supino, "Jarvis, 80 por 10" e ele respondendo no fone; no fim do
+  descanso ele chama de volta.
+
+**Não prometer**
+- Só no app Android (não no iPhone, não no navegador).
+- Ainda em teste no celular: alguns aparelhos podem apitar ao voltar a ouvir.
+- Aeróbico, câmera e finalizar o treino continuam sendo pela tela.
+
+---
+
 ## 2026-10-24a — Ligar a contagem pela câmera ou pelos óculos sem tocar no celular
 
 **Em uma frase:** um toque na haste dos óculos Ray-Ban Meta (ou no botão do fone) ou um comando de voz

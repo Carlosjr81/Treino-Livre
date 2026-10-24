@@ -40,6 +40,7 @@ const SUITES = [
   ["teste-fotos", "o antes e depois: o tempo entre as fotos e o peso de cada uma"],
   ["teste-importar", "trazer o historico do Strong, Hevy e FitNotes"],
   ["teste-saude", "a saude do Health Connect: o pacote, o resumo e o batimento nos treinos"],
+  ["teste-bolso", "o Jarvis com a tela travada: anotar, descanso e a volta ao treino"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");

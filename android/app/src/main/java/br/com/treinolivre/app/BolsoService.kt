@@ -13,7 +13,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
-import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.net.Uri
@@ -103,7 +102,6 @@ class BolsoService : Service(), RecognitionListener {
     private var avisouPrimeira = false
     private var erros = 0
     private var trava: PowerManager.WakeLock? = null
-    private var foco: AudioFocusRequest? = null
     private var pararDepoisDeFalar = false
     private var inicio = 0L
     // a frase do fim do descanso que veio da página (vale se a página escondida não carregou)
@@ -268,6 +266,7 @@ class BolsoService : Service(), RecognitionListener {
         anotar("tela destravada: o microfone fica com a página")
         linha.removeCallbacks(vigia)
         pararDeOuvir()
+        pararGravador()
         val pend = try { JSONArray(getSharedPreferences(PREFS, MODE_PRIVATE).getString("pend", "[]")) } catch (e: Exception) { JSONArray() }
         if (pend.length() > 0) avisarVolta(pend.length())
     }
@@ -291,9 +290,117 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     // ---- ouvir ----
+    // **A música parava e cortava a cada poucos segundos.** O reconhecedor do
+    // Google, a cada vez que começa a ouvir, pega o microfone e o foco do áudio:
+    // o tocador pausa e volta. Sem ninguém falando ele fecha em segundos e
+    // recomeça — a música picotava o tempo todo com a tela travada.
+    //
+    // No Android 13+ (fonteExterna) quem grava é o próprio app (AudioRecord, que
+    // não mexe no foco nem no Bluetooth do fone), e o reconhecedor só é chamado
+    // quando o som passa do ruído de fundo: recebe esse áudio por um cano
+    // (EXTRA_AUDIO_SOURCE), com meio segundo de antes para não perder o "Jarvis".
+    // No silêncio, ninguém abre e fecha nada. Se o reconhecedor não aceitar o
+    // áudio de fora, volta ao jeito antigo e o diário diz.
+    @Volatile private var fonteExterna = android.os.Build.VERSION.SDK_INT >= 33
+    private var recusasFonte = 0
+    @Volatile private var gravando = false
+    private var gravador: Thread? = null
+    @Volatile private var saida: java.io.OutputStream? = null
+    private var leitura: android.os.ParcelFileDescriptor? = null
+    @Volatile private var sessaoDesde = 0L
+    private val antes = ArrayDeque<ByteArray>()
+
+    @SuppressLint("MissingPermission")
+    private fun ligarGravador() {
+        if (gravando) return
+        gravando = true
+        val g = Thread {
+            val taxa = 16000
+            val min = android.media.AudioRecord.getMinBufferSize(taxa, android.media.AudioFormat.CHANNEL_IN_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT)
+            val rec = try {
+                android.media.AudioRecord(android.media.MediaRecorder.AudioSource.VOICE_RECOGNITION, taxa,
+                    android.media.AudioFormat.CHANNEL_IN_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT, maxOf(min, 3200) * 4)
+            } catch (e: Exception) { null }
+            if (rec == null || rec.state != android.media.AudioRecord.STATE_INITIALIZED) {
+                linha.post { anotar("ERRO: o app não conseguiu gravar; voltando ao microfone do reconhecedor"); fonteExterna = false; gravando = false; ouvir() }
+                try { rec?.release() } catch (e: Exception) { }
+                return@Thread
+            }
+            try { rec.startRecording() } catch (e: Exception) { }
+            linha.post { anotar("gravando pelo app (a música não é tocada)") }
+            val quadro = ByteArray(640) // 20 ms
+            var piso = 0.0
+            var acima = 0
+            while (gravando) {
+                val n = rec.read(quadro, 0, quadro.size)
+                if (n <= 0) continue
+                val c = quadro.copyOf(n)
+                val s = saida
+                if (s != null) {
+                    try { s.write(c) } catch (e: Exception) { saida = null }
+                    if (System.currentTimeMillis() - sessaoDesde > 12_000L) linha.post { fecharSaida() }
+                    continue
+                }
+                var soma = 0.0
+                var i = 0
+                while (i + 1 < n) {
+                    val v = ((c[i + 1].toInt() shl 8) or (c[i].toInt() and 0xFF)).toShort().toDouble()
+                    soma += v * v
+                    i += 2
+                }
+                val rms = Math.sqrt(soma / maxOf(1, n / 2))
+                // o ruído de fundo da academia é a régua: só a voz por cima dele abre
+                piso = if (piso == 0.0) rms else if (rms < piso * 2) piso * 0.98 + rms * 0.02 else piso * 0.999 + rms * 0.001
+                synchronized(antes) {
+                    antes.addLast(c)
+                    while (antes.size > 25) antes.removeFirst()
+                }
+                if (rms > maxOf(piso * 2.5, 350.0)) {
+                    if (++acima >= 3) { acima = 0; linha.post { abrirSessao() } }
+                } else acima = 0
+            }
+            try { rec.stop() } catch (e: Exception) { }
+            rec.release()
+        }
+        gravador = g
+        g.start()
+    }
+
+    private fun pararGravador() {
+        gravando = false
+        fecharSaida()
+        gravador = null
+    }
+
+    private fun fecharSaida() {
+        val s = saida
+        saida = null
+        try { s?.close() } catch (e: Exception) { }
+        try { leitura?.close() } catch (e: Exception) { }
+        leitura = null
+    }
+
+    // Alguém falou: o reconhecedor recebe o meio segundo de antes e o que vier
+    private fun abrirSessao() {
+        if (!travada || ouvindo || falando > 0 || pararDepoisDeFalar || saida != null) return
+        if (telaLivre()) { aoDestravar(); return }
+        val cano = try { android.os.ParcelFileDescriptor.createPipe() } catch (e: Exception) { return }
+        val out = android.os.ParcelFileDescriptor.AutoCloseOutputStream(cano[1])
+        try { synchronized(antes) { antes.forEach { out.write(it) }; antes.clear() } } catch (e: Exception) { }
+        leitura = cano[0]
+        sessaoDesde = System.currentTimeMillis()
+        saida = out
+        iniciarReconhecedor(cano[0])
+    }
+
     private fun ouvir() {
         if (!travada || ouvindo || falando > 0 || pararDepoisDeFalar) return
         if (telaLivre()) { aoDestravar(); return }
+        if (fonteExterna) { ligarGravador(); return }
+        iniciarReconhecedor(null)
+    }
+
+    private fun iniciarReconhecedor(fonte: android.os.ParcelFileDescriptor?) {
         if (!noAparelho && !SpeechRecognizer.isRecognitionAvailable(this)) {
             anotar("ERRO: o aparelho não tem reconhecimento de voz")
             return
@@ -311,12 +418,18 @@ class BolsoService : Service(), RecognitionListener {
             .putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, packageName)
             .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
             .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
-        silenciarBipe()
+        if (fonte != null && android.os.Build.VERSION.SDK_INT >= 33) {
+            pedido.putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE, fonte)
+                .putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_CHANNEL_COUNT, 1)
+                .putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_ENCODING, android.media.AudioFormat.ENCODING_PCM_16BIT)
+                .putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_SAMPLING_RATE, 16000)
+        } else silenciarBipe()
         try {
             r.startListening(pedido)
             ouvindo = true
         } catch (e: Exception) {
             ouvindo = false
+            fecharSaida()
             linha.postDelayed({ ouvir() }, 2000L)
         }
     }
@@ -335,6 +448,7 @@ class BolsoService : Service(), RecognitionListener {
 
     private fun pararDeOuvir() {
         ouvindo = false
+        fecharSaida()
         try { reconhecedor?.cancel() } catch (e: Exception) { }
     }
 
@@ -344,6 +458,8 @@ class BolsoService : Service(), RecognitionListener {
 
     override fun onResults(resultados: Bundle?) {
         ouvindo = false
+        fecharSaida()
+        recusasFonte = 0
         erros = 0
         recusas = 0
         val alts = resultados?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
@@ -355,7 +471,20 @@ class BolsoService : Service(), RecognitionListener {
 
     override fun onError(codigo: Int) {
         ouvindo = false
+        fecharSaida()
         if (!travada) return
+        // O reconhecedor não aceitou o áudio gravado pelo app: o jeito antigo
+        if (fonteExterna && codigo != SpeechRecognizer.ERROR_NO_MATCH && codigo != SpeechRecognizer.ERROR_SPEECH_TIMEOUT &&
+            codigo != SpeechRecognizer.ERROR_NETWORK && codigo != SpeechRecognizer.ERROR_NETWORK_TIMEOUT) {
+            if (++recusasFonte >= 2) {
+                fonteExterna = false
+                pararGravador()
+                anotar("o reconhecedor não aceitou o áudio do app (erro $codigo): voltando ao microfone dele")
+                religar(500L)
+                return
+            }
+        }
+        if (fonteExterna && (codigo == SpeechRecognizer.ERROR_NO_MATCH || codigo == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)) return
         val nome = when (codigo) {
             SpeechRecognizer.ERROR_NO_MATCH -> "não entendeu"
             SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "silêncio"
@@ -465,7 +594,6 @@ class BolsoService : Service(), RecognitionListener {
                 if (st != TextToSpeech.SUCCESS) return@post
                 val r = t.setLanguage(Locale("pt", "BR"))
                 if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) t.setLanguage(Locale("pt"))
-                // Como a voz do GPS: a música abaixa enquanto ele fala, e volta
                 t.setAudioAttributes(AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
@@ -487,7 +615,6 @@ class BolsoService : Service(), RecognitionListener {
         val t = tts
         if (t == null || !ttsPronto) { linha.postDelayed({ if (ttsPronto) falar(texto) }, 600L); return }
         pararDeOuvir()
-        if (falando == 0) pedirFoco()
         falando++
         val ok = t.speak(texto.take(800), TextToSpeech.QUEUE_ADD, null, "b" + System.nanoTime())
         if (ok != TextToSpeech.SUCCESS) acabouFala()
@@ -496,28 +623,13 @@ class BolsoService : Service(), RecognitionListener {
     private fun acabouFala() {
         falando = maxOf(0, falando - 1)
         if (falando > 0) return
-        largarFoco()
         if (pararDepoisDeFalar) { encerrar(); return }
         religar(300L)
     }
 
-    private fun pedirFoco() {
-        val am = getSystemService(AudioManager::class.java) ?: return
-        val f = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-            .setAudioAttributes(AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                .build())
-            .build()
-        foco = f
-        try { am.requestAudioFocus(f) } catch (e: Exception) { }
-    }
-
-    private fun largarFoco() {
-        val am = getSystemService(AudioManager::class.java) ?: return
-        foco?.let { try { am.abandonAudioFocusRequest(it) } catch (e: Exception) { } }
-        foco = null
-    }
+    // A voz NÃO pede o foco do áudio (pedido do dono: "não mexa com a música do
+    // fone e dos óculos"). Com o foco, o tocador de música abaixava ou parava a
+    // cada frase; sem ele, a voz entra por cima da música, e a música segue.
 
     // ---- fim ----
     private fun aviso(): Notification {
@@ -547,7 +659,7 @@ class BolsoService : Service(), RecognitionListener {
         reconhecedor = null
         try { tts?.stop(); tts?.shutdown() } catch (e: Exception) { }
         tts = null
-        largarFoco()
+        pararGravador()
         web?.destroy()
         web = null
         try { trava?.let { if (it.isHeld) it.release() } } catch (e: Exception) { }

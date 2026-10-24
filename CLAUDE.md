@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v113) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v114) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3030,9 +3030,25 @@ fim do descanso chama com uma frase de ânimo que varia (`FRASES_BOLSO_VOLTA`)
 e diz a próxima série e a anterior como referência. **Só na tela**: aeróbico,
 câmera, óculos, finalizar, acrescentar exercício.
 
-**A voz** abaixa a música enquanto fala (foco de áudio
-`GAIN_TRANSIENT_MAY_DUCK`, como o GPS). **O bipe do reconhecedor** a cada
-religada é abafado calando por 0,7 s os sons de notificação e de sistema.
+**A música do fone e dos óculos não pode ser tocada** (pedido do dono, depois
+de a música parar e picotar com a tela travada):
+- **A voz não pede o foco do áudio.** A primeira versão pedia
+  (`GAIN_TRANSIENT_MAY_DUCK`), e o tocador abaixava ou parava a cada frase.
+  Hoje a voz entra por cima da música.
+- **O reconhecedor não fica abrindo e fechando.** O do Google pega o microfone
+  e o foco a cada vez que começa a ouvir; sem ninguém falando ele fecha em
+  segundos e recomeça, e a música pausava e voltava o tempo todo. No Android
+  13+ (`fonteExterna`) **quem grava é o app** (`AudioRecord`, que não mexe no
+  foco nem no perfil do Bluetooth), mede o ruído de fundo (`piso`), e só
+  quando o som passa de 2,5× o piso por 60 ms chama o reconhecedor, entregando
+  o áudio por um cano (`EXTRA_AUDIO_SOURCE`), com meio segundo de antes para
+  não perder o "Jarvis". Sessão de no máximo 12 s. Se o reconhecedor recusar o
+  áudio de fora duas vezes, volta ao jeito antigo e o diário diz.
+- No jeito antigo, **o bipe** a cada religada é abafado calando por 0,7 s os
+  sons de notificação e de sistema (nunca a música).
+- **No site, o que mexe na música é de propósito e opcional**: o "Toque no
+  fone ou nos óculos" toca um áudio mudo para receber o play/pause do fone, e
+  com isso vira o tocador ativo (a música pausa). Fica em "Nada" por padrão.
 
 **Não validado num aparelho**: se o reconhecimento do Google aceita ouvir pelo
 serviço com a tela travada em todo Android, se o bipe some, e o WebView

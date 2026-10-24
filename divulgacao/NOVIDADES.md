@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-10-24e — A música não para mais com a tela travada
+
+**Em uma frase:** no app Android, o Jarvis da tela travada deixou de pausar e picotar a música do fone
+e dos óculos.
+
+**O que mudou**
+- A voz do Jarvis entra por cima da música, sem abaixar nem pausar.
+- Com a tela travada, ele só liga o reconhecimento de voz quando ouve alguém falando; no silêncio não
+  mexe em nada (antes ele religava a cada poucos segundos e a música pausava junto).
+
+**Por que importa para quem treina**
+- Música no fone o treino inteiro, e o Jarvis ainda ouvindo e avisando.
+
+**Como usar**
+- Instale o app Android de novo e abra pelo ícone. Nada para configurar.
+
+**Ideias de vídeo**
+- Música tocando no fone, celular travado, "Jarvis, 80 por 10" e a música segue.
+
+**Não prometer**
+- Ainda em teste no celular. No Android abaixo do 13 o jeito antigo continua e a música pode pausar.
+- Se "Toque no fone ou nos óculos" estiver ligado nos ajustes, a música pausa: é como o toque no fone
+  chega ao app.
+
+---
+
 ## 2026-10-24d — Ouvir com a tela travada: ajustes e diagnóstico
 
 **Em uma frase:** o Jarvis da tela travada deixou de brigar pelo microfone com a tela destravada, e

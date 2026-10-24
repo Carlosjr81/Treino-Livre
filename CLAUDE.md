@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v125) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v126) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3556,6 +3556,29 @@ compartilhados por aí precisam continuar abrindo.
   quer o supino. A exceção é glúteo em "perna", com nota 2, depois dos de
   perna. Prefixo vale ("omb" já acha) e plural é singular. Conceito novo entra
   em `CONCEITOS_BUSCA`, não num `if` na tela.
+- **Séries por músculo, com o indireto** (`VolumeRecomendado`, bloco puro
+  `VOLUME FRACIONADO`, coberto por `teste-volume.js`, 22 checagens). Pedido
+  do dono: "quanto de abdômen eu treino indiretamente? Quero ver se a divisão
+  está adequada ou se estou sobrecarregando algum músculo". A conta por grupo
+  só via o músculo principal: o supino era 1 de peito, e o tríceps e o ombro
+  sumiam. A régua é a das **séries fracionadas** (Pelland, Schoenfeld e
+  colegas, 2024): principal vale 1, ajudante vale ½ (`PESO_INDIRETO`), lidos
+  do `musc` (`p` e `s`) de cada exercício; sem `musc`, conta 1 para o
+  músculo do grupo (`MUSCULOS_DO_GRUPO`). Aquecimento, drop e aeróbico fora,
+  como na conta por grupo. A faixa de 10 a 20 vale **por músculo**.
+  - **Esta semana ou a média de 4 semanas** (`volumeFracionadoPeriodo`): a
+    média é o que diz como a divisão está (na terça o glúteo "não treinou"), e
+    divide só pelas semanas desde o primeiro treino. Abre na média quando há
+    treino antes desta semana.
+  - **"O que olhar na sua divisão"** (`alertasVolume`): músculo acima de 20 (e
+    se o indireto sozinho permite cortar diretas), músculo só de carona
+    ("Abdômen: nenhuma série direta, mas 4 indiretas valem ~2"), e os pares
+    desequilibrados (empurrar × puxar, frente × trás da coxa, mais de 2×).
+  - Também no **resumo do fim do treino** ("💪 Por músculo (indireto vale ½)"),
+    no **resumo animado** ("De carona: Abdômen 2", tela e vídeo) e no
+    **Jarvis** ("quantas séries de abdômen essa semana" diz o indireto).
+  - O cartão por grupo continua embaixo, como "só as diretas": é a régua do
+    Jarvis, do ranking dos amigos e do `recuperacaoMuscular`.
 - **Filtro por equipamento** (`FAMILIAS_EQUIP`) — responde "só tenho halteres em
   casa". Um exercício pode cair em mais de uma família, e isso não é problema.
 - **Duplicar ficha e programa** — ao copiar, os ids de `conjunto` são regerados

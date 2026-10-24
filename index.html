@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24p";
+const VERSAO_APP = "2026-10-24q";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -6286,7 +6286,10 @@ function responderConsulta(c, ctx) {
       const onde = g.series === 0 ? "nenhuma série" : g.series + " " + plural(g.series, "série", "séries");
       const juizo = g.series === 0 ? " Ainda dá tempo." : g.series < FAIXA_SERIES.min ? " Está abaixo da faixa." :
         g.series <= FAIXA_SERIES.max ? " Está na faixa." : " Já passou da faixa — cuidado com a recuperação.";
-      return { ok: true, fala: "Esta semana você fez " + onde + " de " + g.nome + "." + juizo + faixa };
+      // por músculo, com o indireto (séries fracionadas: indireta vale meia)
+      const vm = volumeFracionadoPeriodo(hist, ctx.exPorId, Date.now(), 0).lista.filter((x) => x.grupo === c.grupo && x.total > 0);
+      const ind = vm.map((x) => x.nome.replace(/ \(.*\)/, "").toLowerCase() + " " + num1v(x.total) + (x.indireto ? ", das quais " + num1v(x.indireto * PESO_INDIRETO) + " vêm do indireto" : "")).join("; ");
+      return { ok: true, fala: "Esta semana você fez " + onde + " de " + g.nome + " direto." + (ind ? " Contando o que ele trabalhou em outros exercícios, com a série indireta valendo meia: " + ind + "." : "") + juizo + faixa };
     }
     case "ultimoTreino": {
       if (!hist.length) return { ok: true, fala: "Você ainda não tem nenhum treino no histórico." };
@@ -10015,7 +10018,197 @@ function seriesSemanaisPorGrupo(historico, exPorId) {
     .sort((a, b) => b.series - a.series);
 }
 
+
+// ---------------- VOLUME FRACIONADO (séries por músculo, com o indireto) ----------------
+// Pedido do dono: "quanto de abdômen eu treino indiretamente? Quero ver se a
+// minha divisão está adequada ou se estou sobrecarregando algum músculo."
+// A conta por GRUPO (acima) só vê o músculo principal: o supino entrava como
+// 1 série de peito, e o tríceps e o ombro que trabalharam junto sumiam.
+//
+// A régua é a das SÉRIES FRACIONADAS, a mesma das meta-análises de volume
+// (Pelland, Schoenfeld e colegas, 2024) e do fisiculturismo baseado em
+// evidência: a série em que o músculo é o principal vale 1; a série em que ele
+// ajuda (sinergista, estabilizador) vale ½. O supino é 1 de peito, ½ de
+// tríceps e ½ de ombro. A faixa de 10 a 20 séries por semana (FAIXA_SERIES)
+// passa a valer por músculo, com o indireto somado.
+//
+// O músculo principal e os que ajudam saem do campo musc de cada exercício
+// (p e s), que já existia para o mapa muscular. Exercício sem musc (criado
+// antes desse campo) conta 1 para o músculo do grupo dele.
+const PESO_INDIRETO = 0.5;
+const MUSCULOS_DO_GRUPO = {
+  peito: ["peito"], costas: ["dorsal", "trapezio", "lombar"], pernas: ["quadriceps", "posteriores", "adutores", "panturrilha"],
+  ombros: ["ombros"], biceps: ["biceps", "antebraco"], triceps: ["triceps"], abdomen: ["abdomen", "obliquos"], gluteos: ["gluteos"],
+};
+const grupoDoMusculo = (id) => Object.keys(MUSCULOS_DO_GRUPO).find((g) => MUSCULOS_DO_GRUPO[g].indexOf(id) >= 0) || null;
+function musculosDoEx(e) {
+  const m = (e && e.musc) || {};
+  let p = (m.p || []).filter((x) => MUSCULOS[x]);
+  if (!p.length && e && MUSCULOS_DO_GRUPO[e.grupo]) p = [MUSCULOS_DO_GRUPO[e.grupo][0]];
+  const s = (m.s || []).filter((x) => MUSCULOS[x] && p.indexOf(x) < 0);
+  return { p: p, s: s };
+}
+// soma as séries de um treino em acc[músculo] = { direto, indireto }
+// (aquecimento e drop ficam fora, como na conta por grupo; aeróbico não é série)
+function somarVolumeFracionado(acc, registro, exPorId) {
+  (registro.itens || []).forEach((it) => {
+    const e = exPorId(it.exercicioId);
+    if (!e || e.cardio) return;
+    const n = (it.series || []).filter((s) => serieConta(s) && !ehDrop(s) && !ehCardio(s)).length;
+    if (!n) return;
+    const m = musculosDoEx(e);
+    m.p.forEach((x) => { const a = acc[x] || (acc[x] = { direto: 0, indireto: 0 }); a.direto += n; });
+    m.s.forEach((x) => { const a = acc[x] || (acc[x] = { direto: 0, indireto: 0 }); a.indireto += n; });
+  });
+  return acc;
+}
+function listaVolumeFracionado(acc, divisor) {
+  const d = divisor || 1;
+  return Object.keys(MUSCULOS).map((id) => {
+    const a = acc[id] || { direto: 0, indireto: 0 };
+    const direto = a.direto / d, indireto = a.indireto / d;
+    return { id: id, nome: MUSCULOS[id], grupo: grupoDoMusculo(id), direto: direto, indireto: indireto, total: direto + PESO_INDIRETO * indireto };
+  }).sort((a, b) => b.total - a.total || b.direto - a.direto);
+}
+function volumeFracionadoTreino(registro, exPorId) {
+  return listaVolumeFracionado(somarVolumeFracionado({}, registro, exPorId)).filter((x) => x.total > 0);
+}
+// semanas = 0: esta semana (de segunda até agora). semanas = N: a média por
+// semana das N semanas completas antes desta — é o que diz como a DIVISÃO está,
+// porque a semana corrente pela metade engana (na terça o glúteo "não treinou").
+// Só divide pelas semanas desde o primeiro treino: quem começou há duas
+// semanas não tem a média puxada para baixo por semanas em que nem usava o app.
+function volumeFracionadoPeriodo(historico, exPorId, agora, semanas) {
+  const iniSemana = segundaDaSemana(new Date(agora)).getTime();
+  const acc = {};
+  if (!semanas) {
+    (historico || []).forEach((h) => { const t0 = new Date(h.data).getTime(); if (t0 >= iniSemana && t0 <= agora) somarVolumeFracionado(acc, h, exPorId); });
+    return { lista: listaVolumeFracionado(acc, 1), semanas: 0 };
+  }
+  const ini = iniSemana - semanas * 7 * 864e5;
+  let primeiro = Infinity;
+  (historico || []).forEach((h) => {
+    const t0 = new Date(h.data).getTime();
+    if (t0 < iniSemana) primeiro = Math.min(primeiro, t0);
+    if (t0 >= ini && t0 < iniSemana) somarVolumeFracionado(acc, h, exPorId);
+  });
+  if (primeiro === Infinity) return { lista: listaVolumeFracionado({}, 1), semanas: 0 };
+  const desde = Math.max(ini, segundaDaSemana(new Date(primeiro)).getTime());
+  const n = Math.max(1, Math.min(semanas, Math.round((iniSemana - desde) / (7 * 864e5))));
+  return { lista: listaVolumeFracionado(acc, n), semanas: n };
+}
+function leituraVolume(total) {
+  if (total <= 0) return { id: "zero", txt: "não treinou", cor: "var(--cinza2)" };
+  if (total < FAIXA_SERIES.min) return { id: "baixo", txt: "abaixo da faixa", cor: "var(--obs)" };
+  if (total <= FAIXA_SERIES.max) return { id: "faixa", txt: "na faixa", cor: "var(--ok)" };
+  return { id: "alto", txt: "acima da faixa", cor: "var(--perigo)" };
+}
+// "8 + 9×½" — como o número foi formado
+const num1v = (n) => (Math.round(n * 10) / 10).toLocaleString("pt-BR");
+function textoComposicao(x) {
+  if (!x.indireto) return num1v(x.direto) + " " + (x.direto === 1 ? "direta" : "diretas");
+  if (!x.direto) return "só indireto: " + num1v(x.indireto) + " × ½";
+  return num1v(x.direto) + " " + (x.direto === 1 ? "direta" : "diretas") + " + " + num1v(x.indireto) + " × ½ indiretas";
+}
+// O que vale dizer sobre a divisão: o músculo que passou da faixa por causa do
+// indireto, o que só é treinado de carona, e os pares que costumam ficar
+// desequilibrados (empurrar × puxar, frente × trás da coxa).
+function alertasVolume(lista) {
+  const por = {};
+  lista.forEach((x) => { por[x.id] = x; });
+  const a = [];
+  lista.forEach((x) => {
+    if (x.total > FAIXA_SERIES.max) {
+      const ind = PESO_INDIRETO * x.indireto;
+      a.push({ tipo: "alto", musculo: x.id, txt: x.nome + ": ~" + num1v(x.total) + " séries por semana (" + textoComposicao(x) + "), acima de " + FAIXA_SERIES.max + "." +
+        (ind >= 4 && x.total - ind <= FAIXA_SERIES.max ? " O indireto sozinho soma " + num1v(ind) + ": dá para tirar séries diretas sem perder estímulo." : " Se a recuperação estiver pesando, é por aqui que se corta.") });
+    }
+  });
+  lista.forEach((x) => {
+    if (!x.direto && x.indireto >= 2) a.push({ tipo: "carona", musculo: x.id, txt: x.nome + ": nenhuma série direta, mas " + num1v(x.indireto) + " indiretas valem ~" + num1v(PESO_INDIRETO * x.indireto) + " séries." +
+      (PESO_INDIRETO * x.indireto < FAIXA_SERIES.min ? " Se quiser que ele cresça, faltam séries diretas." : "") });
+  });
+  const par = (a1, b1, rotulo) => {
+    const x = por[a1], y = por[b1];
+    if (!x || !y || Math.max(x.total, y.total) < 6) return;
+    if (x.total > 2 * Math.max(1, y.total)) a.push({ tipo: "par", musculo: b1, txt: rotulo + ": " + x.nome + " ~" + num1v(x.total) + " contra " + y.nome + " ~" + num1v(y.total) + ". Vale equilibrar com mais " + y.nome.toLowerCase() + "." });
+  };
+  par("peito", "dorsal", "Empurrar × puxar"); par("dorsal", "peito", "Puxar × empurrar");
+  par("quadriceps", "posteriores", "Frente × trás da coxa"); par("posteriores", "quadriceps", "Trás × frente da coxa");
+  return a;
+}
+// ---------------- FIM DO VOLUME FRACIONADO
+
 function VolumeRecomendado({ historico, exPorId }) {
+  const [periodo, setPeriodo] = useState(() => (historico.some((h) => new Date(h.data).getTime() < segundaDaSemana(new Date()).getTime()) ? 4 : 0));
+  const [aberto, setAberto] = useState(false);
+  const r = useMemo(() => volumeFracionadoPeriodo(historico, exPorId, Date.now(), periodo), [historico, exPorId, periodo]);
+  const alertas = useMemo(() => alertasVolume(r.lista), [r]);
+  const mostrar = aberto ? r.lista : r.lista.filter((x) => x.total > 0);
+  const tetoM = Math.max(FAIXA_SERIES.max + 4, ...r.lista.map((x) => x.direto + x.indireto * PESO_INDIRETO));
+  return (
+    <React.Fragment>
+    <div style={S.card}>
+      <div style={S.label}>Séries por músculo, com o indireto</div>
+      <div style={{ fontSize: 12, color: "var(--cinza)", margin: "6px 0 10px", lineHeight: 1.5 }}>
+        Cada série conta <b>1</b> para o músculo principal do exercício e <b>½</b> para os que ajudam: o supino é 1 de peito,
+        ½ de tríceps e ½ de ombro. É a conta das séries fracionadas, usada nos estudos de volume (Pelland, Schoenfeld e colegas, 2024)
+        e no fisiculturismo baseado em evidência. A referência é de <b>{FAIXA_SERIES.min} a {FAIXA_SERIES.max} séries por semana</b> por músculo.
+      </div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+        {[[0, "Esta semana"], [4, "Média de 4 semanas"]].map(([v, rot]) => (
+          <button key={v} onClick={() => setPeriodo(v)} aria-pressed={periodo === v}
+            style={{ flex: 1, padding: "8px 6px", borderRadius: 10, fontWeight: 800, fontSize: 12, cursor: "pointer",
+              border: "1px solid " + (periodo === v ? "var(--marca)" : "var(--borda2)"), background: periodo === v ? "var(--marca)" : "transparent", color: periodo === v ? "#fff" : "var(--texto)" }}>{rot}</button>
+        ))}
+      </div>
+      {periodo > 0 && r.semanas > 0 && r.semanas < periodo && (
+        <div style={{ fontSize: 11.5, color: "var(--cinza)", marginBottom: 10 }}>Média de {r.semanas} {plural(r.semanas, "semana", "semanas")} (desde o seu primeiro treino).</div>
+      )}
+      {alertas.length > 0 && (
+        <div style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: "10px 12px", marginBottom: 14 }}>
+          <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>O que olhar na sua divisão</div>
+          {alertas.slice(0, 6).map((x, k) => (
+            <div key={k} style={{ fontSize: 12.5, lineHeight: 1.5, marginBottom: 6 }}>{x.tipo === "alto" ? "⚠ " : x.tipo === "carona" ? "↪ " : "⚖ "}{x.txt}</div>
+          ))}
+        </div>
+      )}
+      {!mostrar.length && <div style={{ fontSize: 12.5, color: "var(--cinza)" }}>Nenhuma série de musculação {periodo ? "nessas semanas" : "nesta semana"} ainda.</div>}
+      {mostrar.map((x) => {
+        const s = leituraVolume(x.total);
+        const cor = corGrupo(GRUPOS.find((g) => g.id === x.grupo) || GRUPOS[0]);
+        return (
+          <div key={x.id} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, marginBottom: 2 }}>
+              <span style={{ fontWeight: 800 }}>{x.nome}</span>
+              <span style={{ color: s.cor, fontWeight: 800, whiteSpace: "nowrap" }}>~{num1v(x.total)} · {s.txt}</span>
+            </div>
+            <div style={{ fontSize: 11, color: "var(--cinza)", marginBottom: 4 }}>{x.total > 0 ? textoComposicao(x) : "nenhuma série"}</div>
+            <div style={{ position: "relative", height: 10, borderRadius: 5, background: "var(--borda)", overflow: "hidden" }}>
+              <div aria-hidden="true" style={{ position: "absolute", top: 0, bottom: 0, left: (FAIXA_SERIES.min / tetoM) * 100 + "%",
+                width: ((FAIXA_SERIES.max - FAIXA_SERIES.min) / tetoM) * 100 + "%", background: "var(--ok)", opacity: 0.22 }} />
+              <div style={{ position: "relative", display: "flex", height: "100%" }}>
+                <div style={{ width: Math.min(100, (x.direto / tetoM) * 100) + "%", background: cor }} />
+                <div title="indireto" style={{ width: Math.min(100, ((x.indireto * PESO_INDIRETO) / tetoM) * 100) + "%", background: cor, opacity: 0.45,
+                  backgroundImage: "repeating-linear-gradient(45deg, rgba(0,0,0,.25) 0 3px, transparent 3px 6px)" }} />
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      <button onClick={() => setAberto((v) => !v)} style={{ ...S.btnGhost, width: "100%", marginTop: 4, fontSize: 12.5, padding: "8px 10px" }}>
+        {aberto ? "Mostrar só os treinados" : "Mostrar todos os " + Object.keys(MUSCULOS).length + " músculos"}
+      </button>
+      <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 8, lineHeight: 1.5 }}>
+        Barra cheia: séries diretas. Barra listrada: o indireto, já pela metade. A zona verde clara é a faixa de {FAIXA_SERIES.min} a {FAIXA_SERIES.max}.
+        Aquecimento e drop não entram. É um guia, não uma regra: o que importa é a tendência ao longo das semanas e como você se recupera.
+      </div>
+    </div>
+    <VolumePorGrupo historico={historico} exPorId={exPorId} />
+    </React.Fragment>
+  );
+}
+function VolumePorGrupo({ historico, exPorId }) {
   const lista = seriesSemanaisPorGrupo(historico, exPorId);
   const teto = Math.max(FAIXA_SERIES.max + 4, ...lista.map((x) => x.series));
   const situacao = (n) => {
@@ -10026,10 +10219,9 @@ function VolumeRecomendado({ historico, exPorId }) {
   };
   return (
     <div style={S.card}>
-      <div style={S.label}>Séries desta semana por grupo</div>
+      <div style={S.label}>Séries desta semana por grupo (só as diretas)</div>
       <div style={{ fontSize: 12, color: "var(--cinza)", margin: "6px 0 14px", lineHeight: 1.5 }}>
-        A faixa de <b>{FAIXA_SERIES.min} a {FAIXA_SERIES.max} séries por semana</b> é a referência mais citada
-        para ganho de massa. É um guia, não uma regra: o que importa é a tendência ao longo das semanas.
+        Contadas pelo grupo do exercício, sem o indireto. A conta por músculo, acima, é a mais completa.
       </div>
       {lista.map((g) => {
         const s = situacao(g.series);
@@ -21345,6 +21537,7 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
   if (f.series) {
     // séries por grupo, que é a régua do app (seriesSemanaisPorGrupo): conta
     // também o exercício sem carga, que o volume deixaria de fora
+    f.musculos = volumeFracionadoTreino(registro, exPorId);
     f.listaGrupos = Object.keys(f.grupos).sort((a, b) => f.grupos[b] - f.grupos[a])
       .map((g) => ({ id: g, series: f.grupos[g], grupo: GRUPOS.find((x) => x.id === g) }))
       .filter((x) => x.grupo);
@@ -21472,8 +21665,12 @@ function cenasResumo(d) {
         (f.cargaMax ? ". Carga máxima de " + fmtNum(f.cargaMax) + " quilos" : "") + "." });
     if (f.listaGrupos.length) {
       const top = f.listaGrupos.slice(0, 2).map((g) => g.grupo.nome.toLowerCase());
+      // os que trabalharam de carona, pela régua das séries fracionadas (indireto vale ½)
+      const ind = (f.musculos || []).filter((x) => x.indireto > 0 && x.direto === 0).slice(0, 3);
       c.push({ tipo: "grupos", rotulo: "Músculos trabalhados", grupos: f.listaGrupos.slice(0, 5),
-        fala: "Mais trabalhado" + (top.length > 1 ? "s: " + top.join(" e ") : ": " + top[0]) + "." });
+        indireto: ind.length ? "De carona: " + ind.map((x) => x.nome.replace(/ \(.*\)/, "") + " " + num1v(x.total)).join(" · ") : "",
+        fala: "Mais trabalhado" + (top.length > 1 ? "s: " + top.join(" e ") : ": " + top[0]) + "." +
+          (ind.length ? " E de carona, " + ind.map((x) => x.nome.replace(/ \(.*\)/, "").toLowerCase()).join(" e ") + "." : "") });
     }
     if (f.recordes.length) {
       c.push({ tipo: "recordes", rotulo: plural(f.recordes.length, "Recorde pessoal", "Recordes pessoais"), valor: f.recordes.length,
@@ -21704,6 +21901,7 @@ function CenaResumo({ c }) {
             </div>
           </div>
         ))}
+        {c.indireto && <div style={{ fontSize: 14, color: "#BDBDBD", fontWeight: 700, textAlign: "center", marginTop: 6 }}>{c.indireto}</div>}
       </div>
     );
   }
@@ -22055,6 +22253,7 @@ function videoCena(c, cena, p) {
       c.textAlign = "center";
       videoBarra(c, 140, y + 26, 800, 26, (g.series / max) * sobe((p - 350 - k * 120) / 800), g.grupo.cor);
     });
+    if (cena.indireto) videoTexto(c, cena.indireto, 540, 760 + cena.grupos.length * 150 + 30, 40, "#BDBDBD", 700, 900);
   } else if (t === "perseguicoes") {
     videoRotulo(c, cena.rotulo, 560);
     if (!videoFoto(c, cena.foto, 540, 690, 90)) videoTexto(c, cena.icone, 540, 740, 150, "#FFFFFF", 400);
@@ -28025,6 +28224,10 @@ function TreinoLivre() {
       const cs = cardioParaStory(registro, exPorId, pesoCorporal) || { min: st.cardioMin, km: st.cardioKm };
       msg += "🏃 " + (soCardio ? "" : "Aeróbico: ") + (cs.km >= 0.05 ? num1(cs.km) + " km em " + fmtTempoRota(cs.min * 60000) + (cs.km >= 0.2 ? " · " + fmtRitmo(cs.min / cs.km) : "") : Math.round(cs.min) + " min") + " · ~" + Math.round(kcalCardio) + " kcal\n";
       if (cs.posicao) msg += "🏁 " + cs.posicao + "\n";
+    }
+    if (!soCardio) {
+      const vm = volumeFracionadoTreino(registro, exPorId).slice(0, 6);
+      if (vm.length) msg += "💪 Por músculo (indireto vale ½): " + vm.map((x) => x.nome.replace(/ \(.*\)/, "") + " " + num1v(x.total) + (x.direto ? "" : " (indireto)")).join(" · ") + "\n";
     }
     if (st.seriesAquec > 0) msg += "(mais " + st.seriesAquec + " " + plural(st.seriesAquec, "série", "séries") + " de aquecimento, fora da conta)\n";
     msg += "⏱ " + registro.duracaoMin + " min";

@@ -16,6 +16,39 @@
 
 ---
 
+## 2026-10-24q — Quanto cada músculo trabalha, contando o treino indireto
+
+**Em uma frase:** o app agora mostra as séries de cada um dos 15 músculos por semana, somando o que ele trabalha de
+carona em outros exercícios (o abdômen no agachamento, o tríceps no supino), para você ver se a divisão está equilibrada.
+
+**O que mudou**
+- **Séries por músculo, com o indireto** (Histórico › Números): a série em que o músculo é o principal vale 1; a série
+  em que ele ajuda vale meia. O supino conta 1 de peito, meia de tríceps e meia de ombro. É a conta usada nos estudos
+  de volume de treino (Pelland, Schoenfeld e colegas, 2024) e no fisiculturismo baseado em evidência.
+- **Esta semana ou a média de 4 semanas**: a média mostra como está a sua divisão de verdade.
+- **"O que olhar na sua divisão"**: o músculo que passou de 20 séries por semana (e se dá para cortar séries diretas
+  porque o indireto já cobre), o que só trabalha de carona ("Abdômen: nenhuma série direta, mas 4 indiretas valem ~2"),
+  e o desequilíbrio entre empurrar e puxar e entre a frente e a parte de trás da coxa.
+- **No fim do treino**: "Por músculo: Peitoral 8 · Tríceps 6 · Deltoides 4 (indireto)…", e o resumo animado diz quem
+  trabalhou de carona.
+- **O Jarvis responde**: "Jarvis, quantas séries de abdômen essa semana?" agora conta o indireto.
+
+**Por que importa para quem treina**
+- Quem faz supino, desenvolvimento e paralelas na mesma semana pode estar com tríceps demais sem nenhuma série
+  "de tríceps" a mais. E quem nunca treina abdômen descobre quanto o agachamento e o terra já fazem por ele.
+
+**Como usar**
+- Histórico › Números › "Séries por músculo, com o indireto". Toque em "Média de 4 semanas" para avaliar a divisão.
+
+**Ideias de vídeo**
+- "Quanto de abdômen você treina sem fazer abdominal?": abrir o cartão e mostrar a linha do abdômen.
+- Comparar duas divisões: uma com tríceps acima de 20 por causa do supino.
+
+**Não prometer**
+- A faixa de 10 a 20 séries por semana é uma referência, não prescrição. O app não sabe como você se recupera.
+
+---
+
 ## 2026-10-24p — O desafio diz quem já largou, e avisa quando a tela não pode travar
 
 **Em uma frase:** a voz do desafio conta a cada boletim se alguém já largou ou se você corre sozinho, e o app avisa

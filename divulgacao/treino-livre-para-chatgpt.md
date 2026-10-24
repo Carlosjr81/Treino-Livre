@@ -8,9 +8,18 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24p**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24q**.
 
 ---
+
+
+## Séries por músculo, com o indireto (novo em 2026-10-24q)
+- Em Histórico › Números: as séries por semana de cada um dos 15 músculos, contando o treino indireto pela metade
+  (o supino é 1 de peito e meia de tríceps e de ombro). Esta semana ou a média de 4 semanas.
+- Avisos da divisão: músculo acima de 20 séries, músculo que só trabalha de carona (ex.: abdômen), e desequilíbrio
+  entre empurrar e puxar e entre frente e trás da coxa.
+- Também no resumo do fim do treino, no resumo animado e no Jarvis ("quantas séries de abdômen essa semana?").
+- Não prometer: a faixa de 10 a 20 séries é referência, não prescrição.
 
 ## 1. Em uma frase
 

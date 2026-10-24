@@ -16,6 +16,41 @@
 
 ---
 
+## 2026-10-24r — O app monta o ajuste da sua divisão e periodiza o treino
+
+**Em uma frase:** a partir das séries de cada músculo (com o indireto), o app sugere o que acrescentar e o que cortar,
+cria um treino ajustado com esses exercícios e conduz um ciclo de 5 semanas com dias pesados, moderados e leves.
+
+**O que mudou**
+- **Plano para equilibrar a divisão** (Histórico › Números): cada músculo abaixo do mínimo ganha "+N séries, em 2 dias"
+  com os exercícios clássicos para ele (elevação lateral para ombro, encolhimento para trapézio, panturrilha em pé…), e
+  o que passou de 20 séries ganha "−N séries diretas".
+- **"Criar ajustado"**: um treino novo, cópia do seu, com os exercícios já colocados nas fichas certas. O seu treino de
+  agora não muda.
+- **Periodização comprovada, já ligada no treino ajustado**:
+  - no dia, as fichas se revezam entre pesado (6 a 8 repetições), moderado (8 a 12) e leve (12 a 15);
+  - no mês, um ciclo de 5 semanas: base, acúmulo, acúmulo, pico e uma semana leve para recuperar (metade das séries).
+  - Ao abrir o treino aparece "Semana 3 de 5 · Acúmulo · Dia leve", e as séries já vêm na quantidade daquela semana.
+- **"Diária, semanal ou quinzenal?"**: o app explica o que a pesquisa diz (volume por semana, cada músculo 2 vezes por
+  semana, ondulação no dia, ciclo no mês; quinzenal não tem apoio).
+
+**Por que importa para quem treina**
+- Não basta saber que o abdômen está fraco: o app diz quanto acrescentar, qual exercício, em que dia, e organiza as
+  semanas para você progredir e descansar na hora certa.
+
+**Como usar**
+- Histórico › Números › "Plano para equilibrar a divisão" › "Criar … ajustado". Depois é só treinar pelas fichas novas.
+
+**Ideias de vídeo**
+- Antes e depois da divisão: o cartão de músculos com lacunas, o toque em "Criar ajustado" e as fichas novas.
+- "Semana 5 é deload": mostrar o treino abrindo com metade das séries e explicar por que descansar faz crescer.
+
+**Não prometer**
+- Os mínimos por músculo são ponto de partida, não prescrição; dor, sono ruim ou cansaço que não passa pedem o deload
+  antes. O app não substitui um treinador.
+
+---
+
 ## 2026-10-24q — Quanto cada músculo trabalha, contando o treino indireto
 
 **Em uma frase:** o app agora mostra as séries de cada um dos 15 músculos por semana, somando o que ele trabalha de

@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24q";
+const VERSAO_APP = "2026-10-24r";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -10139,7 +10139,160 @@ function alertasVolume(lista) {
 }
 // ---------------- FIM DO VOLUME FRACIONADO
 
-function VolumeRecomendado({ historico, exPorId }) {
+// ---------------- PLANO DE AJUSTE E PERIODIZAÇÃO ----------------
+// Pedido do dono: "com essa análise, sugira um treino para os músculos menos
+// treinados, mesmo os indiretos, e veja a melhor periodização — diária,
+// semanal, quinzenal — por um método comprovado".
+//
+// O que a pesquisa sustenta, e o que foi escolhido daqui:
+// - VOLUME é o que mais move a hipertrofia (Schoenfeld 2017; Pelland 2024):
+//   o ajuste é em séries por semana, por músculo, com o indireto valendo ½.
+// - FREQUÊNCIA: cada músculo ao menos 2 vezes por semana (Schoenfeld 2016).
+//   Com o volume igual, mais vezes não faz mal, e dividir evita sessões
+//   longas demais: as séries novas são repartidas em dois dias.
+// - PERIODIZAÇÃO: para hipertrofia, linear e ondulatória dão resultado
+//   parecido; a ondulatória diária (DUP) tem leve vantagem em força (Rhea
+//   2002; Harries 2015; Grgic 2017). O app usa as duas escalas que a prática
+//   do fisiculturismo consagrou: no DIA, ondulação de repetições (pesado,
+//   moderado, leve); no MÊS, um mesociclo de 5 semanas com volume subindo e a
+//   proximidade da falha aumentando, e uma semana de deload no fim (o modelo do
+//   Renaissance Periodization; deload por consenso em Bell 2023).
+// - Quinzenal não tem apoio: 15 dias é curto para um ciclo e longo para um
+//   ajuste de dia.
+//
+// O alvo por músculo é perto do volume mínimo que faz crescer (MEV) nas
+// tabelas do RP: os grandes e os que só crescem com série direta pedem mais;
+// lombar, antebraço, oblíquos e trapézio recebem muito trabalho indireto e
+// pedem pouco direto. É um ponto de partida, e a tela diz isso.
+const ALVO_MUSCULO = { peito: 10, dorsal: 10, quadriceps: 10, ombros: 10, posteriores: 8, gluteos: 8, biceps: 8, triceps: 8,
+  panturrilha: 8, abdomen: 6, trapezio: 6, adutores: 4, obliquos: 4, lombar: 4, antebraco: 4 };
+const PLANO_SERIES_SESSAO = 6;       // séries novas de um músculo num dia, no máximo
+// Os clássicos de cada músculo, que qualquer academia tem e qualquer um executa:
+// sem eles, a busca pelo catálogo sugeria "arranco com halter" para ombro.
+const CLASSICOS_MUSCULO = {
+  peito: ["supino-maquina", "supino-reto"], dorsal: ["puxada-frente", "remada-baixa"], ombros: ["elevacao-lateral", "desenvolvimento-maquina"],
+  biceps: ["rosca-direta", "rosca-alternada", "rosca-martelo"], triceps: ["triceps-polia", "triceps-corda"], trapezio: ["encolhimento", "face-pull"],
+  quadriceps: ["leg-press", "cadeira-extensora"], posteriores: ["mesa-flexora", "stiff"], gluteos: ["elevacao-pelvica", "abducao"],
+  adutores: ["cadeira-adutora"], panturrilha: ["panturrilha", "panturrilha-sentado"], abdomen: ["abdominal-supra", "abdominal-infra", "prancha"],
+  obliquos: ["prancha-lateral", "abdominal-obliquo"], lombar: ["hiperextensao"], antebraco: ["rosca-punho", "rosca-inversa"],
+};
+// Os exercícios que treinam m como principal. Favorece o que a pessoa já faz
+// (sabe executar), o isolado para músculo pequeno, o que ajuda outro músculo
+// que também está faltando — e evita o que carrega um que já passou da faixa.
+function exerciciosPara(m, catalogo, faltam, sobram, usados) {
+  return (catalogo || []).filter((e) => !e.cardio && e.musc && (e.musc.p || []).indexOf(m) >= 0)
+    .map((e) => {
+      const p = e.musc.p || [], s = e.musc.s || [];
+      let nota = 0;
+      if (usados && usados[e.id]) nota += 3;
+      const cl = (CLASSICOS_MUSCULO[m] || []).indexOf(e.id);
+      if (cl >= 0) nota += 4 - cl * 0.5;
+      nota -= s.length * 0.3;
+      nota -= (p.length - 1) * (ALVO_MUSCULO[m] <= 8 ? 1.5 : 0.5);
+      p.concat(s).forEach((x) => { if (x !== m && sobram[x]) nota -= 2; if (x !== m && faltam[x]) nota += 1; });
+      if (e.func) nota -= 1;
+      return { e: e, nota: nota };
+    })
+    .sort((a, b) => b.nota - a.nota || String(a.e.nome).localeCompare(String(b.e.nome)))
+    .slice(0, 3).map((x) => x.e);
+}
+// lista: a de volumeFracionadoPeriodo (por semana). usados: { idDoExercicio: true }
+function planoAjuste(lista, catalogo, usados) {
+  const faltamM = {}, sobramM = {};
+  lista.forEach((x) => {
+    const alvo = ALVO_MUSCULO[x.id] || 6;
+    if (x.total < alvo - 0.5) faltamM[x.id] = Math.ceil(alvo - x.total);
+    else if (x.total > FAIXA_SERIES.max && x.direto > 0) sobramM[x.id] = Math.min(Math.ceil(x.total - FAIXA_SERIES.max), Math.floor(x.direto));
+  });
+  const faltam = lista.filter((x) => faltamM[x.id]).map((x) => {
+    const add = faltamM[x.id];
+    const sugestoes = exerciciosPara(x.id, catalogo, faltamM, sobramM, usados);
+    // 2 vezes por semana: metade num dia, metade no outro (1 série só cabe num dia)
+    const dias = add >= 2 ? [Math.ceil(add / 2), Math.floor(add / 2)] : [add];
+    return { musculo: x.id, nome: x.nome, total: x.total, alvo: ALVO_MUSCULO[x.id] || 6, add: add,
+      dias: dias.map((n) => Math.min(PLANO_SERIES_SESSAO, n)), sugestoes: sugestoes };
+  }).filter((f) => f.sugestoes.length);
+  const sobram = lista.filter((x) => sobramM[x.id]).map((x) => ({ musculo: x.id, nome: x.nome, total: x.total, cortar: sobramM[x.id] }));
+  return { faltam: faltam, sobram: sobram };
+}
+// O plano vira um programa novo, cópia das fichas de agora com o ajuste: o
+// programa antigo fica intacto (mexer na ficha de alguém sem pedir é proibido
+// aqui). Cada exercício novo vai para a ficha que já treina o grupo dele; sem
+// nenhuma, para a ficha com menos séries.
+function aplicarPlanoNasFichas(fichas, plano, exPorId, novoId) {
+  const novas = fichas.map((f) => ({ ...f, itens: (f.itens || []).map((it) => ({ ...it })) }));
+  const mudancas = [];
+  const seriesDa = (f) => f.itens.reduce((a, it) => a + (parseInt(it.series) || 0), 0);
+  const gruposDa = (f) => f.itens.map((it) => { const e = exPorId(it.exercicioId); return e && e.grupo; });
+  plano.faltam.forEach((fa) => {
+    const g = grupoDoMusculo(fa.musculo);
+    const comGrupo = novas.filter((f) => gruposDa(f).indexOf(g) >= 0);
+    const resto = novas.filter((f) => comGrupo.indexOf(f) < 0).sort((a, b) => seriesDa(a) - seriesDa(b));
+    const destino = comGrupo.concat(resto);
+    fa.dias.forEach((n, k) => {
+      const f = destino[k % Math.max(1, destino.length)];
+      if (!f) return;
+      // a melhor sugestão nos dois dias: a segunda costuma carregar outro músculo
+      const ex = fa.sugestoes[0];
+      const ja = f.itens.find((it) => it.exercicioId === ex.id);
+      if (ja) { ja.series = (parseInt(ja.series) || 0) + n; mudancas.push(f.nome + ": +" + n + " " + plural(n, "série", "séries") + " de " + ex.nome); return; }
+      const reps = /abdomen|obliquos|panturrilha|antebraco/.test(fa.musculo) ? 15 : 12;
+      f.itens.push({ uid: novoId(), exercicioId: ex.id, series: n, reps: reps, obs: "Ajuste: +" + fa.nome.replace(/ \(.*\)/, "").toLowerCase(), descanso: null, conjunto: null });
+      mudancas.push(f.nome + ": " + ex.nome + " " + n + "×" + reps + " (" + fa.nome.replace(/ \(.*\)/, "") + ")");
+    });
+  });
+  plano.sobram.forEach((so) => {
+    let falta = so.cortar;
+    // tira 1 série de cada exercício em que o músculo é o principal, em rodízio,
+    // sem deixar nenhum com menos de 2
+    const alvos = [];
+    novas.forEach((f) => f.itens.forEach((it) => { const e = exPorId(it.exercicioId); if (e && e.musc && (e.musc.p || []).indexOf(so.musculo) >= 0) alvos.push({ f: f, it: it, e: e }); }));
+    let mudou = true;
+    while (falta > 0 && mudou) {
+      mudou = false;
+      alvos.forEach((a) => { if (falta > 0 && (parseInt(a.it.series) || 0) > 2) { a.it.series = (parseInt(a.it.series) || 0) - 1; falta--; mudou = true; a.cortou = (a.cortou || 0) + 1; } });
+    }
+    alvos.filter((a) => a.cortou).forEach((a) => mudancas.push(a.f.nome + ": " + a.e.nome + " −" + a.cortou + " (" + so.nome.replace(/ \(.*\)/, "") + " acima de " + FAIXA_SERIES.max + ")"));
+  });
+  return { fichas: novas, mudancas: mudancas };
+}
+// O mesociclo: 5 semanas. O volume sobe e a reserva (repetições que sobram
+// antes da falha) desce; a 5ª é o deload, e então o ciclo recomeça.
+const MESOCICLO = [
+  { semana: 1, nome: "Base", delta: -1, reserva: "3 repetições na reserva", dica: "comece com folga: a técnica e a carga se acertam" },
+  { semana: 2, nome: "Acúmulo", delta: 0, reserva: "2 repetições na reserva", dica: "as séries da ficha, com carga firme" },
+  { semana: 3, nome: "Acúmulo", delta: 0, reserva: "1 a 2 repetições na reserva", dica: "tente subir a carga ou uma repetição" },
+  { semana: 4, nome: "Pico", delta: 1, reserva: "0 a 1 repetição na reserva", dica: "uma série a mais em cada exercício, perto da falha" },
+  { semana: 5, nome: "Deload", fator: 0.5, reserva: "carga uns 10% mais leve", dica: "metade das séries: é aqui que o corpo recupera e cresce" },
+];
+const DIAS_ONDULACAO = [
+  { id: "pesado", nome: "Dia pesado", reps: [6, 8], dica: "carga alta, descanso de 2 a 3 minutos" },
+  { id: "moderado", nome: "Dia moderado", reps: [8, 12], dica: "o meio-termo, descanso de 1,5 a 2 minutos" },
+  { id: "leve", nome: "Dia leve", reps: [12, 15], dica: "carga menor, mais repetições, descanso de 1 minuto" },
+];
+function semanaDoMeso(meso, agora) {
+  if (!meso || !meso.inicio) return null;
+  const dias = Math.floor((agora - meso.inicio) / 864e5);
+  if (dias < 0) return null;
+  const n = MESOCICLO.length;
+  return { semana: (Math.floor(dias / 7) % n) + 1, ciclo: Math.floor(dias / 7 / n) + 1 };
+}
+function seriesNaSemana(base, semana) {
+  const b = parseInt(base) || 0;
+  const m = MESOCICLO[(semana || 1) - 1];
+  if (!m || b <= 0) return b;
+  if (m.fator) return Math.max(1, Math.ceil(b * m.fator));
+  return Math.max(1, b + m.delta);
+}
+// a ondulação do dia: a ficha N do programa é pesada, moderada ou leve, em
+// rodízio; no deload, todo dia é leve
+function diaDaOndulacao(indiceFicha, semana) {
+  if (semana === 5) return DIAS_ONDULACAO[2];
+  return DIAS_ONDULACAO[((indiceFicha % 3) + 3) % 3];
+}
+// ---------------- FIM DO PLANO DE AJUSTE
+
+function VolumeRecomendado({ historico, exPorId, plano }) {
   const [periodo, setPeriodo] = useState(() => (historico.some((h) => new Date(h.data).getTime() < segundaDaSemana(new Date()).getTime()) ? 4 : 0));
   const [aberto, setAberto] = useState(false);
   const r = useMemo(() => volumeFracionadoPeriodo(historico, exPorId, Date.now(), periodo), [historico, exPorId, periodo]);
@@ -10204,8 +10357,88 @@ function VolumeRecomendado({ historico, exPorId }) {
         Aquecimento e drop não entram. É um guia, não uma regra: o que importa é a tendência ao longo das semanas e como você se recupera.
       </div>
     </div>
+    {plano && <PlanoAjuste historico={historico} exPorId={exPorId} {...plano} />}
     <VolumePorGrupo historico={historico} exPorId={exPorId} />
     </React.Fragment>
+  );
+}
+// O plano para equilibrar a divisão, e o programa ajustado com a periodização
+function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar }) {
+  const r = useMemo(() => volumeFracionadoPeriodo(historico, exPorId, Date.now(), 4), [historico, exPorId]);
+  const usados = useMemo(() => { const u = {}; historico.slice(0, 40).forEach((h) => (h.itens || []).forEach((it) => { u[it.exercicioId] = true; })); return u; }, [historico]);
+  const plano = useMemo(() => planoAjuste(r.semanas ? r.lista : volumeFracionadoPeriodo(historico, exPorId, Date.now(), 0).lista, catalogo, usados), [r, catalogo, usados]);
+  // o programa de agora: o da ficha treinada por último
+  const prog = useMemo(() => {
+    const ult = historico.slice().sort((a, b) => new Date(b.data) - new Date(a.data)).find((h) => (treinos || []).some((f) => f.nome === h.nome));
+    const f = ult && treinos.find((x) => x.nome === ult.nome);
+    return (programas || []).find((p) => p.id === (f ? f.programaId : null)) || (programas || [])[0] || null;
+  }, [historico, treinos, programas]);
+  const [aberto, setAberto] = useState(false);
+  const meso = (programas || []).find((p) => p.meso && p.meso.inicio);
+  const sm = meso ? semanaDoMeso(meso.meso, Date.now()) : null;
+  if (!historico.length) return null;
+  return (
+    <div style={S.card}>
+      <div style={S.label}>🧭 Plano para equilibrar a divisão</div>
+      {sm && (
+        <div style={{ border: "1px solid var(--ok)", borderRadius: 12, padding: "10px 12px", margin: "8px 0 10px", fontSize: 12.5, lineHeight: 1.5 }}>
+          <b>{meso.nome}: semana {sm.semana} de {MESOCICLO.length} · {MESOCICLO[sm.semana - 1].nome}</b>{sm.ciclo > 1 ? " (ciclo " + sm.ciclo + ")" : ""}.<br />
+          {MESOCICLO[sm.semana - 1].reserva}: {MESOCICLO[sm.semana - 1].dica}.
+        </div>
+      )}
+      {!plano.faltam.length && !plano.sobram.length ? (
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", margin: "8px 0", lineHeight: 1.5 }}>
+          Pela média das suas últimas semanas, nenhum músculo está abaixo do mínimo nem acima de {FAIXA_SERIES.max}. A divisão está equilibrada.
+        </div>
+      ) : (
+        <React.Fragment>
+          <div style={{ fontSize: 12, color: "var(--cinza)", margin: "6px 0 10px", lineHeight: 1.5 }}>
+            Pela {r.semanas ? "média das suas últimas " + r.semanas + " " + plural(r.semanas, "semana", "semanas") : "sua semana"}, contando o indireto pela metade.
+            O mínimo de cada músculo é um ponto de partida perto do volume mínimo que faz crescer.
+          </div>
+          {plano.faltam.map((f) => (
+            <div key={f.musculo} style={{ padding: "8px 0", borderBottom: "1px solid var(--borda)", fontSize: 12.5, lineHeight: 1.5 }}>
+              <b>↑ {f.nome}</b>: ~{num1v(f.total)} de {f.alvo} por semana. <b>+{f.add} {plural(f.add, "série", "séries")}</b>{f.dias.length > 1 ? ", em 2 dias (" + f.dias.join(" + ") + ")" : ""}.
+              <div style={{ color: "var(--cinza)" }}>Sugestão: {f.sugestoes.slice(0, 2).map((e) => e.nome).join(" ou ")}</div>
+            </div>
+          ))}
+          {plano.sobram.map((s) => (
+            <div key={s.musculo} style={{ padding: "8px 0", borderBottom: "1px solid var(--borda)", fontSize: 12.5, lineHeight: 1.5 }}>
+              <b>↓ {s.nome}</b>: ~{num1v(s.total)} por semana. <b>−{s.cortar} {plural(s.cortar, "série direta", "séries diretas")}</b>: o indireto continua trabalhando ele.
+            </div>
+          ))}
+        </React.Fragment>
+      )}
+      <button onClick={() => setAberto((v) => !v)} style={{ ...S.btnGhost, width: "100%", marginTop: 10, fontSize: 12.5, padding: "8px 10px" }}>
+        {aberto ? "Fechar a periodização" : "📅 Como periodizar: diária, semanal ou quinzenal?"}
+      </button>
+      {aberto && (
+        <div style={{ fontSize: 12.5, lineHeight: 1.55, marginTop: 10 }}>
+          <div style={{ marginBottom: 8 }}>
+            <b>A resposta da pesquisa:</b> o que mais faz crescer é o <b>volume semanal</b> por músculo, com cada um treinado
+            <b> pelo menos 2 vezes por semana</b>. Ondular as repetições <b>dia a dia</b> e organizar as semanas em <b>mesociclos</b> com
+            uma semana leve no fim é o que o fisiculturismo baseado em evidência usa. Quinzenal não tem apoio: é curto para um ciclo e longo para um ajuste.
+          </div>
+          <div style={{ ...S.label, fontSize: 10, margin: "10px 0 6px" }}>O dia: ondulação de repetições</div>
+          {DIAS_ONDULACAO.map((d) => <div key={d.id}>• <b>{d.nome}</b>: {d.reps[0]} a {d.reps[1]} repetições, {d.dica}.</div>)}
+          <div style={{ color: "var(--cinza)", marginTop: 4 }}>As fichas se revezam: a 1ª é pesada, a 2ª moderada, a 3ª leve, a 4ª pesada…</div>
+          <div style={{ ...S.label, fontSize: 10, margin: "12px 0 6px" }}>O mês: mesociclo de 5 semanas</div>
+          {MESOCICLO.map((m) => (
+            <div key={m.semana}>• <b>Semana {m.semana} · {m.nome}</b>: {m.fator ? "metade das séries" : m.delta > 0 ? "+" + m.delta + " série por exercício" : m.delta < 0 ? m.delta + " série por exercício" : "as séries da ficha"}; {m.reserva}.</div>
+          ))}
+          <div style={{ color: "var(--cinza)", marginTop: 6 }}>
+            Base: Schoenfeld (volume e frequência), Pelland 2024 (séries fracionadas), Rhea 2002 e Grgic 2017 (periodização ondulatória),
+            Bell 2023 (deload) e as tabelas de volume do Renaissance Periodization. É um guia: dor, sono ruim ou cansaço que não passa pedem o deload antes.
+          </div>
+        </div>
+      )}
+      {prog && onCriar && (
+        <button onClick={() => onCriar(prog, plano)} style={{ ...S.btn, width: "100%", marginTop: 12 }}>
+          ✨ Criar "{prog.nome} ajustado" com a periodização
+        </button>
+      )}
+      {prog && <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>Cria um treino novo, cópia do "{prog.nome}" com os exercícios sugeridos e o mesociclo ligado. O seu treino atual fica como está.</div>}
+    </div>
   );
 }
 function VolumePorGrupo({ historico, exPorId }) {
@@ -24680,6 +24913,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           botões, e a primeira dica falava de voz — sem ninguém ter dito ainda
           que é só digitar e tocar no ✓. Enquanto este guia está na tela, a dica
           da voz espera (uma dica de cada vez). */}
+      {sessao.meso && (
+        <div style={{ ...S.card, padding: "10px 14px", fontSize: 12.5, lineHeight: 1.5 }}>
+          <b>📅 Semana {sessao.meso.semana} de {MESOCICLO.length} · {sessao.meso.nome} · {sessao.meso.dia}</b><br />
+          {sessao.meso.reps[0]} a {sessao.meso.reps[1]} repetições, {sessao.meso.diaDica}. {sessao.meso.reserva.charAt(0).toUpperCase() + sessao.meso.reserva.slice(1)}: {sessao.meso.dica}.
+        </div>
+      )}
       {primeiroTreino && (
         <div style={{ ...S.card, borderColor: "#4ADE8066", background: "var(--ok-bg)" }}>
           <div style={{ ...S.label, color: "var(--ok)" }}>👋 Como anotar o seu treino</div>
@@ -26583,7 +26822,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
   medidas, onSalvarMedida, onExcluirMedida, avisar,
   fotos, onAdicionarFoto, onExcluirFoto,
   meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor, onComecar, onAbrirGrupo,
-  saude, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizarSaude }) {
+  saude, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizarSaude, plano }) {
   const [secao, setSecao] = useState(secaoInicial || "treinos");
   const recordes = useMemo(() => calcularRecordes(historico), [historico]);
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
@@ -26637,7 +26876,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
               🏃 Painel do corredor: pace, recordes, VO2máx e previsão de prova
             </button>
           )}
-          <VolumeRecomendado historico={historico} exPorId={exPorId} />
+          <VolumeRecomendado historico={historico} exPorId={exPorId} plano={plano} />
           <NumerosGerais historico={historico} />
           <GraficoSemanal historico={historico} />
           <VolumeMusculos historico={historico} exPorId={exPorId} onAbrirGrupo={onAbrirGrupo} />
@@ -27800,10 +28039,16 @@ function TreinoLivre() {
   }, [carregado, lembrete, historico]);
 
   const comecarSessao = (treino) => {
+    // treino de um programa com mesociclo: as séries da semana e o dia da ondulação
+    const prog = programas.find((p) => p.id === treino.programaId);
+    const sm = prog && prog.meso ? semanaDoMeso(prog.meso, Date.now()) : null;
+    const irmas = sm ? treinos.filter((t) => t.programaId === prog.id) : [];
+    const dia = sm ? diaDaOndulacao(Math.max(0, irmas.findIndex((t) => t.id === treino.id)), sm.semana) : null;
     setSessao({
       treinoId: treino.id,
       nome: treino.nome,
       inicio: Date.now(),
+      meso: sm ? { semana: sm.semana, nome: MESOCICLO[sm.semana - 1].nome, reserva: MESOCICLO[sm.semana - 1].reserva, dica: MESOCICLO[sm.semana - 1].dica, dia: dia.nome, reps: dia.reps, diaDica: dia.dica } : null,
       itens: treino.itens.map((it, i) => {
         // A carga já vem preenchida com a da última vez, e sobe sozinha quando
         // todas as séries fecharam as repetições combinadas. É a sobrecarga
@@ -27818,7 +28063,9 @@ function TreinoLivre() {
           conjunto: it.conjunto || null,   // bi-set/tri-set definido na ficha
           descanso: it.descanso || null,   // descanso próprio deste exercício
           sugerido: sug || null,
-          series: montarSeries(ex, it.series, it.reps, sug, it.drops),
+          // a ficha guarda as séries de base; o mesociclo diz quantas nesta semana
+          // (o aeróbico e a isometria não entram na conta)
+          series: montarSeries(ex, sm && !exCardio(ex) && !(ex && ex.tempo) ? seriesNaSemana(it.series, sm.semana) : it.series, it.reps, sug, it.drops),
         };
       }),
     });
@@ -27826,6 +28073,26 @@ function TreinoLivre() {
     // Quem já usou o Jarvis não quer ligar o microfone a cada treino. O toque em
     // "Treinar" é o gesto que o navegador exige para abrir o microfone.
     if (vozRef.current.preferido && !vozAtiva) ligarVoz();
+  };
+
+  // O plano vira um treino novo: cópia do programa de agora, com os exercícios
+  // sugeridos e o mesociclo ligado (meso.inicio). O antigo fica intacto.
+  const criarProgramaAjustado = (prog, plano) => {
+    const fichas = treinos.filter((t) => t.programaId === prog.id);
+    if (!fichas.length) { avisar("Esse treino ainda não tem fichas."); return; }
+    const r = aplicarPlanoNasFichas(fichas, plano, exPorId, novoUid);
+    const pid = "prog-aj-" + Date.now();
+    const nome = prog.nome.replace(/ ajustado$/, "") + " ajustado";
+    pedirConfirmacao("Criar \"" + nome + "\"?\n\n" + (r.mudancas.length ? r.mudancas.slice(0, 12).join("\n") + (r.mudancas.length > 12 ? "\n…" : "") : "Sem mudanças de exercício: só a periodização.") +
+      "\n\nCom o mesociclo de 5 semanas ligado (base, acúmulo, acúmulo, pico e deload) e as fichas alternando dia pesado, moderado e leve. O \"" + prog.nome + "\" continua como está.", () => {
+      const copias = r.fichas.map((f) => ({ ...f, id: "f-" + novoUid(), programaId: pid, itens: clonarItens(f.itens) }));
+      setProgramas((ps) => [...ps, { id: pid, nome: nome, meso: { inicio: segundaDaSemana(new Date()).getTime() } }]);
+      setTreinos((ts) => [...ts, ...copias]);
+      setProgAberto(pid);
+      setAba("treinos");
+      registrarEvento("plano-ajustado-criado");
+      setTimeout(() => avisar("Pronto: \"" + nome + "\" com " + copias.length + " fichas. Esta é a semana 1 do mesociclo (base): comece com folga."), 200);
+    });
   };
 
   const iniciarSessao = (treino) => {
@@ -29093,6 +29360,7 @@ function TreinoLivre() {
             onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} pesoCorporal={pesoCorporal} vozCfg={voz} onCorredor={() => setAba("corredor")} onComecar={() => setAba("inicio")}
             saude={saude} bpm={bpm} cardioEstado={cardioEstado} onConectarCardio={conectarCardio} onDesconectarCardio={desconectarCardio}
             onSincronizarSaude={sincronizarSaude}
+            plano={{ catalogo: EXERCICIOS.concat(customEx), treinos: treinos, programas: programas, onCriar: criarProgramaAjustado }}
             onAbrirGrupo={(g) => { setGrupoAberto(g); setExercicioAberto(null); setAba("exercicios"); }} />
         )}
         {aba === "editarHistorico" && editandoHistorico && (

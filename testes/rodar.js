@@ -37,7 +37,7 @@ const SUITES = [
   ["teste-espelho", "o modo espelho: o sentido, os nomes dos lados e a seta"],
   ["teste-ano", "o mapa dos 12 meses: dia treinado, a regua da pessoa e a sequencia"],
   ["teste-esquecidos", "o musculo que voce parou de treinar, na regua do seu ritmo"],
-  ["teste-volume", "series por musculo com o indireto (series fracionadas)"],
+  ["teste-volume", "series por musculo com o indireto, o plano de ajuste e a periodizacao"],
   ["teste-fotos", "o antes e depois: o tempo entre as fotos e o peso de cada uma"],
   ["teste-importar", "trazer o historico do Strong, Hevy e FitNotes"],
   ["teste-saude", "a saude do Health Connect: o pacote, o resumo e o batimento nos treinos"],

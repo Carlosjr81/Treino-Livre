@@ -24,8 +24,8 @@ eval(
   pedaco("const ehAquecimento = ", "\n") + "\n" + pedaco("const serieConta = ", "\n") + "\n" + funcao("ehDrop") + funcao("segundaDaSemana") +
   pedaco("const GRUPOS = [", "\n];") + "\n];\n" + pedaco("const MUSCULOS = {", "\n};") + "\n};\n" +
   pedaco("const FAIXA_SERIES = ", "\n") + "\n" +
-  pedaco("// ---------------- VOLUME FRACIONADO", "// ---------------- FIM DO VOLUME FRACIONADO") +
-  "\nglobalThis.V = { volumeFracionadoTreino, volumeFracionadoPeriodo, alertasVolume, leituraVolume, textoComposicao, musculosDoEx };"
+  funcao("plural") + pedaco("// ---------------- VOLUME FRACIONADO", "// ---------------- FIM DO PLANO DE AJUSTE") +
+  "\nglobalThis.V = { volumeFracionadoTreino, volumeFracionadoPeriodo, alertasVolume, leituraVolume, textoComposicao, musculosDoEx, planoAjuste, aplicarPlanoNasFichas, seriesNaSemana, semanaDoMeso, diaDaOndulacao, exerciciosPara };"
 );
 const V = globalThis.V;
 
@@ -109,6 +109,45 @@ contem("peito 12 contra dorsal 3: falta puxar", par.txt, "Empurrar × puxar");
 const carona = V.alertasVolume(V.volumeFracionadoTreino(treino("2026-10-20T10:00:00", [["agacho", s(6)]]), exPorId)).find((x) => x.musculo === "abdomen") || {};
 contem("abdômen só de carona vira aviso", carona.txt, "nenhuma série direta, mas 6 indiretas valem ~3 séries");
 teste("faixa: 0, 5, 15", ["zero", "baixo", "faixa"], [0, 5, 15].map((n) => V.leituraVolume(n).id));
+
+console.log("\n--- 6. o plano para equilibrar ---");
+const CAT = [
+  EX.supino, EX.agacho, EX.remada, EX.triceps,
+  { id: "abd", nome: "Abdominal", grupo: "abdomen", musc: { p: ["abdomen"], s: ["obliquos"] } },
+  { id: "abd-roda", nome: "Roda abdominal", grupo: "abdomen", musc: { p: ["abdomen"], s: ["ombros", "triceps"] } },
+  { id: "elev", nome: "Elevação lateral", grupo: "ombros", musc: { p: ["ombros"], s: ["trapezio"] } },
+];
+const listaP = [
+  { id: "abdomen", nome: "Abdômen", grupo: "abdomen", direto: 0, indireto: 4, total: 2 },
+  { id: "triceps", nome: "Tríceps", grupo: "triceps", direto: 14, indireto: 16, total: 22 },
+  { id: "peito", nome: "Peitoral", grupo: "peito", direto: 12, indireto: 0, total: 12 },
+];
+const pl = V.planoAjuste(listaP, CAT, { abd: true });
+const fa = pl.faltam.find((x) => x.musculo === "abdomen") || {};
+teste("abdômen 2 de 6: +4 séries, em 2 dias", [4, [2, 2]], [fa.add, fa.dias]);
+teste("a sugestão é o exercício que já faz e não carrega o tríceps", "abd", (fa.sugestoes || [])[0] && fa.sugestoes[0].id);
+const so = pl.sobram.find((x) => x.musculo === "triceps") || {};
+teste("tríceps 22: cortar 2 diretas", 2, so.cortar);
+teste("peito na faixa: nada a mudar", false, pl.faltam.concat(pl.sobram).some((x) => x.musculo === "peito"));
+const fichas = [
+  { id: "a", nome: "A - Peito", itens: [{ uid: "1", exercicioId: "supino", series: 4, reps: 10 }, { uid: "2", exercicioId: "triceps", series: 4, reps: 12 }] },
+  { id: "b", nome: "B - Pernas", itens: [{ uid: "3", exercicioId: "agacho", series: 4, reps: 8 }] },
+];
+const CATP = (id) => CAT.find((e) => e.id === id) || EX[id];
+let uidN = 0;
+const ap = V.aplicarPlanoNasFichas(fichas, pl, CATP, () => "n" + (++uidN));
+teste("o abdômen entra nas duas fichas, 2 séries cada", [2, 2], ap.fichas.map((f) => (f.itens.find((it) => it.exercicioId === "abd") || {}).series));
+teste("o tríceps direto perde 2 séries (4 → 2)", 2, ap.fichas[0].itens.find((it) => it.exercicioId === "triceps").series);
+teste("a ficha original não muda", 4, fichas[0].itens[1].series);
+contem("a lista de mudanças diz o que entrou", ap.mudancas.join(" | "), "Abdominal 2×15");
+
+console.log("\n--- 7. a periodização ---");
+teste("séries de 3 nas 5 semanas: base, acúmulo, acúmulo, pico, deload", [2, 3, 3, 4, 2], [1, 2, 3, 4, 5].map((s) => V.seriesNaSemana(3, s)));
+const ini = new Date("2026-10-05T00:00:00").getTime();
+teste("semana do mesociclo, e o ciclo recomeça na 6ª semana", [[1, 1], [3, 1], [5, 1], [1, 2]],
+  [0, 15, 30, 36].map((d) => { const x = V.semanaDoMeso({ inicio: ini }, ini + d * 864e5); return [x.semana, x.ciclo]; }));
+teste("ondulação: ficha 1 pesada, 2 moderada, 3 leve, 4 pesada", ["pesado", "moderado", "leve", "pesado"], [0, 1, 2, 3].map((i) => V.diaDaOndulacao(i, 2).id));
+teste("no deload, todo dia é leve", "leve", V.diaDaOndulacao(0, 5).id);
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

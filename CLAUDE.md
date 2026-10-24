@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v126) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v127) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3579,6 +3579,40 @@ compartilhados por aí precisam continuar abrindo.
     **Jarvis** ("quantas séries de abdômen essa semana" diz o indireto).
   - O cartão por grupo continua embaixo, como "só as diretas": é a régua do
     Jarvis, do ranking dos amigos e do `recuperacaoMuscular`.
+- **O plano para equilibrar a divisão e a periodização** (`PlanoAjuste`, bloco
+  puro `PLANO DE AJUSTE E PERIODIZAÇÃO`, em `teste-volume.js`, 34 checagens no
+  total). Pedido do dono: "sugira um treino para os músculos menos treinados,
+  mesmo os indiretos, e a melhor periodização — diária, semanal, quinzenal".
+  - **O alvo por músculo** (`ALVO_MUSCULO`) fica perto do volume mínimo que
+    faz crescer (MEV, tabelas do RP): 10 para peito, dorsal, quadríceps e
+    ombro; 8 para os médios; 4 a 6 para lombar, antebraço, oblíquos, trapézio
+    e abdômen, que recebem muito indireto. Ponto de partida, e a tela diz.
+  - `planoAjuste`: o que falta (séries a mais, em **2 dias por semana**, no
+    máximo 6 por dia) e o que sobra (acima de 20, cortar diretas). As
+    sugestões (`exerciciosPara`) favorecem os **clássicos** de cada músculo
+    (`CLASSICOS_MUSCULO` — sem eles, saía "arranco com halter" para ombro), o
+    que a pessoa já faz, o isolado para músculo pequeno, e evitam o que carrega
+    um músculo que já sobra.
+  - **"Criar … ajustado"** (`criarProgramaAjustado`, `aplicarPlanoNasFichas`):
+    um programa **novo**, cópia do de agora (o da ficha treinada por último),
+    com os exercícios na ficha que já treina o grupo (o segundo dia na ficha
+    com menos séries) e os cortes em rodízio, nunca abaixo de 2 séries. O
+    antigo fica intacto. A confirmação lista cada mudança.
+  - **A periodização é a que a pesquisa sustenta**: volume semanal por
+    músculo, 2×/semana (Schoenfeld 2016/2017), **ondulação diária** de
+    repetições (`DIAS_ONDULACAO`: pesado 6–8, moderado 8–12, leve 12–15, a
+    ficha N do programa em rodízio; Rhea 2002, Grgic 2017) e **mesociclo de 5
+    semanas** (`MESOCICLO`: base −1 série, acúmulo, acúmulo, pico +1, deload
+    metade, com a reserva descendo de 3 para 0–1; modelo RP, deload por Bell
+    2023). Quinzenal não tem apoio, e a tela explica.
+  - **Ligado de verdade**: o programa ajustado guarda `meso.inicio` (a
+    segunda-feira da criação); `comecarSessao` monta as séries da semana
+    (`seriesNaSemana`; aeróbico e isometria fora) e põe `sessao.meso`, que
+    a tela do treino mostra ("📅 Semana 3 de 5 · Acúmulo · Dia leve, 12 a 15
+    repetições…"). A ficha guarda as séries de base. Depois da 5ª o ciclo
+    recomeça (`semanaDoMeso`).
+  - Conferido no navegador: plano, programa criado, e o treino abrindo na
+    semana 1 com uma série a menos por exercício.
 - **Filtro por equipamento** (`FAMILIAS_EQUIP`) — responde "só tenho halteres em
   casa". Um exercício pode cair em mais de uma família, e isso não é problema.
 - **Duplicar ficha e programa** — ao copiar, os ids de `conjunto` são regerados

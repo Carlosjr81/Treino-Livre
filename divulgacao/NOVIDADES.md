@@ -16,6 +16,37 @@
 
 ---
 
+## 2026-10-24t — O ajuste usa primeiro os exercícios das suas fichas
+
+**Em uma frase:** para equilibrar os músculos, o app sugere primeiro os exercícios que você já faz nas suas fichas, e só
+monta uma sugestão nova quando nenhum deles serve.
+
+**O que mudou**
+- **Prioridade para o que você conhece**: se a sua ficha já tem um exercício para o músculo que está faltando (por
+  exemplo, stiff para o posterior ou puxada para as costas), ele vem primeiro. Depois os de outras fichas suas, depois o
+  que você já fez nos treinos, e só então a melhor sugestão nova (elevação lateral para ombro, encolhimento para
+  trapézio…).
+- **Cada sugestão diz de onde vem**: "já na ficha B - Pernas", "na sua ficha…", "você já fez" ou "novo para você".
+- **No treino ajustado, as séries vão para o lugar certo**: se o exercício já está numa ficha, as séries a mais entram
+  nele mesmo, sem repetir o exercício.
+
+**Por que importa para quem treina**
+- Você já tem o aparelho e já sabe executar: mais séries num exercício conhecido rendem mais e não exigem aprender
+  nada na academia. Exercício novo só entra quando é preciso.
+
+**Como usar**
+- Histórico › Números › "Plano para equilibrar a divisão": veja as sugestões com a etiqueta, e toque em "Criar … ajustado".
+
+**Ideias de vídeo**
+- "O app ajusta a SUA ficha": mostrar a sugestão "Stiff (já na ficha B - Pernas)" e o treino ajustado com uma série a
+  mais no stiff, em vez de um exercício estranho.
+
+**Não prometer**
+- O app só conhece os exercícios que estão nas fichas e no histórico; os mínimos por músculo continuam sendo referência,
+  não prescrição.
+
+---
+
 ## 2026-10-24s — O app diz quando e como trocar para o treino ajustado
 
 **Em uma frase:** olhando os seus últimos treinos, o app decide se você troca para o treino ajustado já na próxima

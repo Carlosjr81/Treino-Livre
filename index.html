@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24s";
+const VERSAO_APP = "2026-10-24t";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -10177,14 +10177,18 @@ const CLASSICOS_MUSCULO = {
   obliquos: ["prancha-lateral", "abdominal-obliquo"], lombar: ["hiperextensao"], antebraco: ["rosca-punho", "rosca-inversa"],
 };
 // Os exercícios que treinam m como principal. Favorece o que a pessoa já faz
-// (sabe executar), o isolado para músculo pequeno, o que ajuda outro músculo
-// que também está faltando — e evita o que carrega um que já passou da faixa.
+// (sabe executar e tem o aparelho), o isolado para músculo pequeno, o que
+// ajuda outro músculo que também está faltando — e evita o que carrega um que
+// já passou da faixa. usados: { id: peso }, e o peso de quem está nas fichas
+// em uso (10) passa de qualquer clássico (+4): pedido do dono, "priorize o
+// que eu já tenho nas fichas; se não tiver, monte a melhor sugestão".
 function exerciciosPara(m, catalogo, faltam, sobram, usados) {
   return (catalogo || []).filter((e) => !e.cardio && e.musc && (e.musc.p || []).indexOf(m) >= 0)
     .map((e) => {
       const p = e.musc.p || [], s = e.musc.s || [];
       let nota = 0;
-      if (usados && usados[e.id]) nota += 3;
+      const u = usados && usados[e.id];
+      if (u) nota += u === true ? 3 : u;
       const cl = (CLASSICOS_MUSCULO[m] || []).indexOf(e.id);
       if (cl >= 0) nota += 4 - cl * 0.5;
       nota -= s.length * 0.3;
@@ -10196,7 +10200,18 @@ function exerciciosPara(m, catalogo, faltam, sobram, usados) {
     .sort((a, b) => b.nota - a.nota || String(a.e.nome).localeCompare(String(b.e.nome)))
     .slice(0, 3).map((x) => x.e);
 }
-// lista: a de volumeFracionadoPeriodo (por semana). usados: { idDoExercicio: true }
+// lista: a de volumeFracionadoPeriodo (por semana). usados: { idDoExercicio: peso }
+// Quanto a pessoa conhece cada exercício: as fichas do programa em uso (10),
+// as outras fichas dela (6), o que fez nos últimos treinos (3).
+const PESO_CONHECIDO = { programa: 10, ficha: 6, historico: 3 };
+function exerciciosConhecidos(fichasProg, treinos, historico) {
+  const peso = {}, onde = {};
+  const marca = (id, p, txt) => { if (!id || (peso[id] || 0) >= p) return; peso[id] = p; onde[id] = txt; };
+  (historico || []).slice(0, 40).forEach((h) => (h.itens || []).forEach((it) => marca(it.exercicioId, PESO_CONHECIDO.historico, "você já fez")));
+  (treinos || []).forEach((f) => (f.itens || []).forEach((it) => marca(it.exercicioId, PESO_CONHECIDO.ficha, "na sua ficha " + f.nome)));
+  (fichasProg || []).forEach((f) => (f.itens || []).forEach((it) => marca(it.exercicioId, PESO_CONHECIDO.programa, "já na ficha " + f.nome)));
+  return { peso: peso, onde: onde };
+}
 function planoAjuste(lista, catalogo, usados) {
   const faltamM = {}, sobramM = {};
   lista.forEach((x) => {
@@ -10229,9 +10244,12 @@ function aplicarPlanoNasFichas(fichas, plano, exPorId, novoId, vezes) {
   const gruposDa = (f) => f.itens.map((it) => { const e = exPorId(it.exercicioId); return e && e.grupo; });
   plano.faltam.forEach((fa) => {
     const g = grupoDoMusculo(fa.musculo);
-    const comGrupo = novas.filter((f) => gruposDa(f).indexOf(g) >= 0);
-    const resto = novas.filter((f) => comGrupo.indexOf(f) < 0).sort((a, b) => seriesDa(a) - seriesDa(b));
-    const destino = comGrupo.concat(resto);
+    // primeiro a ficha que já tem o exercício (aparelho e execução conhecidos),
+    // depois as que treinam o grupo, depois as mais leves
+    const temEx = novas.filter((f) => fa.sugestoes[0] && f.itens.some((it) => it.exercicioId === fa.sugestoes[0].id));
+    const comGrupo = novas.filter((f) => temEx.indexOf(f) < 0 && gruposDa(f).indexOf(g) >= 0);
+    const resto = novas.filter((f) => temEx.indexOf(f) < 0 && comGrupo.indexOf(f) < 0).sort((a, b) => seriesDa(a) - seriesDa(b));
+    const destino = temEx.concat(comGrupo, resto);
     fa.dias.forEach((n0, k) => {
       const n = Math.max(1, Math.round(n0 / fator));
       const f = destino[k % Math.max(1, destino.length)];
@@ -10460,8 +10478,6 @@ function VolumeRecomendado({ historico, exPorId, plano }) {
 // O plano para equilibrar a divisão, e o programa ajustado com a periodização
 function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar }) {
   const r = useMemo(() => volumeFracionadoPeriodo(historico, exPorId, Date.now(), 4), [historico, exPorId]);
-  const usados = useMemo(() => { const u = {}; historico.slice(0, 40).forEach((h) => (h.itens || []).forEach((it) => { u[it.exercicioId] = true; })); return u; }, [historico]);
-  const plano = useMemo(() => planoAjuste(r.semanas ? r.lista : volumeFracionadoPeriodo(historico, exPorId, Date.now(), 0).lista, catalogo, usados), [r, catalogo, usados]);
   // o programa de agora: o da ficha treinada por último
   const prog = useMemo(() => {
     const ult = historico.slice().sort((a, b) => new Date(b.data) - new Date(a.data)).find((h) => (treinos || []).some((f) => f.nome === h.nome));
@@ -10470,6 +10486,8 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
   }, [historico, treinos, programas]);
   const [aberto, setAberto] = useState(false);
   const fichasProg = useMemo(() => (prog ? (treinos || []).filter((f) => f.programaId === prog.id) : []), [prog, treinos]);
+  const conhecidos = useMemo(() => exerciciosConhecidos(fichasProg, treinos, historico), [fichasProg, treinos, historico]);
+  const plano = useMemo(() => planoAjuste(r.semanas ? r.lista : volumeFracionadoPeriodo(historico, exPorId, Date.now(), 0).lista, catalogo, conhecidos.peso), [r, catalogo, conhecidos]);
   const tr = useMemo(() => transicaoAjuste(historico, Date.now(), fichasProg.length), [historico, fichasProg.length]);
   const depois = useMemo(() => {
     if (!fichasProg.length) return null;
@@ -10499,11 +10517,14 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
           <div style={{ fontSize: 12, color: "var(--cinza)", margin: "6px 0 10px", lineHeight: 1.5 }}>
             Pela {r.semanas ? "média das suas últimas " + r.semanas + " " + plural(r.semanas, "semana", "semanas") : "sua semana"}, contando o indireto pela metade.
             O mínimo de cada músculo é um ponto de partida perto do volume mínimo que faz crescer.
+            Primeiro vêm os exercícios das suas fichas (você já tem o aparelho e sabe executar); só quando nenhum serve entra a melhor sugestão nova.
           </div>
           {plano.faltam.map((f) => (
             <div key={f.musculo} style={{ padding: "8px 0", borderBottom: "1px solid var(--borda)", fontSize: 12.5, lineHeight: 1.5 }}>
               <b>↑ {f.nome}</b>: ~{num1v(f.total)} de {f.alvo} por semana. <b>+{f.add} {plural(f.add, "série", "séries")}</b>{f.dias.length > 1 ? ", em 2 dias (" + f.dias.join(" + ") + ")" : ""}.
-              <div style={{ color: "var(--cinza)" }}>Sugestão: {f.sugestoes.slice(0, 2).map((e) => e.nome).join(" ou ")}</div>
+              <div style={{ color: "var(--cinza)" }}>Sugestão: {f.sugestoes.slice(0, 2).map((e, i) => (
+                <span key={e.id}>{i ? " ou " : ""}{e.nome} <span style={{ color: conhecidos.peso[e.id] >= PESO_CONHECIDO.ficha ? "var(--ok)" : "var(--cinza2)" }}>({conhecidos.onde[e.id] || "novo para você"})</span></span>
+              ))}</div>
             </div>
           ))}
           {plano.sobram.map((s) => (

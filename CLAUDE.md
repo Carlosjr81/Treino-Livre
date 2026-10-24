@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v128) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v129) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3641,6 +3641,18 @@ compartilhados por aí precisam continuar abrindo.
     Coberto em `teste-volume.js` (43 checagens). Conferido no navegador: a
     troca para 02/11 com a semana leve antes, e o treino antigo abrindo, na
     semana leve, com metade das séries.
+  - **Primeiro o que já está nas fichas** (`exerciciosConhecidos`,
+    `PESO_CONHECIDO`; pedido do dono: "priorize os exercícios que eu já
+    tenho nas fichas: já tenho os equipamentos e conheço a execução; se não
+    tiver, monte a melhor sugestão"). A nota da sugestão soma 10 para o
+    exercício das fichas do programa em uso, 6 para o de outra ficha e 3 para
+    o que aparece nos últimos 40 treinos — 10 passa de qualquer clássico (+4).
+    Sem nenhum conhecido para aquele músculo, vale o clássico. No ajustado,
+    as séries vão **para a ficha que já tem o exercício** (somadas ao item que
+    existe, sem duplicar), e o segundo dia segue para outra ficha do grupo.
+    A tela diz de onde vem cada sugestão: "(já na ficha B - Pernas)", "(na
+    sua ficha X)", "(você já fez)" ou "(novo para você)". Coberto em
+    `teste-volume.js` (50 checagens).
 - **Filtro por equipamento** (`FAMILIAS_EQUIP`) — responde "só tenho halteres em
   casa". Um exercício pode cair em mais de uma família, e isso não é problema.
 - **Duplicar ficha e programa** — ao copiar, os ids de `conjunto` são regerados

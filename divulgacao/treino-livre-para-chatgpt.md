@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24s**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24t**.
 
 ---
 
@@ -26,6 +26,9 @@
 - **Quando e como trocar** (novo em 2026-10-24s): pelo histórico, troca numa segunda-feira; com 4 semanas puxadas ou carga
   parada, antes uma semana leve (metade das séries). Os dias seguem a frequência (3× = dia sim, dia não). O app confere
   que todos os 15 músculos chegam ao mínimo.
+- **Primeiro os exercícios das suas fichas** (novo em 2026-10-24t): as sugestões do ajuste priorizam o que já está nas
+  fichas em uso (aparelho e execução conhecidos), depois outras fichas e o histórico; só sem nenhum entra uma sugestão
+  nova. Cada sugestão diz de onde vem, e as séries a mais entram no exercício que já existe.
 - Não prometer: a faixa de 10 a 20 séries e os mínimos por músculo são referência, não prescrição.
 
 ## 1. Em uma frase

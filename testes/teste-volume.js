@@ -25,7 +25,7 @@ eval(
   pedaco("const GRUPOS = [", "\n];") + "\n];\n" + pedaco("const MUSCULOS = {", "\n};") + "\n};\n" +
   pedaco("const FAIXA_SERIES = ", "\n") + "\n" +
   funcao("plural") + pedaco("// ---------------- VOLUME FRACIONADO", "// ---------------- FIM DO PLANO DE AJUSTE") +
-  "\nglobalThis.V = { volumeFracionadoTreino, volumeFracionadoPeriodo, alertasVolume, leituraVolume, textoComposicao, musculosDoEx, planoAjuste, aplicarPlanoNasFichas, seriesNaSemana, semanaDoMeso, diaDaOndulacao, exerciciosPara, transicaoAjuste, volumeDasFichas };"
+  "\nglobalThis.V = { volumeFracionadoTreino, volumeFracionadoPeriodo, alertasVolume, leituraVolume, textoComposicao, musculosDoEx, planoAjuste, aplicarPlanoNasFichas, seriesNaSemana, semanaDoMeso, diaDaOndulacao, exerciciosPara, transicaoAjuste, volumeDasFichas, exerciciosConhecidos };"
 );
 const V = globalThis.V;
 
@@ -175,6 +175,29 @@ const ap2 = V.aplicarPlanoNasFichas(fichas, pl, CATP, () => "n" + (++uidN), 2);
 teste("ficha feita 2× por semana: +1 série de abdômen em cada", [1, 1], ap2.fichas.map((f) => (f.itens.find((it) => it.exercicioId === "abd") || {}).series));
 const vd = V.volumeDasFichas(ap2.fichas, CATP, 2).find((x) => x.id === "abdomen");
 teste("e a semana soma os mesmos 4 de abdômen", 4, vd.direto);
+
+console.log("\n--- 9. primeiro o que já está nas fichas ---");
+const CAT9 = CAT.concat([
+  { id: "elevacao-lateral", nome: "Elevação lateral", grupo: "ombros", musc: { p: ["ombros"], s: [] } },
+  { id: "desenv-halter", nome: "Desenvolvimento com halteres", grupo: "ombros", musc: { p: ["ombros"], s: ["triceps"] } },
+]);
+const lista9 = [{ id: "ombros", nome: "Ombros", grupo: "ombros", direto: 0, indireto: 8, total: 4 }];
+const semFicha = V.planoAjuste(lista9, CAT9, {});
+teste("sem nada nas fichas: o clássico (elevação lateral)", "elevacao-lateral", semFicha.faltam[0].sugestoes[0].id);
+const fichas9 = [
+  { id: "a", nome: "A - Peito", programaId: "p", itens: [{ uid: "1", exercicioId: "supino", series: 4, reps: 10 }] },
+  { id: "b", nome: "B - Ombro", programaId: "p", itens: [{ uid: "2", exercicioId: "desenv-halter", series: 3, reps: 10 }] },
+];
+const con = V.exerciciosConhecidos(fichas9, fichas9, []);
+teste("o da ficha em uso vale 10", 10, con.peso["desenv-halter"]);
+contem("e diz em que ficha está", con.onde["desenv-halter"], "B - Ombro");
+const comFicha = V.planoAjuste(lista9, CAT9, con.peso);
+teste("com o desenvolvimento na ficha, ele vem antes do clássico", "desenv-halter", comFicha.faltam[0].sugestoes[0].id);
+const ap9 = V.aplicarPlanoNasFichas(fichas9, comFicha, (id) => CAT9.find((e) => e.id === id) || EX[id], () => "n" + (++uidN));
+teste("as séries entram no exercício que já existe, na ficha dele", 3 + comFicha.faltam[0].dias[0], ap9.fichas[1].itens[0].series);
+teste("e o exercício não é duplicado nessa ficha", 1, ap9.fichas[1].itens.filter((it) => it.exercicioId === "desenv-halter").length);
+const outro = V.exerciciosConhecidos([], fichas9, [{ itens: [{ exercicioId: "abd" }] }]);
+teste("outra ficha vale 6, o histórico 3", [6, 3], [outro.peso["desenv-halter"], outro.peso.abd]);
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

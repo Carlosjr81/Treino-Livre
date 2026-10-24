@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-10-24n — Sair do app ou trocar de tela não pausa mais nenhum treino ao vivo
+
+**Em uma frase:** desafio, intervalado, Monster Run e aula guiada continuam contando quando você sai do app ou vai a
+outra tela, e a distância do GPS não se perde mais.
+
+**O que mudou**
+- **A distância não some**: antes, quando o app pausava sozinho, o caminho andado fora dele não entrava (o relógio
+  marcava 2 km e o app 1,1). Agora nada pausa sozinho, e o trecho em que o GPS ficou sem sinal entra na conta.
+- **Trocar de tela não perde a prova**: no meio de um desafio, intervalado ou missão, dá para ir ao histórico ou às
+  fichas; um botão no topo leva de volta ("🏁 Desafio em andamento · voltar para ela").
+- **A aula guiada segue o relógio** mesmo com o app em segundo plano.
+
+**Por que importa para quem treina**
+- O treino é o que você fez, não o tempo em que olhou a tela.
+
+**Como usar**
+- Nada a fazer: pause só quando quiser, no botão Pausar.
+
+**Ideias de vídeo**
+- Comparar o relógio e o app no fim de uma caminhada, depois de trocar de música e responder mensagem no meio.
+
+**Não prometer**
+- Pelo navegador, com a tela travada, o GPS para: o trecho sem sinal entra em linha reta (pode sair um pouco menor
+  que o real numa rota cheia de curvas). Com o app Android, a corrida do desafio segue medindo no bolso.
+
+---
+
 ## 2026-10-24m — No desafio, sair do app não pausa e a voz fala tudo a cada minuto
 
 **Em uma frase:** no desafio de corrida e caminhada, a prova continua contando quando você sai do app, e a voz conta a

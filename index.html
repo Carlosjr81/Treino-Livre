@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24m";
+const VERSAO_APP = "2026-10-24n";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -9310,6 +9310,9 @@ function PlayerAula({ aula, exPorId, som, vozCfg, onSair, onConcluir }) {
   const roteiro = useMemo(() => montarRoteiro(aula), [aula]);
   const [i, setI] = useState(0);
   const [resta, setResta] = useState(roteiro[0].seg);
+  // quando o bloco acaba, no relógio de parede: com o app em segundo plano o
+  // navegador atrasa o setInterval, e a aula andava mais devagar que o tempo
+  const fimBlocoRef = useRef(0), pausadoAntes = useRef(false);
   const [pausado, setPausado] = useState(false);
   const inicioRef = useRef(Date.now());
   const feitosRef = useRef([]);
@@ -9375,7 +9378,10 @@ function PlayerAula({ aula, exPorId, som, vozCfg, onSair, onConcluir }) {
   // ---- anuncia cada bloco ----
   useEffect(() => {
     if (!passo) return;
-    setResta(passo.seg);
+    // o bloco seguinte começa onde o anterior terminou (não quando o app acordou)
+    const base = fimBlocoRef.current && Date.now() - fimBlocoRef.current < 600000 ? Math.min(Date.now(), fimBlocoRef.current) : Date.now();
+    fimBlocoRef.current = base + passo.seg * 1000;
+    setResta(Math.max(0, Math.ceil((fimBlocoRef.current - Date.now()) / 1000)));
     const nome = ex ? nomeFalado(ex.nome) : "";
     if (passo.tipo === "prepara") {
       falar("Aula " + aula.nome + ". Prepare-se. Começamos com " + nome + ".");
@@ -9390,8 +9396,11 @@ function PlayerAula({ aula, exPorId, som, vozCfg, onSair, onConcluir }) {
 
   // ---- o relógio ----
   useEffect(() => {
+    if (pausado) pausadoAntes.current = true;
     if (pausado || !passo) return;
-    const t = setInterval(() => setResta((s) => (s <= 0 ? 0 : s - 1)), 1000);
+    // retomar a pausa: o que faltava continua faltando
+    if (pausadoAntes.current) { pausadoAntes.current = false; fimBlocoRef.current = Date.now() + resta * 1000; }
+    const t = setInterval(() => setResta(Math.max(0, Math.ceil((fimBlocoRef.current - Date.now()) / 1000))), 250);
     return () => clearInterval(t);
   }, [pausado, i]);
 
@@ -13758,11 +13767,12 @@ function criarMotorZumbi(cfgEntrada, plano, restaurado) {
     total: total,
     iniciar() { if (!s.iniciou) { s.iniciou = true; atualizar(); } return api.eventos(); },
     // dt em ms do relógio monotônico; ignorado em pausa
-    avancar(dt) {
+    // salto: o app ficou em segundo plano e a pessoa continuou andando; o tempo
+    // conta, de segundo em segundo, para cada bloco ser fechado no caminho
+    avancar(dt, salto) {
       if (!s.iniciou || s.pausado || s.fase === "finalizada") return [];
-      // um salto grande (o app ficou suspenso) não vira tempo ativo
-      s.tAtivo += Math.max(0, Math.min(dt, 2000));
-      atualizar();
+      let resto = Math.max(0, salto ? dt : Math.min(dt, 2000));
+      do { const p = Math.min(resto, 1000); s.tAtivo += p; resto -= p; atualizar(); } while (resto > 0 && s.fase !== "finalizada");
       return api.eventos();
     },
     amostra(a) {
@@ -15229,7 +15239,14 @@ function criarSessaoIntervalado(plano) {
   const api = {
     blocos: blocos, s: s, total: total,
     iniciar() { atualizar(); return api.eventos(); },
-    avancar(dt) { if (s.pausado || s.fim) return []; s.tAtivo += Math.max(0, Math.min(dt, 2000)); atualizar(); return api.eventos(); },
+    // salto: o app ficou em segundo plano e a pessoa continuou (conta tudo)
+    avancar(dt, salto) {
+      if (s.pausado || s.fim) return [];
+      let resto = Math.max(0, salto ? dt : Math.min(dt, 2000));
+      // de bloco em bloco, para cada troca no caminho ser registrada
+      do { const p = Math.min(resto, 1000); s.tAtivo += p; resto -= p; atualizar(); } while (resto > 0 && !s.fim);
+      return api.eventos();
+    },
     eventos() { return fila.splice(0, fila.length); },
     blocoAtual() { const i = idx(); return i >= 0 ? blocos[i] : null; },
     proximo() { const i = idx(); return i >= 0 ? blocos[i + 1] || null : null; },
@@ -17026,7 +17043,7 @@ function kmhDaFaseZumbi(fase, alvoMs, confortoMs) {
   return conf;
 }
 
-function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
+function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, onVivo }) {
   const passada = useMemo(() => passadaCalibrada(historico), [historico]);
   const [cfg, setCfg] = useState({
     duracaoMin: 20, ambiente: "rua", atividade: "corrida", experiencia: "adaptativa", fonte: "gps",
@@ -17034,6 +17051,8 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
     blocos: [{ tipo: "forte", seg: 90 }, { tipo: "leve", seg: 120 }],
   });
   const [etapa, setEtapa] = useState("config");   // config, plano, sessao, fim
+  useEffect(() => { if (onVivo) onVivo(etapa === "sessao"); }, [etapa]);
+  useEffect(() => () => { if (onVivo) onVivo(false); }, []);
   const [vol, setVol] = useState({ voz: 1, ambiente: 0.6, ameaca: 0.8, mono: false });
   const [, setTique] = useState(0);
   const [legenda, setLegenda] = useState("");
@@ -17220,16 +17239,19 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
   // ---- o relógio da sessão ----
   useEffect(() => {
     if (etapa !== "sessao") return;
-    let ant = performance.now(), ultLeitura = 0, ultCp = 0;
+    // Sair do app não pausa: a missão anda o tempo que passou. Perseguição
+    // que aconteceu fora fica "não avaliada" (sem leitura), nunca derrota, e
+    // a fila de falas descarta o que venceu nesse meio tempo.
+    let ant = Date.now(), ultLeitura = 0, ultCp = 0;
     const iv = setInterval(() => {
       const m = motor.current;
       if (!m) return;
-      const agora = performance.now(), dt = agora - ant;
+      const agora = Date.now(), dt = Math.max(0, agora - ant);
       ant = agora;
       if (dt > 5000 && !m.s.pausado && m.s.fase !== "finalizada") {
-        // o app ficou suspenso: pausa, não inventa tempo nem dispara falas atrasadas
-        pausar(false);
-        setAviso("A sessão foi pausada: o app ficou em segundo plano e não acompanhou esse tempo. Retome quando quiser.");
+        setAviso("O app ficou " + textoDuracao(Math.round(dt / 1000)) + " em segundo plano e a missão continuou.");
+        tratarEventos(m.avancar(dt * mult.current, true));
+        setTique((x) => x + 1);
         return;
       }
       if (agora - ultLeitura >= 1000 / mult.current && !m.s.pausado) {
@@ -17374,7 +17396,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar }) {
     </div>
   );
   const voltar = (
-    <button onClick={() => { if (etapa === "sessao") { pausar(false); onVoltar(); } else onVoltar(); }}
+    <button onClick={onVoltar}
       style={{ display: "block", background: "none", border: "none", color: "#7CFF3C", fontWeight: 800, fontSize: 14, cursor: "pointer", padding: "4px 0 12px" }}>← Voltar</button>
   );
   const titulo = (
@@ -18078,9 +18100,11 @@ function usarEsteira() {
 
   return { est: est, conectar: conectar, confirmar: confirmar, desconectar: desconectar, motor: () => ref.current, estRef: estRef };
 }
-function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, onPainel }) {
+function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, onPainel, onVivo }) {
   const [cfg, setCfg] = useState({ modelo: "tiros", atividade: "corrida", ambiente: "rua", reps: null, blocos: [{ nivel: "forte", seg: 90 }, { nivel: "leve", seg: 120 }], semente: Date.now() % 100000 });
   const [etapa, setEtapa] = useState("config");   // config, sessao, fim
+  useEffect(() => { if (onVivo) onVivo(etapa === "sessao"); }, [etapa]);
+  useEffect(() => () => { if (onVivo) onVivo(false); }, []);
   const [, setTique] = useState(0);
   const [legenda, setLegenda] = useState("");
   const [salvo, setSalvo] = useState(false);
@@ -18230,13 +18254,23 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
   const kmhAgora = () => { const u = ultimaPos.current; return u && Date.now() - u.t < 6000 ? u.kmh : null; };
   useEffect(() => {
     if (etapa !== "sessao") return;
-    let ant = performance.now(), ultL = 0;
+    // Sair do app não pausa (relato do dono, no desafio): quem saiu continua
+    // correndo. O treino anda o tempo que passou, e a voz diz em que bloco está.
+    let ant = Date.now(), ultL = 0;
     const iv = setInterval(() => {
       const se = sessao.current;
       if (!se) return;
-      const agora = performance.now(), dt = agora - ant;
+      const agora = Date.now(), dt = Math.max(0, agora - ant);
       ant = agora;
-      if (dt > 5000 && !se.s.pausado) { pausar(); setLegenda("Pausado: o app ficou em segundo plano e não acompanhou esse tempo."); return; }
+      if (dt > 5000 && !se.s.pausado) {
+        const evs = se.avancar(dt, true);
+        // do que passou fora, só vale dizer onde está agora
+        const ult = evs.filter((v) => v.tipo === "bloco" || v.tipo === "fim").pop();
+        setLegenda("O app ficou " + textoDuracao(Math.round(dt / 1000)) + " em segundo plano e o treino continuou.");
+        if (ult) tratar([ult]);
+        setTique((x) => x + 1);
+        return;
+      }
       // Com a esteira conectada, a velocidade real vem dela — e aí a constância
       // do treino passa a ser medida também na esteira, não só na rua.
       if (agora - ultL >= 1000) {
@@ -18319,7 +18353,7 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
     };
   };
   const voltar = (
-    <button onClick={() => { if (etapa === "sessao") pausar(); onVoltar(); }} style={{ display: "block", background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 14, cursor: "pointer", padding: "4px 0 12px" }}>← Voltar</button>
+    <button onClick={onVoltar} style={{ display: "block", background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 14, cursor: "pointer", padding: "4px 0 12px" }}>← Voltar</button>
   );
   const chip = (k, v, rot) => (
     <button key={String(v)} onClick={() => up(k, v)} aria-pressed={cfg[k] === v}
@@ -20334,7 +20368,7 @@ function statusParticipante(l, agoraW) {
   return { txt: "📡 ao vivo", cor: "var(--ok)" };
 }
 
-function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsado, onSalvar, onVoltar }) {
+function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsado, onSalvar, onVoltar, onVivo }) {
   const meuId = useMemo(() => {
     try {
       let x = localStorage.getItem("treinolivre:desafio-id");
@@ -20369,6 +20403,9 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
   const demo = !!(sala && sala.demo);
   const esteira = cfg.ambiente === "esteira" || demo;
   useEffect(() => { try { window.scrollTo(0, 0); } catch (e) {} }, [etapa]);
+  // com a prova correndo, a tela fica montada mesmo fora da aba (ver PROVA_VIVA)
+  useEffect(() => { if (onVivo) onVivo(etapa === "corrida"); }, [etapa]);
+  useEffect(() => () => { if (onVivo) onVivo(false); }, []);
   useEffect(() => () => { if (conRef.current) conRef.current.fechar(); desligarTravaTela(); }, []);
 
   // ---- conexão ----
@@ -20746,7 +20783,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
 
   // ---- pedaços da tela ----
   const voltar = (
-    <button onClick={() => { if (etapa === "corrida") pausar(); onVoltar(); }} style={{ display: "block", background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 14, cursor: "pointer", padding: "4px 0 12px" }}>← Voltar</button>
+    <button onClick={onVoltar} style={{ display: "block", background: "none", border: "none", color: "#E1306C", fontWeight: 800, fontSize: 14, cursor: "pointer", padding: "4px 0 12px" }}>← Voltar</button>
   );
   const chip = (ativo, rot, onClick, k) => (
     <button key={k || rot} onClick={onClick} aria-pressed={ativo}
@@ -26587,6 +26624,11 @@ function TreinoLivre() {
   const [secaoHistorico, setSecaoHistorico] = useState("treinos");
   const [grupoChave, setGrupoChave] = useState(0);
   const [desafioChave, setDesafioChave] = useState(0);
+  // PROVA_VIVA: desafio, intervalado e Monster Run correndo continuam montados
+  // (escondidos) quando a pessoa vai a outra aba. Antes o Voltar pausava a
+  // prova, e sair da aba desmontava a tela e perdia tudo.
+  const [vivos, setVivos] = useState({});
+  const marcarVivo = (k) => (v) => setVivos((o) => (!!o[k] === !!v ? o : Object.assign({}, o, { [k]: !!v })));
   const [festa, setFesta] = useState(null);
   // ---- Jarvis ----
   // "preferido" fica gravado (é a escolha de usar comandos por voz); "ativa" é
@@ -28560,6 +28602,9 @@ function TreinoLivre() {
         onTema={() => setTema(tema === "escuro" ? "claro" : "escuro")}
         onAjustes={() => setAba(aba === "ajustes" ? "inicio" : "ajustes")} />
       <div style={{ paddingTop: 14 }}>
+        {[["desafio", "🏁 Desafio em andamento"], ["intervalado", "⏱ Intervalado em andamento"], ["zumbi", "🧟 Missão em andamento"]].filter((v) => vivos[v[0]] && aba !== v[0]).map((v) => (
+          <button key={v[0]} onClick={() => setAba(v[0])} style={{ ...S.btn, width: "100%", marginBottom: 12, padding: "12px 10px" }}>{v[1]} · voltar para ela ▶</button>
+        ))}
         {aba === "inicio" && (
           <TelaInicio programas={programas} treinos={treinos} historico={historico}
             meta={meta} exPorId={exPorId} avisoBackup={avisoBackup} onBaixarBackup={baixarBackup}
@@ -28623,31 +28668,37 @@ function TreinoLivre() {
           <TelaGrupo key={grupoChave} historico={historico} corredor={corredor} setCorredor={setCorredor} avisar={avisar} onDesafio={() => setAba("desafio")}
             onVoltar={() => { setSecaoHistorico("stats"); setAba("historico"); }} />
         )}
-        {aba === "desafio" && (
+        {(aba === "desafio" || vivos.desafio) && (
+          <div style={{ display: aba === "desafio" ? "block" : "none" }}>
           <TelaDesafio key={desafioChave} vozCfg={voz} som={som} corredor={corredor} setCorredor={setCorredor}
             convite={conviteDesafio} onConviteUsado={() => setConviteDesafio(null)}
-            onVoltar={() => setAba("inicio")}
+            onVoltar={() => setAba("inicio")} onVivo={marcarVivo("desafio")}
             onSalvar={(registro) => {
               if (historico.some((x) => x.id === registro.id)) return;
               guardarTreino(registro, "desafio-concluido");
             }} />
+          </div>
         )}
-        {aba === "intervalado" && (
-          <TelaIntervalado historico={historico} exPorId={exPorId} vozCfg={voz} som={som}
+        {(aba === "intervalado" || vivos.intervalado) && (
+          <div style={{ display: aba === "intervalado" ? "block" : "none" }}>
+          <TelaIntervalado historico={historico} exPorId={exPorId} vozCfg={voz} som={som} onVivo={marcarVivo("intervalado")}
             onVoltar={() => setAba("inicio")} onPainel={() => setAba("corredor")}
             onSalvar={(registro) => {
               if (historico.some((x) => x.id === registro.id)) return;
               guardarTreino(registro, "intervalado-concluido");
             }} />
+          </div>
         )}
-        {aba === "zumbi" && (
-          <TelaZumbi historico={historico} exPorId={exPorId} vozCfg={voz} som={som}
+        {(aba === "zumbi" || vivos.zumbi) && (
+          <div style={{ display: aba === "zumbi" ? "block" : "none" }}>
+          <TelaZumbi historico={historico} exPorId={exPorId} vozCfg={voz} som={som} onVivo={marcarVivo("zumbi")}
             onVoltar={() => setAba("inicio")}
             onSalvar={(registro) => {
               // uma identidade só: salvar de novo não cria outro treino
               if (historico.some((x) => x.id === registro.id)) return;
               guardarTreino(registro, "zumbi-concluido");
             }} />
+          </div>
         )}
         {aba === "corredor" && (
           <TelaCorredor historico={historico} exPorId={exPorId} corredor={corredor} setCorredor={setCorredor}

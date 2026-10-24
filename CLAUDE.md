@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v122) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v123) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2196,6 +2196,26 @@ distância, desafio, dos amigos e os meus".
 Coberto por `teste-corrida-app.js` (52 checagens). No navegador: 70 s com o
 relógio adiantado no meio da prova → 1:16 contados, sem pausa, e o boletim
 falado.
+
+**Depois, o dono: "o relógio deu mais de 2 km e o app 1,1".** Era a pausa: em
+pausa o GPS é descartado e cada retomada abre um trecho novo, então a
+distância andada fora do app sumia inteira. A regra virou do sistema todo:
+
+- **Desafio, intervalado e Monster Run não pausam ao sair do app** (o
+  intervalado e o motor zumbi ganharam `avancar(dt, salto)`: o tempo de fora
+  conta, de segundo em segundo, para cada troca de bloco ficar registrada; sem
+  `salto` continua o teto de 2 s). Do intervalado, a voz diz só o bloco de
+  agora; do Monster Run, a perseguição de fora fica "não avaliada" (sem
+  leitura), nunca derrota.
+- **O Voltar não pausa, e sair da aba não desmonta a prova** (`vivos`,
+  `marcarVivo`, `onVivo`, no raiz): com a prova correndo, a tela fica
+  montada e escondida, e o topo de qualquer outra aba mostra "🏁 Desafio em
+  andamento · voltar para ela". Antes o Voltar pausava, e trocar de aba
+  perdia a prova inteira.
+- **A aula guiada anda no relógio de parede** (`fimBlocoRef`): o
+  `setInterval` atrasado em segundo plano fazia a aula andar mais devagar
+  que o tempo.
+- O percurso, o ▶ das séries e o descanso já contavam pelo relógio de parede.
 
 **Não está validado em aparelho**: dois celulares de verdade em redes móveis,
 e os três retransmissores públicos (a sessão na nuvem não os alcança). Foi

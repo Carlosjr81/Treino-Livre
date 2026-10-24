@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24m**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24n**.
 
 ---
 
@@ -298,6 +298,8 @@ liga nem desliga a esteira; botão grande ⏹ PARAR A ESTEIRA. Métodos que só 
 ### 3.9b 🏁 Desafio — corra contra os amigos (juntos ou cada um na sua cidade)
 - **Com o celular travado no bolso (app Android):** toque em Largar, trave a tela e corra: o app segue com o GPS, a
   voz e os amigos te vendo; a notificação mostra a posição e quem está perto. No navegador e no iPhone, a tela fica ligada.
+- **Nada pausa sozinho:** sair do app ou ir a outra tela no meio do desafio, do intervalado, da missão ou da aula não
+  pausa nem perde a distância; um botão no topo leva de volta à prova.
 - **Boletim a cada minuto:** tempo, distância, ritmo, quanto falta e onde está cada amigo, pelo nome. Sair do app
   não pausa a prova. Dá para chamar amigo antes, durante ou depois (o resultado vira um fantasma 👻).
 - **Cada um pelo nome:** cor e iniciais de cada participante na sala, na pista e na lista; "na sua frente / atrás de

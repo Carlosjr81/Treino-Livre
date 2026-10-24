@@ -127,6 +127,13 @@ for (let i = 0; i < 100; i++) { mp.amostra({ valor: 2.78, origem: "gps", qualida
 mp.pausar();
 for (let i = 0; i < 300; i++) mp.avancar(1000);
 teste("5 min em pausa nao contam tempo ativo", 100000, mp.s.tAtivo);
+const cfgS = cfgBase();
+const ms = Z.criarMotorZumbi(cfgS, Z.planejarMissao(cfgS));
+ms.iniciar(); ms.avancar(5000);
+ms.avancar(90000, true);
+teste("saiu do app 1:30: a missao anda 1:30, sem pausar", [92000, false], [ms.s.tAtivo, ms.s.pausado]);
+ms.avancar(90000);
+teste("salto sem saber de onde veio continua limitado a 2 s", 94000, ms.s.tAtivo);
 mp.retomar();
 mp.avancar(600000);
 teste("o app suspenso 10 min volta somando no maximo 2 s", 102000, mp.s.tAtivo);

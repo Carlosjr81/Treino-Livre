@@ -19,7 +19,7 @@ eval(pedaco("const LINK_APP", "\n") + "\n" + pedaco("const LINK_APK", "\n") + "\
   pedaco("// ---------------- PERCURSO NA RUA (GPS)", "// ---------------- FIM DAS CONTAS DO PERCURSO") +
   pedaco("// ---------------- DESAFIO: MOTOR", "// ---------------- FIM DO MOTOR DESAFIO") +
   "\nglobalThis.C = { criarCorridaApp, narrarDesafio, novoNarradorDesafio, falaLargada, falaChegada, situacaoDesafio, nomesDesafio, iniciaisDe, corDoParticipante," +
-  " classificarDesafio, lerPacoteCorrida, regraBoletimDesafio, linhasStoryCardio, linkCorrida, mensagemDesafio, codificarTrilha };");
+  " classificarDesafio, lerPacoteCorrida, esperandoNaSala, quemCorreDesafio, regraBoletimDesafio, linhasStoryCardio, linkCorrida, mensagemDesafio, codificarTrilha };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -135,7 +135,7 @@ const eu = { id: "peu", nome: "Carlos", eu: true, trilha: trilhaDe(3, 300000), f
 const ana = { id: "pana", nome: "Ana", trilha: trilhaDe(3.5, 300000), fim: null, aoVivo: true, ts: agora0 - 90000, st: "correndo" };
 const linhas = C.classificarDesafio([eu, ana], 300000, META3K, agora0);
 const f1 = C.narrarDesafio(n, linhas, { t: 300000, d: 900 }, META3K, "peu", agora0).map((f) => f.texto).join(" | ");
-contem("quem entrou depois da largada", f1, "Ana entrou no desafio agora.");
+contem("quem entrou depois da largada", f1, "Ana largou agora e entrou na disputa.");
 contem("sem sinal há mais de um minuto, pelo nome", f1, "Ana está sem sinal há mais de um minuto.");
 const ana2 = Object.assign({}, ana, { fim: { ms: 400000, m: 3000 }, trilha: trilhaDe(3.5, 400000).concat([[400000, 3000]]), ts: agora0 + 200000 });
 const l2 = C.classificarDesafio([Object.assign({}, eu, { trilha: trilhaDe(3, 500000) }), ana2], 500000, META3K, agora0 + 200000);
@@ -172,6 +172,22 @@ teste("por distância: um aviso só no km (não dois)", 1, km1.length);
 contem("com a parcial do trecho", km1[0], "Este quilômetro em 5 minutos");
 const semRegra = correr(null, 130);
 teste("sem boletim, nada de minuto em minuto", 0, semRegra.filter((f) => /Ritmo de/.test(f)).length);
+
+console.log("\n--- quem está na sala, quem largou, sozinho ---");
+const agS = 70000000;
+teste("quem está na sala e não largou", ["Bia"], C.esperandoNaSala({ b: { nome: "Bia", st: "esperando", trilha: [[0, 0]], ts: agS - 1000 }, v: { nome: "Velho", st: "esperando", trilha: [[0, 0]], ts: agS - 600000 }, c: { nome: "Caio", st: "correndo", trilha: [[0, 0], [5000, 15]], ts: agS } }, agS));
+contem("sozinho e ninguém na sala", C.quemCorreDesafio([{ p: { eu: true } }], []), "Ninguém mais largou: você está correndo sozinho.");
+contem("sozinho com alguém esperando", C.quemCorreDesafio([{ p: { eu: true } }], ["Bia"]), "Bia está na sala e ainda não largou. Por enquanto você corre sozinho.");
+const n2 = C.novoNarradorDesafio({ tipo: "tempo", s: 60 });
+const eu2 = { id: "peu", nome: "Carlos", eu: true, trilha: trilhaDe(3, 20000), fim: null, aoVivo: true, ts: agS };
+const fx = C.narrarDesafio(n2, C.classificarDesafio([eu2], 20000, META3K, agS), { t: 20000, d: 60 }, META3K, "peu", agS, { esperando: ["Bia"] }).map((f) => f.texto).join(" | ");
+contem("quem chega à sala é avisado", fx, "Bia entrou na sala e ainda não largou.");
+n2.forcar = true;
+const fv = C.narrarDesafio(n2, C.classificarDesafio([eu2], 25000, META3K, agS + 60000), { t: 25000, d: 75 }, META3K, "peu", agS + 60000, { esperando: ["Bia"] }).map((f) => f.texto).join(" | ");
+contem("a tela voltou: o boletim sai na hora, dizendo quem não largou", fv, "Bia está na sala e ainda não largou");
+const bia2 = { id: "pbia", nome: "Bia", trilha: trilhaDe(3, 20000), fim: null, aoVivo: true, ts: agS + 70000, st: "correndo" };
+const fl = C.narrarDesafio(n2, C.classificarDesafio([Object.assign({}, eu2, { trilha: trilhaDe(3, 40000) }), bia2], 40000, META3K, agS + 70000), { t: 40000, d: 120 }, META3K, "peu", agS + 70000, { esperando: [] }).map((f) => f.texto).join(" | ");
+contem("e quando ela larga, a voz diz", fl, "Bia largou agora!");
 
 console.log("\n--- a imagem do resultado de uma caminhada: sem peso ---");
 const img = C.linhasStoryCardio({ nome: "Desafio 1 km", recordes: 0, cardio: { min: 13, km: 1, kcal: 62, perfil: "rua-caminhada", posicao: "" } }).map((x) => x.t).join(" | ");

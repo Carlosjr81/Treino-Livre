@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24o";
+const VERSAO_APP = "2026-10-24p";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -19092,16 +19092,32 @@ function regraBoletimDesafio(voz) {
   const b = v.boletim === undefined || v.boletim === null ? BOLETIM_DESAFIO_PADRAO : Math.max(0, parseInt(v.boletim) || 0);
   return b ? { tipo: "tempo", s: b } : null;
 }
+// Quem está na sala e ainda não largou (pedido do dono: "a cada feedback, diga se
+// alguém já largou ou se ainda estou correndo sozinho"). Só quem deu sinal nos
+// últimos 3 minutos: o retido de quem fechou o app ontem não está "na sala".
+function esperandoNaSala(outros, agora) {
+  return Object.keys(outros || {}).map((k) => outros[k]).filter((p) => p && !p.demo && !p.fim && p.st === "esperando" &&
+    (!p.trilha || p.trilha.length <= 1) && agora - (p.ts || 0) < 180000).map((p) => p.nome || "Alguém");
+}
+// "Ninguém mais largou: você está correndo sozinho." / "Ana está na sala e ainda não largou."
+function quemCorreDesafio(linhas, esperando) {
+  const esp = esperando || [];
+  const ainda = esp.length ? " " + nomesDesafio(esp) + (esp.length === 1 ? " está na sala e ainda não largou." : " estão na sala e ainda não largaram.") : "";
+  if (linhas.length < 2) return (esp.length ? ainda + " Por enquanto você corre sozinho." : " Ninguém mais largou: você está correndo sozinho.");
+  return ainda;
+}
 // "6 minutos. 1,1 quilômetro. Ritmo de 5 minutos e 40 por quilômetro. Faltam 1,9
 // quilômetros. Você em 2º de 3: Ana 120 metros à frente, Bia 300 metros atrás.
 // Ana está a 5 minutos e 20 por quilômetro."
-function boletimDesafio(linhas, eu, e, meta, q) {
+function boletimDesafio(linhas, eu, e, meta, q, esperando) {
   const vEu = eu && eu.v > 0.3 ? eu.v : e.t > 0 ? e.d / (e.t / 1000) : 0;
   const ritmo = vEu > 0.3 ? 1000 / vEu / 60 : 0;
   let f = boletimCardio({ seg: Math.round(e.t / 1000), km: e.d / 1000, ritmo: ritmo, trecho: q && q.trecho,
     falta: meta.tipo === "tempo" ? Math.round((meta.alvo - e.t) / 1000) : 0 });
+  // sem distância depois de meio minuto: dizer, senão parece que o app não mede
+  if (e.d < 5 && e.t > 30000) f += " O GPS ainda não marcou distância.";
   if (meta.tipo === "distancia" && meta.alvo - e.d > 50) f += " Faltam " + falaDistancia((meta.alvo - e.d) / 1000) + ".";
-  f += situacaoDesafio(linhas, eu);
+  f += situacaoDesafio(linhas, eu) + quemCorreDesafio(linhas, esperando);
   // o ritmo de quem está logo à frente e logo atrás: é com eles que se disputa
   [linhas[eu.pos - 2], linhas[eu.pos]].forEach((l) => {
     if (!l || l.terminou || !(l.v > 0.3)) return;
@@ -19111,10 +19127,12 @@ function boletimDesafio(linhas, eu, e, meta, q) {
 }
 function novoNarradorDesafio(regra) {
   return { commit: null, pend: null, nPend: 0, avisos: {}, proxKm: 1000, proxMin: 5, finalAvisado: false, vistos: {}, chegaram: {}, semSinal: {},
-    bol: regra ? criarBoletim(regra, 0, 0) : null, ultFala: 0 };
+    bol: regra ? criarBoletim(regra, 0, 0) : null, ultFala: 0, naSala: {}, forcar: false };
 }
-function narrarDesafio(n, linhas, e, meta, meuId, agora) {
+// extra: { esperando: [nomes] } — quem está na sala e ainda não largou
+function narrarDesafio(n, linhas, e, meta, meuId, agora, extra) {
   const falas = [];
+  const esperando = (extra && extra.esperando) || [];
   const dizer = (texto, prioridade, som) => falas.push({ texto: texto, prioridade: prioridade || 2, som: som || null });
   const eu = linhas.find((l) => l.p.eu);
   if (!eu) return falas;
@@ -19124,7 +19142,7 @@ function narrarDesafio(n, linhas, e, meta, meuId, agora) {
     const id = l.p.id;
     if (!n.vistos[id]) {
       n.vistos[id] = true;
-      if (e.t >= 15000) dizer(l.p.aoVivo ? l.p.nome + " entrou no desafio agora." : "O resultado de " + l.p.nome + " entrou na disputa.", 3);
+      if (e.t >= 15000) dizer(l.p.aoVivo ? l.p.nome + (n.naSala[l.p.nome] ? " largou agora!" : " largou agora e entrou na disputa.") : "O resultado de " + l.p.nome + " entrou na disputa.", 3);
     }
     if (l.terminou && !n.chegaram[id]) {
       n.chegaram[id] = true;
@@ -19135,6 +19153,12 @@ function narrarDesafio(n, linhas, e, meta, meuId, agora) {
       dizer(l.p.nome + " está sem sinal há mais de um minuto.", 1);
     }
     if (agora - (l.p.ts || 0) < 30000) n.semSinal[id] = false;
+  });
+  // quem chegou à sala e ainda não largou
+  esperando.forEach((nome) => {
+    if (n.naSala[nome]) return;
+    n.naSala[nome] = true;
+    if (e.t >= 15000) dizer(nome + " entrou na sala e ainda não largou.", 2);
   });
   const chave = linhas.map((l) => l.p.id).join(",");
   if (!n.commit) n.commit = linhas;
@@ -19165,17 +19189,20 @@ function narrarDesafio(n, linhas, e, meta, meuId, agora) {
   if (e.fim) return falas;
   const porDist = !!(n.bol && n.bol.porDistancia);
   if (n.bol && !e.pausado) {
-    const q = n.bol.quando(e.t / 1000, e.d, falas.length === 0 && agora - (n.ultFala || 0) >= 15000);
+    let q = n.bol.quando(e.t / 1000, e.d, falas.length === 0 && agora - (n.ultFala || 0) >= 15000);
+    // a tela voltou depois de um tempo: o boletim sai na hora, para a pessoa saber onde está
+    if (!q && n.forcar) q = {};
+    n.forcar = false;
     if (q) {
       if (porDist && e.d >= n.proxKm) n.proxKm = (Math.floor(e.d / 1000) + 1) * 1000;
-      dizer(boletimDesafio(linhas, eu, e, meta, q), 2);
+      dizer(boletimDesafio(linhas, eu, e, meta, q, esperando), 2);
     }
   }
   // por distância, o boletim já é o aviso de cada marca
   if (!porDist && e.d >= n.proxKm) {
     const km = Math.floor(e.d / 1000);
     n.proxKm = (km + 1) * 1000;
-    dizer(km + (km === 1 ? " quilômetro" : " quilômetros") + " em " + textoDuracao(Math.round(e.t / 1000)) + "." + situacaoDesafio(linhas, eu), 3);
+    dizer(km + (km === 1 ? " quilômetro" : " quilômetros") + " em " + textoDuracao(Math.round(e.t / 1000)) + "." + situacaoDesafio(linhas, eu) + quemCorreDesafio(linhas, esperando), 3);
   }
   if (meta.tipo === "tempo" && e.t >= n.proxMin * 60000 && e.t < meta.alvo - 30000) {
     n.proxMin += 5;
@@ -19286,7 +19313,7 @@ function criarCorridaApp(cfg, deps) {
         }
       }
       const linhas = linhasAgora();
-      narrarDesafio(n, linhas, e, meta, cfg.id, ag).forEach((f) => falas.push(f));
+      narrarDesafio(n, linhas, e, meta, cfg.id, ag, { esperando: esperandoNaSala(outros, ag) }).forEach((f) => falas.push(f));
       if (e.fim) { e.trilha.push([e.t, e.d]); falas.push({ texto: falaChegada(meta, e, linhas), prioridade: 5 }); }
       if (ag - ultPub >= 3000 || e.fim) { ultPub = ag; publicar(); }
       if (sala && sala.manter) sala.manter();
@@ -20411,6 +20438,22 @@ function statusParticipante(l, agoraW) {
   return { txt: "📡 ao vivo", cor: "var(--ok)" };
 }
 
+// No Android pelo navegador (ou num app antigo, sem a corrida no bolso): com a
+// tela travada não sai voz nem GPS. Tem de estar escrito grande, antes e
+// durante, com o caminho que resolve.
+function AvisoTelaTravadaDesafio() {
+  const appVelho = NO_APP_ANDROID && !(CORRIDA_APP >= 1);
+  return (
+    <div style={{ border: "1px solid var(--perigo-borda)", borderRadius: 12, padding: "10px 12px", marginBottom: 10, fontSize: 12.5, lineHeight: 1.5 }}>
+      <b>🔓 Não trave a tela nesta corrida.</b>{" "}
+      {appVelho ? "Este app Android é de uma versão antiga, que ainda não leva a corrida no bolso." : "Aberta pelo navegador,"} com a tela
+      travada o celular para o GPS, a voz fica muda e os amigos te veem parado.{" "}
+      <b>Para correr com o celular travado no bolso, ouvindo tudo, use o app Android{appVelho ? " novo" : ""}</b>: baixe, instale por cima,
+      abra pelo ícone do app e crie a sala por lá.{" "}
+      <a href={LINK_APK} style={{ color: "var(--marca)", fontWeight: 800 }}>Baixar o app</a>
+    </div>
+  );
+}
 function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsado, onSalvar, onVoltar, onVivo }) {
   const meuId = useMemo(() => {
     try {
@@ -20629,6 +20672,9 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
       setEtapa("corrida");
       // conduzida pelo app, a voz é a dele (e continua com a tela travada)
       if (!c) dizer(falaLargada(meta, Object.keys(outros.current).map((k) => outros.current[k].nome).filter(Boolean)), 4);
+      // Relato do dono: travou a tela pelo navegador e não ouviu nada a prova
+      // inteira. A voz avisa antes, porque com a tela travada não há mais como.
+      if (!c && !demo && !esteira && EH_ANDROID) dizer("Atenção: pelo navegador, com a tela travada eu fico mudo e o GPS para. Deixe a tela ligada, ou corra pelo app Android.", 3);
       publicar();
     }, 1000);
   };
@@ -20705,6 +20751,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
       // pausada. Quem sai do app continua andando: o tempo conta, e a distância
       // vem do GPS quando ele volta (o trecho sem sinal entra em linha reta).
       if (dt > 5000 && !e.pausado) {
+        if (narr.current) narr.current.forcar = true;
         if (demo) dt = 200;
         else setLegenda("O app ficou " + textoDuracao(Math.round(dt / 1000)) + " em segundo plano e a prova continuou contando." +
           (esteira ? "" : peloApp ? "" : " Com a tela travada o navegador não mede o GPS nem fala: " + (EH_ANDROID ? "no app Android, a corrida segue no bolso." : "deixe a tela ligada.")));
@@ -20756,7 +20803,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
     const linhas = classificarDesafio(todos(), e.t, meta, Date.now());
     const eu = linhas.find((l) => l.p.eu);
     if (eu && esteira && !e.pausado) eu.v = kmhRef.current / 3.6;
-    narrarDesafio(narr.current, linhas, e, meta, meuId, Date.now()).forEach((f) => {
+    narrarDesafio(narr.current, linhas, e, meta, meuId, Date.now(), { esperando: esperandoNaSala(outros.current, Date.now()) }).forEach((f) => {
       dizer(f.texto, f.prioridade);
       if (som && f.som === "passei") beep(1100, 0.12, 0.3);
       if (som && f.som === "passou") beep(420, 0.2, 0.3);
@@ -20952,11 +20999,9 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
             : <button onClick={comecar} disabled={!sala.meta} style={{ ...S.btn, width: "100%", padding: "16px 10px", fontSize: 17, opacity: sala.meta ? 1 : 0.5 }}>▶ Largar</button>}
           {peloApp && !demo
             ? <div style={{ fontSize: 12, color: "var(--ok)", marginTop: 8, lineHeight: 1.5 }}>🔒 Pode travar a tela e pôr no bolso: o app segue com o GPS, a voz e os amigos.</div>
-            : !demo && <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>
-                {EH_ANDROID
-                  ? <>Pelo navegador, deixe a tela ligada: com ela travada o celular para o GPS e os outros te veem parado. <b>Com o app Android, dá para correr com o celular travado no bolso.</b> <a href={LINK_APK} style={{ color: "var(--marca)", fontWeight: 800 }}>Baixar o app</a></>
-                  : "Deixe a tela ligada: com ela travada o navegador para o GPS e os outros te veem parado."}
-              </div>}
+            : !demo && (EH_ANDROID && !esteira
+              ? <div style={{ marginTop: 10 }}><AvisoTelaTravadaDesafio /></div>
+              : <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>Deixe a tela ligada: com ela travada o navegador para o GPS e os outros te veem parado.</div>)}
         </div>
       </div>
     );
@@ -21102,6 +21147,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
               </div>
             )}
             {legenda && <div style={{ fontSize: 12.5, margin: "0 4px 10px" }} aria-live="polite">🔊 {legenda}</div>}
+            {!condR.current && !demo && !esteira && EH_ANDROID && <AvisoTelaTravadaDesafio />}
             <div style={{ fontSize: 11.5, color: "var(--cinza)", margin: "0 4px 10px" }}>{luzConexao[0]} {luzConexao[1]}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
               {e.pausado

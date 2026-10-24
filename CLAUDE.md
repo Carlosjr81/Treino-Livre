@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v124) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v125) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2232,6 +2232,26 @@ distância andada fora do app sumia inteira. A regra virou do sistema todo:
   desafio. O texto do resumo também (sem "0 repetições"), e a fala do fim.
   Musculação com aeróbico no fim ganha uma linha de aeróbico na imagem.
   Coberto em `teste-corrida-app.js` (58 checagens).
+
+**"Com o celular travado, não escutei nada."** A prova rodava pelo navegador
+(sem o 🔒 do app): com a tela travada, nada de voz nem de GPS. Não há conserto
+para isso na página, então o que mudou é **ninguém mais correr assim sem
+saber**:
+
+- `AvisoTelaTravadaDesafio`, no Android fora do app (ou num app antigo, sem
+  `?corrida=1`): "🔓 Não trave a tela nesta corrida", com o caminho (baixar,
+  instalar por cima, abrir pelo ícone do app), na sala e durante a prova. E a
+  voz diz o mesmo na largada, porque depois de travar não dá mais.
+- **A volta da tela fala na hora** (`n.forcar`): o boletim sai assim que a
+  página acorda, para a pessoa saber onde está.
+- **Quem está na sala e quem largou** (`esperandoNaSala`, `quemCorreDesafio`,
+  o 7º parâmetro de `narrarDesafio`): "Bia entrou na sala e ainda não
+  largou", "Bia largou agora!", e em todo boletim e todo km "Ninguém mais
+  largou: você está correndo sozinho" ou "Bia está na sala e ainda não
+  largou". Só conta quem deu sinal nos últimos 3 min.
+- **"O GPS ainda não marcou distância"** no boletim, quando passa de 30 s com
+  menos de 5 m: silêncio sobre a distância parecia app quebrado.
+Coberto em `teste-corrida-app.js` (64 checagens).
 
 **Não está validado em aparelho**: dois celulares de verdade em redes móveis,
 e os três retransmissores públicos (a sessão na nuvem não os alcança). Foi

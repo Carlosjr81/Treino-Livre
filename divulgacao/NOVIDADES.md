@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-10-24p — O desafio diz quem já largou, e avisa quando a tela não pode travar
+
+**Em uma frase:** a voz do desafio conta a cada boletim se alguém já largou ou se você corre sozinho, e o app avisa
+claramente quando a corrida está pelo navegador, onde a tela travada deixa tudo mudo.
+
+**O que mudou**
+- **Quem largou**: "Bia entrou na sala e ainda não largou", "Bia largou agora!", e em todo boletim "Ninguém mais
+  largou: você está correndo sozinho".
+- **Aviso grande, antes e durante a prova**, no celular Android pelo navegador: "Não trave a tela nesta corrida", com o
+  botão para baixar o app que leva a corrida no bolso. A voz avisa também na largada.
+- **Ao destravar a tela**, a voz diz na hora o tempo, a distância e onde está cada um.
+- Se o GPS ainda não marcou distância, a voz diz isso, em vez de ficar calada.
+
+**Por que importa para quem treina**
+- Quem corre de fone precisa ouvir tudo, inclusive se está sozinho ou se o amigo já saiu.
+
+**Como usar**
+- Para correr com o celular travado no bolso: baixe o app Android novo, instale por cima e abra o desafio pelo ícone do
+  app. A sala mostra "🔒 Pode travar a tela" quando está tudo certo.
+
+**Ideias de vídeo**
+- A voz no fone: "Bia largou agora!" e, minutos depois, "Você passou a Bia!".
+
+**Não prometer**
+- Pelo navegador, a tela travada continua deixando a voz e o GPS parados: só o app Android leva a corrida no bolso.
+
+---
+
 ## 2026-10-24o — Caminhada e corrida sem "kg" no resultado, e você uma vez só na prova
 
 **Em uma frase:** o resultado de caminhada, corrida e esteira mostra distância, tempo, ritmo e calorias (nada de

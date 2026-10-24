@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-10-24d — Ouvir com a tela travada: ajustes e diagnóstico
+
+**Em uma frase:** o Jarvis da tela travada deixou de brigar pelo microfone com a tela destravada, e
+tenta outro jeito de ouvir quando o celular recusa.
+
+**O que mudou**
+- Com a tela destravada, o microfone fica só com o Jarvis da tela (antes os dois podiam ouvir ao mesmo
+  tempo, e ele entendia mal).
+- Se o reconhecimento de voz do Google recusar ouvir com a tela travada, o app tenta o reconhecimento
+  do próprio celular.
+- O diagnóstico do Jarvis mostra o que aconteceu com a tela travada (tocar em "Trazer" traz essa lista).
+
+**Por que importa para quem treina**
+- Falar com o Jarvis com a tela destravada volta a funcionar bem, e a tela travada ganha mais chance de ouvir.
+
+**Como usar**
+- Instale o app Android de novo e abra pelo ícone.
+
+**Ideias de vídeo**
+- (nenhuma nova: é ajuste)
+
+**Não prometer**
+- Ouvir com a tela travada ainda está em teste e depende do celular.
+
+---
+
 ## 2026-10-24c — Com a tela travada, ele fala sozinho a cada série
 
 **Em uma frase:** no app Android, marcar a série no ✓ e travar a tela já basta: a confirmação e o fim

@@ -60,6 +60,22 @@ class BolsoService : Service(), RecognitionListener {
         @SuppressLint("StaticFieldLeak")
         @Volatile var instancia: BolsoService? = null
 
+        // O diário do serviço: com a tela travada não há tela para ver o que deu
+        // errado. Vai junto na volta (#bolso=) e aparece no diagnóstico do Jarvis.
+        fun diario(contexto: Context, msg: String) {
+            android.util.Log.i("TreinoLivre", "Bolso: " + msg)
+            val p = contexto.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val lista = try { JSONArray(p.getString("diario", "[]")) } catch (e: Exception) { JSONArray() }
+            val hora = java.text.SimpleDateFormat("HH:mm:ss", Locale.US).format(java.util.Date())
+            val nova = JSONArray()
+            val ini = maxOf(0, lista.length() - 39)
+            for (i in ini until lista.length()) nova.put(lista.get(i))
+            nova.put(hora + "  " + msg.take(150))
+            p.edit().putString("diario", nova.toString()).apply()
+        }
+        fun lerDiario(contexto: Context): JSONArray =
+            try { JSONArray(contexto.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("diario", "[]")) } catch (e: Exception) { JSONArray() }
+
         // O que foi anotado com a tela travada e ainda não voltou ao treino.
         // Tudo roda na linha principal: ler e zerar aqui é atômico.
         fun tirarPendentes(contexto: Context): JSONArray {
@@ -92,6 +108,11 @@ class BolsoService : Service(), RecognitionListener {
     private var inicio = 0L
     // a frase do fim do descanso que veio da página (vale se a página escondida não carregou)
     private var fimFalaFixa = ""
+    // O reconhecedor do Google pode recusar ouvir para um app com a tela
+    // travada; aí vale o do próprio aparelho (Android 12+), se houver.
+    private var noAparelho = false
+    private var recusas = 0
+    private fun anotar(msg: String) = diario(this, msg)
 
     private val tela = object : BroadcastReceiver() {
         override fun onReceive(c: Context?, i: Intent?) {
@@ -147,6 +168,7 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
+        anotar("ligado")
         val pm = getSystemService(PowerManager::class.java)
         // Com a tela travada a CPU dorme, e o fim do descanso chegaria atrasado.
         trava = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TreinoLivre:bolso").apply { acquire(DURACAO_MAX) }
@@ -177,9 +199,9 @@ class BolsoService : Service(), RecognitionListener {
             override fun run() {
                 val atual = web ?: return
                 atual.evaluateJavascript("typeof window.bolso==='object'") { r ->
-                    if (r == "true") { pronto = true; iniciarPagina(); if (travada) ouvir() }
+                    if (r == "true") { pronto = true; anotar("página escondida pronta"); iniciarPagina(); if (travada) ouvir() }
                     else if (++tentativas < 120) linha.postDelayed(this, 500L)
-                    else android.util.Log.w("TreinoLivre", "Bolso: a página não carregou")
+                    else anotar("ERRO: a página escondida não carregou em 60 s (sem internet?)")
                 }
             }
         }
@@ -212,9 +234,28 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     // ---- a tela ----
+    // Conferido de verdade, e não só pelos avisos do sistema: num Galaxy o
+    // aviso de desbloqueio pode não chegar, e o serviço seguia ouvindo com a
+    // tela livre, brigando pelo microfone com o Jarvis da página (que só ouvia
+    // silêncio).
+    private fun telaLivre(): Boolean {
+        val pm = getSystemService(PowerManager::class.java)
+        val km = getSystemService(KeyguardManager::class.java)
+        return (pm?.isInteractive ?: false) && !(km?.isKeyguardLocked ?: true)
+    }
+    private val vigia = object : Runnable {
+        override fun run() {
+            if (travada && telaLivre()) aoDestravar()
+            if (travada) linha.postDelayed(this, 2000L)
+        }
+    }
+
     private fun aoTravar() {
         if (travada) return
         travada = true
+        anotar("tela travada" + (if (pronto) "" else " (a página escondida ainda carregando)"))
+        linha.removeCallbacks(vigia)
+        linha.postDelayed(vigia, 2000L)
         if (!avisouPrimeira) {
             avisouPrimeira = true
             falar("Jarvis no bolso. Estou ouvindo.")
@@ -224,6 +265,8 @@ class BolsoService : Service(), RecognitionListener {
     private fun aoDestravar() {
         if (!travada) return
         travada = false
+        anotar("tela destravada: o microfone fica com a página")
+        linha.removeCallbacks(vigia)
         pararDeOuvir()
         val pend = try { JSONArray(getSharedPreferences(PREFS, MODE_PRIVATE).getString("pend", "[]")) } catch (e: Exception) { JSONArray() }
         if (pend.length() > 0) avisarVolta(pend.length())
@@ -249,12 +292,14 @@ class BolsoService : Service(), RecognitionListener {
 
     // ---- ouvir ----
     private fun ouvir() {
-        if (!travada || !pronto || ouvindo || falando > 0 || pararDepoisDeFalar) return
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            android.util.Log.w("TreinoLivre", "Bolso: sem reconhecimento de voz no aparelho")
+        if (!travada || ouvindo || falando > 0 || pararDepoisDeFalar) return
+        if (telaLivre()) { aoDestravar(); return }
+        if (!noAparelho && !SpeechRecognizer.isRecognitionAvailable(this)) {
+            anotar("ERRO: o aparelho não tem reconhecimento de voz")
             return
         }
-        val r = reconhecedor ?: SpeechRecognizer.createSpeechRecognizer(this).also {
+        val r = reconhecedor ?: (if (noAparelho && android.os.Build.VERSION.SDK_INT >= 31)
+            SpeechRecognizer.createOnDeviceSpeechRecognizer(this) else SpeechRecognizer.createSpeechRecognizer(this)).also {
             it.setRecognitionListener(this)
             reconhecedor = it
         }
@@ -300,29 +345,64 @@ class BolsoService : Service(), RecognitionListener {
     override fun onResults(resultados: Bundle?) {
         ouvindo = false
         erros = 0
+        recusas = 0
         val alts = resultados?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
         if (alts.isNullOrEmpty()) { religar(250L); return }
+        anotar("ouvi: \"" + alts[0] + "\"" + (if (noAparelho) " (reconhecedor do aparelho)" else ""))
+        if (!pronto) { anotar("ERRO: a página escondida não carregou; não sei entender a frase"); religar(300L); return }
         processar(alts)
     }
 
     override fun onError(codigo: Int) {
         ouvindo = false
+        if (!travada) return
+        val nome = when (codigo) {
+            SpeechRecognizer.ERROR_NO_MATCH -> "não entendeu"
+            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "silêncio"
+            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "sem permissão"
+            SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "reconhecedor ocupado"
+            SpeechRecognizer.ERROR_CLIENT -> "erro do cliente"
+            SpeechRecognizer.ERROR_AUDIO -> "erro de áudio"
+            SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "sem internet"
+            SpeechRecognizer.ERROR_SERVER -> "erro do servidor"
+            else -> "erro $codigo"
+        }
         when (codigo) {
-            SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> religar(250L)
-            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> {
-                android.util.Log.w("TreinoLivre", "Bolso: sem permissão do microfone")
-                falar("Não tenho permissão para usar o microfone com a tela travada.")
-            }
-            SpeechRecognizer.ERROR_RECOGNIZER_BUSY, SpeechRecognizer.ERROR_CLIENT -> {
+            SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> { recusas = 0; religar(250L) }
+            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS, SpeechRecognizer.ERROR_AUDIO, SpeechRecognizer.ERROR_CLIENT,
+            SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> {
+                recusas++
+                anotar("reconhecedor: $nome" + (if (noAparelho) " (do aparelho)" else " (do Google)"))
                 try { reconhecedor?.destroy() } catch (e: Exception) { }
                 reconhecedor = null
-                religar(800L)
+                // Recusou três vezes seguidas com a tela travada: troca de reconhecedor
+                if (recusas >= 3) {
+                    recusas = 0
+                    val podeAparelho = android.os.Build.VERSION.SDK_INT >= 31 && SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
+                    if (!noAparelho && podeAparelho) {
+                        noAparelho = true
+                        anotar("trocando para o reconhecedor do próprio aparelho")
+                    } else if (noAparelho) {
+                        noAparelho = false
+                        anotar("voltando para o reconhecedor do Google")
+                        erros++
+                    } else erros++
+                }
+                religar(minOf(8000L, 800L + 1200L * erros))
             }
-            else -> { erros++; religar(minOf(5000L, 600L * erros)) }
+            else -> {
+                erros++
+                anotar("reconhecedor: $nome")
+                if (codigo == 13 && noAparelho) { noAparelho = false; anotar("o reconhecedor do aparelho não tem português: voltando ao do Google") }
+                religar(minOf(5000L, 600L * erros))
+            }
         }
     }
 
-    override fun onReadyForSpeech(p: Bundle?) {}
+    private var avisouOuvindo = false
+    override fun onReadyForSpeech(p: Bundle?) {
+        if (!avisouOuvindo) { avisouOuvindo = true; anotar("microfone aberto com a tela travada" + (if (noAparelho) " (reconhecedor do aparelho)" else "")) }
+    }
     override fun onBeginningOfSpeech() {}
     override fun onRmsChanged(v: Float) {}
     override fun onBufferReceived(b: ByteArray?) {}
@@ -339,6 +419,7 @@ class BolsoService : Service(), RecognitionListener {
             if (r.has("descansoAte")) agendarDescanso(r.optLong("descansoAte", 0L))
             if (r.optBoolean("parar", false)) pararDepoisDeFalar = true
             val fala = r.optString("falar", "")
+            anotar(if (fala.isNotEmpty()) "respondi: " + fala.take(90) else "ignorei (sem o nome Jarvis)")
             if (fala.isNotEmpty()) falar(fala)
             else if (pararDepoisDeFalar) encerrar()
             else religar(150L)

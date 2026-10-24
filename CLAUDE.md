@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v112) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v113) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3004,6 +3004,22 @@ a frase da confirmação (`f`), a do fim do descanso (`ff`) e o
 - O treino aberto por um toque ("Começar") já manda a cópia
   (`navigator.userActivation`), para quem trava antes do primeiro ✓.
 - "Desligar" no cartão desliga também o automático (`treinolivre:bolsoAuto`).
+
+**Segundo relato do dono (2026-10-24c, app novo)**: falava travado, mas não
+ouvia travado, e destravado o Jarvis da página ouvia mal (frases vazias).
+- **O serviço podia seguir ouvindo com a tela livre**: só o aviso
+  `USER_PRESENT` o fazia soltar o microfone, e os dois reconhecedores brigavam.
+  Hoje ele confere de verdade (`telaLivre`: `isInteractive` e
+  `isKeyguardLocked`) antes de cada escuta e a cada 2 s (`vigia`).
+- **O reconhecedor do Google pode recusar ouvir para um app com a tela
+  travada.** Três recusas seguidas (sem permissão, áudio, cliente, ocupado)
+  trocam para o reconhecedor do próprio aparelho
+  (`createOnDeviceSpeechRecognizer`, Android 12+), e de volta se ele falhar.
+- **O diário do serviço** (`BolsoService.diario`, 40 linhas: ligado, página
+  pronta, tela travada, microfone aberto, ouvi, respondi, cada erro com nome)
+  vai junto na volta (`dg` no `#bolso=`) e aparece no diagnóstico do Jarvis
+  ("🔒 Com a tela travada"). O **Trazer** volta sempre (`t=1`), mesmo sem
+  nada anotado, para trazer o diário.
 
 **O que ele faz com a tela travada**: anotar ("80 por 10", "30 de cada lado",
 "prancha 45 segundos"), repete, corrige, apaga a última, observação,

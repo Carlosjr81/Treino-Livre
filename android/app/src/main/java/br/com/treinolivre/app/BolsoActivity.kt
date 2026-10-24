@@ -90,13 +90,14 @@ class BolsoActivity : ComponentActivity() {
 
     // Reabre a mesma página do treino com #bolso= (o Chrome só troca o fragmento)
     private fun voltar(eventos: JSONArray, fim: Boolean) {
-        if (eventos.length() == 0 && !fim && !isTaskRoot) {
+        val trazer = intent?.data?.getQueryParameter("t") == "1"
+        if (eventos.length() == 0 && !fim && !trazer && !isTaskRoot) {
             finish()
             @Suppress("DEPRECATION") overridePendingTransition(0, 0)
             return
         }
         try {
-            val pacote = JSONObject().put("ev", eventos)
+            val pacote = JSONObject().put("ev", eventos).put("dg", BolsoService.lerDiario(this))
             if (fim) pacote.put("fim", 1)
             val uri = Uri.parse(Site.ENDERECO + "?app=android#bolso=" + Site.codificar(pacote.toString()))
             Site.abrir(this, uri, { lancador = it }) { finish() }

@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24c";
+const VERSAO_APP = "2026-10-24d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2589,9 +2589,9 @@ function snapshotBolso(sessao, exPorId, cfg) {
     }),
   };
 }
-function linkBolso(snap, falar, fimFala) {
+function linkBolso(snap, falar, fimFala, trazer) {
   const d = padraoParaB64Url(b64Codificar(JSON.stringify(snap)));
-  let q = "d=" + d;
+  let q = "d=" + d + (trazer ? "&t=1" : "");
   if (falar) q += "&f=" + encodeURIComponent(falar);
   if (fimFala) q += "&ff=" + encodeURIComponent(fimFala);
   return "intent://bolso?" + q + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID +
@@ -2894,7 +2894,8 @@ function lerPacoteBolso(texto, decodificar) {
       (e.campo == null || ["peso", "reps", "segundos"].indexOf(e.campo) >= 0) &&
       ["p", "r", "sg", "valor"].every((k) => e[k] == null || /^\d{1,4}([.,]\d{1,2})?$/.test(String(e[k]))) &&
       (e.o == null || (typeof e.o === "string" && e.o.length < 300)));
-    return { ev: ev, fim: !!(p && p.fim), em: Date.now() };
+    const dg = Array.isArray(p && p.dg) ? p.dg.filter((s) => typeof s === "string").slice(-40).map((s) => s.slice(0, 170)) : null;
+    return { ev: ev, fim: !!(p && p.fim), dg: dg, em: Date.now() };
   } catch (e) { return null; }
 }
 // ==== FIM DO BOLSO ====
@@ -7732,10 +7733,15 @@ function ModalDiagnosticoJarvis({ aberto, ligado, estado, voz, noToque, onFechar
     ["Resposta falada", voz.falar ? (vozAtual ? "ligada (" + nomeCurtoVoz(vozAtual) + ")" : "ligada") : "desligada"],
     ["Frases ouvidas", String(DIARIO_JARVIS.length)],
   ];
+  // O que o app Android anotou com a tela travada (chega na volta, #bolso=)
+  let bolsoDg = null;
+  try { bolsoDg = JSON.parse(localStorage.getItem("treinolivre:bolsoDiario") || "null"); } catch (e) {}
   const texto = "TREINO LIVRE - diagnóstico do Jarvis\n" +
     resumo.map((x) => x[0] + ": " + x[1]).join("\n") + "\n\n" +
     (linhas.length ? linhas.map((l) => l.hora + "  \"" + l.ouvi + "\"\n          " + l.nota).join("\n")
-      : "(nenhuma frase ouvida ainda)");
+      : "(nenhuma frase ouvida ainda)") +
+    (bolsoDg && bolsoDg.linhas && bolsoDg.linhas.length
+      ? "\n\nTELA TRAVADA (app Android)\n" + bolsoDg.linhas.slice(-25).join("\n") : "");
 
   return (
     <div onClick={onFechar}
@@ -7782,6 +7788,15 @@ function ModalDiagnosticoJarvis({ aberto, ligado, estado, voz, noToque, onFechar
               </div>
             </div>
           ))
+        )}
+
+        {bolsoDg && bolsoDg.linhas && bolsoDg.linhas.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <div style={S.label}>🔒 Com a tela travada (app Android)</div>
+            <div style={{ fontSize: 11.5, fontFamily: "monospace", whiteSpace: "pre-wrap", lineHeight: 1.5, marginTop: 6, color: "var(--cinza)" }}>
+              {bolsoDg.linhas.slice(-25).join("\n")}
+            </div>
+          </div>
         )}
 
         <button style={{ ...S.btn, marginTop: 16 }}
@@ -22280,7 +22295,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   }, []);
   // Ligar (ou atualizar) manda a cópia do treino ao app. É também o "Trazer":
   // o app devolve primeiro o que anotou e depois segue com a cópia nova.
-  const ligarBolso = (itensAgora, foco, falar, fimFala, ate) => {
+  const ligarBolso = (itensAgora, foco, falar, fimFala, ate, trazer) => {
     // Sem descanso novo (Ligar, Trazer, a abertura do treino), segue o que está correndo
     let ateF = ate;
     if (ateF == null) { ateF = fimDescanso || 0; if (fimDescanso) descansoNoBolso.current = fimDescanso; }
@@ -22290,7 +22305,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     });
     try { localStorage.setItem("treinolivre:bolsoAtivo", String(Date.now())); } catch (e) {}
     setBolsoAtivo(true);
-    try { window.location.href = linkBolso(snap, falar, fimFala); } catch (e) {}
+    try { window.location.href = linkBolso(snap, falar, fimFala, trazer); } catch (e) {}
   };
   const desligarBolso = () => {
     try { localStorage.removeItem("treinolivre:bolsoAtivo"); localStorage.setItem("treinolivre:bolsoAuto", "0"); } catch (e) {}
@@ -22753,14 +22768,14 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           </div>
           {bolsoAuto ? (
             <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => ligarBolso()} style={{ ...S.btnGhost, width: "auto", padding: "9px 12px", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>Trazer</button>
+              <button onClick={() => ligarBolso(null, null, null, null, undefined, true)} style={{ ...S.btnGhost, width: "auto", padding: "9px 12px", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>Trazer</button>
               <button onClick={desligarBolso} style={{ ...S.btnGhost, width: "auto", padding: "9px 12px" }}>Desligar</button>
             </div>
           ) : NO_APP_ANDROID && BOLSO_APP >= 2 ? (
             <button onClick={religarBolsoAuto} style={{ ...S.btnGhost, width: "auto", padding: "9px 14px", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>Ligar</button>
           ) : bolsoAtivo ? (
             <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => ligarBolso()} style={{ ...S.btnGhost, width: "auto", padding: "9px 12px", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>Trazer</button>
+              <button onClick={() => ligarBolso(null, null, null, null, undefined, true)} style={{ ...S.btnGhost, width: "auto", padding: "9px 12px", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>Trazer</button>
               <button onClick={desligarBolso} style={{ ...S.btnGhost, width: "auto", padding: "9px 12px" }}>Desligar</button>
             </div>
           ) : (
@@ -25476,6 +25491,7 @@ function TreinoLivre() {
         const pacB = lerPacoteBolso(mB[1], b64Decodificar);
         if (pacB) {
           try { localStorage.setItem("treinolivre:bolso", JSON.stringify(pacB)); } catch (e) {}
+          if (pacB.dg) { try { localStorage.setItem("treinolivre:bolsoDiario", JSON.stringify({ em: Date.now(), linhas: pacB.dg })); } catch (e) {} }
           if (ss) setAba("sessao");
         }
       }
@@ -25572,6 +25588,7 @@ function TreinoLivre() {
         const pacB = lerPacoteBolso(mB[1], b64Decodificar);
         if (!pacB) return;
         try { localStorage.setItem("treinolivre:bolso", JSON.stringify(pacB)); } catch (e) {}
+        if (pacB.dg) { try { localStorage.setItem("treinolivre:bolsoDiario", JSON.stringify({ em: Date.now(), linhas: pacB.dg })); } catch (e) {} }
         if (temSessaoRef.current) setAba("sessao");
         setTimeout(() => { try { window.dispatchEvent(new Event("treinolivre:bolso")); } catch (e) {} }, 50);
         return;

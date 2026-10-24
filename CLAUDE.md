@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v111) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v112) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2985,6 +2985,25 @@ app Android, com um serviço em primeiro plano do tipo microfone.
 6. `aplicarEventosBolso` é **a mesma função nos dois lados**: o app aplica na
    cópia dele, a página no treino. Série marcada à mão no meio tempo não é
    apagada: a anotação vai para a próxima por fazer.
+
+**Automático no app (`bolsoAuto`, `BOLSO_APP`)**, depois do primeiro relato do
+dono ("não mudou nada" — e o APK novo nem tinha sido baixado). Ligar à mão
+não bastava: o que mais se faz é marcar ✓ e travar a tela. Então, no app que
+abre o site com `?bolso=2` (`Site.endereco`; guardado em
+`treinolivre:bolsoApp`), **todo ✓ chama `treinolivre://bolso`** com a cópia,
+a frase da confirmação (`f`), a do fim do descanso (`ff`) e o
+`descansoAte`. O ✓ é toque, e o toque é o que deixa a página chamar o app.
+- **Quem fala é o Android**, travado ou não: a página não narra o ✓ e fica
+  quieta no fim do descanso que o app conduz (`descansoNoBolso`, comparado com
+  o `fimDescanso`). Descanso começado pela voz da página continua sendo dela.
+- A `BolsoActivity` não tem tela nem animação (`Tema.Bolso`, translúcido), e
+  só espera 0,7 s na primeira vez (o microfone em segundo plano exige o serviço
+  ligado com o app à vista).
+- Sem `?bolso=2` a página não chama: um APK antigo sem o `bolso` faria o
+  Chrome mandar à loja a cada ✓. O cartão manda baixar o app de novo.
+- O treino aberto por um toque ("Começar") já manda a cópia
+  (`navigator.userActivation`), para quem trava antes do primeiro ✓.
+- "Desligar" no cartão desliga também o automático (`treinolivre:bolsoAuto`).
 
 **O que ele faz com a tela travada**: anotar ("80 por 10", "30 de cada lado",
 "prancha 45 segundos"), repete, corrige, apaga a última, observação,

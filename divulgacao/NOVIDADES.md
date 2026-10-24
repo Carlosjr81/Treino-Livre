@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-10-24c — Com a tela travada, ele fala sozinho a cada série
+
+**Em uma frase:** no app Android, marcar a série no ✓ e travar a tela já basta: a confirmação e o fim
+do descanso são falados com o celular bloqueado, sem ligar nada.
+
+**O que mudou**
+- O Jarvis da tela travada liga sozinho no app: a cada ✓ ele diz "Série 1 de 3 anotada. Descanso de um
+  minuto e meio", e no fim do descanso chama com uma frase de ânimo e a próxima série, mesmo travado.
+- Continua dando para falar com ele travado ("Jarvis, 80 por 10").
+
+**Por que importa para quem treina**
+- O jeito mais comum de treinar (toca no ✓, trava, guarda o celular) agora tem o aviso de volta falado.
+
+**Como usar**
+- Baixe e instale o app Android de novo e abra pelo ícone. No primeiro treino, permita o microfone e as
+  notificações. Depois é só marcar o ✓ e travar a tela.
+
+**Ideias de vídeo**
+- Toca no ✓, trava o celular, guarda no bolso; um minuto e meio depois o fone chama: "Bora! Descanso
+  acabou. Agora: série 2 do supino."
+
+**Não prometer**
+- Só no app Android, e só depois de instalar o app de novo.
+- Ainda em teste no celular.
+
+---
+
 ## 2026-10-24b — O Jarvis com a tela travada, no bolso
 
 **Em uma frase:** no app Android, o Jarvis agora ouve, anota, conta o descanso e chama você com o

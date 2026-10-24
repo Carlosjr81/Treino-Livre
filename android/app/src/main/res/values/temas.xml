@@ -11,6 +11,11 @@
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowCloseOnTouchOutside">false</item>
     </style>
+    <!-- O 🔒: passa a cada ✓ do treino, e não pode aparecer -->
+    <style name="Tema.Bolso" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowNoDisplay">false</item>
+    </style>
     <!-- A tela dos óculos: tela cheia, preta, o Eyes Scan dentro do app -->
     <style name="Tema.Oculos" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
         <item name="android:windowBackground">@android:color/black</item>

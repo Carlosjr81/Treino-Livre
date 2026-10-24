@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24b**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-24c**.
 
 ---
 
@@ -157,7 +157,8 @@ com cenas reais → halter) como linguagem visual em vídeos.
   pode abrir a contagem pela câmera do celular ou pelos óculos. Pela voz: "Jarvis, câmera" ou "Jarvis, óculos".
   Em teste: alguns celulares podem pedir um toque na tela para abrir os óculos.
 - **🔒 Jarvis com a tela travada (app Android, em teste):** com o celular travado no bolso, o Jarvis ouve
-  ("Jarvis, 80 por 10"), anota, avisa recorde, conta o descanso e chama de volta com a próxima série. Ao
+  ("Jarvis, 80 por 10"), anota, avisa recorde, conta o descanso e chama de volta com a próxima série. Liga
+  sozinho: marcar o ✓ e travar a tela já faz a confirmação e o fim do descanso serem falados. Ao
   destravar, uma notificação leva as séries para o treino. Aeróbico, câmera e finalizar continuam pela tela.
 - **Convite para o app Android:** quem usa pelo navegador no Android vê, na tela inicial e nos Ajustes,
   o cartão "Baixe o app Android" com o que só o app faz (relógio, Samsung Health, óculos). Quem já tem o

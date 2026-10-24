@@ -91,7 +91,7 @@
         <activity
             android:name=".BolsoActivity"
             android:exported="true"
-            android:theme="@style/Tema.Saude">
+            android:theme="@style/Tema.Bolso">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

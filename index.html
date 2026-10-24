@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-24b";
+const VERSAO_APP = "2026-10-24c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2550,6 +2550,16 @@ const MODO_BOLSO = typeof location !== "undefined" && /[?&]modo=bolso\b/.test(lo
 const FRASES_BOLSO_VOLTA = ["Bora!", "Vamos que vamos!", "Hora de voltar!", "Foco agora!", "É agora!", "Mais uma, você consegue!", "Respira e vai!"];
 const FRASES_BOLSO_FIM_EX = ["Esse já foi!", "Fechou esse!", "Mandou bem nesse!", "Um a menos!"];
 const BOLSO_SO_NA_TELA = "Essa eu faço com a tela destravada.";
+// O app Android que sabe falar com a tela travada abre o site com ?bolso=2.
+// Guardado: depois da primeira abertura pelo ícone, a página sabe. Sem isto, um
+// APK antigo receberia treinolivre://bolso a cada ✓ e o Chrome mandaria à loja.
+const BOLSO_APP = (() => {
+  try {
+    const m = typeof location !== "undefined" && location.search.match(/[?&]bolso=(\d+)/);
+    if (m) localStorage.setItem("treinolivre:bolsoApp", m[1]);
+    return parseInt(localStorage.getItem("treinolivre:bolsoApp")) || 0;
+  } catch (e) { return 0; }
+})();
 
 // Só o que a voz precisa: as séries e, de cada exercício, o nome, o
 // equipamento (a barra no "de cada lado"), se é de tempo, o descanso e o recorde.
@@ -2560,6 +2570,7 @@ function snapshotBolso(sessao, exPorId, cfg) {
     descanso: c.descanso || 90,
     barra: c.barra != null ? c.barra : 20,
     foco: c.foco != null ? c.foco : null,
+    descansoAte: c.descansoAte || 0,
     itens: (sessao.itens || []).map((it) => {
       const ex = exPorId(it.exercicioId) || {};
       const rec = c.recordes && c.recordes[it.exercicioId];
@@ -2578,9 +2589,12 @@ function snapshotBolso(sessao, exPorId, cfg) {
     }),
   };
 }
-function linkBolso(snap) {
+function linkBolso(snap, falar, fimFala) {
   const d = padraoParaB64Url(b64Codificar(JSON.stringify(snap)));
-  return "intent://bolso?d=" + d + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID +
+  let q = "d=" + d;
+  if (falar) q += "&f=" + encodeURIComponent(falar);
+  if (fimFala) q += "&ff=" + encodeURIComponent(fimFala);
+  return "intent://bolso?" + q + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID +
     ";S.browser_fallback_url=" + encodeURIComponent(LINK_APK) + ";end";
 }
 function linkBolsoParar() {
@@ -2633,6 +2647,7 @@ function criarBolso(snapInicial, catalogo) {
     snap = s;
     itens = (s.itens || []).map((it) => Object.assign({}, it, { series: (it.series || []).map((x) => Object.assign({}, x)) }));
     foco = s.foco != null && itens[s.foco] ? s.foco : null;
+    fimDesc = s.descansoAte > 0 ? s.descansoAte : 0;
     todos = itens.map((it) => (catalogo || []).find((e) => e.id === it.exercicioId) || { id: it.exercicioId, nome: it.nome, equip: it.equip, grupo: "" });
   };
   montar(snapInicial);
@@ -21263,6 +21278,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
 
   // Som + vibração de finalização
   useEffect(() => {
+    if (acabou && !avisou && descansoNoBolso.current && Math.abs(descansoNoBolso.current - fimDescanso) < 3000) {
+      setAvisou(true);
+      descansoNoBolso.current = 0;
+      try { if (navigator.vibrate) navigator.vibrate([300, 120, 300]); } catch (e) {}
+      return;
+    }
     if (acabou && !avisou) {
       setAvisou(true);
       if (som) {
@@ -21577,14 +21598,26 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     // o número da série não conta os drops ("série 2 de 3", com ou sem drop)
     const ordem = item.series.slice(0, si + 1).filter((x) => !ehDrop(x)).length;
     const deTrabalho = item.series.filter((x) => !ehDrop(x)).length || quantas;
-    narrarVoz(
-      (ehDrop(serie) ? "Drop anotado." : "Série " + ordem + " de " + deTrabalho + " anotada.") + relato +
+    const fraseSerie = (ehDrop(serie) ? "Drop anotado." : "Série " + ordem + " de " + deTrabalho + " anotada.") + relato +
       (vaiDrop ? " Agora o drop" + (proxSerie.peso ? ": " + fmtNum(proxSerie.peso) + " quilos" : "") + ", sem descanso."
-        : seg ? " Descanso de " + textoDuracao(seg) + "." : " Emenda no próximo."),
-      vozCfg
-    );
+        : seg ? " Descanso de " + textoDuracao(seg) + "." : " Emenda no próximo.");
     // O ✓ na tela também merece a comemoração falada quando o Jarvis está ouvindo
     const recorde = conferirRecorde(item, serie);
+    if (bolsoAuto) {
+      // No app: quem fala é o Android, e o fim deste descanso também é dele
+      const novos = sessao.itens.map((it, k) => (k !== ei ? it
+        : Object.assign({}, it, { series: it.series.map((s, j) => (j === si ? Object.assign({}, s, { feito: true }) : s)) })));
+      const ate = seg ? Date.now() + seg * 1000 : 0;
+      const prox = alvoDaSessao(novos, ei);
+      const pend = novos.reduce((n, it) => n + it.series.filter((s) => !s.feito).length, 0);
+      const fimFala = !pend ? "Todas as séries feitas! Destrave a tela e finalize o treino."
+        : animo(ANIMO_VOLTA, "volta") + " Descanso acabou." + (prox && novos[prox.ei] && novos[prox.ei].series[prox.si]
+          ? " Agora: série " + (prox.si + 1) + " de " + nomeDoItem(prox.ei) + "." : "");
+      descansoNoBolso.current = ate;
+      ligarBolso(novos, ei, (recorde ? recorde + " " : "") + fraseSerie, fimFala, ate);
+      return;
+    }
+    narrarVoz(fraseSerie, vozCfg);
     if (recorde && vozAtiva && responderVoz) responderVoz(recorde, true);
     else if (recorde) narrarVoz(recorde, vozCfg, true);
   };
@@ -22216,6 +22249,16 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   const [bolsoAtivo, setBolsoAtivo] = useState(() => {
     try { return Date.now() - (parseInt(localStorage.getItem("treinolivre:bolsoAtivo")) || 0) < 4 * 3600000; } catch (e) { return false; }
   });
+  // **Automático no app** (pedido do dono: "falar tudo com a tela bloqueada").
+  // Ligar à mão não bastava: o que mais se faz é marcar ✓ e travar a tela, e o
+  // descanso da página dorme com ela. No app novo (BOLSO_APP), todo ✓ é um
+  // toque, e o toque deixa a página chamar o app: a confirmação e o fim do
+  // descanso passam a ser falados pelo Android, travado ou não.
+  const [bolsoAuto, setBolsoAuto] = useState(() => {
+    try { return NO_APP_ANDROID && BOLSO_APP >= 2 && localStorage.getItem("treinolivre:bolsoAuto") !== "0"; } catch (e) { return false; }
+  });
+  // O descanso que o app vai encerrar: a página não fala nem toca no fim dele
+  const descansoNoBolso = useRef(0);
   useEffect(() => {
     const aplicar = () => {
       let pend = null;
@@ -22237,19 +22280,38 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   }, []);
   // Ligar (ou atualizar) manda a cópia do treino ao app. É também o "Trazer":
   // o app devolve primeiro o que anotou e depois segue com a cópia nova.
-  const ligarBolso = () => {
-    const snap = snapshotBolso(sessao, exPorId, {
-      descanso: descanso, barra: parseFloat(vozBarra) || 20, foco: alvo ? alvo.ei : null, recordes: recordes,
+  const ligarBolso = (itensAgora, foco, falar, fimFala, ate) => {
+    // Sem descanso novo (Ligar, Trazer, a abertura do treino), segue o que está correndo
+    let ateF = ate;
+    if (ateF == null) { ateF = fimDescanso || 0; if (fimDescanso) descansoNoBolso.current = fimDescanso; }
+    const snap = snapshotBolso({ itens: itensAgora || sessao.itens }, exPorId, {
+      descanso: descanso, barra: parseFloat(vozBarra) || 20, recordes: recordes, descansoAte: ateF,
+      foco: foco != null ? foco : alvo ? alvo.ei : null,
     });
     try { localStorage.setItem("treinolivre:bolsoAtivo", String(Date.now())); } catch (e) {}
     setBolsoAtivo(true);
-    try { window.location.href = linkBolso(snap); } catch (e) {}
+    try { window.location.href = linkBolso(snap, falar, fimFala); } catch (e) {}
   };
   const desligarBolso = () => {
-    try { localStorage.removeItem("treinolivre:bolsoAtivo"); } catch (e) {}
+    try { localStorage.removeItem("treinolivre:bolsoAtivo"); localStorage.setItem("treinolivre:bolsoAuto", "0"); } catch (e) {}
     setBolsoAtivo(false);
+    setBolsoAuto(false);
+    descansoNoBolso.current = 0;
     try { window.location.href = linkBolsoParar(); } catch (e) {}
   };
+  const religarBolsoAuto = () => {
+    try { localStorage.removeItem("treinolivre:bolsoAuto"); } catch (e) {}
+    setBolsoAuto(NO_APP_ANDROID && BOLSO_APP >= 2);
+    ligarBolso();
+  };
+  // O treino acabou de abrir por um toque ("Começar"): o app já recebe a cópia,
+  // para quem trava a tela antes do primeiro ✓.
+  useEffect(() => {
+    if (!bolsoAuto || !sessao.itens.length) return;
+    let ativo = false;
+    try { ativo = !!(navigator.userActivation && navigator.userActivation.isActive); } catch (e) {}
+    if (ativo) ligarBolso();
+  }, []);
 
   const registrarDoScanner = (repsContadas, pesoDito) => {
     const r = anotarPorVoz({
@@ -22680,18 +22742,29 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           <div style={{ flex: "1 1 180px" }}>
             <div style={S.label}>🔒 Jarvis com a tela travada</div>
             <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 2, lineHeight: 1.5 }}>
-              {bolsoAtivo
+              {bolsoAuto
+                ? <>Automático. Cada ✓ é falado pelo app, e o fim do descanso também, <b>com a tela travada</b>. Travado, diga <b>“Jarvis, 80 por 10”</b>. Ao destravar, a notificação leva as séries.</>
+                : bolsoAtivo
                 ? <>Ligado. Trave a tela e diga <b>“Jarvis, 80 por 10”</b>: ele anota, conta o descanso e chama você. Ao destravar, toque em <b>Trazer</b>.</>
+                : NO_APP_ANDROID && BOLSO_APP < 2
+                ? <>Precisa do app Android novo: <a href={LINK_APK} style={{ color: "var(--marca)" }}>baixe e instale de novo</a> e abra pelo ícone.</>
                 : <>Celular travado no bolso: ele ouve, anota as séries, conta o descanso e chama você na hora. Só no app Android.</>}
             </div>
           </div>
-          {bolsoAtivo ? (
+          {bolsoAuto ? (
             <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={ligarBolso} style={{ ...S.btnGhost, width: "auto", padding: "9px 12px", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>Trazer</button>
+              <button onClick={() => ligarBolso()} style={{ ...S.btnGhost, width: "auto", padding: "9px 12px", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>Trazer</button>
+              <button onClick={desligarBolso} style={{ ...S.btnGhost, width: "auto", padding: "9px 12px" }}>Desligar</button>
+            </div>
+          ) : NO_APP_ANDROID && BOLSO_APP >= 2 ? (
+            <button onClick={religarBolsoAuto} style={{ ...S.btnGhost, width: "auto", padding: "9px 14px", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>Ligar</button>
+          ) : bolsoAtivo ? (
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => ligarBolso()} style={{ ...S.btnGhost, width: "auto", padding: "9px 12px", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>Trazer</button>
               <button onClick={desligarBolso} style={{ ...S.btnGhost, width: "auto", padding: "9px 12px" }}>Desligar</button>
             </div>
           ) : (
-            <button onClick={ligarBolso} style={{ ...S.btnGhost, width: "auto", padding: "9px 14px", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>Ligar</button>
+            <button onClick={() => ligarBolso()} style={{ ...S.btnGhost, width: "auto", padding: "9px 14px", color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>Ligar</button>
           )}
         </div>
       )}

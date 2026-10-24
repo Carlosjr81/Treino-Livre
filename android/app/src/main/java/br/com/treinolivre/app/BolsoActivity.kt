@@ -3,15 +3,11 @@ package br.com.treinolivre.app
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.Gravity
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,18 +30,8 @@ class BolsoActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(64, 64, 64, 64)
-            setBackgroundColor(Color.parseColor("#16161D"))
-            addView(TextView(this@BolsoActivity).apply {
-                text = "🔒 Jarvis com a tela travada"
-                setTextColor(Color.WHITE)
-                textSize = 16f
-                gravity = Gravity.CENTER
-            })
-        })
+        // Sem tela: a cada ✓ do treino ela passa por aqui, e não pode piscar.
+        @Suppress("DEPRECATION") overridePendingTransition(0, 0)
         if (savedInstanceState != null) return
         val dados = intent?.data
         when {
@@ -82,24 +68,33 @@ class BolsoActivity : ComponentActivity() {
         // O que ele anotou e a página ainda não tem volta agora; a cópia nova
         // segue com isso aplicado (a página vai aplicar o mesmo).
         val pend = BolsoService.tirarPendentes(this)
+        val primeira = BolsoService.instancia == null
+        val dados = intent?.data
         try {
             ContextCompat.startForegroundService(this, Intent(this, BolsoService::class.java)
                 .putExtra("snap", snap)
-                .putExtra("aplicar", pend.toString()))
+                .putExtra("aplicar", pend.toString())
+                .putExtra("falar", dados?.getQueryParameter("f"))
+                .putExtra("fimFala", dados?.getQueryParameter("ff")))
         } catch (e: Exception) {
             Toast.makeText(applicationContext, "Não consegui ligar o Jarvis da tela travada.", Toast.LENGTH_LONG).show()
             voltar(JSONArray(), true)
             return
         }
-        Toast.makeText(applicationContext, "🔒 Pronto: trave a tela e fale com o Jarvis.", Toast.LENGTH_SHORT).show()
+        if (!primeira) { voltar(pend, false); return }
+        Toast.makeText(applicationContext, "🔒 O Jarvis fala com a tela travada.", Toast.LENGTH_SHORT).show()
         // O microfone em segundo plano só vale para serviço ligado com o app à
-        // vista: a tela espera um instante antes de sair.
+        // vista: na primeira vez, um instante antes de sair.
         Handler(Looper.getMainLooper()).postDelayed({ voltar(pend, false) }, 700L)
     }
 
     // Reabre a mesma página do treino com #bolso= (o Chrome só troca o fragmento)
     private fun voltar(eventos: JSONArray, fim: Boolean) {
-        if (eventos.length() == 0 && !fim && !isTaskRoot) { finish(); return }
+        if (eventos.length() == 0 && !fim && !isTaskRoot) {
+            finish()
+            @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+            return
+        }
         try {
             val pacote = JSONObject().put("ev", eventos)
             if (fim) pacote.put("fim", 1)

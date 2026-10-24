@@ -19,7 +19,9 @@ object Site {
     const val CHROME = "com.android.chrome"
 
     fun endereco(pacoteSaude: String? = null): Uri {
-        val base = "$ENDERECO?app=android"
+        // bolso=2: este app fala com a tela travada (BolsoService). A página só
+        // chama treinolivre://bolso a cada ✓ quando sabe disso.
+        val base = "$ENDERECO?app=android&bolso=2"
         return Uri.parse(if (pacoteSaude == null) base else "$base#saude=$pacoteSaude")
     }
 

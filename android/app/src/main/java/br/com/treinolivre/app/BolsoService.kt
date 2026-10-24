@@ -90,6 +90,8 @@ class BolsoService : Service(), RecognitionListener {
     private var foco: AudioFocusRequest? = null
     private var pararDepoisDeFalar = false
     private var inicio = 0L
+    // a frase do fim do descanso que veio da página (vale se a página escondida não carregou)
+    private var fimFalaFixa = ""
 
     private val tela = object : BroadcastReceiver() {
         override fun onReceive(c: Context?, i: Intent?) {
@@ -127,12 +129,20 @@ class BolsoService : Service(), RecognitionListener {
             p.edit().putString("snap", snap)
                 .putString("aplicado", intent?.getStringExtra("aplicar") ?: "[]")
                 .putString("pend", "[]").apply()
-            avisouPrimeira = false
         }
         if (inicio == 0L) {
             inicio = System.currentTimeMillis()
             ligar()
-        } else if (pronto) iniciarPagina()
+        } else if (pronto && snap != null) iniciarPagina()
+        // O ✓ da página: a confirmação é falada daqui (a página fica quieta), e o
+        // fim do descanso também — é o que funciona com a tela travada.
+        if (snap != null) {
+            fimFalaFixa = intent?.getStringExtra("fimFala") ?: ""
+            val ate = try { JSONObject(snap).optLong("descansoAte", 0L) } catch (e: Exception) { 0L }
+            agendarDescanso(ate)
+            val agora = intent?.getStringExtra("falar")
+            if (!agora.isNullOrEmpty()) falar(agora)
+        }
         return START_STICKY
     }
 
@@ -205,7 +215,7 @@ class BolsoService : Service(), RecognitionListener {
     private fun aoTravar() {
         if (travada) return
         travada = true
-        if (!avisouPrimeira && pronto) {
+        if (!avisouPrimeira) {
             avisouPrimeira = true
             falar("Jarvis no bolso. Estou ouvindo.")
         } else ouvir()
@@ -358,8 +368,10 @@ class BolsoService : Service(), RecognitionListener {
             linha.postDelayed({ tom.release() }, 1400L)
         } catch (e: Exception) { }
         linha.postDelayed({
+            val reserva = fimFalaFixa.ifEmpty { "Descanso acabou." }
+            if (!pronto) { falar(reserva); return@postDelayed }
             js("bolso.fimDescanso(" + System.currentTimeMillis() + ")") { texto ->
-                if (texto.isNotEmpty()) falar(texto)
+                falar(texto.ifEmpty { reserva })
             }
         }, 1100L)
     }

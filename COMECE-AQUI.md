@@ -1,5 +1,9 @@
 # Começar a mexer neste projeto num aparelho novo
 
+> **Outra conta do Claude?** (por exemplo, a pessoal no lugar da corporativa)
+> O passo a passo está em `TROCAR-DE-CONTA-CLAUDE.md`. O projeto não depende
+> de conta do Claude nenhuma: ele mora no seu GitHub.
+
 Dois caminhos, conforme o aparelho:
 
 - **Computador** — Claude + Google Drive, e o resto se instala sozinho. É o de

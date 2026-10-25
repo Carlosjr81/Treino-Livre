@@ -84,6 +84,27 @@ minutos depois da anterior guardava de novo os arquivos velhos. Aconteceu com
 o avatar do Marombeiro: a pintura dos tênis foi desfeita, o texto novo chegou
 ao celular e a imagem continuou pintada.
 
+## Nenhuma conta do Claude é dona do projeto
+
+O dono desenvolve com a conta **corporativa** do Claude e quer poder assumir
+com a **pessoal** a qualquer momento (pedido dele: "não quero perder meu
+projeto se um dia perder a conta corporativa"). Por isso:
+
+- **Tudo o que o projeto é mora no GitHub pessoal** (`Carlosjr81/Treino-Livre`)
+  e no Drive: código, testes, APK, site, e o contexto neste arquivo. O
+  histórico de conversas fica na conta do Claude onde aconteceu e se perde com
+  ela: **decisão que só existe numa conversa não existe**. Escreva aqui.
+- **Ferramenta de trabalho também vai para o repositório.** O teste no
+  navegador (`testes/navegador.js`) vivia em scripts soltos dentro de uma
+  sessão; hoje está em `testes/`. Script útil escrito no rascunho da sessão
+  (scratchpad) que vá ser usado de novo entra no repositório.
+- **Nada de segredo de conta no repositório**, e nada que só funcione com a
+  conta corporativa: o caminho é `claude.ai/code` + GitHub, que qualquer conta
+  com plano pago abre.
+- O passo a passo da troca, e o ensaio para fazer antes de precisar, estão em
+  **`TROCAR-DE-CONTA-CLAUDE.md`**. O `.mailmap` mostra como `Carlosjr81` os
+  commits antigos feitos com o e-mail da empresa.
+
 ## Trabalhar de qualquer computador
 
 O projeto não depende de uma máquina. Tudo o que é preciso para desenvolver
@@ -4267,7 +4288,14 @@ qualquer computador*). Ela recorta as funções do próprio `index.html`:
 node testes/rodar.js      # as 29 suítes (1.179 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
+node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro
 ```
+
+`navegador.js` pega React, ReactDOM e Babel do npm (a sessão na nuvem alcança),
+serve o `index.html` local e aceita `--dados arq.json` (o registro do
+`localStorage`), `--clicar "Texto"` (repetível), `--foto tela.png` e
+`--altura 700`. Sai com erro se a página lançar exceção: é o "mexeu em
+componente, abra a tela" sem celular.
 
 Rode antes e depois de mexer no app. **Elas não substituem o roteiro manual
 abaixo**: provam que a lógica não quebrou, não que a tela funciona. Câmera,

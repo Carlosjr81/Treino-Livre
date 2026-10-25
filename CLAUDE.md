@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v131) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v132) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3404,6 +3404,21 @@ de a música parar e picotar com a tela travada):
 - **No site, o que mexe na música é de propósito e opcional**: o "Toque no
   fone ou nos óculos" toca um áudio mudo para receber o play/pause do fone, e
   com isso vira o tocador ativo (a música pausa). Fica em "Nada" por padrão.
+
+**Fechou o app, o Jarvis desliga** (relato do dono: "fechei o app e o Jarvis
+continua falando"). O serviço sobrevivia ao app de três jeitos, e os três
+foram fechados:
+- **Tirar o app dos recentes** não chegava ao serviço: hoje `onTaskRemoved`
+  encerra tudo (microfone, voz, descanso agendado). Travar a tela não tira o
+  app da lista, então o uso no bolso continua igual.
+- **O `START_STICKY`** fazia o Android religar o serviço depois de o processo
+  morrer, com a cópia velha do treino: o Jarvis voltava a falar sozinho. Hoje é
+  `START_NOT_STICKY`, e um início sem intent (o sistema religando) desliga.
+  O mesmo guarda vale no `CorridaService` (sem corrida rodando, desliga).
+- **Esquecido ligado**: 40 min sem ✓, sem fala ouvida e sem descanso ou ▶ pela
+  frente (`OCIOSO_MS`, `ocioso`) desligam. E **finalizar ou descartar o
+  treino** na página manda `parar` ao app (efeito no raiz, com o
+  `treinolivre:bolsoAtivo`; o toque do Finalizar é o gesto que o Chrome exige).
 
 **Não validado num aparelho**: se o reconhecimento do Google aceita ouvir pelo
 serviço com a tela travada em todo Android, se o bipe some, e o WebView

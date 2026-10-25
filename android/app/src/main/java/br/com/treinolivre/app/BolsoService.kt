@@ -53,6 +53,7 @@ class BolsoService : Service(), RecognitionListener {
         private const val ID = 2
         private const val ID_VOLTA = 3
         const val PARAR = "br.com.treinolivre.app.BOLSO_PARAR"
+        const val OCIOSO_MS = 40 * 60_000L
         const val PREFS = "bolso"
         private const val DURACAO_MAX = 4 * 3600_000L
 
@@ -139,7 +140,11 @@ class BolsoService : Service(), RecognitionListener {
             return START_NOT_STICKY
         }
         if (intent?.action == PARAR) { encerrar(); return START_NOT_STICKY }
+        // Sem intent é o sistema religando um serviço que morreu, não a página
+        // pedindo: com o app fechado, o Jarvis não pode voltar a falar sozinho.
+        if (intent == null) { encerrar(); return START_NOT_STICKY }
         instancia = this
+        usadoEm = System.currentTimeMillis()
         val p = getSharedPreferences(PREFS, MODE_PRIVATE)
         val snap = intent?.getStringExtra("snap")
         if (snap != null) {
@@ -164,7 +169,35 @@ class BolsoService : Service(), RecognitionListener {
             val c = intent?.getStringExtra("crono")
             if (!c.isNullOrEmpty()) try { receberCrono(JSONObject(c)) } catch (e: Exception) { }
         }
-        return START_STICKY
+        linha.removeCallbacks(ocioso)
+        linha.postDelayed(ocioso, 60_000L)
+        return START_NOT_STICKY
+    }
+
+    // Fechar o app (tirar da lista de recentes) desliga o Jarvis. Relato do
+    // dono: "fechei o app e o Jarvis continua falando". Travar a tela não tira
+    // o app da lista, então o uso com o celular no bolso continua igual.
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        anotar("app fechado: Jarvis desligado")
+        encerrar()
+        super.onTaskRemoved(rootIntent)
+    }
+
+    // Esquecido ligado: sem ✓, sem fala ouvida e sem descanso ou ▶ pela frente
+    // há mais de 40 minutos, o treino acabou. Desliga em vez de seguir ouvindo
+    // e falando a tarde inteira.
+    private var usadoEm = 0L
+    private var descansoAte = 0L
+    private val ocioso = object : Runnable {
+        override fun run() {
+            val agora = System.currentTimeMillis()
+            if (crono == null && descansoAte < agora && agora - usadoEm > OCIOSO_MS) {
+                anotar("40 min sem uso: Jarvis desligado")
+                encerrar()
+                return
+            }
+            linha.postDelayed(this, 60_000L)
+        }
     }
 
     private fun ligar() {
@@ -542,6 +575,7 @@ class BolsoService : Service(), RecognitionListener {
     override fun onEvent(t: Int, p: Bundle?) {}
 
     private fun processar(alts: List<String>) {
+        usadoEm = System.currentTimeMillis()
         val lista = JSONArray()
         alts.take(5).forEach { lista.put(it) }
         js("bolso.ouvir(" + q(lista.toString()) + "," + System.currentTimeMillis() + ")") { texto ->
@@ -562,6 +596,7 @@ class BolsoService : Service(), RecognitionListener {
     private val dezSegundos = Runnable { falar("Dez segundos. Prepara.") }
 
     private fun agendarDescanso(ate: Long) {
+        descansoAte = ate
         linha.removeCallbacks(fimDescanso)
         linha.removeCallbacks(dezSegundos)
         if (ate <= 0L) return

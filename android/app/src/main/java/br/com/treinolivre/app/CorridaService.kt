@@ -96,6 +96,9 @@ class CorridaService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        // Sem intent e sem corrida rodando é o sistema religando um serviço que
+        // morreu: só deixaria uma notificação parada.
+        if (intent == null && web == null) { encerrar(); return START_NOT_STICKY }
         instancia = this
         when (intent?.action) {
             PARAR -> { encerrar(); return START_NOT_STICKY }

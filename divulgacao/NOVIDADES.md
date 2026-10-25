@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-10-25c — Fechou o app, o Jarvis fica quieto
+
+**Em uma frase:** no app Android, o Jarvis da tela travada agora desliga quando você fecha o app, quando finaliza o treino
+ou quando fica esquecido ligado.
+
+**O que mudou**
+- **Fechar o app desliga o Jarvis**: tirou o Treino Livre da lista de apps abertos, ele para de ouvir e de falar na hora.
+- **Finalizar ou descartar o treino desliga o Jarvis** junto.
+- **Esquecido ligado**: depois de 40 minutos sem série marcada, sem você falar com ele e sem descanso correndo, ele desliga
+  sozinho.
+- O celular não liga mais o Jarvis de volta por conta própria depois de fechar o app.
+
+**Por que importa para quem treina**
+- O Jarvis só fala quando você está treinando. Fora do treino, silêncio.
+
+**Como usar**
+- Nada a fazer: basta atualizar o app Android (baixar e instalar por cima). Travar a tela no meio do treino continua
+  funcionando como antes.
+
+**Ideias de vídeo**
+- Não é novidade para vídeo: é um conserto.
+
+**Não prometer**
+- Vale para o app Android atualizado; quem está com o app antigo precisa instalar o novo.
+
+---
+
 ## 2026-10-25b — O plano de equilíbrio explicado para qualquer pessoa
 
 **Em uma frase:** o cartão que ajusta o seu treino agora responde "Seu treino está equilibrado?" e explica em três passos

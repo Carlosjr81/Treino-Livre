@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-25b";
+const VERSAO_APP = "2026-10-25c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -27500,6 +27500,18 @@ function TreinoLivre() {
   const [baseNovoEx, setBaseNovoEx] = useState(null);   // exercício copiado ao criar variação
   const trocaFotoRef = useRef(null);                    // qual exercício está trocando a foto
   const [sessao, setSessao] = useState(null);
+  // Treino finalizado ou descartado: o Jarvis da tela travada (app Android)
+  // desliga junto. Relato do dono: "fechei o app e o Jarvis continua falando".
+  // O toque do Finalizar é o gesto que deixa a página chamar o app.
+  const sessaoAntesRef = useRef(null);
+  useEffect(() => {
+    const antes = sessaoAntesRef.current;
+    sessaoAntesRef.current = sessao;
+    if (!antes || sessao || !NO_APP_ANDROID) return;
+    let ativo = null;
+    try { ativo = localStorage.getItem("treinolivre:bolsoAtivo"); localStorage.removeItem("treinolivre:bolsoAtivo"); } catch (e) {}
+    if (ativo) { try { window.location.href = linkBolsoParar(); } catch (e) {} }
+  }, [sessao]);
   const [modal, setModal] = useState(null);
   const [resumoAnim, setResumoAnim] = useState(null);
   // a abertura do zumbi passa toda vez que a modalidade é aberta

@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v129) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v130) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3653,6 +3653,14 @@ compartilhados por aí precisam continuar abrindo.
     A tela diz de onde vem cada sugestão: "(já na ficha B - Pernas)", "(na
     sua ficha X)", "(você já fez)" ou "(novo para você)". Coberto em
     `teste-volume.js` (50 checagens).
+  - **A confirmação travava a tela** (relato do dono, com print): com a lista
+    de mudanças, o texto passava da altura do celular e os botões ficavam
+    fora da tela, sem rolagem — nada respondia e nada era criado. Hoje **toda
+    janela de confirmação** tem altura máxima da tela, o texto rola por
+    dentro e os botões ficam sempre à vista. A do ajustado diz primeiro
+    quando começa e depois a lista inteira ("O que muda (17)"), com o botão
+    "Criar". `pedirConfirmacao` aceita um objeto (rótulos, `positivo`).
+    Conferido no navegador em 390×700: o botão aparece e o programa é criado.
 - **Filtro por equipamento** (`FAMILIAS_EQUIP`) — responde "só tenho halteres em
   casa". Um exercício pode cair em mais de uma família, e isso não é problema.
 - **Duplicar ficha e programa** — ao copiar, os ids de `conjunto` são regerados

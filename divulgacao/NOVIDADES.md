@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-10-25a — "Criar treino ajustado" não trava mais a tela
+
+**Em uma frase:** a confirmação do treino ajustado, que ficava maior que a tela e escondia os botões, agora rola por
+dentro e mostra o botão "Criar" sempre à vista.
+
+**O que mudou**
+- Toda janela de confirmação do app cabe na tela: o texto longo rola, e os botões ficam embaixo, sempre visíveis.
+- Na confirmação do treino ajustado, primeiro vem quando ele começa; depois a lista completa do que muda em cada ficha.
+
+**Por que importa para quem treina**
+- Quem tocava em "Criar … ajustado" ficava preso numa tela sem botão e o treino novo não era criado.
+
+**Como usar**
+- Histórico › Números › "Plano para equilibrar a divisão" › "Criar … ajustado" › role a lista se quiser › "Criar".
+
+**Ideias de vídeo**
+- Não é novidade para vídeo: é um conserto.
+
+**Não prometer**
+- Nada novo a prometer.
+
+---
+
 ## 2026-10-24t — O ajuste usa primeiro os exercícios das suas fichas
 
 **Em uma frase:** para equilibrar os músculos, o app sugere primeiro os exercícios que você já faz nas suas fichas, e só

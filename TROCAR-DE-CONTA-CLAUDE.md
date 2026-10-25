@@ -32,7 +32,31 @@ escrito lá.
 - **A ligação entre o Claude corporativo e o seu GitHub.** É só uma
   autorização: na conta pessoal você faz uma igual (passo 3 abaixo).
 
-## Passo a passo para assumir com a conta pessoal
+## Quem pode mexer no projeto: a chave é o seu GitHub
+
+Nenhuma conta do Claude, nem a corporativa nem a pessoal, mexe no projeto por
+conta própria. Para alterar qualquer arquivo, o Claude precisa de uma conta do
+GitHub com permissão de escrita neste repositório, e hoje (conferido em
+25/10/2026) **a única é a sua, `Carlosjr81`** (administradora, sem nenhum outro
+colaborador). Então quem tem a senha e o segundo fator do seu GitHub é quem
+controla o Treino Livre, seja qual for a conta do Claude.
+
+- **Ler, qualquer um lê**: o repositório é **público**, porque o GitHub Pages
+  gratuito publica o site a partir de repositório público. Ver e copiar o
+  código não dá poder de mudar o app de ninguém. Tornar o repositório privado
+  exigiria GitHub Pro para manter o site no ar.
+- **Ative a verificação em duas etapas** no GitHub (Settings › Password and
+  authentication › Two-factor authentication). É o que impede alguém com a sua
+  senha de entrar.
+- **Limite o app do Claude a este repositório**: Settings › Applications ›
+  Installed GitHub Apps › Claude › Configure › "Only select repositories" ›
+  Treino-Livre.
+- **Não acrescente colaboradores** (Settings do repositório › Collaborators).
+  É a lista de quem pode escrever além de você.
+- **Ao trocar de conta do Claude**, revogue a autorização da antiga em
+  Settings › Applications › Authorized OAuth Apps. A partir daí ela não alcança
+  mais o repositório, e a nova só entra porque você a conectou com o seu login.
+
 
 1. **Plano.** O Claude Code (o Claude que mexe no código) precisa de um plano
    pago na conta pessoal (Pro ou Max). Confira em `claude.ai` › Configurações ›

@@ -799,7 +799,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-25a";
+const VERSAO_APP = "2026-10-25b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -10287,6 +10287,14 @@ const MESOCICLO = [
   { semana: 4, nome: "Pico", delta: 1, reserva: "0 a 1 repetição na reserva", dica: "uma série a mais em cada exercício, perto da falha" },
   { semana: 5, nome: "Deload", fator: 0.5, reserva: "carga uns 10% mais leve", dica: "metade das séries: é aqui que o corpo recupera e cresce" },
 ];
+const MESOCICLO_FACIL = [
+  "Começo do ciclo: uma série a menos em cada exercício. Pare quando ainda daria para fazer umas 3 repetições.",
+  "Semana normal: as séries da ficha. Pare quando ainda daria para fazer umas 2 repetições.",
+  "Semana normal: tente pôr um pouco mais de peso ou fazer uma repetição a mais que na semana passada.",
+  "Semana mais forte: uma série a mais em cada exercício, chegando perto do limite.",
+  "Semana de descanso: metade das séries e um pouco menos de peso. É nela que o músculo se recupera e cresce.",
+];
+const FACIL_ANTES_DA_TROCA = "Semana leve antes de trocar de treino: metade das séries e um pouco menos de peso, para chegar descansado no treino novo.";
 const DIAS_ONDULACAO = [
   { id: "pesado", nome: "Dia pesado", reps: [6, 8], dica: "carga alta, descanso de 2 a 3 minutos" },
   { id: "moderado", nome: "Dia moderado", reps: [8, 12], dica: "o meio-termo, descanso de 1,5 a 2 minutos" },
@@ -10406,6 +10414,7 @@ function volumeDasFichas(fichas, exPorId, vezes) {
 // ---------------- FIM DO PLANO DE AJUSTE
 
 function VolumeRecomendado({ historico, exPorId, plano }) {
+  const [ciencia, setCiencia] = useState(false);
   const [periodo, setPeriodo] = useState(() => (historico.some((h) => new Date(h.data).getTime() < segundaDaSemana(new Date()).getTime()) ? 4 : 0));
   const [aberto, setAberto] = useState(false);
   const r = useMemo(() => volumeFracionadoPeriodo(historico, exPorId, Date.now(), periodo), [historico, exPorId, periodo]);
@@ -10415,11 +10424,17 @@ function VolumeRecomendado({ historico, exPorId, plano }) {
   return (
     <React.Fragment>
     <div style={S.card}>
-      <div style={S.label}>Séries por músculo, com o indireto</div>
-      <div style={{ fontSize: 12, color: "var(--cinza)", margin: "6px 0 10px", lineHeight: 1.5 }}>
-        Cada série conta <b>1</b> para o músculo principal do exercício e <b>½</b> para os que ajudam: o supino é 1 de peito,
-        ½ de tríceps e ½ de ombro. É a conta das séries fracionadas, usada nos estudos de volume (Pelland, Schoenfeld e colegas, 2024)
-        e no fisiculturismo baseado em evidência. A referência é de <b>{FAIXA_SERIES.min} a {FAIXA_SERIES.max} séries por semana</b> por músculo.
+      <div style={S.label}>💪 Quanto cada músculo trabalhou</div>
+      <div style={{ fontSize: 12.5, color: "var(--cinza)", margin: "6px 0 10px", lineHeight: 1.5 }}>
+        Quantas séries cada músculo recebeu por semana. O ideal para crescer é de <b>{FAIXA_SERIES.min} a {FAIXA_SERIES.max}</b>.
+        Conta também o músculo que só ajuda: no supino, o peito recebe 1 série e o tríceps e o ombro recebem meia cada.{" "}
+        <button onClick={() => setCiencia((v) => !v)} style={{ background: "none", border: "none", padding: 0, color: "var(--marca)", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>
+          {ciencia ? "Fechar" : "De onde vem essa conta?"}
+        </button>
+        {ciencia && <span style={{ display: "block", marginTop: 6 }}>
+          É a conta das séries fracionadas, usada nos estudos de volume (Pelland, Schoenfeld e colegas, 2024) e no fisiculturismo baseado em evidência:
+          o músculo principal vale 1, o que ajuda vale ½. A faixa de {FAIXA_SERIES.min} a {FAIXA_SERIES.max} séries por semana é a referência mais citada para hipertrofia.
+        </span>}
       </div>
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
         {[[0, "Esta semana"], [4, "Média de 4 semanas"]].map(([v, rot]) => (
@@ -10466,8 +10481,8 @@ function VolumeRecomendado({ historico, exPorId, plano }) {
         {aberto ? "Mostrar só os treinados" : "Mostrar todos os " + Object.keys(MUSCULOS).length + " músculos"}
       </button>
       <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 8, lineHeight: 1.5 }}>
-        Barra cheia: séries diretas. Barra listrada: o indireto, já pela metade. A zona verde clara é a faixa de {FAIXA_SERIES.min} a {FAIXA_SERIES.max}.
-        Aquecimento e drop não entram. É um guia, não uma regra: o que importa é a tendência ao longo das semanas e como você se recupera.
+        Parte cheia da barra: o exercício treina aquele músculo. Parte listrada: o músculo só ajudou. A faixa verde clara é o ideal ({FAIXA_SERIES.min} a {FAIXA_SERIES.max}).
+        Aquecimento e drop não contam. É um guia, não uma regra: vale a média das semanas e como você se sente.
       </div>
     </div>
     {plano && <PlanoAjuste historico={historico} exPorId={exPorId} {...plano} />}
@@ -10498,102 +10513,135 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
   const dataTxt = (ms) => new Date(ms).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "numeric" });
   const meso = (programas || []).find((p) => p.meso && p.meso.inicio && p.meso.inicio <= Date.now());
   const sm = meso ? semanaDoMeso(meso.meso, Date.now()) : null;
+  const [detalhes, setDetalhes] = useState(false);
   if (!historico.length) return null;
+  const maiuscula = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const nomeCurto = (n) => String(n || "").replace(/ \(.*\)/, "");
+  const fichaDoDia = (a) => (fichasProg[a.ficha] ? fichasProg[a.ficha].nome : "ficha " + (a.ficha + 1));
+  const nPouco = plano.faltam.length, nMuito = plano.sobram.length;
+  const passo = (n, titulo) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0 6px" }}>
+      <span style={{ width: 24, height: 24, borderRadius: 12, background: "var(--marca)", color: "#fff", fontWeight: 900, fontSize: 13,
+        display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{n}</span>
+      <b style={{ fontSize: 14 }}>{titulo}</b>
+    </div>
+  );
   return (
     <div style={S.card}>
-      <div style={S.label}>🧭 Plano para equilibrar a divisão</div>
+      <div style={S.label}>🧭 Seu treino está equilibrado?</div>
       {sm && (
-        <div style={{ border: "1px solid var(--ok)", borderRadius: 12, padding: "10px 12px", margin: "8px 0 10px", fontSize: 12.5, lineHeight: 1.5 }}>
-          <b>{meso.nome}: semana {sm.semana} de {MESOCICLO.length} · {MESOCICLO[sm.semana - 1].nome}</b>{sm.ciclo > 1 ? " (ciclo " + sm.ciclo + ")" : ""}.<br />
-          {MESOCICLO[sm.semana - 1].reserva}: {MESOCICLO[sm.semana - 1].dica}.
+        <div style={{ border: "1px solid var(--ok)", borderRadius: 12, padding: "10px 12px", margin: "8px 0 10px", fontSize: 13, lineHeight: 1.5 }}>
+          <b>Você está na semana {sm.semana} de {MESOCICLO.length} do "{meso.nome}".</b><br />
+          {MESOCICLO_FACIL[sm.semana - 1]}
         </div>
       )}
-      {!plano.faltam.length && !plano.sobram.length ? (
-        <div style={{ fontSize: 12.5, color: "var(--cinza)", margin: "8px 0", lineHeight: 1.5 }}>
-          Pela média das suas últimas semanas, nenhum músculo está abaixo do mínimo nem acima de {FAIXA_SERIES.max}. A divisão está equilibrada.
-        </div>
-      ) : (
+      <div style={{ fontSize: 14, lineHeight: 1.5, margin: "8px 0 4px" }}>
+        {!nPouco && !nMuito
+          ? <>✅ <b>Sim.</b> Nas suas últimas semanas, todos os músculos receberam um bom número de séries. Continue assim.</>
+          : <>Olhando as suas últimas semanas{nPouco ? <>, <b>{nPouco} {plural(nPouco, "músculo está", "músculos estão")} treinando pouco</b></> : null}
+            {nPouco && nMuito ? " e" : ""}{nMuito ? <>{nPouco ? " " : ", "}<b>{nMuito} treinando demais</b></> : null}.
+            O app monta um treino que corrige isso, usando primeiro os exercícios que você já faz.</>}
+      </div>
+      {(nPouco > 0 || nMuito > 0) && (
         <React.Fragment>
-          <div style={{ fontSize: 12, color: "var(--cinza)", margin: "6px 0 10px", lineHeight: 1.5 }}>
-            Pela {r.semanas ? "média das suas últimas " + r.semanas + " " + plural(r.semanas, "semana", "semanas") : "sua semana"}, contando o indireto pela metade.
-            O mínimo de cada músculo é um ponto de partida perto do volume mínimo que faz crescer.
-            Primeiro vêm os exercícios das suas fichas (você já tem o aparelho e sabe executar); só quando nenhum serve entra a melhor sugestão nova.
-          </div>
-          {plano.faltam.map((f) => (
-            <div key={f.musculo} style={{ padding: "8px 0", borderBottom: "1px solid var(--borda)", fontSize: 12.5, lineHeight: 1.5 }}>
-              <b>↑ {f.nome}</b>: ~{num1v(f.total)} de {f.alvo} por semana. <b>+{f.add} {plural(f.add, "série", "séries")}</b>{f.dias.length > 1 ? ", em 2 dias (" + f.dias.join(" + ") + ")" : ""}.
-              <div style={{ color: "var(--cinza)" }}>Sugestão: {f.sugestoes.slice(0, 2).map((e, i) => (
-                <span key={e.id}>{i ? " ou " : ""}{e.nome} <span style={{ color: conhecidos.peso[e.id] >= PESO_CONHECIDO.ficha ? "var(--ok)" : "var(--cinza2)" }}>({conhecidos.onde[e.id] || "novo para você"})</span></span>
-              ))}</div>
-            </div>
-          ))}
+          {passo(1, "O que muda")}
+          {plano.faltam.map((f) => {
+            const ex = f.sugestoes[0];
+            const conhece = ex && conhecidos.peso[ex.id] >= PESO_CONHECIDO.ficha;
+            return (
+              <div key={f.musculo} style={{ padding: "8px 0", borderBottom: "1px solid var(--borda)", fontSize: 13, lineHeight: 1.5 }}>
+                <b>⬆ {nomeCurto(f.nome)}</b>: treinando pouco.
+                <div>Faça <b>{f.add} {plural(f.add, "série a mais", "séries a mais")} por semana</b>{f.dias.length > 1 ? " (" + f.dias.join(" num dia e ") + " no outro)" : ""}
+                  {ex ? <> de <b>{ex.nome}</b> <span style={{ color: conhece ? "var(--ok)" : "var(--cinza2)" }}>({conhecidos.onde[ex.id] || "exercício novo para você"})</span></> : null}.</div>
+              </div>
+            );
+          })}
           {plano.sobram.map((s) => (
-            <div key={s.musculo} style={{ padding: "8px 0", borderBottom: "1px solid var(--borda)", fontSize: 12.5, lineHeight: 1.5 }}>
-              <b>↓ {s.nome}</b>: ~{num1v(s.total)} por semana. <b>−{s.cortar} {plural(s.cortar, "série direta", "séries diretas")}</b>: o indireto continua trabalhando ele.
+            <div key={s.musculo} style={{ padding: "8px 0", borderBottom: "1px solid var(--borda)", fontSize: 13, lineHeight: 1.5 }}>
+              <b>⬇ {nomeCurto(s.nome)}</b>: treinando demais.
+              <div>Tire <b>{s.cortar} {plural(s.cortar, "série", "séries")}</b> por semana dos exercícios dele. Ele continua sendo trabalhado pelos outros exercícios.</div>
             </div>
           ))}
-        </React.Fragment>
-      )}
-      {depois && (
-        <div style={{ fontSize: 12.5, lineHeight: 1.5, marginTop: 10 }}>
-          {abaixo.length
-            ? <>Depois do ajuste, ainda abaixo do mínimo: <b>{abaixo.map((x) => x.nome.replace(/ \(.*\)/, "")).join(", ")}</b>.</>
-            : <>✅ <b>Depois do ajuste, os {depois.length} músculos chegam ao mínimo</b> (estimado pelas fichas, {num1v(tr.vezes)}× cada por semana).</>}
-        </div>
-      )}
-      {prog && (
-        <div style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: "10px 12px", marginTop: 12, fontSize: 12.5, lineHeight: 1.55 }}>
-          <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>🔁 Quando e como trocar</div>
-          <div><b>Pelos seus treinos:</b> {tr.motivos.join("; ")}. Você treina <b>{tr.frequencia}×</b> por semana.</div>
-          {tr.deload ? (
-            <div style={{ marginTop: 6 }}>
-              <b>1. Semana leve primeiro</b> ({dataTxt(tr.deloadInicio)} em diante): a ficha de agora com <b>metade das séries</b> e a carga uns 10% abaixo.
-              Cansaço acumulado esconde o que você ganhou; começar o ajuste descansado mostra o resultado de verdade.<br />
-              <b>2. A troca</b>: {dataTxt(tr.inicio)}, na semana 1 (base) do ajustado.
-            </div>
-          ) : (
-            <div style={{ marginTop: 6 }}>
-              <b>Termine esta semana com a ficha de agora</b> e comece o ajustado <b>{dataTxt(tr.inicio)}</b>, na semana 1 (base, uma série a menos): ela já é a transição.
-              Trocar no meio da semana mistura duas contas de volume; trocar ficha por ficha em dias alternados não deixa ver qual está funcionando.
+          {depois && (
+            <div style={{ fontSize: 12.5, lineHeight: 1.5, marginTop: 8, color: abaixo.length ? "var(--texto)" : "var(--ok)" }}>
+              {abaixo.length
+                ? <>Mesmo com o ajuste, ainda ficam abaixo do ideal: <b>{abaixo.map((x) => nomeCurto(x.nome)).join(", ")}</b>. Dá para acrescentar à mão depois.</>
+                : <>✅ Com essas mudanças, todos os {depois.length} músculos chegam ao ideal.</>}
             </div>
           )}
-          <div style={{ marginTop: 6 }}><b>Os dias</b>: {tr.agenda.map((a) => a.dia + " (" + (fichasProg[a.ficha] ? fichasProg[a.ficha].nome.split(/ [-–] /)[0] : "ficha " + (a.ficha + 1)) + ")").join(", ")}.
-            {tr.frequencia === 3 ? " Dia sim, dia não: 48 horas entre um treino e outro." : tr.frequencia >= 5 ? " Dias seguidos funcionam porque cada ficha pega músculos diferentes." : ""}
-            {" "}Se perder um dia, siga a ordem das fichas (o app já sugere a próxima), sem pular.</div>
-          <div style={{ marginTop: 6, color: "var(--cinza)" }}>
-            Depois da semana 5 (deload), o ciclo recomeça. A cada fim de ciclo, volte aqui: o plano é refeito pelos novos treinos.
-          </div>
-        </div>
+        </React.Fragment>
       )}
-      <button onClick={() => setAberto((v) => !v)} style={{ ...S.btnGhost, width: "100%", marginTop: 10, fontSize: 12.5, padding: "8px 10px" }}>
-        {aberto ? "Fechar a periodização" : "📅 Como periodizar: diária, semanal ou quinzenal?"}
-      </button>
-      {aberto && (
-        <div style={{ fontSize: 12.5, lineHeight: 1.55, marginTop: 10 }}>
-          <div style={{ marginBottom: 8 }}>
-            <b>A resposta da pesquisa:</b> o que mais faz crescer é o <b>volume semanal</b> por músculo, com cada um treinado
-            <b> pelo menos 2 vezes por semana</b>. Ondular as repetições <b>dia a dia</b> e organizar as semanas em <b>mesociclos</b> com
-            uma semana leve no fim é o que o fisiculturismo baseado em evidência usa. Quinzenal não tem apoio: é curto para um ciclo e longo para um ajuste.
+      {prog && (
+        <React.Fragment>
+          {passo(nPouco || nMuito ? 2 : 1, "Quando começar")}
+          <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+            {tr.deload ? (
+              <>
+                <div>• <b>A partir de {dataTxt(tr.deloadInicio)}:</b> uma semana leve com o seu treino de agora. <b>Metade das séries</b> e um pouco menos de peso.</div>
+                <div>• <b>{maiuscula(dataTxt(tr.inicio))}:</b> comece o treino novo.</div>
+                <div style={{ color: "var(--cinza)", marginTop: 4 }}>Por quê? {tr.puxadas >= 4 ? "Você treina pesado há " + tr.puxadas + " semanas seguidas." : "A carga parou de subir na maioria dos exercícios."} Descansar uma semana antes faz o treino novo render mais.</div>
+              </>
+            ) : (
+              <>
+                <div>• <b>Até domingo:</b> termine a semana com o seu treino de agora.</div>
+                <div>• <b>{maiuscula(dataTxt(tr.inicio))}:</b> comece o treino novo.</div>
+                <div style={{ color: "var(--cinza)", marginTop: 4 }}>Trocar sempre numa segunda deixa claro o que mudou de uma semana para a outra.</div>
+              </>
+            )}
+            <div style={{ marginTop: 8 }}><b>Em que dias treinar</b> (você treina {tr.frequencia}× por semana):</div>
+            {tr.agenda.map((a, k) => <div key={k}>• <b>{a.dia.charAt(0).toUpperCase() + a.dia.slice(1)}</b>: {fichaDoDia(a)}</div>)}
+            <div style={{ color: "var(--cinza)", marginTop: 4 }}>Perdeu um dia? Faça a próxima ficha da ordem; o app já mostra qual é na tela inicial.</div>
           </div>
-          <div style={{ ...S.label, fontSize: 10, margin: "10px 0 6px" }}>O dia: ondulação de repetições</div>
+          {passo(nPouco || nMuito ? 3 : 2, "Como o treino novo funciona")}
+          <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+            Ele muda um pouco a cada semana, num ciclo de {MESOCICLO.length} semanas, e recomeça:
+            {MESOCICLO.map((m, k) => <div key={m.semana}>• <b>Semana {m.semana}</b>: {MESOCICLO_FACIL[k].split(":")[0].toLowerCase()}</div>)}
+            <div style={{ marginTop: 6 }}>As fichas também se revezam entre <b>dia pesado</b> (mais peso, menos repetições), <b>moderado</b> e <b>leve</b> (menos peso, mais repetições).</div>
+            <div style={{ color: "var(--cinza)", marginTop: 4 }}>Você não precisa decorar nada: <b>no começo de cada treino o app diz o que fazer naquele dia</b>, e as séries já vêm na quantidade certa.</div>
+          </div>
+          {onCriar && (
+            <button onClick={() => onCriar(prog, plano, tr)} style={{ ...S.btn, width: "100%", marginTop: 14 }}>
+              ✨ Criar o treino novo
+            </button>
+          )}
+          <div style={{ fontSize: 11.5, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>
+            O app cria uma cópia do "{prog.nome}" com as mudanças, chamada "{prog.nome.replace(/ ajustado$/, "")} ajustado". O seu treino de agora continua guardado, do jeito que está.
+          </div>
+        </React.Fragment>
+      )}
+      <button onClick={() => setDetalhes((v) => !v)} style={{ ...S.btnGhost, width: "100%", marginTop: 12, fontSize: 12.5, padding: "8px 10px" }}>
+        {detalhes ? "Fechar os detalhes" : "🔬 Ver os detalhes e a ciência por trás"}
+      </button>
+      {detalhes && (
+        <div style={{ fontSize: 12.5, lineHeight: 1.55, marginTop: 10 }}>
+          <div style={{ ...S.label, fontSize: 10, margin: "4px 0 6px" }}>Os números</div>
+          <div style={{ color: "var(--cinza)", marginBottom: 6 }}>
+            Pela {r.semanas ? "média das suas últimas " + r.semanas + " " + plural(r.semanas, "semana", "semanas") : "sua semana"}, contando o músculo que só ajuda pela metade.
+            O mínimo de cada músculo é um ponto de partida perto do volume mínimo que faz crescer (as tabelas do Renaissance Periodization).
+          </div>
+          {plano.faltam.map((f) => (
+            <div key={f.musculo}>• {nomeCurto(f.nome)}: ~{num1v(f.total)} de {f.alvo} por semana. Outra opção: {f.sugestoes.slice(1, 3).map((e) => e.nome + " (" + (conhecidos.onde[e.id] || "novo") + ")").join(" ou ") || "—"}.</div>
+          ))}
+          {plano.sobram.map((s) => <div key={s.musculo}>• {nomeCurto(s.nome)}: ~{num1v(s.total)} por semana (acima de {FAIXA_SERIES.max}).</div>)}
+          {prog && <div style={{ marginTop: 6 }}><b>O que o app viu nos seus treinos:</b> {tr.motivos.join("; ")}.</div>}
+          <div style={{ ...S.label, fontSize: 10, margin: "12px 0 6px" }}>Diária, semanal ou quinzenal?</div>
+          <div>
+            O que mais faz crescer é o <b>volume semanal</b> por músculo, com cada um treinado <b>pelo menos 2 vezes por semana</b>.
+            Variar as repetições <b>dia a dia</b> e organizar as semanas em <b>ciclos</b> com uma semana leve no fim é o que o fisiculturismo baseado em evidência usa.
+            Quinzenal não tem apoio: é curto para um ciclo e longo para um ajuste. Trocar de treino no meio da semana mistura as contas; trocar ficha por ficha em dias alternados não deixa ver qual está funcionando.
+          </div>
+          <div style={{ ...S.label, fontSize: 10, margin: "12px 0 6px" }}>O dia</div>
           {DIAS_ONDULACAO.map((d) => <div key={d.id}>• <b>{d.nome}</b>: {d.reps[0]} a {d.reps[1]} repetições, {d.dica}.</div>)}
-          <div style={{ color: "var(--cinza)", marginTop: 4 }}>As fichas se revezam: a 1ª é pesada, a 2ª moderada, a 3ª leve, a 4ª pesada…</div>
-          <div style={{ ...S.label, fontSize: 10, margin: "12px 0 6px" }}>O mês: mesociclo de 5 semanas</div>
+          <div style={{ ...S.label, fontSize: 10, margin: "12px 0 6px" }}>As semanas (mesociclo)</div>
           {MESOCICLO.map((m) => (
             <div key={m.semana}>• <b>Semana {m.semana} · {m.nome}</b>: {m.fator ? "metade das séries" : m.delta > 0 ? "+" + m.delta + " série por exercício" : m.delta < 0 ? m.delta + " série por exercício" : "as séries da ficha"}; {m.reserva}.</div>
           ))}
           <div style={{ color: "var(--cinza)", marginTop: 6 }}>
             Base: Schoenfeld (volume e frequência), Pelland 2024 (séries fracionadas), Rhea 2002 e Grgic 2017 (periodização ondulatória),
-            Bell 2023 (deload) e as tabelas de volume do Renaissance Periodization. É um guia: dor, sono ruim ou cansaço que não passa pedem o deload antes.
+            Bell 2023 (deload) e as tabelas de volume do Renaissance Periodization. É um guia: dor, sono ruim ou cansaço que não passa pedem a semana leve antes.
           </div>
         </div>
       )}
-      {prog && onCriar && (
-        <button onClick={() => onCriar(prog, plano, tr)} style={{ ...S.btn, width: "100%", marginTop: 12 }}>
-          ✨ Criar "{prog.nome} ajustado" com a periodização
-        </button>
-      )}
-      {prog && <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>Cria um treino novo, cópia do "{prog.nome}" com os exercícios sugeridos e o mesociclo ligado. O seu treino atual fica como está.</div>}
     </div>
   );
 }
@@ -25075,8 +25123,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           da voz espera (uma dica de cada vez). */}
       {sessao.meso && (
         <div style={{ ...S.card, padding: "10px 14px", fontSize: 12.5, lineHeight: 1.5 }}>
-          <b>📅 {sessao.meso.antes ? sessao.meso.nome : "Semana " + sessao.meso.semana + " de " + MESOCICLO.length + " · " + sessao.meso.nome} · {sessao.meso.dia}</b><br />
-          {sessao.meso.reps[0]} a {sessao.meso.reps[1]} repetições, {sessao.meso.diaDica}. {sessao.meso.reserva.charAt(0).toUpperCase() + sessao.meso.reserva.slice(1)}: {sessao.meso.dica}.
+          <b>📅 {sessao.meso.antes ? sessao.meso.nome : "Semana " + sessao.meso.semana + " de " + MESOCICLO.length} · {sessao.meso.dia}</b><br />
+          {sessao.meso.facil || (sessao.meso.reserva.charAt(0).toUpperCase() + sessao.meso.reserva.slice(1) + ": " + sessao.meso.dica + ".")}
+          <div style={{ color: "var(--cinza)", marginTop: 2 }}>Hoje: {sessao.meso.reps[0]} a {sessao.meso.reps[1]} repetições por série, {sessao.meso.diaDica}.</div>
         </div>
       )}
       {primeiroTreino && (
@@ -28211,7 +28260,8 @@ function TreinoLivre() {
       treinoId: treino.id,
       nome: treino.nome,
       inicio: Date.now(),
-      meso: sm ? { semana: sm.semana, antes: deloadAntes, nome: deloadAntes ? "Semana leve antes da troca" : MESOCICLO[sm.semana - 1].nome, reserva: MESOCICLO[sm.semana - 1].reserva, dica: MESOCICLO[sm.semana - 1].dica, dia: dia.nome, reps: dia.reps, diaDica: dia.dica } : null,
+      meso: sm ? { semana: sm.semana, antes: deloadAntes, nome: deloadAntes ? "Semana leve antes da troca" : MESOCICLO[sm.semana - 1].nome, reserva: MESOCICLO[sm.semana - 1].reserva, dica: MESOCICLO[sm.semana - 1].dica, dia: dia.nome, reps: dia.reps, diaDica: dia.dica,
+        facil: deloadAntes ? FACIL_ANTES_DA_TROCA : MESOCICLO_FACIL[sm.semana - 1] } : null,
       itens: treino.itens.map((it, i) => {
         // A carga já vem preenchida com a da última vez, e sobe sozinha quando
         // todas as séries fecharam as repetições combinadas. É a sobrecarga
@@ -28246,11 +28296,14 @@ function TreinoLivre() {
     tr = tr || transicaoAjuste(historico, Date.now(), fichas.length);
     const r = aplicarPlanoNasFichas(fichas, plano, exPorId, novoUid, tr.vezes);
     const quando = (ms) => new Date(ms).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "numeric" });
+    const maiusc = (s) => s.charAt(0).toUpperCase() + s.slice(1);
     const pid = "prog-aj-" + Date.now();
     const nome = prog.nome.replace(/ ajustado$/, "") + " ajustado";
-    pedirConfirmacao({ msg: "Criar \"" + nome + "\"?\n\n" + (tr.deload ? "Antes, uma semana leve com o \"" + prog.nome + "\" (" + quando(tr.deloadInicio) + "): metade das séries. " : "Termine esta semana com o \"" + prog.nome + "\". ") +
-      "O ajustado começa " + quando(tr.inicio) + ", com o mesociclo de 5 semanas (base, acúmulo, acúmulo, pico e deload) e as fichas alternando dia pesado, moderado e leve. O \"" + prog.nome + "\" continua guardado." +
-      "\n\n" + (r.mudancas.length ? "O que muda (" + r.mudancas.length + "):\n" + r.mudancas.join("\n") : "Sem mudanças de exercício: só a periodização."),
+    pedirConfirmacao({ msg: "Criar o treino novo \"" + nome + "\"?\n\n" +
+      (tr.deload ? "• A partir de " + quando(tr.deloadInicio) + ": uma semana leve com o \"" + prog.nome + "\" (metade das séries).\n• " + maiusc(quando(tr.inicio)) + ": começa o treino novo."
+        : "• Até domingo: siga com o \"" + prog.nome + "\".\n• " + maiusc(quando(tr.inicio)) + ": começa o treino novo.") +
+      "\n• O \"" + prog.nome + "\" continua guardado, do jeito que está." +
+      "\n\n" + (r.mudancas.length ? "O que muda nas fichas (" + r.mudancas.length + "):\n" + r.mudancas.join("\n") : "Os exercícios ficam os mesmos: muda só a organização das semanas."),
       positivo: true, labelSim: "Criar" }, () => {
       const copias = r.fichas.map((f) => ({ ...f, id: "f-" + novoUid(), programaId: pid, itens: clonarItens(f.itens) }));
       setProgramas((ps) => [...ps.map((p) => (p.id === prog.id && tr.deload ? { ...p, deload: { inicio: tr.deloadInicio, fim: tr.inicio } } : p)),
@@ -28259,7 +28312,7 @@ function TreinoLivre() {
       setProgAberto(pid);
       setAba("treinos");
       registrarEvento("plano-ajustado-criado");
-      setTimeout(() => avisar("Pronto: \"" + nome + "\" com " + copias.length + " fichas, começando " + quando(tr.inicio) + "." + (tr.deload ? " Antes, a semana leve com o \"" + prog.nome + "\": metade das séries." : " Até lá, siga o \"" + prog.nome + "\".")), 200);
+      setTimeout(() => avisar("✅ Pronto! O \"" + nome + "\" tem " + copias.length + " fichas e começa " + quando(tr.inicio) + "." + (tr.deload ? " Antes, faça uma semana leve com o \"" + prog.nome + "\": o app já mostra metade das séries." : " Até lá, siga o \"" + prog.nome + "\".") + " Na tela inicial, o app mostra a ficha do dia."), 200);
     });
   };
 

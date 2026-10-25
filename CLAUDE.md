@@ -231,7 +231,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v130) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v131) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3661,6 +3661,23 @@ compartilhados por aí precisam continuar abrindo.
     quando começa e depois a lista inteira ("O que muda (17)"), com o botão
     "Criar". `pedirConfirmacao` aceita um objeto (rótulos, `positivo`).
     Conferido no navegador em 390×700: o botão aparece e o programa é criado.
+  - **Para quem não é treinador** (pedido do dono: "de uma forma otimizada
+    para os usuários mais básicos entenderem"). O cartão virou **"🧭 Seu
+    treino está equilibrado?"**: uma frase de resposta ("5 músculos estão
+    treinando pouco e 2 treinando demais") e três passos numerados — **o que
+    muda** (uma linha por músculo: "faça 4 séries a mais por semana de X",
+    "tire 2 séries"), **quando começar** (datas e os dias com a ficha de
+    cada um) e **como o treino novo funciona** (as 5 semanas em palavras de
+    academia, `MESOCICLO_FACIL`) —, e o botão "✨ Criar o treino novo".
+    Mesociclo, acúmulo, reserva, números ~x de y, as outras opções de
+    exercício, os motivos e as fontes ficam em "🔬 Ver os detalhes e a
+    ciência por trás". **Palavra de treinador não vai para a frente do
+    cartão**: quem precisa dela abre os detalhes. O cartão de músculos virou
+    "💪 Quanto cada músculo trabalhou", com a conta explicada pelo supino e a
+    citação atrás de "De onde vem essa conta?". No treino, o aviso do ciclo
+    diz o que fazer ("Semana normal: tente pôr um pouco mais de peso...",
+    `sessao.meso.facil`) e as repetições do dia; a confirmação e o "Pronto"
+    viraram tópicos com datas.
 - **Filtro por equipamento** (`FAMILIAS_EQUIP`) — responde "só tenho halteres em
   casa". Um exercício pode cair em mais de uma família, e isso não é problema.
 - **Duplicar ficha e programa** — ao copiar, os ids de `conjunto` são regerados

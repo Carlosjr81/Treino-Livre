@@ -16,6 +16,38 @@
 
 ---
 
+## 2026-10-25b — O plano de equilíbrio explicado para qualquer pessoa
+
+**Em uma frase:** o cartão que ajusta o seu treino agora responde "Seu treino está equilibrado?" e explica em três passos
+simples o que muda, quando começar e como o treino novo funciona, sem palavras de treinador.
+
+**O que mudou**
+- **Uma resposta direta no topo**: "Sim, está equilibrado" ou "5 músculos estão treinando pouco e 2 treinando demais".
+- **Passo 1, o que muda**: uma linha por músculo, do jeito que se fala na academia: "Abdômen: treinando pouco. Faça 4
+  séries a mais por semana de Abdominal supra (já na sua ficha)."
+- **Passo 2, quando começar**: as datas certinhas e em que dia fazer cada ficha.
+- **Passo 3, como o treino novo funciona**: as 5 semanas explicadas (começo, normal, normal, mais forte, descanso) e o
+  aviso de que o app diz o que fazer em cada treino, sem precisar decorar nada.
+- **Botão "Criar o treino novo"**, com a confirmação em tópicos e as datas.
+- **A ciência continua lá**, num botão "Ver os detalhes e a ciência por trás", para quem gosta.
+- **No treino**, o aviso do topo agora diz o que fazer: "Semana normal: tente pôr um pouco mais de peso ou fazer uma
+  repetição a mais".
+
+**Por que importa para quem treina**
+- Quem não entende de periodização também consegue usar: o app diz o que fazer, quando e por quê, em português de academia.
+
+**Como usar**
+- Histórico › Números › "Seu treino está equilibrado?" › leia os 3 passos › "Criar o treino novo".
+
+**Ideias de vídeo**
+- "Seu treino está equilibrado? O app responde": mostrar a frase do topo, os 3 passos e o botão.
+- "Não precisa ser personal para periodizar": mostrar o aviso do treino dizendo o que fazer na semana.
+
+**Não prometer**
+- Os números ideais são referência, não prescrição; o app não substitui um treinador.
+
+---
+
 ## 2026-10-25a — "Criar treino ajustado" não trava mais a tela
 
 **Em uma frase:** a confirmação do treino ajustado, que ficava maior que a tela e escondia os botões, agora rola por

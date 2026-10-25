@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-25a**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-25b**.
 
 ---
 
@@ -29,6 +29,9 @@
 - **Primeiro os exercícios das suas fichas** (novo em 2026-10-24t): as sugestões do ajuste priorizam o que já está nas
   fichas em uso (aparelho e execução conhecidos), depois outras fichas e o histórico; só sem nenhum entra uma sugestão
   nova. Cada sugestão diz de onde vem, e as séries a mais entram no exercício que já existe.
+- **Explicado para qualquer pessoa** (2026-10-25b): o cartão se chama "Seu treino está equilibrado?" e mostra 3 passos
+  (o que muda, quando começar, como o treino novo funciona) e o botão "Criar o treino novo". Os termos técnicos e as fontes
+  ficam em "Ver os detalhes e a ciência por trás".
 - Não prometer: a faixa de 10 a 20 séries e os mínimos por músculo são referência, não prescrição.
 
 ## 1. Em uma frase

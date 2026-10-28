@@ -179,6 +179,10 @@ retransmissor do Desafio). E-mail do dono: `EMAIL_DONO`.
   - **Regras versão 2** em `firebase/firestore.rules`: config, auto,
     `avisoVisto` e o apagar a própria conta. **O dono precisa publicá-las de
     novo no console** (a sessão na nuvem não publica regras).
+    **Publicadas pelo dono e conferidas em 28/10/2026** com uma conta
+    descartável (depois apagada): lê a config, cadastra como pendente, marca o
+    recado visto e apaga a própria ficha; é barrada ao se liberar sozinha, ao
+    listar todos e ao mudar a aprovação automática.
   - O que fica para um servidor próprio, se um dia houver: apagar a conta de
     login de outra pessoa pelo painel, mudar o e-mail de alguém, e qualquer
     aviso por e-mail ou push quando chega um cadastro.

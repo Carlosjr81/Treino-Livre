@@ -25,7 +25,7 @@ eval(
   pedaco("const GRUPOS = [", "\n];") + "\n];\n" + pedaco("const MUSCULOS = {", "\n};") + "\n};\n" +
   pedaco("const FAIXA_SERIES = ", "\n") + "\n" +
   funcao("plural") + pedaco("// ---------------- VOLUME FRACIONADO", "// ---------------- FIM DO PLANO DE AJUSTE") +
-  "\nglobalThis.V = { volumeFracionadoTreino, volumeFracionadoPeriodo, alertasVolume, leituraVolume, textoComposicao, musculosDoEx, planoAjuste, aplicarPlanoNasFichas, seriesNaSemana, semanaDoMeso, diaDaOndulacao, exerciciosPara, transicaoAjuste, volumeDasFichas, exerciciosConhecidos };"
+  "\nglobalThis.V = { volumeFracionadoTreino, volumeFracionadoPeriodo, alertasVolume, leituraVolume, textoComposicao, musculosDoEx, planoAjuste, aplicarPlanoNasFichas, seriesNaSemana, semanaDoMeso, diaDaOndulacao, exerciciosPara, transicaoAjuste, volumeDasFichas, exerciciosConhecidos, falaAnaliseAjuste, falaCienciaAjuste };"
 );
 const V = globalThis.V;
 
@@ -198,6 +198,27 @@ teste("as séries entram no exercício que já existe, na ficha dele", 3 + comFi
 teste("e o exercício não é duplicado nessa ficha", 1, ap9.fichas[1].itens.filter((it) => it.exercicioId === "desenv-halter").length);
 const outro = V.exerciciosConhecidos([], fichas9, [{ itens: [{ exercicioId: "abd" }] }]);
 teste("outra ficha vale 6, o histórico 3", [6, 3], [outro.peso["desenv-halter"], outro.peso.abd]);
+
+console.log("\n--- 10. os áudios da análise e do estudo ---");
+{
+  const pl = { faltam: [{ musculo: "ombros", nome: "Ombros (deltoide)", add: 4, dias: [2, 2], sugestoes: [{ id: "desenv-halter", nome: "Desenvolvimento com halteres" }] }],
+    sobram: [{ musculo: "peito", nome: "Peitoral", cortar: 2 }] };
+  const tr = { deload: false, inicio: Date.parse("2026-11-02T12:00:00"), frequencia: 3, agenda: [{ dia: "segunda", ficha: 0 }, { dia: "quarta", ficha: 1 }], motivos: ["a carga subiu em 5 de 6 exercícios"] };
+  const a = V.falaAnaliseAjuste(pl, tr, { "desenv-halter": "já na ficha B - Ombro" }, (x) => ["A - Peito", "B - Ombro"][x.ficha]);
+  contem("a análise diz quem treina pouco", a, "Ombros");
+  contem("e quanto fazer, de qual exercício, e que ele já está na ficha", a, "4 séries a mais por semana, divididas em dois dias, de Desenvolvimento com halteres, que já está na ficha B - Ombro");
+  contem("e quem treina demais", a, "Peitoral está treinando demais");
+  contem("e quando começar, com a data por extenso", a, "2 de novembro");
+  contem("e os dias com as fichas", a, "segunda, A - Peito e quarta, B - Ombro");
+  contem("e responde: não precisa criar toda semana", a, "não precisa criar outro toda semana");
+  teste("texto falado: sem til, sem parênteses", false, /[~()]/.test(a));
+  const c = V.falaCienciaAjuste(pl, tr);
+  contem("o estudo: as séries fracionadas", c, "Pelland");
+  contem("o estudo: a frequência", c, "duas vezes por semana");
+  contem("o estudo: o deload", c, "Bell");
+  contem("e o porquê no caso da pessoa", c, "No seu caso, o treino muda porque Ombros ficou abaixo do mínimo");
+  contem("equilibrado: diz que não há nada para corrigir", V.falaAnaliseAjuste({ faltam: [], sobram: [] }, null, {}), "Não há nada para corrigir");
+}
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

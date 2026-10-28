@@ -14,7 +14,7 @@ eval(pedaco("const LINK_APP", "\n") + "\n" +
   pedaco("// ---------------- DESAFIO: MOTOR", "// ---------------- FIM DO MOTOR DESAFIO") +
   "\nglobalThis.D = { distanciaNaTrilha, tempoNaDistancia, velocidadeNaTrilha, estadoNoTempo, classificarDesafio, previsaoUltrapassagem, eventosDesafio," +
   " codificarTrilha, decodificarTrilha, novoCodigoSala, lerCodigoSala, linkDesafio, lerLinkDesafio, mqttConectar, mqttAssinar, mqttPublicar, mqttLer, mqttTamanho," +
-  " mensagemDesafio, participanteDaMensagem, nomeMetaDesafio, LINK_APP };");
+  " mensagemDesafio, participanteDaMensagem, nomeMetaDesafio, LINK_APP, desafioDoTreino };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido, tol) {
@@ -168,6 +168,27 @@ const resto = new Uint8Array(meio.resto.length + juntos.length - pub.length - 40
 resto.set(meio.resto); resto.set(juntos.slice(pub.length + 40), meio.resto.length);
 teste("e completa com o pedaço seguinte", [1, 3000, 0], [D.mqttLer(resto).pacotes.length, D.mqttLer(resto).pacotes[0].texto.length, D.mqttLer(resto).resto.length]);
 teste("CONNACK aceito", [2, 0], [D.mqttLer(new Uint8Array([0x20, 2, 0, 0])).pacotes[0].tipo, D.mqttLer(new Uint8Array([0x20, 2, 0, 0])).pacotes[0].rc]);
+
+console.log("\n--- a esteira do treino vira desafio ---");
+{
+  const EXS = { "esteira-corrida": { cardio: "corrida" }, "esteira-caminhada": { cardio: "caminhada" }, supino: {} };
+  const ex = (id) => EXS[id];
+  const reg = { id: "r9", data: "2026-10-28T19:00:00Z", itens: [
+    { exercicioId: "supino", series: [{ peso: "60", reps: "10" }] },
+    { exercicioId: "esteira-caminhada", series: [{ segundos: 300, mod: "caminhada", vel: 6 }, { segundos: 120, mod: "corrida", vel: 10 }] },
+  ] };
+  const d = D.desafioDoTreino(reg, ex);
+  teste("a meta é a distância feita (500 m + 333 m)", 833, d.meta.alvo);
+  teste("tem corrida no meio: o desafio é de corrida", "corrida", d.atividade);
+  teste("o tempo é o das séries", 420000, d.fim.ms);
+  teste("cada série no seu ritmo: aos 5 min, 500 m", 500, Math.round(D.distanciaNaTrilha(d.trilha, 300000)));
+  const lk = D.lerLinkDesafio(D.linkDesafio({ codigo: D.novoCodigoSala(() => 0.3), meta: d.meta, atividade: d.atividade },
+    [{ id: "tr9", nome: "Carlos", trilha: d.trilha, fim: d.fim }]).split("#corrida=")[1]);
+  teste("o link leva a meta e o resultado (o 👻)", [833, "Carlos", 420000], [lk.meta.alvo, lk.fantasmas[0].nome, lk.fantasmas[0].fim.ms]);
+  teste("o km do painel vence a conta", 2000, D.desafioDoTreino({ id: "x", itens: [{ exercicioId: "esteira-caminhada", series: [{ segundos: 1200, vel: 5, km: 2 }] }] }, ex).meta.alvo);
+  teste("treino só de força não vira desafio", null, D.desafioDoTreino({ id: "y", itens: [reg.itens[0]] }, ex));
+  teste("menos de 1 minuto não vira desafio", null, D.desafioDoTreino({ id: "z", itens: [{ exercicioId: "esteira-corrida", series: [{ segundos: 40, vel: 12 }] }] }, ex));
+}
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

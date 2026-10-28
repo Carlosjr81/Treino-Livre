@@ -16,6 +16,53 @@
 
 ---
 
+## 2026-10-28a — Reabrir o treino, desafio da esteira e o treino ajustado explicado em áudio
+
+**Em uma frase:** finalizou sem querer? Reabra o treino; correu na esteira? Mande como desafio para os amigos; e o
+treino ajustado agora se explica em dois áudios.
+
+**O que mudou**
+- **↩ Reabrir treino**: no resumo do fim do treino e no cartão do último treino no histórico (até 12 horas depois).
+  O treino volta aberto, com todas as séries, até as que faltavam, e o relógio de quando começou.
+- **🏁 Desafiar amigos na corrida ou caminhada**: a esteira do fim do treino (ou a corrida na rua) vira um desafio na
+  mesma distância. O link vai pelo WhatsApp, e quem abre corre contra o seu resultado, na rua ou na esteira, com você
+  aparecendo na pista dele.
+- **Dois áudios no cartão "Seu treino está equilibrado?"**: "🔊 Ouvir a análise e o ajuste" (o que está treinando pouco
+  ou demais, o que fazer, quando começar e em que dias) e "🔊 Ouvir por que muda (o estudo)" (os estudos por trás, em
+  palavras simples, e o motivo no seu caso).
+- **O treino ajustado já criado fica explicado**: o cartão diz que não precisa criar outro toda semana. As séries mudam
+  sozinhas a cada semana e as repetições a cada treino; os exercícios ficam os mesmos nas 5 semanas. No fim do ciclo,
+  volte para uma análise nova.
+- **A música não para mais com o celular no bolso** (app Android): com a tela travada e música tocando, o Jarvis
+  continua falando, mas não abre o microfone (era ele que pausava a música). Quem quiser que ele ouça mesmo assim liga
+  "Ouvir mesmo com música tocando" no cartão do Jarvis, sabendo que a música pausa um instante a cada vez.
+- O app ganhou um aviso de direitos autorais (Ajustes › Créditos).
+
+**Por que importa para quem treina**
+- Fechar o treino achando que tinha acabado e lembrar de mais um exercício acontece com todo mundo.
+- A esteira do fim do treino vira motivo para chamar os amigos.
+- Entender por que o treino muda é o que faz seguir o plano.
+- Música é sagrada na academia.
+
+**Como usar**
+- Reabrir: Finalizar treino → no resumo, "↩ Reabrir treino". Ou Histórico › o primeiro cartão.
+- Desafio: no resumo do treino com esteira, "🏁 Desafiar amigos", ou no cartão do treino no histórico.
+- Áudios: Histórico › Números › "Seu treino está equilibrado?".
+- Música: nada a fazer; atualize o app Android (baixar e instalar por cima).
+
+**Ideias de vídeo**
+- "Finalizei sem querer… e agora?" — um toque e o treino volta.
+- Terminar a esteira, mandar o desafio no grupo, e o amigo correndo contra você na pista.
+- Fone no ouvido a caminho da academia ouvindo "por que o seu treino está mudando".
+
+**Não prometer**
+- Reabrir só vale para o último treino e até 12 horas depois.
+- O desafio da esteira compara com o seu resultado gravado; não é ao vivo (para ao vivo, use o 🏁 Desafio com sala).
+- Os estudos citados são referência, não prescrição.
+- Com música tocando, o Jarvis da tela travada fala mas não ouve, a não ser que a opção esteja ligada.
+
+---
+
 ## 2026-10-25c — Fechou o app, o Jarvis fica quieto
 
 **Em uma frase:** no app Android, o Jarvis da tela travada agora desliga quando você fecha o app, quando finaliza o treino

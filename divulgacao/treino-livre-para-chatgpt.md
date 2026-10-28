@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-25c**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-28a**.
 
 ---
 
@@ -32,6 +32,9 @@
 - **Explicado para qualquer pessoa** (2026-10-25b): o cartão se chama "Seu treino está equilibrado?" e mostra 3 passos
   (o que muda, quando começar, como o treino novo funciona) e o botão "Criar o treino novo". Os termos técnicos e as fontes
   ficam em "Ver os detalhes e a ciência por trás".
+- **Em áudio** (novo em 2026-10-28a): "Ouvir a análise e o ajuste" e "Ouvir por que muda (o estudo)", para ouvir no fone.
+- **Não precisa criar um ajustado toda semana** (2026-10-28a): as séries mudam sozinhas a cada semana e as repetições a cada
+  treino; os exercícios ficam os mesmos nas 5 semanas. No fim do ciclo, uma análise nova.
 - Não prometer: a faixa de 10 a 20 séries e os mínimos por músculo são referência, não prescrição.
 
 ## 1. Em uma frase
@@ -141,6 +144,8 @@ com cenas reais → halter) como linguagem visual em vídeos.
   um **programa de iniciante** (A/B/C só de máquinas) e um **guia de 3 passos** no primeiro treino.
 - Toca em **Treinar**: a carga **já vem preenchida com a da última vez**, e se você bateu todas as
   repetições, o app **sugere subir a carga** (sobrecarga progressiva automática).
+- **Finalizou sem querer?** "↩ Reabrir treino" no resumo do fim ou no último treino do histórico (até 12 h depois): o
+  treino volta aberto, com tudo (novo em 2026-10-28a).
 - Marca a série com ✓ → **cronômetro de descanso começa sozinho**, com bipe e aviso no fim, mesmo com a
   tela apagada (melodia de aviso e notificação).
 - Mostra o **recorde** e **como foi da última vez** em cada exercício.
@@ -336,6 +341,8 @@ liga nem desliga a esteira; botão grande ⏹ PARAR A ESTEIRA. Métodos que só 
 - **Previsão de ultrapassagem:** quando alguém acelera, o app calcula **em quanto tempo alcança** quem está na frente ("Nesse ritmo, você alcança a Ana em 1 minuto e 7 segundos") e avisa quem está sendo caçado ("A Bia está chegando: te alcança em 40 segundos. Acelere!"). Também diz a velocidade necessária para alcançar em 1 minuto ou até a chegada.
 - A voz narra: "Você passou o João! Agora em 1º", a situação a cada km, últimos 200 metros, a chegada e a posição final.
 - Correu sozinho hoje? **Manda o resultado por link** e quem abrir corre contra o seu "fantasma" 👻 quando quiser.
+- **A esteira do treino vira desafio** (novo em 2026-10-28a): no resumo do fim do treino (ou no histórico), "🏁 Desafiar amigos"
+  manda a corrida ou caminhada daquele dia, na mesma distância, para os amigos correrem contra você.
 - **Privacidade:** ao vivo passam só o apelido, a distância e o tempo — **nunca a localização**. Sem conta.
 - Tem um modo **🧪 Simulação** (dois corredores de mentira, relógio acelerado) ótimo para gravar vídeo mostrando como funciona.
 

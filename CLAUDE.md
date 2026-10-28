@@ -84,6 +84,22 @@ minutos depois da anterior guardava de novo os arquivos velhos. Aconteceu com
 o avatar do Marombeiro: a pintura dos tênis foi desfeita, o texto novo chegou
 ao celular e a imagem continuou pintada.
 
+## Direitos: público para ver, não livre para usar (`LICENSE`)
+
+Pedido do dono: proteger o projeto de cópia para poder monetizar no futuro.
+**O repositório continua público**, porque é dele que o GitHub Pages gratuito
+publica o app; privado, o site sai do ar para todo mundo (a não ser com GitHub
+Pro). A proteção é jurídica, não técnica: o `LICENSE` é de **todos os
+direitos reservados** (Lei 9.609/98 e 9.610/98), com a lista dos componentes de
+terceiros, que seguem as próprias licenças (wger CC BY-SA, OpenStreetMap ODbL,
+React/Babel MIT, Leaflet BSD...). Há o aviso no topo do `index.html` e em
+Ajustes › Créditos. **Não troque por licença aberta (MIT, GPL) sem falar com
+ele**, e **não copie código de projeto copyleft** (ver o openGym, AGPL, em *Os
+últimos 12 meses*): isso obrigaria a abrir o app inteiro. Código que roda no
+navegador sempre pode ser baixado por quem usa; nenhuma ofuscação muda isso, e
+ela atrapalharia o fluxo sem build. O que fortalece: registro da marca no INPI
+e o registro do programa de computador no INPI.
+
 ## Nenhuma conta do Claude é dona do projeto
 
 O dono desenvolve com a conta **corporativa** do Claude e quer poder assumir
@@ -252,7 +268,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v132) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v133) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -2113,6 +2129,18 @@ entre amigos, ver *Desafio entre amigos*): não confundir.
   histórico (série aeróbica comum + `historico[].desafio`, que o
   `CartaoDesafio` mostra), mandar o resultado por link, correr de novo.
 
+### A esteira do treino vira desafio (`desafioDoTreino`, `linkDesafioDoTreino`)
+
+Pedido do dono: "transformar a corrida ou caminhada na esteira no final em um
+desafio e mandar para os amigos". **🏁 Desafiar amigos** no resumo do fim e no
+cartão do histórico, para treino com série de esteira ou de rua (perfis
+`caminhada`, `corrida`, `rua-*`, `trilha`), de 200 m e 1 minuto para cima.
+Não é código novo de desafio: é um link `#corrida=` comum, com sala nova, a
+meta na **distância feita** e o resultado de quem desafia como o de quem já
+correu (👻). A trilha sai das séries, cada uma no seu ritmo (o km do painel
+vence tempo × velocidade). Sem apelido, pergunta antes (é o nome na pista).
+Coberto em `teste-desafio.js`.
+
 ### Com a tela travada no bolso (`CorridaService`, `criarCorridaApp`, `?modo=corrida`)
 
 Relato do dono, com prints de uma corrida de verdade: o amigo aparecia como
@@ -3441,6 +3469,17 @@ foram fechados:
   treino** na página manda `parar` ao app (efeito no raiz, com o
   `treinolivre:bolsoAtivo`; o toque do Finalizar é o gesto que o Chrome exige).
 
+**A música de outro app vence o microfone** (`musicaTocando`, relato do dono:
+"a música para quando ponho o celular no bolso, volta quando o Jarvis fala e
+para de novo quando ele termina"). O roçar no bolso passa do ruído de fundo e
+abria o reconhecedor, e o do Google pede o foco do áudio a cada sessão mesmo
+recebendo o áudio pelo cano (não se desliga de fora). Hoje, com
+`isMusicActive` (e o Jarvis calado), o reconhecedor não abre: ele fala, mas só
+ouve quando a música para ou a tela destrava. Quem prefere ouvir liga "🎵 Ouvir
+mesmo com música tocando" no cartão (`treinolivre:bolsoMusica`, vai no link
+como `mu=1`), sabendo que a música pausa a cada comando. O diário diz quando
+calou pela música.
+
 **Não validado num aparelho**: se o reconhecimento do Google aceita ouvir pelo
 serviço com a tela travada em todo Android, se o bipe some, e o WebView
 escondido no serviço. No navegador: a página `?modo=bolso` responde, o
@@ -3697,6 +3736,19 @@ compartilhados por aí precisam continuar abrindo.
     quando começa e depois a lista inteira ("O que muda (17)"), com o botão
     "Criar". `pedirConfirmacao` aceita um objeto (rótulos, `positivo`).
     Conferido no navegador em 390×700: o botão aparece e o programa é criado.
+  - **Em áudio, e o ajustado já criado** (`falaAnaliseAjuste`,
+    `falaCienciaAjuste`, `falarLongo`; pedido do dono). Dois botões:
+    "🔊 Ouvir a análise e o ajuste" e "🔊 Ouvir por que muda (o estudo)". O
+    texto é falado, não lido: sem "~" nem parênteses, datas por extenso. É
+    dito frase por frase em fila (o Chrome corta uma fala longa no meio), e
+    trocar de áudio ignora o fim da fala cortada (`vezRef`). E a pergunta do
+    dono, "preciso gerar um ajustado toda semana?": **não**. Com um programa
+    com `meso` no primeiro ciclo (ou começando na próxima segunda), o cartão
+    diz que as séries mudam sozinhas por semana e as repetições por treino, que
+    os exercícios ficam os mesmos nas 5 semanas, e que a análise nova é no fim
+    do ciclo; a análise fica atrás de "Ver a análise das últimas semanas", e o
+    criar vira o discreto "Criar outro treino ajustado mesmo assim". Coberto em
+    `teste-volume.js` (62 checagens).
   - **Para quem não é treinador** (pedido do dono: "de uma forma otimizada
     para os usuários mais básicos entenderem"). O cartão virou **"🧭 Seu
     treino está equilibrado?"**: uma frase de resposta ("5 músculos estão
@@ -4256,6 +4308,18 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   exercício que o destino já tem não entra de novo, e o aviso diz quais. O
   `salvarTreino` virou funcional: copiar e depois salvar a ficha aberta não pode
   desfazer a cópia.
+- **↩ Reabrir o treino finalizado** (`sessaoDoRegistro`, `reabrirTreino`,
+  coberto por `teste-ficha.js`). Pedido do dono: "fechei o treino achando que
+  tinha que ir embora, e posso ficar mais". No resumo do fim e no cartão do
+  **último** treino do histórico, até 12 horas (`REABRIR_MS`: a sessão mais
+  velha que isso é descartada ao carregar), sem outro treino aberto, e não para
+  rua, Monster Run, desafio e intervalado. O Finalizar guarda a sessão inteira
+  em `localStorage["treinolivre:ultimaSessao"]` (sem o `esteiraParcial`, que
+  viraria uma série recuperada a mais): reabrindo, volta tudo, até as séries por
+  fazer, com o `inicio` original. Sem a cópia (outro aparelho), volta o que o
+  registro tem, tudo marcado, com a ficha achada pelo nome. O registro sai do
+  histórico até o novo Finalizar; recordes, nível e conquistas se ajustam
+  sozinhos.
 - **⇄ Trocar no editor de ficha**: o exercício novo entra no mesmo lugar, com
   as séries, repetições, descanso e bi-set do antigo; sem busca, a lista
   mostra o mesmo grupo. Antes era tirar e acrescentar, e o novo ia para o fim.

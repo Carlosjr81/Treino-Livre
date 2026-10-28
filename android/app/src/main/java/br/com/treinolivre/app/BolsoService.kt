@@ -162,6 +162,7 @@ class BolsoService : Service(), RecognitionListener {
         // fim do descanso também — é o que funciona com a tela travada.
         if (snap != null) {
             fimFalaFixa = intent?.getStringExtra("fimFala") ?: ""
+            ouvirComMusica = intent?.getStringExtra("musica") == "1"
             val ate = try { JSONObject(snap).optLong("descansoAte", 0L) } catch (e: Exception) { 0L }
             agendarDescanso(ate)
             val agora = intent?.getStringExtra("falar")
@@ -415,10 +416,31 @@ class BolsoService : Service(), RecognitionListener {
         leitura = null
     }
 
+    // **A música de outro app vence o microfone.** Relato do dono, com a tela
+    // travada: a música parava ao pôr o celular no bolso (o roçar no tecido
+    // passa do ruído de fundo e abria o reconhecedor), voltava quando o Jarvis
+    // falava e parava de novo quando ele terminava. O reconhecedor do Google
+    // pede o foco do áudio a cada sessão, mesmo recebendo o áudio pelo cano, e
+    // isso não se desliga de fora. Então, com música tocando, o reconhecedor
+    // não abre: o Jarvis continua falando (o ✓, o fim do descanso), e ouvir
+    // fica para quando a música parar ou a tela destravar. Quem prefere ouvir
+    // mesmo assim liga "Ouvir com música" no cartão (mu=1), sabendo que ela
+    // pausa a cada comando.
+    @Volatile private var ouvirComMusica = false
+    private var calouPelaMusica = false
+    private fun musicaTocando(): Boolean {
+        if (ouvirComMusica || falando > 0) return false
+        val ativa = try { getSystemService(AudioManager::class.java)?.isMusicActive == true } catch (e: Exception) { false }
+        if (ativa && !calouPelaMusica) { calouPelaMusica = true; anotar("música tocando: não abro o reconhecedor para não parar a música (falar continua)") }
+        if (!ativa && calouPelaMusica) { calouPelaMusica = false; anotar("música parou: voltei a ouvir") }
+        return ativa
+    }
+
     // Alguém falou: o reconhecedor recebe o meio segundo de antes e o que vier
     private fun abrirSessao() {
         if (!travada || ouvindo || falando > 0 || pararDepoisDeFalar || saida != null) return
         if (telaLivre()) { aoDestravar(); return }
+        if (musicaTocando()) { synchronized(antes) { antes.clear() }; return }
         val cano = try { android.os.ParcelFileDescriptor.createPipe() } catch (e: Exception) { return }
         val out = android.os.ParcelFileDescriptor.AutoCloseOutputStream(cano[1])
         try { synchronized(antes) { antes.forEach { out.write(it) }; antes.clear() } } catch (e: Exception) { }
@@ -432,6 +454,7 @@ class BolsoService : Service(), RecognitionListener {
         if (!travada || ouvindo || falando > 0 || pararDepoisDeFalar) return
         if (telaLivre()) { aoDestravar(); return }
         if (fonteExterna) { ligarGravador(); return }
+        if (musicaTocando()) { linha.postDelayed({ ouvir() }, 3000L); return }
         iniciarReconhecedor(null)
     }
 

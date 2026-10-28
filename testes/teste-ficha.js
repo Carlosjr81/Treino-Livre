@@ -7,7 +7,7 @@ function pedaco(de, ate) {
   if (i < 0 || f < 0) { console.error("nao achei: " + de); process.exit(1); }
   return html.slice(i, f);
 }
-eval(pedaco("// ---- A ficha muda com o treino ----", "// ---- fim da ficha muda") + "\nglobalThis.H = { mudancasNaFicha, fichaDoTreino, moverFicha, moverPara, copiarItensPara, pesoDoDrop, inserirDrop, dropsNoFim };");
+eval(pedaco("// ---- A ficha muda com o treino ----", "// ---- fim da ficha muda") + "\nglobalThis.H = { mudancasNaFicha, fichaDoTreino, moverFicha, moverPara, copiarItensPara, pesoDoDrop, inserirDrop, dropsNoFim, sessaoDoRegistro };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -144,6 +144,26 @@ teste("o segundo drop entra depois do primeiro, mais leve", ["40", "32.5", "25",
 teste("conta os drops do fim", 2, H.dropsNoFim([{ peso: "40" }, { peso: "32", drop: true }, { peso: "25", drop: true }]));
 const fd = H.fichaDoTreino([{ exercicioId: "x", series: [{ peso: "40", reps: "10" }, { peso: "40", reps: "10" }, { peso: "32", reps: "8", drop: true }] }]);
 teste("treino com drop vira ficha: 2 séries e 1 drop", [2, 10, 1], [fd[0].series, fd[0].reps, fd[0].drops]);
+
+console.log("\n--- reabrir o treino finalizado ---");
+{
+  const agora = Date.parse("2026-10-28T20:00:00Z");
+  const reg = { id: "r1", nome: "A - Peito", data: "2026-10-28T19:30:00Z", duracaoMin: 50,
+    itens: [{ exercicioId: "supino", obs: "banco 3", series: [{ peso: "60", reps: "10" }, { peso: "60", reps: "9" }] }] };
+  const sess = { treinoId: "f-a", nome: "A - Peito", inicio: Date.parse("2026-10-28T18:40:00Z"), esteiraParcial: { x: 1 },
+    itens: [{ uid: "u1", exercicioId: "supino", series: [{ peso: "60", reps: "10", feito: true }, { peso: "60", reps: "9", feito: true }, { peso: "60", reps: "10" }] }] };
+  const s1 = H.sessaoDoRegistro(reg, { registroId: "r1", sessao: sess }, [], agora);
+  teste("com a cópia: volta até a série por fazer", [true, true, false], s1.itens[0].series.map((s) => !!s.feito));
+  teste("com a cópia: o relógio é o de quando começou", sess.inicio, s1.inicio);
+  teste("o rascunho da esteira não volta (seria uma série recuperada a mais)", undefined, s1.esteiraParcial);
+  const s2 = H.sessaoDoRegistro(reg, { registroId: "outro", sessao: sess }, [{ id: "f-a", nome: "A - Peito" }], agora);
+  teste("sem a cópia certa: o registro, tudo marcado", [true, true], s2.itens[0].series.map((s) => s.feito));
+  teste("sem a cópia: a ficha é achada pelo nome", "f-a", s2.treinoId);
+  teste("sem a cópia: começou 50 min antes do fim", Date.parse("2026-10-28T18:40:00Z"), s2.inicio);
+  teste("sem ficha com o nome: volta como treino livre", "livre-r1", H.sessaoDoRegistro(reg, null, [], agora).treinoId);
+  teste("mais de 12 horas depois: não reabre", null, H.sessaoDoRegistro(reg, null, [], agora + 13 * 3600000));
+  teste("percurso na rua não reabre aqui", null, H.sessaoDoRegistro({ ...reg, rota: {} }, null, [], agora));
+}
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

@@ -3,6 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!--
+  Treino Livre — Copyright (c) 2026 Carlos Jr (github.com/Carlosjr81). Todos os direitos reservados.
+  Código visível não é código livre: copiar, modificar, republicar ou usar
+  em outro app, gratuito ou pago, exige autorização por escrito. Ver LICENSE.
+-->
 <meta name="theme-color" content="#111111" />
 <title>Treino Livre</title>
 <meta name="description" content="Monte suas fichas, registre séries e cargas e acompanhe sua evolução na academia. Gratuito, funciona offline e sem cadastro." />
@@ -799,7 +804,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-25c";
+const VERSAO_APP = "2026-10-28a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2152,6 +2157,42 @@ function copiarItensPara(destino, itens, gerarId) {
   });
   return { itens: (destino || []).concat(limparConjuntos(novos)), copiados: novos.length, repetidos: repetidos };
 }
+// Reabrir o treino que acabou de ser finalizado. Pedido do dono: "fechei o
+// treino achando que tinha que ir embora, e posso ficar mais". Vale só para o
+// último treino do histórico, de até 12 horas (a sessão aberta com mais que
+// isso é descartada ao carregar), e só para treino de ficha ou livre: rua,
+// Monster Run, desafio e intervalado têm a própria tela. Com a cópia guardada
+// no Finalizar (`guardada`), volta tudo, até as séries por fazer; sem ela
+// (outro aparelho, versão antiga), volta o que o registro tem, tudo marcado.
+const REABRIR_MS = 12 * 3600000;
+function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
+  if (!reg || reg.rota || reg.zumbi || reg.desafio || reg.intervalado || !(reg.itens || []).length) return null;
+  const fim = Date.parse(reg.data);
+  if (!(fim > 0) || agora - fim > REABRIR_MS) return null;
+  if (guardada && guardada.registroId === reg.id && guardada.sessao && (guardada.sessao.itens || []).length) {
+    const s = { ...guardada.sessao, nome: reg.nome || guardada.sessao.nome };
+    delete s.esteiraParcial;
+    if (!(agora - s.inicio < REABRIR_MS)) return null;
+    return s;
+  }
+  const inicio = fim - Math.max(1, reg.duracaoMin || 1) * 60000;
+  if (!(agora - inicio < REABRIR_MS)) return null;
+  const ficha = (treinos || []).find((t) => t.nome === reg.nome);
+  let n = 0;
+  return {
+    treinoId: ficha ? ficha.id : "livre-" + reg.id,
+    nome: reg.nome,
+    inicio: inicio,
+    itens: reg.itens.map((it) => ({
+      uid: uid ? uid() : "r" + (n++),
+      exercicioId: it.exercicioId,
+      obs: it.obs || "",
+      descanso: null,
+      conjunto: null,
+      series: (it.series || []).map((s) => ({ ...s, feito: true })),
+    })),
+  };
+}
 // ---- fim da ficha muda
 
 // ---- SAÚDE: o que vem do Health Connect (app Android) ----
@@ -2606,8 +2647,15 @@ function linkBolso(snap, falar, fimFala, trazer, crono) {
   if (crono) q += "&c=" + encodeURIComponent(JSON.stringify(crono));
   if (falar) q += "&f=" + encodeURIComponent(falar);
   if (fimFala) q += "&ff=" + encodeURIComponent(fimFala);
+  if (bolsoComMusica()) q += "&mu=1";
   return "intent://bolso?" + q + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID +
     ";S.browser_fallback_url=" + encodeURIComponent(LINK_APK) + ";end";
+}
+// Com a tela travada e música de outro app tocando, o app não abre o
+// microfone (o reconhecedor do Google pausaria a música a cada vez). Quem
+// prefere ouvir mesmo assim liga isto, e a música pausa a cada comando.
+function bolsoComMusica() {
+  try { return localStorage.getItem("treinolivre:bolsoMusica") === "1"; } catch (e) { return false; }
 }
 function linkBolsoParar() {
   return "intent://bolso?parar=1#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID + ";end";
@@ -10411,6 +10459,72 @@ function volumeDasFichas(fichas, exPorId, vezes) {
     series: Array.from({ length: Math.round((parseInt(it.series) || 0) * (vezes || 1)) }, () => ({ peso: 1, reps: 1 })) })) }, exPorId));
   return listaVolumeFracionado(acc, 1);
 }
+// Os dois áudios do cartão (pedido do dono): a análise com o ajuste proposto,
+// e o estudo por trás, com o porquê de o treino mudar. Quem treina ouve no fone
+// a caminho da academia em vez de ler um cartão comprido. Texto falado: nada de
+// "~", de "×" nem de parênteses, e datas por extenso.
+function juntarFalado(l) { return l.length <= 1 ? (l[0] || "") : l.slice(0, -1).join(", ") + " e " + l[l.length - 1]; }
+function dataFalada(ms) { return new Date(ms).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" }); }
+function falaAnaliseAjuste(plano, tr, onde, nomeFicha) {
+  const nc = (n) => String(n || "").replace(/ \(.*\)/, "");
+  const f = ["Análise do seu treino. Olhei as suas últimas semanas, contando também os músculos que só ajudam no exercício, pela metade."];
+  if (!plano.faltam.length && !plano.sobram.length) {
+    f.push("Todos os músculos receberam um bom número de séries por semana. Não há nada para corrigir: continue assim.");
+    return f.join(" ");
+  }
+  if (plano.faltam.length) f.push(plano.faltam.length + " " + plural(plano.faltam.length, "músculo está", "músculos estão") + " treinando pouco: " + juntarFalado(plano.faltam.map((x) => nc(x.nome))) + ".");
+  if (plano.sobram.length) f.push(juntarFalado(plano.sobram.map((x) => nc(x.nome))) + " " + plural(plano.sobram.length, "está", "estão") + " treinando demais.");
+  f.push("O ajuste que eu proponho:");
+  plano.faltam.forEach((x) => {
+    const ex = x.sugestoes[0];
+    f.push("Para " + nc(x.nome) + ": " + x.add + " " + plural(x.add, "série a mais", "séries a mais") + " por semana" +
+      (x.dias.length > 1 ? ", divididas em dois dias" : "") +
+      (ex ? ", de " + nc(ex.nome) + (onde && onde[ex.id] ? ", que " + onde[ex.id].replace(/^já /, "já está ").replace(/^na sua ficha/, "está na sua ficha").replace(/^você já fez/, "você já fez") : ", um exercício novo para você") : "") + ".");
+  });
+  plano.sobram.forEach((x) => f.push("Para " + nc(x.nome) + ": tire " + x.cortar + " " + plural(x.cortar, "série", "séries") + " por semana. Ele continua trabalhando nos outros exercícios."));
+  if (tr) {
+    if (tr.deload) {
+      f.push("Antes de trocar, faça uma semana leve a partir de " + dataFalada(tr.deloadInicio) + ", com metade das séries, porque " +
+        (tr.puxadas >= 4 ? "você treina pesado há " + tr.puxadas + " semanas seguidas" : "a carga parou de subir na maioria dos exercícios") + ".");
+      f.push("O treino novo começa " + dataFalada(tr.inicio) + ".");
+    } else {
+      f.push("Termine esta semana com o treino de agora. O treino novo começa " + dataFalada(tr.inicio) + ".");
+    }
+    f.push("Você treina " + tr.frequencia + " " + plural(tr.frequencia, "vez", "vezes") + " por semana: " +
+      juntarFalado(tr.agenda.map((a) => a.dia + ", " + (nomeFicha ? nomeFicha(a) : "ficha " + (a.ficha + 1)))) + ".");
+  }
+  f.push("O treino novo muda sozinho a cada semana, num ciclo de cinco: começa com uma série a menos, depois duas semanas normais, uma semana mais forte com uma série a mais, e termina com uma semana de descanso, com metade das séries. Você não precisa criar outro toda semana: no começo de cada treino, o app diz o que fazer.");
+  return f.join(" ");
+}
+function falaCienciaAjuste(plano, tr) {
+  const nc = (n) => String(n || "").replace(/ \(.*\)/, "");
+  const f = ["Por que o seu treino está mudando, e o estudo por trás."];
+  f.push("O que mais faz o músculo crescer é o volume: quantas séries difíceis ele recebe por semana. A faixa mais citada nos estudos é de " + FAIXA_SERIES.min + " a " + FAIXA_SERIES.max + " séries por semana para cada músculo. Abaixo do mínimo, ele cresce pouco. Muito acima, o cansaço passa a atrapalhar a recuperação.");
+  f.push("Uma revisão de 2024, de Pelland, Schoenfeld e colegas, mostrou que a série em que o músculo só ajuda vale mais ou menos meia série. Por isso o app soma o trabalho indireto pela metade: o supino conta inteiro para o peito, e meio para o tríceps e para o ombro.");
+  f.push("Os estudos de Schoenfeld sobre frequência mostram que treinar cada músculo pelo menos duas vezes por semana rende mais do que uma, com o mesmo volume. Por isso as séries novas são divididas em dois dias.");
+  f.push("Variar as repetições de um dia para o outro, com dias pesados, moderados e leves, se chama periodização ondulatória. Nos estudos de Rhea, de 2002, e na revisão de Grgic, de 2017, ela deu resultado igual ou um pouco melhor do que repetir sempre o mesmo.");
+  f.push("E as semanas formam um ciclo de cinco, que sobe o esforço aos poucos e termina com uma semana leve, o deload. Segundo a revisão de Bell, de 2023, essa semana ajuda a recuperar sem perder o que foi ganho.");
+  if (plano && (plano.faltam.length || plano.sobram.length)) {
+    const p = [];
+    if (plano.faltam.length) p.push(juntarFalado(plano.faltam.map((x) => nc(x.nome))) + " " + plural(plano.faltam.length, "ficou", "ficaram") + " abaixo do mínimo nas suas semanas");
+    if (plano.sobram.length) p.push(juntarFalado(plano.sobram.map((x) => nc(x.nome))) + " " + plural(plano.sobram.length, "passou", "passaram") + " de " + FAIXA_SERIES.max + " séries");
+    f.push("No seu caso, o treino muda porque " + p.join(", e ") + ". O ajuste usa primeiro os exercícios que você já faz, porque você já conhece a execução e tem os aparelhos.");
+  } else f.push("No seu caso, o volume já está equilibrado: o que muda é só a organização das semanas.");
+  if (tr && tr.motivos && tr.motivos.length) f.push("Sobre quando começar, o que eu vi nos seus treinos: " + tr.motivos.join("; ") + ".");
+  f.push("Tudo isso é um guia, não uma regra. Dor, sono ruim ou cansaço que não passa pedem a semana leve antes.");
+  return f.join(" ");
+}
+// Fala longa, frase por frase: no Chrome uma fala única de minutos é cortada
+// no meio, e na fila a última frase avisa o fim.
+function falarLongo(texto, cfg, aoTerminar) {
+  const frases = String(texto).split(/(?<=[.!?:])\s+/).filter(Boolean);
+  let ok = false;
+  frases.forEach((fr, i) => {
+    ok = jarvisFalar(fr, { ...(cfg || {}), falar: true, fila: i > 0, aoTerminar: i === frases.length - 1 ? aoTerminar : undefined }) || ok;
+  });
+  if (!ok && aoTerminar) aoTerminar();
+  return ok;
+}
 // ---------------- FIM DO PLANO DE AJUSTE
 
 function VolumeRecomendado({ historico, exPorId, plano }) {
@@ -10491,7 +10605,7 @@ function VolumeRecomendado({ historico, exPorId, plano }) {
   );
 }
 // O plano para equilibrar a divisão, e o programa ajustado com a periodização
-function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar }) {
+function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar, vozCfg }) {
   const r = useMemo(() => volumeFracionadoPeriodo(historico, exPorId, Date.now(), 4), [historico, exPorId]);
   // o programa de agora: o da ficha treinada por último
   const prog = useMemo(() => {
@@ -10513,8 +10627,69 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
   const dataTxt = (ms) => new Date(ms).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "numeric" });
   const meso = (programas || []).find((p) => p.meso && p.meso.inicio && p.meso.inicio <= Date.now());
   const sm = meso ? semanaDoMeso(meso.meso, Date.now()) : null;
+  // O ajustado já criado (começando agora ou na próxima segunda). Pergunta do
+  // dono: "preciso gerar um ajustado toda semana?" Não: as séries e as
+  // repetições mudam sozinhas a cada semana. Durante o primeiro ciclo, o cartão
+  // diz isso e guarda a análise atrás de um toque; recriar só no fim do ciclo.
+  const ajustado = (programas || []).filter((p) => p.meso && p.meso.inicio).sort((a, b) => b.meso.inicio - a.meso.inicio)[0] || null;
+  const smA = ajustado ? semanaDoMeso(ajustado.meso, Date.now()) : null;
+  const emCiclo = !!ajustado && (!smA || (smA.ciclo === 1 && smA.semana < MESOCICLO.length));
+  const [verAnalise, setVerAnalise] = useState(false);
   const [detalhes, setDetalhes] = useState(false);
+  const [ouvindo, setOuvindo] = useState(null);
+  const ouvindoRef = useRef(null);
+  const vezRef = useRef(0);
+  ouvindoRef.current = ouvindo;
+  // sair da tela no meio do áudio cala a voz
+  useEffect(() => () => { if (ouvindoRef.current) calarJarvis(); }, []);
   if (!historico.length) return null;
+  const ouvir = (qual) => {
+    if (ouvindo) { calarJarvis(); setOuvindo(null); if (ouvindo === qual) return; }
+    const nomeFicha = (a) => (fichasProg[a.ficha] ? fichasProg[a.ficha].nome : "ficha " + (a.ficha + 1));
+    const t = qual === "analise" ? falaAnaliseAjuste(plano, prog ? tr : null, conhecidos.onde, nomeFicha) : falaCienciaAjuste(plano, prog ? tr : null);
+    // a fala cortada pela troca também avisa o fim: só a última vale
+    const vez = ++vezRef.current;
+    const fim = () => { if (vezRef.current === vez) setOuvindo(null); };
+    setOuvindo(qual);
+    if (!falarLongo(t, vozCfg, fim)) fim();
+  };
+  const botaoOuvir = (qual, rot) => (
+    <button onClick={() => ouvir(qual)} aria-pressed={ouvindo === qual}
+      style={{ ...S.btnGhost, flex: 1, fontSize: 12.5, padding: "9px 8px", fontWeight: 800,
+        color: ouvindo === qual ? "var(--marca)" : "var(--texto)", borderColor: ouvindo === qual ? "var(--marca)" : "var(--borda2)" }}>
+      {ouvindo === qual ? "⏹ Parar" : rot}
+    </button>
+  );
+  const audios = VOZ_FALA ? (
+    <div style={{ display: "flex", gap: 8, margin: "10px 0 4px" }}>
+      {botaoOuvir("analise", "🔊 Ouvir a análise e o ajuste")}
+      {botaoOuvir("ciencia", "🔊 Ouvir por que muda (o estudo)")}
+    </div>
+  ) : null;
+  if (emCiclo && !verAnalise) {
+    const comeca = !smA;
+    return (
+      <div style={S.card}>
+        <div style={S.label}>🧭 Seu treino está equilibrado?</div>
+        <div style={{ border: "1px solid var(--ok)", borderRadius: 12, padding: "10px 12px", margin: "8px 0 10px", fontSize: 13, lineHeight: 1.55 }}>
+          <b>✅ O seu treino ajustado já está pronto: "{ajustado.nome}".</b><br />
+          {comeca
+            ? <>Ele começa {new Date(ajustado.meso.inicio).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "numeric" })}. Até lá, siga o treino de agora.</>
+            : <>Você está na semana {smA.semana} de {MESOCICLO.length}. {MESOCICLO_FACIL[smA.semana - 1]}</>}
+          <div style={{ marginTop: 6 }}>
+            <b>Não precisa criar outro toda semana.</b> A cada semana o app muda sozinho a quantidade de séries, e a cada treino as repetições do dia (pesado, moderado ou leve). Os exercícios ficam os mesmos durante as {MESOCICLO.length} semanas, para dar para ver a carga subindo.
+          </div>
+          <div style={{ marginTop: 6, color: "var(--cinza)" }}>
+            No fim do ciclo, na semana {MESOCICLO.length} (a de descanso), volte aqui: com as semanas novas no histórico, o app vê se ainda falta equilibrar algum músculo.
+          </div>
+        </div>
+        {audios}
+        <button onClick={() => setVerAnalise(true)} style={{ ...S.btnGhost, width: "100%", marginTop: 6, fontSize: 12.5, padding: "8px 10px" }}>
+          Ver a análise das últimas semanas
+        </button>
+      </div>
+    );
+  }
   const maiuscula = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const nomeCurto = (n) => String(n || "").replace(/ \(.*\)/, "");
   const fichaDoDia = (a) => (fichasProg[a.ficha] ? fichasProg[a.ficha].nome : "ficha " + (a.ficha + 1));
@@ -10542,6 +10717,7 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
             {nPouco && nMuito ? " e" : ""}{nMuito ? <>{nPouco ? " " : ", "}<b>{nMuito} treinando demais</b></> : null}.
             O app monta um treino que corrige isso, usando primeiro os exercícios que você já faz.</>}
       </div>
+      {audios}
       {(nPouco > 0 || nMuito > 0) && (
         <React.Fragment>
           {passo(1, "O que muda")}
@@ -10600,8 +10776,8 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
             <div style={{ color: "var(--cinza)", marginTop: 4 }}>Você não precisa decorar nada: <b>no começo de cada treino o app diz o que fazer naquele dia</b>, e as séries já vêm na quantidade certa.</div>
           </div>
           {onCriar && (
-            <button onClick={() => onCriar(prog, plano, tr)} style={{ ...S.btn, width: "100%", marginTop: 14 }}>
-              ✨ Criar o treino novo
+            <button onClick={() => onCriar(prog, plano, tr)} style={{ ...(emCiclo ? S.btnGhost : S.btn), width: "100%", marginTop: 14 }}>
+              {emCiclo ? "Criar outro treino ajustado mesmo assim" : "✨ Criar o treino novo"}
             </button>
           )}
           <div style={{ fontSize: 11.5, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>
@@ -11962,6 +12138,10 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
           sob a licença{" "}
           <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.pt-br" target="_blank" rel="noreferrer">Creative Commons BY-SA 4.0</a>.
           Textos, dicas e mapa muscular: conteúdo original do app.
+        </div>
+        <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.7, marginTop: 10 }}>
+          © 2026 Carlos Jr. Todos os direitos reservados. O app é gratuito para usar; o código, os textos, as histórias
+          e a marca Treino Livre não podem ser copiados nem usados em outro app sem autorização.
         </div>
       </div>
     </div>
@@ -19519,6 +19699,47 @@ function linkDesafio(sala, participantes) {
   const obj = { v: 1, c: sala.codigo, mt: sala.meta.tipo === "distancia" ? "d" : "t", al: sala.meta.alvo, at: sala.atividade || "corrida", p: p };
   return LINK_APP + "#corrida=" + b64Codificar(JSON.stringify(obj));
 }
+// A corrida ou caminhada que já foi feita (a esteira no fim do treino, o
+// percurso na rua) vira um desafio para mandar aos amigos. Pedido do dono.
+// A meta é a distância feita; o resultado de quem desafia vai no link como o
+// de quem já correu (o 👻), e quem recebe corre contra ele pelo mesmo tempo de
+// prova, como num desafio de sala. A trilha sai das séries, cada uma no seu
+// ritmo: o intervalado de 5 min andando e 2 correndo aparece assim na pista.
+const PERFIS_DESAFIO = /^(caminhada|corrida|rua-caminhada|rua-corrida|trilha)$/;
+function desafioDoTreino(reg, exPorId) {
+  if (!reg || reg.desafio || reg.zumbi) return null;
+  let t = 0, m = 0, corre = false, rua = false;
+  const tr = [[0, 0]];
+  (reg.itens || []).forEach((it) => {
+    const e = exPorId(it.exercicioId);
+    const perfil = e && e.cardio;
+    if (!perfil || !PERFIS_DESAFIO.test(perfil)) return;
+    (it.series || []).forEach((s) => {
+      const seg = +s.segundos || 0;
+      if (seg <= 0) return;
+      const metros = +s.km > 0 ? +s.km * 1000 : +s.vel > 0 ? +s.vel * seg / 3.6 : 0;
+      if (metros <= 0) return;
+      const tipo = s.mod || perfil;
+      if (/corrida/.test(tipo) || +s.vel >= 7) corre = true;
+      if (/^rua|trilha/.test(tipo)) rua = true;
+      t += seg * 1000;
+      m += metros;
+      tr.push([t, m]);
+    });
+  });
+  if (m < 200 || t < 60000) return null;
+  const alvo = Math.round(m);
+  tr[tr.length - 1][1] = alvo;
+  return { meta: { tipo: "distancia", alvo: alvo }, atividade: corre ? "corrida" : "caminhada", rua: rua || !!reg.rota, trilha: tr, fim: { ms: t, m: alvo } };
+}
+function linkDesafioDoTreino(reg, d, nome, rnd) {
+  const sala = { codigo: novoCodigoSala(rnd), meta: d.meta, atividade: d.atividade };
+  const url = linkDesafio(sala, [{ id: "t" + reg.id, nome: nome, trilha: d.trilha, fim: d.fim, dt: Date.parse(reg.data) || null }]);
+  const texto = "🏁 Te desafio: fiz " + nomeMetaDesafio(d.meta) + " de " + d.atividade + (d.rua ? " na rua" : " na esteira") +
+    " em " + fmtTempoRota(d.fim.ms) + ". Consegue fazer mais rápido? Corre de onde estiver, na rua ou na esteira: o app põe você na pista contra o meu resultado." +
+    " (Treino Livre, app gratuito do @" + INSTAGRAM + ")";
+  return { url: url, texto: texto, sala: sala };
+}
 function lerLinkDesafio(b64) {
   try {
     const o = JSON.parse(b64Decodificar(b64));
@@ -24740,6 +24961,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // descanso da página dorme com ela. No app novo (BOLSO_APP), todo ✓ é um
   // toque, e o toque deixa a página chamar o app: a confirmação e o fim do
   // descanso passam a ser falados pelo Android, travado ou não.
+  const [comMusica, setComMusica] = useState(bolsoComMusica);
   const [bolsoAuto, setBolsoAuto] = useState(() => {
     try { return NO_APP_ANDROID && BOLSO_APP >= 2 && localStorage.getItem("treinolivre:bolsoAuto") !== "0"; } catch (e) { return false; }
   });
@@ -25243,6 +25465,16 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 ? <>Precisa do app Android novo: <a href={LINK_APK} style={{ color: "var(--marca)" }}>baixe e instale de novo</a> e abra pelo ícone.</>
                 : <>Celular travado no bolso: ele ouve, anota as séries, conta o descanso e chama você na hora. Só no app Android.</>}
             </div>
+            {(bolsoAuto || bolsoAtivo) && (
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 8, fontSize: 12, color: "var(--cinza)", lineHeight: 1.45, cursor: "pointer" }}>
+                <input type="checkbox" checked={comMusica} onChange={(e) => {
+                  const v = e.target.checked;
+                  try { localStorage.setItem("treinolivre:bolsoMusica", v ? "1" : "0"); } catch (er) {}
+                  setComMusica(v);
+                }} style={{ marginTop: 2 }} />
+                <span>🎵 <b>Ouvir mesmo com música tocando.</b> Desligado, a sua música nunca é interrompida: travado, ele fala, mas só ouve quando a música para. Ligado, ele ouve, e a música pausa um instante a cada vez. Vale a partir do próximo ✓.</span>
+              </label>
+            )}
           </div>
           {bolsoAuto ? (
             <div style={{ display: "flex", gap: 6 }}>
@@ -25861,7 +26093,7 @@ function MiniStat({ valor, nome, cor }) {
   );
 }
 
-function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEditar, onVirarFicha, pedirConfirmacao, historico, pesoCorporal, vozCfg }) {
+function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEditar, onVirarFicha, onReabrir, onDesafiarTreino, pedirConfirmacao, historico, pesoCorporal, vozCfg }) {
   const [aberto, setAberto] = useState(false);
   const [verRota, setVerRota] = useState(false);
   const st = statsTreino(h);
@@ -26026,6 +26258,18 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
         );
       })}
 
+      {onDesafiarTreino && desafioDoTreino(h, exPorId) && (
+        <button onClick={() => onDesafiarTreino(h)} aria-label={"Desafiar amigos com o treino " + h.nome}
+          style={{ ...S.btnGhost, marginTop: 10, fontSize: 13 }}>
+          🏁 Desafiar amigos: {nomeMetaDesafio(desafioDoTreino(h, exPorId).meta)} em {fmtTempoRota(desafioDoTreino(h, exPorId).fim.ms)}
+        </button>
+      )}
+      {onReabrir && (
+        <button onClick={() => onReabrir(h)} aria-label={"Reabrir o treino " + h.nome}
+          style={{ ...S.btnGhost, marginTop: 10, fontSize: 14, fontWeight: 800, color: "var(--marca)", borderColor: "var(--marca)" }}>
+          ↩ Reabrir treino: continuar de onde parei
+        </button>
+      )}
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
         <button onClick={() => onStory(h)} style={{ ...S.btnGhost, flex: 2, color: "#E1306C", borderColor: "#E1306C66", fontSize: 13, padding: "10px 12px" }}>
           📸 Story
@@ -27027,7 +27271,7 @@ function TelaOculosNativa() {
   );
 }
 
-function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVirarFicha, pedirConfirmacao,
+function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVirarFicha, podeReabrir, onReabrir, onDesafiarTreino, pedirConfirmacao,
   medidas, onSalvarMedida, onExcluirMedida, avisar,
   fotos, onAdicionarFoto, onExcluirFoto,
   meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor, onComecar, onAbrirGrupo,
@@ -27098,7 +27342,8 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
       {secao === "treinos" && historico.map((h) => (
         <CardTreino key={h.id} h={h} exPorId={exPorId} recordes={recordes} historico={historico} pesoCorporal={pesoCorporal} vozCfg={vozCfg}
           comparacao={compararAnterior(historico, h)}
-          onExcluir={onExcluir} onStory={onStory} onEditar={onEditar} onVirarFicha={onVirarFicha} pedirConfirmacao={pedirConfirmacao} />
+          onExcluir={onExcluir} onStory={onStory} onEditar={onEditar} onVirarFicha={onVirarFicha} pedirConfirmacao={pedirConfirmacao}
+          onReabrir={podeReabrir && onReabrir && podeReabrir(h) ? onReabrir : null} onDesafiarTreino={onDesafiarTreino} />
       ))}
     </div>
   );
@@ -28694,8 +28939,55 @@ function TreinoLivre() {
         }),
       };
     }));
+    try {
+      const copia = { ...sessao };
+      delete copia.esteiraParcial;
+      localStorage.setItem("treinolivre:ultimaSessao", JSON.stringify({ registroId: registro.id, sessao: copia }));
+    } catch (e) {}
     setSessao(null);
     guardarTreino(registro, undefined, nota);
+  };
+
+  // ↩ Reabrir: o treino volta a ser o treino em andamento, com o relógio de
+  // quando começou, e sai do histórico até ser finalizado de novo (recordes,
+  // nível e conquistas saem do histórico e se ajustam sozinhos).
+  const sessaoParaReabrir = (reg) => {
+    if (sessao || !reg || !historico.length || historico[0].id !== reg.id) return null;
+    let guardada = null;
+    try { guardada = JSON.parse(localStorage.getItem("treinolivre:ultimaSessao") || "null"); } catch (e) {}
+    return sessaoDoRegistro(reg, guardada, treinos, Date.now(), novoUid);
+  };
+  // 🏁 A esteira (ou a rua) do treino vira desafio. Sem apelido, pergunta antes:
+  // é o nome que os amigos veem na pista e ouvem na voz.
+  const desafiarComTreino = (reg) => {
+    const d = desafioDoTreino(reg, exPorId);
+    if (!d) return;
+    const enviar = async (nome) => {
+      const l = linkDesafioDoTreino(reg, d, nome);
+      if (navigator.share) {
+        try { await navigator.share({ text: l.texto, url: l.url }); return; } catch (x) { if (x && x.name === "AbortError") return; }
+      }
+      setModal({ msg: "Mande este convite no grupo dos amigos. Quem abrir corre contra o seu resultado:", texto: l.texto + " " + l.url });
+    };
+    const ap = corredor && corredor.apelido;
+    if (ap) { enviar(ap); return; }
+    importRef.current = "";
+    setModal({
+      msg: "Qual nome os amigos vão ver na pista?", prompt: "Seu apelido", positivo: true, labelSim: "Desafiar",
+      onSim: () => {
+        const nome = (importRef.current || "").trim().slice(0, 24) || "Amigo";
+        setCorredor((c) => Object.assign({}, c, { apelido: nome }));
+        enviar(nome);
+      },
+    });
+  };
+  const reabrirTreino = (reg) => {
+    const s = sessaoParaReabrir(reg);
+    if (!s) { avisar("Só dá para reabrir o último treino, até 12 horas depois de finalizado, e sem outro treino aberto."); return; }
+    setHistorico((prev) => prev.filter((h) => h.id !== reg.id));
+    try { localStorage.removeItem("treinolivre:ultimaSessao"); } catch (e) {}
+    setSessao(s);
+    setAba("sessao");
   };
 
   // Tudo que acontece depois que um treino vira registro: guardar, somar,
@@ -29587,13 +29879,14 @@ function TreinoLivre() {
             onExcluir={excluirHistorico} onStory={storyDeTreino} pedirConfirmacao={pedirConfirmacao}
             onEditar={(hh) => { setEditandoHistorico(hh); setAba("editarHistorico"); }}
             onVirarFicha={(hh) => virarFicha(hh)}
+            podeReabrir={(hh) => !!sessaoParaReabrir(hh)} onReabrir={reabrirTreino} onDesafiarTreino={desafiarComTreino}
             medidas={medidas} onSalvarMedida={salvarMedida} onExcluirMedida={excluirMedida} avisar={avisar}
             fotos={fotos} onAdicionarFoto={adicionarFoto} onExcluirFoto={excluirFoto}
             meta={meta} setMeta={setMeta} secaoInicial={secaoHistorico}
             onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} pesoCorporal={pesoCorporal} vozCfg={voz} onCorredor={() => setAba("corredor")} onComecar={() => setAba("inicio")}
             saude={saude} bpm={bpm} cardioEstado={cardioEstado} onConectarCardio={conectarCardio} onDesconectarCardio={desconectarCardio}
             onSincronizarSaude={sincronizarSaude}
-            plano={{ catalogo: EXERCICIOS.concat(customEx), treinos: treinos, programas: programas, onCriar: criarProgramaAjustado }}
+            plano={{ catalogo: EXERCICIOS.concat(customEx), treinos: treinos, programas: programas, onCriar: criarProgramaAjustado, vozCfg: voz }}
             onAbrirGrupo={(g) => { setGrupoAberto(g); setExercicioAberto(null); setAba("exercicios"); }} />
         )}
         {aba === "editarHistorico" && editandoHistorico && (
@@ -29635,6 +29928,20 @@ function TreinoLivre() {
                 if (reg.rota) lerRota(reg.id).then(abrir, () => abrir(null));
                 else abrir(null);
               }}>▶ Ver resumo animado</button>
+            )}
+            {modal.resumoRegistro && desafioDoTreino(modal.resumoRegistro, exPorId) && (
+              <button style={{ ...S.btnGhost, marginBottom: 10 }} onClick={() => {
+                const reg = modal.resumoRegistro;
+                setModal(null);
+                desafiarComTreino(reg);
+              }}>🏁 Desafiar amigos nesta {desafioDoTreino(modal.resumoRegistro, exPorId).atividade}</button>
+            )}
+            {modal.resumoRegistro && sessaoParaReabrir(modal.resumoRegistro) && (
+              <button style={{ ...S.btnGhost, marginBottom: 10 }} onClick={() => {
+                const reg = modal.resumoRegistro;
+                setModal(null);
+                reabrirTreino(reg);
+              }}>↩ Reabrir treino (ainda não acabei)</button>
             )}
             {modal.storyTreino && (
               <button style={{ ...S.btnGhost, marginBottom: 10 }} onClick={async () => {

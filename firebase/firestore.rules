@@ -1,0 +1,42 @@
+rules_version = '2';
+// As regras do Treino Livre no Firestore. São elas, e não a tela do app, que
+// garantem que só o dono vê a lista de usuários e libera ou bloqueia contas.
+// Cole este arquivo inteiro em: Firebase › Firestore Database › Regras › Publicar.
+service cloud.firestore {
+  match /databases/{banco}/documents {
+
+    // O dono: o e-mail dele, CONFIRMADO (sem a confirmação, qualquer um que
+    // criasse uma conta com esse e-mail passaria por dono).
+    function dono() {
+      return request.auth != null
+        && request.auth.token.email == 'carlos.jr.81@hotmail.com'
+        && request.auth.token.email_verified == true;
+    }
+    function eu(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /usuarios/{uid} {
+      // cada um lê só a própria conta; a lista inteira, só o dono
+      allow get: if dono() || eu(uid);
+      allow list: if dono();
+
+      // cadastro: a própria conta, com o próprio e-mail, sempre "pendente"
+      allow create: if dono() || (eu(uid)
+        && request.resource.data.status == 'pendente'
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.keys().hasOnly(['email', 'nome', 'status', 'criadoEm', 'ultimoAcesso', 'acessos', 'aparelho', 'versao']));
+
+      // a pessoa só atualiza quando entrou e de onde; o status, nunca
+      allow update: if dono() || (eu(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ultimoAcesso', 'acessos', 'aparelho', 'versao']));
+
+      allow delete: if dono();
+    }
+
+    // qualquer outra coisa: ninguém
+    match /{tudo=**} {
+      allow read, write: if false;
+    }
+  }
+}

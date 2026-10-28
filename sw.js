@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v134";
+const CACHE = "treinolivre-v135";
 const CACHE_VOZ = "treinolivre-voz";
 // As falas gravadas do Monster, Run! (vozes/*.mp3): baixadas quando a história
 // começa e guardadas fora do cache da versão, para não sumirem a cada atualização.
@@ -78,6 +78,9 @@ self.addEventListener("fetch", (e) => {
   // cada lugar do mapa é um arquivo, e guardar todos encheria o celular. O
   // navegador já guarda os recentes no cache dele, que se limpa sozinho.
   if (url.hostname === "tile.openstreetmap.org" || url.hostname === "nominatim.openstreetmap.org") return;
+  // As contas (login, chave e o status liberado/bloqueado) nunca vêm do cache:
+  // um bloqueio guardado como "liberado" deixaria a pessoa entrando para sempre.
+  if (url.hostname === "identitytoolkit.googleapis.com" || url.hostname === "securetoken.googleapis.com" || url.hostname === "firestore.googleapis.com") return;
   // O reconhecimento de movimento (biblioteca, WASM e modelo) sao uns 8 MB.
   // Guardados aqui, sao baixados uma vez so e o Eyes Scan passa a funcionar
   // offline, como o resto do app.

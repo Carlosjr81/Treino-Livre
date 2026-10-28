@@ -84,6 +84,51 @@ minutos depois da anterior guardava de novo os arquivos velhos. Aconteceu com
 o avatar do Marombeiro: a pintura dos tênis foi desfeita, o texto novo chegou
 ao celular e a imagem continuou pintada.
 
+## Login com aprovação e o painel do dono (`Porteiro`, pasta `firebase/`)
+
+Pedido do dono: login, cadastro que só entra depois de ele aprovar, e um
+painel em que **só ele** vê quem acessa, libera, bloqueia e desbloqueia.
+Decidido com ele: **Firebase**, **todo mundo se cadastra e espera** (inclusive
+quem já usava), e o servidor guarda **só o acesso** — os treinos continuam no
+aparelho. É a segunda exceção à regra "sem servidor" (a primeira é o
+retransmissor do Desafio). E-mail do dono: `EMAIL_DONO`.
+
+- **Desligado até haver projeto**: `FIREBASE_ACESSO` vazio = sem porteiro, o
+  app abre como sempre. Liga quando o dono seguir o `firebase/LEIA-ME.md` e
+  mandar `apiKey` e `projectId` (públicos; quem protege são as regras).
+  **No dia em que ligar, todo mundo cai na tela de login**: o dono cria a conta
+  dele primeiro.
+- **REST, sem o SDK** (`contaApi`): o SDK são uns 500 KB e três SRI a mais.
+  Entrar, criar, esqueci, confirmar e-mail, renovar a chave (1 h), ler, gravar
+  (`currentDocument.exists` separa criar de atualizar) e listar.
+- **Quem protege o painel são as regras** (`firebase/firestore.rules`): lista,
+  status e exclusão só com o e-mail do dono **confirmado** no token; cada um lê
+  a própria conta, cria só como "pendente" com o próprio e-mail, e atualiza só
+  `ultimoAcesso`, `acessos`, `aparelho` e `versao`. O botão escondido nos
+  Ajustes (`CONTA_ATUAL.dono`) é só arrumação. **Por isso o dono precisa
+  confirmar o e-mail** (`verificar`): sem isso, quem criasse uma conta com o
+  e-mail dele passaria por dono.
+- **O `Porteiro` envolve o `TreinoLivre`** no render; os modos escondidos
+  do app Android (`MODO_BOLSO`, `MODO_OCULOS`, `MODO_CORRIDA`) passam direto,
+  porque rodam num WebView sem a sessão do Chrome. Fases: entrar, conferindo,
+  aguardando, bloqueado, verificar, semRede, erro, dentro.
+- **Sem rede, liberado entra por 7 dias** (`liberadoSemRede`,
+  `ACESSO_OFFLINE_MS`): academia de subsolo. Liberado guardado abre na hora e
+  confere em segundo plano; **na volta ao app confere de novo** (no máximo a cada
+  15 min): é como o bloqueio alcança quem está com o app aberto.
+- **O `sw.js` não toca em identitytoolkit, securetoken e firestore**: um
+  status guardado em cache deixaria o bloqueado entrando para sempre.
+- **O limite, dito ao dono**: o código é público e roda no aparelho; quem
+  programa pula o porteiro na própria cópia. O que é garantido de verdade é a
+  lista de usuários e a aprovação.
+- A política de privacidade (`privacidade.html`) diz o que a conta guarda.
+- Coberto por `teste-acesso.js` (22 checagens) e no navegador com
+  `testes/firebase-falso.js` (o Firebase de mentira, com as regras):
+  `node testes/navegador.js --antes testes/firebase-falso.js --clicar "Criar conta" --preencher "E-mail=ana@x.com" ...`.
+  Conferido assim: cadastro aguardando; dono cria a conta, abre o painel e
+  libera; liberado entra sem painel; bloqueado barrado; senha errada. **Não
+  conferido no Firebase de verdade** (o projeto ainda não existe).
+
 ## Direitos: público para ver, não livre para usar (`LICENSE`)
 
 Pedido do dono: proteger o projeto de cópia para poder monetizar no futuro.
@@ -133,6 +178,7 @@ Treino-Livre/
 ├── index.html, sw.js, manifest.json, versao.json, ícones   ← o app publicado
 ├── privacidade.html     ← a política (exigida pelo Health Connect)
 ├── android/             ← o app Android: a porta para o Health Connect (ver *O app Android*)
+├── firebase/            ← as regras e o passo a passo do login com aprovação
 ├── CLAUDE.md            ← este arquivo: o contexto do projeto
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
@@ -268,7 +314,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v134) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v135) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -4367,7 +4413,8 @@ node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem 
 serve o `index.html` local e aceita `--dados arq.json` (o registro do
 `localStorage`), `--clicar "Texto"` (repetível), `--foto tela.png` e
 `--altura 700`, `--antes script.js` (roda antes do app: uma voz ou um
-Bluetooth de mentira) e `--mostrar "expressão"` (imprime o valor no fim).
+Firebase de mentira; pode repetir), `--preencher "Rótulo=valor"` (na ordem,
+junto dos cliques) e `--mostrar "expressão"` (imprime o valor no fim).
 Sai com erro se a página lançar exceção: é o "mexeu em
 componente, abra a tela" sem celular.
 

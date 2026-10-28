@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-10-28c — Login com aprovação e painel de usuários (preparado, ainda desligado)
+
+**Em uma frase:** o app ganhou conta, cadastro com aprovação do criador e um painel só dele para ver quem acessa;
+fica desligado até o projeto no Firebase ser criado.
+
+**O que mudou**
+- Por dentro: tela de **Entrar / Criar conta** (nome, e-mail e senha), "Cadastro enviado: aguardando liberação",
+  "Acesso bloqueado", e o **👥 Painel de usuários** do criador do app (quem se cadastrou, quando entrou pela última vez,
+  quantas vezes, de qual aparelho, e os botões Liberar e Bloquear).
+- Os treinos continuam só no celular de cada um: a conta guarda nome, e-mail e os acessos.
+
+**Por que importa para quem treina**
+- Ainda nada muda: o login liga numa próxima versão, que vai ser anunciada.
+
+**Como usar**
+- Ainda não aparece no app.
+
+**Ideias de vídeo**
+- Nenhuma por enquanto: espere a versão que liga o login.
+
+**Não prometer**
+- Não anunciar login nem cadastro antes da versão que os liga.
+- A conta não leva os treinos para a nuvem nem sincroniza aparelhos.
+
+---
+
 ## 2026-10-28b — Os áudios do treino ajustado agora falam no celular
 
 **Em uma frase:** os botões "Ouvir a análise e o ajuste" e "Ouvir por que muda" ficavam mudos no celular; agora falam,

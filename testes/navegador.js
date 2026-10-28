@@ -13,6 +13,7 @@
 //   node testes/navegador.js --clicar "Histórico" --clicar "Números"
 //   node testes/navegador.js --foto tela.png       guarda a imagem da tela
 //   node testes/navegador.js --altura 700          celular mais baixo
+//   node testes/navegador.js --preencher "E-mail=ana@x.com"   digita no campo com esse rótulo
 //   node testes/navegador.js --antes falso.js      roda um script antes do app (ex.: uma voz de mentira)
 //   node testes/navegador.js --mostrar "window.__falado"   imprime o valor no fim
 //
@@ -30,8 +31,12 @@ const html = fs.readFileSync(path.join(RAIZ, "index.html"), "utf8");
 
 const args = process.argv.slice(2);
 const opcao = (nome) => { const i = args.indexOf(nome); return i >= 0 ? args[i + 1] : null; };
-const cliques = [];
-args.forEach((a, i) => { if (a === "--clicar" && args[i + 1]) cliques.push(args[i + 1]); });
+// --clicar e --preencher "Rótulo=valor" rodam na ordem em que foram escritos
+const passos = [];
+args.forEach((a, i) => {
+  if (a === "--clicar" && args[i + 1]) passos.push({ clicar: args[i + 1] });
+  if (a === "--preencher" && args[i + 1]) { const k = args[i + 1].indexOf("="); passos.push({ campo: args[i + 1].slice(0, k), valor: args[i + 1].slice(k + 1) }); }
+});
 
 // as versões são as do próprio index.html: atualizou a biblioteca lá, vale aqui
 const versao = (re) => (html.match(re) || [])[1];
@@ -97,16 +102,28 @@ async function doNpm(lib) {
     localStorage.setItem("treinolivre:v1", JSON.stringify(d));
   }, dados);
 
-  const antes = opcao("--antes");
-  if (antes) await p.addInitScript({ content: fs.readFileSync(antes, "utf8") });
+  // --antes pode vir mais de uma vez: rodam na ordem
+  for (let i = 0; i < args.length; i++) if (args[i] === "--antes" && args[i + 1]) await p.addInitScript({ content: fs.readFileSync(args[i + 1], "utf8") });
   await p.goto(ENDERECO + "#teste");
   // o Babel compila o app no navegador: leva uns segundos
-  await p.waitForFunction(() => /Início/.test(document.body.innerText), null, { timeout: 60000 }).catch(() => {});
+  await p.waitForFunction(() => !document.getElementById("carregando"), null, { timeout: 60000 }).catch(() => {});
+  await p.waitForTimeout(800);
   await p.mouse.click(380, 300); // pula a abertura, se ela estiver na frente
   await p.waitForTimeout(500);
-  for (const c of cliques) {
-    try { await p.locator("text=" + c).last().click({ timeout: 5000 }); await p.waitForTimeout(800); }
-    catch (e) { erros.push("não achei para clicar: " + c); }
+  for (const ps of passos) {
+    if (ps.campo) {
+      try { await p.getByLabel(ps.campo, { exact: true }).first().fill(ps.valor, { timeout: 5000 }); }
+      catch (e) { erros.push("não achei o campo: " + ps.campo); }
+      continue;
+    }
+    const c = ps.clicar;
+    try {
+      // o botão com exatamente esse nome vence; senão, o último texto que contém
+      const exato = p.getByRole("button", { name: c, exact: true });
+      if (await exato.count()) await exato.last().click({ timeout: 5000 });
+      else await p.locator("text=" + c).last().click({ timeout: 5000 });
+      await p.waitForTimeout(800);
+    } catch (e) { erros.push("não achei para clicar: " + c); }
   }
   const mostrar = opcao("--mostrar");
   if (mostrar) { await p.waitForTimeout(1500); console.log(mostrar + " = " + JSON.stringify(await p.evaluate(mostrar)).slice(0, 2000)); }

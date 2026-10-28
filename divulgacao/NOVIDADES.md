@@ -16,6 +16,42 @@
 
 ---
 
+## 2026-10-28j — Mini band em casa para o corpo todo
+
+**Em uma frase:** o treino com mini band agora vai além do glúteo: 25 exercícios para o corpo todo,
+sete aulas guiadas e um treino da semana pronto para guardar nas fichas.
+
+**O que mudou**
+- O atalho virou **🏠 Em casa com mini band**.
+- **15 exercícios novos**: flexão, puxada acima da cabeça, afastamento de braços, elevação lateral,
+  desenvolvimento, rosca, tríceps, escalador, prancha lateral com abdução, perdigueiro, afundo, extensão
+  de joelho sentado, agachamento sumô, marcha com joelho alto e polichinelo sem salto.
+- **Cinco aulas novas**: 💪 Superiores, 🦵 Pernas, 🧱 Core, 🔥 Corpo inteiro e ⚡ Cardio sem salto.
+- **Quatro circuitos novos para a câmera contar**: Superiores, Pernas, Core e Corpo inteiro.
+- **📋 Guardar como treino da semana**: cria um treino novo com as fichas A (glúteos e pernas),
+  B (superiores e core) e C (glúteo médio, adutores e core). As fichas que a pessoa já tem não mudam.
+- A lista para montar o próprio treino aparece separada por músculo.
+
+**Por que importa para quem treina**
+- Dá para treinar o corpo inteiro em casa só com um elástico, sem academia.
+- Guardado como treino da semana, o app diz qual ficha fazer em cada dia e guarda a evolução.
+
+**Como usar**
+- Tela inicial › **🏠 Em casa com mini band** › escolha uma aula (a voz conduz), um circuito (a câmera
+  conta) ou toque em **📋 Guardar como treino da semana**.
+
+**Ideias de vídeo**
+- "Corpo inteiro em casa com um elástico de 20 reais": a aula Corpo inteiro do começo ao fim.
+- A semana A, B, C guardada em um toque, e o app sugerindo a ficha do dia.
+- Um exercício por músculo em sequência rápida, com o bonequinho do app ao lado.
+
+**Não prometer**
+- Antebraço e panturrilha não têm exercício com mini band no app.
+- A contagem pela câmera foi testada com movimento simulado, não com cada exercício na frente de um
+  celular de verdade.
+
+---
+
 ## 2026-10-28i — Glúteos em casa com mini band
 
 **Em uma frase:** treino de glúteo completo em casa só com a mini band, com aula guiada pela voz e a

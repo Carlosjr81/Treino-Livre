@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-28i**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-28j**.
 
 ---
 
@@ -126,7 +126,7 @@ com cenas reais → halter) como linguagem visual em vídeos.
   e tríceps"). **Programa** = conjunto de fichas (A, B, C...).
 - **Assistente de montagem:** a pessoa diz quantos dias por semana treina e o app monta a divisão
   (ABC, ABCD etc.) pronta.
-- **Catálogo de 284 exercícios**, com grupo muscular, músculos, passo a passo, dica, figura de
+- **Catálogo de 299 exercícios**, com grupo muscular, músculos, passo a passo, dica, figura de
   demonstração e botão de vídeo no YouTube. Filtro por equipamento ("só tenho halteres em casa").
 - **Mapa muscular** do corpo mostrando o que cada exercício trabalha.
 - **Bi-set e tri-set:** junta exercícios seguidos; o descanso só começa depois do último.
@@ -258,17 +258,20 @@ O principal diferencial. A pessoa **fala** e ele anota, sem tocar no celular, co
 - Controle por voz durante a aula: "Jarvis, **pausa**", "**continua**", "**pula**", "**quanto falta**".
 - Circuitos para contar na câmera.
 
-### 3.5b Glúteos em casa com mini band 🍑
-- Atalho na tela inicial: **"Glúteos em casa"**. Só precisa do elástico pequeno (mini band), uma
+### 3.5b Em casa com mini band (corpo todo) 🏠
+- Atalho na tela inicial: **"Em casa com mini band"**. Só precisa do elástico pequeno (mini band), uma
   parede e o chão.
-- **10 exercícios**, cada um com bonequinho animado com o elástico desenhado: abdução sentada na
-  parede, stiff, stiff unilateral, coice em pé, agachamento, flexão de joelho em pé, abdução em pé,
-  caminhada lateral, elevação pélvica no chão e concha.
-- **Duas aulas guiadas** (a voz conduz e avisa a troca de lado): 🍑 **Glúteos** (~15 min) e
-  🎯 **Glúteo médio** (~10 min).
-- **Dois circuitos para a câmera contar** (Eyes Scan): nos exercícios de uma perna só, a câmera conta
-  os dois lados, avisa "troca de lado" na metade e anota na ficha o número de um lado. No agachamento,
-  avisa se o joelho cai para dentro.
+- **25 exercícios para o corpo todo**, cada um com bonequinho animado com o elástico desenhado:
+  glúteo (abdução na parede, stiff, coice, ponte, concha...), pernas (agachamento, sumô, afundo,
+  extensão de joelho, flexão de joelho), peito (flexão), costas (puxada, afastamento de braços,
+  perdigueiro), ombros (elevação lateral, desenvolvimento), bíceps (rosca), tríceps, abdômen e
+  oblíquos (escalador, prancha lateral) e cardio sem salto (polichinelo, marcha).
+- **Sete aulas guiadas** (a voz conduz e avisa a troca de lado): 🍑 Glúteos, 🎯 Glúteo médio,
+  💪 Superiores, 🦵 Pernas, 🧱 Core, 🔥 Corpo inteiro e ⚡ Cardio sem salto.
+- **Seis circuitos para a câmera contar** (Eyes Scan): nos de um lado só, ela conta os dois lados, avisa
+  "troca de lado" e anota o número de um lado. Nos agachamentos e no afundo, avisa se o joelho cai.
+- **📋 Guardar como treino da semana**: vira um treino novo com fichas A, B e C (o app sugere a de cada
+  dia e guarda a evolução), sem mexer nas fichas que a pessoa já tem.
 - Filtro "Mini band" na lista de exercícios.
 
 ### 3.6 Aeróbico: esteira, bike, elíptico, escada, remo, corda, natação

@@ -179,6 +179,35 @@ teste("agachamento com mini band, 10", 10,
   teste("palpite nao escolhe mini band", 0, pal && /^band-/.test(pal.id) ? 1 : 0, 0);
 }
 
+// Toda mini band tem boneco (as duas poses), perfil, series sugeridas, e o
+// programa da semana so usa exercicio que existe.
+{
+  const ip = html.indexOf("const POSE_BASE = {"), fp = html.indexOf("// O boneco de duas poses", ip);
+  const is = html.indexOf("const SUGESTAO_FUNCIONAL = {"), fs2 = html.indexOf("\n};", is) + 3;
+  const ig = html.indexOf("const PROGRAMA_BAND = {"), fg = html.indexOf("\n};", ig) + 3;
+  const ie = html.indexOf("const EXERCICIOS = [");
+  const EXS = eval(html.slice(ie + "const EXERCICIOS = ".length, html.indexOf("\n];", ie) + 2));
+  const X = eval("(function(){" + html.slice(ip, fp) + html.slice(is, fs2) + html.slice(ig, fg) + "; return { POSES_FUNCIONAIS, SUGESTAO_FUNCIONAL, PROGRAMA_BAND }; })()");
+  const band = EXS.filter((e) => /^band-/.test(e.id));
+  teste("mini band: todos com as duas poses", band.length, band.filter((e) => (X.POSES_FUNCIONAIS[e.func] || []).length === 2).length, 0);
+  teste("mini band: todos com o elastico desenhado", band.length, band.filter((e) => X.POSES_FUNCIONAIS[e.func].every((p) => p.band)).length, 0);
+  teste("mini band: todos com perfil de camera", band.length, band.filter((e) => A.MOV_FUNCIONAIS[e.func]).length, 0);
+  teste("mini band: todos com series sugeridas", band.length, band.filter((e) => X.SUGESTAO_FUNCIONAL[e.id]).length, 0);
+  const ids = X.PROGRAMA_BAND.fichas.reduce((s, f) => s.concat(f.ids), []);
+  teste("programa da semana: so exercicio que existe", ids.length, ids.filter((id) => EXS.some((e) => e.id === id)).length, 0);
+}
+console.log("\n--- mais mini band: corpo todo ---");
+teste("afastamento de bracos, 12", 12,
+  rodar("band-afastamento", 12, 1300, (a) => ({ abreMaos: a * 0.08 })).total, 1);
+teste("polichinelo sem salto, 16", 16,
+  rodar("band-polichinelo", 16, 1000, (a) => ({ abrePes: a * 0.08, maoE: a, maoD: a })).total, 1);
+teste("escalador com mini band, 10 ciclos = 20", 20,
+  rodar("band-escalador", 10, 800, (a, b) => ({ joelhoE: a, joelhoD: b }), true).total, 1);
+teste("marcha com mini band, 12 ciclos = 24", 24,
+  rodar("band-marcha", 12, 900, (a, b) => ({ joelhoE: a, joelhoD: b }), true).total, 1);
+teste("sumo com mini band, 10", 10,
+  (() => { const x = rodarA("band-sumo", 10, 1800, (a) => ({ jE: a, jD: a })); for (let i = 0; i < 60; i++) { x.cont.processar(corpoA({}), x.tt); x.tt += 33; } return x.cont.estado().total; })(), 1);
+
 console.log("\n--- o que ele diz que esta lendo ---");
 const e = rodar("socos-ar", 6, 900, (a, b) => ({ socoE: a, socoD: b }), true);
 console.log("  socos: sinal=" + e.sinal + " | alternado=" + e.alternado + " | " + e.nomeSinal);

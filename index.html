@@ -679,6 +679,22 @@ const EXERCICIOS = [
   { id: "band-caminhada-lateral", grupo: "gluteos", nome: "Caminhada lateral com mini band", en: "Banded Lateral Walk", equip: "Mini band", func: "band-caminhada-lateral", musc: {p: ["gluteos"], s: ["quadriceps"]}, passos: ["Passe a mini band acima dos joelhos ou nos tornozelos e fique em meio agachamento.","Dê passos para o lado sem deixar o elástico afrouxar.","Cada passo conta uma; ande para um lado e volte para o outro."], dica: "Quadril baixo e pés sempre afastados: o elástico não pode afrouxar entre os passos." },
   { id: "band-ponte", grupo: "gluteos", nome: "Elevação pélvica no chão com mini band", en: "Banded Glute Bridge", equip: "Mini band", func: "band-ponte", musc: {p: ["gluteos"], s: ["posteriores"]}, passos: ["Deite de barriga para cima, joelhos dobrados e a mini band acima dos joelhos.","Empurre os joelhos para fora e suba o quadril até alinhar com o tronco.","Segure um segundo em cima e desça devagar."], dica: "Para a câmera contar, apoie o celular de lado, na altura do chão." },
   { id: "band-concha", uni: true, grupo: "gluteos", nome: "Concha com mini band (clamshell)", en: "Banded Clamshell", equip: "Mini band", func: "band-concha", musc: {p: ["gluteos"], s: []}, passos: ["Deite de lado com os joelhos dobrados e a mini band acima dos joelhos.","Com os pés juntos, abra o joelho de cima contra o elástico.","Feche devagar. Faça todas de um lado e troque."], dica: "Não gire o quadril para trás: quem abre é só a perna." },
+  // mini band para o corpo todo
+  { id: "band-flexao", grupo: "peito", nome: "Flexão com mini band", en: "Banded Push-up", equip: "Mini band", func: "band-flexao", musc: { p: ["peito"], s: ["triceps","ombros","abdomen"] }, passos: ["Passe a mini band pelas costas, presa embaixo das mãos (ou acima dos cotovelos).","Desça o peito até perto do chão com o corpo numa linha só.","Empurre o chão contra o elástico até estender os braços."], dica: "Começando? Apoie os joelhos no chão: o movimento é o mesmo." },
+  { id: "band-puxada", grupo: "costas", nome: "Puxada com mini band (acima da cabeça)", en: "Banded Lat Pulldown", equip: "Mini band", func: "band-puxada", musc: { p: ["dorsal"], s: ["biceps","trapezio"] }, passos: ["Segure a mini band com as mãos acima da cabeça, braços estendidos e afastados.","Puxe os cotovelos para baixo e para os lados, abrindo o elástico, até as mãos chegarem perto dos ombros.","Volte devagar com os braços para cima."], dica: "Pense em levar os cotovelos ao bolso de trás: quem puxa é a dorsal." },
+  { id: "band-afastamento", grupo: "costas", nome: "Afastamento de braços com mini band (pull apart)", en: "Band Pull Apart", equip: "Mini band", func: "band-afastamento", musc: { p: ["trapezio","ombros"], s: ["dorsal"] }, passos: ["Segure a mini band com os braços estendidos à frente, na altura dos ombros.","Abra os braços para os lados juntando as escápulas.","Volte devagar até a frente."], dica: "Ombros longe das orelhas: quem trabalha é o meio das costas." },
+  { id: "band-elevacao-lateral", grupo: "ombros", nome: "Elevação lateral com mini band", en: "Banded Lateral Raise", equip: "Mini band", func: "band-elevacao-lateral", musc: { p: ["ombros"], s: ["trapezio"] }, passos: ["Passe a mini band nos punhos, braços ao lado do corpo.","Eleve os braços para os lados até a altura dos ombros, abrindo o elástico.","Desça devagar."], dica: "Cotovelos levemente dobrados e sem balançar o tronco." },
+  { id: "band-desenvolvimento", grupo: "ombros", nome: "Desenvolvimento com mini band", en: "Banded Overhead Press", equip: "Mini band", func: "band-desenvolvimento", musc: { p: ["ombros"], s: ["triceps","trapezio"] }, passos: ["Segure a mini band com as mãos na altura dos ombros, afastando o elástico.","Empurre as mãos para cima até estender os braços, com o elástico sempre aberto.","Desça devagar até os ombros."], dica: "Abdômen firme: não arqueie a lombar ao subir." },
+  { id: "band-rosca", uni: true, grupo: "biceps", nome: "Rosca com mini band", en: "Banded Biceps Curl", equip: "Mini band", func: "band-rosca", musc: { p: ["biceps"], s: ["antebraco"] }, passos: ["Pise numa ponta da mini band e segure a outra com a mão do mesmo lado.","Dobre o cotovelo trazendo a mão em direção ao ombro, cotovelo colado ao corpo.","Desça devagar. Faça todas de um lado e troque."], dica: "Elástico fraco? Pise mais perto da mão: a tensão aumenta." },
+  { id: "band-triceps", uni: true, grupo: "triceps", nome: "Tríceps com mini band (empurrando para baixo)", en: "Banded Triceps Pushdown", equip: "Mini band", func: "band-triceps", musc: { p: ["triceps"], s: [] }, passos: ["Segure uma ponta da mini band junto ao peito com uma mão, parada.","Com a outra mão, empurre a outra ponta para baixo até estender o braço, cotovelo colado ao corpo.","Volte devagar. Faça todas de um lado e troque."], dica: "A mão de cima não se mexe: ela é o ponto fixo, como a polia." },
+  { id: "band-escalador", grupo: "abdomen", nome: "Escalador com mini band", en: "Banded Mountain Climber", equip: "Mini band", func: "band-escalador", musc: { p: ["abdomen"], s: ["quadriceps","ombros"] }, passos: ["Passe a mini band nos pés e fique em prancha alta.","Traga um joelho ao peito contra o elástico e volte.","Alterne as pernas num ritmo firme, quadril baixo."], dica: "Quadril na linha dos ombros: sem empinar a bunda." },
+  { id: "band-prancha-lateral", uni: true, grupo: "abdomen", nome: "Prancha lateral com abdução (mini band)", en: "Banded Side Plank Abduction", equip: "Mini band", func: "band-prancha-lateral", musc: { p: ["obliquos","gluteos"], s: ["abdomen","ombros"] }, passos: ["Passe a mini band acima dos joelhos e faça a prancha lateral apoiada no antebraço.","Com o quadril alto, eleve a perna de cima contra o elástico.","Desça devagar sem deixar o quadril cair. Faça todas de um lado e troque."], dica: "Começando? Faça com o joelho de baixo apoiado no chão." },
+  { id: "band-perdigueiro", uni: true, grupo: "costas", nome: "Perdigueiro com mini band (quatro apoios)", en: "Banded Bird Dog", equip: "Mini band", func: "band-perdigueiro", musc: { p: ["lombar","gluteos"], s: ["abdomen","ombros"] }, passos: ["Em quatro apoios, passe a mini band acima dos joelhos.","Estenda uma perna para trás contra o elástico, junto com o braço oposto à frente.","Volte sem perder o equilíbrio. Faça todas de um lado e troque."], dica: "Costas paradas como uma mesa: nada de girar o quadril." },
+  { id: "band-afundo", uni: true, grupo: "pernas", nome: "Afundo com mini band", en: "Banded Split Squat", equip: "Mini band", func: "band-afundo", musc: { p: ["quadriceps","gluteos"], s: ["posteriores","adutores"] }, passos: ["Passe a mini band acima dos joelhos e dê um passo à frente.","Desça até o joelho de trás quase tocar o chão, segurando o joelho da frente alinhado com o pé.","Suba empurrando com o pé da frente. Faça todas de um lado e troque."], dica: "O elástico tenta puxar o joelho da frente para dentro: não deixe." },
+  { id: "band-extensao-joelho", uni: true, grupo: "pernas", nome: "Extensão de joelho sentado com mini band", en: "Seated Banded Leg Extension", equip: "Mini band", func: "band-extensao-joelho", musc: { p: ["quadriceps"], s: [] }, passos: ["Sente numa cadeira e passe a mini band nos tornozelos.","Estenda uma perna à frente contra o elástico; a outra fica parada no chão.","Desça devagar. Faça todas de um lado e troque."], dica: "Segure um segundo com a perna estendida: é a cadeira extensora de casa." },
+  { id: "band-sumo", grupo: "gluteos", nome: "Agachamento sumô com mini band", en: "Banded Sumo Squat", equip: "Mini band", func: "band-sumo", musc: { p: ["gluteos","adutores"], s: ["quadriceps"] }, passos: ["Pés bem afastados, pontas para fora, e a mini band acima dos joelhos.","Desça o quadril com o tronco ereto, empurrando os joelhos para fora.","Suba apertando os glúteos."], dica: "Os joelhos seguem a direção dos pés do começo ao fim." },
+  { id: "band-marcha", grupo: "pernas", nome: "Marcha com joelho alto com mini band", en: "Banded High Knee March", equip: "Mini band", func: "band-marcha", musc: { p: ["quadriceps","abdomen"], s: ["gluteos"] }, passos: ["Passe a mini band nos pés e fique em pé, tronco reto.","Suba um joelho até a altura do quadril contra o elástico.","Alterne as pernas num ritmo firme, como uma marcha."], dica: "Rápido vira aeróbico; devagar trabalha o equilíbrio e o abdômen." },
+  { id: "band-polichinelo", grupo: "pernas", nome: "Polichinelo com mini band (sem salto)", en: "Banded Step Jack", equip: "Mini band", func: "band-polichinelo", musc: { p: ["gluteos","ombros"], s: ["quadriceps","panturrilha"] }, passos: ["Passe a mini band acima dos joelhos, em pé.","Leve uma perna para o lado e os braços acima da cabeça ao mesmo tempo.","Volte ao centro e repita para o outro lado."], dica: "Sem salto: dá para fazer em apartamento sem incomodar ninguém." },
 ];
 
 // ---------------- IMAGENS DO WGER (banco aberto, licença CC BY-SA 4.0) ----------------
@@ -817,7 +833,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-28i";
+const VERSAO_APP = "2026-10-28j";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4515,6 +4531,46 @@ const MOV_FUNCIONAIS = {
     dica: "Celular de lado, na altura do chão, com o corpo inteiro à vista.",
     frases: { caindo: ["Sobe mais o quadril.", "Aperta o glúteo lá em cima.", "Está encurtando. Quadril alto."],
       rapida: ["Segura um segundo em cima.", "Desce devagar.", "Mais devagar."] } },
+  // ---- mini band para o corpo todo ----
+  "band-flexao": { sinais: ["cotovelo-e", "cotovelo-d"], minMs: 650, palpite: false, dica: "De lado para a câmera, corpo inteiro no quadro: peito perto do chão, corpo numa linha só." },
+  "band-puxada": { sinais: ["cotovelo-e", "cotovelo-d", "punho-e-alto", "punho-d-alto"], minMs: 700, polo: "cima", palpite: false,
+    dica: "De frente para a câmera, braços à vista acima da cabeça.",
+    frases: { caindo: ["Puxa mais: mãos até os ombros.", "Cotovelos mais para baixo.", "Está encurtando. Abre mais o elástico."],
+      rapida: ["Sobe devagar.", "Controla a volta.", "Mais devagar."] } },
+  "band-afastamento": { sinais: ["abertura-maos"], minMs: 600, minAmp: 15, palpite: false,
+    dica: "De frente para a câmera, braços à vista.",
+    frases: { caindo: ["Abre mais os braços.", "Junta as escápulas no fim.", "Está abrindo menos."],
+      rapida: ["Volta devagar.", "Segura o elástico na volta.", "Mais devagar."] } },
+  "band-elevacao-lateral": { sinais: ["ombro-e", "ombro-d", "abertura-maos"], minMs: 700, palpite: false,
+    dica: "De frente para a câmera, braços à vista.",
+    frases: { caindo: ["Sobe até a altura dos ombros.", "Abre mais os braços.", "Está encurtando."],
+      rapida: ["Desce devagar.", "Sem balançar o tronco.", "Mais devagar."] } },
+  "band-desenvolvimento": { sinais: ["punho-e-alto", "punho-d-alto", "cotovelo-e", "cotovelo-d"], minMs: 700, palpite: false,
+    dica: "De frente para a câmera, com espaço acima da cabeça.",
+    frases: { caindo: ["Estende mais os braços.", "Sobe até o fim.", "Está encurtando."], rapida: ["Desce devagar.", "Controla a descida.", "Mais devagar."] } },
+  "band-rosca": { sinais: ["cotovelo-e", "cotovelo-d"], minMs: 650, polo: "cima", uni: true, palpite: false,
+    dica: "De frente ou de lado para a câmera, com o braço à vista.",
+    frases: { caindo: ["Sobe a mão até o ombro.", "Dobra mais o cotovelo.", "Está encurtando."], rapida: ["Desce devagar.", "Sem embalo.", "Mais devagar."] } },
+  "band-triceps": { sinais: ["cotovelo-e", "cotovelo-d"], minMs: 650, uni: true, palpite: false,
+    dica: "De frente para a câmera, com o braço à vista.",
+    frases: { caindo: ["Estende o braço até o fim.", "Empurra mais para baixo.", "Está encurtando."], rapida: ["Volta devagar.", "Cotovelo colado no corpo.", "Mais devagar."] } },
+  "band-escalador": { par: ["joelho-e-alto", "joelho-d-alto"], minMs: 260, minAmp: 15, palpite: false, dica: "De lado para a câmera, em prancha: quadril baixo." },
+  "band-prancha-lateral": { sinais: ["afastamento-joelhos"], minMs: 700, minAmp: 10, uni: true, palpite: false,
+    dica: "De frente para a câmera, em prancha lateral: os dois joelhos à vista.",
+    frases: { caindo: ["Sobe mais a perna.", "Quadril alto.", "Está encurtando."], rapida: ["Desce devagar.", "Segura a volta.", "Mais devagar."] } },
+  "band-perdigueiro": { sinais: ["quadril-e", "quadril-d"], minMs: 900, minAmp: 20, uni: true, palpite: false,
+    dica: "De lado para a câmera, em quatro apoios.",
+    frases: { caindo: ["Estende mais a perna.", "Perna na linha das costas.", "Está encurtando."], rapida: ["Mais devagar.", "Segura um segundo lá em cima.", "Sem pressa: equilíbrio."] } },
+  "band-afundo": { sinais: ["joelho-e", "joelho-d"], minMs: 800, polo: "cima", uni: true, palpite: false,
+    dica: "De frente para a câmera: ela confere se o joelho da frente cai para dentro." },
+  "band-extensao-joelho": { sinais: ["joelho-e", "joelho-d"], minMs: 700, uni: true, palpite: false,
+    dica: "Sentado, de lado para a câmera, com a perna que trabalha mais perto dela.",
+    frases: { caindo: ["Estende a perna até o fim.", "Segura um segundo esticada.", "Está encurtando."], rapida: ["Desce devagar.", "Controla a descida.", "Mais devagar."] } },
+  "band-sumo": { sinais: ["joelho-e", "joelho-d", "quadril-e", "quadril-d"], minMs: 800, polo: "cima", palpite: false,
+    dica: "De frente para a câmera: ela confere se o joelho cai para dentro." },
+  "band-marcha": { par: ["joelho-e-alto", "joelho-d-alto"], minMs: 300, minAmp: 15, palpite: false, dica: "De frente ou de lado para a câmera: cada joelho que sobe conta uma." },
+  "band-polichinelo": { sinais: ["abertura-pes", "punho-e-alto", "punho-d-alto"], minMs: 450, minAmp: 14, palpite: false,
+    dica: "De frente para a câmera, com espaço dos lados: cada abertura conta uma." },
   "band-concha": { sinais: ["afastamento-joelhos"], minMs: 700, minAmp: 10, uni: true, palpite: false,
     dica: "Deite de lado de frente para o celular, com os dois joelhos à vista.",
     frases: { caindo: ["Abre mais o joelho.", "Empurra o elástico até o fim.", "Está abrindo menos."],
@@ -4967,6 +5023,11 @@ const POSTURA_POR_MOV = {
   "band-agachamento": ["valgo"],
   "band-abducao-parede": [], "band-stiff": [], "band-stiff-unilateral": [], "band-coice-em-pe": [],
   "band-flexora-em-pe": [], "band-abducao-em-pe": [], "band-caminhada-lateral": [], "band-ponte": [], "band-concha": [],
+  "band-sumo": ["valgo"], "band-afundo": ["valgo"],
+  "band-flexao": ["quadril-caido", "quadril-alto"], "band-escalador": ["quadril-caido", "quadril-alto"],
+  "band-puxada": [], "band-afastamento": [], "band-elevacao-lateral": [], "band-desenvolvimento": [], "band-rosca": [],
+  "band-triceps": [], "band-prancha-lateral": [], "band-perdigueiro": [], "band-extensao-joelho": [], "band-marcha": [],
+  "band-polichinelo": [],
 };
 // Exercício de máquina não tem perfil, mas agachamento livre e leg press têm o
 // mesmo valgo. O grupo muscular responde por eles.
@@ -5851,6 +5912,7 @@ const APELIDOS_EXERCICIO = [
   ["extensora", "cadeira-extensora"], ["cadeira extensora", "cadeira-extensora"],
   ["abducao na parede", "band-abducao-parede"], ["caminhada lateral", "band-caminhada-lateral"], ["monster walk", "band-caminhada-lateral"],
   ["concha", "band-concha"], ["clamshell", "band-concha"], ["coice em pe", "band-coice-em-pe"],
+  ["pull apart", "band-afastamento"], ["perdigueiro", "band-perdigueiro"], ["bird dog", "band-perdigueiro"],
   ["flexora", "mesa-flexora"], ["mesa flexora", "mesa-flexora"], ["adutora", "cadeira-adutora"], ["abdutora", "abducao"], ["esteira", "esteira-caminhada"], ["caminhada", "esteira-caminhada"], ["corrida", "esteira-corrida"], ["bicicleta", "bike-vertical"], ["bike", "bike-vertical"],
   ["ergometrica", "bike-vertical"], ["spinning", "bike-spinning"], ["eliptico", "eliptico"], ["transport", "eliptico"],
   ["escada", "escada"], ["stepmill", "escada"], ["remo", "remo-ergometro"], ["natacao", "natacao"],
@@ -9458,6 +9520,68 @@ const POSES_FUNCIONAIS = {
     pose({ cab: [14, 118], om: [30, 124], qua: [66, 128], coE: [20, 134], puE: [10, 124], coD: [44, 118], puD: [60, 124],
       joE: [84, 138], peE: [104, 134], joD: [80, 106], peD: [104, 130], band: [[84, 136], [81, 109]] }),
   ],
+  "band-puxada": [
+    // de frente: braços em cima, e os cotovelos descendo abrindo o elástico
+    pose({ coE: [44, 26], puE: [40, 8], coD: [76, 26], puD: [80, 8], band: [[41, 9], [79, 9]] }),
+    pose({ coE: [36, 52], puE: [36, 30], coD: [84, 52], puD: [84, 30], band: [[37, 31], [83, 31]] }),
+  ],
+  "band-afastamento": [
+    // de frente: braços à frente (encurtados pela perspectiva) e abertos
+    pose({ coE: [48, 50], puE: [54, 46], coD: [72, 50], puD: [66, 46], band: [[54, 46], [66, 46]] }),
+    pose({ coE: [36, 44], puE: [14, 44], coD: [84, 44], puD: [106, 44], band: [[15, 44], [105, 44]] }),
+  ],
+  "band-elevacao-lateral": [
+    pose({ coE: [48, 62], puE: [46, 84], coD: [72, 62], puD: [74, 84], band: [[47, 83], [73, 83]] }),
+    pose({ coE: [40, 46], puE: [18, 48], coD: [80, 46], puD: [102, 48], band: [[19, 48], [101, 48]] }),
+  ],
+  "band-desenvolvimento": [
+    pose({ coE: [42, 56], puE: [44, 36], coD: [78, 56], puD: [76, 36], band: [[45, 36], [75, 36]] }),
+    pose({ coE: [46, 26], puE: [44, 6], coD: [74, 26], puD: [76, 6], band: [[45, 7], [75, 7]] }),
+  ],
+  "band-rosca": [
+    // de frente, o braço direito; o elástico vai da mão ao pé
+    pose({ coD: [74, 62], puD: [76, 84], band: [[76, 84], [68, 142]] }),
+    pose({ coD: [74, 62], puD: [72, 42], band: [[72, 43], [68, 142]] }),
+  ],
+  "band-triceps": [
+    // a mão esquerda parada no peito; a direita empurra para baixo
+    pose({ coE: [46, 60], puE: [56, 50], coD: [74, 64], puD: [64, 50], band: [[56, 50], [64, 50]] }),
+    pose({ coE: [46, 60], puE: [56, 50], coD: [74, 64], puD: [76, 88], band: [[56, 50], [76, 87]] }),
+  ],
+  "band-prancha-lateral": [
+    // prancha lateral no antebraço; a perna de cima sobe
+    pose({ cab: [20, 92], om: [30, 100], qua: [66, 122], coE: [30, 120], puE: [42, 142], coD: [44, 98], puD: [58, 108],
+      joE: [86, 134], peE: [106, 142], joD: [86, 131], peD: [106, 139], band: [[86, 134], [86, 131]] }),
+    pose({ cab: [20, 92], om: [30, 100], qua: [66, 122], coE: [30, 120], puE: [42, 142], coD: [44, 98], puD: [58, 108],
+      joE: [86, 134], peE: [106, 142], joD: [88, 112], peD: [108, 104], band: [[86, 134], [88, 114]] }),
+  ],
+  "band-perdigueiro": [
+    // quatro apoios, de lado; perna e braço opostos estendem
+    pose({ cab: [24, 82], om: [36, 92], qua: [76, 94], coE: [36, 118], puE: [36, 142], coD: [38, 118], puD: [38, 142],
+      joE: [76, 140], peE: [100, 142], joD: [78, 140], peD: [102, 142], band: [[76, 139], [78, 139]] }),
+    pose({ cab: [24, 82], om: [36, 92], qua: [76, 94], coE: [22, 90], puE: [6, 88], coD: [38, 118], puD: [38, 142],
+      joE: [76, 140], peE: [100, 142], joD: [96, 92], peD: [116, 90], band: [[76, 139], [95, 94]] }),
+  ],
+  "band-afundo": [
+    // de lado: o passo à frente, e a descida
+    pose({ cab: [60, 20], om: [60, 42], qua: [60, 90], coE: [56, 62], puE: [62, 84], coD: [58, 62], puD: [64, 84],
+      joE: [46, 116], peE: [40, 144], joD: [74, 118], peD: [86, 144], band: [[47, 114], [73, 116]] }),
+    pose({ cab: [60, 36], om: [60, 58], qua: [60, 106], coE: [56, 78], puE: [62, 100], coD: [58, 78], puD: [64, 100],
+      joE: [40, 110], peE: [40, 144], joD: [76, 136], peD: [94, 144], band: [[41, 109], [75, 134]] }),
+  ],
+  "band-extensao-joelho": [
+    // sentado na cadeira, de lado: a perna da frente estende
+    pose({ cab: [44, 24], om: [46, 46], qua: [50, 94], coE: [48, 70], puE: [56, 92], coD: [50, 70], puD: [58, 92],
+      joE: [78, 96], peE: [76, 140], joD: [80, 96], peD: [78, 140], band: [[76, 138], [78, 138]] }),
+    pose({ cab: [44, 24], om: [46, 46], qua: [50, 94], coE: [48, 70], puE: [56, 92], coD: [50, 70], puD: [58, 92],
+      joE: [78, 96], peE: [76, 140], joD: [80, 96], peD: [108, 90], band: [[76, 138], [106, 92]] }),
+  ],
+  "band-sumo": [
+    pose({ coE: [48, 62], puE: [58, 56], coD: [72, 62], puD: [62, 56],
+      joE: [44, 114], peE: [34, 144], joD: [76, 114], peD: [86, 144], band: [[45, 112], [75, 112]] }),
+    pose({ cab: [60, 42], om: [60, 64], qua: [60, 106], coE: [48, 82], puE: [58, 76], coD: [72, 82], puD: [62, 76],
+      joE: [30, 112], peE: [34, 144], joD: [90, 112], peD: [86, 144], band: [[31, 111], [89, 111]] }),
+  ],
   "skater": [
     // salto para a esquerda, aterrissando na perna esquerda
     pose({ cab: [46, 34], om: [50, 56], qua: [60, 94], coE: [32, 62], puE: [16, 56],
@@ -9466,6 +9590,18 @@ const POSES_FUNCIONAIS = {
       coD: [88, 62], puD: [104, 56], joE: [38, 106], peE: [22, 118], joD: [76, 116], peD: [82, 144] }),
   ],
 };
+
+// Movimento conhecido com o elástico: as mesmas poses, com a mini band entre
+// os pés (escalador, marcha), os joelhos (polichinelo sem salto) ou nas costas
+// (flexão, de mão a mão).
+[["band-escalador", "escalador", "peE", "peD"], ["band-marcha", "joelhos-altos", "peE", "peD"],
+  ["band-flexao", "flexao", "puE", "puD"]].forEach(([novo, base, a, b]) => {
+  POSES_FUNCIONAIS[novo] = POSES_FUNCIONAIS[base].map((p) => Object.assign({}, p, { band: [p[a], p[b]] }));
+});
+POSES_FUNCIONAIS["band-polichinelo"] = [
+  pose({ band: [[54, 112], [66, 112]] }),
+  pose({ coE: [38, 30], puE: [30, 12], coD: [82, 30], puD: [90, 12], joD: [74, 112], peD: [90, 142], band: [[54, 112], [73, 111]] }),
+];
 
 // O boneco de duas poses: o CSS alterna a opacidade das duas e o movimento
 // aparece. Sem requestAnimationFrame — numa aula o celular tem coisa melhor a
@@ -9544,6 +9680,33 @@ const AULAS = [
       { ex: "band-caminhada-lateral", seg: 40 },
       { ex: "band-concha", seg: 30, lado: "direito" }, { ex: "band-concha", seg: 30, lado: "esquerdo" },
       { ex: "band-ponte", seg: 40 }] },
+  { id: "superiores", nome: "Superiores", icone: "💪", nivel: "Iniciante", material: "mini band", voltas: 2, descanso: 20, entreVoltas: 60,
+    desc: "Peito, costas, ombros, bíceps e tríceps só com a mini band.",
+    blocos: [{ ex: "band-flexao", seg: 40 }, { ex: "band-puxada", seg: 40 }, { ex: "band-afastamento", seg: 40 },
+      { ex: "band-elevacao-lateral", seg: 40 }, { ex: "band-desenvolvimento", seg: 40 },
+      { ex: "band-rosca", seg: 30, lado: "direito" }, { ex: "band-rosca", seg: 30, lado: "esquerdo" },
+      { ex: "band-triceps", seg: 30, lado: "direito" }, { ex: "band-triceps", seg: 30, lado: "esquerdo" }] },
+  { id: "pernas-band", nome: "Pernas", icone: "🦵", nivel: "Intermediário", material: "mini band", voltas: 2, descanso: 20, entreVoltas: 60,
+    desc: "Quadríceps, posterior e adutores: sumô, afundo, extensora e flexora de casa.",
+    blocos: [{ ex: "band-sumo", seg: 40 },
+      { ex: "band-afundo", seg: 30, lado: "direito" }, { ex: "band-afundo", seg: 30, lado: "esquerdo" },
+      { ex: "band-extensao-joelho", seg: 30, lado: "direito" }, { ex: "band-extensao-joelho", seg: 30, lado: "esquerdo" },
+      { ex: "band-flexora-em-pe", seg: 30, lado: "direito" }, { ex: "band-flexora-em-pe", seg: 30, lado: "esquerdo" },
+      { ex: "band-agachamento", seg: 40 }] },
+  { id: "core-band", nome: "Core", icone: "🧱", nivel: "Iniciante", material: "mini band", voltas: 3, descanso: 20, entreVoltas: 45,
+    desc: "Abdômen, oblíquos e lombar, sem abdominal de pescoço.",
+    blocos: [{ ex: "band-escalador", seg: 30 },
+      { ex: "band-prancha-lateral", seg: 25, lado: "direito" }, { ex: "band-prancha-lateral", seg: 25, lado: "esquerdo" },
+      { ex: "band-perdigueiro", seg: 30, lado: "direito" }, { ex: "band-perdigueiro", seg: 30, lado: "esquerdo" },
+      { ex: "band-marcha", seg: 40 }] },
+  { id: "corpo-band", nome: "Corpo inteiro", icone: "🔥", nivel: "Intermediário", material: "mini band", voltas: 2, descanso: 20, entreVoltas: 60,
+    desc: "Um pouco de tudo, para o dia de pouco tempo.",
+    blocos: [{ ex: "band-agachamento", seg: 40 }, { ex: "band-flexao", seg: 40 }, { ex: "band-puxada", seg: 40 },
+      { ex: "band-afundo", seg: 30, lado: "direito" }, { ex: "band-afundo", seg: 30, lado: "esquerdo" },
+      { ex: "band-desenvolvimento", seg: 40 }, { ex: "band-escalador", seg: 30 }, { ex: "band-ponte", seg: 40 }] },
+  { id: "cardio-band", nome: "Cardio sem salto", icone: "⚡", nivel: "Iniciante", material: "mini band", voltas: 3, descanso: 15, entreVoltas: 45,
+    desc: "Aquece e cansa sem pular: dá para fazer em apartamento, à noite.",
+    blocos: [{ ex: "band-polichinelo", seg: 40 }, { ex: "band-marcha", seg: 40 }, { ex: "band-caminhada-lateral", seg: 40 }, { ex: "band-escalador", seg: 30 }] },
 ];
 const TROCA_LADO_AULA = 8;
 
@@ -9832,6 +9995,21 @@ const SUGESTAO_FUNCIONAL = {
   "band-caminhada-lateral": { series: 3, reps: 20, descanso: 45 },
   "band-ponte": { series: 3, reps: 15, descanso: 45 },
   "band-concha": { series: 3, reps: 15, descanso: 30 },
+  "band-flexao": { series: 3, reps: 12, descanso: 60 },
+  "band-puxada": { series: 3, reps: 15, descanso: 45 },
+  "band-afastamento": { series: 3, reps: 15, descanso: 45 },
+  "band-elevacao-lateral": { series: 3, reps: 15, descanso: 45 },
+  "band-desenvolvimento": { series: 3, reps: 12, descanso: 45 },
+  "band-rosca": { series: 3, reps: 12, descanso: 30 },
+  "band-triceps": { series: 3, reps: 12, descanso: 30 },
+  "band-escalador": { series: 3, reps: 20, descanso: 45 },
+  "band-prancha-lateral": { series: 3, reps: 12, descanso: 30 },
+  "band-perdigueiro": { series: 3, reps: 10, descanso: 30 },
+  "band-afundo": { series: 3, reps: 10, descanso: 45 },
+  "band-extensao-joelho": { series: 3, reps: 15, descanso: 30 },
+  "band-sumo": { series: 3, reps: 15, descanso: 60 },
+  "band-marcha": { series: 3, reps: 30, descanso: 30 },
+  "band-polichinelo": { series: 3, reps: 30, descanso: 30 },
 };
 
 // Circuitos prontos. Escolher 4 exercícios numa lista de 14 é trabalho; tocar
@@ -9859,12 +10037,37 @@ const CIRCUITOS = [
   { id: "gluteo-medio-band", band: true, nome: "Glúteo médio", icone: "🎯", tempo: "15 min",
     desc: "Abdução em pé, caminhada lateral, concha e ponte.",
     ids: ["band-abducao-em-pe", "band-caminhada-lateral", "band-concha", "band-ponte"] },
+  { id: "superiores-band", band: true, nome: "Superiores", icone: "💪", tempo: "25 min",
+    desc: "Peito, costas, ombros, bíceps e tríceps.",
+    ids: ["band-flexao", "band-puxada", "band-afastamento", "band-elevacao-lateral", "band-desenvolvimento", "band-rosca", "band-triceps"] },
+  { id: "pernas-band", band: true, nome: "Pernas", icone: "🦵", tempo: "25 min",
+    desc: "Sumô, afundo, extensora e flexora de casa.",
+    ids: ["band-sumo", "band-afundo", "band-extensao-joelho", "band-flexora-em-pe", "band-agachamento"] },
+  { id: "core-band", band: true, nome: "Core", icone: "🧱", tempo: "12 min",
+    desc: "Abdômen, oblíquos e lombar.",
+    ids: ["band-escalador", "band-prancha-lateral", "band-perdigueiro", "band-marcha"] },
+  { id: "corpo-band", band: true, nome: "Corpo inteiro", icone: "🔥", tempo: "20 min",
+    desc: "Um movimento de cada parte do corpo.",
+    ids: ["band-agachamento", "band-flexao", "band-puxada", "band-afundo", "band-desenvolvimento", "band-escalador"] },
 ];
+// O treino da semana em casa, guardado como fichas de verdade (A, B, C): é o
+// que deixa o "treino de hoje" da tela inicial sugerir a próxima, a carga e
+// as repetições ficarem no histórico de cada exercício, e o ajuste da divisão
+// enxergar o treino de casa. Só é criado quando a pessoa toca no botão — e
+// sempre como um programa novo, sem mexer em ficha nenhuma que já exista.
+const PROGRAMA_BAND = {
+  nome: "Em casa com mini band",
+  fichas: [
+    { nome: "A - Glúteos e pernas", ids: ["band-agachamento", "band-stiff", "band-afundo", "band-coice-em-pe", "band-abducao-parede", "band-flexora-em-pe"] },
+    { nome: "B - Superiores e core", ids: ["band-flexao", "band-puxada", "band-afastamento", "band-desenvolvimento", "band-rosca", "band-triceps", "band-escalador"] },
+    { nome: "C - Glúteo médio, adutores e core", ids: ["band-sumo", "band-abducao-em-pe", "band-caminhada-lateral", "band-ponte", "band-concha", "band-prancha-lateral", "band-perdigueiro"] },
+  ],
+};
 // O atalho da tela inicial ("Glúteos em casa") abre a tela funcional já na
 // parte da mini band. Ponteiro de módulo, como o ABRIR_GUIA.
 let ABRIR_BAND = false;
 
-function TelaFuncional({ todos, exPorId, som, vozCfg, aulaInicial, onAulaAberta,
+function TelaFuncional({ todos, exPorId, som, vozCfg, aulaInicial, onAulaAberta, onGuardarPrograma,
   vozAtiva, onLigarVoz, sessaoAtiva, onAlternarContagem, onEspelho, onComecar, onConcluirAula, onVoltar }) {
   const [aula, setAula] = useState(null);
   // Começar a aula é o gesto que o navegador exige para abrir o microfone — e
@@ -10006,12 +10209,21 @@ function TelaFuncional({ todos, exPorId, som, vozCfg, aulaInicial, onAulaAberta,
 
       {/* ---- mini band em casa: aulas, circuitos e os movimentos ---- */}
       <div ref={bandRef} style={{ ...S.card, borderColor: "#FF5A3C66", scrollMarginTop: 70 }}>
-        <div style={{ ...S.label, color: "#FF5A3C" }}>🍑 Glúteos em casa · mini band</div>
+        <div style={{ ...S.label, color: "#FF5A3C" }}>🏠 Em casa com mini band · corpo todo</div>
         <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, margin: "6px 0 12px" }}>
-          Só o elástico pequeno, a parede e o chão. A câmera conta cada repetição, nos de uma
-          perna só conta os dois lados e avisa a hora de trocar, e no agachamento confere
-          se o joelho cai para dentro.
+          Só o elástico pequeno, a parede e o chão: glúteo, pernas, peito, costas, ombros,
+          braços e abdômen. A câmera conta cada repetição, nos de um lado só conta os dois
+          e avisa a hora de trocar, e nos agachamentos confere se o joelho cai para dentro.
         </div>
+        {onGuardarPrograma && (
+          <button onClick={onGuardarPrograma}
+            style={{ ...S.btnGhost, marginBottom: 12, fontSize: 13.5, padding: "11px 12px", textAlign: "left" }}>
+            📋 Guardar como treino da semana (fichas A, B e C)
+            <span style={{ display: "block", fontSize: 11.5, color: "var(--cinza)", fontWeight: 600, marginTop: 3, lineHeight: 1.45 }}>
+              Vira um treino novo nas suas fichas: o app sugere a ficha de cada dia e guarda a evolução. As fichas que você já tem não mudam.
+            </span>
+          </button>
+        )}
         {AULAS.filter((a) => a.material).map((a) => (
           <button key={a.id} onClick={() => abrirAula(a)}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, marginBottom: 8,
@@ -10042,7 +10254,12 @@ function TelaFuncional({ todos, exPorId, som, vozCfg, aulaInicial, onAulaAberta,
           ))}
         </div>
         <div style={{ fontSize: 12, color: "var(--cinza)", margin: "4px 0 8px", fontWeight: 700 }}>Ou monte o seu:</div>
-        {listaBand.map((e) => linhaMov(e))}
+        {GRUPOS.filter((g) => listaBand.some((e) => e.grupo === g.id)).map((g) => (
+          <React.Fragment key={g.id}>
+            <div style={{ fontSize: 11.5, fontWeight: 900, color: corGrupo(g), margin: "10px 0 6px", textTransform: "uppercase", letterSpacing: 1 }}>{g.nome}</div>
+            {listaBand.filter((e) => e.grupo === g.id).map((e) => linhaMov(e))}
+          </React.Fragment>
+        ))}
       </div>
 
       <div style={S.label}>Ou escolha os movimentos</div>
@@ -11405,7 +11622,7 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
     { icone: "🧭", nome: "Montar pra mim", diz: "responda 3 perguntas", onClick: onAssistente },
     { icone: "🏋️", nome: "Treino livre", diz: "escolha na hora", onClick: onTreinoLivre, se: temFichas },
     { icone: "⚡", nome: "Funcional", diz: "em casa, a câmera conta", onClick: onFuncional },
-    { icone: "🍑", nome: "Glúteos em casa", diz: "mini band, a câmera conta", onClick: onFuncional && (() => { ABRIR_BAND = true; onFuncional(); }) },
+    { icone: "🏠", nome: "Em casa com mini band", diz: "corpo todo, a câmera conta", onClick: onFuncional && (() => { ABRIR_BAND = true; onFuncional(); }) },
     { icone: "🗺", nome: "Corrida na rua", diz: "GPS, mapa e ritmo", onClick: onPercurso },
     // A esteira era só um exercício escondido dentro das fichas: quem ia à
     // academia só para correr não achava por onde começar.
@@ -28978,7 +29195,7 @@ function TreinoLivre({ contaPendentes, onContaVista }) {
     const soBand = ids.every((id) => /^band-/.test(id));
     const treino = {
       id: "func-" + Date.now(),
-      nome: (soBand ? "Glúteos com mini band" : "Funcional") + " (" + hoje + ")",
+      nome: (soBand ? "Mini band em casa" : "Funcional") + " (" + hoje + ")",
       itens: ids.map((id) => {
         const s = SUGESTAO_FUNCIONAL[id] || { series: 3, reps: 12, descanso: 45 };
         return { uid: novoUid(), exercicioId: id, series: s.series, reps: s.reps, obs: "", descanso: s.descanso || null, conjunto: null };
@@ -28990,6 +29207,34 @@ function TreinoLivre({ contaPendentes, onContaVista }) {
       return;
     }
     comecar();
+  };
+
+  // O treino de casa vira fichas de verdade, num programa novo: nada do que
+  // já existe é tocado (ver PROGRAMA_BAND).
+  const guardarProgramaBand = () => {
+    const ja = programas.some((p) => p.nome === PROGRAMA_BAND.nome);
+    pedirConfirmacao({
+      positivo: true,
+      msg: (ja ? 'Você já tem um treino "' + PROGRAMA_BAND.nome + '". Vou criar outro igual, ao lado dele.\n\n' : "") +
+        "Vou criar o treino \"" + PROGRAMA_BAND.nome + "\" com " + PROGRAMA_BAND.fichas.length + " fichas:\n\n" +
+        PROGRAMA_BAND.fichas.map((f) => "• " + f.nome + " (" + f.ids.length + " exercícios)").join("\n") +
+        "\n\nAs fichas que você já tem continuam como estão.",
+      labelSim: "Guardar",
+    }, () => {
+      const pid = "prog-band-" + Date.now();
+      const fichas = PROGRAMA_BAND.fichas.map((f, i) => ({
+        id: "band-" + Date.now() + "-" + i, nome: f.nome, programaId: pid,
+        itens: f.ids.map((id) => {
+          const s = SUGESTAO_FUNCIONAL[id] || { series: 3, reps: 12, descanso: 45 };
+          return { uid: novoUid(), exercicioId: id, series: s.series, reps: s.reps, obs: "", descanso: s.descanso || null, conjunto: null };
+        }),
+      }));
+      setProgramas((prev) => [...prev, { id: pid, nome: PROGRAMA_BAND.nome }]);
+      setTreinos((prev) => [...prev, ...fichas]);
+      setProgAberto(pid);
+      setAba("treinos");
+      setTimeout(() => avisar('Pronto! "' + PROGRAMA_BAND.nome + '" está nas suas fichas, com A, B e C. 💪'), 150);
+    });
   };
 
   // Cada frase ouvida passa por aqui: nome do assistente, interpretação e
@@ -30164,6 +30409,7 @@ function TreinoLivre({ contaPendentes, onContaVista }) {
             onEspelho={(x) => setVoz((v) => ({ ...v, espelho: !!x }))}
             onVoltar={() => setAba("inicio")}
             onComecar={(ids) => iniciarFuncional(ids)}
+            onGuardarPrograma={guardarProgramaBand}
             onConcluirAula={(registro) => guardarTreino(registro, "aula-concluida")} />
         )}
         {aba === "escolaVoz" && (

@@ -387,7 +387,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v141) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v142) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -419,7 +419,7 @@ Na ordem em que aparece no arquivo:
    `numerosPorExtenso`, `depoisDeJarvis`, `acharExercicio`, `interpretarVoz`,
    `responderConsulta`, `AJUDA_FALADA`, `LICOES_JARVIS`, `vozesPtBr`.
    Fica logo antes de `IMAGENS_WGER`.
-8. **Dados** — `GRUPOS`, `MUSCULOS`, `EXERCICIOS` (284, dos quais 14 funcionais, 19 aeróbicos e 10 de mini band),
+8. **Dados** — `GRUPOS`, `MUSCULOS`, `EXERCICIOS` (299, dos quais 14 funcionais, 19 aeróbicos e 25 de mini band),
    `GRUPO_POR_EXERCICIO`, `FICHAS_PADRAO`.
 9. **Estilos** — objeto `S` com estilos inline reaproveitados.
 10. **Imagens** — `IMAGENS_WGER` (mapa fixo) e `ImagemExercicio`.
@@ -505,7 +505,7 @@ celular** — não há servidor para onde mandar, e não haveria mesmo que houve
 
 ### Como a repetição é contada
 
-Exigir configuração por exercício é inviável: são 284 no catálogo mais as
+Exigir configuração por exercício é inviável: são 299 no catálogo mais as
 máquinas que o dono fotografa e que não estão em catálogo nenhum. Então:
 
 1. `criarContador` mede **oito ângulos** ao mesmo tempo (cotovelos, joelhos,
@@ -1021,7 +1021,7 @@ Começar a aula também **liga o microfone** se a voz for a preferida — é o g
 que o navegador exige, e sem microfone não dá para dizer "pausa" com as mãos no
 chão.
 
-## Glúteos em casa com mini band (exercícios `band-*`)
+## Em casa com mini band, corpo todo (exercícios `band-*`)
 
 Pedido do dono, com prints de um vídeo de glúteo em casa: "montar exercícios
 para fazer em casa com mini band, com o Eyes Scan e tudo o que der para deixar
@@ -1075,11 +1075,41 @@ caminhada lateral, elevação pélvica no chão e concha).
   intervalo entre eles é só a troca (`TROCA_LADO_AULA`, 8 s, "Troca de lado.
   Agora o lado esquerdo."), não um descanso. A tela mostra "Lado direito".
 
+**Depois, o corpo todo** (pedido do dono: "monte para todos os músculos
+possíveis, e se der, mais elementos ou modalidades"). Mais 15: flexão,
+puxada acima da cabeça, afastamento de braços (pull apart), elevação lateral,
+desenvolvimento, rosca e tríceps (de um lado só), escalador, prancha lateral
+com abdução, perdigueiro, afundo, extensão de joelho sentado, sumô, marcha e
+polichinelo sem salto. **Ficaram de fora antebraço e panturrilha**: com o
+elástico pequeno não há exercício que valha a pena nem que a câmera consiga
+contar (o movimento é do punho e do tornozelo).
+- **Cinco aulas a mais** (Superiores, Pernas, Core, Corpo inteiro e Cardio sem
+  salto) e **quatro circuitos** (Superiores, Pernas, Core, Corpo inteiro). A
+  lista para montar à mão sai separada por grupo muscular. O azulejo virou
+  **🏠 Em casa com mini band** ("corpo todo, a câmera conta").
+- **📋 Guardar como treino da semana** (`PROGRAMA_BAND`,
+  `guardarProgramaBand`): cria um programa **novo**, "Em casa com mini
+  band", com A (glúteos e pernas), B (superiores e core) e C (glúteo médio,
+  adutores e core). Só com o toque e a confirmação, e nunca mexe nas fichas
+  que existem. Virando ficha, o "treino de hoje" sugere a próxima, a evolução
+  de cada exercício fica no histórico e o ajuste da divisão enxerga o treino
+  de casa.
+- **Bonecos derivados**: escalador, marcha e flexão com mini band são as poses
+  do movimento conhecido com o elástico desenhado (entre os pés ou as mãos),
+  montadas logo depois de `POSES_FUNCIONAIS`, sem repetir as coordenadas.
+- Perfis: os de braço usam cotovelo, ombro, punho alto e abertura das mãos;
+  escalador e marcha são alternados (`par`), como os funcionais. Valgo
+  conferido no sumô e no afundo; quadril fora da linha na flexão e no
+  escalador.
+
 Coberto por `teste-funcional.js` (abdução larga e curta, caminhada lateral,
 agachamento, a última contada sem os quadros parados do fim, 10 de cada lado
-no coice somando 20, parado tremendo contando 0, o palpite fora) e
-`teste-busca.js` (os 10, "elástico", "funcional" sem mini band, boneco e
-perfil para todos). No navegador: a seção, a aula até a troca de lado falada,
+no coice somando 20, parado tremendo contando 0, o palpite fora; os 25 com as
+duas poses, o elástico, perfil e séries; afastamento, polichinelo, escalador,
+marcha e sumô contando) e
+`teste-busca.js` (os 25, "elástico", "funcional" sem mini band, um de cada
+grupo muscular). No navegador, também o "Guardar como treino da semana"
+criando as fichas A (6), B (7) e C (7). No navegador: a seção, a aula até a troca de lado falada,
 e o circuito virando treino. **Não validado num aparelho**: a contagem pela
 câmera de verdade em cada um dos dez.
 
@@ -3754,7 +3784,7 @@ Ao adicionar exercícios:
 - **Aceite o casamento só quando os nomes tiverem praticamente o mesmo conjunto
   de palavras.** Imagem errada ensina o movimento errado. Na dúvida, deixe sem
   figura: todo exercício tem botão de vídeo do YouTube como alternativa.
-- Hoje: 177 dos 284 exercícios com imagem do wger. Os 12 movimentos funcionais e os 10 de mini band
+- Hoje: 177 dos 299 exercícios com imagem do wger. Os 12 movimentos funcionais e os 25 de mini band
   não têm figura lá e usam o boneco desenhado (`POSES_FUNCIONAIS`), que é melhor
   para eles do que uma foto parada seria.
 
@@ -4321,7 +4351,7 @@ caso o modo "Toque e fale" é melhor. Isso está dito na ajuda do app.
 
 `APELIDOS_EXERCICIO` traduz o jeito da academia ("agacho", "extensora", "leg")
 para o id. `acharExercicio` procura **primeiro entre os exercícios do treino de
-hoje** e só depois nos 284: quem fala "supino" no meio do treino quer o supino
+hoje** e só depois nos 299: quem fala "supino" no meio do treino quer o supino
 que está na ficha. Na pontuação, quem acerta mais palavras do nome ganha de quem
 acerta uma só — sem isso "rosca direta" perdia para "Rosca 21".
 

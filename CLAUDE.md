@@ -155,8 +155,9 @@ retransmissor do Desafio). E-mail do dono: `EMAIL_DONO`.
   `testes/firebase-falso.js` (o Firebase de mentira, com as regras):
   `node testes/navegador.js --antes testes/firebase-falso.js --clicar "Criar conta" --preencher "E-mail=ana@x.com" ...`.
   Conferido assim: cadastro aguardando; dono cria a conta, abre o painel e
-  libera; liberado entra sem painel; bloqueado barrado; senha errada. **Não
-  conferido no Firebase de verdade** (o projeto ainda não existe).
+  libera; liberado entra sem painel; bloqueado barrado; senha errada.
+  **Validado no Firebase de verdade (28/10/2026)**: o dono criou a conta dele
+  (confirmou o e-mail e entrou como dono) e uma segunda conta de teste.
 
 ## Direitos: público para ver, não livre para usar (`LICENSE`)
 

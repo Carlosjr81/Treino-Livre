@@ -387,7 +387,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v144) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v145) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3710,8 +3710,15 @@ alguns fones Bluetooth abrir o microfone já troca o fone para o modo de
 ligação, e a música para. Hoje, com música (a lembrada no último minuto), o
 `ouvir` não liga o gravador e confere de novo a cada 3 s (`reOuvir`), e o
 `vigia` desliga o gravador que já estava ligado quando a música começa. O
-diário abre com "ligado (app de 2026-10-28l…)": é como se sabe, pelo
+diário abre com "ligado (app de 2026-10-28m…)": é como se sabe, pelo
 diagnóstico, se o APK instalado é o novo — a versão dos Ajustes é a do site.
+
+**A música é olhada desde que o serviço liga** (`olheiro`, a cada 1 s;
+2026-10-28m, "ainda está parando"). Antes ela só era olhada com a tela
+travada, e quem trava logo depois do ✓ trava com o Jarvis falando a
+confirmação, quando a música não pode ser vista (a voz sai no mesmo canal):
+sem nada visto antes, o microfone ligava e a música parava. O diário diz "vi
+música tocando" na primeira vez.
 
 **Não validado num aparelho**: se o reconhecimento do Google aceita ouvir pelo
 serviço com a tela travada em todo Android, se o bipe some, e o WebView

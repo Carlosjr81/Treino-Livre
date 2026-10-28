@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-10-28m — Música no bolso: travar logo depois do ✓
+
+**Em uma frase:** travar a tela logo depois de marcar a série, com o Jarvis ainda falando, também não
+para mais a música.
+
+**O que mudou**
+- O app Android acompanha a música o tempo todo, e não só depois que a tela trava.
+
+**Por que importa para quem treina**
+- O gesto mais comum é marcar o ✓ e travar o celular na hora. Era justo aí que a música parava.
+
+**Como usar**
+- Baixar o app Android de novo e instalar por cima.
+
+**Ideias de vídeo**
+- Nenhuma nova: é conserto.
+
+**Não prometer**
+- Com música tocando e a tela travada, o Jarvis fala mas não ouve comandos.
+
+---
+
 ## 2026-10-28l — Música no bolso, de novo
 
 **Em uma frase:** com música tocando e o celular travado, o Jarvis não liga nem o microfone, para a

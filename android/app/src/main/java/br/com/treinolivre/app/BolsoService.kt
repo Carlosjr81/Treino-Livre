@@ -202,7 +202,8 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
-        anotar("ligado (app de 2026-10-28l: a música manda no microfone)")
+        anotar("ligado (app de 2026-10-28m: a música manda no microfone)")
+        linha.post(olheiro)
         val pm = getSystemService(PowerManager::class.java)
         // Com a tela travada a CPU dorme, e o fim do descanso chegaria atrasado.
         trava = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TreinoLivre:bolso").apply { acquire(DURACAO_MAX) }
@@ -447,7 +448,20 @@ class BolsoService : Service(), RecognitionListener {
     private fun olharMusica() {
         if (falando > 0 || System.currentTimeMillis() < somProprioAte) return
         val ativa = try { getSystemService(AudioManager::class.java)?.isMusicActive == true } catch (e: Exception) { false }
-        if (ativa) musicaVistaEm = System.currentTimeMillis()
+        if (ativa) {
+            if (musicaVistaEm == 0L) anotar("vi música tocando")
+            musicaVistaEm = System.currentTimeMillis()
+        }
+    }
+    // A música é olhada a cada segundo desde que o serviço liga, e não só com a
+    // tela travada: quem trava a tela logo depois do ✓ trava com o Jarvis
+    // falando, quando a música não pode ser vista (a voz dele sai no mesmo
+    // canal). Sem o que foi visto antes, o microfone ligava e a música parava.
+    private val olheiro = object : Runnable {
+        override fun run() {
+            olharMusica()
+            linha.postDelayed(this, 1000L)
+        }
     }
     private fun musicaTocando(): Boolean {
         if (ouvirComMusica || falando > 0) return false

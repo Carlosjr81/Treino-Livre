@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-10-28e — Recuperar a senha (login ainda desligado)
+
+**Em uma frase:** quem esquecer a senha recebe um link no e-mail para criar outra, e o criador do app pode mandar esse
+link pelo painel dele.
+
+**O que mudou**
+- Errou a senha? Aparece "🔑 Esqueci a senha: mandar o link para (o seu e-mail)", a um toque.
+- Em Ajustes › Sua conta: "🔑 Trocar minha senha".
+- No painel do criador do app: "🔑 Resetar a senha (mandar link)" em cada conta.
+
+**Por que importa para quem treina**
+- Esquecer a senha não tranca ninguém do lado de fora.
+
+**Como usar**
+- Ainda não aparece no app: o login liga numa próxima versão.
+
+**Ideias de vídeo**
+- Nenhuma por enquanto.
+
+**Não prometer**
+- Ninguém, nem o criador do app, vê ou define a senha de outra pessoa: o reset é sempre o link no e-mail dela.
+
+---
+
 ## 2026-10-28d — O cadastro ficou mais simples (ainda desligado)
 
 **Em uma frase:** a tela de criar conta, que ainda não está ligada, ficou mais fácil: um campo de senha só, sugestão de

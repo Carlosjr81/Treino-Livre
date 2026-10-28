@@ -47,6 +47,7 @@
       return resp(200, sessao(c));
     }
     if (/accounts:sendOobCode/.test(u)) {
+      if (corpo.requestType === "PASSWORD_RESET") { e.links = (e.links || []).concat([corpo.email]); gravar(e); }
       if (corpo.requestType === "VERIFY_EMAIL") {
         const uid = String(corpo.idToken).slice(4);
         const c = Object.values(e.contas).find((x) => x.uid === uid);

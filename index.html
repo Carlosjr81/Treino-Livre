@@ -804,7 +804,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-28d";
+const VERSAO_APP = "2026-10-28e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -30570,11 +30570,19 @@ function TelaConta({ onEntrou, msgInicial }) {
   const [msg, setMsg] = useState(msgInicial || "");
   const [ok, setOk] = useState("");
   const [indo, setIndo] = useState(false);
+  const [errou, setErrou] = useState(false);
   const sugestao = sugerirEmail(email);
-  const trocar = (m) => { setModo(m); setMsg(""); setOk(""); };
+  const trocar = (m) => { setModo(m); setMsg(""); setOk(""); setErrou(false); };
+  const mandarLink = async () => {
+    const em = email.trim().toLowerCase();
+    setIndo(true);
+    try { await contaApi.esqueci(em); setMsg(""); setErrou(false); setOk("Pronto! Mandamos para " + em + " um link para criar uma senha nova. Abra o e-mail (olhe também o spam), crie a senha e volte aqui para entrar."); }
+    catch (x) { setMsg(erroDeConta(x.message)); }
+    setIndo(false);
+  };
   const enviar = async (e) => {
     if (e) e.preventDefault();
-    setMsg(""); setOk("");
+    setMsg(""); setOk(""); setErrou(false);
     const em = email.trim().toLowerCase();
     if (modo === "criar" && !nome.trim()) { setMsg("Falta o seu nome: é assim que o criador do app sabe quem está pedindo acesso."); return; }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { setMsg(erroDeConta("INVALID_EMAIL")); return; }
@@ -30597,6 +30605,7 @@ function TelaConta({ onEntrou, msgInicial }) {
     } catch (x) {
       // e-mail já cadastrado no "Criar": leva para o Entrar com o e-mail pronto
       if (/EMAIL_EXISTS/.test(x.message)) { setModo("entrar"); setSenha(""); }
+      if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND/.test(x.message)) setErrou(true);
       setMsg(erroDeConta(x.message));
     }
     setIndo(false);
@@ -30652,13 +30661,19 @@ function TelaConta({ onEntrou, msgInicial }) {
           </div>
         )}
         {msg && <div role="alert" style={{ color: "var(--perigo)", fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>{msg}</div>}
+        {errou && modo === "entrar" && (
+          <button type="button" disabled={indo} onClick={mandarLink}
+            style={{ ...S.btnGhost, width: "100%", marginBottom: 12, color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>
+            🔑 Esqueci a senha: mandar o link para {email.trim().toLowerCase()}
+          </button>
+        )}
         {ok && <div role="status" style={{ color: "var(--ok)", fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>{ok}</div>}
         <button type="submit" disabled={indo} style={{ ...S.btn, width: "100%", fontSize: 16, padding: "14px 10px", opacity: indo ? 0.6 : 1 }}>
           {indo ? "Aguarde…" : modo === "criar" ? "Criar minha conta" : modo === "esqueci" ? "Mandar o link" : "Entrar"}
         </button>
         <div style={{ textAlign: "center", marginTop: 10, fontSize: 14, color: "var(--cinza)" }}>
           {modo === "criar" && <>Já tem conta? {link("Entrar", () => trocar("entrar"))}</>}
-          {modo === "entrar" && <>Primeira vez aqui? {link("Criar conta", () => trocar("criar"))}<br />{link("Esqueci a senha", () => trocar("esqueci"))}</>}
+          {modo === "entrar" && <>Primeira vez aqui? {link("Criar conta", () => trocar("criar"))}<br />{link("🔑 Esqueci a senha", () => trocar("esqueci"))}</>}
           {modo === "esqueci" && link("← Voltar para entrar", () => trocar("entrar"))}
         </div>
       </form>
@@ -30725,7 +30740,13 @@ function TelaEsperaConta({ fase, sessao, msg, onConferir, onConferirQuieto, onSa
 // O cartão da conta nos Ajustes: quem está dentro, sair, e o painel (só o dono)
 function CartaoConta({ onPainel }) {
   const c = CONTA_ATUAL;
+  const [aviso, setAviso] = useState("");
   if (!c) return null;
+  const trocarSenha = async () => {
+    setAviso("Mandando…");
+    try { await contaApi.esqueci(c.email); setAviso("Mandamos para " + c.email + " um link para criar uma senha nova. Olhe também o spam."); }
+    catch (x) { setAviso(erroDeConta(x.message)); }
+  };
   return (
     <div style={S.card}>
       <div style={S.label}>{c.dono ? "👑 Sua conta (dono do app)" : "👤 Sua conta"}</div>
@@ -30733,6 +30754,8 @@ function CartaoConta({ onPainel }) {
       {c.dono && onPainel && (
         <button onClick={onPainel} style={{ ...S.btn, width: "100%", marginBottom: 8 }}>👥 Painel de usuários</button>
       )}
+      <button onClick={trocarSenha} style={{ ...S.btnGhost, width: "100%", marginBottom: 8 }}>🔑 Trocar minha senha</button>
+      {aviso && <div role="status" style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 8 }}>{aviso}</div>}
       <button onClick={c.sair} style={{ ...S.btnGhost, width: "100%" }}>Sair da conta</button>
     </div>
   );
@@ -30764,6 +30787,23 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
     } catch (x) { setErro(erroDeConta(x.message)); if (!lista) setLista([]); }
   };
   useEffect(() => { carregar(); }, []);
+  // Ninguém vê nem define a senha de outra pessoa (o Google a guarda cifrada):
+  // o reset é o link de senha nova no e-mail dela, mandado daqui.
+  const [avisos, setAvisos] = useState({});
+  const resetarSenha = async (c) => {
+    setMexendo(c.uid);
+    try {
+      await contaApi.esqueci(c.email);
+      const agoraR = Date.now();
+      setAvisos((a) => Object.assign({}, a, { [c.uid]: "🔑 Link de senha nova mandado para " + c.email + ". Avise a pessoa para olhar o e-mail (e o spam)." }));
+      try {
+        const s = await tokenValido(lerSessaoConta());
+        await contaApi.gravar(c.uid, { senhaLinkEm: agoraR }, s.idToken);
+        setLista((l) => l.map((x) => (x.uid === c.uid ? Object.assign({}, x, { senhaLinkEm: agoraR }) : x)));
+      } catch (x) {}
+    } catch (x) { setAvisos((a) => Object.assign({}, a, { [c.uid]: erroDeConta(x.message) })); }
+    setMexendo(null);
+  };
   const mudar = async (c, status) => {
     setMexendo(c.uid);
     try {
@@ -30829,6 +30869,7 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
             <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.6, marginTop: 6 }}>
               Cadastro: {c.criadoEm ? new Date(c.criadoEm).toLocaleDateString("pt-BR") : "—"} · Último acesso: {quandoAcessou(c.ultimoAcesso, agora)}
               <br />{c.acessos || 0} {plural(c.acessos || 0, "acesso", "acessos")}{c.aparelho ? " · " + c.aparelho : ""}{c.versao ? " · versão " + c.versao : ""}
+              {c.senhaLinkEm ? <><br />Último link de senha nova: {quandoAcessou(c.senhaLinkEm, agora)}</> : null}
             </div>
             {!souEu && (
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -30841,6 +30882,10 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
                 )}
               </div>
             )}
+            <button disabled={mexendo === c.uid} onClick={() => pedirConfirmacao({ positivo: true, labelSim: "Mandar o link",
+              msg: "Resetar a senha de " + (c.nome || c.email) + "?\n\nChega no e-mail " + c.email + " um link para a pessoa criar uma senha nova. A senha atual continua valendo até ela criar a nova." }, () => resetarSenha(c))}
+              style={{ ...S.btnGhost, width: "100%", marginTop: 8, padding: "9px 8px", fontSize: 13.5 }}>🔑 Resetar a senha (mandar link)</button>
+            {avisos[c.uid] && <div role="status" style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 6 }}>{avisos[c.uid]}</div>}
           </div>
         );
       })}

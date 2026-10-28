@@ -135,6 +135,13 @@ retransmissor do Desafio). E-mail do dono: `EMAIL_DONO`.
   seguir o Instagram, e **a tela confere sozinha a cada 30 s**: liberou, o app
   abre sem toque. O botão Mostrar fica fora do `<label>` (dentro, o nome do
   campo virava "Senha Mostrar").
+- **Recuperar a senha** (pedido do dono): "Esqueci a senha" no Entrar; errou a
+  senha, o botão "🔑 Esqueci a senha: mandar o link para (e-mail)" aparece a um
+  toque; "🔑 Trocar minha senha" no cartão da conta; e no painel do dono
+  "🔑 Resetar a senha (mandar link)" em cada conta, que grava `senhaLinkEm`.
+  **Ninguém vê nem define a senha de outra pessoa**: sem servidor próprio (o
+  Admin SDK), o reset é o `PASSWORD_RESET` do Firebase, um link no e-mail da
+  pessoa. A senha antiga vale até ela criar a nova.
 - **O dono é avisado** de quem espera: ao entrar, o porteiro conta os
   pendentes e o `TreinoLivre` recebe `contaPendentes` (por
   `cloneElement`: o porteiro está acima) e mostra "👥 N cadastros esperando a
@@ -331,7 +338,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v136) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v137) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |

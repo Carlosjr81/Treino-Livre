@@ -387,7 +387,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v146) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v147) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3710,7 +3710,7 @@ alguns fones Bluetooth abrir o microfone já troca o fone para o modo de
 ligação, e a música para. Hoje, com música (a lembrada no último minuto), o
 `ouvir` não liga o gravador e confere de novo a cada 3 s (`reOuvir`), e o
 `vigia` desliga o gravador que já estava ligado quando a música começa. O
-diário abre com "ligado (app de 2026-10-28n…)": é como se sabe, pelo
+diário abre com "ligado (app de 2026-10-28o…)": é como se sabe, pelo
 diagnóstico, se o APK instalado é o novo — a versão dos Ajustes é a do site.
 
 **A música é olhada desde que o serviço liga** (`olheiro`, a cada 1 s;
@@ -3728,6 +3728,17 @@ PAROU · tela travada, microfone do app desligado, reconhecedor fechado"
 com tudo desligado e o Jarvis calado quer dizer que o culpado não é o
 `BolsoService`** (é o Chrome, o fone ou o tocador). O dono vê isso tocando em
 Trazer no cartão 🔒 e abrindo o diagnóstico do Jarvis.
+
+**O teste do dono que achou o culpado** (2026-10-28o, Spotify nos óculos Ray-Ban
+Meta): com o cartão 🔒 em Desligar, travar a tela não parava a música; ligado,
+parava na hora. Então é o `BolsoService`, e a música não estava sendo vista.
+Hoje a música é vista de dois jeitos, e basta um (`haMusica`): o
+`isMusicActive` e a lista de tocadores do aparelho com uso de mídia
+(`activePlaybackConfigurations`, `USAGE_MEDIA`/`USAGE_GAME`). E nenhum
+microfone abre antes de 2 s para olhar: ao travar a tela (`aoTravar`) e depois
+de cada fala (`acabouFala`, era 0,3 s). Pedido dele, e a regra daqui em
+diante: **o Jarvis fala sempre, a música nunca para; se for preciso, só o
+microfone fica de fora**.
 
 **Não validado num aparelho**: se o reconhecimento do Google aceita ouvir pelo
 serviço com a tela travada em todo Android, se o bipe some, e o WebView

@@ -202,7 +202,7 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
-        anotar("ligado (app de 2026-10-28n: a música manda no microfone)")
+        anotar("ligado (app de 2026-10-28o: a música manda no microfone)")
         linha.post(olheiro)
         try { getSystemService(AudioManager::class.java)?.registerAudioPlaybackCallback(espiaoSom, linha) } catch (e: Exception) { }
         val pm = getSystemService(PowerManager::class.java)
@@ -298,7 +298,7 @@ class BolsoService : Service(), RecognitionListener {
         if (!avisouPrimeira) {
             avisouPrimeira = true
             falar("Jarvis no bolso. Estou ouvindo.")
-        } else ouvir()
+        } else linha.postDelayed({ ouvir() }, 2000L) // tempo de ver a música antes de qualquer microfone
     }
 
     private fun aoDestravar() {
@@ -446,9 +446,24 @@ class BolsoService : Service(), RecognitionListener {
     private var calouPelaMusica = false
     private var musicaVistaEm = 0L
     private var somProprioAte = 0L
+    // Dois jeitos de ver a música, e basta um: o isMusicActive (o canal da
+    // música tocando) e a lista de tocadores do aparelho com uso de mídia (o
+    // Spotify aparece ali mesmo quando o som vai para os óculos). O teste do
+    // dono provou que só o primeiro não bastava: com o Jarvis desligado a
+    // música seguia, com ele ligado parava ao travar a tela.
+    private fun haMusica(): Boolean {
+        val am = getSystemService(AudioManager::class.java) ?: return false
+        if (try { am.isMusicActive } catch (e: Exception) { false }) return true
+        return try {
+            am.activePlaybackConfigurations.any {
+                val u = it.audioAttributes.usage
+                u == AudioAttributes.USAGE_MEDIA || u == AudioAttributes.USAGE_GAME
+            }
+        } catch (e: Exception) { false }
+    }
     private fun olharMusica() {
         if (falando > 0 || System.currentTimeMillis() < somProprioAte) return
-        val ativa = try { getSystemService(AudioManager::class.java)?.isMusicActive == true } catch (e: Exception) { false }
+        val ativa = haMusica()
         if (ativa) {
             if (musicaVistaEm == 0L) anotar("vi música tocando")
             musicaVistaEm = System.currentTimeMillis()
@@ -858,7 +873,7 @@ class BolsoService : Service(), RecognitionListener {
         somProprioAte = System.currentTimeMillis() + 1500L
         if (falando > 0) return
         if (pararDepoisDeFalar) { encerrar(); return }
-        religar(300L)
+        religar(2000L) // a música pausada por alguém volta devagar: espera para vê-la
     }
 
     // A voz NÃO pede o foco do áudio (pedido do dono: "não mexa com a música do

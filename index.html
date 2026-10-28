@@ -804,7 +804,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-28e";
+const VERSAO_APP = "2026-10-28f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -30260,7 +30260,9 @@ if (MODO_CORRIDA) {
 //
 // Sem configuração (FIREBASE_ACESSO vazio) o porteiro não existe e o app abre
 // como sempre: é como ele fica até o dono criar o projeto no Firebase.
-const FIREBASE_ACESSO = { apiKey: "", projectId: "" };
+// O projeto do dono (criado em 28/10/2026). A chave é pública: só identifica
+// o projeto; quem protege são as regras (firebase/firestore.rules).
+const FIREBASE_ACESSO = { apiKey: "AIzaSyAVDR8x4atODWVJdUoHIO3cm3VKovCD0Wo", projectId: "treino-livre" };
 const EMAIL_DONO = "carlos.jr.81@hotmail.com";
 // Sem rede, quem estava liberado continua entrando por 7 dias: a academia do
 // subsolo não tem sinal, e travar o treino por isso seria punir quem pode.

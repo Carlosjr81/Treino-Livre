@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-10-28f — Conta no Treino Livre: cadastro e acesso liberado pelo criador
+
+**Em uma frase:** agora o Treino Livre tem conta: você se cadastra em 30 segundos (nome, e-mail e senha) e o criador do
+app libera o seu acesso.
+
+**O que mudou**
+- Ao abrir o app aparece "Crie a sua conta grátis". Depois do cadastro, "Pronto! Cadastro enviado": o app abre sozinho
+  quando o acesso for liberado.
+- Esqueceu a senha? Um toque manda um link para o seu e-mail. Em Ajustes › Sua conta dá para trocar a senha e sair.
+- Os seus treinos continuam no seu celular: a conta guarda só nome, e-mail e quando você entra.
+
+**Por que importa para quem treina**
+- Uma comunidade de quem treina de verdade, com acesso liberado um a um.
+
+**Como usar**
+- Abra o app, toque em "Criar minha conta" e espere a liberação (pode deixar a tela aberta).
+- Já tinha treinos no celular? Eles continuam lá, e aparecem assim que o acesso for liberado.
+
+**Ideias de vídeo**
+- "Cadastro em 30 segundos" mostrando a tela, e o momento em que o app abre sozinho depois da liberação.
+- Bastidor do criador liberando os novos cadastros no painel.
+
+**Não prometer**
+- A conta não leva os treinos para a nuvem nem sincroniza entre aparelhos (o backup continua por arquivo).
+- A liberação não é instantânea: é feita pelo criador do app.
+
+---
+
 ## 2026-10-28e — Recuperar a senha (login ainda desligado)
 
 **Em uma frase:** quem esquecer a senha recebe um link no e-mail para criar outra, e o criador do app pode mandar esse

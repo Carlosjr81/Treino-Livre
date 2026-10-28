@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-28e**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-28f**.
 
 ---
 
@@ -439,7 +439,8 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
   relógio sincroniza).
 - ❌ Não grava GPS com a tela bloqueada (é um app de navegador: a tela precisa ficar ligada; existe o modo bolso).
 - ❌ Não é avaliação física nem prescrição médica; a correção de postura é um "parceiro atento", não um profissional.
-- ❌ Não existe conta, nuvem ou sincronização entre aparelhos (o backup é por arquivo).
+- ❌ Não existe nuvem nem sincronização entre aparelhos (o backup é por arquivo). Desde 2026-10-28f existe **conta**
+  (nome, e-mail e senha) com o acesso liberado pelo criador do app; ela guarda só o acesso, não os treinos.
 - ❌ Não está nas lojas (Play Store / App Store): instala-se pelo navegador ("Adicionar à tela inicial") ou, no
   Android, pelo APK baixado na aba ❤ Saúde.
 - ❌ Não prometa emagrecimento ou ganho de massa garantidos.

@@ -93,7 +93,12 @@ quem já usava), e o servidor guarda **só o acesso** — os treinos continuam n
 aparelho. É a segunda exceção à regra "sem servidor" (a primeira é o
 retransmissor do Desafio). E-mail do dono: `EMAIL_DONO`.
 
-- **Desligado até haver projeto**: `FIREBASE_ACESSO` vazio = sem porteiro, o
+- **Ligado em 2026-10-28f**, no projeto `treino-livre` do dono (plano Spark,
+  Firestore em São Paulo, regras publicadas: conferido com uma conta
+  descartável, que lia só a própria conta e era barrada na lista, e foi
+  apagada). Com `FIREBASE_ACESSO` vazio o porteiro some e o app abre como
+  antes: é o desligar de emergência (reverter só essa linha).
+- Antes de ligar: `FIREBASE_ACESSO` vazio = sem porteiro, o
   app abre como sempre. Liga quando o dono seguir o `firebase/LEIA-ME.md` e
   mandar `apiKey` e `projectId` (públicos; quem protege são as regras).
   **No dia em que ligar, todo mundo cai na tela de login**: o dono cria a conta
@@ -338,7 +343,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v137) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v138) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |

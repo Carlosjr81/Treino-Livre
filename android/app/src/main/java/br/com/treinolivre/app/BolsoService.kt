@@ -202,7 +202,7 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
-        anotar("ligado")
+        anotar("ligado (app de 2026-10-28l: a música manda no microfone)")
         val pm = getSystemService(PowerManager::class.java)
         // Com a tela travada a CPU dorme, e o fim do descanso chegaria atrasado.
         trava = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TreinoLivre:bolso").apply { acquire(DURACAO_MAX) }
@@ -281,6 +281,7 @@ class BolsoService : Service(), RecognitionListener {
         override fun run() {
             if (travada && telaLivre()) aoDestravar()
             olharMusica()
+            if (travada && gravando && saida == null && musicaTocando()) pararGravador()
             if (travada) linha.postDelayed(this, 2000L)
         }
     }
@@ -474,8 +475,10 @@ class BolsoService : Service(), RecognitionListener {
     private fun ouvir() {
         if (!travada || ouvindo || falando > 0 || pararDepoisDeFalar) return
         if (telaLivre()) { aoDestravar(); return }
+        // Com música, nem o microfone do app: em alguns fones Bluetooth gravar
+        // já troca o fone para o modo de ligação, e a música para.
+        if (musicaTocando()) { pararGravador(); linha.removeCallbacks(reOuvir); linha.postDelayed(reOuvir, 3000L); return }
         if (fonteExterna) { ligarGravador(); return }
-        if (musicaTocando()) { linha.postDelayed({ ouvir() }, 3000L); return }
         iniciarReconhecedor(null)
     }
 
@@ -530,6 +533,8 @@ class BolsoService : Service(), RecognitionListener {
         fecharSaida()
         try { reconhecedor?.cancel() } catch (e: Exception) { }
     }
+
+    private val reOuvir = Runnable { ouvir() }
 
     private fun religar(ms: Long) {
         linha.postDelayed({ ouvir() }, ms)

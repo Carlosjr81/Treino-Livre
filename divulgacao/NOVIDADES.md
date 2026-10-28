@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-10-28l — Música no bolso, de novo
+
+**Em uma frase:** com música tocando e o celular travado, o Jarvis não liga nem o microfone, para a
+música nunca parar.
+
+**O que mudou**
+- Com música tocando, o app Android não abre o microfone (alguns fones Bluetooth paravam a música só
+  por isso). O Jarvis continua falando por cima da música.
+
+**Por que importa para quem treina**
+- A música não para no meio da série.
+
+**Como usar**
+- Baixar o app Android de novo e instalar por cima (a versão dos Ajustes é a do site; o app precisa
+  ser baixado de novo para receber o conserto).
+
+**Ideias de vídeo**
+- Nenhuma nova: é conserto.
+
+**Não prometer**
+- Com música tocando e a tela travada, o Jarvis fala mas não ouve comandos.
+
+---
+
 ## 2026-10-28k — A música não para com o celular travado
 
 **Em uma frase:** com o Jarvis ligado e o celular travado no bolso, a música do fone volta a tocar

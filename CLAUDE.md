@@ -387,7 +387,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v143) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v144) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3703,6 +3703,15 @@ o próprio tocador; só um minuto inteiro sem música (a pessoa pausou) devolve 
 ouvido. A voz do Jarvis e os bipes saem no canal da música e não contam: o que
 toca durante a fala e até 1,5 s depois (2 a 2,5 s depois dos bipes,
 `somProprioAte`) é ignorado.
+
+**Com música, nem o microfone do app** (2026-10-28l, o dono: "quando travo a
+tela a música para ainda"). Gravar com o `AudioRecord` não pede foco, mas em
+alguns fones Bluetooth abrir o microfone já troca o fone para o modo de
+ligação, e a música para. Hoje, com música (a lembrada no último minuto), o
+`ouvir` não liga o gravador e confere de novo a cada 3 s (`reOuvir`), e o
+`vigia` desliga o gravador que já estava ligado quando a música começa. O
+diário abre com "ligado (app de 2026-10-28l…)": é como se sabe, pelo
+diagnóstico, se o APK instalado é o novo — a versão dos Ajustes é a do site.
 
 **Não validado num aparelho**: se o reconhecimento do Google aceita ouvir pelo
 serviço com a tela travada em todo Android, se o bipe some, e o WebView

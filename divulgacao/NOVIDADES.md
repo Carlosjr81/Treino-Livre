@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-10-28k — A música não para com o celular travado
+
+**Em uma frase:** com o Jarvis ligado e o celular travado no bolso, a música do fone volta a tocar
+direto, sem pausar a cada frase dele.
+
+**O que mudou**
+- Antes, a música só tocava enquanto o Jarvis falava e parava de novo quando ele terminava.
+- Agora, com música tocando, o Jarvis continua falando (série anotada, fim do descanso) por cima dela,
+  sem pausá-la.
+
+**Por que importa para quem treina**
+- Música é metade do treino. O Jarvis tem de ajudar sem tirar a música do fone.
+
+**Como usar**
+- Nada a fazer: é só baixar o app de novo (Ajustes › app Android) e treinar com a música tocando.
+- Quem prefere que o Jarvis ouva comandos mesmo com música liga "🎵 Ouvir mesmo com música tocando"
+  no cartão do Jarvis com a tela travada (aí a música pausa a cada comando).
+
+**Ideias de vídeo**
+- Treino com fone e celular no bolso: a música segue e o Jarvis avisa o fim do descanso por cima dela.
+
+**Não prometer**
+- Com música tocando e a tela travada, o Jarvis fala mas não ouve comandos (a não ser com a opção
+  "Ouvir mesmo com música tocando").
+- Só no app Android.
+
+---
+
 ## 2026-10-28j — Mini band em casa para o corpo todo
 
 **Em uma frase:** o treino com mini band agora vai além do glúteo: 25 exercícios para o corpo todo,

@@ -387,7 +387,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v142) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v143) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3690,6 +3690,19 @@ ouve quando a música para ou a tela destrava. Quem prefere ouvir liga "🎵 Ouv
 mesmo com música tocando" no cartão (`treinolivre:bolsoMusica`, vai no link
 como `mu=1`), sabendo que a música pausa a cada comando. O diário diz quando
 calou pela música.
+
+**A música é lembrada por 1 minuto** (`musicaVistaEm`, `olharMusica`;
+relato seguinte do dono: "só toca música quando o Jarvis fala"). A guarda
+acima olhava só o instante: o Jarvis terminava de falar, religava o microfone
+em 0,3 s, a música (pausada pelo reconhecedor) ainda não tinha voltado, o
+`isMusicActive` dava falso e o reconhecedor a pausava de novo — e pausada ela
+nunca mais aparecia como tocando. Hoje a música vista no último minuto conta
+como tocando, e ela é olhada também a cada 2 s pelo `vigia` e ao travar a
+tela. Como o reconhecedor não abre nesse minuto, quem mantém a música vista é
+o próprio tocador; só um minuto inteiro sem música (a pessoa pausou) devolve o
+ouvido. A voz do Jarvis e os bipes saem no canal da música e não contam: o que
+toca durante a fala e até 1,5 s depois (2 a 2,5 s depois dos bipes,
+`somProprioAte`) é ignorado.
 
 **Não validado num aparelho**: se o reconhecimento do Google aceita ouvir pelo
 serviço com a tela travada em todo Android, se o bipe some, e o WebView

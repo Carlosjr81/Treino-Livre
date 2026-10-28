@@ -280,6 +280,7 @@ class BolsoService : Service(), RecognitionListener {
     private val vigia = object : Runnable {
         override fun run() {
             if (travada && telaLivre()) aoDestravar()
+            olharMusica()
             if (travada) linha.postDelayed(this, 2000L)
         }
     }
@@ -287,6 +288,7 @@ class BolsoService : Service(), RecognitionListener {
     private fun aoTravar() {
         if (travada) return
         travada = true
+        olharMusica()
         anotar("tela travada" + (if (pronto) "" else " (a página escondida ainda carregando)"))
         linha.removeCallbacks(vigia)
         linha.postDelayed(vigia, 2000L)
@@ -426,13 +428,32 @@ class BolsoService : Service(), RecognitionListener {
     // fica para quando a música parar ou a tela destravar. Quem prefere ouvir
     // mesmo assim liga "Ouvir com música" no cartão (mu=1), sabendo que ela
     // pausa a cada comando.
+    //
+    // **A música é lembrada por 1 minuto** (musicaVistaEm). Segundo relato do
+    // dono: "só toca música quando o Jarvis fala". O Jarvis acabava de falar,
+    // religava o microfone em 0,3 s, e a música (que o reconhecedor tinha
+    // pausado) ainda não tinha voltado: o isMusicActive dava falso, o
+    // reconhecedor abria e a pausava de novo — e, pausada, ela nunca mais
+    // aparecia como tocando. Hoje a música vista no último minuto conta como
+    // tocando; e como o reconhecedor não abre nesse tempo, quem a mantém vista é
+    // o próprio tocador. Só um minuto inteiro em silêncio (a pessoa pausou)
+    // devolve o ouvido. A voz do Jarvis e os bipes saem no canal da música: o
+    // que toca durante a fala e até 1,5 s depois não conta (somProprioAte).
     @Volatile private var ouvirComMusica = false
     private var calouPelaMusica = false
+    private var musicaVistaEm = 0L
+    private var somProprioAte = 0L
+    private fun olharMusica() {
+        if (falando > 0 || System.currentTimeMillis() < somProprioAte) return
+        val ativa = try { getSystemService(AudioManager::class.java)?.isMusicActive == true } catch (e: Exception) { false }
+        if (ativa) musicaVistaEm = System.currentTimeMillis()
+    }
     private fun musicaTocando(): Boolean {
         if (ouvirComMusica || falando > 0) return false
-        val ativa = try { getSystemService(AudioManager::class.java)?.isMusicActive == true } catch (e: Exception) { false }
+        olharMusica()
+        val ativa = System.currentTimeMillis() - musicaVistaEm < 60_000L
         if (ativa && !calouPelaMusica) { calouPelaMusica = true; anotar("música tocando: não abro o reconhecedor para não parar a música (falar continua)") }
-        if (!ativa && calouPelaMusica) { calouPelaMusica = false; anotar("música parou: voltei a ouvir") }
+        if (!ativa && calouPelaMusica) { calouPelaMusica = false; anotar("música parada há 1 minuto: voltei a ouvir") }
         return ativa
     }
 
@@ -630,6 +651,7 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun tocarFim() {
+        somProprioAte = System.currentTimeMillis() + 2500L
         try {
             val tom = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
             tom.startTone(ToneGenerator.TONE_PROP_BEEP2, 180)
@@ -684,6 +706,7 @@ class BolsoService : Service(), RecognitionListener {
         val kcal = c.optDouble("kcalMin", 0.0) * feito / 60.0
         if (resta <= 0) {
             crono = null
+            somProprioAte = System.currentTimeMillis() + 2000L
             try {
                 val tom = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
                 tom.startTone(ToneGenerator.TONE_PROP_BEEP2, 200)
@@ -789,6 +812,7 @@ class BolsoService : Service(), RecognitionListener {
 
     private fun acabouFala() {
         falando = maxOf(0, falando - 1)
+        somProprioAte = System.currentTimeMillis() + 1500L
         if (falando > 0) return
         if (pararDepoisDeFalar) { encerrar(); return }
         religar(300L)

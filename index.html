@@ -804,7 +804,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-28a";
+const VERSAO_APP = "2026-10-28b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -10514,16 +10514,48 @@ function falaCienciaAjuste(plano, tr) {
   f.push("Tudo isso é um guia, não uma regra. Dor, sono ruim ou cansaço que não passa pedem a semana leve antes.");
   return f.join(" ");
 }
-// Fala longa, frase por frase: no Chrome uma fala única de minutos é cortada
-// no meio, e na fila a última frase avisa o fim.
-function falarLongo(texto, cfg, aoTerminar) {
-  const frases = String(texto).split(/(?<=[.!?:])\s+/).filter(Boolean);
-  let ok = false;
-  frases.forEach((fr, i) => {
-    ok = jarvisFalar(fr, { ...(cfg || {}), falar: true, fila: i > 0, aoTerminar: i === frases.length - 1 ? aoTerminar : undefined }) || ok;
+// Fala longa, um pedaço de cada vez: no Chrome uma fala única de minutos é
+// cortada no meio. **E a fila não serve**: a primeira versão mandava as
+// quarenta frases de uma vez, em fila, e no celular do dono não saiu som
+// nenhum (o Chrome do Android descarta fila longa calado). O que funciona no
+// celular dele é o jeito do resumo animado: um pedaço, e o seguinte só quando
+// ele acabar. O relógio é a rede de segurança para quando o "onend" não chega
+// (aí o seguinte entra em fila, sem cortar o que ainda está sendo dito).
+let FALA_LONGA = null;
+function partesDaFala(texto) {
+  const frases = String(texto).split(/(?<=[.!?])\s+/).filter(Boolean);
+  const partes = [];
+  frases.forEach((f) => {
+    const u = partes.length - 1;
+    if (u >= 0 && partes[u].length + f.length < 180) partes[u] += " " + f;
+    else partes.push(f);
   });
-  if (!ok && aoTerminar) aoTerminar();
-  return ok;
+  return partes;
+}
+function pararFalaLonga() {
+  if (FALA_LONGA) FALA_LONGA.parado = true;
+  FALA_LONGA = null;
+}
+function falarLongo(texto, cfg, aoTerminar, aoParte) {
+  pararFalaLonga();
+  const partes = partesDaFala(texto);
+  if (!VOZ_FALA || !partes.length) { if (aoTerminar) aoTerminar(); return false; }
+  const vivo = { parado: false };
+  FALA_LONGA = vivo;
+  let i = 0;
+  const prox = () => {
+    if (vivo.parado) return;
+    if (i >= partes.length) { FALA_LONGA = null; if (aoParte) aoParte(null); if (aoTerminar) aoTerminar(); return; }
+    const k = i++;
+    const p = partes[k];
+    if (aoParte) aoParte(p, k, partes.length);
+    let foi = false;
+    const seguir = () => { if (foi) return; foi = true; clearTimeout(rel); setTimeout(prox, 250); };
+    const rel = setTimeout(seguir, 4000 + p.length * 110);
+    if (!jarvisFalar(p, { ...(cfg || {}), falar: true, fila: k > 0, aoTerminar: seguir })) seguir();
+  };
+  prox();
+  return true;
 }
 // ---------------- FIM DO PLANO DE AJUSTE
 
@@ -10641,17 +10673,22 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
   const vezRef = useRef(0);
   ouvindoRef.current = ouvindo;
   // sair da tela no meio do áudio cala a voz
-  useEffect(() => () => { if (ouvindoRef.current) calarJarvis(); }, []);
+  useEffect(() => () => { if (ouvindoRef.current) { pararFalaLonga(); calarJarvis(); } }, []);
+  const [legenda, setLegenda] = useState(null);
   if (!historico.length) return null;
   const ouvir = (qual) => {
-    if (ouvindo) { calarJarvis(); setOuvindo(null); if (ouvindo === qual) return; }
+    if (ouvindo) { pararFalaLonga(); calarJarvis(); setOuvindo(null); setLegenda(null); if (ouvindo === qual) return; }
     const nomeFicha = (a) => (fichasProg[a.ficha] ? fichasProg[a.ficha].nome : "ficha " + (a.ficha + 1));
     const t = qual === "analise" ? falaAnaliseAjuste(plano, prog ? tr : null, conhecidos.onde, nomeFicha) : falaCienciaAjuste(plano, prog ? tr : null);
     // a fala cortada pela troca também avisa o fim: só a última vale
     const vez = ++vezRef.current;
-    const fim = () => { if (vezRef.current === vez) setOuvindo(null); };
+    const fim = () => { if (vezRef.current === vez) { setOuvindo(null); setLegenda(null); } };
     setOuvindo(qual);
-    if (!falarLongo(t, vozCfg, fim)) fim();
+    // a frase dita aparece escrita: com o som baixo ou desligado, dá para ler
+    if (!falarLongo(t, vozCfg, fim, (p, k, n) => { if (vezRef.current === vez) setLegenda(p ? { p: p, k: k, n: n } : null); })) {
+      fim();
+      setLegenda({ p: "Este navegador não tem voz para falar. O texto: " + t, k: 0, n: 1 });
+    }
   };
   const botaoOuvir = (qual, rot) => (
     <button onClick={() => ouvir(qual)} aria-pressed={ouvindo === qual}
@@ -10664,6 +10701,12 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
     <div style={{ display: "flex", gap: 8, margin: "10px 0 4px" }}>
       {botaoOuvir("analise", "🔊 Ouvir a análise e o ajuste")}
       {botaoOuvir("ciencia", "🔊 Ouvir por que muda (o estudo)")}
+    </div>
+  ) : null;
+  const legendaFala = legenda ? (
+    <div aria-live="polite" style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--cinza)", border: "1px dashed var(--borda2)", borderRadius: 10, padding: "8px 10px", margin: "6px 0 4px" }}>
+      {legenda.n > 1 && <span style={{ fontWeight: 800, color: "var(--texto)" }}>{legenda.k + 1}/{legenda.n} · </span>}{legenda.p}
+      <div style={{ fontSize: 11, marginTop: 4 }}>Sem som? Confira o volume de mídia do celular.</div>
     </div>
   ) : null;
   if (emCiclo && !verAnalise) {
@@ -10684,6 +10727,7 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
           </div>
         </div>
         {audios}
+        {legendaFala}
         <button onClick={() => setVerAnalise(true)} style={{ ...S.btnGhost, width: "100%", marginTop: 6, fontSize: 12.5, padding: "8px 10px" }}>
           Ver a análise das últimas semanas
         </button>
@@ -10718,6 +10762,7 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
             O app monta um treino que corrige isso, usando primeiro os exercícios que você já faz.</>}
       </div>
       {audios}
+      {legendaFala}
       {(nPouco > 0 || nMuito > 0) && (
         <React.Fragment>
           {passo(1, "O que muda")}

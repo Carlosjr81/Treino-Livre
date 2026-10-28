@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-10-28b — Os áudios do treino ajustado agora falam no celular
+
+**Em uma frase:** os botões "Ouvir a análise e o ajuste" e "Ouvir por que muda" ficavam mudos no celular; agora falam,
+e a frase dita aparece escrita embaixo.
+
+**O que mudou**
+- O áudio é dito em partes, uma depois da outra, com a parte atual escrita na tela ("3/21 · ...").
+- Tocar de novo no botão para.
+
+**Por que importa para quem treina**
+- Dá para ouvir a análise no fone, a caminho da academia, ou ler se estiver sem som.
+
+**Como usar**
+- Histórico › Números › "Seu treino está equilibrado?" › 🔊.
+
+**Ideias de vídeo**
+- Não é novidade para vídeo: é um conserto.
+
+**Não prometer**
+- A voz é a do próprio celular; sem voz instalada no aparelho, aparece só o texto.
+
+---
+
 ## 2026-10-28a — Reabrir o treino, desafio da esteira e o treino ajustado explicado em áudio
 
 **Em uma frase:** finalizou sem querer? Reabra o treino; correu na esteira? Mande como desafio para os amigos; e o

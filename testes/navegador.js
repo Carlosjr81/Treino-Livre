@@ -13,6 +13,8 @@
 //   node testes/navegador.js --clicar "Histórico" --clicar "Números"
 //   node testes/navegador.js --foto tela.png       guarda a imagem da tela
 //   node testes/navegador.js --altura 700          celular mais baixo
+//   node testes/navegador.js --antes falso.js      roda um script antes do app (ex.: uma voz de mentira)
+//   node testes/navegador.js --mostrar "window.__falado"   imprime o valor no fim
 //
 // Não precisa de CDN: React, ReactDOM e Babel vêm do npm (registry.npmjs.org,
 // que a sessão do Claude na nuvem alcança), guardados numa pasta temporária.
@@ -95,6 +97,8 @@ async function doNpm(lib) {
     localStorage.setItem("treinolivre:v1", JSON.stringify(d));
   }, dados);
 
+  const antes = opcao("--antes");
+  if (antes) await p.addInitScript({ content: fs.readFileSync(antes, "utf8") });
   await p.goto(ENDERECO + "#teste");
   // o Babel compila o app no navegador: leva uns segundos
   await p.waitForFunction(() => /Início/.test(document.body.innerText), null, { timeout: 60000 }).catch(() => {});
@@ -104,6 +108,8 @@ async function doNpm(lib) {
     try { await p.locator("text=" + c).last().click({ timeout: 5000 }); await p.waitForTimeout(800); }
     catch (e) { erros.push("não achei para clicar: " + c); }
   }
+  const mostrar = opcao("--mostrar");
+  if (mostrar) { await p.waitForTimeout(1500); console.log(mostrar + " = " + JSON.stringify(await p.evaluate(mostrar)).slice(0, 2000)); }
   const foto = opcao("--foto");
   if (foto) await p.screenshot({ path: foto });
   const texto = (await p.locator("body").innerText()).replace(/\s*\n\s*/g, " / ");

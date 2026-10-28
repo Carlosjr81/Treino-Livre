@@ -268,7 +268,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v133) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v134) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3740,8 +3740,16 @@ compartilhados por aí precisam continuar abrindo.
     `falaCienciaAjuste`, `falarLongo`; pedido do dono). Dois botões:
     "🔊 Ouvir a análise e o ajuste" e "🔊 Ouvir por que muda (o estudo)". O
     texto é falado, não lido: sem "~" nem parênteses, datas por extenso. É
-    dito frase por frase em fila (o Chrome corta uma fala longa no meio), e
-    trocar de áudio ignora o fim da fala cortada (`vezRef`). E a pergunta do
+    dito **um pedaço por vez** (`falarLongo`, `partesDaFala`, até ~180
+    letras), o seguinte só no fim do anterior, com um relógio de segurança
+    para o `onend` que não chega. **A primeira versão mandava as 40 frases
+    em fila de uma vez, e no celular do dono não saiu som nenhum**: o Chrome
+    do Android descarta fila longa calado (no Chromium de teste falava). É o
+    mesmo encadeamento do resumo animado, que funciona no celular dele. A
+    parte dita aparece escrita (`legenda`, "3/21 · ..."), e trocar de áudio
+    ou parar desliga o encadeamento (`pararFalaLonga`) e ignora o fim da
+    fala cortada (`vezRef`). Para testar a voz no navegador:
+    `node testes/navegador.js --antes voz-falsa.js --mostrar "window.__falado"`. E a pergunta do
     dono, "preciso gerar um ajustado toda semana?": **não**. Com um programa
     com `meso` no primeiro ciclo (ou começando na próxima segunda), o cartão
     diz que as séries mudam sozinhas por semana e as repetições por treino, que
@@ -4358,7 +4366,9 @@ node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem 
 `navegador.js` pega React, ReactDOM e Babel do npm (a sessão na nuvem alcança),
 serve o `index.html` local e aceita `--dados arq.json` (o registro do
 `localStorage`), `--clicar "Texto"` (repetível), `--foto tela.png` e
-`--altura 700`. Sai com erro se a página lançar exceção: é o "mexeu em
+`--altura 700`, `--antes script.js` (roda antes do app: uma voz ou um
+Bluetooth de mentira) e `--mostrar "expressão"` (imprime o valor no fim).
+Sai com erro se a página lançar exceção: é o "mexeu em
 componente, abra a tela" sem celular.
 
 Rode antes e depois de mexer no app. **Elas não substituem o roteiro manual

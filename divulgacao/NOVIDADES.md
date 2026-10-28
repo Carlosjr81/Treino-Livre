@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-10-28n — O diagnóstico mostra quando a música para
+
+**Em uma frase:** se a música parar com o celular travado, o diagnóstico do Jarvis mostra a hora e o
+que ele estava fazendo naquele momento.
+
+**O que mudou**
+- O app Android anota cada vez que a música para ou volta, junto com o estado do microfone e da voz do
+  Jarvis.
+
+**Por que importa para quem treina**
+- Ajuda a achar e consertar de vez o que tira a música do fone.
+
+**Como usar**
+- Destrave, toque em **Trazer** no cartão "🔒 Jarvis com a tela travada" e abra Ajustes › Jarvis ›
+  "O que ele ouviu (diagnóstico)".
+
+**Ideias de vídeo**
+- Nenhuma: é ferramenta de conserto.
+
+**Não prometer**
+- Este é um registro para achar o problema, não o conserto em si.
+
+---
+
 ## 2026-10-28m — Música no bolso: travar logo depois do ✓
 
 **Em uma frase:** travar a tela logo depois de marcar a série, com o Jarvis ainda falando, também não

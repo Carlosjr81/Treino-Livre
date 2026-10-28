@@ -202,8 +202,9 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
-        anotar("ligado (app de 2026-10-28m: a música manda no microfone)")
+        anotar("ligado (app de 2026-10-28n: a música manda no microfone)")
         linha.post(olheiro)
+        try { getSystemService(AudioManager::class.java)?.registerAudioPlaybackCallback(espiaoSom, linha) } catch (e: Exception) { }
         val pm = getSystemService(PowerManager::class.java)
         // Com a tela travada a CPU dorme, e o fim do descanso chegaria atrasado.
         trava = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TreinoLivre:bolso").apply { acquire(DURACAO_MAX) }
@@ -453,6 +454,29 @@ class BolsoService : Service(), RecognitionListener {
             musicaVistaEm = System.currentTimeMillis()
         }
     }
+    // **O diário anota quando a música para, e o que o Jarvis fazia naquela
+    // hora.** Três consertos seguidos não acabaram com o "a música para com a
+    // tela travada", e sem saber quem a para cada conserto é palpite. Se ela
+    // para com o microfone e o reconhecedor desligados e o Jarvis calado, o
+    // culpado não é este serviço (é o Chrome, o fone ou o próprio tocador).
+    private var midiaAntes = false
+    private val espiaoSom = object : AudioManager.AudioPlaybackCallback() {
+        override fun onPlaybackConfigChanged(lista: MutableList<android.media.AudioPlaybackConfiguration>?) {
+            val usos = lista?.map { it.audioAttributes.usage } ?: emptyList()
+            val midia = usos.any { it == AudioAttributes.USAGE_MEDIA || it == AudioAttributes.USAGE_GAME || it == AudioAttributes.USAGE_UNKNOWN }
+            if (midia == midiaAntes) return
+            midiaAntes = midia
+            if (falando > 0 || System.currentTimeMillis() < somProprioAte) return
+            anotar((if (midia) "♪ música tocou" else "♪ música PAROU") + " · " + situacaoAgora())
+        }
+    }
+    private fun situacaoAgora(): String =
+        (if (telaLivre()) "tela livre" else "tela travada") +
+        ", microfone do app " + (if (gravando) "ligado" else "desligado") +
+        ", reconhecedor " + (if (ouvindo) "aberto" else "fechado") +
+        (if (falando > 0) ", falando" else "") +
+        (if (ouvirComMusica) ", ouvir com música LIGADO" else "")
+
     // A música é olhada a cada segundo desde que o serviço liga, e não só com a
     // tela travada: quem trava a tela logo depois do ✓ trava com o Jarvis
     // falando, quando a música não pode ser vista (a voz dele sai no mesmo
@@ -863,6 +887,7 @@ class BolsoService : Service(), RecognitionListener {
 
     private fun encerrar() {
         linha.removeCallbacksAndMessages(null)
+        try { getSystemService(AudioManager::class.java)?.unregisterAudioPlaybackCallback(espiaoSom) } catch (e: Exception) { }
         try { unregisterReceiver(tela) } catch (e: Exception) { }
         pararDeOuvir()
         try { reconhecedor?.destroy() } catch (e: Exception) { }

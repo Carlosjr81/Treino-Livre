@@ -387,7 +387,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v139) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v140) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3867,7 +3867,21 @@ compartilhados por aí precisam continuar abrindo.
     mesmo encadeamento do resumo animado, que funciona no celular dele. A
     parte dita aparece escrita (`legenda`, "3/21 · ..."), e trocar de áudio
     ou parar desliga o encadeamento (`pararFalaLonga`) e ignora o fim da
-    fala cortada (`vezRef`). Para testar a voz no navegador:
+    fala cortada (`vezRef`). **E continuou mudo no celular dele.** Hoje
+    o `falarLongo` não chama `cancel()` colado no `speak()` (no Chrome do
+    Android isso pode levar junto a fala nova, calada): só cala o que está no
+    ar, com 150 ms de respiro, e chama `resume()` antes (`retomar`), para a
+    voz que ficou parada com o app atrás. Ele **confere se a fala começou**
+    (`aoComecar`, o `onstart`; sem ele, o `speaking` aos 3 s; o `onend`
+    depois de 0,6 s também conta): não começou ou deu erro (`aoErro`), tenta
+    de novo **uma vez com a voz padrão do celular** (`vozPadrao`, sem
+    `u.voice`). Falhou de novo: a legenda fica com "⚠ A voz do celular não
+    falou (motivo)", o texto inteiro e onde conferir a voz no Android. A
+    legenda diz "⏳ Ligando a voz…" e "🔊 Falando": o próximo relato já diz
+    em qual passo parou. Conferido no navegador com três vozes de mentira
+    (a que fala, a muda e a que só fala sem voz escolhida), com
+    `--esperar 8000` (opção nova do `navegador.js`).
+    Para testar a voz no navegador:
     `node testes/navegador.js --antes voz-falsa.js --mostrar "window.__falado"`. E a pergunta do
     dono, "preciso gerar um ajustado toda semana?": **não**. Com um programa
     com `meso` no primeiro ciclo (ou começando na próxima segunda), o cartão

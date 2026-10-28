@@ -21,7 +21,8 @@ node testes/navegador.js
 Abre o app num Chromium de verdade (Playwright) e diz se a tela desenhou sem
 erro. React, ReactDOM e Babel vêm do npm, então funciona na sessão do Claude
 na nuvem. Opções: `--dados arq.json`, `--clicar "Histórico"` (repetível),
-`--foto tela.png`, `--altura 700`. Não entra no `rodar.js` porque precisa
+`--foto tela.png`, `--altura 700`, `--esperar 5000` (entre os cliques, para o
+que só acontece depois de um tempo). Não entra no `rodar.js` porque precisa
 de navegador.
 
 ```bash

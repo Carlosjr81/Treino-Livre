@@ -35,6 +35,8 @@ const opcao = (nome) => { const i = args.indexOf(nome); return i >= 0 ? args[i +
 const passos = [];
 args.forEach((a, i) => {
   if (a === "--clicar" && args[i + 1]) passos.push({ clicar: args[i + 1] });
+  // --esperar ms: o que só acontece depois de um tempo (um relógio do app)
+  if (a === "--esperar" && args[i + 1]) passos.push({ esperar: parseInt(args[i + 1]) || 0 });
   if (a === "--preencher" && args[i + 1]) { const k = args[i + 1].indexOf("="); passos.push({ campo: args[i + 1].slice(0, k), valor: args[i + 1].slice(k + 1) }); }
 });
 
@@ -111,6 +113,7 @@ async function doNpm(lib) {
   await p.mouse.click(380, 300); // pula a abertura, se ela estiver na frente
   await p.waitForTimeout(500);
   for (const ps of passos) {
+    if (ps.esperar) { await p.waitForTimeout(ps.esperar); continue; }
     if (ps.campo) {
       try { await p.getByLabel(ps.campo, { exact: true }).first().fill(ps.valor, { timeout: 5000 }); }
       catch (e) { erros.push("não achei o campo: " + ps.campo); }

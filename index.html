@@ -804,7 +804,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-28g";
+const VERSAO_APP = "2026-10-28h";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5609,7 +5609,7 @@ function jarvisFalar(texto, cfg) {
     u.rate = (cfg.velocidade || 1.1) + (animado ? 0.06 : 0);
     u.pitch = cfg.tom != null ? cfg.tom : animado ? 1.22 : 1;
     u.volume = cfg.volume != null ? Math.max(0, Math.min(1, cfg.volume)) : 1;
-    const v = escolherVozPtBr(cfg.vozNome);
+    const v = cfg.vozPadrao ? null : escolherVozPtBr(cfg.vozNome);
     if (v) { u.voice = v; u.lang = v.lang; }
     // Estimativa de duração como rede de segurança: em alguns navegadores o
     // "onend" simplesmente não dispara.
@@ -5624,8 +5624,12 @@ function jarvisFalar(texto, cfg) {
       if (!avisou && cfg.aoTerminar) { avisou = true; cfg.aoTerminar(); }
     };
     u.onend = terminou;
-    u.onerror = terminou;
+    u.onerror = (ev) => { if (cfg.aoErro) cfg.aoErro((ev && ev.error) || "erro"); terminou(); };
+    if (cfg.aoComecar) u.onstart = () => cfg.aoComecar();
     jarvisFalaAtual = u;
+    // a voz que ficou parada (o app foi para trás no meio de uma fala) segura
+    // tudo o que vem depois, calada
+    if (cfg.retomar) { try { window.speechSynthesis.resume(); } catch (e) {} }
     window.speechSynthesis.speak(u);
     return true;
   } catch (e) { return false; }
@@ -10536,23 +10540,59 @@ function pararFalaLonga() {
   if (FALA_LONGA) FALA_LONGA.parado = true;
   FALA_LONGA = null;
 }
+// aoParte(parte, k, n, estado): estado é "esperando", "tocando" ou o erro da
+// voz. É o que a tela mostra: "não tocou" sem saber se a fala começou não diz
+// nada a ninguém.
+// No Chrome do Android, cancel() colado no speak() às vezes leva junto a fala
+// nova, calada. Por isso só se cala o que está no ar, e com um respiro.
 function falarLongo(texto, cfg, aoTerminar, aoParte) {
   pararFalaLonga();
   const partes = partesDaFala(texto);
   if (!VOZ_FALA || !partes.length) { if (aoTerminar) aoTerminar(); return false; }
   const vivo = { parado: false };
   FALA_LONGA = vivo;
-  let i = 0;
+  let i = 0, comecou = false, padrao = false, tentou = false;
+  const avisa = (p, k, est) => { if (!vivo.parado && aoParte) aoParte(p, k, partes.length, est); };
   const prox = () => {
     if (vivo.parado) return;
     if (i >= partes.length) { FALA_LONGA = null; if (aoParte) aoParte(null); if (aoTerminar) aoTerminar(); return; }
     const k = i++;
     const p = partes[k];
-    if (aoParte) aoParte(p, k, partes.length);
-    let foi = false;
-    const seguir = () => { if (foi) return; foi = true; clearTimeout(rel); setTimeout(prox, 250); };
+    avisa(p, k, comecou ? "tocando" : "esperando");
+    let foi = false, erro = null;
+    const seguir = () => {
+      if (foi) return; foi = true; clearTimeout(rel); clearTimeout(conf);
+      if (vivo.parado) return;
+      // a primeira parte não começou: mais uma vez, com a voz padrão do celular
+      if (!comecou && !tentou) {
+        tentou = true; padrao = true; i = k;
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+        avisa(p, k, erro ? "erro: " + erro + " (tentando de novo)" : "tentando de novo");
+        setTimeout(prox, 400);
+        return;
+      }
+      if (!comecou) { avisa(p, k, erro ? "erro: " + erro : "não começou"); FALA_LONGA = null; if (aoTerminar) aoTerminar(true); return; }
+      setTimeout(prox, 250);
+    };
     const rel = setTimeout(seguir, 4000 + p.length * 110);
-    if (!jarvisFalar(p, { ...(cfg || {}), falar: true, fila: k > 0, aoTerminar: seguir })) seguir();
+    // sem começar em 3 s, não vai começar
+    const conf = !comecou ? setTimeout(() => {
+      // sem o onstart, o "speaking" ainda diz se há voz no ar
+      let fal = false; try { fal = window.speechSynthesis.speaking && !window.speechSynthesis.paused; } catch (e) {}
+      if (fal) { comecou = true; avisa(p, k, "tocando"); } else if (!comecou) seguir();
+    }, 3000) : null;
+    let t0 = Date.now();
+    const fala = () => {
+      if (vivo.parado || foi) return;
+      t0 = Date.now();
+      if (!jarvisFalar(p, { ...(cfg || {}), falar: true, fila: true, retomar: true, vozPadrao: padrao, aoTerminar: () => { if (!foi && !erro && Date.now() - t0 > 600) comecou = true; seguir(); },
+        aoErro: (er) => { erro = er; },
+        aoComecar: () => { if (!comecou) { comecou = true; clearTimeout(conf); } avisa(p, k, "tocando"); } })) { erro = erro || "sem voz"; seguir(); }
+    };
+    let ocupado = false;
+    try { ocupado = k === 0 && (window.speechSynthesis.speaking || window.speechSynthesis.pending); } catch (e) {}
+    if (ocupado) { try { window.speechSynthesis.cancel(); } catch (e) {} setTimeout(fala, 150); }
+    else fala();
   };
   prox();
   return true;
@@ -10682,10 +10722,11 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
     const t = qual === "analise" ? falaAnaliseAjuste(plano, prog ? tr : null, conhecidos.onde, nomeFicha) : falaCienciaAjuste(plano, prog ? tr : null);
     // a fala cortada pela troca também avisa o fim: só a última vale
     const vez = ++vezRef.current;
-    const fim = () => { if (vezRef.current === vez) { setOuvindo(null); setLegenda(null); } };
+    // falhou: a legenda fica, com o motivo e o texto, em vez de sumir calada
+    const fim = (falhou) => { if (vezRef.current === vez) { setOuvindo(null); if (!falhou) setLegenda(null); else setLegenda((l) => l && { ...l, falhou: true, p: t }); } };
     setOuvindo(qual);
     // a frase dita aparece escrita: com o som baixo ou desligado, dá para ler
-    if (!falarLongo(t, vozCfg, fim, (p, k, n) => { if (vezRef.current === vez) setLegenda(p ? { p: p, k: k, n: n } : null); })) {
+    if (!falarLongo(t, vozCfg, fim, (p, k, n, est) => { if (vezRef.current === vez) setLegenda(p ? { p: p, k: k, n: n, est: est } : null); })) {
       fim();
       setLegenda({ p: "Este navegador não tem voz para falar. O texto: " + t, k: 0, n: 1 });
     }
@@ -10705,8 +10746,15 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
   ) : null;
   const legendaFala = legenda ? (
     <div aria-live="polite" style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--cinza)", border: "1px dashed var(--borda2)", borderRadius: 10, padding: "8px 10px", margin: "6px 0 4px" }}>
-      {legenda.n > 1 && <span style={{ fontWeight: 800, color: "var(--texto)" }}>{legenda.k + 1}/{legenda.n} · </span>}{legenda.p}
-      <div style={{ fontSize: 11, marginTop: 4 }}>Sem som? Confira o volume de mídia do celular.</div>
+      {legenda.est && (
+        <div style={{ fontWeight: 800, marginBottom: 4, color: legenda.est === "tocando" ? "var(--ok)" : legenda.est === "esperando" ? "var(--texto)" : "var(--perigo)" }}>
+          {legenda.est === "tocando" ? "🔊 Falando" : legenda.est === "esperando" ? "⏳ Ligando a voz…" : "⚠ A voz do celular não falou (" + legenda.est + ")"}
+        </div>
+      )}
+      {legenda.n > 1 && !legenda.falhou && <span style={{ fontWeight: 800, color: "var(--texto)" }}>{legenda.k + 1}/{legenda.n} · </span>}{legenda.p}
+      <div style={{ fontSize: 11, marginTop: 4 }}>{legenda.falhou
+        ? "O texto está aqui para ler. Para a voz: confira o volume de mídia e, nas Configurações do Android, Gerenciamento geral › Saída de conversão de texto em voz (o mecanismo do Google, com o português instalado)."
+        : "Sem som? Confira o volume de mídia do celular."}</div>
     </div>
   ) : null;
   if (emCiclo && !verAnalise) {

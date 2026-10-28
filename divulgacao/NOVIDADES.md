@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-10-28h — O áudio da análise do treino mais teimoso, e dizendo o que aconteceu
+
+**Em uma frase:** os botões "Ouvir a análise e o ajuste" e "Ouvir por que muda (o estudo)" agora insistem até a voz do
+celular falar, e mostram na tela se ela está falando ou por que não falou.
+
+**O que mudou**
+- Ao tocar, aparece "⏳ Ligando a voz…" e depois "🔊 Falando", com o trecho que está sendo dito escrito embaixo.
+- Se a voz escolhida não falar, o app tenta de novo sozinho com a voz padrão do celular.
+- Se mesmo assim não sair som, a tela diz "A voz do celular não falou", deixa o texto inteiro para ler e diz onde
+  conferir a voz nas configurações do Android.
+
+**Por que importa para quem treina**
+- Dá para ouvir a análise do treino com o celular no bolso, entre uma série e outra, sem ficar lendo.
+
+**Como usar**
+- Histórico › Números › "🧭 Seu treino está equilibrado?" › 🔊 Ouvir.
+
+**Ideias de vídeo**
+- Nenhuma nova: é conserto. O vídeo do áudio da análise continua valendo.
+
+**Não prometer**
+- Não prometer voz em todo celular: depende da voz instalada no aparelho. Sem ela, o texto aparece para ler.
+
+---
+
 ## 2026-10-28g — Recado do criador, acesso com prazo e apagar a própria conta
 
 **Em uma frase:** o criador do app pode mandar um recado que aparece quando você abre o app, liberar o acesso por um

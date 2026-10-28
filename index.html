@@ -833,7 +833,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-28p";
+const VERSAO_APP = "2026-10-28q";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -27312,16 +27312,30 @@ function TelaCorpo({ medidas, historico, fotos, onAdicionarFoto, onExcluirFoto, 
   const ordenadas = [...medidas].sort((a, b) => new Date(b.data) - new Date(a.data));
   const ultima = ordenadas[0];
 
+  // A data é escolhida (pedido do dono: quem começa a usar o app no meio de
+  // um processo de emagrecimento quer pôr as pesagens de antes). O dia vem do
+  // campo como "AAAA-MM-DD" e é montado à mão na hora local, ao meio-dia:
+  // new Date("2026-03-14") é meia-noite em UTC, que no Brasil é o dia 13.
+  const hojeIso = diaLocal(Date.now());
   const salvar = () => {
     const algum = CAMPOS_MEDIDA.some((c) => parseFloat(form[c.id]) > 0);
     if (!algum) { avisar("Preencha pelo menos um campo para registrar a medição."); return; }
-    const registro = { id: "md" + Date.now(), data: new Date().toISOString() };
+    const dia = form.data || hojeIso;
+    if (dia > hojeIso) { avisar("A data não pode ser depois de hoje."); return; }
+    let quando;
+    if (dia === hojeIso) quando = new Date();
+    else {
+      const [a, m, d] = dia.split("-").map(Number);
+      quando = new Date(a, m - 1, d, 12, 0, 0);
+    }
+    const registro = { id: "md" + Date.now(), data: quando.toISOString() };
     CAMPOS_MEDIDA.forEach((c) => {
       const v = parseFloat(form[c.id]);
       if (v > 0) registro[c.id] = v;
     });
     onSalvar(registro);
-    setForm({});
+    // a data fica: quem lança pesagens antigas lança várias seguidas
+    setForm(dia === hojeIso ? {} : { data: dia });
   };
 
   const info = CAMPOS_MEDIDA.find((c) => c.id === campoGrafico) || CAMPOS_MEDIDA[0];
@@ -27333,6 +27347,15 @@ function TelaCorpo({ medidas, historico, fotos, onAdicionarFoto, onExcluirFoto, 
         <div style={S.label}>Nova medição</div>
         <div style={{ fontSize: 12, color: "var(--cinza)", margin: "6px 0 12px", lineHeight: 1.5 }}>
           Preencha só o que quiser acompanhar. Medidas de fita em centímetros, sempre no mesmo ponto e de manhã, para comparar direito.
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ ...S.label, fontSize: 10, marginBottom: 5 }}>Data</div>
+          <input type="date" style={S.inputMini} max={hojeIso} aria-label="Data da medição"
+            value={form.data || hojeIso}
+            onChange={(e) => setForm({ ...form, data: e.target.value })} />
+          <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 5, lineHeight: 1.45 }}>
+            Já vinha medindo antes de usar o app? Escolha o dia e registre as pesagens antigas: o gráfico se ajusta.
+          </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           {CAMPOS_MEDIDA.map((c) => (
@@ -27346,7 +27369,10 @@ function TelaCorpo({ medidas, historico, fotos, onAdicionarFoto, onExcluirFoto, 
             </div>
           ))}
         </div>
-        <button style={{ ...S.btn, marginTop: 16 }} onClick={salvar}>Registrar medição de hoje</button>
+        <button style={{ ...S.btn, marginTop: 16 }} onClick={salvar}>
+          {!form.data || form.data === hojeIso ? "Registrar medição de hoje"
+            : "Registrar medição de " + form.data.split("-").reverse().join("/")}
+        </button>
       </div>
 
       {medidas.length > 0 && (

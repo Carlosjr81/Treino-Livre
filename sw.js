@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v148";
+const CACHE = "treinolivre-v149";
 const CACHE_VOZ = "treinolivre-voz";
 // As falas gravadas do Monster, Run! (vozes/*.mp3): baixadas quando a história
 // começa e guardadas fora do cache da versão, para não sumirem a cada atualização.

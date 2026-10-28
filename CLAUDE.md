@@ -387,7 +387,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v148) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v149) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -4616,6 +4616,14 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
 
 - **Medidas** (`TelaCorpo`) — peso e cinco circunferências, com gráfico por
   campo. É o que dá motivo para abrir o app fora do dia de treino.
+  **A data da medição é escolhida** (2026-10-28q, pedido do dono: começou a
+  usar o app no meio do emagrecimento e quer as pesagens de antes). Vem com
+  hoje; outro dia é montado na hora local, ao meio-dia (`new Date("AAAA-MM-DD")`
+  é meia-noite em UTC, e no Brasil cairia no dia anterior), e dia depois de
+  hoje é recusado. Depois de salvar uma data antiga, ela fica no campo: quem
+  lança pesagens antigas lança várias. Gráfico, lista e `pesoCorporal` já
+  ordenavam pela data, então o retroativo entra no lugar certo e a pesagem
+  mais nova continua sendo a de hoje.
 - **Corrigir treino** (`TelaEditarHistorico`) — edita séries, obs, nome e
   duração de um treino já concluído. Recordes, conquistas e nível saem do
   histórico, então se ajustam sozinhos. Antes, um peso errado só tinha a saída

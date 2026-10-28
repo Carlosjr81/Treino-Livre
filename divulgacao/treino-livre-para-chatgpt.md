@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-28p**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-28q**.
 
 ---
 
@@ -411,7 +411,7 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
   hipertrofia, apresentada como guia).
 - **O que treinar hoje:** quantos dias desde o último treino de cada grupo.
 - **Corpo:** peso e medidas (cintura, peito, braço, coxa, quadril) com gráfico, e **fotos de progresso**
-  (guardadas só no celular).
+  (guardadas só no celular). Dá para escolher a data da medição e lançar pesagens de antes de usar o app.
 
 ### 3.13 Motivação e gamificação
 - **Níveis** (pontos por treinos, toneladas levantadas, sequência e recordes).

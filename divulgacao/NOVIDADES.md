@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-10-28q — Pesagens de antes de usar o app
+
+**Em uma frase:** dá para registrar o peso e as medidas de dias passados, para o gráfico mostrar a
+mudança desde o começo, e não só desde que o app foi instalado.
+
+**O que mudou**
+- A "Nova medição" ganhou um campo de **data**. Vem com o dia de hoje, mas dá para escolher qualquer
+  dia antes.
+- Depois de registrar uma data antiga, ela continua escolhida, para lançar várias pesagens seguidas.
+
+**Por que importa para quem treina**
+- Quem já estava emagrecendo (ou ganhando massa) antes de baixar o app vê a evolução inteira: o
+  "primeira" e a "variação" passam a contar desde o começo de verdade.
+
+**Como usar**
+- Histórico › Corpo › Nova medição: escolha a data, preencha o peso (ou as medidas) e toque em
+  **Registrar medição de (data)**.
+
+**Ideias de vídeo**
+- "Comecei a usar o app no meio da dieta": lançar as pesagens antigas e ver o gráfico se completar.
+
+**Não prometer**
+- Não dá para escolher uma data depois de hoje.
+- As fotos de progresso continuam com a data do dia em que foram tiradas.
+
+---
+
 ## 2026-10-28p — O Jarvis fala por cima da música com o celular travado
 
 **Em uma frase:** com o celular travado e a música tocando, a música abaixa um pouco enquanto o Jarvis

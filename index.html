@@ -804,7 +804,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-28f";
+const VERSAO_APP = "2026-10-28g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -30271,6 +30271,7 @@ const STATUS_CONTA = {
   pendente: { nome: "Aguardando", cor: "var(--obs)", icone: "⏳" },
   liberado: { nome: "Liberado", cor: "var(--ok)", icone: "✅" },
   bloqueado: { nome: "Bloqueado", cor: "var(--perigo)", icone: "⛔" },
+  vencido: { nome: "Prazo vencido", cor: "var(--obs)", icone: "⌛" },
 };
 function ehEmailDono(email) { return String(email || "").trim().toLowerCase() === EMAIL_DONO; }
 // O documento do Firestore vem com o tipo de cada campo; o app só usa texto e número.
@@ -30311,33 +30312,50 @@ function aparelhoDe(ua, noApp) {
 // Pode entrar sem conferir agora? Só quem estava liberado, conferido há menos
 // de 7 dias, e com a mesma conta.
 function liberadoSemRede(cache, agora) {
-  return !!(cache && cache.status === "liberado" && cache.conferidoEm > 0 && agora - cache.conferidoEm < ACESSO_OFFLINE_MS);
+  return !!(cache && cache.status === "liberado" && cache.conferidoEm > 0 && agora - cache.conferidoEm < ACESSO_OFFLINE_MS &&
+    !(cache.ate > 0 && agora >= cache.ate));
 }
 // A ordem do painel: quem espera primeiro (o mais novo em cima), depois quem
 // usa (o mais recente em cima), e os bloqueados no fim.
-function ordenarContas(lista) {
-  const peso = { pendente: 0, liberado: 1, bloqueado: 2 };
+function ordenarContas(lista, agora) {
+  const ag = agora || Date.now();
+  const peso = { pendente: 0, vencido: 1, liberado: 2, bloqueado: 3 };
   return lista.slice().sort((a, b) => {
-    const pa = peso[a.status] != null ? peso[a.status] : 1, pb = peso[b.status] != null ? peso[b.status] : 1;
-    if (pa !== pb) return pa - pb;
-    if (a.status === "pendente") return (b.criadoEm || 0) - (a.criadoEm || 0);
+    const sa = situacaoConta(a, ag), sb = situacaoConta(b, ag);
+    if (peso[sa] !== peso[sb]) return peso[sa] - peso[sb];
+    if (sa === "pendente") return (b.criadoEm || 0) - (a.criadoEm || 0);
     return (b.ultimoAcesso || 0) - (a.ultimoAcesso || 0);
   });
 }
 function resumoContas(lista, agora) {
-  const r = { total: lista.length, pendente: 0, liberado: 0, bloqueado: 0, ativos7: 0, hoje: 0 };
+  const r = { total: lista.length, pendente: 0, liberado: 0, bloqueado: 0, vencido: 0, ativos7: 0, hoje: 0, online: 0, sumidos: 0, vencendo: 0 };
   const inicioHoje = new Date(agora); inicioHoje.setHours(0, 0, 0, 0);
   lista.forEach((c) => {
-    if (r[c.status] != null) r[c.status]++;
+    const s = situacaoConta(c, agora);
+    r[s]++;
     if (c.ultimoAcesso && agora - c.ultimoAcesso < 7 * 864e5) r.ativos7++;
     if (c.ultimoAcesso && c.ultimoAcesso >= inicioHoje.getTime()) r.hoje++;
+    if (onlineAgora(c, agora)) r.online++;
+    if (filtroConta(c, "sumidos", agora)) r.sumidos++;
+    if (filtroConta(c, "vencendo", agora)) r.vencendo++;
   });
   return r;
 }
-function filtrarContas(lista, filtro, busca) {
+// Os filtros do painel. "Sumidos": liberados que não abrem o app há 30 dias
+// (ou nunca abriram). "Prazo": o prazo vence em 7 dias ou já venceu.
+function filtroConta(c, filtro, agora) {
+  const s = situacaoConta(c, agora);
+  if (!filtro || filtro === "todos") return true;
+  if (filtro === "online") return onlineAgora(c, agora);
+  if (filtro === "sumidos") return s === "liberado" && (!c.ultimoAcesso || agora - c.ultimoAcesso > SUMIDO_MS);
+  if (filtro === "vencendo") return s === "vencido" || (s === "liberado" && c.ate > 0 && c.ate - agora < 7 * 864e5);
+  return s === filtro;
+}
+function filtrarContas(lista, filtro, busca, agora) {
   const b = String(busca || "").trim().toLowerCase();
-  return lista.filter((c) => (!filtro || filtro === "todos" || c.status === filtro) &&
-    (!b || String(c.email || "").toLowerCase().indexOf(b) >= 0 || String(c.nome || "").toLowerCase().indexOf(b) >= 0));
+  const ag = agora || Date.now();
+  return lista.filter((c) => filtroConta(c, filtro, ag) &&
+    (!b || String(c.email || "").toLowerCase().indexOf(b) >= 0 || String(c.nome || "").toLowerCase().indexOf(b) >= 0 || String(c.nota || "").toLowerCase().indexOf(b) >= 0));
 }
 // As mensagens de erro do Firebase, em português de quem não programa
 const ERROS_CONTA = {
@@ -30381,6 +30399,43 @@ function erroDeConta(codigo) {
   const c = String(codigo || "").split(" ")[0].split(":")[0];
   return ERROS_CONTA[c] || "Não deu certo (" + (codigo || "erro desconhecido") + "). Tente de novo.";
 }
+// A situação de verdade de uma conta. Liberado com o prazo vencido é
+// "vencido": o prazo existe para o dono poder liberar por um tempo (um mês de
+// teste, uma assinatura) sem ter de lembrar de bloquear depois.
+function situacaoConta(d, agora) {
+  if (!d) return "pendente";
+  if (d.status === "liberado" && d.ate > 0 && agora >= d.ate) return "vencido";
+  return d.status === "liberado" || d.status === "bloqueado" ? d.status : "pendente";
+}
+const PRAZOS_ACESSO = [
+  { dias: 0, nome: "Sem prazo" }, { dias: 7, nome: "7 dias" }, { dias: 30, nome: "30 dias" },
+  { dias: 90, nome: "90 dias" }, { dias: 365, nome: "1 ano" },
+];
+// O prazo vale até o fim do dia: "30 dias" dado às 9h não vence às 9h.
+function prazoAte(dias, agora) {
+  if (!(dias > 0)) return 0;
+  const d = new Date(agora + dias * 864e5);
+  d.setHours(23, 59, 59, 999);
+  return d.getTime();
+}
+// Online é ter aberto o app nos últimos 15 minutos: o app confere a conta ao
+// abrir e a cada volta ao app (no máximo a cada 15 min).
+const ONLINE_MS = 15 * 60000;
+const SUMIDO_MS = 30 * 864e5;
+function onlineAgora(c, agora) { return !!(c.ultimoAcesso && agora - c.ultimoAcesso < ONLINE_MS); }
+// Recado do dono que a pessoa ainda não viu
+function recadoNovo(d) { return !!(d && d.aviso && (d.avisoEm || 0) > (d.avisoVisto || 0)); }
+// A lista em planilha (CSV com ponto e vírgula, que o Excel em português abre
+// direto nas colunas certas)
+function csvContas(lista, agora) {
+  const data = (ms) => (ms ? new Date(ms).toLocaleDateString("pt-BR") : "");
+  const cel = (v) => { const s = String(v == null ? "" : v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const nomes = { pendente: "Aguardando", liberado: "Liberado", bloqueado: "Bloqueado", vencido: "Prazo vencido" };
+  const linhas = [["Nome", "E-mail", "Situação", "Cadastro", "Último acesso", "Acessos", "Aparelho", "Versão", "Liberado até", "Nota", "Motivo do bloqueio"]];
+  lista.forEach((c) => linhas.push([c.nome || "", c.email || "", nomes[situacaoConta(c, agora)], data(c.criadoEm), data(c.ultimoAcesso),
+    c.acessos || 0, c.aparelho || "", c.versao || "", data(c.ate), c.nota || "", c.motivo || ""]));
+  return "﻿" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
+}
 // ---------------- FIM DAS CONTAS
 
 // ---- A conversa com o Firebase (REST) ----
@@ -30421,10 +30476,21 @@ const contaApi = {
     catch (e) { if (e.status === 404) return null; throw e; }
   },
   async gravar(uid, campos, token, criar) {
+    return this.gravarEm("usuarios/" + uid, campos, token, criar ? "&currentDocument.exists=false" : "&currentDocument.exists=true");
+  },
+  async gravarEm(caminho, campos, token, condicao) {
     const mascara = Object.keys(campos).map((k) => "updateMask.fieldPaths=" + k).join("&");
-    const url = this.doc("usuarios/" + uid) + "?" + mascara + (criar ? "&currentDocument.exists=false" : "&currentDocument.exists=true");
+    const url = this.doc(caminho) + "?" + mascara + (condicao || "");
     return deFirestore(await chamarFirebase(url, { method: "PATCH", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(paraFirestore(campos)) }));
   },
+  // a regra das contas novas (aprovação automática): todos leem, só o dono muda
+  async lerConfig(token) {
+    try { return deFirestore(await chamarFirebase(this.doc("config/acesso"), { headers: { Authorization: "Bearer " + token } })); }
+    catch (e) { if (e.status === 404) return null; throw e; }
+  },
+  gravarConfig(campos, token) { return this.gravarEm("config/acesso", campos, token, ""); },
+  apagarDoc(uid, token) { return chamarFirebase(this.doc("usuarios/" + uid), { method: "DELETE", headers: { Authorization: "Bearer " + token } }); },
+  apagarConta(idToken) { return this.auth("accounts:delete", { idToken: idToken }); },
   async listar(token) {
     const out = [];
     let pagina = "";
@@ -30474,6 +30540,8 @@ function Porteiro({ children }) {
   });
   const [msg, setMsg] = useState("");
   const [pendentes, setPendentes] = useState(0);
+  const [recado, setRecado] = useState(null);
+  const vistoEm = useRef(0);
   const conferindo = useRef(false);
   const contou = useRef(false);
   const sair = () => { gravarSessaoConta(null); CONTA_ATUAL = null; contou.current = false; setFase("entrar"); setMsg(""); };
@@ -30495,21 +30563,34 @@ function Porteiro({ children }) {
       let d = await contaApi.ler(s.uid, s.idToken);
       const agora = Date.now();
       if (!d) {
-        d = await contaApi.gravar(s.uid, { email: s.email, nome: s.nome || "", status: dono ? "liberado" : "pendente", criadoEm: agora, ultimoAcesso: agora, acessos: 1,
-          aparelho: aparelhoDe(navigator.userAgent, NO_APP_ANDROID), versao: VERSAO_APP }, s.idToken, true);
+        // aprovação automática ligada pelo dono: entra liberado. Com as regras
+        // antigas no Firebase, a gravação "liberado" é recusada e cai no "pendente".
+        let autoLib = false;
+        if (!dono) { try { const cfg = await contaApi.lerConfig(s.idToken); autoLib = !!(cfg && cfg.auto); } catch (x) {} }
+        const novo = { email: s.email, nome: s.nome || "", criadoEm: agora, ultimoAcesso: agora, acessos: 1,
+          aparelho: aparelhoDe(navigator.userAgent, NO_APP_ANDROID), versao: VERSAO_APP };
+        try { d = await contaApi.gravar(s.uid, Object.assign({}, novo, { status: dono || autoLib ? "liberado" : "pendente" }), s.idToken, true); }
+        catch (x) { if (!autoLib) throw x; d = await contaApi.gravar(s.uid, Object.assign({}, novo, { status: "pendente" }), s.idToken, true); }
         contou.current = true;
+        vistoEm.current = agora;
       } else if (dono && d.status !== "liberado") {
         d = await contaApi.gravar(s.uid, { status: "liberado" }, s.idToken);
       }
-      const status = d && d.status;
+      const status = situacaoConta(d, agora);
       if (status === "liberado" && !contou.current) {
         contou.current = true;
+        vistoEm.current = agora;
         contaApi.gravar(s.uid, { ultimoAcesso: agora, acessos: (d.acessos || 0) + 1, aparelho: aparelhoDe(navigator.userAgent, NO_APP_ANDROID), versao: VERSAO_APP }, s.idToken).catch(() => {});
+      } else if (status === "liberado" && agora - vistoEm.current > 10 * 60000) {
+        // de volta ao app: o "último acesso" do painel acompanha (é o "online")
+        vistoEm.current = agora;
+        contaApi.gravar(s.uid, { ultimoAcesso: agora }, s.idToken).catch(() => {});
       }
-      gravarSessaoConta(Object.assign({}, s, { status: status, conferidoEm: agora, nome: (d && d.nome) || s.nome }));
+      if (status === "liberado" && recadoNovo(d)) setRecado({ texto: d.aviso, uid: s.uid });
+      gravarSessaoConta(Object.assign({}, s, { status: d && d.status, ate: (d && d.ate) || 0, motivo: (d && d.motivo) || "", conferidoEm: agora, nome: (d && d.nome) || s.nome }));
       // o dono fica sabendo, ao abrir o app, de quem está esperando a liberação
       if (dono && status === "liberado") contaApi.listar(s.idToken).then((l) => setPendentes(l.filter((c) => c.status === "pendente").length), () => {});
-      setFase(status === "liberado" ? "dentro" : status === "bloqueado" ? "bloqueado" : "aguardando");
+      setFase(status === "liberado" ? "dentro" : status === "bloqueado" ? "bloqueado" : status === "vencido" ? "vencido" : "aguardando");
     } catch (e) {
       if (e.semRede) {
         setFase((f) => (f === "dentro" ? "dentro" : liberadoSemRede(s, Date.now()) ? "dentro" : "semRede"));
@@ -30541,8 +30622,18 @@ function Porteiro({ children }) {
   if (!ligado || MODO_OCULOS || MODO_BOLSO || MODO_CORRIDA) { CONTA_ATUAL = null; return children; }
   const s = lerSessaoConta();
   if (fase === "dentro") {
-    CONTA_ATUAL = s ? { email: s.email, nome: s.nome, uid: s.uid, dono: ehEmailDono(s.email) && !!s.verificado, sair: sair } : null;
-    return CONTA_ATUAL && CONTA_ATUAL.dono ? React.cloneElement(children, { contaPendentes: pendentes, onContaVista: () => setPendentes(0) }) : children;
+    CONTA_ATUAL = s ? { email: s.email, nome: s.nome, uid: s.uid, ate: s.ate || 0, dono: ehEmailDono(s.email) && !!s.verificado, sair: sair } : null;
+    const app = CONTA_ATUAL && CONTA_ATUAL.dono ? React.cloneElement(children, { contaPendentes: pendentes, onContaVista: () => setPendentes(0) }) : children;
+    if (!recado) return app;
+    return (
+      <React.Fragment>
+        {app}
+        <RecadoDoDono texto={recado.texto} onOk={async () => {
+          setRecado(null);
+          try { const t2 = await tokenValido(lerSessaoConta()); await contaApi.gravar(recado.uid, { avisoVisto: Date.now() }, t2.idToken); } catch (x) {}
+        }} />
+      </React.Fragment>
+    );
   }
   CONTA_ATUAL = null;
   if (fase === "entrar") return <TelaConta msgInicial={msg} onEntrou={() => { setMsg(""); setFase("conferindo"); }} />;
@@ -30702,7 +30793,8 @@ function TelaEsperaConta({ fase, sessao, msg, onConferir, onConferirQuieto, onSa
     conferindo: ["⏳", "Conferindo o seu acesso…", null],
     aguardando: ["🎉", (primeiro ? "Pronto, " + primeiro + "!" : "Pronto!") + " Cadastro enviado",
       "O seu pedido de acesso chegou ao criador do app. Assim que ele liberar, o Treino Livre abre sozinho aqui (pode deixar esta tela aberta) ou na próxima vez que você abrir o app."],
-    bloqueado: ["⛔", "Acesso bloqueado", "O seu acesso ao Treino Livre foi bloqueado. Para falar com o criador do app: Instagram @" + INSTAGRAM + "."],
+    bloqueado: ["⛔", "Acesso bloqueado", "O seu acesso ao Treino Livre foi bloqueado." + (sessao && sessao.motivo ? " Motivo: " + sessao.motivo + "." : "") + " Para falar com o criador do app: Instagram @" + INSTAGRAM + "."],
+    vencido: ["⌛", "O seu acesso venceu", "O prazo do seu acesso terminou" + (sessao && sessao.ate ? " em " + new Date(sessao.ate).toLocaleDateString("pt-BR") : "") + ". Os seus treinos continuam guardados no celular. Para renovar, fale com o criador do app: Instagram @" + INSTAGRAM + ". Assim que ele renovar, toque em Conferir agora."],
     verificar: ["✉️", "Confirme o seu e-mail", "Mandamos um link para " + email + ". Abra o e-mail, toque no link e volte aqui. (Só a conta do dono precisa disto: é o que protege o painel.)"],
     semRede: ["📵", "Sem internet", "Para conferir o seu acesso, o app precisa de internet desta vez. Conecte e toque em Conferir agora."],
     erro: ["⚠️", "Não deu para conferir", msg || "Tente de novo em instantes."],
@@ -30739,26 +30831,47 @@ function TelaEsperaConta({ fase, sessao, msg, onConferir, onConferirQuieto, onSa
   );
 }
 
-// O cartão da conta nos Ajustes: quem está dentro, sair, e o painel (só o dono)
+// O cartão da conta nos Ajustes: quem está dentro, trocar a senha, sair,
+// apagar a conta e, só para o dono, o painel
 function CartaoConta({ onPainel }) {
   const c = CONTA_ATUAL;
   const [aviso, setAviso] = useState("");
+  const [apagando, setApagando] = useState(false);
   if (!c) return null;
   const trocarSenha = async () => {
     setAviso("Mandando…");
     try { await contaApi.esqueci(c.email); setAviso("Mandamos para " + c.email + " um link para criar uma senha nova. Olhe também o spam."); }
     catch (x) { setAviso(erroDeConta(x.message)); }
   };
+  // LGPD: a pessoa apaga a própria conta sem precisar pedir a ninguém. Os
+  // treinos ficam no celular, como sempre ficaram.
+  const apagar = async () => {
+    if (!apagando) { setApagando(true); return; }
+    setAviso("Apagando…");
+    try {
+      const s = await tokenValido(lerSessaoConta());
+      try { await contaApi.apagarDoc(s.uid, s.idToken); } catch (x) {}
+      await contaApi.apagarConta(s.idToken);
+      try { localStorage.removeItem(CHAVE_EMAIL_CONTA); } catch (x) {}
+      c.sair();
+    } catch (x) { setAviso(erroDeConta(x.message)); setApagando(false); }
+  };
   return (
     <div style={S.card}>
       <div style={S.label}>{c.dono ? "👑 Sua conta (dono do app)" : "👤 Sua conta"}</div>
       <div style={{ fontSize: 14, margin: "6px 0 10px" }}>{c.nome ? <b>{c.nome}</b> : null}{c.nome ? " · " : ""}{c.email}</div>
+      {c.ate > 0 && <div style={{ fontSize: 13, color: "var(--cinza)", marginBottom: 10 }}>Acesso liberado até {new Date(c.ate).toLocaleDateString("pt-BR")}.</div>}
       {c.dono && onPainel && (
         <button onClick={onPainel} style={{ ...S.btn, width: "100%", marginBottom: 8 }}>👥 Painel de usuários</button>
       )}
       <button onClick={trocarSenha} style={{ ...S.btnGhost, width: "100%", marginBottom: 8 }}>🔑 Trocar minha senha</button>
       {aviso && <div role="status" style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 8 }}>{aviso}</div>}
-      <button onClick={c.sair} style={{ ...S.btnGhost, width: "100%" }}>Sair da conta</button>
+      <button onClick={c.sair} style={{ ...S.btnGhost, width: "100%", marginBottom: 8 }}>Sair da conta</button>
+      {!c.dono && (
+        <button onClick={apagar} style={{ background: "none", border: "none", color: apagando ? "var(--perigo)" : "var(--cinza2)", fontWeight: 700, cursor: "pointer", fontSize: 12.5, width: "100%", padding: "6px 0" }}>
+          {apagando ? "Toque de novo para apagar a conta de vez (os treinos ficam no celular)" : "Apagar minha conta"}
+        </button>
+      )}
     </div>
   );
 }
@@ -30773,6 +30886,19 @@ function quandoAcessou(ms, agora) {
   return new Date(ms).toLocaleDateString("pt-BR");
 }
 
+// O recado do dono, mostrado uma vez por cima do app
+function RecadoDoDono({ texto, onOk }) {
+  return (
+    <div role="dialog" aria-label="Recado do criador do app" style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ ...S.card, maxWidth: 360, width: "100%", marginBottom: 0 }}>
+        <div style={S.label}>📩 Recado do criador do app</div>
+        <div style={{ fontSize: 15, lineHeight: 1.6, margin: "10px 0 16px", whiteSpace: "pre-line" }}>{texto}</div>
+        <button onClick={onOk} style={{ ...S.btn, width: "100%" }}>Entendi</button>
+      </div>
+    </div>
+  );
+}
+
 // O painel: só o dono chega aqui, e só ele consegue ler a lista (as regras do
 // Firestore recusam qualquer outra conta, mesmo que alguém abra esta tela).
 function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
@@ -30781,112 +30907,231 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
   const [filtro, setFiltro] = useState("todos");
   const [busca, setBusca] = useState("");
   const [mexendo, setMexendo] = useState(null);
+  const [avisos, setAvisos] = useState({});
+  const [aberto, setAberto] = useState(null);      // o "Mais opções" de qual conta
+  const [editando, setEditando] = useState(null);  // { uid, campo, valor }
+  const [escolhendoPrazo, setEscolhendoPrazo] = useState(null);
+  const [auto, setAuto] = useState(null);
+  const token = async () => (await tokenValido(lerSessaoConta())).idToken;
+  const avisar = (uid, t) => setAvisos((a) => Object.assign({}, a, { [uid]: t }));
   const carregar = async () => {
     setErro("");
     try {
-      const s = await tokenValido(lerSessaoConta());
-      setLista(ordenarContas(await contaApi.listar(s.idToken)));
+      const t = await token();
+      setLista(ordenarContas(await contaApi.listar(t), Date.now()));
+      contaApi.lerConfig(t).then((cfg) => setAuto(!!(cfg && cfg.auto)), () => setAuto(false));
     } catch (x) { setErro(erroDeConta(x.message)); if (!lista) setLista([]); }
   };
   useEffect(() => { carregar(); }, []);
-  // Ninguém vê nem define a senha de outra pessoa (o Google a guarda cifrada):
-  // o reset é o link de senha nova no e-mail dela, mandado daqui.
-  const [avisos, setAvisos] = useState({});
+  // grava campos numa conta e reflete na lista sem recarregar tudo
+  const gravar = async (c, campos, msgOk) => {
+    setMexendo(c.uid);
+    try {
+      await contaApi.gravar(c.uid, campos, await token());
+      setLista((l) => ordenarContas(l.map((x) => (x.uid === c.uid ? Object.assign({}, x, campos) : x)), Date.now()));
+      if (msgOk) avisar(c.uid, msgOk);
+      setMexendo(null);
+      return true;
+    } catch (x) { setErro(erroDeConta(x.message)); setMexendo(null); return false; }
+  };
+  const liberar = (c, dias) => {
+    setEscolhendoPrazo(null);
+    const ate = prazoAte(dias, Date.now());
+    gravar(c, { status: "liberado", ate: ate, motivo: "", decididoEm: Date.now() },
+      "✅ Liberado" + (ate ? " até " + new Date(ate).toLocaleDateString("pt-BR") : " sem prazo") + ".");
+  };
   const resetarSenha = async (c) => {
     setMexendo(c.uid);
     try {
       await contaApi.esqueci(c.email);
+      avisar(c.uid, "🔑 Link de senha nova mandado para " + c.email + ". Avise a pessoa para olhar o e-mail (e o spam).");
       const agoraR = Date.now();
-      setAvisos((a) => Object.assign({}, a, { [c.uid]: "🔑 Link de senha nova mandado para " + c.email + ". Avise a pessoa para olhar o e-mail (e o spam)." }));
-      try {
-        const s = await tokenValido(lerSessaoConta());
-        await contaApi.gravar(c.uid, { senhaLinkEm: agoraR }, s.idToken);
-        setLista((l) => l.map((x) => (x.uid === c.uid ? Object.assign({}, x, { senhaLinkEm: agoraR }) : x)));
-      } catch (x) {}
-    } catch (x) { setAvisos((a) => Object.assign({}, a, { [c.uid]: erroDeConta(x.message) })); }
+      try { await contaApi.gravar(c.uid, { senhaLinkEm: agoraR }, await token()); setLista((l) => l.map((x) => (x.uid === c.uid ? Object.assign({}, x, { senhaLinkEm: agoraR }) : x))); } catch (x) {}
+    } catch (x) { avisar(c.uid, erroDeConta(x.message)); }
     setMexendo(null);
   };
-  const mudar = async (c, status) => {
+  const remover = async (c) => {
     setMexendo(c.uid);
     try {
-      const s = await tokenValido(lerSessaoConta());
-      await contaApi.gravar(c.uid, { status: status, decididoEm: Date.now() }, s.idToken);
-      setLista((l) => ordenarContas(l.map((x) => (x.uid === c.uid ? Object.assign({}, x, { status: status, decididoEm: Date.now() }) : x))));
+      await contaApi.apagarDoc(c.uid, await token());
+      setLista((l) => l.filter((x) => x.uid !== c.uid));
     } catch (x) { setErro(erroDeConta(x.message)); }
     setMexendo(null);
   };
+  const salvarEdicao = async () => {
+    const e = editando;
+    const c = (lista || []).find((x) => x.uid === e.uid);
+    if (!c) { setEditando(null); return; }
+    const v = String(e.valor || "").trim().slice(0, 500);
+    let ok;
+    if (e.campo === "aviso") ok = await gravar(c, { aviso: v, avisoEm: v ? Date.now() : 0 }, v ? "📩 Recado guardado: a pessoa vê na próxima vez que abrir o app." : "Recado apagado.");
+    else if (e.campo === "bloquear") ok = await gravar(c, { status: "bloqueado", motivo: v, decididoEm: Date.now() }, "⛔ Bloqueado. A pessoa é barrada na próxima vez que abrir o app (ou em até 15 min).");
+    else ok = await gravar(c, { [e.campo]: v }, "📝 Nota guardada (só você vê).");
+    if (ok) setEditando(null);
+  };
+  const mudarAuto = async () => {
+    const novo = !auto;
+    try { await contaApi.gravarConfig({ auto: novo }, await token()); setAuto(novo); }
+    catch (x) { setErro(erroDeConta(x.message) + " (Publique as regras novas do Firebase: firebase/firestore.rules.)"); }
+  };
+  const liberarTodos = async () => {
+    const pend = (lista || []).filter((c) => situacaoConta(c, Date.now()) === "pendente");
+    for (const c of pend) await gravar(c, { status: "liberado", ate: 0, motivo: "", decididoEm: Date.now() });
+  };
+  const baixarCsv = () => {
+    const blob = new Blob([csvContas(lista || [], Date.now())], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "usuarios-treino-livre-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  };
   const agora = Date.now();
   const r = resumoContas(lista || [], agora);
-  const mostrar = filtrarContas(lista || [], filtro, busca);
+  const mostrar = filtrarContas(lista || [], filtro, busca, agora);
   const eu = CONTA_ATUAL && CONTA_ATUAL.uid;
-  const chip = (id, rot) => (
+  const chip = (id, rot, n) => (
     <button key={id} onClick={() => setFiltro(id)} aria-pressed={filtro === id}
       style={{ flex: "1 1 auto", padding: "8px 8px", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 12.5,
-        border: "1px solid " + (filtro === id ? "var(--marca)" : "var(--borda2)"), background: filtro === id ? "var(--marca)" : "transparent", color: filtro === id ? "#fff" : "var(--texto)" }}>{rot}</button>
+        border: "1px solid " + (filtro === id ? "var(--marca)" : "var(--borda2)"), background: filtro === id ? "var(--marca)" : "transparent", color: filtro === id ? "#fff" : "var(--texto)" }}>{rot}{n ? " (" + n + ")" : ""}</button>
   );
-  const numero = (n, rot) => (
-    <div style={{ flex: "1 1 30%", textAlign: "center", padding: "8px 4px" }}>
+  const numero = (n, rot, f) => (
+    <button onClick={() => setFiltro(f)} style={{ flex: "1 1 30%", textAlign: "center", padding: "8px 4px", background: "none", border: "none", color: "var(--texto)", cursor: "pointer" }}>
       <div style={{ fontSize: 22, fontWeight: 900 }}>{n}</div>
       <div style={{ fontSize: 11, color: "var(--cinza)" }}>{rot}</div>
-    </div>
+    </button>
   );
+  const pequeno = { ...S.btnGhost, flex: "1 1 45%", padding: "8px 6px", fontSize: 12.5 };
   return (
     <div>
       <button onClick={onVoltar} style={{ display: "block", background: "none", border: "none", color: "var(--marca)", fontWeight: 800, fontSize: 14, cursor: "pointer", padding: "4px 0 12px" }}>← Voltar</button>
       <div style={S.card}>
         <div style={S.label}>👥 Painel de usuários</div>
-        <div style={{ fontSize: 12.5, color: "var(--cinza)", margin: "4px 0 8px", lineHeight: 1.5 }}>Só a sua conta vê esta tela. Quem se cadastra fica aguardando até você liberar.</div>
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", margin: "4px 0 8px", lineHeight: 1.5 }}>Só a sua conta vê esta tela. Toque num número para ver a lista dele.</div>
         <div style={{ display: "flex", flexWrap: "wrap" }}>
-          {numero(r.total, "contas")}
-          {numero(r.pendente, "aguardando")}
-          {numero(r.liberado, "liberadas")}
-          {numero(r.bloqueado, "bloqueadas")}
-          {numero(r.hoje, "entraram hoje")}
-          {numero(r.ativos7, "ativas em 7 dias")}
+          {numero(r.total, "contas", "todos")}
+          {numero(r.pendente, "aguardando", "pendente")}
+          {numero(r.online, "online agora", "online")}
+          {numero(r.hoje, "entraram hoje", "todos")}
+          {numero(r.ativos7, "ativas em 7 dias", "liberado")}
+          {numero(r.sumidos, "sumidas 30+ dias", "sumidos")}
         </div>
         <button onClick={carregar} style={{ ...S.btnGhost, width: "100%", marginTop: 6, fontSize: 13 }}>🔄 Atualizar a lista</button>
       </div>
+
+      <div style={S.card}>
+        <div style={S.label}>⚙ Como entram as contas novas</div>
+        <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 8, cursor: "pointer", fontSize: 13.5, lineHeight: 1.5 }}>
+          <input type="checkbox" checked={!!auto} disabled={auto === null} onChange={mudarAuto} style={{ marginTop: 3 }} />
+          <span><b>Aprovação automática.</b> {auto ? "Ligada: quem se cadastra já entra liberado. Você continua vendo todo mundo aqui e pode bloquear quando quiser." : "Desligada: quem se cadastra espera você liberar."}</span>
+        </label>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+          {r.pendente > 0 && (
+            <button onClick={() => pedirConfirmacao({ positivo: true, labelSim: "Liberar todos", msg: "Liberar as " + r.pendente + " contas que estão aguardando, sem prazo?" }, liberarTodos)}
+              style={{ ...S.btn, flex: "1 1 100%", padding: "10px 8px", fontSize: 14 }}>✅ Liberar todos que aguardam ({r.pendente})</button>
+          )}
+          <button onClick={baixarCsv} disabled={!lista || !lista.length} style={{ ...S.btnGhost, flex: 1, padding: "9px 8px", fontSize: 13 }}>📥 Baixar a lista (planilha)</button>
+        </div>
+      </div>
+
       {erro && <div role="alert" style={{ ...S.card, color: "var(--perigo)", fontSize: 13.5 }}>{erro}</div>}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
         {chip("todos", "Todos")}
-        {chip("pendente", "⏳ Aguardando" + (r.pendente ? " (" + r.pendente + ")" : ""))}
+        {chip("pendente", "⏳ Aguardando", r.pendente)}
         {chip("liberado", "✅ Liberados")}
-        {chip("bloqueado", "⛔ Bloqueados")}
+        {chip("online", "🟢 Online", r.online)}
+        {chip("sumidos", "💤 Sumidos", r.sumidos)}
+        {chip("vencendo", "⌛ Prazo", r.vencendo)}
+        {chip("bloqueado", "⛔ Bloqueados", r.bloqueado)}
       </div>
       <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou e-mail" aria-label="Buscar por nome ou e-mail" style={{ ...S.input, marginBottom: 10 }} />
       {lista === null && <div style={{ ...S.card, color: "var(--cinza)" }}>Carregando…</div>}
       {lista && !mostrar.length && <div style={{ ...S.card, color: "var(--cinza)", fontSize: 13.5 }}>Nenhuma conta {filtro === "todos" ? "" : "nesta lista"} ainda.</div>}
       {mostrar.map((c) => {
-        const st = STATUS_CONTA[c.status] || STATUS_CONTA.pendente;
+        const sit = situacaoConta(c, agora);
+        const st = STATUS_CONTA[sit] || STATUS_CONTA.pendente;
         const souEu = c.uid === eu;
+        const on = onlineAgora(c, agora);
+        const ed = editando && editando.uid === c.uid ? editando : null;
         return (
-          <div key={c.uid} style={{ ...S.card, borderColor: c.status === "pendente" ? "var(--obs)" : undefined }}>
+          <div key={c.uid} style={{ ...S.card, borderColor: sit === "pendente" ? "var(--obs)" : undefined }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 900, fontSize: 15 }}>{c.nome || "(sem nome)"}{souEu ? " · você" : ""}</div>
+                <div style={{ fontWeight: 900, fontSize: 15 }}>{on ? "🟢 " : ""}{c.nome || "(sem nome)"}{souEu ? " · você" : ""}</div>
                 <div style={{ fontSize: 13, color: "var(--cinza)", wordBreak: "break-all" }}>{c.email}</div>
               </div>
               <span style={{ fontSize: 12, fontWeight: 800, color: st.cor, whiteSpace: "nowrap" }}>{st.icone} {st.nome}</span>
             </div>
             <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.6, marginTop: 6 }}>
-              Cadastro: {c.criadoEm ? new Date(c.criadoEm).toLocaleDateString("pt-BR") : "—"} · Último acesso: {quandoAcessou(c.ultimoAcesso, agora)}
+              Cadastro: {c.criadoEm ? new Date(c.criadoEm).toLocaleDateString("pt-BR") : "—"} · Último acesso: {on ? "online agora" : quandoAcessou(c.ultimoAcesso, agora)}
               <br />{c.acessos || 0} {plural(c.acessos || 0, "acesso", "acessos")}{c.aparelho ? " · " + c.aparelho : ""}{c.versao ? " · versão " + c.versao : ""}
+              {c.ate > 0 && <><br />{sit === "vencido" ? "Prazo venceu em " : "Liberado até "}{new Date(c.ate).toLocaleDateString("pt-BR")}</>}
+              {sit === "bloqueado" && c.motivo ? <><br />Motivo do bloqueio: {c.motivo}</> : null}
+              {c.aviso ? <><br />📩 Recado: “{c.aviso}” {(c.avisoVisto || 0) >= (c.avisoEm || 0) ? "(visto)" : "(ainda não visto)"}</> : null}
               {c.senhaLinkEm ? <><br />Último link de senha nova: {quandoAcessou(c.senhaLinkEm, agora)}</> : null}
             </div>
-            {!souEu && (
+            {c.nota ? <div style={{ fontSize: 12.5, color: "var(--obs)", fontStyle: "italic", marginTop: 6 }}>📝 {c.nota}</div> : null}
+
+            {!souEu && escolhendoPrazo !== c.uid && !ed && (
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                {c.status !== "liberado" && (
-                  <button disabled={mexendo === c.uid} onClick={() => mudar(c, "liberado")} style={{ ...S.btn, flex: 1, padding: "9px 8px", fontSize: 13.5 }}>✅ {c.status === "bloqueado" ? "Desbloquear" : "Liberar"}</button>
+                {sit !== "liberado" && (
+                  <button disabled={mexendo === c.uid} onClick={() => setEscolhendoPrazo(c.uid)} style={{ ...S.btn, flex: 1, padding: "9px 8px", fontSize: 13.5 }}>
+                    ✅ {sit === "bloqueado" ? "Desbloquear" : sit === "vencido" ? "Renovar" : "Liberar"}
+                  </button>
                 )}
-                {c.status !== "bloqueado" && (
-                  <button disabled={mexendo === c.uid} onClick={() => pedirConfirmacao("Bloquear o acesso de " + (c.nome || c.email) + "? Na próxima vez que abrir o app (ou em até 15 minutos, se estiver com ele aberto), a pessoa não entra mais. Dá para desbloquear depois.", () => mudar(c, "bloqueado"))}
+                {sit !== "bloqueado" && (
+                  <button disabled={mexendo === c.uid} onClick={() => setEditando({ uid: c.uid, campo: "bloquear", valor: "" })}
                     style={{ ...S.btnGhost, flex: 1, padding: "9px 8px", fontSize: 13.5, color: "var(--perigo)", borderColor: "var(--perigo)" }}>⛔ Bloquear</button>
                 )}
               </div>
             )}
-            <button disabled={mexendo === c.uid} onClick={() => pedirConfirmacao({ positivo: true, labelSim: "Mandar o link",
-              msg: "Resetar a senha de " + (c.nome || c.email) + "?\n\nChega no e-mail " + c.email + " um link para a pessoa criar uma senha nova. A senha atual continua valendo até ela criar a nova." }, () => resetarSenha(c))}
-              style={{ ...S.btnGhost, width: "100%", marginTop: 8, padding: "9px 8px", fontSize: 13.5 }}>🔑 Resetar a senha (mandar link)</button>
+            {escolhendoPrazo === c.uid && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>Liberar por quanto tempo?</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {PRAZOS_ACESSO.map((p) => (
+                    <button key={p.dias} onClick={() => liberar(c, p.dias)} style={{ ...(p.dias ? S.btnGhost : S.btn), flex: "1 1 30%", padding: "9px 6px", fontSize: 13 }}>{p.nome}</button>
+                  ))}
+                  <button onClick={() => setEscolhendoPrazo(null)} style={{ background: "none", border: "none", color: "var(--cinza)", cursor: "pointer", fontSize: 13, flex: "1 1 100%", padding: 6 }}>Cancelar</button>
+                </div>
+              </div>
+            )}
+            {ed && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>
+                  {ed.campo === "bloquear" ? "Motivo do bloqueio (opcional: a pessoa vê)" : ed.campo === "aviso" ? "Recado para a pessoa (aparece uma vez quando ela abrir o app)" : "Nota sobre esta conta (só você vê)"}
+                </div>
+                <textarea value={ed.valor} onChange={(e) => setEditando(Object.assign({}, ed, { valor: e.target.value }))} rows={3} maxLength={500}
+                  aria-label="Texto" style={{ ...S.input, minHeight: 70, fontFamily: "inherit" }} />
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button onClick={() => setEditando(null)} style={{ ...S.btnGhost, flex: 1, padding: "9px 8px", fontSize: 13.5 }}>Cancelar</button>
+                  <button disabled={mexendo === c.uid} onClick={salvarEdicao}
+                    style={{ ...S.btn, flex: 1, padding: "9px 8px", fontSize: 13.5, background: ed.campo === "bloquear" ? "#ED4956" : GRAD }}>
+                    {ed.campo === "bloquear" ? "⛔ Bloquear" : "Salvar"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <button onClick={() => setAberto(aberto === c.uid ? null : c.uid)} aria-expanded={aberto === c.uid}
+              style={{ background: "none", border: "none", color: "var(--marca)", fontWeight: 800, cursor: "pointer", fontSize: 13, padding: "8px 0 0" }}>
+              {aberto === c.uid ? "▴ Menos opções" : "⋯ Mais opções"}
+            </button>
+            {aberto === c.uid && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                {!souEu && sit === "liberado" && <button onClick={() => setEscolhendoPrazo(c.uid)} style={pequeno}>⏳ Mudar o prazo</button>}
+                {!souEu && <button onClick={() => setEditando({ uid: c.uid, campo: "aviso", valor: c.aviso || "" })} style={pequeno}>📩 Mandar recado</button>}
+                <button onClick={() => setEditando({ uid: c.uid, campo: "nota", valor: c.nota || "" })} style={pequeno}>📝 Nota</button>
+                <button disabled={mexendo === c.uid} onClick={() => pedirConfirmacao({ positivo: true, labelSim: "Mandar o link",
+                  msg: "Resetar a senha de " + (c.nome || c.email) + "?\n\nChega no e-mail " + c.email + " um link para a pessoa criar uma senha nova. A senha atual continua valendo até ela criar a nova." }, () => resetarSenha(c))}
+                  style={pequeno}>🔑 Resetar a senha</button>
+                {!souEu && (
+                  <button disabled={mexendo === c.uid} onClick={() => pedirConfirmacao({ labelSim: "Remover",
+                    msg: "Remover " + (c.nome || c.email) + " da lista?\n\nSe a pessoa entrar de novo, ela volta como um cadastro novo. Para impedir que entre, use Bloquear. Para apagar a conta de vez (pedido dela), use o Firebase: Authentication › Usuários." }, () => remover(c))}
+                    style={{ ...pequeno, color: "var(--perigo)" }}>🗑 Remover da lista</button>
+                )}
+              </div>
+            )}
             {avisos[c.uid] && <div role="status" style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 6 }}>{avisos[c.uid]}</div>}
           </div>
         );

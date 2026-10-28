@@ -24,10 +24,10 @@
   const sessao = (c) => ({ idToken: "tok:" + c.uid, refreshToken: "ref:" + c.uid, localId: c.uid, email: c.email, expiresIn: "3600" });
   const daDoc = (o) => {
     const fields = {};
-    Object.keys(o).forEach((k) => { const v = o[k]; fields[k] = typeof v === "number" ? { integerValue: String(v) } : v === null ? { nullValue: null } : { stringValue: String(v) }; });
+    Object.keys(o).forEach((k) => { const v = o[k]; fields[k] = typeof v === "number" ? { integerValue: String(v) } : typeof v === "boolean" ? { booleanValue: v } : v === null ? { nullValue: null } : { stringValue: String(v) }; });
     return fields;
   };
-  const deCampos = (f) => { const o = {}; Object.keys(f || {}).forEach((k) => { const x = f[k]; o[k] = "integerValue" in x ? +x.integerValue : "stringValue" in x ? x.stringValue : null; }); return o; };
+  const deCampos = (f) => { const o = {}; Object.keys(f || {}).forEach((k) => { const x = f[k]; o[k] = "integerValue" in x ? +x.integerValue : "booleanValue" in x ? !!x.booleanValue : "stringValue" in x ? x.stringValue : null; }); return o; };
   const original = window.fetch;
   window.fetch = async function (url, init) {
     const u = String(url);
@@ -55,6 +55,12 @@
       }
       return resp(200, {});
     }
+    if (/accounts:delete/.test(u)) {
+      const uid = String(corpo.idToken).slice(4);
+      Object.keys(e.contas).forEach((k) => { if (e.contas[k].uid === uid) delete e.contas[k]; });
+      gravar(e);
+      return resp(200, {});
+    }
     if (/accounts:lookup/.test(u)) {
       const uid = String(corpo.idToken).slice(4);
       const c = Object.values(e.contas).find((x) => x.uid === uid);
@@ -75,16 +81,24 @@
         if (!dono) return erro(403, "PERMISSION_DENIED");
         return resp(200, { documents: Object.keys(e.docs).map((uid) => ({ name: "x/documents/usuarios/" + uid, fields: daDoc(e.docs[uid]) })) });
       }
+      if (caminho === "config/acesso") {
+        if (metodo === "GET") return e.config ? resp(200, { name: "x/documents/config/acesso", fields: daDoc(e.config) }) : erro(404, "NOT_FOUND");
+        if (!dono) return erro(403, "PERMISSION_DENIED");
+        e.config = Object.assign({}, e.config || {}, deCampos(JSON.parse(init.body).fields)); gravar(e);
+        return resp(200, { name: "x/documents/config/acesso", fields: daDoc(e.config) });
+      }
       const uid = caminho.split("/")[1];
       if (!dono && eu.uid !== uid) return erro(403, "PERMISSION_DENIED");
+      if (metodo === "DELETE") { delete e.docs[uid]; gravar(e); return resp(200, {}); }
       if (metodo === "GET") return e.docs[uid] ? resp(200, { name: "x/documents/usuarios/" + uid, fields: daDoc(e.docs[uid]) }) : erro(404, "NOT_FOUND");
       const novo = deCampos(JSON.parse(init.body).fields);
       const existe = !!e.docs[uid];
       if (/exists=false/.test(u) && existe) return erro(409, "ALREADY_EXISTS");
       if (/exists=true/.test(u) && !existe) return erro(404, "NOT_FOUND");
       if (!dono) {
-        if (!existe && (novo.status !== "pendente" || novo.email !== eu.email)) return erro(403, "PERMISSION_DENIED");
-        if (existe && Object.keys(novo).some((k) => ["ultimoAcesso", "acessos", "aparelho", "versao"].indexOf(k) < 0)) return erro(403, "PERMISSION_DENIED");
+        const auto = !!(e.config && e.config.auto);
+        if (!existe && (!(novo.status === "pendente" || (novo.status === "liberado" && auto)) || novo.email !== eu.email)) return erro(403, "PERMISSION_DENIED");
+        if (existe && Object.keys(novo).some((k) => ["ultimoAcesso", "acessos", "aparelho", "versao", "avisoVisto"].indexOf(k) < 0)) return erro(403, "PERMISSION_DENIED");
       }
       e.docs[uid] = Object.assign({}, e.docs[uid] || {}, novo); gravar(e);
       return resp(200, { name: "x/documents/usuarios/" + uid, fields: daDoc(e.docs[uid]) });

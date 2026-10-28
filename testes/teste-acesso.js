@@ -9,7 +9,7 @@ function pedaco(de, ate) {
 }
 const plural = (n, s, p) => (n === 1 ? s : p);
 eval(pedaco("// ---------------- ACESSO: AS CONTAS", "// ---------------- FIM DAS CONTAS") +
-  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO };");
+  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO, situacaoConta, prazoAte, recadoNovo, csvContas, filtroConta };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -67,6 +67,33 @@ teste("gmail.co vira gmail.com", "ana@gmail.com", A.sugerirEmail("ana@gmail.co")
 teste("e-mail certo: nada a sugerir", null, A.sugerirEmail("ana@gmail.com"));
 teste("domínio da empresa: não inventa", null, A.sugerirEmail("ana@globalpack.com.br"));
 teste("ainda digitando: não sugere", null, A.sugerirEmail("ana@gm"));
+
+console.log("\n--- prazo, recado, filtros e a planilha ---");
+{
+  const ag = Date.parse("2026-10-28T12:00:00");
+  teste("liberado sem prazo é liberado", "liberado", A.situacaoConta({ status: "liberado" }, ag));
+  teste("liberado com prazo vencido é vencido", "vencido", A.situacaoConta({ status: "liberado", ate: ag - 1 }, ag));
+  teste("bloqueado continua bloqueado mesmo com prazo", "bloqueado", A.situacaoConta({ status: "bloqueado", ate: ag + 864e5 }, ag));
+  teste("sem prazo: zero", 0, A.prazoAte(0, ag));
+  teste("30 dias vale até o fim do dia", "27/11/2026 23:59", new Date(A.prazoAte(30, ag)).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", ""));
+  teste("sem rede: liberado com prazo vencido não entra", false, A.liberadoSemRede({ status: "liberado", conferidoEm: ag, ate: ag - 1 }, ag));
+  teste("recado novo aparece", true, A.recadoNovo({ aviso: "Oi", avisoEm: 10, avisoVisto: 5 }));
+  teste("recado visto não volta", false, A.recadoNovo({ aviso: "Oi", avisoEm: 10, avisoVisto: 10 }));
+  const cs = [
+    { uid: "on", status: "liberado", ultimoAcesso: ag - 60000 },
+    { uid: "sumido", status: "liberado", ultimoAcesso: ag - 40 * 864e5 },
+    { uid: "nunca", status: "liberado" },
+    { uid: "vence", status: "liberado", ultimoAcesso: ag - 864e5, ate: ag + 3 * 864e5 },
+    { uid: "venceu", status: "liberado", ultimoAcesso: ag - 864e5, ate: ag - 864e5 },
+  ];
+  teste("online: abriu o app nos últimos 15 min", ["on"], cs.filter((c) => A.filtroConta(c, "online", ag)).map((c) => c.uid));
+  teste("sumidos: 30 dias sem abrir, ou nunca abriu", ["sumido", "nunca"], cs.filter((c) => A.filtroConta(c, "sumidos", ag)).map((c) => c.uid));
+  teste("prazo: vence em 7 dias ou já venceu", ["vence", "venceu"], cs.filter((c) => A.filtroConta(c, "vencendo", ag)).map((c) => c.uid));
+  teste("o vencido sobe na lista, logo depois de quem espera", ["venceu"], A.ordenarContas(cs, ag).slice(0, 1).map((c) => c.uid));
+  const csv = A.csvContas([{ nome: "Ana; Souza", email: "ana@x.com", status: "liberado", criadoEm: ag, acessos: 3, nota: 'diz "oi"' }], ag);
+  teste("planilha: cabeçalho com ponto e vírgula", true, csv.indexOf("Nome;E-mail;Situação") >= 0);
+  teste("planilha: texto com ; e aspas não quebra a coluna", true, csv.indexOf('"Ana; Souza";ana@x.com;Liberado;28/10/2026') >= 0 && csv.indexOf('"diz ""oi"""') >= 0);
+}
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

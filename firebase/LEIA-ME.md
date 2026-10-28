@@ -38,6 +38,14 @@ abre como sempre. Ele liga quando a chave do projeto entra no `index.html`
    não dão acesso a nada: quem protege são as regras do passo 6) e entram no
    `index.html`.
 
+## Regras novas (versão 2, 28/10/2026)
+
+A gestão completa do painel (aprovação automática, recado visto, a pessoa
+apagar a própria conta) precisa das regras novas. **Publique de novo**:
+Firestore Database › Regras › apague tudo › cole o `firebase/firestore.rules`
+inteiro › **Publicar**. Sem isso, o painel funciona como antes e a aprovação
+automática mostra um aviso.
+
 ## Assim que o Claude publicar com a chave
 
 **A partir desse momento, todo mundo que abrir o app cai na tela de login**,
@@ -52,6 +60,18 @@ inclusive você. Faça logo:
 Se alguém tiver criado uma conta com o seu e-mail antes de você, toque em
 **Entrar › Esqueci a senha**: o link chega na sua caixa, e a conta passa a ser
 sua. Sem confirmar o e-mail, ninguém passa por dono.
+
+## O que o painel faz
+
+- Os números do topo (contas, aguardando, online agora, entraram hoje,
+  ativas em 7 dias, sumidas há 30 dias): um toque filtra a lista.
+- **Aprovação automática**: ligada, quem se cadastra já entra.
+- **Liberar** com prazo (sem prazo, 7, 30, 90 dias ou 1 ano) e **Renovar**
+  quando vence; **Bloquear** com motivo (a pessoa vê).
+- **⋯ Mais opções** em cada conta: mudar o prazo, mandar recado (aparece uma
+  vez quando a pessoa abre o app), nota só sua, resetar a senha (link no
+  e-mail dela) e remover da lista.
+- **Liberar todos que aguardam** e **Baixar a lista** em planilha.
 
 ## O que cada pessoa vê
 

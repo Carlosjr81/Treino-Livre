@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-10-28g — Recado do criador, acesso com prazo e apagar a própria conta
+
+**Em uma frase:** o criador do app pode mandar um recado que aparece quando você abre o app, liberar o acesso por um
+tempo, e você pode apagar a sua conta quando quiser.
+
+**O que mudou**
+- **Recado do criador**: aparece uma vez, por cima do app, quando você abre.
+- **Acesso com prazo**: o acesso pode ser liberado por 7, 30 ou 90 dias, ou 1 ano. Quando vence, o app avisa e diz como
+  renovar; os treinos continuam no celular.
+- **Bloqueio com motivo**: quem é bloqueado vê o motivo.
+- **Apagar minha conta**: em Ajustes › Sua conta. Os treinos ficam no celular.
+- Por trás: o painel do criador do app ganhou aprovação automática, quem está online, quem sumiu, a lista em planilha
+  e "liberar todos".
+
+**Por que importa para quem treina**
+- A conta é sua: dá para apagar a qualquer momento, sem pedir a ninguém.
+
+**Como usar**
+- Ajustes › Sua conta: trocar a senha, sair ou apagar a conta.
+
+**Ideias de vídeo**
+- Nenhuma por enquanto: é a parte da conta, não do treino.
+
+**Não prometer**
+- Não anunciar planos pagos: o prazo de acesso existe, mas não há pagamento no app.
+- Apagar a conta não apaga os treinos do celular (eles nunca saíram dele).
+
+---
+
 ## 2026-10-28f — Conta no Treino Livre: cadastro e acesso liberado pelo criador
 
 **Em uma frase:** agora o Treino Livre tem conta: você se cadastra em 30 segundos (nome, e-mail e senha) e o criador do

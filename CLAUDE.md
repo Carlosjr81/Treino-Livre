@@ -147,11 +147,50 @@ retransmissor do Desafio). E-mail do dono: `EMAIL_DONO`.
   **Ninguém vê nem define a senha de outra pessoa**: sem servidor próprio (o
   Admin SDK), o reset é o `PASSWORD_RESET` do Firebase, um link no e-mail da
   pessoa. A senha antiga vale até ela criar a nova.
+- **A gestão completa** (pedido do dono: "implemente tudo que for possível e
+  necessário para uma boa gestão de usuários"). Tudo o que dá para fazer sem
+  servidor próprio (sem o Admin SDK do Firebase, que exigiria um):
+  - **Prazo de acesso** (`ate`, `PRAZOS_ACESSO`, `prazoAte` até o fim do
+    dia): liberar sem prazo, 7, 30, 90 dias ou 1 ano. Vencido é uma situação
+    própria (`situacaoConta`: pendente, liberado, bloqueado, **vencido**), com
+    tela "O seu acesso venceu" e "Renovar" no painel. Sem rede, vencido não
+    entra. É o caminho para um dia cobrar (assinatura), sem pagamento no app.
+  - **Aprovação automática** (`config/acesso.auto`, lida por qualquer conta,
+    escrita só pelo dono): ligada, o cadastro já nasce "liberado" — as regras
+    só aceitam isso com ela ligada. Com as regras antigas publicadas, o app cai
+    no "pendente".
+  - **Bloqueio com motivo** (`motivo`, a pessoa vê), **recado** (`aviso`,
+    `avisoEm`; aparece uma vez por cima do app, `RecadoDoDono`, e a pessoa
+    grava `avisoVisto`) e **nota** privada (`nota`, só o dono vê; a busca
+    acha por ela).
+  - **Online e sumidos**: o último acesso é regravado na volta ao app (no
+    máximo a cada 10 min), então "online" é ter aberto nos últimos 15 min
+    (`ONLINE_MS`); "sumidos" são liberados sem abrir há 30 dias
+    (`SUMIDO_MS`). Filtros: todos, aguardando, liberados, online, sumidos,
+    prazo (vence em 7 dias ou venceu), bloqueados. Os números do topo filtram.
+  - **Liberar todos que aguardam**, **baixar a lista** em planilha
+    (`csvContas`: ponto e vírgula e BOM, que o Excel em português abre nas
+    colunas certas) e **remover da lista** (apaga o documento; a conta de
+    login continua, e quem entrar de novo volta como cadastro novo — para
+    barrar, bloquear; para apagar de vez, o console do Firebase).
+  - **Apagar minha conta** (LGPD), nos Ajustes de quem não é o dono, com dois
+    toques: apaga o documento e a conta de login (`accounts:delete` com a
+    chave da própria pessoa). Os treinos ficam no celular.
+  - **Regras versão 2** em `firebase/firestore.rules`: config, auto,
+    `avisoVisto` e o apagar a própria conta. **O dono precisa publicá-las de
+    novo no console** (a sessão na nuvem não publica regras).
+  - O que fica para um servidor próprio, se um dia houver: apagar a conta de
+    login de outra pessoa pelo painel, mudar o e-mail de alguém, e qualquer
+    aviso por e-mail ou push quando chega um cadastro.
+  Coberto por `teste-acesso.js` (42 checagens) e no navegador com o Firebase
+  de mentira: liberar por 30 dias, recado, nota, aprovação automática ligada,
+  o cadastro novo entrando liberado, o recado aparecendo e marcado como visto,
+  a tela de vencido, o motivo do bloqueio e o apagar a própria conta.
 - **O dono é avisado** de quem espera: ao entrar, o porteiro conta os
   pendentes e o `TreinoLivre` recebe `contaPendentes` (por
   `cloneElement`: o porteiro está acima) e mostra "👥 N cadastros esperando a
   sua liberação ▶" no topo (fora do treino).
-- Coberto por `teste-acesso.js` (28 checagens) e no navegador com
+- Coberto por `teste-acesso.js` e no navegador com
   `testes/firebase-falso.js` (o Firebase de mentira, com as regras):
   `node testes/navegador.js --antes testes/firebase-falso.js --clicar "Criar conta" --preencher "E-mail=ana@x.com" ...`.
   Conferido assim: cadastro aguardando; dono cria a conta, abre o painel e
@@ -344,7 +383,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v138) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v139) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |

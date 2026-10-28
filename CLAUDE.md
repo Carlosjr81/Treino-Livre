@@ -387,7 +387,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v147) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v148) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3647,9 +3647,15 @@ câmera, óculos, finalizar, acrescentar exercício.
 
 **A música do fone e dos óculos não pode ser tocada** (pedido do dono, depois
 de a música parar e picotar com a tela travada):
-- **A voz não pede o foco do áudio.** A primeira versão pedia
-  (`GAIN_TRANSIENT_MAY_DUCK`), e o tocador abaixava ou parava a cada frase.
-  Hoje a voz entra por cima da música.
+- **A voz só pede o foco para abaixar a música, e só com música tocando**
+  (2026-10-28p). Sem foco nenhum, a voz entrava por baixo do Spotify nos
+  óculos com a tela travada e o dono não ouvia o Jarvis. Hoje, com música
+  (`haMusica` ou vista no último minuto), a fala e os bipes do fim do
+  descanso pedem `GAIN_TRANSIENT_MAY_DUCK` com uso de navegação (o mesmo do
+  Google Maps sobre o Spotify) e devolvem no fim da fala (`pedirFoco`,
+  `soltarFoco`): a música abaixa e volta, não pausa. Sem música, nada é
+  pedido. A primeira versão pedia sempre, mas quem pausava a música de
+  verdade era o reconhecedor (ver abaixo).
 - **O reconhecedor não fica abrindo e fechando.** O do Google pega o microfone
   e o foco a cada vez que começa a ouvir; sem ninguém falando ele fecha em
   segundos e recomeça, e a música pausava e voltava o tempo todo. No Android
@@ -3710,7 +3716,7 @@ alguns fones Bluetooth abrir o microfone já troca o fone para o modo de
 ligação, e a música para. Hoje, com música (a lembrada no último minuto), o
 `ouvir` não liga o gravador e confere de novo a cada 3 s (`reOuvir`), e o
 `vigia` desliga o gravador que já estava ligado quando a música começa. O
-diário abre com "ligado (app de 2026-10-28o…)": é como se sabe, pelo
+diário abre com "ligado (app de 2026-10-28p…)": é como se sabe, pelo
 diagnóstico, se o APK instalado é o novo — a versão dos Ajustes é a do site.
 
 **A música é olhada desde que o serviço liga** (`olheiro`, a cada 1 s;

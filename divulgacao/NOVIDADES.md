@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-10-28p — O Jarvis fala por cima da música com o celular travado
+
+**Em uma frase:** com o celular travado e a música tocando, a música abaixa um pouco enquanto o Jarvis
+fala e volta sozinha, sem pausar.
+
+**O que mudou**
+- O Jarvis volta a ser ouvido com a tela travada e o Spotify tocando (fone ou óculos Ray-Ban Meta), como
+  a voz do GPS por cima da música.
+
+**Por que importa para quem treina**
+- Música e avisos do treino juntos: série anotada, fim do descanso e próxima série, sem tirar o celular
+  do bolso.
+
+**Como usar**
+- Baixar o app Android de novo, instalar por cima e deixar o cartão "🔒 Jarvis com a tela travada"
+  ligado.
+
+**Ideias de vídeo**
+- Spotify tocando nos óculos, celular no bolso: no fim do descanso a música abaixa, o Jarvis chama para
+  a próxima série e a música volta.
+
+**Não prometer**
+- Com música tocando e a tela travada, o Jarvis fala mas não ouve comandos.
+
+---
+
 ## 2026-10-28o — Jarvis falando e a música tocando com o celular travado
 
 **Em uma frase:** com o celular travado, o Jarvis continua falando por cima da música, e a música não

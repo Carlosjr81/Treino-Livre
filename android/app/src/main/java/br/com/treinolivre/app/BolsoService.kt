@@ -202,7 +202,7 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
-        anotar("ligado (app de 2026-10-28o: a música manda no microfone)")
+        anotar("ligado (app de 2026-10-28p: a música abaixa quando o Jarvis fala)")
         linha.post(olheiro)
         try { getSystemService(AudioManager::class.java)?.registerAudioPlaybackCallback(espiaoSom, linha) } catch (e: Exception) { }
         val pm = getSystemService(PowerManager::class.java)
@@ -709,7 +709,9 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun tocarFim() {
+        olharMusica()
         somProprioAte = System.currentTimeMillis() + 2500L
+        pedirFoco() // os bipes também: a fala vem logo depois e solta o foco no fim
         try {
             val tom = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
             tom.startTone(ToneGenerator.TONE_PROP_BEEP2, 180)
@@ -764,7 +766,10 @@ class BolsoService : Service(), RecognitionListener {
         val kcal = c.optDouble("kcalMin", 0.0) * feito / 60.0
         if (resta <= 0) {
             crono = null
+            olharMusica()
             somProprioAte = System.currentTimeMillis() + 2000L
+            pedirFoco()
+            linha.postDelayed({ if (falando == 0) soltarFoco() }, 4000L)
             try {
                 val tom = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
                 tom.startTone(ToneGenerator.TONE_PROP_BEEP2, 200)
@@ -863,6 +868,8 @@ class BolsoService : Service(), RecognitionListener {
         val t = tts
         if (t == null || !ttsPronto) { linha.postDelayed({ if (ttsPronto) falar(texto) }, 600L); return }
         pararDeOuvir()
+        if (falando == 0) olharMusica()
+        pedirFoco()
         falando++
         val ok = t.speak(texto.take(800), TextToSpeech.QUEUE_ADD, null, "b" + System.nanoTime())
         if (ok != TextToSpeech.SUCCESS) acabouFala()
@@ -872,13 +879,37 @@ class BolsoService : Service(), RecognitionListener {
         falando = maxOf(0, falando - 1)
         somProprioAte = System.currentTimeMillis() + 1500L
         if (falando > 0) return
+        soltarFoco()
         if (pararDepoisDeFalar) { encerrar(); return }
         religar(2000L) // a música pausada por alguém volta devagar: espera para vê-la
     }
 
-    // A voz NÃO pede o foco do áudio (pedido do dono: "não mexa com a música do
-    // fone e dos óculos"). Com o foco, o tocador de música abaixava ou parava a
-    // cada frase; sem ele, a voz entra por cima da música, e a música segue.
+    // **Com música tocando, a voz pede o foco só para ABAIXAR a música**
+    // (GAIN_TRANSIENT_MAY_DUCK, uso de navegação: o mesmo que o Google Maps faz
+    // por cima do Spotify), e o devolve no fim da fala. Sem foco nenhum a voz
+    // entrava por baixo e, com o Spotify nos óculos e a tela travada, o dono não
+    // ouvia o Jarvis (2026-10-28p). Sem música, foco nenhum: não há o que abaixar.
+    // Quem pausava a música era o reconhecedor (ver musicaTocando), não a voz.
+    private var foco: android.media.AudioFocusRequest? = null
+    private fun pedirFoco() {
+        if (foco != null) return
+        val tem = haMusica() || System.currentTimeMillis() - musicaVistaEm < 60_000L
+        if (!tem) return
+        val am = getSystemService(AudioManager::class.java) ?: return
+        val f = android.media.AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+            .setAudioAttributes(AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build())
+            .setOnAudioFocusChangeListener { }
+            .build()
+        try { am.requestAudioFocus(f); foco = f } catch (e: Exception) { }
+    }
+    private fun soltarFoco() {
+        val f = foco ?: return
+        foco = null
+        try { getSystemService(AudioManager::class.java)?.abandonAudioFocusRequest(f) } catch (e: Exception) { }
+    }
 
     // ---- fim ----
     private fun aviso(): Notification {
@@ -902,6 +933,7 @@ class BolsoService : Service(), RecognitionListener {
 
     private fun encerrar() {
         linha.removeCallbacksAndMessages(null)
+        soltarFoco()
         try { getSystemService(AudioManager::class.java)?.unregisterAudioPlaybackCallback(espiaoSom) } catch (e: Exception) { }
         try { unregisterReceiver(tela) } catch (e: Exception) { }
         pararDeOuvir()

@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-10-28d — O cadastro ficou mais simples (ainda desligado)
+
+**Em uma frase:** a tela de criar conta, que ainda não está ligada, ficou mais fácil: um campo de senha só, sugestão de
+e-mail digitado errado, e a espera pela liberação abre o app sozinha.
+
+**O que mudou**
+- Quem chega pela primeira vez já cai em "Crie a sua conta grátis": nome, e-mail e senha, com "Mostrar" a senha.
+- E-mail digitado errado ("gmial.com") ganha a sugestão "Você quis dizer gmail.com?".
+- Depois de criar: "Pronto, Ana! Cadastro enviado", e o app abre sozinho quando o acesso for liberado.
+- Na volta, a tela já vem em "Entrar" com o e-mail preenchido.
+
+**Por que importa para quem treina**
+- Ainda nada muda: o login liga numa próxima versão.
+
+**Como usar**
+- Ainda não aparece no app.
+
+**Ideias de vídeo**
+- Nenhuma por enquanto.
+
+**Não prometer**
+- Não anunciar login nem cadastro antes da versão que os liga.
+
+---
+
 ## 2026-10-28c — Login com aprovação e painel de usuários (preparado, ainda desligado)
 
 **Em uma frase:** o app ganhou conta, cadastro com aprovação do criador e um painel só dele para ver quem acessa;

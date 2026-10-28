@@ -122,7 +122,24 @@ retransmissor do Desafio). E-mail do dono: `EMAIL_DONO`.
   programa pula o porteiro na própria cópia. O que é garantido de verdade é a
   lista de usuários e a aprovação.
 - A política de privacidade (`privacidade.html`) diz o que a conta guarda.
-- Coberto por `teste-acesso.js` (22 checagens) e no navegador com
+- **A gestão é dentro do próprio app** (pergunta do dono): Ajustes › 👑 Sua
+  conta › 👥 Painel de usuários. Não há outra página. O console do Firebase é
+  o segundo lugar, só para o raro (apagar uma conta a pedido, LGPD).
+- **O cadastro facilita** (pedido do dono: "bem sugestivo, facilite a vida
+  dos usuários"): quem nunca entrou no aparelho cai em "Crie a sua conta
+  grátis" (nome, e-mail e **uma** senha, com Mostrar; repetir a senha foi
+  tirado); `sugerirEmail` oferece "gmail.com" para "gmial.com" (domínios
+  comuns, até duas letras de distância, nunca o da empresa de ninguém); "Criar"
+  com e-mail já cadastrado leva ao "Entrar"; na volta, "Entrar" com o último
+  e-mail (`CHAVE_EMAIL_CONTA`). Na espera, "Pronto, Ana!", o convite para
+  seguir o Instagram, e **a tela confere sozinha a cada 30 s**: liberou, o app
+  abre sem toque. O botão Mostrar fica fora do `<label>` (dentro, o nome do
+  campo virava "Senha Mostrar").
+- **O dono é avisado** de quem espera: ao entrar, o porteiro conta os
+  pendentes e o `TreinoLivre` recebe `contaPendentes` (por
+  `cloneElement`: o porteiro está acima) e mostra "👥 N cadastros esperando a
+  sua liberação ▶" no topo (fora do treino).
+- Coberto por `teste-acesso.js` (28 checagens) e no navegador com
   `testes/firebase-falso.js` (o Firebase de mentira, com as regras):
   `node testes/navegador.js --antes testes/firebase-falso.js --clicar "Criar conta" --preencher "E-mail=ana@x.com" ...`.
   Conferido assim: cadastro aguardando; dono cria a conta, abre o painel e
@@ -314,7 +331,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v135) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v136) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |

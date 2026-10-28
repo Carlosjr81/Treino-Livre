@@ -804,7 +804,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-28c";
+const VERSAO_APP = "2026-10-28d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -27629,7 +27629,7 @@ function Portaria({ temDados, podeInstalar, onInstalar, onCopiarLink, onEntrar }
     </div>
   );
 }
-function TreinoLivre() {
+function TreinoLivre({ contaPendentes, onContaVista }) {
   const [aba, setAba] = useState("inicio");
   const [treinos, setTreinos] = useState([]);
   const [historico, setHistorico] = useState([]);
@@ -29743,6 +29743,11 @@ function TreinoLivre() {
         onTema={() => setTema(tema === "escuro" ? "claro" : "escuro")}
         onAjustes={() => setAba(aba === "ajustes" ? "inicio" : "ajustes")} />
       <div style={{ paddingTop: 14 }}>
+        {contaPendentes > 0 && aba !== "painelUsuarios" && aba !== "sessao" && (
+          <button onClick={() => { if (onContaVista) onContaVista(); setAba("painelUsuarios"); }} style={{ ...S.btn, width: "100%", marginBottom: 12, padding: "12px 10px" }}>
+            👥 {contaPendentes} {plural(contaPendentes, "cadastro esperando", "cadastros esperando")} a sua liberação ▶
+          </button>
+        )}
         {[["desafio", "🏁 Desafio em andamento"], ["intervalado", "⏱ Intervalado em andamento"], ["zumbi", "🧟 Missão em andamento"]].filter((v) => vivos[v[0]] && aba !== v[0]).map((v) => (
           <button key={v[0]} onClick={() => setAba(v[0])} style={{ ...S.btn, width: "100%", marginBottom: 12, padding: "12px 10px" }}>{v[1]} · voltar para ela ▶</button>
         ))}
@@ -30346,6 +30351,30 @@ const ERROS_CONTA = {
   PERMISSION_DENIED: "O servidor recusou. Se você é o dono, confirme o seu e-mail antes.",
   SEM_REDE: "Sem internet. Conecte e tente de novo.",
 };
+// "fulano@gmial.com": o erro de digitação que faz o link de senha nova nunca
+// chegar. Só sugere quando o domínio está a uma ou duas letras de um comum.
+const DOMINIOS_COMUNS = ["gmail.com", "hotmail.com", "outlook.com", "yahoo.com", "yahoo.com.br", "icloud.com", "live.com", "hotmail.com.br", "outlook.com.br", "bol.com.br", "uol.com.br", "terra.com.br"];
+function distanciaLetras(a, b) {
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > 2) return 3;
+  let ant = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let x = 1; x <= m; x++) {
+    const cur = [x];
+    for (let y = 1; y <= n; y++) cur[y] = Math.min(ant[y] + 1, cur[y - 1] + 1, ant[y - 1] + (a[x - 1] === b[y - 1] ? 0 : 1));
+    ant = cur;
+  }
+  return ant[n];
+}
+function sugerirEmail(email) {
+  const e = String(email || "").trim().toLowerCase();
+  const k = e.lastIndexOf("@");
+  if (k < 1) return null;
+  const dom = e.slice(k + 1);
+  if (!dom || dom.indexOf(".") < 0 || DOMINIOS_COMUNS.indexOf(dom) >= 0) return null;
+  let melhor = null, dist = 3;
+  DOMINIOS_COMUNS.forEach((d) => { const x = distanciaLetras(dom, d); if (x < dist) { dist = x; melhor = d; } });
+  return melhor && dist <= 2 ? e.slice(0, k + 1) + melhor : null;
+}
 function erroDeConta(codigo) {
   const c = String(codigo || "").split(" ")[0].split(":")[0];
   return ERROS_CONTA[c] || "Não deu certo (" + (codigo || "erro desconhecido") + "). Tente de novo.";
@@ -30408,6 +30437,8 @@ const contaApi = {
 };
 // A sessão (a chave do Firebase) e o último status conferido moram no aparelho
 const CHAVE_CONTA = "treinolivre:conta";
+// o último e-mail que entrou: na volta, a tela já vem em "Entrar" com ele
+const CHAVE_EMAIL_CONTA = "treinolivre:contaEmail";
 function lerSessaoConta() { try { return JSON.parse(localStorage.getItem(CHAVE_CONTA) || "null"); } catch (e) { return null; } }
 function gravarSessaoConta(s) { try { if (s) localStorage.setItem(CHAVE_CONTA, JSON.stringify(s)); else localStorage.removeItem(CHAVE_CONTA); } catch (e) {} }
 function sessaoDeResposta(j, antes) {
@@ -30440,6 +30471,7 @@ function Porteiro({ children }) {
     return liberadoSemRede(s, Date.now()) ? "dentro" : "conferindo";
   });
   const [msg, setMsg] = useState("");
+  const [pendentes, setPendentes] = useState(0);
   const conferindo = useRef(false);
   const contou = useRef(false);
   const sair = () => { gravarSessaoConta(null); CONTA_ATUAL = null; contou.current = false; setFase("entrar"); setMsg(""); };
@@ -30473,6 +30505,8 @@ function Porteiro({ children }) {
         contaApi.gravar(s.uid, { ultimoAcesso: agora, acessos: (d.acessos || 0) + 1, aparelho: aparelhoDe(navigator.userAgent, NO_APP_ANDROID), versao: VERSAO_APP }, s.idToken).catch(() => {});
       }
       gravarSessaoConta(Object.assign({}, s, { status: status, conferidoEm: agora, nome: (d && d.nome) || s.nome }));
+      // o dono fica sabendo, ao abrir o app, de quem está esperando a liberação
+      if (dono && status === "liberado") contaApi.listar(s.idToken).then((l) => setPendentes(l.filter((c) => c.status === "pendente").length), () => {});
       setFase(status === "liberado" ? "dentro" : status === "bloqueado" ? "bloqueado" : "aguardando");
     } catch (e) {
       if (e.semRede) {
@@ -30506,16 +30540,16 @@ function Porteiro({ children }) {
   const s = lerSessaoConta();
   if (fase === "dentro") {
     CONTA_ATUAL = s ? { email: s.email, nome: s.nome, uid: s.uid, dono: ehEmailDono(s.email) && !!s.verificado, sair: sair } : null;
-    return children;
+    return CONTA_ATUAL && CONTA_ATUAL.dono ? React.cloneElement(children, { contaPendentes: pendentes, onContaVista: () => setPendentes(0) }) : children;
   }
   CONTA_ATUAL = null;
   if (fase === "entrar") return <TelaConta msgInicial={msg} onEntrou={() => { setMsg(""); setFase("conferindo"); }} />;
-  return <TelaEsperaConta fase={fase} sessao={s} msg={msg} onConferir={() => { setFase("conferindo"); conferir(true); }} onSair={sair} />;
+  return <TelaEsperaConta fase={fase} sessao={s} msg={msg} onConferir={() => { setFase("conferindo"); conferir(true); }} onConferirQuieto={() => conferir()} onSair={sair} />;
 }
 
 function CaixaConta({ children }) {
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", boxSizing: "border-box", background: "var(--bg)", color: "var(--texto)" }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", boxSizing: "border-box", background: "var(--bg)", color: "var(--texto)", fontFamily: S.app.fontFamily }}>
       <div style={{ width: "100%", maxWidth: 380 }}>
         <div style={{ fontSize: 30, fontWeight: 900, textAlign: "center", marginBottom: 4, background: GRAD, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>Treino Livre</div>
         {children}
@@ -30525,92 +30559,132 @@ function CaixaConta({ children }) {
 }
 
 function TelaConta({ onEntrou, msgInicial }) {
-  const [modo, setModo] = useState("entrar"); // entrar | criar | esqueci
+  // Quem nunca entrou neste aparelho chega em "Criar conta", que é o que ele
+  // vai fazer; quem já entrou chega em "Entrar", com o e-mail preenchido.
+  const emailSalvo = (() => { try { return localStorage.getItem(CHAVE_EMAIL_CONTA) || ""; } catch (e) { return ""; } })();
+  const [modo, setModo] = useState(emailSalvo ? "entrar" : "criar"); // entrar | criar | esqueci
   const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailSalvo);
   const [senha, setSenha] = useState("");
-  const [senha2, setSenha2] = useState("");
+  const [verSenha, setVerSenha] = useState(false);
   const [msg, setMsg] = useState(msgInicial || "");
   const [ok, setOk] = useState("");
   const [indo, setIndo] = useState(false);
+  const sugestao = sugerirEmail(email);
+  const trocar = (m) => { setModo(m); setMsg(""); setOk(""); };
   const enviar = async (e) => {
     if (e) e.preventDefault();
     setMsg(""); setOk("");
     const em = email.trim().toLowerCase();
+    if (modo === "criar" && !nome.trim()) { setMsg("Falta o seu nome: é assim que o criador do app sabe quem está pedindo acesso."); return; }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { setMsg(erroDeConta("INVALID_EMAIL")); return; }
     if (modo === "esqueci") {
       setIndo(true);
-      try { await contaApi.esqueci(em); setOk("Pronto: se houver conta com esse e-mail, chega um link para criar uma senha nova. Confira o spam também."); }
+      try { await contaApi.esqueci(em); setOk("Pronto! Se existir conta com " + em + ", chega um e-mail com o link para criar uma senha nova. Olhe também o spam."); }
       catch (x) { setMsg(erroDeConta(x.message)); }
       setIndo(false);
       return;
     }
-    if (modo === "criar") {
-      if (!nome.trim()) { setMsg("Diga o seu nome: é como o dono do app vai saber quem você é."); return; }
-      if (senha.length < 6) { setMsg(erroDeConta("WEAK_PASSWORD")); return; }
-      if (senha !== senha2) { setMsg("As duas senhas não são iguais."); return; }
-    }
+    if (senha.length < 6) { setMsg(modo === "criar" ? "Crie uma senha com pelo menos 6 caracteres." : erroDeConta("MISSING_PASSWORD")); return; }
     setIndo(true);
     try {
       const j = modo === "criar" ? await contaApi.criar(em, senha) : await contaApi.entrar(em, senha);
       const s = sessaoDeResposta(j, { nome: modo === "criar" ? nome.trim().slice(0, 60) : "" });
       gravarSessaoConta(s);
+      try { localStorage.setItem(CHAVE_EMAIL_CONTA, em); } catch (x) {}
       if (modo === "criar" && ehEmailDono(em)) { try { await contaApi.confirmarEmail(s.idToken); } catch (x) {} }
       onEntrou();
-    } catch (x) { setMsg(erroDeConta(x.message)); }
+    } catch (x) {
+      // e-mail já cadastrado no "Criar": leva para o Entrar com o e-mail pronto
+      if (/EMAIL_EXISTS/.test(x.message)) { setModo("entrar"); setSenha(""); }
+      setMsg(erroDeConta(x.message));
+    }
     setIndo(false);
   };
-  const aba = (id, rot) => (
-    <button type="button" onClick={() => { setModo(id); setMsg(""); setOk(""); }} aria-pressed={modo === id}
-      style={{ flex: 1, padding: "10px 6px", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 14,
-        border: "1px solid " + (modo === id ? "var(--marca)" : "var(--borda2)"), background: modo === id ? "var(--marca)" : "transparent", color: modo === id ? "#fff" : "var(--texto)" }}>{rot}</button>
-  );
-  const campo = (rot, val, set, tipo, auto) => (
-    <label style={{ display: "block", marginBottom: 10 }}>
-      <span style={{ ...S.label, fontSize: 10 }}>{rot}</span>
-      <input value={val} onChange={(e) => set(e.target.value)} type={tipo || "text"} autoComplete={auto} style={{ ...S.input, marginTop: 4 }} />
+  const campo = (rot, val, set, props, dica) => (
+    <label style={{ display: "block", marginBottom: 12 }}>
+      <span style={{ fontSize: 13, fontWeight: 800 }}>{rot}</span>
+      <input value={val} onChange={(e) => set(e.target.value)} {...props} style={{ ...S.input, marginTop: 5, fontSize: 16 }} />
+      {dica}
     </label>
   );
+  const link = (txt, onClick) => (
+    <button type="button" onClick={onClick} style={{ background: "none", border: "none", color: "var(--marca)", fontWeight: 800, cursor: "pointer", fontSize: 14, padding: "6px 4px" }}>{txt}</button>
+  );
+  const titulo = modo === "criar" ? "Crie a sua conta grátis" : modo === "esqueci" ? "Criar uma senha nova" : "Bem-vindo de volta";
+  const sub = modo === "criar" ? "Leva 30 segundos. Depois é só esperar a liberação do criador do app."
+    : modo === "esqueci" ? "Digite o seu e-mail: mandamos um link para você criar outra senha."
+    : "Entre com o e-mail e a senha da sua conta.";
   return (
     <CaixaConta>
-      <div style={{ textAlign: "center", color: "var(--cinza)", fontSize: 14, marginBottom: 18, lineHeight: 1.5 }}>
-        {modo === "criar" ? "Crie a sua conta. O acesso é liberado pelo criador do app." : modo === "esqueci" ? "Vamos mandar um link para criar uma senha nova." : "Entre com a sua conta."}
+      <div style={{ textAlign: "center", margin: "6px 0 16px" }}>
+        <div style={{ fontSize: 20, fontWeight: 900 }}>{titulo}</div>
+        <div style={{ color: "var(--cinza)", fontSize: 14, marginTop: 4, lineHeight: 1.5 }}>{sub}</div>
       </div>
-      <form onSubmit={enviar} style={{ ...S.card }}>
-        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-          {aba("entrar", "Entrar")}
-          {aba("criar", "Criar conta")}
+      {modo === "criar" && (
+        <div style={{ display: "flex", justifyContent: "space-around", gap: 6, fontSize: 12, color: "var(--cinza)", textAlign: "center", marginBottom: 12 }}>
+          <div><div style={{ fontSize: 22 }} aria-hidden="true">🏋️</div>Fichas e cargas</div>
+          <div><div style={{ fontSize: 22 }} aria-hidden="true">🎤</div>Treino por voz</div>
+          <div><div style={{ fontSize: 22 }} aria-hidden="true">👁</div>Conta repetições</div>
         </div>
-        {modo === "criar" && campo("Seu nome", nome, setNome, "text", "name")}
-        {campo("E-mail", email, setEmail, "email", "email")}
-        {modo !== "esqueci" && campo("Senha", senha, setSenha, "password", modo === "criar" ? "new-password" : "current-password")}
-        {modo === "criar" && campo("Repita a senha", senha2, setSenha2, "password", "new-password")}
-        {msg && <div role="alert" style={{ color: "var(--perigo)", fontSize: 13.5, lineHeight: 1.5, marginBottom: 10 }}>{msg}</div>}
-        {ok && <div role="status" style={{ color: "var(--ok)", fontSize: 13.5, lineHeight: 1.5, marginBottom: 10 }}>{ok}</div>}
-        <button type="submit" disabled={indo} style={{ ...S.btn, width: "100%", opacity: indo ? 0.6 : 1 }}>
-          {indo ? "Aguarde…" : modo === "criar" ? "Criar conta e pedir acesso" : modo === "esqueci" ? "Mandar o link" : "Entrar"}
+      )}
+      <form onSubmit={enviar} style={{ ...S.card }} noValidate>
+        {modo === "criar" && campo("Seu nome", nome, setNome, { autoComplete: "name", autoCapitalize: "words", placeholder: "Como você quer ser chamado", autoFocus: true, enterKeyHint: "next" })}
+        {campo("E-mail", email, setEmail, { type: "email", inputMode: "email", autoComplete: "email", autoCapitalize: "none", autoCorrect: "off", spellCheck: false, placeholder: "seuemail@gmail.com", enterKeyHint: modo === "esqueci" ? "send" : "next", autoFocus: modo !== "criar" && !emailSalvo },
+          sugestao ? (
+            <button type="button" onClick={() => setEmail(sugestao)} style={{ display: "block", marginTop: 6, background: "none", border: "none", padding: 0, color: "var(--marca)", fontWeight: 800, fontSize: 13.5, cursor: "pointer", textAlign: "left" }}>
+              Você quis dizer <u>{sugestao}</u>? Toque para corrigir.
+            </button>
+          ) : null)}
+        {modo !== "esqueci" && (
+          <div style={{ marginBottom: 12 }}>
+            {/* o botão Mostrar fica fora do rótulo: dentro, o nome do campo virava "Senha Mostrar" */}
+            <label htmlFor="conta-senha" style={{ fontSize: 13, fontWeight: 800 }}>{modo === "criar" ? "Crie uma senha" : "Senha"}</label>
+            <div style={{ position: "relative", marginTop: 5 }}>
+              <input id="conta-senha" value={senha} onChange={(e) => setSenha(e.target.value)} type={verSenha ? "text" : "password"} autoFocus={modo === "entrar" && !!emailSalvo}
+                autoComplete={modo === "criar" ? "new-password" : "current-password"} enterKeyHint="go"
+                placeholder={modo === "criar" ? "Pelo menos 6 caracteres" : ""} style={{ ...S.input, fontSize: 16, paddingRight: 70 }} />
+              <button type="button" onClick={() => setVerSenha((v) => !v)} aria-label={verSenha ? "Esconder a senha" : "Mostrar a senha"}
+                style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--marca)", fontWeight: 800, fontSize: 13, cursor: "pointer", padding: "6px 8px" }}>
+                {verSenha ? "Esconder" : "Mostrar"}
+              </button>
+            </div>
+          </div>
+        )}
+        {msg && <div role="alert" style={{ color: "var(--perigo)", fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>{msg}</div>}
+        {ok && <div role="status" style={{ color: "var(--ok)", fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>{ok}</div>}
+        <button type="submit" disabled={indo} style={{ ...S.btn, width: "100%", fontSize: 16, padding: "14px 10px", opacity: indo ? 0.6 : 1 }}>
+          {indo ? "Aguarde…" : modo === "criar" ? "Criar minha conta" : modo === "esqueci" ? "Mandar o link" : "Entrar"}
         </button>
-        {modo === "entrar" && (
-          <button type="button" onClick={() => { setModo("esqueci"); setMsg(""); }} style={{ display: "block", margin: "12px auto 0", background: "none", border: "none", color: "var(--marca)", fontWeight: 700, cursor: "pointer", fontSize: 13.5 }}>Esqueci a senha</button>
-        )}
-        {modo === "esqueci" && (
-          <button type="button" onClick={() => { setModo("entrar"); setMsg(""); setOk(""); }} style={{ display: "block", margin: "12px auto 0", background: "none", border: "none", color: "var(--marca)", fontWeight: 700, cursor: "pointer", fontSize: 13.5 }}>← Voltar para entrar</button>
-        )}
+        <div style={{ textAlign: "center", marginTop: 10, fontSize: 14, color: "var(--cinza)" }}>
+          {modo === "criar" && <>Já tem conta? {link("Entrar", () => trocar("entrar"))}</>}
+          {modo === "entrar" && <>Primeira vez aqui? {link("Criar conta", () => trocar("criar"))}<br />{link("Esqueci a senha", () => trocar("esqueci"))}</>}
+          {modo === "esqueci" && link("← Voltar para entrar", () => trocar("entrar"))}
+        </div>
       </form>
-      <div style={{ fontSize: 11.5, color: "var(--cinza2)", textAlign: "center", lineHeight: 1.5, marginTop: 6 }}>
-        A conta guarda só o seu nome, o e-mail e quando você entra. Os seus treinos continuam só no seu celular.{" "}
+      <div style={{ fontSize: 12, color: "var(--cinza2)", textAlign: "center", lineHeight: 1.55, marginTop: 4 }}>
+        🔒 A conta guarda só o seu nome, o e-mail e quando você entra. Os seus treinos continuam no seu celular.{" "}
         <a href="privacidade.html" style={{ color: "var(--marca)" }}>Privacidade</a>
       </div>
     </CaixaConta>
   );
 }
 
-function TelaEsperaConta({ fase, sessao, msg, onConferir, onSair }) {
+function TelaEsperaConta({ fase, sessao, msg, onConferir, onConferirQuieto, onSair }) {
   const email = sessao && sessao.email;
+  const primeiro = String((sessao && sessao.nome) || "").trim().split(" ")[0];
   const [reenviado, setReenviado] = useState("");
+  // Aguardando: o app confere sozinho a cada 30 s com a tela aberta. Liberou,
+  // entra sem ninguém precisar tocar em nada.
+  useEffect(() => {
+    if (fase !== "aguardando" || !onConferirQuieto) return undefined;
+    const t = setInterval(() => { if (document.visibilityState === "visible") onConferirQuieto(); }, 30000);
+    return () => clearInterval(t);
+  }, [fase]);
   const textos = {
     conferindo: ["⏳", "Conferindo o seu acesso…", null],
-    aguardando: ["⏳", "Cadastro enviado", "O criador do app precisa liberar o seu acesso. Assim que ele liberar, é só abrir o app de novo ou tocar em Conferir agora."],
+    aguardando: ["🎉", (primeiro ? "Pronto, " + primeiro + "!" : "Pronto!") + " Cadastro enviado",
+      "O seu pedido de acesso chegou ao criador do app. Assim que ele liberar, o Treino Livre abre sozinho aqui (pode deixar esta tela aberta) ou na próxima vez que você abrir o app."],
     bloqueado: ["⛔", "Acesso bloqueado", "O seu acesso ao Treino Livre foi bloqueado. Para falar com o criador do app: Instagram @" + INSTAGRAM + "."],
     verificar: ["✉️", "Confirme o seu e-mail", "Mandamos um link para " + email + ". Abra o e-mail, toque no link e volte aqui. (Só a conta do dono precisa disto: é o que protege o painel.)"],
     semRede: ["📵", "Sem internet", "Para conferir o seu acesso, o app precisa de internet desta vez. Conecte e toque em Conferir agora."],
@@ -30623,6 +30697,12 @@ function TelaEsperaConta({ fase, sessao, msg, onConferir, onSair }) {
         <div style={{ fontSize: 42 }} aria-hidden="true">{t[0]}</div>
         <div style={{ fontSize: 19, fontWeight: 900, margin: "6px 0 8px" }}>{t[1]}</div>
         {t[2] && <div style={{ fontSize: 14, color: "var(--cinza)", lineHeight: 1.55 }}>{t[2]}</div>}
+        {fase === "aguardando" && (
+          <div style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: "10px 12px", marginTop: 14, textAlign: "left", fontSize: 13.5, lineHeight: 1.55 }}>
+            <b>Enquanto isso:</b> siga o criador do app no Instagram. É por lá que saem as novidades do app.
+            <a href={LINK_INSTAGRAM} target="_blank" rel="noreferrer" style={{ ...S.btn, display: "block", textAlign: "center", textDecoration: "none", marginTop: 10, boxSizing: "border-box" }}>Seguir @{INSTAGRAM}</a>
+          </div>
+        )}
         {email && fase !== "conferindo" && <div style={{ fontSize: 12.5, color: "var(--cinza2)", marginTop: 10 }}>Conta: {email}</div>}
         {fase === "verificar" && (
           <button onClick={async () => {
@@ -30632,7 +30712,7 @@ function TelaEsperaConta({ fase, sessao, msg, onConferir, onSair }) {
         )}
         {reenviado && <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 8 }}>{reenviado}</div>}
         {fase !== "conferindo" && fase !== "bloqueado" && (
-          <button onClick={onConferir} style={{ ...S.btn, width: "100%", marginTop: 14 }}>{fase === "verificar" ? "Já confirmei" : "Conferir agora"}</button>
+          <button onClick={onConferir} style={{ ...(fase === "aguardando" ? S.btnGhost : S.btn), width: "100%", marginTop: 14 }}>{fase === "verificar" ? "Já confirmei" : "Conferir agora"}</button>
         )}
         {fase !== "conferindo" && (
           <button onClick={onSair} style={{ background: "none", border: "none", color: "var(--marca)", fontWeight: 700, cursor: "pointer", fontSize: 13.5, marginTop: 14 }}>Sair desta conta</button>

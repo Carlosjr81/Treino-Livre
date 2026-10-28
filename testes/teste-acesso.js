@@ -9,7 +9,7 @@ function pedaco(de, ate) {
 }
 const plural = (n, s, p) => (n === 1 ? s : p);
 eval(pedaco("// ---------------- ACESSO: AS CONTAS", "// ---------------- FIM DAS CONTAS") +
-  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, FIREBASE_ACESSO, EMAIL_DONO };");
+  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -59,6 +59,14 @@ teste("computador", "Computador · navegador", A.aparelhoDe("Mozilla/5.0 (Window
 teste("e-mail já cadastrado", "Já existe uma conta com este e-mail. Toque em Entrar.", A.erroDeConta("EMAIL_EXISTS"));
 teste("senha fraca (o Firebase manda com explicação)", "A senha precisa de pelo menos 6 caracteres.", A.erroDeConta("WEAK_PASSWORD : Password should be at least 6 characters"));
 teste("erro desconhecido diz o código", true, /XPTO/.test(A.erroDeConta("XPTO")));
+
+console.log("\n--- o e-mail digitado errado ---");
+teste("gmial vira gmail", "ana@gmail.com", A.sugerirEmail("ana@gmial.com"));
+teste("hotmal.com vira hotmail.com", "ana@hotmail.com", A.sugerirEmail("Ana@Hotmal.com"));
+teste("gmail.co vira gmail.com", "ana@gmail.com", A.sugerirEmail("ana@gmail.co"));
+teste("e-mail certo: nada a sugerir", null, A.sugerirEmail("ana@gmail.com"));
+teste("domínio da empresa: não inventa", null, A.sugerirEmail("ana@globalpack.com.br"));
+teste("ainda digitando: não sugere", null, A.sugerirEmail("ana@gm"));
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

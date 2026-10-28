@@ -9,7 +9,7 @@ const fim = html.indexOf("// ---------------- JARVIS: O ASSISTENTE DE VOZ");
 let src = html.slice(ini, fim).replace(/\r\n/g, "\n");
 src = src.replace(/let eyesDetector[\s\S]*?^}/m, "");
 src = src.replace(/const EYES_LIB[\s\S]*?pose_landmarker_lite\.task";/, "");
-eval(src + "\nglobalThis.API = { criarContador, criarTecnico, MOV_FUNCIONAIS, EYES_SINAIS_POS, escalaTorso };");
+eval(src + "\nglobalThis.API = { criarContador, criarTecnico, MOV_FUNCIONAIS, EYES_SINAIS_POS, escalaTorso, adivinharMovimento };");
 const A = globalThis.API;
 
 // ---- um corpo falso, em coordenadas de imagem (y cresce para baixo) ----
@@ -108,6 +108,76 @@ for (let c = 0; c < 10; c++) {
 }
 for (let i = 0; i < 60; i++) { auto.processar(corpo({ joelhoE: 0, joelhoD: 0 }), t); t += 33; }
 teste("automatico, 10 repeticoes", 10, auto.estado().total, 1);
+
+console.log("\n--- mini band em casa ---");
+// O corpo de cima so sobe o joelho na vertical: nenhum angulo muda. Aqui o
+// joelho vai para a frente (de lado para a camera) e o pe fica no chao:
+// dobram o quadril e o joelho, como no agachamento, no stiff e no coice.
+function corpoA(c) {
+  const l = corpo({});
+  if (c.jE) l[25] = { x: 0.46 + 0.15 * c.jE, y: l[25].y - 0.05 * c.jE, visibility: 0.9 };
+  if (c.jD) l[26] = { x: 0.54 + 0.15 * c.jD, y: l[26].y - 0.05 * c.jD, visibility: 0.9 };
+  return l;
+}
+function rodarA(perfilId, ciclos, msPorCiclo, aplicar) {
+  const cont = A.criarContador({ perfil: A.MOV_FUNCIONAIS[perfilId] });
+  let tt = 0;
+  for (let i = 0; i < 60; i++) { cont.processar(corpoA({}), tt); tt += 33; }
+  const q = Math.round(msPorCiclo / 33);
+  for (let c = 0; c < ciclos; c++) {
+    for (let i = 0; i < q; i++) { cont.processar(corpoA(aplicar((1 - Math.cos((2 * Math.PI * i) / q)) / 2)), tt); tt += 33; }
+  }
+  return { cont: cont, tt: tt };
+}
+teste("abducao na parede, 12", 12,
+  rodar("band-abducao-parede", 12, 1400, (a) => ({ abrePes: a * 0.08 })).total, 1);
+teste("abducao na parede curta, 10", 10,
+  rodar("band-abducao-parede", 10, 1400, (a) => ({ abrePes: a * 0.04 })).total, 1);
+teste("caminhada lateral, 16 passos", 16,
+  rodar("band-caminhada-lateral", 16, 900, (a) => ({ abrePes: a * 0.06 })).total, 1);
+teste("agachamento com mini band, 10", 10,
+  (() => { const x = rodarA("band-agachamento", 10, 1800, (a) => ({ jE: a, jD: a })); for (let i = 0; i < 60; i++) { x.cont.processar(corpoA({}), x.tt); x.tt += 33; } return x.cont.estado().total; })(), 1);
+// polo "cima": a repeticao conta quando o joelho volta a esticar, no fim dela.
+// Sem os quadros parados do fim, a ultima tem de estar contada mesmo assim.
+{
+  // sem os quadros parados do fim: a ultima tem de estar contada mesmo assim
+  const x = rodarA("band-agachamento", 8, 1800, (a) => ({ jE: a, jD: a }));
+  teste("agachamento: a ultima conta ao subir", 8, x.cont.estado().total, 1);
+}
+// Um lado de cada vez: 10 com a perna esquerda, uma pausa, 10 com a direita.
+// O contador tem de passar para o outro lado e somar 20.
+{
+  let trocou = false;
+  const cont = A.criarContador({ perfil: A.MOV_FUNCIONAIS["band-coice-em-pe"], aoTrocarLado: () => { trocou = true; } });
+  let tt = 0;
+  const lado = (k) => {
+    for (let c = 0; c < 10; c++) {
+      for (let i = 0; i < 36; i++) {
+        const a = (1 - Math.cos((2 * Math.PI * i) / 36)) / 2;
+        cont.processar(corpoA(k === "e" ? { jE: a } : { jD: a }), tt); tt += 33;
+      }
+    }
+  };
+  for (let i = 0; i < 60; i++) { cont.processar(corpoA({}), tt); tt += 33; }
+  lado("e");
+  for (let i = 0; i < 75; i++) { cont.processar(corpoA({}), tt); tt += 33; }
+  lado("d");
+  for (let i = 0; i < 60; i++) { cont.processar(corpoA({}), tt); tt += 33; }
+  teste("coice: 10 de cada lado = 20", 20, cont.estado().total, 1);
+  teste("coice: passou para o outro lado", 1, trocou ? 1 : 0, 0);
+}
+{
+  const p = A.criarContador({ perfil: A.MOV_FUNCIONAIS["band-abducao-parede"] });
+  let tt = 0;
+  for (let i = 0; i < 30 * 20; i++) { p.processar(corpo({ abrePes: 0.004 * Math.random() }), tt); tt += 33; }
+  teste("abducao: 20s parado tremendo", 0, p.estado().total, 0);
+}
+// O palpite do modo livre fica entre os movimentos de aula: abrir o joelho
+// sentado nao pode virar "Parece concha com mini band".
+{
+  const pal = A.adivinharMovimento({ "afastamento-joelhos": 90 });
+  teste("palpite nao escolhe mini band", 0, pal && /^band-/.test(pal.id) ? 1 : 0, 0);
+}
 
 console.log("\n--- o que ele diz que esta lendo ---");
 const e = rodar("socos-ar", 6, 900, (a, b) => ({ socoE: a, socoD: b }), true);

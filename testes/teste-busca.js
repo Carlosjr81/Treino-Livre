@@ -68,6 +68,16 @@ teste("'halteres' traz exercício com halter", ids("halteres").length > 5);
 teste("'aeróbico' traz a esteira", tem("aeróbico", "esteira-corrida"));
 teste("'trapézio' traz o encolhimento", tem("trapézio", "encolhimento"));
 
+console.log("\n--- mini band ---");
+const BAND = EXERCICIOS.filter((e) => /mini band/i.test(e.equip)).map((e) => e.id);
+teste("o catálogo tem os 10 de mini band", BAND.length === 10, BAND.length);
+teste("'mini band' traz os 10", BAND.every((id) => tem("mini band", id)));
+teste("'elástico' traz a mini band e o coice com elástico", tem("elástico", "band-concha") && tem("elástico", "coice-elastico"));
+teste("'glúteo elástico' traz o coice em pé com mini band", tem("glúteo elástico", "band-coice-em-pe"));
+teste("'funcional' não traz a mini band (ela não é aula de salto)", !ids("funcional").some((id) => /^band-/.test(id)));
+teste("'concha' (apelido) traz a concha", tem("concha", "band-concha"));
+teste("todo de mini band tem boneco e perfil de câmera", BAND.every((id) => html.indexOf("\n  \"" + id + "\": [") >= 0 && html.indexOf("\"" + id + "\": { sinais") >= 0));
+
 console.log("\n--- texto vazio ---");
 teste("sem texto: a lista inteira", ids("").length === EXERCICIOS.length);
 teste("só palavras vazias ('de'): nada", ids("de").length === 0);

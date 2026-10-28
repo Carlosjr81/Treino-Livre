@@ -16,6 +16,44 @@
 
 ---
 
+## 2026-10-28i — Glúteos em casa com mini band
+
+**Em uma frase:** treino de glúteo completo em casa só com a mini band, com aula guiada pela voz e a
+câmera contando as repetições, inclusive um lado de cada vez.
+
+**O que mudou**
+- Atalho novo na tela inicial: **🍑 Glúteos em casa**.
+- **10 exercícios com mini band**, cada um com bonequinho animado e o elástico desenhado: abdução
+  sentada na parede, stiff, stiff unilateral, coice em pé, agachamento, flexão de joelho em pé,
+  abdução em pé, caminhada lateral, elevação pélvica no chão e concha.
+- **Duas aulas guiadas**: 🍑 Glúteos (uns 15 minutos) e 🎯 Glúteo médio (uns 10). A voz pede para
+  pegar a mini band, conduz cada bloco e avisa "troca de lado" nos exercícios de uma perna só.
+- **Dois circuitos para a câmera contar**: ela conta os dois lados, avisa a troca na metade e anota na
+  ficha o número de um lado. No agachamento, avisa se o joelho cai para dentro.
+- Filtro **Mini band** na lista de exercícios, e a busca acha por "mini band" e "elástico".
+
+**Por que importa para quem treina**
+- Dá para treinar glúteo de verdade em casa, sem academia, sem ficar olhando a tela para saber o que
+  fazer nem contando de cabeça.
+- Nos exercícios de uma perna só, ninguém precisa lembrar quantas fez de cada lado.
+
+**Como usar**
+- Tela inicial › **🍑 Glúteos em casa** › escolha a aula (a voz conduz) ou um circuito (a câmera conta).
+- Para a câmera contar: celular de pé a uns 2 metros, de frente ou de lado, como a dica de cada
+  exercício pede. Na elevação pélvica e na concha, celular na altura do chão.
+
+**Ideias de vídeo**
+- Os 10 exercícios em sequência rápida, com o bonequinho do app ao lado de cada um.
+- A câmera contando o coice em pé e dizendo "troca de lado" na metade.
+- "Treino de glúteo em casa em 15 minutos só com um elástico": a aula Glúteos do começo ao fim.
+
+**Não prometer**
+- A contagem pela câmera foi testada com movimento simulado, não com cada exercício em aparelho de
+  verdade: deitado (elevação pélvica, concha) a câmera pode errar mais.
+- Não é prescrição: as séries e repetições são sugestão.
+
+---
+
 ## 2026-10-28h — O áudio da análise do treino mais teimoso, e dizendo o que aconteceu
 
 **Em uma frase:** os botões "Ouvir a análise e o ajuste" e "Ouvir por que muda (o estudo)" agora insistem até a voz do

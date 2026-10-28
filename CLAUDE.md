@@ -387,7 +387,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v140) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v141) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -419,7 +419,7 @@ Na ordem em que aparece no arquivo:
    `numerosPorExtenso`, `depoisDeJarvis`, `acharExercicio`, `interpretarVoz`,
    `responderConsulta`, `AJUDA_FALADA`, `LICOES_JARVIS`, `vozesPtBr`.
    Fica logo antes de `IMAGENS_WGER`.
-8. **Dados** — `GRUPOS`, `MUSCULOS`, `EXERCICIOS` (274, dos quais 14 funcionais e 19 aeróbicos),
+8. **Dados** — `GRUPOS`, `MUSCULOS`, `EXERCICIOS` (284, dos quais 14 funcionais, 19 aeróbicos e 10 de mini band),
    `GRUPO_POR_EXERCICIO`, `FICHAS_PADRAO`.
 9. **Estilos** — objeto `S` com estilos inline reaproveitados.
 10. **Imagens** — `IMAGENS_WGER` (mapa fixo) e `ImagemExercicio`.
@@ -505,7 +505,7 @@ celular** — não há servidor para onde mandar, e não haveria mesmo que houve
 
 ### Como a repetição é contada
 
-Exigir configuração por exercício é inviável: são 274 no catálogo mais as
+Exigir configuração por exercício é inviável: são 284 no catálogo mais as
 máquinas que o dono fotografa e que não estão em catálogo nenhum. Então:
 
 1. `criarContador` mede **oito ângulos** ao mesmo tempo (cotovelos, joelhos,
@@ -1020,6 +1020,68 @@ Duas decisões aqui:
 Começar a aula também **liga o microfone** se a voz for a preferida — é o gesto
 que o navegador exige, e sem microfone não dá para dizer "pausa" com as mãos no
 chão.
+
+## Glúteos em casa com mini band (exercícios `band-*`)
+
+Pedido do dono, com prints de um vídeo de glúteo em casa: "montar exercícios
+para fazer em casa com mini band, com o Eyes Scan e tudo o que der para deixar
+completo". Dez exercícios no catálogo (`equip: "Mini band"`): os seis do vídeo
+(abdução sentada na parede, stiff, stiff unilateral, coice em pé, agachamento e
+flexão de joelho em pé) e quatro clássicos de glúteo médio (abdução em pé,
+caminhada lateral, elevação pélvica no chão e concha).
+
+- **São dado, como o resto do catálogo**, no primeiro script. Têm `func` (o
+  perfil da câmera e o boneco, com o mesmo id) e **não** têm `funcional`: não
+  entram na lista dos 14 funcionais, no "escolher na mão" do modo livre nem no
+  palpite (`palpite: false` no perfil; `adivinharMovimento` pula). A busca
+  "funcional" passou a olhar o `funcional`, e não o `func`, pelo mesmo motivo.
+- **Onde aparecem**: o azulejo **🍑 Glúteos em casa** na tela inicial abre a tela
+  funcional já na parte da mini band (`ABRIR_BAND`, ponteiro de módulo como o
+  `ABRIR_GUIA`), com duas **aulas guiadas** (🍑 Glúteos e 🎯 Glúteo médio, com
+  `material`, que a voz pede no começo: "Pegue a mini band"), dois **circuitos
+  para a câmera** (`band: true`) e a lista para montar à mão. Aulas e circuitos
+  com mini band saem das listas gerais de cima. Treino só de mini band ganha o
+  nome "Glúteos com mini band (dia)". Filtro de equipamento **Mini band**, busca
+  "mini band", "elástico", "band" e apelidos do Jarvis ("concha", "caminhada
+  lateral", "monster walk", "coice em pé", "abdução na parede").
+- **Os bonecos** (`POSES_FUNCIONAIS`) têm o elástico desenhado: o campo `band`
+  da pose é uma linha vermelha por cima do boneco (`Esqueleto`). Cor fixa de
+  propósito: é o desenho do objeto, como o mapa e o vídeo.
+- **A contagem** (`MOV_FUNCIONAIS`, os `band-*`):
+  - **Sinal novo, `afastamento-joelhos`** (`afastamentoDe`): a distância
+    entre os joelhos nos dois eixos, com x e y na mesma régua (`l.aspecto`).
+    Sentado na parede os joelhos se afastam de lado; deitado de lado (a
+    concha), um sobe sobre o outro. **Fora do automático** (máquina): no
+    agachamento os joelhos se afastam um pouco, e o sinal novo não pode
+    disputar com o ângulo que já contava certo.
+  - **`polo` no perfil**: de que lado o sinal descansa. Ângulo de joelho e de
+    quadril em pé descansa aberto (`polo: "cima"`). Com o polo errado a
+    primeira repetição de cada lado se perdia — achado no teste do coice
+    (18 de 20); o funcional de antes continua em "baixo".
+  - **`uni` no perfil**: com sinais de lado (`quadril-e`/`quadril-d`) o
+    contador passa para o espelho quando o primeiro lado para, como já fazia
+    no automático. A abertura (pés, joelhos) não tem lado: ali a troca é a
+    metade da meta (`semLadosRef`), e a ficha recebe a metade do total.
+  - **`uni` no exercício** (`ex.uni`): o scanner trata como unilateral sem
+    precisar de "unilateral" no nome. A frase "troque de braço" virou "troque
+    de lado".
+  - **Postura**: só o agachamento confere o valgo (é para isso que o
+    elástico existe). Nos outros `POSTURA_POR_MOV` traz lista vazia de
+    propósito: sem ela valeria a do grupo glúteos, e na abdução o joelho que
+    fecha devagar seria lido como joelho caindo.
+  - **Frases do técnico próprias** ("abre mais os joelhos", "calcanhar mais
+    perto do glúteo"): "desce mais um pouco" não serve para abdução.
+- **A aula com lado** (`lado` no bloco): o unilateral vira dois blocos, e o
+  intervalo entre eles é só a troca (`TROCA_LADO_AULA`, 8 s, "Troca de lado.
+  Agora o lado esquerdo."), não um descanso. A tela mostra "Lado direito".
+
+Coberto por `teste-funcional.js` (abdução larga e curta, caminhada lateral,
+agachamento, a última contada sem os quadros parados do fim, 10 de cada lado
+no coice somando 20, parado tremendo contando 0, o palpite fora) e
+`teste-busca.js` (os 10, "elástico", "funcional" sem mini band, boneco e
+perfil para todos). No navegador: a seção, a aula até a troca de lado falada,
+e o circuito virando treino. **Não validado num aparelho**: a contagem pela
+câmera de verdade em cada um dos dez.
 
 ## A abertura (`Abertura`)
 
@@ -3692,7 +3754,7 @@ Ao adicionar exercícios:
 - **Aceite o casamento só quando os nomes tiverem praticamente o mesmo conjunto
   de palavras.** Imagem errada ensina o movimento errado. Na dúvida, deixe sem
   figura: todo exercício tem botão de vídeo do YouTube como alternativa.
-- Hoje: 177 dos 274 exercícios com imagem do wger. Os 12 movimentos funcionais
+- Hoje: 177 dos 284 exercícios com imagem do wger. Os 12 movimentos funcionais e os 10 de mini band
   não têm figura lá e usam o boneco desenhado (`POSES_FUNCIONAIS`), que é melhor
   para eles do que uma foto parada seria.
 
@@ -4259,7 +4321,7 @@ caso o modo "Toque e fale" é melhor. Isso está dito na ajuda do app.
 
 `APELIDOS_EXERCICIO` traduz o jeito da academia ("agacho", "extensora", "leg")
 para o id. `acharExercicio` procura **primeiro entre os exercícios do treino de
-hoje** e só depois nos 274: quem fala "supino" no meio do treino quer o supino
+hoje** e só depois nos 284: quem fala "supino" no meio do treino quer o supino
 que está na ficha. Na pontuação, quem acerta mais palavras do nome ganha de quem
 acerta uma só — sem isso "rosca direta" perdia para "Rosca 21".
 

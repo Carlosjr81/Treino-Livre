@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-28h**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-28i**.
 
 ---
 
@@ -126,7 +126,7 @@ com cenas reais → halter) como linguagem visual em vídeos.
   e tríceps"). **Programa** = conjunto de fichas (A, B, C...).
 - **Assistente de montagem:** a pessoa diz quantos dias por semana treina e o app monta a divisão
   (ABC, ABCD etc.) pronta.
-- **Catálogo de 274 exercícios**, com grupo muscular, músculos, passo a passo, dica, figura de
+- **Catálogo de 284 exercícios**, com grupo muscular, músculos, passo a passo, dica, figura de
   demonstração e botão de vídeo no YouTube. Filtro por equipamento ("só tenho halteres em casa").
 - **Mapa muscular** do corpo mostrando o que cada exercício trabalha.
 - **Bi-set e tri-set:** junta exercícios seguidos; o descanso só começa depois do último.
@@ -257,6 +257,19 @@ O principal diferencial. A pessoa **fala** e ele anota, sem tocar no celular, co
   🤫 **Sem barulho** (para apartamento).
 - Controle por voz durante a aula: "Jarvis, **pausa**", "**continua**", "**pula**", "**quanto falta**".
 - Circuitos para contar na câmera.
+
+### 3.5b Glúteos em casa com mini band 🍑
+- Atalho na tela inicial: **"Glúteos em casa"**. Só precisa do elástico pequeno (mini band), uma
+  parede e o chão.
+- **10 exercícios**, cada um com bonequinho animado com o elástico desenhado: abdução sentada na
+  parede, stiff, stiff unilateral, coice em pé, agachamento, flexão de joelho em pé, abdução em pé,
+  caminhada lateral, elevação pélvica no chão e concha.
+- **Duas aulas guiadas** (a voz conduz e avisa a troca de lado): 🍑 **Glúteos** (~15 min) e
+  🎯 **Glúteo médio** (~10 min).
+- **Dois circuitos para a câmera contar** (Eyes Scan): nos exercícios de uma perna só, a câmera conta
+  os dois lados, avisa "troca de lado" na metade e anota na ficha o número de um lado. No agachamento,
+  avisa se o joelho cai para dentro.
+- Filtro "Mini band" na lista de exercícios.
 
 ### 3.6 Aeróbico: esteira, bike, elíptico, escada, remo, corda, natação
 - 19 modalidades. Cada uma pede os números que **o painel daquele aparelho mostra** (km/h e inclinação

@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-28q**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-29a**.
 
 ---
 
@@ -450,6 +450,9 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 ---
 
 ## 4. O que NÃO prometer (importante)
+- ❌ **Não é prescrição de treino nem substitui médico ou personal.** As sugestões são automáticas, feitas com
+  auxílio de inteligência artificial a partir de estudos científicos, e o próprio app avisa para consultar um
+  médico. Nos vídeos, diga "o app sugere", nunca "o app prescreve", e lembre de consultar um médico.
 - ❌ Não lê o Apple Saúde/Health no iPhone. Samsung Health, Google Fit, relógios e anéis: **só no Android, com o
   app Android** (APK) e a sincronização deles com o Health Connect ligada. Não é ao vivo (chega quando o app do
   relógio sincroniza).

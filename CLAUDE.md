@@ -218,6 +218,34 @@ navegador sempre pode ser baixado por quem usa; nenhuma ofuscação muda isso, e
 ela atrapalharia o fluxo sem build. O que fortalece: registro da marca no INPI
 e o registro do programa de computador no INPI.
 
+## O aviso de saúde (`AVISO_SAUDE`, `AvisoSaude`)
+
+Pedido do dono (2026-10-29a): "cite que foi elaborado em cima dos estudos e
+com auxílio de IA, peça para sempre consultar um médico, em todos os locais
+possíveis, para eu não ter problemas de processos por estar indicando treino".
+
+- **Um texto só, no primeiro script** (`AVISO_SAUDE`: `curto`, `completo`
+  e `falado`). Diz o que a sugestão é (automática, com auxílio de
+  inteligência artificial, a partir de estudos), o que não é (prescrição,
+  consulta, acompanhamento de profissional de Educação Física; não conhece as
+  lesões e os remédios da pessoa) e o que fazer (médico antes; parar ao sentir
+  dor no peito, tontura, falta de ar). Mudou o texto, muda em todo lugar.
+- **Onde aparece**: no fim dos dois áudios do ajuste (`falaAnaliseAjuste`,
+  `falaCienciaAjuste`, inclusive no "não há nada para corrigir"), no cartão
+  🧭 do ajuste (as duas formas), nas confirmações que criam treino (o ajustado
+  e o "Guardar como treino da semana" da mini band), no "Montar treino pra mim",
+  na tela funcional e da mini band, no painel do corredor, no intervalado, na
+  prévia do plano do Monster Run, completo nos Ajustes e na
+  `privacidade.html`. **Tela nova que sugere, ajusta ou monta treino ganha
+  `<AvisoSaude />`.**
+- **Não é parecer jurídico.** É o aviso que dá para pôr no app; termos de
+  uso de verdade (e o registro de responsabilidade) são para um advogado. No
+  Brasil, prescrever exercício é atividade do profissional de Educação Física
+  (Lei 9.696/98): por isso o texto manda procurar um, além do médico, e evita
+  a palavra "prescrição" para o que o app faz.
+- Coberto em `teste-volume.js` (os áudios terminam com o aviso, sem til nem
+  parênteses).
+
 ## Nenhuma conta do Claude é dona do projeto
 
 O dono desenvolve com a conta **corporativa** do Claude e quer poder assumir
@@ -387,7 +415,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v149) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v150) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |

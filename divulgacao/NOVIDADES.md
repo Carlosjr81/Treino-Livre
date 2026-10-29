@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-10-29a — Aviso de saúde em todas as sugestões de treino
+
+**Em uma frase:** toda análise, sugestão ou treino pronto do app agora diz de onde veio (estudos
+científicos, com auxílio de inteligência artificial) e lembra de consultar um médico.
+
+**O que mudou**
+- Os dois áudios do "Seu treino está equilibrado?" terminam com o aviso falado.
+- O aviso aparece escrito nas telas que sugerem ou montam treino: o ajuste do treino, "Montar treino pra
+  mim", treino funcional e mini band, painel do corredor, intervalado e Monster Run, e na hora de criar
+  um treino novo.
+- Nos Ajustes e na política de privacidade fica o aviso completo.
+
+**Por que importa para quem treina**
+- Deixa claro que o app é um guia educativo, e que a palavra final sobre a saúde de cada um é do médico
+  e do profissional de Educação Física.
+
+**Como usar**
+- Nada a fazer: o aviso aparece sozinho. Toque em "Ler o aviso completo" para ver tudo.
+
+**Ideias de vídeo**
+- Não é tema de vídeo. Se for falar do ajuste do treino, mostrar que ele avisa para consultar um médico.
+
+**Não prometer**
+- Não dizer que o app "prescreve" treino ou que substitui personal ou médico. Dizer que ele sugere, com
+  base em estudos, e que a pessoa deve consultar um médico.
+
+---
+
 ## 2026-10-28q — Pesagens de antes de usar o app
 
 **Em uma frase:** dá para registrar o peso e as medidas de dias passados, para o gráfico mostrar a

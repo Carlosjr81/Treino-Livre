@@ -706,6 +706,24 @@ const EXERCICIOS = [
 // são os que o Android em português mostra ("Conexão Saúde", não "Health
 // Connect"), porque foi buscando o nome em inglês que ele travou. **x** é
 // negrito na tela.
+// O aviso de saúde (pedido do dono: "para eu não ter problemas de processos
+// por estar indicando treino"). Um texto só, em todo lugar que o app sugere,
+// ajusta ou monta treino: o mesmo na tela e na voz. Diz o que a sugestão é
+// (automática, com auxílio de inteligência artificial, a partir de estudos),
+// o que ela não é (prescrição, consulta, acompanhamento profissional) e o
+// que fazer (médico antes; parar ao sentir dor, tontura ou falta de ar).
+// Não substitui a revisão de um advogado: é o aviso, não o contrato.
+const AVISO_SAUDE = {
+  curto: "Sugestão automática e educativa, feita com auxílio de inteligência artificial a partir de estudos científicos. Não é prescrição de treino nem substitui o médico ou o profissional de Educação Física. Consulte um médico antes de começar ou mudar o seu treino.",
+  completo: [
+    "As análises, sugestões, ajustes e treinos prontos deste app são gerados automaticamente, com o auxílio de inteligência artificial, a partir de estudos científicos publicados sobre treinamento físico. As correções da câmera e os números de esforço, ritmo e calorias são estimativas.",
+    "São informações gerais e educativas. Não são prescrição de exercício, não substituem a consulta médica nem o acompanhamento de um profissional de Educação Física, e não levam em conta a sua saúde, as suas lesões, os seus remédios ou as suas limitações.",
+    "Antes de começar ou mudar os seus treinos, consulte um médico. Se puder, treine com a orientação de um profissional de Educação Física.",
+    "Pare na hora e procure ajuda se sentir dor no peito, dor forte, tontura, falta de ar ou mal-estar. Quem decide se e como treinar é você, sob a sua responsabilidade.",
+  ],
+  falado: "Um aviso importante. Esta análise foi feita pelo app, com auxílio de inteligência artificial, a partir dos estudos científicos citados. Ela é uma orientação geral e educativa, não uma prescrição de treino, e não substitui o médico nem o profissional de Educação Física. Antes de mudar o seu treino, consulte um médico. E se sentir dor, tontura ou falta de ar, pare na hora.",
+};
+
 const GUIA_CONECTAR = [
   { id: "app", icone: "\u{1F4F2}", titulo: "Instalar o app Android",
     para: "Precisa para ler o relógio e o anel e para usar os óculos. Todo o resto funciona no navegador.",
@@ -833,7 +851,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-28q";
+const VERSAO_APP = "2026-10-29a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -10166,7 +10184,8 @@ function TelaFuncional({ todos, exPorId, som, vozCfg, aulaInicial, onAulaAberta,
         </div>
       </button>
 
-      <div style={S.label}>Aulas guiadas · a voz conduz</div>
+      <AvisoSaude />
+      <div style={{ ...S.label, marginTop: 14 }}>Aulas guiadas · a voz conduz</div>
       <div style={{ fontSize: 12.5, color: "var(--cinza)", margin: "6px 0 10px", lineHeight: 1.55 }}>
         Apoie o celular e siga. Cada bloco tem a figura do movimento, o relógio na tela
         e o aviso falado da troca — não precisa olhar para saber que mudou.
@@ -10941,6 +10960,7 @@ function falaAnaliseAjuste(plano, tr, onde, nomeFicha) {
   const f = ["Análise do seu treino. Olhei as suas últimas semanas, contando também os músculos que só ajudam no exercício, pela metade."];
   if (!plano.faltam.length && !plano.sobram.length) {
     f.push("Todos os músculos receberam um bom número de séries por semana. Não há nada para corrigir: continue assim.");
+    f.push(AVISO_SAUDE.falado);
     return f.join(" ");
   }
   if (plano.faltam.length) f.push(plano.faltam.length + " " + plural(plano.faltam.length, "músculo está", "músculos estão") + " treinando pouco: " + juntarFalado(plano.faltam.map((x) => nc(x.nome))) + ".");
@@ -10965,6 +10985,7 @@ function falaAnaliseAjuste(plano, tr, onde, nomeFicha) {
       juntarFalado(tr.agenda.map((a) => a.dia + ", " + (nomeFicha ? nomeFicha(a) : "ficha " + (a.ficha + 1)))) + ".");
   }
   f.push("O treino novo muda sozinho a cada semana, num ciclo de cinco: começa com uma série a menos, depois duas semanas normais, uma semana mais forte com uma série a mais, e termina com uma semana de descanso, com metade das séries. Você não precisa criar outro toda semana: no começo de cada treino, o app diz o que fazer.");
+  f.push(AVISO_SAUDE.falado);
   return f.join(" ");
 }
 function falaCienciaAjuste(plano, tr) {
@@ -10983,6 +11004,7 @@ function falaCienciaAjuste(plano, tr) {
   } else f.push("No seu caso, o volume já está equilibrado: o que muda é só a organização das semanas.");
   if (tr && tr.motivos && tr.motivos.length) f.push("Sobre quando começar, o que eu vi nos seus treinos: " + tr.motivos.join("; ") + ".");
   f.push("Tudo isso é um guia, não uma regra. Dor, sono ruim ou cansaço que não passa pedem a semana leve antes.");
+  f.push(AVISO_SAUDE.falado);
   return f.join(" ");
 }
 // Fala longa, um pedaço de cada vez: no Chrome uma fala única de minutos é
@@ -11066,6 +11088,23 @@ function falarLongo(texto, cfg, aoTerminar, aoParte) {
 }
 // ---------------- FIM DO PLANO DE AJUSTE
 
+// O aviso de saúde na tela (ver AVISO_SAUDE). Curto, com o completo a um
+// toque; ou completo de saída (Ajustes).
+function AvisoSaude({ completo }) {
+  const [aberto, setAberto] = useState(!!completo);
+  return (
+    <div role="note" style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: "10px 12px", marginTop: 12, fontSize: 11.5, lineHeight: 1.55, color: "var(--cinza)" }}>
+      <b style={{ color: "var(--texto)" }}>⚕️ Aviso de saúde.</b>{" "}
+      {aberto ? AVISO_SAUDE.completo.map((p, i) => <div key={i} style={{ marginTop: i ? 6 : 2 }}>{p}</div>) : AVISO_SAUDE.curto}
+      {!completo && (
+        <button onClick={() => setAberto(!aberto)}
+          style={{ display: "block", background: "none", border: "none", color: "var(--marca)", fontWeight: 800, fontSize: 11.5, cursor: "pointer", padding: "6px 0 0" }}>
+          {aberto ? "Ler menos" : "Ler o aviso completo"}
+        </button>
+      )}
+    </div>
+  );
+}
 function VolumeRecomendado({ historico, exPorId, plano }) {
   const [ciencia, setCiencia] = useState(false);
   const [periodo, setPeriodo] = useState(() => (historico.some((h) => new Date(h.data).getTime() < segundaDaSemana(new Date()).getTime()) ? 4 : 0));
@@ -11246,6 +11285,7 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
         <button onClick={() => setVerAnalise(true)} style={{ ...S.btnGhost, width: "100%", marginTop: 6, fontSize: 12.5, padding: "8px 10px" }}>
           Ver a análise das últimas semanas
         </button>
+        <AvisoSaude />
       </div>
     );
   }
@@ -11378,6 +11418,7 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
           </div>
         </div>
       )}
+      <AvisoSaude />
     </div>
   );
 }
@@ -12684,6 +12725,10 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
         <CartaoRecursos />
       </div>
 
+      <div style={S.card}>
+        <AvisoSaude completo />
+      </div>
+
       <div style={{ ...S.card, borderStyle: "dashed" }}>
         <div style={S.label}>Créditos</div>
         <div style={{ fontSize: 13, lineHeight: 1.8, marginTop: 6 }}>
@@ -13497,6 +13542,7 @@ function TelaAssistente({ onGerar, onCancelar }) {
         </div>
 
         <button style={S.btn} onClick={() => onGerar(objetivo, dias, nivel)}>⚡ Gerar meu treino</button>
+        <AvisoSaude />
       </div>
     </div>
   );
@@ -17756,6 +17802,7 @@ function TelaCorredor({ historico, exPorId, corredor, setCorredor, onVoltar, onP
           style={{ background: "none", border: "none", color: "#E1306C", fontWeight: 800, cursor: "pointer", padding: 0, fontSize: 12.5 }}>
           {verGlossario ? "Esconder" : "O que é cada número?"}</button>
       </div>
+      <div style={{ marginTop: -8, marginBottom: 12 }}><AvisoSaude /></div>
       {verGlossario && bloco("📖 O que é cada número", GLOSSARIO_CORRIDA.map(([n, d]) => (
         <div key={n} style={{ marginBottom: 9, fontSize: 12.5, lineHeight: 1.5 }}><b>{n}.</b> <span style={{ color: "var(--cinza)" }}>{d}</span></div>
       )))}
@@ -19000,6 +19047,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, onVivo
               Os números (+{cfg.aumentoPct}%, {Math.round(ZUMBI_PADRAO.alvoMs / 1000)} s no alvo em até {Math.round(ZUMBI_PADRAO.janelaMs / 1000)} s) são ajustes do app, não prescrição de treino.
               Você pode cancelar qualquer perseguição, reduzir a intensidade ou recuperar por mais tempo, sem penalidade.
             </div>
+            <AvisoSaude />
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
               <button onClick={() => setEtapa("config")} style={{ ...S.btnGhost, flex: 1 }}>Ajustar</button>
               <button onClick={comecar} style={{ ...S.btn, flex: 1.5 }}>▶ Começar a missão</button>
@@ -19874,6 +19922,7 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
               </div>
               {cfg.modelo === "fartlek" && <button onClick={() => up("semente", Date.now() % 100000)} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13 }}>🎲 Sortear outro fartlek</button>}
               <button onClick={comecar} style={{ ...S.btn, width: "100%", marginTop: 12 }}>▶ Começar</button>
+              <AvisoSaude />
               {esteira && (
                 <div style={{ margin: "12px -14px -14px" }}>
                   <CartaoEsteira est={bt.est} onConectar={bt.conectar} onConfirmar={bt.confirmar} onDesconectar={bt.desconectar} teto={teto} setTeto={setTeto} />
@@ -29149,7 +29198,7 @@ function TreinoLivre({ contaPendentes, onContaVista }) {
       (tr.deload ? "• A partir de " + quando(tr.deloadInicio) + ": uma semana leve com o \"" + prog.nome + "\" (metade das séries).\n• " + maiusc(quando(tr.inicio)) + ": começa o treino novo."
         : "• Até domingo: siga com o \"" + prog.nome + "\".\n• " + maiusc(quando(tr.inicio)) + ": começa o treino novo.") +
       "\n• O \"" + prog.nome + "\" continua guardado, do jeito que está." +
-      "\n\n" + (r.mudancas.length ? "O que muda nas fichas (" + r.mudancas.length + "):\n" + r.mudancas.join("\n") : "Os exercícios ficam os mesmos: muda só a organização das semanas."),
+      "\n\n" + (r.mudancas.length ? "O que muda nas fichas (" + r.mudancas.length + "):\n" + r.mudancas.join("\n") : "Os exercícios ficam os mesmos: muda só a organização das semanas.") + "\n\n⚕️ " + AVISO_SAUDE.curto,
       positivo: true, labelSim: "Criar" }, () => {
       const copias = r.fichas.map((f) => ({ ...f, id: "f-" + novoUid(), programaId: pid, itens: clonarItens(f.itens) }));
       setProgramas((ps) => [...ps.map((p) => (p.id === prog.id && tr.deload ? { ...p, deload: { inicio: tr.deloadInicio, fim: tr.inicio } } : p)),
@@ -29244,7 +29293,7 @@ function TreinoLivre({ contaPendentes, onContaVista }) {
       msg: (ja ? 'Você já tem um treino "' + PROGRAMA_BAND.nome + '". Vou criar outro igual, ao lado dele.\n\n' : "") +
         "Vou criar o treino \"" + PROGRAMA_BAND.nome + "\" com " + PROGRAMA_BAND.fichas.length + " fichas:\n\n" +
         PROGRAMA_BAND.fichas.map((f) => "• " + f.nome + " (" + f.ids.length + " exercícios)").join("\n") +
-        "\n\nAs fichas que você já tem continuam como estão.",
+        "\n\nAs fichas que você já tem continuam como estão.\n\n⚕️ " + AVISO_SAUDE.curto,
       labelSim: "Guardar",
     }, () => {
       const pid = "prog-band-" + Date.now();

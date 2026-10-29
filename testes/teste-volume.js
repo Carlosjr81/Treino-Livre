@@ -23,7 +23,7 @@ eval(
   pedaco("const ehTempo = ", "\n") + "\n" + pedaco("const temValor = ", "\n") + "\n" + pedaco("const ehCardio = ", "\n") + "\n" +
   pedaco("const ehAquecimento = ", "\n") + "\n" + pedaco("const serieConta = ", "\n") + "\n" + funcao("ehDrop") + funcao("segundaDaSemana") +
   pedaco("const GRUPOS = [", "\n];") + "\n];\n" + pedaco("const MUSCULOS = {", "\n};") + "\n};\n" +
-  pedaco("const FAIXA_SERIES = ", "\n") + "\n" +
+  pedaco("const FAIXA_SERIES = ", "\n") + "\n" + pedaco("const AVISO_SAUDE = {", "\n};") + "\n};\n" +
   funcao("plural") + pedaco("// ---------------- VOLUME FRACIONADO", "// ---------------- FIM DO PLANO DE AJUSTE") +
   "\nglobalThis.V = { volumeFracionadoTreino, volumeFracionadoPeriodo, alertasVolume, leituraVolume, textoComposicao, musculosDoEx, planoAjuste, aplicarPlanoNasFichas, seriesNaSemana, semanaDoMeso, diaDaOndulacao, exerciciosPara, transicaoAjuste, volumeDasFichas, exerciciosConhecidos, falaAnaliseAjuste, falaCienciaAjuste };"
 );
@@ -217,7 +217,12 @@ console.log("\n--- 10. os áudios da análise e do estudo ---");
   contem("o estudo: a frequência", c, "duas vezes por semana");
   contem("o estudo: o deload", c, "Bell");
   contem("e o porquê no caso da pessoa", c, "No seu caso, o treino muda porque Ombros ficou abaixo do mínimo");
+  contem("a análise termina com o aviso: IA e estudos", a, "inteligência artificial");
+  contem("e manda consultar um médico", a, "consulte um médico");
+  contem("o estudo também termina com o aviso", c, "não é uma prescrição de treino".replace("não é uma", "não uma"));
+  teste("o aviso falado: sem til, sem parênteses", false, /[~()]/.test(c));
   contem("equilibrado: diz que não há nada para corrigir", V.falaAnaliseAjuste({ faltam: [], sobram: [] }, null, {}), "Não há nada para corrigir");
+  contem("equilibrado: o aviso também", V.falaAnaliseAjuste({ faltam: [], sobram: [] }, null, {}), "consulte um médico");
 }
 
 console.log("\n" + ok + " passou / " + mal + " falhou");

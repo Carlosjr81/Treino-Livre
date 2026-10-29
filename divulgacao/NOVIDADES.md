@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-10-29b — Termos de Uso, com aceite no cadastro
+
+**Em uma frase:** o app agora tem Termos de Uso de verdade, explicados em 8 cartões simples, e só entra
+quem aceita.
+
+**O que mudou**
+- Ao criar a conta, a pessoa marca duas caixas: aceita os Termos de Uso e a Política de Privacidade (e tem
+  18 anos ou autorização do responsável) e entende que o app não substitui o médico nem o profissional de
+  Educação Física.
+- Quem já tinha conta vê uma vez a tela "Antes de começar, o combinado", com o resumo das regras em 1
+  minuto, e aceita para continuar.
+- Os termos completos ficam a um toque, no cadastro e nos Ajustes, e numa página própria.
+- Se os termos mudarem um dia, o app mostra a versão nova e pede o aceite de novo.
+
+**Por que importa para quem treina**
+- Fica claro, em poucas palavras, o combinado: o app é grátis, os treinos ficam no celular da pessoa, as
+  sugestões são feitas com IA e não substituem o médico, e a segurança na rua e na esteira vem antes.
+
+**Como usar**
+- Nada a fazer além de ler e marcar as duas caixas. Para reler: Ajustes › Termos de Uso.
+
+**Ideias de vídeo**
+- Não é tema de vídeo. Se aparecer no cadastro, mostrar que o resumo cabe em 1 minuto.
+
+**Não prometer**
+- Não dizer que o app "não precisa de cadastro": precisa de conta, e de aceitar os termos.
+
+---
+
 ## 2026-10-29a — Aviso de saúde em todas as sugestões de treino
 
 **Em uma frase:** toda análise, sugestão ou treino pronto do app agora diz de onde veio (estudos

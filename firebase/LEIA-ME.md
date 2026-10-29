@@ -38,7 +38,15 @@ abre como sempre. Ele liga quando a chave do projeto entra no `index.html`
    não dão acesso a nada: quem protege são as regras do passo 6) e entram no
    `index.html`.
 
-## Regras novas (versão 2, 28/10/2026)
+## Regras novas (versão 3, 29/10/2026)
+
+O aceite dos Termos de Uso fica gravado na conta de cada pessoa (e aparece no
+painel e na planilha). **Publique de novo** o `firebase/firestore.rules`, como
+abaixo. Sem isso, o aceite fica só no celular da pessoa: tudo funciona, mas o
+painel diz "aceite não registrado na conta" e, num aparelho novo, o app pede o
+aceite de novo.
+
+## Regras da versão 2 (28/10/2026)
 
 A gestão completa do painel (aprovação automática, recado visto, a pessoa
 apagar a própria conta) precisa das regras novas. **Publique de novo**:

@@ -98,7 +98,7 @@
       if (!dono) {
         const auto = !!(e.config && e.config.auto);
         if (!existe && (!(novo.status === "pendente" || (novo.status === "liberado" && auto)) || novo.email !== eu.email)) return erro(403, "PERMISSION_DENIED");
-        if (existe && Object.keys(novo).some((k) => ["ultimoAcesso", "acessos", "aparelho", "versao", "avisoVisto"].indexOf(k) < 0)) return erro(403, "PERMISSION_DENIED");
+        if (existe && Object.keys(novo).some((k) => ["ultimoAcesso", "acessos", "aparelho", "versao", "avisoVisto", "termos", "termosEm"].indexOf(k) < 0)) return erro(403, "PERMISSION_DENIED");
       }
       e.docs[uid] = Object.assign({}, e.docs[uid] || {}, novo); gravar(e);
       return resp(200, { name: "x/documents/usuarios/" + uid, fields: daDoc(e.docs[uid]) });

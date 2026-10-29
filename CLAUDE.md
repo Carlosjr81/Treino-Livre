@@ -246,6 +246,40 @@ possíveis, para eu não ter problemas de processos por estar indicando treino".
 - Coberto em `teste-volume.js` (os áudios terminam com o aviso, sem til nem
   parênteses).
 
+## Os Termos de Uso (`TERMOS_USO`, `TelaAceiteTermos`, `termos.html`)
+
+Pedido do dono (2026-10-29b): "faça o termo de uso com aceite no cadastro, bem
+legal, que precise do aceite do usuário".
+
+- **Um texto só, no primeiro script** (`TERMOS_USO`): o `resumo` (oito
+  cartões com emoji, "o combinado em 1 minuto"), as quinze `secoes` (a 4,
+  saúde, inclui o `AVISO_SAUDE.completo`) e as duas `caixas` de aceite
+  (termos, privacidade e 18 anos; e a de saúde: o app não substitui o médico).
+  O `termos.html` é a mesma coisa numa página, e o `teste-acesso.js`
+  reprova se os dois divergirem: mudou o texto, refaça a página com ele.
+- **Sem aceite, o app não abre.** No cadastro, "Criar minha conta" recusa sem
+  as duas caixas marcadas. Quem já tinha conta, entrou num aparelho novo ou
+  está com o porteiro desligado vê a `TelaAceiteTermos` (no `Porteiro`,
+  antes do app; "Não aceito: sair"). Os modos escondidos do app Android
+  passam direto, como no porteiro.
+- **A versão manda.** O aceite guarda `{ v, em }` em
+  `localStorage["treinolivre:termos"]`, e só vale o da `TERMOS_USO.versao`
+  de agora. **Mudou algo que importa nos termos, suba a versão**: todo mundo
+  vê "Os termos de uso mudaram" e aceita de novo.
+- **Na conta também** (`termos`, `termosEm`, `gravarAceiteNaConta`), para o
+  dono ter o registro: aparece no painel ("📜 Termos aceitos em …") e na
+  planilha. Exige as **regras versão 3** (o dono publica no console); com as
+  antigas a gravação é recusada calada e o aceite fica só no aparelho. Aceito
+  em outro aparelho, a conta traz o aceite e a tela não aparece.
+- Nos Ajustes, o cartão "Termos de Uso" diz quando foi aceito e abre o texto
+  (`JanelaTermos`, que também abre do cadastro sem perder o que foi
+  digitado).
+- **Não é parecer jurídico**: é o que dá para escrever sem advogado. Quem
+  oferece é "Carlos Jr. (Instagram @carlos.jr.81)"; o contato é o Instagram;
+  o foro é o da cidade de quem usa (o Código de Defesa do Consumidor manda
+  assim).
+- O `navegador.js` entra com os termos aceitos; `--sem-termos` mostra a tela.
+
 ## Nenhuma conta do Claude é dona do projeto
 
 O dono desenvolve com a conta **corporativa** do Claude e quer poder assumir
@@ -415,7 +449,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v150) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v151) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -4682,7 +4716,7 @@ node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem 
 `navegador.js` pega React, ReactDOM e Babel do npm (a sessão na nuvem alcança),
 serve o `index.html` local e aceita `--dados arq.json` (o registro do
 `localStorage`), `--clicar "Texto"` (repetível), `--foto tela.png` e
-`--altura 700`, `--antes script.js` (roda antes do app: uma voz ou um
+`--altura 700`, `--sem-termos` (a tela de aceite dos termos aparece), `--antes script.js` (roda antes do app: uma voz ou um
 Firebase de mentira; pode repetir), `--preencher "Rótulo=valor"` (na ordem,
 junto dos cliques) e `--mostrar "expressão"` (imprime o valor no fim).
 Sai com erro se a página lançar exceção: é o "mexeu em

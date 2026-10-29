@@ -95,5 +95,23 @@ console.log("\n--- prazo, recado, filtros e a planilha ---");
   teste("planilha: texto com ; e aspas não quebra a coluna", true, csv.indexOf('"Ana; Souza";ana@x.com;Liberado;28/10/2026') >= 0 && csv.indexOf('"diz ""oi"""') >= 0);
 }
 
+console.log("\n--- os termos de uso ---");
+{
+  eval(pedaco("const AVISO_SAUDE = {", "\nconst GUIA_CONECTAR = [") + "\nglobalThis.T = TERMOS_USO; globalThis.AVISO_SAUDE = AVISO_SAUDE;");
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const pagina = require("fs").readFileSync(require("path").join(__dirname, "..", "termos.html"), "utf8");
+  const paragrafos = [].concat.apply([], T.secoes.map((s) => s[1]));
+  const faltam = paragrafos.concat(T.secoes.map((s) => s[0]), T.resumo.map((r) => r[2])).filter((p) => pagina.indexOf(esc(p)) < 0);
+  teste("o termos.html tem o mesmo texto do app", [], faltam.map((p) => p.slice(0, 40)));
+  const [a, m, d] = T.versao.split("-");
+  teste("o termos.html diz a versão de agora", true, pagina.indexOf("Versão de " + d + "/" + m + "/" + a) >= 0);
+  teste("a saúde dos termos é o aviso de saúde do app", true, AVISO_SAUDE.completo.every((p) => paragrafos.indexOf(p) >= 0));
+  teste("duas caixas de aceite: termos e saúde", [true, true], [/Termos de Uso/.test(T.caixas[0]) && /18 anos/.test(T.caixas[0]), /médico/.test(T.caixas[1])]);
+  teste("o cadastro só cria a conta com as duas caixas marcadas", true, /!\(marcas\[0\] && marcas\[1\]\)/.test(html));
+  teste("o app não abre sem o aceite", true, html.indexOf('if (fase === "dentro" && !aceito)') >= 0);
+  teste("as regras deixam a pessoa gravar o aceite", true, /'termos', 'termosEm'/.test(require("fs").readFileSync(require("path").join(__dirname, "..", "firebase", "firestore.rules"), "utf8")));
+  teste("nenhum parágrafo fala em prescrever pelo app", [], paragrafos.filter((p) => /o app prescreve|prescrição do app/i.test(p)));
+}
+
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

@@ -104,6 +104,13 @@ async function doNpm(lib) {
     localStorage.setItem("treinolivre:v1", JSON.stringify(d));
   }, dados);
 
+  // os termos de uso já aceitos, para a tela de aceite não cobrir o app;
+  // --sem-termos deixa a tela aparecer
+  if (args.indexOf("--sem-termos") < 0) {
+    const v = (fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8").match(/const TERMOS_USO = \{\s*versao: "([^"]+)"/) || [])[1];
+    await p.addInitScript((x) => { if (!localStorage.getItem("treinolivre:termos")) localStorage.setItem("treinolivre:termos", JSON.stringify({ v: x, em: Date.now() })); }, v);
+  }
+
   // --antes pode vir mais de uma vez: rodam na ordem
   for (let i = 0; i < args.length; i++) if (args[i] === "--antes" && args[i + 1]) await p.addInitScript({ content: fs.readFileSync(args[i + 1], "utf8") });
   await p.goto(ENDERECO + "#teste");

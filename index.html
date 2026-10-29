@@ -724,6 +724,90 @@ const AVISO_SAUDE = {
   falado: "Um aviso importante. Esta análise foi feita pelo app, com auxílio de inteligência artificial, a partir dos estudos científicos citados. Ela é uma orientação geral e educativa, não uma prescrição de treino, e não substitui o médico nem o profissional de Educação Física. Antes de mudar o seu treino, consulte um médico. E se sentir dor, tontura ou falta de ar, pare na hora.",
 };
 
+// Os Termos de Uso (pedido do dono: "faça o termo de uso com aceite no
+// cadastro, bem legal, que precise do aceite"). Um texto só: a tela de aceite,
+// o cadastro, os Ajustes e o termos.html (que o teste-acesso.js confere que
+// está igual a este). Mudou o texto de um jeito que importa, suba a versao:
+// todo mundo vê os termos de novo e precisa aceitar outra vez.
+// Não é parecer jurídico: é o que dá para escrever sem um advogado.
+const TERMOS_USO = {
+  versao: "2026-10-29",
+  resumo: [
+    ["\u{1F193}", "Grátis, com acesso liberado", "O app é gratuito. A conta precisa da liberação do criador do app, que pode pôr prazo ou bloquear quem descumprir estas regras. Se um dia houver plano pago, você é avisado antes, e nada é cobrado sem o seu aceite."],
+    ["\u{1FA7A}", "Saúde em primeiro lugar", "Consulte um médico antes de começar ou mudar o seu treino. Sentiu dor no peito, tontura ou falta de ar, pare na hora."],
+    ["\u{1F916}", "Sugestões com inteligência artificial", "Análises e treinos prontos são automáticos, feitos com auxílio de IA a partir de estudos. São orientação educativa, não prescrição, e não substituem o profissional de Educação Física."],
+    ["\u{1F4F1}", "Os seus treinos são seus", "Eles ficam no seu celular, não num servidor. Faça backup: se o aparelho se perder, o app não tem como recuperar."],
+    ["\u{1F3C3}", "Atenção na rua e na esteira", "Na rua, o trânsito vem antes do app. Na esteira conectada, você define a velocidade máxima, e o botão de parar da máquina é sempre seu."],
+    ["\u{1F91D}", "Respeito", "Nada de conta falsa, apelido ofensivo ou usar os desafios para incomodar alguém."],
+    ["\u{00A9}\u{FE0F}", "O app tem dono", "Usar é livre. Copiar, revender ou tentar burlar a liberação, não."],
+    ["\u{1F504}", "Termos novos, aceite novo", "Se estas regras mudarem, o app mostra a versão nova e pede o seu aceite outra vez."],
+  ],
+  secoes: [
+    ["1. O que é o Treino Livre", [
+      "O Treino Livre é um aplicativo para registrar e acompanhar treinos de musculação, aeróbico, funcional e corrida, com recursos de voz, de câmera, de conexão com aparelhos e de sugestão de treino. Ele é criado e mantido por Carlos Jr. (Instagram @carlos.jr.81), chamado aqui de criador do app, e funciona no site carlosjr81.github.io/Treino-Livre e no app Android.",
+      "Estes Termos de Uso são as regras para usar o app. A Política de Privacidade explica o que acontece com os seus dados e faz parte destes termos.",
+    ]],
+    ["2. O seu aceite", [
+      "Para usar o app você precisa ler e aceitar estes termos. Ao marcar as caixas de aceite e tocar no botão de aceitar, você declara que leu, entendeu e concorda com eles. O app guarda a data e a versão do seu aceite, no seu aparelho e na sua conta.",
+      "Se não concordar com alguma parte, não use o app.",
+    ]],
+    ["3. Quem pode usar", [
+      "O app é para maiores de 18 anos. Quem tem entre 13 e 17 anos só pode usar com a autorização e o acompanhamento dos pais ou do responsável legal, que aceitam estes termos por ele. Menores de 13 anos não podem criar conta.",
+      "Use o app só se a sua saúde permite praticar atividade física. Gestantes e pessoas com doença do coração, pressão alta, diabetes, lesões, cirurgia recente ou qualquer outra condição de saúde precisam da liberação do médico antes.",
+    ]],
+    ["4. Saúde e segurança", AVISO_SAUDE.completo.concat([
+      "Na rua, preste atenção ao trânsito, aos pedestres e ao caminho: nenhuma voz, mapa ou desafio do app vale mais que a sua segurança. Use o fone num volume que deixe ouvir o que acontece em volta. As histórias e os monstros do Monster, Run! são ficção, e nenhuma fala deles é ordem de direção.",
+      "Na esteira conectada por Bluetooth, você escolhe a velocidade máxima, e o app nunca passa dela. Mesmo assim, fique atento: o botão de parada e a chave de segurança da esteira são sempre o jeito mais rápido de parar. Não use o controle automático se não se sentir seguro.",
+      "A contagem de repetições pela câmera, a correção de postura e os números de aparelhos, relógios e cintas podem errar. Confira o que for importante.",
+    ])],
+    ["5. O que o app não promete", [
+      "O app não promete resultado: perda de peso, ganho de massa, desempenho ou tempo de prova. As previsões e os números de condicionamento são estimativas feitas a partir de fórmulas publicadas, e cada corpo responde de um jeito.",
+    ]],
+    ["6. A sua conta", [
+      "Para entrar é preciso criar uma conta com nome, e-mail e senha. Dê informações verdadeiras, guarde a sua senha e não a compartilhe: o que for feito com a sua conta é de sua responsabilidade. Se perceber uso indevido, troque a senha e avise o criador do app.",
+      "O acesso é liberado pelo criador do app, que pode liberar com prazo, renovar, bloquear ou recusar contas, em especial quando estes termos não forem cumpridos. Quando houver um motivo para o bloqueio, ele aparece para você.",
+      "Hoje o app é gratuito. Se um dia houver recursos ou planos pagos, as condições serão mostradas antes, e nada será cobrado sem que você aceite.",
+    ]],
+    ["7. Os seus dados e os seus treinos", [
+      "Os seus treinos, medidas, fotos e dados de saúde ficam guardados no seu aparelho, e não num servidor do app. Por isso, apagar os dados do navegador, desinstalar o app ou perder o celular pode apagar o seu histórico. Use o backup em Ajustes: guardar as cópias é responsabilidade sua.",
+      "Fora do aparelho ficam só os dados da conta de acesso e o que você decide compartilhar, como links de fichas, desafios e grupos. O que cada um guarda está na Política de Privacidade, que segue a Lei Geral de Proteção de Dados (Lei 13.709/2018).",
+    ]],
+    ["8. Desafios, grupos e serviços de terceiros", [
+      "Nos desafios e grupos entre amigos, o seu apelido e os números dos seus treinos ficam visíveis para quem tem o código ou o link. Eles passam por retransmissores públicos e gratuitos, que podem sair do ar. A sua localização nunca é enviada.",
+      "Alguns recursos dependem de serviços de outras empresas, com regras próprias: o Google (Firebase, Conexão Saúde e reconhecimento de voz), o OpenStreetMap (mapas), a Meta (óculos Ray-Ban Meta), os fabricantes dos aparelhos Bluetooth e o seu navegador. O app não controla esses serviços e não responde pela disponibilidade deles.",
+    ]],
+    ["9. O que não é permitido", [
+      "Criar conta falsa ou em nome de outra pessoa; usar nome, apelido ou mensagem ofensiva, discriminatória ou que se passe por outra pessoa; usar desafios e grupos para assediar, enganar ou expor alguém; tentar burlar a liberação de acesso, invadir, sobrecarregar ou atrapalhar o app ou os serviços que ele usa; copiar, modificar, revender ou distribuir o app, no todo ou em parte, sem autorização por escrito do criador do app.",
+    ]],
+    ["10. Direitos sobre o app", [
+      "O código, o design, os textos, as histórias, os personagens, as imagens, as vozes e a marca Treino Livre são do criador do app, com todos os direitos reservados (Leis 9.609/1998 e 9.610/1998). Usar o app não transfere nenhum desses direitos a você. Os componentes de terceiros seguem as próprias licenças, listadas em Ajustes, Créditos.",
+      "Os treinos, as fichas e as fotos que você cria são seus.",
+    ]],
+    ["11. Disponibilidade e responsabilidade", [
+      "O app é oferecido como está, de graça, e pode ter falhas, ficar fora do ar, mudar ou deixar de oferecer recursos, com ou sem aviso. O criador do app trabalha para que ele funcione bem, mas não garante que funcione sempre e sem erro.",
+      "Na medida permitida pela lei, o criador do app não responde por lesões, danos ou perdas que resultem do uso das sugestões sem orientação médica ou profissional, do descumprimento destes termos, da perda de dados guardados só no aparelho ou de falhas de serviços de terceiros. Nada nestes termos tira os direitos que a lei garante a você, como os do Código de Defesa do Consumidor.",
+    ]],
+    ["12. Sair e apagar a conta", [
+      "Você pode parar de usar o app quando quiser e apagar a sua conta em Ajustes, Sua conta, Apagar minha conta. Os treinos continuam no seu aparelho até você os apagar.",
+      "O criador do app pode bloquear ou encerrar o acesso de quem descumprir estes termos.",
+    ]],
+    ["13. Mudanças nestes termos", [
+      "Estes termos podem mudar. Quando mudarem, o app mostra a versão nova e pede o seu aceite de novo antes de você continuar. A data da versão fica no topo.",
+    ]],
+    ["14. Lei e foro", [
+      "Estes termos seguem as leis do Brasil, entre elas o Marco Civil da Internet (Lei 12.965/2014), a Lei Geral de Proteção de Dados (Lei 13.709/2018) e o Código de Defesa do Consumidor (Lei 8.078/1990). Qualquer questão será resolvida no foro da cidade onde você mora.",
+    ]],
+    ["15. Fale com o criador do app", [
+      "Dúvidas, pedidos ou reclamações sobre estes termos ou sobre a sua conta: Instagram @carlos.jr.81.",
+    ]],
+  ],
+  // as duas caixas de aceite (o cadastro e a tela de aceite)
+  caixas: [
+    "Li e aceito os Termos de Uso e a Política de Privacidade, e tenho 18 anos ou mais (ou a autorização do meu responsável).",
+    "Entendo que o app não substitui o médico nem o profissional de Educação Física, e vou consultar um médico antes de começar ou mudar o meu treino.",
+  ],
+};
+
 const GUIA_CONECTAR = [
   { id: "app", icone: "\u{1F4F2}", titulo: "Instalar o app Android",
     para: "Precisa para ler o relógio e o anel e para usar os óculos. Todo o resto funciona no navegador.",
@@ -851,7 +935,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-29a";
+const VERSAO_APP = "2026-10-29b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -11938,7 +12022,7 @@ function BemVindo({ onAssistente, onFuncional, onEscolaVoz }) {
       </div>
       {linha("🎤", "Dite em vez de digitar.", "“Jarvis, anote 80 por 10” e a série está registrada.")}
       {linha("👁", "Ou deixe a câmera contar.", "Ela conta em voz alta, corrige a forma e registra sozinha.")}
-      {linha("📶", "Funciona sem internet.", "Tudo fica no seu aparelho. Sem cadastro, sem anúncio, de graça.")}
+      {linha("📶", "Funciona sem internet.", "Os seus treinos ficam no seu aparelho. Sem anúncio, de graça.")}
       <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.6, margin: "4px 0 12px" }}>
         O treino de hoje já está escolhido logo acima — é só tocar em Começar.
       </div>
@@ -12728,6 +12812,8 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
       <div style={S.card}>
         <AvisoSaude completo />
       </div>
+
+      <CartaoTermos />
 
       <div style={{ ...S.card, borderStyle: "dashed" }}>
         <div style={S.label}>Créditos</div>
@@ -31052,9 +31138,9 @@ function csvContas(lista, agora) {
   const data = (ms) => (ms ? new Date(ms).toLocaleDateString("pt-BR") : "");
   const cel = (v) => { const s = String(v == null ? "" : v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const nomes = { pendente: "Aguardando", liberado: "Liberado", bloqueado: "Bloqueado", vencido: "Prazo vencido" };
-  const linhas = [["Nome", "E-mail", "Situação", "Cadastro", "Último acesso", "Acessos", "Aparelho", "Versão", "Liberado até", "Nota", "Motivo do bloqueio"]];
+  const linhas = [["Nome", "E-mail", "Situação", "Cadastro", "Último acesso", "Acessos", "Aparelho", "Versão", "Liberado até", "Nota", "Motivo do bloqueio", "Termos aceitos em", "Versão dos termos"]];
   lista.forEach((c) => linhas.push([c.nome || "", c.email || "", nomes[situacaoConta(c, agora)], data(c.criadoEm), data(c.ultimoAcesso),
-    c.acessos || 0, c.aparelho || "", c.versao || "", data(c.ate), c.nota || "", c.motivo || ""]));
+    c.acessos || 0, c.aparelho || "", c.versao || "", data(c.ate), c.nota || "", c.motivo || "", data(c.termosEm), c.termos || ""]));
   return "﻿" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
 }
 // ---------------- FIM DAS CONTAS
@@ -31147,6 +31233,127 @@ async function tokenValido(s) {
   gravarSessaoConta(n);
   return n;
 }
+// O aceite dos termos mora no aparelho (e na conta, quando as regras do
+// Firebase deixam: versão 3). Só vale o da versão de agora.
+const CHAVE_TERMOS = "treinolivre:termos";
+function lerAceiteTermos() { try { return JSON.parse(localStorage.getItem(CHAVE_TERMOS) || "null"); } catch (e) { return null; } }
+function termosAceitos() { const a = lerAceiteTermos(); return !!(a && a.v === TERMOS_USO.versao); }
+function gravarAceiteTermos(em) {
+  const a = { v: TERMOS_USO.versao, em: em || Date.now() };
+  try { localStorage.setItem(CHAVE_TERMOS, JSON.stringify(a)); } catch (e) {}
+  return a;
+}
+// Grava na conta, calado: com as regras antigas publicadas, o Firebase recusa
+// e o aceite fica só no aparelho (o app pede de novo num aparelho novo).
+async function gravarAceiteNaConta(a) {
+  try { const s = await tokenValido(lerSessaoConta()); if (s && s.uid) await contaApi.gravar(s.uid, { termos: a.v, termosEm: a.em }, s.idToken); } catch (e) {}
+}
+
+// Os termos para ler: o resumo em cartões e o texto completo
+function TextoTermos({ soResumo }) {
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        {TERMOS_USO.resumo.map((r) => (
+          <div key={r[1]} style={{ border: "1px solid var(--borda2)", borderRadius: 14, padding: "10px 10px 11px", background: "var(--card)" }}>
+            <div style={{ fontSize: 24, lineHeight: 1 }} aria-hidden="true">{r[0]}</div>
+            <div style={{ fontWeight: 900, fontSize: 13.5, margin: "6px 0 3px", lineHeight: 1.3 }}>{r[1]}</div>
+            <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.45 }}>{r[2]}</div>
+          </div>
+        ))}
+      </div>
+      {!soResumo && TERMOS_USO.secoes.map((s) => (
+        <div key={s[0]} style={{ marginTop: 16 }}>
+          <div style={{ fontWeight: 900, fontSize: 15, color: "var(--marca)", marginBottom: 4 }}>{s[0]}</div>
+          {s[1].map((p, i) => <p key={i} style={{ margin: "0 0 8px", fontSize: 13.5, lineHeight: 1.6 }}>{p}</p>)}
+        </div>
+      ))}
+      {!soResumo && (
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 12 }}>
+          Versão de {new Date(TERMOS_USO.versao + "T12:00:00").toLocaleDateString("pt-BR")} ·{" "}
+          <a href="privacidade.html" target="_blank" rel="noreferrer" style={{ color: "var(--marca)" }}>Política de Privacidade</a> ·{" "}
+          <a href="termos.html" target="_blank" rel="noreferrer" style={{ color: "var(--marca)" }}>abrir numa página</a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// A janela com os termos inteiros, por cima de tudo (no cadastro, abrir os
+// termos não pode levar embora o que a pessoa já digitou)
+function JanelaTermos({ onFechar }) {
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Termos de Uso" onClick={onFechar}
+      style={{ position: "fixed", inset: 0, zIndex: 3000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()}
+        style={{ background: "var(--bg)", color: "var(--texto)", width: "100%", maxWidth: 560, maxHeight: "92vh", borderRadius: "20px 20px 0 0", display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px 10px", borderBottom: "1px solid var(--borda2)" }}>
+          <div style={{ fontWeight: 900, fontSize: 18 }}>📜 Termos de Uso</div>
+          <button onClick={onFechar} aria-label="Fechar" style={{ background: "none", border: "none", color: "var(--texto)", fontSize: 22, cursor: "pointer", padding: 4 }}>✕</button>
+        </div>
+        <div style={{ overflowY: "auto", padding: "12px 16px 8px", fontFamily: S.app.fontFamily }}>
+          <TextoTermos />
+        </div>
+        <div style={{ padding: "10px 16px 16px", borderTop: "1px solid var(--borda2)" }}>
+          <button onClick={onFechar} style={{ ...S.btn, width: "100%" }}>Entendi</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// As duas caixas de aceite: as duas precisam estar marcadas
+function CaixasAceite({ marcas, setMarcas }) {
+  return (
+    <div>
+      {TERMOS_USO.caixas.map((txt, i) => (
+        <label key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer", fontSize: 13.5, lineHeight: 1.5, padding: "7px 0" }}>
+          <input type="checkbox" checked={!!marcas[i]} onChange={(e) => { const m = marcas.slice(); m[i] = e.target.checked; setMarcas(m); }}
+            style={{ width: 22, height: 22, flex: "0 0 22px", marginTop: 1, accentColor: "var(--marca)" }} />
+          <span>{txt}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+// A tela de aceite: quem já tinha conta (ou entrou num aparelho novo) e quem
+// ainda não aceitou a versão de agora. Sem aceitar, o app não abre.
+function TelaAceiteTermos({ onAceitar, onSair }) {
+  const antes = lerAceiteTermos();
+  const [marcas, setMarcas] = useState([false, false]);
+  const [lendo, setLendo] = useState(false);
+  const pronto = marcas[0] && marcas[1];
+  return (
+    <CaixaConta>
+      <div style={{ textAlign: "center", margin: "6px 0 14px" }}>
+        <div style={{ fontSize: 40 }} aria-hidden="true">📜</div>
+        <div style={{ fontSize: 20, fontWeight: 900 }}>{antes ? "Os termos de uso mudaram" : "Antes de começar, o combinado"}</div>
+        <div style={{ color: "var(--cinza)", fontSize: 14, marginTop: 4, lineHeight: 1.5 }}>
+          {antes ? "Leia o que vale a partir de agora e aceite para continuar treinando." : "As regras do Treino Livre em 1 minuto. Para entrar, é preciso aceitar."}
+        </div>
+      </div>
+      <TextoTermos soResumo />
+      <button onClick={() => setLendo(true)} style={{ ...S.btnGhost, width: "100%", marginTop: 12, color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>
+        📖 Ler os termos completos
+      </button>
+      <div style={{ ...S.card, marginTop: 12 }}>
+        <CaixasAceite marcas={marcas} setMarcas={setMarcas} />
+        <button disabled={!pronto} onClick={onAceitar} style={{ ...S.btn, width: "100%", fontSize: 16, padding: "14px 10px", marginTop: 8, opacity: pronto ? 1 : 0.45 }}>
+          ✅ Aceito e quero treinar
+        </button>
+        {!pronto && <div style={{ fontSize: 12, color: "var(--cinza)", textAlign: "center", marginTop: 8 }}>Marque as duas caixas para continuar.</div>}
+      </div>
+      {onSair && (
+        <div style={{ textAlign: "center" }}>
+          <button onClick={onSair} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 700, cursor: "pointer", fontSize: 13, marginTop: 4 }}>Não aceito: sair</button>
+        </div>
+      )}
+      {lendo && <JanelaTermos onFechar={() => setLendo(false)} />}
+    </CaixaConta>
+  );
+}
+
 // Quem está dentro, para os Ajustes (o cartão da conta e o painel do dono).
 // Ponteiro de módulo, como o CONTROLE_AULA: o porteiro está acima de tudo.
 let CONTA_ATUAL = null;
@@ -31162,6 +31369,7 @@ function Porteiro({ children }) {
   const [msg, setMsg] = useState("");
   const [pendentes, setPendentes] = useState(0);
   const [recado, setRecado] = useState(null);
+  const [aceito, setAceito] = useState(termosAceitos);
   const vistoEm = useRef(0);
   const conferindo = useRef(false);
   const contou = useRef(false);
@@ -31198,6 +31406,10 @@ function Porteiro({ children }) {
         d = await contaApi.gravar(s.uid, { status: "liberado" }, s.idToken);
       }
       const status = situacaoConta(d, agora);
+      // o aceite dos termos: o da conta vale neste aparelho (aceitou em outro),
+      // e o do aparelho sobe para a conta (aceitou no cadastro)
+      if (d && d.termos === TERMOS_USO.versao && !termosAceitos()) { gravarAceiteTermos(d.termosEm); setAceito(true); }
+      else if (termosAceitos() && d && d.termos !== TERMOS_USO.versao) gravarAceiteNaConta(lerAceiteTermos());
       if (status === "liberado" && !contou.current) {
         contou.current = true;
         vistoEm.current = agora;
@@ -31240,8 +31452,11 @@ function Porteiro({ children }) {
   // eslint-disable-next-line
   }, [ligado, fase === "entrar"]);
 
-  if (!ligado || MODO_OCULOS || MODO_BOLSO || MODO_CORRIDA) { CONTA_ATUAL = null; return children; }
+  if (MODO_OCULOS || MODO_BOLSO || MODO_CORRIDA) { CONTA_ATUAL = null; return children; }
+  const aceitar = () => { const a = gravarAceiteTermos(); setAceito(true); if (ligado) gravarAceiteNaConta(a); };
+  if (!ligado) { CONTA_ATUAL = null; return aceito ? children : <TelaAceiteTermos onAceitar={aceitar} />; }
   const s = lerSessaoConta();
+  if (fase === "dentro" && !aceito) { CONTA_ATUAL = null; return <TelaAceiteTermos onAceitar={aceitar} onSair={sair} />; }
   if (fase === "dentro") {
     CONTA_ATUAL = s ? { email: s.email, nome: s.nome, uid: s.uid, ate: s.ate || 0, dono: ehEmailDono(s.email) && !!s.verificado, sair: sair } : null;
     const app = CONTA_ATUAL && CONTA_ATUAL.dono ? React.cloneElement(children, { contaPendentes: pendentes, onContaVista: () => setPendentes(0) }) : children;
@@ -31285,6 +31500,8 @@ function TelaConta({ onEntrou, msgInicial }) {
   const [ok, setOk] = useState("");
   const [indo, setIndo] = useState(false);
   const [errou, setErrou] = useState(false);
+  const [marcas, setMarcas] = useState([false, false]);
+  const [lendoTermos, setLendoTermos] = useState(false);
   const sugestao = sugerirEmail(email);
   const trocar = (m) => { setModo(m); setMsg(""); setOk(""); setErrou(false); };
   const mandarLink = async () => {
@@ -31308,6 +31525,7 @@ function TelaConta({ onEntrou, msgInicial }) {
       return;
     }
     if (senha.length < 6) { setMsg(modo === "criar" ? "Crie uma senha com pelo menos 6 caracteres." : erroDeConta("MISSING_PASSWORD")); return; }
+    if (modo === "criar" && !(marcas[0] && marcas[1])) { setMsg("Para criar a conta, leia e aceite os Termos de Uso: marque as duas caixas logo acima do botão."); return; }
     setIndo(true);
     try {
       const j = modo === "criar" ? await contaApi.criar(em, senha) : await contaApi.entrar(em, senha);
@@ -31315,6 +31533,7 @@ function TelaConta({ onEntrou, msgInicial }) {
       gravarSessaoConta(s);
       try { localStorage.setItem(CHAVE_EMAIL_CONTA, em); } catch (x) {}
       if (modo === "criar" && ehEmailDono(em)) { try { await contaApi.confirmarEmail(s.idToken); } catch (x) {} }
+      if (modo === "criar") gravarAceiteTermos();
       onEntrou();
     } catch (x) {
       // e-mail já cadastrado no "Criar": leva para o Entrar com o e-mail pronto
@@ -31374,6 +31593,18 @@ function TelaConta({ onEntrou, msgInicial }) {
             </div>
           </div>
         )}
+        {modo === "criar" && (
+          <div style={{ border: "1px solid var(--borda2)", borderRadius: 14, padding: "10px 12px", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 800 }}>📜 Termos de Uso</span>
+              <button type="button" onClick={() => setLendoTermos(true)} style={{ background: "none", border: "none", color: "var(--marca)", fontWeight: 800, fontSize: 13, cursor: "pointer", padding: "4px 0" }}>Ler os termos</button>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.45, margin: "2px 0 4px" }}>
+              Grátis, com acesso liberado pelo criador · sugestões feitas com IA, que não substituem o médico · os treinos ficam no seu celular.
+            </div>
+            <CaixasAceite marcas={marcas} setMarcas={(m) => { setMarcas(m); if (m[0] && m[1] && /Termos/.test(msg)) setMsg(""); }} />
+          </div>
+        )}
         {msg && <div role="alert" style={{ color: "var(--perigo)", fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>{msg}</div>}
         {errou && modo === "entrar" && (
           <button type="button" disabled={indo} onClick={mandarLink}
@@ -31393,8 +31624,10 @@ function TelaConta({ onEntrou, msgInicial }) {
       </form>
       <div style={{ fontSize: 12, color: "var(--cinza2)", textAlign: "center", lineHeight: 1.55, marginTop: 4 }}>
         🔒 A conta guarda só o seu nome, o e-mail e quando você entra. Os seus treinos continuam no seu celular.{" "}
-        <a href="privacidade.html" style={{ color: "var(--marca)" }}>Privacidade</a>
+        <a href="privacidade.html" style={{ color: "var(--marca)" }}>Privacidade</a> ·{" "}
+        <button type="button" onClick={() => setLendoTermos(true)} style={{ background: "none", border: "none", padding: 0, color: "var(--marca)", textDecoration: "underline", fontSize: 12, cursor: "pointer" }}>Termos de Uso</button>
       </div>
+      {lendoTermos && <JanelaTermos onFechar={() => setLendoTermos(false)} />}
     </CaixaConta>
   );
 }
@@ -31449,6 +31682,24 @@ function TelaEsperaConta({ fase, sessao, msg, onConferir, onConferirQuieto, onSa
         )}
       </div>
     </CaixaConta>
+  );
+}
+
+// Os termos nos Ajustes: quando foram aceitos, e o texto a um toque
+function CartaoTermos() {
+  const [lendo, setLendo] = useState(false);
+  const a = lerAceiteTermos();
+  return (
+    <div style={S.card}>
+      <div style={S.label}>Termos de Uso</div>
+      <div style={{ fontSize: 13.5, color: "var(--cinza)", lineHeight: 1.5 }}>
+        {a && a.v === TERMOS_USO.versao
+          ? "✅ Você aceitou em " + new Date(a.em).toLocaleDateString("pt-BR") + " (versão de " + new Date(TERMOS_USO.versao + "T12:00:00").toLocaleDateString("pt-BR") + ")."
+          : "As regras do app: saúde, conta, dados e direitos."}
+      </div>
+      <button onClick={() => setLendo(true)} style={{ ...S.btnGhost, width: "100%", marginTop: 10 }}>📜 Ler os Termos de Uso</button>
+      {lendo && <JanelaTermos onFechar={() => setLendo(false)} />}
+    </div>
   );
 }
 
@@ -31690,6 +31941,7 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
               {sit === "bloqueado" && c.motivo ? <><br />Motivo do bloqueio: {c.motivo}</> : null}
               {c.aviso ? <><br />📩 Recado: “{c.aviso}” {(c.avisoVisto || 0) >= (c.avisoEm || 0) ? "(visto)" : "(ainda não visto)"}</> : null}
               {c.senhaLinkEm ? <><br />Último link de senha nova: {quandoAcessou(c.senhaLinkEm, agora)}</> : null}
+              <br />{c.termos ? "📜 Termos aceitos em " + new Date(c.termosEm || 0).toLocaleDateString("pt-BR") + (c.termos !== TERMOS_USO.versao ? " (versão antiga)" : "") : "📜 Aceite dos termos não registrado na conta"}
             </div>
             {c.nota ? <div style={{ fontSize: 12.5, color: "var(--obs)", fontStyle: "italic", marginTop: 6 }}>📝 {c.nota}</div> : null}
 

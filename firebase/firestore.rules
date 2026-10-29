@@ -3,6 +3,7 @@ rules_version = '2';
 // garantem que só o dono vê a lista de usuários e libera ou bloqueia contas.
 // Cole este arquivo inteiro em: Firebase › Firestore Database › Regras › Publicar.
 // Versão 2 (2026-10-28): aprovação automática, recado visto e apagar a própria conta.
+// Versão 3 (2026-10-29): a pessoa grava o aceite dos Termos de Uso (termos, termosEm).
 service cloud.firestore {
   match /databases/{banco}/documents {
 
@@ -41,10 +42,10 @@ service cloud.firestore {
         && (request.resource.data.status == 'pendente'
             || (request.resource.data.status == 'liberado' && autoLiberar())));
 
-      // a pessoa só atualiza quando entrou, de onde, e que viu o recado;
-      // o status, o prazo e as notas, nunca
+      // a pessoa só atualiza quando entrou, de onde, que viu o recado e que
+      // aceitou os termos; o status, o prazo e as notas, nunca
       allow update: if dono() || (eu(uid)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ultimoAcesso', 'acessos', 'aparelho', 'versao', 'avisoVisto']));
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ultimoAcesso', 'acessos', 'aparelho', 'versao', 'avisoVisto', 'termos', 'termosEm']));
 
       // o dono remove da lista; a pessoa apaga a própria conta
       allow delete: if dono() || eu(uid);

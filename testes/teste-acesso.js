@@ -9,7 +9,7 @@ function pedaco(de, ate) {
 }
 const plural = (n, s, p) => (n === 1 ? s : p);
 eval(pedaco("// ---------------- ACESSO: AS CONTAS", "// ---------------- FIM DAS CONTAS") +
-  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO, situacaoConta, prazoAte, recadoNovo, csvContas, filtroConta };");
+  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO, situacaoConta, prazoAte, recadoNovo, csvContas, filtroConta, csvAceites, ordenarAceites };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -111,6 +111,30 @@ console.log("\n--- os termos de uso ---");
   teste("o app não abre sem o aceite", true, html.indexOf('if (fase === "dentro" && !aceito)') >= 0);
   teste("as regras deixam a pessoa gravar o aceite", true, /'termos', 'termosEm'/.test(require("fs").readFileSync(require("path").join(__dirname, "..", "firebase", "firestore.rules"), "utf8")));
   teste("nenhum parágrafo fala em prescrever pelo app", [], paragrafos.filter((p) => /o app prescreve|prescrição do app/i.test(p)));
+
+  // a cópia exata da versão de agora: mudou o texto, tem de subir a versão
+  const arq = require("path").join(__dirname, "..", "termos-versoes", T.versao + ".txt");
+  const guardado = require("fs").existsSync(arq) ? require("fs").readFileSync(arq, "utf8") : "";
+  teste("o texto de agora é o guardado em termos-versoes/<versão>.txt (mudou? suba a versão)", true, guardado === JSON.stringify(T));
+}
+
+console.log("\n--- o histórico de aceites (só o dono) ---");
+{
+  const regras = require("fs").readFileSync(require("path").join(__dirname, "..", "firebase", "firestore.rules"), "utf8");
+  const bloco = regras.slice(regras.indexOf("match /aceites/{id}"), regras.indexOf("// qualquer outra coisa"));
+  teste("só o dono lê o histórico", true, /allow get, list: if dono\(\);/.test(bloco));
+  teste("ninguém altera nem apaga um aceite", true, /allow update, delete: if false;/.test(bloco));
+  teste("a pessoa só registra o próprio aceite, com a hora do servidor", true,
+    /conta == request\.auth\.uid/.test(bloco) && /email == request\.auth\.token\.email/.test(bloco) && /servidorEm == request\.time/.test(bloco));
+  teste("o app manda a hora do servidor (REQUEST_TIME)", true, /setToServerValue: "REQUEST_TIME"/.test(html));
+  const l = [
+    { nome: "Ana", email: "ana@x.com", conta: "u1", termos: "2026-10-29", em: Date.parse("2026-10-29T10:00:00"), servidorEm: Date.parse("2026-10-29T10:00:02"), de: "cadastro", caixas: "a | b", hash: "abc" },
+    { nome: "Bia; Souza", email: "bia@x.com", conta: "u2", termos: "2026-10-29", em: Date.parse("2026-10-29T11:00:00"), de: "novos" },
+  ];
+  teste("o mais novo primeiro", ["bia@x.com", "ana@x.com"], A.ordenarAceites(l).map((a) => a.email));
+  const csv = A.csvAceites(l);
+  teste("planilha: cabeçalho com a hora do servidor e a impressão digital", true, csv.indexOf("Registrado pelo servidor em") > 0 && csv.indexOf("SHA-256") > 0);
+  teste("planilha: onde aceitou em palavras, e o ; não quebra a coluna", true, csv.indexOf('"Bia; Souza";bia@x.com;u2') > 0 && csv.indexOf("No cadastro") > 0 && csv.indexOf("Na tela de aceite (termos novos)") > 0);
 }
 
 console.log("\n" + ok + " passou / " + mal + " falhou");

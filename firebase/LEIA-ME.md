@@ -38,7 +38,17 @@ abre como sempre. Ele liga quando a chave do projeto entra no `index.html`
    não dão acesso a nada: quem protege são as regras do passo 6) e entram no
    `index.html`.
 
-## Regras novas (versão 3, 29/10/2026)
+## Regras novas (versão 4, 29/10/2026)
+
+O **histórico de aceites dos termos** (Painel de usuários › 📜 Histórico de
+aceites dos termos): cada aceite vira um registro que só você lê e que ninguém
+altera nem apaga pelo app, com a hora do servidor do Google. **Publique de
+novo** o `firebase/firestore.rules` inteiro (versão 4, que já inclui a 3).
+Sem isso, o histórico fica vazio com um aviso, e o app tenta registrar de
+novo a cada vez que a pessoa abre (nada se perde: o aceite está guardado no
+celular dela até subir).
+
+## Regras da versão 3 (29/10/2026)
 
 O aceite dos Termos de Uso fica gravado na conta de cada pessoa (e aparece no
 painel e na planilha). **Publique de novo** o `firebase/firestore.rules`, como

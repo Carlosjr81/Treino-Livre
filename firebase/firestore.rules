@@ -4,6 +4,7 @@ rules_version = '2';
 // Cole este arquivo inteiro em: Firebase › Firestore Database › Regras › Publicar.
 // Versão 2 (2026-10-28): aprovação automática, recado visto e apagar a própria conta.
 // Versão 3 (2026-10-29): a pessoa grava o aceite dos Termos de Uso (termos, termosEm).
+// Versão 4 (2026-10-29): o histórico de aceites (aceites/), que só o dono lê e ninguém altera.
 service cloud.firestore {
   match /databases/{banco}/documents {
 
@@ -49,6 +50,22 @@ service cloud.firestore {
 
       // o dono remove da lista; a pessoa apaga a própria conta
       allow delete: if dono() || eu(uid);
+    }
+
+    // O histórico de aceites dos termos: a prova para o dono se defender.
+    // A pessoa só CRIA o registro do próprio aceite, com o próprio e-mail e a
+    // hora do servidor; ninguém lê além do dono; ninguém altera nem apaga
+    // (nem o dono, pelo app: só pelo console do Firebase). Fica mesmo se a
+    // conta for apagada.
+    match /aceites/{id} {
+      allow get, list: if dono();
+      allow create: if request.auth != null
+        && request.resource.data.conta == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.servidorEm == request.time
+        && id.matches(request.auth.uid + '_[0-9]+')
+        && request.resource.data.keys().hasOnly(['conta', 'email', 'nome', 'termos', 'em', 'de', 'caixas', 'hash', 'aparelho', 'versaoApp', 'navegador', 'servidorEm']);
+      allow update, delete: if false;
     }
 
     // qualquer outra coisa: ninguém

@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-10-29c — O registro do aceite dos termos (para o criador do app)
+
+**Em uma frase:** cada aceite dos Termos de Uso agora fica registrado com data e hora do servidor, num
+histórico que só o criador do app consulta.
+
+**O que mudou**
+- Para quem usa, nada muda na tela: aceitar os termos continua igual.
+- Por trás, cada aceite guarda quem aceitou, qual versão, quando, onde e de que aparelho, e ninguém pode
+  alterar esse registro.
+- A Política de Privacidade explica o que esse registro guarda e por quanto tempo.
+
+**Por que importa para quem treina**
+- Transparência: a política diz exatamente o que é guardado sobre o aceite.
+
+**Como usar**
+- Nada a fazer.
+
+**Ideias de vídeo**
+- Não é tema de vídeo.
+
+**Não prometer**
+- Não dizer que o app "não guarda nada sobre você": guarda a conta de acesso e o registro do aceite dos
+  termos (os treinos continuam só no celular).
+
+---
+
 ## 2026-10-29b — Termos de Uso, com aceite no cadastro
 
 **Em uma frase:** o app agora tem Termos de Uso de verdade, explicados em 8 cartões simples, e só entra

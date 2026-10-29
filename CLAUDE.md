@@ -279,6 +279,28 @@ legal, que precise do aceite do usuário".
   o foro é o da cidade de quem usa (o Código de Defesa do Consumidor manda
   assim).
 - O `navegador.js` entra com os termos aceitos; `--sem-termos` mostra a tela.
+- **O histórico de aceites** (`aceites/` no Firestore, `registrarAceite`,
+  `HistoricoAceites`; pedido do dono, 2026-10-29c: "salvar esse aceite no meu
+  menu de usuário para consultar caso eu precise me defender; só eu terei
+  acesso"). Cada aceite vira um documento `<conta>_<em>` com conta, e-mail,
+  nome, versão, `em` (o celular), **`servidorEm` (a hora do Google, posta
+  por `REQUEST_TIME` num `documents:commit`)**, onde (`de`: cadastro,
+  tela, novos), aparelho, versão do app, navegador, as caixas marcadas e a
+  impressão digital SHA-256 do texto (`impressaoTermos`). **As regras
+  (versão 4)**: só a própria pessoa cria, com o próprio e-mail e a hora do
+  servidor; só o dono lê; **ninguém altera nem apaga** pelo app, nem o dono
+  (só pelo console). Fica mesmo com a conta apagada (a privacidade diz isso,
+  LGPD art. 7º VI e 16). O aceite local guarda `reg`: enquanto não subir
+  (sem rede, regras antigas), o porteiro tenta de novo a cada conferida.
+  No painel: "📜 Histórico de aceites dos termos" e "ver o histórico" em cada
+  conta, com busca, "Ver tudo o que foi registrado" e a planilha
+  (`csvAceites`).
+- **`termos-versoes/<versão>.txt` é o texto exato** de cada versão
+  (`JSON.stringify(TERMOS_USO)`), e `sha256sum` dele tem de dar a impressão
+  digital do aceite. **Nunca altere nem apague esses arquivos.** O
+  `teste-acesso.js` reprova se o texto do app não for igual ao arquivo da
+  versão de agora: mudou uma vírgula dos termos (ou do `AVISO_SAUDE`, que está
+  dentro), suba `TERMOS_USO.versao` e crie o arquivo novo.
 
 ## Nenhuma conta do Claude é dona do projeto
 
@@ -449,7 +471,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v151) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v152) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |

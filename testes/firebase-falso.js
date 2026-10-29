@@ -75,6 +75,23 @@
       const eu = quem(e, init);
       if (!eu) return erro(403, "PERMISSION_DENIED");
       const dono = eu.email === DONO && eu.verificado;
+      e.aceites = e.aceites || {};
+      // o histórico de aceites: só cria (com a hora do servidor), só o dono lê
+      if (/documents:commit/.test(u)) {
+        const w = corpo.writes[0];
+        const id = w.update.name.split("/aceites/")[1];
+        const novo = deCampos(w.update.fields);
+        const pode = ["conta", "email", "nome", "termos", "em", "de", "caixas", "hash", "aparelho", "versaoApp", "navegador"];
+        if (novo.conta !== eu.uid || novo.email !== eu.email || id.indexOf(eu.uid + "_") !== 0 || Object.keys(novo).some((k) => pode.indexOf(k) < 0)) return erro(403, "PERMISSION_DENIED");
+        if (e.aceites[id]) return erro(409, "ALREADY_EXISTS");
+        e.aceites[id] = Object.assign(novo, { servidorEm: Date.now() }); gravar(e);
+        return resp(200, { writeResults: [{}] });
+      }
+      const cam = u.split("/documents/")[1].split("?")[0];
+      if (cam === "aceites" || cam.indexOf("aceites/") === 0) {
+        if (!dono) return erro(403, "PERMISSION_DENIED");
+        return resp(200, { documents: Object.keys(e.aceites).map((id) => ({ name: "x/documents/aceites/" + id, fields: daDoc(e.aceites[id]) })) });
+      }
       const caminho = u.split("/documents/")[1].split("?")[0];
       const metodo = (init && init.method) || "GET";
       if (caminho === "usuarios") {

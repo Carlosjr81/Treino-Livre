@@ -935,7 +935,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-29b";
+const VERSAO_APP = "2026-10-29c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -31143,6 +31143,19 @@ function csvContas(lista, agora) {
     c.acessos || 0, c.aparelho || "", c.versao || "", data(c.ate), c.nota || "", c.motivo || "", data(c.termosEm), c.termos || ""]));
   return "﻿" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
 }
+// O histórico de aceites dos termos, para o dono: o mais novo primeiro, e a
+// planilha (o registro que ele guarda para se defender, se um dia precisar)
+const ONDE_ACEITE = { cadastro: "No cadastro", tela: "Na tela de aceite", novos: "Na tela de aceite (termos novos)" };
+function ordenarAceites(l) { return l.slice().sort((a, b) => (b.em || 0) - (a.em || 0)); }
+function dataHora(ms) { return ms ? new Date(ms).toLocaleString("pt-BR") : ""; }
+function csvAceites(lista) {
+  const cel = (v) => { const s = String(v == null ? "" : v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const linhas = [["Nome", "E-mail", "Conta (id)", "Versão dos termos", "Aceito em (relógio do celular)", "Registrado pelo servidor em",
+    "Onde aceitou", "Aparelho", "Versão do app", "Navegador", "Caixas marcadas", "Impressão digital do texto (SHA-256)"]];
+  ordenarAceites(lista).forEach((a) => linhas.push([a.nome || "", a.email || "", a.conta || "", a.termos || "", dataHora(a.em), dataHora(a.servidorEm),
+    ONDE_ACEITE[a.de] || a.de || "", a.aparelho || "", a.versaoApp || "", a.navegador || "", a.caixas || "", a.hash || ""]));
+  return "\uFEFF" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
+}
 // ---------------- FIM DAS CONTAS
 
 // ---- A conversa com o Firebase (REST) ----
@@ -31198,11 +31211,26 @@ const contaApi = {
   gravarConfig(campos, token) { return this.gravarEm("config/acesso", campos, token, ""); },
   apagarDoc(uid, token) { return chamarFirebase(this.doc("usuarios/" + uid), { method: "DELETE", headers: { Authorization: "Bearer " + token } }); },
   apagarConta(idToken) { return this.auth("accounts:delete", { idToken: idToken }); },
-  async listar(token) {
+  // O registro do aceite: um documento novo em "aceites", que ninguém altera
+  // nem apaga pelo app (nem o dono), com a hora posta pelo próprio servidor
+  // (REQUEST_TIME): o relógio do celular pode estar errado, o do Google não.
+  registrarAceite(id, campos, token) {
+    const p = configAcesso().projectId;
+    const corpo = { writes: [{
+      update: { name: "projects/" + p + "/databases/(default)/documents/aceites/" + id, fields: paraFirestore(campos).fields },
+      updateTransforms: [{ fieldPath: "servidorEm", setToServerValue: "REQUEST_TIME" }],
+      currentDocument: { exists: false },
+    }] };
+    return chamarFirebase("https://firestore.googleapis.com/v1/projects/" + p + "/databases/(default)/documents:commit",
+      { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
+  },
+  listar(token) { return this.listarColecao("usuarios", token); },
+  listarAceites(token) { return this.listarColecao("aceites", token); },
+  async listarColecao(colecao, token) {
     const out = [];
     let pagina = "";
     for (let i = 0; i < 20; i++) {
-      const j = await chamarFirebase(this.doc("usuarios") + "?pageSize=300" + (pagina ? "&pageToken=" + encodeURIComponent(pagina) : ""), { headers: { Authorization: "Bearer " + token } });
+      const j = await chamarFirebase(this.doc(colecao) + "?pageSize=300" + (pagina ? "&pageToken=" + encodeURIComponent(pagina) : ""), { headers: { Authorization: "Bearer " + token } });
       (j.documents || []).forEach((d) => { const o = deFirestore(d); if (o) out.push(o); });
       if (!j.nextPageToken) break;
       pagina = j.nextPageToken;
@@ -31238,15 +31266,41 @@ async function tokenValido(s) {
 const CHAVE_TERMOS = "treinolivre:termos";
 function lerAceiteTermos() { try { return JSON.parse(localStorage.getItem(CHAVE_TERMOS) || "null"); } catch (e) { return null; } }
 function termosAceitos() { const a = lerAceiteTermos(); return !!(a && a.v === TERMOS_USO.versao); }
-function gravarAceiteTermos(em) {
-  const a = { v: TERMOS_USO.versao, em: em || Date.now() };
+function gravarAceiteTermos(em, de, reg) {
+  const a = { v: TERMOS_USO.versao, em: em || Date.now(), de: de || "", reg: !!reg };
   try { localStorage.setItem(CHAVE_TERMOS, JSON.stringify(a)); } catch (e) {}
   return a;
 }
-// Grava na conta, calado: com as regras antigas publicadas, o Firebase recusa
-// e o aceite fica só no aparelho (o app pede de novo num aparelho novo).
-async function gravarAceiteNaConta(a) {
-  try { const s = await tokenValido(lerSessaoConta()); if (s && s.uid) await contaApi.gravar(s.uid, { termos: a.v, termosEm: a.em }, s.idToken); } catch (e) {}
+// A impressão digital do texto aceito (SHA-256 do TERMOS_USO inteiro). A cópia
+// exata de cada versão fica em termos-versoes/<versão>.txt: refazer a conta
+// nela prova qual texto a pessoa aceitou.
+async function impressaoTermos() {
+  try {
+    const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(TERMOS_USO)));
+    return Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, "0")).join("");
+  } catch (e) { return ""; }
+}
+// Leva o aceite deste aparelho para o Firebase: o registro no histórico (só o
+// dono lê) e os campos da conta (o painel). Calado: com as regras antigas o
+// Firebase recusa, e o app tenta de novo na próxima conferida.
+let registrandoAceite = false;
+async function registrarAceite(naConta, nome) {
+  const a = lerAceiteTermos();
+  if (!a || a.v !== TERMOS_USO.versao || registrandoAceite) return;
+  registrandoAceite = true;
+  try {
+    const s = await tokenValido(lerSessaoConta());
+    if (!s || !s.uid) return;
+    if (!a.reg) {
+      const campos = { conta: s.uid, email: s.email, nome: nome || s.nome || "", termos: a.v, em: a.em, de: a.de || "",
+        caixas: TERMOS_USO.caixas.join(" | "), hash: await impressaoTermos(),
+        aparelho: aparelhoDe(navigator.userAgent, NO_APP_ANDROID), versaoApp: VERSAO_APP, navegador: String(navigator.userAgent || "").slice(0, 300) };
+      try { await contaApi.registrarAceite(s.uid + "_" + a.em, campos, s.idToken); }
+      catch (x) { if (!/ALREADY_EXISTS/.test(x.message)) throw x; }
+      gravarAceiteTermos(a.em, a.de, true);
+    }
+    if (naConta) await contaApi.gravar(s.uid, { termos: a.v, termosEm: a.em }, s.idToken);
+  } catch (e) {} finally { registrandoAceite = false; }
 }
 
 // Os termos para ler: o resumo em cartões e o texto completo
@@ -31339,7 +31393,7 @@ function TelaAceiteTermos({ onAceitar, onSair }) {
       </button>
       <div style={{ ...S.card, marginTop: 12 }}>
         <CaixasAceite marcas={marcas} setMarcas={setMarcas} />
-        <button disabled={!pronto} onClick={onAceitar} style={{ ...S.btn, width: "100%", fontSize: 16, padding: "14px 10px", marginTop: 8, opacity: pronto ? 1 : 0.45 }}>
+        <button disabled={!pronto} onClick={() => onAceitar(antes ? "novos" : "tela")} style={{ ...S.btn, width: "100%", fontSize: 16, padding: "14px 10px", marginTop: 8, opacity: pronto ? 1 : 0.45 }}>
           ✅ Aceito e quero treinar
         </button>
         {!pronto && <div style={{ fontSize: 12, color: "var(--cinza)", textAlign: "center", marginTop: 8 }}>Marque as duas caixas para continuar.</div>}
@@ -31408,8 +31462,8 @@ function Porteiro({ children }) {
       const status = situacaoConta(d, agora);
       // o aceite dos termos: o da conta vale neste aparelho (aceitou em outro),
       // e o do aparelho sobe para a conta (aceitou no cadastro)
-      if (d && d.termos === TERMOS_USO.versao && !termosAceitos()) { gravarAceiteTermos(d.termosEm); setAceito(true); }
-      else if (termosAceitos() && d && d.termos !== TERMOS_USO.versao) gravarAceiteNaConta(lerAceiteTermos());
+      if (d && d.termos === TERMOS_USO.versao && !termosAceitos()) { gravarAceiteTermos(d.termosEm, "", true); setAceito(true); }
+      else if (termosAceitos() && d && (d.termos !== TERMOS_USO.versao || !lerAceiteTermos().reg)) registrarAceite(d.termos !== TERMOS_USO.versao, d.nome);
       if (status === "liberado" && !contou.current) {
         contou.current = true;
         vistoEm.current = agora;
@@ -31453,7 +31507,7 @@ function Porteiro({ children }) {
   }, [ligado, fase === "entrar"]);
 
   if (MODO_OCULOS || MODO_BOLSO || MODO_CORRIDA) { CONTA_ATUAL = null; return children; }
-  const aceitar = () => { const a = gravarAceiteTermos(); setAceito(true); if (ligado) gravarAceiteNaConta(a); };
+  const aceitar = (de) => { gravarAceiteTermos(Date.now(), de); setAceito(true); if (ligado) registrarAceite(true); };
   if (!ligado) { CONTA_ATUAL = null; return aceito ? children : <TelaAceiteTermos onAceitar={aceitar} />; }
   const s = lerSessaoConta();
   if (fase === "dentro" && !aceito) { CONTA_ATUAL = null; return <TelaAceiteTermos onAceitar={aceitar} onSair={sair} />; }
@@ -31533,7 +31587,7 @@ function TelaConta({ onEntrou, msgInicial }) {
       gravarSessaoConta(s);
       try { localStorage.setItem(CHAVE_EMAIL_CONTA, em); } catch (x) {}
       if (modo === "criar" && ehEmailDono(em)) { try { await contaApi.confirmarEmail(s.idToken); } catch (x) {} }
-      if (modo === "criar") gravarAceiteTermos();
+      if (modo === "criar") gravarAceiteTermos(Date.now(), "cadastro");
       onEntrou();
     } catch (x) {
       // e-mail já cadastrado no "Criar": leva para o Entrar com o e-mail pronto
@@ -31773,7 +31827,78 @@ function RecadoDoDono({ texto, onOk }) {
 
 // O painel: só o dono chega aqui, e só ele consegue ler a lista (as regras do
 // Firestore recusam qualquer outra conta, mesmo que alguém abra esta tela).
+// O histórico de aceites dos termos (só o dono lê: as regras garantem). É o
+// registro para o dono se defender: quem aceitou, qual versão, quando (pelo
+// servidor), onde e de que aparelho. Ninguém altera nem apaga pelo app.
+function HistoricoAceites({ onVoltar, buscaInicial }) {
+  const [lista, setLista] = useState(null);
+  const [erro, setErro] = useState("");
+  const [busca, setBusca] = useState(buscaInicial || "");
+  const [aberto, setAberto] = useState(null);
+  const carregar = async () => {
+    setErro("");
+    try { setLista(ordenarAceites(await contaApi.listarAceites((await tokenValido(lerSessaoConta())).idToken))); }
+    catch (x) { setErro(erroDeConta(x.message) + (/PERMISSION/.test(x.message) ? " Publique as regras novas do Firebase (versão 4, firebase/firestore.rules)." : "")); setLista([]); }
+  };
+  useEffect(() => { carregar(); }, []);
+  const b = semAcento(busca.trim().toLowerCase());
+  const mostrar = (lista || []).filter((a) => !b || semAcento(((a.nome || "") + " " + (a.email || "")).toLowerCase()).indexOf(b) >= 0);
+  const baixar = () => {
+    const blob = new Blob([csvAceites(lista || [])], { type: "text/csv;charset=utf-8" });
+    const el = document.createElement("a");
+    el.href = URL.createObjectURL(blob);
+    el.download = "aceites-termos-treino-livre-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(el); el.click(); el.remove();
+    setTimeout(() => URL.revokeObjectURL(el.href), 4000);
+  };
+  return (
+    <div>
+      <button onClick={onVoltar} style={{ display: "block", background: "none", border: "none", color: "var(--marca)", fontWeight: 800, fontSize: 14, cursor: "pointer", padding: "4px 0 12px" }}>← Voltar ao painel</button>
+      <div style={S.card}>
+        <div style={S.label}>📜 Histórico de aceites dos termos</div>
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", margin: "4px 0 8px", lineHeight: 1.55 }}>
+          Só a sua conta vê esta lista. Cada aceite é um registro que ninguém altera nem apaga pelo app (nem você), e que
+          continua aqui mesmo se a pessoa apagar a conta. A hora "do servidor" é a do Google, não a do celular.
+          Baixe a planilha de vez em quando e guarde uma cópia.
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={carregar} style={{ ...S.btnGhost, flex: 1, padding: "9px 8px", fontSize: 13 }}>🔄 Atualizar</button>
+          <button onClick={baixar} disabled={!lista || !lista.length} style={{ ...S.btnGhost, flex: 1, padding: "9px 8px", fontSize: 13 }}>📥 Baixar (planilha)</button>
+        </div>
+      </div>
+      {erro && <div role="alert" style={{ ...S.card, color: "var(--perigo)", fontSize: 13.5 }}>{erro}</div>}
+      <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou e-mail" aria-label="Buscar aceites por nome ou e-mail" style={{ ...S.input, marginBottom: 10 }} />
+      {lista === null && <div style={{ ...S.card, color: "var(--cinza)" }}>Carregando…</div>}
+      {lista && !mostrar.length && !erro && <div style={{ ...S.card, color: "var(--cinza)", fontSize: 13.5 }}>Nenhum aceite {busca ? "com essa busca" : "registrado ainda"}.</div>}
+      {mostrar.map((a) => (
+        <div key={a.uid} style={S.card}>
+          <div style={{ fontWeight: 900, fontSize: 15 }}>{a.nome || "(sem nome)"}</div>
+          <div style={{ fontSize: 13, color: "var(--cinza)", wordBreak: "break-all" }}>{a.email}</div>
+          <div style={{ fontSize: 12.5, lineHeight: 1.65, marginTop: 6 }}>
+            ✅ Aceitou os termos de {a.termos ? new Date(a.termos + "T12:00:00").toLocaleDateString("pt-BR") : "?"}{a.termos !== TERMOS_USO.versao ? " (versão antiga)" : ""}
+            <br />🕒 Servidor: <b>{dataHora(a.servidorEm) || "—"}</b> · celular: {dataHora(a.em)}
+            <br />📍 {ONDE_ACEITE[a.de] || "Onde: não registrado"} · {a.aparelho || "aparelho ?"} · app {a.versaoApp || "?"}
+          </div>
+          <button onClick={() => setAberto(aberto === a.uid ? null : a.uid)} style={{ background: "none", border: "none", color: "var(--marca)", fontWeight: 800, fontSize: 12.5, cursor: "pointer", padding: "6px 0 0" }}>
+            {aberto === a.uid ? "▴ Menos" : "▾ Ver tudo o que foi registrado"}
+          </button>
+          {aberto === a.uid && (
+            <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.6, marginTop: 6, wordBreak: "break-word" }}>
+              <b>Caixas marcadas:</b> {(a.caixas || "").split(" | ").map((c, i) => <div key={i}>☑ {c}</div>)}
+              <b>Conta (id):</b> {a.conta}<br />
+              <b>Navegador:</b> {a.navegador || "—"}<br />
+              <b>Impressão digital do texto (SHA-256):</b> {a.hash || "—"}<br />
+              <span style={{ fontSize: 11.5 }}>O texto exato está no repositório, em termos-versoes/{a.termos}.txt: a impressão digital dele tem de ser esta.</span>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
+  const [verAceites, setVerAceites] = useState(null); // null | { busca }
   const [lista, setLista] = useState(null);
   const [erro, setErro] = useState("");
   const [filtro, setFiltro] = useState("todos");
@@ -31874,6 +31999,7 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
     </button>
   );
   const pequeno = { ...S.btnGhost, flex: "1 1 45%", padding: "8px 6px", fontSize: 12.5 };
+  if (verAceites) return <HistoricoAceites buscaInicial={verAceites.busca} onVoltar={() => setVerAceites(null)} />;
   return (
     <div>
       <button onClick={onVoltar} style={{ display: "block", background: "none", border: "none", color: "var(--marca)", fontWeight: 800, fontSize: 14, cursor: "pointer", padding: "4px 0 12px" }}>← Voltar</button>
@@ -31903,6 +32029,7 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
               style={{ ...S.btn, flex: "1 1 100%", padding: "10px 8px", fontSize: 14 }}>✅ Liberar todos que aguardam ({r.pendente})</button>
           )}
           <button onClick={baixarCsv} disabled={!lista || !lista.length} style={{ ...S.btnGhost, flex: 1, padding: "9px 8px", fontSize: 13 }}>📥 Baixar a lista (planilha)</button>
+          <button onClick={() => setVerAceites({ busca: "" })} style={{ ...S.btnGhost, flex: "1 1 100%", padding: "9px 8px", fontSize: 13 }}>📜 Histórico de aceites dos termos</button>
         </div>
       </div>
 
@@ -31941,7 +32068,8 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
               {sit === "bloqueado" && c.motivo ? <><br />Motivo do bloqueio: {c.motivo}</> : null}
               {c.aviso ? <><br />📩 Recado: “{c.aviso}” {(c.avisoVisto || 0) >= (c.avisoEm || 0) ? "(visto)" : "(ainda não visto)"}</> : null}
               {c.senhaLinkEm ? <><br />Último link de senha nova: {quandoAcessou(c.senhaLinkEm, agora)}</> : null}
-              <br />{c.termos ? "📜 Termos aceitos em " + new Date(c.termosEm || 0).toLocaleDateString("pt-BR") + (c.termos !== TERMOS_USO.versao ? " (versão antiga)" : "") : "📜 Aceite dos termos não registrado na conta"}
+              <br />{c.termos ? "📜 Termos aceitos em " + new Date(c.termosEm || 0).toLocaleDateString("pt-BR") + (c.termos !== TERMOS_USO.versao ? " (versão antiga)" : "") : "📜 Aceite dos termos não registrado na conta"}{" "}
+              <button onClick={() => setVerAceites({ busca: c.email || "" })} style={{ background: "none", border: "none", padding: 0, color: "var(--marca)", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>ver o histórico</button>
             </div>
             {c.nota ? <div style={{ fontSize: 12.5, color: "var(--obs)", fontStyle: "italic", marginTop: 6 }}>📝 {c.nota}</div> : null}
 

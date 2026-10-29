@@ -301,6 +301,11 @@ legal, que precise do aceite do usuário".
   `teste-acesso.js` reprova se o texto do app não for igual ao arquivo da
   versão de agora: mudou uma vírgula dos termos (ou do `AVISO_SAUDE`, que está
   dentro), suba `TERMOS_USO.versao` e crie o arquivo novo.
+- **Regras versão 4 publicadas pelo dono e conferidas em 29/10/2026** com
+  `node testes/prova-regras-firebase.js` (conta descartável, apagada no fim):
+  registra o próprio aceite com a hora do servidor; é barrada sem a hora do
+  servidor, em nome de outra conta, ao ler, listar, alterar e apagar aceites, e
+  ao se liberar sozinha. Cada rodada deixa um aceite "Teste regras" no histórico.
 
 ## Nenhuma conta do Claude é dona do projeto
 

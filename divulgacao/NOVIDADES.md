@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-10-30b — O botão "Continuar com o Google" aparece
+
+**Em uma frase:** o login com o Google foi ligado, e o botão agora aparece nas telas de entrar e de criar conta.
+
+**O que mudou**
+- Conserto: o botão não aparecia mesmo com o Google ligado.
+
+**Por que importa para quem treina**
+- Criar a conta com um toque, sem inventar senha.
+
+**Como usar**
+- Na tela de entrar ou de criar conta, toque em "Continuar com o Google".
+
+**Ideias de vídeo**
+- O cadastro em 5 segundos pelo Google.
+
+**Não prometer**
+- Nada de novo além do botão.
+
+---
+
 ## 2026-10-30a — Entrar com o Google, e o app pronto para ter planos
 
 **Em uma frase:** dá para criar a conta e entrar com um toque, pela conta do Google; e o app ganhou, nos

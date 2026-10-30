@@ -387,7 +387,9 @@ Pedido do dono (2026-10-30a): "cadastro a partir da conta do Google".
   conta do Firebase. Daí em diante é igual ao e-mail e senha (o cadastro
   nasce "pendente" com o nome do Google, e os termos são pedidos na tela de
   aceite se não foram marcados antes).
-- **O id do cliente vem do projeto** (`getProjectConfig`, público): o botão
+- **O id do cliente vem do projeto** (`accounts:createAuthUri`: o endereço
+  de login que o Firebase monta traz o `client_id`; o `getProjectConfig`
+  não traz, e a primeira versão nunca mostrava o botão): o botão
   aparece sozinho quando o dono liga o Google no Firebase, sem publicar nada.
   O passo a passo (ligar o provedor e pôr `https://carlosjr81.github.io` nas
   origens do cliente OAuth) está no `firebase/LEIA-ME.md`.
@@ -396,8 +398,10 @@ Pedido do dono (2026-10-30a): "cadastro a partir da conta do Google".
 - O `sw.js` deixa `accounts.google.com` e `www.googleapis.com` passarem
   direto. `carregarScript` só põe `crossOrigin` quando há SRI (o script do
   Google não manda CORS).
-- **Não validado num aparelho**: o botão do Google de verdade (no TWA do app
-  Android e no Chrome). O Google ainda não está ligado no projeto.
+- **Google ligado pelo dono em 30/10/2026** (provedor e a origem
+  `https://carlosjr81.github.io` no cliente OAuth); o `createAuthUri` devolve o
+  `client_id`. **Não validado num aparelho**: o botão de verdade (no TWA do app
+  Android e no Chrome).
 
 ## Nenhuma conta do Claude é dona do projeto
 
@@ -568,7 +572,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v153) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v154) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |

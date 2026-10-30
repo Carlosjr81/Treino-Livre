@@ -38,7 +38,28 @@ abre como sempre. Ele liga quando a chave do projeto entra no `index.html`
    não dão acesso a nada: quem protege são as regras do passo 6) e entram no
    `index.html`.
 
-## Regras novas (versão 4, 29/10/2026)
+## Regras novas (versão 5, 30/10/2026): os pagamentos
+
+O app pago (a chave "💰 Cobrança" no painel) guarda os avisos de pagamento em
+`pagamentos/`. **Publique de novo** o `firebase/firestore.rules` inteiro
+(versão 5, que já inclui as anteriores). Sem isso, ninguém consegue avisar que
+pagou e a lista de pagamentos do painel fica vazia. Com a cobrança desligada,
+nada disso aparece para ninguém.
+
+## Ligar o "Continuar com o Google"
+
+1. Firebase › **Authentication** › **Método de login** › **Adicionar novo
+   provedor** › **Google** › **Ativar**. Escolha o e-mail de suporte (o seu) ›
+   **Salvar**.
+2. Abra https://console.cloud.google.com/apis/credentials?project=treino-livre
+   › em "IDs do cliente OAuth 2.0", toque em **Web client (auto created by
+   Google Service)** › em **Origens JavaScript autorizadas** › **Adicionar URI**
+   › `https://carlosjr81.github.io` › **Salvar**. (Pode levar alguns minutos
+   para valer.)
+3. Pronto: o botão aparece sozinho na tela de entrar e de criar conta (o app lê
+   do projeto que o Google foi ligado). Não precisa mandar nada ao Claude.
+
+## Regras da versão 4 (29/10/2026)
 
 O **histórico de aceites dos termos** (Painel de usuários › 📜 Histórico de
 aceites dos termos): cada aceite vira um registro que só você lê e que ninguém

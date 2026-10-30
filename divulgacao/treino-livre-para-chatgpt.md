@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-29c**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-30a**.
 
 ---
 
@@ -45,8 +45,8 @@ as repetições.**
 
 - **Endereço:** https://carlosjr81.github.io/Treino-Livre/
 - **Criador:** Carlos Jr — "O Zeus" — Instagram **@carlos.jr.81** (https://instagram.com/carlos.jr.81)
-- **Preço:** grátis. Sem assinatura e sem anúncio. Precisa criar uma conta (liberada pelo criador do app) e
-  aceitar os Termos de Uso, que o app resume em 8 cartões simples.
+- **Preço:** grátis. Sem assinatura e sem anúncio. Precisa criar uma conta (liberada pelo criador do app; dá para
+  entrar com a conta do Google) e aceitar os Termos de Uso, que o app resume em 8 cartões simples.
 - **Onde funciona:** em qualquer celular (Android e iPhone) e no computador, pelo navegador. Pode ser
   "baixado" (instalado na tela inicial) e aí abre em tela cheia, com ícone, como um app comum.
 

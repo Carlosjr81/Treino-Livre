@@ -307,6 +307,98 @@ legal, que precise do aceite do usuário".
   servidor, em nome de outra conta, ao ler, listar, alterar e apagar aceites, e
   ao se liberar sozinha. Cada rodada deixa um aceite "Teste regras" no histórico.
 
+## O app pago (`lerCobranca`, `TelaAssinatura`, `CartaoCobranca`, `pagamentos/`)
+
+Pedido do dono (2026-10-30a): "transformar o sistema em pago, com pagamentos
+mensais, anuais, único e vitalício; uma chave principal no controle de usuários
+para mudar de grátis para pago; confirmações de pagamento; cortesia para
+usuários". **A chave nasceu desligada**: ninguém foi afetado.
+
+- **A chave** é `cobranca` em `config/acesso` (o mesmo documento da
+  aprovação automática: todos leem, só o dono grava), com `cobrancaDesde`
+  (a hora em que foi ligada), `testeDias` (padrão 7), `planos` (texto
+  JSON: o Firestore daqui só guarda texto, número e sim/não) e `pixChave`,
+  `pixNome`, `pixCidade`. `lerCobranca` normaliza tudo: os quatro planos
+  fixos (`PLANOS_PADRAO`: mensal 30 dias, anual 365, único 90, vitalício),
+  link só `https://`, vitalício sem dias.
+- **Quem entra com ela ligada** (`planoDaConta`, `situacaoConta(d, agora,
+  cob)`): dono sempre; cortesia valendo; vitalício; `pagoAte` no futuro; ou
+  no **teste**, que conta do cadastro **ou do dia em que a chave foi ligada**
+  (o maior): quem já usava ganha o mesmo prazo que quem chega. Senão, situação
+  `pagar` → fase `pagar` no `Porteiro` → `TelaAssinatura` no lugar do app.
+  Desligada, `situacaoConta` é igual a antes (o teste cobra isso).
+  Bloqueado e aguardando continuam como eram.
+- **Sem servidor próprio, o Pix não avisa o app.** A pessoa escolhe o plano,
+  paga pelo **Pix copia e cola gerado no aparelho** (`pixCopiaECola`: o BR
+  Code do Banco Central, com valor e código do pagamento `txidPagamento`; o
+  CRC confere com o exemplo do manual do BCB) ou pelo **link de pagamento** do
+  plano (Mercado Pago, PagSeguro, Stripe...), aceita as
+  `CONDICOES_ASSINATURA` e toca "Já paguei": vira um documento
+  `pagamentos/<conta>_<em>` com status `informado` e a hora do servidor. O
+  dono vê "💳 N pagamentos para confirmar" ao abrir o app, confere no extrato
+  (o txid aparece na transação) e confirma: **um `documents:commit` grava o
+  pagamento e o acesso da conta juntos** (`acessoPago`: soma ao período que
+  ainda vale; usa os dias gravados no pagamento, não o plano de hoje). A tela
+  de quem espera confere sozinha a cada 30 s e abre o app.
+- **O QR do Pix** é o `qrcode-generator` 1.4.4 (MIT), do jsDelivr com SRI,
+  só carregado na tela de planos; sem ele, o copia e cola continua.
+- **As regras (versão 5)**: a pessoa só **cria** o próprio aviso (status
+  `informado`, o próprio e-mail, a hora do servidor, campos fixos) e lê os
+  próprios (`meusPagamentos` faz a consulta `conta == uid`, a única que as
+  regras deixam); só o dono confirma, recusa e devolve; **ninguém apaga** (é o
+  livro-caixa). O acesso pago (`pagoAte`, `vitalicio`, `plano`,
+  `cortesia*`) mora em `usuarios/`, onde a pessoa já não podia mexer.
+- **No painel**: o cartão "💰 Cobrança" (a chave, com a confirmação que diz
+  quantas contas ficam sem plano e até quando vai o teste, e avisa se não há
+  Pix nem link), "⚙ Planos, preços e Pix" (`EditorCobranca`, com um código
+  Pix de exemplo para conferir no banco), "🎁 Cortesia para quem já usa",
+  "Pagamentos para confirmar", e o `HistoricoPagamentos` (recebido no mês e
+  no ano, filtros, busca, planilha `csvPagamentos`, recusar e "devolvi o
+  dinheiro", que tira os dias daquele pagamento). Em cada conta: o plano
+  (`textoPlanoConta`), "🎁 Dar/Tirar cortesia" (com prazo e motivo), "💳
+  Registrar pagamento" (recebido por fora: grava e libera) e "Ver pagamentos".
+  Filtros 💳 Pagantes, 🎁 Cortesia e Precisa pagar.
+- **Para quem paga**: "Seu plano" e "Planos, renovar e meus pagamentos" no
+  cartão da conta; um aviso por dia nos 5 dias antes de vencer; e **"💾 Baixar
+  meus treinos (backup)"** na tela de planos e nas de vencido e bloqueado
+  (`baixarBackupLocal`): os treinos são de quem treina, com ou sem acesso.
+- **Sem rede**: a sessão guarda `cob` e `conta`, e o `liberadoSemRede`
+  barra o plano que venceu offline.
+- **Não há renovação automática** (não há cartão guardado nem servidor): as
+  condições dizem isso, e o aviso de vencimento cobre a falta. As condições
+  ficam **fora dos Termos de Uso** de propósito (mudar os termos faz todo mundo
+  aceitar de novo); o aceite delas vai em cada pagamento (`condicoes`).
+- **O limite, dito ao dono**: como no porteiro, quem programa pula a tela de
+  planos na própria cópia do app; o que o servidor garante é a lista, os
+  pagamentos e quem tem acesso pago.
+- Coberto por `teste-acesso.js` (a chave desligada não muda nada, teste,
+  pagar, cortesia, vitalício, sem rede, renovar somando, o Pix do BCB, o
+  livro-caixa, as regras) e no navegador com o Firebase de mentira (que agora
+  faz `commit` em lote e `runQuery`): a Bia barrada escolhe o plano e avisa;
+  o dono vê o aviso, confirma, e a conta ganha `pagoAte`; ligar a chave;
+  cortesia; registrar vitalício à mão; o aviso de vencimento.
+
+## Entrar com o Google (`entrarGoogle`, `googleClientId`)
+
+Pedido do dono (2026-10-30a): "cadastro a partir da conta do Google".
+- **Sem o SDK do Firebase**: o botão é o do Google (Google Identity
+  Services, `accounts.google.com/gsi/client`, carregado só na tela de
+  entrar), que entrega um id_token; `accounts:signInWithIdp` troca por uma
+  conta do Firebase. Daí em diante é igual ao e-mail e senha (o cadastro
+  nasce "pendente" com o nome do Google, e os termos são pedidos na tela de
+  aceite se não foram marcados antes).
+- **O id do cliente vem do projeto** (`getProjectConfig`, público): o botão
+  aparece sozinho quando o dono liga o Google no Firebase, sem publicar nada.
+  O passo a passo (ligar o provedor e pôr `https://carlosjr81.github.io` nas
+  origens do cliente OAuth) está no `firebase/LEIA-ME.md`.
+- E-mail que já tem conta com senha: o Firebase pede confirmação
+  (`needConfirmation`) e a tela manda entrar com a senha.
+- O `sw.js` deixa `accounts.google.com` e `www.googleapis.com` passarem
+  direto. `carregarScript` só põe `crossOrigin` quando há SRI (o script do
+  Google não manda CORS).
+- **Não validado num aparelho**: o botão do Google de verdade (no TWA do app
+  Android e no Chrome). O Google ainda não está ligado no projeto.
+
 ## Nenhuma conta do Claude é dona do projeto
 
 O dono desenvolve com a conta **corporativa** do Claude e quer poder assumir
@@ -476,7 +568,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v152) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v153) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |

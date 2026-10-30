@@ -5,6 +5,7 @@ rules_version = '2';
 // Versão 2 (2026-10-28): aprovação automática, recado visto e apagar a própria conta.
 // Versão 3 (2026-10-29): a pessoa grava o aceite dos Termos de Uso (termos, termosEm).
 // Versão 4 (2026-10-29): o histórico de aceites (aceites/), que só o dono lê e ninguém altera.
+// Versão 5 (2026-10-30): os pagamentos (pagamentos/): a pessoa avisa que pagou, só o dono confirma.
 service cloud.firestore {
   match /databases/{banco}/documents {
 
@@ -66,6 +67,24 @@ service cloud.firestore {
         && id.matches(request.auth.uid + '_[0-9]+')
         && request.resource.data.keys().hasOnly(['conta', 'email', 'nome', 'termos', 'em', 'de', 'caixas', 'hash', 'aparelho', 'versaoApp', 'navegador', 'servidorEm']);
       allow update, delete: if false;
+    }
+
+    // Os pagamentos. A pessoa só AVISA que pagou (status "informado", com o
+    // próprio e-mail e a hora do servidor) e lê os próprios avisos; quem
+    // confirma, recusa e devolve é só o dono. Ninguém apaga pelo app: é o
+    // livro-caixa. O acesso pago (pagoAte, vitalicio, plano, cortesia) mora em
+    // usuarios/, e a regra de lá não deixa a pessoa mexer nesses campos.
+    match /pagamentos/{id} {
+      allow get, list: if dono() || (request.auth != null && resource.data.conta == request.auth.uid);
+      allow create: if dono() || (request.auth != null
+        && request.resource.data.conta == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.status == 'informado'
+        && request.resource.data.servidorEm == request.time
+        && id.matches(request.auth.uid + '_[0-9]+')
+        && request.resource.data.keys().hasOnly(['conta', 'email', 'nome', 'plano', 'planoNome', 'valor', 'dias', 'metodo', 'txid', 'nota', 'condicoes', 'status', 'em', 'aparelho', 'versaoApp', 'servidorEm']));
+      allow update: if dono();
+      allow delete: if false;
     }
 
     // qualquer outra coisa: ninguém

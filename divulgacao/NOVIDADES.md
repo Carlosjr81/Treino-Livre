@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-10-30a — Entrar com o Google, e o app pronto para ter planos
+
+**Em uma frase:** dá para criar a conta e entrar com um toque, pela conta do Google; e o app ganhou, nos
+bastidores, tudo o que precisa para um dia ter planos pagos (hoje continua grátis).
+
+**O que mudou**
+- "Continuar com o Google" na tela de entrar e de criar conta (aparece assim que o criador do app ligar).
+- Por trás, o app ganhou planos (mensal, anual, pagamento único e vitalício), pagamento por Pix com QR Code e
+  copia e cola, e o aviso "já paguei". Nada disso aparece para ninguém enquanto o app for grátis.
+- Quem ficar sem acesso pode baixar o backup dos treinos direto da tela de aviso.
+
+**Por que importa para quem treina**
+- Criar a conta fica mais rápido: sem inventar senha.
+- Os treinos são sempre seus: com ou sem acesso, dá para baixar o backup.
+
+**Como usar**
+- Na tela de entrar, toque em "Continuar com o Google" e escolha a sua conta.
+
+**Ideias de vídeo**
+- "Criei minha conta no Treino Livre em 5 segundos": o toque no Google e o app abrindo.
+
+**Não prometer**
+- Não anunciar planos nem preços: o app continua grátis até o criador decidir.
+- Não prometer o botão do Google antes de ele aparecer na tela.
+
+---
+
 ## 2026-10-29c — O registro do aceite dos termos (para o criador do app)
 
 **Em uma frase:** cada aceite dos Termos de Uso agora fica registrado com data e hora do servidor, num

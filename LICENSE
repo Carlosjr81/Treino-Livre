@@ -32,7 +32,7 @@ O app usa bibliotecas e conteúdos de terceiros, carregados por CDN ou
 indicados no próprio app. Cada um continua sob a sua própria licença, e
 nada neste aviso muda isso: React e ReactDOM (MIT), Babel (MIT), Leaflet
 (BSD-2-Clause), MediaPipe (Apache 2.0), ONNX Runtime Web (MIT), mp4-muxer
-(MIT), Piper e espeak-ng (licenças próprias dos projetos), as vozes do
+(MIT), qrcode-generator (MIT), Piper e espeak-ng (licenças próprias dos projetos), as vozes do
 rhasspy/piper-voices (licença de cada voz), os mapas do OpenStreetMap
 (ODbL, © colaboradores do OpenStreetMap) e as imagens de exercícios do
 wger.de (Creative Commons BY-SA 4.0, com crédito no app). As bibliotecas

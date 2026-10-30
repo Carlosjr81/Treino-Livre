@@ -54,6 +54,7 @@
     --obs: #C7A94B; --input: #000000;
     --mapa-bg: #0B0B0B; --mapa-txt: #E8E8E8;
     --marca: #E1306C;
+    --barra: rgba(12,12,12,0.92); --barra-sombra: 0 -10px 30px rgba(0,0,0,0.55);
   }
   [data-tema="claro"] {
     --bg: #FFFFFF; --bg2: #FFFFFF; --card: #FFFFFF;
@@ -64,6 +65,7 @@
     --obs: #8A6D00; --input: #FAFAFA;
     --mapa-bg: #1A1A1A; --mapa-txt: #F0F0F0;
     --marca: #C21E58;
+    --barra: rgba(255,255,255,0.95); --barra-sombra: 0 -8px 26px rgba(38,38,38,0.12);
   }
   html, body { margin: 0; padding: 0; background: var(--bg); }
   * { -webkit-tap-highlight-color: transparent; }
@@ -1358,7 +1360,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-30e";
+const VERSAO_APP = "2026-10-30f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -31596,20 +31598,33 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
       )}
 
       <nav aria-label="Navegação principal"
-        style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--bg2)", borderTop: "1px solid var(--borda)", display: "flex", padding: "8px 0", paddingBottom: "calc(14px + env(safe-area-inset-bottom))", zIndex: 10 }}>
-        {abas.map((a) => (
-          <button key={a.id} onClick={() => { setAba(a.id); setGrupoAberto(null); setExercicioAberto(null); setProgAberto(null); if (a.id === "historico") setSecaoHistorico("treinos"); }}
-            aria-current={aba === a.id ? "page" : undefined} aria-label={a.nome}
-            style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: 0, color: aba === a.id ? "var(--marca)" : "var(--cinza)", fontWeight: aba === a.id ? 800 : 600,
-              display: "flex", flexDirection: "column", alignItems: "center" }}>
-            {/* a aba de agora ganha a pílula atrás do ícone: a cor sozinha some no sol */}
-            <div aria-hidden="true" style={{ width: 54, height: 30, borderRadius: 15, display: "flex", alignItems: "center", justifyContent: "center",
-              background: aba === a.id ? "rgba(225,48,108,0.15)" : "transparent", transition: "background .2s ease" }}>
-              <Icone nome={a.icone} tamanho={22} espessura={aba === a.id ? 2.2 : 1.8} />
-            </div>
-            <div aria-hidden="true" style={{ fontSize: 11, marginTop: 3, letterSpacing: 0.1 }}>{a.nome}</div>
-          </button>
-        ))}
+        style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--barra)", backdropFilter: "blur(18px) saturate(1.4)", WebkitBackdropFilter: "blur(18px) saturate(1.4)",
+          boxShadow: "var(--barra-sombra)", display: "flex", padding: "10px 6px 0", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", zIndex: 10 }}>
+        {/* o fio de cima na cor da marca, que se apaga nas pontas */}
+        <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1,
+          background: "linear-gradient(90deg, transparent, rgba(245,133,41,0.55), rgba(225,48,108,0.7), rgba(129,52,175,0.55), transparent)" }} />
+        {abas.map((a) => {
+          const ativa = aba === a.id;
+          return (
+            <button key={a.id} onClick={() => { setAba(a.id); setGrupoAberto(null); setExercicioAberto(null); setProgAberto(null); if (a.id === "historico") setSecaoHistorico("treinos"); }}
+              aria-current={ativa ? "page" : undefined} aria-label={a.nome}
+              style={{ position: "relative", flex: 1, background: "none", border: "none", cursor: "pointer", padding: 0, color: ativa ? "var(--marca)" : "var(--cinza)",
+                display: "flex", flexDirection: "column", alignItems: "center", WebkitTapHighlightColor: "transparent" }}>
+              {/* a marca no alto da barra, em cima da aba de agora */}
+              <span aria-hidden="true" style={{ position: "absolute", top: -10, width: ativa ? 26 : 0, height: 3, borderRadius: "0 0 3px 3px",
+                background: GRAD, transition: "width .25s cubic-bezier(.2,.8,.2,1)" }} />
+              {/* A aba de agora é uma pílula no degradê da marca, com o ícone branco:
+                  só a cor do ícone mudando não se via no sol. */}
+              <div aria-hidden="true" style={{ width: 60, height: 34, borderRadius: 17, display: "flex", alignItems: "center", justifyContent: "center",
+                background: ativa ? GRAD : "transparent", color: ativa ? "#FFFFFF" : "inherit",
+                boxShadow: ativa ? "0 6px 18px rgba(225,48,108,0.45), inset 0 1px 0 rgba(255,255,255,0.25)" : "none",
+                transform: ativa ? "translateY(-1px) scale(1)" : "scale(0.92)", transition: "all .25s cubic-bezier(.2,.8,.2,1)" }}>
+                <Icone nome={a.icone} tamanho={ativa ? 23 : 22} espessura={ativa ? 2.2 : 1.8} />
+              </div>
+              <div aria-hidden="true" style={{ fontSize: 11, marginTop: 4, letterSpacing: 0.2, fontWeight: ativa ? 900 : 600, color: ativa ? "var(--texto)" : "var(--cinza)" }}>{a.nome}</div>
+            </button>
+          );
+        })}
       </nav>
     </div>
   );

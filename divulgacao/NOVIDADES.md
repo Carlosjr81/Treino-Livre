@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-10-30f — Barra de baixo nova
+
+**Em uma frase:** a barra de navegação de baixo ficou mais bonita, e a tela em que você está aparece em destaque.
+
+**O que mudou**
+- Fundo de vidro, com um fio no degradê da marca no alto.
+- A aba em que você está ganha uma pílula colorida no degradê do Treino Livre, com o ícone branco e um leve brilho, uma marquinha no alto da barra e o nome em negrito.
+
+**Por que importa para quem treina**
+- Dá para ver de relance onde você está, até no sol.
+
+**Como usar**
+- Nada muda: Início, Exercícios, Fichas e Histórico continuam no mesmo lugar.
+
+**Ideias de vídeo**
+- Close na barra trocando de aba, com a pílula pulando de um ícone para o outro.
+
+**Não prometer**
+- É mudança de visual: nenhuma função nova.
+
+---
+
 ## 2026-10-30e — Ícones novos também dentro do app
 
 **Em uma frase:** os ícones desenhados chegaram às telas de dentro: Início, Fichas e Histórico.

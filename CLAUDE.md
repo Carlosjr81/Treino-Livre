@@ -572,7 +572,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v157) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v158) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -4639,6 +4639,11 @@ dicas de resolver problemas... altamente sugestivo para os usuários".
   treinar, editar, ordem, duplicar, levar, enviar, excluir), as abas do
   Histórico e os botões de cada treino. `ComIcone` põe ícone e texto lado a
   lado dentro de um botão; `CHEIOS_ICONE` são os pintados por dentro (o play).
+- **O rodapé** (2026-10-30f, pedido do dono: "o item selecionado merece mais
+  destaque"): fundo de vidro (`--barra`, `--barra-sombra`, nos dois temas, com
+  `backdropFilter`), um fio no degradê da marca no alto, e a aba de agora numa
+  **pílula no degradê `GRAD` com o ícone branco**, brilho, a marquinha no alto
+  da barra e o nome em negrito. Só a cor do ícone mudando não se via no sol.
 - **O conteúdo é dado, no primeiro script**: `AJUDA_CATEGORIAS` (nove),
   `AJUDA_APP` (cada item com `cat`, `titulo`, `resumo`, `passos`, `dicas`
   e `ir`), `ATALHOS_APP` e `DICAS_RAPIDAS`. **Os nomes dos botões têm de ser

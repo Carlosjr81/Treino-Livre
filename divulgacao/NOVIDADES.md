@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-10-30e — Ícones novos também dentro do app
+
+**Em uma frase:** os ícones desenhados chegaram às telas de dentro: Início, Fichas e Histórico.
+
+**O que mudou**
+- "Outros jeitos de treinar" com um ícone para cada um (montar, livre, funcional, em casa, rua, esteira, intervalado, desafio, Monster Run).
+- Fichas: novo, montar pra mim, treino livre, treinar, editar, ordem, duplicar, levar, enviar e excluir com ícones.
+- Histórico: as abas Treinos, Números, Corpo e Saúde, e os botões de cada treino (resumo animado, desafiar, reabrir, story, corrigir, virar ficha, excluir).
+
+**Por que importa para quem treina**
+- O app fica mais bonito e mais rápido de ler: o ícone diz o que o botão faz antes da palavra.
+
+**Como usar**
+- Nada muda no uso: os botões estão nos mesmos lugares.
+
+**Ideias de vídeo**
+- Um passeio rápido pelas telas novas.
+
+**Não prometer**
+- É mudança de visual: nenhuma função nova.
+
+---
+
 ## 2026-10-30d — Ícones novos, mais nítidos
 
 **Em uma frase:** o topo e a barra de baixo ganharam ícones desenhados, nítidos em qualquer celular, e o botão de comandos do Jarvis virou um balão de fala.

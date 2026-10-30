@@ -1358,7 +1358,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-30d";
+const VERSAO_APP = "2026-10-30e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -8421,18 +8421,50 @@ const TRACOS_ICONE = {
   sol: ["M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6z", "M12 2.6v2", "M12 19.4v2", "M2.6 12h2", "M19.4 12h2", "M5.4 5.4l1.4 1.4", "M17.2 17.2l1.4 1.4", "M5.4 18.6l1.4-1.4", "M17.2 6.8l1.4-1.4"],
   lua: ["M19.8 14.6A8.2 8.2 0 0 1 9.4 4.2a8.2 8.2 0 1 0 10.4 10.4z"],
   engrenagem: [ENGRENAGEM, "M12 9.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6z"],
+  bussola: ["M12 3.2a8.8 8.8 0 1 0 0 17.6 8.8 8.8 0 0 0 0-17.6z", "M15.4 8.6l-2 4.8-4.8 2 2-4.8z"],
+  raio: ["M13.2 2.8 5.4 13.2h6.2l-1.2 8 7.8-10.4h-6.2z"],
+  mapa: ["M3.6 6.4 9 4.2l6 2.2 5.4-2.2v13.4L15 19.8l-6-2.2-5.4 2.2z", "M9 4.2v13.4", "M15 6.4v13.4"],
+  pulso: ["M2.8 12.4h4l2.4-5.6 3.8 10.6 2.6-5H21.2"],
+  cronometro: ["M12 6.2a7.4 7.4 0 1 0 0 14.8 7.4 7.4 0 0 0 0-14.8z", "M12 9.8v3.8l2.4 1.6", "M9.6 2.8h4.8", "M18.4 6.4l1.4-1.4"],
+  bandeira: ["M5.4 21V3.6", "M5.4 4.2h11.8l-2.4 4 2.4 4H5.4"],
+  monstro: ["M5 20.4V10.6a7 7 0 0 1 14 0v9.8l-2.3-1.7-2.3 1.7-2.4-1.7-2.4 1.7-2.3-1.7z"],
+  lixeira: ["M4.4 6.6h15.2", "M9.4 6.4V4.8c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1v1.6", "M6.4 6.6l.9 12.6c.1.9.8 1.6 1.7 1.6h6c.9 0 1.6-.7 1.7-1.6l.9-12.6", "M10.2 10.6v6", "M13.8 10.6v6"],
+  camera: ["M4.6 7.4h3l1.6-2.4h5.6l1.6 2.4h3c.9 0 1.6.7 1.6 1.6v9c0 .9-.7 1.6-1.6 1.6H4.6c-.9 0-1.6-.7-1.6-1.6V9c0-.9.7-1.6 1.6-1.6z", "M12 10.2a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6z"],
+  lapis: ["M15.2 4.8a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8L8.8 19.2l-4.6 1 1-4.6z", "M13.6 6.4l4 4"],
+  copiar: ["M9.2 8.8h9.2c.9 0 1.6.7 1.6 1.6v9.2c0 .9-.7 1.6-1.6 1.6H9.2c-.9 0-1.6-.7-1.6-1.6v-9.2c0-.9.7-1.6 1.6-1.6z", "M16.4 8.8V5.6c0-.9-.7-1.6-1.6-1.6H5.6C4.7 4 4 4.7 4 5.6v9.2c0 .9.7 1.6 1.6 1.6h2"],
+  enviar: ["M12 3.4v11", "M8 7.2l4-3.8 4 3.8", "M7.6 10.4h-1C5.7 10.4 5 11.1 5 12v7.4c0 .9.7 1.6 1.6 1.6h10.8c.9 0 1.6-.7 1.6-1.6V12c0-.9-.7-1.6-1.6-1.6h-1"],
+  pasta: ["M3.6 7.2v10.8c0 .9.7 1.6 1.6 1.6h13.6c.9 0 1.6-.7 1.6-1.6v-8.4c0-.9-.7-1.6-1.6-1.6h-6.6L10 5.6H5.2c-.9 0-1.6.7-1.6 1.6z"],
+  ordem: ["M8 4v15.6", "M4.6 7.4 8 4l3.4 3.4", "M16 20V4.4", "M12.6 16.6 16 20l3.4-3.4"],
+  play: ["M7.6 4.8v14.4L19 12z"],
+  mais: ["M12 5v14", "M5 12h14"],
+  lista: ["M9 6.4h11", "M9 12h11", "M9 17.6h11"],
+  grafico: ["M4 20h16", "M7.4 16.4v-5", "M12 16.4V6.8", "M16.6 16.4V8.6"],
+  regua: ["M3.4 15.6 15.6 3.4l5 5L8.4 20.6z", "M7.2 11.8l1.8 1.8", "M10 9l1.8 1.8", "M12.8 6.2l1.8 1.8"],
+  coracao: ["M12 20s-7.6-4.6-7.6-10.2A4.2 4.2 0 0 1 12 7.4a4.2 4.2 0 0 1 7.6 2.4C19.6 15.4 12 20 12 20z"],
+  desfazer: ["M8.6 5 4.4 9.2l4.2 4.2", "M4.4 9.2h10a5.4 5.4 0 0 1 0 10.8h-3"],
   comandos: ["M5 4.6h14a1.6 1.6 0 0 1 1.6 1.6v9a1.6 1.6 0 0 1-1.6 1.6H10l-4.4 3.6v-3.6H5a1.6 1.6 0 0 1-1.6-1.6v-9A1.6 1.6 0 0 1 5 4.6z", "M7.6 9h8.8", "M7.6 12.4h5.4"],
 };
 // Os pontos (o da interrogação) são cheios, não traço.
-const PONTOS_ICONE = { ajuda: [[12, 17.2]] };
+const PONTOS_ICONE = { ajuda: [[12, 17.2]], lista: [[4.6, 6.4], [4.6, 12], [4.6, 17.6]], monstro: [[9.6, 11], [14.4, 11]] };
+// Os que se pintam por dentro
+const CHEIOS_ICONE = { play: true };
 function Icone({ nome, tamanho = 22, espessura = 2, estilo }) {
   return (
     <svg width={tamanho} height={tamanho} viewBox="0 0 24 24" aria-hidden="true" focusable="false"
       style={{ display: "block", ...(estilo || {}) }} fill="none" stroke="currentColor"
       strokeWidth={espessura} strokeLinecap="round" strokeLinejoin="round">
-      {(TRACOS_ICONE[nome] || []).map((d, i) => <path key={i} d={d} />)}
+      {(TRACOS_ICONE[nome] || []).map((d, i) => <path key={i} d={d} fill={CHEIOS_ICONE[nome] ? "currentColor" : "none"} />)}
       {(PONTOS_ICONE[nome] || []).map((c, i) => <circle key={"p" + i} cx={c[0]} cy={c[1]} r="1.25" fill="currentColor" stroke="none" />)}
     </svg>
+  );
+}
+// Ícone e texto lado a lado, centrados, para dentro de botão
+function ComIcone({ nome, children, tamanho = 17, espessura }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, verticalAlign: "middle", maxWidth: "100%" }}>
+      <Icone nome={nome} tamanho={tamanho} espessura={espessura} estilo={{ flexShrink: 0 }} />
+      <span>{children}</span>
+    </span>
   );
 }
 function IconeMicrofone({ ligado }) {
@@ -12213,18 +12245,18 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
   // que serve. Sete botões coloridos do mesmo tamanho, um embaixo do outro, era
   // uma parede — ninguém sabia qual tocar.
   const jeitos = [
-    { icone: "🧭", nome: "Montar pra mim", diz: "responda 3 perguntas", onClick: onAssistente },
-    { icone: "🏋️", nome: "Treino livre", diz: "escolha na hora", onClick: onTreinoLivre, se: temFichas },
-    { icone: "⚡", nome: "Funcional", diz: "em casa, a câmera conta", onClick: onFuncional },
-    { icone: "🏠", nome: "Em casa com mini band", diz: "corpo todo, a câmera conta", onClick: onFuncional && (() => { ABRIR_BAND = true; onFuncional(); }) },
-    { icone: "🗺", nome: "Corrida na rua", diz: "GPS, mapa e ritmo", onClick: onPercurso },
+    { icone: "bussola", nome: "Montar pra mim", diz: "responda 3 perguntas", onClick: onAssistente },
+    { icone: "haltere", nome: "Treino livre", diz: "escolha na hora", onClick: onTreinoLivre, se: temFichas },
+    { icone: "raio", nome: "Funcional", diz: "em casa, a câmera conta", onClick: onFuncional },
+    { icone: "casa", nome: "Em casa com mini band", diz: "corpo todo, a câmera conta", onClick: onFuncional && (() => { ABRIR_BAND = true; onFuncional(); }) },
+    { icone: "mapa", nome: "Corrida na rua", diz: "GPS, mapa e ritmo", onClick: onPercurso },
     // A esteira era só um exercício escondido dentro das fichas: quem ia à
     // academia só para correr não achava por onde começar.
     // e, junto, os outros aparelhos de academia que o app lê por Bluetooth
-    { icone: "\u{1F3C3}", nome: "Esteira e aparelhos", diz: "esteira, bike, elíptico, remo", onClick: onEsteira && (() => setEscolhaEsteira((v) => !v)), ativo: escolhaEsteira },
-    { icone: "⏱", nome: "Intervalado", diz: "o ritmo que varia", onClick: onIntervalado },
-    { icone: "🏁", nome: "Desafio", diz: "corra contra amigos", onClick: onDesafio },
-    { icone: "🧟", nome: NOME_ZUMBI, diz: "fuja dos monstros correndo", onClick: onZumbi },
+    { icone: "pulso", nome: "Esteira e aparelhos", diz: "esteira, bike, elíptico, remo", onClick: onEsteira && (() => setEscolhaEsteira((v) => !v)), ativo: escolhaEsteira },
+    { icone: "cronometro", nome: "Intervalado", diz: "o ritmo que varia", onClick: onIntervalado },
+    { icone: "bandeira", nome: "Desafio", diz: "corra contra amigos", onClick: onDesafio },
+    { icone: "monstro", nome: NOME_ZUMBI, diz: "fuja dos monstros correndo", onClick: onZumbi },
   ].filter((j) => j.onClick && j.se !== false);
   // "Agora não" esconde por uma semana: convite que volta todo dia vira barulho
   const [apkDepois, setApkDepois] = useState(() => {
@@ -12289,7 +12321,7 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
               {" · cerca de " + Math.max(20, Math.round(hoje.ficha.itens.reduce((a, it) => a + (Number(it.series) || 3), 0) * 2.2 / 5) * 5) + " min"}
               {hoje.motivo ? " · " + hoje.motivo : ""}
             </div>
-            <button style={{ ...S.btn, fontSize: 17, padding: "16px 12px" }} onClick={() => onTreinar(hoje.ficha)}>▶ Começar este treino</button>
+            <button style={{ ...S.btn, fontSize: 17, padding: "16px 12px" }} onClick={() => onTreinar(hoje.ficha)}><ComIcone nome="play" tamanho={18}>Começar este treino</ComIcone></button>
             {novato && (
               <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
                 Um treino de iniciante, pronto para usar. Quer outro objetivo ou mais dias?{" "}
@@ -12343,7 +12375,9 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
               aria-expanded={j.ativo === undefined ? undefined : !!j.ativo}
               style={{ gridColumn: j.largo ? "1 / 3" : "auto", textAlign: "left", padding: "11px 12px", borderRadius: 12, cursor: "pointer",
                 background: j.ativo ? "#4C9BE81A" : "var(--bg2)", border: "1px solid " + (j.ativo ? "#4C9BE8" : "var(--borda2)"), color: "var(--texto)", minHeight: 64 }}>
-              <div style={{ fontSize: 14, fontWeight: 900 }}>{j.icone} {j.nome}</div>
+              <div style={{ fontSize: 14, fontWeight: 900, display: "flex", alignItems: "center", gap: 7 }}>
+                <span style={{ color: "var(--marca)", flexShrink: 0, display: "flex" }}><Icone nome={j.icone} tamanho={18} /></span>{j.nome}
+              </div>
               <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 3, lineHeight: 1.35 }}>{j.diz}</div>
             </button>
           ))}
@@ -13987,7 +14021,7 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
       <div style={{ padding: "0 18px" }}>
         <button style={S.voltar} onClick={() => setProgAberto(null)}>← Todos os treinos</button>
         <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 12 }}>{prog.nome}</div>
-        <button style={{ ...S.btn, marginBottom: 14 }} onClick={() => onNovaFicha(prog.id)}>+ Nova ficha neste treino</button>
+        <button style={{ ...S.btn, marginBottom: 14 }} onClick={() => onNovaFicha(prog.id)}><ComIcone nome="mais">Nova ficha neste treino</ComIcone></button>
         {fichas.length === 0 && (
           <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
             Nenhuma ficha aqui ainda. Crie a primeira (ex.: Treino A - Peito).
@@ -14016,22 +14050,22 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
             <div style={{ color: "var(--cinza)", fontSize: 13, margin: "4px 0 12px" }}>
               {t.itens.map((it) => { const e = exPorId(it.exercicioId); return e ? e.nome : null; }).filter(Boolean).join(" · ") || "Sem exercícios"}
             </div>
-            <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}>▶ Treinar</button>
+            <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}><ComIcone nome="play">Treinar</ComIcone></button>
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onEditar(t)}>Editar</button>
+              <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onEditar(t)}><ComIcone nome="lapis" tamanho={16}>Editar</ComIcone></button>
               {t.itens.length > 1 && (
                 <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onEditar(t, true)}
-                  aria-label={"Mudar a ordem dos exercícios da ficha " + t.nome}>↕ Ordem</button>
+                  aria-label={"Mudar a ordem dos exercícios da ficha " + t.nome}><ComIcone nome="ordem" tamanho={16}>Ordem</ComIcone></button>
               )}
               <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onDuplicarFicha(t)}
-                aria-label={"Duplicar a ficha " + t.nome}>⧉ Duplicar</button>
+                aria-label={"Duplicar a ficha " + t.nome}><ComIcone nome="copiar" tamanho={16}>Duplicar</ComIcone></button>
             </div>
             <button style={{ ...S.btnGhost, marginBottom: 8 }} onClick={() => onLevarFicha(t)}
-              aria-label={"Levar a ficha " + t.nome + " para outro treino"}>📂 Levar para outro treino</button>
+              aria-label={"Levar a ficha " + t.nome + " para outro treino"}><ComIcone nome="pasta" tamanho={16}>Levar para outro treino</ComIcone></button>
             <div style={{ display: "flex", gap: 8 }}>
-              <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onCompartilharFicha(t)}>📤 Enviar</button>
+              <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onCompartilharFicha(t)}><ComIcone nome="enviar" tamanho={16}>Enviar</ComIcone></button>
               <button style={{ ...S.btnGhost, flex: 1, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}
-                onClick={() => pedirConfirmacao("Excluir esta ficha?", () => onExcluirFicha(t.id))}>Excluir</button>
+                onClick={() => pedirConfirmacao("Excluir esta ficha?", () => onExcluirFicha(t.id))}><ComIcone nome="lixeira" tamanho={16}>Excluir</ComIcone></button>
             </div>
           </div>
         ))}
@@ -14046,12 +14080,12 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
   const emUso = hoje && hoje.ficha ? hoje.ficha.programaId : null;
   return (
     <div style={{ padding: "0 18px" }}>
-      <button style={{ ...(programas.length ? S.btnGhost : S.btn), marginBottom: 10, fontWeight: 800 }} onClick={onNovoPrograma}>+ Novo treino</button>
+      <button style={{ ...(programas.length ? S.btnGhost : S.btn), marginBottom: 10, fontWeight: 800 }} onClick={onNovoPrograma}><ComIcone nome="mais">Novo treino</ComIcone></button>
       <button style={{ ...S.btnGhost, marginBottom: 10, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onAssistente}>
-        🧭 Montar treino pra mim (assistente)
+        <ComIcone nome="bussola">Montar treino pra mim (assistente)</ComIcone>
       </button>
       <button style={{ ...S.btnGhost, marginBottom: 14, fontWeight: 800 }} onClick={onTreinoLivre}>
-        🏋️ Treino livre (montar na hora)
+        <ComIcone nome="haltere">Treino livre (montar na hora)</ComIcone>
       </button>
       {programas.length === 0 && (
         <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
@@ -14064,20 +14098,20 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
         return (
           <div key={p.id} style={{ ...S.card, borderColor: usando ? "#E1306C66" : undefined }}>
             {usando && <div style={{ ...S.label, color: "var(--marca)", marginBottom: 4 }}>▶ Em uso: é dele o treino de hoje</div>}
-            <div style={{ fontWeight: 900, fontSize: 19 }}>📋 {p.nome}</div>
+            <div style={{ fontWeight: 900, fontSize: 19, display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: "var(--marca)", display: "flex", flexShrink: 0 }}><Icone nome="prancheta" tamanho={21} /></span>{p.nome}</div>
             <div style={{ color: "var(--cinza)", fontSize: 13, margin: "4px 0 12px" }}>
               {fichas.length ? fichas.length + " " + plural(fichas.length, "ficha", "fichas") + ": " + fichas.map((f) => f.nome).join(" · ")
                 : "Nenhuma ficha ainda: abra e toque em + Nova ficha."}
             </div>
             <button style={{ ...(usando ? S.btn : S.btnGhost), marginBottom: 8, fontWeight: 800 }} onClick={() => setProgAberto(p.id)}>Abrir fichas ›</button>
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onRenomearPrograma(p)}>Renomear</button>
+              <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onRenomearPrograma(p)}><ComIcone nome="lapis" tamanho={16}>Renomear</ComIcone></button>
               <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onDuplicarPrograma(p)}
-                aria-label={"Duplicar o treino " + p.nome}>⧉ Duplicar</button>
+                aria-label={"Duplicar o treino " + p.nome}><ComIcone nome="copiar" tamanho={16}>Duplicar</ComIcone></button>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onCompartilharPrograma(p)} aria-label={"Enviar o treino " + p.nome + " por link"}>📤 Enviar</button>
-              <button style={{ ...S.btnGhost, flex: 1, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }} onClick={() => onExcluirPrograma(p)}>Excluir</button>
+              <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onCompartilharPrograma(p)} aria-label={"Enviar o treino " + p.nome + " por link"}><ComIcone nome="enviar" tamanho={16}>Enviar</ComIcone></button>
+              <button style={{ ...S.btnGhost, flex: 1, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }} onClick={() => onExcluirPrograma(p)}><ComIcone nome="lixeira" tamanho={16}>Excluir</ComIcone></button>
             </div>
           </div>
         );
@@ -24878,7 +24912,7 @@ function BotaoResumoAnimado({ registro, pts, exPorId, historico, pesoCorporal, v
   return (
     <React.Fragment>
       <button onClick={abrir} style={{ ...S.btnGhost, fontWeight: 900, color: "#7CFF3C", borderColor: "#7CFF3C66", ...(estilo || {}) }}>
-        {rotulo || "▶ Resumo animado"}
+        {rotulo || <ComIcone nome="play" tamanho={15}>Resumo animado</ComIcone>}
       </button>
       {d && <ResumoAnimado d={d} vozCfg={vozCfg} onFechar={() => setD(null)} />}
     </React.Fragment>
@@ -27321,8 +27355,8 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
           <div style={{ color: "var(--cinza)", fontWeight: 800, fontSize: 13 }}>{h.duracaoMin} min</div>
           <button title="Excluir este treino do histórico" aria-label={"Excluir do histórico o treino " + h.nome}
             onClick={() => pedirConfirmacao("Excluir este treino do histórico?\n\nVocê terá alguns segundos para desfazer.", () => onExcluir(h.id))}
-            style={{ background: "none", border: "1px solid var(--perigo-borda)", color: "var(--perigo)", borderRadius: 8, width: 30, height: 30, fontSize: 14, fontWeight: 900, cursor: "pointer" }}>
-            🗑
+            style={{ background: "none", border: "1px solid var(--perigo-borda)", color: "var(--perigo)", borderRadius: 8, width: 32, height: 32, padding: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icone nome="lixeira" tamanho={17} />
           </button>
         </div>
       </div>
@@ -27456,27 +27490,27 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
       {onDesafiarTreino && desafioDoTreino(h, exPorId) && (
         <button onClick={() => onDesafiarTreino(h)} aria-label={"Desafiar amigos com o treino " + h.nome}
           style={{ ...S.btnGhost, marginTop: 10, fontSize: 13 }}>
-          🏁 Desafiar amigos: {nomeMetaDesafio(desafioDoTreino(h, exPorId).meta)} em {fmtTempoRota(desafioDoTreino(h, exPorId).fim.ms)}
+          <ComIcone nome="bandeira" tamanho={16}>Desafiar amigos: {nomeMetaDesafio(desafioDoTreino(h, exPorId).meta)} em {fmtTempoRota(desafioDoTreino(h, exPorId).fim.ms)}</ComIcone>
         </button>
       )}
       {onReabrir && (
         <button onClick={() => onReabrir(h)} aria-label={"Reabrir o treino " + h.nome}
           style={{ ...S.btnGhost, marginTop: 10, fontSize: 14, fontWeight: 800, color: "var(--marca)", borderColor: "var(--marca)" }}>
-          ↩ Reabrir treino: continuar de onde parei
+          <ComIcone nome="desfazer" tamanho={16}>Reabrir treino: continuar de onde parei</ComIcone>
         </button>
       )}
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-        <button onClick={() => onStory(h)} style={{ ...S.btnGhost, flex: 2, color: "#E1306C", borderColor: "#E1306C66", fontSize: 13, padding: "10px 12px" }}>
-          📸 Story
+        <button onClick={() => onStory(h)} style={{ ...S.btnGhost, flex: 1, color: "#E1306C", borderColor: "#E1306C66", fontSize: 13, padding: "10px 6px", whiteSpace: "nowrap" }}>
+          <ComIcone nome="camera" tamanho={16}>Story</ComIcone>
         </button>
         <button onClick={() => onEditar(h)} aria-label={"Corrigir o treino " + h.nome}
-          style={{ ...S.btnGhost, flex: 1, fontSize: 13, padding: "10px 12px" }}>
-          ✎ Corrigir
+          style={{ ...S.btnGhost, flex: 1, fontSize: 13, padding: "10px 6px", whiteSpace: "nowrap" }}>
+          <ComIcone nome="lapis" tamanho={16}>Corrigir</ComIcone>
         </button>
         {onVirarFicha && !h.rota && !h.zumbi && !h.desafio && !h.intervalado && (h.itens || []).length >= 1 && (
           <button onClick={() => onVirarFicha(h)} aria-label={"Transformar o treino " + h.nome + " numa ficha"}
-            style={{ ...S.btnGhost, flex: 1.3, fontSize: 13, padding: "10px 8px" }}>
-            📋 Virar ficha
+            style={{ ...S.btnGhost, flex: 1.25, fontSize: 13, padding: "10px 6px", whiteSpace: "nowrap" }}>
+            <ComIcone nome="prancheta" tamanho={16}>Virar ficha</ComIcone>
           </button>
         )}
       </div>
@@ -28680,14 +28714,16 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
   return (
     <div style={{ padding: "0 18px" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {[["treinos", "📋 Treinos"], ["stats", "📊 Números"], ["corpo", "📏 Corpo"], ["saude", "❤ Saúde"]].map(([s, nome]) => (
+        {[["treinos", "Treinos", "lista"], ["stats", "Números", "grafico"], ["corpo", "Corpo", "regua"], ["saude", "Saúde", "coracao"]].map(([s, nome, ic]) => (
           <button key={s} onClick={() => setSecao(s)}
             style={{
               flex: 1, border: "1px solid", borderColor: secao === s ? "#E1306C" : "var(--borda2)",
               background: secao === s ? "#E1306C22" : "transparent",
               color: secao === s ? "#E1306C" : "var(--cinza)",
-              borderRadius: 10, padding: "11px 2px", fontWeight: 800, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap",
+              borderRadius: 10, padding: "9px 2px", fontWeight: 800, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
             }}>
+            <Icone nome={ic} tamanho={18} espessura={secao === s ? 2.2 : 1.8} />
             {nome}
           </button>
         ))}

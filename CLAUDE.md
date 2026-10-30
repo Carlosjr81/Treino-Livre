@@ -572,7 +572,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v154) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v155) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -4616,6 +4616,37 @@ uma cópia do `index.html` com `SpeechRecognition` e `speechSynthesis` falsos,
 expondo `window.dizer("Jarvis, anote 80 por 10")` e `window.__falado`. Assim o
 fluxo inteiro — interpretação, estado, descanso, recorde e resposta falada — roda
 de verdade. Vale refazer esse molde antes de mexer no interpretador.
+
+## A Central de Ajuda (`CentralAjuda`, `AJUDA_APP`, o ? do topo)
+
+Pedido do dono (2026-10-30c): "deixe tudo mais profissional... dicas de uso,
+dicas de resolver problemas... altamente sugestivo para os usuários".
+
+- **O ? fica no cabeçalho de todas as telas** (`Header`, `onAjuda`), ao lado
+  do tema e da engrenagem. Abre por cima de tudo (como o `GuiaConectar`), e
+  qualquer tela abre num assunto com `abrirAjuda(id)` (`ABRIR_AJUDA`, ponteiro
+  de módulo pelo mesmo motivo do `ABRIR_GUIA`). O ? pequeno do botão flutuante
+  continua sendo o dos comandos do Jarvis.
+- **O conteúdo é dado, no primeiro script**: `AJUDA_CATEGORIAS` (nove),
+  `AJUDA_APP` (cada item com `cat`, `titulo`, `resumo`, `passos`, `dicas`
+  e `ir`), `ATALHOS_APP` e `DICAS_RAPIDAS`. **Os nomes dos botões têm de ser
+  os da tela** ("+ Nova ficha", "↩ Reabrir treino", "📶 Conectar cinta ou
+  relógio"): mudou um rótulo, mude a ajuda. Função nova ganha item aqui.
+- **Toda resposta termina num botão que leva até lá** (`ir.destino`): uma aba,
+  `historico:<secao>`, `guia:<id>` do passo a passo de conectar, `backup`,
+  `atualizar` ou `diagVoz`. O raiz traduz no `onIr`. Dica que só explica é
+  meia dica.
+- **A busca** (`buscarAjuda`) exige todas as palavras (sem acento), vale mais no
+  título e no resumo, e põe os problemas na frente quando a frase parece de
+  problema ("não", "parou", "sumiu").
+- **Resolver problemas** reúne o que os relatos do dono ensinaram (o Jarvis
+  que não ouve, a música, o Bluetooth, os treinos "sumidos" por outro navegador,
+  o nunca limpar os dados sem backup).
+- **Nos Ajustes, o índice no topo** (`aj-<id>` em cada cartão, `scrollIntoView`)
+  e o "❓ Ajuda e dicas". **Nas Fichas**, o treino em uso (o da `fichaDeHoje`)
+  vem marcado e é o único com o botão em degradê (regra das cores: um primário
+  por tela). A `BemVindo` aponta para o guia rápido, e a ajuda do Jarvis para
+  o "como resolver".
 
 ## Navegação e telas
 

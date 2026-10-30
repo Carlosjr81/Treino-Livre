@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-10-30c — Ajuda e dicas em todas as telas
+
+**Em uma frase:** um botão **?** no topo de qualquer tela abre a Central de Ajuda: o passo a passo de cada parte do app, os atalhos escondidos e o que fazer quando algo não funciona.
+
+**O que mudou**
+- **❓ Ajuda e dicas** no topo de todas as telas, com busca ("backup", "senha", "música", "câmera").
+- Nove assuntos: Primeiros passos, No treino, Fichas e exercícios, Jarvis, Câmera, Esteira/rua/aparelhos, Evolução e saúde, Conta e dados e **🛠 Resolver problemas**.
+- Cada resposta termina num botão que **leva até lá** (abrir o diagnóstico do Jarvis, baixar o backup, buscar a versão nova, o passo a passo da esteira...).
+- **Resolver problemas**: Jarvis que não ouve, música que para, câmera que não conta, esteira ou cinta que não aparece, aviso do descanso que não toca, treinos que sumiram, não consigo entrar, GPS, relógio sem dados, óculos.
+- **Atalhos e gestos escondidos** numa lista só, e um **"Você sabia?"** com uma dica por vez.
+- **Ajustes com índice** no topo: um toque leva a Conta, Preferências, Jarvis, Aparelhos, Backup, Este app ou Termos.
+- **Fichas mais claras**: o treino em uso vem marcado ("▶ Em uso") e é o único com o botão em destaque.
+- A boas-vindas de quem chega aponta para o guia rápido.
+
+**Por que importa para quem treina**
+- Ninguém precisa adivinhar onde fica cada coisa nem desistir quando algo trava: a resposta está a um toque, com o botão que resolve.
+
+**Como usar**
+- Toque no **?** ao lado do ☀️ e do ⚙, no topo da tela. Busque ou escolha o assunto.
+
+**Ideias de vídeo**
+- "Travou? Toca no ?": mostrar a busca "música" e o conserto em 10 segundos.
+- "5 atalhos que ninguém conhece no Treino Livre" (tocar no número da série = aquecimento, ↓ Drop, ⇄ trocar aparelho, arrastar o Jarvis, segurar o ícone do app).
+
+**Não prometer**
+- A ajuda não fala com uma pessoa: é o guia do app. Dúvida que não está lá vai pelo Instagram @carlos.jr.81.
+
+---
+
 ## 2026-10-30b — O botão "Continuar com o Google" aparece
 
 **Em uma frase:** o login com o Google foi ligado, e o botão agora aparece nas telas de entrar e de criar conta.

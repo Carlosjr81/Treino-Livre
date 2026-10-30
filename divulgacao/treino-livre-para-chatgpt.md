@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-30a**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-30c**.
 
 ---
 
@@ -121,6 +121,13 @@ com cenas reais → halter) como linguagem visual em vídeos.
 ---
 
 ## 3. Todas as funções, explicadas
+
+### 3.0 Ajuda e dicas (o ? do topo, novo em 2026-10-30c)
+- Botão **?** no topo de qualquer tela: a **Central de Ajuda**, com busca, o passo a passo de cada parte do
+  app, os **atalhos e gestos escondidos**, um "Você sabia?" e a seção **🛠 Resolver problemas** (Jarvis que
+  não ouve, música que para, câmera que não conta, esteira que não aparece, treinos sumidos, login...).
+  Cada resposta tem um botão que leva direto ao lugar ou faz a ação (baixar backup, buscar atualização).
+- Nos **Ajustes**, um índice no topo leva a cada parte com um toque.
 
 ### 3.1 Fichas e programas (a base)
 - **Ficha** = lista de exercícios com séries, repetições, descanso e observações (ex.: "Treino A — Peito

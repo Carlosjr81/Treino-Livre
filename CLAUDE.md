@@ -572,7 +572,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v155) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v156) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -4625,8 +4625,16 @@ dicas de resolver problemas... altamente sugestivo para os usuários".
 - **O ? fica no cabeçalho de todas as telas** (`Header`, `onAjuda`), ao lado
   do tema e da engrenagem. Abre por cima de tudo (como o `GuiaConectar`), e
   qualquer tela abre num assunto com `abrirAjuda(id)` (`ABRIR_AJUDA`, ponteiro
-  de módulo pelo mesmo motivo do `ABRIR_GUIA`). O ? pequeno do botão flutuante
-  continua sendo o dos comandos do Jarvis.
+  de módulo pelo mesmo motivo do `ABRIR_GUIA`). O botão pequeno do Jarvis
+  (os comandos de voz) virou um **balão de fala**: dois "?" confundiam (pedido
+  do dono, 2026-10-30d).
+- **Os ícones do topo, da barra de baixo e do Jarvis são SVG desenhados aqui**
+  (`Icone`, `TRACOS_ICONE`: casa, haltere, prancheta, histórico, ajuda, sol,
+  lua, engrenagem, comandos), em traço, na grade de 24, com `currentColor`.
+  Emoji e símbolo de fonte (⌂ ▤ ◷ ⚙) mudavam de desenho em cada aparelho e
+  saíam borrados. A aba de agora ganha uma pílula atrás do ícone. Ícone novo
+  entra em `TRACOS_ICONE`, desenhado à mão (não copie de pacote de ícones
+  sem conferir a licença).
 - **O conteúdo é dado, no primeiro script**: `AJUDA_CATEGORIAS` (nove),
   `AJUDA_APP` (cada item com `cat`, `titulo`, `resumo`, `passos`, `dicas`
   e `ir`), `ATALHOS_APP` e `DICAS_RAPIDAS`. **Os nomes dos botões têm de ser

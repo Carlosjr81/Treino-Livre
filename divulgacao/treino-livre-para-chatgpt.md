@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-30c**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-10-30d**.
 
 ---
 
@@ -128,6 +128,8 @@ com cenas reais → halter) como linguagem visual em vídeos.
   não ouve, música que para, câmera que não conta, esteira que não aparece, treinos sumidos, login...).
   Cada resposta tem um botão que leva direto ao lugar ou faz a ação (baixar backup, buscar atualização).
 - Nos **Ajustes**, um índice no topo leva a cada parte com um toque.
+- Desde 2026-10-30d, os ícones do topo e da barra de baixo são desenhados (casa, halter, prancheta, relógio),
+  e o botão de comandos do Jarvis, ao lado do microfone, é um **balão de fala** (o **?** do topo é só a ajuda).
 
 ### 3.1 Fichas e programas (a base)
 - **Ficha** = lista de exercícios com séries, repetições, descanso e observações (ex.: "Treino A — Peito

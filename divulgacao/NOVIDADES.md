@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-10-30d — Ícones novos, mais nítidos
+
+**Em uma frase:** o topo e a barra de baixo ganharam ícones desenhados, nítidos em qualquer celular, e o botão de comandos do Jarvis virou um balão de fala.
+
+**O que mudou**
+- Ícones novos e iguais em todo aparelho: Início (casa), Exercícios (halter), Fichas (prancheta), Histórico (relógio), Ajuda, tema claro/escuro e Ajustes.
+- A aba em que você está ganha um destaque atrás do ícone.
+- O botão pequeno ao lado do microfone (os comandos de voz do Jarvis) agora é um **balão de fala**, e não mais um "?". O **?** fica só no topo, para a Ajuda e dicas.
+
+**Por que importa para quem treina**
+- O app fica com cara de app profissional, e ninguém confunde a ajuda do app com os comandos do Jarvis.
+
+**Como usar**
+- Nada muda no uso: os botões estão nos mesmos lugares.
+
+**Ideias de vídeo**
+- Antes e depois da barra de baixo, em 5 segundos.
+
+**Não prometer**
+- É mudança de visual: nenhuma função nova.
+
+---
+
 ## 2026-10-30c — Ajuda e dicas em todas as telas
 
 **Em uma frase:** um botão **?** no topo de qualquer tela abre a Central de Ajuda: o passo a passo de cada parte do app, os atalhos escondidos e o que fazer quando algo não funciona.

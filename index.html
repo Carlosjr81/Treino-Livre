@@ -1358,7 +1358,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-30c";
+const VERSAO_APP = "2026-10-30d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -8095,21 +8095,19 @@ function Header({ titulo, tema, onTema, onAjustes, onAjuda }) {
         <h1 style={{ ...S.logo, margin: 0, fontSize: 27 }}>{titulo}</h1>
         <div style={{ display: "flex", gap: 8 }}>
           {onAjuda && (
-            <button onClick={onAjuda} title="Ajuda e dicas" aria-label="Abrir a ajuda e as dicas"
-              style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", color: "var(--texto)", fontSize: 19, fontWeight: 900, cursor: "pointer" }}>
-              <span aria-hidden="true">?</span>
+            <button onClick={onAjuda} title="Ajuda e dicas" aria-label="Abrir a ajuda e as dicas" style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", color: "var(--texto)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+              <Icone nome="ajuda" />
             </button>
           )}
           <button onClick={onTema} title={tema === "escuro" ? "Mudar para tema claro" : "Mudar para tema escuro"}
             aria-label={tema === "escuro" ? "Mudar para o tema claro" : "Mudar para o tema escuro"}
-            style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", color: "var(--texto)", fontSize: 18, cursor: "pointer" }}>
-            <span aria-hidden="true">{tema === "escuro" ? "☀️" : "🌙"}</span>
+            style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", color: "var(--texto)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+            <Icone nome={tema === "escuro" ? "sol" : "lua"} />
           </button>
           {/* A cor precisa ser explícita: <button> não herda color do pai, usa o
               preto padrão do sistema — e a engrenagem sumia no tema escuro. */}
-          <button onClick={onAjustes} title="Ajustes" aria-label="Abrir os ajustes"
-            style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", color: "var(--texto)", fontSize: 20, cursor: "pointer" }}>
-            <span aria-hidden="true">⚙</span>
+          <button onClick={onAjustes} title="Ajustes" aria-label="Abrir os ajustes" style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", color: "var(--texto)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+            <Icone nome="engrenagem" espessura={1.8} />
           </button>
         </div>
       </div>
@@ -8400,6 +8398,43 @@ function tempoFalado(seg) {
 // O microfone do botão flutuante. Era um emoji, que muda de desenho em cada
 // aparelho e nunca combina com o resto — aqui ele é vetor, na mesma espessura
 // de traço do esqueleto do Eyes Scan.
+
+// ---------------- ÍCONES ----------------
+// Desenhados aqui, em traço, na mesma grade de 24 e com a cor do texto
+// (currentColor). Emoji e símbolo de fonte (⌂ ▤ ◷ ⚙) mudam de desenho em cada
+// aparelho, saem borrados em tela de baixa densidade e nunca combinam entre si.
+const ENGRENAGEM = (() => {
+  const p = (r, g) => { const a = (g - 90) * Math.PI / 180; return (12 + r * Math.cos(a)).toFixed(2) + " " + (12 + r * Math.sin(a)).toFixed(2); };
+  let d = "";
+  for (let i = 0; i < 8; i++) {
+    const a = i * 45;
+    d += (i ? "L" : "M") + p(7.1, a - 22.5) + "L" + p(7.1, a - 13) + "L" + p(9.6, a - 8) + "L" + p(9.6, a + 8) + "L" + p(7.1, a + 13);
+  }
+  return d + "Z";
+})();
+const TRACOS_ICONE = {
+  casa: ["M3.5 10.6 12 3.6l8.5 7", "M5.8 9v10.4c0 .6.4 1 1 1h3.7v-5.6h3v5.6h3.7c.6 0 1-.4 1-1V9"],
+  haltere: ["M6.8 7v10", "M17.2 7v10", "M3.6 9.4v5.2", "M20.4 9.4v5.2", "M6.8 12h10.4"],
+  prancheta: ["M8.6 4.4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-13a2 2 0 0 0-2-2h-1.6", "M9.4 3h5.2c.4 0 .8.4.8.8v1.4c0 .4-.4.8-.8.8H9.4c-.4 0-.8-.4-.8-.8V3.8c0-.4.4-.8.8-.8z", "M8.8 11.2h6.4", "M8.8 15h4.2"],
+  historico: ["M3.6 12a8.4 8.4 0 1 0 2.5-6", "M3.4 3.8v4.4h4.4", "M12 7.6V12l3 1.9"],
+  ajuda: ["M12 3.2a8.8 8.8 0 1 0 0 17.6 8.8 8.8 0 0 0 0-17.6z", "M9.5 9.4a2.6 2.6 0 0 1 5 .9c0 1.8-2.5 2.3-2.5 3.9"],
+  sol: ["M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6z", "M12 2.6v2", "M12 19.4v2", "M2.6 12h2", "M19.4 12h2", "M5.4 5.4l1.4 1.4", "M17.2 17.2l1.4 1.4", "M5.4 18.6l1.4-1.4", "M17.2 6.8l1.4-1.4"],
+  lua: ["M19.8 14.6A8.2 8.2 0 0 1 9.4 4.2a8.2 8.2 0 1 0 10.4 10.4z"],
+  engrenagem: [ENGRENAGEM, "M12 9.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6z"],
+  comandos: ["M5 4.6h14a1.6 1.6 0 0 1 1.6 1.6v9a1.6 1.6 0 0 1-1.6 1.6H10l-4.4 3.6v-3.6H5a1.6 1.6 0 0 1-1.6-1.6v-9A1.6 1.6 0 0 1 5 4.6z", "M7.6 9h8.8", "M7.6 12.4h5.4"],
+};
+// Os pontos (o da interrogação) são cheios, não traço.
+const PONTOS_ICONE = { ajuda: [[12, 17.2]] };
+function Icone({ nome, tamanho = 22, espessura = 2, estilo }) {
+  return (
+    <svg width={tamanho} height={tamanho} viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+      style={{ display: "block", ...(estilo || {}) }} fill="none" stroke="currentColor"
+      strokeWidth={espessura} strokeLinecap="round" strokeLinejoin="round">
+      {(TRACOS_ICONE[nome] || []).map((d, i) => <path key={i} d={d} />)}
+      {(PONTOS_ICONE[nome] || []).map((c, i) => <circle key={"p" + i} cx={c[0]} cy={c[1]} r="1.25" fill="currentColor" stroke="none" />)}
+    </svg>
+  );
+}
 function IconeMicrofone({ ligado }) {
   const cor = ligado ? "#FFFFFF" : "var(--cinza)";
   return (
@@ -8549,14 +8584,16 @@ function PainelJarvis({ disponivel, ligado, estado, parcial, ultima, descansando
           }}
           onPointerDown={aoPegar} onPointerMove={aoMover} onPointerUp={aoSoltar} onPointerCancel={aoSoltar}>
 
-          {/* O "?" nao pode depender de estar ouvindo: no modo toque a sessao acaba
-              a cada comando, e a ajuda sumiria junto. */}
+          {/* Os comandos nao podem depender de estar ouvindo: no modo toque a sessao
+              acaba a cada comando, e a ajuda sumiria junto. É um balão de fala, e não
+              um "?": o ? do topo é a ajuda do app inteiro, e dois iguais confundiam. */}
           <button data-acao="ajuda" onFocus={() => { arrastouRef.current = false; }} onClick={() => { if (!arrastouRef.current && Date.now() - agiuRef.current > 400) onAjuda(); }}
-            aria-label="O que posso dizer ao Jarvis"
-            style={{ width: 30, height: 30, borderRadius: 15, border: "1px solid var(--borda2)",
-              background: "var(--card)", color: "var(--cinza)", fontSize: 14, fontWeight: 900,
-              cursor: "pointer", lineHeight: 1 }}>
-            ?
+            aria-label="O que posso dizer ao Jarvis" title="Comandos de voz"
+            style={{ width: 32, height: 32, borderRadius: 16, border: "1px solid var(--borda2)",
+              background: "var(--card)", color: "var(--texto)", cursor: "pointer", padding: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.35)" }}>
+            <Icone nome="comandos" tamanho={17} espessura={2} />
           </button>
 
           <div style={{ position: "relative", width: 58, height: 58 }}>
@@ -12925,8 +12962,8 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
 
       <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "2px 0 12px", margin: "0 -2px", WebkitOverflowScrolling: "touch" }}>
         <button onClick={() => abrirAjuda("")}
-          style={{ flex: "0 0 auto", padding: "8px 12px", borderRadius: 999, border: "1px solid var(--marca)", background: "transparent", color: "var(--marca)", font: "inherit", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
-          ❓ Ajuda e dicas
+          style={{ flex: "0 0 auto", padding: "8px 12px", borderRadius: 999, border: "1px solid var(--marca)", background: "transparent", color: "var(--marca)", font: "inherit", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <Icone nome="ajuda" tamanho={16} /> Ajuda e dicas
         </button>
         {indice.map((x) => (
           <button key={x[0]} onClick={() => pular(x[0])}
@@ -28260,7 +28297,7 @@ function CentralAjuda({ inicial, onFechar, onIr }) {
       style={{ position: "fixed", inset: 0, zIndex: 315, background: "var(--bg)", overflowY: "auto" }}>
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "16px 16px calc(28px + env(safe-area-inset-bottom))", boxSizing: "border-box" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-          <div style={{ flex: 1, fontWeight: 900, fontSize: 21 }}>❓ Ajuda e dicas</div>
+          <div style={{ flex: 1, fontWeight: 900, fontSize: 21, display: "flex", alignItems: "center", gap: 9 }}><span style={{ color: "var(--marca)" }}><Icone nome="ajuda" tamanho={24} /></span>Ajuda e dicas</div>
           <button onClick={onFechar} aria-label="Fechar a ajuda"
             style={{ ...S.btnGhost, width: 44, height: 44, padding: 0, fontSize: 18 }}>✕</button>
         </div>
@@ -31053,10 +31090,10 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
   };
 
   const abas = [
-    { id: "inicio", nome: "Início", icone: "⌂" },
-    { id: "exercicios", nome: "Exercícios", icone: "💪" },
-    { id: "treinos", nome: "Fichas", icone: "▤" },
-    { id: "historico", nome: "Histórico", icone: "◷" },
+    { id: "inicio", nome: "Início", icone: "casa" },
+    { id: "exercicios", nome: "Exercícios", icone: "haltere" },
+    { id: "treinos", nome: "Fichas", icone: "prancheta" },
+    { id: "historico", nome: "Histórico", icone: "historico" },
   ];
   const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente", editarHistorico: "Corrigir treino", ajustes: "Ajustes", escolaVoz: "Escola do Jarvis", funcional: "Treino funcional" };
 
@@ -31527,9 +31564,14 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
         {abas.map((a) => (
           <button key={a.id} onClick={() => { setAba(a.id); setGrupoAberto(null); setExercicioAberto(null); setProgAberto(null); if (a.id === "historico") setSecaoHistorico("treinos"); }}
             aria-current={aba === a.id ? "page" : undefined} aria-label={a.nome}
-            style={{ flex: 1, background: "none", border: "none", cursor: "pointer", color: aba === a.id ? "#E1306C" : "var(--cinza)", fontWeight: aba === a.id ? 900 : 600 }}>
-            <div aria-hidden="true" style={{ fontSize: 18 }}>{a.icone}</div>
-            <div aria-hidden="true" style={{ fontSize: 11, marginTop: 2 }}>{a.nome}</div>
+            style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: 0, color: aba === a.id ? "var(--marca)" : "var(--cinza)", fontWeight: aba === a.id ? 800 : 600,
+              display: "flex", flexDirection: "column", alignItems: "center" }}>
+            {/* a aba de agora ganha a pílula atrás do ícone: a cor sozinha some no sol */}
+            <div aria-hidden="true" style={{ width: 54, height: 30, borderRadius: 15, display: "flex", alignItems: "center", justifyContent: "center",
+              background: aba === a.id ? "rgba(225,48,108,0.15)" : "transparent", transition: "background .2s ease" }}>
+              <Icone nome={a.icone} tamanho={22} espessura={aba === a.id ? 2.2 : 1.8} />
+            </div>
+            <div aria-hidden="true" style={{ fontSize: 11, marginTop: 3, letterSpacing: 0.1 }}>{a.nome}</div>
           </button>
         ))}
       </nav>

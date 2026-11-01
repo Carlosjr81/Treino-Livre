@@ -572,7 +572,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v162) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v163) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1889,7 +1889,9 @@ chamar atenção; no último card use nosso logo atualizado".
 - **O brilho só pinta o logo**: na tela, a máscara CSS é o próprio logo; no
   canvas, `source-atop` numa tela à parte (`telaBrilho`). Sem a imagem
   carregada, o canvas desenha o halter e o nome (`videoLogo`): o vídeo nunca
-  sai sem marca.
+  sai sem marca. **Mas o desenho de reserva parece o logo antigo**, então o
+  vídeo do story espera o logo chegar antes de montar (`carregarLogoApp`, até
+  6 s; 2026-11-01e, depois de o dono ver o logo antigo no último card).
 - **Cada cena entra de um jeito** (`TRANSICOES_RESUMO`, `transicaoDe(i)`, na
   mesma ordem na tela e no vídeo): corte em diagonal com a faixa da marca,
   íris com anel de luz, persiana de seis faixas, zoom com clarão e a linha verde

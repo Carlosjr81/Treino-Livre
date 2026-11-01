@@ -17,8 +17,11 @@ const CASOS = [
       const f = path.join(d, "index.html");
       let h = fs.readFileSync(f, "utf8");
       // tira uma chave de fechamento de uma funcao do app
-      const alvo = "function TreinoLivre() {";
-      h = h.replace(alvo, "function TreinoLivre() { if (true {");
+      // o começo do componente raiz, com quaisquer parâmetros (já mudou de
+      // "TreinoLivre()" para "TreinoLivre({ ... })", e a quebra deixou de entrar)
+      const antes = h;
+      h = h.replace(/function TreinoLivre\(([^)]*)\) \{/, (m) => m + " if (true {");
+      if (h === antes) throw new Error("não achei onde quebrar o JSX");
       fs.writeFileSync(f, h);
     },
   },

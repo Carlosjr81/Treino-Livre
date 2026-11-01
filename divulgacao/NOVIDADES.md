@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-01e — O logo novo garantido no último card do story
+
+**Em uma frase:** o vídeo do story agora espera o logo novo carregar antes de ser montado, para o último card nunca sair com o desenho antigo.
+
+**O que mudou**
+- O último card do resumo animado e do vídeo do story mostra sempre o logo atualizado (halter + TREINO LIVRE cromado).
+
+**Por que importa para quem treina**
+- A marca aparece certa em todo story postado.
+
+**Como usar**
+- Nada a fazer: atualize o app (a faixa "Atualizar" ou Ajustes mostra a versão 2026-11-01e) e gere o story de novo.
+
+**Ideias de vídeo**
+- Mostrar o último card do story com o logo batendo e o brilho passando.
+
+**Não prometer**
+- Sem internet na primeira vez, o logo pode demorar a chegar; depois ele fica guardado no celular.
+
+---
+
 ## 2026-11-01d — Vinheta com o logo novo e transições no resumo do story
 
 **Em uma frase:** o resumo animado e o vídeo do story agora abrem com uma vinheta do logo Treino Livre e trocam de cena com transições animadas.

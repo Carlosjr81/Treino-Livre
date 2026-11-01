@@ -1470,7 +1470,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-01d";
+const VERSAO_APP = "2026-11-01e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -24364,6 +24364,19 @@ const transicaoDe = (i) => TRANSICOES_RESUMO[(i - 1) % TRANSICOES_RESUMO.length]
 // O logo no canvas, com o brilho passando (b de 0 a 1; fora disso, sem brilho).
 // Sem a imagem (ainda não carregou), o halter e o nome desenhados.
 let telaBrilho = null;
+// Espera o logo chegar (no máximo 6 s): o vídeo do story não pode sair com o
+// desenho de reserva no lugar do logo só porque a imagem ainda estava vindo.
+function carregarLogoApp() {
+  if (imagemMonstro(LOGO_APP)) return Promise.resolve(true);
+  const im = IMAGENS_MONSTRO[LOGO_APP];
+  if (!im) return Promise.resolve(false);
+  return new Promise((ok) => {
+    const fim = () => ok(!!imagemMonstro(LOGO_APP));
+    im.addEventListener("load", fim, { once: true });
+    im.addEventListener("error", fim, { once: true });
+    setTimeout(fim, 6000);
+  });
+}
 function videoLogo(c, cx, cy, larg, b) {
   const im = imagemMonstro(LOGO_APP);
   const alt = Math.round(larg * LOGO_APP_PROPORCAO);
@@ -25221,6 +25234,8 @@ function GerarStoryResumo({ cenas, onVoltar }) {
         semVoz = "A narração não carregou (sem internet ou sem espaço?). O vídeo vai sem voz.";
       }
     }
+    await carregarLogoApp();
+    if (parou.current) return;
     const durs = videoDuracoes(cenas, falasMs);
     if (!cvRef.current) {
       const cv = document.createElement("canvas");

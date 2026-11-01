@@ -1227,7 +1227,7 @@ const AJUDA_APP = [
     resumo: "O app nunca precisa pausar a sua música.",
     passos: [
       "**Ajustes → ⚙ Ajustes da voz → Botão do fone: Nada** (o botão do fone vira o tocador do app).",
-      "No cartão **🔒 Jarvis com a tela travada**, deixe **🎵 Ouvir mesmo com música tocando** desligado.",
+      "Com a tela travada e música tocando, o **🔒 Jarvis com a tela travada** fala por cima mas não ouve: ouvir pausaria a música. Para dar comandos, pause a música ou destrave a tela.",
       "Música com som de telefone no fone Bluetooth: é o microfone ligado. Use **Toque e fale**.",
     ], ir: { rotulo: "Abrir os Ajustes", destino: "ajustes" } },
   { id: "p-camera", cat: "problemas", icone: "\u{1F441}", titulo: "A câmera não conta ou conta errado",
@@ -1400,7 +1400,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-01a";
+const VERSAO_APP = "2026-11-01b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3298,10 +3298,13 @@ function linkBolso(snap, falar, fimFala, trazer, crono) {
     ";S.browser_fallback_url=" + encodeURIComponent(LINK_APK) + ";end";
 }
 // Com a tela travada e música de outro app tocando, o app não abre o
-// microfone (o reconhecedor do Google pausaria a música a cada vez). Quem
-// prefere ouvir mesmo assim liga isto, e a música pausa a cada comando.
+// microfone: o reconhecedor do Google pausa a música a cada vez que ouve.
+// Existia a opção "Ouvir mesmo com música tocando" (mu=1); o dono a ligou e a
+// música parava com a tela travada e só voltava enquanto o Jarvis falava.
+// Regra dele: a música nunca para. A opção saiu, e a guardada é apagada.
 function bolsoComMusica() {
-  try { return localStorage.getItem("treinolivre:bolsoMusica") === "1"; } catch (e) { return false; }
+  try { localStorage.removeItem("treinolivre:bolsoMusica"); } catch (e) {}
+  return false;
 }
 function linkBolsoParar() {
   return "intent://bolso?parar=1#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID + ";end";
@@ -26333,7 +26336,6 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // descanso da página dorme com ela. No app novo (BOLSO_APP), todo ✓ é um
   // toque, e o toque deixa a página chamar o app: a confirmação e o fim do
   // descanso passam a ser falados pelo Android, travado ou não.
-  const [comMusica, setComMusica] = useState(bolsoComMusica);
   const [bolsoAuto, setBolsoAuto] = useState(() => {
     try { return NO_APP_ANDROID && BOLSO_APP >= 2 && localStorage.getItem("treinolivre:bolsoAuto") !== "0"; } catch (e) { return false; }
   });
@@ -26842,14 +26844,10 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 : <>Celular travado no bolso: ele ouve, anota as séries, conta o descanso e chama você na hora. Só no app Android.</>}
             </div>
             {(bolsoAuto || bolsoAtivo) && (
-              <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 8, fontSize: 12, color: "var(--cinza)", lineHeight: 1.45, cursor: "pointer" }}>
-                <input type="checkbox" checked={comMusica} onChange={(e) => {
-                  const v = e.target.checked;
-                  try { localStorage.setItem("treinolivre:bolsoMusica", v ? "1" : "0"); } catch (er) {}
-                  setComMusica(v);
-                }} style={{ marginTop: 2 }} />
-                <span>🎵 <b>Ouvir mesmo com música tocando.</b> Desligado, a sua música nunca é interrompida: travado, ele fala, mas só ouve quando a música para. Ligado, ele ouve, e a música pausa um instante a cada vez. Vale a partir do próximo ✓.</span>
-              </label>
+              <div style={{ marginTop: 8, fontSize: 12, color: "var(--cinza)", lineHeight: 1.45 }}>
+                🎵 <b>A sua música nunca para.</b> Com música tocando e a tela travada, o Jarvis fala por cima (a música só abaixa) e
+                avisa o fim do descanso, mas só ouve comandos quando a música para ou a tela destrava.
+              </div>
             )}
           </div>
           {bolsoAuto ? (

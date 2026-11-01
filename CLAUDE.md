@@ -572,7 +572,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v159) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v160) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -3877,10 +3877,14 @@ para de novo quando ele termina"). O roçar no bolso passa do ruído de fundo e
 abria o reconhecedor, e o do Google pede o foco do áudio a cada sessão mesmo
 recebendo o áudio pelo cano (não se desliga de fora). Hoje, com
 `isMusicActive` (e o Jarvis calado), o reconhecedor não abre: ele fala, mas só
-ouve quando a música para ou a tela destrava. Quem prefere ouvir liga "🎵 Ouvir
-mesmo com música tocando" no cartão (`treinolivre:bolsoMusica`, vai no link
-como `mu=1`), sabendo que a música pausa a cada comando. O diário diz quando
-calou pela música.
+ouve quando a música para ou a tela destrava. O diário diz quando calou pela
+música. **A opção "🎵 Ouvir mesmo com música tocando" (`mu=1`) foi tirada
+em 2026-11-01b**: o dono a deixou ligada, e com a tela travada a música
+parava e só voltava enquanto o Jarvis falava (o reconhecedor do Google pega o
+foco a cada escuta, e não há como impedir de fora). Pela regra dele, a música
+nunca para; `bolsoComMusica` devolve sempre falso e apaga a escolha
+guardada, e o cartão só explica. O APK não mudou: sem `mu` no link, a
+`BolsoActivity` manda "0".
 
 **A música é lembrada por 1 minuto** (`musicaVistaEm`, `olharMusica`;
 relato seguinte do dono: "só toca música quando o Jarvis fala"). A guarda

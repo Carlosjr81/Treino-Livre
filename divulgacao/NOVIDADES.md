@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-01b — A música não para mais com a tela travada
+
+**Em uma frase:** com o Jarvis no bolso, a sua música continua tocando com a tela travada; o Jarvis fala por cima e a música só abaixa.
+
+**O que mudou**
+- Saiu a opção "Ouvir mesmo com música tocando", que fazia a música pausar com a tela travada.
+- Com música tocando e a tela travada, o Jarvis fala (as séries e o fim do descanso) com a música abaixando por um instante, mas não abre o microfone.
+
+**Por que importa para quem treina**
+- Treinar de fone com a música e o celular no bolso, sem a música parar toda hora.
+
+**Como usar**
+- Nada a fazer: atualize o app. Para dar um comando de voz com a tela travada, pause a música ou destrave a tela.
+
+**Ideias de vídeo**
+- Celular no bolso, música tocando, e o Jarvis avisando "descanso fechado" por cima da música.
+
+**Não prometer**
+- Com música tocando e a tela travada, o Jarvis não ouve comandos (só fala).
+
+---
+
 ## 2026-11-01a — O descanso certo para cada exercício
 
 **Em uma frase:** o app agora dá a cada exercício o tempo de descanso que os estudos indicam: 3 minutos no agachamento e no supino com barra, 1 minuto e 15 na rosca.

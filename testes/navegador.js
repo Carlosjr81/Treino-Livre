@@ -88,8 +88,11 @@ async function doNpm(lib) {
     if (u.split("?")[0].split("#")[0] === ENDERECO) return r.fulfill({ status: 200, contentType: "text/html", body: html });
     const k = Object.keys(libs).find((n) => u.includes(n));
     if (k) return r.fulfill({ status: 200, contentType: "text/javascript", body: libs[k] });
-    // o resto (vídeo da abertura, imagens, mapa, contador de visitas) fica de
-    // fora: a tela tem de desenhar sem eles, como num celular sem rede
+    // as imagens do próprio app (o logo, o avatar) vêm do repositório
+    const local = u.indexOf(ENDERECO) === 0 && /\.(webp|png|jpe?g)$/.test(u.split("?")[0]) ? path.join(RAIZ, u.split("?")[0].slice(ENDERECO.length)) : null;
+    if (local && fs.existsSync(local)) return r.fulfill({ status: 200, contentType: "image/" + (/png$/.test(local) ? "png" : /webp$/.test(local) ? "webp" : "jpeg"), body: fs.readFileSync(local) });
+    // o resto (vídeo da abertura, mapa, contador de visitas) fica de fora: a
+    // tela tem de desenhar sem eles, como num celular sem rede
     return r.abort();
   });
   const p = await ctx.newPage();

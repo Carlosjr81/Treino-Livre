@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-01d — Vinheta com o logo novo e transições no resumo do story
+
+**Em uma frase:** o resumo animado e o vídeo do story agora abrem com uma vinheta do logo Treino Livre e trocam de cena com transições animadas.
+
+**O que mudou**
+- **Vinheta de abertura**: raias coloridas cruzam a tela, o logo novo (halter + TREINO LIVRE cromado) bate de longe, com clarão, confete e um brilho passando por cima.
+- **Transições em cada cena**, uma diferente da outra: corte em diagonal com faixa de luz, círculo que abre com anel brilhante, persiana, zoom com clarão e a linha verde.
+- **O último card usa o logo atualizado**, com raios dourados e o brilho passando de tempos em tempos, e a frase "Cada treino é um desafio vencido".
+
+**Por que importa para quem treina**
+- O story fica com cara de vídeo profissional e prende quem está passando os stories, e a marca aparece no começo e no fim.
+
+**Como usar**
+- Fim do treino → "▶ Ver resumo animado", ou "Resumo animado" em qualquer treino do Histórico. Para postar, toque no 📸.
+
+**Ideias de vídeo**
+- Gravar a tela só da vinheta (os 2 primeiros segundos): o logo batendo com o confete.
+- "Story de treino nível profissional, feito pelo app em 1 toque": mostrar as transições.
+
+**Não prometer**
+- Quem ativou "reduzir movimento" no celular vê o resumo sem os efeitos e sem as transições.
+
+---
+
 ## 2026-11-01c — O resumo do story agora tem impacto (e fala de superação)
 
 **Em uma frase:** o resumo animado e o vídeo para o story ganharam carimbos de superação, explosões de faíscas, confete nos recordes e uma cena nova, "Desafio vencido".

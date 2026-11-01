@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-01c**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-01d**.
 
 ---
 
@@ -91,6 +91,8 @@ Existe também **tema claro** (fundo branco, texto `#262626`), mas a cara do app
 
 ### Símbolos visuais da marca
 - **O halter (haltere)** — é o ícone do app (halter branco sobre o degradê da marca).
+- **O logo TREINO LIVRE** — o halter no degradê em cima, "TREINO" em vermelho numa placa cromada e
+  "LIVRE" cromado embaixo (o fim da vinheta de abertura). Aparece na vinheta e no fim do resumo do story.
 - **O esqueleto verde** — os pontos e traços verdes neon que a câmera desenha sobre o corpo para
   contar repetições. É o símbolo da tecnologia do app.
 - **A linha de leitura** — uma linha verde horizontal que desce pela tela "escaneando" e revelando.
@@ -455,6 +457,9 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
   "Recorde quebrado!", "Você se superou", "Cada km, uma vitória", "Meta batida!"), onda e faíscas; nos
   grandes momentos, raios dourados, confete e a tela tremendo. A narração fala de superação, e dia mais
   leve vira "o importante é aparecer". O fim: "Cada treino é um desafio vencido".
+- **Vinheta e transições** (desde 2026-11-01d): abre com a vinheta do logo (raias coloridas, o logo
+  TREINO LIVRE batendo com confete e brilho) e cada cena entra com uma transição diferente (corte em
+  diagonal, círculo, persiana, zoom, linha verde). O último card é o logo atualizado com raios dourados.
 - O botão 📸 gera um **vídeo vertical 1080×1920 narrado** (até 60 s) pronto para o **Story do Instagram**,
   e também imagem para story.
 

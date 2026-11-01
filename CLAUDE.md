@@ -572,10 +572,11 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v161) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v162) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
+| `logo-treino-livre.webp` | O logo do app (halter, TREINO em vermelho na placa cromada, LIVRE cromado), recortado do último quadro da `abertura-v2.mp4` com fundo transparente (604×800, 48 KB). Usado na vinheta e no fim do resumo animado e do vídeo do story |
 | `abertura-v2.mp4` | A vinheta de abertura em vídeo (720×1280, 12 s, 1,8 MB, sem som), num cache próprio do `sw.js` (ver *A abertura*) |
 | `marombeiro-corpo.webp`, `-braco.webp`, `-cabeca.webp`, `-inteiro.webp`, `marombeiro-rosto.jpg` | O avatar animado do dono na "Fuga do Marombeiro" (ver *Monster, Run!*) |
 
@@ -1867,6 +1868,37 @@ story**, com os mesmos tempos:
 - O `navegador.js` ganhou `--largura` e `--pagina-inteira`: foi assim que a
   folha com todos os quadros do vídeo foi conferida (desenhando
   `videoQuadro` num canvas pela página).
+
+### A vinheta, as transições e o logo (`videoVinheta`, `videoTransicao`, `LogoBrilho`)
+
+Pedido do dono (2026-11-01d): "vinhetas animadas e transições animadas para
+chamar atenção; no último card use nosso logo atualizado".
+
+- **O logo atualizado** é o do fim da vinheta de abertura (`LOGO_APP`,
+  `logo-treino-livre.webp`). Foi recortado do último quadro do vídeo: a média
+  de 8 quadros (tira o chiado), o fundo vinho medido por anel fora do logo e
+  subtraído, e a cor recuperada onde a borda é translúcida. Logo novo de verdade
+  (arquivo do designer) entra no lugar com o mesmo nome e a proporção em
+  `LOGO_APP_PROPORCAO`. Está na lista do `sw.js`.
+- **A vinheta** (`tipo: "vinheta"`, primeira cena, 2,3 s, fala "Treino
+  Livre."): raias nas cores da marca cruzam a tela, o logo bate de longe
+  (`escalaBate`: 3,2× desfocado, passa do ponto e assenta), clarão, confete e
+  o brilho passando por cima do logo. **O fecho** é o mesmo logo batendo,
+  com raios dourados e o brilho repetindo a cada 2,6 s. Nas duas, o crédito
+  "Treino Livre" do vídeo sai (o logo já diz o nome).
+- **O brilho só pinta o logo**: na tela, a máscara CSS é o próprio logo; no
+  canvas, `source-atop` numa tela à parte (`telaBrilho`). Sem a imagem
+  carregada, o canvas desenha o halter e o nome (`videoLogo`): o vídeo nunca
+  sai sem marca.
+- **Cada cena entra de um jeito** (`TRANSICOES_RESUMO`, `transicaoDe(i)`, na
+  mesma ordem na tela e no vídeo): corte em diagonal com a faixa da marca,
+  íris com anel de luz, persiana de seis faixas, zoom com clarão e a linha verde
+  de antes. No vídeo a transição mostra a cena que sai e a que entra
+  (`videoCenaInteira` desenha cada uma; `videoLimpa` repinta o fundo dentro
+  do recorte), em 650 ms (`VIDEO_TRANSICAO_MS`). Na tela a cena velha some e
+  a nova entra com o recorte animado.
+- O `navegador.js` passou a servir as imagens do repositório (webp, png,
+  jpg); o resto continua bloqueado, como num celular sem rede.
 
 ### O resumo vira vídeo para o story (`GerarStoryResumo`)
 

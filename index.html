@@ -245,6 +245,40 @@
                pointer-events: none; animation: rsGira 24s linear infinite, rsSurge .6s ease-out 1.3s both;
                background: repeating-conic-gradient(from 0deg, rgba(254,218,117,.11) 0 7deg, transparent 7deg 26deg);
                -webkit-mask-image: radial-gradient(circle, #000 18%, transparent 62%); mask-image: radial-gradient(circle, #000 18%, transparent 62%); }
+  /* A vinheta: raias da marca cruzando, o logo batendo de longe e o brilho
+     passando por cima dele. As transições trocam a cada cena (corte em
+     diagonal, íris, persiana, zoom e a linha verde): a mesma ordem do vídeo. */
+  @keyframes rsRaia    { 0% { transform: translateX(-150vw) skewX(-24deg); } 100% { transform: translateX(150vw) skewX(-24deg); } }
+  @keyframes rsBate    { 0% { transform: scale(3.2); opacity: 0; filter: blur(12px); } 55% { transform: scale(.94); opacity: 1; filter: blur(0); }
+                         75% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes rsBrilho  { 0% { transform: translateX(-130%) skewX(-20deg); } 38%, 100% { transform: translateX(330%) skewX(-20deg); } }
+  @keyframes rsTCorte  { 0% { clip-path: polygon(0 0, -15% 0, -45% 100%, 0 100%); } 100% { clip-path: polygon(0 0, 145% 0, 115% 100%, 0 100%); } }
+  @keyframes rsTIris   { 0% { clip-path: circle(0% at 50% 46%); } 100% { clip-path: circle(120% at 50% 46%); } }
+  @keyframes rsTZoom   { 0% { transform: scale(1.8); filter: blur(12px); opacity: 0; } 100% { transform: scale(1); filter: blur(0); opacity: 1; } }
+  @keyframes rsFaixa   { 0% { transform: translateX(-60vw) skewX(-16deg); } 100% { transform: translateX(160vw) skewX(-16deg); } }
+  @keyframes rsAnel    { 0% { transform: translate(-50%, -50%) scale(0); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); opacity: .2; } }
+  @keyframes rsPersiana { 0% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
+  .rs-raia   { position: absolute; left: 0; width: 100vw; height: 12px; border-radius: 6px; pointer-events: none;
+               animation: rsRaia .55s cubic-bezier(.6,0,.4,1) both; }
+  .rs-bate   { animation: rsBate .6s cubic-bezier(.2,.9,.3,1.15) both; }
+  .rs-brilho { position: absolute; top: -10%; bottom: -10%; left: 0; width: 34%; pointer-events: none;
+               background: linear-gradient(90deg, transparent, rgba(255,255,255,.85), transparent);
+               animation: rsBrilho 2.6s ease-in-out infinite both; }
+  .rs-t-corte { animation: rsTCorte .62s cubic-bezier(.6,0,.3,1) both; }
+  .rs-t-iris  { animation: rsTIris .62s cubic-bezier(.5,0,.3,1) both; }
+  .rs-t-zoom  { animation: rsTZoom .55s cubic-bezier(.2,.8,.2,1) both; }
+  .rs-faixa  { position: absolute; top: -10%; bottom: -10%; left: 0; width: 22vw; pointer-events: none;
+               background: linear-gradient(90deg, rgba(254,218,117,0), #FEDA75 30%, #FFFFFF 50%, #DD2A7B 70%, rgba(129,52,175,0));
+               box-shadow: 0 0 40px 10px rgba(221,42,123,.45); animation: rsFaixa .62s cubic-bezier(.6,0,.3,1) both; }
+  .rs-anel   { position: absolute; left: 50%; top: 46%; width: 240vmax; height: 240vmax; border-radius: 50%; pointer-events: none;
+               border: 10px solid #DD2A7B; box-shadow: 0 0 40px 8px rgba(124,255,60,.5), inset 0 0 40px 8px rgba(254,218,117,.4);
+               animation: rsAnel .62s cubic-bezier(.5,0,.3,1) both; }
+  .rs-persiana > div { position: absolute; left: 0; right: 0; background: #060606; pointer-events: none;
+               animation: rsPersiana .5s cubic-bezier(.6,0,.3,1) both; }
+  @media (prefers-reduced-motion: reduce) {
+    .rs-raia, .rs-brilho, .rs-faixa, .rs-anel, .rs-persiana { display: none; }
+    .rs-bate, .rs-t-corte, .rs-t-iris, .rs-t-zoom { animation: none; }
+  }
   @media (prefers-reduced-motion: reduce) {
     .rs-zoom, .rs-grito, .rs-pop, .rs-treme, .rs-fundo, .rs-raios { animation: none; }
     .rs-grito { transform: rotate(-3deg); }
@@ -1436,7 +1470,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-01c";
+const VERSAO_APP = "2026-11-01d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -23695,6 +23729,10 @@ function cenasResumo(d) {
   const sub = [d.forca ? d.exercicios + " " + plural(d.exercicios, "exercício", "exercícios") : "",
     d.duracao ? d.duracao + " min" : ""].filter(Boolean).join(" · ");
   const M = d.monstro;
+  // a vinheta: o logo batendo na tela antes de tudo (e já pedido ao navegador,
+  // para estar pronto quando o vídeo do story for montado)
+  imagemMonstro(LOGO_APP);
+  c.push({ tipo: "vinheta", rotulo: M ? NOME_ZUMBI : "O seu treino em resumo", fala: "Treino Livre." });
   if (M) {
     c.push({ tipo: "abre", rotulo: NOME_ZUMBI, titulo: M.missao.icone + " " + M.missao.nome, dia: dia,
       sub: [M.mo.icone + " " + M.mo.nome, d.duracao ? d.duracao + " min" : ""].filter(Boolean).join(" · "),
@@ -23853,7 +23891,7 @@ function cenasResumo(d) {
   const meta = d.cardio && d.cardio.semana >= META_CARDIO_SEMANA;
   c.push({ tipo: "fecho", fala: M ? "Você sobreviveu. Até a próxima missão." : meta ? "Meta cumprida. Até a próxima." : "Mais forte que a desculpa. Até a próxima." });
   // tempo de cada cena: o suficiente para a frase caber
-  c.forEach((x) => { x.ms = Math.max(3400, x.fala.split(" ").length * 420 + 900); });
+  c.forEach((x) => { x.ms = x.tipo === "vinheta" ? VIDEO_VINHETA_MS : Math.max(3400, x.fala.split(" ").length * 420 + 900); });
   return c;
 }
 
@@ -23942,9 +23980,32 @@ function GritoResumo({ texto, cor, atraso }) {
   );
 }
 
+// O logo do app (o mesmo do fim da vinheta de abertura), com o brilho
+// passando por cima: a máscara é o próprio logo, então o brilho só pinta o logo
+function LogoBrilho({ largura, atraso }) {
+  const mascara = { WebkitMaskImage: "url(" + LOGO_APP + ")", maskImage: "url(" + LOGO_APP + ")",
+    WebkitMaskSize: "100% 100%", maskSize: "100% 100%", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat" };
+  return (
+    <div style={{ position: "relative", width: largura, height: Math.round(largura * LOGO_APP_PROPORCAO) }}>
+      <img src={LOGO_APP} alt="Treino Livre" style={{ width: "100%", height: "100%", display: "block" }} />
+      <div aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", ...mascara }}>
+        <div className="rs-brilho" style={{ animationDelay: (atraso || 0) + "s" }} />
+      </div>
+    </div>
+  );
+}
+
 function CenaResumo({ c }) {
   const v = useSobe(c.valor || 0, c.tipo === "semana" ? 1400 : 1100);
   const metV = useSobe(c.met || 0, 1300);
+  if (c.tipo === "vinheta") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div className="rs-bate" style={{ animationDelay: ".35s" }}><LogoBrilho largura={240} atraso={1} /></div>
+        <div className="rs-marca" style={{ ...ROTULO_RESUMO, marginTop: 20, animationDelay: "1.1s" }}>{c.rotulo}</div>
+      </div>
+    );
+  }
   if (c.tipo === "superacao") {
     return (
       <div style={{ textAlign: "center", padding: "0 24px", width: "100%", maxWidth: 360 }}>
@@ -24158,22 +24219,12 @@ function CenaResumo({ c }) {
       </div>
     );
   }
-  // fecho: o halter da abertura entra de frente, e fica com o nome do app
+  // fecho: o logo do app bate de longe, solta o confete e fica brilhando
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <svg viewBox="0 0 120 80" width="200" height="133" aria-hidden="true" style={{ overflow: "visible" }}>
-        <defs>
-          <linearGradient id="ab-metal" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#FEDA75" /><stop offset="38%" stopColor="#DD2A7B" /><stop offset="100%" stopColor="#8134AF" />
-          </linearGradient>
-        </defs>
-        <g className="rs-halter" style={{ transformOrigin: "60px 40px" }}>
-          <g transform="translate(60 40)"><HalterAbertura /></g>
-        </g>
-      </svg>
-      <div className="rs-marca" style={{ textAlign: "center" }}>
-        <div style={{ ...S.logo, fontSize: 34 }}>Treino Livre</div>
-        <div style={{ color: "#F2F0EC", fontSize: 15, fontWeight: 800, marginTop: 6 }}>Cada treino é um desafio vencido.</div>
+      <div className="rs-bate" style={{ animationDelay: ".3s" }}><LogoBrilho largura={210} atraso={1.1} /></div>
+      <div className="rs-marca" style={{ textAlign: "center", marginTop: 14 }}>
+        <div style={{ color: "#F2F0EC", fontSize: 15, fontWeight: 800 }}>Cada treino é um desafio vencido.</div>
         <div style={{ ...ROTULO_RESUMO, marginTop: 7 }}>{c.fala.replace(/\.$/, "").replace(". ", " · ")}</div>
       </div>
     </div>
@@ -24303,6 +24354,145 @@ function videoAvatar(c, cx, base, alt, ms) {
 }
 // O momento do impacto: quando o placar termina de subir (a cena pode trocar)
 const IMPACTO_MS = 1450;
+// O logo do app, recortado do fim da vinheta de abertura (abertura-v2.mp4)
+const LOGO_APP = "logo-treino-livre.webp", LOGO_APP_PROPORCAO = 800 / 604;
+const VIDEO_VINHETA_MS = 2300, VIDEO_TRANSICAO_MS = 650;
+const CORES_RAIA = ["#FEDA75", "#FA7E1E", "#D62976", "#962FBF", "#4F5BD5", "#7CFF3C"];
+// Cada cena entra de um jeito, sempre na mesma ordem, na tela e no vídeo
+const TRANSICOES_RESUMO = ["corte", "iris", "persiana", "zoom", "linha"];
+const transicaoDe = (i) => TRANSICOES_RESUMO[(i - 1) % TRANSICOES_RESUMO.length];
+// O logo no canvas, com o brilho passando (b de 0 a 1; fora disso, sem brilho).
+// Sem a imagem (ainda não carregou), o halter e o nome desenhados.
+let telaBrilho = null;
+function videoLogo(c, cx, cy, larg, b) {
+  const im = imagemMonstro(LOGO_APP);
+  const alt = Math.round(larg * LOGO_APP_PROPORCAO);
+  if (!im) {
+    c.save(); c.translate(cx, cy - alt * 0.22); c.rotate((-18 * Math.PI) / 180); c.scale(larg / 110, larg / 110); videoHalter(c); c.restore();
+    c.textAlign = "center"; videoTexto(c, "Treino Livre", cx, cy + alt * 0.2, Math.round(larg / 5.5), "grad", 900);
+    return;
+  }
+  c.drawImage(im, cx - larg / 2, cy - alt / 2, larg, alt);
+  if (!(b > 0 && b < 1) || typeof document === "undefined") return;
+  if (!telaBrilho) telaBrilho = document.createElement("canvas");
+  const o = telaBrilho; o.width = Math.ceil(larg); o.height = alt;
+  const x = o.getContext("2d");
+  x.clearRect(0, 0, o.width, o.height);
+  x.drawImage(im, 0, 0, o.width, o.height);
+  x.globalCompositeOperation = "source-atop";
+  const bx = -larg * 0.4 + larg * 1.8 * b;
+  const g = x.createLinearGradient(bx - 90, 0, bx + 90, 0);
+  g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(0.5, "rgba(255,255,255,0.85)"); g.addColorStop(1, "rgba(255,255,255,0)");
+  x.fillStyle = g; x.setTransform(1, 0, -0.36, 1, alt * 0.18, 0); x.fillRect(bx - 90, 0, 180, alt);
+  x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = "source-over";
+  c.drawImage(o, cx - larg / 2, cy - alt / 2);
+}
+// A pancada do logo: vem de longe e desfocado, passa do ponto e assenta
+function escalaBate(q) {
+  const k = Math.max(0, Math.min(1, q / 600));
+  return k < 0.55 ? 3.2 - 2.26 * sobe(k / 0.55) : k < 0.75 ? 0.94 + 0.1 * ((k - 0.55) / 0.2) : 1.04 - 0.04 * ((k - 0.75) / 0.25);
+}
+// A vinheta: raias da marca cruzando, o logo batendo, confete e o brilho
+function videoVinheta(c, cena, p) {
+  CORES_RAIA.forEach((cor, k) => {
+    const q = (p - k * 45) / 550;
+    if (q <= 0 || q >= 1) return;
+    const x = -1600 + 3400 * suave(q), y = 520 + k * 150;
+    c.save(); c.translate(x, y); c.transform(1, 0, -0.45, 1, 0, 0);
+    const g = c.createLinearGradient(-700, 0, 700, 0);
+    g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(0.35, cor); g.addColorStop(0.5, "#FFFFFF"); g.addColorStop(0.65, cor); g.addColorStop(1, "rgba(0,0,0,0)");
+    c.shadowColor = cor; c.shadowBlur = 30; c.fillStyle = g; c.fillRect(-700, -14, 1400, 28);
+    c.restore();
+  });
+  const q = p - 350;
+  if (q >= 0) {
+    const s = escalaBate(q);
+    c.save(); c.globalAlpha = Math.min(1, q / 150);
+    c.translate(540, 900); c.scale(s, s);
+    videoLogo(c, 0, 0, 720, (p - 1000) / 900);
+    c.restore();
+  }
+  videoImpacto(c, 540, 900, p - 680, true);
+  if (p > 680 && p < 940) { c.fillStyle = "rgba(255,255,255," + 0.7 * (1 - (p - 680) / 260) + ")"; c.fillRect(0, 0, 1080, 1920); }
+  const m = Math.max(0, Math.min(1, (p - 1100) / 400));
+  if (m > 0) { c.save(); c.globalAlpha = m; c.textAlign = "center"; videoRotulo(c, cena.rotulo, 1500 + (1 - m) * 24); c.restore(); }
+}
+// Uma cena inteira no instante p: o desenho, o impacto, o carimbo e o clarão
+function videoCenaInteira(c, cena, p, t) {
+  if (cena.tipo === "fecho") return videoFecho(c, cena, p);
+  if (cena.tipo === "vinheta") return videoVinheta(c, cena, p);
+  const imp = cena.impactoMs || IMPACTO_MS;
+  if (cena.forte) videoRaios(c, 540, 980, t, Math.max(0, Math.min(1, (p - imp + 200) / 500)));
+  // a cena chega de perto e assenta; no impacto, pulsa (e treme, se for forte)
+  const pop = p > imp && p < imp + 450 ? Math.sin((Math.PI * (p - imp)) / 450) : 0;
+  const s = (1 + 0.08 * (1 - sobe(p / 700))) * (1 + (cena.grito || cena.forte ? 0.06 : 0) * pop);
+  let dx = 0, dy = 0;
+  if (cena.forte && p > imp && p < imp + 420) { const f = 1 - (p - imp) / 420; dx = 16 * f * Math.sin(p * 0.13); dy = 10 * f * Math.cos(p * 0.17); }
+  c.save();
+  c.translate(540 + dx, 1000 + dy); c.scale(s, s); c.translate(-540, -1000);
+  videoCena(c, cena, p);
+  c.restore();
+  if (cena.grito || cena.forte) videoImpacto(c, 540, 980, p - imp, cena.forte);
+  videoGrito(c, cena.grito, 1580, p - imp - 50, cena.corGrito);
+  const clarao = cena.forte && p > imp && p < imp + 260 ? 0.26 * (1 - (p - imp) / 260) : 0;
+  if (clarao > 0) { c.fillStyle = "rgba(255,255,255," + clarao + ")"; c.fillRect(0, 0, 1080, 1920); }
+}
+// O fundo de novo, dentro de um recorte: a cena nova não pode deixar ver a velha
+function videoLimpa(c, t) { c.fillStyle = "#060606"; c.fillRect(0, 0, 1080, 1920); videoFundo(c, t); }
+// A passagem de uma cena para a outra (e de 0 a 1)
+function videoTransicao(c, tipo, e, t, velha, nova) {
+  const k = suave(e);
+  if (tipo === "corte") {
+    // um corte em diagonal, com a faixa da marca passando na frente
+    velha();
+    const bx = -500 + 2100 * k;
+    c.save(); c.beginPath(); c.moveTo(0, 0); c.lineTo(bx + 300, 0); c.lineTo(bx - 300, 1920); c.lineTo(0, 1920); c.closePath(); c.clip();
+    videoLimpa(c, t); nova(); c.restore();
+    c.save(); c.translate(bx, 960); c.transform(1, 0, -0.3125, 1, 0, 0);
+    const g = c.createLinearGradient(-90, 0, 90, 0);
+    g.addColorStop(0, "rgba(254,218,117,0)"); g.addColorStop(0.3, "#FEDA75"); g.addColorStop(0.5, "#FFFFFF"); g.addColorStop(0.7, "#DD2A7B"); g.addColorStop(1, "rgba(129,52,175,0)");
+    c.shadowColor = "#DD2A7B"; c.shadowBlur = 50; c.fillStyle = g; c.fillRect(-90, -1100, 180, 2200);
+    c.restore();
+  } else if (tipo === "iris") {
+    // a cena nova abre num círculo, com um anel de luz na borda
+    velha();
+    const r = 1300 * k;
+    c.save(); c.beginPath(); c.arc(540, 980, r, 0, Math.PI * 2); c.clip(); videoLimpa(c, t); nova(); c.restore();
+    c.save(); c.strokeStyle = "#DD2A7B"; c.lineWidth = 16; c.shadowColor = "#7CFF3C"; c.shadowBlur = 40;
+    c.beginPath(); c.arc(540, 980, r, 0, Math.PI * 2); c.stroke(); c.restore();
+  } else if (tipo === "persiana") {
+    // seis faixas abrindo, uma de cada lado
+    velha();
+    for (let j = 0; j < 6; j++) {
+      const f = sobe((e - j * 0.06) / 0.65), y0 = j * 320, w = 1080 * f;
+      if (f <= 0) continue;
+      const x0 = j % 2 ? 1080 - w : 0;
+      c.save(); c.beginPath(); c.rect(x0, y0, w, 320); c.clip(); videoLimpa(c, t); nova(); c.restore();
+      if (f < 1) { c.save(); c.fillStyle = "#DD2A7B"; c.shadowColor = "#DD2A7B"; c.shadowBlur = 24; c.fillRect(j % 2 ? x0 - 3 : x0 + w - 3, y0, 6, 320); c.restore(); }
+    }
+  } else if (tipo === "zoom") {
+    // a velha voa para a frente, um clarão, e a nova chega de longe
+    if (e < 0.5) {
+      c.save(); c.translate(540, 980); c.scale(1 + e * 1.2, 1 + e * 1.2); c.translate(-540, -980); velha(); c.restore();
+      c.fillStyle = "rgba(6,6,6," + e * 1.6 + ")"; c.fillRect(0, 0, 1080, 1920);
+    } else {
+      const s = 1.6 - 0.6 * sobe((e - 0.5) / 0.5);
+      c.save(); c.translate(540, 980); c.scale(s, s); c.translate(-540, -980); nova(); c.restore();
+      c.fillStyle = "rgba(6,6,6," + (1 - e) * 1.6 + ")"; c.fillRect(0, 0, 1080, 1920);
+    }
+    const fl = 1 - Math.abs(e - 0.5) / 0.22;
+    if (fl > 0) { c.fillStyle = "rgba(255,255,255," + 0.5 * fl + ")"; c.fillRect(0, 0, 1080, 1920); }
+  } else {
+    // a linha verde desce: em cima, a cena nova; embaixo, a velha
+    const y = 140 + 1560 * k;
+    c.save(); c.beginPath(); c.rect(0, y, 1080, 1920 - y); c.clip(); velha(); c.restore();
+    c.save(); c.beginPath(); c.rect(0, 0, 1080, y); c.clip(); videoLimpa(c, t); nova(); c.restore();
+    const a = e < 0.1 ? e / 0.1 : e > 0.9 ? (1 - e) / 0.1 : 1;
+    c.globalAlpha = 0.18 * a; c.fillStyle = "#7CFF3C"; c.fillRect(0, y - 22, 1080, 44);
+    c.globalAlpha = a; c.save(); c.shadowColor = "rgba(124,255,60,.8)"; c.shadowBlur = 30;
+    c.fillRect(0, y - 4, 1080, 8); c.restore(); c.globalAlpha = 1;
+  }
+}
 // O fundo respira: duas luzes da marca passeando atrás das cenas
 function videoFundo(c, t) {
   const s = t / 1000;
@@ -24580,31 +24770,25 @@ function videoCena(c, cena, p) {
 
 // O fecho é a abertura de novo: o halter entra de frente, bate, e fica com o nome
 function videoFecho(c, cena, p) {
-  const e = sobe((p - 250) / 450);
-  if (p > 250) {
-    c.save();
-    c.globalAlpha = Math.min(1, (p - 250) / 120);
-    c.translate(540, 760);
-    c.rotate(((-42 + 24 * e) * Math.PI) / 180);
-    const s = 8 - 6.7 * e;
-    c.scale(s * 5.2, s * 5.2);
-    videoHalter(c);
+  // o logo do app bate de longe, solta o confete e fica brilhando
+  videoRaios(c, 540, 800, p, Math.max(0, Math.min(1, (p - 500) / 500)));
+  const q = p - 250;
+  if (q >= 0) {
+    const s = escalaBate(q);
+    c.save(); c.globalAlpha = Math.min(1, q / 150);
+    c.translate(540, 800); c.scale(s, s);
+    videoLogo(c, 0, 0, 640, ((p - 1100) % 2600) / 1000);
     c.restore();
   }
-  const m = Math.max(0, Math.min(1, (p - 800) / 500));
-  c.globalAlpha = m;
-  c.textAlign = "center";
-  videoTexto(c, "Treino Livre", 540, 1150 + (1 - m) * 30, 130, "grad", 900);
+  if (p > 580 && p < 900) { c.fillStyle = "rgba(255,255,255," + 0.75 * (1 - (p - 580) / 320) + ")"; c.fillRect(0, 0, 1080, 1920); }
+  videoImpacto(c, 540, 800, p - 580, true);
+  const m = Math.max(0, Math.min(1, (p - 900) / 500));
+  c.globalAlpha = m; c.textAlign = "center";
+  videoTexto(c, "Cada treino é um desafio vencido.", 540, 1330 + (1 - m) * 30, 50, "#F2F0EC", 800, 960);
   c.save();
   if ("letterSpacing" in c) c.letterSpacing = "6px";
-  videoTexto(c, cena.fala.replace(/\.$/, "").replace(". ", " · ").toUpperCase(), 540, 1240 + (1 - m) * 30, 36, "#7CFF3C", 800, 960);
+  videoTexto(c, cena.fala.replace(/\.$/, "").replace(". ", " · ").toUpperCase(), 540, 1410 + (1 - m) * 30, 36, "#7CFF3C", 800, 960);
   c.restore();
-  c.globalAlpha = 1;
-  // o estouro da pancada, e o confete saindo do halter
-  if (p > 700 && p < 1050) { c.fillStyle = "rgba(255,255,255," + 0.8 * (1 - (p - 700) / 350) + ")"; c.fillRect(0, 0, 1080, 1920); }
-  videoImpacto(c, 540, 760, p - 780, true);
-  c.globalAlpha = m; c.textAlign = "center";
-  videoTexto(c, "Cada treino é um desafio vencido.", 540, 1330 + (1 - m) * 30, 46, "#F2F0EC", 800, 960);
   c.globalAlpha = 1;
 }
 
@@ -24622,38 +24806,18 @@ function videoQuadro(c, cenas, durs, t) {
     videoBarra(c, 40 + k * (larg + gap), 60, larg, 8, fr, "grad");
   });
   const cena = cenas[i];
-  if (cena.tipo === "fecho") videoFecho(c, cena, p);
-  else {
-    const imp = cena.impactoMs || IMPACTO_MS;
-    if (cena.forte) videoRaios(c, 540, 980, t, Math.max(0, Math.min(1, (p - imp + 200) / 500)));
-    // a linha verde desce e a cena aparece no mesmo passo: o recorte segue a linha
-    const r = suave(Math.min(1, p / VIDEO_REVELA_MS));
-    const y = VIDEO_TOPO + (VIDEO_BASE - VIDEO_TOPO) * r;
-    // a cena chega de perto e assenta; no impacto, pulsa (e treme, se for forte)
-    const pop = p > imp && p < imp + 450 ? Math.sin((Math.PI * (p - imp)) / 450) : 0;
-    const s = (1 + 0.08 * (1 - sobe(p / 700))) * (1 + (cena.grito || cena.forte ? 0.06 : 0) * pop);
-    let dx = 0, dy = 0;
-    if (cena.forte && p > imp && p < imp + 420) { const f = 1 - (p - imp) / 420; dx = 16 * f * Math.sin(p * 0.13); dy = 10 * f * Math.cos(p * 0.17); }
-    c.save();
-    c.translate(540 + dx, 1000 + dy); c.scale(s, s); c.translate(-540, -1000);
-    if (r < 1) { c.beginPath(); c.rect(0, 0, 1080, y); c.clip(); }
-    videoCena(c, cena, p);
-    c.restore();
-    if (r < 1) {
-      const a = r < 0.1 ? r / 0.1 : r > 0.9 ? (1 - r) / 0.1 : 1;
-      c.globalAlpha = 0.18 * a; c.fillStyle = "#7CFF3C"; c.fillRect(0, y - 22, 1080, 44);
-      c.globalAlpha = a; c.save(); c.shadowColor = "rgba(124,255,60,.8)"; c.shadowBlur = 30;
-      c.fillRect(0, y - 4, 1080, 8); c.restore(); c.globalAlpha = 1;
-    }
-    if (cena.grito || cena.forte) videoImpacto(c, 540, 980, p - imp, cena.forte);
-    videoGrito(c, cena.grito, 1580, p - imp - 50, cena.corGrito);
-    // o clarão da entrada, e o da pancada na cena forte
-    const clarao = p < 260 ? 0.3 * (1 - p / 260) : cena.forte && p > imp && p < imp + 260 ? 0.26 * (1 - (p - imp) / 260) : 0;
-    if (clarao > 0) { c.fillStyle = "rgba(255,255,255," + clarao + ")"; c.fillRect(0, 0, 1080, 1920); }
-  }
-  // o crédito fica no vídeo inteiro: é o que leva o app para o feed de quem não o conhece
+  const e = i > 0 ? p / VIDEO_TRANSICAO_MS : 1;
   c.textAlign = "center";
-  videoTexto(c, "Treino Livre", 540, 1730, 60, "grad", 900);
+  if (e >= 1) videoCenaInteira(c, cena, p, t);
+  else videoTransicao(c, transicaoDe(i), e, t,
+    () => { c.textAlign = "center"; videoCenaInteira(c, cenas[i - 1], durs[i - 1] - 1, t); },
+    () => { c.textAlign = "center"; videoCenaInteira(c, cena, p, t); });
+  // o clarão da entrada
+  if (i > 0 && p < 260) { c.fillStyle = "rgba(255,255,255," + 0.22 * (1 - p / 260) + ")"; c.fillRect(0, 0, 1080, 1920); }
+  // o crédito fica no vídeo inteiro: é o que leva o app para o feed de quem não o conhece
+  // (na vinheta e no fecho o logo já diz o nome)
+  c.textAlign = "center";
+  if (cena.tipo !== "vinheta" && cena.tipo !== "fecho") videoTexto(c, "Treino Livre", 540, 1730, 60, "grad", 900);
   videoTexto(c, "@" + INSTAGRAM, 540, 1800, 52, "#F2F0EC", 900);
   videoTexto(c, "carlosjr81.github.io/Treino-Livre", 540, 1856, 32, "#8a8a8a", 700);
 }
@@ -24665,7 +24829,7 @@ const STORY_MAX_MS = 58500;
 function videoDuracoes(cenas, falasMs) {
   return cenas.map((x, i) => {
     // o carimbo bate em 2 s; a lista do "desafio vencido" precisa de mais
-    const base = x.tipo === "fecho" ? VIDEO_FECHO_MS : x.tipo === "superacao" ? 3600 : x.tipo === "mapa" ? 3300 : VIDEO_CENA_MS;
+    const base = x.tipo === "fecho" ? VIDEO_FECHO_MS : x.tipo === "vinheta" ? VIDEO_VINHETA_MS : x.tipo === "superacao" ? 3600 : x.tipo === "mapa" ? 3300 : VIDEO_CENA_MS;
     const fala = falasMs && falasMs[i] ? VOZ_ENTRA_MS + falasMs[i] + VOZ_RESPIRO_MS : 0;
     return Math.max(base, Math.round(fala));
   });
@@ -25226,7 +25390,7 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
       <div className="rs-fundo" aria-hidden="true" style={{ left: "-30vmax", top: "-25vmax", background: "radial-gradient(circle, #DD2A7B, transparent 65%)" }} />
       <div className="rs-fundo" aria-hidden="true" style={{ right: "-35vmax", bottom: "-30vmax", background: "radial-gradient(circle, #8134AF, transparent 65%)", animationDelay: "-4.5s" }} />
       {/* barras de progresso, como story */}
-      <div style={{ position: "absolute", top: 12, left: 12, right: 12, display: "flex", gap: 4 }}>
+      <div style={{ position: "absolute", top: 12, left: 12, right: 12, display: "flex", gap: 4, zIndex: 3 }}>
         {cenas.map((c, k) => (
           <div key={k} style={{ flex: 1, height: 3, borderRadius: 2, background: "#2a2a2a", overflow: "hidden" }}>
             {k < i && <div style={{ height: "100%", background: GRAD }} />}
@@ -25234,7 +25398,7 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
           </div>
         ))}
       </div>
-      <div style={{ position: "absolute", top: 24, right: 8, display: "flex", gap: 2 }}>
+      <div style={{ position: "absolute", top: 24, right: 8, display: "flex", gap: 2, zIndex: 3 }}>
         <button aria-label="Compartilhar no story" onClick={(e) => { e.stopPropagation(); setStory(true); }}
           style={{ background: "none", border: "none", color: "#F2F0EC", fontSize: 20, padding: 10, cursor: "pointer" }}>📸</button>
         <button aria-label={mudo ? "Ligar a voz" : "Desligar a voz"} onClick={(e) => { e.stopPropagation(); if (!mudo) { try { window.speechSynthesis.cancel(); } catch (er) {} } setMudo(!mudo); }}
@@ -25244,11 +25408,37 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
       </div>
 
       {/* a cena, revelada pela linha verde que desce: a mesma régua da abertura */}
+      {/* a vinheta: as raias da marca cruzam a tela antes de o logo bater */}
+      {cenas[i].tipo === "vinheta" && !REDUZ_MOVIMENTO && (
+        <div key={"raias-" + volta} aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+          {CORES_RAIA.map((cor, k) => (
+            <div key={k} className="rs-raia" style={{ top: 18 + k * 11 + "%", background: "linear-gradient(90deg, transparent, " + cor + ", #FFFFFF, " + cor + ", transparent)",
+              boxShadow: "0 0 18px 4px " + cor + "88", animationDelay: k * 0.045 + "s" }} />
+          ))}
+        </div>
+      )}
+      {/* a transição desta cena: cada uma tem a sua, na mesma ordem do vídeo */}
+      {i > 0 && !REDUZ_MOVIMENTO && transicaoDe(i) !== "linha" && (
+        <div key={"tr-" + volta + "-" + i} aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 2 }}>
+          {transicaoDe(i) === "corte" && <div className="rs-faixa" />}
+          {transicaoDe(i) === "iris" && <div className="rs-anel" />}
+          {transicaoDe(i) === "zoom" && <div className="rs-flash" style={{ animationDuration: ".7s" }} />}
+          {transicaoDe(i) === "persiana" && (
+            <div className="rs-persiana">
+              {[0, 1, 2, 3, 4, 5].map((k) => (
+                <div key={k} style={{ top: k * 16.67 + "%", height: "16.8%", transformOrigin: k % 2 ? "left center" : "right center",
+                  animationDelay: k * 0.05 + "s", borderTop: "2px solid #DD2A7B" }} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div key={volta + "-" + i} style={{ position: "relative", width: "100%", minHeight: 420, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {(cenas[i].grito || cenas[i].forte || cenas[i].tipo === "fecho") &&
-          <EfeitosCena forte={!!cenas[i].forte || cenas[i].tipo === "fecho"}
-            atraso={cenas[i].tipo === "fecho" ? 0.78 : cenas[i].impactoMs ? cenas[i].impactoMs / 1000 : null} />}
-        <div className="rs-cena" style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+        {(cenas[i].grito || cenas[i].forte || cenas[i].tipo === "fecho" || cenas[i].tipo === "vinheta") &&
+          <EfeitosCena forte={!!cenas[i].forte || cenas[i].tipo === "fecho" || cenas[i].tipo === "vinheta"}
+            atraso={cenas[i].tipo === "fecho" ? 0.62 : cenas[i].tipo === "vinheta" ? 0.68 : cenas[i].impactoMs ? cenas[i].impactoMs / 1000 : null} />}
+        <div className={i === 0 ? "" : ({ linha: "rs-cena", corte: "rs-t-corte", iris: "rs-t-iris", zoom: "rs-t-zoom", persiana: "" })[transicaoDe(i)]}
+          style={{ width: "100%", display: "flex", justifyContent: "center" }}>
           <div className={cenas[i].forte ? "rs-treme" : ""} style={{ width: "100%", display: "flex", justifyContent: "center",
             ...(cenas[i].impactoMs ? { animationDelay: cenas[i].impactoMs / 1000 + 0.05 + "s" } : {}) }}>
             <div className="rs-zoom" style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -25262,7 +25452,7 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
           </div>
         </div>
         <div className="rs-flash" aria-hidden="true" />
-        <div className="rs-linha" aria-hidden="true" />
+        {i > 0 && transicaoDe(i) === "linha" && <div className="rs-linha" aria-hidden="true" />}
       </div>
 
       {ultima && (

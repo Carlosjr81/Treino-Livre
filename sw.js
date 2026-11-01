@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v161";
+const CACHE = "treinolivre-v162";
 const CACHE_VOZ = "treinolivre-voz";
 // As falas gravadas do Monster, Run! (vozes/*.mp3): baixadas quando a história
 // começa e guardadas fora do cache da versão, para não sumirem a cada atualização.
@@ -20,6 +20,7 @@ const ARQUIVOS = [
   "./marombeiro-cabeca.webp",
   "./marombeiro-inteiro.webp",
   "./marombeiro-rosto.jpg",
+  "./logo-treino-livre.webp",
   // O "?v=3" precisa bater exatamente com o endereço usado no index.html,
   // senão o que é guardado aqui nunca é encontrado depois.
   "https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js?v=3",

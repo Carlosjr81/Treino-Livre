@@ -572,7 +572,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v158) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v159) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -4844,6 +4844,48 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
 - **⇄ Trocar no editor de ficha**: o exercício novo entra no mesmo lugar, com
   as séries, repetições, descanso e bi-set do antigo; sem busca, a lista
   mostra o mesmo grupo. Antes era tirar e acrescentar, e o novo ia para o fim.
+
+## O descanso pela ciência (`DESCANSO_CIENCIA`, `tipoDescanso`, `descansoDoItem`)
+
+Pedido do dono (2026-11-01a): "verifique nos melhores estudos qual o tempo de
+descanso adequado para cada exercício e defina esses tempos". O que sustenta:
+Schoenfeld e colegas 2016 (3 min deram mais força e músculo que 1 min, em
+treinados), Singer, Schoenfeld e colegas 2024 (meta-análise: pequeno ganho
+acima de 60 s, nenhuma diferença clara acima de 90 s), a posição do ACSM de
+2009 (2 a 3 min nos principais e pesados, 1 a 2 nos de apoio) e Grgic e
+colegas 2017.
+
+| Tipo | Tempo | Exemplos |
+|---|---|---|
+| `pesado` | 3:00 | agachamento livre, terra, supino reto, remada curvada, desenvolvimento com barra |
+| `composto` | 2:00 | leg press, puxada, remadas, supino com halteres, afundo, barra fixa |
+| `isoladoGrande` | 1:30 | cadeira extensora, flexora, crucifixo, elevação lateral |
+| `isoladoPequeno` | 1:15 | rosca, tríceps, panturrilha, antebraço |
+| `core`, `isometria` | 1:00 | abdominais, prancha |
+| `funcional` | 0:45 | polichinelo, burpee, saltos, mini band |
+| `aerobico` | 1:00 | entre blocos |
+
+- **O tipo sai do cadastro, não de uma lista de 299** (`tipoDescanso`):
+  dois músculos grandes ou mais (entre principal e ajudantes) é composto;
+  barra livre no peito, costas, pernas, ombros ou glúteos é pesado; o nome
+  que denuncia uma articulação só (`ISOLADO_PELO_NOME`: crucifixo, cadeira,
+  rosca...) é isolado mesmo com ajudantes; remada alta, puxada e landmine
+  com barra não são pesados (`NAO_PESADO`); flexão e afundo são
+  "funcionais" no catálogo mas seguem a regra de força (só os de fôlego,
+  `FUNCIONAL_FOLEGO`, ficam em 45 s). Vale também para o exercício que a
+  pessoa cadastrar.
+- **Quem manda**: o descanso escrito na ficha (ou mudado no ⏱ do treino)
+  vence sempre; sem ele, o da ciência; no modo "⏱ Igual para todos"
+  (`descansoModo: "fixo"`, Ajustes › Preferências), o geral de antes.
+  `descansoModo` é persistido e vai no backup; `MODO_DESCANSO` é o
+  ponteiro de módulo (como o `TEMA_APP`) que o editor de ficha e a cópia
+  para o Jarvis no bolso leem.
+- **Na tela**: "(recomendado)" ao lado do ⏱ de cada exercício, "auto 3:00"
+  no seletor do editor, o quadro do topo do treino explicando, e nos Ajustes
+  a tabela com o porquê de cada tipo e as fontes.
+- Coberto por `teste-descanso.js` (26 checagens: os exercícios que todo
+  mundo faz, o catálogo inteiro entre 45 s e 3 min, braço e abdômen nunca
+  pesados, a ficha vencendo).
 
 ## Corpo, backup e lembretes
 

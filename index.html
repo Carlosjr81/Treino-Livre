@@ -993,7 +993,7 @@ const AJUDA_APP = [
     resumo: "Começa no ✓, apita no fim e avisa mesmo com a tela apagada.",
     passos: [
       "Cada exercício tem o seu descanso: use o **− e +** do **⏱ descanso** no cartão dele.",
-      "O padrão de todos fica em **Ajustes → Preferências**.",
+      "Sem nada na ficha, cada exercício descansa **pela ciência**: 3 min nos básicos pesados com barra, 2 min nos de vários músculos, 1:30 nos isolados, 1:15 em braço e panturrilha, 1 min no abdômen. Troque em **Ajustes → Preferências**.",
       "Na faixa do descanso: **− e +** para mudar o tempo, **Pular** e, se ainda não deu, **🔔 Ativar aviso** para ser chamado com a tela apagada.",
     ],
     dicas: ["Em bi-set, o descanso só começa depois da série do último exercício do grupo."] },
@@ -1320,6 +1320,7 @@ const ATALHOS_APP = [
 // "Você sabia?": uma por vez, no topo da central de ajuda.
 const DICAS_RAPIDAS = [
   "O peso da última vez já vem preenchido, e sobe sozinho quando você fecha todas as repetições.",
+  "Cada exercício descansa o tempo que os estudos indicam: 3 minutos no agachamento, 1 minuto e 15 na rosca. Está em Ajustes → Preferências.",
   "Fale \"Jarvis, 40 de cada lado, 10 repetições\" na barra: ele soma a barra e diz o total em voz alta.",
   "Sem lugar para apoiar o celular? Aponte para o espelho e ligue o 🪞: a câmera conta pelo reflexo.",
   "A esteira conectada anota a série sozinha quando você para, com a distância e o batimento reais.",
@@ -1330,6 +1331,45 @@ const DICAS_RAPIDAS = [
   "Treino livre que ficou bom? \"📋 Virar ficha\" no histórico guarda para repetir.",
   "O ▶ Resumo animado de qualquer treino vira vídeo narrado para o story.",
 ];
+// ---------------- DESCANSO PELA CIÊNCIA (dados) ----------------
+// Pedido do dono (2026-11-01a): "verifique nos melhores estudos qual o tempo de
+// descanso adequado para cada exercício". O que a pesquisa sustenta:
+// - Schoenfeld e colegas, 2016 (J Strength Cond Res 30:1805): em treinados,
+//   3 min entre séries deram mais força e mais músculo que 1 min.
+// - Singer, Schoenfeld e colegas, 2024 (Front Sports Act Living, meta-análise
+//   bayesiana): pequeno ganho de músculo descansando mais de 60 s, e nenhuma
+//   diferença clara acima de 90 s.
+// - ACSM, posição de 2009: 2 a 3 min nos exercícios principais e pesados,
+//   1 a 2 min nos de apoio; Grgic e colegas, 2017 (revisão): pelo menos 2 min
+//   nos multiarticulares para quem já treina.
+// Ponto de partida, não regra: a tela diz isso, e a ficha pode mudar.
+const DESCANSO_CIENCIA = {
+  tipos: {
+    pesado: { seg: 180, nome: "Básico pesado com barra", ex: "agachamento livre, terra, supino reto, remada curvada, desenvolvimento",
+      porque: "Muitos músculos e carga alta: com 3 minutos você repete as mesmas repetições na série seguinte, e é isso que faz ganhar força e músculo." },
+    composto: { seg: 120, nome: "Vários músculos (máquina, halteres, peso do corpo)", ex: "leg press, puxada, remada, supino com halteres, afundo, barra fixa",
+      porque: "Trabalha mais de um músculo grande: 2 minutos recuperam o bastante sem esfriar." },
+    isoladoGrande: { seg: 90, nome: "Isolado de músculo grande", ex: "cadeira extensora, mesa flexora, crucifixo, elevação lateral, abdutora",
+      porque: "Um músculo só, menos cansaço geral: acima de 90 segundos os estudos não acharam ganho a mais." },
+    isoladoPequeno: { seg: 75, nome: "Isolado de músculo pequeno", ex: "rosca, tríceps, panturrilha, antebraço",
+      porque: "Músculo pequeno recupera rápido; entre 1 e 1 minuto e meio está bom." },
+    core: { seg: 60, nome: "Abdômen e core", ex: "abdominais, oblíquos",
+      porque: "Séries de muitas repetições e pouca carga: 1 minuto basta." },
+    isometria: { seg: 60, nome: "Isometria", ex: "prancha, ponte isométrica",
+      porque: "Segurar a posição cansa menos que levantar peso: 1 minuto basta." },
+    funcional: { seg: 45, nome: "Funcional e mini band", ex: "polichinelo, burpee, exercícios com elástico",
+      porque: "O objetivo inclui o fôlego: descanso curto mantém o coração alto." },
+    aerobico: { seg: 60, nome: "Aeróbico em séries", ex: "esteira, bicicleta, remo",
+      porque: "Entre blocos de aeróbico, 1 minuto para o próximo." },
+  },
+  ordem: ["pesado", "composto", "isoladoGrande", "isoladoPequeno", "core", "isometria", "funcional", "aerobico"],
+  fontes: [
+    "Schoenfeld e colegas, 2016 — 3 min x 1 min em treinados (J Strength Cond Res)",
+    "Singer, Schoenfeld e colegas, 2024 — meta-análise, \"Give it a rest\" (Front Sports Act Living)",
+    "ACSM, 2009 — posição oficial sobre treino de força (Med Sci Sports Exerc)",
+    "Grgic e colegas, 2017 — revisão sobre descanso e hipertrofia (Eur J Sport Sci)",
+  ],
+};
 </script>
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
@@ -1360,7 +1400,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-10-30f";
+const VERSAO_APP = "2026-11-01a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3169,6 +3209,55 @@ const BOLSO_APP = (() => {
   } catch (e) { return 0; }
 })();
 
+// ---------------- DESCANSO PELA CIÊNCIA ----------------
+// O descanso que cada exercício pede, pelo tipo dele (DESCANSO_CIENCIA, no
+// primeiro script). Pesado e de vários músculos pede mais; isolado de músculo
+// pequeno, menos. Vale quando a ficha não diz o descanso daquele exercício e o
+// modo é "ciência" (Ajustes); o descanso escrito na ficha vence sempre.
+const MUSC_GRANDES_DESCANSO = ["peito", "dorsal", "ombros", "triceps", "biceps", "quadriceps", "gluteos", "posteriores"];
+// Nome que denuncia movimento de uma articulação só, mesmo quando o cadastro
+// lista ajudantes (o crucifixo "usa" o ombro, e continua isolado)
+const ISOLADO_PELO_NOME = /crucifixo|voador|peck|crossover|eleva[cç][aã]o (lateral|frontal)|cadeira|flexora|rosca|tr[ií]ceps|extens|panturrilha|g[eê]meos|abdu|adu[cç]|adutora|pulldown|pullover|encolhimento|face pull|kickback|coice|reverse fly|crucifixo inverso|punho/i;
+const FUNCIONAL_FOLEGO = /polichinelo|burpee|salto|joelhos-altos|socos|chute|skater|escalador|jump/;
+// Com barra, mas leve ou de peso do corpo: não pedem os 3 minutos
+const NAO_PESADO = /deltoide posterior|remada alta|australiana|puxada|landmine|meadows|seal row|high pull/i;
+function tipoDescanso(ex) {
+  if (!ex) return null;
+  if (ex.cardio) return "aerobico";
+  // Funcional de fôlego (salto, polichinelo): flexão e afundo também são
+  // "funcionais" no catálogo, mas são força, e seguem a regra de força.
+  if (/mini band/i.test(ex.equip || "") || (ex.funcional && FUNCIONAL_FOLEGO.test(ex.id || ""))) return "funcional";
+  if (ex.tempo) return "isometria";
+  if (ex.grupo === "abdomen") return "core";
+  const m = ex.musc || {};
+  const grandes = new Set([].concat(m.p || [], m.s || []).filter((x) => MUSC_GRANDES_DESCANSO.indexOf(x) >= 0));
+  const texto = (ex.nome || "") + " " + (ex.id || "");
+  const composto = grandes.size >= 2 && !ISOLADO_PELO_NOME.test(texto);
+  if (composto) {
+    const barraLivre = /barra/i.test(ex.equip || "") && !/fixa|paralela|\bw\b/i.test(ex.equip || "");
+    if (barraLivre && ["peito", "costas", "pernas", "ombros", "gluteos"].indexOf(ex.grupo) >= 0 && !NAO_PESADO.test(texto)) return "pesado";
+    return "composto";
+  }
+  const p = m.p || [];
+  if (ex.grupo === "biceps" || ex.grupo === "triceps" || p.indexOf("panturrilha") >= 0 || p.indexOf("antebraco") >= 0) return "isoladoPequeno";
+  return "isoladoGrande";
+}
+function descansoRecomendado(ex) {
+  const t = tipoDescanso(ex);
+  return t && DESCANSO_CIENCIA.tipos[t] ? DESCANSO_CIENCIA.tipos[t].seg : null;
+}
+// O descanso de um item: o da ficha, senão o da ciência (no modo ciência),
+// senão o geral dos Ajustes.
+function descansoDoItem(it, ex, geral, modo) {
+  if (it && it.descanso) return it.descanso;
+  if (modo !== "fixo") { const r = descansoRecomendado(ex); if (r) return r; }
+  return geral || 90;
+}
+// ---------------- FIM DO DESCANSO PELA CIÊNCIA
+// O modo do descanso, posto pelo raiz a cada render (como o TEMA_APP): o
+// editor de ficha e a cópia do treino para o app Android também o leem.
+let MODO_DESCANSO = "ciencia";
+
 // Só o que a voz precisa: as séries e, de cada exercício, o nome, o
 // equipamento (a barra no "de cada lado"), se é de tempo, o descanso e o recorde.
 function snapshotBolso(sessao, exPorId, cfg) {
@@ -3183,7 +3272,8 @@ function snapshotBolso(sessao, exPorId, cfg) {
       const ex = exPorId(it.exercicioId) || {};
       const rec = c.recordes && c.recordes[it.exercicioId];
       return {
-        uid: it.uid, exercicioId: it.exercicioId, conjunto: it.conjunto || null, descanso: it.descanso || null,
+        uid: it.uid, exercicioId: it.exercicioId, conjunto: it.conjunto || null,
+        descanso: it.descanso || (MODO_DESCANSO !== "fixo" ? descansoRecomendado(exPorId(it.exercicioId)) : null) || null,
         nome: ex.nome || "exercício", equip: ex.equip || "", tempo: !!ex.tempo, cardio: !!ex.cardio,
         rec: rec && rec.peso ? rec.peso : 0,
         series: (it.series || []).map((s) => {
@@ -12977,7 +13067,7 @@ function ImportarDeOutroApp({ todos, onAplicar, onDesfazer, onBaixarBackup, avis
   );
 }
 
-function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, setMeta,
+function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, descansoModo, setDescansoModo, meta, setMeta,
   lembrete, setLembrete, avisar, ultimoBackup, totalEx, historico,
   onBaixarBackup, onRestaurarArquivo, onExportar, onImportar, onInstalar, instalado, onVoltar,
   todos, onImportarCsv, onDesfazerCsv,
@@ -12988,6 +13078,7 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
   // ouvir, botão do fone, jeito de falar, voz, velocidade, peso da barra — e
   // empurravam o backup, que é o que mais importa aqui, para longe da vista.
   const [vozAberta, setVozAberta] = useState(false);
+  const [verCiencia, setVerCiencia] = useState(false);
   // O índice: a página tem onze cartões, e quem veio trocar o tema ou baixar o
   // backup não devia rolar por todos para achar.
   const pular = (id) => { const el = document.getElementById("aj-" + id); if (el) { try { el.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { el.scrollIntoView(); } } };
@@ -13031,8 +13122,55 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
         </div>
 
         <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Descanso entre as séries</div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            {[["ciencia", "🔬 Pela ciência", "cada exercício com o seu"], ["fixo", "⏱ Igual para todos", "um tempo só"]].map((o) => {
+              const sel = (descansoModo || "ciencia") === o[0];
+              return (
+                <button key={o[0]} onClick={() => setDescansoModo(o[0])} aria-pressed={sel}
+                  style={{ flex: 1, padding: "10px 8px", borderRadius: 12, cursor: "pointer", textAlign: "left", font: "inherit",
+                    border: "1px solid " + (sel ? "var(--marca)" : "var(--borda2)"), background: sel ? "#E1306C14" : "transparent", color: "var(--texto)" }}>
+                  <div style={{ fontWeight: 800, fontSize: 14 }}>{o[1]}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 2 }}>{o[2]}</div>
+                </button>
+              );
+            })}
+          </div>
+          {(descansoModo || "ciencia") === "ciencia" ? (
+            <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.55 }}>
+              Básicos pesados com barra <b style={{ color: "var(--texto)" }}>3:00</b> · vários músculos <b style={{ color: "var(--texto)" }}>2:00</b> ·
+              isolados grandes <b style={{ color: "var(--texto)" }}>1:30</b> · braço e panturrilha <b style={{ color: "var(--texto)" }}>1:15</b> ·
+              abdômen e prancha <b style={{ color: "var(--texto)" }}>1:00</b> · funcional <b style={{ color: "var(--texto)" }}>0:45</b>.
+              {" "}O descanso que você escrever numa ficha vale mais.
+              <button onClick={() => setVerCiencia(!verCiencia)} aria-expanded={verCiencia}
+                style={{ display: "block", background: "none", border: "none", padding: 0, marginTop: 6, color: "var(--marca)", fontWeight: 800, font: "inherit", fontSize: 12.5, cursor: "pointer" }}>
+                {verCiencia ? "▴ Esconder" : "▾ Ver cada tipo e os estudos"}
+              </button>
+              {verCiencia && (
+                <div style={{ marginTop: 8 }}>
+                  {DESCANSO_CIENCIA.ordem.map((k) => {
+                    const d = DESCANSO_CIENCIA.tipos[k];
+                    return (
+                      <div key={k} style={{ padding: "8px 0", borderTop: "1px solid var(--borda)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, color: "var(--texto)", fontWeight: 800, fontSize: 13.5 }}>
+                          <span>{d.nome}</span><span style={{ fontVariantNumeric: "tabular-nums" }}>{fmtSeg(d.seg)}</span>
+                        </div>
+                        <div style={{ fontSize: 12 }}>{d.ex}</div>
+                        <div style={{ fontSize: 12, marginTop: 2 }}>{d.porque}</div>
+                      </div>
+                    );
+                  })}
+                  <div style={{ fontSize: 11.5, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>
+                    <b>De onde vem:</b> {DESCANSO_CIENCIA.fontes.join("; ")}. É um ponto de partida: se ainda estiver ofegante ou
+                    sem conseguir repetir as repetições, descanse mais.
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+          <React.Fragment>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-            <span style={{ fontSize: 15, fontWeight: 700 }}>Descanso padrão</span>
+            <span style={{ fontSize: 15, fontWeight: 700 }}>Descanso de todos</span>
             <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button onClick={() => setDescanso(Math.max(15, descanso - 15))} aria-label="Diminuir o descanso padrão"
                 style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 17, cursor: "pointer" }}>−</button>
@@ -13044,6 +13182,8 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, meta, s
           <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>
             Vale para os exercícios que não têm descanso próprio definido na ficha.
           </div>
+          </React.Fragment>
+          )}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
@@ -14448,8 +14588,9 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, 
                   <select style={{ ...S.inputMini, padding: "10px 4px" }} value={it.descanso || 0}
                     aria-label={"Descanso de " + nomeEx}
                     onChange={(ev) => upItem(i, "descanso", parseInt(ev.target.value) || null)}>
-                    <option value={0}>geral</option>
-                    {[30, 45, 60, 90, 120, 150, 180, 240].map((sg) => (
+                    <option value={0}>{MODO_DESCANSO === "fixo" || !descansoRecomendado(e) ? "geral"
+                      : "auto " + Math.floor(descansoRecomendado(e) / 60) + ":" + String(descansoRecomendado(e) % 60).padStart(2, "0")}</option>
+                    {[30, 45, 60, 75, 90, 120, 150, 180, 240].map((sg) => (
                       <option key={sg} value={sg}>{Math.floor(sg / 60)}:{sg % 60 < 10 ? "0" : ""}{sg % 60}</option>
                     ))}
                   </select>
@@ -25269,7 +25410,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
 
   // Cada exercício pode ter seu próprio descanso: 45s numa rosca e 3min num
   // agachamento não são a mesma coisa. Sem valor próprio, vale o descanso geral.
-  const descansoDe = (it) => (it && it.descanso ? it.descanso : descanso);
+  const descansoDe = (it) => descansoDoItem(it, it && exPorId(it.exercicioId), descanso, MODO_DESCANSO);
   const mudarDescansoDe = (ei, delta) => {
     const atual = descansoDe(sessao.itens[ei]);
     const novo = Math.max(15, Math.min(600, atual + delta));
@@ -26668,17 +26809,21 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       <div style={{ ...S.card, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div style={{ flex: 1 }}>
           <div style={S.label}>Descanso entre séries</div>
-          <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 2 }}>
-            Inicia ao marcar uma série ✓ · a tela fica acesa até acabar
+          <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 2, lineHeight: 1.45 }}>
+            {MODO_DESCANSO === "fixo"
+              ? "Inicia ao marcar uma série ✓ · a tela fica acesa até acabar"
+              : "🔬 Pela ciência: cada exercício com o seu tempo (3:00 nos básicos pesados, 1:15 na rosca). Mude no ⏱ de cada um."}
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {MODO_DESCANSO === "fixo" && <React.Fragment>
           <button onClick={() => setDescanso(Math.max(15, descanso - 15))} aria-label="Diminuir 15 segundos de descanso"
             style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>−</button>
           <div aria-live="polite" aria-label={"Descanso de " + fmt(descanso)}
             style={{ fontWeight: 900, fontSize: 17, color: "var(--texto)", minWidth: 48, textAlign: "center" }}>{fmt(descanso)}</div>
           <button onClick={() => setDescanso(Math.min(600, descanso + 15))} aria-label="Aumentar 15 segundos de descanso"
             style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>+</button>
+          </React.Fragment>}
           {btnSom}
         </div>
       </div>
@@ -26981,7 +27126,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               </span>
               <button onClick={() => mudarDescansoDe(ei, 15)} aria-label={"Aumentar o descanso de " + (ex ? ex.nome : "este exercício")}
                 style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid var(--borda2)", background: "transparent", color: "var(--texto)", fontWeight: 900, fontSize: 14, cursor: "pointer", lineHeight: 1 }}>+</button>
-              {!it.descanso && <span style={{ fontSize: 10, color: "var(--cinza2)" }}>(geral)</span>}
+              {!it.descanso && <span style={{ fontSize: 10, color: "var(--cinza2)" }}>{MODO_DESCANSO === "fixo" ? "(geral)" : "(recomendado)"}</span>}
             </div>
 
             {recuperadoEst && recuperadoEst.ei === ei && (
@@ -29025,6 +29170,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
   const [programas, setProgramas] = useState([]);
   const [progAberto, setProgAberto] = useState(null);
   const [descanso, setDescanso] = useState(90);
+  // "ciencia": cada exercício com o descanso do tipo dele; "fixo": o mesmo para todos
+  const [descansoModo, setDescansoModo] = useState("ciencia");
   const [som, setSom] = useState(true);
   const [tema, setTema] = useState("escuro");
   const [meta, setMeta] = useState(3);
@@ -29495,7 +29642,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
   const exportarDados = () => {
     // O backup não leva a sessão em andamento de propósito: restaurar num outro
     // aparelho um treino pela metade só confundiria.
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, lembrete, voz, convite, entrou, dicas, botaoVoz, corredor, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, descansoModo, som, tema, programas, meta, medidas, lembrete, voz, convite, entrou, dicas, botaoVoz, corredor, seedV3: true });
     setModal({
       msg: "Backup dos seus dados. Toque em Copiar e guarde em local seguro (ex.: cole numa conversa sua no WhatsApp). Para restaurar, use Importar dados.",
       texto: dados,
@@ -29524,6 +29671,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
           setCustomEx(d.customEx || []);
           setProgramas(pg2);
           if (d.descanso) setDescanso(d.descanso);
+          if (d.descansoModo) setDescansoModo(d.descansoModo);
           if (d.som !== undefined) setSom(d.som);
           if (d.tema) setTema(d.tema);
           if (d.meta) setMeta(d.meta);
@@ -29542,6 +29690,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
   };
 
   TEMA_APP = tema;
+  MODO_DESCANSO = descansoModo;
   ABRIR_GUIA = (id, problema) => { setProblemaGuia(problema || ""); setGuia(id || ""); };
   ABRIR_AJUDA = (onde) => setAjuda(onde || "");
   vozRef.current = voz;
@@ -29597,6 +29746,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
         hi = d.historico || [];
         ce = d.customEx || [];
         de = d.descanso || 90;
+        if (d.descansoModo) setDescansoModo(d.descansoModo);
         so = d.som !== undefined ? d.som : true;
         if (d.tema) setTema(d.tema);
         pg = d.programas || null;
@@ -29879,13 +30029,13 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
   const dadosRef = useRef("");
   useEffect(() => {
     if (!carregado) return;
-    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, saude, seedV3: true });
+    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, descansoModo, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, saude, seedV3: true });
     const t = setTimeout(() => {
       const deu = store.set(STORAGE_KEY, dadosRef.current);
       setSemGravar((antes) => (antes === !deu ? antes : !deu));
     }, 400);
     return () => clearTimeout(t);
-  }, [treinos, historico, customEx, descanso, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, saude, carregado]);
+  }, [treinos, historico, customEx, descanso, descansoModo, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, saude, carregado]);
 
   // Fechou o app ou trocou de aba no meio do treino? Grava na hora, sem esperar o respiro.
   useEffect(() => {
@@ -30569,7 +30719,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
       if (!hh.rota) continue;
       try { const c = await lerFoto(chaveRota(hh.id)); if (c) rotasDados[hh.id] = c; } catch (err) {}
     }
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, rotasDados, lembrete, voz, convite, entrou, dicas, botaoVoz, corredor, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, descansoModo, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, rotasDados, lembrete, voz, convite, entrou, dicas, botaoVoz, corredor, seedV3: true });
     try {
       const blob = new Blob([dados], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -30635,6 +30785,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
               }
             })();
             if (d.descanso) setDescanso(d.descanso);
+            if (d.descansoModo) setDescansoModo(d.descansoModo);
             if (d.som !== undefined) setSom(d.som);
             if (d.tema) setTema(d.tema);
             if (d.meta) setMeta(d.meta);
@@ -31202,6 +31353,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
         {aba === "ajustes" && (
           <TelaAjustes tema={tema} onTema={() => setTema(tema === "escuro" ? "claro" : "escuro")}
             som={som} setSom={setSom} descanso={descanso} setDescanso={setDescanso}
+            descansoModo={descansoModo} setDescansoModo={setDescansoModo}
             meta={meta} setMeta={setMeta} lembrete={lembrete} setLembrete={setLembrete}
             avisar={avisar} ultimoBackup={ultimoBackup} totalEx={todos.length} historico={historico}
             onBaixarBackup={baixarBackup} onRestaurarArquivo={restaurarDeArquivo}

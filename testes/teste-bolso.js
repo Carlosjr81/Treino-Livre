@@ -28,6 +28,7 @@ const fonte = [
   trecho("function ehDrop("), trecho("const fmtNum = "), trecho("function plural("), trecho("const semAcento = "),
   trecho("const nomeFalado = "), trecho("function tempoFalado("), trecho("function alvoDaSessao("),
   trecho("function b64UrlParaPadrao("), trecho("function padraoParaB64Url("),
+  trecho("const DESCANSO_CIENCIA = "),
   jarvis, html.slice(iniB, fimB),
 ].join("\n");
 eval(fonte + "\nglobalThis.B = { criarBolso, aplicarEventosBolso, snapshotBolso, lerPacoteBolso, linkBolso };");

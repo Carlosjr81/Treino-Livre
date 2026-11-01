@@ -16,6 +16,36 @@
 
 ---
 
+## 2026-11-01a — O descanso certo para cada exercício
+
+**Em uma frase:** o app agora dá a cada exercício o tempo de descanso que os estudos indicam: 3 minutos no agachamento e no supino com barra, 1 minuto e 15 na rosca.
+
+**O que mudou**
+- Descanso automático por tipo de exercício:
+  - **3:00** nos básicos pesados com barra (agachamento livre, terra, supino reto, remada curvada, desenvolvimento);
+  - **2:00** nos de vários músculos (leg press, puxada, remadas, supino com halteres, afundo, barra fixa);
+  - **1:30** nos isolados de músculo grande (cadeira extensora, flexora, crucifixo, elevação lateral);
+  - **1:15** em braço e panturrilha (rosca, tríceps, panturrilha);
+  - **1:00** no abdômen e na prancha; **0:45** no funcional e na mini band.
+- Vale para os exercícios que a pessoa cria também.
+- Nos Ajustes, "🔬 Pela ciência" (o novo padrão) ou "⏱ Igual para todos" (o jeito antigo), e a tabela com o porquê de cada tempo e os estudos.
+- No treino, o descanso de cada exercício aparece com "(recomendado)"; quem preferir outro tempo muda no próprio exercício, e vale o que a pessoa escolheu.
+
+**Por que importa para quem treina**
+- Descansar pouco no agachamento faz perder repetições na série seguinte; descansar 3 minutos na rosca é tempo jogado fora. Os estudos (Schoenfeld 2016, a meta-análise de 2024 e o Colégio Americano de Medicina do Esporte) mostram que o descanso certo ajuda a ganhar força e músculo.
+
+**Como usar**
+- Nada a fazer: é só treinar. Para ver ou mudar, Ajustes → Preferências → Descanso entre as séries.
+
+**Ideias de vídeo**
+- "Quanto descansar entre as séries? Depende do exercício" — mostrar 3:00 no agachamento e 1:15 na rosca, com a tabela dos Ajustes.
+- "O que a ciência diz sobre descanso" em 30 segundos, citando os estudos.
+
+**Não prometer**
+- Não é prescrição: é um ponto de partida tirado dos estudos. Quem ainda estiver ofegante ou sem conseguir repetir as repetições deve descansar mais. O app não substitui um profissional de Educação Física.
+
+---
+
 ## 2026-10-30f — Barra de baixo nova
 
 **Em uma frase:** a barra de navegação de baixo ficou mais bonita, e a tela em que você está aparece em destaque.

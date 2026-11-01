@@ -45,6 +45,7 @@ const SUITES = [
   ["teste-bolso", "o Jarvis com a tela travada: anotar, descanso e a volta ao treino"],
   ["teste-grupo", "o desafio entre amigos em grupo: números, ranking e o link"],
   ["teste-corrida-app", "a corrida do desafio conduzida pelo app (tela travada) e a voz com os nomes"],
+  ["teste-descanso", "o descanso pela ciencia: o tipo de cada exercicio e quem manda"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");

@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-11-01c — O resumo do story agora tem impacto (e fala de superação)
+
+**Em uma frase:** o resumo animado e o vídeo para o story ganharam carimbos de superação, explosões de faíscas, confete nos recordes e uma cena nova, "Desafio vencido".
+
+**O que mudou**
+- Cada número termina com um **carimbo** que bate na tela: "Peso vencido", "Série a série, sem parar", "Recorde quebrado!", "Você se superou", "Cada km, uma vitória", "Meta batida!".
+- **Efeitos**: a cena entra com zoom e clarão; quando o número termina de subir, sai uma onda e faíscas. Nos grandes momentos (recorde, meta da semana, superar a última vez) vêm raios dourados girando, confete e a tela tremendo com a pancada.
+- **Cena nova "Desafio vencido"**: as vitórias do dia numa lista com ✓ (séries concluídas, recordes quebrados, volume a mais, km percorridos, dias seguidos) e uma frase de superação.
+- A **narração fala de superação**: "Recorde quebrado! Você superou o seu melhor", "Você se superou". Dia mais leve vira "o importante é aparecer", nunca bronca.
+- O fim diz "Mais forte que a desculpa" e "Cada treino é um desafio vencido".
+- O fundo agora tem luzes da marca se mexendo atrás das cenas.
+
+**Por que importa para quem treina**
+- O story é o troféu do treino. Agora ele mostra o que a pessoa venceu, não só os números, e dá vontade de postar (e de quem vê, de treinar).
+
+**Como usar**
+- Fim do treino → "▶ Ver resumo animado" (ou o botão "Resumo animado" de qualquer treino no Histórico). Para o story, toque no 📸.
+
+**Ideias de vídeo**
+- Gravar a tela do resumo de um treino com recorde: o confete e o "RECORDE QUEBRADO!" batendo.
+- "O antes e depois do meu story de treino": o resumo antigo e o novo.
+- Trend "Desafio aceito → Desafio vencido": começo e fim do resumo.
+
+**Não prometer**
+- Os efeitos dependem do que o treino teve: sem recorde não há a cena do recorde, e a cena "Desafio vencido" só aparece com pelo menos duas vitórias no dia.
+- Quem ativou "reduzir movimento" no celular vê o resumo sem os efeitos.
+
+---
+
 ## 2026-11-01b — A música não para mais com a tela travada
 
 **Em uma frase:** com o Jarvis no bolso, a sua música continua tocando com a tela travada; o Jarvis fala por cima e a música só abaixa.

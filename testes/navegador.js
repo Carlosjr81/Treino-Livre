@@ -13,6 +13,7 @@
 //   node testes/navegador.js --clicar "Histórico" --clicar "Números"
 //   node testes/navegador.js --foto tela.png       guarda a imagem da tela
 //   node testes/navegador.js --altura 700          celular mais baixo
+//   node testes/navegador.js --largura 1080        tela mais larga
 //   node testes/navegador.js --preencher "E-mail=ana@x.com"   digita no campo com esse rótulo
 //   node testes/navegador.js --antes falso.js      roda um script antes do app (ex.: uma voz de mentira)
 //   node testes/navegador.js --mostrar "window.__falado"   imprime o valor no fim
@@ -80,7 +81,7 @@ async function doNpm(lib) {
   for (const l of LIBS) libs[l.nome] = await doNpm(l);
 
   const nav = await playwright.chromium.launch();
-  const ctx = await nav.newContext({ viewport: { width: 390, height: parseInt(opcao("--altura")) || 844 }, serviceWorkers: "block" });
+  const ctx = await nav.newContext({ viewport: { width: parseInt(opcao("--largura")) || 390, height: parseInt(opcao("--altura")) || 844 }, serviceWorkers: "block" });
   const ENDERECO = "http://localhost:8765/";
   await ctx.route("**/*", (r) => {
     const u = r.request().url();
@@ -138,7 +139,7 @@ async function doNpm(lib) {
   const mostrar = opcao("--mostrar");
   if (mostrar) { await p.waitForTimeout(1500); console.log(mostrar + " = " + JSON.stringify(await p.evaluate(mostrar)).slice(0, 2000)); }
   const foto = opcao("--foto");
-  if (foto) await p.screenshot({ path: foto });
+  if (foto) await p.screenshot({ path: foto, fullPage: args.indexOf("--pagina-inteira") >= 0 });
   const texto = (await p.locator("body").innerText()).replace(/\s*\n\s*/g, " / ");
   console.log("Tela: " + texto.slice(0, 600));
   if (foto) console.log("Imagem guardada em " + foto);

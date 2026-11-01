@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-01b**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-01c**.
 
 ---
 
@@ -449,7 +449,12 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
   revelando cada cena**, números no degradê subindo do zero, barras de story no topo e o halter no fim.
   Cada cena é **narrada** pela voz.
 - Cenas: o treino, volume ("o mesmo que 5,8 carros populares"), séries, músculos trabalhados, recordes,
-  comparação com o anterior, parte aeróbica com o traçado da rua, nível e sequência.
+  comparação com o anterior, parte aeróbica com o traçado da rua, **"Desafio vencido"** (as vitórias do dia
+  com ✓), nível e sequência.
+- **Impacto e superação** (desde 2026-11-01c): cada número termina com um carimbo ("Peso vencido",
+  "Recorde quebrado!", "Você se superou", "Cada km, uma vitória", "Meta batida!"), onda e faíscas; nos
+  grandes momentos, raios dourados, confete e a tela tremendo. A narração fala de superação, e dia mais
+  leve vira "o importante é aparecer". O fim: "Cada treino é um desafio vencido".
 - O botão 📸 gera um **vídeo vertical 1080×1920 narrado** (até 60 s) pronto para o **Story do Instagram**,
   e também imagem para story.
 

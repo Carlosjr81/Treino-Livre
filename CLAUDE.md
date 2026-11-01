@@ -572,7 +572,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v160) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v161) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
@@ -1831,6 +1831,42 @@ Treino Livre e não um relatório.
   percurso na rua (antes de salvar). O do fim do treino abre no componente
   raiz (`resumoAnim`), porque o modal que tem o botão fecha ao tocar.
 - `prefers-reduced-motion`: sem varredura, números já no valor final.
+
+### Impacto e superação nas cenas (`grito`, `forte`, `EfeitosCena`, `videoImpacto`)
+
+Pedido do dono (2026-11-01c): "transições melhores, mais efeitos visuais, crie
+impacto e fale sobre superação de desafios". Vale **na tela e no vídeo do
+story**, com os mesmos tempos:
+
+- **O carimbo** (`grito` na cena, `GritoResumo`, `videoGrito`): uma frase
+  curta de superação ("Desafio aceito", "Peso vencido", "Recorde quebrado!",
+  "Você se superou", "Cada km, uma vitória", "Meta batida!", "Aparecer já é
+  vencer") bate de longe, passa do ponto e assenta torta, **em 1,45 s**
+  (`IMPACTO_MS`: é quando o placar termina de subir). `corGrito` troca o
+  verde (dourado no recorde e na meta, vermelho no "No limite"). No vídeo fica
+  em y 1580, entre a cena e o crédito: **cena nova não pode passar de ~1500**.
+- **O impacto**: a cena entra de perto e desfocada (`rs-zoom`), com um clarão;
+  no impacto o número pulsa, sai uma onda e faíscas. **Cena `forte`**
+  (recorde, comparação melhor, meta da semana, volume em toneladas, desafio
+  vencido, todas as fugas) ganha raios dourados girando, confete caindo, o
+  tremor da pancada e um segundo clarão. `impactoMs` muda a hora (o mapa
+  espera o traçado, 2,3 s; o "Desafio vencido", 0,75 s).
+- **A cena "Desafio vencido"** (`superacao`), antes do nível: até quatro
+  vitórias do dia com ✓ (séries, recordes, volume a mais, km, meta, fugas,
+  dias seguidos) e uma frase escolhida pelo que aconteceu ("Você superou o seu
+  melhor", "Você foi além da última vez", "A constância é o que transforma",
+  "Você apareceu..."). Só entra com duas vitórias ou mais.
+- **A fala também**: "Desafio aceito", "Recorde quebrado! Você superou o seu
+  melhor em...", "Você se superou", e o dia mais leve vira "o importante é
+  aparecer" — nunca bronca. O fecho diz "Mais forte que a desculpa" e "Cada
+  treino é um desafio vencido".
+- **O fundo respira**: duas luzes da marca passeando atrás (`rs-fundo`,
+  `videoFundo`). No vídeo os efeitos são função do tempo (sem sorteio): o
+  quadro de cada instante sai igual em qualquer aparelho.
+- **Movimento reduzido** desliga zoom, carimbo animado, faíscas, raios e clarão.
+- O `navegador.js` ganhou `--largura` e `--pagina-inteira`: foi assim que a
+  folha com todos os quadros do vídeo foi conferida (desenhando
+  `videoQuadro` num canvas pela página).
 
 ### O resumo vira vídeo para o story (`GerarStoryResumo`)
 

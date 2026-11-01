@@ -214,6 +214,42 @@
   .rs-chegada { animation: rsSurge .3s ease-out 2.4s both; }
   .rs-halter { animation: abHalter .44s cubic-bezier(.2,.75,.3,1) .35s both; }
   .rs-marca  { animation: abMarca .5s ease-out .8s both; }
+  /* O impacto: a cena entra de perto e desfocada, o número estoura com uma
+     onda e faíscas, e o carimbo da superação bate por cima (1,45 s: é quando
+     o placar termina de subir). Cena forte (recorde, meta batida, desafio
+     vencido) ganha raios girando, confete e o tremor da pancada. */
+  @keyframes rsZoom    { 0% { transform: scale(1.14); filter: blur(7px); opacity: 0; } 60% { opacity: 1; } 100% { transform: scale(1); filter: blur(0); opacity: 1; } }
+  @keyframes rsFlash   { 0% { opacity: .6; } 100% { opacity: 0; } }
+  @keyframes rsCarimbo { 0% { transform: scale(2.6) rotate(-10deg); opacity: 0; } 55% { transform: scale(.92) rotate(-2deg); opacity: 1; }
+                         75% { transform: scale(1.05) rotate(-3deg); opacity: 1; } 100% { transform: scale(1) rotate(-3deg); opacity: 1; } }
+  @keyframes rsPop     { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.07); } }
+  @keyframes rsTreme   { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-7px, 3px); } 40% { transform: translate(6px, -4px); }
+                         60% { transform: translate(-4px, 2px); } 80% { transform: translate(2px, -1px); } }
+  @keyframes rsOnda    { 0% { transform: translate(-50%, -50%) scale(.2); opacity: 0; } 2% { opacity: .9; } 100% { transform: translate(-50%, -50%) scale(2.7); opacity: 0; } }
+  @keyframes rsFaisca  { 0% { transform: translate(0, 0) rotate(0); opacity: 0; } 2% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) rotate(540deg); opacity: 0; } }
+  @keyframes rsFundo   { 0%, 100% { transform: translate(-12%, -8%) scale(1); } 50% { transform: translate(12%, 9%) scale(1.18); } }
+  @keyframes rsGira    { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
+  .rs-zoom   { animation: rsZoom .7s cubic-bezier(.2,.8,.2,1) both; }
+  .rs-flash  { position: absolute; inset: 0; pointer-events: none; animation: rsFlash .5s ease-out both;
+               background: radial-gradient(circle at 50% 45%, rgba(255,255,255,.5), rgba(124,255,60,.12) 42%, transparent 70%); }
+  .rs-grito  { animation: rsCarimbo .55s cubic-bezier(.2,.9,.3,1.2) 1.45s both; }
+  .rs-pop    { animation: rsPop .45s ease-out 1.45s both; }
+  .rs-treme  { animation: rsTreme .42s linear 1.5s both; }
+  .rs-onda   { position: absolute; left: 50%; top: 46%; width: 220px; height: 220px; border-radius: 50%; border: 4px solid #7CFF3C;
+               pointer-events: none; opacity: 0; animation: rsOnda .9s ease-out 1.45s both; }
+  .rs-faisca { position: absolute; left: 50%; top: 46%; pointer-events: none; opacity: 0;
+               animation: rsFaisca 1.2s cubic-bezier(.1,.8,.3,1) 1.45s both; }
+  .rs-fundo  { position: absolute; width: 110vmax; height: 110vmax; border-radius: 50%; filter: blur(70px); opacity: .2;
+               pointer-events: none; animation: rsFundo 9s ease-in-out infinite; }
+  .rs-raios  { position: absolute; left: 50%; top: 46%; width: 900px; height: 900px; margin: -450px 0 0 -450px; border-radius: 50%;
+               pointer-events: none; animation: rsGira 24s linear infinite, rsSurge .6s ease-out 1.3s both;
+               background: repeating-conic-gradient(from 0deg, rgba(254,218,117,.11) 0 7deg, transparent 7deg 26deg);
+               -webkit-mask-image: radial-gradient(circle, #000 18%, transparent 62%); mask-image: radial-gradient(circle, #000 18%, transparent 62%); }
+  @media (prefers-reduced-motion: reduce) {
+    .rs-zoom, .rs-grito, .rs-pop, .rs-treme, .rs-fundo, .rs-raios { animation: none; }
+    .rs-grito { transform: rotate(-3deg); }
+    .rs-flash, .rs-onda, .rs-faisca { display: none; }
+  }
   @media (prefers-reduced-motion: reduce) {
     .rs-cena, .rs-traco, .rs-chegada, .rs-halter, .rs-marca { animation: none; }
     .rs-linha { display: none; }
@@ -1400,7 +1436,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-01b";
+const VERSAO_APP = "2026-11-01c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -23662,10 +23698,11 @@ function cenasResumo(d) {
   if (M) {
     c.push({ tipo: "abre", rotulo: NOME_ZUMBI, titulo: M.missao.icone + " " + M.missao.nome, dia: dia,
       sub: [M.mo.icone + " " + M.mo.nome, d.duracao ? d.duracao + " min" : ""].filter(Boolean).join(" · "),
-      fala: "Monster, Run! " + M.missao.nome + "." });
+      grito: "A caçada começou", fala: "Monster, Run! " + M.missao.nome + "." });
     if (M.ps.length) {
       const q = M.quem;
       c.push({ tipo: "perseguicoes", rotulo: plural(M.ps.length, "Perseguição", "Perseguições"), valor: M.fugas, total: M.ps.length, icone: M.mo.icone, foto: M.mo.foto,
+        grito: M.fugas ? "Sobrevivente" : "Não desistiu", forte: M.fugas === M.ps.length && M.fugas > 1,
         linhas: M.ps.map((p, i) => ({ ok: p.resultado === "fugiu", texto: ICONE_RESULTADO_ZUMBI[p.resultado] + " " + (i + 1) + "ª · " +
           (p.resultado === "fugiu" ? "fuga" + (p.alvo ? " a " + num1(kmhDeMs(p.alvo)) + " km/h" : "") : NOME_RESULTADO_ZUMBI[p.resultado]) })).slice(0, 6),
         sub: M.noAlvoMs >= 1000 ? fmtTempoRota(M.noAlvoMs) + " no ritmo da fuga" : "",
@@ -23676,11 +23713,12 @@ function cenasResumo(d) {
     if (M.maisPerto != null) {
       const z = zonaRadar(M.maisPerto), q = M.quem;
       c.push({ tipo: "radar", rotulo: "O mais perto que " + (q.plural ? "chegaram" : "chegou"), valor: M.maisPerto, icone: M.mo.icone, foto: M.mo.foto, cor: z.cor, sub: z.nome,
+        grito: M.maisPerto <= 60 ? "Escapou por um triz" : "Mais rápido que " + (q.plural ? "eles" : "ele"), corGrito: M.maisPerto <= 60 ? "#FFB020" : null,
         fala: maiuscula(q.nome) + " " + (q.plural ? "chegaram" : "chegou") + " a " + M.maisPerto + " metros de você." +
           (M.maisPerto <= 60 ? " Essa foi por pouco." : M.maisPerto > 150 ? " Nunca chegou perto de verdade." : "") });
     }
-  } else c.push({ tipo: "abre", rotulo: "Resumo do treino", titulo: d.nome, dia: dia, sub: sub,
-    fala: "Resumo do treino. " + nomeFalado(d.nome) + "." });
+  } else c.push({ tipo: "abre", rotulo: "Resumo do treino", titulo: d.nome, dia: dia, sub: sub, grito: "Desafio aceito",
+    fala: "Resumo do treino. " + nomeFalado(d.nome) + ". Desafio aceito." });
 
   const f = d.forca;
   if (f) {
@@ -23688,7 +23726,7 @@ function cenasResumo(d) {
       const ton = f.volume >= 10000;
       const eq = equivalencia(f.volume);
       c.push({ tipo: "numero", rotulo: "Volume", valor: ton ? f.volume / 1000 : f.volume, casas: ton ? 1 : 0,
-        unidade: ton ? "toneladas movidas" : "kg movidos", sub: eq || "",
+        unidade: ton ? "toneladas movidas" : "kg movidos", sub: eq || "", grito: ton ? "Você moveu montanhas" : "Peso vencido", forte: ton,
         fala: (ton ? num1(f.volume / 1000) + " toneladas" : f.volume.toLocaleString("pt-BR") + " quilos") + " movidos." +
           (eq ? " " + eq.replace(/^\S+\s/, "").replace(/^o mesmo/, "O mesmo") + "." : "") });
     }
@@ -23697,28 +23735,30 @@ function cenasResumo(d) {
     if (f.cargaMax) partes.push("carga máx. " + fmtNum(f.cargaMax) + " kg");
     if (f.segundos) partes.push(f.segundos + " s de isometria");
     c.push({ tipo: "numero", rotulo: "Séries", valor: f.series, casas: 0, unidade: plural(f.series, "série", "séries"),
-      sub: partes.join(" · "),
+      sub: partes.join(" · "), grito: "Série a série, sem parar",
       fala: f.series + " " + plural(f.series, "série", "séries") + (f.reps ? ", " + f.reps + " repetições" : "") +
         (f.cargaMax ? ". Carga máxima de " + fmtNum(f.cargaMax) + " quilos" : "") + "." });
     if (f.listaGrupos.length) {
       const top = f.listaGrupos.slice(0, 2).map((g) => g.grupo.nome.toLowerCase());
       // os que trabalharam de carona, pela régua das séries fracionadas (indireto vale ½)
       const ind = (f.musculos || []).filter((x) => x.indireto > 0 && x.direto === 0).slice(0, 3);
-      c.push({ tipo: "grupos", rotulo: "Músculos trabalhados", grupos: f.listaGrupos.slice(0, 5),
+      c.push({ tipo: "grupos", rotulo: "Músculos trabalhados", grupos: f.listaGrupos.slice(0, 5), grito: "Músculos desafiados",
         indireto: ind.length ? "De carona: " + ind.map((x) => x.nome.replace(/ \(.*\)/, "") + " " + num1v(x.total)).join(" · ") : "",
         fala: "Mais trabalhado" + (top.length > 1 ? "s: " + top.join(" e ") : ": " + top[0]) + "." +
           (ind.length ? " E de carona, " + ind.map((x) => x.nome.replace(/ \(.*\)/, "").toLowerCase()).join(" e ") + "." : "") });
     }
     if (f.recordes.length) {
       c.push({ tipo: "recordes", rotulo: plural(f.recordes.length, "Recorde pessoal", "Recordes pessoais"), valor: f.recordes.length,
-        nomes: f.recordes.slice(0, 4),
-        fala: f.recordes.length + " " + plural(f.recordes.length, "recorde pessoal", "recordes pessoais") + ": " +
+        nomes: f.recordes.slice(0, 4), grito: plural(f.recordes.length, "Recorde quebrado!", "Recordes quebrados!"), corGrito: "#FEDA75", forte: true,
+        fala: (f.recordes.length === 1 ? "Recorde quebrado! " : f.recordes.length + " recordes quebrados! ") + "Você superou o seu melhor em " +
           f.recordes.slice(0, 3).map(nomeFalado).join(", ") + "." });
     }
     if (f.comp !== null && f.comp !== undefined) {
       c.push({ tipo: "texto", rotulo: "Comparando", texto: (f.comp >= 0 ? "+" : "−") + Math.abs(f.comp) + "%",
         sub: "de volume que da última vez", cor: f.comp >= 0 ? "#7CFF3C" : null,
-        fala: f.comp === 0 ? "O mesmo volume da última vez." : Math.abs(f.comp) + " por cento " + (f.comp > 0 ? "a mais" : "a menos") + " de volume que da última vez." });
+        grito: f.comp > 0 ? "Você se superou" : f.comp === 0 ? "Constância vence" : "Aparecer já é vencer", forte: f.comp > 0,
+        fala: f.comp === 0 ? "O mesmo volume da última vez. Constância é o que vence." : Math.abs(f.comp) + " por cento " + (f.comp > 0 ? "a mais" : "a menos") + " de volume que da última vez." +
+          (f.comp > 0 ? " Você se superou." : " Dia mais leve também conta: o importante é aparecer.") });
     }
   }
 
@@ -23728,24 +23768,26 @@ function cenasResumo(d) {
     const pre = f ? "Aeróbico · " : "";
     const pedala = k.perfil === "bike-rua" || k.perfil === "bike";
     const anda = k.km >= 0.05 && k.perfil !== "natacao";
-    if (anda) c.push({ tipo: "numero", rotulo: pre + "Distância", valor: k.km, casas: 2, unidade: "km",
+    if (anda) c.push({ tipo: "numero", rotulo: pre + "Distância", valor: k.km, casas: 2, unidade: "km", grito: "Cada km, uma vitória",
       sub: "em " + fmtTempoRota(k.min * 60000), fala: (f ? "No aeróbico, " : "") + num1(k.km) + " quilômetros em " + textoDuracao(Math.round(k.min * 60)) + "." });
-    else c.push({ tipo: "numero", rotulo: pre + "Tempo", valor: Math.round(k.min), casas: 0, unidade: "min",
+    else c.push({ tipo: "numero", rotulo: pre + "Tempo", valor: Math.round(k.min), casas: 0, unidade: "min", grito: "Minuto a minuto",
       sub: k.watts ? Math.round(k.watts) + " W de média" : "", fala: textoDuracao(Math.round(k.min * 60)) + " de aeróbico." });
     if (anda && k.vel) {
       c.push(pedala
-        ? { tipo: "texto", rotulo: pre + "Velocidade média", texto: num1(k.vel) + " km/h", sub: k.ganho ? "↗ " + k.ganho + " m de subida" : "",
+        ? { tipo: "texto", rotulo: pre + "Velocidade média", texto: num1(k.vel) + " km/h", sub: k.ganho ? "↗ " + k.ganho + " m de subida" : "", grito: k.ganho >= 50 ? "Subida vencida" : "Pedal firme",
           fala: "Média de " + num1(k.vel) + " por hora." + (k.ganho ? " " + k.ganho + " metros de subida." : "") }
-        : { tipo: "texto", rotulo: pre + "Ritmo médio", texto: fmtRitmo(k.ritmo),
+        : { tipo: "texto", rotulo: pre + "Ritmo médio", texto: fmtRitmo(k.ritmo), grito: k.ganho >= 50 || k.incl >= 5 ? "Subida vencida" : "Ritmo de quem não para",
           sub: [num1(k.vel) + " km/h", k.incl ? "inclinação " + num1(k.incl) + "%" : "", k.ganho ? "↗ " + k.ganho + " m" : ""].filter(Boolean).join(" · "),
           fala: "Ritmo de " + falaRitmo(k.ritmo) + "." + (k.incl ? " Com inclinação " + num1(k.incl) + "." : "") + (k.ganho ? " " + k.ganho + " metros de subida." : "") });
     }
     const int = intensidadeCardio(k.met);
     c.push({ tipo: "gasto", rotulo: pre + "Gasto", valor: Math.round(k.kcal), met: k.met, intensidade: int, estimado: k.estimado,
+      grito: int === "vigorosa" ? "No limite" : "Energia queimada", corGrito: int === "vigorosa" ? "#FF5A5F" : null,
       fala: "Cerca de " + Math.round(k.kcal) + " calorias. Intensidade " + int + "." });
-    c.push({ tipo: "semana", rotulo: "Aeróbico na semana", valor: k.semana,
+    c.push({ tipo: "semana", rotulo: "Aeróbico na semana", valor: k.semana, forte: k.semana >= META_CARDIO_SEMANA,
+      grito: k.semana >= META_CARDIO_SEMANA ? "Meta batida!" : "Faltam " + (META_CARDIO_SEMANA - k.semana) + " min", corGrito: k.semana >= META_CARDIO_SEMANA ? "#FEDA75" : null,
       fala: k.semana >= META_CARDIO_SEMANA ? "Meta da semana batida: " + k.semana + " minutos." : "Na semana, " + k.semana + " de " + META_CARDIO_SEMANA + " minutos da meta." });
-    if (k.trechos) c.push({ tipo: "mapa", rotulo: "Percurso", trechos: k.trechos, sub: k.regiao || "",
+    if (k.trechos) c.push({ tipo: "mapa", rotulo: "Percurso", trechos: k.trechos, sub: k.regiao || "", grito: "Terreno conquistado", impactoMs: 2300,
       fala: "Esse foi o seu percurso" + (k.regiao ? ", em " + k.regiao.split(",")[0] : "") + "." });
     if (k.antes) {
       const dk = k.km - k.antes.km, dv = k.vel - k.antes.vel;
@@ -23763,7 +23805,9 @@ function cenasResumo(d) {
         sub = dm ? "que na última vez" : "igual à última vez: constância";
         fala = dm ? Math.abs(dm) + " minutos " + (dm > 0 ? "a mais" : "a menos") + " que na última vez." : "Igual à última vez. Constância é o que dá resultado.";
       }
-      c.push({ tipo: "texto", rotulo: pre + "Comparando", texto: texto, sub: sub, fala: fala, cor: melhor ? "#7CFF3C" : null });
+      c.push({ tipo: "texto", rotulo: pre + "Comparando", texto: texto, sub: sub, cor: melhor ? "#7CFF3C" : null,
+        grito: melhor ? "Você se superou" : "Aparecer já é vencer", forte: melhor && texto !== "=",
+        fala: fala + (melhor && texto !== "=" ? " Você se superou." : !melhor ? " Dia mais leve também conta: o importante é aparecer." : "") });
     }
   }
 
@@ -23775,18 +23819,39 @@ function cenasResumo(d) {
     const rc = d.recCorrida.slice().sort((a, b) => b.m - a.m).slice(0, 4);
     const falaDist = (m) => (m === 1609 ? "1 milha" : m === 21097 ? "meia maratona" : m === 42195 ? "maratona" : m >= 1000 ? (m / 1000) + (m === 1000 ? " quilômetro" : " quilômetros") : m + " metros");
     c.push({ tipo: "recordes", rotulo: plural(rc.length, "Recorde de " + rc[0].tipo, "Recordes de " + rc[0].tipo), valor: d.recCorrida.length,
+      grito: plural(d.recCorrida.length, "Recorde quebrado!", "Recordes quebrados!"), corGrito: "#FEDA75", forte: true,
       nomes: rc.map((r) => nomeDistancia(r.m) + " · " + fmtTempoRota(r.ms)),
       fala: plural(d.recCorrida.length, "Recorde pessoal", "Recordes pessoais") + ": " +
         rc.slice(0, 2).map((r) => falaDist(r.m) + " em " + textoDuracao(Math.round(r.ms / 1000))).join(", e ") + "." });
   }
+  // O "Desafio vencido": as vitórias do dia numa lista só, com o que foi superado
+  const vit = [];
+  if (f && f.series) vit.push(f.series + " " + plural(f.series, "série concluída", "séries concluídas"));
+  if (f && f.recordes.length) vit.push(f.recordes.length + " " + plural(f.recordes.length, "recorde quebrado", "recordes quebrados"));
+  if (f && f.comp > 0) vit.push("+" + f.comp + "% de volume");
+  if (k && k.km >= 0.05 && k.perfil !== "natacao") vit.push(num1(k.km) + " km percorridos");
+  else if (k && k.min >= 1) vit.push(Math.round(k.min) + " min de aeróbico");
+  if (k && k.semana >= META_CARDIO_SEMANA) vit.push("meta da semana batida");
+  if (M && M.fugas) vit.push(M.fugas + " " + plural(M.fugas, "fuga", "fugas"));
+  if (d.recCorrida && d.recCorrida.length) vit.push(d.recCorrida.length + " " + plural(d.recCorrida.length, "recorde de corrida", "recordes de corrida"));
+  if (d.sequencia >= 2) vit.push(d.sequencia + " dias seguidos sem desistir");
+  if (vit.length >= 2) {
+    const superou = (f && f.recordes.length) || (d.recCorrida && d.recCorrida.length);
+    const alem = (f && f.comp > 0) || (k && k.antes && k.km > k.antes.km + 0.05);
+    const frase = superou ? "Você superou o seu melhor." : alem ? "Você foi além da última vez." :
+      d.sequencia >= 3 ? "A constância é o que transforma." : "Você apareceu. É isso que separa quem desiste de quem chega lá.";
+    c.push({ tipo: "superacao", rotulo: "Hoje você venceu", titulo: "Desafio vencido", itens: vit.slice(0, 4), sub: frase, forte: true, impactoMs: 750,
+      fala: "Desafio vencido. " + frase });
+  }
   if (d.nivel) {
     const nv = d.nivel;
     c.push({ tipo: "nivel", rotulo: "Seu nível", nivel: nv, total: d.total, sequencia: d.sequencia,
+      grito: nv.proximo ? "Subindo de nível" : "No topo",
       fala: "Nível " + nv.indice + ", " + nv.nome + "." + (d.sequencia >= 2 ? " Sequência de " + d.sequencia + " dias." : "") +
         (nv.proximo ? " Faltam " + nv.faltam + " pontos para " + nv.proximo.nome + "." : "") });
   }
   const meta = d.cardio && d.cardio.semana >= META_CARDIO_SEMANA;
-  c.push({ tipo: "fecho", fala: M ? "Você sobreviveu. Até a próxima missão." : meta ? "Meta cumprida. Até a próxima." : "Bom treino. Até a próxima." });
+  c.push({ tipo: "fecho", fala: M ? "Você sobreviveu. Até a próxima missão." : meta ? "Meta cumprida. Até a próxima." : "Mais forte que a desculpa. Até a próxima." });
   // tempo de cada cena: o suficiente para a frase caber
   c.forEach((x) => { x.ms = Math.max(3400, x.fala.split(" ").length * 420 + 900); });
   return c;
@@ -23846,9 +23911,58 @@ function MapaResumo({ trechos }) {
   );
 }
 
+// A onda e as faíscas do impacto (no forte, confete com mais cor e mais longe)
+const CORES_FAISCA = ["#7CFF3C", "#FEDA75", "#F58529", "#DD2A7B", "#8134AF", "#FFFFFF"];
+function EfeitosCena({ forte, atraso }) {
+  if (REDUZ_MOVIMENTO) return null;
+  const n = forte ? 28 : 14, dl = atraso != null ? { animationDelay: atraso + "s" } : null;
+  return (
+    <React.Fragment>
+      {forte && <div className="rs-raios" aria-hidden="true" style={atraso != null ? { animationDelay: "0s, " + Math.max(0, atraso - 0.15) + "s" } : null} />}
+      <div className="rs-onda" aria-hidden="true" style={{ ...(dl || {}), borderColor: forte ? "#FEDA75" : "#7CFF3C" }} />
+      {Array.from({ length: n }, (_, k) => {
+        const a = (k / n) * Math.PI * 2 + (k % 3) * 0.21, r = (forte ? 190 : 125) * (0.6 + ((k * 37) % 40) / 100);
+        const tira = forte && k % 2;
+        return <div key={k} className="rs-faisca" aria-hidden="true" style={{ ...(dl || {}),
+          width: tira ? 14 : 8, height: tira ? 6 : 8, margin: tira ? "-3px 0 0 -7px" : "-4px 0 0 -4px", borderRadius: tira ? 2 : "50%",
+          background: CORES_FAISCA[k % CORES_FAISCA.length], boxShadow: "0 0 8px " + CORES_FAISCA[k % CORES_FAISCA.length],
+          "--dx": Math.round(Math.cos(a) * r) + "px", "--dy": Math.round(Math.sin(a) * r + (forte ? 90 : 0)) + "px" }} />;
+      })}
+    </React.Fragment>
+  );
+}
+// O carimbo da superação: bate por cima quando o número termina de subir
+function GritoResumo({ texto, cor, atraso }) {
+  const k = cor || "#7CFF3C";
+  return (
+    <div className="rs-grito" style={{ display: "inline-block", marginTop: 24, padding: "8px 18px", borderRadius: 10, border: "3px solid " + k,
+      color: k, fontWeight: 900, fontSize: 19, letterSpacing: 1.5, textTransform: "uppercase", background: "rgba(6,6,6,.82)",
+      textShadow: "0 0 16px " + k + "99", boxShadow: "0 0 26px " + k + "44, inset 0 0 14px " + k + "33",
+      ...(atraso != null ? { animationDelay: atraso + "s" } : {}) }}>{texto}</div>
+  );
+}
+
 function CenaResumo({ c }) {
   const v = useSobe(c.valor || 0, c.tipo === "semana" ? 1400 : 1100);
   const metV = useSobe(c.met || 0, 1300);
+  if (c.tipo === "superacao") {
+    return (
+      <div style={{ textAlign: "center", padding: "0 24px", width: "100%", maxWidth: 360 }}>
+        <div style={ROTULO_RESUMO}>{c.rotulo}</div>
+        <div className="rs-grito" style={{ ...S.logo, display: "inline-block", fontSize: 46, lineHeight: 1.08, marginTop: 12, animationDelay: ".3s" }}>{c.titulo}</div>
+        <div style={{ display: "inline-block", textAlign: "left", marginTop: 8 }}>
+          {c.itens.map((x, k) => (
+            <div key={k} className="rs-marca" style={{ display: "flex", alignItems: "center", gap: 10, color: "#F2F0EC", fontSize: 17, fontWeight: 800, marginTop: 12, animationDelay: 0.9 + k * 0.22 + "s" }}>
+              <span style={{ width: 26, height: 26, borderRadius: 13, background: "#7CFF3C", color: "#060606", display: "inline-flex",
+                alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0, boxShadow: "0 0 12px rgba(124,255,60,.5)" }}>✓</span>{x}
+            </div>
+          ))}
+        </div>
+        {c.sub && <div className="rs-marca" style={{ color: "#BDBDBD", fontSize: 15.5, fontWeight: 700, fontStyle: "italic", marginTop: 18, lineHeight: 1.45,
+          animationDelay: 1.1 + c.itens.length * 0.22 + "s" }}>{c.sub}</div>}
+      </div>
+    );
+  }
   if (c.tipo === "abre") {
     return (
       <div style={{ textAlign: "center", padding: "0 24px" }}>
@@ -24059,6 +24173,7 @@ function CenaResumo({ c }) {
       </svg>
       <div className="rs-marca" style={{ textAlign: "center" }}>
         <div style={{ ...S.logo, fontSize: 34 }}>Treino Livre</div>
+        <div style={{ color: "#F2F0EC", fontSize: 15, fontWeight: 800, marginTop: 6 }}>Cada treino é um desafio vencido.</div>
         <div style={{ ...ROTULO_RESUMO, marginTop: 7 }}>{c.fala.replace(/\.$/, "").replace(". ", " · ")}</div>
       </div>
     </div>
@@ -24186,11 +24301,102 @@ function videoAvatar(c, cx, base, alt, ms) {
   c.restore();
   return true;
 }
+// O momento do impacto: quando o placar termina de subir (a cena pode trocar)
+const IMPACTO_MS = 1450;
+// O fundo respira: duas luzes da marca passeando atrás das cenas
+function videoFundo(c, t) {
+  const s = t / 1000;
+  const luz = (x, y, r, cor) => {
+    const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, cor); g.addColorStop(1, "rgba(6,6,6,0)");
+    c.fillStyle = g; c.fillRect(x - r, y - r, 2 * r, 2 * r);
+  };
+  luz(540 + 280 * Math.sin(s * 0.7), 760 + 200 * Math.cos(s * 0.5), 640, "rgba(221,42,123,0.20)");
+  luz(540 - 300 * Math.sin(s * 0.6 + 1), 1260 + 180 * Math.sin(s * 0.8), 600, "rgba(129,52,175,0.22)");
+  luz(540 + 200 * Math.cos(s * 0.9), 980, 440, "rgba(124,255,60,0.05)");
+}
+// Raios dourados girando atrás da cena forte
+function videoRaios(c, cx, cy, t, a) {
+  if (a <= 0) return;
+  c.save(); c.translate(cx, cy); c.rotate((t / 1000) * 0.26);
+  const g = c.createRadialGradient(0, 0, 60, 0, 0, 780);
+  g.addColorStop(0, "rgba(254,218,117," + 0.24 * a + ")"); g.addColorStop(1, "rgba(254,218,117,0)");
+  c.fillStyle = g;
+  for (let k = 0; k < 14; k++) { const a0 = (k * Math.PI * 2) / 14; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 780, a0, a0 + 0.17); c.closePath(); c.fill(); }
+  c.restore();
+}
+// A onda e as faíscas (no forte, confete que cai); q = ms desde o impacto
+function videoImpacto(c, cx, cy, q, forte) {
+  if (q < 0 || q > 1500) return;
+  c.save();
+  const e = sobe(q / 900);
+  if (q < 900) {
+    c.globalAlpha = 0.9 * (1 - q / 900); c.strokeStyle = forte ? "#FEDA75" : "#7CFF3C"; c.lineWidth = 16 * (1 - e) + 3;
+    c.shadowColor = c.strokeStyle; c.shadowBlur = 34; c.beginPath(); c.arc(cx, cy, 80 + 580 * e, 0, Math.PI * 2); c.stroke();
+    c.shadowBlur = 0;
+  }
+  const n = forte ? 44 : 20, f = sobe(q / 1100);
+  for (let k = 0; k < n; k++) {
+    const a = (k / n) * Math.PI * 2 + (k % 3) * 0.21, r = (forte ? 420 : 280) * (0.6 + ((k * 37) % 40) / 100) * f;
+    const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r + (forte ? 300 * f * f : 0);
+    c.globalAlpha = Math.max(0, 1 - q / 1500);
+    c.fillStyle = CORES_FAISCA[k % CORES_FAISCA.length];
+    if (forte && k % 2) { c.save(); c.translate(x, y); c.rotate(q / 140 + k); c.fillRect(-15, -6, 30, 12); c.restore(); }
+    else { c.beginPath(); c.arc(x, y, Math.max(2, 10 * (1 - f * 0.6)), 0, Math.PI * 2); c.fill(); }
+  }
+  c.restore();
+}
+// O carimbo da superação: bate de longe, passa do ponto e assenta torto
+function videoGrito(c, txt, y, q, cor) {
+  if (q < 0 || !txt) return;
+  const k = Math.min(1, q / 550);
+  const s = k < 0.55 ? 2.6 - 1.68 * sobe(k / 0.55) : k < 0.75 ? 0.92 + 0.13 * ((k - 0.55) / 0.2) : 1.05 - 0.05 * ((k - 0.75) / 0.25);
+  cor = cor || "#7CFF3C";
+  txt = txt.toUpperCase();
+  c.save();
+  c.globalAlpha = Math.min(1, q / 200);
+  c.translate(540, y); c.rotate((-3 * Math.PI) / 180); c.scale(s, s);
+  if ("letterSpacing" in c) c.letterSpacing = "4px";
+  let tam = 54; c.font = "900 " + tam + "px " + VIDEO_FONTE;
+  while (c.measureText(txt).width > 860 && tam > 30) { tam -= 4; c.font = "900 " + tam + "px " + VIDEO_FONTE; }
+  const w = c.measureText(txt).width + 64, h = tam + 40;
+  c.fillStyle = "rgba(6,6,6,.85)"; c.strokeStyle = cor; c.lineWidth = 7; c.shadowColor = cor; c.shadowBlur = 36;
+  c.beginPath(); arredondado(c, -w / 2, -h / 2, w, h, 18); c.fill(); c.stroke();
+  c.shadowBlur = 26; c.fillStyle = cor; c.textAlign = "center"; c.textBaseline = "middle";
+  c.fillText(txt, 0, 4);
+  c.restore();
+}
 function videoCena(c, cena, p) {
   const conta = sobe((p - 350) / 1100);
   const t = cena.tipo;
   c.textAlign = "center"; c.textBaseline = "alphabetic";
-  if (t === "abre") {
+  if (t === "superacao") {
+    videoRotulo(c, cena.rotulo, 600);
+    const q = p - 300;
+    if (q >= 0) {
+      const k = Math.min(1, q / 500), s = 2.2 - 1.2 * sobe(k);
+      c.save(); c.globalAlpha = Math.min(1, q / 180); c.translate(540, 790); c.rotate((-3 * Math.PI) / 180); c.scale(s, s);
+      videoTexto(c, cena.titulo, 0, 0, 128, "grad", 900, 960);
+      c.restore();
+    }
+    const n = cena.itens.length;
+    cena.itens.forEach((txt, j) => {
+      const a = Math.max(0, Math.min(1, (p - 900 - j * 220) / 350));
+      if (!a) return;
+      const y = 960 + j * 120, x = 150 - (1 - a) * 60;
+      c.globalAlpha = a;
+      c.save(); c.shadowColor = "rgba(124,255,60,.6)"; c.shadowBlur = 20;
+      c.fillStyle = "#7CFF3C"; c.beginPath(); c.arc(x + 36, y - 18, 36, 0, Math.PI * 2); c.fill(); c.restore();
+      videoTexto(c, "✓", x + 36, y, 44, "#060606", 900);
+      c.textAlign = "left"; videoTexto(c, txt, x + 100, y, 52, "#F2F0EC", 800, 800);
+      c.textAlign = "center"; c.globalAlpha = 1;
+    });
+    if (cena.sub) {
+      c.globalAlpha = Math.max(0, Math.min(1, (p - 1100 - n * 220) / 400));
+      c.save(); c.font = "italic 700 44px " + VIDEO_FONTE;
+      videoParagrafo(c, cena.sub, 960 + n * 120 + 50, 44, "#BDBDBD", 700, 880, 3);
+      c.restore(); c.globalAlpha = 1;
+    }
+  } else if (t === "abre") {
     videoRotulo(c, cena.rotulo, 820);
     const alt = videoParagrafo(c, cena.titulo, 960, 112, "grad", 900, 940, 3);
     videoTexto(c, cena.dia, 540, 960 + alt + 30, 48, "#BDBDBD", 700);
@@ -24284,13 +24490,13 @@ function videoCena(c, cena, p) {
     videoRotulo(c, cena.rotulo, 640);
     const max = cena.grupos[0].series;
     cena.grupos.forEach((g, k) => {
-      const y = 760 + k * 150;
+      const y = 760 + k * 135;
       c.textAlign = "left"; videoTexto(c, g.grupo.nome, 140, y, 56, g.grupo.cor, 900);
       c.textAlign = "right"; videoTexto(c, g.series + " " + plural(g.series, "série", "séries"), 940, y, 44, "#BDBDBD", 700);
       c.textAlign = "center";
       videoBarra(c, 140, y + 26, 800, 26, (g.series / max) * sobe((p - 350 - k * 120) / 800), g.grupo.cor);
     });
-    if (cena.indireto) videoTexto(c, cena.indireto, 540, 760 + cena.grupos.length * 150 + 30, 40, "#BDBDBD", 700, 900);
+    if (cena.indireto) videoTexto(c, cena.indireto, 540, 760 + cena.grupos.length * 135 + 30, 40, "#BDBDBD", 700, 900);
   } else if (t === "perseguicoes") {
     videoRotulo(c, cena.rotulo, 560);
     if (!videoFoto(c, cena.foto, 540, 690, 90)) videoTexto(c, cena.icone, 540, 740, 150, "#FFFFFF", 400);
@@ -24394,13 +24600,18 @@ function videoFecho(c, cena, p) {
   videoTexto(c, cena.fala.replace(/\.$/, "").replace(". ", " · ").toUpperCase(), 540, 1240 + (1 - m) * 30, 36, "#7CFF3C", 800, 960);
   c.restore();
   c.globalAlpha = 1;
-  // o estouro da pancada
+  // o estouro da pancada, e o confete saindo do halter
   if (p > 700 && p < 1050) { c.fillStyle = "rgba(255,255,255," + 0.8 * (1 - (p - 700) / 350) + ")"; c.fillRect(0, 0, 1080, 1920); }
+  videoImpacto(c, 540, 760, p - 780, true);
+  c.globalAlpha = m; c.textAlign = "center";
+  videoTexto(c, "Cada treino é um desafio vencido.", 540, 1330 + (1 - m) * 30, 46, "#F2F0EC", 800, 960);
+  c.globalAlpha = 1;
 }
 
 // Um quadro do vídeo inteiro no tempo t
 function videoQuadro(c, cenas, durs, t) {
   c.fillStyle = "#060606"; c.fillRect(0, 0, 1080, 1920);
+  videoFundo(c, t);
   let i = 0, ini = 0;
   while (i < cenas.length - 1 && t >= ini + durs[i]) { ini += durs[i]; i++; }
   const p = t - ini;
@@ -24413,10 +24624,18 @@ function videoQuadro(c, cenas, durs, t) {
   const cena = cenas[i];
   if (cena.tipo === "fecho") videoFecho(c, cena, p);
   else {
+    const imp = cena.impactoMs || IMPACTO_MS;
+    if (cena.forte) videoRaios(c, 540, 980, t, Math.max(0, Math.min(1, (p - imp + 200) / 500)));
     // a linha verde desce e a cena aparece no mesmo passo: o recorte segue a linha
     const r = suave(Math.min(1, p / VIDEO_REVELA_MS));
     const y = VIDEO_TOPO + (VIDEO_BASE - VIDEO_TOPO) * r;
+    // a cena chega de perto e assenta; no impacto, pulsa (e treme, se for forte)
+    const pop = p > imp && p < imp + 450 ? Math.sin((Math.PI * (p - imp)) / 450) : 0;
+    const s = (1 + 0.08 * (1 - sobe(p / 700))) * (1 + (cena.grito || cena.forte ? 0.06 : 0) * pop);
+    let dx = 0, dy = 0;
+    if (cena.forte && p > imp && p < imp + 420) { const f = 1 - (p - imp) / 420; dx = 16 * f * Math.sin(p * 0.13); dy = 10 * f * Math.cos(p * 0.17); }
     c.save();
+    c.translate(540 + dx, 1000 + dy); c.scale(s, s); c.translate(-540, -1000);
     if (r < 1) { c.beginPath(); c.rect(0, 0, 1080, y); c.clip(); }
     videoCena(c, cena, p);
     c.restore();
@@ -24426,6 +24645,11 @@ function videoQuadro(c, cenas, durs, t) {
       c.globalAlpha = a; c.save(); c.shadowColor = "rgba(124,255,60,.8)"; c.shadowBlur = 30;
       c.fillRect(0, y - 4, 1080, 8); c.restore(); c.globalAlpha = 1;
     }
+    if (cena.grito || cena.forte) videoImpacto(c, 540, 980, p - imp, cena.forte);
+    videoGrito(c, cena.grito, 1580, p - imp - 50, cena.corGrito);
+    // o clarão da entrada, e o da pancada na cena forte
+    const clarao = p < 260 ? 0.3 * (1 - p / 260) : cena.forte && p > imp && p < imp + 260 ? 0.26 * (1 - (p - imp) / 260) : 0;
+    if (clarao > 0) { c.fillStyle = "rgba(255,255,255," + clarao + ")"; c.fillRect(0, 0, 1080, 1920); }
   }
   // o crédito fica no vídeo inteiro: é o que leva o app para o feed de quem não o conhece
   c.textAlign = "center";
@@ -24440,7 +24664,8 @@ const VOZ_ENTRA_MS = 250, VOZ_RESPIRO_MS = 450;
 const STORY_MAX_MS = 58500;
 function videoDuracoes(cenas, falasMs) {
   return cenas.map((x, i) => {
-    const base = x.tipo === "fecho" ? VIDEO_FECHO_MS : VIDEO_CENA_MS;
+    // o carimbo bate em 2 s; a lista do "desafio vencido" precisa de mais
+    const base = x.tipo === "fecho" ? VIDEO_FECHO_MS : x.tipo === "superacao" ? 3600 : x.tipo === "mapa" ? 3300 : VIDEO_CENA_MS;
     const fala = falasMs && falasMs[i] ? VOZ_ENTRA_MS + falasMs[i] + VOZ_RESPIRO_MS : 0;
     return Math.max(base, Math.round(fala));
   });
@@ -24997,6 +25222,9 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
     <div role="dialog" aria-modal="true" aria-label="Resumo animado do treino" onClick={toque}
       style={{ position: "fixed", inset: 0, zIndex: 92, background: "#060606", color: "#F2F0EC", overflow: "hidden",
         display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", userSelect: "none" }}>
+      {/* o fundo respira: duas luzes da marca passeando atrás das cenas */}
+      <div className="rs-fundo" aria-hidden="true" style={{ left: "-30vmax", top: "-25vmax", background: "radial-gradient(circle, #DD2A7B, transparent 65%)" }} />
+      <div className="rs-fundo" aria-hidden="true" style={{ right: "-35vmax", bottom: "-30vmax", background: "radial-gradient(circle, #8134AF, transparent 65%)", animationDelay: "-4.5s" }} />
       {/* barras de progresso, como story */}
       <div style={{ position: "absolute", top: 12, left: 12, right: 12, display: "flex", gap: 4 }}>
         {cenas.map((c, k) => (
@@ -25017,9 +25245,23 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
 
       {/* a cena, revelada pela linha verde que desce: a mesma régua da abertura */}
       <div key={volta + "-" + i} style={{ position: "relative", width: "100%", minHeight: 420, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {(cenas[i].grito || cenas[i].forte || cenas[i].tipo === "fecho") &&
+          <EfeitosCena forte={!!cenas[i].forte || cenas[i].tipo === "fecho"}
+            atraso={cenas[i].tipo === "fecho" ? 0.78 : cenas[i].impactoMs ? cenas[i].impactoMs / 1000 : null} />}
         <div className="rs-cena" style={{ width: "100%", display: "flex", justifyContent: "center" }}>
-          <CenaResumo c={cenas[i]} />
+          <div className={cenas[i].forte ? "rs-treme" : ""} style={{ width: "100%", display: "flex", justifyContent: "center",
+            ...(cenas[i].impactoMs ? { animationDelay: cenas[i].impactoMs / 1000 + 0.05 + "s" } : {}) }}>
+            <div className="rs-zoom" style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div className={cenas[i].grito ? "rs-pop" : ""} style={{ width: "100%", display: "flex", justifyContent: "center",
+                ...(cenas[i].impactoMs ? { animationDelay: cenas[i].impactoMs / 1000 + "s" } : {}) }}>
+                <CenaResumo c={cenas[i]} />
+              </div>
+              {cenas[i].grito && <div style={{ textAlign: "center" }}>
+                <GritoResumo texto={cenas[i].grito} cor={cenas[i].corGrito} atraso={cenas[i].impactoMs ? cenas[i].impactoMs / 1000 : null} /></div>}
+            </div>
+          </div>
         </div>
+        <div className="rs-flash" aria-hidden="true" />
         <div className="rs-linha" aria-hidden="true" />
       </div>
 

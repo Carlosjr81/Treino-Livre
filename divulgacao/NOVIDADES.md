@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-01f — O app não diz mais "sem cadastro"
+
+**Em uma frase:** os textos do app pararam de dizer "sem cadastro", porque hoje o Treino Livre tem conta (grátis, com aprovação do criador ou pelo Google).
+
+**O que mudou**
+- O cartão "Quem faz este app", a tela de seguir no Instagram, a dica rápida do link de ficha, a descrição do app (a que aparece no Google e ao compartilhar o link) e o guia de divulgação.
+- O que continua valendo: grátis, sem anúncio, sem vender dados, e os treinos ficam no celular.
+
+**Por que importa para quem treina**
+- O app não promete uma coisa e pede outra na entrada.
+
+**Como usar**
+- Nada a fazer.
+
+**Ideias de vídeo**
+- Nenhuma: é um ajuste de texto. Nos vídeos, troque "sem cadastro" por "grátis e sem anúncio".
+
+**Não prometer**
+- **Não diga mais "sem cadastro", "sem e-mail" nem "sem senha"**: hoje é preciso criar uma conta (ou entrar com o Google). Diga "grátis, sem anúncio, e os seus treinos ficam no seu celular".
+
+---
+
 ## 2026-11-01e — O logo novo garantido no último card do story
 
 **Em uma frase:** o vídeo do story agora espera o logo novo carregar antes de ser montado, para o último card nunca sair com o desenho antigo.

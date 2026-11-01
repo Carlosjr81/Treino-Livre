@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-01e**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-01f**.
 
 ---
 
@@ -39,7 +39,7 @@
 
 ## 1. Em uma frase
 
-**Treino Livre é o app gratuito, sem cadastro e que funciona offline para registrar o treino de
+**Treino Livre é o app gratuito, sem anúncio e que funciona offline para registrar o treino de
 academia — e que deixa você treinar sem tocar no celular: fala com o Jarvis por voz e a câmera conta
 as repetições.**
 
@@ -51,8 +51,9 @@ as repetições.**
   "baixado" (instalado na tela inicial) e aí abre em tela cheia, com ícone, como um app comum.
 
 ### Os quatro pilares (use como argumento em qualquer peça)
-1. **Gratuito e sem cadastro** — abriu, usou. Nenhum e-mail, nenhuma senha.
-2. **Privado** — todos os dados ficam **no próprio celular**. Não existe servidor guardando nada.
+1. **Gratuito e sem anúncio** — cria a conta grátis (ou entra com o Google) e usa.
+2. **Privado** — os treinos, medidas e fotos ficam **no próprio celular**. O servidor guarda só a conta
+   de acesso (nome, e-mail e se está liberada), nunca os treinos.
    A câmera roda no aparelho: **nenhuma imagem sai do celular**.
 3. **Funciona sem internet** — na academia sem sinal, no subsolo, no avião.
 4. **Mãos livres** — dita a série por voz, a câmera conta as repetições, a voz avisa o fim do descanso.
@@ -505,7 +506,7 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 - "Meu celular conta minhas repetições. Sozinho."
 - "Eu não toco no celular durante o treino. Olha isso:"
 - "Faltou ao treino de perna? O Marombeiro vai te achar."
-- "Um app de academia grátis, sem cadastro e sem anúncio. Sério."
+- "Um app de academia grátis e sem anúncio. Sério."
 - "Corri de um lobisomem na esteira hoje."
 - "Seu app de treino sabe seu VO2máx? O meu sabe."
 - "Corri contra meu amigo que mora em outra cidade. Ao vivo."
@@ -524,7 +525,7 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 10. **Treino em casa sem equipamento:** aula Express de 7 minutos com o bonequinho.
 
 ### CTA padrão
-- "Link na bio. Grátis, sem cadastro."
+- "Link na bio. Grátis e sem anúncio."
 - "Segue **@carlos.jr.81** para mais."
 - "Manda para aquele amigo que anota treino no papel."
 

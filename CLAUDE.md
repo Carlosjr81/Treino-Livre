@@ -1,6 +1,8 @@
 # Treino Livre
 
-App de registro de treinos de academia, em português, gratuito e sem cadastro.
+App de registro de treinos de academia, em português e gratuito. Desde 2026-10-28f
+tem cadastro com aprovação (ver *Login com aprovação*); os treinos continuam no
+aparelho. **Não escreva "sem cadastro" em texto do app nem da divulgação.**
 Publicado em https://carlosjr81.github.io/Treino-Livre/ (GitHub Pages).
 
 ## Dois scripts no `index.html`, de propósito
@@ -572,7 +574,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v163) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v164) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |

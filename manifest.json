@@ -1,7 +1,7 @@
 {
   "name": "Treino Livre",
   "short_name": "Treino Livre",
-  "description": "Monte suas fichas, registre séries e cargas e acompanhe sua evolução na academia. Funciona offline e sem cadastro.",
+  "description": "Monte suas fichas, registre séries e cargas e acompanhe sua evolução na academia. Gratuito, sem anúncio e funciona offline.",
   "lang": "pt-BR",
   "dir": "ltr",
   "start_url": "./",

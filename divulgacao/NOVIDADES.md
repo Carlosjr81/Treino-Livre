@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-02b — Termos de Uso com texto ajustado
+
+**Em uma frase:** os Termos de Uso ganharam uma redação nova sobre o que o app é: uma ferramenta de registro e informação, que não substitui o médico nem o profissional de Educação Física.
+
+**O que mudou**
+- O cartão "Uma ferramenta, não um profissional", o item 1 dos termos e a caixa de aceite foram reescritos. Todo mundo aceita a versão nova.
+
+**Por que importa para quem treina**
+- Deixa claro, em poucas palavras, para que serve o app e quando procurar um médico ou um profissional de Educação Física.
+
+**Como usar**
+- Na próxima abertura, aceite os termos novos.
+
+**Ideias de vídeo**
+- Nenhuma: é um ajuste de texto.
+
+**Não prometer**
+- Continua valendo a seção 4b do guia: nada de "personal", "prescrição" ou "liberado para treinar", e **não fale da formação de ninguém** nos vídeos.
+
+---
+
 ## 2026-11-02a — Mais segurança: questionário de saúde e botão de socorro
 
 **Em uma frase:** antes de treinar, o app faz 7 perguntas de saúde (o questionário usado no mundo todo antes de se exercitar), e o treino ganhou um botão "Passando mal?" que liga para o SAMU.
@@ -23,7 +44,7 @@
 **O que mudou**
 - **Questionário de saúde (PAR-Q)**: 7 perguntas de sim ou não. Se alguma der sim, o app recomenda falar com um médico antes de começar ou aumentar a atividade. Volta a cada 12 meses e pode ser refeito em Ajustes. As respostas ficam só no celular.
 - **🆘 Passando mal?**: no fim da tela do treino, mostra o que fazer e o botão de ligar para o SAMU (192). Também funciona pela voz: "Jarvis, estou passando mal", "Jarvis, socorro", "Jarvis, dor no peito".
-- **Termos de Uso novos**: deixam claro que o Treino Livre é uma ferramenta para registrar e organizar o treino, que o criador não é médico nem profissional de Educação Física, e que o app é só para maiores de 18 anos. Todo mundo aceita de novo.
+- **Termos de Uso novos**: deixam claro que o Treino Livre é uma ferramenta para registrar e organizar o treino, que não substitui o médico nem o profissional de Educação Física, e que o app é só para maiores de 18 anos. Todo mundo aceita de novo.
 - A câmera avisa que a contagem e as dicas são automáticas e podem errar.
 
 **Por que importa para quem treina**

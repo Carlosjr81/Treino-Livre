@@ -104,7 +104,7 @@ console.log("\n--- os termos de uso ---");
   const paragrafos = [].concat.apply([], T.secoes.map((s) => s[1]));
   const faltam = paragrafos.concat(T.secoes.map((s) => s[0]), T.resumo.map((r) => r[2])).filter((p) => pagina.indexOf(esc(p)) < 0);
   teste("o termos.html tem o mesmo texto do app", [], faltam.map((p) => p.slice(0, 40)));
-  const [a, m, d] = T.versao.split("-");
+  const [a, m, d] = T.versao.slice(0, 10).split("-");
   teste("o termos.html diz a versão de agora", true, pagina.indexOf("Versão de " + d + "/" + m + "/" + a) >= 0);
   teste("a saúde dos termos é o aviso de saúde do app", true, AVISO_SAUDE.completo.every((p) => paragrafos.indexOf(p) >= 0));
   teste("duas caixas de aceite: termos e saúde", [true, true], [/Termos de Uso/.test(T.caixas[0]) && /18 anos/.test(T.caixas[0]), /médico/.test(T.caixas[1])]);
@@ -115,7 +115,8 @@ console.log("\n--- os termos de uso ---");
   // as defesas de 2026-11-02 (ver juridico/BASE-LEGAL.md)
   eval(pedaco("const PRONTIDAO = {", "\n// Os Termos de Uso") + "\nglobalThis.PQ = PRONTIDAO; globalThis.EMG = EMERGENCIA;");
   const todo = paragrafos.join(" ");
-  teste("os termos dizem que o criador não é médico nem profissional de Educação Física", true, /não é médico nem profissional de Educação Física/.test(todo) && /Lei 9\.696\/1998/.test(todo) && /Lei 12\.842\/2013/.test(todo));
+  teste("os termos dizem que o app é ferramenta e não oferece atendimento de médico nem de profissional de Educação Física", true, /não oferece atendimento de médico nem de profissional de Educação Física/.test(todo) && /Lei 9\.696\/1998/.test(todo) && /Lei 12\.842\/2013/.test(todo));
+  teste("nenhum texto fala da formação do criador (pedido do dono)", false, /criador (do app|dele) não é/.test(todo + " " + T.caixas.join(" ") + " " + T.resumo.map((r) => r[2]).join(" ")));
   teste("só maiores de 18 (sem a brecha dos 13 a 17 anos)", [false, true], [/13 e 17/.test(todo), /só para maiores de 18 anos/.test(todo)]);
   teste("a caixa de aceite não abre exceção para menor", false, /responsável/.test(T.caixas[0]));
   teste("o questionário de prontidão: as 7 perguntas do PAR-Q e duas saídas para quem disse sim", [7, 2], [PQ.perguntas.length, PQ.declaracaoSim.length]);

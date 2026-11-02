@@ -17,7 +17,7 @@ function pedaco(de, ate) {
 eval(pedaco("const AVISO_SAUDE = {", "\nconst GUIA_CONECTAR = [") + "\nglobalThis.T = TERMOS_USO;");
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const [a, m, d] = T.versao.split("-");
+const [a, m, d] = T.versao.slice(0, 10).split("-");
 const linhas = [];
 linhas.push(`<!doctype html>
 <html lang="pt-BR">

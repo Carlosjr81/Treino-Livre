@@ -263,8 +263,13 @@ leia antes de mexer em texto de saúde, termos ou divulgação.
   nos termos, nas caixas de aceite e no aviso de saúde. **Nunca escreva**
   "personal", "prescrição", "avaliação física", "liberado para treinar" nem
   promessa de resultado, nem apresente o dono como profissional.
-- **Termos 2026-11-02**: o criador "não é médico nem profissional de Educação
-  Física", as duas leis citadas, **só maiores de 18** (saiu a brecha dos 13 a
+- **Termos 2026-11-02b**: o app "não oferece atendimento de médico nem de
+  profissional de Educação Física" e não substitui esses profissionais. **Não
+  escreva nada sobre a formação do criador** (nem que tem, nem que não tem):
+  pedido do dono, que não quer entregar isso de bandeja a quem quiser
+  processá-lo; o que protege é dizer o que o app é e o aceite disso. A versão
+  pode ter letra (`2026-11-02b`): a data são os 10 primeiros caracteres.
+  As duas leis citadas, **só maiores de 18** (saiu a brecha dos 13 a
   17 anos: não havia como conferir a autorização dos pais), o questionário e o
   SAMU. O `termos.html` agora sai de **`node testes/gerar-termos.js`**, que
   também cria `termos-versoes/<versão>.txt` (e nunca o reescreve).
@@ -619,7 +624,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v165) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v166) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |

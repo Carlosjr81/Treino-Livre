@@ -1,8 +1,7 @@
 # Treino Livre — base legal e defesas (saúde, profissão e dados)
 
 > **Não é parecer jurídico.** É o levantamento feito com o Claude (IA) em
-> 02/11/2026 para o dono do app, Carlos Jr., que não é médico nem profissional
-> de Educação Física. Serve para organizar a conversa com um advogado, que é
+> 02/11/2026 para o dono do app. Serve para organizar a conversa com um advogado, que é
 > quem pode dar a palavra final. Leis mudam: confira a versão em vigor.
 
 ## 1. O risco, em uma frase
@@ -46,8 +45,9 @@ responder por um dano a quem treinou seguindo uma sugestão.
 1. **"Ferramenta, não profissional", com as leis citadas.** Os termos (versão
    2026-11-02) dizem que o Treino Livre é uma ferramenta de registro,
    organização e informação geral; que não faz avaliação física, diagnóstico,
-   prescrição individual nem acompanhamento; que **o criador não é médico nem
-   profissional de Educação Física e não se apresenta como tal**; e mandam
+   prescrição individual nem acompanhamento; que **não oferece atendimento de
+   médico nem de profissional de Educação Física** (versão 2026-11-02b: sem
+   frase sobre a formação do criador, a pedido dele); e mandam
    procurar esses profissionais (Leis 9.696/1998 e 12.842/2013). A caixa de
    aceite repete isso.
 2. **Só maiores de 18 anos.** Saiu a brecha "de 13 a 17 com autorização dos

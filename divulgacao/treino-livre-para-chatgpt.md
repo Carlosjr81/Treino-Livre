@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-01f**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-02a**.
 
 ---
 
@@ -482,6 +482,8 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
   relógio sincroniza).
 - ❌ Não grava GPS com a tela bloqueada (é um app de navegador: a tela precisa ficar ligada; existe o modo bolso).
 - ❌ Não é avaliação física nem prescrição médica; a correção de postura é um "parceiro atento", não um profissional.
+- ❌ Desde 2026-11-02a o app é **só para maiores de 18 anos**, e pede o **questionário de saúde (PAR-Q)** antes
+  de usar. Não faça conteúdo voltado a menores de idade.
 - ❌ Não existe nuvem nem sincronização entre aparelhos (o backup é por arquivo). Desde 2026-10-28f existe **conta**
   (nome, e-mail e senha) com o acesso liberado pelo criador do app; ela guarda só o acesso, não os treinos.
 - ❌ Não está nas lojas (Play Store / App Store): instala-se pelo navegador ("Adicionar à tela inicial") ou, no
@@ -491,6 +493,23 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 - ❌ A conexão com esteira, bike, elíptico, escada e remo **não funciona no iPhone** (a Apple não libera
   Bluetooth para sites) e só vale para aparelhos com o Bluetooth padrão de academia (FTMS) — muita
   máquina grande só fala com o app da própria marca. Sem conexão, digita-se o painel.
+
+### 4b. Regras de linguagem por causa da lei (obrigatórias em todo vídeo, legenda e post)
+O criador do app **não é profissional de Educação Física nem médico**, e a lei reserva a orientação de
+exercício ao profissional registrado no CREF (Lei 9.696/1998) e o diagnóstico ao médico (Lei 12.842/2013).
+Por isso, em qualquer peça:
+- **Nunca diga:** "personal", "personal trainer", "seu treinador", "professor", "consultoria", "prescrição",
+  "treino prescrito", "avaliação física", "diagnóstico", "liberado para treinar", "garantido", "resultado em X
+  dias", "perca X kg". Nada de antes e depois prometendo resultado. Nada de dieta, cardápio ou suplemento.
+- **Nunca apresente o Carlos Jr. como** profissional de Educação Física, nutricionista ou médico. Ele é o
+  criador do app.
+- **Diga assim:** "ferramenta para registrar e organizar o seu treino", "o app sugere", "sugestão automática
+  baseada em estudos", "informação educativa".
+- **Em todo vídeo que mostra sugestão, treino pronto, ajuste ou aula**, ponha na tela ou na legenda:
+  "Consulte um médico antes de começar. Procure um profissional de Educação Física para montar e acompanhar
+  o seu treino."
+- Pode (e é bom) mostrar as proteções: o questionário de saúde de 7 perguntas, o botão "🆘 Passando mal?" que
+  liga para o SAMU, e o aviso de que a câmera é automática.
 
 ## 5. Como instalar (para tutoriais)
 - **Android (Chrome):** abrir o link → tocar em "Baixar o app" / "Instalar" → confirmar.

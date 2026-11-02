@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-11-02a — Mais segurança: questionário de saúde e botão de socorro
+
+**Em uma frase:** antes de treinar, o app faz 7 perguntas de saúde (o questionário usado no mundo todo antes de se exercitar), e o treino ganhou um botão "Passando mal?" que liga para o SAMU.
+
+**O que mudou**
+- **Questionário de saúde (PAR-Q)**: 7 perguntas de sim ou não. Se alguma der sim, o app recomenda falar com um médico antes de começar ou aumentar a atividade. Volta a cada 12 meses e pode ser refeito em Ajustes. As respostas ficam só no celular.
+- **🆘 Passando mal?**: no fim da tela do treino, mostra o que fazer e o botão de ligar para o SAMU (192). Também funciona pela voz: "Jarvis, estou passando mal", "Jarvis, socorro", "Jarvis, dor no peito".
+- **Termos de Uso novos**: deixam claro que o Treino Livre é uma ferramenta para registrar e organizar o treino, que o criador não é médico nem profissional de Educação Física, e que o app é só para maiores de 18 anos. Todo mundo aceita de novo.
+- A câmera avisa que a contagem e as dicas são automáticas e podem errar.
+
+**Por que importa para quem treina**
+- Segurança primeiro: quem tem algum problema de saúde é lembrado de procurar um médico antes, e quem passa mal no meio do treino tem o SAMU a um toque.
+
+**Como usar**
+- Na primeira abertura depois de atualizar, aceite os termos novos e responda as 7 perguntas. No treino, o botão "🆘 Passando mal? Toque aqui" fica embaixo do "Finalizar treino".
+
+**Ideias de vídeo**
+- "O app de treino que se preocupa com você": mostrar o questionário e o botão de socorro.
+- "Jarvis, estou passando mal": mostrar a tela de socorro (sem ligar de verdade).
+
+**Não prometer**
+- O questionário **não é exame nem diagnóstico**, e o app **não substitui médico nem profissional de Educação Física**. O app **não chama o SAMU sozinho**: ele mostra o botão para a pessoa ligar.
+- Nos vídeos, nunca diga "personal", "prescrição" ou "liberado para treinar". Veja as regras de linguagem no guia (seção 4b).
+
+---
+
 ## 2026-11-01f — O app não diz mais "sem cadastro"
 
 **Em uma frase:** os textos do app pararam de dizer "sem cadastro", porque hoje o Treino Livre tem conta (grátis, com aprovação do criador ou pelo Google).

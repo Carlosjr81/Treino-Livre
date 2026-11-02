@@ -796,6 +796,47 @@ const AVISO_SAUDE = {
   falado: "Um aviso importante. Esta análise foi feita pelo app, com auxílio de inteligência artificial, a partir dos estudos científicos citados. Ela é uma orientação geral e educativa, não uma prescrição de treino, e não substitui o médico nem o profissional de Educação Física. Antes de mudar o seu treino, consulte um médico. E se sentir dor, tontura ou falta de ar, pare na hora.",
 };
 
+// O Questionário de Prontidão para Atividade Física, baseado no PAR-Q (as 7
+// perguntas de triagem usadas no mundo todo antes de se exercitar). Defesa do
+// dono: quem disse "sim" foi mandado ao médico antes de treinar, e a
+// declaração que a pessoa marcou fica registrada (só a declaração: as
+// respostas são dado de saúde e ficam no aparelho). Mudou o texto, suba a
+// versão: todo mundo responde de novo.
+const PRONTIDAO = {
+  versao: "2026-11-02",
+  validadeDias: 365,
+  perguntas: [
+    "Algum médico já disse que você tem um problema no coração e que só deve fazer atividade física recomendada por um médico?",
+    "Você sente dor no peito quando faz atividade física?",
+    "No último mês, você sentiu dor no peito sem estar fazendo atividade física?",
+    "Você já perdeu o equilíbrio por causa de tontura, ou já desmaiou?",
+    "Você tem algum problema nos ossos ou nas articulações (coluna, joelho, quadril, ombro) que poderia piorar com a atividade física?",
+    "Algum médico receita remédio para a sua pressão ou para o seu coração?",
+    "Você está grávida, teve parto ou cirurgia recente, ou sabe de qualquer outro motivo pelo qual não deveria fazer atividade física?",
+  ],
+  fonte: "Baseado no PAR-Q (Questionário de Prontidão para Atividade Física), usado no mundo todo como triagem antes de começar a se exercitar. Não é um exame nem um diagnóstico.",
+  conselhoSim: "Converse com um médico antes de começar ou aumentar a atividade física, e leve a ele as perguntas que tiveram sim. Até lá, prefira atividades leves, como caminhar, e pare se sentir qualquer desconforto.",
+  conselhoNao: "Você pode começar a se exercitar, de forma gradual: comece leve e aumente aos poucos. Mesmo assim, consultar um médico antes é sempre o mais seguro. Se a sua saúde mudar, refaça este questionário.",
+  declaracaoNao: "Respondi com sinceridade e não tive nenhuma resposta sim. Se a minha saúde mudar, vou refazer o questionário e procurar um médico.",
+  declaracaoSim: [
+    "Tive alguma resposta sim e já tenho a liberação do meu médico para fazer atividade física.",
+    "Tive alguma resposta sim e vou consultar um médico antes de começar ou mudar o meu treino. Se eu treinar antes disso, é por minha conta e risco.",
+  ],
+};
+// O socorro: o que fazer quando alguém passa mal treinando
+const EMERGENCIA = {
+  numero: "192",
+  nome: "SAMU",
+  passos: [
+    "Pare o exercício agora.",
+    "Sente-se ou deite-se num lugar seguro e chame alguém que esteja por perto.",
+    "Dor ou aperto no peito, falta de ar forte, desmaio, fala enrolada ou fraqueza de um lado do corpo: ligue já para o SAMU, no 192.",
+    "Tontura ou mal-estar que não passa em poucos minutos: procure atendimento médico.",
+    "Não volte a treinar hoje sem falar com um médico.",
+  ],
+  falado: "Pare o exercício agora. Sente-se ou deite-se e chame alguém por perto. Se tiver dor no peito, falta de ar forte ou desmaio, ligue já para o SAMU, um nove dois. Abri na tela o botão para ligar.",
+};
+
 // Os Termos de Uso (pedido do dono: "faça o termo de uso com aceite no
 // cadastro, bem legal, que precise do aceite"). Um texto só: a tela de aceite,
 // o cadastro, os Ajustes e o termos.html (que o teste-acesso.js confere que
@@ -803,11 +844,11 @@ const AVISO_SAUDE = {
 // todo mundo vê os termos de novo e precisa aceitar outra vez.
 // Não é parecer jurídico: é o que dá para escrever sem um advogado.
 const TERMOS_USO = {
-  versao: "2026-10-29",
+  versao: "2026-11-02",
   resumo: [
     ["\u{1F193}", "Grátis, com acesso liberado", "O app é gratuito. A conta precisa da liberação do criador do app, que pode pôr prazo ou bloquear quem descumprir estas regras. Se um dia houver plano pago, você é avisado antes, e nada é cobrado sem o seu aceite."],
-    ["\u{1FA7A}", "Saúde em primeiro lugar", "Consulte um médico antes de começar ou mudar o seu treino. Sentiu dor no peito, tontura ou falta de ar, pare na hora."],
-    ["\u{1F916}", "Sugestões com inteligência artificial", "Análises e treinos prontos são automáticos, feitos com auxílio de IA a partir de estudos. São orientação educativa, não prescrição, e não substituem o profissional de Educação Física."],
+    ["\u{1FA7A}", "Saúde em primeiro lugar", "Antes de usar, você responde 7 perguntas de saúde. Consulte um médico antes de começar ou mudar o seu treino. Sentiu dor no peito, tontura ou falta de ar, pare na hora e ligue 192."],
+    ["\u{1F916}", "Uma ferramenta, não um profissional", "O app registra e organiza o seu treino. As sugestões são automáticas, feitas com auxílio de IA a partir de estudos: informação educativa, não prescrição. O criador do app não é médico nem profissional de Educação Física."],
     ["\u{1F4F1}", "Os seus treinos são seus", "Eles ficam no seu celular, não num servidor. Faça backup: se o aparelho se perder, o app não tem como recuperar."],
     ["\u{1F3C3}", "Atenção na rua e na esteira", "Na rua, o trânsito vem antes do app. Na esteira conectada, você define a velocidade máxima, e o botão de parar da máquina é sempre seu."],
     ["\u{1F91D}", "Respeito", "Nada de conta falsa, apelido ofensivo ou usar os desafios para incomodar alguém."],
@@ -818,16 +859,19 @@ const TERMOS_USO = {
     ["1. O que é o Treino Livre", [
       "O Treino Livre é um aplicativo para registrar e acompanhar treinos de musculação, aeróbico, funcional e corrida, com recursos de voz, de câmera, de conexão com aparelhos e de sugestão de treino. Ele é criado e mantido por Carlos Jr. (Instagram @carlos.jr.81), chamado aqui de criador do app, e funciona no site carlosjr81.github.io/Treino-Livre e no app Android.",
       "Estes Termos de Uso são as regras para usar o app. A Política de Privacidade explica o que acontece com os seus dados e faz parte destes termos.",
+      "O Treino Livre é uma ferramenta de registro, organização e informação geral, que você usa com autonomia. Ele não é um serviço de saúde nem de Educação Física: não faz avaliação física, diagnóstico, prescrição individual de exercício nem acompanhamento de ninguém. O criador do app não é médico nem profissional de Educação Física e não se apresenta como tal. A orientação de exercício é atividade do profissional de Educação Física registrado no CREF (Lei 9.696/1998), e o diagnóstico e o tratamento de doenças são atos do médico (Lei 12.842/2013): para isso, procure esses profissionais.",
     ]],
     ["2. O seu aceite", [
       "Para usar o app você precisa ler e aceitar estes termos. Ao marcar as caixas de aceite e tocar no botão de aceitar, você declara que leu, entendeu e concorda com eles. O app guarda a data e a versão do seu aceite, no seu aparelho e na sua conta.",
       "Se não concordar com alguma parte, não use o app.",
     ]],
     ["3. Quem pode usar", [
-      "O app é para maiores de 18 anos. Quem tem entre 13 e 17 anos só pode usar com a autorização e o acompanhamento dos pais ou do responsável legal, que aceitam estes termos por ele. Menores de 13 anos não podem criar conta.",
+      "O app é só para maiores de 18 anos. Ao aceitar estes termos, você declara ter 18 anos ou mais. Menores de idade não podem criar conta nem usar o app.",
       "Use o app só se a sua saúde permite praticar atividade física. Gestantes e pessoas com doença do coração, pressão alta, diabetes, lesões, cirurgia recente ou qualquer outra condição de saúde precisam da liberação do médico antes.",
     ]],
     ["4. Saúde e segurança", AVISO_SAUDE.completo.concat([
+      "Antes de usar, o app pede que você responda o Questionário de Prontidão para Atividade Física, baseado no PAR-Q, usado no mundo todo como triagem antes de se exercitar. Ele não é um exame nem um diagnóstico. Se alguma resposta for sim, procure um médico antes de começar ou aumentar a atividade física. As suas respostas ficam só no seu aparelho; o app guarda, junto com a sua conta, apenas a declaração que você marcou no fim, com a data, para registrar que o aviso foi dado. O questionário é pedido de novo a cada 12 meses e pode ser refeito quando quiser, em Ajustes. Se a sua saúde mudar, refaça.",
+      "Em caso de dor ou aperto no peito, falta de ar forte, desmaio ou mal-estar que não passa: pare na hora e ligue para o SAMU, no 192. O app tem um botão de socorro no treino, e o Jarvis atende a \"Jarvis, estou passando mal\".",
       "Na rua, preste atenção ao trânsito, aos pedestres e ao caminho: nenhuma voz, mapa ou desafio do app vale mais que a sua segurança. Use o fone num volume que deixe ouvir o que acontece em volta. As histórias e os monstros do Monster, Run! são ficção, e nenhuma fala deles é ordem de direção.",
       "Na esteira conectada por Bluetooth, você escolhe a velocidade máxima, e o app nunca passa dela. Mesmo assim, fique atento: o botão de parada e a chave de segurança da esteira são sempre o jeito mais rápido de parar. Não use o controle automático se não se sentir seguro.",
       "A contagem de repetições pela câmera, a correção de postura e os números de aparelhos, relógios e cintas podem errar. Confira o que for importante.",
@@ -875,8 +919,8 @@ const TERMOS_USO = {
   ],
   // as duas caixas de aceite (o cadastro e a tela de aceite)
   caixas: [
-    "Li e aceito os Termos de Uso e a Política de Privacidade, e tenho 18 anos ou mais (ou a autorização do meu responsável).",
-    "Entendo que o app não substitui o médico nem o profissional de Educação Física, e vou consultar um médico antes de começar ou mudar o meu treino.",
+    "Li e aceito os Termos de Uso e a Política de Privacidade, e tenho 18 anos ou mais.",
+    "Entendo que o app é uma ferramenta de registro e informação, que o criador dele não é médico nem profissional de Educação Física, que as sugestões não substituem esses profissionais, e vou consultar um médico antes de começar ou mudar o meu treino.",
   ],
 };
 
@@ -1470,7 +1514,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-01f";
+const VERSAO_APP = "2026-11-02a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3612,6 +3656,8 @@ function criarBolso(snapInicial, catalogo) {
       }
       case "ajuda":
         return { falar: "Com a tela travada eu anoto as séries, conto o descanso e digo o que vem. Diga: Jarvis, 80 por 10. Jarvis, repete. Jarvis, quanto falta. Ou: Jarvis, pula o descanso." };
+      case "malEstar":
+        return { falar: "Pare o exercício agora. Sente-se ou deite-se e chame alguém por perto. Se tiver dor no peito, falta de ar forte ou desmaio, ligue já para o SAMU, um nove dois." };
       case "desligar":
         return { falar: "Desliguei a escuta da tela travada. Destrave para continuar pelo app.", parar: true };
       case "scanner": case "oculos":
@@ -6908,7 +6954,10 @@ function interpretarVoz(fala, ctx) {
   if (tem(/\b(modo treino|modo aprendiz|treinar os comandos|praticar os comandos|quero praticar|me ensina|aprender os comandos|escola do jarvis|escola de comandos)\b/)) return { tipo: "escola" };
   // "nenhum comando mesmo" abria a ajuda: a palavra sozinha não é um pedido.
   // Agora precisa vir acompanhada de quem pergunta.
-  if (tem(/\b(ajuda|socorro|me ajuda)\b/) ||
+  // Passar mal vem antes de tudo: "socorro" já foi pedido de ajuda com os
+  // comandos, e quem fala isso no treino precisa é do SAMU.
+  if (tem(/\b(passando mal|passei mal|to mal|estou mal|mal estar|dor no peito|aperto no peito|nao consigo respirar|falta de ar|tontura|to tonto|to tonta|estou tonto|estou tonta|vou desmaiar|desmai\w*|socorro|emergencia|samu|chama (a |uma )?ambulancia)\b/)) return { tipo: "malEstar" };
+  if (tem(/\b(ajuda|me ajuda)\b/) ||
       (tem(/\bcomandos?\b/) && tem(/\b(quais|qual|lista|listar|ver|mostra|mostrar|principais|todos|ensina|diz|fala|sao|existem|conhece)\b/)) ||
       tem(/\bo que (voce|vc) (faz|sabe)\b/) || tem(/\bo que (eu )?posso (dizer|falar|pedir)\b/) ||
       tem(/\bcomo (voce |vc )?(funciona|uso|usa)\b/) || tem(/\bcomo (eu )?(falo|peco|anoto|uso)\b/)) {
@@ -8463,6 +8512,7 @@ const PERGUNTA_SEGURA = {
   seriesGrupo: 1, ultimoTreino: 1, progresso: 1, medida: 1, ajuda: 1,
 };
 const ROTULO_TIPO = {
+  malEstar: "socorro: passando mal",
   anotar: "anotar uma série", descanso: "começar o descanso", pularDescanso: "pular o descanso",
   esticarDescanso: "esticar o descanso", proximo: "ir para o próximo exercício", anterior: "voltar um exercício",
   desfazer: "apagar a última série", recorde: "consultar o recorde", ultimaVez: "ver a última vez",
@@ -9928,6 +9978,9 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
                 {guia ? guia.texto : "Procurando você..."}
                 <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.72)", marginTop: 5 }}>
                   Vou avisar por voz quando estiver certo
+                </span>
+                <span style={{ display: "block", fontSize: 10.5, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>
+                  Contagem e dicas automáticas: podem errar e não substituem um profissional de Educação Física
                 </span>
               </div>
             </div>
@@ -27829,6 +27882,10 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       )}
 
       <button style={{ ...S.btn, marginTop: 4 }} onClick={finalizar}>Finalizar treino</button>
+      <button onClick={() => { if (ABRIR_EMERGENCIA) ABRIR_EMERGENCIA(); }}
+        style={{ background: "none", border: "none", color: "var(--perigo)", fontWeight: 800, fontSize: 13.5, cursor: "pointer", padding: "12px 0 2px", width: "100%" }}>
+        🆘 Passando mal? Toque aqui
+      </button>
       <button style={{ ...S.btnGhost, marginTop: 10, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }}
         onClick={() => pedirConfirmacao("Descartar este treino sem salvar?", onDescartar)}>
         Descartar
@@ -29017,6 +29074,31 @@ function CentralAjuda({ inicial, onFechar, onIr }) {
     </div>
   );
 }
+// O socorro, aberto de qualquer lugar (o botão do treino, a voz)
+let ABRIR_EMERGENCIA = null;
+function JanelaEmergencia({ onFechar }) {
+  return (
+    <div role="alertdialog" aria-modal="true" aria-label="Passando mal" onClick={onFechar}
+      style={{ position: "fixed", inset: 0, zIndex: 3500, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...S.card, maxWidth: 400, width: "100%", marginBottom: 0, borderColor: "var(--perigo)", maxHeight: "92vh", overflowY: "auto" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 40 }} aria-hidden="true">🆘</div>
+          <div style={{ fontSize: 20, fontWeight: 900, margin: "4px 0 10px" }}>Passando mal?</div>
+        </div>
+        <ol style={{ margin: "0 0 14px", paddingLeft: 22, fontSize: 15, lineHeight: 1.55 }}>
+          {EMERGENCIA.passos.map((p, i) => <li key={i} style={{ marginBottom: 6, fontWeight: i === 2 ? 800 : 500 }}>{p}</li>)}
+        </ol>
+        <a href={"tel:" + EMERGENCIA.numero} style={{ ...S.btn, display: "block", width: "100%", boxSizing: "border-box", textAlign: "center", textDecoration: "none", background: "#C62828", color: "#FFFFFF", fontSize: 18 }}>
+          📞 Ligar para o {EMERGENCIA.nome} ({EMERGENCIA.numero})
+        </a>
+        <button onClick={onFechar} style={{ ...S.btnGhost, width: "100%", marginTop: 10 }}>Estou bem, fechar</button>
+        <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5, textAlign: "center" }}>
+          O app não chama ninguém sozinho. Em caso de dúvida, ligue: o atendente do {EMERGENCIA.nome} orienta o que fazer.
+        </div>
+      </div>
+    </div>
+  );
+}
 // Abre a ajuda de qualquer lugar (um cartão, um aviso), como o ABRIR_GUIA.
 let ABRIR_AJUDA = null;
 const abrirAjuda = (onde) => { if (ABRIR_AJUDA) ABRIR_AJUDA(onde || ""); };
@@ -29656,6 +29738,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
   const cardioRef = useRef(null);
   const resumoCardioRef = useRef(null);
   const [ajudaVoz, setAjudaVoz] = useState(false);
+  // o socorro (SAMU 192): pela voz ou pelo botão do treino
+  const [emergencia, setEmergencia] = useState(false);
   const [diagVoz, setDiagVoz] = useState(false);
   const [guia, setGuia] = useState(false);
   const [problemaGuia, setProblemaGuia] = useState("");
@@ -30138,6 +30222,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
   MODO_DESCANSO = descansoModo;
   ABRIR_GUIA = (id, problema) => { setProblemaGuia(problema || ""); setGuia(id || ""); };
   ABRIR_AJUDA = (onde) => setAjuda(onde || "");
+  ABRIR_EMERGENCIA = () => setEmergencia(true);
   vozRef.current = voz;
   somRef.current = som;
   const todos = useMemo(() => [...EXERCICIOS, ...customEx], [customEx]);
@@ -30800,6 +30885,11 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
     anotarDiario(ouvido, "entendido: " + (ROTULO_TIPO[c.tipo] || c.tipo) + (comNome ? " (com o nome)" : " (sem o nome)"));
     registrarEvento("jarvis-comando");
 
+    if (c.tipo === "malEstar") {
+      setEmergencia(true);
+      mostrarVoz(bruto, EMERGENCIA.falado, true);
+      return;
+    }
     if (c.tipo === "ajuda") {
       // Quem pergunta no meio do treino está com o celular no bolso: a resposta
       // principal é falada, e a lista na tela é o complemento.
@@ -32157,6 +32247,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
         onEscola={() => { setAjudaVoz(false); setAba("escolaVoz"); }}
         onDiagnostico={() => { setAjudaVoz(false); setDiagVoz(true); }}
         falaLigada={voz.falar} onAlternarFala={() => setVoz((v) => ({ ...v, falar: !v.falar }))} />
+      {emergencia && <JanelaEmergencia onFechar={() => setEmergencia(false)} />}
       {ajuda !== null && <CentralAjuda inicial={ajuda} onFechar={() => setAjuda(null)} onIr={(d) => {
         if (d.indexOf("guia:") === 0) { setProblemaGuia(""); setGuia(d.slice(5)); return; }
         if (d === "backup") { baixarBackup(); return; }
@@ -32500,7 +32591,7 @@ function csvContas(lista, agora, cob) {
 }
 // O histórico de aceites dos termos, para o dono: o mais novo primeiro, e a
 // planilha (o registro que ele guarda para se defender, se um dia precisar)
-const ONDE_ACEITE = { cadastro: "No cadastro", tela: "Na tela de aceite", novos: "Na tela de aceite (termos novos)" };
+const ONDE_ACEITE = { cadastro: "No cadastro", tela: "Na tela de aceite", novos: "Na tela de aceite (termos novos)", prontidao: "No questionário de saúde (PAR-Q)" };
 function ordenarAceites(l) { return l.slice().sort((a, b) => (b.em || 0) - (a.em || 0)); }
 function dataHora(ms) { return ms ? new Date(ms).toLocaleString("pt-BR") : ""; }
 function csvAceites(lista) {
@@ -32925,6 +33016,110 @@ function TelaAceiteTermos({ onAceitar, onSair }) {
   );
 }
 
+// O questionário de prontidão (PAR-Q). As respostas ficam só no aparelho; o
+// registro na conta (aceites/, que só o dono lê) leva só a declaração marcada.
+const CHAVE_PRONTIDAO = "treinolivre:prontidao";
+function lerProntidao() { try { return JSON.parse(localStorage.getItem(CHAVE_PRONTIDAO) || "null"); } catch (e) { return null; } }
+function prontidaoValida(agora) {
+  const p = lerProntidao();
+  return !!(p && p.v === PRONTIDAO.versao && (agora || Date.now()) - p.em < PRONTIDAO.validadeDias * 86400000);
+}
+function gravarProntidao(p) { try { localStorage.setItem(CHAVE_PRONTIDAO, JSON.stringify(p)); } catch (e) {} return p; }
+function declaracaoProntidao(p) {
+  if (!p) return "";
+  return p.r === "sim" ? PRONTIDAO.declaracaoSim[p.d] || "" : PRONTIDAO.declaracaoNao;
+}
+let registrandoProntidao = false;
+async function registrarProntidao(nome) {
+  const p = lerProntidao();
+  if (!p || p.reg || registrandoProntidao || !acessoLigado()) return;
+  registrandoProntidao = true;
+  try {
+    const s = await tokenValido(lerSessaoConta());
+    if (!s || !s.uid) return;
+    let hash = "";
+    try {
+      const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(PRONTIDAO)));
+      hash = Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, "0")).join("");
+    } catch (e) {}
+    const campos = { conta: s.uid, email: s.email, nome: nome || s.nome || "", termos: "PAR-Q " + PRONTIDAO.versao, em: p.em, de: "prontidao",
+      caixas: declaracaoProntidao(p), hash: hash,
+      aparelho: aparelhoDe(navigator.userAgent, NO_APP_ANDROID), versaoApp: VERSAO_APP, navegador: String(navigator.userAgent || "").slice(0, 300) };
+    try { await contaApi.registrarAceite(s.uid + "_" + p.em, campos, s.idToken); }
+    catch (x) { if (!/ALREADY_EXISTS/.test(x.message)) throw x; }
+    gravarProntidao(Object.assign({}, p, { reg: true }));
+  } catch (e) {} finally { registrandoProntidao = false; }
+}
+// A tela do questionário: uma pergunta por vez, sim ou não, e no fim o
+// conselho e a declaração. Sem ela, o app não abre (e volta a cada 12 meses).
+function TelaProntidao({ onPronto, onSair, onCancelar }) {
+  const [resp, setResp] = useState([]);
+  const [decl, setDecl] = useState(-1);
+  const i = resp.length, fim = i >= PRONTIDAO.perguntas.length;
+  const algumSim = resp.some((x) => x);
+  const dorNoPeito = resp[1] || resp[2];
+  const concluir = () => {
+    const p = gravarProntidao({ v: PRONTIDAO.versao, em: Date.now(), r: algumSim ? "sim" : "nao", d: algumSim ? decl : 0, reg: false });
+    registrarProntidao();
+    onPronto(p);
+  };
+  const pronto = algumSim ? decl >= 0 : decl === 0;
+  return (
+    <CaixaConta>
+      <div style={{ textAlign: "center", margin: "6px 0 12px" }}>
+        <div style={{ fontSize: 40 }} aria-hidden="true">🩺</div>
+        <div style={{ fontSize: 20, fontWeight: 900 }}>Antes de treinar: 7 perguntas de saúde</div>
+        <div style={{ color: "var(--cinza)", fontSize: 13.5, marginTop: 4, lineHeight: 1.5 }}>{PRONTIDAO.fonte}</div>
+      </div>
+      {!fim ? (
+        <div style={{ ...S.card }}>
+          <div style={{ fontSize: 12, color: "var(--cinza)", fontWeight: 800 }}>Pergunta {i + 1} de {PRONTIDAO.perguntas.length}</div>
+          <div style={{ height: 5, borderRadius: 3, background: "var(--borda2)", margin: "6px 0 14px", overflow: "hidden" }}>
+            <div style={{ width: (i / PRONTIDAO.perguntas.length) * 100 + "%", height: "100%", background: GRAD }} />
+          </div>
+          <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.45, minHeight: 74 }}>{PRONTIDAO.perguntas[i]}</div>
+          <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+            <button onClick={() => setResp(resp.concat(true))} style={{ ...S.btnGhost, flex: 1, fontSize: 17, fontWeight: 900, padding: "14px 0" }}>Sim</button>
+            <button onClick={() => setResp(resp.concat(false))} style={{ ...S.btnGhost, flex: 1, fontSize: 17, fontWeight: 900, padding: "14px 0" }}>Não</button>
+          </div>
+          {i > 0 && <button onClick={() => setResp(resp.slice(0, -1))} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 700, cursor: "pointer", fontSize: 13, marginTop: 12 }}>← Voltar uma pergunta</button>}
+        </div>
+      ) : (
+        <div style={{ ...S.card, borderColor: algumSim ? "var(--perigo)" : "var(--ok)" }}>
+          <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 6 }}>{algumSim ? "⚠ Fale com um médico antes" : "✅ Nenhuma resposta sim"}</div>
+          <div style={{ fontSize: 14, lineHeight: 1.55 }}>{algumSim ? PRONTIDAO.conselhoSim : PRONTIDAO.conselhoNao}</div>
+          {dorNoPeito && (
+            <div style={{ fontSize: 13.5, lineHeight: 1.5, marginTop: 10, color: "var(--perigo)", fontWeight: 800 }}>
+              Dor no peito é sinal de alerta. Se estiver sentindo agora, ligue para o SAMU no 192.
+            </div>
+          )}
+          <div style={{ marginTop: 12 }}>
+            {(algumSim ? PRONTIDAO.declaracaoSim : [PRONTIDAO.declaracaoNao]).map((txt, k) => (
+              <label key={k} style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer", fontSize: 13.5, lineHeight: 1.5, padding: "7px 0" }}>
+                <input type={algumSim ? "radio" : "checkbox"} name="decl-prontidao" checked={decl === k}
+                  onChange={(e) => setDecl(algumSim ? k : (e.target.checked ? 0 : -1))}
+                  style={{ width: 22, height: 22, flex: "0 0 22px", marginTop: 1, accentColor: "var(--marca)" }} />
+                <span>{txt}</span>
+              </label>
+            ))}
+          </div>
+          <button disabled={!pronto} onClick={concluir} style={{ ...S.btn, width: "100%", marginTop: 10, opacity: pronto ? 1 : 0.45 }}>Continuar</button>
+          {!pronto && <div style={{ fontSize: 12, color: "var(--cinza)", textAlign: "center", marginTop: 8 }}>{algumSim ? "Escolha a frase que vale para você." : "Marque a declaração para continuar."}</div>}
+          <button onClick={() => { setResp([]); setDecl(-1); }} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 700, cursor: "pointer", fontSize: 13, marginTop: 10 }}>↺ Responder de novo</button>
+        </div>
+      )}
+      <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 6, textAlign: "center" }}>
+        As respostas ficam só no seu celular. O app guarda com a sua conta apenas a frase que você marcar no fim, com a data.
+      </div>
+      {(onSair || onCancelar) && (
+        <div style={{ textAlign: "center" }}>
+          <button onClick={onCancelar || onSair} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 700, cursor: "pointer", fontSize: 13, marginTop: 4 }}>{onCancelar ? "Voltar" : "Sair"}</button>
+        </div>
+      )}
+    </CaixaConta>
+  );
+}
+
 // Quem está dentro, para os Ajustes (o cartão da conta e o painel do dono).
 // Ponteiro de módulo, como o CONTROLE_AULA: o porteiro está acima de tudo.
 let CONTA_ATUAL = null;
@@ -32941,6 +33136,7 @@ function Porteiro({ children }) {
   const [pendentes, setPendentes] = useState(0);
   const [recado, setRecado] = useState(null);
   const [aceito, setAceito] = useState(termosAceitos);
+  const [prontoSaude, setProntoSaude] = useState(() => prontidaoValida());
   const [pagPend, setPagPend] = useState(0);
   const [assinando, setAssinando] = useState(false);
   const [avisoVence, setAvisoVence] = useState(null);
@@ -32988,6 +33184,8 @@ function Porteiro({ children }) {
       // e o do aparelho sobe para a conta (aceitou no cadastro)
       if (d && d.termos === TERMOS_USO.versao && !termosAceitos()) { gravarAceiteTermos(d.termosEm, "", true); setAceito(true); }
       else if (termosAceitos() && d && (d.termos !== TERMOS_USO.versao || !lerAceiteTermos().reg)) registrarAceite(d.termos !== TERMOS_USO.versao, d.nome);
+      // o questionário de saúde que ainda não subiu (sem rede na hora)
+      if (prontidaoValida() && !lerProntidao().reg) registrarProntidao(d && d.nome);
       if (status === "liberado" && !contou.current) {
         contou.current = true;
         vistoEm.current = agora;
@@ -33047,9 +33245,10 @@ function Porteiro({ children }) {
 
   if (MODO_OCULOS || MODO_BOLSO || MODO_CORRIDA) { CONTA_ATUAL = null; return children; }
   const aceitar = (de) => { gravarAceiteTermos(Date.now(), de); setAceito(true); if (ligado) registrarAceite(true); };
-  if (!ligado) { CONTA_ATUAL = null; return aceito ? children : <TelaAceiteTermos onAceitar={aceitar} />; }
+  if (!ligado) { CONTA_ATUAL = null; return !aceito ? <TelaAceiteTermos onAceitar={aceitar} /> : !prontoSaude ? <TelaProntidao onPronto={() => setProntoSaude(true)} /> : children; }
   const s = lerSessaoConta();
   if (fase === "dentro" && !aceito) { CONTA_ATUAL = null; return <TelaAceiteTermos onAceitar={aceitar} onSair={sair} />; }
+  if (fase === "dentro" && !prontoSaude) { CONTA_ATUAL = null; return <TelaProntidao onPronto={() => setProntoSaude(true)} onSair={sair} />; }
   if (fase === "dentro") {
     CONTA_ATUAL = s ? { email: s.email, nome: s.nome, uid: s.uid, ate: s.ate || 0, dono: ehEmailDono(s.email) && !!s.verificado, sair: sair,
       cob: s.cob || null, plano: s.conta ? planoDaConta(s.conta, Date.now(), s.cob) : null, assinar: () => setAssinando(true) } : null;
@@ -33543,7 +33742,9 @@ function TelaEsperaConta({ fase, sessao, msg, onConferir, onConferirQuieto, onSa
 // Os termos nos Ajustes: quando foram aceitos, e o texto a um toque
 function CartaoTermos() {
   const [lendo, setLendo] = useState(false);
+  const [refazendo, setRefazendo] = useState(false);
   const a = lerAceiteTermos();
+  const p = refazendo ? null : lerProntidao();
   return (
     <div style={S.card}>
       <div style={S.label}>Termos de Uso</div>
@@ -33554,6 +33755,17 @@ function CartaoTermos() {
       </div>
       <button onClick={() => setLendo(true)} style={{ ...S.btnGhost, width: "100%", marginTop: 10 }}>📜 Ler os Termos de Uso</button>
       {lendo && <JanelaTermos onFechar={() => setLendo(false)} />}
+      <div style={{ fontSize: 13.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 14 }}>
+        🩺 <b style={{ color: "var(--texto)" }}>Questionário de saúde (PAR-Q):</b>{" "}
+        {p ? "respondido em " + new Date(p.em).toLocaleDateString("pt-BR") + (p.r === "sim" ? ", com alguma resposta sim: procure um médico antes de treinar." : ", sem nenhuma resposta sim.") : "ainda não respondido."}
+        {" "}Vale por 12 meses. A sua saúde mudou? Refaça.
+      </div>
+      <button onClick={() => setRefazendo(true)} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>🩺 Refazer o questionário de saúde</button>
+      {refazendo && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 3000, background: "var(--bg)", overflowY: "auto" }}>
+          <TelaProntidao onPronto={() => setRefazendo(false)} onCancelar={() => setRefazendo(false)} />
+        </div>
+      )}
     </div>
   );
 }

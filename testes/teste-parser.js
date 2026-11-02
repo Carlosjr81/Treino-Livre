@@ -57,6 +57,17 @@ t("jarves anota 80 por 10", { jarvis: true, tipo: "anotar", peso: 80, reps: 10 }
 t("Charles, descanso de 2 minutos", { jarvis: true, tipo: "descanso", segundos: 120 });
 t("anote 80 por 10", { jarvis: false, tipo: "anotar" });
 
+console.log("--- socorro: passando mal vem antes de tudo ---");
+t("Jarvis, estou passando mal", { tipo: "malEstar" });
+t("Jarvis, socorro", { tipo: "malEstar" });
+t("Jarvis, tô com dor no peito", { tipo: "malEstar" });
+t("Jarvis, estou com falta de ar", { tipo: "malEstar" });
+t("Jarvis, acho que vou desmaiar", { tipo: "malEstar" });
+t("Jarvis, chama o SAMU", { tipo: "malEstar" });
+t("Jarvis, quais são os comandos", { tipo: "ajuda" });
+t("Jarvis, anote 80 por 10", { tipo: "anotar" });
+t("Jarvis, supino reto 60 por 12", { tipo: "anotar" });
+
 console.log("--- descanso ---");
 t("Jarvis, descanso de 2 minutos", { tipo: "descanso", segundos: 120 });
 t("Jarvis, descanso de 90 segundos", { tipo: "descanso", segundos: 90 });

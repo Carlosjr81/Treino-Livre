@@ -112,6 +112,19 @@ console.log("\n--- os termos de uso ---");
   teste("o app não abre sem o aceite", true, html.indexOf('if (fase === "dentro" && !aceito)') >= 0);
   teste("as regras deixam a pessoa gravar o aceite", true, /'termos', 'termosEm'/.test(require("fs").readFileSync(require("path").join(__dirname, "..", "firebase", "firestore.rules"), "utf8")));
   teste("nenhum parágrafo fala em prescrever pelo app", [], paragrafos.filter((p) => /o app prescreve|prescrição do app/i.test(p)));
+  // as defesas de 2026-11-02 (ver juridico/BASE-LEGAL.md)
+  eval(pedaco("const PRONTIDAO = {", "\n// Os Termos de Uso") + "\nglobalThis.PQ = PRONTIDAO; globalThis.EMG = EMERGENCIA;");
+  const todo = paragrafos.join(" ");
+  teste("os termos dizem que o criador não é médico nem profissional de Educação Física", true, /não é médico nem profissional de Educação Física/.test(todo) && /Lei 9\.696\/1998/.test(todo) && /Lei 12\.842\/2013/.test(todo));
+  teste("só maiores de 18 (sem a brecha dos 13 a 17 anos)", [false, true], [/13 e 17/.test(todo), /só para maiores de 18 anos/.test(todo)]);
+  teste("a caixa de aceite não abre exceção para menor", false, /responsável/.test(T.caixas[0]));
+  teste("o questionário de prontidão: as 7 perguntas do PAR-Q e duas saídas para quem disse sim", [7, 2], [PQ.perguntas.length, PQ.declaracaoSim.length]);
+  teste("quem disse sim é mandado ao médico", true, /médico/.test(PQ.conselhoSim) && PQ.declaracaoSim.every((d) => /médico/.test(d)));
+  teste("o app não abre sem o questionário de saúde", true, html.indexOf("if (fase === \"dentro\" && !prontoSaude)") >= 0 && /!prontoSaude \? <TelaProntidao/.test(html));
+  teste("o registro do questionário leva a declaração, não as respostas", true, /de: "prontidao",\s*caixas: declaracaoProntidao\(p\)/.test(html) && !/resp(ostas)?: resp/.test(html));
+  teste("as regras aceitam o registro do questionário (os mesmos campos do aceite)", true, /hasOnly\(\['conta', 'email', 'nome', 'termos', 'em', 'de', 'caixas', 'hash'/.test(require("fs").readFileSync(require("path").join(__dirname, "..", "firebase", "firestore.rules"), "utf8")));
+  teste("o socorro liga para o SAMU 192", [ "192", true ], [EMG.numero, html.indexOf("\"tel:\" + EMERGENCIA.numero") >= 0]);
+  teste("o treino tem o botão de socorro", true, html.indexOf("🆘 Passando mal? Toque aqui") >= 0);
 
   // a cópia exata da versão de agora: mudou o texto, tem de subir a versão
   const arq = require("path").join(__dirname, "..", "termos-versoes", T.versao + ".txt");

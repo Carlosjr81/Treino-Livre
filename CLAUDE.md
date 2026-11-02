@@ -248,6 +248,51 @@ possíveis, para eu não ter problemas de processos por estar indicando treino".
 - Coberto em `teste-volume.js` (os áudios terminam com o aviso, sem til nem
   parênteses).
 
+## A defesa legal: ferramenta, não profissional (`PRONTIDAO`, `TelaProntidao`, `EMERGENCIA`, `juridico/`)
+
+Pedido do dono (2026-11-02a): "verifique na lei tudo que preciso de avisos para
+não sofrer sanções por não ser profissional de Educação Física nem médico, e
+implemente as defesas". O levantamento (leis, riscos, o que foi feito, o que
+fica com o advogado e como falar do app) está em **`juridico/BASE-LEGAL.md`**:
+leia antes de mexer em texto de saúde, termos ou divulgação.
+
+- **A regra de fundo:** a orientação de exercício é do profissional com CREF
+  (Lei 9.696/1998; o CONFEF, na Resolução 542/2024, chama de "teleaula" a
+  prescrição por aplicativo) e o diagnóstico é do médico (Lei 12.842/2013). O
+  app é **ferramenta de registro, organização e informação geral**, e diz isso
+  nos termos, nas caixas de aceite e no aviso de saúde. **Nunca escreva**
+  "personal", "prescrição", "avaliação física", "liberado para treinar" nem
+  promessa de resultado, nem apresente o dono como profissional.
+- **Termos 2026-11-02**: o criador "não é médico nem profissional de Educação
+  Física", as duas leis citadas, **só maiores de 18** (saiu a brecha dos 13 a
+  17 anos: não havia como conferir a autorização dos pais), o questionário e o
+  SAMU. O `termos.html` agora sai de **`node testes/gerar-termos.js`**, que
+  também cria `termos-versoes/<versão>.txt` (e nunca o reescreve).
+- **O questionário de prontidão (PAR-Q)**, `PRONTIDAO` no primeiro script, as
+  7 perguntas de triagem. Vem depois dos termos no `Porteiro` (também com o
+  porteiro desligado) e volta a cada 12 meses (`validadeDias`); refaz-se em
+  Ajustes › Termos de Uso. Sim manda ao médico, e a pessoa escolhe a
+  declaração ("já tenho a liberação" ou "vou consultar; antes disso, por minha
+  conta e risco"). **As respostas ficam só no aparelho**
+  (`treinolivre:prontidao`); sobe só a declaração, pelo mesmo cofre dos
+  aceites (`aceites/`, `de: "prontidao"`, `termos: "PAR-Q <versão>"`,
+  `hash` do questionário), **sem mudar as regras do Firestore** (são os
+  mesmos campos). Sem rede, sobe na próxima conferida do porteiro. Mudou uma
+  pergunta, suba `PRONTIDAO.versao`.
+- **O socorro** (`EMERGENCIA`, `JanelaEmergencia`, `ABRIR_EMERGENCIA`):
+  "🆘 Passando mal? Toque aqui" embaixo do Finalizar do treino, e o Jarvis
+  (`tipo: "malEstar"`, que vem **antes** da ajuda: "socorro" deixou de abrir
+  a lista de comandos) mostra os passos e "Ligar para o SAMU (192)"
+  (`tel:192`). Com a tela travada, o Jarvis do bolso fala o mesmo.
+- O Eyes Scan diz, no enquadramento, que a contagem e as dicas são
+  automáticas e não substituem um profissional.
+- A privacidade ganhou o questionário (dado sensível, LGPD art. 11, II, "d"),
+  "só maiores de 18" e os direitos do titular (art. 18).
+- Coberto por `teste-acesso.js` (os termos, os 18 anos, o PAR-Q, o registro
+  só da declaração, as regras, o SAMU) e `teste-parser.js` (o socorro pela
+  voz). No navegador: o questionário com sim na dor no peito, e o socorro no
+  treino.
+
 ## Os Termos de Uso (`TERMOS_USO`, `TelaAceiteTermos`, `termos.html`)
 
 Pedido do dono (2026-10-29b): "faça o termo de uso com aceite no cadastro, bem
@@ -574,7 +619,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v164) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v165) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |

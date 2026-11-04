@@ -51,6 +51,8 @@ teste("quem espera em cima (o mais novo primeiro), bloqueados no fim", ["b", "e"
 const r = A.resumoContas(contas, agora);
 teste("as contas do topo do painel", [5, 2, 2, 1], [r.total, r.pendente, r.liberado, r.bloqueado]);
 teste("filtro: só quem espera", ["b", "e"], A.filtrarContas(contas, "pendente", "").map((c) => c.uid));
+teste("cada número do painel bate com a lista dele", true, ["online", "hoje", "ativos7", "sumidos", "pendente", "bloqueado", "vencendo"].every((f) =>
+  A.filtrarContas(contas, f, "", agora).length === r[f]));
 teste("busca por nome ou e-mail, sem caixa", ["d"], A.filtrarContas(contas, "todos", "DUDA").map((c) => c.uid));
 
 console.log("\n--- o aparelho e os erros ---");

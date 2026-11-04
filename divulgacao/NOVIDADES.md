@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-11-02c — O app em inglês, e o ▶ da esteira que não para
+
+**Em uma frase:** agora dá para usar o Treino Livre em inglês, e a caminhada na esteira continua contando mesmo saindo do app.
+
+**O que mudou**
+- **🇧🇷 Português ou 🇺🇸 English**: escolha em ⚙ Ajustes › Preferências, ou no topo da tela de criar a conta. Início, treino, fichas, histórico, ajustes, exercícios (com o nome em inglês de cada um), cadastro, questionário de saúde e o botão de socorro saem em inglês.
+- **O ▶ da esteira não para mais quando você sai do app**: dá para ir ao WhatsApp ou a outro app no meio da caminhada; na volta o tempo continua de onde estava, e se acabou enquanto você estava fora, a série já aparece marcada. Vale também para o descanso entre as séries.
+
+**Por que importa para quem treina**
+- Amigos e alunos que falam inglês já podem usar o app.
+- Ninguém mais perde a caminhada na esteira por responder uma mensagem.
+
+**Como usar**
+- Inglês: ⚙ Ajustes › Preferências › 🌐 Idioma › English. O app recarrega já em inglês.
+- Esteira: toque no ▶ da série e use o celular à vontade.
+
+**Ideias de vídeo**
+- "Treino Livre now in English": mostrar a troca de idioma e a tela inicial em inglês.
+- "Respondi o WhatsApp no meio da esteira": sair do app, voltar, e o tempo continuando.
+
+**Não prometer**
+- A voz do Jarvis continua em **português** (ele fala e entende só português), e o texto completo dos Termos de Uso também. Algumas telas mais fundas e os textos longos da ajuda ainda estão em português.
+- Continua valendo a seção 4b do guia: nada de "personal", "prescrição" ou "liberado para treinar".
+
+---
+
 ## 2026-11-02b — Termos de Uso com texto ajustado
 
 **Em uma frase:** os Termos de Uso ganharam uma redação nova sobre o que o app é: uma ferramenta de registro e informação, que não substitui o médico nem o profissional de Educação Física.

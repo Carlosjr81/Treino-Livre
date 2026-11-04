@@ -366,7 +366,15 @@
   </div>
 </noscript>
 <script>
-/* A única exceção a "só dados aqui": o ouvido do canal com o app Android.
+/* Uma das duas exceções a "só dados aqui". O idioma (pedido do dono, 2026-11-02c): português do Brasil ou inglês dos
+   EUA, escolhido em Ajustes ou na tela de entrar. Em inglês, o dicionário
+   (idioma-en.js) entra aqui, antes de o app desenhar: é ele que troca o texto
+   da tela. Quem usa em português não baixa nem um byte dele. */
+var IDIOMA = (function () { try { return localStorage.getItem("treinolivre:idioma") === "en" ? "en" : "pt"; } catch (e) { return "pt"; } })();
+function mudarIdioma(id) { try { localStorage.setItem("treinolivre:idioma", id === "en" ? "en" : "pt"); } catch (e) {} location.reload(); }
+if (IDIOMA === "en") { document.documentElement.lang = "en"; document.write('<script src="idioma-en.js"><\/script>'); }
+
+/* A outra exceção a "só dados aqui": o ouvido do canal com o app Android.
    O app (Canal.kt) entrega uma porta de mensagens logo que a página termina de
    carregar — antes de o Babel acabar de compilar o app. Escutando só no
    segundo script, a porta se perderia. Por ela chega a imagem dos óculos. */
@@ -1514,7 +1522,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-02b";
+const VERSAO_APP = "2026-11-02c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -13230,6 +13238,12 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, descans
 
       <div id="aj-pref" style={{ ...S.card, scrollMarginTop: 90 }}>
         <div style={{ ...S.label, marginBottom: 14 }}>Preferências</div>
+
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>🌐 Idioma <span translate="no" style={{ color: "var(--cinza)", fontWeight: 400 }}>/ Language</span></div>
+          <EscolhaIdioma />
+          {IDIOMA === "en" && <div translate="no" style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 6, lineHeight: 1.5 }}>The Jarvis voice assistant still speaks and listens in Portuguese, and a few long help texts are not translated yet.</div>}
+        </div>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 18 }}>
           <span style={{ fontSize: 15, fontWeight: 700 }}>Tema</span>
@@ -25669,6 +25683,40 @@ function PainelCardio({ it, ex, historico, exPorId, pesoCorporal, vozCfg, onCorr
   );
 }
 
+// O ▶ das séries de tempo e o descanso valem pelo relógio de parede, e ficam
+// guardados fora da tela (relato do dono, 2026-11-02c: caminhando na esteira
+// sem Bluetooth, saiu para outro app e, na volta, a caminhada tinha sumido).
+// Com o app atrás de outro por muito tempo o Android descarta a aba, e a tela
+// do treino volta do zero: o treino estava salvo, o ▶ não. Agora ele volta
+// contando de onde estava, e se o tempo acabou lá fora, a série é marcada.
+const CHAVE_RELOGIOS = "treinolivre:relogios";
+function lerRelogiosSessao(sessao, agora) {
+  try {
+    const r = JSON.parse(localStorage.getItem(CHAVE_RELOGIOS) || "null");
+    if (!r || !sessao || !sessao.itens || r.s !== sessao.inicio) return {};
+    const out = {};
+    const c = r.crono;
+    if (c) {
+      // o exercício pode ter mudado de lugar: acha pelo uid
+      let ei = sessao.itens.findIndex((it) => it && it.uid === c.uid);
+      if (ei < 0 && sessao.itens[c.ei] && !c.uid) ei = c.ei;
+      const se = ei >= 0 && (sessao.itens[ei].series || [])[c.si];
+      if (se && !se.feito && c.fim > c.inicio) out.crono = { ei: ei, si: c.si, inicio: c.inicio, fim: c.fim, bolso: !!c.bolso };
+    }
+    if (r.desc && r.desc.fim > agora) out.desc = r.desc;
+    return out;
+  } catch (e) { return {}; }
+}
+function gravarRelogiosSessao(sessao, crono, desc, bolso) {
+  try {
+    if (!sessao || (!crono && !desc)) { localStorage.removeItem(CHAVE_RELOGIOS); return; }
+    const it = crono && sessao.itens[crono.ei];
+    localStorage.setItem(CHAVE_RELOGIOS, JSON.stringify({ s: sessao.inicio,
+      crono: crono ? { ei: crono.ei, si: crono.si, uid: it && it.uid, inicio: crono.inicio, fim: crono.fim, bolso: !!bolso } : null,
+      desc: desc || null }));
+  } catch (e) {}
+}
+
 function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, descanso, setDescanso, som, setSom, onFinalizar, onDescartar, onVoltar, pedirConfirmacao, pesoCorporal,
   bpm, cardioEstado, onConectarCardio, onDesconectarCardio, vozCfg, contarAlto, onAlternarContagem,
   autoSerie, onAlternarAuto, onEspelho,
@@ -25700,11 +25748,13 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   const [mostrarAdd, setMostrarAdd] = useState(false);
   const [demo, setDemo] = useState(null);        // exercício aberto na demonstração
   const [trocando, setTrocando] = useState(null); // índice do exercício sendo substituído
-  const [crono, setCrono] = useState(null);       // isometria em andamento: { ei, si, fim }
-  const [restaCrono, setRestaCrono] = useState(0);
+  const relogiosSalvos = useRef(null);
+  if (!relogiosSalvos.current) relogiosSalvos.current = lerRelogiosSessao(sessao, Date.now());
+  const [crono, setCrono] = useState(() => relogiosSalvos.current.crono || null); // ▶ em andamento: { ei, si, inicio, fim }
+  const [restaCrono, setRestaCrono] = useState(() => (relogiosSalvos.current.crono ? Math.max(0, Math.ceil((relogiosSalvos.current.crono.fim - Date.now()) / 1000)) : 0));
   const [buscaEx, setBuscaEx] = useState("");
-  const [fimDescanso, setFimDescanso] = useState(null);
-  const [totalDescanso, setTotalDescanso] = useState(descanso);
+  const [fimDescanso, setFimDescanso] = useState(() => (relogiosSalvos.current.desc ? relogiosSalvos.current.desc.fim : null));
+  const [totalDescanso, setTotalDescanso] = useState(() => (relogiosSalvos.current.desc ? relogiosSalvos.current.desc.total || descanso : descanso));
   const [agora, setAgora] = useState(Date.now());
   const [avisou, setAvisou] = useState(false);
   const ultimoBipe = useRef(null);
@@ -25833,6 +25883,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     // tela. Saber que passou da metade é o que faz aguentar o resto.
     const total = Math.max(1, Math.round((crono.fim - crono.inicio) / 1000) || 0);
     const avisado = { km: 0 };
+    if (crono.bolso && !cronoNoBolso.current) cronoNoBolso.current = crono.inicio;
     // Na esteira o aviso é outro: cada quilômetro, a metade com a distância, e o
     // último minuto. A pessoa está olhando para a frente, de fone, e o painel
     // da esteira não diz quanto falta da série que ela combinou.
@@ -25851,6 +25902,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       const feito = total - resta;
       if (cardio) {
         const km = Math.floor((kmh * feito) / 3600);
+        if (avisado.km0 === undefined) { avisado.km0 = true; avisado.km = km; if (feito > 5) { avisado.meio = feito > meio; avisado.dez = resta < 60; } }
         const fg = AO_VIVO_GRUPO.tick({ t: perfilCrono === "corrida" ? "esteira-corrida" : perfilCrono === "caminhada" || !perfilCrono ? "esteira-caminhada" : "aparelho",
           km: (kmh * feito) / 3600, seg: feito, v: kmh, nm: exCrono && perfilCrono !== "corrida" && perfilCrono !== "caminhada" ? exCrono.nome : "" });
         const b = resta > 30 ? bol.quando(feito, (kmh * feito) / 3.6, Date.now() - (avisado.em || 0) > 15000) : null;
@@ -26104,6 +26156,10 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   };
   // O ▶ que o app conduz (fala os avisos e o boletim com a tela travada)
   const cronoNoBolso = useRef(0);
+  useEffect(() => {
+    gravarRelogiosSessao(sessao, crono, fimDescanso ? { fim: fimDescanso, total: totalDescanso } : null, crono && cronoNoBolso.current === crono.inicio);
+  // eslint-disable-next-line
+  }, [crono, fimDescanso, totalDescanso]);
   const pararCrono = () => {
     if (crono && cronoNoBolso.current === crono.inicio) {
       cronoNoBolso.current = 0;
@@ -32477,8 +32533,8 @@ function resumoContas(lista, agora, cob) {
     r[s]++;
     if (filtroConta(c, "pagantes", agora, cob)) r.pagantes++;
     if (filtroConta(c, "cortesia", agora, cob)) r.cortesia++;
-    if (c.ultimoAcesso && agora - c.ultimoAcesso < 7 * 864e5) r.ativos7++;
-    if (c.ultimoAcesso && c.ultimoAcesso >= inicioHoje.getTime()) r.hoje++;
+    if (filtroConta(c, "ativos7", agora)) r.ativos7++;
+    if (filtroConta(c, "hoje", agora)) r.hoje++;
     if (onlineAgora(c, agora)) r.online++;
     if (filtroConta(c, "sumidos", agora)) r.sumidos++;
     if (filtroConta(c, "vencendo", agora)) r.vencendo++;
@@ -32493,6 +32549,8 @@ function filtroConta(c, filtro, agora, cob) {
   if (filtro === "pagantes") { const t = planoDaConta(c, agora, cob).tipo; return t === "pago" || t === "vitalicio"; }
   if (filtro === "cortesia") return planoDaConta(c, agora, cob).tipo === "cortesia";
   if (filtro === "online") return onlineAgora(c, agora);
+  if (filtro === "hoje") { const d = new Date(agora); d.setHours(0, 0, 0, 0); return !!c.ultimoAcesso && c.ultimoAcesso >= d.getTime(); }
+  if (filtro === "ativos7") return !!c.ultimoAcesso && agora - c.ultimoAcesso < 7 * 864e5;
   if (filtro === "sumidos") return s === "liberado" && (!c.ultimoAcesso || agora - c.ultimoAcesso > SUMIDO_MS);
   if (filtro === "vencendo") return s === "vencido" || (s === "liberado" && c.ate > 0 && c.ate - agora < 7 * 864e5);
   return s === filtro;
@@ -32911,10 +32969,31 @@ async function registrarAceite(naConta, nome) {
   } catch (e) {} finally { registrandoAceite = false; }
 }
 
+// A escolha do idioma: troca e recarrega (o dicionário entra antes do app).
+// Os nomes ficam na própria língua, e fora da tradução.
+function EscolhaIdioma({ compacto }) {
+  const b = (id, rot) => (
+    <button onClick={() => { if (IDIOMA !== id) mudarIdioma(id); }} aria-pressed={IDIOMA === id}
+      style={{ flex: 1, padding: compacto ? "6px 8px" : "10px 8px", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: compacto ? 12 : 13.5,
+        border: "1px solid " + (IDIOMA === id ? "var(--marca)" : "var(--borda2)"), background: IDIOMA === id ? "var(--marca)" : "transparent", color: IDIOMA === id ? "#fff" : "var(--texto)" }}>{rot}</button>
+  );
+  return (
+    <div translate="no" className="notranslate" role="group" aria-label="Idioma / Language" style={{ display: "flex", gap: 6, maxWidth: compacto ? 260 : "none", margin: compacto ? "0 auto 10px" : 0 }}>
+      {b("pt", "🇧🇷 Português")}
+      {b("en", "🇺🇸 English")}
+    </div>
+  );
+}
+
 // Os termos para ler: o resumo em cartões e o texto completo
 function TextoTermos({ soResumo }) {
   return (
     <div>
+      {IDIOMA === "en" && (
+        <div translate="no" style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, border: "1px solid var(--borda2)", borderRadius: 12, padding: "8px 10px", marginBottom: 10 }}>
+          🇺🇸 The cards and the checkboxes are translated to help you read them. The full Terms are governed by Brazilian law and stay in Portuguese, which is the version that applies.
+        </div>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {TERMOS_USO.resumo.map((r) => (
           <div key={r[1]} style={{ border: "1px solid var(--borda2)", borderRadius: 14, padding: "10px 10px 11px", background: "var(--card)" }}>
@@ -32925,7 +33004,7 @@ function TextoTermos({ soResumo }) {
         ))}
       </div>
       {!soResumo && TERMOS_USO.secoes.map((s) => (
-        <div key={s[0]} style={{ marginTop: 16 }}>
+        <div key={s[0]} translate="no" style={{ marginTop: 16 }}>
           <div style={{ fontWeight: 900, fontSize: 15, color: "var(--marca)", marginBottom: 4 }}>{s[0]}</div>
           {s[1].map((p, i) => <p key={i} style={{ margin: "0 0 8px", fontSize: 13.5, lineHeight: 1.6 }}>{p}</p>)}
         </div>
@@ -32988,6 +33067,7 @@ function TelaAceiteTermos({ onAceitar, onSair }) {
   const pronto = marcas[0] && marcas[1];
   return (
     <CaixaConta>
+      <EscolhaIdioma compacto />
       <div style={{ textAlign: "center", margin: "6px 0 14px" }}>
         <div style={{ fontSize: 40 }} aria-hidden="true">📜</div>
         <div style={{ fontSize: 20, fontWeight: 900 }}>{antes ? "Os termos de uso mudaram" : "Antes de começar, o combinado"}</div>
@@ -33253,7 +33333,6 @@ function Porteiro({ children }) {
     CONTA_ATUAL = s ? { email: s.email, nome: s.nome, uid: s.uid, ate: s.ate || 0, dono: ehEmailDono(s.email) && !!s.verificado, sair: sair,
       cob: s.cob || null, plano: s.conta ? planoDaConta(s.conta, Date.now(), s.cob) : null, assinar: () => setAssinando(true) } : null;
     const app = CONTA_ATUAL && CONTA_ATUAL.dono ? React.cloneElement(children, { contaPendentes: pendentes, contaPagamentos: pagPend, onContaVista: () => { setPendentes(0); setPagPend(0); } }) : children;
-    if (!recado && !assinando && !avisoVence) return app;
     const fecharAviso = () => { try { localStorage.setItem("treinolivre:avisoVence", new Date().toDateString()); } catch (x) {} setAvisoVence(null); };
     return (
       <React.Fragment>
@@ -33410,6 +33489,7 @@ function TelaConta({ onEntrou, msgInicial }) {
     : "Entre com o e-mail e a senha da sua conta.";
   return (
     <CaixaConta>
+      <EscolhaIdioma compacto />
       <div style={{ textAlign: "center", margin: "6px 0 16px" }}>
         <div style={{ fontSize: 20, fontWeight: 900 }}>{titulo}</div>
         <div style={{ color: "var(--cinza)", fontSize: 14, marginTop: 4, lineHeight: 1.5 }}>{sub}</div>
@@ -34311,12 +34391,21 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
       style={{ flex: "1 1 auto", padding: "8px 8px", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 12.5,
         border: "1px solid " + (filtro === id ? "var(--marca)" : "var(--borda2)"), background: filtro === id ? "var(--marca)" : "transparent", color: filtro === id ? "#fff" : "var(--texto)" }}>{rot}{n ? " (" + n + ")" : ""}</button>
   );
+  const irParaLista = (f) => {
+    setFiltro(f); setBusca("");
+    setTimeout(() => { const el = document.getElementById("painel-lista"); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60);
+  };
   const numero = (n, rot, f) => (
-    <button onClick={() => setFiltro(f)} style={{ flex: "1 1 30%", textAlign: "center", padding: "8px 4px", background: "none", border: "none", color: "var(--texto)", cursor: "pointer" }}>
+    <button onClick={() => irParaLista(f)} aria-pressed={filtro === f} aria-label={n + " " + rot + ": ver a lista"}
+      style={{ flex: "1 1 30%", textAlign: "center", padding: "8px 4px", margin: 2, borderRadius: 12, cursor: "pointer", color: "var(--texto)",
+        background: filtro === f ? "rgba(225,48,108,0.12)" : "none", border: "1px solid " + (filtro === f ? "var(--marca)" : "transparent") }}>
       <div style={{ fontSize: 22, fontWeight: 900 }}>{n}</div>
-      <div style={{ fontSize: 11, color: "var(--cinza)" }}>{rot}</div>
+      <div style={{ fontSize: 11, color: filtro === f ? "var(--marca)" : "var(--cinza)", fontWeight: filtro === f ? 800 : 400 }}>{rot} ›</div>
     </button>
   );
+  const NOME_FILTRO = { todos: "Todas as contas", pendente: "Aguardando a sua liberação", liberado: "Liberadas", online: "Online agora", hoje: "Entraram hoje",
+    ativos7: "Ativas nos últimos 7 dias", sumidos: "Sumidas há 30 dias ou mais", vencendo: "Prazo vencendo ou vencido", bloqueado: "Bloqueadas",
+    pagantes: "Pagantes", cortesia: "Com cortesia", pagar: "Precisam pagar" };
   const pequeno = { ...S.btnGhost, flex: "1 1 45%", padding: "8px 6px", fontSize: 12.5 };
   if (verAceites) return <HistoricoAceites buscaInicial={verAceites.busca} onVoltar={() => setVerAceites(null)} />;
   if (verPagamentos) return <HistoricoPagamentos lista={pagamentos} buscaInicial={verPagamentos.busca} onVoltar={() => setVerPagamentos(null)}
@@ -34331,8 +34420,8 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
           {numero(r.total, "contas", "todos")}
           {numero(r.pendente, "aguardando", "pendente")}
           {numero(r.online, "online agora", "online")}
-          {numero(r.hoje, "entraram hoje", "todos")}
-          {numero(r.ativos7, "ativas em 7 dias", "liberado")}
+          {numero(r.hoje, "entraram hoje", "hoje")}
+          {numero(r.ativos7, "ativas em 7 dias", "ativos7")}
           {numero(r.sumidos, "sumidas 30+ dias", "sumidos")}
         </div>
         <button onClick={carregar} style={{ ...S.btnGhost, width: "100%", marginTop: 6, fontSize: 13 }}>🔄 Atualizar a lista</button>
@@ -34359,11 +34448,13 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
       </div>
 
       {erro && <div role="alert" style={{ ...S.card, color: "var(--perigo)", fontSize: 13.5 }}>{erro}</div>}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+      <div id="painel-lista" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8, scrollMarginTop: 12 }}>
         {chip("todos", "Todos")}
         {chip("pendente", "⏳ Aguardando", r.pendente)}
         {chip("liberado", "✅ Liberados")}
         {chip("online", "🟢 Online", r.online)}
+        {chip("hoje", "📅 Hoje", r.hoje)}
+        {chip("ativos7", "📈 7 dias", r.ativos7)}
         {chip("sumidos", "💤 Sumidos", r.sumidos)}
         {chip("vencendo", "⌛ Prazo", r.vencendo)}
         {chip("bloqueado", "⛔ Bloqueados", r.bloqueado)}
@@ -34373,6 +34464,10 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
       </div>
       <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou e-mail" aria-label="Buscar por nome ou e-mail" style={{ ...S.input, marginBottom: 10 }} />
       {lista === null && <div style={{ ...S.card, color: "var(--cinza)" }}>Carregando…</div>}
+      {lista && <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 2px 8px", fontSize: 13.5 }}>
+        <b style={{ flex: 1 }}>{NOME_FILTRO[filtro] || "Contas"} · {mostrar.length}</b>
+        {(filtro !== "todos" || busca) && <button onClick={() => { setFiltro("todos"); setBusca(""); }} style={{ background: "none", border: "none", color: "var(--marca)", fontWeight: 800, cursor: "pointer", fontSize: 13 }}>Ver todas</button>}
+      </div>}
       {lista && !mostrar.length && <div style={{ ...S.card, color: "var(--cinza)", fontSize: 13.5 }}>Nenhuma conta {filtro === "todos" ? "" : "nesta lista"} ainda.</div>}
       {mostrar.map((c) => {
         const sit = situacaoConta(c, agora, cob);

@@ -1,4 +1,4 @@
-// Roda as 29 suites e devolve um resumo.
+// Roda as 36 suites e devolve um resumo.
 //
 //   node rodar.js
 //
@@ -46,6 +46,7 @@ const SUITES = [
   ["teste-grupo", "o desafio entre amigos em grupo: números, ranking e o link"],
   ["teste-corrida-app", "a corrida do desafio conduzida pelo app (tela travada) e a voz com os nomes"],
   ["teste-descanso", "o descanso pela ciencia: o tipo de cada exercicio e quem manda"],
+  ["teste-idioma", "o app em ingles: o dicionario, os moldes e nunca meia frase"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");

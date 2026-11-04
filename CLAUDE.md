@@ -298,6 +298,84 @@ leia antes de mexer em texto de saúde, termos ou divulgação.
   voz). No navegador: o questionário com sim na dor no peito, e o socorro no
   treino.
 
+## Português ou inglês (`IDIOMA`, `idioma-en.js`, `EscolhaIdioma`)
+
+Pedido do dono (2026-11-02c): "quero a opção de escolher entre português do
+Brasil ou inglês dos EUA; faça de forma otimizada". O app continua **escrito
+em português**; o inglês é uma camada por cima, e é de propósito: reescrever
+7 mil textos com chaves de tradução num arquivo sem build seria mexer em cada
+tela do app pelo resultado que a camada já dá.
+
+- **A escolha** fica em `localStorage["treinolivre:idioma"]` ("pt" ou "en"),
+  lida no alto do primeiro script (`IDIOMA`, global). Trocar
+  (`mudarIdioma`) grava e recarrega. `EscolhaIdioma` aparece em Ajustes ›
+  Preferências e, pequeno, no topo da tela de entrar e da de aceitar os termos
+  (quem não lê português precisa achar antes de criar a conta).
+- **Quem usa em português não baixa nada a mais.** Só com "en" o primeiro
+  script escreve `<script src="idioma-en.js">` (`document.write`, para entrar
+  antes de o app desenhar e depois do catálogo). O `sw.js` guarda o arquivo:
+  funciona offline.
+- **`idioma-en.js`** tem o dicionário (`TEXTOS_EN`, texto exato → inglês), os
+  moldes para o que tem número ou nome dentro (`MOLDES_EN`: "8 exercícios",
+  "há 7 dias", "qua., 28 de out.", "Concluir a série 2 de X") e o motor: um
+  `MutationObserver` que troca cada nó de texto e os atributos
+  (placeholder, aria-label, title, alt) na hora em que o React desenha. Os
+  exercícios usam o nome em inglês do catálogo (`en`).
+- **Nunca meia frase.** Texto sem tradução fica inteiro em português. Frase
+  composta (vírgulas, " · ", várias frases) só é traduzida se **todas** as
+  partes tiverem tradução. Nome que é da pessoa (ficha, exercício próprio)
+  fica como ela escreveu.
+- **O que fica em português, de propósito**: o texto jurídico dos Termos
+  (`translate="no"` nas seções; vale a versão em português, lei brasileira, e
+  a tela diz isso em inglês; os cartões do resumo e as caixas são traduzidos
+  para ajudar a ler), o que a pessoa escreve, e **a voz do Jarvis** (fala e
+  ouve em português: o interpretador de voz é todo em português; os Ajustes
+  dizem isso em inglês). Elemento com `translate="no"` ou `notranslate` não
+  é traduzido.
+- **Texto novo numa tela**: acrescente a tradução em `TEXTOS_EN` (ou um
+  molde). A cobertura das telas principais foi medida colhendo os textos com o
+  `navegador.js` (`--mostrar … --salvar arq.json`): 582 de 616 traduzidos, e
+  o que faltou é nome próprio (Strong, Hevy, wger) ou já é igual em inglês.
+  **Ainda não traduzidos**: os textos longos da Central de Ajuda, as histórias
+  do Monster, Run!, as telas mais fundas (corredor, desafio, conectar
+  aparelhos) e o painel do dono.
+- Coberto por `teste-idioma.js` (o dicionário, os moldes, "nunca meia
+  frase", o carregamento só em inglês, o `sw.js`). No navegador:
+  `--antes ingles.js` com `localStorage.setItem("treinolivre:idioma","en")`
+  (o `navegador.js` agora serve o `idioma-en.js`).
+
+## O ▶ e o descanso sobrevivem a sair do app (`CHAVE_RELOGIOS`)
+
+Relato do dono (2026-11-02c): caminhando na esteira **sem Bluetooth** (o ▶
+da série de tempo), saiu do app para trabalhar em outro e, na volta, a
+caminhada tinha sido interrompida. O ▶ vivia só no estado da `TelaSessao`:
+com o app atrás de outro por muito tempo o Android descarta a aba, e a tela do
+treino volta do zero. O treino estava salvo; o ▶ e o descanso, não.
+
+- **`treinolivre:relogios`** guarda o ▶ (`ei`, `si`, o `uid` do item,
+  `inicio`, `fim`, se o app Android conduzia) e o descanso (`fim`,
+  `total`), com o `inicio` da sessão para não valer em outro treino. É
+  gravado a cada mudança (`gravarRelogiosSessao`) e lido na montagem
+  (`lerRelogiosSessao`): o ▶ volta contando pelo relógio de parede, e se o
+  tempo acabou lá fora, a série é marcada na volta. O exercício é achado pelo
+  `uid` (pode ter mudado de lugar). Os km já ditos não são repetidos.
+- **O porteiro devolve sempre a mesma árvore.** Ele trocava `app` por
+  `<Fragment>{app}{aviso}</Fragment>` quando chegava um recado do dono ou o
+  aviso de vencimento: o React desmontava o treino inteiro. Hoje é sempre o
+  Fragment.
+- Conferido no navegador: ▶ de 30 min começado 3 min antes da "aba
+  descartada" volta com 26:52; começado 31 min antes, a série volta marcada.
+
+## Os números do painel de usuários filtram a lista (`irParaLista`)
+
+Pedido do dono (2026-11-02c). Os números já mudavam o filtro, mas
+"entraram hoje" mostrava todos e "ativas em 7 dias" os liberados, e a lista
+fica embaixo da cobrança: o toque parecia não fazer nada. Hoje cada número
+tem o filtro dele (`hoje`, `ativos7` em `filtroConta`, e o
+`resumoContas` conta pelos mesmos filtros: o número e a lista nunca
+divergem), acende, rola até a lista, e a lista diz qual é ("Entraram hoje ·
+1", com "Ver todas"). Os chips ganharam 📅 Hoje e 📈 7 dias.
+
 ## Os Termos de Uso (`TERMOS_USO`, `TelaAceiteTermos`, `termos.html`)
 
 Pedido do dono (2026-10-29b): "faça o termo de uso com aceite no cadastro, bem
@@ -549,7 +627,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.179 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.744 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -624,9 +702,10 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v166) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v167) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
+| `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
 | `logo-treino-livre.webp` | O logo do app (halter, TREINO em vermelho na placa cromada, LIVRE cromado), recortado do último quadro da `abertura-v2.mp4` com fundo transparente (604×800, 48 KB). Usado na vinheta e no fim do resumo animado e do vídeo do story |
 | `abertura-v2.mp4` | A vinheta de abertura em vídeo (720×1280, 12 s, 1,8 MB, sem som), num cache próprio do `sw.js` (ver *A abertura*) |
@@ -5046,7 +5125,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 29 suítes (1.179 checagens)
+node testes/rodar.js      # as 36 suítes (1.744 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

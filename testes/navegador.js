@@ -17,6 +17,7 @@
 //   node testes/navegador.js --preencher "E-mail=ana@x.com"   digita no campo com esse rótulo
 //   node testes/navegador.js --antes falso.js      roda um script antes do app (ex.: uma voz de mentira)
 //   node testes/navegador.js --mostrar "window.__falado"   imprime o valor no fim
+//   node testes/navegador.js --mostrar "expr" --salvar v.json   e guarda o valor inteiro
 //
 // Não precisa de CDN: React, ReactDOM e Babel vêm do npm (registry.npmjs.org,
 // que a sessão do Claude na nuvem alcança), guardados numa pasta temporária.
@@ -90,6 +91,11 @@ async function doNpm(lib) {
     if (k) return r.fulfill({ status: 200, contentType: "text/javascript", body: libs[k] });
     // as imagens do próprio app (o logo, o avatar) vêm do repositório
     const local = u.indexOf(ENDERECO) === 0 && /\.(webp|png|jpe?g)$/.test(u.split("?")[0]) ? path.join(RAIZ, u.split("?")[0].slice(ENDERECO.length)) : null;
+    // o dicionário do inglês (idioma-en.js) é do repositório também
+    if (u.indexOf(ENDERECO) === 0 && /\/idioma-[a-z]+\.js$/.test(u.split("?")[0])) {
+      const js = path.join(RAIZ, u.split("?")[0].slice(ENDERECO.length));
+      if (fs.existsSync(js)) return r.fulfill({ status: 200, contentType: "text/javascript", body: fs.readFileSync(js) });
+    }
     if (local && fs.existsSync(local)) return r.fulfill({ status: 200, contentType: "image/" + (/png$/.test(local) ? "png" : /webp$/.test(local) ? "webp" : "jpeg"), body: fs.readFileSync(local) });
     // o resto (vídeo da abertura, mapa, contador de visitas) fica de fora: a
     // tela tem de desenhar sem eles, como num celular sem rede
@@ -140,7 +146,13 @@ async function doNpm(lib) {
     } catch (e) { erros.push("não achei para clicar: " + c); }
   }
   const mostrar = opcao("--mostrar");
-  if (mostrar) { await p.waitForTimeout(1500); console.log(mostrar + " = " + JSON.stringify(await p.evaluate(mostrar)).slice(0, 2000)); }
+  if (mostrar) {
+    await p.waitForTimeout(1500);
+    const valor = await p.evaluate(mostrar);
+    console.log(mostrar + " = " + JSON.stringify(valor).slice(0, 2000));
+    // --salvar arq.json: o valor inteiro num arquivo (a tela corta em 2000 letras)
+    if (opcao("--salvar")) fs.writeFileSync(opcao("--salvar"), JSON.stringify(valor, null, 1));
+  }
   const foto = opcao("--foto");
   if (foto) await p.screenshot({ path: foto, fullPage: args.indexOf("--pagina-inteira") >= 0 });
   const texto = (await p.locator("body").innerText()).replace(/\s*\n\s*/g, " / ");

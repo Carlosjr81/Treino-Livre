@@ -90,13 +90,13 @@ async function doNpm(lib) {
     const k = Object.keys(libs).find((n) => u.includes(n));
     if (k) return r.fulfill({ status: 200, contentType: "text/javascript", body: libs[k] });
     // as imagens do próprio app (o logo, o avatar) vêm do repositório
-    const local = u.indexOf(ENDERECO) === 0 && /\.(webp|png|jpe?g)$/.test(u.split("?")[0]) ? path.join(RAIZ, u.split("?")[0].slice(ENDERECO.length)) : null;
+    const local = u.indexOf(ENDERECO) === 0 && /\.(webp|png|jpe?g|svg)$/.test(u.split("?")[0]) ? path.join(RAIZ, u.split("?")[0].slice(ENDERECO.length)) : null;
     // o dicionário do inglês (idioma-en.js) é do repositório também
     if (u.indexOf(ENDERECO) === 0 && /\/idioma-[a-z]+\.js$/.test(u.split("?")[0])) {
       const js = path.join(RAIZ, u.split("?")[0].slice(ENDERECO.length));
       if (fs.existsSync(js)) return r.fulfill({ status: 200, contentType: "text/javascript", body: fs.readFileSync(js) });
     }
-    if (local && fs.existsSync(local)) return r.fulfill({ status: 200, contentType: "image/" + (/png$/.test(local) ? "png" : /webp$/.test(local) ? "webp" : "jpeg"), body: fs.readFileSync(local) });
+    if (local && fs.existsSync(local)) return r.fulfill({ status: 200, contentType: "image/" + (/png$/.test(local) ? "png" : /webp$/.test(local) ? "webp" : /svg$/.test(local) ? "svg+xml" : "jpeg"), body: fs.readFileSync(local) });
     // o resto (vídeo da abertura, mapa, contador de visitas) fica de fora: a
     // tela tem de desenhar sem eles, como num celular sem rede
     return r.abort();

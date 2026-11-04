@@ -35,7 +35,10 @@ nada neste aviso muda isso: React e ReactDOM (MIT), Babel (MIT), Leaflet
 (MIT), qrcode-generator (MIT), Piper e espeak-ng (licenças próprias dos projetos), as vozes do
 rhasspy/piper-voices (licença de cada voz), os mapas do OpenStreetMap
 (ODbL, © colaboradores do OpenStreetMap) e as imagens de exercícios do
-wger.de (Creative Commons BY-SA 4.0, com crédito no app). As bibliotecas
+wger.de (Creative Commons BY-SA 4.0, com crédito no app), e os desenhos
+de exercícios em exercicios-svg/, do projeto Everkinetic
+(github.com/everkinetic/data, Creative Commons BY-SA 4.0, com crédito no
+app; os arquivos são os originais, só com os números arredondados). As bibliotecas
 do app Android (AndroidX, Health Connect, Meta Wearables Device Access
 Toolkit) seguem as licenças dos seus fabricantes.
 

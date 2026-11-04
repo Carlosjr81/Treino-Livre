@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v167";
+const CACHE = "treinolivre-v168";
 const CACHE_VOZ = "treinolivre-voz";
 // As falas gravadas do Monster, Run! (vozes/*.mp3): baixadas quando a história
 // começa e guardadas fora do cache da versão, para não sumirem a cada atualização.
@@ -72,6 +72,16 @@ self.addEventListener("fetch", (e) => {
     const chave = url.origin + url.pathname;
     e.respondWith(caches.open(CACHE_MIDIA).then((c) => c.match(chave).then((r) => r || fetch(chave).then((resp) => {
       if (resp.ok && resp.status === 200) c.put(chave, resp.clone()).catch(() => {});
+      return resp;
+    }))));
+    return;
+  }
+  // Os desenhos dos exercícios (exercicios-svg/): baixados na primeira vez que
+  // a pessoa abre aquele exercício e guardados no cache de mídia, que não é
+  // apagado a cada versão. Uns 3 MB todos, mas só vem o que se abre.
+  if (url.origin === self.location.origin && url.pathname.indexOf("/exercicios-svg/") >= 0) {
+    e.respondWith(caches.open(CACHE_MIDIA).then((c) => c.match(e.request).then((r) => r || fetch(e.request).then((resp) => {
+      if (resp.ok) c.put(e.request, resp.clone()).catch(() => {});
       return resp;
     }))));
     return;

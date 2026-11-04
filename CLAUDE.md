@@ -627,7 +627,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.744 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.752 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -702,7 +702,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v167) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v168) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4210,6 +4210,49 @@ aparelho: nenhuma figura de banco de dados identifica *aquela* máquina.
 - Ficha recebida por link chega com `foto: false`: a imagem não cabe num link,
   e marcar o contrário deixaria um exercício prometendo o que nunca vai ter.
 
+## O movimento animado (`MovimentoAnimado`, `POSES_EXERCICIO`, pasta `exercicios-svg/`)
+
+Pedido do dono (2026-11-04a), com o anúncio de um app pago de GIFs 3D: "os
+avatares dos exercícios mostrando os músculos trabalhados diretos e indiretos e
+os movimentos da execução; veja no GitHub se algo ajuda".
+
+- **O que foi apurado no GitHub**: não existe acervo aberto de animações 3D
+  de exercício. Os GIFs que circulam (ExerciseDB, o "exercises-dataset" de 1.300
+  GIFs, o do Kaggle) são de uso educacional ou sem licença clara: **não use**.
+  Os 3D do anúncio são produto pago de outra empresa: **não copie**. O que serve
+  é o **Everkinetic** (github.com/everkinetic/data, **CC BY-SA 4.0**, a mesma
+  licença das imagens do wger, que aliás vêm dele): 289 exercícios com **duas
+  posições** cada (início e força), em SVG. E o `react-body-highlighter` (MIT)
+  confirmou a ideia do mapa, que o app já tinha desenhado à mão.
+- **O palco** (`MovimentoAnimado`, no lugar da figura branca do wger em
+  `ImagemExercicio`): fundo escuro com brilho na cor do grupo, o desenho em
+  traço claro (`invert(1)` + `mix-blend-mode: screen`, sem mexer no arquivo) e
+  as duas posições se revezando em 2,4 s (`mvPoseA`/`mvPoseB`, a de força
+  segura mais), com a fase escrita (INÍCIO / FORÇA). Ao lado, o corpo
+  (`CorpoMusculos`, frente e/ou costas conforme os músculos) com o **direto em
+  vermelho com brilho, pulsando junto da posição de força** (`mvPulso`), e o
+  **indireto em amarelo**. Movimento reduzido: fica parado na posição de força.
+- **O mapa grande** (`MapaMuscular`) virou duas `SilhuetaMusculos`
+  (as mesmas formas de antes), e o direto ganhou o brilho (`brilho-direto`).
+- **Os desenhos moram no repositório**, `exercicios-svg/<id>-a.svg` e
+  `-b.svg` (92 pares, 3,2 MB; o original arredondado em uma casa decimal, o
+  traço não muda). Não por CDN: o jsDelivr nem é alcançado pela sessão na
+  nuvem, e assim funciona offline. O `sw.js` guarda cada um **quando é aberto**,
+  no cache de mídia (preservado entre versões): ninguém baixa os 3 MB de uma vez.
+- **`POSES_EXERCICIO`** (primeiro script) diz o par de cada exercício: **96
+  casados à mão**, título por título (o automático por nome acertou 53 e errou
+  vários). Funcional e mini band continuam com o boneco próprio; exercício sem
+  par continua com a imagem do wger.
+- **O limite, dito ao dono**: o desenho é traço, então o músculo não acende
+  **em cima** da figura como no 3D do anúncio: acende no corpo ao lado, no
+  mesmo compasso. Pintar o músculo na própria figura exigiria um desenho
+  separado por músculo para cada exercício (um 3D próprio, feito no Blender
+  com um boneco livre), fora do alcance de uma sessão sem build.
+- Crédito embaixo de cada animação, em Ajustes › Créditos, no `LICENSE` e no
+  `exercicios-svg/LEIA-ME.md`. Coberto por `teste-poses.js` (os pares
+  existem, nenhum sobrando, sem script dentro, a licença e o crédito). O
+  `navegador.js` passou a servir os `.svg`.
+
 ## Imagens de demonstração
 
 O endereço de cada figura está no objeto `IMAGENS_WGER` (id do exercício → URL em
@@ -5125,7 +5168,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 36 suítes (1.744 checagens)
+node testes/rodar.js      # as 37 suítes (1.752 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

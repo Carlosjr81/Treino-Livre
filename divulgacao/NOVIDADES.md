@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-11-04a — Os exercícios se mexem, e os músculos acendem
+
+**Em uma frase:** ao tocar em "ver execução", 96 exercícios agora mostram o movimento animado, do início à força, com o músculo trabalhado aceso ao lado.
+
+**O que mudou**
+- **Movimento animado**: o desenho do exercício alterna entre a posição de início e a de força, num palco escuro, com a fase escrita (INÍCIO / FORÇA).
+- **Músculos acesos**: ao lado, o corpo mostra o músculo **principal em vermelho brilhando**, pulsando junto com o esforço, e os **ajudantes em amarelo**. O mapa grande da aba Exercícios também ganhou o brilho.
+- Supinos, roscas, tríceps, agachamentos, leg press, cadeiras, remadas, puxadas, panturrilha, abdominais e mais. Funciona sem internet depois da primeira vez.
+
+**Por que importa para quem treina**
+- Dá para entender o movimento em 2 segundos, sem ler nada, e saber onde tem de sentir o exercício.
+
+**Como usar**
+- No treino, toque em "ver execução ›" embaixo do nome do exercício. Ou abra qualquer exercício na aba Exercícios.
+
+**Ideias de vídeo**
+- "Onde você deveria sentir o supino?": mostrar o peitoral acendendo no ritmo da animação e o tríceps em amarelo.
+- Sequência rápida de 5 exercícios animados, um por segundo.
+
+**Não prometer**
+- Não é vídeo nem 3D: é o desenho do exercício em duas posições, animado. O músculo acende no corpo ao lado, não em cima do desenho.
+- Ainda não são todos os exercícios: os que não têm o desenho continuam com a imagem de antes.
+- Continua valendo a seção 4b do guia.
+
+---
+
 ## 2026-11-02c — O app em inglês, e o ▶ da esteira que não para
 
 **Em uma frase:** agora dá para usar o Treino Livre em inglês, e a caminhada na esteira continua contando mesmo saindo do app.

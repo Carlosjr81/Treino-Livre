@@ -299,6 +299,9 @@ var TEXTOS_EN = {
   "janeiro": "January", "fevereiro": "February", "março": "March", "abril": "April", "maio": "May", "junho": "June", "julho": "July", "agosto": "August", "setembro": "September", "outubro": "October", "novembro": "November", "dezembro": "December",
   "jan": "Jan", "fev": "Feb", "mar": "Mar", "abr": "Apr", "mai": "May", "jun": "Jun", "jul": "Jul", "ago": "Aug", "set": "Sep", "out": "Oct", "nov": "Nov", "dez": "Dec",
   "Volume": "Volume", "Story": "Story",
+  "Direto": "Direct", "Indireto": "Indirect", "INÍCIO": "START", "FORÇA": "EFFORT", "Desenhos:": "Drawings:", "· Licença": "· License",
+  "· animação e mapa: Treino Livre": "· animation and map: Treino Livre", "Músculos trabalhados": "Muscles worked", "Trabalha direto": "Works directly",
+  "Auxilia (indireto)": "Assists (indirect)", "Frente": "Front", "Execução": "How to do it", "Ver demonstração em vídeo": "Watch video demonstration",
 };
 
 var DIAS_EN = { domingo: "Sunday", segunda: "Monday", "terça": "Tuesday", terca: "Tuesday", quarta: "Wednesday", quinta: "Thursday", sexta: "Friday", "sábado": "Saturday", sabado: "Saturday" };
@@ -385,6 +388,7 @@ var DIAS_CURTOS_EN = { "dom.": "Sun", "seg.": "Mon", "ter.": "Tue", "qua.": "Wed
   [/^Remover a última série de (.+)$/, "Remove the last set of $1"],
   [/^Observação sobre (.+): altura do banco, pegada, etc\.$/, "Notes on $1: bench height, grip, etc."],
   [/^Abrir (.+)$/, "Open $1", true],
+  [/^Animação do movimento: (.+)$/, "Movement animation: $1"],
   [/^Excluir do histórico o treino (.+)$/, "Delete workout $1 from history"],
   [/^Desafiar amigos com o treino (.+)$/, "Challenge friends with workout $1"],
   [/^Corrigir o treino (.+)$/, "Edit workout $1"],

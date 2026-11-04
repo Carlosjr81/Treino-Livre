@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-04b — Todos os exercícios com o movimento animado
+
+**Em uma frase:** agora todos os exercícios do app mostram o movimento animado com os músculos acesos, não só 96.
+
+**O que mudou**
+- **193 exercícios com o desenho do movimento** (eram 96). Quando o desenho é de uma variação parecida, como outra pegada ou outro aparelho do mesmo movimento, a tela avisa.
+- **Os outros ganharam um boneco animado** no mesmo palco escuro: prancha, giro russo, canivete, abdominal infra, face pull, swing com kettlebell, agachamento na parede, nórdico, coices no chão e mais. Os funcionais e os de mini band também foram para o palco novo, com os músculos ao lado.
+- **Os aeróbicos também se mexem**: caminhada, corrida, bike, elíptico, escada, remo, corda, natação, bicicleta de braço e simulador de esqui.
+
+**Por que importa para quem treina**
+- Qualquer exercício que você abrir mostra como é o movimento e onde ele trabalha, sem precisar de vídeo.
+
+**Como usar**
+- "ver execução ›" no treino, ou qualquer exercício na aba Exercícios.
+
+**Ideias de vídeo**
+- Rolar a lista de exercícios abrindo um atrás do outro: todos se mexendo.
+
+**Não prometer**
+- O boneco é ilustrativo, um desenho simples do app; os detalhes da execução estão nos passos escritos.
+- Continua valendo a seção 4b do guia.
+
+---
+
 ## 2026-11-04a — Os exercícios se mexem, e os músculos acendem
 
 **Em uma frase:** ao tocar em "ver execução", 96 exercícios agora mostram o movimento animado, do início à força, com o músculo trabalhado aceso ao lado.

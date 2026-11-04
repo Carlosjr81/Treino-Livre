@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-04a**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-04b**.
 
 ---
 
@@ -469,7 +469,7 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 - **Lembrete de treino** nos dias e hora escolhidos.
 - **Monitor cardíaco Bluetooth** (cintas Polar, Garmin, Wahoo e sensores de braço).
 - **Tema claro e escuro.**
-- **O movimento animado** (novo em 2026-11-04a): em 96 exercícios, o "ver execução" mostra o desenho do exercício se movendo (início e força) num palco escuro, e ao lado o corpo com o músculo principal aceso em vermelho, pulsando junto com o esforço, e os ajudantes em amarelo.
+- **O movimento animado** (novo em 2026-11-04a; em todos os exercícios desde 2026-11-04b): em cada exercício, o "ver execução" mostra o desenho do exercício se movendo (início e força) num palco escuro, e ao lado o corpo com o músculo principal aceso em vermelho, pulsando junto com o esforço, e os ajudantes em amarelo.
 - **Português ou inglês** (🇧🇷/🇺🇸), em ⚙ Ajustes › Preferências ou já na tela de criar a conta. As telas principais saem em inglês; a voz do Jarvis continua em português, e o texto completo dos Termos também (vale a versão em português).
 - **O ▶ da série de tempo continua contando com o app fechado**: dá para sair da esteira para outro app e voltar.
 - **Atualização automática:** quando sai versão nova aparece uma faixa "Atualizar".

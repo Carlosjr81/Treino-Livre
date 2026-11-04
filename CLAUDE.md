@@ -627,7 +627,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.752 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.756 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -702,7 +702,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v168) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v169) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4248,6 +4248,24 @@ os movimentos da execução; veja no GitHub se algo ajuda".
   mesmo compasso. Pintar o músculo na própria figura exigiria um desenho
   separado por músculo para cada exercício (um 3D próprio, feito no Blender
   com um boneco livre), fora do alcance de uma sessão sem build.
+- **Todos os exercícios se mexem desde 2026-11-04b** (pedido do dono:
+  "coloque a animação nos outros também"). Três camadas, nesta ordem
+  (`ImagemExercicio`): a foto do aparelho que a pessoa tirou; o **desenho
+  do Everkinetic** (`POSES_EXERCICIO`, 193 exercícios: os exatos e, com
+  **"~" na frente**, a **variação parecida**, outra pegada ou outro aparelho
+  do mesmo movimento, e a tela avisa "Desenho de uma variação parecida"); e o
+  **boneco do app** (`bonecoDoExercicio`: os funcionais e os de mini band
+  pelo `func`, `BONECO_EXERCICIO` para os 48 que o acervo não tem, e
+  `BONECO_CARDIO` pelo perfil do aeróbico), branco e com brilho, no mesmo
+  palco e no mesmo compasso. Os bonecos novos estão em `POSES_EXTRA` (prancha,
+  hollow, giro, canivete, nórdico, swing, parede, pino, caminhada, corrida,
+  bike, remo, nado…); os "band-*" aparecem sem o elástico quando o exercício
+  não é de mini band. **A segunda passada foi conferida numa folha com as duas
+  posições de cada um**, e 21 casamentos foram recusados por ensinarem outro
+  movimento (face pull, elevação em Y, terra sumô, rosca de punho, búlgaro,
+  nórdicos, push press, seal row...): esses foram para o boneco. A figura do
+  wger sobra só para exercício que não tenha nenhum dos dois (hoje, nenhum do
+  catálogo; o `teste-poses.js` cobra isso).
 - Crédito embaixo de cada animação, em Ajustes › Créditos, no `LICENSE` e no
   `exercicios-svg/LEIA-ME.md`. Coberto por `teste-poses.js` (os pares
   existem, nenhum sobrando, sem script dentro, a licença e o crédito). O
@@ -5168,7 +5186,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 37 suítes (1.752 checagens)
+node testes/rodar.js      # as 37 suítes (1.756 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

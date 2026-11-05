@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-05a — Para o criador: quem entrou com a aprovação automática
+
+**Em uma frase:** com a aprovação automática ligada, o painel do criador agora mostra quem entrou sozinho e avisa quando chega alguém novo.
+
+**O que mudou**
+- Só para o dono do app (o painel de usuários). Ao abrir o app, um aviso diz quantas contas novas entraram sozinhas; no painel, a lista "🤖 Quem entrou sozinho", com dia e hora, e um filtro para ver essas contas.
+
+**Por que importa para quem treina**
+- Nada muda para quem treina. É uma ferramenta de gestão do criador.
+
+**Como usar**
+- Não se aplica a quem treina.
+
+**Ideias de vídeo**
+- Nenhuma: é do painel do criador e mostra dados de outras pessoas. **Não grave essa tela.**
+
+**Não prometer**
+- Continua valendo a seção 4b do guia.
+
+---
+
 ## 2026-11-04b — Todos os exercícios com o movimento animado
 
 **Em uma frase:** agora todos os exercícios do app mostram o movimento animado com os músculos acesos, não só 96.

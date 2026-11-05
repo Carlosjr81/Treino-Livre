@@ -376,6 +376,33 @@ tem o filtro dele (`hoje`, `ativos7` em `filtroConta`, e o
 divergem), acende, rola até a lista, e a lista diz qual é ("Entraram hoje ·
 1", com "Ver todas"). Os chips ganharam 📅 Hoje e 📈 7 dias.
 
+## Quem entrou pela aprovação automática (`entrouAutomatico`, `entrouAuto`)
+
+Pedido do dono (2026-11-05a): "com a aprovação automática eu não sei quem
+entrou; crie a tela para mostrar quem entrou de forma automática".
+
+- **Como se sabe, sem mudar as regras do Firebase**: toda liberação feita à
+  mão grava `decididoEm` desde o primeiro painel (2026-10-28c). Conta que
+  não é do dono, não está aguardando e não tem `decididoEm` nasceu
+  "liberado" pela aprovação automática (`entrouAutomatico`). Como bloquear
+  ou dar prazo depois grava `decididoEm`, **o painel do dono carimba
+  `entrouAuto: true`** na conta na primeira vez que a vê (o dono grava o que
+  quiser em `usuarios/`), e a origem não se perde.
+- **"Novo"** é quem entrou depois da última visita do dono ao painel
+  (`treinolivre:autoVisto`, no aparelho dele; `autoNovos`).
+- **Onde aparece**: o aviso ao abrir o app, junto dos cadastros esperando
+  ("🤖 2 contas novas entraram sozinhas ▶", contado pelo `Porteiro` e
+  passado como `contaAuto`); no painel, o número "entraram sozinhas", o
+  chip "🤖 Automáticos", o quadro "🤖 Quem entrou sozinho" dentro de "Como
+  entram as contas novas" (os 5 últimos, com dia e hora e o selo "novo", e
+  "Ver as contas" que filtra a lista) e, em cada conta, "🤖 Entrou pela
+  aprovação automática". Só aparecem com a aprovação automática ligada ou
+  com alguém que já entrou assim.
+- Coberto por `teste-acesso.js` (quem conta, o carimbo valendo depois do
+  bloqueio, o dono e quem espera fora, os novos, o número igual à lista). No
+  navegador com o Firebase de mentira: o aviso ao abrir, o painel, o carimbo
+  gravado só nas contas automáticas, e o aviso sumindo depois da visita.
+
 ## Os Termos de Uso (`TERMOS_USO`, `TelaAceiteTermos`, `termos.html`)
 
 Pedido do dono (2026-10-29b): "faça o termo de uso com aceite no cadastro, bem
@@ -627,7 +654,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.756 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.760 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -702,7 +729,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v169) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v170) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5186,7 +5213,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 37 suítes (1.756 checagens)
+node testes/rodar.js      # as 37 suítes (1.760 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

@@ -10,7 +10,7 @@ function pedaco(de, ate) {
 const plural = (n, s, p) => (n === 1 ? s : p);
 eval(pedaco("const semAcento = (s) =>", ";\n") + ";\nglobalThis.semAcento = semAcento;");
 eval(pedaco("// ---------------- ACESSO: AS CONTAS", "// ---------------- FIM DAS CONTAS") +
-  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO, situacaoConta, prazoAte, recadoNovo, csvContas, filtroConta, csvAceites, ordenarAceites, lerCobranca, planoDaConta, acessoPago, pixCopiaECola, crc16Pix, txidPagamento, planosAtivos, planoPorId, resumoPagamentos, csvPagamentos, ordenarPagamentos, fimDoDia, textoPlanoConta, precoTexto };");
+  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO, situacaoConta, prazoAte, recadoNovo, csvContas, filtroConta, entrouAutomatico, autoNovos, csvAceites, ordenarAceites, lerCobranca, planoDaConta, acessoPago, pixCopiaECola, crc16Pix, txidPagamento, planosAtivos, planoPorId, resumoPagamentos, csvPagamentos, ordenarPagamentos, fimDoDia, textoPlanoConta, precoTexto };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -54,6 +54,20 @@ teste("filtro: só quem espera", ["b", "e"], A.filtrarContas(contas, "pendente",
 teste("cada número do painel bate com a lista dele", true, ["online", "hoje", "ativos7", "sumidos", "pendente", "bloqueado", "vencendo"].every((f) =>
   A.filtrarContas(contas, f, "", agora).length === r[f]));
 teste("busca por nome ou e-mail, sem caixa", ["d"], A.filtrarContas(contas, "todos", "DUDA").map((c) => c.uid));
+{
+  const ag = agora;
+  const l = [
+    { uid: "m", email: "m@x.com", status: "liberado", criadoEm: ag - 9e5, decididoEm: ag - 8e5 },   // liberado à mão
+    { uid: "a1", email: "a1@x.com", status: "liberado", criadoEm: ag - 5e5 },                        // entrou sozinho
+    { uid: "a2", email: "a2@x.com", status: "bloqueado", criadoEm: ag - 7e5, decididoEm: ag - 1e5, entrouAuto: true }, // sozinho, depois bloqueado
+    { uid: "p", email: "p@x.com", status: "pendente", criadoEm: ag - 3e5 },
+    { uid: "d", email: "carlos.jr.81@hotmail.com", status: "liberado", criadoEm: ag - 9e6 },
+  ];
+  teste("aprovação automática: quem entrou sozinho (o carimbo vale depois da decisão)", ["a1", "a2"], A.filtrarContas(l, "auto", "", ag).map((c) => c.uid));
+  teste("aprovação automática: o dono e quem espera não contam", [false, false], [A.entrouAutomatico(l[4]), A.entrouAutomatico(l[3])]);
+  teste("aprovação automática: os novos desde a última visita", ["a1"], A.autoNovos(l, ag - 6e5).map((c) => c.uid));
+  teste("aprovação automática: o número do painel bate com a lista", 2, A.resumoContas(l, ag).auto);
+}
 
 console.log("\n--- o aparelho e os erros ---");
 teste("Android pelo app", "Android · app", A.aparelhoDe("Mozilla/5.0 (Linux; Android 14)", true));

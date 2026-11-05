@@ -1535,7 +1535,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-04b";
+const VERSAO_APP = "2026-11-05a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -30075,7 +30075,7 @@ function Portaria({ temDados, podeInstalar, onInstalar, onCopiarLink, onEntrar }
     </div>
   );
 }
-function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
+function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista }) {
   const [aba, setAba] = useState("inicio");
   const [treinos, setTreinos] = useState([]);
   const [historico, setHistorico] = useState([]);
@@ -32235,11 +32235,13 @@ function TreinoLivre({ contaPendentes, contaPagamentos, onContaVista }) {
         onAjustes={() => setAba(aba === "ajustes" ? "inicio" : "ajustes")}
         onAjuda={() => setAjuda("")} />
       <div style={{ paddingTop: 14 }}>
-        {(contaPendentes > 0 || contaPagamentos > 0) && aba !== "painelUsuarios" && aba !== "sessao" && (
+        {(contaPendentes > 0 || contaPagamentos > 0 || contaAuto > 0) && aba !== "painelUsuarios" && aba !== "sessao" && (
           <button onClick={() => { if (onContaVista) onContaVista(); setAba("painelUsuarios"); }} style={{ ...S.btn, width: "100%", marginBottom: 12, padding: "12px 10px" }}>
             {contaPendentes > 0 ? "👥 " + contaPendentes + " " + plural(contaPendentes, "cadastro esperando", "cadastros esperando") + " a sua liberação" : ""}
             {contaPendentes > 0 && contaPagamentos > 0 ? " · " : ""}
-            {contaPagamentos > 0 ? "💳 " + contaPagamentos + " " + plural(contaPagamentos, "pagamento", "pagamentos") + " para confirmar" : ""} ▶
+            {contaPagamentos > 0 ? "💳 " + contaPagamentos + " " + plural(contaPagamentos, "pagamento", "pagamentos") + " para confirmar" : ""}
+            {(contaPendentes > 0 || contaPagamentos > 0) && contaAuto > 0 ? " · " : ""}
+            {contaAuto > 0 ? "🤖 " + contaAuto + " " + plural(contaAuto, "conta nova entrou", "contas novas entraram") + " sozinha" + (contaAuto > 1 ? "s" : "") : ""} ▶
           </button>
         )}
         {[["desafio", "🏁 Desafio em andamento"], ["intervalado", "⏱ Intervalado em andamento"], ["zumbi", "🧟 Missão em andamento"]].filter((v) => vivos[v[0]] && aba !== v[0]).map((v) => (
@@ -32856,7 +32858,7 @@ function ordenarContas(lista, agora, cob) {
   });
 }
 function resumoContas(lista, agora, cob) {
-  const r = { total: lista.length, pendente: 0, liberado: 0, bloqueado: 0, vencido: 0, pagar: 0, ativos7: 0, hoje: 0, online: 0, sumidos: 0, vencendo: 0, pagantes: 0, cortesia: 0 };
+  const r = { total: lista.length, pendente: 0, liberado: 0, bloqueado: 0, vencido: 0, pagar: 0, ativos7: 0, hoje: 0, online: 0, auto: 0, sumidos: 0, vencendo: 0, pagantes: 0, cortesia: 0 };
   const inicioHoje = new Date(agora); inicioHoje.setHours(0, 0, 0, 0);
   lista.forEach((c) => {
     const s = situacaoConta(c, agora, cob);
@@ -32864,6 +32866,7 @@ function resumoContas(lista, agora, cob) {
     if (filtroConta(c, "pagantes", agora, cob)) r.pagantes++;
     if (filtroConta(c, "cortesia", agora, cob)) r.cortesia++;
     if (filtroConta(c, "ativos7", agora)) r.ativos7++;
+    if (entrouAutomatico(c)) r.auto++;
     if (filtroConta(c, "hoje", agora)) r.hoje++;
     if (onlineAgora(c, agora)) r.online++;
     if (filtroConta(c, "sumidos", agora)) r.sumidos++;
@@ -32879,6 +32882,7 @@ function filtroConta(c, filtro, agora, cob) {
   if (filtro === "pagantes") { const t = planoDaConta(c, agora, cob).tipo; return t === "pago" || t === "vitalicio"; }
   if (filtro === "cortesia") return planoDaConta(c, agora, cob).tipo === "cortesia";
   if (filtro === "online") return onlineAgora(c, agora);
+  if (filtro === "auto") return entrouAutomatico(c);
   if (filtro === "hoje") { const d = new Date(agora); d.setHours(0, 0, 0, 0); return !!c.ultimoAcesso && c.ultimoAcesso >= d.getTime(); }
   if (filtro === "ativos7") return !!c.ultimoAcesso && agora - c.ultimoAcesso < 7 * 864e5;
   if (filtro === "sumidos") return s === "liberado" && (!c.ultimoAcesso || agora - c.ultimoAcesso > SUMIDO_MS);
@@ -32963,6 +32967,25 @@ function prazoAte(dias, agora) {
 const ONLINE_MS = 15 * 60000;
 const SUMIDO_MS = 30 * 864e5;
 function onlineAgora(c, agora) { return !!(c.ultimoAcesso && agora - c.ultimoAcesso < ONLINE_MS); }
+// Quem entrou pela aprovação automática (pedido do dono, 2026-11-05a: "na
+// entrada liberada automaticamente não sei quem entrou"). Toda liberação à mão
+// grava decididoEm desde o primeiro painel; a conta que nasceu "liberado" pela
+// aprovação automática não tem. O painel do dono carimba entrouAuto na conta na
+// primeira vez que a vê, para a origem não se perder se ele bloquear ou der
+// prazo depois (o que grava decididoEm). Sem mudar as regras: o dono grava o
+// que quiser em usuarios/.
+const CHAVE_AUTO_VISTO = "treinolivre:autoVisto";
+function entrouAutomatico(c) {
+  if (!c || ehEmailDono(c.email)) return false;
+  if (c.entrouAuto) return true;
+  return !c.decididoEm && c.status !== "pendente" && (c.criadoEm || 0) > 1;
+}
+// os que entraram sozinhos depois da última vez que o dono olhou
+function autoNovos(lista, visto) {
+  return (lista || []).filter((c) => entrouAutomatico(c) && (c.criadoEm || 0) > (visto || 0));
+}
+function lerAutoVisto() { try { return +localStorage.getItem(CHAVE_AUTO_VISTO) || 0; } catch (e) { return 0; } }
+function marcarAutoVisto(t) { try { localStorage.setItem(CHAVE_AUTO_VISTO, String(t || Date.now())); } catch (e) {} }
 // Recado do dono que a pessoa ainda não viu
 function recadoNovo(d) { return !!(d && d.aviso && (d.avisoEm || 0) > (d.avisoVisto || 0)); }
 // A lista em planilha (CSV com ponto e vírgula, que o Excel em português abre
@@ -33544,6 +33567,7 @@ function Porteiro({ children }) {
   });
   const [msg, setMsg] = useState("");
   const [pendentes, setPendentes] = useState(0);
+  const [autoNov, setAutoNov] = useState(0);
   const [recado, setRecado] = useState(null);
   const [aceito, setAceito] = useState(termosAceitos);
   const [prontoSaude, setProntoSaude] = useState(() => prontidaoValida());
@@ -33614,7 +33638,7 @@ function Porteiro({ children }) {
       // o dono fica sabendo, ao abrir o app, de quem está esperando a liberação
       // e de quem avisou que pagou
       if (dono && status === "liberado") {
-        contaApi.listar(s.idToken).then((l) => setPendentes(l.filter((c) => c.status === "pendente").length), () => {});
+        contaApi.listar(s.idToken).then((l) => { setPendentes(l.filter((c) => c.status === "pendente").length); setAutoNov(autoNovos(l, lerAutoVisto()).length); }, () => {});
         contaApi.listarPagamentos(s.idToken).then((l) => setPagPend(l.filter((p) => p.status === "informado").length), () => {});
       }
       // O acesso perto de vencer (5 dias): um aviso por dia, com "Renovar"
@@ -33662,7 +33686,7 @@ function Porteiro({ children }) {
   if (fase === "dentro") {
     CONTA_ATUAL = s ? { email: s.email, nome: s.nome, uid: s.uid, ate: s.ate || 0, dono: ehEmailDono(s.email) && !!s.verificado, sair: sair,
       cob: s.cob || null, plano: s.conta ? planoDaConta(s.conta, Date.now(), s.cob) : null, assinar: () => setAssinando(true) } : null;
-    const app = CONTA_ATUAL && CONTA_ATUAL.dono ? React.cloneElement(children, { contaPendentes: pendentes, contaPagamentos: pagPend, onContaVista: () => { setPendentes(0); setPagPend(0); } }) : children;
+    const app = CONTA_ATUAL && CONTA_ATUAL.dono ? React.cloneElement(children, { contaPendentes: pendentes, contaPagamentos: pagPend, contaAuto: autoNov, onContaVista: () => { setPendentes(0); setPagPend(0); setAutoNov(0); } }) : children;
     const fecharAviso = () => { try { localStorage.setItem("treinolivre:avisoVence", new Date().toDateString()); } catch (x) {} setAvisoVence(null); };
     return (
       <React.Fragment>
@@ -34565,6 +34589,7 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
   const [editando, setEditando] = useState(null);  // { uid, campo, valor }
   const [escolhendoPrazo, setEscolhendoPrazo] = useState(null);
   const [auto, setAuto] = useState(null);
+  const [autoVistoAntes] = useState(() => lerAutoVisto()); // o "novo" de quem entrou sozinho
   const token = async () => (await tokenValido(lerSessaoConta())).idToken;
   const avisar = (uid, t) => setAvisos((a) => Object.assign({}, a, { [uid]: t }));
   const carregar = async () => {
@@ -34574,7 +34599,13 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
       const cfg0 = await contaApi.lerConfig(t).catch(() => null);
       setCfgBruta(cfg0 || {});
       setAuto(!!(cfg0 && cfg0.auto));
-      setLista(ordenarContas(await contaApi.listar(t), Date.now(), lerCobranca(cfg0)));
+      const l0 = await contaApi.listar(t);
+      setLista(ordenarContas(l0, Date.now(), lerCobranca(cfg0)));
+      // carimba quem entrou sozinho, para a origem ficar mesmo depois de uma decisão
+      l0.filter((c) => entrouAutomatico(c) && !c.entrouAuto).forEach((c) => {
+        contaApi.gravar(c.uid, { entrouAuto: true }, t).then(() => setLista((l) => (l || []).map((x) => (x.uid === c.uid ? Object.assign({}, x, { entrouAuto: true }) : x))), () => {});
+      });
+      marcarAutoVisto(Date.now());
       contaApi.listarPagamentos(t).then((l) => setPagamentos(ordenarPagamentos(l)), () => setPagamentos([]));
     } catch (x) { setErro(erroDeConta(x.message)); if (!lista) setLista([]); }
   };
@@ -34734,7 +34765,7 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
     </button>
   );
   const NOME_FILTRO = { todos: "Todas as contas", pendente: "Aguardando a sua liberação", liberado: "Liberadas", online: "Online agora", hoje: "Entraram hoje",
-    ativos7: "Ativas nos últimos 7 dias", sumidos: "Sumidas há 30 dias ou mais", vencendo: "Prazo vencendo ou vencido", bloqueado: "Bloqueadas",
+    ativos7: "Ativas nos últimos 7 dias", auto: "Entraram pela aprovação automática", sumidos: "Sumidas há 30 dias ou mais", vencendo: "Prazo vencendo ou vencido", bloqueado: "Bloqueadas",
     pagantes: "Pagantes", cortesia: "Com cortesia", pagar: "Precisam pagar" };
   const pequeno = { ...S.btnGhost, flex: "1 1 45%", padding: "8px 6px", fontSize: 12.5 };
   if (verAceites) return <HistoricoAceites buscaInicial={verAceites.busca} onVoltar={() => setVerAceites(null)} />;
@@ -34752,6 +34783,7 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
           {numero(r.online, "online agora", "online")}
           {numero(r.hoje, "entraram hoje", "hoje")}
           {numero(r.ativos7, "ativas em 7 dias", "ativos7")}
+          {(auto || r.auto > 0) && numero(r.auto, "entraram sozinhas", "auto")}
           {numero(r.sumidos, "sumidas 30+ dias", "sumidos")}
         </div>
         <button onClick={carregar} style={{ ...S.btnGhost, width: "100%", marginTop: 6, fontSize: 13 }}>🔄 Atualizar a lista</button>
@@ -34767,6 +34799,34 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
           <input type="checkbox" checked={!!auto} disabled={auto === null} onChange={mudarAuto} style={{ marginTop: 3 }} />
           <span><b>Aprovação automática.</b> {auto ? "Ligada: quem se cadastra já entra liberado. Você continua vendo todo mundo aqui e pode bloquear quando quiser." : "Desligada: quem se cadastra espera você liberar."}</span>
         </label>
+        {(auto || r.auto > 0) && lista && (() => {
+          const todos = (lista || []).filter(entrouAutomatico).sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+          const novos = todos.filter((c) => (c.criadoEm || 0) > autoVistoAntes).length;
+          const quando = (t) => new Date(t).toLocaleDateString("pt-BR") + " às " + new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+          return (
+            <div style={{ marginTop: 12, border: "1px solid var(--borda2)", borderRadius: 14, padding: "10px 12px" }}>
+              <div style={{ fontWeight: 900, fontSize: 14.5 }}>🤖 Quem entrou sozinho{todos.length ? " (" + todos.length + ")" : ""}</div>
+              <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 2, lineHeight: 1.5 }}>
+                {!todos.length ? "Ninguém entrou pela aprovação automática ainda. Quem se cadastrar com ela ligada aparece aqui."
+                  : novos > 0 ? novos + " " + plural(novos, "entrou", "entraram") + " desde a sua última visita ao painel."
+                  : "Nenhum novo desde a sua última visita ao painel."}
+              </div>
+              {todos.slice(0, 5).map((c) => (
+                <div key={c.uid} style={{ display: "flex", gap: 8, alignItems: "baseline", marginTop: 8, fontSize: 13.5 }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <b>{c.nome || "(sem nome)"}</b>{(c.criadoEm || 0) > autoVistoAntes && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 900, color: "#fff", background: "var(--marca)", borderRadius: 99, padding: "1px 7px" }}>novo</span>}
+                    <div style={{ fontSize: 12, color: "var(--cinza)", wordBreak: "break-all" }}>{c.email} · entrou em {quando(c.criadoEm)}</div>
+                  </div>
+                </div>
+              ))}
+              {todos.length > 0 && (
+                <button onClick={() => irParaLista("auto")} style={{ ...S.btnGhost, width: "100%", marginTop: 10, padding: "9px 8px", fontSize: 13 }}>
+                  Ver {todos.length > 5 ? "todos os " + todos.length : "as contas"}: dar prazo, mandar recado ou bloquear ›
+                </button>
+              )}
+            </div>
+          );
+        })()}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
           {r.pendente > 0 && (
             <button onClick={() => pedirConfirmacao({ positivo: true, labelSim: "Liberar todos", msg: "Liberar as " + r.pendente + " contas que estão aguardando, sem prazo?" }, liberarTodos)}
@@ -34785,6 +34845,7 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
         {chip("online", "🟢 Online", r.online)}
         {chip("hoje", "📅 Hoje", r.hoje)}
         {chip("ativos7", "📈 7 dias", r.ativos7)}
+        {(auto || r.auto > 0) && chip("auto", "🤖 Automáticos", r.auto)}
         {chip("sumidos", "💤 Sumidos", r.sumidos)}
         {chip("vencendo", "⌛ Prazo", r.vencendo)}
         {chip("bloqueado", "⛔ Bloqueados", r.bloqueado)}
@@ -34817,6 +34878,7 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
               <span style={{ fontSize: 12, fontWeight: 800, color: st.cor, whiteSpace: "nowrap" }}>{st.icone} {st.nome}</span>
             </div>
             <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.6, marginTop: 6 }}>
+              {entrouAutomatico(c) && <><span style={{ color: "var(--texto)", fontWeight: 800 }}>🤖 Entrou pela aprovação automática</span>{(c.criadoEm || 0) > autoVistoAntes ? " · novo" : ""}<br /></>}
               Cadastro: {c.criadoEm ? new Date(c.criadoEm).toLocaleDateString("pt-BR") : "—"} · Último acesso: {on ? "online agora" : quandoAcessou(c.ultimoAcesso, agora)}
               <br />{c.acessos || 0} {plural(c.acessos || 0, "acesso", "acessos")}{c.aparelho ? " · " + c.aparelho : ""}{c.versao ? " · versão " + c.versao : ""}
               {c.ate > 0 && <><br />{sit === "vencido" ? "Prazo venceu em " : "Liberado até "}{new Date(c.ate).toLocaleDateString("pt-BR")}</>}

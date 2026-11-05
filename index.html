@@ -176,6 +176,7 @@
   @keyframes mbSombra { 0% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(.8); opacity: .55; } }
   @keyframes mbLinhas { to { transform: rotate(360deg); } }
 /* O movimento animado: as duas poses em 2.4s, a de força segura um pouco mais */
+@keyframes mvEntraJanela { from { opacity: 0; transform: translateY(16px) scale(.96) } to { opacity: 1; transform: none } }
 @keyframes mvPoseA { 0%, 38% { opacity: 1 } 50%, 88% { opacity: 0 } 100% { opacity: 1 } }
 @keyframes mvPoseB { 0%, 38% { opacity: 0 } 50%, 88% { opacity: 1 } 100% { opacity: 0 } }
 @keyframes mvPulso { 0%, 38% { opacity: 0.55 } 50%, 88% { opacity: 1 } 100% { opacity: 0.55 } }
@@ -1535,7 +1536,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-05a";
+const VERSAO_APP = "2026-11-05b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -12978,23 +12979,8 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
 
       <OQueTreinarHoje historico={historico} exPorId={exPorId} onAbrirGrupo={onAbrirGrupo} />
 
-      {/* Depois do terceiro treino o app já provou que serve para alguma coisa.
-          É o único momento em que pedir não é atrapalhar — e é por isso que o
-          cartão some assim que recebe resposta, qualquer que seja ela. */}
-      {convite && historico.length >= 3 && (
-        <div style={{ ...S.card, borderColor: "#E1306C55" }}>
-          <div style={{ ...S.label, color: "#E1306C" }}>◎ Quem faz este app</div>
-          <div style={{ fontSize: 14, lineHeight: 1.65, margin: "8px 0 14px" }}>
-            O Treino Livre é feito por uma pessoa só, de graça, sem anúncio e sem vender
-            seus dados: os seus treinos ficam no seu celular. Se ele está te ajudando,
-            seguir lá é o que dá motivo para continuar.
-          </div>
-          <button style={{ ...S.btn, marginBottom: 8 }} onClick={onSeguir}>
-            Seguir @{INSTAGRAM} no Instagram
-          </button>
-          <button style={{ ...S.btnGhost, fontWeight: 700 }} onClick={onDispensarConvite}>Agora não</button>
-        </div>
-      )}
+      {/* O convite para seguir virou uma janela (JanelaSeguir, no raiz): o cartão
+          que ficava aqui saiu, para não pedir duas vezes na mesma tela. */}
 
       {historico.length > 0 && (
         <FaixaProgresso est={est} historico={historico} meta={meta} onAbrirProgresso={onAbrirProgresso} />
@@ -30206,6 +30192,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   // para sempre quando respondido. Pedir antes disso é pedir a alguém que ainda
   // não sabe se o app presta; pedir de novo depois é insistência.
   const [convite, setConvite] = useState(true);
+  const [popupSeguir, setPopupSeguir] = useState(false);
+  const seguirTentado = useRef(false);
   // A portaria passou. Fica no mesmo registro do resto, então sobrevive a
   // recarga e a fechar o app, e acompanha o backup.
   const [entrou, setEntrou] = useState(false);
@@ -32207,6 +32195,15 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   ];
   const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente", editarHistorico: "Corrigir treino", ajustes: "Ajustes", escolaVoz: "Escola do Jarvis", funcional: "Treino funcional" };
 
+  // a janela para seguir no Instagram: uma vez por abertura do app (JanelaSeguir)
+  useEffect(() => {
+    if (seguirTentado.current || !carregado || abertura || !entrou || !convite || popupSeguir) return undefined;
+    if (aba !== "inicio" || sessao || modal || resumoAnim) return undefined;
+    if (CONTA_ATUAL && CONTA_ATUAL.dono) return undefined;
+    if (!podeConvidarSeguir(lerAdiarSeguir(), Date.now(), historico.length)) return undefined;
+    const t = setTimeout(() => { seguirTentado.current = true; setPopupSeguir(true); }, 1800);
+    return () => clearTimeout(t);
+  }, [carregado, abertura, entrou, convite, aba, sessao, modal, resumoAnim, historico.length, popupSeguir]);
   if (!carregado) {
     return <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>Carregando...</div>;
   }
@@ -32453,6 +32450,17 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       </div>
 
       {resumoAnim && <ResumoAnimado d={resumoAnim} vozCfg={voz} onFechar={() => setResumoAnim(null)} />}
+      {popupSeguir && (
+        <JanelaSeguir
+          onSeguir={() => { registrarEvento("seguiu-instagram"); setConvite(false); setPopupSeguir(false); window.open(LINK_INSTAGRAM, "_blank", "noopener"); }}
+          onJaSigo={() => { registrarEvento("ja-segue-instagram"); setConvite(false); setPopupSeguir(false); }}
+          onDepois={() => {
+            const a = adiarSeguir(lerAdiarSeguir(), Date.now());
+            try { localStorage.setItem(CHAVE_SEGUIR, JSON.stringify(a)); } catch (e) {}
+            if (a.fim) setConvite(false);
+            setPopupSeguir(false);
+          }} />
+      )}
       {abrindoZumbi && <AberturaZumbi som={som} onFim={() => { setAbrindoZumbi(false); setAba("zumbi"); }} />}
       {modal && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.75)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
@@ -34268,6 +34276,50 @@ function quandoAcessou(ms, agora) {
 }
 
 // O recado do dono, mostrado uma vez por cima do app
+// ---------------- O CONVITE PARA SEGUIR (janela) ----------------
+// Pedido do dono (2026-11-05b): quem entra no app recebe uma janela para seguir
+// @carlos.jr.81. Vem depois do primeiro treino (antes disso a pessoa ainda não
+// sabe se gostou), ao abrir o app na tela inicial e nunca no meio de um treino.
+// "Agora não" volta depois de 7 dias, e na terceira vez o convite se encerra:
+// pedir para sempre é insistência. Seguir ou "Já sigo" encerram de vez.
+const CHAVE_SEGUIR = "treinolivre:seguirDepois";
+const SEGUIR_PAUSA_MS = 7 * 864e5;
+const SEGUIR_MAX_ADIAR = 3;
+function podeConvidarSeguir(info, agora, nTreinos) {
+  if (nTreinos < 1) return false;
+  const i = info || {};
+  if ((i.vezes || 0) >= SEGUIR_MAX_ADIAR) return false;
+  return !(i.ate > agora);
+}
+function adiarSeguir(info, agora) {
+  const vezes = ((info && info.vezes) || 0) + 1;
+  return { vezes: vezes, ate: agora + SEGUIR_PAUSA_MS, fim: vezes >= SEGUIR_MAX_ADIAR };
+}
+function lerAdiarSeguir() { try { return JSON.parse(localStorage.getItem(CHAVE_SEGUIR) || "null") || {}; } catch (e) { return {}; } }
+
+function JanelaSeguir({ onSeguir, onJaSigo, onDepois }) {
+  return (
+    <div role="dialog" aria-modal="true" aria-label={"Siga @" + INSTAGRAM + " no Instagram"}
+      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.78)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ ...S.card, maxWidth: 380, width: "100%", marginBottom: 0, textAlign: "center", padding: "22px 20px 18px", border: "1px solid #E1306C66", animation: "mvEntraJanela .35s ease-out" }}>
+        <div style={{ width: 64, height: 64, borderRadius: 20, margin: "0 auto 12px", background: GRAD, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }} aria-hidden="true">💪</div>
+        <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1.25 }}>Curtindo o Treino Livre?</div>
+        <div style={{ fontSize: 15, lineHeight: 1.6, margin: "10px 0 6px" }}>
+          Siga <b>@{INSTAGRAM}</b> no Instagram e seja o primeiro a saber das novidades: recursos novos, desafios e tudo o que chega ao app.
+        </div>
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 16 }}>
+          O app é feito por uma pessoa só, sem anúncio e sem vender os seus dados. Seguir é o que dá força para ele continuar crescendo.
+        </div>
+        <button onClick={onSeguir} style={{ ...S.btn, width: "100%", marginBottom: 8, fontSize: 16, padding: "14px 10px" }}>Seguir @{INSTAGRAM}</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={onJaSigo} style={{ ...S.btnGhost, flex: 1, fontWeight: 700 }}>Já sigo ✓</button>
+          <button onClick={onDepois} style={{ ...S.btnGhost, flex: 1, fontWeight: 700 }}>Agora não</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RecadoDoDono({ texto, onOk }) {
   return (
     <div role="dialog" aria-label="Recado do criador do app" style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>

@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-05b — Convite para seguir o criador no Instagram
+
+**Em uma frase:** quem já treinou com o app recebe, ao abrir, uma janela convidando a seguir @carlos.jr.81 no Instagram para ficar por dentro das novidades.
+
+**O que mudou**
+- Uma janela "Curtindo o Treino Livre?" com o botão "Seguir @carlos.jr.81". Aparece só depois do primeiro treino, nunca no meio de um treino, e não insiste: "Agora não" espera uma semana, e depois de três vezes ela não volta mais.
+
+**Por que importa para quem treina**
+- É no Instagram que aparecem primeiro as funções novas, os desafios e as dicas de como usar o app.
+
+**Como usar**
+- Ao abrir o app depois de um treino, toque em "Seguir". Quem já segue toca em "Já sigo".
+
+**Ideias de vídeo**
+- Final de vídeo: "Curtiu o app? Me segue aqui para ver o que vem por aí".
+
+**Não prometer**
+- O app não confere se a pessoa segue (nem tem como): é só o convite.
+- Continua valendo a seção 4b do guia.
+
+---
+
 ## 2026-11-05a — Para o criador: quem entrou com a aprovação automática
 
 **Em uma frase:** com a aprovação automática ligada, o painel do criador agora mostra quem entrou sozinho e avisa quando chega alguém novo.

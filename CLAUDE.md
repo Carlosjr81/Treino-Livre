@@ -654,7 +654,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.760 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.767 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -729,7 +729,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v170) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v171) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -1524,9 +1524,20 @@ lugares, e um @ errado num story já publicado não tem como ser corrigido.
   vai parar no feed de gente que nunca ouviu falar dele.
 - **No texto de todo link compartilhado** (ficha, programa, desafio): quem
   recebe descobre o app e quem o fez no mesmo instante.
-- **No convite da tela inicial**, uma vez, depois do terceiro treino, e some
-  para sempre quando respondido (`convite`, persistido). Antes disso é pedir a
-  alguém que ainda não sabe se o app presta; depois é insistência.
+- **Na janela para seguir** (`JanelaSeguir`, pedido do dono, 2026-11-05b:
+  "quem entrar no Treino Livre recebe a mensagem e um pop-up para seguir").
+  Substituiu o cartão da tela inicial que vinha depois do terceiro treino.
+  Abre **ao abrir o app, na tela inicial**, 1,8 s depois, uma vez por
+  abertura, e só **depois do primeiro treino** (antes disso a pessoa ainda não
+  sabe se gostou). Nunca no meio de um treino, por cima de outra janela, no
+  resumo animado nem para o dono. "Curtindo o Treino Livre? Siga @… e seja o
+  primeiro a saber das novidades". **Seguir** abre o perfil; **Já sigo**
+  encerra; **Agora não** volta em 7 dias (`treinolivre:seguirDepois`), e na
+  terceira vez encerra (`SEGUIR_MAX_ADIAR`): pedir para sempre é
+  insistência. Encerrar é o `convite` de sempre (persistido, no backup), e
+  quem tocou em seguir na portaria nunca vê a janela. O efeito fica antes do
+  `if (!carregado) return` do raiz: hook depois de retorno derruba a tela
+  (o erro 310 do React, achado no navegador). Coberto por `teste-seguir.js`.
 - No rodapé de créditos, que já existia.
 
 ### A portaria (`Portaria`, campo `entrou`)
@@ -5213,7 +5224,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 37 suítes (1.760 checagens)
+node testes/rodar.js      # as 38 suítes (1.767 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

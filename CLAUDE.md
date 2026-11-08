@@ -298,6 +298,55 @@ leia antes de mexer em texto de saúde, termos ou divulgação.
   voz). No navegador: o questionário com sim na dor no peito, e o socorro no
   treino.
 
+## Treino Adaptado: treinar com dor (`TelaAdaptado`, `juridico/TREINO-ADAPTADO.md`)
+
+Pedido do dono (2026-11-08a): mapa do corpo para registrar dor no ombro, no
+cotovelo ou no joelho; marcar os exercícios que provocam sintomas; sinais de
+alerta que param tudo; e o plano do fisioterapeuta registrado, com a dor
+durante e na manhã seguinte e a câmera contando. **A especificação, as fontes
+(F1 a F9) e o checklist da revisão estão em `juridico/TREINO-ADAPTADO.md`:
+leia antes de mexer.**
+
+- **A revisão do fisioterapeuta ainda não aconteceu.** `REVISAO_ADAPTADO` está
+  vazio (a tela diz "em revisão") e `VARIACOES_ADAPTADO` está vazia de
+  propósito: o app **não sugere troca nenhuma**, só marca, pula e avisa.
+  Troca só entra com a tabela assinada pelo fisioterapeuta.
+- **Registro, nunca diagnóstico.** A localização é só registro; nenhuma tela
+  diz o que a pessoa tem, monta reabilitação ou decide progredir. Com plano,
+  quem decide é o critério do plano (`criterioPlano` só mostra que foi
+  cumprido, e a pessoa confirma). O `teste-adaptado.js` reprova palavras como
+  tratamento, reabilitação, recuperar, tendinite, bursite, prescrição.
+- **A ordem é alerta, modo, exercício.** `ALERTAS_ADAPTADO` (emergência com o
+  SAMU, hoje e em breve; os dois primeiros param o treino inteiro, o terceiro
+  só a região). Dor de 7 ou mais, ou três manhãs seguidas piorando, também é
+  alerta. "Já fui atendido" é uma declaração com caixa, gravada com data.
+  Começar uma ficha com um registro ativo passa pela triagem resumida
+  (`conferirAdaptadoAntes`).
+- **O que cada exercício carrega** sai de `movimentosDoExercicio`
+  (`REGRAS_MOV_ADAPTADO`, por nome; a primeira regra que fala de uma região
+  vence; "Tríceps na polia (puxada alta)" exigiu o tríceps antes da puxada).
+  Exercício criado pela pessoa fica "em dúvida". Estados: livre, marcado,
+  barrado, em dúvida. O barrado já vem pulado (`pulado` no item da sessão,
+  que o `alvoDaSessao` pula) e, nos dois, a carga não sobe sozinha.
+- **Tudo no aparelho** (`treinolivre:adaptado`, no backup em arquivo). Para o
+  Firebase sobe só a declaração do aceite (`aceites/`, `de: "adaptado"`),
+  sem mudar as regras.
+- **O plano vira uma sessão comum** (`sessao.adaptado`, `treinarPlanoAdaptado`):
+  a carga, a amplitude e o ritmo vão na observação, e o Eyes Scan conta com
+  `semCorrecao` (técnico e postura desligados). A amplitude pela câmera não é
+  medida ainda: a especificação pede medir a precisão antes.
+- **A escala de dor** aparece no topo da lista depois de cada exercício
+  marcado (ou do plano), e a da manhã seguinte numa janela ao abrir o app
+  (`manhaPendente`, entre 6 e 36 h). "A dor no tempo" tem o gráfico e baixa
+  um resumo em texto para levar à consulta.
+- **Entrada**: Fichas › "🩹 Treinar com dor? Adaptar o treino", a faixa no
+  topo do treino e a Central de Ajuda. Nunca na tela inicial.
+- Coberto por `teste-adaptado.js` (62 checagens). No navegador: o registro
+  até a triagem, o ⚠ e o 🚫 no treino, a escala depois do exercício, a
+  pergunta da manhã, o alerta barrando o treino e a sessão do plano. **Não
+  validado num aparelho.** Achado no navegador: os dois efeitos novos do raiz
+  tinham ficado depois do `if (!carregado) return` (o erro 310 de novo).
+
 ## Português ou inglês (`IDIOMA`, `idioma-en.js`, `EscolhaIdioma`)
 
 Pedido do dono (2026-11-02c): "quero a opção de escolher entre português do
@@ -654,7 +703,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.767 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.829 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -729,7 +778,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v171) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v172) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5224,7 +5273,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 38 suítes (1.767 checagens)
+node testes/rodar.js      # as 39 suítes (1.829 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

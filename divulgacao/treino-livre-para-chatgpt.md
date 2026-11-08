@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-05b**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-08a**.
 
 ---
 
@@ -429,6 +429,20 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 - **Corpo:** peso e medidas (cintura, peito, braço, coxa, quadril) com gráfico, e **fotos de progresso**
   (guardadas só no celular). Dá para escolher a data da medição e lançar pesagens de antes de usar o app.
 
+### 3.12b 🩹 Treinar com dor (Treino Adaptado, novo em 2026-11-08a)
+- Em **Fichas → 🩹 Treinar com dor? Adaptar o treino**: a pessoa toca no ombro, no cotovelo ou no joelho
+  de um desenho do corpo, diz o ponto, quando começou e quais movimentos doem.
+- O app faz perguntas de **sinais de alerta** (por exemplo: deformidade depois de uma queda, não conseguir
+  apoiar a perna, articulação quente e inchada com febre). Um "sim" **para o treino** e diz onde procurar
+  atendimento (com o botão do SAMU quando é emergência).
+- No treino, os exercícios que usam o movimento que dói vêm **marcados** (⚠, com "Pular hoje"), e os que o
+  profissional orientou não fazer vêm **pulados** (🚫). Depois de cada um, a pessoa anota a dor de 0 a 10,
+  e no dia seguinte o app pergunta como amanheceu.
+- Quem tem um **plano do fisioterapeuta** registra os exercícios, a carga e os critérios; o app lembra,
+  **conta as repetições pela câmera** e mostra quando o critério do plano foi cumprido. Quem decide é o plano.
+- **O app não diz o que a pessoa tem e não trata nada**: ele organiza o treino em volta da dor e avisa
+  quando é hora de procurar atendimento. As regras estão em revisão por um fisioterapeuta.
+
 ### 3.13 Motivação e gamificação
 - **Níveis** (pontos por treinos, toneladas levantadas, sequência e recordes).
 - **33 conquistas** em 5 categorias.
@@ -492,6 +506,10 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 - ❌ Não está nas lojas (Play Store / App Store): instala-se pelo navegador ("Adicionar à tela inicial") ou, no
   Android, pelo APK baixado na aba ❤ Saúde.
 - ❌ Não prometa emagrecimento ou ganho de massa garantidos.
+- ❌ **O Treino Adaptado não diagnostica, não trata e não recupera lesão.** Nunca diga "o app cuida da sua
+  lesão", "treino para recuperar o joelho" ou "fisioterapia no app". Diga "registra onde dói, marca os
+  exercícios que provocam a dor e avisa quando procurar atendimento". Não grave pessoa com dor fazendo o
+  exercício marcado.
 - ⚠️ A voz (Jarvis) funciona melhor no Chrome; no iPhone o reconhecimento de voz é mais irregular.
 - ❌ A conexão com esteira, bike, elíptico, escada e remo **não funciona no iPhone** (a Apple não libera
   Bluetooth para sites) e só vale para aparelhos com o Bluetooth padrão de academia (FTMS) — muita

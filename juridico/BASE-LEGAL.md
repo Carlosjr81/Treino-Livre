@@ -76,6 +76,23 @@ responder por um dano a quem treinou seguindo uma sugestão.
 7. **A divulgação** (`divulgacao/treino-livre-para-chatgpt.md`) ganhou as
    regras de linguagem para os vídeos (item 6 abaixo).
 
+## 4b. O Treino Adaptado (2026-11-08a)
+
+Treinar com dor no ombro, no cotovelo ou no joelho. A especificação, as fontes
+e o checklist estão em `juridico/TREINO-ADAPTADO.md`. O que protege:
+
+- **Registro, não diagnóstico** (Lei 12.842/2013): a localização da dor é só
+  registro; nenhuma tela diz o que a pessoa tem.
+- **Não monta reabilitação** (Decreto-Lei 938/1969, COFFITO): sem plano, o app
+  só marca e pula; com plano, só registra o que o fisioterapeuta orientou e
+  mostra se o critério do plano foi cumprido. A pessoa decide.
+- **Sinais de alerta param o treino** e mandam procurar atendimento (SAMU na
+  emergência). Aceite próprio, com caixa, registrado em `aceites/`.
+- **Os dados de dor ficam no aparelho** (dado sensível, LGPD art. 11).
+- **Pendente:** a revisão das regras e dos textos por um fisioterapeuta
+  (a tela diz "em revisão" até lá), e o advogado conferir o enquadramento
+  na ANVISA (software como dispositivo médico; este só registra e organiza).
+
 ## 5. O que o app não resolve sozinho (com o advogado)
 
 - **Revisão dos Termos e da Política por um advogado.** O texto foi escrito sem

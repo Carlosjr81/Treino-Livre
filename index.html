@@ -853,6 +853,118 @@ const EMERGENCIA = {
   falado: "Pare o exercício agora. Sente-se ou deite-se e chame alguém por perto. Se tiver dor no peito, falta de ar forte ou desmaio, ligue já para o SAMU, um nove dois. Abri na tela o botão para ligar.",
 };
 
+// ---------------- O TREINO ADAPTADO (os dados) ----------------
+// Pedido do dono (2026-11-08a): treinar com dor no ombro, no cotovelo ou no
+// joelho. O app REGISTRA onde dói, MARCA os exercícios que provocam a dor e
+// PARA tudo diante de um sinal de alerta. Não diagnostica, não monta
+// reabilitação e não decide progredir: com plano do fisioterapeuta, quem
+// decide são os critérios do plano. A especificação, as fontes (F1 a F9) e o
+// porquê de cada regra estão em juridico/TREINO-ADAPTADO.md.
+// As regras e os textos clínicos ESPERAM A REVISÃO de um fisioterapeuta: o
+// nome, o CREFITO e a data entram em REVISAO_ADAPTADO, e enquanto estiverem
+// vazios a tela diz "em revisão". A tabela de trocas (VARIACOES_ADAPTADO)
+// fica vazia até essa revisão: sem ela o app não sugere troca nenhuma.
+const REVISAO_ADAPTADO = { fisioterapeuta: "", crefito: "", em: "" };
+const VERSAO_ADAPTADO = "2026-11-08a";
+const REGIOES_ADAPTADO = [
+  { id: "ombro", nome: "Ombro", art: "o ombro" },
+  { id: "cotovelo", nome: "Cotovelo", art: "o cotovelo" },
+  { id: "joelho", nome: "Joelho", art: "o joelho" },
+];
+const LADOS_ADAPTADO = [["dir", "Direito"], ["esq", "Esquerdo"], ["ambos", "Os dois"]];
+// O ponto exato é só registro, para mostrar a quem for avaliar. Nenhuma zona
+// vira nome de doença.
+const ZONAS_ADAPTADO = {
+  ombro: [["frente", "Frente"], ["fora", "Lado de fora"], ["tras", "Atrás"], ["cima", "Em cima"], ["axila", "Embaixo (axila)"]],
+  cotovelo: [["ponta", "Ponta (atrás)"], ["fora", "Lado de fora"], ["dentro", "Lado de dentro"], ["frente", "Frente (na dobra)"]],
+  joelho: [["frente", "Frente (na patela)"], ["abaixo", "Abaixo da patela"], ["dentro", "Lado de dentro"], ["fora", "Lado de fora"], ["tras", "Atrás"]],
+};
+// Os movimentos que a pessoa diz que doem (lista fechada): é o que liga a dor
+// aos exercícios do catálogo (movimentosDoExercicio).
+const MOVIMENTOS_ADAPTADO = {
+  ombro: [["frente", "Levantar o braço pela frente"], ["lado", "Levantar o braço pelo lado"], ["cima", "Braço acima da cabeça"],
+    ["empurrar", "Empurrar (supino, flexão)"], ["puxar", "Puxar (remada, puxada)"], ["girarFora", "Girar o braço para fora"],
+    ["girarDentro", "Girar o braço para dentro"], ["deitar", "Deitar sobre o ombro"], ["apoio", "Apoiar o peso nas mãos"]],
+  cotovelo: [["dobrar", "Dobrar com carga (rosca)"], ["esticar", "Esticar com carga (tríceps)"], ["apoiar", "Apoiar o cotovelo numa superfície"],
+    ["segurar", "Segurar firme ou apertar"], ["punho", "Levantar o punho com carga"], ["girar", "Girar o antebraço"], ["empurrar", "Empurrar"]],
+  joelho: [["agachar", "Agachar"], ["subir", "Subir escada ou degrau"], ["descer", "Descer escada"], ["ajoelhar", "Ficar ajoelhado"],
+    ["saltar", "Saltar"], ["correr", "Correr"], ["girar", "Girar o corpo com o pé apoiado"], ["esticar", "Esticar com carga (cadeira extensora)"],
+    ["dobrar", "Dobrar com carga (flexora)"], ["sentado", "Muito tempo sentado com o joelho dobrado"]],
+};
+// O que o profissional orientou (lista fechada). O texto livre só é mostrado:
+// o app não interpreta, e por isso ele bloqueia qualquer troca sugerida.
+const RESTRICOES_ADAPTADO = [
+  ["semImpacto", "Sem impacto (salto, corrida)"],
+  ["semApoio", "Sem apoio sobre a região"],
+  ["semAcima", "Sem braço acima da cabeça"],
+  ["naoLado", "Não usar o lado afetado"],
+  ["semCarga", "Sem carga nos exercícios dessa região"],
+];
+// Os sinais de alerta. Diante de um "sim", o app para de sugerir treino.
+// Níveis: emergencia (SAMU, para tudo), hoje (atendimento no mesmo dia, para
+// tudo), breve (avaliação nos próximos dias, para só a região). "fonte" é a
+// linha da tabela de fontes da especificação; vazia = "sem fonte nesta
+// versão", para o fisioterapeuta confirmar.
+const ALERTAS_ADAPTADO = [
+  { id: "peito", regioes: ["ombro"], nivel: "emergencia", fonte: "",
+    pergunta: "A dor no ombro ou no braço veio junto com dor ou aperto no peito, falta de ar, suor frio ou enjoo?", curto: "dor ou aperto no peito, falta de ar, suor frio" },
+  { id: "deformidade", regioes: null, nivel: "emergencia", fonte: "",
+    pergunta: "Depois de uma queda, pancada ou torção, a região ficou com uma forma diferente do outro lado (osso fora do lugar)?", curto: "forma diferente depois de queda ou pancada" },
+  { id: "ponta", regioes: ["cotovelo"], nivel: "hoje", fonte: "F9",
+    pergunta: "A ponta do cotovelo está inchada (como uma bolsa), quente ou vermelha?", curto: "ponta do cotovelo inchada, quente ou vermelha" },
+  { id: "apoiar", regioes: ["joelho"], nivel: "hoje", fonte: "F7",
+    pergunta: "Depois de um trauma, você não consegue dar 4 passos apoiando a perna?", curto: "não consegue dar 4 passos apoiando a perna" },
+  { id: "febre", regioes: null, nivel: "hoje", fonte: "F8",
+    pergunta: "A articulação está quente e inchada, e você tem febre ou calafrios?", curto: "articulação quente e inchada, com febre" },
+  { id: "ferida", regioes: null, nivel: "hoje", fonte: "",
+    pergunta: "Há ferida, corte ou arranhão perto do ponto que dói, com vermelhidão se espalhando?", curto: "ferida com vermelhidão se espalhando" },
+  { id: "quente", regioes: null, nivel: "breve", fonte: "F8",
+    pergunta: "A articulação está quente e inchada, mesmo sem febre e sem trauma?", curto: "articulação quente e inchada" },
+  { id: "estalo", regioes: ["joelho"], nivel: "breve", fonte: "",
+    pergunta: "Na hora do trauma houve um estalo, e o joelho inchou nas primeiras horas?", curto: "estalo e inchaço logo depois do trauma" },
+  { id: "travado", regioes: ["joelho"], nivel: "breve", fonte: "",
+    pergunta: "O joelho trava: você não consegue esticar ou dobrar por inteiro?", curto: "joelho travado" },
+  { id: "levantar", regioes: ["ombro"], nivel: "breve", fonte: "",
+    pergunta: "Depois de um trauma, você não consegue levantar o braço sozinho?", curto: "não consegue levantar o braço depois de trauma" },
+  { id: "nervo", regioes: null, nivel: "breve", fonte: "",
+    pergunta: "Há formigamento, dormência ou perda de força descendo pelo braço ou pela perna?", curto: "formigamento, dormência ou perda de força" },
+  { id: "noite", regioes: null, nivel: "breve", fonte: "",
+    pergunta: "A dor acorda você à noite e não melhora mudando de posição, houve perda de peso sem explicação, ou você já teve câncer?", curto: "dor que acorda à noite, perda de peso ou câncer" },
+];
+const NIVEIS_ALERTA_ADAPTADO = {
+  emergencia: { ordem: 3, titulo: "Pare o treino agora", texto: "Isso precisa de atendimento de emergência.", samu: true, tudo: true },
+  hoje: { ordem: 2, titulo: "Procure atendimento hoje", texto: "Pare o treino e procure atendimento hoje (pronto-atendimento ou médico), para um profissional examinar.", tudo: true },
+  breve: { ordem: 1, titulo: "Marque uma avaliação", texto: "Marque uma avaliação com um médico ou fisioterapeuta. Até lá, os exercícios que usam a região ficam fora do treino.", tudo: false },
+};
+// Cortes do produto (a definir pelo fisioterapeuta): dor de 7 ou mais é
+// alerta, três manhãs seguidas piorando também, e 14 dias sem avaliação viram
+// lembrete.
+const CORTES_ADAPTADO = { dorAlerta: 7, diasPiora: 3, diasLembrete: 14, manhaMin: 6, manhaMax: 36 };
+// As trocas revisadas pelo fisioterapeuta: id do exercício → ids das trocas.
+// VAZIA DE PROPÓSITO até a revisão: sem ela, nenhuma troca é sugerida.
+const VARIACOES_ADAPTADO = {};
+const TEXTOS_ADAPTADO = {
+  entrada: "Treinar com dor? Adaptar o treino",
+  abertura: "O Treino Adaptado registra onde dói e marca os exercícios que provocam a dor, para você seguir treinando o resto. Ele não diagnostica nem trata: quem avalia a dor é um médico ou um fisioterapeuta.",
+  aceite: "Entendo que o app não avalia nem trata a minha dor, e que devo procurar um profissional de saúde.",
+  mapa: "Toque onde dói. Isso fica só como registro, para você mostrar a quem for te avaliar.",
+  avaliacao: "Um médico ou fisioterapeuta já avaliou essa dor?",
+  marcado: "Você registrou dor em",
+  barrado: "Orientação do profissional",
+  duvida: "Este exercício pode usar a região que dói. Pergunte ao profissional que acompanha você.",
+  semTroca: "Não há uma troca segura para sugerir. Leve essa dúvida ao profissional que acompanha você.",
+  troca: "Uma opção que não usa o movimento que dói e respeita as orientações que você registrou. Se doer, pare.",
+  liberar: "Já fui atendido e posso voltar a treinar conforme a orientação que recebi.",
+  lembrete: "Faz 14 dias que você registra dor. Uma avaliação pode orientar o que fazer.",
+  escalaDurante: "Quanto doeu neste exercício? 0 = nada, 10 = a pior dor que dá para imaginar.",
+  escalaManha: "Como está hoje de manhã, de 0 a 10?",
+  criterio: "O critério do seu plano foi cumprido. Seguir o plano?",
+  camera: "A contagem é uma estimativa da câmera, não uma medida clínica. A execução é orientada pelo seu fisioterapeuta.",
+  encerrar: "Encerrar porque a dor passou ou porque o profissional orientou",
+  revisao: "As regras e os textos deste recurso estão em revisão por um fisioterapeuta.",
+  naoE: "O app não diz o que você tem nem o que fazer para a dor passar. Ele organiza o seu treino em volta da dor e avisa quando é hora de procurar atendimento.",
+};
+
 // Os Termos de Uso (pedido do dono: "faça o termo de uso com aceite no
 // cadastro, bem legal, que precise do aceite"). Um texto só: a tela de aceite,
 // o cadastro, os Ajustes e o termos.html (que o teste-acesso.js confere que
@@ -1090,6 +1202,20 @@ const AJUDA_APP = [
       "Da segunda vez em diante o peso já vem preenchido com o da última vez, e sobe um degrau quando você fechou todas as repetições.",
       "Fechou o app no meio? Nada se perde: o treino volta de onde parou.",
     ], ir: { rotulo: "Ir para o Início", destino: "inicio" } },
+  { id: "adaptado", cat: "treino", icone: "\u{1FA79}", titulo: "Treinar com dor (Treino Adaptado)",
+    resumo: "Registre onde dói, e o app marca os exercícios que provocam a dor e avisa quando é hora de procurar atendimento.",
+    passos: [
+      "Em **Fichas**, toque em **🩹 Treinar com dor? Adaptar o treino** e aceite o aviso: o app não diagnostica nem trata.",
+      "Toque no ombro, no cotovelo ou no joelho do desenho, diga o ponto, quando começou e quais movimentos doem.",
+      "Responda aos sinais de alerta. Um \"sim\" para o treino e diz onde procurar atendimento.",
+      "Diga se já foi avaliado. Com orientações ou um plano do fisioterapeuta, registre o que foi dito.",
+      "No treino, os exercícios que provocam a dor vêm marcados (⚠) ou pulados (🚫). Depois de cada um, anote a dor de 0 a 10.",
+    ],
+    dicas: [
+      "Na manhã seguinte o app pergunta como está a dor. Em **A dor no tempo** dá para baixar um resumo para levar à consulta.",
+      "Com o plano do fisioterapeuta, **▶ Fazer o plano agora** abre o treino do plano, e a câmera conta as repetições sem corrigir a execução.",
+      "Dor de 7 ou mais, ou três manhãs seguidas piorando: os exercícios da região saem do treino até uma avaliação.",
+    ], ir: { rotulo: "Abrir o Treino Adaptado", destino: "adaptado" } },
   { id: "montar", cat: "comecar", icone: "\u{1F9ED}", titulo: "Montar um treino pra mim",
     resumo: "Responda 3 perguntas e o app monta as fichas.",
     passos: [
@@ -1536,7 +1662,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-05b";
+const VERSAO_APP = "2026-11-08a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3756,7 +3882,8 @@ function lerPacoteBolso(texto, decodificar) {
 // ficaram para trás. No bi-set a vez é do parceiro com menos séries feitas.
 function alvoDaSessao(itens, focoEi) {
   if (!itens || !itens.length) return null;
-  const pendente = (it) => it.series.findIndex((s) => !s.feito);
+  // o exercício pulado hoje (Treino Adaptado) não é a vez de ninguém
+  const pendente = (it) => (it.pulado ? -1 : it.series.findIndex((s) => !s.feito));
   const feitas = (it) => it.series.filter((s) => s.feito).length;
   if (focoEi !== null && focoEi !== undefined && itens[focoEi]) {
     const c = itens[focoEi].conjunto;
@@ -3788,6 +3915,298 @@ function alvoDaSessao(itens, focoEi) {
   const ult = itens.length - 1;
   return { ei: ult, si: itens[ult].series.length };
 }
+
+// ---------------- TREINO ADAPTADO: AS REGRAS ----------------
+// Funções puras (teste-adaptado.js). A ordem da decisão é sempre a mesma:
+// alerta (para tudo), depois o modo, depois cada exercício. Nenhuma função
+// daqui devolve nome de doença nem sobe carga.
+function normAdaptado(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+// Que movimentos de cada região um exercício carrega. Primeiro as regras pelo
+// nome (o movimento); a regra do grupo só vale para a região que nenhum nome
+// resolveu. "livre" diz que a região não é carregada de propósito; sem isso,
+// região tocada pelo grupo e sem movimento conhecido fica "em dúvida".
+const REGRAS_MOV_ADAPTADO = [
+  [/punho|wrist/, { cotovelo: ["punho", "segurar"] }],
+  [/nordic/, { joelho: ["dobrar"], cotovelo: "livre", ombro: "livre" }],
+  [/hiperextensao/, { ombro: "livre", cotovelo: "livre", joelho: "livre" }],
+  [/rosca.desenvolvimento/, { ombro: ["cima", "empurrar"], cotovelo: ["dobrar", "esticar", "segurar"] }],
+  [/elevacao.de.(joelhos|pernas).na.barra|pendurad|hanging/, { ombro: ["cima"], cotovelo: ["segurar"] }],
+  [/terra|stiff|levantamento|rdl|good.morning|bom.dia/, { joelho: "livre", cotovelo: ["segurar"], ombro: [] }],
+  [/mergulho|paralelas|\bdips?\b/, { ombro: ["empurrar", "apoio"], cotovelo: ["esticar", "empurrar"] }],
+  // o tríceps antes de tudo: "Tríceps na polia (puxada alta)" não é puxada
+  [/frances|triceps.*(overhead|acima.da.cabeca)/, { ombro: ["cima"], cotovelo: ["esticar", "segurar"] }],
+  [/triceps|testa|coice.de.triceps|pushdown|extensao.de.cotovelo/, { cotovelo: ["esticar"], ombro: "livre" }],
+  [/crucifixo.inverso|crucifixo-inverso|face.?pull|elevacao.posterior|pull.?apart|afastamento.de.bracos/, { ombro: ["puxar", "girarFora"], cotovelo: ["segurar"] }],
+  [/crucifixo|crossover|voador|\bfly\b|peck/, { ombro: ["empurrar"], cotovelo: ["segurar"] }],
+  [/desenvolvimento|arnold|militar|push.?press|arremesso|arranco|elevacao.y|elevacao-y/, { ombro: ["cima", "empurrar"], cotovelo: ["esticar", "empurrar", "segurar"] }],
+  [/elevacao.lateral|elevacao-lateral/, { ombro: ["lado"], cotovelo: ["segurar"] }],
+  [/elevacao.frontal|elevacao-frontal/, { ombro: ["frente"], cotovelo: ["segurar"] }],
+  [/remada.alta|remada-alta/, { ombro: ["lado", "puxar"], cotovelo: ["dobrar", "segurar"] }],
+  [/encolhimento|shrug/, { cotovelo: ["segurar"] }],
+  [/puxada|pulldown|barra.fixa|barra-fixa|pull.?up|\bchin|pullover/, { ombro: ["cima", "puxar"], cotovelo: ["dobrar", "segurar"] }],
+  [/remada|serrote|\brow\b/, { ombro: ["puxar"], cotovelo: ["dobrar", "segurar"] }],
+  [/flexao(?!.de.joelho|-de-joelho|.de.punho|-de-punho|.nordica|-nordica|.lateral|-lateral)|push.?up/, { ombro: ["empurrar", "apoio"], cotovelo: ["esticar", "empurrar"] }],
+  [/supino|chest.press/, { ombro: ["empurrar"], cotovelo: ["esticar", "empurrar", "segurar"] }],
+  [/scott|concentrada/, { cotovelo: ["dobrar", "segurar", "apoiar"] }],
+  [/rosca|curl/, { cotovelo: ["dobrar", "segurar", "girar"] }],
+  [/prancha|plank/, { ombro: ["apoio"], cotovelo: ["apoiar"] }],
+  [/roda.abdominal|rollout/, { ombro: ["cima", "apoio"], joelho: ["ajoelhar"] }],
+  [/burpee/, { ombro: ["apoio"], joelho: ["agachar", "saltar"] }],
+  [/perdigueiro|passaro.cachorro/, { ombro: ["apoio"], cotovelo: [] }],
+  [/escalador|mountain|\burso\b/, { ombro: ["apoio"] }],
+  [/socos?|soco/, { ombro: ["empurrar"], cotovelo: ["esticar"] }],
+  [/sem.salto/, { ombro: ["cima"], joelho: "livre" }],
+  [/polichinelo/, { ombro: ["cima"], joelho: ["saltar"] }],
+  [/agachamento.com.salto|jump.squat/, { joelho: ["agachar", "saltar"] }],
+  [/salto|saltos|jump|skater|pular|corda.de.pular/, { joelho: ["saltar"] }],
+  [/extensora|extensao.de.joelho|extensao.de.pernas|leg.extension/, { joelho: ["esticar"] }],
+  [/flexora|nordic|nordico|leg.curl|flexao.de.joelho|flexao-de-joelho/, { joelho: ["dobrar"] }],
+  [/escadaria/, { joelho: ["subir", "descer"] }],
+  [/step|subida|degrau|stepmill|escada/, { joelho: ["subir"] }],
+  [/parede|wall.sit/, { joelho: ["agachar"] }],
+  [/ajoelhad/, { joelho: ["ajoelhar"] }],
+  [/elevacao.pelvica|hip.thrust|ponte|abdutora|adutora|abducao|aducao|panturrilha|gemeos|concha|coice/, { joelho: "livre" }],
+  [/agachamento|squat|leg.press|leg-press|hack|sissy|bulgaro|afundo|passada|avanco|lunge|pistol|thruster|goblet|sentar.e.levantar/, { joelho: ["agachar"] }],
+];
+const TOCA_ADAPTADO = { peito: ["ombro", "cotovelo"], costas: ["ombro", "cotovelo"], ombros: ["ombro", "cotovelo"], biceps: ["cotovelo", "ombro"],
+  triceps: ["cotovelo", "ombro"], abdomen: [], pernas: ["joelho"], gluteos: ["joelho"] };
+const BASE_GRUPO_ADAPTADO = { peito: { ombro: ["empurrar"], cotovelo: ["esticar", "empurrar"] }, costas: { ombro: ["puxar"], cotovelo: ["dobrar", "segurar"] },
+  ombros: { cotovelo: ["segurar"] }, biceps: { cotovelo: ["dobrar", "segurar"], ombro: "livre" }, triceps: { cotovelo: ["esticar"] } };
+// O aeróbico pelo perfil: correr carrega o joelho; pedalar, o elíptico e
+// caminhar ficam "em dúvida" (depende da pessoa, e o app não sabe).
+const CARDIO_ADAPTADO = {
+  "corrida": { joelho: ["correr"] }, "rua-corrida": { joelho: ["correr"] }, "trilha": { joelho: ["correr"] },
+  "caminhada": { joelho: [] }, "rua-caminhada": { joelho: [] }, "bike": { joelho: [] }, "bike-rua": { joelho: [] }, "eliptico": { joelho: [] },
+  "escada": { joelho: ["subir"] }, "corda": { joelho: ["saltar"] }, "remo": { ombro: ["puxar"], cotovelo: ["dobrar", "segurar"], joelho: ["agachar"] },
+  "ski": { ombro: ["puxar", "cima"], cotovelo: ["segurar"] }, "bike-braco": { ombro: ["empurrar", "puxar"], cotovelo: ["segurar"] }, "natacao": { ombro: ["cima"] },
+};
+function movimentosDoExercicio(ex) {
+  const out = { ombro: { movs: [], duvida: false }, cotovelo: { movs: [], duvida: false }, joelho: { movs: [], duvida: false } };
+  if (!ex) return out;
+  const resolvido = {}, livre = {};
+  const por = (mapa) => {
+    for (const r in mapa) {
+      if (mapa[r] === "livre") { livre[r] = true; resolvido[r] = true; continue; }
+      resolvido[r] = true;
+      mapa[r].forEach((m) => { if (out[r].movs.indexOf(m) < 0) out[r].movs.push(m); });
+    }
+  };
+  if (ex.cardio) {
+    const c = CARDIO_ADAPTADO[ex.cardio] || { joelho: [] };
+    por(c);
+    for (const r in c) if (!c[r].length) out[r].duvida = true;
+    return out;
+  }
+  // a primeira regra que fala de uma região resolve aquela região
+  const texto = normAdaptado(ex.id + " " + ex.nome);
+  REGRAS_MOV_ADAPTADO.forEach((rg) => {
+    if (!rg[0].test(texto)) return;
+    for (const r in rg[1]) {
+      if (resolvido[r]) continue;
+      resolvido[r] = true;
+      if (rg[1][r] === "livre") livre[r] = true;
+      else out[r].movs = rg[1][r].slice();
+    }
+  });
+  const base = BASE_GRUPO_ADAPTADO[ex.grupo] || {};
+  for (const r in base) if (!resolvido[r]) {
+    if (base[r] === "livre") livre[r] = true;
+    else base[r].forEach((m) => out[r].movs.push(m));
+    resolvido[r] = true;
+  }
+  (TOCA_ADAPTADO[ex.grupo] || []).forEach((r) => { if (!out[r].movs.length && !livre[r]) out[r].duvida = true; });
+  // O exercício que a pessoa criou: o app não conhece o movimento dele.
+  if (ex.custom) (TOCA_ADAPTADO[ex.grupo] || []).forEach((r) => { if (!livre[r]) out[r].duvida = true; });
+  return out;
+}
+function nomeMovAdaptado(regiao, id) {
+  const m = (MOVIMENTOS_ADAPTADO[regiao] || []).find((x) => x[0] === id);
+  return m ? m[1].toLowerCase() : id;
+}
+// O alerta que vale agora num registro (o mais grave ainda não atendido),
+// juntando as respostas da triagem e o que a escala de dor disse.
+function alertaDoRegistro(reg) {
+  if (!reg || reg.situacao !== "ativa") return null;
+  let pior = null;
+  const ver = (nivel, motivo) => {
+    const n = NIVEIS_ALERTA_ADAPTADO[nivel];
+    if (n && (!pior || n.ordem > NIVEIS_ALERTA_ADAPTADO[pior.nivel].ordem)) pior = { nivel: nivel, motivo: motivo };
+  };
+  if (reg.alerta && !reg.alerta.atendidoEm) ver(reg.alerta.nivel, reg.alerta.motivo || "");
+  const s = sinalDaEscala(reg);
+  if (s) ver("breve", s);
+  return pior;
+}
+// A triagem: as respostas "sim" viram o nível mais grave entre elas.
+function perguntasDaTriagem(regiao, zona) {
+  const l = ALERTAS_ADAPTADO.filter((a) => !a.regioes || a.regioes.indexOf(regiao) >= 0);
+  // quem tocou na ponta do cotovelo responde primeiro a pergunta dela
+  if (regiao === "cotovelo" && zona === "ponta") l.sort((a, b) => (b.id === "ponta") - (a.id === "ponta"));
+  return l;
+}
+function triagemAdaptado(respostas, regiao, dorRepouso) {
+  let pior = null;
+  perguntasDaTriagem(regiao).forEach((a) => {
+    if (!respostas || !respostas[a.id]) return;
+    if (!pior || NIVEIS_ALERTA_ADAPTADO[a.nivel].ordem > NIVEIS_ALERTA_ADAPTADO[pior.nivel].ordem) pior = { nivel: a.nivel, motivo: a.curto };
+  });
+  if (!pior && Number(dorRepouso) >= CORTES_ADAPTADO.dorAlerta) pior = { nivel: "breve", motivo: "dor de " + dorRepouso + " parado" };
+  return pior;
+}
+// A escala vira alerta: 7 ou mais (durante ou de manhã), ou três manhãs
+// seguidas piorando. Atender o alerta (atendidoEm) zera a contagem até ali.
+function sinalDaEscala(reg) {
+  const desde = (reg.alerta && reg.alerta.atendidoEm) || 0;
+  const s = (reg.sintomas || []).filter((x) => x.em > desde);
+  const alto = s.filter((x) => x.valor >= CORTES_ADAPTADO.dorAlerta);
+  if (alto.length) return "dor de " + alto[alto.length - 1].valor + (alto[alto.length - 1].tipo === "manha" ? " de manhã" : " no exercício");
+  const m = s.filter((x) => x.tipo === "manha");
+  const n = CORTES_ADAPTADO.diasPiora;
+  if (m.length >= n) {
+    const ult = m.slice(-n);
+    if (ult.every((x, i) => i === 0 || x.valor > ult[i - 1].valor)) return n + " manhãs seguidas piorando";
+  }
+  return null;
+}
+function lembreteAvaliacao(reg, agora) {
+  return !!(reg && reg.situacao === "ativa" && reg.avaliacao === "nao" && (agora - reg.criado) >= CORTES_ADAPTADO.diasLembrete * 864e5);
+}
+// O modo sai do que a pessoa informou da avaliação.
+function modoAdaptado(reg) {
+  if (!reg) return null;
+  if (reg.avaliacao === "plano" && reg.plano && (reg.plano.itens || []).length) return "plano";
+  if (reg.avaliacao === "restricoes" || reg.avaliacao === "plano") return "restricoes";
+  return "registro";
+}
+// O estado de um exercício diante de um registro: null (não toca a região),
+// livre, marcado, barrado ou duvida, com o motivo e as notas.
+const ORDEM_ESTADO_ADAPTADO = { livre: 1, duvida: 2, marcado: 3, barrado: 4 };
+function estadoExercicioAdaptado(ex, reg) {
+  if (!ex || !reg || reg.situacao !== "ativa") return null;
+  const regiao = reg.regiao;
+  const al = alertaDoRegistro(reg);
+  const r = movimentosDoExercicio(ex)[regiao] || { movs: [], duvida: false };
+  const toca = r.movs.length > 0 || r.duvida;
+  // alerta que para tudo: nenhum exercício é sugerido, toque a região ou não
+  if (al && NIVEIS_ALERTA_ADAPTADO[al.nivel].tudo) return { estado: "barrado", regiao: regiao, alerta: al.nivel, motivo: NIVEIS_ALERTA_ADAPTADO[al.nivel].titulo, notas: [] };
+  if (!toca) return null;
+  if (al) return { estado: "barrado", regiao: regiao, alerta: al.nivel, motivo: "Aguardando avaliação (" + al.motivo + ")", notas: [] };
+  const notas = [];
+  const rs = (modoAdaptado(reg) !== "registro" && reg.restricoes) || {};
+  const tem = (lista) => r.movs.some((m) => lista.indexOf(m) >= 0);
+  let barra = null;
+  if ((rs.naoFazer || []).indexOf(ex.id) >= 0) barra = "não fazer este exercício";
+  else if (rs.semImpacto && tem(["saltar", "correr"])) barra = "sem impacto";
+  else if (rs.semApoio && tem(["apoio", "apoiar", "ajoelhar"])) barra = "sem apoio sobre a região";
+  else if (rs.semAcima && tem(["cima"])) barra = "sem braço acima da cabeça";
+  else if (rs.semCarga && r.movs.length && !/peso corporal/i.test(ex.equip || "")) barra = "sem carga nesta região";
+  else if (rs.naoLado) barra = "não usar o lado afetado" + (ex.uni || /unilateral/i.test(ex.nome) ? " (o outro lado pode)" : "");
+  if (rs.cargaMax > 0) notas.push("carga máxima orientada: " + rs.cargaMax + " kg");
+  if (rs.amplitude) notas.push("amplitude orientada: " + rs.amplitude);
+  if (rs.texto) notas.push("orientação: " + rs.texto);
+  if (barra) return { estado: "barrado", regiao: regiao, motivo: barra, notas: notas };
+  const doi = r.movs.filter((m) => (reg.movimentos || []).indexOf(m) >= 0);
+  if (doi.length) return { estado: "marcado", regiao: regiao, movs: doi, motivo: doi.map((m) => nomeMovAdaptado(regiao, m)).join(", "), notas: notas };
+  if (r.duvida) return { estado: "duvida", regiao: regiao, motivo: TEXTOS_ADAPTADO.duvida, notas: notas };
+  return { estado: "livre", regiao: regiao, notas: notas };
+}
+// Com vários registros, vale o mais restritivo.
+function estadoAdaptado(ex, registros) {
+  let pior = null;
+  (registros || []).forEach((reg) => {
+    const e = estadoExercicioAdaptado(ex, reg);
+    if (e && (!pior || ORDEM_ESTADO_ADAPTADO[e.estado] > ORDEM_ESTADO_ADAPTADO[pior.estado])) pior = Object.assign({ regId: reg.id }, e);
+  });
+  return pior;
+}
+// A troca: só da tabela revisada, do mesmo grupo, sem nenhum movimento que
+// dói e cumprindo todas as restrições. Texto livre nas restrições = nenhuma.
+function variacaoCompativel(ex, registros, exPorId) {
+  if (!ex) return null;
+  const ativos = (registros || []).filter((r) => r.situacao === "ativa");
+  if (ativos.some((r) => r.restricoes && r.restricoes.texto)) return null;
+  const lista = VARIACOES_ADAPTADO[ex.id] || [];
+  for (const id of lista) {
+    const alt = exPorId(id);
+    if (!alt || alt.grupo !== ex.grupo) continue;
+    const e = estadoAdaptado(alt, ativos);
+    if (!e || e.estado === "livre") return alt;
+  }
+  return null;
+}
+// O critério do plano: o app só diz se foi cumprido, pelos registros da
+// pessoa. Uma sessão está "dentro" quando toda dor durante ficou até o limite
+// do plano e a manhã seguinte (se respondida) também.
+function sessoesDoPlano(reg) {
+  const ses = {};
+  (reg.sintomas || []).forEach((s) => {
+    if (!s.sess) return;
+    const x = ses[s.sess] || (ses[s.sess] = { sess: s.sess, em: s.em, durante: [], manha: null });
+    if (s.tipo === "manha") x.manha = s.valor; else x.durante.push(s.valor);
+    if (s.em < x.em) x.em = s.em;
+  });
+  return Object.keys(ses).map((k) => ses[k]).filter((x) => x.durante.length).sort((a, b) => a.em - b.em);
+}
+function criterioPlano(reg) {
+  const p = reg && reg.plano;
+  if (!p) return { progredir: false, voltar: false, sessoes: 0 };
+  const lim = Number(p.dorDurante), limM = p.dorManha === "" || p.dorManha === null || p.dorManha === undefined ? null : Number(p.dorManha);
+  const desde = Math.max(p.decididoEm || 0, p.em || 0);
+  const ses = sessoesDoPlano(reg).filter((x) => x.em > desde);
+  const dentro = (x) => x.durante.every((v) => v <= lim) && (limM === null || x.manha === null || x.manha <= limM);
+  const n = Math.max(1, Number(p.progredirN) || 2);
+  const ult = ses[ses.length - 1];
+  const voltar = !!(ult && !dentro(ult));
+  const progredir = !voltar && ses.length >= n && ses.slice(-n).every(dentro);
+  return { progredir: progredir, voltar: voltar, sessoes: ses.length };
+}
+// Uma manhã por responder: a última sessão com dor anotada foi entre 6 e 36 h
+// atrás e ainda não tem a manhã seguinte.
+function manhaPendente(registros, agora) {
+  for (const reg of (registros || [])) {
+    if (reg.situacao !== "ativa") continue;
+    const ses = sessoesDoPlano(reg);
+    const ult = ses[ses.length - 1];
+    if (!ult || ult.manha !== null) continue;
+    const h = (agora - ult.em) / 36e5;
+    if (h >= CORTES_ADAPTADO.manhaMin && h <= CORTES_ADAPTADO.manhaMax) return { regId: reg.id, sess: ult.sess };
+  }
+  return null;
+}
+// O resumo em texto para levar à consulta.
+function relatorioAdaptado(reg, exPorId) {
+  const reg0 = REGIOES_ADAPTADO.find((r) => r.id === reg.regiao) || { nome: reg.regiao };
+  const lado = (LADOS_ADAPTADO.find((l) => l[0] === reg.lado) || ["", ""])[1];
+  const zona = ((ZONAS_ADAPTADO[reg.regiao] || []).find((z) => z[0] === reg.zona) || ["", ""])[1];
+  const data = (ms) => new Date(ms).toLocaleDateString("pt-BR");
+  const l = ["Treino Livre · Treino Adaptado · registro do usuário (não é laudo nem diagnóstico)", "",
+    "Região: " + reg0.nome + (lado ? " · " + lado : "") + (zona ? " · " + zona : ""),
+    "Início: " + (reg.inicio || "?") + (reg.trauma ? " · começou com trauma" : " · começou aos poucos"),
+    "Dor parado no registro: " + (reg.dorRepouso === "" || reg.dorRepouso === undefined ? "?" : reg.dorRepouso) + "/10",
+    "Movimentos que doem: " + ((reg.movimentos || []).map((m) => nomeMovAdaptado(reg.regiao, m)).join(", ") || "nenhum marcado"),
+    "Registrado em " + data(reg.criado)];
+  const rs = reg.restricoes || {};
+  const rl = RESTRICOES_ADAPTADO.filter((r) => rs[r[0]]).map((r) => r[1]);
+  if (rs.cargaMax > 0) rl.push("carga máxima " + rs.cargaMax + " kg");
+  if (rs.amplitude) rl.push("amplitude " + rs.amplitude);
+  if ((rs.naoFazer || []).length) rl.push("não fazer: " + rs.naoFazer.map((id) => { const e = exPorId(id); return e ? e.nome : id; }).join(", "));
+  if (rs.texto) rl.push(rs.texto);
+  if (rl.length) l.push("Orientações registradas: " + rl.join("; "));
+  if (reg.plano) {
+    const p = reg.plano;
+    l.push("", "Plano registrado" + (p.prof ? " (" + p.prof + (p.crefito ? ", CREFITO " + p.crefito : "") + ")" : "") + ":");
+    (p.itens || []).forEach((it) => { const e = exPorId(it.exercicioId); l.push("- " + (e ? e.nome : it.exercicioId) + ": " + it.series + " × " + (it.reps || "") + (it.carga ? " · " + it.carga : "") + (it.amplitude ? " · " + it.amplitude : "") + (it.ritmo ? " · " + it.ritmo : "")); });
+    l.push("Dor aceitável durante: até " + p.dorDurante + "/10" + (p.dorManha !== "" && p.dorManha !== undefined && p.dorManha !== null ? " · de manhã: até " + p.dorManha + "/10" : ""));
+  }
+  const s = (reg.sintomas || []).slice().sort((a, b) => a.em - b.em);
+  if (s.length) {
+    l.push("", "Escala de dor (0 a 10):");
+    s.forEach((x) => { const e = x.ex ? exPorId(x.ex) : null; l.push(data(x.em) + " · " + (x.tipo === "manha" ? "manhã seguinte" : "durante" + (e ? " (" + e.nome + ")" : "")) + ": " + x.valor); });
+  }
+  (reg.decisoes || []).forEach((d) => l.push("Decisão do plano em " + data(d.em) + ": " + d.texto));
+  return l.join("\n");
+}
+// ---------------- FIM DO TREINO ADAPTADO: AS REGRAS ----------------
 
 // ---------- RECUPERAÇÃO POR GRUPO MUSCULAR ----------
 // Quantos dias desde a última vez que cada grupo foi treinado. Serve para
@@ -9375,7 +9794,7 @@ function usarFantasma(ativo, ms) {
 
 function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, serieTotal, som, bpm,
   vozCfg, contarAlto, onAlternarContagem, autoSerie, onAlternarAuto, onEspelho,
-  livre, exPorId, onGuardarLivre, onRegistrar, onFechar, fonteOculos }) {
+  livre, exPorId, onGuardarLivre, onRegistrar, onFechar, fonteOculos, semCorrecao }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fluxoRef = useRef(null);
@@ -9518,13 +9937,14 @@ function ScannerEyes({ aberto, ex, repsAlvo, pesoAtual, pesoCorporal, serieNum, 
     repsRef.current = 0;
     setFechando(0);
     canceladoRef.current = false;
-    posturaRef.current = criarPostura(exAlvo);
+    // no plano do fisioterapeuta (Treino Adaptado) a câmera conta e não corrige
+    posturaRef.current = semCorrecao ? null : criarPostura(exAlvo);
     setDica(null);
     // Exercício de máquina o contador descobre sozinho. Movimento funcional tem
     // forma conhecida, e dizer qual é rende uma contagem muito melhor — é a
     // diferença entre contar o salto e contar o balanço do braço durante o salto.
     const perfil = perfilDoEx(exAlvo);
-    tecnicoRef.current = criarTecnico(perfil && perfil.frases);
+    tecnicoRef.current = semCorrecao ? null : criarTecnico(perfil && perfil.frases);
     if (perfil && perfil.dica) setDica({ texto: perfil.dica, tipo: "dica", em: Date.now() });
     soTroncoRef.current = eyesSoTronco(exAlvo);
     semLadosRef.current = !!(perfil && perfil.sinais && !perfil.sinais.some((s) => /-[ed](?=-|$)/.test(s)));
@@ -14607,9 +15027,668 @@ function FormNovoExercicio({ grupoSugerido, base, onSalvar, onCancelar, avisar }
   );
 }
 
+// ---------------- A TELA DO TREINO ADAPTADO ----------------
+// Registro da dor (mapa do corpo), triagem de alerta, modo (registro,
+// restrições ou plano) e o plano do fisioterapeuta. Tudo fica no aparelho
+// (treinolivre:adaptado); para o Firebase sobe só a declaração do aceite.
+const CHAVE_ADAPTADO = "treinolivre:adaptado";
+function lerAdaptado() {
+  try {
+    const d = JSON.parse(localStorage.getItem(CHAVE_ADAPTADO) || "null");
+    if (d && Array.isArray(d.registros)) return d;
+  } catch (e) {}
+  return { v: 1, aceite: null, registros: [] };
+}
+function gravarAdaptado(d) { try { localStorage.setItem(CHAVE_ADAPTADO, JSON.stringify(d)); } catch (e) {} }
+function registrosAtivosAdaptado(d) { return ((d && d.registros) || []).filter((r) => r.situacao === "ativa"); }
+let registrandoAdaptado = false;
+// Devolve true quando a declaração subiu; quem chama marca "reg" no estado.
+async function registrarDeclaracaoAdaptado(a, nome) {
+  if (!a || a.reg || registrandoAdaptado || !acessoLigado()) return false;
+  registrandoAdaptado = true;
+  try {
+    const s = await tokenValido(lerSessaoConta());
+    if (!s || !s.uid) return false;
+    let hash = "";
+    try {
+      const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(TEXTOS_ADAPTADO)));
+      hash = Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, "0")).join("");
+    } catch (e) {}
+    // só a declaração: nada de região, dor ou resposta da triagem
+    const campos = { conta: s.uid, email: s.email, nome: nome || s.nome || "", termos: "Treino Adaptado " + VERSAO_ADAPTADO, em: a.em, de: "adaptado",
+      caixas: TEXTOS_ADAPTADO.aceite, hash: hash,
+      aparelho: aparelhoDe(navigator.userAgent, NO_APP_ANDROID), versaoApp: VERSAO_APP, navegador: String(navigator.userAgent || "").slice(0, 300) };
+    try { await contaApi.registrarAceite(s.uid + "_" + a.em, campos, s.idToken); }
+    catch (x) { if (!/ALREADY_EXISTS/.test(x.message)) throw x; }
+    return true;
+  } catch (e) { return false; } finally { registrandoAdaptado = false; }
+}
+function nomeRegistroAdaptado(reg) {
+  const r = REGIOES_ADAPTADO.find((x) => x.id === reg.regiao);
+  const l = reg.lado === "dir" ? " direito" : reg.lado === "esq" ? " esquerdo" : reg.lado === "ambos" ? " (os dois)" : "";
+  return (r ? r.nome : reg.regiao) + l;
+}
+const NOMES_MODO_ADAPTADO = { registro: "Registro (sem orientação profissional)", restricoes: "Com as orientações do profissional", plano: "Com o plano do fisioterapeuta" };
+
+// A escala de dor de 0 a 10, em botões grandes (mão suada, meio do treino).
+function EscalaDor({ valor, onEscolher, rotulo }) {
+  return (
+    <div role="group" aria-label={rotulo || "Escala de dor de 0 a 10"}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(11, 1fr)", gap: 3 }}>
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+          <button key={n} type="button" onClick={() => onEscolher(n)} aria-pressed={valor === n} aria-label={"Dor " + n}
+            style={{ padding: "10px 0", borderRadius: 8, fontWeight: 900, fontSize: 14, cursor: "pointer",
+              border: "1px solid " + (valor === n ? "var(--marca)" : "var(--borda2)"),
+              background: valor === n ? "var(--marca)" : n >= CORTES_ADAPTADO.dorAlerta ? "var(--aviso-bg)" : "transparent",
+              color: valor === n ? "#fff" : "var(--texto)" }}>{n}</button>
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "var(--cinza)", marginTop: 3 }}>
+        <span>0 nada</span><span>10 a pior que dá para imaginar</span>
+      </div>
+    </div>
+  );
+}
+
+// O mapa do corpo, de frente: a direita da pessoa aparece à esquerda da tela.
+function MapaCorpoAdaptado({ regiao, lado, onEscolher }) {
+  const pontos = [
+    ["ombro", "dir", 64, 62], ["ombro", "esq", 136, 62],
+    ["cotovelo", "dir", 50, 116], ["cotovelo", "esq", 150, 116],
+    ["joelho", "dir", 84, 204], ["joelho", "esq", 116, 204],
+  ];
+  const linha = { stroke: "var(--cinza)", strokeWidth: 9, strokeLinecap: "round", fill: "none", opacity: 0.45 };
+  return (
+    <svg viewBox="0 0 200 262" style={{ width: "100%", maxWidth: 240, display: "block", margin: "0 auto" }} role="group" aria-label="Mapa do corpo: toque onde dói">
+      <circle cx="100" cy="28" r="17" fill="var(--cinza)" opacity="0.35" />
+      <rect x="70" y="50" width="60" height="94" rx="16" fill="var(--cinza)" opacity="0.3" />
+      <path d="M66 60 L50 116 L44 162" {...linha} />
+      <path d="M134 60 L150 116 L156 162" {...linha} />
+      <path d="M88 142 L84 204 L84 252" {...linha} />
+      <path d="M112 142 L116 204 L116 252" {...linha} />
+      <text x="22" y="20" fontSize="11" fill="var(--cinza)">direita</text>
+      <text x="148" y="20" fontSize="11" fill="var(--cinza)">esquerda</text>
+      {pontos.map((p) => {
+        const sel = regiao === p[0] && (lado === p[1] || lado === "ambos");
+        return (
+          <g key={p[0] + p[1]} role="button" tabIndex={0} aria-pressed={sel}
+            aria-label={(REGIOES_ADAPTADO.find((r) => r.id === p[0]) || {}).nome + (p[1] === "dir" ? " direito" : " esquerdo")}
+            onClick={() => onEscolher(p[0], p[1])} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onEscolher(p[0], p[1]); }}
+            style={{ cursor: "pointer" }}>
+            <circle cx={p[2]} cy={p[3]} r="15" fill={sel ? "#E1306C" : "var(--card)"} stroke="#E1306C" strokeWidth="2.5" />
+            {sel && <circle cx={p[2]} cy={p[3]} r="5" fill="#fff" />}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function ChipAdaptado({ ativo, onClick, children, perigo }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={!!ativo}
+      style={{ padding: "9px 12px", borderRadius: 999, fontWeight: 800, fontSize: 13, cursor: "pointer", margin: "0 6px 6px 0",
+        border: "1px solid " + (ativo ? (perigo ? "var(--perigo)" : "var(--marca)") : "var(--borda2)"),
+        background: ativo ? (perigo ? "var(--perigo)" : "var(--marca)") : "transparent", color: ativo ? "#fff" : "var(--texto)" }}>{children}</button>
+  );
+}
+
+// O editor das orientações do profissional (lista fechada + texto livre).
+function EditorRestricoes({ valor, onMudar, todos }) {
+  const r = valor || {};
+  const [busca, setBusca] = useState("");
+  const set = (k, v) => onMudar(Object.assign({}, r, { [k]: v }));
+  const achados = busca.trim().length >= 2 ? buscarExercicios(todos, busca).slice(0, 8) : [];
+  return (
+    <div>
+      {RESTRICOES_ADAPTADO.map((x) => (
+        <label key={x[0]} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", fontSize: 14.5, cursor: "pointer" }}>
+          <input type="checkbox" checked={!!r[x[0]]} onChange={(e) => set(x[0], e.target.checked)} style={{ width: 20, height: 20 }} />
+          {x[1]}
+        </label>
+      ))}
+      <div style={{ ...S.label, marginTop: 10 }}>Carga máxima (kg, deixe vazio se não houver)</div>
+      <input style={{ ...S.input, marginTop: 4 }} inputMode="decimal" value={r.cargaMax || ""} onChange={(e) => set("cargaMax", Number(String(e.target.value).replace(",", ".")) || "")} />
+      <div style={{ ...S.label, marginTop: 10 }}>Limite de amplitude (como foi dito)</div>
+      <input style={{ ...S.input, marginTop: 4 }} placeholder="ex.: até a altura do ombro" value={r.amplitude || ""} onChange={(e) => set("amplitude", e.target.value)} />
+      <div style={{ ...S.label, marginTop: 10 }}>Exercícios para não fazer</div>
+      {(r.naoFazer || []).map((id) => (
+        <div key={id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0" }}>
+          <span style={{ flex: 1, fontSize: 14 }}>🚫 {(todos.find((e) => e.id === id) || { nome: id }).nome}</span>
+          <button type="button" style={{ ...S.btnGhost, width: "auto", padding: "6px 10px" }} onClick={() => set("naoFazer", (r.naoFazer || []).filter((x) => x !== id))}>tirar</button>
+        </div>
+      ))}
+      <input style={{ ...S.input, marginTop: 4 }} placeholder="Buscar um exercício" value={busca} onChange={(e) => setBusca(e.target.value)} />
+      {achados.map((e) => (
+        <button key={e.id} type="button" onClick={() => { set("naoFazer", (r.naoFazer || []).concat([e.id]).filter((x, i, a) => a.indexOf(x) === i)); setBusca(""); }}
+          style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", borderBottom: "1px solid var(--borda)", padding: "9px 2px", color: "var(--texto)", fontSize: 14, cursor: "pointer" }}>
+          + {e.nome}
+        </button>
+      ))}
+      <div style={{ ...S.label, marginTop: 10 }}>Outra orientação, como foi dita (o app só mostra, não interpreta)</div>
+      <textarea style={{ ...S.input, marginTop: 4, minHeight: 60 }} value={r.texto || ""} onChange={(e) => set("texto", e.target.value)} />
+      <div style={{ ...S.label, marginTop: 10 }}>Quem orientou (opcional)</div>
+      <input style={{ ...S.input, marginTop: 4 }} placeholder="nome e registro profissional" value={r.prof || ""} onChange={(e) => set("prof", e.target.value)} />
+    </div>
+  );
+}
+
+// O editor do plano: o que o fisioterapeuta orientou, digitado pela pessoa.
+const PLANO_VAZIO_ADAPTADO = { prof: "", crefito: "", data: "", itens: [], dias: [], dorDurante: 3, dorManha: "", progredirN: 2, progredirAcao: "", voltarAcao: "", completo: "", proxima: "" };
+function EditorPlano({ valor, onMudar, todos }) {
+  const p = Object.assign({}, PLANO_VAZIO_ADAPTADO, valor || {});
+  const [busca, setBusca] = useState("");
+  const set = (k, v) => onMudar(Object.assign({}, p, { [k]: v }));
+  const setItem = (i, k, v) => set("itens", p.itens.map((it, j) => (j === i ? Object.assign({}, it, { [k]: v }) : it)));
+  const achados = busca.trim().length >= 2 ? buscarExercicios(todos, busca).slice(0, 8) : [];
+  const DIAS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+  const campo = (rot, k, ph, tipo) => (
+    <div style={{ marginTop: 10 }}>
+      <div style={S.label}>{rot}</div>
+      <input style={{ ...S.input, marginTop: 4 }} type={tipo || "text"} placeholder={ph || ""} value={p[k] === undefined || p[k] === null ? "" : p[k]} onChange={(e) => set(k, e.target.value)} />
+    </div>
+  );
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.5 }}>
+        Copie aqui o que o fisioterapeuta orientou. O app guarda, lembra, conta as repetições e anota a dor. Quem decide progredir é o critério do plano.
+      </div>
+      {campo("Fisioterapeuta", "prof", "nome")}
+      {campo("CREFITO (opcional)", "crefito", "")}
+      {campo("Data da orientação", "data", "", "date")}
+      <div style={{ ...S.label, marginTop: 14 }}>Exercícios do plano</div>
+      {p.itens.map((it, i) => {
+        const e = todos.find((x) => x.id === it.exercicioId);
+        return (
+          <div key={i} style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: 10, marginTop: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <b style={{ flex: 1 }}>{e ? e.nome : it.exercicioId}</b>
+              <button type="button" style={{ ...S.btnGhost, width: "auto", padding: "6px 10px" }} onClick={() => set("itens", p.itens.filter((_, j) => j !== i))}>tirar</button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+              <label style={{ fontSize: 12 }}>Séries<input style={S.inputMini} inputMode="numeric" value={it.series || ""} onChange={(ev) => setItem(i, "series", ev.target.value)} /></label>
+              <label style={{ fontSize: 12 }}>{e && e.tempo ? "Segundos" : "Repetições"}<input style={S.inputMini} inputMode="numeric" value={it.reps || ""} onChange={(ev) => setItem(i, "reps", ev.target.value)} /></label>
+              <label style={{ fontSize: 12 }}>Carga<input style={S.inputMini} placeholder="2 kg, elástico..." value={it.carga || ""} onChange={(ev) => setItem(i, "carga", ev.target.value)} /></label>
+              <label style={{ fontSize: 12 }}>Amplitude<input style={S.inputMini} placeholder="até 90°" value={it.amplitude || ""} onChange={(ev) => setItem(i, "amplitude", ev.target.value)} /></label>
+              <label style={{ fontSize: 12, gridColumn: "1 / 3" }}>Ritmo<input style={S.inputMini} placeholder="3 s descendo, 3 s subindo" value={it.ritmo || ""} onChange={(ev) => setItem(i, "ritmo", ev.target.value)} /></label>
+            </div>
+          </div>
+        );
+      })}
+      <input style={{ ...S.input, marginTop: 8 }} placeholder="+ Buscar um exercício do plano" value={busca} onChange={(e) => setBusca(e.target.value)} />
+      {achados.map((e) => (
+        <button key={e.id} type="button" onClick={() => { set("itens", p.itens.concat([{ exercicioId: e.id, series: 3, reps: e.tempo ? 30 : 12, carga: "", amplitude: "", ritmo: "" }])); setBusca(""); }}
+          style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", borderBottom: "1px solid var(--borda)", padding: "9px 2px", color: "var(--texto)", fontSize: 14, cursor: "pointer" }}>
+          + {e.nome}
+        </button>
+      ))}
+      <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 6 }}>Não achou? Crie o exercício na aba Exercícios (com a foto do aparelho) e volte aqui.</div>
+      <div style={{ ...S.label, marginTop: 14 }}>Dias da semana</div>
+      <div style={{ marginTop: 6 }}>
+        {DIAS.map((d, i) => <ChipAdaptado key={d} ativo={(p.dias || []).indexOf(i) >= 0} onClick={() => set("dias", (p.dias || []).indexOf(i) >= 0 ? p.dias.filter((x) => x !== i) : (p.dias || []).concat([i]))}>{d}</ChipAdaptado>)}
+      </div>
+      {campo("Dor aceitável durante o exercício (até, de 0 a 10)", "dorDurante", "3", "number")}
+      {campo("Dor aceitável na manhã seguinte (até; vazio = não combinado)", "dorManha", "", "number")}
+      <div style={{ ...S.label, marginTop: 14 }}>Critério para progredir</div>
+      <div style={{ fontSize: 13.5, marginTop: 6, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        <input style={{ ...S.inputMini, width: 56 }} inputMode="numeric" value={p.progredirN} onChange={(e) => set("progredirN", e.target.value)} />
+        sessões seguidas dentro da dor aceitável →
+      </div>
+      <input style={{ ...S.input, marginTop: 6 }} placeholder="o que fazer (ex.: subir 1 kg)" value={p.progredirAcao || ""} onChange={(e) => set("progredirAcao", e.target.value)} />
+      <div style={{ ...S.label, marginTop: 10 }}>Critério para voltar um passo</div>
+      <div style={{ fontSize: 13.5, marginTop: 6 }}>Uma sessão com a dor acima do aceitável (durante ou de manhã) →</div>
+      <input style={{ ...S.input, marginTop: 6 }} placeholder="o que fazer (ex.: voltar à carga anterior)" value={p.voltarAcao || ""} onChange={(e) => set("voltarAcao", e.target.value)} />
+      {campo("Critério para voltar ao treino completo (como foi dito)", "completo", "")}
+      {campo("Próxima consulta", "proxima", "", "date")}
+    </div>
+  );
+}
+
+// O gráfico da dor: durante (pontos) e manhã seguinte (losangos), com o
+// limite do plano. É a tela para levar à consulta.
+function LinhaDoTempoDor({ reg }) {
+  const s = (reg.sintomas || []).slice().sort((a, b) => a.em - b.em);
+  if (!s.length) return <div style={{ fontSize: 13, color: "var(--cinza)" }}>Nenhuma dor anotada ainda. Ela é anotada no treino, depois de cada exercício marcado, e na manhã seguinte.</div>;
+  const W = 320, H = 150, x0 = s[0].em, x1 = Math.max(s[s.length - 1].em, x0 + 864e5);
+  const X = (t) => 24 + (t - x0) / (x1 - x0) * (W - 40), Y = (v) => 12 + (10 - v) / 10 * (H - 34);
+  const lim = reg.plano && reg.plano.dorDurante !== undefined ? Number(reg.plano.dorDurante) : null;
+  return (
+    <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", display: "block" }} role="img" aria-label="Linha do tempo da dor, de 0 a 10">
+      {[0, 5, 10].map((v) => <g key={v}><line x1="22" x2={W - 8} y1={Y(v)} y2={Y(v)} stroke="var(--borda2)" /><text x="4" y={Y(v) + 4} fontSize="10" fill="var(--cinza)">{v}</text></g>)}
+      <line x1="22" x2={W - 8} y1={Y(CORTES_ADAPTADO.dorAlerta)} y2={Y(CORTES_ADAPTADO.dorAlerta)} stroke="var(--perigo)" strokeDasharray="3 3" />
+      {lim !== null && !isNaN(lim) && <line x1="22" x2={W - 8} y1={Y(lim)} y2={Y(lim)} stroke="var(--ok)" strokeDasharray="5 3" />}
+      {s.map((x, i) => x.tipo === "manha"
+        ? <path key={i} d={"M" + X(x.em) + " " + (Y(x.valor) - 5) + "l5 5l-5 5l-5 -5z"} fill="#8ECDF5" />
+        : <circle key={i} cx={X(x.em)} cy={Y(x.valor)} r="4" fill="#E1306C" />)}
+      <text x="24" y={H - 6} fontSize="10" fill="var(--cinza)">{new Date(x0).toLocaleDateString("pt-BR")}</text>
+      <text x={W - 8} y={H - 6} fontSize="10" fill="var(--cinza)" textAnchor="end">{new Date(x1).toLocaleDateString("pt-BR")}</text>
+    </svg>
+  );
+}
+
+function TelaAdaptado({ adaptado, setAdaptado, todos, exPorId, onVoltar, onTreinarPlano, avisar, pedirConfirmacao, inicial, onInicialUsado }) {
+  const [tela, setTela] = useState("lista");
+  const [regId, setRegId] = useState(null);
+  const [rasc, setRasc] = useState(null);      // o registro sendo criado
+  const [passo, setPasso] = useState(1);
+  const [resp, setResp] = useState({});        // respostas da triagem
+  const [pag, setPag] = useState(0);
+  const [aceito, setAceito] = useState(false);
+  const [declarou, setDeclarou] = useState(false);
+  const [plano, setPlano] = useState(null);
+  const [rest, setRest] = useState(null);
+  const [encerrados, setEncerrados] = useState(false);
+  const regs = adaptado.registros || [];
+  const reg = regId ? regs.find((r) => r.id === regId) : null;
+  const ativos = regs.filter((r) => r.situacao === "ativa");
+  const mudarReg = (id, f) => setAdaptado((d) => Object.assign({}, d, { registros: d.registros.map((r) => (r.id === id ? f(r) : r)) }));
+  const ir = (t, id) => { setTela(t); if (id !== undefined) setRegId(id); setPag(0); window.scrollTo(0, 0); };
+
+  // a sessão pediu uma tela (a triagem resumida achou um "sim")
+  useEffect(() => {
+    if (!inicial) return;
+    if (inicial.tela === "triagem" && inicial.regId) { setResp({}); ir("triagem", inicial.regId); }
+    else if (inicial.tela === "alerta" && inicial.regId) ir("alerta", inicial.regId);
+    if (onInicialUsado) onInicialUsado();
+  }, [inicial]);
+
+  const revisao = !REVISAO_ADAPTADO.fisioterapeuta && (
+    <div style={{ fontSize: 12, color: "var(--cinza)", border: "1px dashed var(--borda2)", borderRadius: 10, padding: "8px 10px", marginBottom: 12, lineHeight: 1.45 }}>
+      🔎 {TEXTOS_ADAPTADO.revisao} Por enquanto o app não sugere troca nenhuma: ele marca, pula e avisa.
+    </div>
+  );
+  const voltar = (para) => <button style={S.voltar} onClick={para}>← Voltar</button>;
+
+  // ---- o alerta: para tudo e diz o que fazer ----
+  if (tela === "alerta" && reg) {
+    const al = alertaDoRegistro(reg);
+    const n = al ? NIVEIS_ALERTA_ADAPTADO[al.nivel] : null;
+    return (
+      <div style={{ padding: "0 18px" }}>
+        {voltar(() => ir("lista"))}
+        {!al && <div style={S.card}>Nenhum alerta ativo neste registro.</div>}
+        {al && (
+          <div style={{ ...S.card, borderColor: "var(--perigo)", borderWidth: 2 }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "var(--perigo)", marginBottom: 6 }}>⛔ {n.titulo}</div>
+            <div style={{ fontSize: 15.5, lineHeight: 1.55, marginBottom: 8 }}>{n.texto}</div>
+            <div style={{ fontSize: 13, color: "var(--cinza)", marginBottom: 12 }}>O que você informou: {al.motivo}. {nomeRegistroAdaptado(reg)}.</div>
+            {n.samu && (
+              <a href={"tel:" + EMERGENCIA.numero} style={{ ...S.btn, display: "block", textAlign: "center", textDecoration: "none", background: "var(--perigo)", marginBottom: 10 }}>📞 Ligar para o SAMU ({EMERGENCIA.numero})</a>
+            )}
+            <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 12 }}>
+              {n.tudo ? "Enquanto isso, o app não sugere treino nenhum." : "Enquanto isso, os exercícios que usam " + (REGIOES_ADAPTADO.find((r) => r.id === reg.regiao) || {}).art + " ficam fora do treino. O resto continua."}
+            </div>
+            <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 14, lineHeight: 1.45, cursor: "pointer", marginBottom: 10 }}>
+              <input type="checkbox" checked={declarou} onChange={(e) => setDeclarou(e.target.checked)} style={{ width: 20, height: 20, flexShrink: 0, marginTop: 2 }} />
+              {TEXTOS_ADAPTADO.liberar}
+            </label>
+            <button style={{ ...S.btnGhost, opacity: declarou ? 1 : 0.5 }} disabled={!declarou}
+              onClick={() => {
+                const agora = Date.now();
+                mudarReg(reg.id, (r) => Object.assign({}, r, { alerta: Object.assign({}, r.alerta || { nivel: al.nivel, motivo: al.motivo, em: agora }, { atendidoEm: agora }) }));
+                setDeclarou(false);
+                avisar("Registrado. Se o profissional deu orientações, registre-as em \"Orientações e plano\".");
+                ir("lista");
+              }}>Confirmar</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ---- a triagem (no registro novo e para conferir de novo) ----
+  const telaTriagem = (regiao, zona, aoFim, aoVoltar) => {
+    const qs = perguntasDaTriagem(regiao, zona);
+    const porPag = 3, paginas = Math.ceil(qs.length / porPag);
+    const atuais = qs.slice(pag * porPag, pag * porPag + porPag);
+    const tudoRespondido = atuais.every((q) => resp[q.id] === true || resp[q.id] === false);
+    return (
+      <div style={{ padding: "0 18px" }}>
+        {voltar(aoVoltar)}
+        <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Sinais de alerta</div>
+        <div style={{ fontSize: 13, color: "var(--cinza)", marginBottom: 12 }}>Parte {pag + 1} de {paginas}. Responda com cuidado: um "sim" para o treino e diz onde procurar atendimento.</div>
+        {atuais.map((q) => (
+          <div key={q.id} style={S.card}>
+            <div style={{ fontSize: 15, lineHeight: 1.5, marginBottom: 10 }}>{q.pergunta}</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => setResp((r) => Object.assign({}, r, { [q.id]: true }))}
+                style={{ ...S.btnGhost, flex: 1, borderColor: resp[q.id] === true ? "var(--perigo)" : undefined, background: resp[q.id] === true ? "var(--perigo)" : "transparent", color: resp[q.id] === true ? "#fff" : "var(--texto)" }}>Sim</button>
+              <button type="button" onClick={() => setResp((r) => Object.assign({}, r, { [q.id]: false }))}
+                style={{ ...S.btnGhost, flex: 1, borderColor: resp[q.id] === false ? "var(--marca)" : undefined, background: resp[q.id] === false ? "var(--marca)" : "transparent", color: resp[q.id] === false ? "#fff" : "var(--texto)" }}>Não</button>
+            </div>
+          </div>
+        ))}
+        <button style={{ ...S.btn, opacity: tudoRespondido ? 1 : 0.5 }} disabled={!tudoRespondido}
+          onClick={() => { if (pag + 1 < paginas) { setPag(pag + 1); window.scrollTo(0, 0); } else aoFim(); }}>
+          {pag + 1 < paginas ? "Continuar" : "Concluir"}
+        </button>
+      </div>
+    );
+  };
+  if (tela === "triagem" && reg) {
+    return telaTriagem(reg.regiao, reg.zona, () => {
+      const t = triagemAdaptado(resp, reg.regiao, null);
+      const agora = Date.now();
+      mudarReg(reg.id, (r) => Object.assign({}, r, { triagem: { sims: resp, em: agora }, alerta: t ? { nivel: t.nivel, motivo: t.motivo, em: agora } : r.alerta }));
+      if (t) ir("alerta", reg.id); else { avisar("Nenhum sinal de alerta. Bom treino, e respeite a dor."); ir("lista"); }
+    }, () => ir("lista"));
+  }
+
+  // ---- registrar uma dor: mapa, detalhes, movimentos, triagem, avaliação ----
+  if (tela === "novo" && rasc) {
+    const set = (k, v) => setRasc((r) => Object.assign({}, r, { [k]: v }));
+    const salvar = (extra) => {
+      const novo = Object.assign({}, rasc, extra || {}, { id: "ad-" + Date.now(), situacao: "ativa", criado: Date.now(), sintomas: [], decisoes: [] });
+      setAdaptado((d) => Object.assign({}, d, { registros: d.registros.concat([novo]) }));
+      registrarEvento("adaptado-registro");
+      return novo;
+    };
+    if (passo === 1) return (
+      <div style={{ padding: "0 18px" }}>
+        {voltar(() => ir("lista"))}
+        <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Onde dói?</div>
+        <div style={{ fontSize: 13.5, color: "var(--cinza)", marginBottom: 12 }}>{TEXTOS_ADAPTADO.mapa}</div>
+        <div style={S.card}>
+          <MapaCorpoAdaptado regiao={rasc.regiao} lado={rasc.lado} onEscolher={(r, l) => setRasc((x) => Object.assign({}, x, { regiao: r, lado: l, zona: "", movimentos: x.regiao === r ? x.movimentos : [] }))} />
+          {rasc.regiao && (
+            <div style={{ textAlign: "center", marginTop: 10 }}>
+              <b>{nomeRegistroAdaptado(rasc)}</b>{" "}
+              <ChipAdaptado ativo={rasc.lado === "ambos"} onClick={() => set("lado", rasc.lado === "ambos" ? "dir" : "ambos")}>Dói dos dois lados</ChipAdaptado>
+            </div>
+          )}
+        </div>
+        <button style={{ ...S.btn, opacity: rasc.regiao ? 1 : 0.5 }} disabled={!rasc.regiao} onClick={() => setPasso(2)}>Continuar</button>
+      </div>
+    );
+    if (passo === 2) return (
+      <div style={{ padding: "0 18px" }}>
+        {voltar(() => setPasso(1))}
+        <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 12 }}>{nomeRegistroAdaptado(rasc)}</div>
+        <div style={S.card}>
+          <div style={S.label}>O ponto exato</div>
+          <div style={{ marginTop: 8 }}>
+            {(ZONAS_ADAPTADO[rasc.regiao] || []).map((z) => <ChipAdaptado key={z[0]} ativo={rasc.zona === z[0]} onClick={() => set("zona", z[0])}>{z[1]}</ChipAdaptado>)}
+          </div>
+          <div style={{ ...S.label, marginTop: 12 }}>Quando começou</div>
+          <input type="date" style={{ ...S.input, marginTop: 6 }} max={new Date().toISOString().slice(0, 10)} value={rasc.inicio || ""} onChange={(e) => set("inicio", e.target.value)} />
+          <div style={{ ...S.label, marginTop: 12 }}>Como começou</div>
+          <div style={{ marginTop: 8 }}>
+            <ChipAdaptado ativo={rasc.trauma === false} onClick={() => set("trauma", false)}>Aos poucos</ChipAdaptado>
+            <ChipAdaptado ativo={rasc.trauma === true} onClick={() => set("trauma", true)}>De repente (queda, pancada, estalo)</ChipAdaptado>
+          </div>
+        </div>
+        <button style={{ ...S.btn, opacity: rasc.zona && rasc.trauma !== undefined ? 1 : 0.5 }} disabled={!rasc.zona || rasc.trauma === undefined} onClick={() => setPasso(3)}>Continuar</button>
+      </div>
+    );
+    if (passo === 3) return (
+      <div style={{ padding: "0 18px" }}>
+        {voltar(() => setPasso(2))}
+        <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>O que provoca a dor?</div>
+        <div style={{ fontSize: 13.5, color: "var(--cinza)", marginBottom: 12 }}>Marque todos os movimentos que doem. Os exercícios que usam esses movimentos ficam marcados no treino.</div>
+        <div style={S.card}>
+          {(MOVIMENTOS_ADAPTADO[rasc.regiao] || []).map((m) => (
+            <label key={m[0]} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", fontSize: 15, cursor: "pointer" }}>
+              <input type="checkbox" checked={(rasc.movimentos || []).indexOf(m[0]) >= 0} style={{ width: 20, height: 20 }}
+                onChange={(e) => set("movimentos", e.target.checked ? (rasc.movimentos || []).concat([m[0]]) : rasc.movimentos.filter((x) => x !== m[0]))} />
+              {m[1]}
+            </label>
+          ))}
+        </div>
+        <div style={S.card}>
+          <div style={{ fontWeight: 800, marginBottom: 8 }}>Parado, agora, quanto dói?</div>
+          <EscalaDor valor={rasc.dorRepouso} onEscolher={(n) => set("dorRepouso", n)} />
+        </div>
+        <button style={{ ...S.btn, opacity: rasc.dorRepouso !== undefined && rasc.dorRepouso !== "" ? 1 : 0.5 }} disabled={rasc.dorRepouso === undefined || rasc.dorRepouso === ""}
+          onClick={() => { setResp({}); setPag(0); setPasso(4); }}>Continuar</button>
+      </div>
+    );
+    if (passo === 4) return telaTriagem(rasc.regiao, rasc.zona, () => {
+      const t = triagemAdaptado(resp, rasc.regiao, rasc.dorRepouso);
+      const agora = Date.now();
+      if (t) {
+        const novo = salvar({ triagem: { sims: resp, em: agora }, alerta: { nivel: t.nivel, motivo: t.motivo, em: agora }, avaliacao: "nao" });
+        setRasc(null); setPasso(1); ir("alerta", novo.id);
+      } else { set("triagem", { sims: resp, em: agora }); setPasso(5); }
+    }, () => setPasso(3));
+    if (passo === 5) {
+      const op = (v, t, d) => (
+        <button key={v} type="button" onClick={() => set("avaliacao", v)}
+          style={{ ...S.card, display: "block", width: "100%", textAlign: "left", cursor: "pointer", color: "var(--texto)", font: "inherit",
+            borderColor: rasc.avaliacao === v ? "var(--marca)" : undefined, borderWidth: rasc.avaliacao === v ? 2 : 1 }}>
+          <div style={{ fontWeight: 900, fontSize: 15 }}>{t}</div>
+          <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 3, lineHeight: 1.45 }}>{d}</div>
+        </button>
+      );
+      return (
+        <div style={{ padding: "0 18px" }}>
+          {voltar(() => setPasso(4))}
+          <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 12 }}>{TEXTOS_ADAPTADO.avaliacao}</div>
+          {op("nao", "Ainda não fui avaliado", "O app marca os exercícios que provocam a dor e lembra você de procurar uma avaliação.")}
+          {op("semRestricao", "Fui avaliado e não recebi restrição", "O app só marca os exercícios que provocam a dor.")}
+          {op("restricoes", "Fui avaliado e recebi orientações", "Você registra o que foi orientado, e o app tira do treino o que não combina.")}
+          {op("plano", "Tenho um plano do fisioterapeuta", "Você registra o plano, e o app conta as repetições, anota a dor e mostra o critério combinado.")}
+          <button style={{ ...S.btn, opacity: rasc.avaliacao ? 1 : 0.5 }} disabled={!rasc.avaliacao}
+            onClick={() => {
+              if (rasc.avaliacao === "restricoes" || rasc.avaliacao === "plano") { setRest(rasc.restricoes || {}); setPlano(rasc.plano || null); setPasso(6); return; }
+              salvar({}); setRasc(null); setPasso(1); avisar("Registrado. Os exercícios que provocam a dor ficam marcados no treino."); ir("lista");
+            }}>{rasc.avaliacao === "restricoes" || rasc.avaliacao === "plano" ? "Continuar" : "Salvar"}</button>
+        </div>
+      );
+    }
+    if (passo === 6) return (
+      <div style={{ padding: "0 18px" }}>
+        {voltar(() => setPasso(5))}
+        <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 12 }}>{rasc.avaliacao === "plano" ? "O plano do fisioterapeuta" : "O que foi orientado"}</div>
+        <div style={S.card}>
+          <div style={{ fontWeight: 800, marginBottom: 6 }}>Orientações (o que evitar)</div>
+          <EditorRestricoes valor={rest} onMudar={setRest} todos={todos} />
+        </div>
+        {rasc.avaliacao === "plano" && <div style={S.card}><EditorPlano valor={plano} onMudar={setPlano} todos={todos} /></div>}
+        <button style={S.btn} onClick={() => {
+          const extra = { restricoes: rest || {} };
+          if (rasc.avaliacao === "plano") extra.plano = Object.assign({}, PLANO_VAZIO_ADAPTADO, plano || {}, { em: Date.now() });
+          salvar(extra); setRasc(null); setPasso(1); avisar("Registrado."); ir("lista");
+        }}>Salvar</button>
+      </div>
+    );
+  }
+
+  // ---- editar orientações e plano de um registro ----
+  if (tela === "editar" && reg) {
+    return (
+      <div style={{ padding: "0 18px" }}>
+        {voltar(() => ir("lista"))}
+        <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 12 }}>Orientações e plano · {nomeRegistroAdaptado(reg)}</div>
+        <div style={S.card}>
+          <div style={S.label}>Avaliação</div>
+          <div style={{ marginTop: 8 }}>
+            {[["nao", "Não fui avaliado"], ["semRestricao", "Avaliado, sem restrição"], ["restricoes", "Avaliado, com orientações"], ["plano", "Tenho um plano"]].map((o) => (
+              <ChipAdaptado key={o[0]} ativo={reg.avaliacao === o[0]} onClick={() => mudarReg(reg.id, (r) => Object.assign({}, r, { avaliacao: o[0] }))}>{o[1]}</ChipAdaptado>
+            ))}
+          </div>
+        </div>
+        {(reg.avaliacao === "restricoes" || reg.avaliacao === "plano") && (
+          <div style={S.card}>
+            <div style={{ fontWeight: 800, marginBottom: 6 }}>Orientações (o que evitar)</div>
+            <EditorRestricoes valor={rest === null ? reg.restricoes : rest} onMudar={setRest} todos={todos} />
+          </div>
+        )}
+        {reg.avaliacao === "plano" && <div style={S.card}><EditorPlano valor={plano === null ? reg.plano : plano} onMudar={setPlano} todos={todos} /></div>}
+        <button style={S.btn} onClick={() => {
+          mudarReg(reg.id, (r) => Object.assign({}, r,
+            rest !== null ? { restricoes: rest } : {},
+            plano !== null ? { plano: Object.assign({}, PLANO_VAZIO_ADAPTADO, r.plano || {}, plano, { em: (r.plano && r.plano.em) || Date.now() }) } : {}));
+          setRest(null); setPlano(null); avisar("Salvo."); ir("lista");
+        }}>Salvar</button>
+      </div>
+    );
+  }
+
+  // ---- a linha do tempo e o relatório ----
+  if (tela === "detalhe" && reg) {
+    const baixar = () => {
+      try {
+        const blob = new Blob([relatorioAdaptado(reg, exPorId)], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "treino-adaptado-" + reg.regiao + "-" + new Date().toISOString().slice(0, 10) + ".txt";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      } catch (e) { avisar("Não consegui gerar o arquivo neste navegador."); }
+    };
+    return (
+      <div style={{ padding: "0 18px" }}>
+        {voltar(() => ir("lista"))}
+        <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 12 }}>{nomeRegistroAdaptado(reg)}</div>
+        <div style={S.card}>
+          <div style={{ ...S.label, marginBottom: 8 }}>A dor no tempo</div>
+          <LinhaDoTempoDor reg={reg} />
+          <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 6 }}>● durante o exercício · ◆ manhã seguinte · linha vermelha: 7 (alerta){reg.plano ? " · linha verde: o limite do plano" : ""}</div>
+        </div>
+        <button style={{ ...S.btnGhost, marginBottom: 10 }} onClick={baixar}>📄 Baixar o resumo para o profissional</button>
+        <div style={{ ...S.card, fontSize: 13, whiteSpace: "pre-wrap", lineHeight: 1.5 }} translate="no">{relatorioAdaptado(reg, exPorId)}</div>
+      </div>
+    );
+  }
+
+  // ---- a lista (e o aceite) ----
+  return (
+    <div style={{ padding: "0 18px" }}>
+      <button style={S.voltar} onClick={onVoltar}>← Voltar</button>
+      <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 6 }}>🩹 Treino Adaptado</div>
+      <div style={{ fontSize: 14, lineHeight: 1.55, marginBottom: 10 }}>{TEXTOS_ADAPTADO.abertura}</div>
+      {revisao}
+      {!adaptado.aceite && (
+        <div style={S.card}>
+          <div style={{ fontSize: 13.5, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 10 }}>{TEXTOS_ADAPTADO.naoE}</div>
+          <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 14.5, lineHeight: 1.45, cursor: "pointer", marginBottom: 12 }}>
+            <input type="checkbox" checked={aceito} onChange={(e) => setAceito(e.target.checked)} style={{ width: 20, height: 20, flexShrink: 0, marginTop: 2 }} />
+            {TEXTOS_ADAPTADO.aceite}
+          </label>
+          <button style={{ ...S.btn, opacity: aceito ? 1 : 0.5 }} disabled={!aceito}
+            onClick={() => {
+              const ac = { em: Date.now(), v: VERSAO_ADAPTADO };
+              setAdaptado((d) => Object.assign({}, d, { aceite: ac }));
+              registrarDeclaracaoAdaptado(ac).then((ok) => { if (ok) setAdaptado((d) => Object.assign({}, d, { aceite: Object.assign({}, d.aceite, { reg: true }) })); });
+            }}>Começar</button>
+        </div>
+      )}
+      {adaptado.aceite && (
+        <button style={{ ...S.btn, marginBottom: 14 }} onClick={() => { setRasc({ regiao: "", lado: "dir", zona: "", movimentos: [], dorRepouso: "", avaliacao: "" }); setPasso(1); ir("novo"); }}>
+          + Registrar uma dor
+        </button>
+      )}
+      {ativos.map((r) => {
+        const al = alertaDoRegistro(r);
+        const modo = modoAdaptado(r);
+        const crit = modo === "plano" ? criterioPlano(r) : null;
+        const p = r.plano || {};
+        return (
+          <div key={r.id} style={{ ...S.card, borderColor: al ? "var(--perigo)" : undefined }}>
+            <div style={{ fontWeight: 900, fontSize: 18 }}>{nomeRegistroAdaptado(r)}</div>
+            <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 2 }}>
+              {((ZONAS_ADAPTADO[r.regiao] || []).find((z) => z[0] === r.zona) || ["", ""])[1]} · desde {r.inicio ? new Date(r.inicio + "T12:00:00").toLocaleDateString("pt-BR") : "?"} · {NOMES_MODO_ADAPTADO[modo]}
+            </div>
+            <div style={{ fontSize: 13, marginTop: 6 }}>Dói: {(r.movimentos || []).map((m) => nomeMovAdaptado(r.regiao, m)).join(", ") || "nenhum movimento marcado"}</div>
+            {al && (
+              <button style={{ ...S.btn, background: "var(--perigo)", marginTop: 10 }} onClick={() => ir("alerta", r.id)}>⛔ {NIVEIS_ALERTA_ADAPTADO[al.nivel].titulo}: ver o que fazer</button>
+            )}
+            {!al && lembreteAvaliacao(r, Date.now()) && (
+              <div style={{ fontSize: 13, marginTop: 10, padding: "8px 10px", border: "1px solid var(--borda2)", borderRadius: 10 }}>⏰ {TEXTOS_ADAPTADO.lembrete}</div>
+            )}
+            {crit && (crit.progredir || crit.voltar) && (
+              <div style={{ marginTop: 10, padding: "10px 12px", border: "1px solid var(--marca)", borderRadius: 12 }}>
+                <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 4 }}>
+                  {crit.voltar ? "O critério do seu plano para voltar um passo foi cumprido." : "O critério do seu plano para progredir foi cumprido."}
+                </div>
+                <div style={{ fontSize: 13, marginBottom: 8 }}>O plano diz: {(crit.voltar ? p.voltarAcao : p.progredirAcao) || "(o que fazer não foi registrado)"}</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => {
+                    const texto = (crit.voltar ? "voltar um passo: " + (p.voltarAcao || "") : "progredir: " + (p.progredirAcao || "")).trim();
+                    mudarReg(r.id, (x) => Object.assign({}, x, { decisoes: (x.decisoes || []).concat([{ em: Date.now(), texto: texto }]), plano: Object.assign({}, x.plano, { decididoEm: Date.now() }) }));
+                    setPlano(null); setRest(null); ir("editar", r.id);
+                  }}>Seguir o plano e ajustar</button>
+                  <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => mudarReg(r.id, (x) => Object.assign({}, x, { plano: Object.assign({}, x.plano, { decididoEm: Date.now() }) }))}>Ainda não</button>
+                </div>
+              </div>
+            )}
+            {modo === "plano" && (
+              <button style={{ ...S.btn, marginTop: 10, opacity: al && NIVEIS_ALERTA_ADAPTADO[al.nivel].tudo ? 0.5 : 1 }} disabled={!!(al && NIVEIS_ALERTA_ADAPTADO[al.nivel].tudo)}
+                onClick={() => onTreinarPlano(r)}>▶ Fazer o plano agora ({(p.itens || []).length} {plural((p.itens || []).length, "exercício", "exercícios")})</button>
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+              <button style={{ ...S.btnGhost, flex: "1 1 45%" }} onClick={() => { setRest(null); setPlano(null); ir("editar", r.id); }}>Orientações e plano</button>
+              <button style={{ ...S.btnGhost, flex: "1 1 45%" }} onClick={() => ir("detalhe", r.id)}>A dor no tempo</button>
+              <button style={{ ...S.btnGhost, flex: "1 1 45%" }} onClick={() => { setResp({}); ir("triagem", r.id); }}>Conferir os sinais de alerta</button>
+              <button style={{ ...S.btnGhost, flex: "1 1 45%" }} onClick={() => pedirConfirmacao(TEXTOS_ADAPTADO.encerrar + "?", () => mudarReg(r.id, (x) => Object.assign({}, x, { situacao: "encerrada", encerradoEm: Date.now() })))}>Encerrar</button>
+            </div>
+          </div>
+        );
+      })}
+      {adaptado.aceite && !ativos.length && (
+        <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)", fontSize: 14 }}>Nenhuma dor registrada agora. O treino segue normal.</div>
+      )}
+      {regs.some((r) => r.situacao !== "ativa") && (
+        <div style={{ marginTop: 6 }}>
+          <button style={{ ...S.btnGhost }} onClick={() => setEncerrados(!encerrados)}>{encerrados ? "Esconder" : "Ver"} os registros encerrados</button>
+          {encerrados && regs.filter((r) => r.situacao !== "ativa").map((r) => (
+            <div key={r.id} style={{ ...S.card, marginTop: 8, opacity: 0.8 }}>
+              <b>{nomeRegistroAdaptado(r)}</b> · encerrado em {new Date(r.encerradoEm || r.criado).toLocaleDateString("pt-BR")}
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => ir("detalhe", r.id)}>A dor no tempo</button>
+                <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => mudarReg(r.id, (x) => Object.assign({}, x, { situacao: "ativa", encerradoEm: null }))}>Reabrir</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <AvisoSaude />
+    </div>
+  );
+}
+// A pergunta da manhã seguinte, uma só, ao abrir o app.
+function JanelaDorManha({ reg, onResponder, onDepois }) {
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Como está a dor hoje de manhã"
+      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.78)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ ...S.card, maxWidth: 400, width: "100%", marginBottom: 0 }}>
+        <div style={{ ...S.label, marginBottom: 6 }}>🩹 Treino adaptado</div>
+        <div style={{ fontSize: 18, fontWeight: 900, lineHeight: 1.3, marginBottom: 12 }}>Como está {(REGIOES_ADAPTADO.find((r) => r.id === reg.regiao) || {}).art} {reg.lado === "dir" ? "direito" : reg.lado === "esq" ? "esquerdo" : ""} hoje de manhã, de 0 a 10?</div>
+        <EscalaDor onEscolher={onResponder} />
+        <button style={{ ...S.btnGhost, marginTop: 12 }} onClick={onDepois}>Agora não</button>
+      </div>
+    </div>
+  );
+}
+// A marca de um exercício no treino: o motivo, as notas, pular hoje e a troca
+// (só da tabela revisada; sem ela, o texto de "sem troca").
+function AvisoAdaptadoItem({ e, pulado, variacao, onPular, onFazer, onTrocar }) {
+  if (!e || (e.estado === "livre" && !e.notas.length)) return null;
+  const cor = e.estado === "barrado" ? "var(--perigo)" : e.estado === "marcado" ? "#C7A94B" : "var(--borda2)";
+  return (
+    <div style={{ border: "1px solid " + cor, borderRadius: 12, padding: "10px 12px", marginBottom: 12, fontSize: 13, lineHeight: 1.5 }}>
+      {e.estado === "barrado" && <div style={{ fontWeight: 800 }}>🚫 {e.alerta ? e.motivo : TEXTOS_ADAPTADO.barrado + ": " + e.motivo}.</div>}
+      {e.estado === "marcado" && <div style={{ fontWeight: 800 }}>⚠ {TEXTOS_ADAPTADO.marcado} {e.motivo}.</div>}
+      {e.estado === "duvida" && <div>❔ {TEXTOS_ADAPTADO.duvida}</div>}
+      {e.notas.map((n) => <div key={n} style={{ color: "var(--cinza)" }}>• {n}</div>)}
+      {(e.estado === "marcado" || e.estado === "barrado") && (
+        <div style={{ marginTop: 6, color: "var(--cinza)" }}>
+          {variacao ? <span>{TEXTOS_ADAPTADO.troca} <button type="button" onClick={onTrocar} style={{ ...S.btnGhost, width: "auto", padding: "4px 10px", marginLeft: 4 }}>⇄ {variacao.nome}</button></span> : TEXTOS_ADAPTADO.semTroca}
+        </div>
+      )}
+      {e.estado !== "livre" && (
+        <button type="button" style={{ ...S.btnGhost, marginTop: 8, padding: "8px 12px" }} onClick={pulado ? onFazer : onPular}>
+          {pulado ? "Fazer este exercício hoje" : "Pular hoje"}
+        </button>
+      )}
+    </div>
+  );
+}
+// ---------------- FIM DA TELA DO TREINO ADAPTADO ----------------
+
 function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, onTreinar, onNovaFicha,
   onEditar, onExcluirFicha, onCompartilharFicha, onNovoPrograma, onRenomearPrograma, onExcluirPrograma,
-  onCompartilharPrograma, onDuplicarFicha, onDuplicarPrograma, onLevarFicha, onMoverFicha, onAssistente, onTreinoLivre, pedirConfirmacao, historico }) {
+  onCompartilharPrograma, onDuplicarFicha, onDuplicarPrograma, onLevarFicha, onMoverFicha, onAssistente, onTreinoLivre, pedirConfirmacao, historico, onAdaptado, nAdaptado }) {
   // Dentro de um treino: lista de fichas. Se o programa aberto foi excluído,
   // cai de volta na lista em vez de alterar estado durante o render.
   const prog = progAberto ? programas.find((p) => p.id === progAberto) : null;
@@ -14682,9 +15761,14 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
       <button style={{ ...S.btnGhost, marginBottom: 10, color: "#E1306C", borderColor: "#E1306C66" }} onClick={onAssistente}>
         <ComIcone nome="bussola">Montar treino pra mim (assistente)</ComIcone>
       </button>
-      <button style={{ ...S.btnGhost, marginBottom: 14, fontWeight: 800 }} onClick={onTreinoLivre}>
+      <button style={{ ...S.btnGhost, marginBottom: 10, fontWeight: 800 }} onClick={onTreinoLivre}>
         <ComIcone nome="haltere">Treino livre (montar na hora)</ComIcone>
       </button>
+      {onAdaptado && (
+        <button style={{ ...S.btnGhost, marginBottom: 14, fontWeight: 800 }} onClick={onAdaptado}>
+          🩹 {TEXTOS_ADAPTADO.entrada}{nAdaptado ? " (" + nAdaptado + " " + plural(nAdaptado, "registro", "registros") + ")" : ""}
+        </button>
+      )}
       {programas.length === 0 && (
         <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
           Crie seu primeiro treino: ele agrupa suas fichas (ex.: "Treino Iniciante" com fichas A, B e C).
@@ -26037,7 +27121,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   bpm, cardioEstado, onConectarCardio, onDesconectarCardio, vozCfg, contarAlto, onAlternarContagem,
   autoSerie, onAlternarAuto, onEspelho,
   acoesVoz, vozAtiva, vozBarra, vozAnimado, onDescansando, responderVoz,
-  dicas, onDicaVista, onLigarVoz, onEscolaVoz, onCorredor, onBpmEsteira }) {
+  dicas, onDicaVista, onLigarVoz, onEscolaVoz, onCorredor, onBpmEsteira,
+  adaptadoAtivos, onSintomaAdaptado, onAbrirAdaptado }) {
   // Recorde e última execução de cada exercício: servem de referência ao lado de
   // cada série e permitem festejar o recorde no instante em que ele acontece.
   const recordes = useMemo(() => recordesPorExercicio(historico), [historico]);
@@ -27797,8 +28882,61 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         </div>
       )}
 
+      {(() => {
+        // Treino Adaptado: a faixa do topo e a escala de dor depois de cada
+        // exercício que a dor marcou (ou de cada exercício do plano).
+        const ativosAd = adaptadoAtivos || [];
+        const noPlano = !!sessao.adaptado;
+        if (!ativosAd.length && !noPlano) return null;
+        const estadoDe = (it) => (noPlano ? null : estadoAdaptado(exPorId(it.exercicioId), ativosAd));
+        const pede = sessao.itens.find((it) => {
+          if (it.pulado || (sessao.dores || {})[it.uid] !== undefined) return false;
+          const e = estadoDe(it);
+          if (!noPlano && !(e && e.estado !== "livre")) return false;
+          return it.series.length > 0 && it.series.every((s) => s.feito);
+        });
+        const exPede = pede ? exPorId(pede.exercicioId) : null;
+        const regPede = pede ? (noPlano ? ativosAd.find((r) => r.id === sessao.adaptado.regId) : ativosAd.find((r) => r.id === (estadoDe(pede) || {}).regId)) : null;
+        const alertaGeral = ativosAd.map(alertaDoRegistro).find((a) => a && NIVEIS_ALERTA_ADAPTADO[a.nivel].tudo);
+        return (
+          <React.Fragment>
+            <div style={{ ...S.card, padding: "10px 12px", borderColor: alertaGeral ? "var(--perigo)" : undefined }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ flex: 1, fontSize: 13, lineHeight: 1.45 }}>
+                  🩹 <b>Treino adaptado:</b> {ativosAd.map(nomeRegistroAdaptado).join(", ")}
+                  {alertaGeral ? <span style={{ color: "var(--perigo)", fontWeight: 800 }}> · ⛔ {NIVEIS_ALERTA_ADAPTADO[alertaGeral.nivel].titulo}</span> : null}
+                </span>
+                {onAbrirAdaptado && <button type="button" style={{ ...S.btnGhost, width: "auto", padding: "6px 10px", fontSize: 12.5 }} onClick={onAbrirAdaptado}>ajustar</button>}
+              </div>
+              {noPlano && <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 6, lineHeight: 1.45 }}>Faça como o fisioterapeuta orientou (carga, amplitude e ritmo estão na observação de cada exercício). Se doer além do combinado, pare.</div>}
+            </div>
+            {pede && regPede && exPede && (
+              <div style={{ ...S.card, borderColor: "var(--marca)" }}>
+                <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 4 }}>Quanto doeu {(REGIOES_ADAPTADO.find((r) => r.id === regPede.regiao) || {}).art} em {exPede.nome}?</div>
+                <div style={{ fontSize: 12, color: "var(--cinza)", marginBottom: 8 }}>{TEXTOS_ADAPTADO.escalaDurante}</div>
+                <EscalaDor onEscolher={(v) => {
+                  setSessao((s) => Object.assign({}, s, { dores: Object.assign({}, s.dores || {}, { [pede.uid]: v }) }));
+                  if (onSintomaAdaptado) onSintomaAdaptado(regPede.id, { tipo: "durante", valor: v, em: Date.now(), sess: String(sessao.inicio), ex: pede.exercicioId });
+                  const lim = noPlano && regPede.plano ? Number(regPede.plano.dorDurante) : null;
+                  if (v >= CORTES_ADAPTADO.dorAlerta) pedirConfirmacao({ msg: "Dor de " + v + ". Pare os exercícios que usam a região hoje e marque uma avaliação com um médico ou fisioterapeuta. O app tira esses exercícios do treino até lá.", positivo: true, labelSim: "Entendi", labelNao: "Ver o Treino Adaptado", onNao: onAbrirAdaptado }, () => {});
+                  else if (lim !== null && !isNaN(lim) && v > lim) pedirConfirmacao({ msg: "Dor de " + v + ": acima do combinado no seu plano (até " + lim + "). O critério do plano é que diz o que fazer; se tiver dúvida, fale com o seu fisioterapeuta.", positivo: true, labelSim: "Entendi" }, () => {});
+                }} />
+                <button type="button" style={{ ...S.btnGhost, marginTop: 8, padding: "8px 12px" }}
+                  onClick={() => setSessao((s) => Object.assign({}, s, { dores: Object.assign({}, s.dores || {}, { [pede.uid]: null }) }))}>Não quero anotar</button>
+              </div>
+            )}
+          </React.Fragment>
+        );
+      })()}
       {sessao.itens.map((it, ei) => {
         const ex = exPorId(it.exercicioId);
+        const ead = sessao.adaptado ? null : estadoAdaptado(ex, adaptadoAtivos || []);
+        const pularAd = () => setSessao((s) => Object.assign({}, s, { itens: s.itens.map((x) => (x.uid === it.uid ? Object.assign({}, x, { pulado: true }) : x)) }));
+        const fazerAd = () => {
+          const f = () => setSessao((s) => Object.assign({}, s, { itens: s.itens.map((x) => (x.uid === it.uid ? Object.assign({}, x, { pulado: false }) : x)) }));
+          if (ead && ead.estado === "barrado") pedirConfirmacao(ead.alerta ? "Há um sinal de alerta registrado para esta região. Fazer este exercício mesmo assim?" : "O profissional orientou não fazer. Fazer mesmo assim?", f);
+          else f();
+        };
         const rec = recordes[it.exercicioId];
         const ult = ultimas[it.exercicioId];
         // Bi-set / tri-set: itens vizinhos com o mesmo "conjunto" sao feitos juntos
@@ -27846,7 +28984,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontWeight: 800, fontSize: 14.5, lineHeight: 1.25, textDecoration: pronto ? "line-through" : "none" }}>{ex ? ex.nome : "Exercício"}</span>
                 <span style={{ display: "block", fontSize: 11.5, color: pronto ? "var(--ok)" : "var(--cinza)", marginTop: 2 }}>
-                  {pronto ? "✓ feito" : nFeitas ? nFeitas + " de " + nTot + " séries feitas" : nTot + " " + plural(nTot, "série", "séries") + (abreConjunto ? " · " + (tamConjunto >= 3 ? "tri-set" : "bi-set") : "")}
+                  {it.pulado ? "pulado hoje" : pronto ? "✓ feito" : nFeitas ? nFeitas + " de " + nTot + " séries feitas" : nTot + " " + plural(nTot, "série", "séries") + (abreConjunto ? " · " + (tamConjunto >= 3 ? "tri-set" : "bi-set") : "")}
+                  {ead && ead.estado === "marcado" ? " · ⚠ dor registrada" : ead && ead.estado === "barrado" ? " · 🚫 orientado não fazer" : ead && ead.estado === "duvida" ? " · ❔ pergunte ao profissional" : ""}
                 </span>
               </span>
               <span aria-hidden="true" style={{ fontSize: 13, fontWeight: 900, color: pronto ? "var(--ok)" : "#E1306C" }}>{pronto ? "✓" : "abrir ▾"}</span>
@@ -27897,6 +29036,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 👁 Contar pela câmera (Eyes Scan)
               </button>
             )}
+            {ehVez && !ehIsometria && sessao.adaptado && (
+              <div style={{ fontSize: 11.5, color: "var(--cinza)", margin: "-4px 0 10px", lineHeight: 1.45 }}>{TEXTOS_ADAPTADO.camera}</div>
+            )}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
               <MiniaturaExercicio ex={ex} onAbrir={() => setDemo(ex)} />
               <button type="button" onClick={() => setDemo(ex)}
@@ -27937,6 +29079,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               </button>
             </div>
 
+            <AvisoAdaptadoItem e={ead} pulado={!!it.pulado} onPular={pularAd} onFazer={fazerAd}
+              variacao={ead && (ead.estado === "marcado" || ead.estado === "barrado") ? variacaoCompativel(ex, adaptadoAtivos, exPorId) : null}
+              onTrocar={() => { const v = variacaoCompativel(ex, adaptadoAtivos, exPorId); if (v) substituirExercicio(ei, v.id); }} />
             {/* Painel de substituicao: alternativas do mesmo grupo muscular */}
             {trocando === ei && (
               <div style={{ border: "1px solid #E1306C66", borderRadius: 12, padding: 12, marginBottom: 12 }}>
@@ -28329,6 +29474,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         serieTotal={alvo ? sessao.itens[alvo.ei].series.length : 1}
         som={som}
         onRegistrar={registrarDoScanner}
+        semCorrecao={!!sessao.adaptado}
         onFechar={() => setScanner(false)} />
     </div>
   );
@@ -30192,6 +31338,13 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   // para sempre quando respondido. Pedir antes disso é pedir a alguém que ainda
   // não sabe se o app presta; pedir de novo depois é insistência.
   const [convite, setConvite] = useState(true);
+  // O Treino Adaptado: fora do registro principal (localStorage próprio), no
+  // backup em arquivo, e nunca no Firebase.
+  const [adaptado, setAdaptado] = useState(lerAdaptado);
+  const [adaptadoInicial, setAdaptadoInicial] = useState(null);
+  const [dorManha, setDorManha] = useState(null);
+  const manhaDispensada = useRef({});
+  useEffect(() => { gravarAdaptado(adaptado); }, [adaptado]);
   const [popupSeguir, setPopupSeguir] = useState(false);
   const seguirTentado = useRef(false);
   // A portaria passou. Fica no mesmo registro do resto, então sobrevive a
@@ -30996,7 +32149,47 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     return () => clearInterval(iv);
   }, [carregado, lembrete, historico]);
 
-  const comecarSessao = (treino) => {
+  // Com um registro de dor ativo, o treino só começa depois de conferir os
+  // sinais de alerta (resumidos numa tela). Alerta que para tudo: não começa.
+  const conferirAdaptadoAntes = (seguir) => {
+    const ativos = registrosAtivosAdaptado(adaptado);
+    if (!ativos.length) return false;
+    const tudo = ativos.find((r) => { const a = alertaDoRegistro(r); return a && NIVEIS_ALERTA_ADAPTADO[a.nivel].tudo; });
+    if (tudo) {
+      const n = NIVEIS_ALERTA_ADAPTADO[alertaDoRegistro(tudo).nivel];
+      setModal({ msg: "⛔ " + n.titulo + "\n\n" + n.texto + "\n\nO app não sugere treino enquanto esse alerta estiver ativo.",
+        labelSim: "Ver o que fazer", labelNao: "Fechar", onSim: () => { setAdaptadoInicial({ tela: "alerta", regId: tudo.id }); setAba("adaptado"); } });
+      return true;
+    }
+    const curtos = [];
+    ativos.forEach((r) => perguntasDaTriagem(r.regiao, r.zona).forEach((q) => { if (curtos.indexOf(q.curto) < 0) curtos.push(q.curto); }));
+    setModal({ msg: "🩹 Treino adaptado: " + ativos.map(nomeRegistroAdaptado).join(", ") + "\n\nDesde o registro, apareceu algum destes sinais?\n\n" +
+        curtos.map((c) => "• " + c).join("\n") + "\n\nOs exercícios que provocam a dor vêm marcados no treino.",
+      positivo: true, labelSim: "Nenhum: treinar", labelNao: "Sim, apareceu",
+      onSim: seguir, onNao: () => { setAdaptadoInicial({ tela: "triagem", regId: ativos[0].id }); setAba("adaptado"); } });
+    return true;
+  };
+  const anotarDorAdaptado = (regId, s) => setAdaptado((d) => Object.assign({}, d, { registros: d.registros.map((r) => (r.id === regId ? Object.assign({}, r, { sintomas: (r.sintomas || []).concat([s]) }) : r)) }));
+  // O plano do fisioterapeuta vira uma sessão comum: câmera, descanso e
+  // histórico de graça. A carga, a amplitude e o ritmo do plano vão na obs.
+  const treinarPlanoAdaptado = (reg) => {
+    const comecar = () => {
+      const itens = ((reg.plano && reg.plano.itens) || []).filter((it) => exPorId(it.exercicioId)).map((it, i) => ({
+        uid: novoUid(), exercicioId: it.exercicioId, origem: i,
+        obs: [it.carga, it.amplitude, it.ritmo].filter(Boolean).join(" · "), conjunto: null, descanso: null, sugerido: null,
+        series: montarSeries(exPorId(it.exercicioId), it.series, it.reps, null, 0) }));
+      if (!itens.length) { avisar("O plano ainda não tem exercícios. Registre-os em \"Orientações e plano\"."); return; }
+      setSessao({ treinoId: "adaptado-" + reg.id, nome: "Plano: " + nomeRegistroAdaptado(reg), inicio: Date.now(), adaptado: { regId: reg.id, plano: true }, itens: itens });
+      setAba("sessao");
+      registrarEvento("adaptado-plano");
+    };
+    if (sessao) pedirConfirmacao("Você já tem um treino em andamento (" + sessao.nome + "). Começar o plano vai descartá-lo. Continuar?", comecar);
+    else comecar();
+  };
+
+  const comecarSessao = (treino, conferido) => {
+    if (!conferido && conferirAdaptadoAntes(() => comecarSessao(treino, true))) return;
+    const ativosAd = registrosAtivosAdaptado(adaptado);
     // treino de um programa com mesociclo: as séries da semana e o dia da ondulação
     const prog = programas.find((p) => p.id === treino.programaId);
     const agoraS = Date.now();
@@ -31014,11 +32207,17 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
         // A carga já vem preenchida com a da última vez, e sobe sozinha quando
         // todas as séries fecharam as repetições combinadas. É a sobrecarga
         // progressiva acontecendo sem ninguém precisar consultar o histórico.
-        const sug = sugerirCarga(historico, it.exercicioId, it.reps);
         const ex = exPorId(it.exercicioId);
+        // Treino Adaptado: no exercício que a dor marcou, a carga não sobe
+        // sozinha (fica a da última vez), e o barrado já vem pulado.
+        const ead = estadoAdaptado(ex, ativosAd);
+        const sug0 = sugerirCarga(historico, it.exercicioId, it.reps);
+        const sug = ead && ead.estado !== "livre" && sug0 && sug0.subiu
+          ? (sug0.anterior !== undefined ? Object.assign({}, sug0, { peso: sug0.anterior, subiu: false }) : null) : sug0;
         return {
           uid: novoUid(),
           exercicioId: it.exercicioId,
+          pulado: !!(ead && ead.estado === "barrado"),
           origem: i,                       // posição na ficha (mudancasNaFicha)
           obs: it.obs || "",
           conjunto: it.conjunto || null,   // bi-set/tri-set definido na ficha
@@ -31628,7 +32827,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       if (!hh.rota) continue;
       try { const c = await lerFoto(chaveRota(hh.id)); if (c) rotasDados[hh.id] = c; } catch (err) {}
     }
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, descansoModo, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, rotasDados, lembrete, voz, convite, entrou, dicas, botaoVoz, corredor, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, descansoModo, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, rotasDados, lembrete, voz, convite, entrou, dicas, botaoVoz, corredor, adaptado, seedV3: true });
     try {
       const blob = new Blob([dados], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -31702,6 +32901,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           if (d.corredor && typeof d.corredor === "object") setCorredor(lerCorredor(d.corredor));
             if (d.lembrete) setLembrete(d.lembrete);
             if (d.voz) setVoz(lerVoz(d.voz));
+            if (d.adaptado && Array.isArray(d.adaptado.registros)) setAdaptado(d.adaptado);
             setSessao(null);
             setAba("inicio");
             setTimeout(() => avisar("Backup restaurado com sucesso! 💪"), 120);
@@ -32204,6 +33404,19 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     const t = setTimeout(() => { seguirTentado.current = true; setPopupSeguir(true); }, 1800);
     return () => clearTimeout(t);
   }, [carregado, abertura, entrou, convite, aba, sessao, modal, resumoAnim, historico.length, popupSeguir]);
+  // Treino Adaptado: a pergunta da manhã seguinte e a declaração que falta subir
+  // (antes deste retorno: hook depois de retorno derruba a tela, erro 310)
+  useEffect(() => {
+    if (!carregado || abertura || sessao || dorManha) return undefined;
+    const m = manhaPendente(registrosAtivosAdaptado(adaptado), Date.now());
+    if (!m || manhaDispensada.current[m.sess]) return undefined;
+    const t = setTimeout(() => setDorManha(m), 2500);
+    return () => clearTimeout(t);
+  }, [carregado, abertura, sessao, adaptado, dorManha]);
+  useEffect(() => {
+    if (!carregado || !adaptado.aceite || adaptado.aceite.reg) return;
+    registrarDeclaracaoAdaptado(adaptado.aceite).then((ok) => { if (ok) setAdaptado((d) => Object.assign({}, d, { aceite: Object.assign({}, d.aceite, { reg: true }) })); });
+  }, [carregado]);
   if (!carregado) {
     return <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>Carregando...</div>;
   }
@@ -32350,6 +33563,11 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           <TelaCorredor historico={historico} exPorId={exPorId} corredor={corredor} setCorredor={setCorredor}
             onVoltar={() => setAba(sessao ? "sessao" : "historico")} onPercurso={() => setAba("percurso")} />
         )}
+        {aba === "adaptado" && (
+          <TelaAdaptado adaptado={adaptado} setAdaptado={setAdaptado} todos={todos} exPorId={exPorId}
+            onVoltar={() => setAba("treinos")} onTreinarPlano={treinarPlanoAdaptado} avisar={avisar} pedirConfirmacao={pedirConfirmacao}
+            inicial={adaptadoInicial} onInicialUsado={() => setAdaptadoInicial(null)} />
+        )}
         {aba === "funcional" && (
           <TelaFuncional todos={todos} exPorId={exPorId} som={som} vozCfg={voz}
             aulaInicial={aulaPedida} onAulaAberta={() => setAulaPedida(null)} sessaoAtiva={!!sessao}
@@ -32398,6 +33616,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             onMoverFicha={(id, d) => setTreinos((prev) => moverFicha(prev, id, d))}
             onDuplicarPrograma={duplicarPrograma}
             onAssistente={() => setAba("assistente")}
+            onAdaptado={() => setAba("adaptado")} nAdaptado={registrosAtivosAdaptado(adaptado).length}
             onTreinoLivre={iniciarTreinoLivre} />
         )}
         {aba === "editarTreino" && editandoTreino && (
@@ -32425,6 +33644,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             onLigarVoz={ligarVoz} onEscolaVoz={() => setAba("escolaVoz")}
             onFinalizar={finalizarSessao}
             onVoltar={() => setAba("inicio")}
+            adaptadoAtivos={registrosAtivosAdaptado(adaptado)} onSintomaAdaptado={anotarDorAdaptado} onAbrirAdaptado={() => setAba("adaptado")}
             onDescartar={() => { setSessao(null); setAba("inicio"); }} />
         )}
         {aba === "historico" && (
@@ -32450,6 +33670,16 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       </div>
 
       {resumoAnim && <ResumoAnimado d={resumoAnim} vozCfg={voz} onFechar={() => setResumoAnim(null)} />}
+      {dorManha && adaptado.registros.some((r) => r.id === dorManha.regId) && (
+        <JanelaDorManha reg={adaptado.registros.find((r) => r.id === dorManha.regId)}
+          onResponder={(v) => {
+            anotarDorAdaptado(dorManha.regId, { tipo: "manha", valor: v, em: Date.now(), sess: dorManha.sess });
+            manhaDispensada.current[dorManha.sess] = true;
+            setDorManha(null);
+            if (v >= CORTES_ADAPTADO.dorAlerta) avisar("Dor de " + v + " de manhã. Os exercícios que usam a região ficam fora do treino até uma avaliação. Veja em Fichas → 🩹 Treinar com dor?");
+          }}
+          onDepois={() => { manhaDispensada.current[dorManha.sess] = true; setDorManha(null); }} />
+      )}
       {popupSeguir && (
         <JanelaSeguir
           onSeguir={() => { registrarEvento("seguiu-instagram"); setConvite(false); setPopupSeguir(false); window.open(LINK_INSTAGRAM, "_blank", "noopener"); }}
@@ -33010,7 +34240,7 @@ function csvContas(lista, agora, cob) {
 }
 // O histórico de aceites dos termos, para o dono: o mais novo primeiro, e a
 // planilha (o registro que ele guarda para se defender, se um dia precisar)
-const ONDE_ACEITE = { cadastro: "No cadastro", tela: "Na tela de aceite", novos: "Na tela de aceite (termos novos)", prontidao: "No questionário de saúde (PAR-Q)" };
+const ONDE_ACEITE = { cadastro: "No cadastro", tela: "Na tela de aceite", novos: "Na tela de aceite (termos novos)", prontidao: "No questionário de saúde (PAR-Q)", adaptado: "No Treino Adaptado (treinar com dor)" };
 function ordenarAceites(l) { return l.slice().sort((a, b) => (b.em || 0) - (a.em || 0)); }
 function dataHora(ms) { return ms ? new Date(ms).toLocaleString("pt-BR") : ""; }
 function csvAceites(lista) {

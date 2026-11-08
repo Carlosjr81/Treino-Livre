@@ -16,6 +16,37 @@
 
 ---
 
+## 2026-11-08a — Treinar com dor: o Treino Adaptado
+
+**Em uma frase:** quem treina com dor no ombro, no cotovelo ou no joelho registra onde dói, e o app marca os exercícios que provocam a dor, pula o que o profissional orientou não fazer e avisa quando é hora de procurar atendimento.
+
+**O que mudou**
+- Em Fichas, o botão "🩹 Treinar com dor? Adaptar o treino": um desenho do corpo para tocar onde dói, o ponto, quando começou e os movimentos que doem.
+- Perguntas de sinais de alerta (deformidade depois de queda, não conseguir apoiar a perna, articulação quente e inchada com febre, entre outras). Um "sim" para o treino e diz onde procurar atendimento.
+- No treino, os exercícios que usam o movimento que dói vêm marcados com ⚠ e "Pular hoje"; os que o profissional orientou não fazer vêm pulados. Depois de cada um, a dor de 0 a 10; no dia seguinte, o app pergunta como amanheceu.
+- Com um plano do fisioterapeuta, a pessoa registra os exercícios, a carga e os critérios; o app lembra, conta as repetições pela câmera e mostra quando o critério do plano foi cumprido.
+- "A dor no tempo": um gráfico e um resumo para levar à consulta.
+
+**Por que importa para quem treina**
+- Dor num lugar não precisa parar o treino inteiro: o resto do corpo continua, sem forçar o que dói.
+- O app lembra de procurar avaliação e não deixa passar um sinal de alerta.
+
+**Como usar**
+- Fichas → 🩹 Treinar com dor? Adaptar o treino → aceite o aviso → + Registrar uma dor.
+- Com um plano do fisioterapeuta, toque em "Orientações e plano" e depois em "▶ Fazer o plano agora".
+
+**Ideias de vídeo**
+- "Machucou o ombro? Não pare o treino inteiro": o desenho do corpo, a marca ⚠ no desenvolvimento e o resto do treino seguindo.
+- "O app que manda você ao médico": a pergunta de alerta e a tela "Procure atendimento hoje".
+
+**Não prometer**
+- O app **não diagnostica, não trata e não recupera lesão**. Nada de "fisioterapia no app" ou "treino para curar o joelho".
+- Ele não sugere exercício substituto por enquanto: as regras estão em revisão por um fisioterapeuta.
+- Os dados de dor ficam só no celular.
+- Continua valendo a seção 4b do guia.
+
+---
+
 ## 2026-11-05b — Convite para seguir o criador no Instagram
 
 **Em uma frase:** quem já treinou com o app recebe, ao abrir, uma janela convidando a seguir @carlos.jr.81 no Instagram para ficar por dentro das novidades.

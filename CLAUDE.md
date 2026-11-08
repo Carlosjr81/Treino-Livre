@@ -778,7 +778,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v172) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v173) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4563,7 +4563,16 @@ compartilhados por aí precisam continuar abrindo.
     `u.voice`). Falhou de novo: a legenda fica com "⚠ A voz do celular não
     falou (motivo)", o texto inteiro e onde conferir a voz no Android. A
     legenda diz "⏳ Ligando a voz…" e "🔊 Falando": o próximo relato já diz
-    em qual passo parou. Conferido no navegador com três vozes de mentira
+    em qual passo parou. **E deu "synthesis-failed" no celular dele**
+    (2026-11-08b): o `falarLongo` mandava cada pedaço com `fila` (sem
+    cancelar) e com `resume()` antes, e no Chrome do Android pausar e
+    retomar não funcionam direito. Hoje cada pedaço sai **exatamente como o
+    resumo animado fala** (que funciona no celular dele): `jarvisFalar` só
+    com voz, velocidade e animado, sem fila e sem `resume()`, e o primeiro
+    pedaço no próprio toque, sem relógio no meio. Falhou um pedaço, ele é
+    repetido uma vez com a voz padrão do celular, no tom e no ritmo normais
+    (e esses valem para o resto); no meio da fala, um pedaço que falha duas
+    vezes é pulado em vez de calar tudo. Conferido no navegador com três vozes de mentira
     (a que fala, a muda e a que só fala sem voz escolhida), com
     `--esperar 8000` (opção nova do `navegador.js`).
     Para testar a voz no navegador:

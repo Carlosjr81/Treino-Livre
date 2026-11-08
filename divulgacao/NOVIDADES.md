@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-08b — Conserto: o áudio da análise do treino ajustado
+
+**Em uma frase:** o botão que lê em voz alta a análise do treino ajustado (e o "por que muda") voltou a falar nos celulares Android em que dava erro.
+
+**O que mudou**
+- Em alguns Android, o áudio mostrava "A voz do celular não falou (erro: synthesis-failed)". Agora ele fala do mesmo jeito que o resumo animado, que funciona nesses celulares, e se um trecho falhar ele tenta de novo com a voz padrão do celular.
+
+**Por que importa para quem treina**
+- Dá para ouvir a explicação do treino novo com o celular no bolso, sem ler a tela.
+
+**Como usar**
+- Histórico → Números → 🧭 Seu treino está equilibrado? → 🔊 Ouvir a análise e o ajuste (ou "Ouvir por que muda").
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- A voz é a do próprio celular; se o celular não tiver voz em português instalada, o texto continua na tela para ler.
+
+---
+
 ## 2026-11-08a — Treinar com dor: o Treino Adaptado
 
 **Em uma frase:** quem treina com dor no ombro, no cotovelo ou no joelho registra onde dói, e o app marca os exercícios que provocam a dor, pula o que o profissional orientou não fazer e avisa quando é hora de procurar atendimento.

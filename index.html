@@ -1662,7 +1662,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-08a";
+const VERSAO_APP = "2026-11-08b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -12592,15 +12592,23 @@ function pararFalaLonga() {
 // aoParte(parte, k, n, estado): estado é "esperando", "tocando" ou o erro da
 // voz. É o que a tela mostra: "não tocou" sem saber se a fala começou não diz
 // nada a ninguém.
-// No Chrome do Android, cancel() colado no speak() às vezes leva junto a fala
-// nova, calada. Por isso só se cala o que está no ar, e com um respiro.
+// Cada pedaço é falado EXATAMENTE como o resumo animado fala, que é o que
+// funciona no celular do dono: jarvisFalar sem fila (cala o anterior e fala)
+// e sem resume(). A versão de antes usava fila e chamava resume() antes de
+// cada pedaço, e o Chrome do Android respondia "synthesis-failed" (relato do
+// dono, 2026-11-08b): lá o pausar e retomar não funcionam direito, e mexer
+// neles estraga a fala seguinte. O primeiro pedaço sai no próprio toque,
+// sem relógio no meio (é o gesto que o navegador exige para falar).
 function falarLongo(texto, cfg, aoTerminar, aoParte) {
   pararFalaLonga();
   const partes = partesDaFala(texto);
   if (!VOZ_FALA || !partes.length) { if (aoTerminar) aoTerminar(); return false; }
   const vivo = { parado: false };
   FALA_LONGA = vivo;
-  let i = 0, comecou = false, padrao = false, tentou = false;
+  const c = cfg || {};
+  // padrao: a voz padrão do celular, no tom e no ritmo normais. Vale depois de
+  // uma falha, para todos os pedaços seguintes.
+  let i = 0, comecou = false, padrao = false, tentouK = -1;
   const avisa = (p, k, est) => { if (!vivo.parado && aoParte) aoParte(p, k, partes.length, est); };
   const prox = () => {
     if (vivo.parado) return;
@@ -12612,15 +12620,16 @@ function falarLongo(texto, cfg, aoTerminar, aoParte) {
     const seguir = () => {
       if (foi) return; foi = true; clearTimeout(rel); clearTimeout(conf);
       if (vivo.parado) return;
-      // a primeira parte não começou: mais uma vez, com a voz padrão do celular
-      if (!comecou && !tentou) {
-        tentou = true; padrao = true; i = k;
-        try { window.speechSynthesis.cancel(); } catch (e) {}
+      // Este pedaço falhou (erro da voz, ou o primeiro nem começou): mais uma
+      // vez, com a voz padrão do celular. Uma vez por pedaço.
+      if ((erro || !comecou) && tentouK !== k) {
+        tentouK = k; padrao = true; i = k;
         avisa(p, k, erro ? "erro: " + erro + " (tentando de novo)" : "tentando de novo");
-        setTimeout(prox, 400);
+        setTimeout(prox, 600);
         return;
       }
       if (!comecou) { avisa(p, k, erro ? "erro: " + erro : "não começou"); FALA_LONGA = null; if (aoTerminar) aoTerminar(true); return; }
+      // pedaço do meio que falhou duas vezes: pula para o seguinte, sem calar tudo
       setTimeout(prox, 250);
     };
     const rel = setTimeout(seguir, 4000 + p.length * 110);
@@ -12630,18 +12639,13 @@ function falarLongo(texto, cfg, aoTerminar, aoParte) {
       let fal = false; try { fal = window.speechSynthesis.speaking && !window.speechSynthesis.paused; } catch (e) {}
       if (fal) { comecou = true; avisa(p, k, "tocando"); } else if (!comecou) seguir();
     }, 3000) : null;
-    let t0 = Date.now();
-    const fala = () => {
-      if (vivo.parado || foi) return;
-      t0 = Date.now();
-      if (!jarvisFalar(p, { ...(cfg || {}), falar: true, fila: true, retomar: true, vozPadrao: padrao, aoTerminar: () => { if (!foi && !erro && Date.now() - t0 > 600) comecou = true; seguir(); },
+    const t0 = Date.now();
+    // os mesmos campos que o resumo animado passa, e nada mais
+    if (!jarvisFalar(p, { falar: true, vozNome: c.vozNome, vozPadrao: padrao,
+        velocidade: padrao ? 1 : (c.velocidade || 1.1), animado: padrao ? false : c.animado !== false,
+        aoTerminar: () => { if (!foi && !erro && Date.now() - t0 > 600) comecou = true; seguir(); },
         aoErro: (er) => { erro = er; },
         aoComecar: () => { if (!comecou) { comecou = true; clearTimeout(conf); } avisa(p, k, "tocando"); } })) { erro = erro || "sem voz"; seguir(); }
-    };
-    let ocupado = false;
-    try { ocupado = k === 0 && (window.speechSynthesis.speaking || window.speechSynthesis.pending); } catch (e) {}
-    if (ocupado) { try { window.speechSynthesis.cancel(); } catch (e) {} setTimeout(fala, 150); }
-    else fala();
   };
   prox();
   return true;

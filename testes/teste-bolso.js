@@ -27,11 +27,13 @@ const fonte = [
   trecho("const ehTempo = "), trecho("const segundosDe = "), trecho("const cargaDe = "), trecho("const repsDe = "),
   trecho("function ehDrop("), trecho("const fmtNum = "), trecho("function plural("), trecho("const semAcento = "),
   trecho("const nomeFalado = "), trecho("function tempoFalado("), trecho("function alvoDaSessao("),
-  trecho("function b64UrlParaPadrao("), trecho("function padraoParaB64Url("),
+  trecho("function b64Codificar("), "const PACOTE_ANDROID = \"x\"; const LINK_APK = \"x\";", trecho("function b64UrlParaPadrao("), trecho("function padraoParaB64Url("),
   trecho("const DESCANSO_CIENCIA = "),
   jarvis, html.slice(iniB, fimB),
 ].join("\n");
-eval(fonte + "\nglobalThis.B = { criarBolso, aplicarEventosBolso, snapshotBolso, lerPacoteBolso, linkBolso };");
+const memoria = {};
+globalThis.localStorage = { getItem: (k) => (k in memoria ? memoria[k] : null), setItem: (k, v) => { memoria[k] = String(v); }, removeItem: (k) => { delete memoria[k]; } };
+eval(fonte + "\nglobalThis.B = { criarBolso, aplicarEventosBolso, snapshotBolso, lerPacoteBolso, linkBolso, marcarIdsBolso, novosEventosBolso, eventosBolsoValidos, canalBolso, canalBolsoValido, cifrarBolso, decifrarBolso };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -180,5 +182,31 @@ teste("exercicio pulado nao e a vez do relogio", "u2", criarBolso(sp, EXERCICIOS
 const sf = snap(); sf.itens.forEach((it) => it.series.forEach((s) => { s.feito = true; }));
 teste("tudo feito: o relogio mostra o fim", true, criarBolso(sf, EXERCICIOS).painel(T0).fim);
 
-console.log("\n" + ok + " passou / " + mal + " falhou");
-process.exit(mal ? 1 : 0);
+
+console.log("--- o relogio sem notificacao (canal cifrado) ---");
+const ev2 = B.marcarIdsBolso([{ t: "a", u: "u1", i: 0, p: "80", r: "10" }, { t: "x", u: "u1", i: 0 }]);
+teste("cada acontecimento ganha um id", true, ev2.every((e) => typeof e.k === "string" && e.k.length > 5));
+const k0 = ev2[0].k; B.marcarIdsBolso(ev2);
+teste("o id nao muda na segunda vez", k0, ev2[0].k);
+teste("o id passa na conferencia", 2, B.eventosBolsoValidos(ev2).length);
+teste("chegou pelo canal: entra", 2, B.novosEventosBolso(ev2).length);
+teste("o mesmo de novo pelo #bolso=: nao entra", 0, B.novosEventosBolso(ev2).length);
+teste("o novo junto do velho: so o novo", 1, B.novosEventosBolso(ev2.concat(B.marcarIdsBolso([{ t: "a", u: "u2", i: 0 }]))).length);
+teste("acontecimento sem id (app antigo) sempre entra", 1, B.novosEventosBolso([{ t: "a", u: "u1", i: 1 }]).length);
+const ca = B.canalBolso();
+teste("o canal: id e chave", true, B.canalBolsoValido(ca));
+teste("o canal e o mesmo na segunda vez", ca, B.canalBolso());
+teste("o link do bolso leva o canal", true, B.linkBolso({ v: 1, itens: [] }).indexOf("&ca=" + encodeURIComponent(ca)) > 0);
+// o app nao aplica de novo o que a pagina ja tem: a copia leva os vistos
+teste("a copia leva o que a pagina ja aplicou", ["abc"], B.snapshotBolso({ itens: [] }, () => ({}), { vistos: ["abc"] }).vistos);
+(async () => {
+  const m = await B.cifrarBolso(ca, { ev: ev2, ts: 5 });
+  teste("o retransmissor so ve bytes embaralhados", false, /u1|"t"|"a"/.test(JSON.stringify(m)));
+  const volta = await B.decifrarBolso(ca, m);
+  teste("a tela do treino decifra", ev2[0].k, volta.ev[0].k);
+  let recusou = false;
+  try { await B.decifrarBolso("aaaaaaaaaaaaaaaa." + "B".repeat(43), m); } catch (e) { recusou = true; }
+  teste("outra chave nao decifra", true, recusou);
+  console.log("\n" + ok + " passou / " + mal + " falhou");
+  process.exit(mal ? 1 : 0);
+})();

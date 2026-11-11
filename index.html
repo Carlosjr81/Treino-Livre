@@ -1687,7 +1687,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-11f";
+const VERSAO_APP = "2026-11-11g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3575,6 +3575,7 @@ function snapshotBolso(sessao, exPorId, cfg) {
     barra: c.barra != null ? c.barra : 20,
     foco: c.foco != null ? c.foco : null,
     descansoAte: c.descansoAte || 0,
+    vistos: c.vistos || [],
     itens: (sessao.itens || []).map((it) => {
       const ex = exPorId(it.exercicioId) || {};
       const rec = c.recordes && c.recordes[it.exercicioId];
@@ -3601,6 +3602,8 @@ function linkBolso(snap, falar, fimFala, trazer, crono) {
   if (falar) q += "&f=" + encodeURIComponent(falar);
   if (fimFala) q += "&ff=" + encodeURIComponent(fimFala);
   if (bolsoComMusica()) q += "&mu=1";
+  const ca = typeof localStorage !== "undefined" ? canalBolso() : "";
+  if (ca) q += "&ca=" + encodeURIComponent(ca);
   return "intent://bolso?" + q + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID +
     ";S.browser_fallback_url=" + encodeURIComponent(LINK_APK) + ";end";
 }
@@ -3958,16 +3961,86 @@ function criarBolso(snapInicial, catalogo) {
     estado() { return itens; },
   };
 }
+// Os acontecimentos que chegam de fora (link ou canal) são conferidos campo a campo.
+function eventosBolsoValidos(lista) {
+  return (Array.isArray(lista) ? lista : []).slice(0, 300).filter((e) =>
+    e && typeof e.u === "string" && e.u.length < 80 && ["a", "x", "c", "o"].indexOf(e.t) >= 0 &&
+    (e.i == null || (Number.isInteger(e.i) && e.i >= 0 && e.i < 100)) &&
+    (e.k == null || (typeof e.k === "string" && e.k.length < 30)) &&
+    (e.campo == null || ["peso", "reps", "segundos"].indexOf(e.campo) >= 0) &&
+    ["p", "r", "sg", "valor"].every((k) => e[k] == null || /^\d{1,4}([.,]\d{1,2})?$/.test(String(e[k]))) &&
+    (e.o == null || (typeof e.o === "string" && e.o.length < 300)));
+}
+// Cada acontecimento ganha um id (k) na página escondida: o mesmo chega pelo
+// canal e, depois, de novo pelo #bolso=; aplicado uma vez só.
+function marcarIdsBolso(lista) {
+  (lista || []).forEach((e) => { if (e && !e.k) e.k = Date.now().toString(36) + Math.random().toString(36).slice(2, 7); });
+  return lista;
+}
+function lerVistosBolso() {
+  try { const v = JSON.parse(localStorage.getItem("treinolivre:bolsoVistos") || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+}
+// Tira o que a página já aplicou e guarda os ids do que entra agora
+function novosEventosBolso(ev) {
+  const vistos = lerVistosBolso();
+  const ja = new Set(vistos);
+  const novos = (ev || []).filter((e) => !e.k || !ja.has(e.k));
+  const ids = novos.map((e) => e.k).filter(Boolean);
+  if (ids.length) { try { localStorage.setItem("treinolivre:bolsoVistos", JSON.stringify(vistos.concat(ids).slice(-150))); } catch (e) {} }
+  return novos;
+}
+
+// ---- O relógio sem notificação (2026-11-11g) ----
+// Relato do dono: o ✓ do relógio virava uma notificação no celular, e só
+// tocando nela a série entrava no treino. O Android não deixa o serviço trazer
+// a tela para a frente, e o Chrome não deixa a página falar com o app (a rede
+// local e o canal do TWA já falharam no celular dele, nos óculos). O caminho
+// que sobra é o retransmissor do Desafio: a página escondida do app publica os
+// acontecimentos num tópico só deste aparelho, CIFRADOS (AES-GCM, chave
+// sorteada aqui e passada ao app no link do 🔒), e a tela do treino, que
+// assina o tópico, aplica na hora. O retransmissor só vê bytes embaralhados.
+// Sem ele (fora do ar, sem internet), o caminho antigo continua: o próximo ✓
+// da página traz tudo de volta pelo #bolso=.
+const BOLSO_TOPICO = "treinolivre/bolso/v1/";
+function bytesParaB64Url(a) { let s = ""; for (let i = 0; i < a.length; i++) s += String.fromCharCode(a[i]); return padraoParaB64Url(btoa(s)); }
+function b64UrlParaBytes(t) { const s = atob(b64UrlParaPadrao(t)); const a = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; }
+// "canal.chave": sorteado uma vez por aparelho
+function canalBolso() {
+  try {
+    let c = localStorage.getItem("treinolivre:bolsoCanal");
+    if (c && /^[a-z0-9]{16}\.[A-Za-z0-9_-]{43}$/.test(c)) return c;
+    const al = "abcdefghijklmnopqrstuvwxyz0123456789";
+    const b = new Uint8Array(16), k = new Uint8Array(32);
+    crypto.getRandomValues(b); crypto.getRandomValues(k);
+    c = Array.from(b, (x) => al[x % 36]).join("") + "." + bytesParaB64Url(k);
+    localStorage.setItem("treinolivre:bolsoCanal", c);
+    return c;
+  } catch (e) { return ""; }
+}
+function canalBolsoValido(c) { return typeof c === "string" && /^[a-z0-9]{16}\.[A-Za-z0-9_-]{43}$/.test(c); }
+function chaveBolso(canal) { return crypto.subtle.importKey("raw", b64UrlParaBytes(canal.split(".")[1]), "AES-GCM", false, ["encrypt", "decrypt"]); }
+async function cifrarBolso(canal, obj) {
+  const iv = new Uint8Array(12);
+  crypto.getRandomValues(iv);
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, await chaveBolso(canal), new TextEncoder().encode(JSON.stringify(obj))));
+  const t = new Uint8Array(12 + ct.length);
+  t.set(iv); t.set(ct, 12);
+  return { c: bytesParaB64Url(t) };
+}
+async function decifrarBolso(canal, m) {
+  const t = b64UrlParaBytes(m.c);
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: t.slice(0, 12) }, await chaveBolso(canal), t.slice(12));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function salaBolso(canal, id, aoMsg) {
+  return criarSalaAoVivo({ url: urlBroker(1), base: BOLSO_TOPICO, codigo: canal.split(".")[0], id: id, aoEstado: () => {}, aoParticipante: aoMsg || (() => {}) });
+}
+
 // O que volta do app (#bolso=): conferido campo a campo, é dado vindo de link.
 function lerPacoteBolso(texto, decodificar) {
   try {
     const p = JSON.parse(decodificar(b64UrlParaPadrao(texto)));
-    const ev = (Array.isArray(p && p.ev) ? p.ev : []).slice(0, 300).filter((e) =>
-      e && typeof e.u === "string" && e.u.length < 80 && ["a", "x", "c", "o"].indexOf(e.t) >= 0 &&
-      (e.i == null || (Number.isInteger(e.i) && e.i >= 0 && e.i < 100)) &&
-      (e.campo == null || ["peso", "reps", "segundos"].indexOf(e.campo) >= 0) &&
-      ["p", "r", "sg", "valor"].every((k) => e[k] == null || /^\d{1,4}([.,]\d{1,2})?$/.test(String(e[k]))) &&
-      (e.o == null || (typeof e.o === "string" && e.o.length < 300)));
+    const ev = eventosBolsoValidos(p && p.ev);
     const dg = Array.isArray(p && p.dg) ? p.dg.filter((s) => typeof s === "string").slice(-40).map((s) => s.slice(0, 170)) : null;
     return { ev: ev, fim: !!(p && p.fim), dg: dg, em: Date.now() };
   } catch (e) { return null; }
@@ -28411,8 +28484,10 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       if (!pend) return;
       try { localStorage.removeItem("treinolivre:bolso"); } catch (e) {}
       if (pend.fim) { try { localStorage.removeItem("treinolivre:bolsoAtivo"); } catch (e) {} setBolsoAtivo(false); }
-      const ev = pend.ev || [];
-      if (!ev.length || Date.now() - (pend.em || 0) > 12 * 3600000) return;
+      if (Date.now() - (pend.em || 0) > 12 * 3600000) return;
+      // o que já chegou pelo canal (o relógio) não entra de novo
+      const ev = novosEventosBolso(pend.ev || []);
+      if (!ev.length) return;
       setSessao((s) => (s ? Object.assign({}, s, { itens: aplicarEventosBolso(s.itens, ev) }) : s));
       const n = ev.filter((e) => e.t === "a").length - ev.filter((e) => e.t === "x").length;
       const frase = n > 0 ? "Com a tela travada, anotei " + n + " " + plural(n, "série", "séries") + ". " + plural(n, "Já está", "Já estão") + " no treino."
@@ -28423,6 +28498,39 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     window.addEventListener("treinolivre:bolso", aplicar);
     return () => window.removeEventListener("treinolivre:bolso", aplicar);
   }, []);
+  // O canal cifrado (ver "O relógio sem notificação"): o ✓ do relógio e o que
+  // o Jarvis anotou com a tela travada entram no treino sem toque nenhum. O
+  // app fala a confirmação e conduz o descanso; a página só mostra.
+  const canalTs = useRef(0);
+  useEffect(() => {
+    if (!NO_APP_ANDROID || BOLSO_APP < 2 || !(bolsoAtivo || bolsoAuto)) return;
+    const canal = canalBolso();
+    if (!canal || !(typeof crypto !== "undefined" && crypto.subtle)) return;
+    let vivo = true;
+    const sala = salaBolso(canal, "pag", (uid, m) => {
+      if (uid !== "app" || !m || typeof m.c !== "string") return;
+      decifrarBolso(canal, m).then((p) => {
+        if (!vivo || !p || !(+p.ts > canalTs.current) || Date.now() - p.ts > 12 * 3600000) return;
+        canalTs.current = +p.ts;
+        const ev = novosEventosBolso(eventosBolsoValidos(p.ev));
+        if (ev.length) setSessao((s) => (s ? Object.assign({}, s, { itens: aplicarEventosBolso(s.itens, ev) }) : s));
+        if (p.da != null && Date.now() - p.ts < 60000) {
+          const da = +p.da || 0;
+          if (da > Date.now() + 1000) {
+            descansoNoBolso.current = da;
+            setTotalDescanso((tt) => (ev.length ? Math.round((da - Date.now()) / 1000) : tt));
+            setFimDescanso(da);
+            setAvisou(false);
+            ultimoBipe.current = null;
+          } else if (!da) { descansoNoBolso.current = 0; setFimDescanso(null); }
+        }
+      }).catch(() => {});
+    });
+    const acordar = () => { if (!document.hidden) sala.manter(); };
+    document.addEventListener("visibilitychange", acordar);
+    const vigia = setInterval(acordar, 10000);
+    return () => { vivo = false; clearInterval(vigia); document.removeEventListener("visibilitychange", acordar); sala.fechar(); };
+  }, [bolsoAtivo, bolsoAuto]);
   // Ligar (ou atualizar) manda a cópia do treino ao app. É também o "Trazer":
   // o app devolve primeiro o que anotou e depois segue com a cópia nova.
   const ligarBolso = (itensAgora, foco, falar, fimFala, ate, trazer, crono) => {
@@ -28430,7 +28538,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     let ateF = ate;
     if (ateF == null) { ateF = fimDescanso || 0; if (fimDescanso) descansoNoBolso.current = fimDescanso; }
     const snap = snapshotBolso({ itens: itensAgora || sessao.itens }, exPorId, {
-      descanso: descanso, barra: parseFloat(vozBarra) || 20, recordes: recordes, descansoAte: ateF, nome: sessao.nome,
+      descanso: descanso, barra: parseFloat(vozBarra) || 20, recordes: recordes, descansoAte: ateF, nome: sessao.nome, vistos: lerVistosBolso(),
       foco: foco != null ? foco : alvo ? alvo.ei : null,
     });
     try { localStorage.setItem("treinolivre:bolsoAtivo", String(Date.now())); } catch (e) {}
@@ -34223,22 +34331,35 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
 // frases ditas com a tela travada (ver BOLSO no começo do arquivo). O app chama
 // estas funções de fora; nada aqui grava no armazenamento.
 if (MODO_BOLSO) {
-  let motorBolso = null;
+  let motorBolso = null, canal = "", sala = null;
+  const eventosComId = () => marcarIdsBolso(motorBolso.eventos());
+  // manda à tela do treino, pelo canal cifrado, tudo o que ainda não voltou
+  const avisarPagina = (r) => {
+    if (!canal || !motorBolso) return;
+    if (!sala) sala = salaBolso(canal, "app"); else sala.manter();
+    cifrarBolso(canal, { ev: eventosComId(), da: r && r.descansoAte != null ? r.descansoAte : undefined, ts: Date.now() })
+      .then((m) => { if (sala) sala.publicar(m); }).catch(() => {});
+  };
   window.bolso = {
     // snap: a cópia do treino; aplicar: o que já aconteceu nela e ainda não
     // voltou ao treino (uma reabertura do serviço); pendentes: o que ainda vai voltar
     iniciar(snapJson, aplicarJson, pendentesJson) {
       const s = JSON.parse(snapJson);
-      const ja = aplicarJson ? JSON.parse(aplicarJson) : [];
+      // o que a página já aplicou pelo canal está na cópia: não entra duas vezes
+      const vistos = new Set(Array.isArray(s.vistos) ? s.vistos : []);
+      const ja = (aplicarJson ? JSON.parse(aplicarJson) : []).filter((e) => !e.k || !vistos.has(e.k));
       if (ja.length) s.itens = aplicarEventosBolso(s.itens, ja);
       motorBolso = criarBolso(s, EXERCICIOS);
       motorBolso.semear(pendentesJson ? JSON.parse(pendentesJson) : []);
       return "ok";
     },
+    canal(c) { if (canalBolsoValido(c) && c !== canal) { canal = c; if (sala) { sala.fechar(); sala = null; } } return "ok"; },
+    manter() { if (sala) sala.manter(); return ""; },
     ouvir(altsJson, agora) {
       if (!motorBolso) return "{}";
       const r = motorBolso.ouvir(JSON.parse(altsJson), agora || Date.now());
-      return JSON.stringify(Object.assign({}, r, { ev: r.mudou ? motorBolso.eventos() : undefined }));
+      if (r.mudou || r.descansoAte != null) avisarPagina(r);
+      return JSON.stringify(Object.assign({}, r, { ev: r.mudou ? eventosComId() : undefined }));
     },
     fimDescanso(agora) { return motorBolso ? motorBolso.fimDescanso(agora || Date.now()) : ""; },
     // o relógio: o que a tela dele mostra, e os botões dele
@@ -34249,9 +34370,10 @@ if (MODO_BOLSO) {
       let c = {};
       try { c = JSON.parse(json); } catch (e) {}
       const r = motorBolso.acao(c, t) || {};
-      return JSON.stringify(Object.assign({}, r, { ev: r.mudou ? motorBolso.eventos() : undefined, painel: motorBolso.painel(t) }));
+      if (r.mudou || r.descansoAte != null) avisarPagina(r);
+      return JSON.stringify(Object.assign({}, r, { ev: r.mudou ? eventosComId() : undefined, painel: motorBolso.painel(t) }));
     },
-    pendentes() { return JSON.stringify(motorBolso ? motorBolso.eventos() : []); },
+    pendentes() { return JSON.stringify(motorBolso ? eventosComId() : []); },
     entregue() { if (motorBolso) motorBolso.limpar(); return "ok"; },
   };
 }

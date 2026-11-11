@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-11c**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-11g**.
 
 ---
 
@@ -205,7 +205,7 @@ com cenas reais → halter) como linguagem visual em vídeos.
 - **🔒 Jarvis com a tela travada (app Android, em teste):** com o celular travado no bolso, o Jarvis ouve
   ("Jarvis, 80 por 10"), anota, avisa recorde, conta o descanso e chama de volta com a próxima série. Liga
   sozinho: marcar o ✓ e travar a tela já faz a confirmação e o fim do descanso serem falados. Ao
-  destravar, uma notificação leva as séries para o treino. Aeróbico, câmera e finalizar continuam pela tela.
+  destravar, as séries já estão no treino (com internet; sem ela, entram no próximo ✓). Aeróbico, câmera e finalizar continuam pela tela.
 - **Convite para o app Android:** quem usa pelo navegador no Android vê, na tela inicial e nos Ajustes,
   o cartão "Baixe o app Android" com o que só o app faz (relógio, Samsung Health, óculos). Quem já tem o
   app e abriu o atalho antigo é avisado de qual ícone usar.
@@ -224,7 +224,7 @@ com cenas reais → halter) como linguagem visual em vídeos.
 - Um app para o relógio (Galaxy Watch 4 em diante, Wear OS), ligado ao app Android do celular.
 - No pulso: o exercício da vez, a série ("Série 2 de 4"), a carga e as repetições com − e +, e o **✓ Feito**.
 - O descanso conta no relógio (+30 s, −15 s, Pular) e o relógio **vibra** 10 s antes e no fim.
-- ◀ ▶ trocam o exercício e ↩ desfaz a última série; cada ✓ vira a série no treino do celular, com recorde e voz.
+- ◀ ▶ trocam o exercício e ↩ desfaz a última série; cada ✓ vira a série no treino do celular, com recorde e voz, e aparece marcada na tela do celular sozinha, sem tocar em nada (precisa de internet no celular).
 - Começou o treino no celular, o app **abre sozinho no relógio**.
 - Instalação guiada: **Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio → Instalar no relógio agora**: o celular acha o relógio no Wi-Fi e instala; a pessoa só digita o código de 6 números do relógio.
 - Ainda não está na loja do relógio: instala pelo modo de desenvolvedor (o assistente explica). Só Android.

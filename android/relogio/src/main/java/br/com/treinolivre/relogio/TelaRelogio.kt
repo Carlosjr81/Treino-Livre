@@ -271,8 +271,9 @@ class TelaRelogio : Activity(), DataClient.OnDataChangedListener {
             return
         }
         val feitas = p.optInt("feitas"); val total = p.optInt("total")
-        val nomeTreino = p.optString("treino")
-        topo.text = (if (nomeTreino.isNotEmpty()) "$nomeTreino · " else "") + "$feitas/$total séries"
+        // só o progresso: o nome do treino quebrava em duas linhas, e a de cima
+        // sumia na borda da tela redonda
+        topo.text = "$feitas de $total séries"
         exNome.text = p.optString("ex")
         serie.text = if (p.optBoolean("drop")) "↓ Drop" else "Série " + p.optInt("n") + " de " + p.optInt("de")
         val descansando = descansoAte() > 0

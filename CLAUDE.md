@@ -704,7 +704,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.846 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.860 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -779,7 +779,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v179) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v180) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4270,11 +4270,35 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
 - **A cópia leva agora o nome do treino e o `pulado`** (`snapshotBolso`):
   antes, o motor do bolso podia mandar para um exercício pulado no Treino
   Adaptado.
-- **O limite**: com o celular destravado, a página não sabe da série marcada
-  no relógio até a notificação "Toque para levar ao treino" (o Android não
-  deixa o serviço abrir a tela) ou o próximo ✓ da página, que leva junto o que
-  o relógio anotou. Marcar a mesma série nos dois lugares, nesse meio tempo,
-  vira duas séries.
+- **A série do relógio entra sozinha no treino do celular** (2026-11-11g,
+  relato do dono: "quando clico em Feito, preciso confirmar a notificação no
+  celular para dar baixa na série"). O Android não deixa o serviço trazer a
+  tela para a frente, e o Chrome não deixa a página falar com o app (a rede
+  local e o canal do TWA já falharam nos óculos). Então a página escondida do
+  `BolsoService` publica os acontecimentos no **retransmissor do Desafio**
+  (`salaBolso`, tópico `treinolivre/bolso/v1/<canal>/app`, com `retain`),
+  **cifrados com AES-GCM** (`cifrarBolso`): o canal e a chave são sorteados
+  uma vez por aparelho (`canalBolso`, `treinolivre:bolsoCanal`) e vão ao
+  app no link do 🔒 (`ca=`); o retransmissor só vê bytes embaralhados. A
+  tela do treino assina o tópico (efeito na `TelaSessao`, com o 🔒 ligado),
+  decifra, aplica e acompanha o descanso que o app conduz
+  (`descansoNoBolso`, a página fica quieta). **Cada acontecimento tem um id**
+  (`k`, `marcarIdsBolso`), e a página guarda os que já aplicou
+  (`treinolivre:bolsoVistos`, `novosEventosBolso`): o mesmo que volta
+  depois pelo `#bolso=` não entra duas vezes, e a cópia seguinte leva os
+  `vistos`, para o app também não aplicar de novo na cópia dele
+  (`bolso.iniciar`). Com o canal, a notificação "Toque para levar ao treino"
+  não aparece mais (`temCanal`); sem ele (site antigo), continua. O que a
+  voz anotou com a tela travada vai pelo mesmo canal e entra ao destravar.
+  Quem mantém a conexão viva com a tela travada é o Android
+  (`manterCanal`, a cada 15 s). Sem o retransmissor (fora do ar, sem
+  internet), o próximo ✓ da página traz tudo pelo `#bolso=`, como antes.
+  É uma extensão da exceção do retransmissor, autorizada pelo dono ("eu
+  autorizo tudo"). Conferido no navegador com um retransmissor de mentira: a
+  série chega marcada, o descanso corre, e a mesma mensagem duas vezes vira uma
+  série só.
+- **A linha de cima do relógio** é só "N de M séries": o nome do treino
+  quebrava em duas linhas e a de cima sumia na borda redonda (print do dono).
 - **A instalação é sem loja**: Opções do desenvolvedor no relógio, Depuração
   ADB e por Wi-Fi, e um app instalador (Bugjaeger, Wear Installer 2) ou o
   `adb` do computador. Pedido do dono (2026-11-11b: "bem fácil e sugestivo,
@@ -5402,7 +5426,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 39 suítes (1.846 checagens)
+node testes/rodar.js      # as 39 suítes (1.860 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

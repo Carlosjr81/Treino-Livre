@@ -77,7 +77,8 @@ class BolsoActivity : ComponentActivity() {
                 .putExtra("falar", dados?.getQueryParameter("f"))
                 .putExtra("fimFala", dados?.getQueryParameter("ff"))
                 .putExtra("crono", dados?.getQueryParameter("c"))
-                .putExtra("musica", dados?.getQueryParameter("mu") ?: "0"))
+                .putExtra("musica", dados?.getQueryParameter("mu") ?: "0")
+                .putExtra("canal", dados?.getQueryParameter("ca")))
         } catch (e: Exception) {
             Toast.makeText(applicationContext, "Não consegui ligar o Jarvis da tela travada.", Toast.LENGTH_LONG).show()
             voltar(JSONArray(), true)

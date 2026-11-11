@@ -153,6 +153,11 @@ class BolsoService : Service(), RecognitionListener {
             p.edit().putString("snap", snap)
                 .putString("aplicado", intent?.getStringExtra("aplicar") ?: "[]")
                 .putString("pend", "[]").apply()
+            val ca = intent?.getStringExtra("canal")
+            if (!ca.isNullOrEmpty() && ca != p.getString("canal", "")) {
+                p.edit().putString("canal", ca).apply()
+                if (pronto) js("bolso.canal(" + q(ca) + ")") { }
+            }
         }
         if (inicio == 0L) {
             inicio = System.currentTimeMillis()
@@ -203,8 +208,9 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
-        anotar("ligado (app de 2026-11-11a: o relógio Galaxy Watch marca as séries)")
+        anotar("ligado (app de 2026-11-11g: a série do relógio entra no treino sem notificação)")
         linha.post(olheiro)
+        linha.postDelayed(manterCanal, 15_000L)
         try { getSystemService(AudioManager::class.java)?.registerAudioPlaybackCallback(espiaoSom, linha) } catch (e: Exception) { }
         val pm = getSystemService(PowerManager::class.java)
         // Com a tela travada a CPU dorme, e o fim do descanso chegaria atrasado.
@@ -257,6 +263,8 @@ class BolsoService : Service(), RecognitionListener {
         for (i in 0 until aplicado.length()) tudo.put(aplicado.get(i))
         for (i in 0 until pend.length()) tudo.put(pend.get(i))
         js("bolso.iniciar(" + q(snap) + "," + q(tudo.toString()) + "," + q(pend.toString()) + ")") { }
+        val ca = p.getString("canal", "") ?: ""
+        if (ca.isNotEmpty()) js("bolso.canal&&bolso.canal(" + q(ca) + ")") { }
         publicarRelogio()
     }
 
@@ -284,9 +292,10 @@ class BolsoService : Service(), RecognitionListener {
             if (r.has("ev")) {
                 val ev = r.optJSONArray("ev")?.toString() ?: "[]"
                 getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("pend", ev).apply()
-                // Tela destravada: a página está à vista e não sabe da série.
-                // A notificação leva até ela (o Android não deixa o serviço abrir a tela).
-                if (!travada) avisarVolta(r.optJSONArray("ev")?.length() ?: 1)
+                // Com o canal cifrado (site de 2026-11-11g), a série chega sozinha
+                // à tela do treino. Sem ele, a notificação leva até lá (o Android
+                // não deixa o serviço abrir a tela).
+                if (!travada && !temCanal()) avisarVolta(r.optJSONArray("ev")?.length() ?: 1)
             }
             if (r.has("descansoAte")) agendarDescanso(r.optLong("descansoAte", 0L))
             r.optJSONObject("painel")?.let { Relogio.publicar(applicationContext, it.toString()) }
@@ -296,6 +305,17 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun entregue() { if (pronto) js("bolso.entregue()") { } }
+
+    private fun temCanal(): Boolean = !getSharedPreferences(PREFS, MODE_PRIVATE).getString("canal", "").isNullOrEmpty()
+
+    // A conexão do canal mora na página escondida, cujos relógios dormem com a
+    // tela travada: quem a mantém viva é o Android.
+    private val manterCanal = object : Runnable {
+        override fun run() {
+            if (pronto && temCanal()) js("bolso.manter&&bolso.manter()") { }
+            linha.postDelayed(this, 15_000L)
+        }
+    }
 
     private fun q(s: String): String = JSONObject.quote(s)
 
@@ -348,7 +368,7 @@ class BolsoService : Service(), RecognitionListener {
         pararDeOuvir()
         pararGravador()
         val pend = try { JSONArray(getSharedPreferences(PREFS, MODE_PRIVATE).getString("pend", "[]")) } catch (e: Exception) { JSONArray() }
-        if (pend.length() > 0) avisarVolta(pend.length())
+        if (pend.length() > 0 && !temCanal()) avisarVolta(pend.length())
     }
 
     // Destravou com séries anotadas: a notificação leva ao treino (o Android não

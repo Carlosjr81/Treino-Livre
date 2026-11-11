@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-11g — Marcou no relógio, já está no celular
+
+**Em uma frase:** a série marcada no relógio entra sozinha no treino do celular, sem tocar em notificação nenhuma.
+
+**O que mudou**
+- Antes, cada ✓ Feito no relógio virava uma notificação no celular, e só tocando nela a série entrava no treino. Agora ela aparece marcada na hora, com a carga e as repetições do relógio, e o descanso já contando na tela do celular.
+- O que o Jarvis anotou com a tela travada também entra sozinho quando a pessoa destrava.
+- No relógio, a linha de cima ficou só com o progresso ("3 de 24 séries"): o nome do treino cortava na borda da tela redonda.
+
+**Por que importa para quem treina**
+- Treinar só pelo pulso: marca no relógio, olha o celular e está tudo lá. Nada de série esquecida nem marcada duas vezes.
+
+**Como usar**
+- Atualize o app do celular (Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio → Baixar o app do celular) e o do relógio (o mesmo assistente, "Já pareei antes"). Depois é só treinar.
+
+**Ideias de vídeo**
+- Celular apoiado no banco, a pessoa toca ✓ Feito no relógio e a série aparece marcada no celular sozinha, com o descanso começando.
+
+**Não prometer**
+- Precisa de internet no celular (a série passa por um retransmissor, embaralhada). Sem internet, ela entra no próximo ✓ marcado no celular.
+
+---
+
 ## 2026-11-11f — Conserto: o instalador do relógio diz por que a conexão falhou
 
 **Em uma frase:** quando o relógio recusa a conexão, o instalador agora diz o motivo e o que fazer.

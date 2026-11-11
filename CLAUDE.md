@@ -789,7 +789,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v188) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v189) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4360,7 +4360,10 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   quando o app abria pelo ícone; a volta do Conferir e do instalador abria
   "?app=android" sem ele, e o aviso não saía depois de atualizar. Hoje as duas
   voltas usam `Site.comFragmento` (os mesmos parâmetros do ícone e `apk=`,
-  o número do build), e os Ajustes mostram "App Android N" (`NUMERO_APK`). Entradas:
+  o número do build), e os Ajustes mostram "App Android N" (`NUMERO_APK`). **2026-11-11p**: o ícone
+  traz de volta a aba do Chrome que já estava aberta, com o endereço do app
+  antigo (`relogio=2`), e cada recarga regravava o 2 por cima do 3: os dois
+  números guardam o maior já visto. Entradas:
   Ajustes › Conectar aparelhos, o guia `pulso`, a Central de Ajuda
   (`instalarRelogio`) e o cartão 🔒 do treino. **Quando o app do relógio
   estiver na Play Store, tudo isto vira um toque**: é o caminho para tirar o

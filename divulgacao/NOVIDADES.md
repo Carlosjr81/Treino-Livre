@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-11p — Conserto: o aviso de "versão anterior" some depois de atualizar
+
+**Em uma frase:** depois de atualizar o app do celular, o assistente do relógio para de dizer que a versão é antiga.
+
+**O que mudou**
+- Uma aba antiga do app regravava a versão velha por cima da nova.
+
+**Por que importa para quem treina**
+- O assistente diz a verdade sobre o app instalado.
+
+**Como usar**
+- Atualize o app e toque em Conferir o relógio.
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- Só no app Android.
+
+---
+
 ## 2026-11-11o — Conserto: o app do celular diz qual versão está instalada
 
 **Em uma frase:** nos Ajustes, ao lado da versão do site, aparece o número do app Android instalado.

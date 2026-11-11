@@ -574,7 +574,7 @@ class InstaladorRelogio : ComponentActivity() {
     private fun voltarAoSite(resultado: String) {
         pararBusca()
         try {
-            val uri = Uri.parse(Site.ENDERECO + "?app=android" + (if (resultado.isNotEmpty()) "#relogio=$resultado" else ""))
+            val uri = Site.comFragmento(this, if (resultado.isNotEmpty()) "relogio=$resultado" else "")
             Site.abrir(this, uri, { lancador = it }) { finish() }
         } catch (e: Exception) { finish() }
     }

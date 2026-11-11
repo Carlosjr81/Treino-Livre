@@ -47,7 +47,7 @@ class RelogioActivity : ComponentActivity() {
         foi = true
         BolsoService.diario(this, "relógio conferido: " + resultado)
         try {
-            val uri = Uri.parse(Site.ENDERECO + "?app=android#relogio=" + resultado)
+            val uri = Site.comFragmento(this, "relogio=" + resultado)
             Site.abrir(this, uri, { lancador = it }) { finish() }
         } catch (e: Exception) { finish() }
     }

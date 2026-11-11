@@ -1689,7 +1689,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-11n";
+const VERSAO_APP = "2026-11-11o";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3104,6 +3104,14 @@ const RELOGIO_APP = (() => {
 })();
 // o app do celular que entrega a série do relógio sozinha (2026-11-11k em diante)
 const RELOGIO_APP_ATUAL = 3;
+// o número do app Android instalado (o build do GitHub), mandado pelo app
+const NUMERO_APK = (() => {
+  try {
+    const m = typeof location !== "undefined" && location.search.match(/[?&]apk=(\d+)/);
+    if (m) localStorage.setItem("treinolivre:apk", m[1]);
+    return parseInt(localStorage.getItem("treinolivre:apk")) || 0;
+  } catch (e) { return 0; }
+})();
 // O "Conferir o relógio": o app pergunta ao relógio e volta com #relogio=. Um
 // app antigo, sem essa tela, faz o Chrome baixar o app novo.
 const LINK_CONFERIR_RELOGIO = "intent://relogio#Intent;scheme=treinolivre;package=br.com.treinolivre.app;S.browser_fallback_url=" + encodeURIComponent("https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk") + ";end";
@@ -14528,7 +14536,7 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, descans
           <Resumo num={totalEx} txt="exercícios" />
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14 }}>
-          <span style={{ fontSize: 12, color: "var(--cinza)" }}>Versão <b style={{ color: "var(--texto)" }}>{VERSAO_APP}</b></span>
+          <span style={{ fontSize: 12, color: "var(--cinza)" }}>Versão <b style={{ color: "var(--texto)" }}>{VERSAO_APP}</b>{NUMERO_APK > 0 && <> · App Android <b style={{ color: "var(--texto)" }}>{NUMERO_APK}</b></>}</span>
           <button onClick={onAtualizar} style={{ ...S.btnGhost, width: "auto", padding: "8px 13px", fontSize: 12.5 }}>
             Buscar atualização
           </button>
@@ -30732,7 +30740,7 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
               </ol>
             )}
             {p.id === "celular" && RELOGIO_APP >= RELOGIO_APP_ATUAL && <div style={{ fontSize: 13, color: "var(--ok)", marginBottom: 8, fontWeight: 700 }}>✓ O app do seu celular já é a versão nova.</div>}
-            {p.id === "celular" && RELOGIO_APP > 0 && RELOGIO_APP < RELOGIO_APP_ATUAL && <div style={{ fontSize: 13, color: "var(--perigo)", marginBottom: 8, fontWeight: 700 }}>⚠ O app do seu celular é de uma versão anterior: instala no relógio, mas a série marcada no pulso ainda pede a notificação. Baixe de novo e instale por cima.</div>}
+            {p.id === "celular" && RELOGIO_APP > 0 && RELOGIO_APP < RELOGIO_APP_ATUAL && <div style={{ fontSize: 13, color: "var(--perigo)", marginBottom: 8, fontWeight: 700 }}>⚠ O app do seu celular é de uma versão anterior: instala no relógio, mas a série marcada no pulso ainda pede a notificação. Baixe de novo e instale por cima. Depois feche o Treino Livre (tire dos recentes) e abra pelo ícone, ou toque em Conferir o relógio: é assim que o app avisa a versão.</div>}
             {p.botao && EH_ANDROID && botaoLink(p.botao.href, p.botao.rotulo, () => { if (p.id !== "celular") marcar(p.id, true); }, p.botao.href.indexOf("play.google") >= 0 ? "_blank" : undefined)}
             {p.instalar && EH_ANDROID && botaoLink(LINK_INSTALAR_RELOGIO, "⌚ Instalar no relógio agora", () => marcar(p.id, true))}
             {p.conferir && EH_ANDROID && botaoLink(LINK_CONFERIR_RELOGIO, "✓ Conferir o relógio")}

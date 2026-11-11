@@ -1,6 +1,7 @@
 package br.com.treinolivre.app
 
 import android.app.Activity
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
@@ -25,8 +26,25 @@ object Site {
         // relogio=2: e conversa com o app do relógio (Galaxy Watch), e o instala
         // pelo Wi-Fi (InstaladorRelogio). relogio=3: e entrega a série do relógio
         // sozinha (canal cifrado, confirmação e "Aparecer sobre outros apps")
-        val base = "$ENDERECO?app=android&bolso=2&corrida=1&relogio=3"
+        val base = "$ENDERECO?" + PARAMETROS + (if (apk > 0) "&apk=$apk" else "")
         return Uri.parse(if (pacoteSaude == null) base else "$base#saude=$pacoteSaude")
+    }
+
+    const val PARAMETROS = "app=android&bolso=2&corrida=1&relogio=3"
+
+    // o número deste app (o do build no GitHub), que o site mostra nos Ajustes
+    var apk = 0L
+    fun lembrarVersao(ctx: Context) {
+        apk = try {
+            val i = ctx.packageManager.getPackageInfo(ctx.packageName, 0)
+            if (android.os.Build.VERSION.SDK_INT >= 28) i.longVersionCode else @Suppress("DEPRECATION") i.versionCode.toLong()
+        } catch (e: Exception) { 0L }
+    }
+
+    // o site com os parâmetros deste app e um fragmento (#relogio=...)
+    fun comFragmento(ctx: Context, fragmento: String): Uri {
+        lembrarVersao(ctx)
+        return Uri.parse(endereco().toString() + (if (fragmento.isNotEmpty()) "#$fragmento" else ""))
     }
 
     // O JSON vai no link em base64 (UTF-8, sem quebras, no alfabeto de URL)

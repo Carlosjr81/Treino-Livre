@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-11o — Conserto: o app do celular diz qual versão está instalada
+
+**Em uma frase:** nos Ajustes, ao lado da versão do site, aparece o número do app Android instalado.
+
+**O que mudou**
+- O assistente do relógio continuava dizendo "versão anterior" depois de atualizar. Agora o Conferir o relógio avisa a versão certa.
+
+**Por que importa para quem treina**
+- Dá para saber na hora se o app do celular está em dia.
+
+**Como usar**
+- Ajustes → Este app: "App Android" e o número.
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- Só no app Android.
+
+---
+
 ## 2026-11-11n — Conserto: o assistente do relógio sabe se o app do celular está em dia
 
 **Em uma frase:** o assistente do relógio agora diz se o app do celular precisa ser baixado de novo.

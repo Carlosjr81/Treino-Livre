@@ -20,6 +20,7 @@ class AberturaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState != null) return
+        Site.lembrarVersao(this)
         val pedido = intent?.data
         if (pedido != null && pedido.scheme == "https") {
             abrir(pedido)

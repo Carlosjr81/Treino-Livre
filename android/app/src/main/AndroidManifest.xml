@@ -122,6 +122,20 @@
             </intent-filter>
         </activity>
 
+        <!-- O instalador do app do relógio, pelo Wi-Fi: treinolivre://instalar-relogio -->
+        <activity
+            android:name=".InstaladorRelogio"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@android:style/Theme.Material.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="treinolivre" android:host="instalar-relogio" />
+            </intent-filter>
+        </activity>
+
         <!-- Os toques do app do relógio (Galaxy Watch): /treino/acao -->
         <service
             android:name=".OuvinteRelogio"

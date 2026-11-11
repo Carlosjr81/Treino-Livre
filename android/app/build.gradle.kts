@@ -42,7 +42,7 @@ android {
         jvmTarget = "17"
     }
     packaging {
-        resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+        resources { excludes += listOf("/META-INF/{AL2.0,LGPL2.1}", "/META-INF/versions/9/OSGI-INF/MANIFEST.MF") }
     }
 }
 
@@ -63,6 +63,12 @@ dependencies {
     // o RemoteActivityHelper devolve um ListenableFuture: o artefato pequeno
     // dele perde para a versão vazia que outras bibliotecas pedem
     implementation("com.google.guava:guava:33.3.1-android")
+    // o instalador do app do relógio (InstaladorRelogio): o ADB por Wi-Fi.
+    // libadb-android pela licença Apache-2.0; ela traz a spake2-java (LGPL-3.0,
+    // sem modificação), exceção decidida com o dono em 2026-11-11 (ver LICENSE)
+    implementation("com.github.MuntashirAkon:libadb-android:3.1.1")
+    implementation("org.conscrypt:conscrypt-android:2.5.3")
+    implementation("org.bouncycastle:bcpkix-jdk15to18:1.81")
     // a câmera dos óculos Ray-Ban Meta (kit da Meta, Maven Central)
     implementation("com.meta.wearable:mwdat-core:1.0.1")
     implementation("com.meta.wearable:mwdat-camera:1.0.1")

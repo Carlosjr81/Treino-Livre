@@ -10,6 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // a libadb-android e a spake2 (o instalador do app do relógio) só estão no JitPack
+        maven("https://jitpack.io")
     }
 }
 rootProject.name = "TreinoLivre"

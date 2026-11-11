@@ -183,6 +183,16 @@ const sf = snap(); sf.itens.forEach((it) => it.series.forEach((s) => { s.feito =
 teste("tudo feito: o relogio mostra o fim", true, criarBolso(sf, EXERCICIOS).painel(T0).fim);
 
 
+// fora de ordem (relato do dono): pulou o 1º, fez o 2º inteiro, está no 3º; o ◀ tem de voltar ao 1º
+{
+  const so = snap(); so.itens[1].series.forEach((s) => { s.feito = true; }); so.foco = 2;
+  const bo = criarBolso(so, EXERCICIOS);
+  teste("fora de ordem: comeca no 3º", 2, bo.painel(T0).ei);
+  bo.acao({ a: "anterior" }, T0);
+  teste("fora de ordem: o ◀ volta ao 1º, pulando o 2º ja feito", 0, bo.painel(T0).ei);
+  bo.acao({ a: "proximo" }, T0);
+  teste("fora de ordem: o ▶ vai ao 3º, pulando o 2º ja feito", 2, bo.painel(T0).ei);
+}
 console.log("--- o relogio sem notificacao (canal cifrado) ---");
 const ev2 = B.marcarIdsBolso([{ t: "a", u: "u1", i: 0, p: "80", r: "10" }, { t: "x", u: "u1", i: 0 }]);
 teste("cada acontecimento ganha um id", true, ev2.every((e) => typeof e.k === "string" && e.k.length > 5));

@@ -704,7 +704,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.860 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.863 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -779,7 +779,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v184) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v185) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4315,6 +4315,10 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   `ComponentActivity`): no ambiente, só o exercício e o descanso em minutos
   ("~2 min", redesenhado uma vez por minuto); um toque acende tudo. Antes a
   tela apagava e o app ia para o segundo plano.
+- **◀ ▶ vão ao exercício com série por fazer** mais perto naquele sentido,
+  dando a volta na lista (2026-11-11l, relato do dono: pulou o 1º, fez o 2º, e
+  o ◀ não voltava ao 1º — voltava uma posição, caía num exercício já feito, e
+  a vez andava de novo). Vale para a voz com a tela travada também.
 - **A linha de cima do relógio** é só "N de M séries": o nome do treino
   quebrava em duas linhas e a de cima sumia na borda redonda (print do dono).
 - **A instalação é sem loja**: Opções do desenvolvedor no relógio, Depuração
@@ -5453,7 +5457,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 39 suítes (1.860 checagens)
+node testes/rodar.js      # as 39 suítes (1.863 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

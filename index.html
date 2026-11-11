@@ -1689,7 +1689,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-11k";
+const VERSAO_APP = "2026-11-11l";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3835,9 +3835,16 @@ function criarBolso(snapInicial, catalogo) {
       case "proximo": case "anterior": case "irExercicio": {
         const a = alvoDaSessao(itens, foco);
         let ei = a ? a.ei : 0;
-        if (c.tipo === "proximo") ei = Math.min(itens.length - 1, ei + 1);
-        else if (c.tipo === "anterior") ei = Math.max(0, ei - 1);
-        else {
+        if (c.tipo === "proximo" || c.tipo === "anterior") {
+          const passo = c.tipo === "proximo" ? 1 : -1, n = itens.length;
+          let achou = -1;
+          for (let k = 1; k < n; k++) {
+            const j = ((ei + passo * k) % n + n) % n;
+            if (!itens[j].pulado && itens[j].series.some((s) => !s.feito)) { achou = j; break; }
+          }
+          if (achou < 0) return { falar: "Só falta este exercício: " + nomeI(ei) + "." };
+          ei = achou;
+        } else {
           const dito = c.frase ? acharExercicio(c.frase, todos, itens.map((it) => it.exercicioId)) : null;
           const k = dito ? itens.findIndex((it) => it.exercicioId === dito.id) : -1;
           if (k < 0) return { falar: "Esse não está no treino de hoje. " + BOLSO_SO_NA_TELA };

@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-11l — Conserto: as setas do relógio acham o exercício que falta
+
+**Em uma frase:** no relógio, ◀ e ▶ levam ao exercício que ainda tem série por fazer, mesmo que você tenha feito o treino fora de ordem.
+
+**O que mudou**
+- Antes, quem pulava o primeiro exercício não conseguia voltar a ele pelo ◀ do relógio. Agora as setas pulam os exercícios já feitos e dão a volta na lista.
+
+**Por que importa para quem treina**
+- Aparelho ocupado? Faz outro e volta depois, direto do pulso.
+
+**Como usar**
+- No relógio, toque em ◀ ou ▶ até aparecer o exercício que você quer.
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- Só passa pelos exercícios que ainda têm série por fazer.
+
+---
+
 ## 2026-11-11k — Conserto: a série do relógio sempre chega ao celular, e o relógio não some
 
 **Em uma frase:** a série marcada no relógio chega ao treino do celular mesmo quando a internet falha, e o app do relógio continua na tela quando ela apaga.

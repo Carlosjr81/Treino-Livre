@@ -22,7 +22,8 @@ object Site {
         // bolso=2: este app fala com a tela travada (BolsoService). A página só
         // chama treinolivre://bolso a cada ✓ quando sabe disso.
         // corrida=1: e conduz o desafio de corrida com a tela travada (CorridaService).
-        val base = "$ENDERECO?app=android&bolso=2&corrida=1"
+        // relogio=1: e conversa com o app do relógio (Galaxy Watch)
+        val base = "$ENDERECO?app=android&bolso=2&corrida=1&relogio=1"
         return Uri.parse(if (pacoteSaude == null) base else "$base#saude=$pacoteSaude")
     }
 

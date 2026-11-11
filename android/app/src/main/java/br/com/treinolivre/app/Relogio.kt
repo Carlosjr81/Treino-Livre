@@ -48,6 +48,20 @@ object Relogio {
         } catch (e: Exception) { }
     }
 
+    // Pedido do dono: "sempre que estiver usando o app no celular, ele já abre
+    // também automaticamente no relógio". O treino começou (o Jarvis 🔒 ligou):
+    // a tela do Treino Livre abre em todo relógio conectado que tem o app.
+    // Sem relógio, ou sem o app nele, não acontece nada.
+    fun abrirNoRelogio(contexto: Context) {
+        try {
+            val intencao = android.content.Intent(android.content.Intent.ACTION_VIEW)
+                .addCategory(android.content.Intent.CATEGORY_BROWSABLE)
+                .setData(android.net.Uri.parse("treinolivre://relogio-tela"))
+            androidx.wear.remote.interactions.RemoteActivityHelper(contexto, java.util.concurrent.Executors.newSingleThreadExecutor())
+                .startRemoteActivity(intencao, null)
+        } catch (e: Exception) { }
+    }
+
     fun desligado(contexto: Context) = publicar(contexto, JSONObject().put("v", 1).put("ativo", false).toString())
 }
 

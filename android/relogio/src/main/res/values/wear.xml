@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- É por esta capacidade que o app do celular sabe que o app do relógio
+         está instalado (o "✓ Conferir o relógio" do assistente) -->
+    <string-array name="android_wear_capabilities" translatable="false">
+        <item>treino_livre_relogio</item>
+    </string-array>
+</resources>

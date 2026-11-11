@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-11-11b — Instalar no relógio com um botão, e o relógio abre sozinho
+
+**Em uma frase:** um botão "⌚ Instalar o app no relógio" leva passo a passo até o Treino Livre estar no Galaxy Watch, e depois, a cada treino começado no celular, o relógio abre sozinho acompanhando.
+
+**O que mudou**
+- Em Ajustes → Conectar aparelhos (e no cartão 🔒 do treino), o botão **⌚ Instalar o app no relógio**: seis passos, cada um com o seu botão, uma barra de progresso, e no fim **✓ Conferir o relógio**, que pergunta ao relógio se deu certo.
+- Começou o treino no celular, o Treino Livre **abre sozinho no relógio**, com o exercício da vez e o descanso.
+
+**Por que importa para quem treina**
+- Ninguém precisa decifrar menu de relógio sozinho: o app diz o que tocar, na ordem.
+- Celular e relógio andam juntos sem abrir nada no pulso.
+
+**Como usar**
+- Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio.
+- Depois de instalado: comece o treino pelo app do celular e olhe o pulso.
+
+**Ideias de vídeo**
+- "Começou o treino, o relógio acordou": tocar em Começar no celular e o relógio abrindo junto.
+- O assistente em 30 segundos: os seis passos com o ✓ ficando verde.
+
+**Não prometer**
+- A instalação ainda pede o modo de desenvolvedor no relógio (o app ainda não está na loja do relógio).
+- Só Galaxy Watch 4 em diante (Wear OS) e celular Android com o app do Treino Livre.
+- Ainda não foi testado num Galaxy Watch de verdade.
+
+---
+
 ## 2026-11-11a — O treino no Galaxy Watch
 
 **Em uma frase:** com o app do relógio instalado no Galaxy Watch, dá para marcar a série, ajustar a carga e as repetições e acompanhar o descanso no pulso, sem tirar o celular do bolso.

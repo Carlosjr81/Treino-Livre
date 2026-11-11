@@ -109,6 +109,19 @@
             android:exported="false"
             android:foregroundServiceType="microphone" />
 
+        <!-- O "Conferir o relógio" do assistente de instalação: treinolivre://relogio -->
+        <activity
+            android:name=".RelogioActivity"
+            android:exported="true"
+            android:theme="@style/Tema.Bolso">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="treinolivre" android:host="relogio" />
+            </intent-filter>
+        </activity>
+
         <!-- Os toques do app do relógio (Galaxy Watch): /treino/acao -->
         <service
             android:name=".OuvinteRelogio"

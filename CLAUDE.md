@@ -778,7 +778,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v174) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v175) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4276,8 +4276,30 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   vira duas séries.
 - **A instalação é sem loja**: Opções do desenvolvedor no relógio, Depuração
   ADB e por Wi-Fi, e um app instalador (Bugjaeger, Wear Installer 2) ou o
-  `adb` do computador. Está no `GUIA_CONECTAR` (`pulso`) e na Central de
-  Ajuda (`galaxy-watch`).
+  `adb` do computador. Pedido do dono (2026-11-11b: "bem fácil e sugestivo,
+  um botão Instalar app no relógio"): **⌚ Instalar o app no relógio**
+  (`InstalarRelogio`, `PASSOS_RELOGIO`, `ABRIR_RELOGIO`) é um assistente
+  de seis passos, cada um com o seu botão (baixar o app do celular, ligar o
+  modo no relógio, abrir o instalador na Play Store, baixar o app do relógio,
+  mandar, conferir), com o progresso guardado
+  (`treinolivre:relogioPassos`). **Conferir** chama `treinolivre://relogio`
+  (`RelogioActivity`): o celular pergunta ao relógio pela capacidade
+  `treino_livre_relogio` (declarada em `relogio/res/values/wear.xml`) e
+  volta com `#relogio=pronto|falta|semrelogio|erro`, que reabre o assistente
+  com o resultado. Num app antigo, o link baixa o app novo. O app novo abre o
+  site com `relogio=1` (`RELOGIO_APP`): o passo 1 já vem feito. Entradas:
+  Ajustes › Conectar aparelhos, o guia `pulso`, a Central de Ajuda
+  (`instalarRelogio`) e o cartão 🔒 do treino. **Quando o app do relógio
+  estiver na Play Store, tudo isto vira um toque**: é o caminho para tirar o
+  modo de desenvolvedor (Play Console, conta de US$ 25, com o app do celular
+  e o do relógio na mesma ficha).
+- **O relógio abre sozinho** quando o treino começa no celular (pedido do
+  dono, 2026-11-11b: "sempre que estiver usando o app no celular ele já abre
+  também no relógio"): o `BolsoService`, ao ligar, chama
+  `Relogio.abrirNoRelogio` (`RemoteActivityHelper`, de
+  `wear-remote-interactions`), que abre `treinolivre://relogio-tela` em
+  todo relógio conectado com o app. Uma vez por treino (o serviço liga no
+  Começar ou no primeiro ✓, e desliga no Finalizar).
 - Coberto por `teste-bolso.js` (o painel, o ✓ com a carga ajustada, o
   recorde, +30/−15/pular, desfazer, próximo, prancha, valor absurdo, pulado,
   fim). **Não validado num relógio**: a sessão na nuvem não monta APK, e nem

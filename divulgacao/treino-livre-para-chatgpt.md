@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-11a**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-11b**.
 
 ---
 
@@ -225,7 +225,9 @@ com cenas reais → halter) como linguagem visual em vídeos.
 - No pulso: o exercício da vez, a série ("Série 2 de 4"), a carga e as repetições com − e +, e o **✓ Feito**.
 - O descanso conta no relógio (+30 s, −15 s, Pular) e o relógio **vibra** 10 s antes e no fim.
 - ◀ ▶ trocam o exercício e ↩ desfaz a última série; cada ✓ vira a série no treino do celular, com recorde e voz.
-- Ainda não está na loja do relógio: instala pelo modo de desenvolvedor (o app explica). Só Android.
+- Começou o treino no celular, o app **abre sozinho no relógio**.
+- Instalação guiada: **Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio** (seis passos com botão e uma conferência no fim).
+- Ainda não está na loja do relógio: instala pelo modo de desenvolvedor (o assistente explica). Só Android.
 
 ### 3.3 Jarvis — o assistente de voz 🎤
 O principal diferencial. A pessoa **fala** e ele anota, sem tocar no celular, com a mão suja de magnésio.

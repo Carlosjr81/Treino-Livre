@@ -25,6 +25,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- o celular abre esta tela quando o treino começa (RemoteActivityHelper) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="treinolivre" android:host="relogio-tela" />
+            </intent-filter>
         </activity>
 
         <!-- O fim do descanso (e os 10 s antes) vibram o relógio, com a tela

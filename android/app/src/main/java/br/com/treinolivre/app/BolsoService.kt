@@ -218,6 +218,8 @@ class BolsoService : Service(), RecognitionListener {
         androidx.core.content.ContextCompat.registerReceiver(this, tela, filtro, androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
         ligarVoz()
         abrirPagina()
+        // o treino começou: a tela do relógio abre junto
+        Relogio.abrirNoRelogio(applicationContext)
     }
 
     // ---- a página escondida ----

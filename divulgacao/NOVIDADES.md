@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-11j — O passo a passo completo para pôr o app no relógio
+
+**Em uma frase:** instalar o app no Galaxy Watch agora tem, dentro do app, cada tela explicada e o que fazer com cada mensagem de erro.
+
+**O que mudou**
+- Um passo novo: relógio e celular na mesma rede (na academia ou no trabalho, o roteador do celular).
+- O "Instale com um toque" diz o que aparece em cada tela do relógio e do celular, até o "Permitir depuração?".
+- "🆘 Apareceu uma mensagem de erro?": cada aviso e o que fazer, também na tela do instalador.
+- "Depois de instalado: como treinar": abrir pelo ícone, o ✓ Feito no pulso, o descanso que vibra.
+
+**Por que importa para quem treina**
+- Dá para pôr o treino no pulso sozinho, sem ninguém para ajudar.
+
+**Como usar**
+- Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio, e siga os passos na ordem.
+
+**Ideias de vídeo**
+- Tutorial curto: do modo de desenvolvedor até o ✓ Feito no pulso, seguindo os passos da tela.
+
+**Não prometer**
+- Ainda é pelo modo de desenvolvedor do relógio; a loja do relógio vem depois. Só Galaxy Watch 4 em diante e outros com Wear OS.
+
+---
+
 ## 2026-11-11i — Conserto: o "Conferir o relógio" mostra a resposta
 
 **Em uma frase:** conferir o relógio agora abre o Treino Livre no próprio relógio e diz a hora em que conferiu.

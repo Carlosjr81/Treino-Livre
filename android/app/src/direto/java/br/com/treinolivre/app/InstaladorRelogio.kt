@@ -125,12 +125,13 @@ class InstaladorRelogio : ComponentActivity() {
 
         val c1 = cartao()
         c1.addView(texto(15f, negrito = true, t = "1. Uma vez só: o modo de desenvolvedor"))
-        c1.addView(texto(14f, t = "No relógio: Configurações → Sobre o relógio → Informações do software → toque 5 vezes em Versão do software."), lp(6))
+        c1.addView(texto(14f, t = "No relógio: Configurações → Sobre o relógio → Informações do software → toque 5 vezes em Versão do software. Deu certo se aparecer \"Opções do desenvolvedor\" no fim das Configurações."), lp(6))
         caixa.addView(c1, lp(16))
 
         val c2 = cartao()
         c2.addView(texto(15f, negrito = true, t = "2. No relógio, abra a Depuração por Wi-Fi"))
-        c2.addView(texto(14f, t = "Configurações → Opções do desenvolvedor → ligue Depuração ADB e Depuração por Wi-Fi → toque em Parear novo dispositivo. Relógio e celular no mesmo Wi-Fi."), lp(6))
+        c2.addView(texto(14f, t = "Configurações → Opções do desenvolvedor → ligue Depuração ADB e Depuração por Wi-Fi (Permitir) → toque no nome Depuração por Wi-Fi → Parear novo dispositivo. Deixe essa tela aberta e acesa."), lp(6))
+        c2.addView(texto(14f, CINZA, t = "Relógio e celular na mesma rede. Na academia ou no trabalho, use o Roteador Wi-Fi do celular (Configurações → Conexões → Roteador Wi-Fi e Ancoragem) e conecte o relógio nele."), lp(6))
         achado = texto(14f, CINZA, t = "🔎 Procurando o relógio no Wi-Fi…")
         c2.addView(achado, lp(10))
         caixa.addView(c2, lp(10))
@@ -177,6 +178,17 @@ class InstaladorRelogio : ComponentActivity() {
         manual.addView(enderecoCon, lp(6))
         caixa.addView(manual, lp(10))
         if (getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("pareado", false)) manual.visibility = View.VISIBLE
+
+        val ajuda = cartao()
+        ajuda.addView(texto(15f, negrito = true, t = "🆘 Se aparecer uma mensagem de erro"))
+        listOf(
+            "\"não conseguiu chegar ao relógio\", ECONNABORTED, Host unreachable: a rede bloqueia ou o Wi-Fi do relógio dormiu. Use o Roteador Wi-Fi do celular, acenda a tela do relógio e tente de novo.",
+            "\"O pareamento falhou\": o código venceu. Abra de novo Parear novo dispositivo no relógio e use o código e o endereço novos.",
+            "\"O relógio recusou este celular\": pareie de novo com o código.",
+            "\"Não achei o relógio\": a Depuração por Wi-Fi desligou sozinha. Ligue de novo no relógio.",
+            "\"Permitir depuração?\" no relógio: toque em Permitir (Sempre permitir).",
+        ).forEach { ajuda.addView(texto(13f, CINZA, t = "• " + it), lp(6)) }
+        caixa.addView(ajuda, lp(14))
 
         registro = texto(14f, t = "")
         caixa.addView(registro, lp(14))

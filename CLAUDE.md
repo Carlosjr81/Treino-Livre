@@ -779,7 +779,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v182) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v183) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4314,7 +4314,13 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   com o resultado. **Conferir abre o app no relógio** (`Relogio.abrirNoRelogio`)
   e a resposta traz a hora (`status|agora`, "Conferido às …"): relato do
   dono, 2026-11-11i, "conferi e não faz nada" — o mesmo "pronto" de antes não
-  mudava nada na tela. Num app antigo, o link baixa o app novo. O app novo abre o
+  mudava nada na tela. **O passo a passo é para quem não tem ajuda ao lado**
+  (pedido do dono, 2026-11-11j): o assistente tem o passo "Relógio e celular
+  na mesma rede" (o roteador do celular), cada tela descrita no "Instale com
+  um toque", o cartão "Depois de instalado: como treinar" e o 🆘
+  `PROBLEMAS_RELOGIO` (cada mensagem do instalador e o que fazer); a tela do
+  instalador tem o mesmo 🆘. Mensagem nova no instalador ganha linha ali.
+  Num app antigo, o link baixa o app novo. O app novo abre o
   site com `relogio=1` (`RELOGIO_APP`): o passo 1 já vem feito. Entradas:
   Ajustes › Conectar aparelhos, o guia `pulso`, a Central de Ajuda
   (`instalarRelogio`) e o cartão 🔒 do treino. **Quando o app do relógio

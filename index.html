@@ -1109,7 +1109,9 @@ const GUIA_CONECTAR = [
     ],
     dicas: [
       "O relógio é um controle do celular: o treino continua no celular, e cada ✓ do relógio vira a série anotada lá, com o descanso, o recorde e a voz de sempre.",
-      "Marcou no relógio com o celular destravado? Toque na notificação **Toque para levar ao treino**, para a tela do celular ficar igual. Com a tela travada, as séries entram ao destravar.",
+      "O ✓ Feito do relógio aparece marcado **sozinho** na tela do celular (precisa de internet no celular). Sem internet, entra no próximo ✓ que você marcar no celular.",
+      "Travou na instalação? Em **⌚ Instalar o app no relógio** tem o passo a passo de cada tela e o que fazer com cada mensagem de erro (🆘).",
+      "Para **atualizar** o app do relógio: só a Depuração por Wi-Fi ligada no relógio, e **Instalar no relógio agora → Já pareei antes** no celular.",
       "Aeróbico (esteira, bicicleta) se anota no celular.",
       "Depois de instalar, desligue a **Depuração ADB** do relógio, se quiser: o app continua lá.",
       "O relógio diz **Celular desconectado**? Confira o Bluetooth e o app **Galaxy Wearable**.",
@@ -1373,7 +1375,7 @@ const AJUDA_APP = [
       "Comece o treino no celular pelo **app Android** e marque a primeira série: o relógio passa a mostrar o exercício da vez.",
       "No relógio: ajuste a carga e as repetições com **−** e **+** e toque em **✓ Feito**. O descanso conta no pulso, e o relógio vibra no fim.",
     ],
-    dicas: ["◀ e ▶ trocam o exercício; ↩ desfaz a última série.", "Com o celular destravado, toque na notificação para a tela do celular receber as séries do relógio."],
+    dicas: ["◀ e ▶ trocam o exercício; ↩ desfaz a última série.", "A série marcada no relógio aparece sozinha no celular (com internet).", "Na mesma rede, sempre: na academia ou no trabalho, use o Roteador Wi-Fi do celular com o relógio conectado nele.", "Para atualizar o app do relógio: Instalar no relógio agora → Já pareei antes, com a Depuração por Wi-Fi ligada no relógio."],
     ir: { rotulo: "⌚ Instalar o app no relógio", destino: "instalarRelogio" } },
   { id: "botao-fone", cat: "voz", icone: "\u{1F3A7}", titulo: "Botão do fone ou toque nos óculos",
     resumo: "Um toque no fone liga o Jarvis ou a câmera.",
@@ -1687,7 +1689,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-11i";
+const VERSAO_APP = "2026-11-11j";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -30575,27 +30577,62 @@ const STATUS_RELOGIO = {
   semrelogio: { ok: false, texto: "📵 Nenhum relógio conectado a este celular. Abra o app Galaxy Wearable, confira que o relógio está conectado e confira de novo." },
   erro: { ok: false, texto: "⚠ O celular não respondeu a tempo. Confira o Bluetooth e o app Galaxy Wearable, e tente de novo." },
 };
+// Pedido do dono (2026-11-11j): "quem for fazer não tem esta conversa comigo
+// para acompanhar": cada passo diz o que aparece em cada tela, e o que fazer
+// quando trava. Os textos saíram das tentativas dele, uma a uma.
 const PASSOS_RELOGIO = [
   { id: "celular", titulo: "Atualize o app do celular",
     texto: "A versão nova do app do Treino Livre é a que instala o app no relógio e conversa com ele. Instale por cima: seus treinos continuam.",
+    lista: [
+      "Toque no botão abaixo e instale o arquivo que baixar (se o celular pedir, permita instalar apps desta fonte).",
+      "Depois, abra o Treino Livre **pelo ícone do app**, e não pelo Chrome: é o app que fala com o relógio.",
+    ],
     botao: { rotulo: "⬇ Baixar o app do celular", href: LINK_APK } },
   { id: "modo", titulo: "Uma vez só: o modo de desenvolvedor no relógio",
     lista: [
       "No relógio: **Configurações → Sobre o relógio → Informações do software**.",
       "Toque **5 vezes** em **Versão do software**, até aparecer que o modo de desenvolvedor foi ligado.",
+      "Volte para **Configurações**: lá embaixo apareceu **Opções do desenvolvedor**. Se apareceu, deu certo.",
     ],
     nota: "É a regra do relógio para app que não vem da loja. Faz uma vez só." },
+  { id: "rede", titulo: "Relógio e celular na mesma rede",
+    lista: [
+      "Em casa: o relógio e o celular no **mesmo Wi-Fi** (no relógio: **Configurações → Conexões → Wi-Fi**).",
+      "Na academia, no trabalho ou no condomínio, o Wi-Fi costuma **bloquear** um aparelho de falar com o outro. Use o **Roteador Wi-Fi do celular**: no celular, **Configurações → Conexões → Roteador Wi-Fi e Ancoragem → Roteador Wi-Fi** ligado; no relógio, **Configurações → Conexões → Wi-Fi** e escolha a rede do seu celular.",
+      "Deixe o **Bluetooth** ligado nos dois: é por ele que o relógio conversa com o celular no treino.",
+    ],
+    nota: "Na dúvida, use o roteador do celular: é o caminho que sempre funciona." },
   { id: "instalar", titulo: "Instale com um toque",
     lista: [
-      "No relógio: **Configurações → Opções do desenvolvedor** → ligue **Depuração ADB** e **Depuração por Wi-Fi** → toque em **Parear novo dispositivo**. Relógio e celular no **mesmo Wi-Fi**.",
-      "No celular, toque no botão abaixo: o app acha o relógio sozinho, e você só digita o **código de 6 números** que o relógio mostra.",
-      "Ele baixa, instala e abre o Treino Livre no relógio. Pronto.",
+      "No relógio: **Configurações → Opções do desenvolvedor** → ligue **Depuração ADB** e depois **Depuração por Wi-Fi** (confirme com **Permitir**).",
+      "Toque no **nome** Depuração por Wi-Fi (não na chave) → **Parear novo dispositivo**. O relógio mostra um **código de 6 números** e, embaixo, um **endereço com a porta** (por exemplo 10.112.157.28:40149). **Deixe essa tela aberta** e a tela do relógio acesa (toque nela de vez em quando).",
+      "No celular, toque em **⌚ Instalar no relógio agora** (aqui embaixo). Na tela que abre, digite o **código** e toque em **Parear e instalar**.",
+      "Se o app disser que não achou o relógio: digite no **primeiro campo** o endereço que está embaixo do código. Se ele pedir o **segundo**: feche o código no relógio (✕); a tela da Depuração por Wi-Fi mostra **outro** Endereço IP e porta (a porta muda), digite esse no segundo campo.",
+      "Se o relógio perguntar **Permitir depuração?**, toque em **Permitir** (marque **Sempre permitir**).",
+      "Espere **✅ Pronto! O Treino Livre está no relógio.** O app abre sozinho no relógio.",
     ],
     instalar: true,
-    nota: "Wi-Fi de empresa, condomínio ou academia costuma bloquear um aparelho de falar com o outro (o app avisa: \"o celular não conseguiu chegar ao relógio\"). Aí, ligue o Roteador Wi-Fi do celular, conecte o relógio nele e tente de novo. Para atualizar depois: mesmo botão, com a Depuração por Wi-Fi ligada, sem código." },
+    nota: "Para atualizar depois: no relógio, só a Depuração por Wi-Fi ligada (sem abrir o código). No celular, o mesmo botão → Já pareei antes. O app acha o relógio sozinho (pode levar até 1 minuto)." },
   { id: "conferir", titulo: "Confira se deu certo",
-    texto: "O celular pergunta ao relógio se o Treino Livre está lá.",
+    texto: "O celular pergunta ao relógio se o Treino Livre está lá, e abre o app nele. Se abrir no pulso, está tudo certo.",
     conferir: true },
+];
+// O que fazer quando aparece uma destas mensagens na tela de instalar
+const PROBLEMAS_RELOGIO = [
+  ["\"O celular não conseguiu chegar ao relógio\", \"ECONNABORTED\", \"Host unreachable\" ou \"não respondeu\"",
+    "A rede está bloqueando, ou o Wi-Fi do relógio dormiu. Ligue o **Roteador Wi-Fi do celular**, conecte o relógio nele (passo 3), acenda a tela do relógio e tente de novo."],
+  ["\"O pareamento falhou\"",
+    "O código venceu (ele muda cada vez que a tela abre). No relógio, feche e abra de novo **Parear novo dispositivo** e use o código e o endereço **novos**."],
+  ["\"O relógio recusou este celular\" ou \"Connection failed\"",
+    "O pareamento não valeu. Pareie de novo: código novo, o endereço dessa janela no primeiro campo, e **Parear e instalar**."],
+  ["\"Não achei o relógio\"",
+    "A **Depuração por Wi-Fi** desligou sozinha (ela desliga quando o relógio sai do Wi-Fi ou reinicia). Ligue de novo no relógio e toque outra vez."],
+  ["\"Falta um passo\" ou o app pede o segundo endereço",
+    "No relógio, feche o código (✕): a tela da Depuração por Wi-Fi mostra o **Endereço IP e porta** para conectar. Digite no segundo campo."],
+  ["\"O relógio recusou: … UPDATE_INCOMPATIBLE\"",
+    "O app que está no relógio veio de outra versão. Desinstale o Treino Livre do relógio (segure o ícone) e instale de novo."],
+  ["Conferir diz \"Nenhum relógio conectado\"",
+    "Abra o app **Galaxy Wearable** no celular e confira se o relógio está conectado, com o Bluetooth ligado."],
 ];
 // O jeito de antes, para quem prefere (ou se o instalador do app não achar o relógio)
 const PASSOS_RELOGIO_MANUAL = [
@@ -30631,6 +30668,7 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
   const atual = PASSOS_RELOGIO.find((p) => !feitos[p.id]);
   const [aberto, setAberto] = useState(atual ? atual.id : "conferir");
   const [outro, setOutro] = useState(false);
+  const [problemas, setProblemas] = useState(false);
   const st = STATUS_RELOGIO[status];
   const seguir = (lista, k) => { marcar(lista[k].id, true); const prox = lista[k + 1] || PASSOS_RELOGIO.find((p) => p.id === "conferir"); setAberto(prox ? prox.id : ""); };
   const nFeitos = PASSOS_RELOGIO.filter((p) => feitos[p.id]).length;
@@ -30680,7 +30718,7 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
           <div style={{ fontSize: 34 }} aria-hidden="true">⌚</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 900, fontSize: 19 }}>Instalar o app no relógio</div>
-            <div style={{ fontSize: 13, color: "var(--cinza)" }}>Galaxy Watch 4 em diante · uns 5 minutos, uma vez só</div>
+            <div style={{ fontSize: 13, color: "var(--cinza)" }}>Galaxy Watch 4 em diante · uns 5 minutos, uma vez só · siga os passos na ordem</div>
           </div>
           <button onClick={onFechar} aria-label="Fechar" style={{ background: "transparent", border: "none", color: "var(--texto)", fontSize: 24, cursor: "pointer" }}>✕</button>
         </div>
@@ -30700,6 +30738,28 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
           <div style={{ height: "100%", width: (100 * nFeitos / PASSOS_RELOGIO.length) + "%", background: "var(--ok)" }} />
         </div>
         {PASSOS_RELOGIO.map((p, k) => cartao(p, k, PASSOS_RELOGIO, k + 1))}
+        <div style={{ ...S.card, marginTop: 4 }}>
+          <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>🏋️ Depois de instalado: como treinar</div>
+          <ol style={{ margin: 0, paddingLeft: 22, fontSize: 14, lineHeight: 1.55 }}>
+            <li style={{ marginBottom: 6 }}>{textoGuia("Abra o Treino Livre **pelo ícone do app** no celular e toque em **Começar** (ou marque a primeira série). O app **abre sozinho no relógio**.")}</li>
+            <li style={{ marginBottom: 6 }}>{textoGuia("No relógio: ajuste a **carga** e as **repetições** com − e + e toque em **✓ Feito**. A série aparece marcada **sozinha** no celular, com o descanso contando.")}</li>
+            <li style={{ marginBottom: 6 }}>{textoGuia("O descanso conta no pulso (**+30 s**, **−15 s**, **Pular**), e o relógio **vibra** 10 s antes e no fim.")}</li>
+            <li style={{ marginBottom: 6 }}>{textoGuia("**◀ ▶** trocam o exercício e **↩** desfaz a última série. Aeróbico (esteira, bicicleta) se anota no celular.")}</li>
+          </ol>
+          <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>A série vai do relógio para a tela do celular pela internet, embaralhada. Sem internet no celular, ela entra no próximo ✓ que você marcar no celular.</div>
+        </div>
+        <button onClick={() => setProblemas(!problemas)} aria-expanded={problemas}
+          style={{ ...S.btnGhost, marginTop: 4, marginBottom: 8 }}>{problemas ? "▴" : "▾"} 🆘 Apareceu uma mensagem de erro? Veja o que fazer</button>
+        {problemas && (
+          <div style={{ ...S.card }}>
+            {PROBLEMAS_RELOGIO.map((x, i) => (
+              <div key={i} style={{ marginBottom: i < PROBLEMAS_RELOGIO.length - 1 ? 12 : 0 }}>
+                <div style={{ fontWeight: 800, fontSize: 14 }}>{x[0]}</div>
+                <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--cinza)" }}>{textoGuia(x[1])}</div>
+              </div>
+            ))}
+          </div>
+        )}
         <button onClick={() => setOutro(!outro)} aria-expanded={outro}
           style={{ background: "none", border: "none", color: "var(--marca)", padding: "6px 0", cursor: "pointer", fontSize: 13.5, fontWeight: 700 }}>
           {outro ? "▴" : "▾"} Outro jeito: por um instalador da Play Store

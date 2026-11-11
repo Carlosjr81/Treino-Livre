@@ -40,7 +40,16 @@ de exercícios em exercicios-svg/, do projeto Everkinetic
 (github.com/everkinetic/data, Creative Commons BY-SA 4.0, com crédito no
 app; os arquivos são os originais, só com os números arredondados). As bibliotecas
 do app Android (AndroidX, Health Connect, Meta Wearables Device Access
-Toolkit) seguem as licenças dos seus fabricantes.
+Toolkit, Google Play Services, Guava) seguem as licenças dos seus fabricantes.
+
+Só no APK direto (o do GitHub, não o da Play Store), o instalador do app do
+relógio usa a libadb-android (© Muntashir Al-Islam, usada pela licença
+Apache 2.0), o Conscrypt (Apache 2.0), o Bouncy Castle (licença MIT do Bouncy
+Castle) e a spake2-java (© Muntashir Al-Islam, GNU LGPL 3.0,
+github.com/MuntashirAkon/spake2-java). A spake2-java é usada sem modificação,
+como biblioteca separada, e continua sob a LGPL 3.0: quem quiser pode
+trocá-la por outra versão compatível. Isso não muda a licença do resto do
+Treino Livre.
 
 Para pedir autorização ou licenciamento comercial: Instagram @carlos.jr.81.
 

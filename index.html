@@ -1104,7 +1104,7 @@ const GUIA_CONECTAR = [
     passos: [
       "No celular, use o **app Android** do Treino Livre, **atualizado** (baixe e instale por cima: a versão nova é a que conversa com o relógio).",
       "No relógio: **Configurações → Sobre o relógio → Informações do software**, toque **5 vezes** em **Versão do software**. Volte, entre em **Opções do desenvolvedor** e ligue **Depuração ADB** e **Depuração por Wi-Fi** (relógio e celular no mesmo Wi-Fi).",
-      "Toque em **⌚ Instalar o app no relógio** (aqui embaixo): o assistente leva um passo por vez, com um botão em cada um, e confere no fim se deu certo. Ele usa um **app instalador** da Play Store (Bugjaeger ou Wear Installer 2). Pelo computador também dá: `adb pair`, `adb connect` e `adb install treino-livre-relogio.apk`.",
+      "Toque em **⌚ Instalar o app no relógio** (aqui embaixo) e depois em **Instalar no relógio agora**: o app do celular acha o relógio no Wi-Fi, e você só digita o **código de 6 números** que o relógio mostra. Ele baixa, instala e abre no relógio. (Também dá por um instalador da Play Store ou pelo computador com o `adb`.)",
       "Abra o treino no celular pelo **ícone do app** e toque em Começar (ou marque a primeira série): o **🔒 Jarvis com a tela travada** liga, e o **Treino Livre abre sozinho no relógio**, acompanhando o celular.",
     ],
     dicas: [
@@ -1369,7 +1369,7 @@ const AJUDA_APP = [
   { id: "galaxy-watch", cat: "treino", icone: "\u231A", titulo: "Marcar as séries no Galaxy Watch",
     resumo: "O ✓ da série, a carga, as repetições e o descanso no pulso.",
     passos: [
-      "Toque em **⌚ Instalar o app no relógio** (aqui embaixo, ou em Ajustes → Conectar aparelhos): um passo por vez, com um botão em cada um.",
+      "Toque em **⌚ Instalar o app no relógio** (aqui embaixo, ou em Ajustes → Conectar aparelhos) e depois em **Instalar no relógio agora**: você só digita o código de 6 números que o relógio mostra.",
       "Comece o treino no celular pelo **app Android** e marque a primeira série: o relógio passa a mostrar o exercício da vez.",
       "No relógio: ajuste a carga e as repetições com **−** e **+** e toque em **✓ Feito**. O descanso conta no pulso, e o relógio vibra no fim.",
     ],
@@ -1687,7 +1687,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-11b";
+const VERSAO_APP = "2026-11-11c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3105,6 +3105,9 @@ const RELOGIO_APP = (() => {
 const LINK_CONFERIR_RELOGIO = "intent://relogio#Intent;scheme=treinolivre;package=br.com.treinolivre.app;S.browser_fallback_url=" + encodeURIComponent("https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk") + ";end";
 // O instalador sugerido (Play Store): manda o APK para o relógio pelo Wi-Fi
 const LINK_INSTALADOR_RELOGIO = "https://play.google.com/store/search?q=Bugjaeger&c=apps";
+// O instalador dentro do app do celular (InstaladorRelogio): acha o relógio no
+// Wi-Fi, pareia com o código de 6 números, baixa e instala. App antigo: baixa o novo.
+const LINK_INSTALAR_RELOGIO = "intent://instalar-relogio#Intent;scheme=treinolivre;package=br.com.treinolivre.app;S.browser_fallback_url=" + encodeURIComponent("https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk") + ";end";
 const PACOTE_ANDROID = "br.com.treinolivre.app";
 const META_PASSOS = 8000;
 
@@ -30460,23 +30463,35 @@ let ABRIR_RELOGIO = null;
 const abrirInstalarRelogio = (status) => { if (ABRIR_RELOGIO) ABRIR_RELOGIO(status || ""); };
 const STATUS_RELOGIO = {
   pronto: { ok: true, texto: "✅ Pronto! O app está no relógio. Abra o Treino Livre no relógio e comece o treino pelo app do celular: a primeira série marcada liga tudo." },
-  falta: { ok: false, texto: "⌚ O relógio está conectado, mas o app ainda não está nele. Faça os passos 2 a 5 e confira de novo." },
+  falta: { ok: false, texto: "⌚ O relógio está conectado, mas o app ainda não está nele. Faça os passos 2 e 3 e confira de novo." },
   semrelogio: { ok: false, texto: "📵 Nenhum relógio conectado a este celular. Abra o app Galaxy Wearable, confira que o relógio está conectado e confira de novo." },
   erro: { ok: false, texto: "⚠ O celular não respondeu a tempo. Confira o Bluetooth e o app Galaxy Wearable, e tente de novo." },
 };
 const PASSOS_RELOGIO = [
   { id: "celular", titulo: "Atualize o app do celular",
-    texto: "A versão nova do app do Treino Livre é a que conversa com o relógio. Instale por cima: seus treinos continuam.",
+    texto: "A versão nova do app do Treino Livre é a que instala o app no relógio e conversa com ele. Instale por cima: seus treinos continuam.",
     botao: { rotulo: "⬇ Baixar o app do celular", href: LINK_APK } },
-  { id: "modo", titulo: "No relógio, ligue o modo de instalar",
+  { id: "modo", titulo: "Uma vez só: o modo de desenvolvedor no relógio",
     lista: [
-      "**Configurações → Sobre o relógio → Informações do software**.",
+      "No relógio: **Configurações → Sobre o relógio → Informações do software**.",
       "Toque **5 vezes** em **Versão do software**, até aparecer que o modo de desenvolvedor foi ligado.",
-      "Volte em **Configurações → Opções do desenvolvedor** e ligue **Depuração ADB** e **Depuração por Wi-Fi**.",
-      "Relógio e celular no **mesmo Wi-Fi**. Deixe a tela **Depuração por Wi-Fi** aberta no relógio.",
     ],
-    nota: "É a regra do relógio para app que não vem da loja. Depois de instalar, pode desligar." },
-  { id: "instalador", titulo: "Pegue o instalador no celular",
+    nota: "É a regra do relógio para app que não vem da loja. Faz uma vez só." },
+  { id: "instalar", titulo: "Instale com um toque",
+    lista: [
+      "No relógio: **Configurações → Opções do desenvolvedor** → ligue **Depuração ADB** e **Depuração por Wi-Fi** → toque em **Parear novo dispositivo**. Relógio e celular no **mesmo Wi-Fi**.",
+      "No celular, toque no botão abaixo: o app acha o relógio sozinho, e você só digita o **código de 6 números** que o relógio mostra.",
+      "Ele baixa, instala e abre o Treino Livre no relógio. Pronto.",
+    ],
+    instalar: true,
+    nota: "Para atualizar o app do relógio depois: mesmo botão, com a Depuração por Wi-Fi ligada, sem código." },
+  { id: "conferir", titulo: "Confira se deu certo",
+    texto: "O celular pergunta ao relógio se o Treino Livre está lá.",
+    conferir: true },
+];
+// O jeito de antes, para quem prefere (ou se o instalador do app não achar o relógio)
+const PASSOS_RELOGIO_MANUAL = [
+  { id: "instalador", titulo: "Pegue um instalador no celular",
     texto: "Um app gratuito da Play Store que manda o arquivo para o relógio pelo Wi-Fi. Sugerimos o Bugjaeger (o Wear Installer 2 também serve).",
     botao: { rotulo: "▶ Abrir na Play Store", href: LINK_INSTALADOR_RELOGIO } },
   { id: "arquivo", titulo: "Baixe o app do relógio",
@@ -30486,18 +30501,14 @@ const PASSOS_RELOGIO = [
     lista: [
       "No relógio, em **Depuração por Wi-Fi**, toque em **Parear novo dispositivo**: aparecem um **código** e um endereço com a **porta**.",
       "No instalador, escolha conectar ao relógio pelo **Wi-Fi** e digite o código e o endereço que o relógio mostra.",
-      "No relógio, se perguntar, toque em **Permitir**.",
       "No instalador, escolha **instalar um APK** e pegue o **treino-livre-relogio.apk** na pasta **Downloads**.",
     ] },
-  { id: "conferir", titulo: "Confira se deu certo",
-    texto: "O celular pergunta ao relógio se o Treino Livre está lá.",
-    conferir: true },
 ];
 function lerPassosRelogio() { try { return JSON.parse(localStorage.getItem("treinolivre:relogioPassos") || "{}") || {}; } catch (e) { return {}; } }
 function InstalarRelogio({ status, onFechar }) {
   const [feitos, setFeitos] = useState(() => {
     const f = lerPassosRelogio();
-    if (RELOGIO_APP >= 1) f.celular = true;
+    if (RELOGIO_APP >= 2) f.celular = true;
     if (status === "pronto") PASSOS_RELOGIO.forEach((p) => { f[p.id] = true; });
     if (status === "falta" || status === "semrelogio") f.celular = true;
     return f;
@@ -30507,11 +30518,49 @@ function InstalarRelogio({ status, onFechar }) {
     try { localStorage.setItem("treinolivre:relogioPassos", JSON.stringify(n)); } catch (e) {}
     return n;
   });
-  const atual = PASSOS_RELOGIO.findIndex((p) => !feitos[p.id]);
-  const [aberto, setAberto] = useState(atual < 0 ? PASSOS_RELOGIO.length - 1 : atual);
+  const atual = PASSOS_RELOGIO.find((p) => !feitos[p.id]);
+  const [aberto, setAberto] = useState(atual ? atual.id : "conferir");
+  const [outro, setOutro] = useState(false);
   const st = STATUS_RELOGIO[status];
-  const proximo = (k) => { marcar(PASSOS_RELOGIO[k].id, true); setAberto(Math.min(PASSOS_RELOGIO.length - 1, k + 1)); };
+  const seguir = (lista, k) => { marcar(lista[k].id, true); const prox = lista[k + 1] || PASSOS_RELOGIO.find((p) => p.id === "conferir"); setAberto(prox ? prox.id : ""); };
   const nFeitos = PASSOS_RELOGIO.filter((p) => feitos[p.id]).length;
+  const botaoLink = (href, rotulo, aoTocar, alvo) => (
+    <a href={href} target={alvo} rel="noopener" onClick={aoTocar}
+      style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none", marginBottom: 8 }}>{rotulo}</a>
+  );
+  const cartao = (p, k, lista, numero) => {
+    const feito = !!feitos[p.id];
+    const ab = aberto === p.id;
+    return (
+      <div key={p.id} style={{ ...S.card, padding: 0, borderColor: ab ? "var(--marca)" : "var(--borda)", marginBottom: 8 }}>
+        <button onClick={() => setAberto(ab ? "" : p.id)} aria-expanded={ab}
+          style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "transparent", border: "none", color: "var(--texto)", textAlign: "left", cursor: "pointer" }}>
+          <span style={{ width: 28, height: 28, borderRadius: 14, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 14,
+            background: feito ? "var(--ok)" : ab ? "var(--marca)" : "var(--borda)", color: feito || ab ? "#fff" : "var(--texto)", flexShrink: 0 }}>{feito ? "✓" : numero}</span>
+          <span style={{ flex: 1, fontWeight: 800, fontSize: 15, opacity: feito && !ab ? 0.7 : 1 }}>{p.titulo}</span>
+          <span aria-hidden="true" style={{ color: "var(--marca)", fontWeight: 900 }}>{ab ? "▴" : "▾"}</span>
+        </button>
+        {ab && (
+          <div style={{ padding: "0 14px 14px" }}>
+            {p.texto && <div style={{ fontSize: 14, lineHeight: 1.55, marginBottom: 10 }}>{p.texto}</div>}
+            {p.lista && (
+              <ol style={{ margin: "0 0 10px", paddingLeft: 22, fontSize: 14, lineHeight: 1.55 }}>
+                {p.lista.map((l, i) => <li key={i} style={{ marginBottom: 6 }}>{textoGuia(l)}</li>)}
+              </ol>
+            )}
+            {p.id === "celular" && RELOGIO_APP >= 2 && <div style={{ fontSize: 13, color: "var(--ok)", marginBottom: 8, fontWeight: 700 }}>✓ O app do seu celular já é a versão nova.</div>}
+            {p.botao && EH_ANDROID && botaoLink(p.botao.href, p.botao.rotulo, () => { if (p.id !== "celular") marcar(p.id, true); }, p.botao.href.indexOf("play.google") >= 0 ? "_blank" : undefined)}
+            {p.instalar && EH_ANDROID && botaoLink(LINK_INSTALAR_RELOGIO, "⌚ Instalar no relógio agora", () => marcar(p.id, true))}
+            {p.conferir && EH_ANDROID && botaoLink(LINK_CONFERIR_RELOGIO, "✓ Conferir o relógio")}
+            {p.nota && <div style={{ fontSize: 12.5, color: "var(--cinza)", marginBottom: 10 }}>{p.nota}</div>}
+            {!p.conferir && (
+              <button onClick={() => seguir(lista, k)} style={{ ...S.btnGhost, marginTop: 2 }}>{feito ? "Próximo passo →" : "✓ Feito, próximo passo"}</button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
   return (
     <div role="dialog" aria-modal="true" aria-label="Instalar o app no relógio" onClick={onFechar}
       style={{ position: "fixed", inset: 0, zIndex: 9000, background: "#000a", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
@@ -30521,12 +30570,12 @@ function InstalarRelogio({ status, onFechar }) {
           <div style={{ fontSize: 34 }} aria-hidden="true">⌚</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 900, fontSize: 19 }}>Instalar o app no relógio</div>
-            <div style={{ fontSize: 13, color: "var(--cinza)" }}>Galaxy Watch 4 em diante · uns 10 minutos, uma vez só</div>
+            <div style={{ fontSize: 13, color: "var(--cinza)" }}>Galaxy Watch 4 em diante · uns 5 minutos, uma vez só</div>
           </div>
           <button onClick={onFechar} aria-label="Fechar" style={{ background: "transparent", border: "none", color: "var(--texto)", fontSize: 24, cursor: "pointer" }}>✕</button>
         </div>
         <div style={{ fontSize: 13.5, color: "var(--cinza)", lineHeight: 1.55, margin: "10px 0 12px" }}>
-          No pulso: o exercício da vez, a carga e as repetições com − e +, o <b>✓ Feito</b> e o descanso contando, com vibração no fim.
+          No pulso: o exercício da vez, a carga e as repetições com − e +, o <b>✓ Feito</b> e o descanso contando, com vibração no fim. Depois de instalado, ele <b>abre sozinho</b> quando o treino começa no celular.
         </div>
         {!EH_ANDROID && (
           <div style={{ ...S.card, borderColor: "var(--perigo)" }}>Precisa de um celular <b>Android</b> com o app do Treino Livre: o relógio conversa com o app, não com o navegador.</div>
@@ -30537,48 +30586,15 @@ function InstalarRelogio({ status, onFechar }) {
         <div style={{ height: 6, borderRadius: 3, background: "var(--borda)", overflow: "hidden", margin: "4px 0 12px" }}>
           <div style={{ height: "100%", width: (100 * nFeitos / PASSOS_RELOGIO.length) + "%", background: "var(--ok)" }} />
         </div>
-        {PASSOS_RELOGIO.map((p, k) => {
-          const feito = !!feitos[p.id];
-          const ab = aberto === k;
-          return (
-            <div key={p.id} style={{ ...S.card, padding: 0, borderColor: ab ? "var(--marca)" : "var(--borda)", marginBottom: 8 }}>
-              <button onClick={() => setAberto(ab ? -1 : k)} aria-expanded={ab}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "transparent", border: "none", color: "var(--texto)", textAlign: "left", cursor: "pointer" }}>
-                <span style={{ width: 28, height: 28, borderRadius: 14, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 14,
-                  background: feito ? "var(--ok)" : ab ? "var(--marca)" : "var(--borda)", color: feito || ab ? "#fff" : "var(--texto)", flexShrink: 0 }}>{feito ? "✓" : k + 1}</span>
-                <span style={{ flex: 1, fontWeight: 800, fontSize: 15, opacity: feito && !ab ? 0.7 : 1 }}>{p.titulo}</span>
-                <span aria-hidden="true" style={{ color: "var(--marca)", fontWeight: 900 }}>{ab ? "▴" : "▾"}</span>
-              </button>
-              {ab && (
-                <div style={{ padding: "0 14px 14px" }}>
-                  {p.texto && <div style={{ fontSize: 14, lineHeight: 1.55, marginBottom: 10 }}>{p.texto}</div>}
-                  {p.lista && (
-                    <ol style={{ margin: "0 0 10px", paddingLeft: 22, fontSize: 14, lineHeight: 1.55 }}>
-                      {p.lista.map((l, i) => <li key={i} style={{ marginBottom: 6 }}>{textoGuia(l)}</li>)}
-                    </ol>
-                  )}
-                  {p.nota && <div style={{ fontSize: 12.5, color: "var(--cinza)", marginBottom: 10 }}>{p.nota}</div>}
-                  {p.id === "celular" && RELOGIO_APP >= 1 && <div style={{ fontSize: 13, color: "var(--ok)", marginBottom: 8, fontWeight: 700 }}>✓ O app do seu celular já é a versão nova.</div>}
-                  {p.botao && EH_ANDROID && (
-                    <a href={p.botao.href} target={p.botao.href.indexOf("play.google") >= 0 ? "_blank" : undefined} rel="noopener"
-                      onClick={() => { if (p.id !== "celular") marcar(p.id, true); }}
-                      style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none", marginBottom: 8 }}>{p.botao.rotulo}</a>
-                  )}
-                  {p.conferir && EH_ANDROID && (
-                    <a href={LINK_CONFERIR_RELOGIO}
-                      style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none", marginBottom: 8 }}>✓ Conferir o relógio</a>
-                  )}
-                  {!p.conferir && (
-                    <button onClick={() => proximo(k)} style={{ ...S.btnGhost, marginTop: 2 }}>{feito ? "Próximo passo →" : "✓ Feito, próximo passo"}</button>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {PASSOS_RELOGIO.map((p, k) => cartao(p, k, PASSOS_RELOGIO, k + 1))}
+        <button onClick={() => setOutro(!outro)} aria-expanded={outro}
+          style={{ background: "none", border: "none", color: "var(--marca)", padding: "6px 0", cursor: "pointer", fontSize: 13.5, fontWeight: 700 }}>
+          {outro ? "▴" : "▾"} Outro jeito: por um instalador da Play Store
+        </button>
+        {outro && PASSOS_RELOGIO_MANUAL.map((p, k) => cartao(p, k, PASSOS_RELOGIO_MANUAL, "•"))}
         <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.55, marginTop: 10 }}>
           Travou num passo? <button onClick={() => abrirGuia("pulso")} style={{ background: "none", border: "none", color: "var(--marca)", padding: 0, cursor: "pointer", fontSize: 12.5, textDecoration: "underline" }}>Veja as dicas do relógio</button>.
-          O app do relógio ainda não está na loja do relógio: quando estiver, a instalação vira um toque.
+          Quando o app do relógio estiver na Play Store, a instalação vira um toque na loja, sem o modo de desenvolvedor.
         </div>
       </div>
     </div>

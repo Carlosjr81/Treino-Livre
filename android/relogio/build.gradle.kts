@@ -15,7 +15,8 @@ android {
         applicationId = "br.com.treinolivre.app"
         minSdk = 30
         targetSdk = 34
-        versionCode = (System.getenv("TL_VERSAO_CODIGO") ?: "1").toInt()
+        // na Play Store, celular e relógio na mesma ficha precisam de números diferentes
+        versionCode = 1_000_000 + (System.getenv("TL_VERSAO_CODIGO") ?: "1").toInt()
         versionName = System.getenv("TL_VERSAO_NOME") ?: "1.0"
     }
 

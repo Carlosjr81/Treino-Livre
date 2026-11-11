@@ -27,6 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TEM_SEGREDO: ${{ secrets.ANDROID_KEYSTORE_B64 != '' && 'sim' || 'nao' }}
+      # a chave de serviço da Play Store (JSON). Sem ela, nada vai para a loja.
+      TEM_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' && 'sim' || 'nao' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -72,7 +74,8 @@ jobs:
         env:
           TL_VERSAO_CODIGO: ${{ github.run_number }}
           TL_VERSAO_NOME: "1.${{ github.run_number }}"
-        run: gradle -p android assembleRelease --no-daemon --stacktrace
+        # o APK direto (GitHub) do celular, o do relógio, e os pacotes da Play Store (AAB)
+        run: gradle -p android :app:assembleDiretoRelease :relogio:assembleRelease :app:bundleLojaRelease :relogio:bundleRelease --no-daemon --stacktrace
 
       # A impressão digital da chave (pública, não é segredo): é ela que vai no
       # assetlinks.json do repositório carlosjr81.github.io, e é o que faz o
@@ -86,7 +89,7 @@ jobs:
 
       - name: Renomear
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk treino-livre.apk
+          cp android/app/build/outputs/apk/direto/release/app-direto-release.apk treino-livre.apk
           cp android/relogio/build/outputs/apk/release/relogio-release.apk treino-livre-relogio.apk
 
       - uses: actions/upload-artifact@v4
@@ -95,6 +98,13 @@ jobs:
           path: |
             treino-livre.apk
             treino-livre-relogio.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pacotes-play-store
+          path: |
+            android/app/build/outputs/bundle/lojaRelease/app-loja-release.aab
+            android/relogio/build/outputs/bundle/release/relogio-release.aab
 
       - name: Publicar a versão (só do main)
         if: github.ref == 'refs/heads/main'
@@ -114,3 +124,27 @@ jobs:
             treino-livre-relogio.apk é o app do relógio (Galaxy Watch 4 em diante, Wear OS): instale
             no relógio (pelo computador com o adb, ou por um app instalador no celular) para marcar as
             séries, ajustar a carga e ver o descanso no pulso.
+
+      # A Play Store (teste interno): só com a chave de serviço e só do main.
+      # Enquanto o app nunca foi publicado na loja, a versão vai como rascunho
+      # (draft); depois, a variável PLAY_STATUS do repositório pode ser "completed".
+      # O passo a passo está em loja/LEIA-ME.md.
+      - name: Play Store, celular (teste interno)
+        if: ${{ github.ref == 'refs/heads/main' && env.TEM_PLAY == 'sim' }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: br.com.treinolivre.app
+          releaseFiles: android/app/build/outputs/bundle/lojaRelease/app-loja-release.aab
+          track: internal
+          status: ${{ vars.PLAY_STATUS || 'draft' }}
+
+      - name: Play Store, relógio (teste interno do Wear OS)
+        if: ${{ github.ref == 'refs/heads/main' && env.TEM_PLAY == 'sim' }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: br.com.treinolivre.app
+          releaseFiles: android/relogio/build/outputs/bundle/release/relogio-release.aab
+          track: wear:internal
+          status: ${{ vars.PLAY_STATUS || 'draft' }}

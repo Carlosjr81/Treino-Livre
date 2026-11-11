@@ -27,6 +27,16 @@ android {
         }
     }
 
+    // Duas versões do mesmo app. "direto": o APK do GitHub, que instala o app do
+    // relógio pelo Wi-Fi (InstaladorRelogio em src/direto). "loja": o pacote da
+    // Play Store, que não pode instalar app por fora da loja; ali o mesmo botão
+    // abre a Play Store no relógio (src/loja).
+    flavorDimensions += "canal"
+    productFlavors {
+        create("direto") { dimension = "canal" }
+        create("loja") { dimension = "canal" }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -66,9 +76,9 @@ dependencies {
     // o instalador do app do relógio (InstaladorRelogio): o ADB por Wi-Fi.
     // libadb-android pela licença Apache-2.0; ela traz a spake2-java (LGPL-3.0,
     // sem modificação), exceção decidida com o dono em 2026-11-11 (ver LICENSE)
-    implementation("com.github.MuntashirAkon:libadb-android:3.1.1")
-    implementation("org.conscrypt:conscrypt-android:2.5.3")
-    implementation("org.bouncycastle:bcpkix-jdk15to18:1.81")
+    "diretoImplementation"("com.github.MuntashirAkon:libadb-android:3.1.1")
+    "diretoImplementation"("org.conscrypt:conscrypt-android:2.5.3")
+    "diretoImplementation"("org.bouncycastle:bcpkix-jdk15to18:1.81")
     // a câmera dos óculos Ray-Ban Meta (kit da Meta, Maven Central)
     implementation("com.meta.wearable:mwdat-core:1.0.1")
     implementation("com.meta.wearable:mwdat-camera:1.0.1")

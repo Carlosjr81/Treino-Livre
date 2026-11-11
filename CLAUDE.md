@@ -643,6 +643,7 @@ Treino-Livre/
 ├── privacidade.html     ← a política (exigida pelo Health Connect)
 ├── android/             ← o app Android (app/) e o do relógio (relogio/): ver *O app Android* e *O Galaxy Watch*
 ├── firebase/            ← as regras e o passo a passo do login com aprovação
+├── loja/                ← publicar na Google Play (o passo a passo do dono e os textos da ficha)
 ├── CLAUDE.md            ← este arquivo: o contexto do projeto
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
@@ -778,7 +779,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v175) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v176) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4293,6 +4294,37 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   estiver na Play Store, tudo isto vira um toque**: é o caminho para tirar o
   modo de desenvolvedor (Play Console, conta de US$ 25, com o app do celular
   e o do relógio na mesma ficha).
+- **O instalador embutido** (pedido do dono, 2026-11-11c: "automatizar ao
+  máximo"; ele escolheu, entre o instalador e a Play Store, os dois). O
+  "Instalar no relógio agora" do assistente chama
+  `treinolivre://instalar-relogio` (`InstaladorRelogio`, só na versão
+  **direto**, `android/app/src/direto`): o app acha o relógio no Wi-Fi sozinho
+  (NsdManager, `_adb-tls-pairing._tcp` e `_adb-tls-connect._tcp`, os
+  anúncios da Depuração por Wi-Fi; os endereços do próprio celular ficam de
+  fora; a descoberta da libadb não serve, ela só enxerga o próprio aparelho),
+  pede só o **código de 6 números**, pareia, conecta, baixa o
+  `treino-livre-relogio.apk` da última versão e instala
+  (`exec:cmd package install -r -S <tamanho>`). A chave do celular (RSA, com
+  certificado do Bouncy Castle) fica nos arquivos do app: depois do primeiro
+  pareamento, atualizar é "Já pareei antes", sem código. Em 25 s sem achar,
+  aparece o campo de endereço:porta. **Licença**: libadb-android pela
+  Apache-2.0, e a spake2-java (do pareamento) é **LGPL-3.0**: exceção à regra de
+  não usar copyleft, **decidida pelo dono**, só no APK direto, sem modificar a
+  biblioteca, com o aviso no `LICENSE`. Não traga outra biblioteca copyleft
+  sem falar com ele.
+- **Duas versões do app Android** (`productFlavors`, dimensão `canal`):
+  **direto** (o APK do GitHub, com o instalador) e **loja** (o pacote da Play
+  Store: a política da loja proíbe instalar app por fora dela; ali o mesmo botão
+  abre a página do app na Play Store do relógio, `src/loja`). O Actions monta
+  `:app:assembleDiretoRelease`, `:relogio:assembleRelease`,
+  `:app:bundleLojaRelease` e `:relogio:bundleRelease`, e com o segredo
+  `PLAY_SERVICE_ACCOUNT_JSON` publica os dois AAB no teste interno
+  (`internal` e `wear:internal`, `r0adkll/upload-google-play`, rascunho até a
+  variável `PLAY_STATUS`). O relógio usa `versionCode` 1.000.000 + o número
+  do build: na loja, celular e relógio na mesma ficha precisam de números
+  diferentes. **O que só o dono faz** (conta de US$ 25, documento, chave de
+  serviço, a primeira versão à mão, o teste fechado de 12 pessoas por 14 dias)
+  está em `loja/LEIA-ME.md`, e os textos da ficha em `loja/ficha-da-loja.md`.
 - **O relógio abre sozinho** quando o treino começa no celular (pedido do
   dono, 2026-11-11b: "sempre que estiver usando o app no celular ele já abre
   também no relógio"): o `BolsoService`, ao ligar, chama

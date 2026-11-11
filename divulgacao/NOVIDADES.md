@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-11-11c — Instalar no relógio: só o código de 6 números
+
+**Em uma frase:** o app do celular agora instala sozinho o Treino Livre no Galaxy Watch: ele acha o relógio no Wi-Fi, e você só digita o código de 6 números que aparece no relógio.
+
+**O que mudou**
+- Em Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio → **Instalar no relógio agora**: o app procura o relógio, pareia com o código, baixa e instala, e abre no relógio.
+- Para atualizar o app do relógio depois, o mesmo botão, sem código.
+- O jeito de antes (um instalador da Play Store) continua lá, como "outro jeito".
+
+**Por que importa para quem treina**
+- Sem programa de computador, sem app de terceiros, sem copiar endereço e porta: um botão e um código.
+
+**Como usar**
+- Uma vez só, no relógio: Configurações → Sobre o relógio → Informações do software → 5 toques em Versão do software.
+- Depois: Opções do desenvolvedor → Depuração por Wi-Fi → Parear novo dispositivo, e no celular, **Instalar no relógio agora**.
+
+**Ideias de vídeo**
+- "Do celular para o pulso em 1 minuto": o código no relógio, o app instalando e abrindo sozinho.
+
+**Não prometer**
+- Ainda pede o modo de desenvolvedor no relógio uma vez (o app ainda não está na loja do relógio). A versão da Play Store está sendo preparada.
+- Relógio e celular precisam estar no mesmo Wi-Fi.
+- Ainda não foi testado num Galaxy Watch de verdade.
+
+---
+
 ## 2026-11-11b — Instalar no relógio com um botão, e o relógio abre sozinho
 
 **Em uma frase:** um botão "⌚ Instalar o app no relógio" leva passo a passo até o Treino Livre estar no Galaxy Watch, e depois, a cada treino começado no celular, o relógio abre sozinho acompanhando.

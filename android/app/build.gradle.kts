@@ -55,6 +55,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     // o relógio (Galaxy Watch, Wear OS): os toques e o painel, pelo Bluetooth
     implementation("com.google.android.gms:play-services-wearable:19.0.0")
+    // o play-services traz um androidx.fragment antigo (1.1), e o lint barra o
+    // registerForActivityResult com ele
+    implementation("androidx.fragment:fragment-ktx:1.8.5")
     // a câmera dos óculos Ray-Ban Meta (kit da Meta, Maven Central)
     implementation("com.meta.wearable:mwdat-core:1.0.1")
     implementation("com.meta.wearable:mwdat-camera:1.0.1")

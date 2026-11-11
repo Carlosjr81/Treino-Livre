@@ -1099,6 +1099,22 @@ const GUIA_CONECTAR = [
       "Depois da primeira vez, o app lê sozinho cada vez que você o abre pelo ícone.",
       "O Galaxy Watch não transmite o batimento ao vivo: o batimento entra no treino na sincronização seguinte.",
     ] },
+  { id: "pulso", icone: "\u231A", titulo: "Marcar as séries no Galaxy Watch",
+    para: "No pulso: o exercício da vez, a série, a carga e as repetições com − e +, o ✓ Feito, e o descanso contando, com +30 s, −15 s e Pular. O relógio vibra quando o descanso acaba. Galaxy Watch 4 em diante (e outros relógios com Wear OS).",
+    passos: [
+      "No celular, use o **app Android** do Treino Livre, **atualizado** (baixe e instale por cima: a versão nova é a que conversa com o relógio).",
+      "No relógio: **Configurações → Sobre o relógio → Informações do software**, toque **5 vezes** em **Versão do software**. Volte, entre em **Opções do desenvolvedor** e ligue **Depuração ADB** e **Depuração por Wi-Fi** (relógio e celular no mesmo Wi-Fi).",
+      "Baixe o **app do relógio** no celular (botão aqui embaixo) e instale no relógio por um **app instalador para Wear OS** da Play Store (por exemplo, **Bugjaeger** ou **Wear Installer 2**): ele mostra como parear com o código que aparece no relógio e manda o arquivo. Pelo computador: `adb pair`, `adb connect` e `adb install treino-livre-relogio.apk`.",
+      "Abra o treino no celular pelo **ícone do app** e marque a primeira série (ou toque em Começar): o **🔒 Jarvis com a tela travada** liga, e o relógio passa a mostrar o treino. Abra o **Treino Livre** no relógio.",
+    ],
+    dicas: [
+      "O relógio é um controle do celular: o treino continua no celular, e cada ✓ do relógio vira a série anotada lá, com o descanso, o recorde e a voz de sempre.",
+      "Marcou no relógio com o celular destravado? Toque na notificação **Toque para levar ao treino**, para a tela do celular ficar igual. Com a tela travada, as séries entram ao destravar.",
+      "Aeróbico (esteira, bicicleta) se anota no celular.",
+      "Depois de instalar, desligue a **Depuração ADB** do relógio, se quiser: o app continua lá.",
+      "O relógio diz **Celular desconectado**? Confira o Bluetooth e o app **Galaxy Wearable**.",
+      "Ainda não validado num Galaxy Watch de verdade: se algo não funcionar, conte o que aparece na tela do relógio.",
+    ] },
   { id: "outros", icone: "\u{1F517}", titulo: "Outros relógios, anéis e apps de saúde",
     para: "Garmin, Xiaomi, Amazfit, Oura, Google Fit e outros que gravam na Conexão Saúde.",
     passos: [
@@ -1350,6 +1366,15 @@ const AJUDA_APP = [
       "Ao destravar, toque na notificação para levar o que foi anotado ao treino.",
     ],
     dicas: ["Com música tocando, ele fala por cima e a música só abaixa; o microfone fica de fora para não pausar a música."] },
+  { id: "galaxy-watch", cat: "treino", icone: "\u231A", titulo: "Marcar as séries no Galaxy Watch",
+    resumo: "O ✓ da série, a carga, as repetições e o descanso no pulso.",
+    passos: [
+      "Instale o **app do relógio** no Galaxy Watch (o passo a passo explica como, sem loja).",
+      "Comece o treino no celular pelo **app Android** e marque a primeira série: o relógio passa a mostrar o exercício da vez.",
+      "No relógio: ajuste a carga e as repetições com **−** e **+** e toque em **✓ Feito**. O descanso conta no pulso, e o relógio vibra no fim.",
+    ],
+    dicas: ["◀ e ▶ trocam o exercício; ↩ desfaz a última série.", "Com o celular destravado, toque na notificação para a tela do celular receber as séries do relógio."],
+    ir: { rotulo: "Passo a passo do relógio", destino: "guia:pulso" } },
   { id: "botao-fone", cat: "voz", icone: "\u{1F3A7}", titulo: "Botão do fone ou toque nos óculos",
     resumo: "Um toque no fone liga o Jarvis ou a câmera.",
     passos: [
@@ -1662,7 +1687,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-08b";
+const VERSAO_APP = "2026-11-11a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3064,6 +3089,9 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // do Treino Livre vão no link (?t=) e o app grava cada um no Health Connect.
 // No iPhone nada disso existe: a Apple não abre o Apple Saúde para sites.
 const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk";
+// o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
+// treino do celular pelo Jarvis da tela travada (BolsoService)
+const LINK_APK_RELOGIO = "https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre-relogio.apk";
 const PACOTE_ANDROID = "br.com.treinolivre.app";
 const META_PASSOS = 8000;
 
@@ -3526,6 +3554,7 @@ function snapshotBolso(sessao, exPorId, cfg) {
   const c = cfg || {};
   return {
     v: 1,
+    nome: c.nome || sessao.nome || "",
     descanso: c.descanso || 90,
     barra: c.barra != null ? c.barra : 20,
     foco: c.foco != null ? c.foco : null,
@@ -3534,7 +3563,7 @@ function snapshotBolso(sessao, exPorId, cfg) {
       const ex = exPorId(it.exercicioId) || {};
       const rec = c.recordes && c.recordes[it.exercicioId];
       return {
-        uid: it.uid, exercicioId: it.exercicioId, conjunto: it.conjunto || null,
+        uid: it.uid, exercicioId: it.exercicioId, conjunto: it.conjunto || null, pulado: !!it.pulado,
         descanso: it.descanso || (MODO_DESCANSO !== "fixo" ? descansoRecomendado(exPorId(it.exercicioId)) : null) || null,
         nome: ex.nome || "exercício", equip: ex.equip || "", tempo: !!ex.tempo, cardio: !!ex.cardio,
         rec: rec && rec.peso ? rec.peso : 0,
@@ -3817,7 +3846,63 @@ function criarBolso(snapInicial, catalogo) {
     }
   }
 
+  // ---- o relógio (Galaxy Watch, app Android) ----
+  // O que a tela do relógio mostra: o exercício da vez, a série, a carga e as
+  // repetições combinadas (ou as da série anterior), o descanso e o próximo.
+  function painel(agora) {
+    const feitas = itens.reduce((n, it) => n + it.series.filter((s) => s.feito).length, 0);
+    const total = itens.reduce((n, it) => n + it.series.length, 0);
+    const out = { v: 1, ativo: true, treino: snap.nome || "", feitas: feitas, total: total, agora: agora,
+      descansoAte: fimDesc > agora ? fimDesc : 0 };
+    const a = pendentes() ? alvoDaSessao(itens, foco) : null;
+    if (!a) { out.fim = true; return out; }
+    const it = itens[a.ei], s = it.series[a.si] || {};
+    const trab = it.series.filter((x) => !ehDrop(x));
+    const ant = it.series.slice(0, a.si).reverse().find((x) => x.feito && !ehDrop(x)) || {};
+    out.ei = a.ei; out.si = a.si; out.uid = it.uid;
+    out.ex = it.nome; out.drop = ehDrop(s);
+    out.n = out.drop ? 0 : trab.indexOf(s) + 1; out.de = trab.length;
+    out.tempo = !!it.tempo; out.cardio = !!it.cardio;
+    out.peso = parseFloat(String(s.peso || ant.peso || "0").replace(",", ".")) || 0;
+    out.reps = parseInt(s.reps || ant.reps) || 0;
+    out.seg = parseInt(s.segundos || ant.segundos) || 0;
+    out.passo = out.peso >= 60 ? 5 : out.peso >= 20 ? 2.5 : 1;
+    out.rec = it.rec || 0;
+    if (ant.peso || ant.reps || ant.segundos) out.ant = ehTempo(ant) ? segundosDe(ant) + " s" : (ant.peso ? fmtNum(ant.peso) + " kg × " : "") + (repsDe(ant) || "");
+    const prox = itens.find((x, k) => k !== a.ei && !x.pulado && x.series.some((y) => !y.feito) && k > a.ei) ||
+      itens.find((x, k) => k !== a.ei && !x.pulado && x.series.some((y) => !y.feito));
+    out.prox = prox ? prox.nome : "";
+    return out;
+  }
+  // O botão do relógio. "feito" leva a carga e as repetições que a pessoa
+  // ajustou no relógio, e vale para o exercício que o relógio mostrava (ei),
+  // se ele ainda tem série por fazer.
+  function acao(c, agora) {
+    const tipo = c && c.a;
+    if (tipo === "feito") {
+      let ei = Number.isInteger(c.ei) && itens[c.ei] && !itens[c.ei].pulado && itens[c.ei].series.some((s) => !s.feito) ? c.ei : undefined;
+      const num = (v, max) => { const x = Number(v); return isFinite(x) && x >= 0 && x <= max ? x : null; };
+      const d = { tipo: "anotar", frase: "" };
+      const sg = num(c.sg, 36000), p = num(c.p, 2000), r = num(c.r, 1000);
+      if (sg != null && sg > 0) d.segundos = Math.round(sg);
+      if (p != null && p > 0) d.peso = p;
+      if (r != null && r > 0) d.reps = Math.round(r);
+      return anotar(d, agora, ei);
+    }
+    if (tipo === "menos") {
+      if (!fimDesc) return {};
+      fimDesc = Math.max(agora + 5000, fimDesc - 15000);
+      return { descansoAte: fimDesc };
+    }
+    const mapa = { desfazer: "desfazer", pular: "pularDescanso", mais: "esticarDescanso", descanso: "descanso",
+      proximo: "proximo", anterior: "anterior", situacao: "situacao" };
+    if (mapa[tipo]) return executar({ tipo: mapa[tipo], segundos: tipo === "mais" ? 30 : null, frase: "" }, agora);
+    return {};
+  }
+
   return {
+    painel: painel,
+    acao: acao,
     // alternativas: os palpites do reconhecedor, o mais provável primeiro
     ouvir(alternativas, agora) {
       const lista = (alternativas || []).map((a) => normalizarFala(a)).filter(Boolean);
@@ -28328,7 +28413,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     let ateF = ate;
     if (ateF == null) { ateF = fimDescanso || 0; if (fimDescanso) descansoNoBolso.current = fimDescanso; }
     const snap = snapshotBolso({ itens: itensAgora || sessao.itens }, exPorId, {
-      descanso: descanso, barra: parseFloat(vozBarra) || 20, recordes: recordes, descansoAte: ateF,
+      descanso: descanso, barra: parseFloat(vozBarra) || 20, recordes: recordes, descansoAte: ateF, nome: sessao.nome,
       foco: foco != null ? foco : alvo ? alvo.ei : null,
     });
     try { localStorage.setItem("treinolivre:bolsoAtivo", String(Date.now())); } catch (e) {}
@@ -30390,6 +30475,9 @@ function GuiaConectar({ inicial, onFechar, problema }) {
                   </ol>
                   {g.id === "app" && EH_ANDROID && !NO_APP_ANDROID && (
                     <a href={LINK_APK} style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none", margin: "6px 0 4px" }}>⬇ Baixar o app Android</a>
+                  )}
+                  {g.id === "pulso" && EH_ANDROID && (
+                    <a href={LINK_APK_RELOGIO} style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none", margin: "6px 0 4px" }}>⬇ Baixar o app do relógio</a>
                   )}
                   {g.id === "app" && NO_APP_ANDROID && (
                     <div style={{ fontSize: 13, color: "var(--ok)", margin: "4px 0" }}>✓ Você já está no app Android.</div>
@@ -33970,6 +34058,16 @@ if (MODO_BOLSO) {
       return JSON.stringify(Object.assign({}, r, { ev: r.mudou ? motorBolso.eventos() : undefined }));
     },
     fimDescanso(agora) { return motorBolso ? motorBolso.fimDescanso(agora || Date.now()) : ""; },
+    // o relógio: o que a tela dele mostra, e os botões dele
+    painel(agora) { return JSON.stringify(motorBolso ? motorBolso.painel(agora || Date.now()) : { v: 1, ativo: false }); },
+    acao(json, agora) {
+      if (!motorBolso) return JSON.stringify({ painel: { v: 1, ativo: false } });
+      const t = agora || Date.now();
+      let c = {};
+      try { c = JSON.parse(json); } catch (e) {}
+      const r = motorBolso.acao(c, t) || {};
+      return JSON.stringify(Object.assign({}, r, { ev: r.mudou ? motorBolso.eventos() : undefined, painel: motorBolso.painel(t) }));
+    },
     pendentes() { return JSON.stringify(motorBolso ? motorBolso.eventos() : []); },
     entregue() { if (motorBolso) motorBolso.limpar(); return "ok"; },
   };

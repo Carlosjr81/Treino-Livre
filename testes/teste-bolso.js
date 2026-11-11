@@ -149,5 +149,36 @@ const pac = lerPacoteBolso(cod({ ev: [{ t: "a", u: "u1", i: 1, p: "80", r: "10" 
 teste("so o que e acontecimento valido passa", 1, pac.ev.length);
 teste("pacote quebrado nao derruba", null, lerPacoteBolso("%%%", dec));
 
+console.log("--- o relogio (Galaxy Watch) ---");
+b = criarBolso(snap(), EXERCICIOS);
+let pn = b.painel(T0);
+teste("o painel mostra o exercicio da vez e a serie", ["Supino reto com barra", 2, 3], [pn.ex, pn.n, pn.de].map((x, k) => k === 0 ? (x || "").slice(0, 21) : x));
+teste("... com a carga e as repeticoes combinadas", [80, 10, 5], [pn.peso, pn.reps, pn.passo]);
+teste("... a anterior e o proximo", ["80 kg × 10", true], [pn.ant, !!pn.prox]);
+r = b.acao({ a: "feito", ei: 0, p: 82.5, r: 8 }, T0);
+teste("feito no relogio anota a carga ajustada", { t: "a", u: "u1", i: 1, p: "82.5", r: "8" }, b.eventos()[0]);
+teste("... e comeca o descanso do exercicio", T0 + 90000, r.descansoAte);
+contem("... e e recorde (82 era o melhor)", r.falar, "Recorde");
+teste("o painel diz o descanso correndo", T0 + 90000, b.painel(T0 + 1000).descansoAte);
+r = b.acao({ a: "mais" }, T0 + 1000);
+teste("+30 s no relogio", T0 + 120000, r.descansoAte);
+r = b.acao({ a: "menos" }, T0 + 2000);
+teste("-15 s no relogio", T0 + 105000, r.descansoAte);
+r = b.acao({ a: "pular" }, T0 + 3000);
+teste("pular o descanso pelo relogio", 0, r.descansoAte);
+r = b.acao({ a: "desfazer" }, T0 + 4000);
+teste("desfazer pelo relogio", ["a", "x"], b.eventos().map((e) => e.t));
+b.acao({ a: "proximo" }, T0 + 5000);
+pn = b.painel(T0 + 5000);
+teste("proximo: a prancha, que e de tempo", [true, 30], [pn.tempo, pn.seg]);
+b.acao({ a: "feito", ei: 1, sg: 45 }, T0 + 6000);
+teste("feito na prancha anota os segundos", "45", b.eventos().pop().sg);
+teste("valor absurdo do relogio e ignorado (sem carga nova, repeticao combinada)", [null, "10"], (() => { const bb = criarBolso(snap(), EXERCICIOS); bb.acao({ a: "feito", ei: 0, p: -5, r: 99999 }, T0); const e = bb.eventos()[0]; return [e.p, e.r]; })());
+teste("acao desconhecida nao faz nada", {}, b.acao({ a: "explodir" }, T0));
+const sp = snap(); sp.itens[0].pulado = true;
+teste("exercicio pulado nao e a vez do relogio", "u2", criarBolso(sp, EXERCICIOS).painel(T0).uid);
+const sf = snap(); sf.itens.forEach((it) => it.series.forEach((s) => { s.feito = true; }));
+teste("tudo feito: o relogio mostra o fim", true, criarBolso(sf, EXERCICIOS).painel(T0).fim);
+
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

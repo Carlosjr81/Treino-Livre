@@ -16,6 +16,37 @@
 
 ---
 
+## 2026-11-11a — O treino no Galaxy Watch
+
+**Em uma frase:** com o app do relógio instalado no Galaxy Watch, dá para marcar a série, ajustar a carga e as repetições e acompanhar o descanso no pulso, sem tirar o celular do bolso.
+
+**O que mudou**
+- Um app novo para o relógio (Galaxy Watch 4 em diante e outros relógios com Wear OS), ligado ao app Android do celular.
+- No relógio: o exercício da vez, "Série 2 de 4", a carga e as repetições com − e +, e o botão ✓ Feito.
+- O descanso conta no relógio, com +30 s, −15 s e Pular; o relógio vibra 10 segundos antes e quando acaba.
+- ◀ e ▶ trocam o exercício, ↩ desfaz a última série, e aparecem a série anterior e o próximo exercício.
+- Cada ✓ do relógio vira a série no treino do celular, com recorde, descanso e a voz do Jarvis.
+
+**Por que importa para quem treina**
+- Mão suada, celular no bolso ou no armário: a série é marcada no pulso, num toque.
+- O descanso fica à vista no relógio, e a vibração chama de volta sem precisar olhar o celular.
+
+**Como usar**
+- Ajustes → Conectar aparelhos → ⌚ Marcar as séries no Galaxy Watch: o passo a passo para instalar o app no relógio.
+- Comece o treino pelo app Android do celular, marque a primeira série e abra o Treino Livre no relógio.
+
+**Ideias de vídeo**
+- "Celular no bolso, treino no pulso": a série marcada no relógio, o descanso contando e a vibração no fim.
+- Lado a lado: o ✓ no relógio e a série aparecendo no celular.
+
+**Não prometer**
+- Ainda não está na loja de apps do relógio: a instalação é pelo modo de desenvolvedor (o passo a passo explica).
+- Só Android com o app do Treino Livre (não funciona com iPhone nem pelo navegador).
+- Aeróbico continua sendo anotado no celular.
+- Ainda não foi testado num Galaxy Watch de verdade.
+
+---
+
 ## 2026-11-08b — Conserto: o áudio da análise do treino ajustado
 
 **Em uma frase:** o botão que lê em voz alta a análise do treino ajustado (e o "por que muda") voltou a falar nos celulares Android em que dava erro.

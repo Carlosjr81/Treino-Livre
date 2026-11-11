@@ -641,7 +641,7 @@ GitHub e a cópia do Google Drive.
 Treino-Livre/
 ├── index.html, sw.js, manifest.json, versao.json, ícones   ← o app publicado
 ├── privacidade.html     ← a política (exigida pelo Health Connect)
-├── android/             ← o app Android: a porta para o Health Connect (ver *O app Android*)
+├── android/             ← o app Android (app/) e o do relógio (relogio/): ver *O app Android* e *O Galaxy Watch*
 ├── firebase/            ← as regras e o passo a passo do login com aprovação
 ├── CLAUDE.md            ← este arquivo: o contexto do projeto
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
@@ -703,7 +703,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.829 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.846 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -778,7 +778,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v173) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v174) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4229,6 +4229,60 @@ escondido no serviço. No navegador: a página `?modo=bolso` responde, o
 cartão manda a cópia, e a volta `#bolso=` marca a série e fala.
 Coberto por `teste-bolso.js` (41 checagens).
 
+## O Galaxy Watch marca as séries (pasta `android/relogio`, `Relogio.kt`)
+
+Pedido do dono (2026-11-11a): "confirmar a série, os pesos, verificar o tempo
+de descanso e outras funções básicas na tela do relógio". **Um site não chega
+ao relógio**: o Wear OS só conversa com um app instalado nele. Então há um
+segundo APK, `treino-livre-relogio.apk`, montado pelo mesmo Actions e
+publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
+
+- **O relógio é um controle do Jarvis da tela travada** (`BolsoService`), e
+  não um segundo treino. Quem guarda a cópia do treino, conta o descanso e
+  fala é o celular; o relógio mostra o painel e manda os toques. Por isso cada
+  ✓ do relógio vira a série anotada pelo **mesmo motor** (`criarBolso`, que
+  ganhou `painel(agora)` e `acao(c, agora)`) e volta ao treino da página
+  pelos mesmos acontecimentos (`#bolso=`, `aplicarEventosBolso`), com o
+  descanso, o recorde e a voz de sempre. Não há um terceiro lugar onde uma
+  série possa ser gravada.
+- **O caminho** (Wearable Data Layer, `play-services-wearable` 19, pelo
+  Bluetooth; no Galaxy, pelo app Galaxy Wearable; nada de servidor):
+  celular → relógio, o painel num dado sincronizado (`/treino/estado`, com
+  `t` para o mesmo painel contar como mudança), publicado a cada cópia nova,
+  série anotada (voz, ✓ da página, relógio), descanso começado e acabado; e os
+  alertas `/treino/alerta` ("dez" e "fim" do descanso), que fazem o relógio
+  vibrar com a tela apagada (`AlertaRelogio`). Relógio → celular, os
+  botões numa mensagem (`/treino/acao`: `feito` com `ei`, `p`, `r`
+  ou `sg`; `desfazer`, `mais` (+30 s), `menos` (−15 s), `pular`,
+  `proximo`, `anterior`, `estado`), que o `OuvinteRelogio` do celular
+  passa ao `BolsoService.acaoRelogio`. Sem o Jarvis 🔒 ligado, o celular
+  responde `ativo: false` e o relógio diz como começar.
+- **O mesmo applicationId e a mesma chave** (`br.com.treinolivre.app`): é a
+  exigência do Wear OS para os dois conversarem. O módulo `:relogio` assina
+  com o mesmo `TL_KEYSTORE`. Namespace `br.com.treinolivre.relogio`,
+  minSdk 30 (Wear OS 3, Galaxy Watch 4), tela em Views sem Compose (sem
+  dependência a mais).
+- **A carga e as repetições são ajustadas no relógio** (− e +, o passo de
+  carga do `PASSO_CARGA`: 1, 2,5 ou 5 kg) e vão junto do ✓; valor fora da
+  faixa é ignorado (fica o combinado). Exercício de tempo ajusta os segundos;
+  aeróbico se anota no celular. No descanso a tela do relógio fica acesa.
+- **A cópia leva agora o nome do treino e o `pulado`** (`snapshotBolso`):
+  antes, o motor do bolso podia mandar para um exercício pulado no Treino
+  Adaptado.
+- **O limite**: com o celular destravado, a página não sabe da série marcada
+  no relógio até a notificação "Toque para levar ao treino" (o Android não
+  deixa o serviço abrir a tela) ou o próximo ✓ da página, que leva junto o que
+  o relógio anotou. Marcar a mesma série nos dois lugares, nesse meio tempo,
+  vira duas séries.
+- **A instalação é sem loja**: Opções do desenvolvedor no relógio, Depuração
+  ADB e por Wi-Fi, e um app instalador (Bugjaeger, Wear Installer 2) ou o
+  `adb` do computador. Está no `GUIA_CONECTAR` (`pulso`) e na Central de
+  Ajuda (`galaxy-watch`).
+- Coberto por `teste-bolso.js` (o painel, o ✓ com a carga ajustada, o
+  recorde, +30/−15/pular, desfazer, próximo, prancha, valor absurdo, pulado,
+  fim). **Não validado num relógio**: a sessão na nuvem não monta APK, e nem
+  um Galaxy Watch de verdade nem o emulador de Wear OS foram usados.
+
 ## O passo a passo de conectar (`GuiaConectar`, `GUIA_CONECTAR`)
 
 Pedido do dono, depois de um dia inteiro ligando relógio, app Android e óculos
@@ -5282,7 +5336,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 39 suítes (1.829 checagens)
+node testes/rodar.js      # as 39 suítes (1.846 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

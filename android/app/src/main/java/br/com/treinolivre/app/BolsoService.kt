@@ -158,6 +158,7 @@ class BolsoService : Service(), RecognitionListener {
             inicio = System.currentTimeMillis()
             ligar()
         } else if (pronto && snap != null) iniciarPagina()
+        else if (snap != null) publicarRelogio()
         // O ✓ da página: a confirmação é falada daqui (a página fica quieta), e o
         // fim do descanso também — é o que funciona com a tela travada.
         if (snap != null) {
@@ -202,7 +203,7 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
-        anotar("ligado (app de 2026-10-28p: a música abaixa quando o Jarvis fala)")
+        anotar("ligado (app de 2026-11-11a: o relógio Galaxy Watch marca as séries)")
         linha.post(olheiro)
         try { getSystemService(AudioManager::class.java)?.registerAudioPlaybackCallback(espiaoSom, linha) } catch (e: Exception) { }
         val pm = getSystemService(PowerManager::class.java)
@@ -254,6 +255,42 @@ class BolsoService : Service(), RecognitionListener {
         for (i in 0 until aplicado.length()) tudo.put(aplicado.get(i))
         for (i in 0 until pend.length()) tudo.put(pend.get(i))
         js("bolso.iniciar(" + q(snap) + "," + q(tudo.toString()) + "," + q(pend.toString()) + ")") { }
+        publicarRelogio()
+    }
+
+    // ---- o relógio (Galaxy Watch) ----
+    // O painel vai para o relógio a cada mudança: cópia nova, série anotada
+    // (pela voz, pelo ✓ da página ou pelo relógio), descanso começado ou acabado.
+    fun publicarRelogio() {
+        if (!pronto) {
+            Relogio.publicar(applicationContext, JSONObject().put("v", 1).put("ativo", true).put("carregando", true).toString())
+            return
+        }
+        js("bolso.painel(" + System.currentTimeMillis() + ")") { texto -> if (texto.isNotEmpty()) Relogio.publicar(applicationContext, texto) }
+    }
+
+    // Um toque no relógio: "feito" (com a carga e as repetições ajustadas lá),
+    // desfazer, +30 s, -15 s, pular o descanso, próximo, anterior, ou só o painel.
+    fun acaoRelogio(texto: String) {
+        usadoEm = System.currentTimeMillis()
+        if (!pronto) { publicarRelogio(); return }
+        val acao = try { JSONObject(texto).optString("a", "") } catch (e: Exception) { "" }
+        if (acao.isEmpty() || acao == "estado") { publicarRelogio(); return }
+        anotar("relógio: " + acao)
+        js("bolso.acao(" + q(texto) + "," + System.currentTimeMillis() + ")") { resposta ->
+            val r = try { JSONObject(resposta) } catch (e: Exception) { JSONObject() }
+            if (r.has("ev")) {
+                val ev = r.optJSONArray("ev")?.toString() ?: "[]"
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("pend", ev).apply()
+                // Tela destravada: a página está à vista e não sabe da série.
+                // A notificação leva até ela (o Android não deixa o serviço abrir a tela).
+                if (!travada) avisarVolta(r.optJSONArray("ev")?.length() ?: 1)
+            }
+            if (r.has("descansoAte")) agendarDescanso(r.optLong("descansoAte", 0L))
+            r.optJSONObject("painel")?.let { Relogio.publicar(applicationContext, it.toString()) }
+            val fala = r.optString("falar", "")
+            if (fala.isNotEmpty() && acao != "mais" && acao != "menos") falar(fala)
+        }
     }
 
     private fun entregue() { if (pronto) js("bolso.entregue()") { } }
@@ -684,6 +721,7 @@ class BolsoService : Service(), RecognitionListener {
             val r = try { JSONObject(texto) } catch (e: Exception) { JSONObject() }
             if (r.has("ev")) getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("pend", r.optJSONArray("ev")?.toString() ?: "[]").apply()
             if (r.has("descansoAte")) agendarDescanso(r.optLong("descansoAte", 0L))
+            if (r.has("ev") || r.has("descansoAte")) publicarRelogio()
             if (r.optBoolean("parar", false)) pararDepoisDeFalar = true
             val fala = r.optString("falar", "")
             anotar(if (fala.isNotEmpty()) "respondi: " + fala.take(90) else "ignorei (sem o nome Jarvis)")
@@ -695,7 +733,7 @@ class BolsoService : Service(), RecognitionListener {
 
     // ---- o descanso, no relógio do Android ----
     private val fimDescanso = Runnable { tocarFim() }
-    private val dezSegundos = Runnable { falar("Dez segundos. Prepara.") }
+    private val dezSegundos = Runnable { Relogio.alertar(applicationContext, "dez"); falar("Dez segundos. Prepara.") }
 
     private fun agendarDescanso(ate: Long) {
         descansoAte = ate
@@ -709,6 +747,7 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun tocarFim() {
+        Relogio.alertar(applicationContext, "fim")
         olharMusica()
         somProprioAte = System.currentTimeMillis() + 2500L
         pedirFoco() // os bipes também: a fala vem logo depois e solta o foco no fim
@@ -724,6 +763,7 @@ class BolsoService : Service(), RecognitionListener {
             if (!pronto) { falar(reserva); return@postDelayed }
             js("bolso.fimDescanso(" + System.currentTimeMillis() + ")") { texto ->
                 falar(texto.ifEmpty { reserva })
+                publicarRelogio()
             }
         }, 1100L)
     }
@@ -933,6 +973,7 @@ class BolsoService : Service(), RecognitionListener {
 
     private fun encerrar() {
         linha.removeCallbacksAndMessages(null)
+        Relogio.desligado(applicationContext)
         soltarFoco()
         try { getSystemService(AudioManager::class.java)?.unregisterAudioPlaybackCallback(espiaoSom) } catch (e: Exception) { }
         try { unregisterReceiver(tela) } catch (e: Exception) { }

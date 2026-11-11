@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-08a**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-11a**.
 
 ---
 
@@ -219,6 +219,13 @@ com cenas reais → halter) como linguagem visual em vídeos.
 - **Comemoração com confete** ao bater recorde.
 - No fim: **resumo** com volume total, séries, recordes, comparação com o treino anterior, e a voz
   fala o resumo.
+
+### 3.2b ⌚ O treino no Galaxy Watch (novo em 2026-11-11a)
+- Um app para o relógio (Galaxy Watch 4 em diante, Wear OS), ligado ao app Android do celular.
+- No pulso: o exercício da vez, a série ("Série 2 de 4"), a carga e as repetições com − e +, e o **✓ Feito**.
+- O descanso conta no relógio (+30 s, −15 s, Pular) e o relógio **vibra** 10 s antes e no fim.
+- ◀ ▶ trocam o exercício e ↩ desfaz a última série; cada ✓ vira a série no treino do celular, com recorde e voz.
+- Ainda não está na loja do relógio: instala pelo modo de desenvolvedor (o app explica). Só Android.
 
 ### 3.3 Jarvis — o assistente de voz 🎤
 O principal diferencial. A pessoa **fala** e ele anota, sem tocar no celular, com a mão suja de magnésio.

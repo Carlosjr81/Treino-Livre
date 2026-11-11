@@ -85,12 +85,16 @@ jobs:
           echo "\`$DIGITAL\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Renomear
-        run: cp android/app/build/outputs/apk/release/app-release.apk treino-livre.apk
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk treino-livre.apk
+          cp android/relogio/build/outputs/apk/release/relogio-release.apk treino-livre-relogio.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: treino-livre-apk
-          path: treino-livre.apk
+          path: |
+            treino-livre.apk
+            treino-livre-relogio.apk
 
       - name: Publicar a versão (só do main)
         if: github.ref == 'refs/heads/main'
@@ -99,8 +103,14 @@ jobs:
           tag_name: android-${{ github.run_number }}
           name: App Android ${{ github.run_number }}
           make_latest: "true"
-          files: treino-livre.apk
+          files: |
+            treino-livre.apk
+            treino-livre-relogio.apk
           body: |
             O app Android do Treino Livre: o mesmo app do site, com a aba ❤ Saúde lendo o Health Connect
             (Samsung Health, Google Fit, relógios e anéis).
             Baixe o treino-livre.apk abaixo no celular, abra e permita instalar.
+
+            treino-livre-relogio.apk é o app do relógio (Galaxy Watch 4 em diante, Wear OS): instale
+            no relógio (pelo computador com o adb, ou por um app instalador no celular) para marcar as
+            séries, ajustar a carga e ver o descanso no pulso.

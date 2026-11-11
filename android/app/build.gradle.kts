@@ -60,7 +60,9 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.8.5")
     // abrir a tela do Treino Livre no relógio quando o treino começa no celular
     implementation("androidx.wear:wear-remote-interactions:1.1.0")
-    implementation("com.google.guava:listenablefuture:1.0")
+    // o RemoteActivityHelper devolve um ListenableFuture: o artefato pequeno
+    // dele perde para a versão vazia que outras bibliotecas pedem
+    implementation("com.google.guava:guava:33.3.1-android")
     // a câmera dos óculos Ray-Ban Meta (kit da Meta, Maven Central)
     implementation("com.meta.wearable:mwdat-core:1.0.1")
     implementation("com.meta.wearable:mwdat-camera:1.0.1")

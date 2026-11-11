@@ -779,7 +779,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v177) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v178) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4319,7 +4319,7 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   outro). No roteador do celular não há Wi-Fi como cliente e nada é preso. E
   como **o relógio usa uma porta para parear e outra para conectar**, sem o
   anúncio pela rede (mDNS) o app pede o segundo endereço, o da tela da
-  Depuração por Wi-Fi depois de fechar o código (`enderecoCon`). **Licença**: libadb-android pela
+  Depuração por Wi-Fi depois de fechar o código (`enderecoCon`). **No segundo teste (2026-11-11e)**, já no roteador do celular, o relógio pareou (o "Já pareei antes" só aparece depois de um pareamento que deu certo) e o APK antigo, sem o campo de conectar, parou ali. Hoje: o `bindProcessToNetwork` só prende ao Wi-Fi quando o relógio está nele (`noRoteadorDoCelular`: com o celular no Wi-Fi e no roteador ao mesmo tempo, prender ao Wi-Fi tiraria o caminho até o relógio); parear e conectar têm prazo de 25 s (`comPrazo`); já pareado, o campo de conectar fica à vista; e a tela mostra a versão do app do celular, para o relato dizer se o APK novo foi instalado. **Licença**: libadb-android pela
   Apache-2.0, e a spake2-java (do pareamento) é **LGPL-3.0**: exceção à regra de
   não usar copyleft, **decidida pelo dono**, só no APK direto, sem modificar a
   biblioteca, com o aviso no `LICENSE`. Não traga outra biblioteca copyleft

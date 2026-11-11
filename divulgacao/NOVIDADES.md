@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-11e — Conserto: instalar no relógio pelo roteador do celular
+
+**Em uma frase:** a instalação do app no relógio funciona com o relógio ligado no roteador do celular, e não fica mais parada sem dizer nada.
+
+**O que mudou**
+- Com o relógio no roteador do celular, o app vai direto até ele.
+- Se o relógio não responder em 25 segundos, o app diz o que conferir em vez de ficar em "Pareando…".
+- Depois do primeiro pareamento, o campo do endereço de conectar já aparece, para instalar sem código.
+- A tela mostra a versão do app do celular.
+
+**Por que importa para quem treina**
+- Menos tentativa e erro para pôr o treino no pulso.
+
+**Como usar**
+- Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio → Instalar no relógio agora.
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- Ainda não foi testado até o fim num Galaxy Watch de verdade.
+
+---
+
 ## 2026-11-11d — Conserto: instalar no relógio pelo Wi-Fi da academia ou da empresa
 
 **Em uma frase:** o instalador do app do relógio agora conversa com o relógio pelo Wi-Fi mesmo quando o Wi-Fi não tem internet, e explica o que fazer quando a rede bloqueia.

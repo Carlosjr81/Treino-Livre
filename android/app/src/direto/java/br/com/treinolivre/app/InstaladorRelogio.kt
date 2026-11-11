@@ -119,6 +119,8 @@ class InstaladorRelogio : ComponentActivity() {
         }
 
         caixa.addView(texto(22f, negrito = true, t = "⌚ Instalar o app no relógio"))
+        val versao = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (e: Exception) { "?" }
+        caixa.addView(texto(12f, CINZA, t = "App do celular: versão " + versao))
         caixa.addView(texto(14f, CINZA, t = "O app acha o relógio no Wi-Fi, baixa e instala. Você só digita o código de 6 números que o relógio mostra (uma vez só)."), lp(6))
 
         val c1 = cartao()
@@ -166,6 +168,7 @@ class InstaladorRelogio : ComponentActivity() {
         }
         manual.addView(enderecoCon, lp(6))
         caixa.addView(manual, lp(10))
+        if (getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("pareado", false)) manual.visibility = View.VISIBLE
 
         registro = texto(14f, t = "")
         caixa.addView(registro, lp(14))
@@ -278,13 +281,18 @@ class InstaladorRelogio : ComponentActivity() {
             prenderAoWifi(hp ?: hostCon)
             if (comCodigo && hp != null) {
                 log("🔐 Pareando com o relógio…")
-                val ok = try { adb.pair(hp, pp, cod) } catch (e: Exception) {
+                val ok = try { comPrazo(25_000L) { adb.pair(hp, pp, cod) } } catch (e: Exception) {
                     val msg = e.message ?: e.javaClass.simpleName
                     log("⚠ O pareamento falhou: " + msg)
-                    if (msg.contains("connect") || msg.contains("ECONN") || msg.contains("ETIMEDOUT") || msg.contains("EHOSTUNREACH") || msg.contains("ENETUNREACH")) explicarRede(hp)
+                    if (msg.contains("connect") || msg.contains("ECONN") || msg.contains("abort") || msg.contains("não respondeu") || msg.contains("ETIMEDOUT") || msg.contains("EHOSTUNREACH") || msg.contains("ENETUNREACH")) explicarRede(hp)
                     false
                 }
-                if (!ok) { log("Se o erro não for de rede: confira o código (ele muda a cada vez que a tela abre) e tente de novo."); return "erro" }
+                if (!ok) {
+                    log("Confira: o endereço tem de ser o da janela do código (Parear novo dispositivo), e o código muda a cada vez que essa janela abre.")
+                    if (getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("pareado", false))
+                        log("➡ Este celular já pareou com o relógio antes: não precisa de código. Feche o código no relógio, digite no segundo campo o endereço da tela Depuração por Wi-Fi e toque em \"Já pareei antes\".")
+                    return "erro"
+                }
                 getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("pareado", true).apply()
                 linha.post { botaoJa.visibility = View.VISIBLE }
                 log("✓ Pareado. O relógio vai lembrar deste celular.")
@@ -304,10 +312,10 @@ class InstaladorRelogio : ComponentActivity() {
                 return "erro"
             }
             log("🔗 Conectando ao relógio…")
-            val conectou = try { adb.connect(hc, pc) } catch (e: Exception) {
+            val conectou = try { comPrazo(25_000L) { adb.connect(hc, pc) } } catch (e: Exception) {
                 val msg = e.message ?: e.javaClass.simpleName
                 log("⚠ A conexão falhou: " + msg)
-                if (msg.contains("ECONN") || msg.contains("ETIMEDOUT") || msg.contains("EHOSTUNREACH") || msg.contains("ENETUNREACH")) explicarRede(hc)
+                if (msg.contains("ECONN") || msg.contains("abort") || msg.contains("não respondeu") || msg.contains("ETIMEDOUT") || msg.contains("EHOSTUNREACH") || msg.contains("ENETUNREACH")) explicarRede(hc)
                 false
             }
             if (!conectou) { if (!comCodigo) log("Se nunca pareou com este celular, use o código."); return "erro" }
@@ -373,9 +381,43 @@ class InstaladorRelogio : ComponentActivity() {
             return
         }
         val meu = meuIpWifi()
-        if (meu != null && host != null && !mesmaRede(meu, host)) log("ℹ O celular está em " + meu + " e o relógio em " + host + ": parecem redes diferentes.")
+        if (host != null && noRoteadorDoCelular(host)) {
+            log("📶 O relógio está no roteador do celular: caminho direto.")
+            return
+        }
+        if (meu != null && host != null && !mesmaRede(meu, host)) {
+            log("ℹ O celular está em " + meu + " e o relógio em " + host + ": parecem redes diferentes.")
+            return
+        }
         presoAoWifi = cm.bindProcessToNetwork(w)
         if (presoAoWifi) log("📶 Falando com o relógio pelo Wi-Fi (" + (meu ?: "Wi-Fi") + ").")
+    }
+
+    // O roteador do celular (ponto de acesso) é uma interface do próprio celular
+    // que não é o Wi-Fi em que ele está conectado como cliente: se o relógio está
+    // numa delas, não se prende a nada.
+    private fun noRoteadorDoCelular(host: String): Boolean = try {
+        val wifi = meuIpWifi()?.substringBefore("/")
+        Collections.list(NetworkInterface.getNetworkInterfaces()).any { ni ->
+            ni.interfaceAddresses.any { ia ->
+                val a = ia.address
+                a is java.net.Inet4Address && a.hostAddress != wifi && !a.isLoopbackAddress &&
+                    mesmaRede(a.hostAddress + "/" + ia.networkPrefixLength, host)
+            }
+        }
+    } catch (e: Exception) { false }
+
+    // Roda a chamada da biblioteca com prazo: sem ele, uma rede que segura a
+    // conexão deixava a tela em "Pareando…" para sempre.
+    private fun <T> comPrazo(ms: Long, f: () -> T): T {
+        val fila = java.util.concurrent.Executors.newSingleThreadExecutor()
+        try {
+            return fila.submit<T> { f() }.get(ms, java.util.concurrent.TimeUnit.MILLISECONDS)
+        } catch (e: java.util.concurrent.TimeoutException) {
+            throw java.io.IOException("o relógio não respondeu em " + (ms / 1000) + " s")
+        } catch (e: java.util.concurrent.ExecutionException) {
+            throw (e.cause as? Exception) ?: e
+        } finally { fila.shutdownNow() }
     }
 
     private fun soltarDoWifi() {
@@ -401,7 +443,8 @@ class InstaladorRelogio : ComponentActivity() {
         log("📵 O celular não conseguiu chegar ao relógio (" + (host ?: "") + "). Quase sempre é a rede:")
         log("• Wi-Fi de empresa, condomínio ou academia costuma bloquear um aparelho de falar com o outro.")
         log("• Saída garantida: ligue o Roteador Wi-Fi do celular (Configurações → Conexões → Roteador Wi-Fi), conecte o relógio nele (no relógio: Configurações → Conexões → Wi-Fi) e abra o Parear de novo. Com os dados móveis ligados, o download sai pelo próprio celular.")
-        log("• Desligue VPN, se tiver, e confira que o relógio e o celular estão no mesmo Wi-Fi.")
+        log("• Desligue VPN e o \"Wi-Fi seguro\" do Samsung, se estiverem ligados: eles desviam a conexão.")
+        log("• No relógio, se a janela do código fechou, abra de novo: o código e a porta mudam.")
     }
 
     private fun baixar(): ByteArray? = try {

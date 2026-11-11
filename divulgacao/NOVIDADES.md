@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-11f — Conserto: o instalador do relógio diz por que a conexão falhou
+
+**Em uma frase:** quando o relógio recusa a conexão, o instalador agora diz o motivo e o que fazer.
+
+**O que mudou**
+- No lugar de um "a conexão falhou" sem explicação, aparece o motivo, e a orientação de parear de novo quando o relógio não reconhece o celular.
+
+**Por que importa para quem treina**
+- Menos tentativa e erro para pôr o treino no pulso.
+
+**Como usar**
+- Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio → Instalar no relógio agora.
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- Ainda não foi testado até o fim num Galaxy Watch de verdade.
+
+---
+
 ## 2026-11-11e — Conserto: instalar no relógio pelo roteador do celular
 
 **Em uma frase:** a instalação do app no relógio funciona com o relógio ligado no roteador do celular, e não fica mais parada sem dizer nada.

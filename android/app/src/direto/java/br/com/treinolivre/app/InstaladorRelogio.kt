@@ -314,7 +314,9 @@ class InstaladorRelogio : ComponentActivity() {
             log("🔗 Conectando ao relógio…")
             val conectou = try { comPrazo(25_000L) { adb.connect(hc, pc) } } catch (e: Exception) {
                 val msg = e.message ?: e.javaClass.simpleName
-                log("⚠ A conexão falhou: " + msg)
+                log("⚠ A conexão falhou: " + msg + (if (msg.contains("não respondeu")) "" else motivoDaConexao(adb)))
+                if (msg.contains("Connection failed") || e.javaClass.simpleName.contains("Pairing") || e.javaClass.simpleName.contains("Authentication"))
+                    log("➡ O relógio recusou este celular: o pareamento não valeu. Abra Parear novo dispositivo no relógio, ponha o código e o endereço DESSA janela no primeiro campo, o endereço da tela principal da Depuração por Wi-Fi no segundo, e toque em Parear e instalar.")
                 if (msg.contains("ECONN") || msg.contains("abort") || msg.contains("não respondeu") || msg.contains("ETIMEDOUT") || msg.contains("EHOSTUNREACH") || msg.contains("ENETUNREACH")) explicarRede(hc)
                 false
             }
@@ -406,6 +408,16 @@ class InstaladorRelogio : ComponentActivity() {
             }
         }
     } catch (e: Exception) { false }
+
+    // O motivo de verdade de um "Connection failed": a biblioteca guarda o erro
+    // num campo privado e só devolve a frase genérica.
+    private fun motivoDaConexao(adb: AbsAdbConnectionManager): String = try {
+        val con = adb.adbConnection ?: return ""
+        val f = con.javaClass.getDeclaredField("mConnectionException")
+        f.isAccessible = true
+        val e = f.get(con) as? Throwable
+        if (e == null) "" else " (" + e.javaClass.simpleName + ": " + (e.message ?: "") + (e.cause?.let { " / " + (it.message ?: it.javaClass.simpleName) } ?: "") + ")"
+    } catch (e: Exception) { "" }
 
     // Roda a chamada da biblioteca com prazo: sem ele, uma rede que segura a
     // conexão deixava a tela em "Pareando…" para sempre.

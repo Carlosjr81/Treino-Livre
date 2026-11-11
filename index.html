@@ -1687,7 +1687,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-11h";
+const VERSAO_APP = "2026-11-11i";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -30570,7 +30570,7 @@ const OCULOS_ERROS = {
 let ABRIR_RELOGIO = null;
 const abrirInstalarRelogio = (status) => { if (ABRIR_RELOGIO) ABRIR_RELOGIO(status || ""); };
 const STATUS_RELOGIO = {
-  pronto: { ok: true, texto: "✅ Pronto! O app está no relógio. Abra o Treino Livre no relógio e comece o treino pelo app do celular: a primeira série marcada liga tudo." },
+  pronto: { ok: true, texto: "✅ O app está no relógio e acabou de abrir nele. Agora comece o treino pelo app do celular: a primeira série marcada liga o relógio, e o ✓ Feito do pulso entra sozinho aqui." },
   falta: { ok: false, texto: "⌚ O relógio está conectado, mas o app ainda não está nele. Faça os passos 2 e 3 e confira de novo." },
   semrelogio: { ok: false, texto: "📵 Nenhum relógio conectado a este celular. Abra o app Galaxy Wearable, confira que o relógio está conectado e confira de novo." },
   erro: { ok: false, texto: "⚠ O celular não respondeu a tempo. Confira o Bluetooth e o app Galaxy Wearable, e tente de novo." },
@@ -30613,7 +30613,9 @@ const PASSOS_RELOGIO_MANUAL = [
     ] },
 ];
 function lerPassosRelogio() { try { return JSON.parse(localStorage.getItem("treinolivre:relogioPassos") || "{}") || {}; } catch (e) { return {}; } }
-function InstalarRelogio({ status, onFechar }) {
+function InstalarRelogio({ status: statusEm, onFechar }) {
+  const status = String(statusEm || "").split("|")[0];
+  const conferidoEm = +String(statusEm || "").split("|")[1] || 0;
   const [feitos, setFeitos] = useState(() => {
     const f = lerPassosRelogio();
     if (RELOGIO_APP >= 2) f.celular = true;
@@ -30689,7 +30691,10 @@ function InstalarRelogio({ status, onFechar }) {
           <div style={{ ...S.card, borderColor: "var(--perigo)" }}>Precisa de um celular <b>Android</b> com o app do Treino Livre: o relógio conversa com o app, não com o navegador.</div>
         )}
         {st && (
-          <div role="status" style={{ ...S.card, borderColor: st.ok ? "var(--ok)" : "var(--borda2)", fontSize: 14, lineHeight: 1.5, fontWeight: 700 }}>{st.texto}</div>
+           <div role="status" style={{ ...S.card, borderColor: st.ok ? "var(--ok)" : "var(--borda2)", fontSize: 14, lineHeight: 1.5, fontWeight: 700 }}>
+             {conferidoEm > 0 && <div style={{ fontSize: 12, color: "var(--cinza)", fontWeight: 700, marginBottom: 4 }}>Conferido às {new Date(conferidoEm).toLocaleTimeString("pt-BR")}</div>}
+             {st.texto}
+           </div>
         )}
         <div style={{ height: 6, borderRadius: 3, background: "var(--borda)", overflow: "hidden", margin: "4px 0 12px" }}>
           <div style={{ height: "100%", width: (100 * nFeitos / PASSOS_RELOGIO.length) + "%", background: "var(--ok)" }} />
@@ -32121,7 +32126,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   MODO_DESCANSO = descansoModo;
   ABRIR_GUIA = (id, problema) => { setProblemaGuia(problema || ""); setGuia(id || ""); };
   ABRIR_AJUDA = (onde) => setAjuda(onde || "");
-  ABRIR_RELOGIO = (status) => setInstRelogio(status || "");
+  ABRIR_RELOGIO = (status) => setInstRelogio(status ? status + "|" + Date.now() : "");
   ABRIR_EMERGENCIA = () => setEmergencia(true);
   vozRef.current = voz;
   somRef.current = som;

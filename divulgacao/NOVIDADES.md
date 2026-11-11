@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-11i — Conserto: o "Conferir o relógio" mostra a resposta
+
+**Em uma frase:** conferir o relógio agora abre o Treino Livre no próprio relógio e diz a hora em que conferiu.
+
+**O que mudou**
+- Antes, conferir de novo mostrava a mesma mensagem de antes e parecia que o botão não fazia nada.
+
+**Por que importa para quem treina**
+- Dá para ver no pulso, na hora, que o relógio está pronto para o treino.
+
+**Como usar**
+- Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio → Confira se deu certo → Conferir o relógio.
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- Só Android com o app do Treino Livre instalado.
+
+---
+
 ## 2026-11-11h — Conserto: atualizar o app do relógio sem parear de novo
 
 **Em uma frase:** depois da primeira vez, atualizar o app do relógio é um toque, sem código e sem digitar endereço.

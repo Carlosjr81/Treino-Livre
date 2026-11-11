@@ -33,7 +33,10 @@ class RelogioActivity : ComponentActivity() {
                 if (nos.isEmpty()) { voltar("semrelogio"); return@addOnSuccessListener }
                 Wearable.getCapabilityClient(this)
                     .getCapability("treino_livre_relogio", CapabilityClient.FILTER_REACHABLE)
-                    .addOnSuccessListener { cap -> voltar(if (cap.nodes.isNotEmpty()) "pronto" else "falta") }
+                    .addOnSuccessListener { cap ->
+                        if (cap.nodes.isNotEmpty()) Relogio.abrirNoRelogio(applicationContext)
+                        voltar(if (cap.nodes.isNotEmpty()) "pronto" else "falta")
+                    }
                     .addOnFailureListener { voltar("falta") }
             }.addOnFailureListener { voltar("erro") }
         } catch (e: Exception) { voltar("erro") }

@@ -779,7 +779,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v181) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v182) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4311,7 +4311,10 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   (`RelogioActivity`): o celular pergunta ao relógio pela capacidade
   `treino_livre_relogio` (declarada em `relogio/res/values/wear.xml`) e
   volta com `#relogio=pronto|falta|semrelogio|erro`, que reabre o assistente
-  com o resultado. Num app antigo, o link baixa o app novo. O app novo abre o
+  com o resultado. **Conferir abre o app no relógio** (`Relogio.abrirNoRelogio`)
+  e a resposta traz a hora (`status|agora`, "Conferido às …"): relato do
+  dono, 2026-11-11i, "conferi e não faz nada" — o mesmo "pronto" de antes não
+  mudava nada na tela. Num app antigo, o link baixa o app novo. O app novo abre o
   site com `relogio=1` (`RELOGIO_APP`): o passo 1 já vem feito. Entradas:
   Ajustes › Conectar aparelhos, o guia `pulso`, a Central de Ajuda
   (`instalarRelogio`) e o cartão 🔒 do treino. **Quando o app do relógio

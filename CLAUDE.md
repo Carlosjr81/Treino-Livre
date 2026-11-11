@@ -789,7 +789,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v186) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v187) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4353,7 +4353,10 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   `PROBLEMAS_RELOGIO` (cada mensagem do instalador e o que fazer); a tela do
   instalador tem o mesmo 🆘. Mensagem nova no instalador ganha linha ali.
   Num app antigo, o link baixa o app novo. O app novo abre o
-  site com `relogio=1` (`RELOGIO_APP`): o passo 1 já vem feito. Entradas:
+  site com `relogio=3` (`RELOGIO_APP`, `RELOGIO_APP_ATUAL`): o passo 1 já
+  vem feito. O 2 (11c a 11j) instala no relógio mas não entrega a série
+  sozinha: o passo 1 fica aberto com "versão anterior" (2026-11-11n; antes o
+  "já é a versão nova" aparecia para ele). Entradas:
   Ajustes › Conectar aparelhos, o guia `pulso`, a Central de Ajuda
   (`instalarRelogio`) e o cartão 🔒 do treino. **Quando o app do relógio
   estiver na Play Store, tudo isto vira um toque**: é o caminho para tirar o

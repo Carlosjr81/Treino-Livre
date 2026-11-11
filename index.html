@@ -1689,7 +1689,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-11m";
+const VERSAO_APP = "2026-11-11n";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3102,6 +3102,8 @@ const RELOGIO_APP = (() => {
     return parseInt(localStorage.getItem("treinolivre:relogioApp")) || 0;
   } catch (e) { return 0; }
 })();
+// o app do celular que entrega a série do relógio sozinha (2026-11-11k em diante)
+const RELOGIO_APP_ATUAL = 3;
 // O "Conferir o relógio": o app pergunta ao relógio e volta com #relogio=. Um
 // app antigo, sem essa tela, faz o Chrome baixar o app novo.
 const LINK_CONFERIR_RELOGIO = "intent://relogio#Intent;scheme=treinolivre;package=br.com.treinolivre.app;S.browser_fallback_url=" + encodeURIComponent("https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk") + ";end";
@@ -30687,9 +30689,10 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
   const conferidoEm = +String(statusEm || "").split("|")[1] || 0;
   const [feitos, setFeitos] = useState(() => {
     const f = lerPassosRelogio();
-    if (RELOGIO_APP >= 2) f.celular = true;
-    if (status === "pronto") PASSOS_RELOGIO.forEach((p) => { f[p.id] = true; });
-    if (status === "falta" || status === "semrelogio") f.celular = true;
+    if (RELOGIO_APP >= RELOGIO_APP_ATUAL) f.celular = true;
+    if (status === "pronto") PASSOS_RELOGIO.forEach((p) => { f[p.id] = p.id !== "celular" || RELOGIO_APP >= RELOGIO_APP_ATUAL; });
+    if ((status === "falta" || status === "semrelogio") && RELOGIO_APP >= RELOGIO_APP_ATUAL) f.celular = true;
+    if (RELOGIO_APP > 0 && RELOGIO_APP < RELOGIO_APP_ATUAL) f.celular = false;
     return f;
   });
   const marcar = (id, v) => setFeitos((f) => {
@@ -30728,7 +30731,8 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
                 {p.lista.map((l, i) => <li key={i} style={{ marginBottom: 6 }}>{textoGuia(l)}</li>)}
               </ol>
             )}
-            {p.id === "celular" && RELOGIO_APP >= 2 && <div style={{ fontSize: 13, color: "var(--ok)", marginBottom: 8, fontWeight: 700 }}>✓ O app do seu celular já é a versão nova.</div>}
+            {p.id === "celular" && RELOGIO_APP >= RELOGIO_APP_ATUAL && <div style={{ fontSize: 13, color: "var(--ok)", marginBottom: 8, fontWeight: 700 }}>✓ O app do seu celular já é a versão nova.</div>}
+            {p.id === "celular" && RELOGIO_APP > 0 && RELOGIO_APP < RELOGIO_APP_ATUAL && <div style={{ fontSize: 13, color: "var(--perigo)", marginBottom: 8, fontWeight: 700 }}>⚠ O app do seu celular é de uma versão anterior: instala no relógio, mas a série marcada no pulso ainda pede a notificação. Baixe de novo e instale por cima.</div>}
             {p.botao && EH_ANDROID && botaoLink(p.botao.href, p.botao.rotulo, () => { if (p.id !== "celular") marcar(p.id, true); }, p.botao.href.indexOf("play.google") >= 0 ? "_blank" : undefined)}
             {p.instalar && EH_ANDROID && botaoLink(LINK_INSTALAR_RELOGIO, "⌚ Instalar no relógio agora", () => marcar(p.id, true))}
             {p.conferir && EH_ANDROID && botaoLink(LINK_CONFERIR_RELOGIO, "✓ Conferir o relógio")}

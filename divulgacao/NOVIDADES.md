@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-11n — Conserto: o assistente do relógio sabe se o app do celular está em dia
+
+**Em uma frase:** o assistente do relógio agora diz se o app do celular precisa ser baixado de novo.
+
+**O que mudou**
+- Antes ele dizia "já é a versão nova" para versões antigas, que ainda pediam o toque na notificação.
+
+**Por que importa para quem treina**
+- A série marcada no pulso só entra sozinha no celular com o app em dia.
+
+**Como usar**
+- Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio: se aparecer "versão anterior", toque em Baixar o app do celular.
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- Só Android, com o app do Treino Livre.
+
+---
+
 ## 2026-11-11m — Conserto: o instalador do relógio avisa quando a rede é outra
 
 **Em uma frase:** se o relógio e o celular estiverem em Wi-Fi diferentes, o instalador avisa na hora e mostra o que fazer.

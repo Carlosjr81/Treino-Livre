@@ -23,8 +23,9 @@ object Site {
         // chama treinolivre://bolso a cada ✓ quando sabe disso.
         // corrida=1: e conduz o desafio de corrida com a tela travada (CorridaService).
         // relogio=2: e conversa com o app do relógio (Galaxy Watch), e o instala
-        // pelo Wi-Fi (InstaladorRelogio)
-        val base = "$ENDERECO?app=android&bolso=2&corrida=1&relogio=2"
+        // pelo Wi-Fi (InstaladorRelogio). relogio=3: e entrega a série do relógio
+        // sozinha (canal cifrado, confirmação e "Aparecer sobre outros apps")
+        val base = "$ENDERECO?app=android&bolso=2&corrida=1&relogio=3"
         return Uri.parse(if (pacoteSaude == null) base else "$base#saude=$pacoteSaude")
     }
 

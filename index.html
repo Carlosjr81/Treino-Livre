@@ -1689,7 +1689,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-11l";
+const VERSAO_APP = "2026-11-11m";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -30649,6 +30649,8 @@ const PASSOS_RELOGIO = [
 ];
 // O que fazer quando aparece uma destas mensagens na tela de instalar
 const PROBLEMAS_RELOGIO = [
+  ["\"O celular e o relógio estão em redes diferentes\"",
+    "Compare o endereço do celular com o do relógio: o começo tem de ser igual (por exemplo **192.168.0**.171 e **192.168.0**.40). No relógio, Configurações → Conexões → **Wi-Fi**, e escolha o mesmo Wi-Fi do celular (ou o Roteador Wi-Fi do celular). Depois, **Já pareei antes** com o endereço novo: não precisa de código."],
   ["\"O celular não conseguiu chegar ao relógio\", \"ECONNABORTED\", \"Host unreachable\" ou \"não respondeu\"",
     "A rede está bloqueando, ou o Wi-Fi do relógio dormiu. Ligue o **Roteador Wi-Fi do celular**, conecte o relógio nele (passo 3), acenda a tela do relógio e tente de novo."],
   ["\"O pareamento falhou\"",

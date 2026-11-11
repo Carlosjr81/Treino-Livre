@@ -298,7 +298,10 @@ class InstaladorRelogio : ComponentActivity() {
             log("⬇ Baixando o app do relógio…")
             val bytes = baixar() ?: run { log("⚠ Não consegui baixar o app do relógio. Confira a internet."); return "erro" }
             log("✓ Baixado (" + (bytes.size / 1024) + " KB).")
-            prenderAoWifi(hp ?: hostCon)
+            val digCon0 = enderecoCon.text.toString().trim().let { if (it.contains(":")) it.substringBeforeLast(":") else "" }
+            val alvo = hp ?: digCon0.ifEmpty { null } ?: hostCon
+                ?: getSharedPreferences(PREFS, MODE_PRIVATE).getString("ultimoHost", null)?.ifEmpty { null }
+            if (!prenderAoWifi(alvo)) return "erro"
             if (comCodigo && hp != null) {
                 log("🔐 Pareando com o relógio…")
                 val ok = try { comPrazo(25_000L) { adb.pair(hp, pp, cod) } } catch (e: Exception) {
@@ -459,24 +462,34 @@ class InstaladorRelogio : ComponentActivity() {
         return cm.getLinkProperties(w)?.linkAddresses?.firstOrNull { it.address is java.net.Inet4Address }?.let { it.address.hostAddress + "/" + it.prefixLength }
     }
 
-    private fun prenderAoWifi(host: String?) {
-        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return
+    // Devolve false quando o relógio está, com certeza, em outra rede: tentar
+    // seria esperar à toa (o celular não tem caminho até ele).
+    private fun prenderAoWifi(host: String?): Boolean {
+        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return true
         val w = redeWifi()
         if (w == null) {
             log("ℹ O celular não está num Wi-Fi. Se o relógio estiver no roteador do celular (ponto de acesso), tudo bem; senão, conecte os dois no mesmo Wi-Fi.")
-            return
+            return true
         }
         val meu = meuIpWifi()
         if (host != null && noRoteadorDoCelular(host)) {
             log("📶 O relógio está no roteador do celular: caminho direto.")
-            return
+            return true
         }
         if (meu != null && host != null && !mesmaRede(meu, host)) {
-            log("ℹ O celular está em " + meu + " e o relógio em " + host + ": parecem redes diferentes.")
-            return
+            val ip = meu.substringBefore("/")
+            log("🚫 O celular e o relógio estão em redes DIFERENTES:")
+            log("• celular: " + ip + "   • relógio: " + host)
+            log("Os números do começo precisam ser iguais (" + ip.substringBeforeLast(".") + ".…). Assim o celular não tem como chegar ao relógio.")
+            log("➡ No relógio: Configurações → Conexões → Wi-Fi, e escolha o MESMO Wi-Fi do celular (ou ligue o Roteador Wi-Fi do celular e conecte o relógio nele).")
+            log("➡ Depois, a Depuração por Wi-Fi do relógio mostra um endereço novo: confira que começa com " + ip.substringBeforeLast(".") + ", digite no segundo campo e toque em \"Já pareei antes\". Não precisa de código.")
+            log("Se o relógio não está em Wi-Fi nenhum (só no 4G ou no Bluetooth), a Depuração por Wi-Fi não funciona: ele precisa de Wi-Fi.")
+            linha.post { manual.visibility = View.VISIBLE }
+            return false
         }
         presoAoWifi = cm.bindProcessToNetwork(w)
         if (presoAoWifi) log("📶 Falando com o relógio pelo Wi-Fi (" + (meu ?: "Wi-Fi") + ").")
+        return true
     }
 
     // O roteador do celular (ponto de acesso) é uma interface do próprio celular

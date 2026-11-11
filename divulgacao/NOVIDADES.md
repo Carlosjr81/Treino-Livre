@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-11m — Conserto: o instalador do relógio avisa quando a rede é outra
+
+**Em uma frase:** se o relógio e o celular estiverem em Wi-Fi diferentes, o instalador avisa na hora e mostra o que fazer.
+
+**O que mudou**
+- Antes, ele ficava tentando e só dizia que o relógio não respondeu. Agora mostra os dois endereços e manda pôr o relógio no mesmo Wi-Fi do celular.
+
+**Por que importa para quem treina**
+- Menos tempo perdido instalando o app no relógio.
+
+**Como usar**
+- Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio.
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- O relógio precisa estar num Wi-Fi (no 4G ou só no Bluetooth não dá para instalar assim).
+
+---
+
 ## 2026-11-11l — Conserto: as setas do relógio acham o exercício que falta
 
 **Em uma frase:** no relógio, ◀ e ▶ levam ao exercício que ainda tem série por fazer, mesmo que você tenha feito o treino fora de ordem.

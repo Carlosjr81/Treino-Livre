@@ -148,10 +148,18 @@ class InstaladorRelogio : ComponentActivity() {
         botao = botaoCheio("⌚ Parear e instalar", ROSA)
         botao.setOnClickListener { instalar(true) }
         c3.addView(botao, lp(8))
-        botaoJa = botaoCheio("Já pareei antes: instalar ou atualizar", Color.parseColor("#2A2A33"))
+        val jaPareado = getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("pareado", false)
+        botaoJa = botaoCheio("Já pareei antes: instalar ou atualizar", if (jaPareado) ROSA else Color.parseColor("#2A2A33"))
         botaoJa.setOnClickListener { instalar(false) }
-        c3.addView(botaoJa, lp(8))
-        botaoJa.visibility = if (getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("pareado", false)) View.VISIBLE else View.GONE
+        botaoJa.visibility = if (jaPareado) View.VISIBLE else View.GONE
+        if (jaPareado) {
+            // Já pareado (relato do dono, 2026-11-11h): atualizar não pede código
+            // nem endereço; o app acha a porta nova do relógio sozinho.
+            botao.setBackgroundColor(Color.TRANSPARENT)
+            botao.background = GradientDrawable().apply { cornerRadius = dp(26).toFloat(); setColor(Color.parseColor("#2A2A33")) }
+            c3.addView(texto(14f, Color.parseColor("#4CD137"), t = "✓ Este celular já está pareado com o relógio. Para atualizar, basta a Depuração por Wi-Fi ligada no relógio (não precisa abrir o código): toque no botão abaixo."), 1, lp(6))
+            c3.addView(botaoJa, 2, lp(8))
+        } else c3.addView(botaoJa, lp(8))
         caixa.addView(c3, lp(10))
 
         manual = cartao().apply { visibility = View.GONE }
@@ -293,36 +301,74 @@ class InstaladorRelogio : ComponentActivity() {
                         log("➡ Este celular já pareou com o relógio antes: não precisa de código. Feche o código no relógio, digite no segundo campo o endereço da tela Depuração por Wi-Fi e toque em \"Já pareei antes\".")
                     return "erro"
                 }
-                getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("pareado", true).apply()
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("pareado", true).putString("ultimoHost", hp).apply()
                 linha.post { botaoJa.visibility = View.VISIBLE }
                 log("✓ Pareado. O relógio vai lembrar deste celular.")
             }
-            // a porta de conectar é outra; espera o anúncio dela por até 15 s
-            val host = hostCon ?: hp
-            var espera = 0
-            while ((hostCon == null || portaCon <= 0) && espera < 30) { Thread.sleep(500); espera++ }
-            var hc = hostCon ?: host
-            var pc = portaCon
-            // O endereço de conectar digitado (a tela da Depuração por Wi-Fi) vence o achado
+            // A porta de conectar é outra, e MUDA cada vez que a Depuração por
+            // Wi-Fi é ligada (relato do dono: "o Já pareei antes pede tudo de
+            // novo"). Ordem: o digitado, o anunciado na rede, o último que deu
+            // certo e, por fim, procurar a porta nova no endereço do relógio.
+            val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+            val candidatos = LinkedHashSet<Pair<String, Int>>()
             val digCon = enderecoCon.text.toString().trim()
-            if (digCon.contains(":")) { hc = digCon.substringBeforeLast(":"); pc = digCon.substringAfterLast(":").toIntOrNull() ?: 0 }
-            if (hc == null || pc <= 0) {
-                log("➡ Falta um passo: no relógio, feche o código (✕). A tela da Depuração por Wi-Fi mostra o Endereço IP e porta para conectar. Digite no segundo campo aqui em cima e toque em \"Já pareei antes: instalar ou atualizar\".")
-                linha.post { manual.visibility = View.VISIBLE; enderecoCon.requestFocus() }
+            if (digCon.contains(":")) {
+                val p = digCon.substringAfterLast(":").toIntOrNull() ?: 0
+                if (p > 0) candidatos.add(digCon.substringBeforeLast(":") to p)
+            }
+            var espera = 0
+            val limite = if (comCodigo) 16 else 6
+            while ((hostCon == null || portaCon <= 0) && espera < limite) { Thread.sleep(500); espera++ }
+            if (hostCon != null && portaCon > 0) candidatos.add(hostCon!! to portaCon)
+            val salvo = prefs.getString("ultimoCon", "") ?: ""
+            if (salvo.contains(":")) {
+                val p = salvo.substringAfterLast(":").toIntOrNull() ?: 0
+                if (p > 0) candidatos.add(salvo.substringBeforeLast(":") to p)
+            }
+            // os endereços em que o relógio pode estar, para procurar a porta
+            val hosts = LinkedHashSet<String>()
+            if (digCon.isNotEmpty()) hosts.add(digCon.substringBefore(":"))
+            hostCon?.let { hosts.add(it) }
+            hp?.let { hosts.add(it) }
+            prefs.getString("ultimoHost", null)?.let { if (it.isNotEmpty()) hosts.add(it) }
+
+            var con: AbsAdbConnectionManager? = null
+            var ultimoErro = ""
+            var recusou = false
+            val tentar = { h: String, p: Int ->
+                val a = if (con == null && ultimoErro.isEmpty()) adb else Adb(this)
+                log("🔗 Conectando ao relógio (" + h + ":" + p + ")…")
+                val ok = try { comPrazo(15_000L) { a.connect(h, p) } } catch (e: Exception) {
+                    val msg = e.message ?: e.javaClass.simpleName
+                    ultimoErro = msg + (if (msg.contains("não respondeu")) "" else motivoDaConexao(a))
+                    if (msg.contains("Connection failed") || e.javaClass.simpleName.contains("Pairing") || e.javaClass.simpleName.contains("Authentication")) recusou = true
+                    false
+                }
+                if (ok) { con = a; prefs.edit().putString("ultimoCon", h + ":" + p).putString("ultimoHost", h).apply() }
+                else { if (ultimoErro.isEmpty()) ultimoErro = "não conectou"; if (a !== adb) try { a.close() } catch (e: Exception) { } }
+                ok
+            }
+            for ((h, p) in candidatos) { if (tentar(h, p)) break }
+            if (con == null) {
+                for (h in hosts) {
+                    val portas = acharPortas(h)
+                    for (p in portas) { if (candidatos.contains(h to p)) continue; if (tentar(h, p)) break }
+                    if (con != null) break
+                }
+            }
+            val c = con
+            if (c == null) {
+                if (ultimoErro.isNotEmpty()) log("⚠ A conexão falhou: " + ultimoErro)
+                when {
+                    recusou -> log("➡ O relógio recusou este celular: o pareamento não valeu. Abra Parear novo dispositivo no relógio, ponha o código e o endereço DESSA janela no primeiro campo, e toque em Parear e instalar.")
+                    hosts.isEmpty() -> log("➡ Ainda não sei o endereço do relógio. Na tela da Depuração por Wi-Fi do relógio aparece o Endereço IP e porta: digite no segundo campo e toque de novo.")
+                    else -> log("➡ Não achei o relógio. Confira no relógio: Depuração por Wi-Fi LIGADA (ela desliga sozinha quando o relógio sai do Wi-Fi ou reinicia), e relógio e celular no mesmo Wi-Fi. Se continuar, digite no segundo campo o Endereço IP e porta que a tela da Depuração por Wi-Fi mostra.")
+                }
+                linha.post { manual.visibility = View.VISIBLE }
                 return "erro"
             }
-            log("🔗 Conectando ao relógio…")
-            val conectou = try { comPrazo(25_000L) { adb.connect(hc, pc) } } catch (e: Exception) {
-                val msg = e.message ?: e.javaClass.simpleName
-                log("⚠ A conexão falhou: " + msg + (if (msg.contains("não respondeu")) "" else motivoDaConexao(adb)))
-                if (msg.contains("Connection failed") || e.javaClass.simpleName.contains("Pairing") || e.javaClass.simpleName.contains("Authentication"))
-                    log("➡ O relógio recusou este celular: o pareamento não valeu. Abra Parear novo dispositivo no relógio, ponha o código e o endereço DESSA janela no primeiro campo, o endereço da tela principal da Depuração por Wi-Fi no segundo, e toque em Parear e instalar.")
-                if (msg.contains("ECONN") || msg.contains("abort") || msg.contains("não respondeu") || msg.contains("ETIMEDOUT") || msg.contains("EHOSTUNREACH") || msg.contains("ENETUNREACH")) explicarRede(hc)
-                false
-            }
-            if (!conectou) { if (!comCodigo) log("Se nunca pareou com este celular, use o código."); return "erro" }
             log("📲 Instalando no relógio…")
-            val stream = adb.openStream("exec:cmd package install -r -S " + bytes.size)
+            val stream = c.openStream("exec:cmd package install -r -S " + bytes.size)
             val saida = stream.openOutputStream()
             var i = 0
             while (i < bytes.size) { val n = minOf(32 * 1024, bytes.size - i); saida.write(bytes, i, n); i += n }
@@ -350,6 +396,32 @@ class InstaladorRelogio : ComponentActivity() {
             try { adb.close() } catch (e: Exception) { }
             soltarDoWifi()
         }
+    }
+
+    // Procura as portas abertas do relógio. A da Depuração por Wi-Fi é sorteada
+    // pelo relógio entre 30000 e 49999 a cada vez que ela é ligada (nas telas do
+    // dono: 38329, 39165, 40149). Na rede local, porta fechada responde na
+    // hora; 256 de cada vez, a faixa inteira leva poucos segundos.
+    private fun acharPortas(host: String): List<Int> {
+        log("🔎 Procurando o relógio em " + host + " (a porta muda a cada vez)…")
+        val abertas = java.util.concurrent.ConcurrentLinkedQueue<Int>()
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(256)
+        try {
+            val tarefas = (30000..49999).map { p ->
+                pool.submit {
+                    try { java.net.Socket().use { s -> s.connect(java.net.InetSocketAddress(host, p), 600) }; abertas.add(p) } catch (e: Exception) { }
+                }
+            }
+            val fim = System.currentTimeMillis() + 60_000L
+            for (t in tarefas) {
+                val resta = fim - System.currentTimeMillis()
+                if (resta <= 0) break
+                try { t.get(resta, java.util.concurrent.TimeUnit.MILLISECONDS) } catch (e: Exception) { }
+            }
+        } finally { pool.shutdownNow() }
+        val l = abertas.toList().sorted()
+        if (l.isNotEmpty()) log("✓ Achei o relógio na porta " + l.joinToString(", ") + ".")
+        return l
     }
 
     // ---- a rede ----

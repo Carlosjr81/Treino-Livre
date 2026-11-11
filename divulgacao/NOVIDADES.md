@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-11h — Conserto: atualizar o app do relógio sem parear de novo
+
+**Em uma frase:** depois da primeira vez, atualizar o app do relógio é um toque, sem código e sem digitar endereço.
+
+**O que mudou**
+- O relógio muda o "endereço de conexão" toda vez que a Depuração por Wi-Fi é ligada, e o app pedia tudo de novo. Agora ele lembra do relógio e acha o endereço novo sozinho.
+- Com o celular já pareado, o botão "Já pareei antes: instalar ou atualizar" vira o principal da tela.
+
+**Por que importa para quem treina**
+- Cada versão nova do app do relógio chega com um toque.
+
+**Como usar**
+- No relógio, deixe a Depuração por Wi-Fi ligada. No celular: Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio → Instalar no relógio agora → Já pareei antes.
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- Ainda é pelo modo de desenvolvedor do relógio; a loja do relógio vem depois.
+
+---
+
 ## 2026-11-11g — Marcou no relógio, já está no celular
 
 **Em uma frase:** a série marcada no relógio entra sozinha no treino do celular, sem tocar em notificação nenhuma.

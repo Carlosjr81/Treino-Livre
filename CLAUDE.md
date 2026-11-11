@@ -749,6 +749,16 @@ rede de proteção que nunca reprovou nada não é rede de proteção.
 São três porque cada uma falha de um jeito: o hook não existe em clone novo,
 a regra depende de alguém segui-la, e o Actions só avisa depois que já foi.
 
+#### Se o GitHub travar a publicação
+
+Aconteceu em 11/11/2026: um incidente no GitHub Actions deixou as montagens
+"queued" por mais de uma hora, e o "pages build and deployment" falhou com
+`startup_failure` (o site não sai sem ele). Refazer a execução presa não
+adianta: ela continua presa. O que destravou foi **disparar de novo**: o app
+Android pelo `workflow_dispatch` do `android.yml` (no celular: Actions ›
+App Android › Run workflow) e o site com um **push novo** no `main`. Antes,
+conferir o githubstatus.com.
+
 #### Se publicar algo quebrado
 
 ```bash

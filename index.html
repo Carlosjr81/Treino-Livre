@@ -1689,7 +1689,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-11j";
+const VERSAO_APP = "2026-11-11k";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4034,8 +4034,8 @@ async function decifrarBolso(canal, m) {
   const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: t.slice(0, 12) }, await chaveBolso(canal), t.slice(12));
   return JSON.parse(new TextDecoder().decode(pt));
 }
-function salaBolso(canal, id, aoMsg) {
-  return criarSalaAoVivo({ url: urlBroker(1), base: BOLSO_TOPICO, codigo: canal.split(".")[0], id: id, aoEstado: () => {}, aoParticipante: aoMsg || (() => {}) });
+function salaBolso(canal, id, aoMsg, aoEstado) {
+  return criarSalaAoVivo({ url: urlBroker(1), base: BOLSO_TOPICO, codigo: canal.split(".")[0], id: id, aoEstado: aoEstado || (() => {}), aoParticipante: aoMsg || (() => {}) });
 }
 
 // O que volta do app (#bolso=): conferido campo a campo, é dado vindo de link.
@@ -28504,17 +28504,27 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // o Jarvis anotou com a tela travada entram no treino sem toque nenhum. O
   // app fala a confirmação e conduz o descanso; a página só mostra.
   const canalTs = useRef(0);
+  const [canalRelogio, setCanalRelogio] = useState("");
   useEffect(() => {
     if (!NO_APP_ANDROID || BOLSO_APP < 2 || !(bolsoAtivo || bolsoAuto)) return;
     const canal = canalBolso();
     if (!canal || !(typeof crypto !== "undefined" && crypto.subtle)) return;
     let vivo = true;
+    let okIds = [];
     const sala = salaBolso(canal, "pag", (uid, m) => {
       if (uid !== "app" || !m || typeof m.c !== "string") return;
       decifrarBolso(canal, m).then((p) => {
         if (!vivo || !p || !(+p.ts > canalTs.current) || Date.now() - p.ts > 12 * 3600000) return;
         canalTs.current = +p.ts;
-        const ev = novosEventosBolso(eventosBolsoValidos(p.ev));
+        const validos = eventosBolsoValidos(p.ev);
+        // confirma ao app o que chegou (o que já tinha chegado também): sem a
+        // confirmação em 5 s, o app entrega pelo caminho de antes
+        const ids = validos.map((e) => e.k).filter(Boolean);
+        if (ids.length) {
+          okIds = okIds.concat(ids.filter((k) => okIds.indexOf(k) < 0)).slice(-80);
+          cifrarBolso(canal, { ok: okIds, ts: Date.now() }).then((mm) => sala.publicar(mm)).catch(() => {});
+        }
+        const ev = novosEventosBolso(validos);
         if (ev.length) setSessao((s) => (s ? Object.assign({}, s, { itens: aplicarEventosBolso(s.itens, ev) }) : s));
         if (p.da != null && Date.now() - p.ts < 60000) {
           const da = +p.da || 0;
@@ -28527,7 +28537,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           } else if (!da) { descansoNoBolso.current = 0; setFimDescanso(null); }
         }
       }).catch(() => {});
-    });
+    }, (e) => { if (vivo) setCanalRelogio(e); });
     const acordar = () => { if (!document.hidden) sala.manter(); };
     document.addEventListener("visibilitychange", acordar);
     const vigia = setInterval(acordar, 10000);
@@ -29020,6 +29030,19 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               <button onClick={() => abrirInstalarRelogio()} style={{ marginTop: 6, background: "none", border: "none", padding: 0, color: "var(--marca)", fontSize: 12.5, fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
                 ⌚ Tem Galaxy Watch? Marque as séries no pulso: instalar o app no relógio ›
               </button>
+            )}
+            {(bolsoAuto || bolsoAtivo) && canalRelogio && (
+              <div style={{ marginTop: 8, fontSize: 12, lineHeight: 1.45, color: canalRelogio === "conectado" ? "var(--ok)" : "var(--cinza)" }}>
+                {canalRelogio === "conectado" ? "⌚ Relógio → celular: ligado ✓ (o ✓ Feito do pulso entra aqui sozinho)"
+                  : canalRelogio === "conectando" || canalRelogio === "reconectando" ? "⌚ Relógio → celular: ligando…"
+                  : "⌚ Relógio → celular: sem internet agora. A série do relógio entra pelo aviso do celular."}
+                {NO_APP_ANDROID && (
+                  <div style={{ marginTop: 4 }}>
+                    Para a série do relógio nunca depender de aviso:{" "}
+                    <a href={"intent://bolso?overlay=1#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID + ";end"} style={{ color: "var(--marca)", fontWeight: 700 }}>permitir "Aparecer sobre outros apps"</a>
+                  </div>
+                )}
+              </div>
             )}
             {(bolsoAuto || bolsoAtivo) && (
               <div style={{ marginTop: 8, fontSize: 12, color: "var(--cinza)", lineHeight: 1.45 }}>
@@ -34396,12 +34419,19 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
 // frases ditas com a tela travada (ver BOLSO no começo do arquivo). O app chama
 // estas funções de fora; nada aqui grava no armazenamento.
 if (MODO_BOLSO) {
-  let motorBolso = null, canal = "", sala = null;
+  let motorBolso = null, canal = "", sala = null, estadoCanal = "desligado";
+  const confirmados = new Set();
   const eventosComId = () => marcarIdsBolso(motorBolso.eventos());
+  // a tela do treino confirma (no tópico "pag") cada acontecimento que aplicou
+  const ouvirPagina = (uid, m) => {
+    if (uid !== "pag" || !m || typeof m.c !== "string" || !canal) return;
+    decifrarBolso(canal, m).then((p) => { (p && Array.isArray(p.ok) ? p.ok : []).forEach((k) => confirmados.add(String(k))); }).catch(() => {});
+  };
+  const abrirCanal = () => { if (!sala && canal) sala = salaBolso(canal, "app", ouvirPagina, (e) => { estadoCanal = e; }); };
   // manda à tela do treino, pelo canal cifrado, tudo o que ainda não voltou
   const avisarPagina = (r) => {
     if (!canal || !motorBolso) return;
-    if (!sala) sala = salaBolso(canal, "app"); else sala.manter();
+    if (!sala) abrirCanal(); else sala.manter();
     cifrarBolso(canal, { ev: eventosComId(), da: r && r.descansoAte != null ? r.descansoAte : undefined, ts: Date.now() })
       .then((m) => { if (sala) sala.publicar(m); }).catch(() => {});
   };
@@ -34418,8 +34448,11 @@ if (MODO_BOLSO) {
       motorBolso.semear(pendentesJson ? JSON.parse(pendentesJson) : []);
       return "ok";
     },
-    canal(c) { if (canalBolsoValido(c) && c !== canal) { canal = c; if (sala) { sala.fechar(); sala = null; } } return "ok"; },
+    canal(c) { if (canalBolsoValido(c) && c !== canal) { canal = c; if (sala) { sala.fechar(); sala = null; } abrirCanal(); } return "ok"; },
     manter() { if (sala) sala.manter(); return ""; },
+    // quantos acontecimentos a tela do treino ainda não confirmou (-1: sem canal)
+    semEntregar() { if (!canal || !motorBolso) return -1; return eventosComId().filter((e) => !confirmados.has(e.k)).length; },
+    estadoCanal() { return canal ? estadoCanal : "sem canal (site antigo)"; },
     ouvir(altsJson, agora) {
       if (!motorBolso) return "{}";
       const r = motorBolso.ouvir(JSON.parse(altsJson), agora || Date.now());

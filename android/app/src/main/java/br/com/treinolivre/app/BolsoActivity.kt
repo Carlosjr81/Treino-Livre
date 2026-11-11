@@ -43,6 +43,13 @@ class BolsoActivity : ComponentActivity() {
                 voltar(pend, true)
             }
             dados?.getQueryParameter("entregar") == "1" -> voltar(BolsoService.tirarPendentes(this), false)
+            dados?.getQueryParameter("overlay") == "1" -> {
+                try {
+                    startActivity(Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + packageName)))
+                    Toast.makeText(applicationContext, "Ligue \"Permitir\" para o Treino Livre: a série do relógio entra na tela sozinha.", Toast.LENGTH_LONG).show()
+                } catch (e: Exception) { }
+                finish()
+            }
             else -> {
                 snap = try { Site.decodificar(dados?.getQueryParameter("d").orEmpty()) } catch (e: Exception) { null }
                 val ok = try { snap != null && JSONObject(snap!!).has("itens") } catch (e: Exception) { false }

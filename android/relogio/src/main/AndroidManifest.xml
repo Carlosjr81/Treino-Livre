@@ -12,6 +12,9 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault">
 
+        <!-- o modo ambiente: a tela apaga e o app continua na frente -->
+        <uses-library android:name="com.google.android.wearable" android:required="false" />
+
         <!-- Precisa do app do celular: o treino mora lá -->
         <meta-data
             android:name="com.google.android.wearable.standalone"

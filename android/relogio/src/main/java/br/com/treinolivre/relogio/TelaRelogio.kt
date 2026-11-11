@@ -1,6 +1,7 @@
 package br.com.treinolivre.relogio
 
-import android.app.Activity
+import androidx.activity.ComponentActivity
+import androidx.wear.ambient.AmbientLifecycleObserver
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -29,8 +30,27 @@ import org.json.JSONObject
 // O treino mora no celular (o Jarvis da tela travada, BolsoService): daqui só
 // saem toques, e o painel volta de lá. Por isso cada ✓ do relógio vira uma
 // série anotada no celular, com o descanso, o recorde e a voz de sempre.
-class TelaRelogio : Activity(), DataClient.OnDataChangedListener {
+class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener {
     private val linha = Handler(Looper.getMainLooper())
+    // Relato do dono (2026-11-11k): a tela do relógio apagava e o app ia para
+    // o segundo plano. Com o modo ambiente o app fica na frente, em preto e
+    // cinza, e acende de novo no toque; o descanso continua contando.
+    private var ambiente = false
+    private val ambienteObs by lazy {
+        AmbientLifecycleObserver(this, object : AmbientLifecycleObserver.AmbientLifecycleCallback {
+            override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
+                ambiente = true
+                linha.removeCallbacks(tique)
+                mostrar()
+            }
+            override fun onUpdateAmbient() { atualizarRelogio() }
+            override fun onExitAmbient() {
+                ambiente = false
+                mostrar()
+                linha.post(tique)
+            }
+        })
+    }
     private var painel: JSONObject? = null
     // o que a pessoa ajustou no relógio para a série da vez
     private var chave = ""
@@ -63,6 +83,7 @@ class TelaRelogio : Activity(), DataClient.OnDataChangedListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        lifecycle.addObserver(ambienteObs)
         val d = resources.displayMetrics.density
         fun dp(v: Int) = (v * d).toInt()
         val largura = resources.displayMetrics.widthPixels
@@ -187,7 +208,7 @@ class TelaRelogio : Activity(), DataClient.OnDataChangedListener {
             } finally { buf.release() }
         }
         enviar("estado")
-        linha.post(tique)
+        if (!ambiente) linha.post(tique)
     }
 
     override fun onPause() {
@@ -292,7 +313,8 @@ class TelaRelogio : Activity(), DataClient.OnDataChangedListener {
         anterior.text = if (cardio) "Aeróbico: anote no celular." else if (ant.isNotEmpty()) "Anterior: $ant" else ""
         val prox = p.optString("prox")
         depois.text = if (prox.isNotEmpty()) "Depois: $prox" else ""
-        mostra(navegar, true)
+        mostra(navegar, !ambiente)
+        if (ambiente) { mostra(blocoSerie, false); anterior.text = ""; depois.text = "" }
         // no descanso a tela fica acesa: é onde a pessoa olha o relógio
         if (descansando) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -308,7 +330,8 @@ class TelaRelogio : Activity(), DataClient.OnDataChangedListener {
         }
         estavaDescansando = true
         val resta = ((ate - System.currentTimeMillis() + 999) / 1000).toInt()
-        relogio.text = (resta / 60).toString() + ":" + (resta % 60).toString().padStart(2, '0')
+        // no ambiente a tela só é redesenhada uma vez por minuto
+        relogio.text = if (ambiente) "~" + ((resta + 59) / 60) + " min" else (resta / 60).toString() + ":" + (resta % 60).toString().padStart(2, '0')
     }
 
     private val tique = object : Runnable {

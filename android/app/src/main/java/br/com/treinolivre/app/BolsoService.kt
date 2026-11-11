@@ -208,7 +208,7 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
-        anotar("ligado (app de 2026-11-11g: a série do relógio entra no treino sem notificação)")
+        anotar("ligado (app de 2026-11-11k: a série do relógio entra no treino, com entrega garantida)")
         linha.post(olheiro)
         linha.postDelayed(manterCanal, 15_000L)
         try { getSystemService(AudioManager::class.java)?.registerAudioPlaybackCallback(espiaoSom, linha) } catch (e: Exception) { }
@@ -287,15 +287,15 @@ class BolsoService : Service(), RecognitionListener {
         val acao = try { JSONObject(texto).optString("a", "") } catch (e: Exception) { "" }
         if (acao.isEmpty() || acao == "estado") { publicarRelogio(); return }
         anotar("relógio: " + acao)
+        if (pronto) js("bolso.estadoCanal&&bolso.estadoCanal()") { e -> if (e.isNotEmpty() && e != "conectado") anotar("canal: " + e) }
         js("bolso.acao(" + q(texto) + "," + System.currentTimeMillis() + ")") { resposta ->
             val r = try { JSONObject(resposta) } catch (e: Exception) { JSONObject() }
             if (r.has("ev")) {
                 val ev = r.optJSONArray("ev")?.toString() ?: "[]"
                 getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("pend", ev).apply()
-                // Com o canal cifrado (site de 2026-11-11g), a série chega sozinha
-                // à tela do treino. Sem ele, a notificação leva até lá (o Android
-                // não deixa o serviço abrir a tela).
-                if (!travada && !temCanal()) avisarVolta(r.optJSONArray("ev")?.length() ?: 1)
+                // A série vai à tela do treino pelo canal cifrado; em 5 s sem a
+                // confirmação dela, entra pelo caminho garantido (conferirEntrega).
+                if (!travada) conferirEntrega(5_000L)
             }
             if (r.has("descansoAte")) agendarDescanso(r.optLong("descansoAte", 0L))
             r.optJSONObject("painel")?.let { Relogio.publicar(applicationContext, it.toString()) }
@@ -307,6 +307,38 @@ class BolsoService : Service(), RecognitionListener {
     private fun entregue() { if (pronto) js("bolso.entregue()") { } }
 
     private fun temCanal(): Boolean = !getSharedPreferences(PREFS, MODE_PRIVATE).getString("canal", "").isNullOrEmpty()
+
+    // Relato do dono (2026-11-11k): o relógio anotou, e a série não apareceu no
+    // celular. O canal pode falhar (sem internet, retransmissor fora do ar,
+    // página atrás de outro app). Então a tela do treino confirma o que recebe,
+    // e o que não foi confirmado entra pelo caminho garantido: com a permissão
+    // "Aparecer sobre outros apps", o app abre a tela do treino com as séries
+    // (sem toque); sem ela, a notificação de antes.
+    private val conferir = Runnable {
+        if (travada || !pronto) return@Runnable
+        js("bolso.semEntregar?bolso.semEntregar():-1") { r ->
+            val n = r.toIntOrNull() ?: -1
+            if (n == 0) return@js
+            val pend = try { JSONArray(getSharedPreferences(PREFS, MODE_PRIVATE).getString("pend", "[]")) } catch (e: Exception) { JSONArray() }
+            if (pend.length() == 0 || travada) return@js
+            entregarJa(pend.length())
+        }
+    }
+    private fun conferirEntrega(ms: Long) {
+        linha.removeCallbacks(conferir)
+        linha.postDelayed(conferir, ms)
+    }
+    private fun entregarJa(n: Int) {
+        if (android.os.Build.VERSION.SDK_INT >= 23 && android.provider.Settings.canDrawOverlays(this)) {
+            try {
+                startActivity(Intent(this, BolsoActivity::class.java).setData(Uri.parse("treinolivre://bolso?entregar=1")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                anotar("canal não confirmou: entreguei abrindo a tela do treino")
+                return
+            } catch (e: Exception) { anotar("não abri a tela: " + e.message) }
+        }
+        anotar("canal não confirmou: aviso no celular")
+        avisarVolta(n)
+    }
 
     // A conexão do canal mora na página escondida, cujos relógios dormem com a
     // tela travada: quem a mantém viva é o Android.
@@ -368,7 +400,8 @@ class BolsoService : Service(), RecognitionListener {
         pararDeOuvir()
         pararGravador()
         val pend = try { JSONArray(getSharedPreferences(PREFS, MODE_PRIVATE).getString("pend", "[]")) } catch (e: Exception) { JSONArray() }
-        if (pend.length() > 0 && !temCanal()) avisarVolta(pend.length())
+        // a tela acabou de acender: dá tempo de a página religar o canal
+        if (pend.length() > 0) conferirEntrega(8_000L)
     }
 
     // Destravou com séries anotadas: a notificação leva ao treino (o Android não
@@ -741,7 +774,10 @@ class BolsoService : Service(), RecognitionListener {
         alts.take(5).forEach { lista.put(it) }
         js("bolso.ouvir(" + q(lista.toString()) + "," + System.currentTimeMillis() + ")") { texto ->
             val r = try { JSONObject(texto) } catch (e: Exception) { JSONObject() }
-            if (r.has("ev")) getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("pend", r.optJSONArray("ev")?.toString() ?: "[]").apply()
+            if (r.has("ev")) {
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("pend", r.optJSONArray("ev")?.toString() ?: "[]").apply()
+                if (!travada) conferirEntrega(5_000L)
+            }
             if (r.has("descansoAte")) agendarDescanso(r.optLong("descansoAte", 0L))
             if (r.has("ev") || r.has("descansoAte")) publicarRelogio()
             if (r.optBoolean("parar", false)) pararDepoisDeFalar = true

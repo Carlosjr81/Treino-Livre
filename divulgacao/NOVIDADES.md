@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-11k — Conserto: a série do relógio sempre chega ao celular, e o relógio não some
+
+**Em uma frase:** a série marcada no relógio chega ao treino do celular mesmo quando a internet falha, e o app do relógio continua na tela quando ela apaga.
+
+**O que mudou**
+- O celular confere se a série do relógio chegou à tela do treino. Se não chegou em 5 segundos, entra por outro caminho: com a permissão "Aparecer sobre outros apps", a tela do treino abre sozinha com a série; sem ela, aparece o aviso para tocar.
+- O cartão do Jarvis no treino mostra se o relógio está ligado ao celular ("⌚ Relógio → celular: ligado ✓").
+- No relógio, quando a tela apaga, o Treino Livre continua na frente, em modo de economia, com o exercício e o descanso. Um toque acende tudo.
+
+**Por que importa para quem treina**
+- Nenhuma série marcada no pulso se perde, e não é preciso procurar o app no relógio a cada série.
+
+**Como usar**
+- Atualize o app do celular e o do relógio. No treino, no cartão do Jarvis, toque em "permitir Aparecer sobre outros apps" e ligue a opção para o Treino Livre.
+
+**Ideias de vídeo**
+- Marcar a série no relógio, baixar o braço (a tela do relógio apaga e o app continua lá) e mostrar a série no celular.
+
+**Não prometer**
+- Sem a permissão e sem internet, a série entra pelo aviso do celular (um toque).
+
+---
+
 ## 2026-11-11j — O passo a passo completo para pôr o app no relógio
 
 **Em uma frase:** instalar o app no Galaxy Watch agora tem, dentro do app, cada tela explicada e o que fazer com cada mensagem de erro.

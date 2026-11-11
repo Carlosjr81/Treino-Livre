@@ -779,7 +779,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v183) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v184) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4297,6 +4297,24 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   autorizo tudo"). Conferido no navegador com um retransmissor de mentira: a
   série chega marcada, o descanso corre, e a mesma mensagem duas vezes vira uma
   série só.
+- **A entrega garantida** (2026-11-11k, relato do dono: "o relógio diz que
+  anotou e a série não apareceu no app, nem o peso ajustado"). O canal pode
+  falhar (sem internet, retransmissor fora do ar, a página atrás de outro app),
+  então **a tela do treino confirma** o que aplicou (tópico `.../pag`, os
+  ids cifrados), a página escondida guarda as confirmações e o serviço
+  pergunta `bolso.semEntregar()` 5 s depois de cada série do relógio ou da
+  voz (8 s depois de destravar). Faltou confirmação: com a permissão
+  **"Aparecer sobre outros apps"** (`SYSTEM_ALERT_WINDOW`, pedida pelo link
+  do cartão 🔒, `treinolivre://bolso?overlay=1`) o serviço abre a tela do
+  treino com as séries (`entregarJa`, a exceção do Android para abrir tela
+  de segundo plano); sem ela, a notificação de antes. O diário anota o estado
+  do canal e o caminho usado. O cartão 🔒 mostra "⌚ Relógio → celular:
+  ligado ✓ / ligando… / sem internet".
+- **O relógio fica na frente com a tela apagada** (modo ambiente,
+  `AmbientLifecycleObserver`, `androidx.wear:wear`; a tela virou
+  `ComponentActivity`): no ambiente, só o exercício e o descanso em minutos
+  ("~2 min", redesenhado uma vez por minuto); um toque acende tudo. Antes a
+  tela apagava e o app ia para o segundo plano.
 - **A linha de cima do relógio** é só "N de M séries": o nome do treino
   quebrava em duas linhas e a de cima sumia na borda redonda (print do dono).
 - **A instalação é sem loja**: Opções do desenvolvedor no relógio, Depuração

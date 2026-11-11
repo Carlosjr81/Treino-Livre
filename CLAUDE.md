@@ -779,7 +779,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v176) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v177) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4307,7 +4307,19 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   (`exec:cmd package install -r -S <tamanho>`). A chave do celular (RSA, com
   certificado do Bouncy Castle) fica nos arquivos do app: depois do primeiro
   pareamento, atualizar é "Já pareei antes", sem código. Em 25 s sem achar,
-  aparece o campo de endereço:porta. **Licença**: libadb-android pela
+  aparece o campo de endereço:porta. **O primeiro teste do dono
+  (2026-11-11d) parou em "connect failed: ECONNABORTED"**: o celular não
+  chegava ao relógio. Com o Wi-Fi sem internet, o Galaxy manda o tráfego pelos
+  dados móveis, onde o endereço do relógio não existe. Hoje o instalador
+  **baixa primeiro** (precisa de internet) e depois **prende o processo ao
+  Wi-Fi** (`bindProcessToNetwork`, `prenderAoWifi`; solto no fim), diz se o
+  relógio parece estar em outra rede (`mesmaRede`, pela máscara do Wi-Fi), e
+  num erro de rede explica a saída garantida (`explicarRede`): o **Roteador
+  Wi-Fi do celular**, com o relógio nele (Wi-Fi de empresa isola um aparelho do
+  outro). No roteador do celular não há Wi-Fi como cliente e nada é preso. E
+  como **o relógio usa uma porta para parear e outra para conectar**, sem o
+  anúncio pela rede (mDNS) o app pede o segundo endereço, o da tela da
+  Depuração por Wi-Fi depois de fechar o código (`enderecoCon`). **Licença**: libadb-android pela
   Apache-2.0, e a spake2-java (do pareamento) é **LGPL-3.0**: exceção à regra de
   não usar copyleft, **decidida pelo dono**, só no APK direto, sem modificar a
   biblioteca, com o aviso no `LICENSE`. Não traga outra biblioteca copyleft

@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-11d — Conserto: instalar no relógio pelo Wi-Fi da academia ou da empresa
+
+**Em uma frase:** o instalador do app do relógio agora conversa com o relógio pelo Wi-Fi mesmo quando o Wi-Fi não tem internet, e explica o que fazer quando a rede bloqueia.
+
+**O que mudou**
+- O celular podia mandar a conversa com o relógio pelos dados móveis (quando o Wi-Fi não tem internet), e a instalação parava com erro. Agora ela vai pelo Wi-Fi.
+- Se a rede não deixar um aparelho falar com o outro (comum em Wi-Fi de empresa e de academia), o app diz a saída: ligar o roteador do celular e conectar o relógio nele.
+- Quando o relógio não aparece sozinho, o app pede também o segundo endereço que o relógio mostra (o de conectar).
+
+**Por que importa para quem treina**
+- Dá para instalar o app no relógio em qualquer lugar, até na academia.
+
+**Como usar**
+- Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio → Instalar no relógio agora. Se aparecer "o celular não conseguiu chegar ao relógio", ligue o Roteador Wi-Fi do celular, conecte o relógio nele e tente de novo.
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- Ainda não foi testado até o fim num Galaxy Watch de verdade.
+
+---
+
 ## 2026-11-11c — Instalar no relógio: só o código de 6 números
 
 **Em uma frase:** o app do celular agora instala sozinho o Treino Livre no Galaxy Watch: ele acha o relógio no Wi-Fi, e você só digita o código de 6 números que aparece no relógio.

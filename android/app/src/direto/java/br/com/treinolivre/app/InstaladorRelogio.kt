@@ -82,6 +82,9 @@ class InstaladorRelogio : ComponentActivity() {
     private lateinit var botaoJa: Button
     private lateinit var manual: LinearLayout
     private lateinit var endereco: EditText
+    private lateinit var enderecoCon: EditText
+    // a rede Wi-Fi a que o processo foi preso para falar com o relógio (solta no fim)
+    private var presoAoWifi = false
     private lateinit var registro: TextView
     private lateinit var voltar: Button
 
@@ -156,6 +159,12 @@ class InstaladorRelogio : ComponentActivity() {
             setTextColor(Color.WHITE); setHintTextColor(CINZA)
         }
         manual.addView(endereco, lp(6))
+        manual.addView(texto(14f, t = "Depois de parear, feche o código no relógio: a tela da Depuração por Wi-Fi mostra outro Endereço IP e porta (a porta é diferente). Se o app pedir, digite aqui:"), lp(12))
+        enderecoCon = EditText(this).apply {
+            hint = "endereço:porta para conectar"; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            setTextColor(Color.WHITE); setHintTextColor(CINZA)
+        }
+        manual.addView(enderecoCon, lp(6))
         caixa.addView(manual, lp(10))
 
         registro = texto(14f, t = "")
@@ -261,10 +270,21 @@ class InstaladorRelogio : ComponentActivity() {
     private fun trabalhar(comCodigo: Boolean, hp: String?, pp: Int, cod: String): String {
         val adb = try { Adb(this) } catch (e: Exception) { log("⚠ Não consegui preparar a chave: " + e.message); return "erro" }
         try {
+            // Baixa antes de prender ao Wi-Fi: o Wi-Fi da academia ou da empresa
+            // pode não ter internet, e preso a ele o download não sairia.
+            log("⬇ Baixando o app do relógio…")
+            val bytes = baixar() ?: run { log("⚠ Não consegui baixar o app do relógio. Confira a internet."); return "erro" }
+            log("✓ Baixado (" + (bytes.size / 1024) + " KB).")
+            prenderAoWifi(hp ?: hostCon)
             if (comCodigo && hp != null) {
                 log("🔐 Pareando com o relógio…")
-                val ok = try { adb.pair(hp, pp, cod) } catch (e: Exception) { log("⚠ O pareamento falhou: " + (e.message ?: e.javaClass.simpleName)); false }
-                if (!ok) { log("Confira o código (ele muda a cada vez que a tela abre) e tente de novo."); return "erro" }
+                val ok = try { adb.pair(hp, pp, cod) } catch (e: Exception) {
+                    val msg = e.message ?: e.javaClass.simpleName
+                    log("⚠ O pareamento falhou: " + msg)
+                    if (msg.contains("connect") || msg.contains("ECONN") || msg.contains("ETIMEDOUT") || msg.contains("EHOSTUNREACH") || msg.contains("ENETUNREACH")) explicarRede(hp)
+                    false
+                }
+                if (!ok) { log("Se o erro não for de rede: confira o código (ele muda a cada vez que a tela abre) e tente de novo."); return "erro" }
                 getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("pareado", true).apply()
                 linha.post { botaoJa.visibility = View.VISIBLE }
                 log("✓ Pareado. O relógio vai lembrar deste celular.")
@@ -273,17 +293,25 @@ class InstaladorRelogio : ComponentActivity() {
             val host = hostCon ?: hp
             var espera = 0
             while ((hostCon == null || portaCon <= 0) && espera < 30) { Thread.sleep(500); espera++ }
-            val hc = hostCon ?: host
-            if (hc == null || portaCon <= 0) {
-                log("⚠ Não achei a conexão do relógio. Deixe a Depuração por Wi-Fi ligada (a tela do relógio pode ficar na Depuração por Wi-Fi) e tente de novo.")
+            var hc = hostCon ?: host
+            var pc = portaCon
+            // O endereço de conectar digitado (a tela da Depuração por Wi-Fi) vence o achado
+            val digCon = enderecoCon.text.toString().trim()
+            if (digCon.contains(":")) { hc = digCon.substringBeforeLast(":"); pc = digCon.substringAfterLast(":").toIntOrNull() ?: 0 }
+            if (hc == null || pc <= 0) {
+                log("➡ Falta um passo: no relógio, feche o código (✕). A tela da Depuração por Wi-Fi mostra o Endereço IP e porta para conectar. Digite no segundo campo aqui em cima e toque em \"Já pareei antes: instalar ou atualizar\".")
+                linha.post { manual.visibility = View.VISIBLE; enderecoCon.requestFocus() }
                 return "erro"
             }
             log("🔗 Conectando ao relógio…")
-            val conectou = try { adb.connect(hc, portaCon) } catch (e: Exception) { log("⚠ A conexão falhou: " + (e.message ?: e.javaClass.simpleName)); false }
+            val conectou = try { adb.connect(hc, pc) } catch (e: Exception) {
+                val msg = e.message ?: e.javaClass.simpleName
+                log("⚠ A conexão falhou: " + msg)
+                if (msg.contains("ECONN") || msg.contains("ETIMEDOUT") || msg.contains("EHOSTUNREACH") || msg.contains("ENETUNREACH")) explicarRede(hc)
+                false
+            }
             if (!conectou) { if (!comCodigo) log("Se nunca pareou com este celular, use o código."); return "erro" }
-            log("⬇ Baixando o app do relógio…")
-            val bytes = baixar() ?: run { log("⚠ Não consegui baixar o app do relógio. Confira a internet."); return "erro" }
-            log("📲 Instalando no relógio (" + (bytes.size / 1024) + " KB)…")
+            log("📲 Instalando no relógio…")
             val stream = adb.openStream("exec:cmd package install -r -S " + bytes.size)
             val saida = stream.openOutputStream()
             var i = 0
@@ -310,7 +338,70 @@ class InstaladorRelogio : ComponentActivity() {
             return "erro"
         } finally {
             try { adb.close() } catch (e: Exception) { }
+            soltarDoWifi()
         }
+    }
+
+    // ---- a rede ----
+    // Relato do dono (Galaxy, 2026-11-11d): "connect failed: ECONNABORTED". O
+    // celular não alcançava o relógio: com o Wi-Fi sem internet (o da empresa,
+    // o da academia), o Galaxy manda tudo pelos dados móveis ("Mudar para dados
+    // móveis"), e por lá um endereço da rede local não existe. Então, achando o
+    // Wi-Fi, o app prende a conversa com o relógio a ele. No roteador do
+    // próprio celular (ponto de acesso) não há Wi-Fi como cliente, e o caminho
+    // já é direto: não prende nada.
+    private fun redeWifi(): android.net.Network? {
+        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return null
+        @Suppress("DEPRECATION")
+        return cm.allNetworks.firstOrNull { n ->
+            val c = cm.getNetworkCapabilities(n)
+            c != null && c.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)
+        }
+    }
+
+    private fun meuIpWifi(): String? {
+        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return null
+        val w = redeWifi() ?: return null
+        return cm.getLinkProperties(w)?.linkAddresses?.firstOrNull { it.address is java.net.Inet4Address }?.let { it.address.hostAddress + "/" + it.prefixLength }
+    }
+
+    private fun prenderAoWifi(host: String?) {
+        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return
+        val w = redeWifi()
+        if (w == null) {
+            log("ℹ O celular não está num Wi-Fi. Se o relógio estiver no roteador do celular (ponto de acesso), tudo bem; senão, conecte os dois no mesmo Wi-Fi.")
+            return
+        }
+        val meu = meuIpWifi()
+        if (meu != null && host != null && !mesmaRede(meu, host)) log("ℹ O celular está em " + meu + " e o relógio em " + host + ": parecem redes diferentes.")
+        presoAoWifi = cm.bindProcessToNetwork(w)
+        if (presoAoWifi) log("📶 Falando com o relógio pelo Wi-Fi (" + (meu ?: "Wi-Fi") + ").")
+    }
+
+    private fun soltarDoWifi() {
+        if (!presoAoWifi) return
+        presoAoWifi = false
+        try { getSystemService(android.net.ConnectivityManager::class.java)?.bindProcessToNetwork(null) } catch (e: Exception) { }
+    }
+
+    private fun mesmaRede(meu: String, host: String): Boolean = try {
+        val ip = meu.substringBefore("/"); val pre = meu.substringAfter("/").toInt()
+        val a = java.net.InetAddress.getByName(ip).address; val b = java.net.InetAddress.getByName(host).address
+        var ok = a.size == b.size
+        var bits = pre; var i = 0
+        while (ok && bits > 0 && i < a.size) {
+            val m = if (bits >= 8) 0xFF else (0xFF shl (8 - bits)) and 0xFF
+            if ((a[i].toInt() and m) != (b[i].toInt() and m)) ok = false
+            bits -= 8; i++
+        }
+        ok
+    } catch (e: Exception) { true }
+
+    private fun explicarRede(host: String?) {
+        log("📵 O celular não conseguiu chegar ao relógio (" + (host ?: "") + "). Quase sempre é a rede:")
+        log("• Wi-Fi de empresa, condomínio ou academia costuma bloquear um aparelho de falar com o outro.")
+        log("• Saída garantida: ligue o Roteador Wi-Fi do celular (Configurações → Conexões → Roteador Wi-Fi), conecte o relógio nele (no relógio: Configurações → Conexões → Wi-Fi) e abra o Parear de novo. Com os dados móveis ligados, o download sai pelo próprio celular.")
+        log("• Desligue VPN, se tiver, e confira que o relógio e o celular estão no mesmo Wi-Fi.")
     }
 
     private fun baixar(): ByteArray? = try {

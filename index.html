@@ -1690,7 +1690,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-12c";
+const VERSAO_APP = "2026-11-12d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3667,6 +3667,11 @@ function linkBolsoParar() {
 // Anotar vai para a série combinada se ela ainda estiver por fazer; se alguém
 // a marcou na tela no meio tempo, vai para a próxima por fazer. Nunca apaga o
 // que foi feito à mão.
+// Sem série por fazer, o treino acabou: a última série não abre descanso.
+// Exercício pulado (Treino Adaptado) não segura o fim.
+function treinoSemPendente(itens) {
+  return !(itens || []).some((it) => !it.pulado && (it.series || []).some((s) => !s.feito));
+}
 function aplicarEventosBolso(itens, eventos) {
   const out = (itens || []).map((it) => Object.assign({}, it, { series: (it.series || []).slice() }));
   (eventos || []).forEach((e) => {
@@ -27814,8 +27819,11 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const proxSerie = item.series[si + 1];
     const vaiDrop = !!(proxSerie && ehDrop(proxSerie) && !proxSerie.feito);
     const noMeioDoConjunto = vaiDrop || !!(item.conjunto && seguinte && seguinte.conjunto === item.conjunto);
-    const descSerie = ehAquecimento(serie) ? DESCANSO_AQUECIMENTO : descansoDe(item);
-    if (!noMeioDoConjunto) iniciarDescanso(descSerie);
+    const acabou = treinoSemPendente(sessao.itens.map((it, k) => (k !== ei ? it
+      : Object.assign({}, it, { series: it.series.map((s, j) => (j === si ? Object.assign({}, s, { feito: true }) : s)) }))));
+    const descSerie = acabou ? 0 : ehAquecimento(serie) ? DESCANSO_AQUECIMENTO : descansoDe(item);
+    if (!noMeioDoConjunto && !acabou) iniciarDescanso(descSerie);
+    if (acabou && fimDescanso) fecharDescanso();
     // Confirmar em voz o que acabou de ser anotado: com o celular no bolso, o ✓
     // na tela não existe. Frase curta de propósito — é confirmação, não relatório.
     const quantas = item.series.length;
@@ -27843,7 +27851,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const ordem = item.series.slice(0, si + 1).filter((x) => !ehDrop(x)).length;
     const deTrabalho = item.series.filter((x) => !ehDrop(x)).length || quantas;
     const fraseSerie = (ehDrop(serie) ? "Drop anotado." : "Série " + ordem + " de " + deTrabalho + " anotada.") + relato +
-      (vaiDrop ? " Agora o drop" + (proxSerie.peso ? ": " + fmtNum(proxSerie.peso) + " quilos" : "") + ", sem descanso."
+      (acabou ? " Treino completo! Toque em Finalizar treino."
+        : vaiDrop ? " Agora o drop" + (proxSerie.peso ? ": " + fmtNum(proxSerie.peso) + " quilos" : "") + ", sem descanso."
         : seg ? " Descanso de " + textoDuracao(seg) + "." : " Emenda no próximo.");
     // O ✓ na tela também merece a comemoração falada quando o Jarvis está ouvindo
     const recorde = conferirRecorde(item, serie);
@@ -28440,8 +28449,10 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     // Daqui em diante é o mesmo caminho do botão ✓: descanso e recorde.
     const seguinte = itens[ei + 1];
     const noMeioDoConjunto = !!(item.conjunto && seguinte && seguinte.conjunto === item.conjunto);
+    const acabouVoz = treinoSemPendente(itens);
     const segDescanso = descansoDe(item);
-    if (!noMeioDoConjunto) iniciarDescanso(segDescanso);
+    if (!noMeioDoConjunto && !acabouVoz) iniciarDescanso(segDescanso);
+    if (acabouVoz && fimDescanso) fecharDescanso();
     const recorde = conferirRecorde(itens[ei], nova);
 
     const feito = exCardio(ex)
@@ -28465,9 +28476,10 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     // No modo direto a pessoa escolheu respostas enxutas: a posição da série já
     // está na tela, e ouvi-la vinte vezes por treino cansa.
     if (vozAnimado) fala += " Série " + (si + 1) + " de " + series.length + ".";
-    if (noMeioDoConjunto) fala += " Emenda no próximo, sem descanso.";
+    if (acabouVoz) fala += " Treino completo! É só finalizar.";
+    else if (noMeioDoConjunto) fala += " Emenda no próximo, sem descanso.";
     else fala += " Descanso de " + tempoFalado(segDescanso) + ".";
-    if (!restantes && series.length > 1) fala += " Esse exercício terminou.";
+    if (!acabouVoz && !restantes && series.length > 1) fala += " Esse exercício terminou.";
     // O recorde vem na frente: é a notícia boa, e atrasá-la seria desperdiçá-la.
     if (recorde) fala = recorde + " " + fala;
     return { ok: true, fala: fala };

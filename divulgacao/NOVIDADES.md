@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-12d — Conserto: a última série não abre mais o descanso
+
+**Em uma frase:** ao marcar a última série do treino, o app já avisa que o treino acabou, sem contagem de descanso.
+
+**O que mudou**
+- Antes, a última série abria o cronômetro de descanso e só no fim dele o app percebia que o treino tinha terminado.
+
+**Por que importa para quem treina**
+- Acabou, acabou: é só tocar em Finalizar treino, sem esperar contagem nenhuma.
+
+**Como usar**
+- Marque a última série normalmente (no ✓, pela voz ou pelo relógio): a voz diz "Treino completo".
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- Se algum exercício ficou com série por fazer, o descanso continua normal.
+
+---
+
 ## 2026-11-12c — Conserto: no relógio, o peso sobe e desce de 1 em 1 kg
 
 **Em uma frase:** os botões − e + da carga no relógio agora andam sempre 1 kg.

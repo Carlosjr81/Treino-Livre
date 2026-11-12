@@ -789,7 +789,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v192) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v193) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5319,6 +5319,12 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   No editor de ficha, o botão "juntar com o de baixo" liga e desliga.
 - **Descanso por exercício** — controle na própria linha do exercício, além do
   seletor no editor de ficha.
+- **A última série do treino não abre descanso** (`treinoSemPendente`,
+  2026-11-12d, relato do dono: a contagem abria e só no fim dela o app via que
+  tinha acabado). Pelo ✓ e pela voz: sem série por fazer (exercício pulado não
+  conta), o descanso que estivesse correndo fecha e a fala diz "Treino
+  completo! Toque em Finalizar treino". O motor do bolso e do relógio já fazia
+  isso.
 - **A ficha muda com o treino** (`mudancasNaFicha`, coberto por
   `teste-ficha.js`). Pedido do dono, ao reorganizar a ficha avançada: trocar
   os exercícios no próprio treino e que a troca fique na ficha. Antes só obs e

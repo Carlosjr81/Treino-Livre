@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-12b — Conserto: o relógio volta para o treino quando a tela acende
+
+**Em uma frase:** com o treino aberto, o Treino Livre fica em andamento no relógio e volta para a frente quando a tela acende.
+
+**O que mudou**
+- Antes, com a tela do relógio apagada, ele voltava para o mostrador e era preciso abrir o app de novo.
+- Agora o treino aparece como atividade em andamento no relógio, com o ícone no mostrador para voltar num toque.
+
+**Por que importa para quem treina**
+- Levantar o pulso entre as séries e ver o descanso sem procurar o app.
+
+**Como usar**
+- Atualize o app do relógio e, na primeira vez, toque em Permitir quando ele pedir as notificações. No Galaxy Watch, também vale: Configurações, Tela, Mostrar último app, Sempre.
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- Galaxy Watch e outros relógios com Wear OS, com o app instalado no relógio.
+
+---
+
 ## 2026-11-12a — Aquecimento automático no primeiro exercício, e ele conta no volume
 
 **Em uma frase:** o primeiro exercício do treino já vem com 1 ou 2 séries de aquecimento em rampa, e o peso que você levanta nelas passa a contar no volume do treino.

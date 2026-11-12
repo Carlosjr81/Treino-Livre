@@ -84,6 +84,11 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         lifecycle.addObserver(ambienteObs)
+        // a atividade em andamento (TreinoNoPulso) mostra uma notificação:
+        // no Wear OS 4+ ela precisa da permissão
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1)
         val d = resources.displayMetrics.density
         fun dp(v: Int) = (v * d).toInt()
         val largura = resources.displayMetrics.widthPixels
@@ -289,8 +294,11 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener {
             mostra(blocoDescanso, false); mostra(blocoSerie, false); mostra(navegar, p != null && ativo && p.optBoolean("fim"))
             anterior.text = ""; depois.text = ""
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            if (p != null && (!ativo || p.optBoolean("fim"))) TreinoNoPulso.desligar(this)
+            else if (p != null && ativo) TreinoNoPulso.ligar(this)
             return
         }
+        TreinoNoPulso.ligar(this)
         val feitas = p.optInt("feitas"); val total = p.optInt("total")
         // só o progresso: o nome do treino quebrava em duas linhas, e a de cima
         // sumia na borda da tela redonda

@@ -789,7 +789,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v190) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v191) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4331,7 +4331,16 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   `AmbientLifecycleObserver`, `androidx.wear:wear`; a tela virou
   `ComponentActivity`): no ambiente, só o exercício e o descanso em minutos
   ("~2 min", redesenhado uma vez por minuto); um toque acende tudo. Antes a
-  tela apagava e o app ia para o segundo plano.
+  tela apagava e o app ia para o segundo plano. **Mas o ambiente só vale com
+  a "tela sempre ligada" do relógio ativa** (2026-11-12b, o dono: "ainda vai
+  para o segundo plano"). Por isso, com o treino ativo, o relógio liga uma
+  **atividade em andamento** (`TreinoNoPulso`: serviço em primeiro plano
+  `specialUse` com a `OngoingActivity` de `androidx.wear:wear-ongoing`,
+  categoria de exercício), que faz o Wear OS voltar ao app ao acender a tela e
+  põe o ícone no mostrador. Pede a permissão de notificações (Wear OS 4+).
+  Desliga com o fim do treino (o painel sem `ativo` ou com `fim`, lido
+  também pelo próprio serviço) ou em 4 h. O guia diz também o ajuste do Galaxy
+  Watch: Tela › Mostrar último app › Sempre.
 - **◀ ▶ vão ao exercício com série por fazer** mais perto naquele sentido,
   dando a volta na lista (2026-11-11l, relato do dono: pulou o 1º, fez o 2º, e
   o ◀ não voltava ao 1º — voltava uma posição, caía num exercício já feito, e

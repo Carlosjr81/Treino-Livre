@@ -4,6 +4,9 @@
     <uses-feature android:name="android.hardware.type.watch" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="false"
@@ -36,6 +39,17 @@
                 <data android:scheme="treinolivre" android:host="relogio-tela" />
             </intent-filter>
         </activity>
+
+        <!-- O treino em andamento (Ongoing Activity): com a tela apagada, o
+             relógio volta para o app em vez de ir para o mostrador -->
+        <service
+            android:name=".TreinoNoPulso"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Mantém o treino em andamento visível no relógio enquanto a pessoa treina, como o app de exercícios do relógio." />
+        </service>
 
         <!-- O fim do descanso (e os 10 s antes) vibram o relógio, com a tela
              apagada ou com o app fechado -->

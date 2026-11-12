@@ -57,8 +57,9 @@ console.log("\n[1] Os meus números");
 const n = G.numerosDoGrupo(hist, agora);
 teste("treinos no total (o de amanhã não conta)", 4, n.tt);
 teste("treinos na semana (segunda a hoje)", 3, n.ts);
-teste("volume da semana, sem aquecimento", 1300, n.vs);
-teste("volume total", 2300, n.vt);
+// o aquecimento conta no volume (2026-11-12a): 20 kg × 10 em cada treino
+teste("volume da semana, com aquecimento", 1700, n.vs);
+teste("volume total", 2900, n.vt);
 teste("minutos da semana, com o teto de 300", 380, n.ms);
 teste("km da semana", 5.3, n.ks);
 teste("sequência: segunda, terça e hoje", 3, n.sq);

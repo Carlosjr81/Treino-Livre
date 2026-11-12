@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-12a — Aquecimento automático no primeiro exercício, e ele conta no volume
+
+**Em uma frase:** o primeiro exercício do treino já vem com 1 ou 2 séries de aquecimento em rampa, e o peso que você levanta nelas passa a contar no volume do treino.
+
+**O que mudou**
+- No primeiro exercício de musculação do dia aparecem séries marcadas com **A**: uns 50% da carga com 10 repetições e uns 75% com 5, antes da carga de trabalho. Com carga leve, vem uma só.
+- Depois de uma série de aquecimento o descanso é de 1 minuto.
+- O aquecimento agora soma no volume (os quilos levantados) do treino, da semana e do resumo. Continua fora das séries que contam para o músculo e dos recordes.
+
+**Por que importa para quem treina**
+- Chegar à carga pesada com a articulação e o movimento preparados, sem precisar lembrar de montar o aquecimento.
+- O volume mostra todo o peso que você levantou no dia.
+
+**Como usar**
+- Comece o treino normalmente: as séries **A** já estão lá, com o peso sugerido. Não quer? Toque no **A** para virar série normal, ou tire a série.
+
+**Ideias de vídeo**
+- "O app monta seu aquecimento sozinho": mostrar as séries A no primeiro exercício e o descanso curto entre elas.
+
+**Não prometer**
+- O peso do aquecimento é uma conta automática a partir da carga da última vez, não uma orientação individual. Ajuste ao seu corpo.
+
+---
+
 ## 2026-11-11p — Conserto: o aviso de "versão anterior" some depois de atualizar
 
 **Em uma frase:** depois de atualizar o app do celular, o assistente do relógio para de dizer que a versão é antiga.

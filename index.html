@@ -1264,7 +1264,8 @@ const AJUDA_APP = [
   { id: "serie", cat: "treino", icone: "✔", titulo: "Anotar séries, aquecimento e drop",
     resumo: "Peso, repetições, ✓ — e os toques que pouca gente descobre.",
     passos: [
-      "Toque no **número da série** para marcá-la como **aquecimento**: ela fica registrada mas não conta no volume nem nos recordes.",
+      "O **primeiro exercício do treino** já vem com **1 ou 2 séries de aquecimento (A)** em rampa: uns 50% da carga × 10 e uns 75% × 5. Elas contam no **volume** (kg), mas não nas séries do músculo nem nos recordes, e o descanso depois delas é de 1 minuto.",
+      "Toque no **número da série** para marcar ou desmarcar uma série como **aquecimento**.",
       "**↓ Drop** emenda um drop set na última série feita, já com uns 20% a menos de carga.",
       "**+ série** acrescenta uma série igual à anterior.",
       "Exercício de tempo (prancha, esteira): o **▶** conta e marca a série sozinho no fim.",
@@ -1593,7 +1594,7 @@ const AJUDA_APP = [
 ];
 // Os atalhos e gestos que ninguém descobre sozinho.
 const ATALHOS_APP = [
-  ["Tocar no número da série", "marca como aquecimento (não conta nos recordes)"],
+  ["Tocar no número da série", "marca como aquecimento (conta no volume, não nos recordes)"],
   ["Tocar na linha de um exercício fechado", "abre e passa a ser \"a vez\" dele (a voz anota ali)"],
   ["↓ Drop", "emenda um drop set na última série"],
   ["⇄ no exercício", "troca por outro do mesmo músculo"],
@@ -1689,7 +1690,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-11p";
+const VERSAO_APP = "2026-11-12a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2185,12 +2186,11 @@ function calcularEstatisticas(historico) {
       const g = GRUPO_POR_EXERCICIO[it.exercicioId];
       if (g) grupos[g] = true;
       (it.series || []).forEach((s) => {
+        if (!ehTempo(s) && serieNoVolume(s)) { volumeTotal += cargaDe(s) * repsDe(s); volTreino += cargaDe(s) * repsDe(s); }
         if (!serieConta(s)) return;
         seriesTreino += 1;
         if (ehTempo(s)) return;
-        const p = cargaDe(s), r = repsDe(s);
-        volumeTotal += p * r;
-        volTreino += p * r;
+        const p = cargaDe(s);
         if (p > maiorCarga) maiorCarga = p;
       });
     });
@@ -2209,7 +2209,7 @@ function calcularEstatisticas(historico) {
     if (agora - new Date(h.data).getTime() <= 7 * um) {
       treinosSemana++;
       (h.itens || []).forEach((it) => (it.series || []).forEach((s) => {
-        if (serieConta(s)) volumeSemana += cargaDe(s) * repsDe(s);
+        if (serieNoVolume(s) && !ehTempo(s)) volumeSemana += cargaDe(s) * repsDe(s);
       }));
     }
   });
@@ -2244,8 +2244,11 @@ function calcularEstatisticas(historico) {
 }
 
 // ---------- LEITURA DE UMA SÉRIE ----------
-// Aquecimento existe para preparar a articulação; contá-lo no volume e nos
-// recordes inflaria os números do treino. Fica registrado, mas fora das contas.
+// Aquecimento (pedido do dono, 2026-11-12a): entra no VOLUME do treino (a
+// tonelagem, peso × repetições: o ferro foi levantado), mas não nas séries que
+// contam para o músculo, nos recordes, na carga máxima nem na sugestão de carga.
+// É a régua do fisiculturismo: série que faz crescer é a de trabalho, perto da
+// falha; a de aquecimento fica longe dela (Schoenfeld; Pelland e colegas 2024).
 const ehAquecimento = (s) => !!(s && s.aquec);
 // Isometria (prancha, cadeirinha) se mede em segundos e não tem tonelagem:
 // somar "0 kg × 12" ali era gravar um dado errado.
@@ -2253,8 +2256,10 @@ const ehTempo = (s) => !!(s && s.segundos !== undefined && s.segundos !== null &
 const segundosDe = (s) => (ehTempo(s) ? parseInt(s.segundos) || 0 : 0);
 const cargaDe = (s) => (ehTempo(s) ? 0 : parseFloat(s.peso) || 0);
 const repsDe = (s) => (ehTempo(s) ? 0 : parseInt(s.reps) || 0);
-// O que entra nas contas de volume, recorde e carga máxima
+// O que entra nas séries, recordes e carga máxima (o aquecimento não)
 const serieConta = (s) => !ehAquecimento(s);
+// O que entra na tonelagem (o aquecimento também)
+const serieNoVolume = (s) => !!s;
 
 // ---------- AERÓBICO ----------
 // A série aeróbica é uma série de tempo com os números do painel do aparelho a
@@ -2536,7 +2541,11 @@ function cardioDaSemana(historico, exPorId, inicioMs, pesoKg) {
 function statsTreino(h) {
   let volume = 0, series = 0, reps = 0, cargaMax = 0, segundos = 0, seriesAquec = 0, cardioMin = 0, cardioKm = 0;
   (h.itens || []).forEach((it) => (it.series || []).forEach((s) => {
-    if (ehAquecimento(s)) { seriesAquec += 1; return; }
+    if (ehAquecimento(s)) {
+      seriesAquec += 1;
+      if (!ehCardio(s) && !ehTempo(s)) volume += cargaDe(s) * repsDe(s);
+      return;
+    }
     series += 1;
     // esteira é série de tempo, mas não é isometria: 20 minutos de corrida não
     // são "1200s de isometria"
@@ -2571,7 +2580,7 @@ function melhor1RM(it) {
 }
 function volumeItem(it) {
   let v = 0;
-  (it.series || []).forEach((s) => { if (serieConta(s)) v += cargaDe(s) * repsDe(s); });
+  (it.series || []).forEach((s) => { if (serieNoVolume(s)) v += cargaDe(s) * repsDe(s); });
   return Math.round(v);
 }
 // Segundos segurados num exercício isométrico
@@ -2826,6 +2835,26 @@ function sugerirCarga(historico, exercicioId, repsAlvo) {
 
 // Monta as séries de um exercício ao iniciar o treino. Isometria entra em
 // segundos; o resto, em peso e repetições, já com a carga sugerida.
+// O aquecimento específico em rampa, antes da primeira carga do dia (pedido
+// do dono, 2026-11-12a; prática do fisiculturismo, Helms e colegas, "The
+// Muscle and Strength Pyramid"; aquecimento específico em Ribeiro e colegas
+// 2014): uns 50% da carga de trabalho × 10 e uns 75% × 5, longe da falha, só
+// para "lubrificar" o movimento. Carga leve (até 20 kg) pede uma série só. Só o
+// primeiro exercício de força: os seguintes já começam aquecidos. Aeróbico,
+// isometria e funcional (o próprio movimento já aquece) ficam de fora.
+const DESCANSO_AQUECIMENTO = 60;
+function seriesAquecimento(ex, sug) {
+  if (!ex || exCardio(ex) || ex.tempo || ex.func || ex.funcional) return [];
+  const w = sug && sug.peso ? parseFloat(sug.peso) || 0 : 0;
+  const passo = (x) => (x >= 20 ? 2.5 : 1);
+  const arred = (x) => { const p = passo(x); return Math.max(p, Math.round(x / p) * p); };
+  if (!w) return [{ peso: "", reps: "10", aquec: true, feito: false }, { peso: "", reps: "5", aquec: true, feito: false }];
+  if (w <= 20) return [{ peso: String(arred(w * 0.5)), reps: "10", aquec: true, feito: false }];
+  return [
+    { peso: String(arred(w * 0.5)), reps: "10", aquec: true, feito: false },
+    { peso: String(arred(w * 0.75)), reps: "5", aquec: true, feito: false },
+  ];
+}
 function montarSeries(ex, qtdSeries, repsAlvo, sug, drops) {
   const n = Math.max(1, parseInt(qtdSeries) || 1);
   // Aeróbico: na ficha, "repetições" são os minutos. Os números do painel vêm
@@ -23422,7 +23451,7 @@ function numerosDoGrupo(historico, agora) {
     (h.itens || []).forEach((it) => {
       let maior = 0;
       (it.series || []).forEach((s) => {
-        if (!serieConta(s)) return;
+        if (ehAquecimento(s)) { if (!ehCardio(s) && !ehTempo(s)) vol += cargaDe(s) * repsDe(s); return; }
         if (ehCardio(s)) {
           const kmS = medirCardio(s, 75, s.mod).km || 0, segS = segundosDe(s) || numDe(s.segundos);
           const tp = tipoCardioGrupo(s, h);
@@ -25299,6 +25328,7 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
   (registro.itens || []).forEach((it) => {
     const e = exPorId(it.exercicioId);
     (it.series || []).forEach((s) => {
+      if (ehAquecimento(s) && !ehCardio(s) && !ehTempo(s)) f.volume += cargaDe(s) * repsDe(s);
       if (!serieConta(s) || ehCardio(s)) return;
       f.series += 1;
       if (e && e.grupo) f.grupos[e.grupo] = (f.grupos[e.grupo] || 0) + 1;
@@ -27400,9 +27430,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   const academiaAgora = useMemo(() => {
     let se = 0, vol = 0;
     sessao.itens.forEach((it) => (it.series || []).forEach((s) => {
-      if (!s.feito || !serieConta(s) || ehCardio(s)) return;
-      se++;
+      if (!s.feito || ehCardio(s)) return;
       if (!ehTempo(s)) vol += cargaDe(s) * repsDe(s);
+      if (serieConta(s)) se++;
     }));
     return { se: se, vol: Math.round(vol) };
   }, [sessao]);
@@ -27782,11 +27812,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     const proxSerie = item.series[si + 1];
     const vaiDrop = !!(proxSerie && ehDrop(proxSerie) && !proxSerie.feito);
     const noMeioDoConjunto = vaiDrop || !!(item.conjunto && seguinte && seguinte.conjunto === item.conjunto);
-    if (!noMeioDoConjunto) iniciarDescanso(descansoDe(item));
+    const descSerie = ehAquecimento(serie) ? DESCANSO_AQUECIMENTO : descansoDe(item);
+    if (!noMeioDoConjunto) iniciarDescanso(descSerie);
     // Confirmar em voz o que acabou de ser anotado: com o celular no bolso, o ✓
     // na tela não existe. Frase curta de propósito — é confirmação, não relatório.
     const quantas = item.series.length;
-    const seg = noMeioDoConjunto ? 0 : descansoDe(item) || descanso;
+    const seg = noMeioDoConjunto ? 0 : descSerie || descanso;
     const exItem = exPorId(item.exercicioId);
     let relato = "";
     if (ehCardio(serie) && segundosDe(serie) > 0) {
@@ -29577,7 +29608,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
             )}
             {it.series.some(ehAquecimento) && (
               <div style={{ fontSize: 10, color: "var(--obs)", marginBottom: 6 }}>
-                A = aquecimento: fica registrado, mas fora do volume e dos recordes.
+                A = aquecimento: conta no volume (kg), mas não nas séries do músculo nem nos recordes. Descanso de 1 min.
               </div>
             )}
             {it.series.some(ehDrop) && (
@@ -32719,6 +32750,11 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           // (o aeróbico e a isometria não entram na conta)
           series: montarSeries(ex, sm && !exCardio(ex) && !(ex && ex.tempo) ? seriesNaSemana(it.series, sm.semana) : it.series, it.reps, sug, it.drops),
         };
+      }).map((it, i, todos) => {
+        // o primeiro exercício de força do dia ganha o aquecimento em rampa
+        const primeiro = todos.findIndex((x) => !x.pulado && seriesAquecimento(exPorId(x.exercicioId), x.sugerido).length);
+        if (i !== primeiro) return it;
+        return { ...it, series: [...seriesAquecimento(exPorId(it.exercicioId), it.sugerido), ...it.series] };
       }),
     });
     setAba("sessao");
@@ -33237,7 +33273,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       const vm = volumeFracionadoTreino(registro, exPorId).slice(0, 6);
       if (vm.length) msg += "💪 Por músculo (indireto vale ½): " + vm.map((x) => x.nome.replace(/ \(.*\)/, "") + " " + num1v(x.total) + (x.direto ? "" : " (indireto)")).join(" · ") + "\n";
     }
-    if (st.seriesAquec > 0) msg += "(mais " + st.seriesAquec + " " + plural(st.seriesAquec, "série", "séries") + " de aquecimento, fora da conta)\n";
+    if (st.seriesAquec > 0) msg += "(mais " + st.seriesAquec + " " + plural(st.seriesAquec, "série", "séries") + " de aquecimento: contam no volume, não nas séries nem nos recordes)\n";
     msg += "⏱ " + registro.duracaoMin + " min";
     if (st.densidade > 0) msg += " · " + st.densidade + " kg/min · carga máx. " + st.cargaMax + " kg";
     if (comp) msg += "\n" + (comp.pct >= 0 ? "▲ +" : "▼ ") + comp.pct + "% de volume vs. o treino anterior";

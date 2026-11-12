@@ -789,7 +789,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v189) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v190) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -882,8 +882,15 @@ Regras importantes:
   isometria (exercício com `tempo: true`). Use os leitores `ehTempo`, `cargaDe`,
   `repsDe` e `segundosDe` em vez de ler `s.peso` direto — foi assim que a prancha
   deixou de ser gravada como "0 kg × 12".
-- **`aquec: true`** marca série de aquecimento. Ela fica registrada, mas
-  `serieConta` a exclui de volume, carga máxima, recordes e séries semanais.
+- **`aquec: true`** marca série de aquecimento. **Entra no volume** (a
+  tonelagem, `serieNoVolume`: pedido do dono, 2026-11-12a), mas `serieConta`
+  a exclui das séries (da semana, por músculo, do resumo), da carga máxima, dos
+  recordes e da sugestão de carga: série que faz crescer é a de trabalho.
+- **O primeiro exercício de força do treino já vem com o aquecimento em
+  rampa** (`seriesAquecimento`, em `comecarSessao`): ~50% da carga × 10 e
+  ~75% × 5 (uma série só até 20 kg; sem carga conhecida, as duas em branco).
+  Aeróbico, isometria e funcional ficam de fora. Depois de uma série de
+  aquecimento o descanso é de 1 min (`DESCANSO_AQUECIMENTO`).
 - **As fotos não cabem no `localStorage`.** Ficam no IndexedDB
   (`treinolivre-fotos`), e o registro principal guarda só a lista de datas.
   O backup **em arquivo** leva as imagens em base64 (`fotosDados`); o backup em

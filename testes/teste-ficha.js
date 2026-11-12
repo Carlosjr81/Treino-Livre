@@ -165,5 +165,20 @@ console.log("\n--- reabrir o treino finalizado ---");
   teste("percurso na rua não reabre aqui", null, H.sessaoDoRegistro({ ...reg, rota: {} }, null, [], agora));
 }
 
+console.log("\n--- o aquecimento em rampa do primeiro exercício ---");
+{
+  const exCardio = (e) => !!(e && e.cardio);
+  eval(pedaco("const DESCANSO_AQUECIMENTO", "function montarSeries") + "\nglobalThis.AQ = seriesAquecimento;");
+  const sup = { id: "supino", grupo: "peito" };
+  teste("100 kg: 50 x 10 e 75 x 5", [["50", "10"], ["75", "5"]], AQ(sup, { peso: 100 }).map((s) => [s.peso, s.reps]));
+  teste("as duas marcadas como aquecimento", [true, true], AQ(sup, { peso: 100 }).map((s) => s.aquec));
+  teste("62,5 kg: no degrau de 2,5", ["32.5", "47.5"], AQ(sup, { peso: 62.5 }).map((s) => s.peso));
+  teste("até 20 kg: uma série só", [["8", "10"]], AQ(sup, { peso: 16 }).map((s) => [s.peso, s.reps]));
+  teste("sem carga conhecida: as duas em branco", [["", "10"], ["", "5"]], AQ(sup, null).map((s) => [s.peso, s.reps]));
+  teste("aeróbico não aquece assim", 0, AQ({ cardio: "corrida" }, { peso: 0 }).length);
+  teste("prancha (isometria) também não", 0, AQ({ tempo: true }, null).length);
+  teste("funcional também não", 0, AQ({ func: "burpee" }, null).length);
+}
+
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

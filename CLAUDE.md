@@ -789,7 +789,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v191) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v192) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4280,8 +4280,9 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   com o mesmo `TL_KEYSTORE`. Namespace `br.com.treinolivre.relogio`,
   minSdk 30 (Wear OS 3, Galaxy Watch 4), tela em Views sem Compose (sem
   dependência a mais).
-- **A carga e as repetições são ajustadas no relógio** (− e +, o passo de
-  carga do `PASSO_CARGA`: 1, 2,5 ou 5 kg) e vão junto do ✓; valor fora da
+- **A carga e as repetições são ajustadas no relógio** (− e +, **sempre de
+  1 kg**: o passo pela carga, 1, 2,5 ou 5, parecia pular números a cada
+  exercício; pedido do dono, 2026-11-12c. O passo vem do painel, `passo`) e vão junto do ✓; valor fora da
   faixa é ignorado (fica o combinado). Exercício de tempo ajusta os segundos;
   aeróbico se anota no celular. No descanso a tela do relógio fica acesa.
 - **A cópia leva agora o nome do treino e o `pulado`** (`snapshotBolso`):

@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-12c — Conserto: no relógio, o peso sobe e desce de 1 em 1 kg
+
+**Em uma frase:** os botões − e + da carga no relógio agora andam sempre 1 kg.
+
+**O que mudou**
+- Antes o passo mudava com o peso (1, 2,5 ou 5 kg) e parecia pular números diferentes em cada exercício.
+
+**Por que importa para quem treina**
+- Dá para acertar o peso exato da máquina sem adivinhar quanto o botão vai pular.
+
+**Como usar**
+- No relógio, toque em − ou + na linha do peso.
+
+**Ideias de vídeo**
+- Nenhuma: é conserto.
+
+**Não prometer**
+- Vale para o app do relógio (Galaxy Watch e Wear OS).
+
+---
+
 ## 2026-11-12b — Conserto: o relógio volta para o treino quando a tela acende
 
 **Em uma frase:** com o treino aberto, o Treino Livre fica em andamento no relógio e volta para a frente quando a tela acende.

@@ -1111,7 +1111,7 @@ const GUIA_CONECTAR = [
       "O relógio é um controle do celular: o treino continua no celular, e cada ✓ do relógio vira a série anotada lá, com o descanso, o recorde e a voz de sempre.",
       "O ✓ Feito do relógio aparece marcado **sozinho** na tela do celular (precisa de internet no celular). Sem internet, entra no próximo ✓ que você marcar no celular.",
       "Travou na instalação? Em **⌚ Instalar o app no relógio** tem o passo a passo de cada tela e o que fazer com cada mensagem de erro (🆘).",
-      "Para **atualizar** o app do relógio: só a Depuração por Wi-Fi ligada no relógio, e **Instalar no relógio agora → Já pareei antes** no celular.",
+      "Para **atualizar** o app do relógio: **⬆ Atualizar o relógio** (em ⌚ Instalar o app no relógio), ou o **⬆ Atualizar o app** que aparece no próprio relógio. O celular instala sozinho.",
       "Aeróbico (esteira, bicicleta) se anota no celular.",
       "Depois de instalar, desligue a **Depuração ADB** do relógio, se quiser: o app continua lá.",
       "O relógio diz **Celular desconectado**? Confira o Bluetooth e o app que liga o relógio ao celular (**Galaxy Wearable**, **Pixel Watch** ou o **Wear OS**).",
@@ -1376,7 +1376,7 @@ const AJUDA_APP = [
       "Comece o treino no celular pelo **app Android** e marque a primeira série: o relógio passa a mostrar o exercício da vez.",
       "No relógio: ajuste a carga e as repetições com **−** e **+** e toque em **✓ Feito**. O descanso conta no pulso, e o relógio vibra no fim.",
     ],
-    dicas: ["◀ e ▶ trocam o exercício; ↩ desfaz a última série.", "A série marcada no relógio aparece sozinha no celular (com internet).", "Na mesma rede, sempre: na academia ou no trabalho, use o Roteador Wi-Fi do celular com o relógio conectado nele.", "Para atualizar o app do relógio: Instalar no relógio agora → Já pareei antes, com a Depuração por Wi-Fi ligada no relógio."],
+    dicas: ["◀ e ▶ trocam o exercício; ↩ desfaz a última série.", "A série marcada no relógio aparece sozinha no celular (com internet).", "Na mesma rede, sempre: na academia ou no trabalho, use o Roteador Wi-Fi do celular com o relógio conectado nele.", "Para atualizar o app do relógio: ⬆ Atualizar o relógio, um toque. O próprio relógio também mostra ⬆ Atualizar o app quando há versão nova."],
     ir: { rotulo: "⌚ Instalar o app no relógio", destino: "instalarRelogio" } },
   { id: "botao-fone", cat: "voz", icone: "\u{1F3A7}", titulo: "Botão do fone ou toque nos óculos",
     resumo: "Um toque no fone liga o Jarvis ou a câmera.",
@@ -1690,7 +1690,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-13a";
+const VERSAO_APP = "2026-11-13b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3151,6 +3151,22 @@ const LINK_INSTALADOR_RELOGIO = "https://play.google.com/store/search?q=Bugjaege
 // O instalador dentro do app do celular (InstaladorRelogio): acha o relógio no
 // Wi-Fi, pareia com o código de 6 números, baixa e instala. App antigo: baixa o novo.
 const LINK_INSTALAR_RELOGIO = "intent://instalar-relogio#Intent;scheme=treinolivre;package=br.com.treinolivre.app;S.browser_fallback_url=" + encodeURIComponent("https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk") + ";end";
+// Atualizar o relógio com um toque (pedido do dono, 2026-11-13b): o app do
+// celular abre o instalador no modo automático, que acorda a tela de atualizar
+// no relógio (ela liga o Wi-Fi e a Depuração por Wi-Fi sozinha), acha o
+// relógio e instala. App antigo: baixa o novo.
+const LINK_ATUALIZAR_RELOGIO = "intent://instalar-relogio?auto=1#Intent;scheme=treinolivre;package=br.com.treinolivre.app;S.browser_fallback_url=" + encodeURIComponent("https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk") + ";end";
+// o número do app que está no relógio (rv=, mandado pelo app do celular, que o
+// ouve do relógio). Vale o mais recente: o relógio pode ser atualizado.
+const RELOGIO_NO_PULSO = (() => {
+  try {
+    const m = typeof location !== "undefined" && location.search.match(/[?&]rv=(\d+)/);
+    if (m) localStorage.setItem("treinolivre:relogioPulso", m[1]);
+    return m ? +m[1] : (parseInt(localStorage.getItem("treinolivre:relogioPulso")) || 0);
+  } catch (e) { return 0; }
+})();
+// o app do relógio sai junto com o do celular: relógio mais velho = atualizar
+const RELOGIO_DESATUALIZADO = RELOGIO_NO_PULSO > 0 && NUMERO_APK > RELOGIO_NO_PULSO;
 const PACOTE_ANDROID = "br.com.treinolivre.app";
 const META_PASSOS = 8000;
 
@@ -29090,7 +29106,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 ? <>Precisa do app Android novo: <a href={LINK_APK} style={{ color: "var(--marca)" }}>baixe e instale de novo</a> e abra pelo ícone.</>
                 : <>Celular travado no bolso: ele ouve, anota as séries, conta o descanso e chama você na hora. Só no app Android.</>}
             </div>
-            {NO_APP_ANDROID && (
+            {NO_APP_ANDROID && RELOGIO_DESATUALIZADO && (
+              <a href={LINK_ATUALIZAR_RELOGIO} style={{ display: "block", marginTop: 6, color: "var(--marca)", fontSize: 12.5, fontWeight: 800, textDecoration: "none" }}>
+                ⬆ O app do relógio tem versão nova: atualizar com um toque ›
+              </a>
+            )}
+            {NO_APP_ANDROID && !RELOGIO_DESATUALIZADO && (
               <button onClick={() => abrirInstalarRelogio()} style={{ marginTop: 6, background: "none", border: "none", padding: 0, color: "var(--marca)", fontSize: 12.5, fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
                 ⌚ Tem Galaxy Watch, Pixel Watch ou outro Wear OS? Marque as séries no pulso: instalar o app no relógio ›
               </button>
@@ -30738,7 +30759,7 @@ const PASSOS_RELOGIO = [
       "Espere **✅ Pronto! O Treino Livre está no relógio.** O app abre sozinho no relógio.",
     ],
     instalar: true,
-    nota: "Para atualizar depois: no relógio, só a Depuração por Wi-Fi ligada (sem abrir o código). No celular, o mesmo botão → Já pareei antes. O app acha o relógio sozinho (pode levar até 1 minuto)." },
+    nota: "Depois de instalado, atualizar é um toque: ⬆ Atualizar o relógio (aqui no topo, quando há versão nova) ou o ⬆ Atualizar o app no próprio relógio. O celular faz o resto." },
   { id: "conferir", titulo: "Confira se deu certo",
     texto: "O celular pergunta ao relógio se o Treino Livre está lá, e abre o app nele. Se abrir no pulso, está tudo certo.",
     conferir: true },
@@ -30902,6 +30923,13 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
           <div style={{ ...S.card, fontSize: 14, lineHeight: 1.55 }}>
             <div style={{ fontWeight: 900, marginBottom: 6 }}>O Apple Watch não conversa com o Treino Livre</div>
             <div>{textoGuia("O Apple Watch só se liga ao iPhone, e a Apple não deixa nenhum site ler o relógio nem o Apple Saúde. No iPhone, o Treino Livre funciona pelo Safari para registrar os treinos; o relógio no pulso e o batimento ao vivo ficam de fora.")}</div>
+          </div>
+        )}
+        {marca && marca.wear && EH_ANDROID && (RELOGIO_NO_PULSO > 0 || feitos.instalar || status === "pronto") && (
+          <div style={{ ...S.card, borderColor: RELOGIO_DESATUALIZADO ? "var(--marca)" : "var(--borda)" }}>
+            <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 4 }}>{RELOGIO_DESATUALIZADO ? "⬆ Tem versão nova para o relógio" : "⬆ Atualizar o app do relógio"}</div>
+            <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--cinza)", marginBottom: 10 }}>{textoGuia("Um toque: o celular baixa e instala sozinho. A tela de atualizar abre no relógio e liga o Wi-Fi e a depuração ela mesma. **Só na primeira vez** depois desta versão o relógio pode pedir que você toque em **Abrir as opções** e ligue a **Depuração por Wi-Fi**.")}</div>
+            <a href={LINK_ATUALIZAR_RELOGIO} style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none" }}>⬆ Atualizar o relógio</a>
           </div>
         )}
         {marca && marca.wear && st && (

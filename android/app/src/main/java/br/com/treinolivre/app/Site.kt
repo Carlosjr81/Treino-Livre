@@ -26,7 +26,8 @@ object Site {
         // relogio=2: e conversa com o app do relógio (Galaxy Watch), e o instala
         // pelo Wi-Fi (InstaladorRelogio). relogio=3: e entrega a série do relógio
         // sozinha (canal cifrado, confirmação e "Aparecer sobre outros apps")
-        val base = "$ENDERECO?" + PARAMETROS + (if (apk > 0) "&apk=$apk" else "")
+        // rv: o número do app do relógio (o site oferece atualizar quando é mais velho)
+        val base = "$ENDERECO?" + PARAMETROS + (if (apk > 0) "&apk=$apk" else "") + (if (relogio > 0) "&rv=$relogio" else "")
         return Uri.parse(if (pacoteSaude == null) base else "$base#saude=$pacoteSaude")
     }
 
@@ -34,7 +35,12 @@ object Site {
 
     // o número deste app (o do build no GitHub), que o site mostra nos Ajustes
     var apk = 0L
+    var relogio = 0L
     fun lembrarVersao(ctx: Context) {
+        relogio = try {
+            val v = ctx.getSharedPreferences("relogio", Context.MODE_PRIVATE).getLong("versao", 0L)
+            if (v > 1_000_000L) v - 1_000_000L else 0L
+        } catch (e: Exception) { 0L }
         apk = try {
             val i = ctx.packageManager.getPackageInfo(ctx.packageName, 0)
             if (android.os.Build.VERSION.SDK_INT >= 28) i.longVersionCode else @Suppress("DEPRECATION") i.versionCode.toLong()

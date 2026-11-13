@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-11-13b — Atualizar o app do relógio com um toque
+
+**Em uma frase:** quando sai versão nova do app do relógio, um toque em "⬆ Atualizar o relógio" (no celular ou no próprio relógio) e o celular instala sozinho.
+
+**O que mudou**
+- O celular passa a saber qual versão está no relógio e avisa quando tem versão nova: no assistente do relógio, no cartão do Jarvis do treino e no próprio relógio ("⬆ Atualizar o app", em dourado).
+- Um toque e o celular baixa, acha o relógio e instala. A tela de atualizar abre sozinha no relógio, liga o Wi-Fi e a depuração, e o app novo abre no fim.
+- Acabaram o "Já pareei antes", o endereço e ligar a Depuração por Wi-Fi à mão a cada atualização.
+
+**Por que importa para quem treina**
+- Manter o relógio em dia deixa de ser coisa de técnico: é um toque, e as novidades chegam ao pulso.
+
+**Como usar**
+- Quando aparecer "⬆ Atualizar o relógio", toque. Deixe o relógio no pulso, perto do celular.
+- Só na primeira atualização depois desta versão, o relógio pode pedir que você toque em "Abrir as opções" e ligue a Depuração por Wi-Fi. Daí em diante, é só o toque.
+
+**Ideias de vídeo**
+- Tela dividida: o toque no celular e o relógio atualizando sozinho até abrir o app novo.
+
+**Não prometer**
+- A instalação inicial no relógio continua sendo uma vez pelo modo de desenvolvedor (com o código de 6 números).
+- Precisa de relógio e celular no mesmo Wi-Fi (ou do Roteador Wi-Fi do celular).
+- Galaxy Watch, Pixel Watch e outros Wear OS, com o app Android do Treino Livre.
+
+---
+
 ## 2026-11-13a — O relógio ganhou cores, anel animado e comemoração a cada série
 
 **Em uma frase:** o app do relógio agora tem um anel colorido que gira na borda da tela, botões coloridos e uma comemoração com clarão e vibração a cada série feita, e a instalação pergunta qual é o seu relógio.

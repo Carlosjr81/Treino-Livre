@@ -34,6 +34,8 @@ import com.google.android.gms.wearable.DataClient
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
+import com.google.android.gms.wearable.MessageClient
+import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
 import org.json.JSONObject
 
@@ -47,7 +49,7 @@ import org.json.JSONObject
 // O visual (2026-11-13a, pedido do dono: "chame a atenção de todos"): o anel
 // colorido da borda (Palco), botões em degradê, o clarão e o "✓ SÉRIE FEITA" a
 // cada série, o dourado do recorde e do treino completo.
-class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener {
+class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, MessageClient.OnMessageReceivedListener {
     private val linha = Handler(Looper.getMainLooper())
     // Relato do dono (2026-11-11k): a tela do relógio apagava e o app ia para
     // o segundo plano. Com o modo ambiente o app fica na frente, em preto e
@@ -115,6 +117,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener {
     private lateinit var navegar: LinearLayout
     private lateinit var dica: TextView
     private lateinit var aviso: TextView
+    private lateinit var atualizar: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -249,6 +252,11 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener {
 
         aviso = texto(13f, Color.WHITE)
         caixa.addView(aviso)
+        // o celular tem versão nova do app do relógio (2026-11-13b): um toque
+        atualizar = pilula("⬆ Atualizar o app", intArrayOf(Cores.OURO, Cores.LARANJA)) {
+            startActivity(android.content.Intent(this, PreparaAtualizacao::class.java))
+        }.apply { visibility = View.GONE }
+        caixa.addView(atualizar, lp())
 
         val rolagem = ScrollView(this).apply {
             isVerticalScrollBarEnabled = false
@@ -290,6 +298,8 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener {
         frente.vivo = true
         val dados = Wearable.getDataClient(this)
         dados.addListener(this)
+        Wearable.getMessageClient(this).addListener(this)
+        enviarVersao()
         // o último painel que o celular mandou (abre na hora, mesmo antes da resposta)
         dados.getDataItems(Uri.parse("wear://*/treino/estado")).addOnSuccessListener { buf ->
             try {
@@ -311,6 +321,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener {
         palco.vivo = false
         frente.vivo = false
         Wearable.getDataClient(this).removeListener(this)
+        Wearable.getMessageClient(this).removeListener(this)
         linha.removeCallbacks(tique)
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         super.onPause()
@@ -325,6 +336,32 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener {
         }
         val j = try { if (ultimo != null) JSONObject(ultimo) else null } catch (e: Exception) { null } ?: return
         runOnUiThread { receber(j) }
+    }
+
+    // A versão: o relógio diz a dele, o celular responde com a dele. Celular
+    // mais novo (o app do relógio sai junto com o do celular) = ⬆ Atualizar.
+    private fun minhaVersao(): Long = try {
+        packageManager.getPackageInfo(packageName, 0).longVersionCode - 1_000_000L
+    } catch (e: Exception) { 0L }
+
+    private fun enviarVersao() {
+        val dados = (minhaVersao() + 1_000_000L).toString().toByteArray(Charsets.UTF_8)
+        Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nos ->
+            nos.forEach { no -> Wearable.getMessageClient(this).sendMessage(no.id, "/treino/versao", dados) }
+        }
+    }
+
+    override fun onMessageReceived(m: MessageEvent) {
+        if (m.path != "/treino/celular") return
+        val v = String(m.data, Charsets.UTF_8).trim().toLongOrNull() ?: 0L
+        getSharedPreferences("relogio", MODE_PRIVATE).edit().putLong("celular", v).apply()
+        runOnUiThread { mostrarAtualizar() }
+    }
+
+    private fun mostrarAtualizar() {
+        val cel = getSharedPreferences("relogio", MODE_PRIVATE).getLong("celular", 0L)
+        val meu = minhaVersao()
+        atualizar.visibility = if (!ambiente && cel > 0 && meu > 0 && cel > meu) View.VISIBLE else View.GONE
     }
 
     private fun receber(j: JSONObject) {
@@ -421,6 +458,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener {
         val ativo = p != null && p.optBoolean("ativo", false)
         val mostra = { v: View, sim: Boolean -> v.visibility = if (sim) View.VISIBLE else View.GONE }
         pintarMarca()
+        mostrarAtualizar()
         marca.setTextColor(if (ambiente) Cores.CINZA else Color.WHITE)
         mostra(serie, false)
         if (p == null || !ativo || p.optBoolean("carregando") || p.optBoolean("fim")) {

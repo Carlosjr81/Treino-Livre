@@ -62,7 +62,24 @@ class InstaladorRelogio : ComponentActivity() {
         private const val PAREAR = "_adb-tls-pairing._tcp."
         private const val CONECTAR = "_adb-tls-connect._tcp."
         private const val PREFS = "instalador"
+        // esta versão (a do GitHub) atualiza o relógio pelo Wi-Fi
+        const val ATUALIZA_PELO_WIFI = true
+        // aberto agora: o pedido do relógio não abre outro por cima
+        @Volatile var aberto = false
     }
+
+    // O modo automático (treinolivre://instalar-relogio?auto=1, pedido do dono
+    // em 2026-11-13b: "atualizar só com cliques"): já pareado, o app tenta
+    // sozinho, acorda a tela de atualizar no relógio (que liga o Wi-Fi e a
+    // Depuração por Wi-Fi ela mesma, com a permissão dada na instalação
+    // anterior) e tenta de novo até conseguir, por até 6 minutos.
+    private var auto = false
+    private var inicioAuto = 0L
+    private var pediuRelogioEm = 0L
+    private var bytesApk: ByteArray? = null
+    private lateinit var estado: TextView
+    private lateinit var progresso: TextView
+    private lateinit var deNovo: Button
 
     private val linha = Handler(Looper.getMainLooper())
     private var nsd: NsdManager? = null
@@ -122,6 +139,14 @@ class InstaladorRelogio : ComponentActivity() {
         val versao = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (e: Exception) { "?" }
         caixa.addView(texto(12f, CINZA, t = "App do celular: versão " + versao))
         caixa.addView(texto(14f, CINZA, t = "O app acha o relógio no Wi-Fi, baixa e instala. Você só digita o código de 6 números que o relógio mostra (uma vez só)."), lp(6))
+        val cartaoEstado = cartao().apply { visibility = View.GONE }
+        estado = texto(18f, negrito = true)
+        progresso = texto(13f, CINZA)
+        deNovo = botaoCheio("🔁 Tentar de novo", ROSA).apply { visibility = View.GONE; setOnClickListener { tentarAuto() } }
+        cartaoEstado.addView(estado)
+        cartaoEstado.addView(progresso, lp(10))
+        cartaoEstado.addView(deNovo, lp(12))
+        caixa.addView(cartaoEstado, lp(16))
 
         val c1 = cartao()
         c1.addView(texto(15f, negrito = true, t = "1. Uma vez só: o modo de desenvolvedor"))
@@ -199,7 +224,45 @@ class InstaladorRelogio : ComponentActivity() {
         setContentView(ScrollView(this).apply { setBackgroundColor(Color.parseColor("#0B0B0F")); addView(caixa) })
         buscar()
         // em 25 s sem achar, oferece digitar o endereço
-        linha.postDelayed({ if (hostPar == null && hostCon == null) manual.visibility = View.VISIBLE }, 25_000L)
+        linha.postDelayed({ if (!auto && hostPar == null && hostCon == null) manual.visibility = View.VISIBLE }, 25_000L)
+
+        aberto = true
+        auto = intent?.data?.getQueryParameter("auto") == "1"
+        if (auto && jaPareado) {
+            cartaoEstado.visibility = View.VISIBLE
+            val escondidos = listOf<View>(c1, c2, c3, manual, ajuda, registro)
+            escondidos.forEach { it.visibility = View.GONE }
+            val verDetalhes = botaoCheio("Ver os detalhes", Color.parseColor("#2A2A33"))
+            verDetalhes.setOnClickListener { escondidos.forEach { it.visibility = View.VISIBLE }; verDetalhes.visibility = View.GONE }
+            caixa.addView(verDetalhes, caixa.indexOfChild(cartaoEstado) + 1, lp(10))
+            fase("⬆ Atualizando o app do relógio…\n\nNão precisa fazer nada: deixe o relógio no pulso, perto do celular.")
+            linha.postDelayed({ tentarAuto() }, 400L)
+        } else if (auto) {
+            auto = false
+            log("ℹ Primeira vez neste celular: siga os passos e digite o código do relógio (uma vez só). Depois disso, atualizar é um toque.")
+        }
+    }
+
+    private fun fase(t: String) = linha.post { estado.text = t }
+
+    private fun tentarAuto() {
+        if (trabalhando || isFinishing || isDestroyed) return
+        deNovo.visibility = View.GONE
+        if (inicioAuto == 0L) {
+            inicioAuto = System.currentTimeMillis()
+            // acorda o relógio já: ele liga o Wi-Fi e a depuração e manda o endereço
+            pedirAoRelogio()
+            linha.postDelayed({ instalar(false) }, 5000L)
+        } else instalar(false)
+    }
+
+    private fun pedirAoRelogio() {
+        val agora = System.currentTimeMillis()
+        if (agora - pediuRelogioEm < 45_000L) return
+        pediuRelogioEm = agora
+        Relogio.abrirNoRelogio(applicationContext, Relogio.TELA_ATUALIZAR)
+        if (agora - inicioAuto > 3000L)
+            fase("⌚ Olhe o relógio: abriu a tela de atualizar nele.\n\nSe ele pedir, toque em Abrir as opções e ligue a Depuração por Wi-Fi. O celular continua tentando sozinho.")
     }
 
     // ---- achar o relógio no Wi-Fi ----
@@ -259,7 +322,10 @@ class InstaladorRelogio : ComponentActivity() {
     }
 
     // ---- parear, conectar, baixar e instalar ----
-    private fun log(t: String) = linha.post { registro.text = if (registro.text.isEmpty()) t else registro.text.toString() + "\n" + t }
+    private fun log(t: String) = linha.post {
+        registro.text = if (registro.text.isEmpty()) t else registro.text.toString() + "\n" + t
+        if (auto) progresso.text = t
+    }
 
     private fun instalar(comCodigo: Boolean) {
         if (trabalhando) return
@@ -284,8 +350,18 @@ class InstaladorRelogio : ComponentActivity() {
             botao.isEnabled = true; botaoJa.isEnabled = true
             if (r == "ok") {
                 log("✅ Pronto! O Treino Livre está no relógio.")
+                if (auto) fase("✅ Pronto! O app do relógio foi atualizado.")
                 Relogio.abrirNoRelogio(applicationContext)
                 linha.postDelayed({ voltarAoSite("pronto") }, 2500L)
+            } else if (auto) {
+                if (System.currentTimeMillis() - inicioAuto < 6 * 60_000L) {
+                    pedirAoRelogio()
+                    linha.postDelayed({ tentarAuto() }, 3000L)
+                } else {
+                    inicioAuto = 0L
+                    fase("⚠ Não consegui falar com o relógio.\n\nConfira: relógio no pulso, no mesmo Wi-Fi do celular (ou no Roteador Wi-Fi do celular), e a Depuração por Wi-Fi ligada nele (Configurações → Opções do desenvolvedor).")
+                    deNovo.visibility = View.VISIBLE
+                }
             }
         }
     }
@@ -296,10 +372,13 @@ class InstaladorRelogio : ComponentActivity() {
             // Baixa antes de prender ao Wi-Fi: o Wi-Fi da academia ou da empresa
             // pode não ter internet, e preso a ele o download não sairia.
             log("⬇ Baixando o app do relógio…")
-            val bytes = baixar() ?: run { log("⚠ Não consegui baixar o app do relógio. Confira a internet."); return "erro" }
-            log("✓ Baixado (" + (bytes.size / 1024) + " KB).")
+            val bytes = bytesApk ?: (baixar() ?: run { log("⚠ Não consegui baixar o app do relógio. Confira a internet."); return "erro" })
+            if (bytesApk == null) log("✓ Baixado (" + (bytes.size / 1024) + " KB).")
+            bytesApk = bytes
+            // o endereço que o próprio relógio mandou (vale por 10 minutos)
+            val dica = Relogio.dicaHost?.takeIf { System.currentTimeMillis() - Relogio.dicaEm < 10 * 60_000L }
             val digCon0 = enderecoCon.text.toString().trim().let { if (it.contains(":")) it.substringBeforeLast(":") else "" }
-            val alvo = hp ?: digCon0.ifEmpty { null } ?: hostCon
+            val alvo = hp ?: digCon0.ifEmpty { null } ?: dica ?: hostCon
                 ?: getSharedPreferences(PREFS, MODE_PRIVATE).getString("ultimoHost", null)?.ifEmpty { null }
             if (!prenderAoWifi(alvo)) return "erro"
             if (comCodigo && hp != null) {
@@ -343,6 +422,7 @@ class InstaladorRelogio : ComponentActivity() {
             // os endereços em que o relógio pode estar, para procurar a porta
             val hosts = LinkedHashSet<String>()
             if (digCon.isNotEmpty()) hosts.add(digCon.substringBefore(":"))
+            dica?.let { hosts.add(it) }
             hostCon?.let { hosts.add(it) }
             hp?.let { hosts.add(it) }
             prefs.getString("ultimoHost", null)?.let { if (it.isNotEmpty()) hosts.add(it) }
@@ -379,7 +459,7 @@ class InstaladorRelogio : ComponentActivity() {
                     hosts.isEmpty() -> log("➡ Ainda não sei o endereço do relógio. Na tela da Depuração por Wi-Fi do relógio aparece o Endereço IP e porta: digite no segundo campo e toque de novo.")
                     else -> log("➡ Não achei o relógio. Confira no relógio: Depuração por Wi-Fi LIGADA (ela desliga sozinha quando o relógio sai do Wi-Fi ou reinicia), e relógio e celular no mesmo Wi-Fi. Se continuar, digite no segundo campo o Endereço IP e porta que a tela da Depuração por Wi-Fi mostra.")
                 }
-                linha.post { manual.visibility = View.VISIBLE }
+                linha.post { if (!auto) manual.visibility = View.VISIBLE }
                 return "erro"
             }
             log("📲 Instalando no relógio…")
@@ -400,7 +480,15 @@ class InstaladorRelogio : ComponentActivity() {
             try { stream.close() } catch (e: Exception) { }
             val txt = resposta.toString().trim()
             BolsoService.diario(this, "instalador do relógio: " + txt.take(120))
-            if (txt.contains("Success")) return "ok"
+            if (txt.contains("Success")) {
+                // A permissão que deixa o app do relógio ligar a Depuração por
+                // Wi-Fi sozinho na próxima atualização (só dá para dar pelo ADB;
+                // fica até o app ser desinstalado). E a depuração desligada de
+                // novo: a próxima vez o relógio liga, sem ninguém mexer.
+                executar(c, "pm grant br.com.treinolivre.app android.permission.WRITE_SECURE_SETTINGS")
+                executar(c, "settings put global adb_wifi_enabled 0")
+                return "ok"
+            }
             log("⚠ O relógio recusou: " + txt.take(200))
             if (txt.contains("UPDATE_INCOMPATIBLE")) log("O app que está no relógio foi assinado com outra chave: desinstale o Treino Livre do relógio e tente de novo.")
             return "erro"
@@ -411,6 +499,21 @@ class InstaladorRelogio : ComponentActivity() {
             try { adb.close() } catch (e: Exception) { }
             soltarDoWifi()
         }
+    }
+
+    // Um comando no relógio, esperando a resposta por no máximo 8 s
+    private fun executar(c: AbsAdbConnectionManager, comando: String) {
+        try {
+            comPrazo(8_000L) {
+                val s = c.openStream("exec:" + comando)
+                val entrada = s.openInputStream()
+                val buf = ByteArray(512)
+                val r = StringBuilder()
+                while (true) { val n = try { entrada.read(buf) } catch (e: Exception) { -1 }; if (n <= 0) break; r.append(String(buf, 0, n)) }
+                try { s.close() } catch (e: Exception) { }
+                BolsoService.diario(this, "relógio: " + comando.take(60) + " → " + r.toString().trim().take(80))
+            }
+        } catch (e: Exception) { }
     }
 
     // Procura as portas abertas do relógio. A da Depuração por Wi-Fi é sorteada
@@ -484,7 +587,7 @@ class InstaladorRelogio : ComponentActivity() {
             log("➡ No relógio: Configurações → Conexões → Wi-Fi, e escolha o MESMO Wi-Fi do celular (ou ligue o Roteador Wi-Fi do celular e conecte o relógio nele).")
             log("➡ Depois, a Depuração por Wi-Fi do relógio mostra um endereço novo: confira que começa com " + ip.substringBeforeLast(".") + ", digite no segundo campo e toque em \"Já pareei antes\". Não precisa de código.")
             log("Se o relógio não está em Wi-Fi nenhum (só no 4G ou no Bluetooth), a Depuração por Wi-Fi não funciona: ele precisa de Wi-Fi.")
-            linha.post { manual.visibility = View.VISIBLE }
+            linha.post { if (!auto) manual.visibility = View.VISIBLE }
             return false
         }
         presoAoWifi = cm.bindProcessToNetwork(w)
@@ -580,6 +683,7 @@ class InstaladorRelogio : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        aberto = false
         pararBusca()
         lancador?.destroy()
         super.onDestroy()

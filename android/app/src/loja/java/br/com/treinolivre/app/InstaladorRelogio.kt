@@ -14,6 +14,12 @@ import java.util.concurrent.Executors
 // Store do relógio, onde é um toque em Instalar.
 // (A versão direta, do GitHub, instala pelo Wi-Fi: src/direto.)
 class InstaladorRelogio : ComponentActivity() {
+    companion object {
+        // a versão da loja não instala pelo Wi-Fi: a Play Store atualiza o relógio
+        const val ATUALIZA_PELO_WIFI = false
+        val aberto = false
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {

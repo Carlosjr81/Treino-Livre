@@ -789,7 +789,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v194) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v195) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4446,6 +4446,45 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   cinza parado, fundo preto (tela OLED). A animação só roda com a tela à vista
   (`vivo`, ~30 quadros por segundo). **Não validado num relógio**: compilado
   pelo Actions, conferido só no código.
+- **Atualizar com um toque** (pedido do dono, 2026-11-13b: "a atualização é
+  complicada demais para os usuários comuns; só cliques"). O caminho antigo
+  (Instalar no relógio agora → Já pareei antes, com a Depuração por Wi-Fi
+  ligada à mão) virou automático:
+  - **O celular sabe a versão do relógio**: a cada abertura, a tela do relógio
+    manda `/treino/versao` (o `versionCode` dele); o `OuvinteRelogio`
+    guarda em `relogio`/`versao` e responde `/treino/celular` com o do
+    celular (0 na versão da loja, que a Play Store atualiza). O site recebe
+    `rv=` (o número do relógio, `RELOGIO_NO_PULSO`); celular mais novo que o
+    relógio (os dois saem no mesmo build) = `RELOGIO_DESATUALIZADO`.
+  - **Onde aparece**: "⬆ Atualizar o relógio" no topo do assistente de instalar
+    (sempre que já foi instalado; em destaque com versão nova), a linha "⬆ O
+    app do relógio tem versão nova" no cartão 🔒 do treino, e **"⬆ Atualizar o
+    app" no próprio relógio** (dourado, embaixo).
+  - **O modo automático do instalador** (`treinolivre://instalar-relogio?auto=1`,
+    `LINK_ATUALIZAR_RELOGIO`): já pareado, esconde os passos e mostra só o
+    andamento; abre no relógio a **tela de atualizar** (`PreparaAtualizacao`,
+    `treinolivre://relogio-atualizar`, pelo `RemoteActivityHelper`) e tenta
+    de novo a cada falha por até 6 minutos, com o arquivo baixado uma vez só.
+    Sem pareamento, cai no passo a passo de sempre (o código é uma vez só).
+  - **A tela de atualizar no relógio** pede a rede Wi-Fi (`WifiDoRelogio`,
+    `requestNetwork`: com o Bluetooth, o Wear OS deixa o Wi-Fi desligado),
+    **liga a Depuração ADB e a por Wi-Fi ela mesma** (`adb_wifi_enabled`,
+    com `WRITE_SECURE_SETTINGS`) e manda o endereço do relógio ao celular
+    (`/treino/atualizar` → `Relogio.dicaHost`, o primeiro endereço que o
+    instalador tenta, e onde ele procura a porta). Sem a permissão, um botão
+    "Abrir as opções" leva às Opções do desenvolvedor.
+  - **A permissão** só se dá pelo ADB: ao instalar, o celular roda `pm grant
+    br.com.treinolivre.app android.permission.WRITE_SECURE_SETTINGS` e
+    desliga a Depuração por Wi-Fi de novo (`settings put global
+    adb_wifi_enabled 0`: na próxima vez o relógio liga sozinho). A permissão
+    fica até o app ser desinstalado. **Então a primeira atualização para esta
+    versão ainda precisa da Depuração por Wi-Fi ligada à mão; da seguinte em
+    diante, é só o toque.**
+  - Pelo relógio: o "⬆ Atualizar o app" abre a tela de atualizar, que manda o
+    endereço; o celular abre o instalador sozinho com "Aparecer sobre outros
+    apps", ou mostra a notificação "⌚ Atualizar o app do relógio" (um toque).
+  - **Não validado num relógio**: o `adb_wifi_enabled` escrito pelo app, o
+    `requestNetwork` do Wi-Fi e a tela aberta pelo celular.
 - **Outras marcas** (2026-11-13a): o assistente de instalar começa com **"Qual
   é o seu relógio?"** (`MARCAS_RELOGIO`, guardado em
   `treinolivre:relogioMarca`): Galaxy Watch, Pixel Watch e "outro com Wear

@@ -211,7 +211,10 @@ teste("o link do bolso leva o canal", true, B.linkBolso({ v: 1, itens: [] }).ind
 teste("a copia leva o que a pagina ja aplicou", ["abc"], B.snapshotBolso({ itens: [] }, () => ({}), { vistos: ["abc"] }).vistos);
 (async () => {
   const m = await B.cifrarBolso(ca, { ev: ev2, ts: 5 });
-  teste("o retransmissor so ve bytes embaralhados", false, /u1|"t"|"a"/.test(JSON.stringify(m)));
+  // com aspas: "u1" solto aparece por acaso no base64 de vez em quando (o CI
+  // reprovou assim em 2026-11-13); com aspas, só o texto aberto teria
+
+  teste("o retransmissor so ve bytes embaralhados", false, /"u1"|"t"|"a"/.test(JSON.stringify(m)));
   const volta = await B.decifrarBolso(ca, m);
   teste("a tela do treino decifra", ev2[0].k, volta.ev[0].k);
   let recusou = false;

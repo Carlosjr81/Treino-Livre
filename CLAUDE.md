@@ -789,7 +789,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v196) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v197) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5550,7 +5550,11 @@ colegas 2017.
   "apaguei um treino sem querer, faça algo para recuperar"). O treino
   excluído vai para `localStorage["treinolivre:lixeira"]` (fora do registro
   principal e do backup) e fica **30 dias** (`LIXEIRA_DIAS`, no máximo 60).
-  Entrada: o botão no fim da lista de Histórico › Treinos, e o aviso do
+  Entrada: o botão **🗑 Lixeira (N)** no topo de Histórico › Treinos, à
+  direita da contagem (2026-11-13d: no fim da lista, com o histórico longo do
+  dono, ninguém chegava lá), aceso na cor da marca quando há algo; e, para o
+  apagado nos últimos 2 dias (ou o último finalizado que sumiu), uma faixa no
+  topo "Apagou “X” sem querer? ↩ Recuperar" a um toque (✕ esconde). E o aviso do
   Desfazer diz que fica na lixeira. **Recuperar** devolve ao lugar pela data
   (`juntarRecuperados`, nunca duplica o id); "Apagar de vez" tira da
   lixeira. Duas buscas para o que sumiu antes da lixeira existir: a cópia do

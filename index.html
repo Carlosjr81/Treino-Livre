@@ -1372,7 +1372,7 @@ const AJUDA_APP = [
   { id: "lixeira", cat: "treino", icone: "\u{1F5D1}", titulo: "Apaguei um treino sem querer",
     resumo: "O treino apagado fica 30 dias na lixeira, e um backup traz os que faltam.",
     passos: [
-      "Abra **Histórico → Treinos** e desça até o fim da lista: **🗑 Lixeira**.",
+      "Abra **Histórico → Treinos**. Se você apagou nos últimos 2 dias, o treino aparece logo no topo com **↩ Recuperar**. Senão, toque em **🗑 Lixeira**, no topo, à direita.",
       "Toque em **↩ Recuperar** no treino: ele volta para o lugar dele, com os recordes.",
       "Não está lá? Toque em **📂 Recuperar de um arquivo de backup** e escolha o backup: o app traz só os treinos que faltam, sem apagar nada.",
     ],
@@ -1699,7 +1699,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-13c";
+const VERSAO_APP = "2026-11-13d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -29920,7 +29920,7 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ color: "var(--cinza)", fontWeight: 800, fontSize: 13 }}>{h.duracaoMin} min</div>
           <button title="Excluir este treino do histórico" aria-label={"Excluir do histórico o treino " + h.nome}
-            onClick={() => pedirConfirmacao("Excluir este treino do histórico?\n\nEle fica 30 dias na lixeira (Histórico, no fim da lista) e dá para recuperar.", () => onExcluir(h.id))}
+            onClick={() => pedirConfirmacao("Excluir este treino do histórico?\n\nEle fica 30 dias na 🗑 Lixeira (no topo do Histórico) e dá para recuperar.", () => onExcluir(h.id))}
             style={{ background: "none", border: "1px solid var(--perigo-borda)", color: "var(--perigo)", borderRadius: 8, width: 32, height: 32, padding: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Icone nome="lixeira" tamanho={17} />
           </button>
@@ -31671,8 +31671,9 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
   medidas, onSalvarMedida, onExcluirMedida, avisar,
   fotos, onAdicionarFoto, onExcluirFoto,
   meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor, onComecar, onAbrirGrupo,
-  saude, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizarSaude, plano, nLixeira, onLixeira }) {
+  saude, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizarSaude, plano, nLixeira, onLixeira, sugestaoLixeira, onRecuperarSugestao }) {
   const [secao, setSecao] = useState(secaoInicial || "treinos");
+  const [semSugestao, setSemSugestao] = useState("");
   const recordes = useMemo(() => calcularRecordes(historico), [historico]);
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
 
@@ -31737,18 +31738,40 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
         </React.Fragment>
       )}
 
+      {secao === "treinos" && onLixeira && (historico.length > 0 || nLixeira > 0) && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+          <div style={{ fontSize: 13, color: "var(--cinza)", fontWeight: 700 }}>
+            {historico.length} {plural(historico.length, "treino", "treinos")}
+          </div>
+          <button onClick={onLixeira} aria-label={"Lixeira: " + (nLixeira || 0) + " " + plural(nLixeira || 0, "treino apagado", "treinos apagados")}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--card)", color: nLixeira ? "var(--marca)" : "var(--texto)",
+              border: "1px solid " + (nLixeira ? "var(--marca)" : "var(--borda2)"), borderRadius: 20, padding: "7px 12px",
+              fontWeight: 800, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
+            <Icone nome="lixeira" tamanho={16} />
+            Lixeira{nLixeira ? " (" + nLixeira + ")" : ""}
+          </button>
+        </div>
+      )}
+      {secao === "treinos" && sugestaoLixeira && semSugestao !== sugestaoLixeira.id && (
+        <div role="status" style={{ ...S.card, borderColor: "var(--marca)", display: "flex", alignItems: "center", gap: 10, padding: "12px 12px 12px 14px" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 900, fontSize: 14 }}>Apagou “{sugestaoLixeira.nome}” sem querer?</div>
+            <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 2 }}>
+              {new Date(sugestaoLixeira.data).toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" })} · ele está guardado na lixeira
+            </div>
+          </div>
+          <button onClick={() => onRecuperarSugestao(sugestaoLixeira)}
+            style={{ ...S.btn, width: "auto", padding: "10px 14px", fontSize: 14, whiteSpace: "nowrap" }}>↩ Recuperar</button>
+          <button onClick={() => setSemSugestao(sugestaoLixeira.id)} aria-label="Não, pode deixar apagado"
+            style={{ background: "none", border: "none", color: "var(--cinza)", fontSize: 18, cursor: "pointer", padding: 4 }}>✕</button>
+        </div>
+      )}
       {secao === "treinos" && historico.map((h) => (
         <CardTreino key={h.id} h={h} exPorId={exPorId} recordes={recordes} historico={historico} pesoCorporal={pesoCorporal} vozCfg={vozCfg}
           comparacao={compararAnterior(historico, h)}
           onExcluir={onExcluir} onStory={onStory} onEditar={onEditar} onVirarFicha={onVirarFicha} pedirConfirmacao={pedirConfirmacao}
           onReabrir={podeReabrir && onReabrir && podeReabrir(h) ? onReabrir : null} onDesafiarTreino={onDesafiarTreino} />
       ))}
-      {secao === "treinos" && onLixeira && (
-        <button onClick={onLixeira}
-          style={{ ...S.btnGhost, width: "100%", marginBottom: 14, color: "var(--cinza)" }}>
-          <ComIcone nome="lixeira" tamanho={16}>{nLixeira ? "Lixeira: " + nLixeira + " " + plural(nLixeira, "treino apagado", "treinos apagados") + " (30 dias)" : "Apagou um treino sem querer? Recuperar"}</ComIcone>
-        </button>
-      )}
     </div>
   );
 }
@@ -34499,6 +34522,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
         {aba === "historico" && (
           <TelaHistorico historico={historico} exPorId={exPorId}
             nLixeira={lixeira.length + (achadoUltimo ? 1 : 0)} onLixeira={() => setLixeiraAberta(true)}
+            sugestaoLixeira={(lixeira[0] && Date.now() - lixeira[0].em < 2 * 86400000 ? lixeira[0].reg : null) || achadoUltimo}
+            onRecuperarSugestao={(r) => recuperarTreinos([r])}
             onExcluir={excluirHistorico} onStory={storyDeTreino} pedirConfirmacao={pedirConfirmacao}
             onEditar={(hh) => { setEditandoHistorico(hh); setAba("editarHistorico"); }}
             onVirarFicha={(hh) => virarFicha(hh)}

@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-13d — A lixeira no topo, e o treino apagado sugerido para recuperar
+
+**Em uma frase:** o botão da Lixeira agora fica no topo da lista de treinos, sem precisar rolar até o fim.
+
+**O que mudou**
+- Em Histórico, Treinos, o botão 🗑 Lixeira aparece logo no topo, à direita, com o número de treinos apagados.
+- Apagou um treino nos últimos 2 dias? Ele aparece no topo do histórico, com "↩ Recuperar" a um toque.
+
+**Por que importa para quem treina**
+- Quem tem um histórico longo acha a lixeira na hora.
+
+**Como usar**
+- Histórico, Treinos: toque em "↩ Recuperar" na faixa do topo, ou em 🗑 Lixeira.
+
+**Ideias de vídeo**
+- Nenhuma: é ajuste.
+
+**Não prometer**
+- A lixeira guarda os treinos apagados por 30 dias.
+
+---
+
 ## 2026-11-13c — Lixeira: o treino apagado sem querer volta
 
 **Em uma frase:** o treino excluído do histórico fica 30 dias na lixeira, e dá para recuperar com um toque.

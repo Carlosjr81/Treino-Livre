@@ -1369,6 +1369,15 @@ const AJUDA_APP = [
       "Ao destravar, toque na notificação para levar o que foi anotado ao treino.",
     ],
     dicas: ["Com música tocando, ele fala por cima e a música só abaixa; o microfone fica de fora para não pausar a música."] },
+  { id: "lixeira", cat: "treino", icone: "\u{1F5D1}", titulo: "Apaguei um treino sem querer",
+    resumo: "O treino apagado fica 30 dias na lixeira, e um backup traz os que faltam.",
+    passos: [
+      "Abra **Histórico → Treinos** e desça até o fim da lista: **🗑 Lixeira**.",
+      "Toque em **↩ Recuperar** no treino: ele volta para o lugar dele, com os recordes.",
+      "Não está lá? Toque em **📂 Recuperar de um arquivo de backup** e escolha o backup: o app traz só os treinos que faltam, sem apagar nada.",
+    ],
+    dicas: ["Logo depois de excluir, o **Desfazer** de baixo devolve na hora.", "O último treino finalizado também aparece na lixeira se ele sumiu do histórico.", "Baixe o backup de vez em quando (Ajustes → Backup): é a garantia se perder o aparelho."],
+    ir: { rotulo: "🗑 Abrir o histórico", destino: "historico:treinos" } },
   { id: "galaxy-watch", cat: "treino", icone: "\u231A", titulo: "Marcar as séries no relógio (Galaxy Watch, Pixel Watch, Wear OS)",
     resumo: "O ✓ da série, a carga, as repetições e o descanso no pulso.",
     passos: [
@@ -1690,7 +1699,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-13b";
+const VERSAO_APP = "2026-11-13c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -18966,6 +18975,67 @@ const ZUMBI_AUDIO_MANIFESTO = [
   { id: "respiracao", camada: "ameaca", origem: "ruído com envelope lento (Web Audio), código deste app", licenca: "própria" },
   { id: "porta", camada: "ambiente", origem: "batida grave com ressonância (Web Audio), código deste app", licenca: "própria" },
 ];
+// ---- A lixeira do histórico ----
+// Pedido do dono (2026-11-13c): "apaguei um treino do histórico sem querer;
+// faça algo para recuperar treinos apagados". O "Desfazer" de 9 s não basta:
+// quem apaga sem querer só percebe depois. O treino excluído vai para a
+// lixeira (fora do registro principal, em treinolivre:lixeira) e fica 30
+// dias. Para o que foi apagado antes de a lixeira existir, há dois lugares
+// onde ele ainda pode estar: a cópia do último treino finalizado (a do
+// "Reabrir") e um arquivo de backup, que aqui só ACRESCENTA o que falta.
+const CHAVE_LIXEIRA = "treinolivre:lixeira";
+const LIXEIRA_DIAS = 30;
+const LIXEIRA_MAX = 60;
+function limparLixeira(lista, agora) {
+  const corte = agora - LIXEIRA_DIAS * 86400000;
+  return (Array.isArray(lista) ? lista : [])
+    .filter((x) => x && x.reg && x.reg.id && typeof x.em === "number" && x.em >= corte)
+    .slice(0, LIXEIRA_MAX);
+}
+// o mais recente primeiro; o mesmo treino apagado de novo não vira dois
+function lixeiraComApagado(lista, registro, agora) {
+  return limparLixeira([{ reg: registro, em: agora }].concat((lista || []).filter((x) => x && x.reg && x.reg.id !== registro.id)), agora);
+}
+function lixeiraSem(lista, id) {
+  return (lista || []).filter((x) => x && x.reg && x.reg.id !== id);
+}
+// os treinos voltam para o lugar deles: o histórico é do mais novo ao mais velho
+function juntarRecuperados(historico, regs) {
+  const tem = new Set((historico || []).map((h) => h.id));
+  const novos = (regs || []).filter((r) => r && r.id && !tem.has(r.id) && Array.isArray(r.itens));
+  if (!novos.length) return historico || [];
+  return (historico || []).concat(novos).slice().sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+}
+// o que um backup tem e o histórico de agora não
+function treinosQueFaltam(historico, doBackup) {
+  const tem = new Set((historico || []).map((h) => h.id));
+  return (Array.isArray(doBackup) ? doBackup : []).filter((r) => r && r.id && !tem.has(r.id) && Array.isArray(r.itens) && r.itens.length);
+}
+// A cópia do último treino finalizado vira o registro de novo, se ele não está
+// mais no histórico. O id do registro é a hora em que ele foi finalizado.
+// serieDe(s) converte uma série da sessão no formato do histórico.
+function registroDaUltimaSessao(guardada, historico, serieDe) {
+  if (!guardada || !guardada.registroId || !guardada.sessao || !Array.isArray(guardada.sessao.itens)) return null;
+  if ((historico || []).some((h) => h.id === guardada.registroId)) return null;
+  const s = guardada.sessao;
+  const fim = parseInt(guardada.registroId, 10);
+  if (!(fim > 0)) return null;
+  const itens = s.itens.map((it) => ({
+    exercicioId: it.exercicioId,
+    obs: it.obs || "",
+    series: (it.series || []).filter((x) => x && x.feito).map(serieDe),
+  })).filter((it) => it.series.length > 0);
+  if (!itens.length) return null;
+  return {
+    id: String(guardada.registroId),
+    nome: s.nome || "Treino",
+    data: new Date(fim).toISOString(),
+    duracaoMin: Math.max(1, Math.min(300, Math.round((fim - (s.inicio || fim)) / 60000))),
+    itens: itens,
+  };
+}
+// ---- fim da lixeira
+
 // ---- O treino no histórico ----
 // Uma identidade só (o id da sessão, criado no começo): salvar de novo,
 // retomar ou finalizar duas vezes não cria um segundo treino.
@@ -29850,7 +29920,7 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ color: "var(--cinza)", fontWeight: 800, fontSize: 13 }}>{h.duracaoMin} min</div>
           <button title="Excluir este treino do histórico" aria-label={"Excluir do histórico o treino " + h.nome}
-            onClick={() => pedirConfirmacao("Excluir este treino do histórico?\n\nVocê terá alguns segundos para desfazer.", () => onExcluir(h.id))}
+            onClick={() => pedirConfirmacao("Excluir este treino do histórico?\n\nEle fica 30 dias na lixeira (Histórico, no fim da lista) e dá para recuperar.", () => onExcluir(h.id))}
             style={{ background: "none", border: "1px solid var(--perigo-borda)", color: "var(--perigo)", borderRadius: 8, width: 32, height: 32, padding: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Icone nome="lixeira" tamanho={17} />
           </button>
@@ -31538,11 +31608,70 @@ function TelaOculosNativa() {
   );
 }
 
+// A lixeira: os treinos apagados nos últimos 30 dias, o último treino
+// finalizado quando ele sumiu do histórico, e o caminho do arquivo de backup.
+function JanelaLixeira({ lixeira, achado, exPorId, onRecuperar, onRecuperarTodos, onApagarDeVez, onBackup, onFechar }) {
+  const linha = (reg, rodape, acoes) => {
+    const series = (reg.itens || []).reduce((a, it) => a + (it.series || []).length, 0);
+    const nomes = (reg.itens || []).slice(0, 3).map((it) => { const e = exPorId(it.exercicioId); return e ? e.nome : null; }).filter(Boolean);
+    return (
+      <div key={reg.id} style={{ ...S.card, marginBottom: 8 }}>
+        <div style={{ fontWeight: 800, fontSize: 15 }}>{reg.nome}</div>
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 2 }}>
+          {new Date(reg.data).toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+          {" · "}{(reg.itens || []).length} {plural((reg.itens || []).length, "exercício", "exercícios")} · {series} {plural(series, "série", "séries")}
+        </div>
+        {nomes.length > 0 && <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 2 }}>{nomes.join(", ")}{(reg.itens || []).length > 3 ? "…" : ""}</div>}
+        {rodape && <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 4 }}>{rodape}</div>}
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>{acoes}</div>
+      </div>
+    );
+  };
+  const total = lixeira.length + (achado ? 1 : 0);
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Lixeira de treinos" onClick={onFechar}
+      style={{ position: "fixed", inset: 0, zIndex: 9000, background: "#000a", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()}
+        style={{ background: "var(--bg)", color: "var(--texto)", width: "100%", maxWidth: 560, maxHeight: "92vh", overflowY: "auto", borderRadius: "18px 18px 0 0", padding: "18px 16px 28px", boxSizing: "border-box" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <div style={{ flex: 1, fontWeight: 900, fontSize: 19 }}>🗑 Treinos apagados</div>
+          <button onClick={onFechar} aria-label="Fechar" style={{ background: "transparent", border: "none", color: "var(--texto)", fontSize: 24, cursor: "pointer" }}>✕</button>
+        </div>
+        <div style={{ fontSize: 13.5, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 12 }}>
+          O treino que você exclui do histórico fica aqui por 30 dias. Recuperar devolve o treino ao lugar dele, com os recordes e os números de volta.
+        </div>
+        {achado && linha(achado, "Achei na cópia do seu último treino finalizado: ele não está mais no histórico.",
+          <button style={{ ...S.btnGhost, flex: 1, color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 900 }} onClick={() => onRecuperar(achado)}>↩ Recuperar</button>)}
+        {lixeira.map((x) => linha(x.reg,
+          "Apagado " + new Date(x.em).toLocaleDateString("pt-BR", { day: "numeric", month: "short" }) + " · some da lixeira em " +
+            Math.max(1, Math.ceil((x.em + LIXEIRA_DIAS * 86400000 - Date.now()) / 86400000)) + " dias",
+          <React.Fragment>
+            <button style={{ ...S.btnGhost, flex: 2, color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 900 }} onClick={() => onRecuperar(x.reg)}>↩ Recuperar</button>
+            <button style={{ ...S.btnGhost, flex: 1, color: "var(--perigo)", borderColor: "var(--perigo-borda)" }} onClick={() => onApagarDeVez(x.reg.id)}>Apagar de vez</button>
+          </React.Fragment>))}
+        {total > 1 && <button style={{ ...S.btnGhost, width: "100%", marginBottom: 12 }} onClick={onRecuperarTodos}>↩ Recuperar todos ({total})</button>}
+        {total === 0 && (
+          <div style={{ ...S.card, color: "var(--cinza)", fontSize: 14, lineHeight: 1.5 }}>
+            A lixeira está vazia. Ela começou a guardar os treinos apagados nesta versão: o que foi apagado antes dela não passa por aqui.
+          </div>
+        )}
+        <div style={{ ...S.card, marginTop: 4 }}>
+          <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 4 }}>Não achou o treino?</div>
+          <div style={{ fontSize: 13.5, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 10 }}>
+            Se você tem um <b>arquivo de backup</b> (treino-livre-AAAA-MM-DD.json, na pasta Downloads ou no Drive) de depois daquele treino, ele está lá. Escolha o arquivo: o app traz <b>só os treinos que faltam</b> e não apaga nada do que está no aparelho.
+          </div>
+          <button style={{ ...S.btnGhost, width: "100%" }} onClick={onBackup}>📂 Recuperar de um arquivo de backup</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVirarFicha, podeReabrir, onReabrir, onDesafiarTreino, pedirConfirmacao,
   medidas, onSalvarMedida, onExcluirMedida, avisar,
   fotos, onAdicionarFoto, onExcluirFoto,
   meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor, onComecar, onAbrirGrupo,
-  saude, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizarSaude, plano }) {
+  saude, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizarSaude, plano, nLixeira, onLixeira }) {
   const [secao, setSecao] = useState(secaoInicial || "treinos");
   const recordes = useMemo(() => calcularRecordes(historico), [historico]);
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
@@ -31614,6 +31743,12 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
           onExcluir={onExcluir} onStory={onStory} onEditar={onEditar} onVirarFicha={onVirarFicha} pedirConfirmacao={pedirConfirmacao}
           onReabrir={podeReabrir && onReabrir && podeReabrir(h) ? onReabrir : null} onDesafiarTreino={onDesafiarTreino} />
       ))}
+      {secao === "treinos" && onLixeira && (
+        <button onClick={onLixeira}
+          style={{ ...S.btnGhost, width: "100%", marginBottom: 14, color: "var(--cinza)" }}>
+          <ComIcone nome="lixeira" tamanho={16}>{nLixeira ? "Lixeira: " + nLixeira + " " + plural(nLixeira, "treino apagado", "treinos apagados") + " (30 dias)" : "Apagou um treino sem querer? Recuperar"}</ComIcone>
+        </button>
+      )}
     </div>
   );
 }
@@ -33649,6 +33784,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     const indice = historico.findIndex((h) => h.id === id);
     if (indice < 0) return;
     setDesfazer({ registro: historico[indice], indice });
+    // a lixeira guarda por 30 dias: o Desfazer de 9 s não alcança quem percebe depois
+    gravarLixeira(lixeiraComApagado(lixeira, historico[indice], Date.now()));
     setHistorico(historico.filter((h) => h.id !== id));
   };
   const restaurarExcluido = () => {
@@ -33658,7 +33795,60 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       copia.splice(Math.min(desfazer.indice, copia.length), 0, desfazer.registro);
       return copia;
     });
+    gravarLixeira(lixeiraSem(lixeira, desfazer.registro.id));
     setDesfazer(null);
+  };
+  // ---- A lixeira ----
+  const [lixeira, setLixeira] = useState(() => {
+    try { return limparLixeira(JSON.parse(localStorage.getItem(CHAVE_LIXEIRA) || "[]"), Date.now()); } catch (e) { return []; }
+  });
+  const [lixeiraAberta, setLixeiraAberta] = useState(false);
+  const gravarLixeira = (l) => {
+    setLixeira(l);
+    try { localStorage.setItem(CHAVE_LIXEIRA, JSON.stringify(l)); } catch (e) {}
+  };
+  // a cópia do último treino finalizado, quando ele já não está no histórico
+  const achadoUltimo = useMemo(() => {
+    let g = null;
+    try { g = JSON.parse(localStorage.getItem("treinolivre:ultimaSessao") || "null"); } catch (e) {}
+    const serieDe = (s) => {
+      const nova = ehCardio(s) ? { segundos: s.segundos, ...copiaCardio(s) }
+        : ehTempo(s) ? { segundos: s.segundos } : { peso: s.peso, reps: s.reps };
+      if (ehAquecimento(s)) nova.aquec = true;
+      return nova;
+    };
+    const r = registroDaUltimaSessao(g, historico, serieDe);
+    return r && !lixeira.some((x) => x.reg.id === r.id) ? r : null;
+  }, [historico, lixeira, lixeiraAberta]);
+  const recuperarTreinos = (regs, frase) => {
+    const ids = new Set(regs.map((r) => r.id));
+    setHistorico((prev) => juntarRecuperados(prev, regs));
+    gravarLixeira(lixeira.filter((x) => !ids.has(x.reg.id)));
+    setTimeout(() => avisar(frase || (regs.length === 1 ? "Treino recuperado: ele voltou para o histórico." : regs.length + " treinos recuperados.")), 80);
+  };
+  const apagarDeVez = (id) => gravarLixeira(lixeiraSem(lixeira, id));
+  // um arquivo de backup: só acrescenta os treinos que faltam, sem apagar nada
+  const lixeiraArquivoRef = useRef(null);
+  const aoEscolherBackupParaRecuperar = (ev) => {
+    const a = ev.target.files && ev.target.files[0];
+    ev.target.value = "";
+    if (!a) return;
+    const leitor = new FileReader();
+    leitor.onload = () => {
+      let d = null;
+      try { d = JSON.parse(String(leitor.result)); } catch (e) {}
+      if (!d || !Array.isArray(d.historico)) { avisar("Esse arquivo não é um backup do Treino Livre."); return; }
+      const faltam = treinosQueFaltam(historico, d.historico);
+      if (!faltam.length) { avisar("Esse backup não tem nenhum treino que falte no seu histórico."); return; }
+      pedirConfirmacao({
+        msg: "Esse backup tem " + faltam.length + " " + plural(faltam.length, "treino que não está", "treinos que não estão") + " no seu histórico:\n\n" +
+          faltam.slice(0, 8).map((r) => "• " + r.nome + " (" + new Date(r.data).toLocaleDateString("pt-BR") + ")").join("\n") +
+          (faltam.length > 8 ? "\n• e mais " + (faltam.length - 8) : "") +
+          "\n\nTrazer " + plural(faltam.length, "ele", "eles") + " de volta? Nada do que está no aparelho é apagado.",
+        labelSim: "Recuperar", positivo: true,
+      }, () => recuperarTreinos(faltam));
+    };
+    leitor.readAsText(a);
   };
   useEffect(() => {
     if (!desfazer) return;
@@ -34308,6 +34498,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
         )}
         {aba === "historico" && (
           <TelaHistorico historico={historico} exPorId={exPorId}
+            nLixeira={lixeira.length + (achadoUltimo ? 1 : 0)} onLixeira={() => setLixeiraAberta(true)}
             onExcluir={excluirHistorico} onStory={storyDeTreino} pedirConfirmacao={pedirConfirmacao}
             onEditar={(hh) => { setEditandoHistorico(hh); setAba("editarHistorico"); }}
             onVirarFicha={(hh) => virarFicha(hh)}
@@ -34549,12 +34740,21 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       <ModalDiagnosticoJarvis aberto={diagVoz} ligado={vozAtiva} estado={vozEstado} voz={voz} noToque={noToque}
         onFechar={() => setDiagVoz(false)} />
 
+      {lixeiraAberta && (
+        <JanelaLixeira lixeira={lixeira} achado={achadoUltimo} exPorId={exPorId}
+          onRecuperar={(r) => recuperarTreinos([r])}
+          onRecuperarTodos={() => recuperarTreinos(lixeira.map((x) => x.reg).concat(achadoUltimo ? [achadoUltimo] : []))}
+          onApagarDeVez={(id) => pedirConfirmacao("Apagar de vez? Este não volta mais.", () => apagarDeVez(id))}
+          onBackup={() => { if (lixeiraArquivoRef.current) lixeiraArquivoRef.current.click(); }}
+          onFechar={() => setLixeiraAberta(false)} />
+      )}
+      <input ref={lixeiraArquivoRef} type="file" accept="application/json,.json" onChange={aoEscolherBackupParaRecuperar} style={{ display: "none" }} />
       {desfazer && (
         <div role="status" style={{ position: "fixed", left: 12, right: 12, zIndex: 16,
           bottom: "calc(" + (sessao && aba !== "sessao" ? 132 : 72) + "px + env(safe-area-inset-bottom))" }}>
           <div style={{ background: "var(--card)", border: "1px solid var(--borda2)", borderRadius: 12, padding: "12px 14px",
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, boxShadow: "0 4px 16px rgba(0,0,0,0.45)" }}>
-            <span style={{ fontSize: 13 }}>Treino excluído do histórico.</span>
+            <span style={{ fontSize: 13 }}>Treino excluído. Fica 30 dias na 🗑 lixeira do histórico.</span>
             <button onClick={restaurarExcluido}
               style={{ background: "none", border: "none", color: "#E1306C", fontWeight: 900, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap", padding: "4px 2px" }}>
               Desfazer

@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-13c — Lixeira: o treino apagado sem querer volta
+
+**Em uma frase:** o treino excluído do histórico fica 30 dias na lixeira, e dá para recuperar com um toque.
+
+**O que mudou**
+- No fim da lista do Histórico há a Lixeira, com os treinos apagados nos últimos 30 dias e o botão Recuperar.
+- Se o último treino finalizado sumiu do histórico, ele aparece na lixeira também.
+- Para o que foi apagado antes: escolher um arquivo de backup traz só os treinos que faltam, sem apagar nada do que está no celular.
+
+**Por que importa para quem treina**
+- Um toque errado não apaga mais semanas de progresso: os recordes, a evolução e a sequência voltam junto.
+
+**Como usar**
+- Histórico, Treinos, desça até o fim: Lixeira. Toque em Recuperar.
+
+**Ideias de vídeo**
+- "Apaguei sem querer!": excluir um treino, abrir a lixeira e trazer de volta, com o recorde reaparecendo.
+
+**Não prometer**
+- A lixeira guarda por 30 dias e só os treinos apagados a partir desta versão. Os mais antigos só voltam de um arquivo de backup.
+
+---
+
 ## 2026-11-13b — Atualizar o app do relógio com um toque
 
 **Em uma frase:** quando sai versão nova do app do relógio, um toque em "⬆ Atualizar o relógio" (no celular ou no próprio relógio) e o celular instala sozinho.

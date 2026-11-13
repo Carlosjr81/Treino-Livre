@@ -48,6 +48,7 @@ const SUITES = [
   ["teste-descanso", "o descanso pela ciencia: o tipo de cada exercicio e quem manda"],
   ["teste-idioma", "o app em ingles: o dicionario, os moldes e nunca meia frase"],
   ["teste-poses", "o movimento animado: os desenhos de cada exercicio e a licenca"],
+  ["teste-lixeira", "a lixeira do historico: guardar 30 dias, recuperar sem duplicar e o backup que so acrescenta"],
   ["teste-seguir", "a janela para seguir no Instagram: quando abre, o adiar e o fim"],
   ["teste-adaptado", "o treino adaptado: o que cada exercicio carrega, os alertas, a escala de dor e o plano"],
 ];

@@ -789,7 +789,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v195) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v196) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5545,6 +5545,20 @@ colegas 2017.
   lança pesagens antigas lança várias. Gráfico, lista e `pesoCorporal` já
   ordenavam pela data, então o retroativo entra no lugar certo e a pesagem
   mais nova continua sendo a de hoje.
+- **A lixeira do histórico** (`JanelaLixeira`, bloco puro `A lixeira do
+  histórico`, coberto por `teste-lixeira.js`; pedido do dono, 2026-11-13c:
+  "apaguei um treino sem querer, faça algo para recuperar"). O treino
+  excluído vai para `localStorage["treinolivre:lixeira"]` (fora do registro
+  principal e do backup) e fica **30 dias** (`LIXEIRA_DIAS`, no máximo 60).
+  Entrada: o botão no fim da lista de Histórico › Treinos, e o aviso do
+  Desfazer diz que fica na lixeira. **Recuperar** devolve ao lugar pela data
+  (`juntarRecuperados`, nunca duplica o id); "Apagar de vez" tira da
+  lixeira. Duas buscas para o que sumiu antes da lixeira existir: a cópia do
+  último treino finalizado (`treinolivre:ultimaSessao`, a do Reabrir;
+  `registroDaUltimaSessao` refaz o registro com o mesmo id, a data e as
+  séries feitas) e **um arquivo de backup que só acrescenta** os treinos que
+  faltam (`treinosQueFaltam`), sem a substituição do Restaurar. A rota do
+  percurso não é apagada ao excluir, então volta junto.
 - **Corrigir treino** (`TelaEditarHistorico`) — edita séries, obs, nome e
   duração de um treino já concluído. Recordes, conquistas e nível saem do
   histórico, então se ajustam sozinhos. Antes, um peso errado só tinha a saída

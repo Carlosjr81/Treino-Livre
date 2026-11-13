@@ -1099,11 +1099,11 @@ const GUIA_CONECTAR = [
       "Depois da primeira vez, o app lê sozinho cada vez que você o abre pelo ícone.",
       "O Galaxy Watch não transmite o batimento ao vivo: o batimento entra no treino na sincronização seguinte.",
     ] },
-  { id: "pulso", icone: "\u231A", titulo: "Marcar as séries no Galaxy Watch",
-    para: "No pulso: o exercício da vez, a série, a carga e as repetições com − e +, o ✓ Feito, e o descanso contando, com +30 s, −15 s e Pular. O relógio vibra quando o descanso acaba. Galaxy Watch 4 em diante (e outros relógios com Wear OS).",
+  { id: "pulso", icone: "\u231A", titulo: "Marcar as séries no relógio (Galaxy Watch, Pixel Watch, Wear OS)",
+    para: "No pulso: o exercício da vez, a série, a carga e as repetições com − e +, o ✓ Feito, e o descanso contando, com +30 s, −15 s e Pular, num anel colorido que gira na borda da tela. O relógio vibra quando o descanso acaba. Galaxy Watch 4 em diante, Pixel Watch e outros com Wear OS 3+ (TicWatch, Fossil, Xiaomi Watch 2, OnePlus). Garmin, Amazfit, Huawei e Apple Watch não instalam o app: veja o batimento ao vivo.",
     passos: [
       "No celular, use o **app Android** do Treino Livre, **atualizado** (baixe e instale por cima: a versão nova é a que conversa com o relógio).",
-      "No relógio: **Configurações → Sobre o relógio → Informações do software**, toque **5 vezes** em **Versão do software**. Volte, entre em **Opções do desenvolvedor** e ligue **Depuração ADB** e **Depuração por Wi-Fi** (relógio e celular no mesmo Wi-Fi).",
+      "No relógio, ligue o modo de desenvolvedor. Galaxy Watch: **Configurações → Sobre o relógio → Informações do software**, toque **5 vezes** em **Versão do software**. Pixel Watch e outros Wear OS: **Configurações → Sistema → Sobre**, toque **7 vezes** em **Número da versão**. Depois, em **Opções do desenvolvedor**, ligue **Depuração ADB** e **Depuração por Wi-Fi** (relógio e celular no mesmo Wi-Fi).",
       "Toque em **⌚ Instalar o app no relógio** (aqui embaixo) e depois em **Instalar no relógio agora**: o app do celular acha o relógio no Wi-Fi, e você só digita o **código de 6 números** que o relógio mostra. Ele baixa, instala e abre no relógio. (Também dá por um instalador da Play Store ou pelo computador com o `adb`.)",
       "Abra o treino no celular pelo **ícone do app** e toque em Começar (ou marque a primeira série): o **🔒 Jarvis com a tela travada** liga, e o **Treino Livre abre sozinho no relógio**, acompanhando o celular.",
     ],
@@ -1114,7 +1114,7 @@ const GUIA_CONECTAR = [
       "Para **atualizar** o app do relógio: só a Depuração por Wi-Fi ligada no relógio, e **Instalar no relógio agora → Já pareei antes** no celular.",
       "Aeróbico (esteira, bicicleta) se anota no celular.",
       "Depois de instalar, desligue a **Depuração ADB** do relógio, se quiser: o app continua lá.",
-      "O relógio diz **Celular desconectado**? Confira o Bluetooth e o app **Galaxy Wearable**.",
+      "O relógio diz **Celular desconectado**? Confira o Bluetooth e o app que liga o relógio ao celular (**Galaxy Wearable**, **Pixel Watch** ou o **Wear OS**).",
       "Ainda não validado num Galaxy Watch de verdade: se algo não funcionar, conte o que aparece na tela do relógio.",
     ] },
   { id: "outros", icone: "\u{1F517}", titulo: "Outros relógios, anéis e apps de saúde",
@@ -1369,7 +1369,7 @@ const AJUDA_APP = [
       "Ao destravar, toque na notificação para levar o que foi anotado ao treino.",
     ],
     dicas: ["Com música tocando, ele fala por cima e a música só abaixa; o microfone fica de fora para não pausar a música."] },
-  { id: "galaxy-watch", cat: "treino", icone: "\u231A", titulo: "Marcar as séries no Galaxy Watch",
+  { id: "galaxy-watch", cat: "treino", icone: "\u231A", titulo: "Marcar as séries no relógio (Galaxy Watch, Pixel Watch, Wear OS)",
     resumo: "O ✓ da série, a carga, as repetições e o descanso no pulso.",
     passos: [
       "Toque em **⌚ Instalar o app no relógio** (aqui embaixo, ou em Ajustes → Conectar aparelhos) e depois em **Instalar no relógio agora**: você só digita o código de 6 números que o relógio mostra.",
@@ -1690,7 +1690,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-12d";
+const VERSAO_APP = "2026-11-13a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -29092,7 +29092,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
             </div>
             {NO_APP_ANDROID && (
               <button onClick={() => abrirInstalarRelogio()} style={{ marginTop: 6, background: "none", border: "none", padding: 0, color: "var(--marca)", fontSize: 12.5, fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
-                ⌚ Tem Galaxy Watch? Marque as séries no pulso: instalar o app no relógio ›
+                ⌚ Tem Galaxy Watch, Pixel Watch ou outro Wear OS? Marque as séries no pulso: instalar o app no relógio ›
               </button>
             )}
             {(bolsoAuto || bolsoAtivo) && canalRelogio && (
@@ -30664,6 +30664,45 @@ const STATUS_RELOGIO = {
   semrelogio: { ok: false, texto: "📵 Nenhum relógio conectado a este celular. Abra o app Galaxy Wearable, confira que o relógio está conectado e confira de novo." },
   erro: { ok: false, texto: "⚠ O celular não respondeu a tempo. Confira o Bluetooth e o app Galaxy Wearable, e tente de novo." },
 };
+// Pedido do dono (2026-11-13a): "facilitar a integração entre celular e relógio
+// de diversas marcas". O app do relógio roda em todo relógio com Wear OS 3+
+// (Galaxy Watch 4 em diante, Pixel Watch, TicWatch, Fossil, Xiaomi Watch 2,
+// OnePlus, Oppo, Montblanc...); muda só o caminho do modo de desenvolvedor e o
+// nome do app que liga o relógio ao celular. Garmin, Amazfit, Huawei, Polar,
+// Coros e as pulseiras não instalam app de fora: ali o caminho é o batimento ao
+// vivo e a Conexão Saúde. O Apple Watch só fala com o iPhone.
+const MARCAS_RELOGIO = [
+  { id: "samsung", icone: "⌚", nome: "Galaxy Watch", sub: "Samsung, do 4 em diante", wear: true, app: "Galaxy Wearable" },
+  { id: "pixel", icone: "⌚", nome: "Pixel Watch", sub: "Google", wear: true, app: "Pixel Watch",
+    wifi: "**Configurações → Conectividade → Wi-Fi**",
+    modo: [
+      "No relógio: **Configurações → Sistema → Sobre → Versões**.",
+      "Toque **7 vezes** em **Número da versão**, até aparecer que o modo de desenvolvedor foi ligado.",
+      "Volte para **Configurações**: apareceu **Opções do desenvolvedor**. Se apareceu, deu certo.",
+    ] },
+  { id: "wearos", icone: "⌚", nome: "Outro com Wear OS", sub: "TicWatch, Fossil, Xiaomi Watch 2, OnePlus, Oppo, Montblanc", wear: true, app: "do relógio (Wear OS ou o app da marca)",
+    wifi: "**Configurações → Conectividade → Wi-Fi**",
+    modo: [
+      "No relógio: **Configurações → Sistema → Sobre** (em alguns, **Sobre o relógio**).",
+      "Toque **7 vezes** em **Número da versão** (Build number), até aparecer que o modo de desenvolvedor foi ligado.",
+      "Volte para **Configurações** (ou **Sistema**): apareceu **Opções do desenvolvedor**. Se apareceu, deu certo.",
+    ],
+    nota: "Precisa ser Wear OS 3 ou mais novo. Na dúvida: se o relógio tem a Play Store e o Google Assistente, é Wear OS." },
+  { id: "apple", icone: "⌚", nome: "Apple Watch", sub: "", wear: false, apple: true },
+  { id: "outros", icone: "❤️", nome: "Garmin, Amazfit, Huawei, Polar, Coros, pulseiras", sub: "e outros sem Wear OS", wear: false },
+];
+const marcaRelogio = (id) => MARCAS_RELOGIO.find((m) => m.id === id) || null;
+// os passos do relógio escolhido: o modo de desenvolvedor e o Wi-Fi de cada um
+function passosRelogioDa(m) {
+  return PASSOS_RELOGIO.map((p) => {
+    if (!m) return p;
+    if (p.id === "modo" && m.modo) return Object.assign({}, p, { lista: m.modo });
+    if (p.id === "rede" && m.wifi) return Object.assign({}, p, { lista: p.lista.map((l) => l.split("**Configurações → Conexões → Wi-Fi**").join(m.wifi)) });
+    return p;
+  });
+}
+// o nome do app que liga o relógio ao celular, no texto das mensagens
+const comAppDoRelogio = (texto, m) => String(texto).split("Galaxy Wearable").join(m ? m.app : "Galaxy Wearable");
 // Pedido do dono (2026-11-11j): "quem for fazer não tem esta conversa comigo
 // para acompanhar": cada passo diz o que aparece em cada tela, e o que fazer
 // quando trava. Os textos saíram das tentativas dele, uma a uma.
@@ -30757,13 +30796,24 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
     try { localStorage.setItem("treinolivre:relogioPassos", JSON.stringify(n)); } catch (e) {}
     return n;
   });
-  const atual = PASSOS_RELOGIO.find((p) => !feitos[p.id]);
+  const [marcaId, setMarcaId] = useState(() => {
+    let v = "";
+    try { v = localStorage.getItem("treinolivre:relogioMarca") || ""; } catch (e) {}
+    // quem já tinha começado antes da escolha existir usava um Galaxy Watch
+    if (!v && (status || Object.keys(lerPassosRelogio()).length)) v = "samsung";
+    return v;
+  });
+  const marca = marcaRelogio(marcaId);
+  const escolherMarca = (id) => { setMarcaId(id); try { localStorage.setItem("treinolivre:relogioMarca", id); } catch (e) {} };
+  const PASSOS = passosRelogioDa(marca);
+  const atual = PASSOS.find((p) => !feitos[p.id]);
   const [aberto, setAberto] = useState(atual ? atual.id : "conferir");
   const [outro, setOutro] = useState(false);
   const [problemas, setProblemas] = useState(false);
   const st = STATUS_RELOGIO[status];
-  const seguir = (lista, k) => { marcar(lista[k].id, true); const prox = lista[k + 1] || PASSOS_RELOGIO.find((p) => p.id === "conferir"); setAberto(prox ? prox.id : ""); };
-  const nFeitos = PASSOS_RELOGIO.filter((p) => feitos[p.id]).length;
+  const seguir = (lista, k) => { marcar(lista[k].id, true); const prox = lista[k + 1] || PASSOS.find((p) => p.id === "conferir"); setAberto(prox ? prox.id : ""); };
+  const nFeitos = PASSOS.filter((p) => feitos[p.id]).length;
+  const irGuia = (id) => { onFechar(); setTimeout(() => abrirGuia(id), 50); };
   const botaoLink = (href, rotulo, aoTocar, alvo) => (
     <a href={href} target={alvo} rel="noopener" onClick={aoTocar}
       style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none", marginBottom: 8 }}>{rotulo}</a>
@@ -30811,7 +30861,7 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
           <div style={{ fontSize: 34 }} aria-hidden="true">⌚</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 900, fontSize: 19 }}>Instalar o app no relógio</div>
-            <div style={{ fontSize: 13, color: "var(--cinza)" }}>Galaxy Watch 4 em diante · uns 5 minutos, uma vez só · siga os passos na ordem</div>
+            <div style={{ fontSize: 13, color: "var(--cinza)" }}>Galaxy Watch, Pixel Watch e outros com Wear OS · uns 5 minutos, uma vez só</div>
           </div>
           <button onClick={onFechar} aria-label="Fechar" style={{ background: "transparent", border: "none", color: "var(--texto)", fontSize: 24, cursor: "pointer" }}>✕</button>
         </div>
@@ -30821,16 +30871,51 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
         {!EH_ANDROID && (
           <div style={{ ...S.card, borderColor: "var(--perigo)" }}>Precisa de um celular <b>Android</b> com o app do Treino Livre: o relógio conversa com o app, não com o navegador.</div>
         )}
-        {st && (
+        <div style={{ fontWeight: 900, fontSize: 15, margin: "4px 0 8px" }}>Qual é o seu relógio?</div>
+        <div role="radiogroup" aria-label="Qual é o seu relógio?" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+          {MARCAS_RELOGIO.map((m) => {
+            const sel = marcaId === m.id;
+            return (
+              <button key={m.id} role="radio" aria-checked={sel} onClick={() => escolherMarca(m.id)}
+                style={{ textAlign: "left", padding: "10px 12px", borderRadius: 14, cursor: "pointer", color: sel ? "#fff" : "var(--texto)",
+                  background: sel ? GRAD : "var(--card)", border: sel ? "2px solid transparent" : "2px solid var(--borda)",
+                  gridColumn: m.id === "outros" ? "1 / -1" : undefined }}>
+                <div style={{ fontWeight: 900, fontSize: 14 }}>{m.icone + " "}{m.nome}</div>
+                {m.sub && <div style={{ fontSize: 11.5, opacity: 0.85, marginTop: 2 }}>{m.sub}</div>}
+              </button>
+            );
+          })}
+        </div>
+        {!marca && <div style={{ ...S.card, fontSize: 14, lineHeight: 1.5 }}>Toque no seu relógio: o passo a passo muda de um para o outro.</div>}
+        {marca && !marca.wear && !marca.apple && (
+          <div style={{ ...S.card, fontSize: 14, lineHeight: 1.55 }}>
+            <div style={{ fontWeight: 900, marginBottom: 6 }}>Este relógio não instala o app do Treino Livre</div>
+            <div style={{ marginBottom: 10 }}>{textoGuia("Garmin, Amazfit, Huawei, Polar, Coros e as pulseiras (Mi Band, Redmi, Galaxy Fit) têm sistema fechado: não aceitam app de fora. Mas dá para usar com o Treino Livre de **dois jeitos**:")}</div>
+            <div style={{ marginBottom: 8 }}>{textoGuia("❤ **Batimento ao vivo no treino.** Ligue o modo de transmitir do relógio — Garmin *Transmitir FC*, Amazfit (Zepp) *Compartilhar FC*, Xiaomi *Transmissão de frequência cardíaca*, Huawei *Transmitir FC*, Polar e Coros — e conecte em **Histórico → ❤ Saúde**. A média e o pico entram no treino.")}</div>
+            <button onClick={() => irGuia("bpm")} style={{ ...S.btn, marginBottom: 10 }}>❤ Como ligar o batimento ao vivo</button>
+            <div style={{ marginBottom: 8 }}>{textoGuia("📊 **Passos, sono, batimento e peso** pela **Conexão Saúde**: o app da marca grava lá, e o Treino Livre lê (no app Android).")}</div>
+            <button onClick={() => irGuia("outros")} style={{ ...S.btnGhost, marginBottom: 10 }}>📊 Como ligar a Conexão Saúde</button>
+            <div style={{ fontSize: 13, color: "var(--cinza)" }}>{textoGuia("E para marcar as séries sem tocar no celular: o **🔒 Jarvis com a tela travada** ouve e fala no fone (\"Jarvis, 80 por 10\").")}</div>
+          </div>
+        )}
+        {marca && marca.apple && (
+          <div style={{ ...S.card, fontSize: 14, lineHeight: 1.55 }}>
+            <div style={{ fontWeight: 900, marginBottom: 6 }}>O Apple Watch não conversa com o Treino Livre</div>
+            <div>{textoGuia("O Apple Watch só se liga ao iPhone, e a Apple não deixa nenhum site ler o relógio nem o Apple Saúde. No iPhone, o Treino Livre funciona pelo Safari para registrar os treinos; o relógio no pulso e o batimento ao vivo ficam de fora.")}</div>
+          </div>
+        )}
+        {marca && marca.wear && st && (
            <div role="status" style={{ ...S.card, borderColor: st.ok ? "var(--ok)" : "var(--borda2)", fontSize: 14, lineHeight: 1.5, fontWeight: 700 }}>
              {conferidoEm > 0 && <div style={{ fontSize: 12, color: "var(--cinza)", fontWeight: 700, marginBottom: 4 }}>Conferido às {new Date(conferidoEm).toLocaleTimeString("pt-BR")}</div>}
-             {st.texto}
+             {comAppDoRelogio(st.texto, marca)}
            </div>
         )}
+        {marca && marca.wear && marca.nota && <div style={{ fontSize: 13, color: "var(--cinza)", margin: "0 0 10px", lineHeight: 1.5 }}>{marca.nota}</div>}
+        {marca && marca.wear && (<>
         <div style={{ height: 6, borderRadius: 3, background: "var(--borda)", overflow: "hidden", margin: "4px 0 12px" }}>
-          <div style={{ height: "100%", width: (100 * nFeitos / PASSOS_RELOGIO.length) + "%", background: "var(--ok)" }} />
+          <div style={{ height: "100%", width: (100 * nFeitos / PASSOS.length) + "%", background: "var(--ok)" }} />
         </div>
-        {PASSOS_RELOGIO.map((p, k) => cartao(p, k, PASSOS_RELOGIO, k + 1))}
+        {PASSOS.map((p, k) => cartao(p, k, PASSOS, k + 1))}
         <div style={{ ...S.card, marginTop: 4 }}>
           <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>🏋️ Depois de instalado: como treinar</div>
           <ol style={{ margin: 0, paddingLeft: 22, fontSize: 14, lineHeight: 1.55 }}>
@@ -30849,7 +30934,7 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
             {PROBLEMAS_RELOGIO.map((x, i) => (
               <div key={i} style={{ marginBottom: i < PROBLEMAS_RELOGIO.length - 1 ? 12 : 0 }}>
                 <div style={{ fontWeight: 800, fontSize: 14 }}>{x[0]}</div>
-                <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--cinza)" }}>{textoGuia(x[1])}</div>
+                <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--cinza)" }}>{textoGuia(comAppDoRelogio(x[1], marca))}</div>
               </div>
             ))}
           </div>
@@ -30859,6 +30944,7 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
           {outro ? "▴" : "▾"} Outro jeito: por um instalador da Play Store
         </button>
         {outro && PASSOS_RELOGIO_MANUAL.map((p, k) => cartao(p, k, PASSOS_RELOGIO_MANUAL, "•"))}
+        </>)}
         <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.55, marginTop: 10 }}>
           Travou num passo? <button onClick={() => abrirGuia("pulso")} style={{ background: "none", border: "none", color: "var(--marca)", padding: 0, cursor: "pointer", fontSize: 12.5, textDecoration: "underline" }}>Veja as dicas do relógio</button>.
           Quando o app do relógio estiver na Play Store, a instalação vira um toque na loja, sem o modo de desenvolvedor.

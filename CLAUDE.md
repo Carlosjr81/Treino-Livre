@@ -789,7 +789,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v193) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v194) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4429,6 +4429,33 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   diferentes. **O que só o dono faz** (conta de US$ 25, documento, chave de
   serviço, a primeira versão à mão, o teste fechado de 12 pessoas por 14 dias)
   está em `loja/LEIA-ME.md`, e os textos da ficha em `loja/ficha-da-loja.md`.
+- **O visual do relógio** (`Palco.kt`, pedido do dono, 2026-11-13a: "chame
+  a atenção das pessoas ao redor, além de quem usa"). Um anel colorido gira na
+  borda da tela redonda (`Palco`, uma View desenhada à mão, sem biblioteca):
+  no treino, **uma fatia por série** (as feitas no degradê da marca, a da vez
+  piscando); no descanso ele **esvazia** em verde, fica amarelo nos 10 últimos
+  segundos e vermelho nos 3 últimos (o número pulsa), com o "+30 s" alongando o
+  anel em vez de reenchê-lo (`anotarTotal`); procurando o celular, um arco
+  girando; no fim, dourado. Fundo com uma luz na cor do momento. Botões em
+  pílula com degradê (o ✓ FEITO na cor da marca; **dourado** quando a carga
+  ajustada passa do recorde, `rec` do painel, com "🏆 NOVO RECORDE!"). A cada
+  série que entra no celular (do pulso, da voz ou do ✓ de lá), um clarão com
+  duas ondas e "✓ SÉRIE FEITA" (`celebrar`, uma segunda instância do
+  `Palco` por cima, sem pegar toque), com vibração; "🏆 RECORDE!" e "🎉
+  TREINO COMPLETO!" têm vibração própria. **No modo ambiente nada disso**: fio
+  cinza parado, fundo preto (tela OLED). A animação só roda com a tela à vista
+  (`vivo`, ~30 quadros por segundo). **Não validado num relógio**: compilado
+  pelo Actions, conferido só no código.
+- **Outras marcas** (2026-11-13a): o assistente de instalar começa com **"Qual
+  é o seu relógio?"** (`MARCAS_RELOGIO`, guardado em
+  `treinolivre:relogioMarca`): Galaxy Watch, Pixel Watch e "outro com Wear
+  OS" mudam o caminho do modo de desenvolvedor (5 toques na Versão do software
+  no Galaxy; 7 no Número da versão nos outros) e o do Wi-Fi
+  (`passosRelogioDa`), e o nome do app que liga o relógio ao celular nas
+  mensagens (`comAppDoRelogio`). Garmin, Amazfit, Huawei, Polar, Coros e
+  pulseiras não instalam app de fora: o cartão leva ao batimento ao vivo e à
+  Conexão Saúde. Apple Watch: o cartão diz que não dá. Quem já tinha começado
+  a instalar entra como Galaxy Watch.
 - **O relógio abre sozinho** quando o treino começa no celular (pedido do
   dono, 2026-11-11b: "sempre que estiver usando o app no celular ele já abre
   também no relógio"): o `BolsoService`, ao ligar, chama

@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-11g**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-13a**.
 
 ---
 
@@ -220,8 +220,10 @@ com cenas reais → halter) como linguagem visual em vídeos.
 - No fim: **resumo** com volume total, séries, recordes, comparação com o treino anterior, e a voz
   fala o resumo.
 
-### 3.2b ⌚ O treino no Galaxy Watch (novo em 2026-11-11a)
-- Um app para o relógio (Galaxy Watch 4 em diante, Wear OS), ligado ao app Android do celular.
+### 3.2b ⌚ O treino no relógio: Galaxy Watch, Pixel Watch e Wear OS (novo em 2026-11-11a)
+- Um app para o relógio (Galaxy Watch 4 em diante, Pixel Watch e outros com Wear OS 3+), ligado ao app Android do celular.
+- **Visual que chama atenção (2026-11-13a):** um anel colorido gira na borda da tela; no treino, uma fatia por série; no descanso, ele esvazia em verde, fica amarelo nos 10 últimos segundos e vermelho nos 3 últimos. Cada série feita dá um clarão com ondas e "✓ SÉRIE FEITA" com vibração; passar do recorde deixa o botão dourado ("🏆 NOVO RECORDE!"); o fim do treino comemora em dourado.
+- A instalação começa com "Qual é o seu relógio?": cada modelo com o seu caminho. Garmin, Amazfit, Huawei, Polar, Coros e Apple Watch não instalam o app (Garmin e cia. usam o batimento ao vivo).
 - No pulso: o exercício da vez, a série ("Série 2 de 4"), a carga e as repetições com − e +, e o **✓ Feito**.
 - O descanso conta no relógio (+30 s, −15 s, Pular) e o relógio **vibra** 10 s antes e no fim.
 - ◀ ▶ trocam o exercício e ↩ desfaz a última série; cada ✓ vira a série no treino do celular, com recorde e voz, e aparece marcada na tela do celular sozinha, sem tocar em nada (precisa de internet no celular).

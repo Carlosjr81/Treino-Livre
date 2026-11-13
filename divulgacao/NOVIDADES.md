@@ -16,6 +16,37 @@
 
 ---
 
+## 2026-11-13a — O relógio ganhou cores, anel animado e comemoração a cada série
+
+**Em uma frase:** o app do relógio agora tem um anel colorido que gira na borda da tela, botões coloridos e uma comemoração com clarão e vibração a cada série feita, e a instalação pergunta qual é o seu relógio.
+
+**O que mudou**
+- Um anel colorido na borda da tela redonda: no treino, dividido em uma fatia por série (dá para ver de longe quantas faltam); no descanso, ele esvazia em verde, fica amarelo nos últimos 10 segundos e vermelho nos 3 últimos.
+- A cada série feita, a tela do relógio dá um clarão com ondas e mostra "✓ SÉRIE FEITA", com vibração.
+- Quando o peso ajustado no relógio passa do seu recorde, o botão fica dourado e aparece "🏆 NOVO RECORDE!"; ao confirmar, a comemoração é dourada. No fim do treino, "🎉 TREINO COMPLETO!".
+- Na instalação, a primeira pergunta é "Qual é o seu relógio?": Galaxy Watch, Pixel Watch, outro com Wear OS, ou marcas que não instalam apps (Garmin, Amazfit, Huawei, Polar, Coros, Apple Watch). Cada um recebe o caminho certo.
+
+**Por que importa para quem treina**
+- Dá para acompanhar o treino com uma olhada no pulso: as cores dizem se é hora de descansar ou de voltar.
+- Quem está do lado vê o anel girando e a comemoração de cada série: o treino chama atenção.
+- Quem tem Pixel Watch ou outro relógio Wear OS segue os passos do relógio dele, e quem tem Garmin ou Amazfit sabe na hora o que dá para usar (o batimento ao vivo).
+
+**Como usar**
+- Atualize o app do relógio: Ajustes, Conectar aparelhos, Instalar o app no relógio, Instalar no relógio agora, Já pareei antes.
+- Comece o treino no celular e use o ✓ FEITO no pulso.
+
+**Ideias de vídeo**
+- Close no pulso durante o descanso: o anel esvaziando em verde, ficando amarelo e vermelho, e o número pulsando nos 3 últimos segundos.
+- A série feita no relógio com o clarão e o "✓ SÉRIE FEITA", e o celular marcando sozinho ao lado.
+- Ajustar o peso acima do recorde: o botão fica dourado, e a comemoração "🏆 RECORDE!".
+
+**Não prometer**
+- O app do relógio é para Galaxy Watch 4 em diante, Pixel Watch e outros com Wear OS 3 ou mais novo, ligados a um celular Android. Garmin, Amazfit, Huawei, Polar, Coros e Apple Watch não instalam o app.
+- Com a tela do relógio apagada, as cores somem de propósito (economia de bateria e da tela).
+- Ainda instala pelo modo de desenvolvedor do relógio (não está na loja).
+
+---
+
 ## 2026-11-12d — Conserto: a última série não abre mais o descanso
 
 **Em uma frase:** ao marcar a última série do treino, o app já avisa que o treino acabou, sem contagem de descanso.

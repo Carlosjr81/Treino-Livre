@@ -1699,7 +1699,7 @@ const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-13d";
+const VERSAO_APP = "2026-11-14a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3720,6 +3720,12 @@ function aplicarEventosBolso(itens, eventos) {
       if (ss[e.i] && ss[e.i].feito) ss[e.i] = Object.assign({}, ss[e.i], { feito: false });
     } else if (e.t === "c") {
       if (ss[e.i] && e.campo) ss[e.i] = Object.assign({}, ss[e.i], { [e.campo]: String(e.valor) });
+    } else if (e.t === "f") {
+      // Terminei o aeróbico (o relógio). A tela do treino trata à parte (o tempo
+      // da esteira ou do ▶); aqui, onde ela não está (a cópia do app, o link),
+      // a série fica feita com os números que já tinha.
+      const i = ss[e.i] && !ss[e.i].feito ? e.i : ss.findIndex((s) => !s.feito);
+      if (i >= 0) ss[i] = Object.assign({}, ss[i], { feito: true });
     } else if (e.t === "o") {
       const atual = out[k].obs || "";
       out[k] = Object.assign({}, out[k], { obs: atual ? atual + " · " + e.o : e.o });
@@ -3990,6 +3996,22 @@ function criarBolso(snapInicial, catalogo) {
       if (r != null && r > 0) d.reps = Math.round(r);
       return anotar(d, agora, ei);
     }
+    // Pedido do dono (2026-11-14a): "não encontrei o botão de finalizar a
+    // caminhada na esteira no relógio". O tempo e a distância são medidos na
+    // tela do celular (a esteira conectada ou o ▶); o relógio só diz que acabou.
+    if (tipo === "terminar") {
+      const vale = (k) => itens[k] && itens[k].cardio && !itens[k].pulado && itens[k].series.some((s) => !s.feito);
+      const ei = Number.isInteger(c.ei) && vale(c.ei) ? c.ei : itens.findIndex((_, k) => vale(k));
+      if (ei < 0) return { falar: "Não há aeróbico por terminar." };
+      const it = itens[ei];
+      const si = it.series.findIndex((s) => !s.feito);
+      it.series[si] = Object.assign({}, it.series[si], { feito: true });
+      foco = ei;
+      ultimo = { ei: ei, si: si };
+      eventos.push({ t: "f", u: it.uid, i: si });
+      fimDesc = 0;
+      return { falar: "Pronto, aeróbico anotado: " + nomeI(ei) + ". " + proxima(), descansoAte: 0, mudou: true };
+    }
     if (tipo === "menos") {
       if (!fimDesc) return {};
       fimDesc = Math.max(agora + 5000, fimDesc - 15000);
@@ -4046,7 +4068,7 @@ function criarBolso(snapInicial, catalogo) {
 // Os acontecimentos que chegam de fora (link ou canal) são conferidos campo a campo.
 function eventosBolsoValidos(lista) {
   return (Array.isArray(lista) ? lista : []).slice(0, 300).filter((e) =>
-    e && typeof e.u === "string" && e.u.length < 80 && ["a", "x", "c", "o"].indexOf(e.t) >= 0 &&
+    e && typeof e.u === "string" && e.u.length < 80 && ["a", "x", "c", "o", "f"].indexOf(e.t) >= 0 &&
     (e.i == null || (Number.isInteger(e.i) && e.i >= 0 && e.i < 100)) &&
     (e.k == null || (typeof e.k === "string" && e.k.length < 30)) &&
     (e.campo == null || ["peso", "reps", "segundos"].indexOf(e.campo) >= 0) &&
@@ -28185,6 +28207,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // mentiria sobre quem subiu e desceu o ritmo), e marca. Em dois passos porque
   // marcarSerie lê a sessão do render: gravar e marcar no mesmo instante
   // faria a marcação apagar os números.
+  // o Terminei do relógio (acontecimento "f"): definido logo abaixo
+  const terminarAerobicoRef = useRef(null);
   const anotarDaEsteira = () => {
     const d = btSessao.est.dado || {};
     if (!(segEst >= 60)) return;
@@ -28212,6 +28236,26 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     setAnotarEsteira(alvoE);
     moverRegua();
     return alvoE;
+  };
+  // O Terminei do relógio: o que a pessoa faria aqui. Com a esteira (ou o
+  // aparelho) conduzindo, anota o tempo dela; com o ▶ rodando, o tempo que
+  // passou; senão, a série com os números que já tem.
+  terminarAerobicoRef.current = (uid) => {
+    const ei = sessao ? sessao.itens.findIndex((it) => it.uid === uid) : -1;
+    if (ei < 0) return;
+    if (esteiraConduz && ehEsteiraItem(ei) && segEst >= 60 && anotarDaEsteira()) return;
+    const pend = sessao.itens[ei].series.findIndex((s) => !s.feito);
+    const si = crono && crono.ei === ei ? crono.si : pend;
+    if (si < 0) return;
+    const novo = { feito: true };
+    if (crono && crono.ei === ei) {
+      const seg = Math.round((Date.now() - crono.inicio) / 1000);
+      if (seg >= 10) novo.segundos = String(seg);
+      pararCrono();
+    }
+    setSessao((ss) => ss && { ...ss, itens: ss.itens.map((it, i) => i !== ei ? it
+      : { ...it, series: it.series.map((x, j) => (j !== si ? x : { ...x, ...novo })) }) });
+    setFocoEi(ei);
   };
   useEffect(() => {
     if (!anotarEsteira) return;
@@ -28640,7 +28684,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       // o que já chegou pelo canal (o relógio) não entra de novo
       const ev = novosEventosBolso(pend.ev || []);
       if (!ev.length) return;
-      setSessao((s) => (s ? Object.assign({}, s, { itens: aplicarEventosBolso(s.itens, ev) }) : s));
+      aplicarDoBolso(ev);
       const n = ev.filter((e) => e.t === "a").length - ev.filter((e) => e.t === "x").length;
       const frase = n > 0 ? "Com a tela travada, anotei " + n + " " + plural(n, "série", "séries") + ". " + plural(n, "Já está", "Já estão") + " no treino."
         : "As mudanças da tela travada já estão no treino.";
@@ -28655,6 +28699,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // app fala a confirmação e conduz o descanso; a página só mostra.
   const canalTs = useRef(0);
   const [canalRelogio, setCanalRelogio] = useState("");
+  const aplicarDoBolso = (ev) => {
+    const fins = ev.filter((e) => e.t === "f");
+    const resto = ev.filter((e) => e.t !== "f");
+    if (resto.length) setSessao((s) => (s ? Object.assign({}, s, { itens: aplicarEventosBolso(s.itens, resto) }) : s));
+    fins.forEach((e, n) => setTimeout(() => { if (terminarAerobicoRef.current) terminarAerobicoRef.current(e.u); }, 60 + n * 60));
+  };
   useEffect(() => {
     if (!NO_APP_ANDROID || BOLSO_APP < 2 || !(bolsoAtivo || bolsoAuto)) return;
     const canal = canalBolso();
@@ -28675,7 +28725,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           cifrarBolso(canal, { ok: okIds, ts: Date.now() }).then((mm) => sala.publicar(mm)).catch(() => {});
         }
         const ev = novosEventosBolso(validos);
-        if (ev.length) setSessao((s) => (s ? Object.assign({}, s, { itens: aplicarEventosBolso(s.itens, ev) }) : s));
+        if (ev.length) aplicarDoBolso(ev);
         if (p.da != null && Date.now() - p.ts < 60000) {
           const da = +p.da || 0;
           if (da > Date.now() + 1000) {

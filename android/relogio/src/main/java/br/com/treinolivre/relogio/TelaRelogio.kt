@@ -118,6 +118,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     private lateinit var dica: TextView
     private lateinit var aviso: TextView
     private lateinit var atualizar: Button
+    private lateinit var terminar: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -228,11 +229,20 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             mostrar()
             enviar(j)
         }.apply { minHeight = dp(56); minimumHeight = dp(56); letterSpacing = 0.08f }
+        // Aeróbico (esteira, bicicleta...): o tempo e a distância são medidos no
+        // celular; o relógio só diz que acabou (pedido do dono, 2026-11-14a)
+        terminar = pilula("■ TERMINEI", intArrayOf(Cores.VERDE, Cores.CIANO), 19f) {
+            val p = painel ?: return@pilula
+            esperando = true
+            mostrar()
+            enviar(JSONObject().put("a", "terminar").put("ei", p.optInt("ei", -1)))
+        }.apply { minHeight = dp(56); minimumHeight = dp(56); letterSpacing = 0.08f }
         blocoSerie = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(linhaPeso); addView(linhaReps); addView(linhaSeg)
             addView(txtRec)
             addView(feito, lp())
+            addView(terminar, lp())
         }
         caixa.addView(blocoSerie)
 
@@ -510,13 +520,17 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         mostra(linhaReps, !tempo && !cardio)
         mostra(linhaSeg, tempo && !cardio)
         mostra(feito, !cardio)
+        mostra(terminar, cardio)
+        terminar.isEnabled = !esperando
+        terminar.alpha = if (esperando) 0.6f else 1f
+        terminar.text = if (esperando) "Anotando…" else "■ TERMINEI"
         feito.isEnabled = !esperando
         feito.alpha = if (esperando) 0.6f else 1f
         feito.text = if (esperando) "Anotando…" else "✓ FEITO"
         mostrarValores()
         if (cardio) txtRec.visibility = View.GONE
         val ant = p.optString("ant")
-        anterior.text = if (cardio) "Aeróbico: anote no celular." else if (ant.isNotEmpty()) "Anterior: $ant" else ""
+        anterior.text = if (cardio) "Parou? Toque em Terminei: o tempo e a distância vão pelo celular." else if (ant.isNotEmpty()) "Anterior: $ant" else ""
         val prox = p.optString("prox")
         depois.text = if (prox.isNotEmpty()) "Depois: $prox" else ""
         mostra(navegar, !ambiente)

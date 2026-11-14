@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-14a — No relógio, "Terminei" encerra a esteira e o aeróbico
+
+**Em uma frase:** no relógio, a esteira, a bicicleta e os outros aeróbicos ganharam o botão ■ TERMINEI.
+
+**O que mudou**
+- Antes o relógio só dizia "Aeróbico: anote no celular" e não havia como encerrar pelo pulso.
+- Agora, ao parar, um toque em ■ TERMINEI anota a série. Com a esteira conectada, vale o tempo e a distância dela; com o cronômetro rodando, o tempo que passou.
+
+**Por que importa para quem treina**
+- Terminou a caminhada? Não precisa pegar o celular: um toque no pulso e o app já segue para o próximo exercício.
+
+**Como usar**
+- Atualize o app do relógio. Na esteira, quando parar, toque em ■ TERMINEI no relógio.
+
+**Ideias de vídeo**
+- Descendo da esteira e encerrando a caminhada no relógio, com o celular marcando sozinho.
+
+**Não prometer**
+- O tempo e a distância são medidos pelo celular (a esteira conectada ou o cronômetro), não pelo relógio.
+
+---
+
 ## 2026-11-13d — A lixeira no topo, e o treino apagado sugerido para recuperar
 
 **Em uma frase:** o botão da Lixeira agora fica no topo da lista de treinos, sem precisar rolar até o fim.

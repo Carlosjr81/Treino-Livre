@@ -209,6 +209,24 @@ teste("o canal e o mesmo na segunda vez", ca, B.canalBolso());
 teste("o link do bolso leva o canal", true, B.linkBolso({ v: 1, itens: [] }).indexOf("&ca=" + encodeURIComponent(ca)) > 0);
 // o app nao aplica de novo o que a pagina ja tem: a copia leva os vistos
 teste("a copia leva o que a pagina ja aplicou", ["abc"], B.snapshotBolso({ itens: [] }, () => ({}), { vistos: ["abc"] }).vistos);
+console.log("--- o Terminei do relogio no aerobico ---");
+{
+  const sEst = { itens: [
+    { uid: "e1", exercicioId: "esteira-caminhada", series: [{ segundos: "1200", vel: "5.5", mod: "caminhada" }] },
+    { uid: "e2", exercicioId: "supino-reto", series: [{ peso: "60", reps: "10" }] },
+  ] };
+  const bt = criarBolso(JSON.parse(JSON.stringify(snapshotBolso(sEst, exPorId, { descanso: 90, barra: 20, foco: 0 }))), EXERCICIOS);
+  teste("o painel diz que e aerobico", true, bt.painel(T0).cardio);
+  const rt = bt.acao({ a: "terminar", ei: 0 }, T0);
+  contem("... o Terminei anota e segue", rt.falar, "aeróbico anotado");
+  teste("... sem descanso", 0, rt.descansoAte);
+  teste("... vira o acontecimento f", [{ t: "f", u: "e1", i: 0 }], bt.eventos().map((e) => ({ t: e.t, u: e.u, i: e.i })));
+  teste("... o painel passa ao supino", "e2", bt.painel(T0).uid);
+  const ap = B.aplicarEventosBolso(sEst.itens, bt.eventos());
+  teste("... sem a tela, a serie fica feita com os numeros dela", { segundos: "1200", vel: "5.5", mod: "caminhada", feito: true }, ap[0].series[0]);
+  teste("... o f passa na conferencia de quem chega de fora", 1, B.eventosBolsoValidos(bt.eventos()).length);
+  contem("... de novo, nao ha aerobico por terminar", bt.acao({ a: "terminar", ei: 0 }, T0).falar, "Não há aeróbico");
+}
 (async () => {
   const m = await B.cifrarBolso(ca, { ev: ev2, ts: 5 });
   // com aspas: "u1" solto aparece por acaso no base64 de vez em quando (o CI

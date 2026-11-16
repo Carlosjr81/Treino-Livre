@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-16b";
+const VERSAO_APP = "2026-11-16c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -36590,6 +36590,89 @@ function useSobeApoio(alvo, ms) {
   }, [alvo]);
   return v;
 }
+// A animação perto da doação (pedido do dono, 2026-11-16c, no lugar do
+// contador fictício que ficou de fora): é uma SIMULAÇÃO dita como tal, "e se
+// 100 pessoas doassem R$ 5?", e não um total arrecadado. Os números de verdade
+// são só os do cartão de cima, escritos pelo dono. Roda quando aparece na tela,
+// uma vez; "Ver de novo" repete. Movimento reduzido: já no fim.
+const SIM_APOIO = { pessoas: 100, valor: 5, ms: 4200 };
+const CORES_SIM_APOIO = ["#F58529", "#DD2A7B", "#8134AF", "#32BCAD", "#FFD34E", "#FF6B93"];
+function SimulacaoApoio({ onDoar }) {
+  const ref = useRef(null);
+  const [p, setP] = useState(0);
+  const [vez, setVez] = useState(0);
+  useEffect(() => {
+    let reduzido = false;
+    try { reduzido = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+    if (reduzido) { setP(1); return undefined; }
+    let id = 0, obs = null, foi = false;
+    const rodar = () => {
+      if (foi) return; foi = true; setP(0);
+      const t0 = performance.now();
+      const passo = (t) => { const x = Math.min(1, (t - t0) / SIM_APOIO.ms); setP(x); if (x < 1) id = requestAnimationFrame(passo); };
+      id = requestAnimationFrame(passo);
+    };
+    if (vez > 0 || !("IntersectionObserver" in window) || !ref.current) rodar();
+    else { obs = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) rodar(); }, { threshold: 0.5 }); obs.observe(ref.current); }
+    return () => { cancelAnimationFrame(id); if (obs) obs.disconnect(); };
+  }, [vez]);
+  // começa devagar e acelera, como quando a notícia se espalha
+  const curva = p * p * (3 - 2 * p);
+  const pessoas = Math.round(SIM_APOIO.pessoas * curva);
+  const valor = pessoas * SIM_APOIO.valor;
+  const fim = p >= 1;
+  const bonecos = 20;
+  const acesos = Math.round(bonecos * curva);
+  return (
+    <div ref={ref} style={{ ...S.card, position: "relative", overflow: "hidden", textAlign: "center",
+      borderColor: fim ? "var(--marca)" : "var(--borda2)", transition: "border-color .4s",
+      background: "radial-gradient(120% 90% at 50% 0%, #E1306C26 0%, transparent 60%), var(--card)" }}>
+      <style>{"@keyframes simCai{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(260px) rotate(540deg);opacity:0}}" +
+        "@keyframes simBate{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}" +
+        "@keyframes simPula{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}"}</style>
+      <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1.5, color: "var(--cinza)", textTransform: "uppercase" }}>Simulação · e se…</div>
+      <div style={{ fontSize: 15.5, fontWeight: 800, marginTop: 4 }}>{SIM_APOIO.pessoas} pessoas doassem {reais(SIM_APOIO.valor)}?</div>
+      <div style={{ display: "flex", justifyContent: "center", gap: 22, margin: "12px 0 10px" }}>
+        <div>
+          <div style={{ fontSize: 30, fontWeight: 900, color: "var(--marca)", fontVariantNumeric: "tabular-nums" }}>{reais(valor)}</div>
+          <div style={{ fontSize: 12, color: "var(--cinza)" }}>no exemplo</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 30, fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>{pessoas}</div>
+          <div style={{ fontSize: 12, color: "var(--cinza)" }}>{plural(pessoas, "pessoa", "pessoas")}</div>
+        </div>
+      </div>
+      <div aria-hidden="true" style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 5, maxWidth: 300, margin: "0 auto" }}>
+        {Array.from({ length: bonecos }, (u, i) => (
+          <span key={i} style={{ height: 24, borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
+            background: i < acesos ? CORES_SIM_APOIO[i % CORES_SIM_APOIO.length] : "var(--borda)", transition: "background .25s",
+            animation: fim ? "simPula .6s ease " + (i * 40) + "ms 2" : "none" }}>{i < acesos ? "\u{1F4AA}" : ""}</span>
+        ))}
+      </div>
+      <div style={{ height: 8, borderRadius: 99, background: "var(--borda2)", overflow: "hidden", margin: "12px auto 0", maxWidth: 300 }}>
+        <div style={{ width: Math.round(curva * 100) + "%", height: "100%", background: GRAD }} />
+      </div>
+      {fim ? (
+        <div style={{ marginTop: 12, animation: "simBate .6s ease both" }}>
+          <img src={LOGO_APP} alt="" style={{ height: 52 }} />
+          <div style={{ fontSize: 19, fontWeight: 900, marginTop: 2 }}>{"\u{1F389}"} Treino Livre <span style={{ color: "var(--marca)" }}>grátis</span> para todo mundo!</div>
+          <div style={{ fontSize: 13, color: "var(--cinza)", marginTop: 4, lineHeight: 1.45 }}>Pouco de cada um mantém o app no ar, sem anúncio e sem mensalidade.</div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10 }}>
+            {onDoar && <button onClick={onDoar} style={{ ...S.btnGhost, width: "auto", padding: "9px 14px", borderColor: "var(--marca)", color: "var(--marca)", fontWeight: 900 }}>{"\u{1F49B}"} Quero ser um deles</button>}
+            <button onClick={() => setVez((v) => v + 1)} style={{ ...S.btnGhost, width: "auto", padding: "9px 14px" }}>↻ Ver de novo</button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 13, color: "var(--cinza)", marginTop: 12 }}>Cada {"\u{1F4AA}"} são 5 pessoas apoiando…</div>
+      )}
+      {fim && Array.from({ length: 26 }, (u, i) => (
+        <span key={"c" + vez + i} aria-hidden="true" style={{ position: "absolute", top: 0, left: ((i * 37) % 100) + "%", width: 7, height: 11, borderRadius: 2,
+          background: CORES_SIM_APOIO[i % CORES_SIM_APOIO.length], animation: "simCai " + (1.3 + (i % 5) * 0.25) + "s ease-in " + ((i % 7) * 70) + "ms both", pointerEvents: "none" }} />
+      ))}
+      <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 10 }}>Exemplo ilustrativo: não é o total arrecadado.</div>
+    </div>
+  );
+}
 function LinhaApoio({ icone, fundo, cor, titulo, sub, onClick, aberto, seta }) {
   return (
     <button onClick={onClick} aria-expanded={aberto === undefined ? undefined : aberto}
@@ -36719,6 +36802,7 @@ function TelaApoio({ onFechar }) {
         </div>
 
         <div style={{ fontWeight: 900, fontSize: 19, margin: "18px 2px 4px" }}>Doe pelo Pix</div>
+        <SimulacaoApoio onDoar={() => setPixAberto(true)} />
         <div style={S.card}>
           <LinhaApoio icone="❖" fundo="#32BCAD22" cor="#32BCAD" titulo="Doar qualquer valor" sub="QR code ou Pix copia e cola, no app do seu banco"
             aberto={pixAberto} onClick={() => setPixAberto(!pixAberto)} />

@@ -371,6 +371,14 @@ Instagram dele, e "um contador dinâmico e fictício" para incentivar.
   não mudaram). O número sobe animado do zero (`useSobeApoio`) e a barra da meta
   enche. Sem número, a tela convida a "ser um dos primeiros apoiadores".
   **Não troque por número inventado sem falar com ele de novo.**
+- **A animação da doação** (`SimulacaoApoio`, 2026-11-16c, o pedido do
+  dono no lugar do contador fictício): logo abaixo de "Doe pelo Pix", uma
+  **simulação dita como tal** ("Simulação · e se 100 pessoas doassem
+  R$ 5?", e embaixo "Exemplo ilustrativo: não é o total arrecadado"). O
+  dinheiro e as pessoas sobem, 20 bonecos 💪 acendem, e no fim confete, o logo
+  e "Treino Livre grátis para todo mundo!", com "Quero ser um deles" (abre o
+  Pix) e "Ver de novo". Roda quando aparece na tela. O que nunca pode: tirar
+  o "simulação"/"exemplo" ou fazer o número parecer o total de verdade.
 - **Entradas**: Ajustes (o chip "💛 Apoie o app" e a linha logo abaixo da
   conta), a Central de Ajuda (Conta e dados › Apoiar), **a tela inicial** e o
   resumo do fim do treino.
@@ -830,7 +838,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v200) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v201) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |

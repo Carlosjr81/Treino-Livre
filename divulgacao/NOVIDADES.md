@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-16c — Uma animação mostra o que o apoio de muitos faz
+
+**Em uma frase:** perto da doação pelo Pix, uma animação mostra o que acontece se 100 pessoas doarem R$ 5 cada.
+
+**O que mudou**
+- Na tela "Apoie o Treino Livre", logo abaixo de "Doe pelo Pix": o valor e as pessoas sobem, os bonequinhos 💪 acendem, e no fim tem confete e "Treino Livre grátis para todo mundo!".
+- O botão "Quero ser um deles" abre o Pix na hora; "Ver de novo" repete a animação.
+
+**Por que importa para quem treina**
+- Mostra que pouco de cada um basta para o app seguir grátis, sem anúncio e sem mensalidade.
+
+**Como usar**
+- Ajustes → 💛 Apoie o Treino Livre (ou "Quero apoiar" na tela inicial) e role até "Doe pelo Pix".
+
+**Ideias de vídeo**
+- Gravar a tela com a animação até o confete e terminar em "Quero ser um deles".
+
+**Não prometer**
+- É um exemplo, não o total arrecadado: a própria tela diz isso. Não use os números da animação como se fossem reais.
+
+---
+
 ## 2026-11-16b — Apoiar o app na tela inicial e no fim do treino
 
 **Em uma frase:** a tela inicial e o fim de cada treino agora convidam a apoiar o Treino Livre, curtir, compartilhar e postar.

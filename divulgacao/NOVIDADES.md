@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-16f — "Sem propaganda e sem mensalidade" em destaque
+
+**Em uma frase:** a tela de apoio agora diz em letras grandes o que o apoio mantém: o app sem propaganda e sem mensalidade.
+
+**O que mudou**
+- No cartão "Seja um dos primeiros apoiadores", uma faixa com moldura colorida: "O seu apoio mantém o app SEM PROPAGANDA E SEM MENSALIDADE", com os selos 🚫 Sem anúncio, 💸 Sem mensalidade e 🆓 Grátis para todos.
+
+**Por que importa para quem treina**
+- Fica claro para onde vai a ajuda: manter o app limpo e de graça para todo mundo.
+
+**Como usar**
+- Ajustes → 💛 Apoie o Treino Livre.
+
+**Ideias de vídeo**
+- Close na faixa "sem propaganda e sem mensalidade" e depois nos botões "Doar pelo Pix" e "Comprar pelo link".
+
+**Não prometer**
+- Apoiar não libera nenhuma função: o app é igual para todo mundo.
+
+---
+
 ## 2026-11-16e — "Seja um dos primeiros apoiadores" agora leva a apoiar
 
 **Em uma frase:** o cartão do topo da tela de apoio ganhou dois botões: doar pelo Pix ou comprar pelo link.

@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-16e";
+const VERSAO_APP = "2026-11-16f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -36794,6 +36794,24 @@ function TelaApoio({ onFechar }) {
         </button>
 
         <div style={{ ...S.card, background: "var(--borda)" }}>
+        {/* Pedido do dono (2026-11-16f): o que o apoio paga, bem à vista */}
+        <div style={{ borderRadius: 16, padding: 2, background: GRAD, marginBottom: 14 }}>
+          <div style={{ borderRadius: 14, padding: "14px 12px", textAlign: "center",
+            background: "radial-gradient(120% 120% at 50% 0%, #E1306C33 0%, transparent 70%), #160A10" }}>
+            <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1.5, color: "#FF6B93", textTransform: "uppercase" }}>O seu apoio mantém o app</div>
+            <div style={{ fontSize: 23, fontWeight: 900, lineHeight: 1.15, marginTop: 4, color: "#fff" }}>
+              SEM PROPAGANDA<br />E SEM MENSALIDADE
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 10 }}>
+              {[["\u{1F6AB}", "Sem anúncio"], ["\u{1F4B8}", "Sem mensalidade"], ["\u{1F193}", "Grátis para todos"]].map((x) => (
+                <span key={x[1]} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 10px", borderRadius: 999,
+                  background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.16)", fontSize: 12.5, fontWeight: 800, color: "#fff" }}>
+                  <span aria-hidden="true">{x[0]}</span>{x[1]}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span aria-hidden="true" style={{ fontSize: 34 }}>💛</span>
           {temNumeros ? (
@@ -36814,7 +36832,7 @@ function TelaApoio({ onFechar }) {
             </div>
           ) : (
             <div style={{ flex: 1, fontSize: 14, lineHeight: 1.5 }}>
-              <b>Seja um dos primeiros apoiadores.</b> Todo o apoio vai para manter o app no ar, gratuito e com novidades toda semana.
+              <b>Seja um dos primeiros apoiadores.</b> Todo o apoio vai para manter o app no ar e com novidades toda semana.
             </div>
           )}
         </div>

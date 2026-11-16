@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-16d — "Quero ser um deles" leva direto ao Pix
+
+**Em uma frase:** o botão no fim da animação de apoio agora rola a tela até os valores do Pix.
+
+**O que mudou**
+- Antes, com o Pix já aberto, o toque parecia não fazer nada. Agora a tela desce até "Doar qualquer valor" e o cartão acende.
+
+**Por que importa para quem treina**
+- Quem se animou com a animação chega ao Pix num toque.
+
+**Como usar**
+- Ajustes → 💛 Apoie o Treino Livre, espere a animação terminar e toque em "Quero ser um deles".
+
+**Ideias de vídeo**
+- Mostrar a animação até o confete, tocar em "Quero ser um deles" e escolher o valor.
+
+**Não prometer**
+- A animação é um exemplo, não o total arrecadado.
+
+---
+
 ## 2026-11-16c — Uma animação mostra o que o apoio de muitos faz
 
 **Em uma frase:** perto da doação pelo Pix, uma animação mostra o que acontece se 100 pessoas doarem R$ 5 cada.

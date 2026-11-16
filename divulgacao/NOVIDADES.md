@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-16i — Quanto tempo leva o treino
+
+**Em uma frase:** antes de começar, o app diz quanto tempo, mais ou menos, a ficha vai levar; no meio do treino, quanto falta e a que horas termina.
+
+**O que mudou**
+- No "Seu treino de hoje", em cada ficha da aba Fichas e no editor de ficha: "⏱ cerca de 55 min".
+- A conta leva em conta as séries, as repetições, o descanso de cada exercício, o aquecimento, o bi-set e a troca de aparelho.
+- Depois que a ficha já foi feita, vale o seu tempo de verdade: "cerca de 1 h 10 (pelas suas últimas 3 vezes)".
+- Durante o treino, embaixo do cronômetro: "faltam ~25 min · até 19:40".
+
+**Por que importa para quem treina**
+- Dá para escolher a ficha que cabe no horário do dia, e saber se ainda dá tempo de terminar antes do trabalho.
+
+**Como usar**
+- É só olhar: aparece sozinho na tela inicial, nas Fichas e no treino.
+
+**Ideias de vídeo**
+- "Tenho 40 minutos hoje": abrir as fichas, ver o tempo de cada uma e escolher a que cabe. No treino, mostrar o "até 19:40".
+
+**Não prometer**
+- É uma estimativa: quem descansa mais ou conversa entre as séries leva mais tempo. Fica mais certa depois que a ficha já foi feita algumas vezes.
+
+---
+
 ## 2026-11-16h — O apoio mantém o app sem propaganda no meio do treino
 
 **Em uma frase:** a tela de apoio agora diz que a ajuda mantém o app sem propagandas que atrapalham o treino.

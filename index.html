@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-16h";
+const VERSAO_APP = "2026-11-16i";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3661,6 +3661,106 @@ function descansoDoItem(it, ex, geral, modo) {
 // O modo do descanso, posto pelo raiz a cada render (como o TEMA_APP): o
 // editor de ficha e a cópia do treino para o app Android também o leem.
 let MODO_DESCANSO = "ciencia";
+// O descanso geral dos Ajustes, posto pelo raiz como o MODO_DESCANSO: a
+// estimativa de tempo das fichas (tela inicial, Fichas) precisa dele no modo fixo.
+let DESCANSO_GERAL = 90;
+
+// ---------------- TEMPO ESTIMADO DO TREINO ----------------
+// Pedido do dono (2026-11-16i): saber quanto tempo, mais ou menos, leva a
+// ficha escolhida. A conta soma, série por série, o que acontece de verdade:
+// executar (as repetições num ritmo de academia), pegar o peso e se ajeitar,
+// o descanso daquele exercício (o mesmo do treino: ficha, ciência ou geral) e
+// a troca de aparelho. Bi-set não descansa entre os parceiros; drop emenda sem
+// descanso; o aquecimento do primeiro exercício de força entra.
+// Quando a ficha já foi feita, o relógio de verdade vence a conta: a mediana
+// das últimas 3 vezes (cada um treina num ritmo, e isso nenhuma conta sabe).
+const TEMPO_EST = { segRep: 3.5, ajeitar: 15, troca: 45, parceiro: 15, drop: 8, repsPadrao: 10, isoPadrao: 30 };
+function repsMedias(txt, padrao) {
+  const ns = String(txt == null ? "" : txt).match(/\d+/g);
+  if (!ns) return padrao;
+  const v = ns.slice(0, 2).map(Number);
+  return Math.round(v.reduce((a, b) => a + b, 0) / v.length) || padrao;
+}
+// Quanto uma série leva para ser feita (sem o descanso depois)
+function segExecucao(ex, s, repsAlvo) {
+  if (ex && ex.cardio) {
+    const seg = parseInt(s && s.segundos);
+    if (seg > 0) return seg;
+    return (parseInt(repsAlvo) || (ex.padrao && ex.padrao.min) || 30) * 60;
+  }
+  if ((ex && ex.tempo) || (s && s.segundos != null && s.reps == null)) {
+    return (parseInt(s && s.segundos) || TEMPO_EST.isoPadrao) + TEMPO_EST.ajeitar;
+  }
+  const reps = repsMedias(s && s.reps != null && s.reps !== "" ? s.reps : repsAlvo, TEMPO_EST.repsPadrao);
+  return reps * TEMPO_EST.segRep + (s && s.drop ? TEMPO_EST.drop : TEMPO_EST.ajeitar);
+}
+// itens: [{ it, ex, series }] só com as séries que faltam. Devolve segundos.
+function segundosDasSeries(itens, geral, modo) {
+  let total = 0, ultimoDescanso = 0, primeiro = true;
+  const vivos = itens.filter((x) => x.series && x.series.length);
+  vivos.forEach((x, k) => {
+    if (!primeiro) total += TEMPO_EST.troca;
+    primeiro = false;
+    const prox = vivos[k + 1];
+    const meioDoConjunto = !!(x.it && x.it.conjunto && prox && prox.it && prox.it.conjunto === x.it.conjunto);
+    const desc = descansoDoItem(x.it, x.ex, geral, modo);
+    x.series.forEach((s, si) => {
+      total += segExecucao(x.ex, s, x.it && x.it.reps);
+      const seguinte = x.series[si + 1];
+      let d;
+      if (seguinte && seguinte.drop) d = 0;
+      else if (s.aquec) d = DESCANSO_AQUECIMENTO;
+      else if (meioDoConjunto) d = TEMPO_EST.parceiro;
+      else d = desc;
+      total += d;
+      ultimoDescanso = d;
+    });
+  });
+  return Math.max(0, total - ultimoDescanso);
+}
+// As séries que a ficha vai pôr no treino: as de trabalho, os drops, e o
+// aquecimento no primeiro exercício de força (como o comecarSessao faz).
+function itensDaFicha(ficha, exPorId) {
+  let aqueceu = false;
+  return ((ficha && ficha.itens) || []).map((it) => {
+    const ex = exPorId(it.exercicioId) || null;
+    const n = Math.max(1, parseInt(it.series) || 3);
+    const series = [];
+    const forca = ex && !ex.cardio && !ex.tempo && !ex.func && !ex.funcional;
+    if (forca && !aqueceu) { aqueceu = true; series.push({ reps: "10", aquec: true }, { reps: "5", aquec: true }); }
+    for (let i = 0; i < n; i++) series.push(ex && ex.tempo && !ex.cardio ? { segundos: "" } : { reps: it.reps });
+    for (let i = 0; i < Math.min(3, parseInt(it.drops) || 0); i++) series.push({ reps: it.reps, drop: true });
+    return { it, ex, series };
+  });
+}
+const arred5 = (min) => Math.max(5, Math.round(min / 5) * 5);
+function estimarTempoFicha(ficha, exPorId, historico, geral, modo) {
+  if (!ficha || !(ficha.itens || []).length) return null;
+  const conta = Math.round(segundosDasSeries(itensDaFicha(ficha, exPorId), geral, modo) / 60);
+  const reais = (historico || [])
+    .filter((h) => h && h.nome === ficha.nome && Number(h.duracaoMin) >= 5 && Number(h.duracaoMin) <= 300)
+    .slice(0, 3).map((h) => Number(h.duracaoMin)).sort((a, b) => a - b);
+  const real = reais.length ? reais[Math.floor((reais.length - 1) / 2)] : null;
+  return { conta, real, vezes: reais.length, min: arred5(real != null ? real : conta) };
+}
+function textoTempoFicha(est) {
+  if (!est) return "";
+  return "cerca de " + textoMinutos(est.min) + (est.real != null ? (est.vezes > 1 ? " (pelas suas últimas " + est.vezes + " vezes)" : " (pela última vez)") : "");
+}
+function textoMinutos(min) {
+  if (min < 60) return min + " min";
+  const h = Math.floor(min / 60), m = min % 60;
+  return h + " h" + (m ? " " + (m < 10 ? "0" + m : m) : "");
+}
+// No meio do treino: quanto falta, pelo que ainda está por fazer
+function estimarRestanteSessao(sessao, exPorId, geral, modo) {
+  if (!sessao) return 0;
+  const itens = (sessao.itens || []).filter((it) => !it.pulado).map((it) => ({
+    it, ex: exPorId(it.exercicioId) || null, series: (it.series || []).filter((s) => !s.feito),
+  }));
+  return Math.round(segundosDasSeries(itens, geral, modo) / 60);
+}
+// ---------------- FIM DO TEMPO ESTIMADO
 
 // Só o que a voz precisa: as séries e, de cada exercício, o nome, o
 // equipamento (a barra no "de cada lado"), se é de tempo, o descanso e o recorde.
@@ -13614,7 +13714,7 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
             <div style={{ fontSize: 21, fontWeight: 900, margin: "6px 0 2px", lineHeight: 1.25 }}>{hoje.ficha.nome}</div>
             <div style={{ fontSize: 13, color: "var(--cinza)", marginBottom: 12, lineHeight: 1.5 }}>
               {hoje.ficha.itens.length} {plural(hoje.ficha.itens.length, "exercício", "exercícios")}
-              {" · cerca de " + Math.max(20, Math.round(hoje.ficha.itens.reduce((a, it) => a + (Number(it.series) || 3), 0) * 2.2 / 5) * 5) + " min"}
+              {" · ⏱ " + textoTempoFicha(estimarTempoFicha(hoje.ficha, exPorId, historico, DESCANSO_GERAL, MODO_DESCANSO))}
               {hoje.motivo ? " · " + hoje.motivo : ""}
             </div>
             <button style={{ ...S.btn, fontSize: 17, padding: "16px 12px" }} onClick={() => onTreinar(hoje.ficha)}><ComIcone nome="play" tamanho={18}>Começar este treino</ComIcone></button>
@@ -13638,7 +13738,7 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
                 <div key={p.id} style={{ marginTop: 8 }}>
                   <div style={{ ...S.label, margin: "8px 0 8px" }}>📋 {p.nome}</div>
                   {fichas.map((t) => (
-                    <button key={t.id} style={{ ...S.btnGhost, marginBottom: 8, fontWeight: 800, textAlign: "left" }} onClick={() => onTreinar(t)}>▶ {t.nome}</button>
+                    <button key={t.id} style={{ ...S.btnGhost, marginBottom: 8, fontWeight: 800, textAlign: "left" }} onClick={() => onTreinar(t)}>▶ {t.nome}{t.itens.length ? <span style={{ fontWeight: 600, color: "var(--cinza)", fontSize: 12.5 }}>{" · ⏱ ~" + textoMinutos(estimarTempoFicha(t, exPorId, historico, DESCANSO_GERAL, MODO_DESCANSO).min)}</span> : null}</button>
                   ))}
                 </div>
               );
@@ -16055,9 +16155,14 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
                 </React.Fragment>
               )}
             </div>
-            <div style={{ color: "var(--cinza)", fontSize: 13, margin: "4px 0 12px" }}>
+            <div style={{ color: "var(--cinza)", fontSize: 13, margin: "4px 0 " + (t.itens.length ? 6 : 12) + "px" }}>
               {t.itens.map((it) => { const e = exPorId(it.exercicioId); return e ? e.nome : null; }).filter(Boolean).join(" · ") || "Sem exercícios"}
             </div>
+            {t.itens.length > 0 && (
+              <div style={{ fontSize: 13, fontWeight: 800, margin: "0 0 12px" }}>
+                ⏱ {textoTempoFicha(estimarTempoFicha(t, exPorId, historico, DESCANSO_GERAL, MODO_DESCANSO))}
+              </div>
+            )}
             <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}><ComIcone nome="play">Treinar</ComIcone></button>
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onEditar(t)}><ComIcone nome="lapis" tamanho={16}>Editar</ComIcone></button>
@@ -16293,6 +16398,11 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, 
         aria-label="Nome da ficha"
         value={t.nome} onChange={(e) => setT({ ...t, nome: e.target.value })} />
 
+      {t.itens.length > 0 && (
+        <div style={{ fontSize: 13, color: "var(--cinza)", margin: "-6px 0 12px" }}>
+          ⏱ Esta ficha leva <b style={{ color: "var(--texto)" }}>cerca de {textoMinutos(estimarTempoFicha(t, (id) => todos.find((e) => e.id === id), null, DESCANSO_GERAL, MODO_DESCANSO).min)}</b>, com os descansos e a troca de aparelho.
+        </div>
+      )}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div style={{ ...S.label, flex: 1 }}>Exercícios da ficha</div>
         {t.itens.length > 0 && onCopiarPara && !ordenando && (
@@ -29075,6 +29185,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
 
   const feitas = sessao.itens.reduce((a, it) => a + it.series.filter((s) => s.feito).length, 0);
   const total = sessao.itens.reduce((a, it) => a + it.series.length, 0);
+  const faltaMin = feitas < total ? estimarRestanteSessao(sessao, exPorId, descanso, MODO_DESCANSO) : 0;
 
   const fmt = (seg) => {
     const m = Math.floor(seg / 60);
@@ -29130,6 +29241,11 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
             <div style={{ fontSize: 12, color: "var(--cinza)" }}>
               ⏱ <CronometroSessao inicio={sessao.inicio} />
             </div>
+            {faltaMin > 0 && (
+              <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 2 }} title="Estimativa pelo que falta: séries, descansos e troca de aparelho">
+                faltam ~{textoMinutos(Math.max(1, faltaMin))} · até {new Date(Date.now() + faltaMin * 60000).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            )}
           </div>
         </div>
         {/* barra de avanço do treino: dá a sensação de estar chegando ao fim */}
@@ -32649,6 +32765,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
 
   TEMA_APP = tema;
   MODO_DESCANSO = descansoModo;
+  DESCANSO_GERAL = descanso;
   ABRIR_GUIA = (id, problema) => { setProblemaGuia(problema || ""); setGuia(id || ""); };
   ABRIR_AJUDA = (onde) => setAjuda(onde || "");
   ABRIR_RELOGIO = (status) => setInstRelogio(status ? status + "|" + Date.now() : "");

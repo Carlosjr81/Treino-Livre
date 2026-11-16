@@ -768,7 +768,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.863 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.922 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -853,7 +853,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v206) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v207) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5604,6 +5604,30 @@ colegas 2017.
   mundo faz, o catálogo inteiro entre 45 s e 3 min, braço e abdômen nunca
   pesados, a ficha vencendo).
 
+## Quanto tempo leva o treino (`estimarTempoFicha`, `estimarRestanteSessao`)
+
+Pedido do dono (2026-11-16i): saber, antes de começar, quanto tempo leva a
+ficha escolhida. Bloco puro `TEMPO ESTIMADO DO TREINO`, coberto por
+`teste-tempo.js` (20 checagens).
+
+- **A conta é série por série** (`segundosDasSeries`): executar (3,5 s por
+  repetição, a média da faixa "8-12"; isometria pelos segundos; aeróbico pelos
+  minutos da ficha), 15 s para pegar o peso e se ajeitar, **o descanso daquele
+  exercício** (`descansoDoItem`: o mesmo do treino, da ficha, da ciência ou
+  o geral) e 45 s para trocar de aparelho. Bi-set descansa 15 s entre os
+  parceiros; drop emenda sem descanso; o aquecimento do primeiro exercício de
+  força entra (como no `comecarSessao`); depois da última série não há descanso.
+- **O relógio de verdade vence a conta**: com a ficha já feita (mesmo nome no
+  histórico, entre 5 e 300 min), vale a **mediana das últimas 3 vezes**, e o
+  texto diz isso ("pelas suas últimas 3 vezes"). Cada um treina num ritmo.
+- **Onde aparece**: o cartão "Seu treino de hoje" (era uma conta de 2,2 min por
+  série), as outras fichas do "Escolher outra ficha", cada ficha na aba Fichas,
+  o editor de ficha (muda enquanto se monta) e, no treino em andamento, "faltam
+  ~25 min · até 19:40" embaixo do cronômetro (`estimarRestanteSessao`: só as
+  séries por fazer, sem os exercícios pulados).
+- `DESCANSO_GERAL` é posto pelo raiz como o `MODO_DESCANSO`: a tela inicial
+  e as Fichas precisam do descanso geral no modo "igual para todos".
+
 ## Corpo, backup e lembretes
 
 - **Medidas** (`TelaCorpo`) — peso e cinco circunferências, com gráfico por
@@ -5655,7 +5679,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 39 suítes (1.863 checagens)
+node testes/rodar.js      # as 40 suítes (1.922 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

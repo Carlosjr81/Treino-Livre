@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-16a**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-16i**.
 
 ---
 
@@ -147,6 +147,10 @@ com cenas reais → halter) como linguagem visual em vídeos.
   que os estudos indicam — 3:00 nos básicos pesados com barra, 2:00 nos de vários músculos, 1:30 nos isolados grandes,
   1:15 em braço e panturrilha, 1:00 no abdômen e prancha, 0:45 no funcional. Ajustes → Preferências mostra a tabela e
   os estudos (Schoenfeld 2016, meta-análise de 2024, ACSM). Dá para voltar a "igual para todos" e mudar em cada exercício.
+- **Quanto tempo leva o treino** (novo em 2026-11-16i): cada ficha mostra "⏱ cerca de 55 min" (na tela inicial,
+  nas Fichas e no editor), pela conta das séries, repetições, descansos, aquecimento e troca de aparelho. Depois
+  que a ficha já foi feita, vale o tempo real da pessoa ("pelas suas últimas 3 vezes"). No meio do treino, embaixo
+  do cronômetro: "faltam ~25 min · até 19:40". É estimativa: não prometa minuto exato.
 - **Exercício próprio com foto do aparelho:** a academia tem uma máquina que não existe em catálogo
   nenhum? Fotografa e cadastra. Dá para criar "variações" em segundos (Remada baixa 2, 3...).
 - **Compartilhar ficha ou programa por link** (WhatsApp, Direct): quem recebe abre e importa com um toque.

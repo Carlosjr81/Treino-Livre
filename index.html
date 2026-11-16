@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-16d";
+const VERSAO_APP = "2026-11-16e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -36700,6 +36700,15 @@ function TelaApoio({ onFechar }) {
     setTimeout(() => { try { pixRef.current && pixRef.current.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} }, 80);
     setTimeout(() => setPixAceso(false), 1800);
   };
+  // o cartão "Seja um dos primeiros apoiadores" leva aos dois jeitos de
+  // apoiar: um toque só não sabe qual a pessoa quer (2026-11-16e)
+  const lojasRef = useRef(null);
+  const [lojasAcesas, setLojasAcesas] = useState(false);
+  const irParaLojas = () => {
+    setLojasAcesas(true);
+    try { lojasRef.current && lojasRef.current.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+    setTimeout(() => setLojasAcesas(false), 1800);
+  };
   const [valor, setValor] = useState(10);
   const [outro, setOutro] = useState("");
   const [qr, setQr] = useState("");
@@ -36784,7 +36793,8 @@ function TelaApoio({ onFechar }) {
           </span>
         </button>
 
-        <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 12, background: "var(--borda)" }}>
+        <div style={{ ...S.card, background: "var(--borda)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span aria-hidden="true" style={{ fontSize: 34 }}>💛</span>
           {temNumeros ? (
             <div style={{ flex: 1 }}>
@@ -36807,6 +36817,18 @@ function TelaApoio({ onFechar }) {
               <b>Seja um dos primeiros apoiadores.</b> Todo o apoio vai para manter o app no ar, gratuito e com novidades toda semana.
             </div>
           )}
+        </div>
+          <div style={{ fontSize: 13, color: "var(--cinza)", margin: "12px 0 8px", textAlign: "center" }}>Escolha como quer ajudar:</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button onClick={irParaPix}
+              style={{ ...S.btnGhost, width: "100%", padding: "11px 6px", borderColor: "var(--marca)", color: "var(--marca)", fontWeight: 900, lineHeight: 1.25 }}>
+              {"\u{1F49B}"} Doar pelo Pix<span style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: "var(--cinza)" }}>qualquer valor</span>
+            </button>
+            <button onClick={irParaLojas}
+              style={{ ...S.btnGhost, width: "100%", padding: "11px 6px", borderColor: "var(--marca)", color: "var(--marca)", fontWeight: 900, lineHeight: 1.25 }}>
+              {"\u{1F6CD}"} Comprar pelo link<span style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: "var(--cinza)" }}>sem pagar a mais</span>
+            </button>
+          </div>
         </div>
 
         <div style={{ fontWeight: 900, fontSize: 19, margin: "18px 2px 4px" }}>Doe pelo Pix</div>
@@ -36859,7 +36881,8 @@ function TelaApoio({ onFechar }) {
         <div style={{ fontSize: 13.5, color: "var(--cinza)", margin: "0 2px 8px", lineHeight: 1.45 }}>
           Vai comprar alguma coisa? Comece por aqui. O preço é o mesmo, e a loja manda uma parte para o Treino Livre.
         </div>
-        <div style={S.card}>
+        <div ref={lojasRef} style={{ ...S.card, transition: "border-color .3s, box-shadow .3s",
+          borderColor: lojasAcesas ? "var(--marca)" : undefined, boxShadow: lojasAcesas ? "0 0 0 3px #E1306C44" : undefined }}>
           <LinhaApoio icone="▶" fundo="#E1306C22" cor="var(--marca)" titulo="Ver como funciona (vídeo)" sub="Abra pelo meu link e compre normalmente" onClick={() => abrir(APOIO.video)} />
           {APOIO.lojas.map((l) => (
             <LinhaApoio key={l.id} icone={l.marca} fundo={l.fundo} cor={l.cor} titulo={"Comprar " + l.prep + " " + l.nome} sub={l.desc} onClick={() => abrir(l.link)} />

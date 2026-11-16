@@ -13,6 +13,7 @@
    Texto sem tradução continua em português: nunca vira meia frase. */
 var TEXTOS_EN = {
   // --- Apoie o Treino Livre ---
+  "Escolha como quer ajudar:": "Choose how you want to help:", "qualquer valor": "any amount", "sem pagar a mais": "at no extra cost",
   "Simulação · e se…": "Simulation · what if…", "↻ Ver de novo": "↻ Watch again", "no exemplo": "in the example",
   "Exemplo ilustrativo: não é o total arrecadado.": "Illustrative example: not the amount raised.",
   "O Treino Livre é grátis. Ajude a continuar assim!": "Treino Livre is free. Help keep it that way!",

@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-16e — "Seja um dos primeiros apoiadores" agora leva a apoiar
+
+**Em uma frase:** o cartão do topo da tela de apoio ganhou dois botões: doar pelo Pix ou comprar pelo link.
+
+**O que mudou**
+- Embaixo de "Seja um dos primeiros apoiadores" aparece "Escolha como quer ajudar:" com "💛 Doar pelo Pix" e "🛍 Comprar pelo link".
+- Cada botão desce a tela até o lugar certo e acende o cartão.
+
+**Por que importa para quem treina**
+- Quem quer ajudar escolhe o jeito em um toque, inclusive o que não custa nada: comprar o que já ia comprar pelo link.
+
+**Como usar**
+- Ajustes → 💛 Apoie o Treino Livre, e toque num dos dois botões logo no começo da tela.
+
+**Ideias de vídeo**
+- Mostrar os dois botões: "quer doar? Pix. Não quer gastar nada? Compre pelo link."
+
+**Não prometer**
+- Apoiar não libera nenhuma função: o app é igual para todo mundo.
+
+---
+
 ## 2026-11-16d — "Quero ser um deles" leva direto ao Pix
 
 **Em uma frase:** o botão no fim da animação de apoio agora rola a tela até os valores do Pix.

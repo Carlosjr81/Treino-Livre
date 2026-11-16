@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-16b — Apoiar o app na tela inicial e no fim do treino
+
+**Em uma frase:** a tela inicial e o fim de cada treino agora convidam a apoiar o Treino Livre, curtir, compartilhar e postar.
+
+**O que mudou**
+- Na tela inicial, o cartão "💛 O Treino Livre é grátis. Ajude a continuar assim!", com o vídeo de como apoiar fazendo as compras do dia a dia e o botão "Quero apoiar".
+- No fim do treino, "🔥 Curtiu? Ajude o app a crescer": postar no story marcando @carlos.jr.81, compartilhar, curtir e seguir, e apoiar.
+- Na tela de apoio, o vídeo "como ajudar fazendo as suas compras do dia a dia" ficou em destaque, logo no topo.
+
+**Por que importa para quem treina**
+- O app continua gratuito, sem mensalidade e sem anúncio, e ajudar não custa nada a mais: é comprar o que você já ia comprar pelo link.
+
+**Como usar**
+- Na tela inicial, toque em "▶ Ver como" ou "💛 Quero apoiar". Não quer ver agora? "Agora não" esconde por alguns dias.
+
+**Ideias de vídeo**
+- Terminar o treino, tocar em "Postar no story" e marcar o perfil. Depois, mostrar o cartão da tela inicial e a compra pelo link.
+
+**Não prometer**
+- Apoiar não libera nenhuma função: o app é igual para quem apoia e para quem não apoia.
+
+---
+
 ## 2026-11-16a — Apoie o Treino Livre: Pix e compras pelo link
 
 **Em uma frase:** o app ganhou a tela "💛 Apoie o Treino Livre", para doar pelo Pix ou comprar pelos links do criador sem pagar nada a mais.

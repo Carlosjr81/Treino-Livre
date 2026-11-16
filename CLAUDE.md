@@ -372,8 +372,19 @@ Instagram dele, e "um contador dinâmico e fictício" para incentivar.
   enche. Sem número, a tela convida a "ser um dos primeiros apoiadores".
   **Não troque por número inventado sem falar com ele de novo.**
 - **Entradas**: Ajustes (o chip "💛 Apoie o app" e a linha logo abaixo da
-  conta), a Central de Ajuda (Conta e dados › Apoiar) e um link discreto no
-  resumo do fim do treino. Nunca na tela inicial.
+  conta), a Central de Ajuda (Conta e dados › Apoiar), **a tela inicial** e o
+  resumo do fim do treino.
+- **Na tela inicial, por decisão do dono** (2026-11-16b: "deixe na página
+  inicial uma referência para apoiar"), é a segunda exceção à regra dela:
+  `CartaoApoioInicio`, depois do treino de hoje e do convite do app Android,
+  com "▶ Ver como" (o vídeo), "💛 Quero apoiar" e "Agora não" (5 dias,
+  `treinolivre:apoioDepois`). Sem botão em degradê: o primário da tela
+  continua sendo o Começar.
+- **No fim do treino** (`CartaoApoioResumo`): postar no story (o mesmo
+  story de antes, agora pedindo para marcar o @), compartilhar o app, curtir e
+  seguir, apoiar, e o vídeo de como apoiar comprando.
+- **O vídeo** (`abrirVideoApoio`) vem em destaque logo abaixo da faixa da
+  tela de apoio e em cima das lojas.
 - O rodapé diz que o apoio é voluntário, não muda o acesso, e que compras
   podem gerar comissão de afiliado (a transparência que a lei e as lojas pedem).
 
@@ -819,7 +830,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v199) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v200) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |

@@ -13,6 +13,10 @@
    Texto sem tradução continua em português: nunca vira meia frase. */
 var TEXTOS_EN = {
   // --- Apoie o Treino Livre ---
+  "O Treino Livre é grátis. Ajude a continuar assim!": "Treino Livre is free. Help keep it that way!",
+  "▶ Ver como": "▶ See how", "💛 Quero apoiar": "💛 I want to help", "Agora não": "Not now",
+  "🔥 Curtiu? Ajude o app a crescer": "🔥 Enjoyed it? Help the app grow", "📸 Postar no story": "📸 Post to story",
+  "📤 Compartilhar": "📤 Share", "❤ Curtir e seguir": "❤ Like and follow", "💛 Apoiar o app": "💛 Support the app",
   "APOIE O APP": "SUPPORT THE APP", "💛 Apoie o app": "💛 Support the app", "Apoie o Treino Livre": "Support Treino Livre",
   "Doe pelo Pix ou compre pelos meus links, sem pagar a mais": "Donate via Pix or shop through my links, at no extra cost",
   "Doe pelo Pix": "Donate via Pix", "Doar qualquer valor": "Donate any amount", "Compre pelo meu link": "Shop through my link",

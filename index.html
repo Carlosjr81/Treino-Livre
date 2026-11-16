@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-16a";
+const VERSAO_APP = "2026-11-16b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -13549,6 +13549,15 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
   const [apkDepois, setApkDepois] = useState(() => {
     try { return Date.now() < Number(localStorage.getItem("treinolivre:apkDepois") || 0); } catch (e) { return false; }
   });
+  const [apoioDepois, setApoioDepois] = useState(() => {
+    try { return Date.now() < Number(localStorage.getItem("treinolivre:apoioDepois") || 0); } catch (e) { return false; }
+  });
+  const cartaoApoio = !apoioDepois && (
+    <CartaoApoioInicio onDepois={() => {
+      try { localStorage.setItem("treinolivre:apoioDepois", String(Date.now() + 5 * 86400000)); } catch (e) {}
+      setApoioDepois(true);
+    }} />
+  );
   const androidNoNavegador = EH_ANDROID && !NO_APP_ANDROID;
   const cartaoApk = androidNoNavegador && !apkDepois && (
     <CartaoAppAndroid onDepois={() => {
@@ -13653,6 +13662,7 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
 
       {cartaoApk}
       {novato && cartaoInstalar}
+      {cartaoApoio}
 
       <div style={S.card}>
         <div style={S.label}>Outros jeitos de treinar</div>
@@ -34703,12 +34713,15 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
               }}>↩ Reabrir treino (ainda não acabei)</button>
             )}
             {modal.resumoRegistro && (
-              <button onClick={() => { setModal(null); setApoio(true); }}
-                style={{ display: "block", width: "100%", background: "none", border: "none", padding: "4px 0 10px", color: "var(--marca)", font: "inherit", fontSize: 13.5, fontWeight: 800, cursor: "pointer" }}>
-                💛 Curtindo o app? Ajude a mantê-lo gratuito ›
-              </button>
+              <CartaoApoioResumo avisar={avisar} onApoiar={() => { setModal(null); setApoio(true); }}
+                onStory={modal.storyTreino ? async () => {
+                  const st = modal.storyTreino;
+                  setModal(null);
+                  const blob = await gerarImagemStory(linhasStoryTreino(st));
+                  compartilharImagem(blob, "Treino concluído no Treino Livre! 💪 Me siga: @" + INSTAGRAM + " " + LINK_APP, avisar);
+                } : null} />
             )}
-            {modal.storyTreino && (
+            {modal.storyTreino && !modal.resumoRegistro && (
               <button style={{ ...S.btnGhost, marginBottom: 10 }} onClick={async () => {
                 const st = modal.storyTreino;
                 setModal(null);
@@ -36669,6 +36682,17 @@ function TelaApoio({ onFechar }) {
           </div>
         </div>
 
+        <button onClick={() => abrir(APOIO.video)}
+          style={{ ...S.card, width: "100%", display: "flex", alignItems: "center", gap: 14, cursor: "pointer", textAlign: "left", font: "inherit", color: "var(--texto)",
+            borderColor: "var(--marca)", background: "radial-gradient(130% 120% at 0% 50%, #E1306C2E 0%, transparent 60%), var(--card)" }}>
+          <span aria-hidden="true" style={{ flex: "0 0 auto", width: 58, height: 58, borderRadius: 999, background: GRAD, color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 0 0 6px #E1306C22" }}>▶</span>
+          <span style={{ flex: 1 }}>
+            <span style={{ display: "block", fontWeight: 900, fontSize: 16 }}>Assista: como ajudar fazendo as suas compras do dia a dia</span>
+            <span style={{ display: "block", fontSize: 13, color: "var(--cinza)", marginTop: 3 }}>Vídeo de 1 minuto no Instagram @{INSTAGRAM}</span>
+          </span>
+        </button>
+
         <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 12, background: "var(--borda)" }}>
           <span aria-hidden="true" style={{ fontSize: 34 }}>💛</span>
           {temNumeros ? (
@@ -36743,6 +36767,7 @@ function TelaApoio({ onFechar }) {
           Vai comprar alguma coisa? Comece por aqui. O preço é o mesmo, e a loja manda uma parte para o Treino Livre.
         </div>
         <div style={S.card}>
+          <LinhaApoio icone="▶" fundo="#E1306C22" cor="var(--marca)" titulo="Ver como funciona (vídeo)" sub="Abra pelo meu link e compre normalmente" onClick={() => abrir(APOIO.video)} />
           {APOIO.lojas.map((l) => (
             <LinhaApoio key={l.id} icone={l.marca} fundo={l.fundo} cor={l.cor} titulo={"Comprar " + l.prep + " " + l.nome} sub={l.desc} onClick={() => abrir(l.link)} />
           ))}
@@ -36750,7 +36775,6 @@ function TelaApoio({ onFechar }) {
 
         <div style={{ fontWeight: 900, fontSize: 19, margin: "18px 2px 4px" }}>Outras formas de ajudar</div>
         <div style={S.card}>
-          <LinhaApoio icone="▶" fundo="#E1306C22" cor="var(--marca)" titulo="Ver o vídeo: como apoiar" sub="Um minuto explicando tudo, no Instagram" onClick={() => abrir(APOIO.video)} />
           <LinhaApoio icone="📤" titulo={copiado === "convite" ? "✓ Convite copiado" : "Indicar para um amigo"} sub="Quanto mais gente treinando, mais o app cresce" onClick={compartilhar} />
           <LinhaApoio icone="📸" titulo={"Seguir @" + INSTAGRAM} sub="As novidades do app saem primeiro lá" onClick={() => abrir(LINK_INSTAGRAM)} />
         </div>
@@ -36763,6 +36787,72 @@ function TelaApoio({ onFechar }) {
 
         {dono && <EditorApoio ap={ap} onSalvo={(campos) => setCob((c) => Object.assign({}, c, { apoio: lerApoio(campos) }))} editar={editar} setEditar={setEditar} msg={msg} setMsg={setMsg} />}
       </div>
+    </div>
+  );
+}
+function abrirVideoApoio() { try { window.open(APOIO.video, "_blank", "noopener"); } catch (x) { location.href = APOIO.video; } }
+function compartilharApp(avisar) {
+  const texto = "Uso o Treino Livre para anotar meus treinos, de graça: tem voz, câmera que conta as repetições e muito mais. Experimenta: " + LINK_APP + " (feito por @" + INSTAGRAM + ")";
+  if (navigator.share) { navigator.share({ title: "Treino Livre", text: texto }).catch(() => {}); return; }
+  try { navigator.clipboard.writeText(texto).then(() => avisar && avisar("Convite copiado: cole no WhatsApp ou no Instagram."), () => {}); } catch (x) {}
+}
+// Na tela inicial (pedido do dono, 2026-11-16b): o benefício dito do jeito de
+// quem treina. "Agora não" esconde por 5 dias.
+function CartaoApoioInicio({ onDepois }) {
+  const s = lerSessaoConta();
+  const ap = (s && s.cob && s.cob.apoio) || lerApoio(null);
+  return (
+    <div style={{ ...S.card, borderColor: "#E1306C55", position: "relative", overflow: "hidden",
+      background: "radial-gradient(130% 120% at 100% 0%, #E1306C26 0%, transparent 55%), var(--card)" }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+        <span aria-hidden="true" style={{ fontSize: 30, lineHeight: 1 }}>💛</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 900, fontSize: 17, lineHeight: 1.25 }}>O Treino Livre é grátis. Ajude a continuar assim!</div>
+          <div style={{ fontSize: 13.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 6 }}>
+            Sem mensalidade e sem anúncio. Fazendo as <b style={{ color: "var(--texto)" }}>compras do dia a dia</b> pelo meu link no
+            Mercado Livre, na Shopee ou na Shein, a loja manda uma parte para o app, e <b style={{ color: "var(--texto)" }}>você não paga nada a mais</b>.
+          </div>
+          {ap.total > 0 && (
+            <div style={{ fontSize: 13, marginTop: 6, fontWeight: 800, color: "var(--marca)" }}>
+              {reais(ap.total)} já arrecadados{ap.pessoas > 0 ? " por " + ap.pessoas + " " + plural(ap.pessoas, "apoiador", "apoiadores") : ""} 💪
+            </div>
+          )}
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <button onClick={abrirVideoApoio}
+          style={{ ...S.btnGhost, flex: 1, borderColor: "var(--marca)", color: "var(--marca)", fontWeight: 900 }}>▶ Ver como</button>
+        <button onClick={abrirApoio}
+          style={{ ...S.btnGhost, flex: 1, borderColor: "var(--marca)", color: "var(--marca)", fontWeight: 900 }}>💛 Quero apoiar</button>
+      </div>
+      <button onClick={onDepois}
+        style={{ display: "block", margin: "8px auto 0", background: "none", border: "none", color: "var(--cinza)", font: "inherit", fontSize: 12.5, cursor: "pointer" }}>
+        Agora não
+      </button>
+    </div>
+  );
+}
+// No fim do treino (pedido do dono, 2026-11-16b): é a hora em que a pessoa está
+// orgulhosa do que fez. Curtir, compartilhar, postar e apoiar.
+function CartaoApoioResumo({ onStory, onApoiar, avisar }) {
+  const b = { ...S.btnGhost, padding: "10px 6px", fontSize: 13, fontWeight: 800, width: "100%" };
+  return (
+    <div style={{ border: "1px solid #E1306C55", borderRadius: 14, padding: 12, marginBottom: 10,
+      background: "radial-gradient(130% 120% at 100% 0%, #E1306C22 0%, transparent 60%)" }}>
+      <div style={{ fontWeight: 900, fontSize: 15 }}>🔥 Curtiu? Ajude o app a crescer</div>
+      <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.45, margin: "4px 0 10px" }}>
+        Poste o seu treino marcando <b style={{ color: "var(--texto)" }}>@{INSTAGRAM}</b>, curta e compartilhe. É assim que o Treino Livre continua gratuito para todo mundo.
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        {onStory && <button style={b} onClick={onStory}>📸 Postar no story</button>}
+        <button style={b} onClick={() => compartilharApp(avisar)}>📤 Compartilhar</button>
+        <button style={b} onClick={() => { try { window.open(LINK_INSTAGRAM, "_blank", "noopener"); } catch (x) {} }}>❤ Curtir e seguir</button>
+        <button style={b} onClick={onApoiar}>💛 Apoiar o app</button>
+      </div>
+      <button onClick={abrirVideoApoio}
+        style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 0 0", color: "var(--marca)", font: "inherit", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+        ▶ Veja como apoiar só fazendo as suas compras ›
+      </button>
     </div>
   );
 }

@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-16h — O apoio mantém o app sem propaganda no meio do treino
+
+**Em uma frase:** a tela de apoio agora diz que a ajuda mantém o app sem propagandas que atrapalham o treino.
+
+**O que mudou**
+- O texto em destaque ficou: "Todo o apoio vai para manter o app no ar, gratuito, sem propagandas que atrapalham o uso do app durante o treino, e com novidades toda semana."
+
+**Por que importa para quem treina**
+- Ninguém quer um anúncio pulando na tela entre uma série e outra. O apoio é o que mantém o treino sem interrupção.
+
+**Como usar**
+- Ajustes → 💛 Apoie o Treino Livre.
+
+**Ideias de vídeo**
+- Contraste: um app cheio de anúncio no meio da série × o Treino Livre limpo. Terminar em "apoie e mantenha assim".
+
+**Não prometer**
+- Apoiar não libera nenhuma função: o app é igual para todo mundo.
+
+---
+
 ## 2026-11-16g — O convite para apoiar, em destaque
 
 **Em uma frase:** o texto "Seja um dos primeiros apoiadores" ficou grande e com moldura colorida na tela de apoio.

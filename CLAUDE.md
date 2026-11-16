@@ -387,7 +387,9 @@ Instagram dele, e "um contador dinâmico e fictício" para incentivar.
   um: um toque só no cartão teria de adivinhar qual dos jeitos a pessoa quer,
   e a compra pelo link é o que não custa nada a ela. O texto do cartão é o
   de sempre ("Seja um dos primeiros apoiadores. Todo o apoio vai para manter o
-  app no ar, gratuito e com novidades toda semana"), só em destaque: letra
+  app no ar, gratuito, sem propagandas que atrapalham o uso do app durante o
+  treino, e com novidades toda semana": o trecho das propagandas entrou em
+  2026-11-16h, a pedido do dono), só em destaque: letra
   grande, o final na cor da marca e moldura no degradê (2026-11-16g, pedido do
   dono: "mantenha esse texto, só destaque"; a faixa nova "sem propaganda e sem
   mensalidade" da 16f saiu). Roda quando aparece na tela. O que nunca pode: tirar
@@ -851,7 +853,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v205) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v206) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |

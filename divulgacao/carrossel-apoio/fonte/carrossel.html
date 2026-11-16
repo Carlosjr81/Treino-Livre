@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<style>
+  :root { --rosa:#E1306C; --rosa2:#FF6B93; --grad:linear-gradient(45deg,#F58529,#DD2A7B,#8134AF); }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#000; font-family:"Inter",sans-serif; color:#fff; }
+  .s { width:1080px; height:1350px; position:relative; overflow:hidden; margin-bottom:20px;
+       background: radial-gradient(110% 70% at 85% 5%, #8E1238 0%, #3A0716 42%, #0B0206 78%); padding:84px 80px; }
+  .s.escuro { background: radial-gradient(90% 60% at 10% 100%, #5c0c22 0%, #12030A 55%, #060606 100%); }
+  .topo { display:flex; align-items:center; gap:18px; }
+  .topo img { height:74px; }
+  .topo b { font-size:26px; letter-spacing:1px; display:block; }
+  .topo span { font-size:22px; opacity:.75; }
+  .num { position:absolute; top:84px; right:80px; font-size:24px; font-weight:800; opacity:.6; letter-spacing:2px; }
+  h1 { font-size:92px; line-height:.98; font-weight:900; letter-spacing:-2px; text-transform:uppercase; }
+  h2 { font-size:68px; line-height:1.02; font-weight:900; letter-spacing:-1.5px; }
+  .rosa { color:var(--rosa2); }
+  .grad { background:var(--grad); -webkit-background-clip:text; color:transparent; }
+  p.txt { font-size:34px; line-height:1.38; opacity:.92; }
+  .passo { display:inline-block; background:var(--grad); border-radius:999px; padding:10px 26px; font-size:26px; font-weight:900; letter-spacing:2px; margin-bottom:26px; }
+  .tel { position:absolute; width:560px; border-radius:46px; border:10px solid #1d1d1f; overflow:hidden; background:#000;
+         box-shadow:0 30px 80px rgba(0,0,0,.7), 0 0 0 2px #333, 0 0 90px rgba(225,48,108,.35); }
+  .tel img { width:100%; display:block; }
+  .rodape { position:absolute; left:80px; right:80px; bottom:64px; display:flex; justify-content:space-between; align-items:center; font-size:24px; opacity:.75; }
+  .seta { font-size:30px; font-weight:900; opacity:1; color:var(--rosa2); }
+  .chip { display:inline-flex; align-items:center; gap:14px; background:rgba(255,255,255,.08); border:2px solid rgba(255,255,255,.14);
+          border-radius:22px; padding:18px 26px; font-size:32px; font-weight:800; }
+  .bal { position:absolute; background:#fff; color:#111; border-radius:26px; padding:20px 28px; font-size:30px; font-weight:900;
+         box-shadow:0 12px 30px rgba(0,0,0,.5); }
+  .bal { max-width:330px; line-height:1.2; }
+  .lista li { list-style:none; display:flex; gap:22px; align-items:flex-start; font-size:36px; line-height:1.3; margin-bottom:30px; }
+  .lista li .ic { flex:0 0 76px; height:76px; border-radius:22px; display:flex; align-items:center; justify-content:center; font-size:40px; background:rgba(255,255,255,.08); }
+  .lista li small { display:block; font-size:27px; opacity:.72; font-weight:500; margin-top:4px; }
+  .aviso { font-size:22px; opacity:.6; }
+  .loja { display:flex; align-items:center; justify-content:center; height:96px; border-radius:24px; font-size:34px; font-weight:900; }
+</style></head><body>
+
+<!-- 1 CAPA -->
+<section class="s" id="s1">
+  <div class="topo"><img src="logo-treino-livre.webp"><div><b>TREINO LIVRE</b><span>@carlos.jr.81</span></div></div>
+  <div style="margin-top:110px">
+    <h1>O app que anota<br>o seu treino<br><span class="rosa">é grátis.</span></h1>
+    <p class="txt" style="margin-top:44px;font-size:42px;font-weight:700">Quer ajudar a manter assim<br><span class="grad" style="font-weight:900">sem gastar nada a mais?</span></p>
+  </div>
+  <div style="position:absolute;left:80px;bottom:170px;display:flex;gap:16px;flex-wrap:wrap;width:920px">
+    <span class="chip">🎤 Treino por voz</span><span class="chip">👁 Câmera conta</span><span class="chip">📈 Evolução</span><span class="chip">🚫 Sem anúncio</span>
+  </div>
+  <div class="rodape"><span>Apoie o Treino Livre 💛</span><span class="seta">Arraste ➜</span></div>
+</section>
+
+<!-- 2 COMO FUNCIONA -->
+<section class="s escuro" id="s2">
+  <div class="num">2/7</div>
+  <h2>Você já ia comprar.<br><span class="rosa">Compre pelo meu link.</span></h2>
+  <p class="txt" style="margin-top:34px">A loja me repassa uma pequena parte da venda. <b>O preço para você é o mesmo.</b></p>
+  <div style="margin-top:70px;display:flex;align-items:center;justify-content:space-between;text-align:center">
+    <div style="width:270px"><div style="font-size:110px">🛒</div><div style="font-size:30px;font-weight:800;margin-top:10px">Você compra<br>pelo link</div></div>
+    <div style="font-size:60px;color:var(--rosa2);font-weight:900">➜</div>
+    <div style="width:270px"><div style="font-size:110px">🏬</div><div style="font-size:30px;font-weight:800;margin-top:10px">A loja<br>repassa uma parte</div></div>
+    <div style="font-size:60px;color:var(--rosa2);font-weight:900">➜</div>
+    <div style="width:270px"><div style="font-size:110px">💪</div><div style="font-size:30px;font-weight:800;margin-top:10px">O app segue<br>grátis</div></div>
+  </div>
+  <div style="margin-top:80px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+    <div class="loja" style="background:#FFE600;color:#2D3277">mercado livre</div>
+    <div class="loja" style="background:#EE4D2D">Shopee</div>
+    <div class="loja" style="background:#000;border:2px solid #444;letter-spacing:4px">SHEIN</div>
+  </div>
+  <div style="margin-top:44px"><div style="font-size:30px;font-weight:800;opacity:.8;margin-bottom:20px">Vale para o que você já compra:</div><div style="display:flex;flex-wrap:wrap;gap:14px"><span class="chip">🥤 Whey e creatina</span><span class="chip">👟 Tênis</span><span class="chip">👕 Roupa de treino</span><span class="chip">🧴 Mercado e casa</span><span class="chip">📱 Eletrônicos</span><span class="chip">🎁 Presentes</span></div></div>
+  <div class="rodape"><span class="aviso">Links de afiliado. Compras elegíveis geram comissão.</span><span class="seta">➜</span></div>
+</section>
+
+<!-- 3 ONDE ACHAR -->
+<section class="s" id="s3">
+  <div class="num">3/7</div>
+  <div class="passo">PASSO 1</div>
+  <h2 style="font-size:62px">Abra o app e toque em <span class="rosa">💛 Quero apoiar</span></h2>
+  <p class="txt" style="margin-top:22px;font-size:31px;width:900px">Está na tela inicial. Também fica em <b>Ajustes → Apoie o Treino Livre</b>.</p>
+  <div class="tel" style="left:440px;top:440px;height:800px"><img src="inicio.jpg" style="margin-top:-150px"></div>
+  <div class="bal" style="left:80px;top:1000px">Toque aqui 👉<span></span></div>
+  <div class="rodape"><span>treino livre · app grátis</span><span class="seta">➜</span></div>
+</section>
+
+<!-- 4 VIDEO -->
+<section class="s escuro" id="s4">
+  <div class="num">4/7</div>
+  <div class="passo">PASSO 2</div>
+  <h2 style="font-size:62px">Assista ao vídeo de <span class="rosa">1 minuto</span></h2>
+  <p class="txt" style="margin-top:22px;font-size:31px;width:900px">Ele mostra como fazer as compras do dia a dia pelo meu link, do jeito de sempre.</p>
+  <div class="tel" style="left:440px;top:440px;height:800px"><img src="apoio.jpg" style="margin-top:-95px"></div>
+  <div class="bal" style="left:80px;top:870px">Toque no ▶ 👉</div>
+  <div class="rodape"><span>treino livre · app grátis</span><span class="seta">➜</span></div>
+</section>
+
+<!-- 5 LOJAS -->
+<section class="s" id="s5">
+  <div class="num">5/7</div>
+  <div class="passo">PASSO 3</div>
+  <h2 style="font-size:62px">Escolha a loja e <span class="rosa">compre normalmente</span></h2>
+  <p class="txt" style="margin-top:22px;font-size:31px;width:900px">Mercado Livre, Shopee ou Shein. Mesmo preço, mesmo frete, mesmas promoções.</p>
+  <div class="tel" style="left:440px;top:440px;height:800px"><img src="lojas.jpg" style="margin-top:-40px"></div>
+  <div class="bal" style="left:80px;top:720px">Comece por aqui 👉</div>
+  <div class="rodape"><span class="aviso">Links de afiliado</span><span class="seta">➜</span></div>
+</section>
+
+<!-- 6 PIX -->
+<section class="s escuro" id="s6">
+  <div class="num">6/7</div>
+  <div class="passo">OU</div>
+  <h2>Doe qualquer valor<br><span class="rosa">pelo Pix</span></h2>
+  <p class="txt" style="margin-top:30px">No mesmo menu: escolha o valor e pague pelo QR code ou pelo Pix copia e cola.</p>
+  <div style="margin:64px auto 0;width:760px;background:#151515;border:2px solid #2a2a2a;border-radius:40px;padding:44px">
+    <div style="display:flex;gap:20px;align-items:center;margin-bottom:30px">
+      <div style="width:86px;height:86px;border-radius:24px;background:#32BCAD22;color:#32BCAD;font-size:46px;display:flex;align-items:center;justify-content:center">❖</div>
+      <div><div style="font-size:36px;font-weight:900">Doar qualquer valor</div><div style="font-size:26px;opacity:.65">QR code ou Pix copia e cola</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px">
+      <div class="chip" style="justify-content:center">R$ 5</div>
+      <div class="chip" style="justify-content:center;border-color:var(--rosa);background:#E1306C30">R$ 10</div>
+      <div class="chip" style="justify-content:center">R$ 20</div>
+      <div class="chip" style="justify-content:center">R$ 50</div>
+    </div>
+    <div style="background:var(--grad);border-radius:22px;text-align:center;padding:26px;font-size:32px;font-weight:900">📋 Copiar o código Pix</div>
+  </div>
+  <div style="margin:56px auto 0;width:760px;display:grid;grid-template-columns:1fr 1fr;gap:18px"><div class="chip" style="font-size:27px;line-height:1.3">☕ Um café já ajuda a pagar o servidor</div><div class="chip" style="font-size:27px;line-height:1.3">🔍 Confira o nome antes de confirmar</div></div>
+  <div class="rodape"><span class="aviso">Doação voluntária: o app é igual para todo mundo.</span><span class="seta">➜</span></div>
+</section>
+
+<!-- 7 CTA -->
+<section class="s" id="s7">
+  <div class="topo"><img src="logo-treino-livre.webp"><div><b>TREINO LIVRE</b><span>@carlos.jr.81</span></div></div>
+  <h2 style="margin-top:80px">Não pode apoiar agora?<br><span class="rosa">Isso também ajuda muito:</span></h2>
+  <ul class="lista" style="margin-top:56px">
+    <li><span class="ic">❤️</span><span>Curta este post<small>quanto mais curtidas, mais gente vê</small></span></li>
+    <li><span class="ic">🔖</span><span>Salve para usar na próxima compra<small>o link fica sempre no app</small></span></li>
+    <li><span class="ic">📤</span><span>Compartilhe com quem treina<small>e marque um amigo nos comentários</small></span></li>
+    <li><span class="ic">📸</span><span>Poste o seu treino me marcando<small>o app gera o story no fim do treino</small></span></li>
+  </ul>
+  <div style="position:absolute;left:80px;right:80px;bottom:120px;background:var(--grad);border-radius:30px;padding:30px;text-align:center;font-size:36px;font-weight:900">
+    Baixe grátis: link na bio 💛
+  </div>
+  <div class="rodape" style="bottom:52px"><span class="aviso">Obrigado por fazer parte!</span><span class="aviso">7/7</span></div>
+</section>
+
+</body></html>

@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-16g — O convite para apoiar, em destaque
+
+**Em uma frase:** o texto "Seja um dos primeiros apoiadores" ficou grande e com moldura colorida na tela de apoio.
+
+**O que mudou**
+- O texto é o mesmo de antes, agora em letras maiores, com "no ar, gratuito e com novidades toda semana" na cor do app e uma moldura no degradê da marca. A faixa da versão anterior saiu.
+
+**Por que importa para quem treina**
+- O recado de para onde vai o apoio é a primeira coisa que se lê.
+
+**Como usar**
+- Ajustes → 💛 Apoie o Treino Livre.
+
+**Ideias de vídeo**
+- Close no cartão e nos botões "Doar pelo Pix" e "Comprar pelo link".
+
+**Não prometer**
+- Apoiar não libera nenhuma função: o app é igual para todo mundo.
+
+---
+
 ## 2026-11-16f — "Sem propaganda e sem mensalidade" em destaque
 
 **Em uma frase:** a tela de apoio agora diz em letras grandes o que o apoio mantém: o app sem propaganda e sem mensalidade.

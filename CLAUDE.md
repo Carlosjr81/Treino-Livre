@@ -385,10 +385,12 @@ Instagram dele, e "um contador dinâmico e fictício" para incentivar.
   pedido do dono): **💛 Doar pelo Pix** (`irParaPix`) e **🛍 Comprar pelo
   link** (`irParaLojas`, rola até as lojas e acende o cartão). Dois e não
   um: um toque só no cartão teria de adivinhar qual dos jeitos a pessoa quer,
-  e a compra pelo link é o que não custa nada a ela. No alto do mesmo
-  cartão, em moldura no degradê da marca, "O seu apoio mantém o app SEM
-  PROPAGANDA E SEM MENSALIDADE" com os selos Sem anúncio, Sem mensalidade e
-  Grátis para todos (2026-11-16f, pedido do dono: "bem destacado"). Roda quando aparece na tela. O que nunca pode: tirar
+  e a compra pelo link é o que não custa nada a ela. O texto do cartão é o
+  de sempre ("Seja um dos primeiros apoiadores. Todo o apoio vai para manter o
+  app no ar, gratuito e com novidades toda semana"), só em destaque: letra
+  grande, o final na cor da marca e moldura no degradê (2026-11-16g, pedido do
+  dono: "mantenha esse texto, só destaque"; a faixa nova "sem propaganda e sem
+  mensalidade" da 16f saiu). Roda quando aparece na tela. O que nunca pode: tirar
   o "simulação"/"exemplo" ou fazer o número parecer o total de verdade.
 - **Entradas**: Ajustes (o chip "💛 Apoie o app" e a linha logo abaixo da
   conta), a Central de Ajuda (Conta e dados › Apoiar), **a tela inicial** e o
@@ -849,7 +851,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v204) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v205) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |

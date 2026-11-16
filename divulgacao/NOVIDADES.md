@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-16a — Apoie o Treino Livre: Pix e compras pelo link
+
+**Em uma frase:** o app ganhou a tela "💛 Apoie o Treino Livre", para doar pelo Pix ou comprar pelos links do criador sem pagar nada a mais.
+
+**O que mudou**
+- Em Ajustes, a linha "💛 Apoie o Treino Livre" abre um menu: doar pelo Pix (R$ 5, 10, 20, 50 ou outro valor, com QR code e "copia e cola"), comprar no Mercado Livre, na Shopee ou na Shein pelos links de afiliado, ver o vídeo de como apoiar, indicar para um amigo e seguir no Instagram.
+- O quanto já foi arrecadado e a meta aparecem com números reais, atualizados pelo criador.
+
+**Por que importa para quem treina**
+- O app continua gratuito. Quem quiser ajudar tem um jeito fácil, e quem já ia comprar algo ajuda sem gastar a mais.
+
+**Como usar**
+- Ajustes → 💛 Apoie o Treino Livre. Também na Ajuda e no fim de cada treino.
+
+**Ideias de vídeo**
+- Mostrar a tela, escolher R$ 10, ler o QR code no banco. Depois, abrir a Shopee pelo link "antes de comprar o que você já ia comprar".
+
+**Não prometer**
+- Apoiar não libera nenhuma função: é tudo igual para quem apoia e para quem não apoia.
+
+---
+
 ## 2026-11-14a — No relógio, "Terminei" encerra a esteira e o aeróbico
 
 **Em uma frase:** no relógio, a esteira, a bicicleta e os outros aeróbicos ganharam o botão ■ TERMINEI.

@@ -1259,6 +1259,15 @@ const AJUDA_APP = [
     ],
     dicas: ["Os seus treinos continuam os mesmos: o app usa os dados do navegador em que você já treinava."],
     ir: { rotulo: "Passo a passo do app Android", destino: "guia:app" } },
+  { id: "apoiar", cat: "conta", icone: "\u{1F49B}", titulo: "Apoiar o Treino Livre",
+    resumo: "Doe pelo Pix ou compre pelos links de afiliado, sem pagar a mais.",
+    passos: [
+      "Em **Ajustes**, toque em **💛 Apoie o Treino Livre**.",
+      "**Doe pelo Pix**: escolha um valor (ou Outro), e use o **QR code** ou **📋 Copiar o código Pix** no app do seu banco.",
+      "**Compre pelo meu link**: Mercado Livre, Shopee ou Shein. O preço é o mesmo, e a loja manda uma parte para o app.",
+    ],
+    dicas: ["O apoio é voluntário: não muda nada no seu acesso, todas as funções continuam iguais."],
+    ir: { rotulo: "Abrir o Apoie o app", destino: "apoio" } },
 
   // no treino
   { id: "serie", cat: "treino", icone: "✔", titulo: "Anotar séries, aquecimento e drop",
@@ -1695,11 +1704,32 @@ const LINK_APP = "https://carlosjr81.github.io/Treino-Livre/";
 // num story já publicado não tem como ser corrigido.
 const INSTAGRAM = "carlos.jr.81";
 const LINK_INSTAGRAM = "https://instagram.com/" + INSTAGRAM;
+// Apoiar o Treino Livre (pedido do dono, 2026-11-16a): a doação pelo Pix (a
+// chave é a do método de pagamento, em config/acesso) e os links de afiliado
+// que estão nos destaques do Instagram dele. Link novo ou trocado: só aqui.
+// Os links vieram sem o fbclid (o rastreio do Instagram); o da Shein é o
+// destino que estava dentro da página de verificação ("risk/challenge").
+const APOIO = {
+  video: "https://www.instagram.com/reel/DfyC8tkuvl1/",
+  valores: [5, 10, 20, 50],
+  txid: "APOIOTREINOLIVRE",
+  lojas: [
+    { id: "ml", nome: "Mercado Livre", prep: "no", marca: "mercado livre", fundo: "#FFE600", cor: "#2D3277",
+      desc: "Eletrônicos, casa, suplementos, tudo",
+      link: "https://www.mercadolivre.com.br/social/eusoujunior?matt_word=eusoujunior&matt_tool=66247693&forceInApp=true&ref=BHvW1EcTrJMu61bCOLdYT955YrOvKiLDwGMM1tjvuVu7xtswo3iA6Gdjnu3%2BAWlfcfyvQK5sjBV7DRh3%2BVA%2BwE%2FyMpPu9J4mksJc7dR7iABRgIrfwzr9QlH%2BCC1d18KbyPVji50SU2H9irhvjvLc4JV9P0TJC4kweCE51bkQ2eYUFnJJ9gW51iV9jJHph36ckH4y1FBlpsTofH7Tb2qwjZ5WH3C24yc%2FpMWtX5Ic8oCiRb3Y%2Bc0Ut4fDXpjGyOvzPOrW" },
+    { id: "shopee", nome: "Shopee", prep: "na", marca: "Shopee", fundo: "#EE4D2D", cor: "#FFFFFF",
+      desc: "Roupa de treino, acessórios, garrafas",
+      link: "https://s.shopee.com.br/7Af9lwVLLK" },
+    { id: "shein", nome: "Shein", prep: "na", marca: "SHEIN", fundo: "#000000", cor: "#FFFFFF",
+      desc: "Moda fitness e roupas do dia a dia",
+      link: "https://m.shein.com/br/ark/default?onelink=60%2F68ckgc2m7wwp&requestId=olw-68efgn8wzk0r&ismg_ol=2VYYzRquVzf_01_KOC-C&scene=1&test=5051&ad_type=KOC&campaign=goods&koc_id=5264544855&goods_id=49879276&campaign_id=20&url_from=affiliate_koc_5264544855&behaviorId=goods.d56baf31-a38c-445d-a571-b6bae4703f9c" },
+  ],
+};
 // Qual versão está rodando neste aparelho. Aparece nos ajustes e no
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-14a";
+const VERSAO_APP = "2026-11-16a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -14242,6 +14272,10 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, descans
           style={{ flex: "0 0 auto", padding: "8px 12px", borderRadius: 999, border: "1px solid var(--marca)", background: "transparent", color: "var(--marca)", font: "inherit", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
           <Icone nome="ajuda" tamanho={16} /> Ajuda e dicas
         </button>
+        <button onClick={abrirApoio}
+          style={{ flex: "0 0 auto", padding: "8px 12px", borderRadius: 999, border: "1px solid var(--marca)", background: "transparent", color: "var(--marca)", font: "inherit", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+          💛 Apoie o app
+        </button>
         {indice.map((x) => (
           <button key={x[0]} onClick={() => pular(x[0])}
             style={{ flex: "0 0 auto", padding: "8px 12px", borderRadius: 999, border: "1px solid var(--borda2)", background: "var(--card)", color: "var(--texto)", font: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
@@ -14251,6 +14285,10 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, descans
       </div>
 
       <div id="aj-conta" style={{ scrollMarginTop: 90 }}><CartaoConta onPainel={onPainelUsuarios} /></div>
+
+      <div style={{ ...S.card, padding: "2px 14px" }}>
+        <LinhaApoio icone="💛" fundo="#E1306C22" titulo="Apoie o Treino Livre" sub="Doe pelo Pix ou compre pelos meus links, sem pagar a mais" onClick={abrirApoio} />
+      </div>
 
       <div id="aj-pref" style={{ ...S.card, scrollMarginTop: 90 }}>
         <div style={{ ...S.label, marginBottom: 14 }}>Preferências</div>
@@ -32115,6 +32153,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   const [instRelogio, setInstRelogio] = useState(null);   // null fechado; "" ou o resultado da conferência
   const [problemaGuia, setProblemaGuia] = useState("");
   const [ajuda, setAjuda] = useState(null);       // null = fechada; senão a categoria ou o item
+  const [apoio, setApoio] = useState(false);
   const [avisoToque, setAvisoToque] = useState(false);
   const [versaoNova, setVersaoNova] = useState(null);
   const acoesVoz = useRef({});
@@ -32604,6 +32643,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   ABRIR_AJUDA = (onde) => setAjuda(onde || "");
   ABRIR_RELOGIO = (status) => setInstRelogio(status ? status + "|" + Date.now() : "");
   ABRIR_EMERGENCIA = () => setEmergencia(true);
+  ABRIR_APOIO = () => setApoio(true);
   vozRef.current = voz;
   somRef.current = som;
   const todos = useMemo(() => [...EXERCICIOS, ...customEx], [customEx]);
@@ -34662,6 +34702,12 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
                 reabrirTreino(reg);
               }}>↩ Reabrir treino (ainda não acabei)</button>
             )}
+            {modal.resumoRegistro && (
+              <button onClick={() => { setModal(null); setApoio(true); }}
+                style={{ display: "block", width: "100%", background: "none", border: "none", padding: "4px 0 10px", color: "var(--marca)", font: "inherit", fontSize: 13.5, fontWeight: 800, cursor: "pointer" }}>
+                💛 Curtindo o app? Ajude a mantê-lo gratuito ›
+              </button>
+            )}
             {modal.storyTreino && (
               <button style={{ ...S.btnGhost, marginBottom: 10 }} onClick={async () => {
                 const st = modal.storyTreino;
@@ -34804,12 +34850,14 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
         if (d === "backup") { baixarBackup(); return; }
         if (d === "atualizar") { atualizarApp(); return; }
         if (d === "diagVoz") { setDiagVoz(true); return; }
+        if (d === "apoio") { setApoio(true); return; }
         if (d === "instalarRelogio") { setAjuda(null); abrirInstalarRelogio(); return; }
         if (d.indexOf("historico:") === 0) { setSecaoHistorico(d.slice(10)); setAba("historico"); return; }
         setGrupoAberto(null); setExercicioAberto(null); setProgAberto(null);
         if (d === "historico") setSecaoHistorico("treinos");
         setAba(d);
       }} />}
+      {apoio && <TelaApoio onFechar={() => setApoio(false)} />}
       {guia !== false && <GuiaConectar inicial={guia || null} problema={problemaGuia} onFechar={() => { setGuia(false); setProblemaGuia(""); }} />}
       {instRelogio !== null && <InstalarRelogio key={instRelogio} status={instRelogio} onFechar={() => setInstRelogio(null)} />}
       <ModalDiagnosticoJarvis aberto={diagVoz} ligado={vozAtiva} estado={vozEstado} voz={voz} noToque={noToque}
@@ -35250,7 +35298,14 @@ function lerCobranca(cfg) {
   });
   const teste = c.testeDias === undefined || c.testeDias === null ? TESTE_DIAS_PADRAO : Math.max(0, Math.min(60, Math.round(+c.testeDias || 0)));
   return { ligada: !!c.cobranca, desde: +c.cobrancaDesde || 0, testeDias: teste, planos: planos,
-    pix: { chave: String(c.pixChave || "").trim(), nome: String(c.pixNome || "").trim(), cidade: String(c.pixCidade || "").trim() } };
+    pix: { chave: String(c.pixChave || "").trim(), nome: String(c.pixNome || "").trim(), cidade: String(c.pixCidade || "").trim() },
+    apoio: lerApoio(c) };
+}
+// Os números da tela "Apoie o Treino Livre": o que o dono recebeu de verdade,
+// escrito por ele no próprio app. Nunca inventados (ver a tela).
+function lerApoio(c) {
+  const n = (v, max) => Math.max(0, Math.min(max, Math.round((+v || 0) * 100) / 100));
+  return { total: n(c && c.apoioTotal, 1e8), pessoas: Math.round(n(c && c.apoioPessoas, 1e7)), meta: n(c && c.apoioMeta, 1e8), em: +(c && c.apoioEm) || 0 };
 }
 function planosAtivos(cob) { return ((cob && cob.planos) || []).filter((p) => p.ativo && p.preco > 0); }
 function planoPorId(cob, id) { return ((cob && cob.planos) || PLANOS_PADRAO).find((p) => p.id === id) || null; }
@@ -36496,6 +36551,259 @@ function adiarSeguir(info, agora) {
   return { vezes: vezes, ate: agora + SEGUIR_PAUSA_MS, fim: vezes >= SEGUIR_MAX_ADIAR };
 }
 function lerAdiarSeguir() { try { return JSON.parse(localStorage.getItem(CHAVE_SEGUIR) || "null") || {}; } catch (e) { return {}; } }
+
+// ---- APOIE O TREINO LIVRE ----
+// Pedido do dono (2026-11-16a): um menu no jeito do "Doações" do iFood, com o
+// Pix e as compras pelos links de afiliado. Os números de quem apoia são os
+// de verdade, que o dono escreve aqui mesmo: o pedido de um contador
+// "fictício" ficou de fora, porque número inventado para empurrar doação é
+// propaganda enganosa (Código de Defesa do Consumidor, art. 37) e, descoberto,
+// custa a confiança no app inteiro. Sem número posto, a tela não mostra número.
+let ABRIR_APOIO = null;
+const abrirApoio = () => { if (ABRIR_APOIO) ABRIR_APOIO(); };
+function reais(v) { return (+v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+// o número sobe do zero quando a tela abre (o mesmo efeito do resumo animado)
+function useSobeApoio(alvo, ms) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    if (!(alvo > 0)) { setV(0); return undefined; }
+    let reduzido = false;
+    try { reduzido = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+    if (reduzido) { setV(alvo); return undefined; }
+    let id = 0; const t0 = performance.now();
+    const passo = (t) => { const p = Math.min(1, (t - t0) / (ms || 1400)); setV(alvo * (1 - Math.pow(1 - p, 3))); if (p < 1) id = requestAnimationFrame(passo); };
+    id = requestAnimationFrame(passo);
+    return () => cancelAnimationFrame(id);
+  }, [alvo]);
+  return v;
+}
+function LinhaApoio({ icone, fundo, cor, titulo, sub, onClick, aberto, seta }) {
+  return (
+    <button onClick={onClick} aria-expanded={aberto === undefined ? undefined : aberto}
+      style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "14px 2px", background: "none", border: "none",
+        borderTop: "1px solid var(--borda)", color: "var(--texto)", font: "inherit", textAlign: "left", cursor: "pointer" }}>
+      <span aria-hidden="true" style={{ flex: "0 0 auto", width: typeof icone === "string" && icone.length > 3 ? 64 : 46, height: 46, padding: "0 6px", boxSizing: "border-box", borderRadius: 14,
+        background: fundo || "var(--borda)", color: cor || "var(--texto)", display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: typeof icone === "string" && icone.length > 3 ? 11 : 22, fontWeight: 900, lineHeight: 1.05, textAlign: "center", letterSpacing: -0.2 }}>{icone}</span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontWeight: 800, fontSize: 15.5 }}>{titulo}</span>
+        {sub && <span style={{ display: "block", fontSize: 13, color: "var(--cinza)", marginTop: 2, lineHeight: 1.4 }}>{sub}</span>}
+      </span>
+      <span aria-hidden="true" style={{ color: "var(--marca)", fontSize: 20, fontWeight: 900 }}>{seta || (aberto ? "⌃" : aberto === false ? "⌄" : "›")}</span>
+    </button>
+  );
+}
+function TelaApoio({ onFechar }) {
+  const [cob, setCob] = useState(() => { const s = lerSessaoConta(); return (s && s.cob) || lerCobranca(null); });
+  const [pixAberto, setPixAberto] = useState(false);
+  const [valor, setValor] = useState(10);
+  const [outro, setOutro] = useState("");
+  const [qr, setQr] = useState("");
+  const [copiado, setCopiado] = useState("");
+  const [editar, setEditar] = useState(false);
+  const [msg, setMsg] = useState("");
+  const dono = !!(CONTA_ATUAL && CONTA_ATUAL.dono);
+  // a config mais nova (a chave Pix e os números podem ter mudado desde a entrada)
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      try { const s = await tokenValido(lerSessaoConta()); const cfg = await contaApi.lerConfig(s.idToken); if (vivo && cfg) setCob(lerCobranca(cfg)); } catch (x) {}
+    })();
+    const tecla = (e) => { if (e.key === "Escape") onFechar(); };
+    window.addEventListener("keydown", tecla);
+    return () => { vivo = false; window.removeEventListener("keydown", tecla); };
+  }, []);
+  const pix = (cob && cob.pix) || {};
+  const ap = (cob && cob.apoio) || lerApoio(null);
+  const valorPix = valor === "outro" ? Math.max(0, Math.round((parseFloat(String(outro).replace(",", ".")) || 0) * 100) / 100) : valor;
+  const copia = pix.chave ? pixCopiaECola({ chave: pix.chave, nome: pix.nome, cidade: pix.cidade, valor: valorPix, txid: APOIO.txid }) : "";
+  useEffect(() => {
+    setQr("");
+    if (!pixAberto || !copia) return undefined;
+    let vivo = true;
+    carregarScript(QR_LIB.url, QR_LIB.sri).then(() => {
+      if (!vivo || !window.qrcode) return;
+      const q = window.qrcode(0, "M"); q.addData(copia); q.make(); setQr(q.createDataURL(5, 2));
+    }).catch(() => {});
+    return () => { vivo = false; };
+  }, [copia, pixAberto]);
+  const copiar = (texto, qual) => {
+    const ok = () => { setCopiado(qual); setTimeout(() => setCopiado((c) => (c === qual ? "" : c)), 4000); };
+    try { navigator.clipboard.writeText(texto).then(ok, () => window.prompt("Copie:", texto)); } catch (x) { window.prompt("Copie:", texto); }
+  };
+  const abrir = (url) => { try { window.open(url, "_blank", "noopener"); } catch (x) { location.href = url; } };
+  const compartilhar = () => {
+    const texto = "Uso o Treino Livre para anotar meus treinos, de graça. Experimenta: " + LINK_APP + " (feito por @" + INSTAGRAM + ")";
+    if (navigator.share) navigator.share({ title: "Treino Livre", text: texto }).catch(() => {});
+    else copiar(texto, "convite");
+  };
+  const total = useSobeApoio(ap.total);
+  const pessoas = useSobeApoio(ap.pessoas);
+  const pct = ap.meta > 0 ? Math.min(100, Math.round((ap.total / ap.meta) * 100)) : 0;
+  const pctVivo = useSobeApoio(pct);
+  const temNumeros = ap.total > 0 || ap.pessoas > 0;
+  return (
+    <div role="dialog" aria-label="Apoie o Treino Livre"
+      style={{ position: "fixed", inset: 0, zIndex: 316, background: "var(--bg)", overflowY: "auto" }}>
+      <div style={{ maxWidth: 560, margin: "0 auto", padding: "16px 16px calc(28px + env(safe-area-inset-bottom))", boxSizing: "border-box" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <button onClick={onFechar} aria-label="Voltar" style={{ ...S.btnGhost, width: 44, height: 44, padding: 0, fontSize: 20, color: "var(--marca)" }}>‹</button>
+          <div style={{ flex: 1, textAlign: "center", fontWeight: 900, fontSize: 16, letterSpacing: 1 }}>APOIE O APP</div>
+          <span style={{ width: 44 }} />
+        </div>
+
+        <div style={{ borderRadius: 18, overflow: "hidden", position: "relative", padding: "20px 18px 18px", marginBottom: 14,
+          background: "radial-gradient(120% 90% at 85% 10%, #8E1238 0%, #3A0716 45%, #12030A 100%)", color: "#fff", boxShadow: "0 8px 28px rgba(225,48,108,0.25)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <img src={LOGO_APP} alt="" style={{ height: 58, width: "auto", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.6))" }} />
+            <div>
+              <div style={{ fontWeight: 900, fontSize: 15 }}>TREINO LIVRE</div>
+              <div style={{ fontSize: 13, opacity: 0.8 }}>@{INSTAGRAM}</div>
+            </div>
+          </div>
+          <div style={{ fontWeight: 900, fontSize: 26, lineHeight: 1.05, marginTop: 14, textTransform: "uppercase" }}>
+            Ajude a manter o Treino Livre<br /><span style={{ color: "#FF6B93" }}>ativo e gratuito</span>
+          </div>
+          <div style={{ fontSize: 14, marginTop: 8, opacity: 0.92, lineHeight: 1.45 }}>
+            Doe qualquer valor pelo Pix, ou faça as compras que você já ia fazer pelos meus links: você não paga nada a mais.
+          </div>
+        </div>
+
+        <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 12, background: "var(--borda)" }}>
+          <span aria-hidden="true" style={{ fontSize: 34 }}>💛</span>
+          {temNumeros ? (
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 900, fontSize: 24, color: "var(--marca)", fontVariantNumeric: "tabular-nums" }}>{reais(total)}</div>
+              <div style={{ fontSize: 13.5, color: "var(--cinza)" }}>
+                {ap.pessoas > 0 ? "de " + Math.round(pessoas) + " " + plural(ap.pessoas, "apoiador", "apoiadores") + " " : ""}até agora
+                {ap.em ? " · atualizado em " + new Date(ap.em).toLocaleDateString("pt-BR") : ""}
+              </div>
+              {ap.meta > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ height: 8, borderRadius: 99, background: "var(--borda2)", overflow: "hidden" }}>
+                    <div style={{ width: pctVivo + "%", height: "100%", background: GRAD, borderRadius: 99 }} />
+                  </div>
+                  <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 4 }}>{Math.round(pctVivo)}% da meta de {reais(ap.meta)} para manter o app no ar</div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ flex: 1, fontSize: 14, lineHeight: 1.5 }}>
+              <b>Seja um dos primeiros apoiadores.</b> Todo o apoio vai para manter o app no ar, gratuito e com novidades toda semana.
+            </div>
+          )}
+        </div>
+
+        <div style={{ fontWeight: 900, fontSize: 19, margin: "18px 2px 4px" }}>Doe pelo Pix</div>
+        <div style={S.card}>
+          <LinhaApoio icone="❖" fundo="#32BCAD22" cor="#32BCAD" titulo="Doar qualquer valor" sub="QR code ou Pix copia e cola, no app do seu banco"
+            aberto={pixAberto} onClick={() => setPixAberto(!pixAberto)} />
+          {pixAberto && (pix.chave ? (
+            <div style={{ paddingBottom: 6 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "4px 0 12px" }}>
+                {APOIO.valores.concat(["outro"]).map((v) => {
+                  const sel = valor === v;
+                  return (
+                    <button key={v} onClick={() => setValor(v)} aria-pressed={sel}
+                      style={{ flex: "1 0 60px", padding: "10px 6px", borderRadius: 12, font: "inherit", fontWeight: 900, fontSize: 15, cursor: "pointer",
+                        border: "1px solid " + (sel ? "var(--marca)" : "var(--borda2)"), background: sel ? "#E1306C1F" : "transparent", color: "var(--texto)" }}>
+                      {v === "outro" ? "Outro" : "R$ " + v}
+                    </button>
+                  );
+                })}
+              </div>
+              {valor === "outro" && (
+                <input value={outro} onChange={(e) => setOutro(e.target.value)} inputMode="decimal" placeholder="Valor em reais (vazio: você escolhe no banco)"
+                  aria-label="Valor da doação em reais" style={{ ...S.input, width: "100%", boxSizing: "border-box", marginBottom: 12 }} />
+              )}
+              <div style={{ textAlign: "center", marginBottom: 10 }}>
+                {qr ? <img src={qr} alt="QR code do Pix" style={{ width: 200, height: 200, imageRendering: "pixelated", background: "#fff", borderRadius: 12, padding: 6 }} />
+                  : <div style={{ fontSize: 13, color: "var(--cinza)", padding: 12 }}>Preparando o QR code…</div>}
+                <div style={{ fontSize: 13, color: "var(--cinza)", marginTop: 6 }}>
+                  {valorPix > 0 ? "Doação de " + reais(valorPix) : "Valor escolhido no app do banco"}{pix.nome ? " para " + pix.nome : ""}
+                </div>
+              </div>
+              <button style={S.btn} onClick={() => copiar(copia, "copia")}>{copiado === "copia" ? "✓ Código copiado! Cole no app do banco" : "📋 Copiar o código Pix"}</button>
+              <button style={{ ...S.btnGhost, width: "100%", marginTop: 8 }} onClick={() => copiar(pix.chave, "chave")}>
+                {copiado === "chave" ? "✓ Chave copiada" : "Copiar só a chave Pix"}
+              </button>
+              <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>
+                No banco: Pix → Pix copia e cola (ou Ler QR code). Confira o nome do recebedor antes de confirmar.
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 13.5, color: "var(--cinza)", padding: "4px 2px 10px", lineHeight: 1.5 }}>
+              O Pix de doação aparece aqui quando você estiver conectado à sua conta. Enquanto isso, as compras pelos links abaixo também ajudam.
+            </div>
+          ))}
+        </div>
+
+        <div style={{ fontWeight: 900, fontSize: 19, margin: "18px 2px 2px" }}>Compre pelo meu link</div>
+        <div style={{ fontSize: 13.5, color: "var(--cinza)", margin: "0 2px 8px", lineHeight: 1.45 }}>
+          Vai comprar alguma coisa? Comece por aqui. O preço é o mesmo, e a loja manda uma parte para o Treino Livre.
+        </div>
+        <div style={S.card}>
+          {APOIO.lojas.map((l) => (
+            <LinhaApoio key={l.id} icone={l.marca} fundo={l.fundo} cor={l.cor} titulo={"Comprar " + l.prep + " " + l.nome} sub={l.desc} onClick={() => abrir(l.link)} />
+          ))}
+        </div>
+
+        <div style={{ fontWeight: 900, fontSize: 19, margin: "18px 2px 4px" }}>Outras formas de ajudar</div>
+        <div style={S.card}>
+          <LinhaApoio icone="▶" fundo="#E1306C22" cor="var(--marca)" titulo="Ver o vídeo: como apoiar" sub="Um minuto explicando tudo, no Instagram" onClick={() => abrir(APOIO.video)} />
+          <LinhaApoio icone="📤" titulo={copiado === "convite" ? "✓ Convite copiado" : "Indicar para um amigo"} sub="Quanto mais gente treinando, mais o app cresce" onClick={compartilhar} />
+          <LinhaApoio icone="📸" titulo={"Seguir @" + INSTAGRAM} sub="As novidades do app saem primeiro lá" onClick={() => abrir(LINK_INSTAGRAM)} />
+        </div>
+
+        <div style={{ fontSize: 12, color: "var(--cinza2)", lineHeight: 1.55, margin: "14px 2px 0" }}>
+          O apoio é voluntário e não muda nada no seu acesso: todas as funções continuam as mesmas para quem apoia e para quem não apoia.
+          A doação vai para o criador do app. Compras elegíveis pelos links podem gerar comissão de afiliado, sem custo a mais para você.
+          {temNumeros ? " Os números acima são reais, atualizados à mão pelo criador do app." : ""}
+        </div>
+
+        {dono && <EditorApoio ap={ap} onSalvo={(campos) => setCob((c) => Object.assign({}, c, { apoio: lerApoio(campos) }))} editar={editar} setEditar={setEditar} msg={msg} setMsg={setMsg} />}
+      </div>
+    </div>
+  );
+}
+// Só o dono vê: os números de verdade, escritos por ele (config/acesso, que
+// todos leem e só ele grava). Quem abre a tela vê o número novo na próxima
+// conferida do porteiro ou ao reabrir a tela.
+function EditorApoio({ ap, onSalvo, editar, setEditar, msg, setMsg }) {
+  const [total, setTotal] = useState(ap.total ? String(ap.total).replace(".", ",") : "");
+  const [pessoas, setPessoas] = useState(ap.pessoas ? String(ap.pessoas) : "");
+  const [meta, setMeta] = useState(ap.meta ? String(ap.meta).replace(".", ",") : "");
+  const [salvando, setSalvando] = useState(false);
+  const num = (t) => { const s = String(t || "0").trim(); const n = /,/.test(s) ? s.replace(/\./g, "").replace(",", ".") : s; return Math.max(0, Math.round((parseFloat(n) || 0) * 100) / 100); };
+  const salvar = async () => {
+    setSalvando(true); setMsg("");
+    const campos = { apoioTotal: num(total), apoioPessoas: Math.round(num(pessoas)), apoioMeta: num(meta), apoioEm: Date.now() };
+    try { const s = await tokenValido(lerSessaoConta()); await contaApi.gravarConfig(campos, s.idToken); onSalvo(campos); setMsg("✅ Salvo. Todos veem os números novos."); setEditar(false); }
+    catch (x) { setMsg("Não deu para salvar: " + erroDeConta(x.message)); }
+    setSalvando(false);
+  };
+  const campo = { ...S.input, width: "100%", boxSizing: "border-box", marginTop: 4 };
+  return (
+    <div style={{ ...S.card, marginTop: 16, borderColor: "#E1306C55" }}>
+      <div style={{ fontWeight: 900, fontSize: 15 }}>👑 Só você vê: os números do apoio</div>
+      <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.5, marginTop: 4 }}>
+        Escreva o que você recebeu de verdade (some o extrato do Pix e as comissões). Sem número, a tela convida a ser um dos primeiros apoiadores.
+      </div>
+      {!editar ? (
+        <button style={{ ...S.btnGhost, width: "100%", marginTop: 10 }} onClick={() => setEditar(true)}>✎ Atualizar os números</button>
+      ) : (
+        <div style={{ marginTop: 10 }}>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Total recebido (R$)<input value={total} onChange={(e) => setTotal(e.target.value)} inputMode="decimal" style={campo} /></label>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Quantas pessoas apoiaram<input value={pessoas} onChange={(e) => setPessoas(e.target.value)} inputMode="numeric" style={campo} /></label>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Meta (R$, vazio = sem barra)<input value={meta} onChange={(e) => setMeta(e.target.value)} inputMode="decimal" style={campo} /></label>
+          <button style={{ ...S.btnGhost, width: "100%" }} disabled={salvando} onClick={salvar}>{salvando ? "Salvando…" : "Salvar os números"}</button>
+        </div>
+      )}
+      {msg && <div style={{ fontSize: 13, marginTop: 8 }}>{msg}</div>}
+    </div>
+  );
+}
+// ---- fim do apoie ----
 
 function JanelaSeguir({ onSeguir, onJaSigo, onDepois }) {
   return (

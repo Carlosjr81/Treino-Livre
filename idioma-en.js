@@ -12,6 +12,13 @@
    tela diz isso) e a voz do Jarvis (fala e ouve em português).
    Texto sem tradução continua em português: nunca vira meia frase. */
 var TEXTOS_EN = {
+  // --- Apoie o Treino Livre ---
+  "APOIE O APP": "SUPPORT THE APP", "💛 Apoie o app": "💛 Support the app", "Apoie o Treino Livre": "Support Treino Livre",
+  "Doe pelo Pix ou compre pelos meus links, sem pagar a mais": "Donate via Pix or shop through my links, at no extra cost",
+  "Doe pelo Pix": "Donate via Pix", "Doar qualquer valor": "Donate any amount", "Compre pelo meu link": "Shop through my link",
+  "Outras formas de ajudar": "Other ways to help", "Ver o vídeo: como apoiar": "Watch the video: how to support",
+  "Indicar para um amigo": "Recommend to a friend", "📋 Copiar o código Pix": "📋 Copy the Pix code", "Copiar só a chave Pix": "Copy only the Pix key",
+  "Outro": "Other", "💛 Curtindo o app? Ajude a mantê-lo gratuito ›": "💛 Enjoying the app? Help keep it free ›",
   // --- Termos (os cartões e as caixas; o texto jurídico fica em português) ---
   "Grátis, com acesso liberado": "Free, with approved access",
   "O app é gratuito. A conta precisa da liberação do criador do app, que pode pôr prazo ou bloquear quem descumprir estas regras. Se um dia houver plano pago, você é avisado antes, e nada é cobrado sem o seu aceite.": "The app is free. Your account needs to be approved by the app's creator, who may set a time limit or block anyone who breaks these rules. If a paid plan ever exists, you will be told first, and nothing is charged without your consent.",

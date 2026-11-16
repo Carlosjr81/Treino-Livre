@@ -347,6 +347,36 @@ leia antes de mexer.**
   validado num aparelho.** Achado no navegador: os dois efeitos novos do raiz
   tinham ficado depois do `if (!carregado) return` (o erro 310 de novo).
 
+## Apoie o Treino Livre (`TelaApoio`, `APOIO`, `lerApoio`)
+
+Pedido do dono (2026-11-16a): um menu no jeito do "Doações" do iFood para
+apoiar o app, com o Pix e as compras pelos links de afiliado dos destaques do
+Instagram dele, e "um contador dinâmico e fictício" para incentivar.
+
+- **Os links e o vídeo são dado** (`APOIO`, no primeiro script): Mercado
+  Livre, Shopee, Shein e o reel "como apoiar". Vieram sem o `fbclid`; o da
+  Shein que o dono mandou era a página de verificação da loja
+  (`risk/challenge`), e o link guardado é o destino que estava dentro dela.
+- **O Pix é a chave do método de pagamento** (`pixChave`, `pixNome`,
+  `pixCidade` em `config/acesso`), com o mesmo `pixCopiaECola` e o
+  mesmo QR (`QR_LIB`) da tela de planos; valores 5, 10, 20, 50 ou outro
+  (vazio: escolhe no banco), código `APOIOTREINOLIVRE` no extrato. A tela lê
+  a config de novo ao abrir. Sem conta (porteiro desligado), o Pix não aparece.
+- **O contador é de números reais, não fictícios**: inventar quanto "os
+  outros doaram" para empurrar doação é propaganda enganosa (CDC, art. 37) e
+  derruba a confiança no app quando alguém percebe. O dono escreve na própria
+  tela (`EditorApoio`, só com `CONTA_ATUAL.dono`) o total recebido, quantas
+  pessoas e a meta (`apoioTotal`, `apoioPessoas`, `apoioMeta`,
+  `apoioEm` em `config/acesso`, que todos leem e só ele grava: as regras
+  não mudaram). O número sobe animado do zero (`useSobeApoio`) e a barra da meta
+  enche. Sem número, a tela convida a "ser um dos primeiros apoiadores".
+  **Não troque por número inventado sem falar com ele de novo.**
+- **Entradas**: Ajustes (o chip "💛 Apoie o app" e a linha logo abaixo da
+  conta), a Central de Ajuda (Conta e dados › Apoiar) e um link discreto no
+  resumo do fim do treino. Nunca na tela inicial.
+- O rodapé diz que o apoio é voluntário, não muda o acesso, e que compras
+  podem gerar comissão de afiliado (a transparência que a lei e as lojas pedem).
+
 ## Português ou inglês (`IDIOMA`, `idioma-en.js`, `EscolhaIdioma`)
 
 Pedido do dono (2026-11-02c): "quero a opção de escolher entre português do
@@ -789,7 +819,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v198) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v199) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |

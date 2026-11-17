@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-17b**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-17c**.
 
 ---
 
@@ -507,7 +507,7 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 - **Português ou inglês** (🇧🇷/🇺🇸), em ⚙ Ajustes › Preferências ou já na tela de criar a conta. As telas principais saem em inglês; a voz do Jarvis continua em português, e o texto completo dos Termos também (vale a versão em português).
 - **O ▶ da série de tempo continua contando com o app fechado**: dá para sair da esteira para outro app e voltar.
 - **Atualização automática:** quando sai versão nova aparece uma faixa "Atualizar".
-- **💛 Apoie o Treino Livre** (Ajustes, Ajuda e o fim de cada treino): doar pelo Pix (R$ 5, 10, 20, 50 ou outro, com QR code e copia e cola), comprar no Mercado Livre, na Shopee ou na Shein pelos links de afiliado do criador (mesmo preço, a loja repassa uma parte), o vídeo de como apoiar, indicar a um amigo e seguir no Instagram. O total arrecadado e a meta são números reais, atualizados pelo criador.
+- **💛 Apoie o Treino Livre** (Ajustes, Ajuda e o fim de cada treino): doar pelo Pix (R$ 5, 10, 20, 50 ou outro, com QR code e copia e cola), comprar no Mercado Livre, na Shopee ou na Shein pelos links de afiliado do criador (mesmo preço, a loja repassa uma parte), o vídeo de como apoiar pelo próprio app (desde 2026-11-17c; o vídeo pelos destaques do Instagram fica para quem chega pelo perfil), indicar a um amigo e seguir no Instagram. O total arrecadado e a meta são números reais, atualizados pelo criador.
 
 ---
 

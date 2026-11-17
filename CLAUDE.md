@@ -406,6 +406,10 @@ Instagram dele, e "um contador dinâmico e fictício" para incentivar.
 - **No fim do treino** (`CartaoApoioResumo`): postar no story (o mesmo
   story de antes, agora pedindo para marcar o @), compartilhar o app, curtir e
   seguir, apoiar, e o vídeo de como apoiar comprando.
+- **O vídeo é o que ensina a apoiar pelo próprio app** (`APOIO.video`,
+  2026-11-17c, pedido do dono): o primeiro ensinava pelos destaques do
+  Instagram, e quem está no app já tem as lojas e o Pix na tela. O vídeo pelo
+  Instagram fica para a divulgação fora do app; dentro, um vídeo só.
 - **O vídeo** (`abrirVideoApoio`) vem em destaque logo abaixo da faixa da
   tela de apoio e em cima das lojas.
 - O rodapé diz que o apoio é voluntário, não muda o acesso, e que compras
@@ -853,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v209) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v210) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |

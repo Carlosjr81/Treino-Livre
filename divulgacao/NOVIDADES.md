@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-17c — O vídeo de como apoiar agora ensina pelo app
+
+**Em uma frase:** o "▶ Ver como" do apoio agora abre o vídeo que mostra como apoiar a partir do próprio Treino Livre.
+
+**O que mudou**
+- O vídeo da tela inicial, da tela "Apoie o Treino Livre" e do fim do treino passou a ser o novo, que ensina pelo app (o Pix e os botões das lojas).
+- O vídeo antigo, que ensina pelos destaques do Instagram, continua valendo para quem chega pelo perfil, fora do app.
+
+**Por que importa para quem treina**
+- Quem já está no app aprende o caminho mais curto, sem sair dele.
+
+**Como usar**
+- Na tela inicial ou em Ajustes › 💛 Apoie o app, toque em "▶ Ver como".
+
+**Ideias de vídeo**
+- Nos stories: "Já tem o app? Veja como apoiar sem sair dele" com o link do reel novo. Para quem ainda não tem o app, o reel antigo, pelos destaques.
+
+**Não prometer**
+- Apoiar é voluntário e não muda o acesso ao app. Compra pelo link pode gerar comissão de afiliado.
+
+---
+
 ## 2026-11-17b — O relógio continua o treino sem o celular
 
 **Em uma frase:** se a bateria do celular acabar no meio do treino, o Galaxy Watch continua: marca as séries, conta o descanso e vibra, e entrega tudo ao celular quando ele voltar.

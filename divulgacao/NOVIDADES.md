@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-17a — O relógio mostra quanto falta do treino
+
+**Em uma frase:** no Galaxy Watch, ao lado de "23 de 47 séries", aparece quanto tempo falta: "~25 min".
+
+**O que mudou**
+- A linha de cima do relógio ficou "23 de 47 séries · ~25 min", com a mesma conta do celular (séries, descansos, troca de aparelho e o descanso que está correndo).
+
+**Por que importa para quem treina**
+- Dá para saber, olhando o pulso, se ainda dá tempo de terminar o treino antes do compromisso.
+
+**Como usar**
+- Atualize o app do relógio (Ajustes → Conectar aparelhos → ⬆ Atualizar o relógio) e treine com o Jarvis da tela travada ligado.
+
+**Ideias de vídeo**
+- Close no relógio no meio da série: "faltam 25 minutos, dá tempo".
+
+**Não prometer**
+- É uma estimativa: descanso mais longo ou conversa entre as séries mudam o tempo. Precisa do app do relógio atualizado.
+
+---
+
 ## 2026-11-16i — Quanto tempo leva o treino
 
 **Em uma frase:** antes de começar, o app diz quanto tempo, mais ou menos, a ficha vai levar; no meio do treino, quanto falta e a que horas termina.

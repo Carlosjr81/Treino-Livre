@@ -768,7 +768,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.922 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.923 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -853,7 +853,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v207) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v208) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5627,6 +5627,11 @@ ficha escolhida. Bloco puro `TEMPO ESTIMADO DO TREINO`, coberto por
   séries por fazer, sem os exercícios pulados).
 - `DESCANSO_GERAL` é posto pelo raiz como o `MODO_DESCANSO`: a tela inicial
   e as Fichas precisam do descanso geral no modo "igual para todos".
+- **No relógio** (2026-11-17a, pedido do dono): o painel do motor do bolso
+  leva `falta` (minutos, a mesma conta, mais o descanso que está correndo), e
+  a linha de cima do relógio diz "23 de 47 séries · ~25 min" (`textoFalta`,
+  "1h05" acima de uma hora, para caber na borda redonda). Exige o app do
+  relógio novo; o antigo ignora o campo.
 
 ## Corpo, backup e lembretes
 
@@ -5679,7 +5684,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 40 suítes (1.922 checagens)
+node testes/rodar.js      # as 40 suítes (1.923 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

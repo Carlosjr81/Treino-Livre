@@ -157,6 +157,7 @@ let pn = b.painel(T0);
 teste("o painel mostra o exercicio da vez e a serie", ["Supino reto com barra", 2, 3], [pn.ex, pn.n, pn.de].map((x, k) => k === 0 ? (x || "").slice(0, 21) : x));
 teste("... com a carga e as repeticoes combinadas (o + do relogio anda de 1 kg)", [80, 10, 1], [pn.peso, pn.reps, pn.passo]);
 teste("... a anterior e o proximo", ["80 kg × 10", true], [pn.ant, !!pn.prox]);
+teste("... e os minutos que faltam do treino", true, pn.falta > 0 && pn.falta < 60);
 r = b.acao({ a: "feito", ei: 0, p: 82.5, r: 8 }, T0);
 teste("feito no relogio anota a carga ajustada", { t: "a", u: "u1", i: 1, p: "82.5", r: "8" }, b.eventos()[0]);
 teste("... e comeca o descanso do exercicio", T0 + 90000, r.descansoAte);

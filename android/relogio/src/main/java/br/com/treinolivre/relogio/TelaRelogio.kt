@@ -504,7 +504,10 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         val feitas = p.optInt("feitas"); val total = p.optInt("total")
         // só o progresso: o nome do treino quebrava em duas linhas, e a de cima
         // sumia na borda da tela redonda
-        topo.text = "$feitas de $total séries"
+        // e o tempo que falta (pedido do dono, 2026-11-17a), curto para caber
+        // na borda redonda
+        val falta = p.optInt("falta")
+        topo.text = if (falta > 0) "$feitas de $total séries · ~" + textoFalta(falta) else "$feitas de $total séries"
         exNome.text = p.optString("ex")
         exNome.setTextColor(Color.WHITE)
         serie.text = if (p.optBoolean("drop")) "↓ DROP" else "SÉRIE " + p.optInt("n") + " DE " + p.optInt("de")
@@ -620,4 +623,8 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         private const val RECORDE = 2
         private const val TREINO_COMPLETO = 3
     }
+
+    private fun textoFalta(min: Int): String =
+        if (min < 60) "$min min" else (min / 60).toString() + "h" + (min % 60).toString().padStart(2, '0')
+
 }

@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-16i";
+const VERSAO_APP = "2026-11-17a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4089,6 +4089,15 @@ function criarBolso(snapInicial, catalogo) {
     const total = itens.reduce((n, it) => n + it.series.length, 0);
     const out = { v: 1, ativo: true, treino: snap.nome || "", feitas: feitas, total: total, agora: agora,
       descansoAte: fimDesc > agora ? fimDesc : 0 };
+    // Pedido do dono (2026-11-17a): o tempo que falta, ao lado de "23 de 47
+    // séries". O descanso de cada item já vem na cópia (o da ficha ou o da
+    // ciência), por isso o modo "fixo": vale o do item, senão o geral.
+    if (typeof estimarRestanteSessao === "function") {
+      const porId = (id) => todos.find((e) => e && e.id === id) || null;
+      const resta = Math.max(0, fimDesc - agora);
+      const f = estimarRestanteSessao({ itens: itens }, porId, snap.descanso || 90, "fixo") + Math.round(resta / 60000);
+      if (f > 0 && feitas < total) out.falta = f;
+    }
     const a = pendentes() ? alvoDaSessao(itens, foco) : null;
     if (!a) { out.fim = true; return out; }
     const it = itens[a.ei], s = it.series[a.si] || {};

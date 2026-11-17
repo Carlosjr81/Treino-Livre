@@ -26,6 +26,10 @@ object Relogio {
     const val ESTADO = "/treino/estado"
     const val ALERTA = "/treino/alerta"
     const val ACAO = "/treino/acao"
+    // o relógio treinou sem o celular (2026-11-17b): ele manda o que anotou, e
+    // o celular confirma o que guardou (e se o Jarvis está ligado)
+    const val SEM_CELULAR = "/treino/sem-celular"
+    const val SEM_CELULAR_OK = "/treino/sem-celular-ok"
     // a atualização com um toque (2026-11-13b): o relógio diz a versão dele e
     // ouve a do celular; pede para ser atualizado mandando o endereço no Wi-Fi
     const val VERSAO = "/treino/versao"
@@ -104,7 +108,8 @@ object Relogio {
         } catch (e: Exception) { }
     }
 
-    fun desligado(contexto: Context) = publicar(contexto, JSONObject().put("v", 1).put("ativo", false).toString())
+    fun desligado(contexto: Context, semJarvis: Boolean = false) =
+        publicar(contexto, JSONObject().put("v", 1).put("ativo", false).apply { if (semJarvis) put("semJarvis", true) }.toString())
 }
 
 // Os toques do relógio chegam aqui (o Google Play Services acorda o app) e vão
@@ -129,11 +134,29 @@ class OuvinteRelogio : WearableListenerService() {
             if (!InstaladorRelogio.aberto) Relogio.abrirAtualizacao(contexto)
             return
         }
+        if (m.path == Relogio.SEM_CELULAR) {
+            val j = try { JSONObject(String(m.data, Charsets.UTF_8)) } catch (e: Exception) { return }
+            val ev = j.optJSONArray("ev") ?: org.json.JSONArray()
+            val no = m.sourceNodeId
+            Handler(Looper.getMainLooper()).post {
+                val n = BolsoService.guardarDoRelogio(contexto, ev, j.optInt("foco", -1), j.optLong("da", 0L))
+                val s = BolsoService.instancia
+                if (s != null) s.incorporarRelogio() else if (n > 0) BolsoService.avisarRelogio(contexto, n)
+                val ks = org.json.JSONArray()
+                for (i in 0 until ev.length()) ev.optJSONObject(i)?.optString("k")?.let { if (it.isNotEmpty()) ks.put(it) }
+                val ok = JSONObject().put("ks", ks).put("ativo", s != null).toString().toByteArray(Charsets.UTF_8)
+                try { Wearable.getMessageClient(contexto).sendMessage(no, Relogio.SEM_CELULAR_OK, ok) } catch (e: Exception) { }
+            }
+            return
+        }
         if (m.path != Relogio.ACAO) return
         val texto = String(m.data, Charsets.UTF_8)
         Handler(Looper.getMainLooper()).post {
             val s = BolsoService.instancia
-            if (s != null) s.acaoRelogio(texto) else Relogio.desligado(contexto)
+            // sem o Jarvis ligado: o celular religou sem o treino (a bateria tinha
+            // acabado). O relógio pode seguir com a cópia dele (semJarvis);
+            // o Finalizar treino desliga sem essa marca.
+            if (s != null) s.acaoRelogio(texto) else Relogio.desligado(contexto, true)
         }
     }
 }

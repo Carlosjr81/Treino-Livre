@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-11-17b — O relógio continua o treino sem o celular
+
+**Em uma frase:** se a bateria do celular acabar no meio do treino, o Galaxy Watch continua: marca as séries, conta o descanso e vibra, e entrega tudo ao celular quando ele voltar.
+
+**O que mudou**
+- O relógio guarda a ficha do treino que está em andamento.
+- Sem o celular (bateria, Bluetooth), ele segue sozinho: ✓ Feito, a carga e as repetições, o descanso com vibração aos 10 segundos e no fim, ◀ ▶, desfazer.
+- Aparece "📴 Sem o celular: o relógio anota sozinho", com quantas séries faltam entregar.
+- Quando o celular volta, as séries vão sozinhas para o treino. Se o celular foi religado, um aviso "⌚ Toque para levar ao treino" leva tudo para lá, e o relógio oferece "⌚ Continuar no relógio".
+- Uma série nunca entra duas vezes, mesmo se o celular tiver recebido o toque antes de cair.
+
+**Por que importa para quem treina**
+- Bateria acabando no meio do treino não faz perder nenhuma série: o pulso segue até o fim.
+
+**Como usar**
+- Atualize o app do relógio e do celular. Comece o treino no celular como sempre (o relógio abre junto); se o celular apagar, continue no relógio.
+
+**Ideias de vídeo**
+- O celular com 1% de bateria apaga no meio da série; corta para o relógio: "✓ Feito", o descanso contando e vibrando. No fim, o celular religado recebe as séries.
+
+**Não prometer**
+- Só funciona depois que o treino começou no celular e o relógio recebeu a ficha. Aeróbico sem o celular só marca a série: tempo e distância da esteira não são medidos. Precisa do app do relógio e do celular atualizados.
+
+---
+
 ## 2026-11-17a — O relógio mostra quanto falta do treino
 
 **Em uma frase:** no Galaxy Watch, ao lado de "23 de 47 séries", aparece quanto tempo falta: "~25 min".

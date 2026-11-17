@@ -76,11 +76,69 @@ class BolsoService : Service(), RecognitionListener {
         fun lerDiario(contexto: Context): JSONArray =
             try { JSONArray(contexto.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("diario", "[]")) } catch (e: Exception) { JSONArray() }
 
+        // O relógio anotou sem o celular (2026-11-17b: a bateria do celular
+        // acabou no meio do treino). Guardado aqui primeiro: com o serviço
+        // ligado entra no motor na hora (incorporarRelogio); sem ele, espera a
+        // próxima cópia da página ou o toque na notificação (tirarPendentes).
+        // O mesmo id (k) não entra duas vezes.
+        fun guardarDoRelogio(contexto: Context, lista: JSONArray, foco: Int, da: Long): Int {
+            val p = contexto.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val atual = try { JSONArray(p.getString("relogioPend", "[]")) } catch (e: Exception) { JSONArray() }
+            val ks = HashSet<String>()
+            for (i in 0 until atual.length()) atual.optJSONObject(i)?.optString("k")?.let { if (it.isNotEmpty()) ks.add(it) }
+            for (i in 0 until lista.length()) {
+                val e = lista.optJSONObject(i) ?: continue
+                val k = e.optString("k")
+                if (k.isNotEmpty() && ks.contains(k)) continue
+                if (k.isNotEmpty()) ks.add(k)
+                atual.put(e)
+            }
+            p.edit().putString("relogioPend", atual.toString())
+                .putString("relogioEstado", JSONObject().put("foco", foco).put("da", da).toString()).apply()
+            return atual.length()
+        }
+        private fun tirarDoRelogio(contexto: Context): JSONArray {
+            val p = contexto.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val l = try { JSONArray(p.getString("relogioPend", "[]")) } catch (e: Exception) { JSONArray() }
+            if (l.length() > 0) p.edit().putString("relogioPend", "[]").apply()
+            return l
+        }
+        // Sem o Jarvis ligado (o celular acabou de voltar), um toque leva ao treino.
+        fun avisarRelogio(contexto: Context, n: Int) {
+            try {
+                val nm = contexto.getSystemService(NotificationManager::class.java)
+                nm.createNotificationChannel(NotificationChannel(CANAL_VOLTA, "Séries anotadas com a tela travada", NotificationManager.IMPORTANCE_HIGH))
+                val abrir = PendingIntent.getActivity(
+                    contexto, 1, Intent(contexto, BolsoActivity::class.java).setData(Uri.parse("treinolivre://bolso?entregar=1")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                )
+                nm.notify(ID_VOLTA, Notification.Builder(contexto, CANAL_VOLTA)
+                    .setContentTitle("⌚ Toque para levar ao treino")
+                    .setContentText(if (n == 1) "O relógio anotou 1 série sem o celular" else "O relógio anotou $n séries sem o celular")
+                    .setSmallIcon(android.R.drawable.ic_menu_recent_history)
+                    .setContentIntent(abrir)
+                    .setAutoCancel(true)
+                    .build())
+            } catch (e: Exception) { }
+        }
+
         // O que foi anotado com a tela travada e ainda não voltou ao treino.
         // Tudo roda na linha principal: ler e zerar aqui é atômico.
         fun tirarPendentes(contexto: Context): JSONArray {
             val p = contexto.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             val pend = try { JSONArray(p.getString("pend", "[]")) } catch (e: Exception) { JSONArray() }
+            // e o que o relógio anotou sem o celular, se o Jarvis não estava ligado
+            val doRelogio = tirarDoRelogio(contexto)
+            if (doRelogio.length() > 0) {
+                val ks = HashSet<String>()
+                for (i in 0 until pend.length()) pend.optJSONObject(i)?.optString("k")?.let { if (it.isNotEmpty()) ks.add(it) }
+                for (i in 0 until doRelogio.length()) {
+                    val e = doRelogio.optJSONObject(i) ?: continue
+                    if (e.optString("k").isNotEmpty() && ks.contains(e.optString("k"))) continue
+                    pend.put(e)
+                }
+                p.edit().putString("pend", pend.toString()).apply()
+            }
             if (pend.length() == 0) return pend
             val aplicado = try { JSONArray(p.getString("aplicado", "[]")) } catch (e: Exception) { JSONArray() }
             for (i in 0 until pend.length()) aplicado.put(pend.get(i))
@@ -208,7 +266,7 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
-        anotar("ligado (app de 2026-11-11k: a série do relógio entra no treino, com entrega garantida)")
+        anotar("ligado (app de 2026-11-17b: o relógio segue sem o celular e entrega quando ele volta)")
         linha.post(olheiro)
         linha.postDelayed(manterCanal, 15_000L)
         try { getSystemService(AudioManager::class.java)?.registerAudioPlaybackCallback(espiaoSom, linha) } catch (e: Exception) { }
@@ -266,6 +324,31 @@ class BolsoService : Service(), RecognitionListener {
         val ca = p.getString("canal", "") ?: ""
         if (ca.isNotEmpty()) js("bolso.canal&&bolso.canal(" + q(ca) + ")") { }
         publicarRelogio()
+        incorporarRelogio()
+    }
+
+    // O relógio treinou sem o celular e acabou de reencontrá-lo: o que ele
+    // anotou entra no motor (o mesmo id não entra duas vezes) e segue para a
+    // tela do treino pelo caminho de sempre (canal cifrado ou #bolso=).
+    fun incorporarRelogio() {
+        if (!pronto) return
+        val p = getSharedPreferences(PREFS, MODE_PRIVATE)
+        val lista = try { JSONArray(p.getString("relogioPend", "[]")) } catch (e: Exception) { JSONArray() }
+        if (lista.length() == 0) return
+        val est = try { JSONObject(p.getString("relogioEstado", "{}")) } catch (e: Exception) { JSONObject() }
+        val pacote = JSONObject().put("ev", lista).put("foco", est.optInt("foco", -1)).put("da", est.optLong("da", 0L))
+        js("bolso.deFora?bolso.deFora(" + q(pacote.toString()) + "," + System.currentTimeMillis() + "):''") { resposta ->
+            if (resposta.isEmpty()) return@js
+            val r = try { JSONObject(resposta) } catch (e: Exception) { return@js }
+            p.edit().putString("relogioPend", "[]").apply()
+            anotar("relógio sem o celular: " + lista.length() + " anotações entregues")
+            if (r.optBoolean("mudou")) {
+                p.edit().putString("pend", r.optJSONArray("ev")?.toString() ?: "[]").apply()
+                if (!travada) conferirEntrega(5_000L)
+            }
+            if (r.has("descansoAte")) agendarDescanso(r.optLong("descansoAte", 0L))
+            r.optJSONObject("painel")?.let { Relogio.publicar(applicationContext, it.toString()) }
+        }
     }
 
     // ---- o relógio (Galaxy Watch) ----

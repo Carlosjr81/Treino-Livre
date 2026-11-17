@@ -46,6 +46,11 @@ import org.json.JSONObject
 // saem toques, e o painel volta de lá. Por isso cada ✓ do relógio vira uma
 // série anotada no celular, com o descanso, o recorde e a voz de sempre.
 //
+// Sem o celular (2026-11-17b, a bateria dele acabou no meio do treino): com a
+// cópia do treino que veio no último painel, o relógio segue sozinho
+// (SemCelular), vibra no fim do descanso e entrega o que anotou quando o
+// celular voltar (/treino/sem-celular).
+//
 // O visual (2026-11-13a, pedido do dono: "chame a atenção de todos"): o anel
 // colorido da borda (Palco), botões em degradê, o clarão e o "✓ SÉRIE FEITA" a
 // cada série, o dourado do recorde e do treino completo.
@@ -77,6 +82,12 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         })
     }
     private var painel: JSONObject? = null
+    // o treino sem o celular, e a cópia que o celular mandou por último
+    private var semCel: SemCelular? = null
+    private var copia: JSONObject? = null
+    // o toque que foi ao celular e ainda espera resposta (feito, terminar)
+    private var aguardando: JSONObject? = null
+    private val prefs by lazy { getSharedPreferences("relogio", MODE_PRIVATE) }
     // o que a pessoa ajustou no relógio para a série da vez
     private var chave = ""
     private var peso = 0.0
@@ -119,10 +130,13 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     private lateinit var aviso: TextView
     private lateinit var atualizar: Button
     private lateinit var terminar: Button
+    private lateinit var continuar: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         lifecycle.addObserver(ambienteObs)
+        semCel = SemCelular.guardado(prefs.getString("semCelular", null))
+        copia = try { prefs.getString("copia", null)?.let { JSONObject(it) } } catch (e: Exception) { null }
         // a atividade em andamento (TreinoNoPulso) mostra uma notificação:
         // no Wear OS 4+ ela precisa da permissão
         if (android.os.Build.VERSION.SDK_INT >= 33 &&
@@ -267,6 +281,13 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             startActivity(android.content.Intent(this, PreparaAtualizacao::class.java))
         }.apply { visibility = View.GONE }
         caixa.addView(atualizar, lp())
+        // O celular voltou sem o treino (desligou e religou): o relógio pode
+        // seguir com a cópia que tem. Um botão, e não sozinho: "sem treino no
+        // celular" também é quem tocou em Finalizar treino lá.
+        continuar = pilula("⌚ Continuar no relógio", intArrayOf(Cores.VERDE, Cores.CIANO)) {
+            if (entrarSemCelular()) { semCel?.let { mostrarPainel(it.painel(System.currentTimeMillis())) }; agendarAlarmes() }
+        }.apply { visibility = View.GONE }
+        caixa.addView(continuar, lp())
 
         val rolagem = ScrollView(this).apply {
             isVerticalScrollBarEnabled = false
@@ -320,10 +341,16 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
                     val tt = m.getLong("t")
                     if (tt > t) { t = tt; melhor = try { JSONObject(m.getString("json") ?: "") } catch (e: Exception) { null } }
                 }
-                if (melhor != null && painel == null) receber(melhor)
+                if (melhor != null && painel == null && semCel == null) receber(melhor)
             } finally { buf.release() }
         }
-        enviar("estado")
+        val sc = semCel
+        if (sc != null) {
+            mostrarPainel(sc.painel(System.currentTimeMillis()))
+            agendarAlarmes()
+            linha.removeCallbacks(procurarCelular)
+            linha.post(procurarCelular)
+        } else enviar("estado")
         if (!ambiente) linha.post(tique)
     }
 
@@ -333,6 +360,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         Wearable.getDataClient(this).removeListener(this)
         Wearable.getMessageClient(this).removeListener(this)
         linha.removeCallbacks(tique)
+        linha.removeCallbacks(procurarCelular)
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         super.onPause()
     }
@@ -362,6 +390,11 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     }
 
     override fun onMessageReceived(m: MessageEvent) {
+        if (m.path == "/treino/sem-celular-ok") {
+            val j = try { JSONObject(String(m.data, Charsets.UTF_8)) } catch (e: Exception) { return }
+            runOnUiThread { entregou(j) }
+            return
+        }
         if (m.path != "/treino/celular") return
         val v = String(m.data, Charsets.UTF_8).trim().toLongOrNull() ?: 0L
         getSharedPreferences("relogio", MODE_PRIVATE).edit().putLong("celular", v).apply()
@@ -374,7 +407,28 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         atualizar.visibility = if (!ambiente && cel > 0 && meu > 0 && cel > meu) View.VISIBLE else View.GONE
     }
 
+    // O painel do celular. Sem o celular, só um painel novo (mais novo que a
+    // hora em que o relógio ficou sozinho), ativo e com tudo entregue, devolve
+    // o treino ao celular; antes disso, o que o relógio anotou vai primeiro.
     private fun receber(j: JSONObject) {
+        val sc = semCel
+        if (sc != null) {
+            val novo = j.optLong("agora", 0L) > sc.desde
+            if (!novo) return
+            if (sc.eventos.length() > 0) { entregar(); return }
+            if (!j.optBoolean("ativo") || j.optBoolean("carregando")) return
+            sairSemCelular()
+        }
+        j.optJSONObject("copia")?.let { c -> copia = c; prefs.edit().putString("copia", c.toString()).putLong("copiaEm", System.currentTimeMillis()).apply() }
+        // o toque foi ao celular e ele respondeu sem o Jarvis ligado (o app
+        // reabriu sem o treino): o relógio segue sozinho com a cópia
+        val pendente = aguardando
+        aguardando = null
+        if (pendente != null && !j.optBoolean("ativo") && entrarSemCelular()) { aplicarAqui(pendente); return }
+        mostrarPainel(j)
+    }
+
+    private fun mostrarPainel(j: JSONObject) {
         val antes = painel
         painel = j
         esperando = false
@@ -394,6 +448,97 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             if (j.optInt("feitas") != antes.optInt("feitas")) enviouRecorde = false
         }
     }
+
+    // ---- sem o celular ----
+    private fun entrarSemCelular(): Boolean {
+        if (semCel != null) return true
+        val c = copia ?: painel?.optJSONObject("copia") ?: return false
+        val sc = SemCelular.daCopia(c, System.currentTimeMillis()) ?: return false
+        semCel = sc
+        guardarSemCelular()
+        AlertaRelogio.vibrar(this, longArrayOf(0, 60, 80, 60))
+        linha.removeCallbacks(procurarCelular)
+        linha.postDelayed(procurarCelular, 10_000L)
+        return true
+    }
+
+    private fun sairSemCelular() {
+        semCel = null
+        prefs.edit().remove("semCelular").apply()
+        linha.removeCallbacks(alarmeDez); linha.removeCallbacks(alarmeFim)
+        linha.removeCallbacks(procurarCelular)
+    }
+
+    private fun guardarSemCelular() {
+        val sc = semCel ?: return
+        prefs.edit().putString("semCelular", sc.guardar()).apply()
+    }
+
+    // o toque aplicado aqui mesmo
+    private fun aplicarAqui(j: JSONObject) {
+        val sc = semCel ?: return
+        val agora = System.currentTimeMillis()
+        sc.acao(j, agora)
+        guardarSemCelular()
+        esperando = false
+        mostrarPainel(sc.painel(agora))
+        agendarAlarmes()
+    }
+
+    // o fim do descanso vibra no pulso (era o celular que avisava)
+    private val alarmeDez = Runnable { if (semCel != null) AlertaRelogio.vibrar(this, longArrayOf(0, 160)) }
+    private val alarmeFim = Runnable {
+        val sc = semCel ?: return@Runnable
+        AlertaRelogio.vibrar(this, longArrayOf(0, 450, 180, 450, 180, 700))
+        mostrarPainel(sc.painel(System.currentTimeMillis()))
+    }
+    private fun agendarAlarmes() {
+        linha.removeCallbacks(alarmeDez); linha.removeCallbacks(alarmeFim)
+        val sc = semCel ?: return
+        val falta = sc.fimDesc - System.currentTimeMillis()
+        if (falta <= 0) return
+        if (falta > 10_500L) linha.postDelayed(alarmeDez, falta - 10_000L)
+        linha.postDelayed(alarmeFim, falta)
+    }
+
+    // A cada 10 s sem o celular, o relógio procura por ele e entrega o que anotou.
+    private val procurarCelular = object : Runnable {
+        override fun run() {
+            if (semCel == null) return
+            entregar()
+            linha.postDelayed(this, 10_000L)
+        }
+    }
+
+    private fun entregar() {
+        val sc = semCel ?: return
+        val dados = sc.pacote().toString().toByteArray(Charsets.UTF_8)
+        Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nos ->
+            nos.forEach { no -> Wearable.getMessageClient(this).sendMessage(no.id, "/treino/sem-celular", dados) }
+        }
+    }
+
+    // O celular guardou o que o relógio anotou. Com o Jarvis ligado, ele manda
+    // o painel novo (com as séries daqui) e o relógio volta a ser o controle
+    // dele; sem o Jarvis, o relógio segue sozinho e o celular avisa na tela.
+    private fun entregou(j: JSONObject) {
+        val sc = semCel ?: return
+        val ks = HashSet<String>()
+        val l = j.optJSONArray("ks")
+        if (l != null) for (i in 0 until l.length()) ks.add(l.optString(i))
+        sc.entregues(ks)
+        guardarSemCelular()
+        if (j.optBoolean("ativo")) {
+            val dados = JSONObject().put("a", "estado").toString().toByteArray(Charsets.UTF_8)
+            Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nos ->
+                nos.forEach { no -> Wearable.getMessageClient(this).sendMessage(no.id, "/treino/acao", dados) }
+            }
+        }
+        mostrar()
+    }
+
+    private fun novoK(): String =
+        java.lang.Long.toString(System.currentTimeMillis(), 36) + java.lang.Long.toString((Math.random() * 1_679_616).toLong(), 36)
 
     private fun celebrar(tipo: Int) {
         if (ambiente) return
@@ -491,6 +636,10 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
                 !ativo -> palco.parado()
                 else -> palco.completo()
             }
+            if (semCel != null) aviso.text = avisoSemCelular()
+            val podeContinuar = p != null && !ativo && p.optBoolean("semJarvis") && semCel == null && copiaComSerie() && !ambiente
+            mostra(continuar, podeContinuar)
+            if (podeContinuar) aviso.text = "O celular está sem o treino aberto. Para continuar a ficha de antes aqui no relógio, toque abaixo: as séries vão para o celular depois."
             mostra(blocoDescanso, false); mostra(blocoSerie, false)
             mostra(navegar, p != null && ativo && p.optBoolean("fim") && !ambiente)
             mostra(dica, false)
@@ -501,6 +650,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             return
         }
         TreinoNoPulso.ligar(this)
+        mostra(continuar, false)
         val feitas = p.optInt("feitas"); val total = p.optInt("total")
         // só o progresso: o nome do treino quebrava em duas linhas, e a de cima
         // sumia na borda da tela redonda
@@ -539,10 +689,34 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         mostra(navegar, !ambiente)
         mostra(dica, !ambiente)
         if (ambiente) { mostra(blocoSerie, false); anterior.text = ""; depois.text = "" }
+        if (semCel != null) {
+            aviso.text = if (ambiente) "📴 sem o celular" else avisoSemCelular()
+            if (cardio && !ambiente) anterior.text = "Sem o celular o tempo não é medido: Terminei só marca a série."
+        }
         // no descanso a tela fica acesa: é onde a pessoa olha o relógio
         if (descansando) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         atualizarRelogio()
+    }
+
+    // a cópia de um treino de hoje com série por fazer (de até 4 h atrás)
+    private fun copiaComSerie(): Boolean {
+        val c = copia ?: return false
+        if (System.currentTimeMillis() - prefs.getLong("copiaEm", 0L) > 4 * 3600_000L) return false
+        val l = c.optJSONArray("it") ?: return false
+        for (i in 0 until l.length()) {
+            val o = l.optJSONObject(i) ?: continue
+            if (o.optInt("pu") == 1) continue
+            val s = o.optJSONArray("s") ?: continue
+            for (k in 0 until s.length()) if (s.optJSONArray(k)?.optInt(0) == 0) return true
+        }
+        return false
+    }
+
+    private fun avisoSemCelular(): String {
+        val n = semCel?.eventos?.length() ?: 0
+        return "📴 Sem o celular: o relógio anota sozinho" +
+            (if (n > 0) " ($n para entregar)" else "") + ". Tudo vai para o celular quando ele voltar."
     }
 
     // o +30 s alonga o anel em vez de reenchê-lo; um descanso novo começa cheio
@@ -598,20 +772,38 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     private fun enviar(acao: String) = enviar(JSONObject().put("a", acao))
 
     private fun enviar(j: JSONObject) {
+        val a = j.optString("a")
+        // sem o celular: "estado" é procurar por ele; o resto vale aqui mesmo
+        if (semCel != null) {
+            if (a == "estado") entregar() else { if (a == "feito" || a == "terminar") j.put("k", novoK()); aplicarAqui(j) }
+            return
+        }
+        // o id da série: se o toque ficar sem resposta e for anotado aqui, o
+        // celular não conta duas vezes
+        if (a == "feito" || a == "terminar") { j.put("k", novoK()); aguardando = j }
         val dados = j.toString().toByteArray(Charsets.UTF_8)
         Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nos ->
             if (nos.isEmpty()) {
+                // sem celular por perto (a bateria dele acabou, o Bluetooth caiu)
+                if (a != "estado" && entrarSemCelular()) { aguardando = null; aplicarAqui(j); return@addOnSuccessListener }
+                aguardando = null
                 esperando = false
                 aviso.text = "Celular desconectado. Confira o Bluetooth e o app do relógio no celular (Galaxy Wearable, Pixel Watch ou Wear OS)."
                 mostrar()
                 return@addOnSuccessListener
             }
             nos.forEach { no -> Wearable.getMessageClient(this).sendMessage(no.id, "/treino/acao", dados) }
-            // sem resposta em 6 s, o celular não recebeu
+            // sem resposta em 6 s, o celular não recebeu: anota aqui
             if (esperando) linha.postDelayed({
-                if (esperando) { esperando = false; aviso.text = "O celular não respondeu. Abra o Treino Livre nele."; mostrar() }
+                if (esperando) {
+                    val pend = aguardando
+                    aguardando = null
+                    if (pend != null && entrarSemCelular()) aplicarAqui(pend)
+                    else { esperando = false; aviso.text = "O celular não respondeu. Abra o Treino Livre nele."; mostrar() }
+                }
             }, 6000L)
         }.addOnFailureListener {
+            if (a != "estado" && entrarSemCelular()) { aguardando = null; aplicarAqui(j); return@addOnFailureListener }
             esperando = false
             aviso.text = "Este relógio não alcança o celular (Google Play Services)."
             mostrar()

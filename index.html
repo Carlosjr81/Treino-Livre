@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-17a";
+const VERSAO_APP = "2026-11-17b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3871,6 +3871,10 @@ function criarBolso(snapInicial, catalogo) {
   let snap = snapInicial;
   let itens = [], foco = null, todos = [];
   let fimDesc = 0, janelaAte = 0, ultimo = null, eventos = [];
+  // os ids (k) que já passaram por aqui: o relógio sem celular manda de novo
+  // o que pode ter chegado antes (2026-11-17b)
+  const vistosK = new Set(Array.isArray(snapInicial && snapInicial.vistos) ? snapInicial.vistos : []);
+  const kOk = (k) => typeof k === "string" && /^[A-Za-z0-9_-]{4,29}$/.test(k);
   const montar = (s) => {
     snap = s;
     itens = (s.itens || []).map((it) => Object.assign({}, it, { series: (it.series || []).map((x) => Object.assign({}, x)) }));
@@ -4099,6 +4103,7 @@ function criarBolso(snapInicial, catalogo) {
       if (f > 0 && feitas < total) out.falta = f;
     }
     const a = pendentes() ? alvoDaSessao(itens, foco) : null;
+    out.copia = copiaRelogio(a ? a.ei : foco, agora);
     if (!a) { out.fim = true; return out; }
     const it = itens[a.ei], s = it.series[a.si] || {};
     const trab = it.series.filter((x) => !ehDrop(x));
@@ -4120,6 +4125,33 @@ function criarBolso(snapInicial, catalogo) {
     out.prox = prox ? prox.nome : "";
     return out;
   }
+  // Pedido do dono (2026-11-17b): a bateria do celular acabou no meio do
+  // treino e o relógio parou junto. A cópia do treino vai em cada painel: sem o
+  // celular, o relógio anota sozinho com ela e entrega quando ele voltar.
+  // Curta de propósito (vai pelo Bluetooth a cada série).
+  function copiaRelogio(ei, agora) {
+    return {
+      v: 1, nome: snap.nome || "", foco: ei != null ? ei : -1, da: fimDesc > agora ? fimDesc : 0,
+      it: itens.map((it) => ({
+        u: it.uid, n: it.nome, t: it.tempo ? 1 : 0, c: it.cardio ? 1 : 0, d: descDe(it), r: it.rec || 0,
+        pu: it.pulado ? 1 : 0, cj: it.conjunto || "",
+        s: it.series.map((x) => [x.feito ? 1 : 0, String(x.peso || ""), String(x.reps || ""), String(x.segundos || ""), ehDrop(x) ? 1 : 0, x.aquec ? 1 : 0]),
+      })),
+    };
+  }
+  // O que o relógio anotou sem o celular chega aqui quando eles se reencontram.
+  // O que já passou por aqui (o mesmo id) não entra de novo.
+  function deFora(lista, focoFora, da, agora) {
+    const novos = (lista || []).filter((e) => !e.k || !vistosK.has(e.k));
+    if (novos.length) {
+      itens = aplicarEventosBolso(itens, novos);
+      novos.forEach((e) => { eventos.push(e); if (e.k) vistosK.add(e.k); });
+      ultimo = null;
+    }
+    if (Number.isInteger(focoFora) && itens[focoFora]) foco = focoFora;
+    if (da != null) fimDesc = da > agora ? da : 0;
+    return { mudou: novos.length > 0, descansoAte: fimDesc, aceitos: (lista || []).map((e) => e.k).filter(Boolean) };
+  }
   // O botão do relógio. "feito" leva a carga e as repetições que a pessoa
   // ajustou no relógio, e vale para o exercício que o relógio mostrava (ei),
   // se ele ainda tem série por fazer.
@@ -4133,7 +4165,11 @@ function criarBolso(snapInicial, catalogo) {
       if (sg != null && sg > 0) d.segundos = Math.round(sg);
       if (p != null && p > 0) d.peso = p;
       if (r != null && r > 0) d.reps = Math.round(r);
-      return anotar(d, agora, ei);
+      const res = anotar(d, agora, ei);
+      // o id do relógio vai no acontecimento: se ele mandar de novo (sem resposta,
+      // virou "sem celular"), não entra duas vezes
+      if (res.mudou && kOk(c.k) && eventos.length) { eventos[eventos.length - 1].k = c.k; vistosK.add(c.k); }
+      return res;
     }
     // Pedido do dono (2026-11-14a): "não encontrei o botão de finalizar a
     // caminhada na esteira no relógio". O tempo e a distância são medidos na
@@ -4147,7 +4183,8 @@ function criarBolso(snapInicial, catalogo) {
       it.series[si] = Object.assign({}, it.series[si], { feito: true });
       foco = ei;
       ultimo = { ei: ei, si: si };
-      eventos.push({ t: "f", u: it.uid, i: si });
+      eventos.push(kOk(c.k) ? { t: "f", u: it.uid, i: si, k: c.k } : { t: "f", u: it.uid, i: si });
+      if (kOk(c.k)) vistosK.add(c.k);
       fimDesc = 0;
       return { falar: "Pronto, aeróbico anotado: " + nomeI(ei) + ". " + proxima(), descansoAte: 0, mudou: true };
     }
@@ -4200,7 +4237,8 @@ function criarBolso(snapInicial, catalogo) {
     descansoAte() { return fimDesc; },
     eventos() { return eventos.slice(); },
     limpar() { eventos = []; },
-    semear(lista) { eventos = (lista || []).slice(); },
+    semear(lista) { eventos = (lista || []).slice(); eventos.forEach((e) => { if (e && e.k) vistosK.add(e.k); }); },
+    deFora: deFora,
     estado() { return itens; },
   };
 }
@@ -35096,6 +35134,7 @@ if (MODO_BOLSO) {
       const vistos = new Set(Array.isArray(s.vistos) ? s.vistos : []);
       const ja = (aplicarJson ? JSON.parse(aplicarJson) : []).filter((e) => !e.k || !vistos.has(e.k));
       if (ja.length) s.itens = aplicarEventosBolso(s.itens, ja);
+      s.vistos = Array.from(vistos).concat(ja.map((e) => e.k).filter(Boolean));
       motorBolso = criarBolso(s, EXERCICIOS);
       motorBolso.semear(pendentesJson ? JSON.parse(pendentesJson) : []);
       return "ok";
@@ -35124,6 +35163,16 @@ if (MODO_BOLSO) {
       return JSON.stringify(Object.assign({}, r, { ev: r.mudou ? eventosComId() : undefined, painel: motorBolso.painel(t) }));
     },
     pendentes() { return JSON.stringify(motorBolso ? eventosComId() : []); },
+    // o relógio anotou sem o celular (bateria, Bluetooth): { ev, foco, da }
+    deFora(json, agora) {
+      if (!motorBolso) return "{}";
+      const t = agora || Date.now();
+      let p = {};
+      try { p = JSON.parse(json); } catch (e) {}
+      const r = motorBolso.deFora(eventosBolsoValidos(p.ev), p.foco, Number(p.da) || 0, t);
+      if (r.mudou || r.descansoAte != null) avisarPagina(r);
+      return JSON.stringify(Object.assign({}, r, { ev: eventosComId(), painel: motorBolso.painel(t) }));
+    },
     entregue() { if (motorBolso) motorBolso.limpar(); return "ok"; },
   };
 }

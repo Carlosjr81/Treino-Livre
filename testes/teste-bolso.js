@@ -228,6 +228,27 @@ console.log("--- o Terminei do relogio no aerobico ---");
   teste("... o f passa na conferencia de quem chega de fora", 1, B.eventosBolsoValidos(bt.eventos()).length);
   contem("... de novo, nao ha aerobico por terminar", bt.acao({ a: "terminar", ei: 0 }, T0).falar, "Não há aeróbico");
 }
+console.log("--- o relogio sem o celular (2026-11-17b) ---");
+{
+  const bs = criarBolso(snap(), EXERCICIOS);
+  const c = bs.painel(T0).copia;
+  teste("o painel leva a copia do treino", [true, c.it.length > 0, c.it[0].s.length > 0], [!!c, c.it.length === snap().itens.length, true]);
+  teste("... com o uid, o descanso e as series de cada exercicio", [snap().itens[0].uid, 90], [c.it[0].u, c.it[0].d]);
+  const r1 = bs.acao({ a: "feito", ei: 0, p: 80, r: 10, k: "abc123" }, T0);
+  teste("o toque do relogio leva o id ate o acontecimento", "abc123", bs.eventos().slice(-1)[0].k);
+  const n1 = bs.eventos().length;
+  const u = snap().itens[0].uid;
+  const df = bs.deFora([{ t: "a", u: u, i: 0, p: "80", r: "10", k: "abc123" }], 0, 0, T0 + 1000);
+  teste("o mesmo id que volta do relogio nao entra duas vezes", [false, n1], [df.mudou, bs.eventos().length]);
+  const antes = bs.painel(T0 + 2000).feitas;
+  const df2 = bs.deFora([{ t: "a", u: u, r: "8", p: "80", k: "sem1" }, { t: "a", u: u, r: "6", p: "80", k: "sem2" }], 0, T0 + 90000, T0 + 2000);
+  teste("o que o relogio anotou sem o celular entra no treino", [true, antes + 2], [df2.mudou, bs.painel(T0 + 2000).feitas]);
+  teste("... com o descanso que corria no relogio", T0 + 90000, df2.descansoAte);
+  teste("... e os ids confirmados", ["sem1", "sem2"], df2.aceitos);
+  teste("... os acontecimentos passam na conferencia de quem chega de fora", 2, B.eventosBolsoValidos(bs.eventos().slice(-2)).length);
+  const b2 = criarBolso(Object.assign(snap(), { vistos: ["ja1"] }), EXERCICIOS);
+  teste("o id que a pagina ja aplicou tambem nao entra", false, b2.deFora([{ t: "a", u: u, r: "8", k: "ja1" }], 0, 0, T0).mudou);
+}
 (async () => {
   const m = await B.cifrarBolso(ca, { ev: ev2, ts: 5 });
   // com aspas: "u1" solto aparece por acaso no base64 de vez em quando (o CI

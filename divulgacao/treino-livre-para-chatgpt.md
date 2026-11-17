@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-16i**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-17b**.
 
 ---
 
@@ -235,6 +235,10 @@ com cenas reais → halter) como linguagem visual em vídeos.
 - Começou o treino no celular, o app **abre sozinho no relógio**.
 - Instalação guiada: **Ajustes → Conectar aparelhos → ⌚ Instalar o app no relógio → Instalar no relógio agora**: o celular acha o relógio no Wi-Fi e instala; a pessoa só digita o código de 6 números do relógio.
 - Ainda não está na loja do relógio: instala pelo modo de desenvolvedor (o assistente explica). Só Android.
+
+- **Sem o celular** (novo em 2026-11-17b): se a bateria do celular acabar no meio do treino, o relógio continua
+  sozinho (séries, descanso com vibração, ◀ ▶) e entrega tudo ao celular quando ele voltar. Só depois que o treino
+  começou no celular. Aeróbico sem o celular só marca a série.
 
 ### 3.3 Jarvis — o assistente de voz 🎤
 O principal diferencial. A pessoa **fala** e ele anota, sem tocar no celular, com a mão suja de magnésio.

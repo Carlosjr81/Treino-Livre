@@ -768,7 +768,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.923 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 1.932 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -853,7 +853,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v208) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v209) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4566,6 +4566,41 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   pulseiras não instalam app de fora: o cartão leva ao batimento ao vivo e à
   Conexão Saúde. Apple Watch: o cartão diz que não dá. Quem já tinha começado
   a instalar entra como Galaxy Watch.
+- **Sem o celular, o relógio segue sozinho** (`SemCelular.kt`, pedido do
+  dono, 2026-11-17b: "acabou a bateria do celular e o treino no relógio não
+  deu continuidade"). Cada painel leva a **cópia do treino** (`copia`, montada
+  por `copiaRelogio` no motor do bolso: cada exercício com uid, nome, tempo,
+  aeróbico, descanso, recorde, pulado, bi-set e as séries), e o relógio a
+  guarda. Sem o celular, ele anota com **as mesmas regras do motor**
+  (`alvoDaSessao`, sem descanso antes do drop, entre os parceiros do bi-set
+  e depois da última série), conta o descanso, vibra aos 10 s e no fim
+  (era o celular que avisava), e guarda tudo (`semCelular` no aparelho: o app
+  pode ser reaberto no meio). Mostra "📴 Sem o celular: o relógio anota
+  sozinho (N para entregar)".
+  - **Quando entra**: um toque sem celular conectado, um ✓ sem resposta em 6 s
+    ou respondido "sem treino" (o mesmo toque é aplicado no relógio), ou o
+    botão **⌚ Continuar no relógio**, que aparece quando o celular voltou sem o
+    Jarvis ligado (o `desligado` com `semJarvis`, do `OuvinteRelogio`). Não
+    entra sozinho nesse caso porque "sem treino no celular" também é quem tocou
+    em Finalizar treino lá.
+  - **Cada série leva um id** (`k`) desde o toque: o ✓ que ficou sem resposta e
+    foi anotado no relógio não entra duas vezes se o celular o tiver recebido
+    (`vistosK` no motor; `vistos` da página).
+  - **A entrega**: a cada 10 s o relógio procura o celular e manda
+    `/treino/sem-celular` (`{ ev, foco, da }`). O `OuvinteRelogio` guarda
+    (`relogioPend`, `guardarDoRelogio`) e responde `/treino/sem-celular-ok`
+    com os ids e se o Jarvis está ligado. Ligado, `incorporarRelogio` passa
+    pelo motor (`bolso.deFora`) e segue o caminho de sempre (canal cifrado ou
+    `#bolso=`); o painel novo devolve o relógio ao celular. Sem o Jarvis, uma
+    notificação "⌚ Toque para levar ao treino" (`avisarRelogio`) leva pelo
+    `#bolso=` (`tirarPendentes` junta o `relogioPend`), e a próxima cópia
+    da página também o incorpora.
+  - **Painel velho não tira o relógio do modo sem celular**: só um painel com
+    `agora` depois da hora em que ele ficou sozinho, ativo e com tudo entregue.
+  - O aeróbico sem o celular só marca a série (não há esteira nem ▶ para medir).
+  - Coberto por `teste-bolso.js` (a cópia, o id que volta, o que entra, os
+    vistos). **Não validado num relógio**: o `SemCelular` foi conferido só no
+    código e compilado pelo Actions.
 - **O relógio abre sozinho** quando o treino começa no celular (pedido do
   dono, 2026-11-11b: "sempre que estiver usando o app no celular ele já abre
   também no relógio"): o `BolsoService`, ao ligar, chama
@@ -5684,7 +5719,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 40 suítes (1.923 checagens)
+node testes/rodar.js      # as 40 suítes (1.932 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

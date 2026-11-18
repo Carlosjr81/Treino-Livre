@@ -741,15 +741,12 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         val resta = ((ate - agora + 999) / 1000).toInt()
         // no ambiente a tela só é redesenhada uma vez por minuto
         relogio.text = if (ambiente) "~" + ((resta + 59) / 60) + " min" else (resta / 60).toString() + ":" + (resta % 60).toString().padStart(2, '0')
-        val cor = when {
-            ambiente -> Color.WHITE
-            resta <= 3 -> Cores.VERMELHO
-            resta <= 10 -> Cores.AMARELO
-            else -> Cores.VERDE
-        }
+        val fracao = ((ate - agora).toFloat() / descTotal).coerceIn(0f, 1f)
+        // o número tem a cor da ponta do anel: muda aos poucos, do verde ao vermelho
+        val cor = if (ambiente) Color.WHITE else Cores.doDescanso(fracao)
         relogio.setTextColor(cor)
         rotuloDescanso.setTextColor(if (ambiente) Cores.CINZA else cor)
-        palco.descanso(((ate - agora).toFloat() / descTotal).coerceIn(0f, 1f), resta)
+        palco.descanso(fracao, resta)
         if (!ambiente && resta != ultimoSegundo) {
             ultimoSegundo = resta
             // os 3 últimos segundos pulsam

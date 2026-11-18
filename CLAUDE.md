@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v210) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v211) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4508,8 +4508,13 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   a atenção das pessoas ao redor, além de quem usa"). Um anel colorido gira na
   borda da tela redonda (`Palco`, uma View desenhada à mão, sem biblioteca):
   no treino, **uma fatia por série** (as feitas no degradê da marca, a da vez
-  piscando); no descanso ele **esvazia** em verde, fica amarelo nos 10 últimos
-  segundos e vermelho nos 3 últimos (o número pulsa), com o "+30 s" alongando o
+  piscando); no descanso ele **esvazia** passando por um degradê contínuo do
+  tempo (2026-11-18a, pedido do dono: "mais gradiente para demonstrar o tempo
+  passando"; antes eram três degraus, verde, amarelo nos 10 s e vermelho nos
+  3 s): `Cores.doDescanso(fração)` vai de verde-água a verde, lima, amarelo,
+  laranja e vermelho, o anel é esse degradê parado (cada ponto é um momento do
+  descanso, `DESCANSO_POS`), e a ponta do arco, o número, o rótulo e a luz do
+  fundo têm sempre a mesma cor (os 3 últimos segundos pulsam), com o "+30 s" alongando o
   anel em vez de reenchê-lo (`anotarTotal`); procurando o celular, um arco
   girando; no fim, dourado. Fundo com uma luz na cor do momento. Botões em
   pílula com degradê (o ✓ FEITO na cor da marca; **dourado** quando a carga

@@ -26,13 +26,47 @@ object Cores {
     val VERMELHO = Color.parseColor("#FF4757")
     val OURO = Color.parseColor("#FFD43B")
     val CINZA = Color.parseColor("#9A9AA5")
+
+    // O descanso passando em cor (pedido do dono, 2026-11-18a: "mais gradiente
+    // para demonstrar o tempo passando"). Em vez de três degraus (verde, amarelo
+    // nos 10 s, vermelho nos 3 s), a cor anda sem saltos pela fração que falta:
+    // verde-água cheio, verde, lima, amarelo, laranja e vermelho no fim. A
+    // posição de cada cor é a mesma no anel (DESCANSO_POS), então a ponta do
+    // arco tem sempre a cor do número.
+    val DESCANSO_CORES = intArrayOf(
+        Color.parseColor("#FF3B4E"), // 0: acabou
+        Color.parseColor("#FF6A2B"), // laranja forte
+        Color.parseColor("#FF9F1C"), // laranja
+        Color.parseColor("#FFD23C"), // amarelo
+        Color.parseColor("#B6E83A"), // lima
+        Color.parseColor("#4CD964"), // verde
+        Color.parseColor("#1DE9B6"), // 1: começou
+    )
+    val DESCANSO_POS = floatArrayOf(0f, 0.1f, 0.22f, 0.38f, 0.56f, 0.78f, 1f)
+
+    fun doDescanso(fracao: Float): Int {
+        val f = fracao.coerceIn(0f, 1f)
+        for (i in 1 until DESCANSO_POS.size) {
+            if (f <= DESCANSO_POS[i]) {
+                val t = (f - DESCANSO_POS[i - 1]) / (DESCANSO_POS[i] - DESCANSO_POS[i - 1])
+                return misturar(DESCANSO_CORES[i - 1], DESCANSO_CORES[i], t)
+            }
+        }
+        return DESCANSO_CORES.last()
+    }
+
+    fun misturar(a: Int, b: Int, t: Float): Int {
+        val u = t.coerceIn(0f, 1f)
+        fun c(x: Int, y: Int) = (x + (y - x) * u).toInt()
+        return Color.rgb(c(Color.red(a), Color.red(b)), c(Color.green(a), Color.green(b)), c(Color.blue(a), Color.blue(b)))
+    }
 }
 
 // Pedido do dono (2026-11-13a): "chame a atenção de quem está em volta, além de
 // quem usa". O palco é o anel colorido que gira na borda da tela redonda: no
 // treino ele é dividido em uma fatia por série (as feitas acesas no degradê da
-// marca, a da vez piscando); no descanso ele esvazia em verde, fica amarelo nos
-// últimos 10 s e vermelho nos 3 últimos; no fim do treino, dourado. Com
+// marca, a da vez piscando); no descanso ele esvazia passando pelo degradê do
+// tempo (Cores.doDescanso: verde, amarelo, laranja, vermelho); no fim do treino, dourado. Com
 // `frente`, a mesma classe desenha por cima de tudo só o clarão e a onda da
 // comemoração (sem pegar toque).
 //
@@ -95,21 +129,14 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
     }
 
     private fun coresArco(): IntArray = when (modo) {
-        Modo.DESCANSO -> when {
-            resta <= 3 -> intArrayOf(Cores.VERMELHO, Cores.LARANJA, Cores.VERMELHO)
-            resta <= 10 -> intArrayOf(Cores.AMARELO, Cores.LARANJA, Cores.AMARELO)
-            else -> intArrayOf(Cores.VERDE, Cores.CIANO, Cores.VERDE)
-        }
+        Modo.DESCANSO -> Cores.DESCANSO_CORES
         Modo.FIM -> intArrayOf(Cores.OURO, Cores.LARANJA, Cores.ROSA, Cores.ROXO, Cores.OURO)
         else -> intArrayOf(Cores.LARANJA, Cores.ROSA, Cores.ROXO, Cores.ROSA, Cores.LARANJA)
     }
 
     private fun corFundo(): Int = when (modo) {
-        Modo.DESCANSO -> when {
-            resta <= 3 -> Color.parseColor("#3D0A10")
-            resta <= 10 -> Color.parseColor("#3A2A06")
-            else -> Color.parseColor("#06301C")
-        }
+        // a luz do fundo acompanha a ponta do arco, escurecida
+        Modo.DESCANSO -> Cores.misturar(Cores.doDescanso(mostrada), Color.BLACK, 0.72f)
         Modo.FIM -> Color.parseColor("#3A2C00")
         else -> Color.parseColor("#2E0B33")
     }
@@ -173,9 +200,13 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
         val ka = cores.joinToString(",") + ":$cx:$cy"
         if (ka != chaveArco) {
             chaveArco = ka
-            gradArco = SweepGradient(cx, cy, cores, null)
+            gradArco = SweepGradient(cx, cy, cores, if (modo == Modo.DESCANSO) Cores.DESCANSO_POS else null)
         }
-        giroM.setRotate(giro, cx, cy)
+        // no descanso o degradê fica parado, começando no alto: cada ponto do
+        // anel é um momento do descanso, e quem anda é a ponta do arco
+        // -96 e não -90: a ponta redonda do começo do arco fica no vermelho, sem
+        // o verde-água do outro lado da emenda
+        giroM.setRotate(if (modo == Modo.DESCANSO) -96f else giro, cx, cy)
         gradArco?.setLocalMatrix(giroM)
 
         pTrilho.shader = null; pTrilho.strokeWidth = sw; pTrilho.color = 0x26FFFFFF
@@ -185,7 +216,7 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
         val pulso = 0.5f + 0.5f * sin(agora / 160.0).toFloat()
         pBrilho.alpha = when (modo) {
             Modo.FIM -> (60 + 90 * pulso).toInt()
-            Modo.DESCANSO -> if (resta <= 10) (50 + 100 * pulso).toInt() else 60
+            Modo.DESCANSO -> if (resta <= 10) (70 + 120 * pulso).toInt() else 85
             else -> 55
         }
 
@@ -245,7 +276,7 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
                 if (mostrada > 0.005f) {
                     cv.drawArc(oval, -90f, 360f * mostrada, false, pBrilho)
                     cv.drawArc(oval, -90f, 360f * mostrada, false, pArco)
-                    cometa(cv, cx, cy, sw, -90f + 360f * mostrada)
+                    cometa(cv, cx, cy, sw, -90f + 360f * mostrada, Cores.doDescanso(mostrada))
                 }
             }
         }
@@ -253,14 +284,15 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
     }
 
     // a ponta do arco: um ponto branco com halo, o que mais chama o olho
-    private fun cometa(cv: Canvas, cx: Float, cy: Float, sw: Float, graus: Float) {
+    private fun cometa(cv: Canvas, cx: Float, cy: Float, sw: Float, graus: Float, halo: Int = Color.WHITE) {
         val rr = oval.width() / 2f
         val rad = Math.toRadians(graus.toDouble())
         val px = cx + rr * cos(rad).toFloat()
         val py = cy + rr * sin(rad).toFloat()
+        pPonto.color = halo
+        pPonto.alpha = if (halo == Color.WHITE) 70 else 150
+        cv.drawCircle(px, py, sw * (if (halo == Color.WHITE) 1.1f else 1.5f), pPonto)
         pPonto.color = Color.WHITE
-        pPonto.alpha = 70
-        cv.drawCircle(px, py, sw * 1.1f, pPonto)
         pPonto.alpha = 255
         cv.drawCircle(px, py, sw * 0.5f, pPonto)
     }

@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-18a — O descanso no relógio muda de cor aos poucos
+
+**Em uma frase:** no Galaxy Watch, o anel e o número do descanso agora passam devagar do verde ao amarelo, ao laranja e ao vermelho, mostrando o tempo escorrendo.
+
+**O que mudou**
+- Antes eram três cores fixas (verde, amarelo nos últimos 10 segundos e vermelho nos últimos 3). Agora a cor anda sem saltos durante todo o descanso.
+- O anel é um degradê do vermelho ao verde, e a ponta dele, o número e a luz do fundo têm sempre a mesma cor.
+- Nos últimos segundos o brilho pulsa mais forte.
+
+**Por que importa para quem treina**
+- Uma olhada rápida no pulso já diz quanto falta, sem ler o número: verde é tempo de sobra, amarelo é para se preparar, laranja e vermelho é hora de voltar.
+
+**Como usar**
+- Atualize o app do relógio. Marque uma série e acompanhe o descanso no pulso.
+
+**Ideias de vídeo**
+- Close no relógio durante um descanso inteiro, acelerado: o anel encolhendo e a cor indo do verde ao vermelho, e o corte para a próxima série.
+
+**Não prometer**
+- Só no Galaxy Watch (e outros com Wear OS) com o app do relógio atualizado. Com a tela apagada (modo ambiente) continua cinza, para poupar a bateria.
+
+---
+
 ## 2026-11-17c — O vídeo de como apoiar agora ensina pelo app
 
 **Em uma frase:** o "▶ Ver como" do apoio agora abre o vídeo que mostra como apoiar a partir do próprio Treino Livre.

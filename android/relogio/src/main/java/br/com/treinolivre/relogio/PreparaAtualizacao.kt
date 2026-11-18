@@ -33,13 +33,17 @@ import java.net.Inet4Address
 // tela: liga o Wi-Fi do relógio (ele fica desligado enquanto o Bluetooth basta),
 // liga a Depuração ADB e a por Wi-Fi ela mesma (com a permissão
 // WRITE_SECURE_SETTINGS, que o celular dá pelo ADB ao instalar), e manda ao
-// celular o endereço do relógio no Wi-Fi. O celular acha a porta e instala.
+// celular o endereço do relógio no Wi-Fi e a porta (2026-11-18b: o relógio
+// procura a porta no próprio endereço, o que leva um instante ali e poupa o
+// celular de procurar às cegas ou de pedir para digitar). O celular instala.
 // Sem a permissão (a primeira vez), um botão abre as Opções do desenvolvedor.
 class PreparaAtualizacao : ComponentActivity() {
     private val linha = Handler(Looper.getMainLooper())
     private lateinit var estado: TextView
     private lateinit var abrir: Button
     private var ultimoIp = ""
+    @Volatile private var procurando = false
+    private var procurouEm = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -134,6 +138,42 @@ class PreparaAtualizacao : ComponentActivity() {
         Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nos ->
             nos.forEach { no -> Wearable.getMessageClient(this).sendMessage(no.id, "/treino/atualizar", dados) }
         }
+        procurarPortas(ip)
+    }
+
+    // A porta da Depuração por Wi-Fi é sorteada entre 30000 e 49999 a cada vez
+    // que ela liga, e o relógio não a diz a app nenhum. Mas ele mesmo pode bater
+    // em cada porta do próprio endereço: porta fechada responde na hora. As
+    // abertas vão ao celular em "/treino/portas" ("ip|p1,p2"), que tenta cada
+    // uma. Um caminho à parte do "/treino/atualizar", que o celular antigo lê
+    // como o endereço inteiro.
+    private fun procurarPortas(ip: String) {
+        val agora = System.currentTimeMillis()
+        if (procurando || agora - procurouEm < 20_000L) return
+        if (!depuracaoLigada()) return
+        procurando = true
+        procurouEm = agora
+        Thread {
+            val abertas = java.util.concurrent.ConcurrentLinkedQueue<Int>()
+            val pool = java.util.concurrent.Executors.newFixedThreadPool(96)
+            try {
+                (30000..49999).forEach { p ->
+                    pool.submit {
+                        try { java.net.Socket().use { s -> s.connect(java.net.InetSocketAddress(ip, p), 400) }; abertas.add(p) } catch (e: Exception) { }
+                    }
+                }
+                pool.shutdown()
+                pool.awaitTermination(40, java.util.concurrent.TimeUnit.SECONDS)
+            } catch (e: Exception) { } finally { pool.shutdownNow() }
+            val l = abertas.toList().sorted()
+            procurando = false
+            if (l.isEmpty() || isFinishing || isDestroyed) return@Thread
+            val dados = (ip + "|" + l.joinToString(",")).toByteArray(Charsets.UTF_8)
+            Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nos ->
+                nos.forEach { no -> Wearable.getMessageClient(this).sendMessage(no.id, "/treino/portas", dados) }
+            }
+            linha.post { estado.text = "Wi-Fi: $ip ✓\nAchei a porta ✓\nO celular está instalando…" }
+        }.start()
     }
 }
 

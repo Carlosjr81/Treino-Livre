@@ -202,7 +202,6 @@ class InstaladorRelogio : ComponentActivity() {
         }
         manual.addView(enderecoCon, lp(6))
         caixa.addView(manual, lp(10))
-        if (getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("pareado", false)) manual.visibility = View.VISIBLE
 
         val ajuda = cartao()
         ajuda.addView(texto(15f, negrito = true, t = "🆘 Se aparecer uma mensagem de erro"))
@@ -227,7 +226,11 @@ class InstaladorRelogio : ComponentActivity() {
         linha.postDelayed({ if (!auto && hostPar == null && hostCon == null) manual.visibility = View.VISIBLE }, 25_000L)
 
         aberto = true
-        auto = intent?.data?.getQueryParameter("auto") == "1"
+        // Já pareado, abrir o instalador é sempre o modo automático (pedido do
+        // dono, 2026-11-18b: "sem precisar digitar IP"): o relógio liga a
+        // depuração, acha a própria porta e manda ao celular. Os campos de
+        // endereço só aparecem se isso falhar.
+        auto = intent?.data?.getQueryParameter("auto") == "1" || jaPareado
         if (auto && jaPareado) {
             cartaoEstado.visibility = View.VISIBLE
             val escondidos = listOf<View>(c1, c2, c3, manual, ajuda, registro)
@@ -327,8 +330,19 @@ class InstaladorRelogio : ComponentActivity() {
         if (auto) progresso.text = t
     }
 
+    // "192.168.176..28:35803" (o dono digitou assim): ponto dobrado e espaços
+    // são corrigidos; o que não for endereço:porta é ignorado com aviso.
+    private fun limparEndereco(t: String): String {
+        val s = t.trim().replace(" ", "").replace(",", ".").replace(Regex("\\.{2,}"), ".")
+        if (s.isEmpty()) return ""
+        return if (Regex("^\\d{1,3}(\\.\\d{1,3}){3}:\\d{2,5}$").matches(s)) s else { log("⚠ Ignorei o endereço \"" + t.trim() + "\": o certo é como 192.168.0.12:37123."); "" }
+    }
+
     private fun instalar(comCodigo: Boolean) {
         if (trabalhando) return
+        endereco.setText(limparEndereco(endereco.text.toString()))
+        enderecoCon.setText(limparEndereco(enderecoCon.text.toString()))
+        if (!comCodigo) pedirAoRelogio()
         val cod = codigo.text.toString().trim()
         if (comCodigo && cod.length != 6) { log("⚠ Digite os 6 números que aparecem na tela do relógio."); return }
         // o endereço digitado vence o achado (é o do pareamento)
@@ -361,6 +375,7 @@ class InstaladorRelogio : ComponentActivity() {
                     inicioAuto = 0L
                     fase("⚠ Não consegui falar com o relógio.\n\nConfira: relógio no pulso, no mesmo Wi-Fi do celular (ou no Roteador Wi-Fi do celular), e a Depuração por Wi-Fi ligada nele (Configurações → Opções do desenvolvedor).")
                     deNovo.visibility = View.VISIBLE
+                    manual.visibility = View.VISIBLE
                 }
             }
         }
@@ -376,7 +391,17 @@ class InstaladorRelogio : ComponentActivity() {
             if (bytesApk == null) log("✓ Baixado (" + (bytes.size / 1024) + " KB).")
             bytesApk = bytes
             // o endereço que o próprio relógio mandou (vale por 10 minutos)
+            // sem código, espera um pouco o relógio mandar o endereço e a porta
+            if (!comCodigo) {
+                var e = 0
+                while (e < 40 && (Relogio.dicaPortas.isEmpty() || System.currentTimeMillis() - Relogio.dicaEm > 10 * 60_000L)) {
+                    if (e == 0) log("⌚ Pedindo ao relógio o endereço e a porta dele…")
+                    Thread.sleep(500); e++
+                }
+            }
             val dica = Relogio.dicaHost?.takeIf { System.currentTimeMillis() - Relogio.dicaEm < 10 * 60_000L }
+            val dicaPortas = if (dica != null) Relogio.dicaPortas else emptyList()
+            if (dica != null && dicaPortas.isNotEmpty()) log("✓ O relógio mandou: " + dica + " (porta " + dicaPortas.joinToString(", ") + ").")
             val digCon0 = enderecoCon.text.toString().trim().let { if (it.contains(":")) it.substringBeforeLast(":") else "" }
             val alvo = hp ?: digCon0.ifEmpty { null } ?: dica ?: hostCon
                 ?: getSharedPreferences(PREFS, MODE_PRIVATE).getString("ultimoHost", null)?.ifEmpty { null }
@@ -405,13 +430,15 @@ class InstaladorRelogio : ComponentActivity() {
             // certo e, por fim, procurar a porta nova no endereço do relógio.
             val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
             val candidatos = LinkedHashSet<Pair<String, Int>>()
+            // o que o próprio relógio achou vem primeiro
+            if (dica != null) dicaPortas.forEach { candidatos.add(dica to it) }
             val digCon = enderecoCon.text.toString().trim()
             if (digCon.contains(":")) {
                 val p = digCon.substringAfterLast(":").toIntOrNull() ?: 0
                 if (p > 0) candidatos.add(digCon.substringBeforeLast(":") to p)
             }
             var espera = 0
-            val limite = if (comCodigo) 16 else 6
+            val limite = if (comCodigo) 16 else if (candidatos.isNotEmpty()) 0 else 6
             while ((hostCon == null || portaCon <= 0) && espera < limite) { Thread.sleep(500); espera++ }
             if (hostCon != null && portaCon > 0) candidatos.add(hostCon!! to portaCon)
             val salvo = prefs.getString("ultimoCon", "") ?: ""

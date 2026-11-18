@@ -30,9 +30,8 @@ object Cores {
     // O descanso passando em cor (pedido do dono, 2026-11-18a: "mais gradiente
     // para demonstrar o tempo passando"). Em vez de três degraus (verde, amarelo
     // nos 10 s, vermelho nos 3 s), a cor anda sem saltos pela fração que falta:
-    // verde-água cheio, verde, lima, amarelo, laranja e vermelho no fim. A
-    // posição de cada cor é a mesma no anel (DESCANSO_POS), então a ponta do
-    // arco tem sempre a cor do número.
+    // verde-água cheio, verde, lima, amarelo, laranja e vermelho no fim. O anel,
+    // o número e o fundo têm sempre a mesma cor, a do momento (2026-11-18b).
     val DESCANSO_CORES = intArrayOf(
         Color.parseColor("#FF3B4E"), // 0: acabou
         Color.parseColor("#FF6A2B"), // laranja forte
@@ -66,7 +65,8 @@ object Cores {
 // quem usa". O palco é o anel colorido que gira na borda da tela redonda: no
 // treino ele é dividido em uma fatia por série (as feitas acesas no degradê da
 // marca, a da vez piscando); no descanso ele esvazia passando pelo degradê do
-// tempo (Cores.doDescanso: verde, amarelo, laranja, vermelho); no fim do treino, dourado. Com
+// tempo (Cores.doDescanso: verde, amarelo, laranja, vermelho), o anel inteiro
+// numa cor só, a do momento; no fim do treino, dourado. Com
 // `frente`, a mesma classe desenha por cima de tudo só o clarão e a onda da
 // comemoração (sem pegar toque).
 //
@@ -129,7 +129,14 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
     }
 
     private fun coresArco(): IntArray = when (modo) {
-        Modo.DESCANSO -> Cores.DESCANSO_CORES
+        // O anel inteiro na cor do momento, com um brilho da mesma cor girando
+        // (pedido do dono, 2026-11-18b: a cor seguinte não pode aparecer antes
+        // de o tempo chegar nela; antes o anel mostrava o degradê todo). A cor
+        // é medida em passos de 1/400 para o degradê não ser refeito a cada quadro.
+        Modo.DESCANSO -> {
+            val c = Cores.doDescanso((mostrada * 400f).toInt() / 400f)
+            intArrayOf(c, Cores.misturar(c, Color.WHITE, 0.35f), c, Cores.misturar(c, Color.BLACK, 0.25f), c)
+        }
         Modo.FIM -> intArrayOf(Cores.OURO, Cores.LARANJA, Cores.ROSA, Cores.ROXO, Cores.OURO)
         else -> intArrayOf(Cores.LARANJA, Cores.ROSA, Cores.ROXO, Cores.ROSA, Cores.LARANJA)
     }
@@ -200,13 +207,9 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
         val ka = cores.joinToString(",") + ":$cx:$cy"
         if (ka != chaveArco) {
             chaveArco = ka
-            gradArco = SweepGradient(cx, cy, cores, if (modo == Modo.DESCANSO) Cores.DESCANSO_POS else null)
+            gradArco = SweepGradient(cx, cy, cores, null)
         }
-        // no descanso o degradê fica parado, começando no alto: cada ponto do
-        // anel é um momento do descanso, e quem anda é a ponta do arco
-        // -96 e não -90: a ponta redonda do começo do arco fica no vermelho, sem
-        // o verde-água do outro lado da emenda
-        giroM.setRotate(if (modo == Modo.DESCANSO) -96f else giro, cx, cy)
+        giroM.setRotate(giro, cx, cy)
         gradArco?.setLocalMatrix(giroM)
 
         pTrilho.shader = null; pTrilho.strokeWidth = sw; pTrilho.color = 0x26FFFFFF

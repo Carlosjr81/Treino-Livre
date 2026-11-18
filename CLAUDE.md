@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v211) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v212) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4512,9 +4512,11 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   tempo (2026-11-18a, pedido do dono: "mais gradiente para demonstrar o tempo
   passando"; antes eram três degraus, verde, amarelo nos 10 s e vermelho nos
   3 s): `Cores.doDescanso(fração)` vai de verde-água a verde, lima, amarelo,
-  laranja e vermelho, o anel é esse degradê parado (cada ponto é um momento do
-  descanso, `DESCANSO_POS`), e a ponta do arco, o número, o rótulo e a luz do
-  fundo têm sempre a mesma cor (os 3 últimos segundos pulsam), com o "+30 s" alongando o
+  laranja e vermelho. **O anel inteiro fica numa cor só, a do momento**, com
+  um brilho mais claro da mesma cor girando (2026-11-18b, o dono: a cor
+  seguinte não pode aparecer antes de o tempo chegar nela; a 18a pintava o
+  degradê todo no anel), e o número, o rótulo e a luz do fundo têm a mesma
+  cor (os 3 últimos segundos pulsam), com o "+30 s" alongando o
   anel em vez de reenchê-lo (`anotarTotal`); procurando o celular, um arco
   girando; no fim, dourado. Fundo com uma luz na cor do momento. Botões em
   pílula com degradê (o ✓ FEITO na cor da marca; **dourado** quando a carga
@@ -4563,8 +4565,22 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   - Pelo relógio: o "⬆ Atualizar o app" abre a tela de atualizar, que manda o
     endereço; o celular abre o instalador sozinho com "Aparecer sobre outros
     apps", ou mostra a notificação "⌚ Atualizar o app do relógio" (um toque).
+  - **O relógio acha a própria porta** (2026-11-18b, o dono, com print de um
+    endereço digitado errado, "192.168.176..28": "sem precisar digitar IP").
+    A tela de atualizar, com a depuração ligada, bate em cada porta de 30000
+    a 49999 **no próprio endereço** (porta fechada responde na hora, ali é
+    rápido; o app do relógio ganhou a permissão INTERNET) e manda as abertas
+    em `/treino/portas` ("ip|p1,p2"; caminho à parte porque o celular
+    antigo lê o `/treino/atualizar` inteiro como endereço). O celular guarda
+    em `Relogio.dicaPortas`, espera até 20 s por elas e tenta essas primeiro.
+    **Já pareado, abrir o instalador é sempre o modo automático**: os campos
+    de endereço só aparecem se falhar. O endereço digitado é limpo
+    (`limparEndereco`: ponto dobrado, vírgula, espaço) e, se não for
+    endereço:porta, ignorado com aviso. A primeira vez continua pedindo o
+    código de 6 números: é a segurança do Android, sem jeito de pular.
   - **Não validado num relógio**: o `adb_wifi_enabled` escrito pelo app, o
-    `requestNetwork` do Wi-Fi e a tela aberta pelo celular.
+    `requestNetwork` do Wi-Fi, a tela aberta pelo celular e a procura da
+    porta no próprio relógio.
 - **Outras marcas** (2026-11-13a): o assistente de instalar começa com **"Qual
   é o seu relógio?"** (`MARCAS_RELOGIO`, guardado em
   `treinolivre:relogioMarca`): Galaxy Watch, Pixel Watch e "outro com Wear

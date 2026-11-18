@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-11-18b — Atualizar o relógio sem digitar nada, e o anel do descanso numa cor só
+
+**Em uma frase:** o relógio agora diz ao celular o próprio endereço e porta, e atualizar o app do relógio virou só esperar; e o anel do descanso fica inteiro na cor do momento.
+
+**O que mudou**
+- Para atualizar o app do relógio, não precisa mais digitar endereço nem porta: o celular pede, o relógio liga a conexão, acha a porta e manda. O celular instala sozinho.
+- Os campos para digitar só aparecem se algo der errado. E um endereço digitado com ponto a mais ("192.168.0..12") é corrigido sozinho.
+- No descanso, o anel do relógio fica inteiro numa cor só, que muda aos poucos do verde ao amarelo, ao laranja e ao vermelho. A cor seguinte só aparece quando o tempo chega nela.
+
+**Por que importa para quem treina**
+- Atualizar o relógio deixa de ser coisa de técnico.
+- O anel numa cor só se lê de longe: a cor diz quanto falta.
+
+**Como usar**
+- Atualize o app do celular. No relógio, toque em ⬆ Atualizar o app (ou, no celular, em ⬆ Atualizar o relógio) e espere com o relógio no pulso, perto do celular.
+
+**Ideias de vídeo**
+- Antes e depois: a tela antiga cheia de campos de endereço, e agora um toque e "Pronto! O app do relógio foi atualizado".
+- Close no anel do relógio trocando de cor durante um descanso.
+
+**Não prometer**
+- A primeira instalação no relógio ainda pede o código de 6 números que aparece nele (segurança do Android). Só para relógios com Wear OS (Galaxy Watch e outros). Precisa da Depuração por Wi-Fi permitida uma vez.
+
+---
+
 ## 2026-11-18a — O descanso no relógio muda de cor aos poucos
 
 **Em uma frase:** no Galaxy Watch, o anel e o número do descanso agora passam devagar do verde ao amarelo, ao laranja e ao vermelho, mostrando o tempo escorrendo.

@@ -11,6 +11,8 @@
     <!-- a atualização com um toque: liga o Wi-Fi do relógio e a Depuração por
          Wi-Fi (esta só vale depois que o celular a concede pelo ADB) -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- procurar a porta da Depuração por Wi-Fi no próprio relógio (2026-11-18b) -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />

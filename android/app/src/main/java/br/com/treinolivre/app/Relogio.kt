@@ -39,6 +39,9 @@ object Relogio {
     // o endereço do relógio no Wi-Fi, que ele mesmo mandou (o instalador usa)
     @Volatile var dicaHost: String? = null
     @Volatile var dicaEm = 0L
+    // as portas abertas que o relógio achou nele mesmo (2026-11-18b)
+    const val PORTAS = "/treino/portas"
+    @Volatile var dicaPortas: List<Int> = emptyList()
 
     fun versaoDoCelular(contexto: Context): Long = try {
         val i = contexto.packageManager.getPackageInfo(contexto.packageName, 0)
@@ -125,6 +128,13 @@ class OuvinteRelogio : WearableListenerService() {
             contexto.getSharedPreferences("relogio", Context.MODE_PRIVATE).edit().putLong("versao", v).putLong("em", System.currentTimeMillis()).apply()
             val meu = if (InstaladorRelogio.ATUALIZA_PELO_WIFI) Relogio.versaoDoCelular(contexto) else 0L
             try { Wearable.getMessageClient(contexto).sendMessage(m.sourceNodeId, Relogio.CELULAR, meu.toString().toByteArray(Charsets.UTF_8)) } catch (e: Exception) { }
+            return
+        }
+        if (m.path == Relogio.PORTAS) {
+            val t = String(m.data, Charsets.UTF_8).trim()
+            val ip = t.substringBefore("|")
+            val ps = t.substringAfter("|", "").split(",").mapNotNull { it.trim().toIntOrNull() }.filter { it in 1..65535 }
+            if (ip.isNotEmpty() && ps.isNotEmpty()) { Relogio.dicaHost = ip; Relogio.dicaPortas = ps; Relogio.dicaEm = System.currentTimeMillis() }
             return
         }
         if (m.path == Relogio.ATUALIZAR) {

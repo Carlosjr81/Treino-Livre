@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v214) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v215) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4593,9 +4593,22 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
     (`limparEndereco`: ponto dobrado, vírgula, espaço) e, se não for
     endereço:porta, ignorado com aviso. A primeira vez continua pedindo o
     código de 6 números: é a segurança do Android, sem jeito de pular.
+  - **Sem toque nenhum** (2026-11-18e, pedido do dono: "quando a atualização
+    for para o celular e o relógio, já busque o relógio e atualize sem
+    apertar mais nada"). O celular atualizado (`CelularAtualizado`,
+    `MY_PACKAGE_REPLACED`) pergunta a versão ao relógio
+    (`/treino/qual-versao`, que o `AlertaRelogio` responde sem abrir
+    tela); sem resposta em 9 s (o app do relógio antigo não sabe responder),
+    abre o app no relógio, que diz a versão ao abrir. Toda versão que chega
+    passa por `Relogio.talvezAtualizar`: relógio mais velho, celular já
+    pareado e nenhum treino em andamento → abre a tela de atualizar no
+    relógio, que puxa o instalador automático. No meio do treino espera: o
+    `BolsoService` chama de novo ao encerrar. Uma tentativa a cada 3 h por
+    versão (`autoVersao`, `autoEm`). O instalador abre sozinho só com
+    "Aparecer sobre outros apps"; sem ela, é a notificação de um toque.
   - **Não validado num relógio**: o `adb_wifi_enabled` escrito pelo app, o
-    `requestNetwork` do Wi-Fi, a tela aberta pelo celular e a procura da
-    porta no próprio relógio.
+    `requestNetwork` do Wi-Fi, a tela aberta pelo celular, a procura da
+    porta no próprio relógio e a atualização sem toque.
 - **Outras marcas** (2026-11-13a): o assistente de instalar começa com **"Qual
   é o seu relógio?"** (`MARCAS_RELOGIO`, guardado em
   `treinolivre:relogioMarca`): Galaxy Watch, Pixel Watch e "outro com Wear

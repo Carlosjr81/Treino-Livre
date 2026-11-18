@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-18e — O relógio se atualiza sozinho junto com o celular
+
+**Em uma frase:** quando sai versão nova do app, o celular atualizado confere o relógio e já atualiza o app do relógio também, sem nenhum toque.
+
+**O que mudou**
+- Depois que o app do celular é atualizado, ele pergunta ao relógio qual versão ele tem.
+- Se o relógio estiver atrás, o celular atualiza o relógio sozinho, pelo Wi-Fi.
+- Se for no meio de um treino, ele espera o treino acabar para não atrapalhar.
+
+**Por que importa para quem treina**
+- Relógio e celular sempre na mesma versão, sem precisar lembrar de atualizar os dois.
+
+**Como usar**
+- Basta atualizar o app do celular, com o relógio no pulso e perto do celular. Para ser 100% sem toque, deixe ligado "Aparecer sobre outros apps" para o Treino Livre; sem isso, aparece um aviso para tocar uma vez.
+
+**Ideias de vídeo**
+- O celular atualizando e, segundos depois, o relógio mostrando "Atualizando" e abrindo o app novo, sem ninguém tocar em nada.
+
+**Não prometer**
+- Precisa que o relógio já tenha sido instalado uma vez por este celular (o pareamento com o código). Relógio e celular no mesmo Wi-Fi ou no roteador do celular. Só relógios com Wear OS (Galaxy Watch e outros).
+
+---
+
 ## 2026-11-18d — A tela do relógio fica acesa durante o treino
 
 **Em uma frase:** com o treino aberto, a tela do relógio não apaga mais sozinha, nem entre uma série e outra.

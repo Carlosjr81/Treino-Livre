@@ -150,6 +150,15 @@
             </intent-filter>
         </service>
 
+        <!-- o app do celular foi atualizado: confere se o relógio também precisa -->
+        <receiver
+            android:name=".CelularAtualizado"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <!-- O Largar do desafio chama treinolivre://corrida: a corrida segue com a
              tela travada no bolso (GPS, voz e os amigos), pelo CorridaService. -->
         <activity

@@ -111,6 +111,43 @@ object Relogio {
         } catch (e: Exception) { }
     }
 
+    // A atualização sem toque (pedido do dono, 2026-11-18e: "quando a
+    // atualização for para o celular e o relógio, já busque o relógio e
+    // atualize sem precisar apertar mais nada"). Toda vez que o relógio diz a
+    // versão (ao abrir o app nele, ou respondendo ao /treino/qual-versao que
+    // o celular manda logo depois de ser atualizado), o celular compara com a
+    // dele. Relógio mais velho, celular já pareado e nenhum treino em
+    // andamento: abre a tela de atualizar no relógio, que liga a depuração e
+    // manda o endereço e a porta; o celular abre o instalador no modo
+    // automático (sozinho, com "Aparecer sobre outros apps"; senão, uma
+    // notificação). No treino, espera o treino acabar (BolsoService.encerrar).
+    // Uma tentativa a cada 3 h por versão: um relógio fora do Wi-Fi não vira
+    // uma tela abrindo sem parar.
+    const val QUAL_VERSAO = "/treino/qual-versao"
+
+    fun perguntarVersao(contexto: Context) {
+        try {
+            Wearable.getNodeClient(contexto).connectedNodes.addOnSuccessListener { nos ->
+                nos.forEach { no -> Wearable.getMessageClient(contexto).sendMessage(no.id, QUAL_VERSAO, ByteArray(0)) }
+            }
+        } catch (e: Exception) { }
+    }
+
+    fun talvezAtualizar(contexto: Context) {
+        if (!InstaladorRelogio.ATUALIZA_PELO_WIFI || InstaladorRelogio.aberto) return
+        if (BolsoService.instancia != null) return
+        val pr = contexto.getSharedPreferences("relogio", Context.MODE_PRIVATE)
+        val rel = pr.getLong("versao", 0L) - 1_000_000L
+        val meu = versaoDoCelular(contexto)
+        if (rel <= 0L || meu <= rel) return
+        if (!contexto.getSharedPreferences("instalador", Context.MODE_PRIVATE).getBoolean("pareado", false)) return
+        val agora = System.currentTimeMillis()
+        if (pr.getLong("autoVersao", 0L) == meu && agora - pr.getLong("autoEm", 0L) < 3 * 3600_000L) return
+        pr.edit().putLong("autoVersao", meu).putLong("autoEm", agora).apply()
+        BolsoService.diario(contexto, "relógio na versão $rel, celular na $meu: atualizando o relógio sozinho")
+        abrirNoRelogio(contexto, TELA_ATUALIZAR)
+    }
+
     fun desligado(contexto: Context, semJarvis: Boolean = false) =
         publicar(contexto, JSONObject().put("v", 1).put("ativo", false).apply { if (semJarvis) put("semJarvis", true) }.toString())
 }
@@ -118,6 +155,27 @@ object Relogio {
 // Os toques do relógio chegam aqui (o Google Play Services acorda o app) e vão
 // para o Jarvis da tela travada. Sem ele ligado não há treino para mexer, e o
 // relógio diz como começar.
+// O app do celular acabou de ser atualizado: pergunta a versão do relógio
+// (o relógio novo responde sem abrir tela) e, se ele não responder em 10 s
+// (o app do relógio antigo não sabe responder), abre o app nele, que diz a
+// versão ao abrir. A resposta passa pelo talvezAtualizar.
+class CelularAtualizado : android.content.BroadcastReceiver() {
+    override fun onReceive(c: Context, i: android.content.Intent?) {
+        if (i?.action != android.content.Intent.ACTION_MY_PACKAGE_REPLACED) return
+        if (!InstaladorRelogio.ATUALIZA_PELO_WIFI) return
+        val ctx = c.applicationContext
+        if (!ctx.getSharedPreferences("instalador", Context.MODE_PRIVATE).getBoolean("pareado", false)) return
+        val pr = ctx.getSharedPreferences("relogio", Context.MODE_PRIVATE)
+        val antes = pr.getLong("em", 0L)
+        Relogio.perguntarVersao(ctx)
+        val fim = goAsync()
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (pr.getLong("em", 0L) == antes) Relogio.abrirNoRelogio(ctx)
+            fim.finish()
+        }, 9_000L)
+    }
+}
+
 class OuvinteRelogio : WearableListenerService() {
     override fun onMessageReceived(m: MessageEvent) {
         val contexto = applicationContext
@@ -128,6 +186,7 @@ class OuvinteRelogio : WearableListenerService() {
             contexto.getSharedPreferences("relogio", Context.MODE_PRIVATE).edit().putLong("versao", v).putLong("em", System.currentTimeMillis()).apply()
             val meu = if (InstaladorRelogio.ATUALIZA_PELO_WIFI) Relogio.versaoDoCelular(contexto) else 0L
             try { Wearable.getMessageClient(contexto).sendMessage(m.sourceNodeId, Relogio.CELULAR, meu.toString().toByteArray(Charsets.UTF_8)) } catch (e: Exception) { }
+            Handler(Looper.getMainLooper()).post { Relogio.talvezAtualizar(contexto) }
             return
         }
         if (m.path == Relogio.PORTAS) {

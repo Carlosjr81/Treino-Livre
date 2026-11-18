@@ -266,7 +266,7 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
-        anotar("ligado (app de 2026-11-18b: o relógio manda o próprio endereço e porta ao instalador)")
+        anotar("ligado (app de 2026-11-18e: o relógio é atualizado sozinho junto com o celular)")
         linha.post(olheiro)
         linha.postDelayed(manterCanal, 15_000L)
         try { getSystemService(AudioManager::class.java)?.registerAudioPlaybackCallback(espiaoSom, linha) } catch (e: Exception) { }
@@ -1128,6 +1128,8 @@ class BolsoService : Service(), RecognitionListener {
         web = null
         try { trava?.let { if (it.isHeld) it.release() } } catch (e: Exception) { }
         instancia = null
+        // o relógio estava desatualizado no meio do treino: atualiza agora
+        Handler(Looper.getMainLooper()).postDelayed({ Relogio.talvezAtualizar(applicationContext) }, 4000L)
         // O que ficou pendente continua guardado: o "Trazer" da tela do treino leva
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()

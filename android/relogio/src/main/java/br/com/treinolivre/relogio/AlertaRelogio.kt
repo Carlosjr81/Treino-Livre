@@ -13,6 +13,13 @@ import com.google.android.gms.wearable.WearableListenerService
 // falando e apitando como sempre.
 class AlertaRelogio : WearableListenerService() {
     override fun onMessageReceived(m: MessageEvent) {
+        // O celular pergunta a versão (2026-11-18e: o celular atualizou e quer
+        // saber se o relógio também precisa), sem abrir tela nenhuma.
+        if (m.path == "/treino/qual-versao") {
+            val v = try { packageManager.getPackageInfo(packageName, 0).longVersionCode } catch (e: Exception) { 0L }
+            try { com.google.android.gms.wearable.Wearable.getMessageClient(this).sendMessage(m.sourceNodeId, "/treino/versao", v.toString().toByteArray(Charsets.UTF_8)) } catch (e: Exception) { }
+            return
+        }
         if (m.path != "/treino/alerta") return
         val tipo = String(m.data, Charsets.UTF_8)
         val padrao = if (tipo == "fim") longArrayOf(0, 450, 180, 450, 180, 700) else longArrayOf(0, 160)

@@ -365,6 +365,15 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         if (!ambiente) linha.post(tique)
     }
 
+    // um toque renova os 20 min da tela acesa (se o treino está aberto)
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        if (acesoAte != 0L || ultimoPainelAtivo()) {
+            acesoAte = System.currentTimeMillis() + ACESO_MS
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
     override fun onPause() {
         palco.vivo = false
         frente.vivo = false
@@ -619,6 +628,11 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         return if (ate > System.currentTimeMillis()) ate else 0L
     }
 
+    private fun ultimoPainelAtivo(): Boolean {
+        val p = painel ?: return false
+        return p.optBoolean("ativo", false) && !p.optBoolean("fim") && !p.optBoolean("carregando")
+    }
+
     private fun mostrar() {
         val p = painel
         val ativo = p != null && p.optBoolean("ativo", false)
@@ -704,9 +718,12 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             aviso.text = if (ambiente) "📴 sem o celular" else avisoSemCelular()
             if (cardio && !ambiente) anterior.text = "Sem o celular o tempo não é medido: Terminei só marca a série."
         }
-        // no descanso a tela fica acesa: é onde a pessoa olha o relógio
-        if (descansando) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Com o treino aberto a tela fica acesa o tempo todo (pedido do dono,
+        // 2026-11-18d: "a tela do relógio está apagando"; antes só no descanso).
+        // Esquecido aberto, apaga sozinho: 20 min sem série nova, toque ou
+        // descanso (o tique confere, acesoAte).
+        acesoAte = System.currentTimeMillis() + ACESO_MS
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         atualizarRelogio()
     }
 
@@ -738,6 +755,8 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         descAteVisto = ate
     }
 
+    private var acesoAte = 0L
+    private val ACESO_MS = 20 * 60_000L
     private var estavaDescansando = false
     private fun atualizarRelogio() {
         val ate = descansoAte()
@@ -794,6 +813,9 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         override fun run() {
             atualizarRelogio()
             val ate = descansoAte()
+            val agoraT = System.currentTimeMillis()
+            if (ate > agoraT) acesoAte = maxOf(acesoAte, agoraT + ACESO_MS)
+            if (acesoAte in 1 until agoraT) { acesoAte = 0L; window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
             val perto = ate > 0 && ate - System.currentTimeMillis() < 10_500L && !ambiente
             linha.postDelayed(this, if (perto) 60L else 250L)
         }

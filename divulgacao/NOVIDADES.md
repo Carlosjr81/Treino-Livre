@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-18d — A tela do relógio fica acesa durante o treino
+
+**Em uma frase:** com o treino aberto, a tela do relógio não apaga mais sozinha, nem entre uma série e outra.
+
+**O que mudou**
+- Antes ela só ficava acesa no descanso. Agora fica acesa o treino inteiro: a série, a carga e o ✓ Feito estão sempre à vista.
+- Se o treino for esquecido aberto, ela apaga sozinha depois de 20 minutos sem nenhuma série, toque ou descanso. No fim do treino volta ao normal.
+
+**Por que importa para quem treina**
+- Não precisa levantar o braço ou tocar no relógio para acender a tela no meio da série.
+
+**Como usar**
+- Atualize o app do relógio. Comece o treino no celular e o relógio fica aceso até o fim.
+
+**Ideias de vídeo**
+- Treino inteiro com o relógio aceso no pulso, mostrando a série e o descanso sem nenhum toque.
+
+**Não prometer**
+- Tela acesa gasta mais bateria do relógio. Só no relógio com Wear OS (Galaxy Watch e outros) com o app atualizado.
+
+---
+
 ## 2026-11-18c — O fim do descanso no relógio vira festa de cores
 
 **Em uma frase:** nos últimos 10 segundos do descanso a tela do relógio pisca, e nos últimos 5 ela vira uma festa de cores para avisar que é hora da próxima série.

@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v213) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v214) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4359,7 +4359,12 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   com a esteira conduzindo, anota o tempo dela (`anotarDaEsteira`); com o ▶,
   o tempo que passou; senão, a série como está. Onde a tela não está (a cópia
   do app, o `#bolso=`), `aplicarEventosBolso` só marca a série. No
-  descanso a tela do relógio fica acesa.
+  treino aberto a tela do relógio fica acesa o tempo todo (2026-11-18d, o
+  dono: "a tela do relógio está apagando"; antes, só no descanso): o
+  `FLAG_KEEP_SCREEN_ON` vale enquanto o painel está ativo, e apaga sozinho
+  depois de 20 min sem série nova, toque ou descanso (`acesoAte`,
+  `ACESO_MS`; um toque renova, `onUserInteraction`). No fim do treino
+  ou sem treino, volta a apagar como sempre.
 - **A cópia leva agora o nome do treino e o `pulado`** (`snapshotBolso`):
   antes, o motor do bolso podia mandar para um exercício pulado no Treino
   Adaptado.

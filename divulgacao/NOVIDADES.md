@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-18c — O fim do descanso no relógio vira festa de cores
+
+**Em uma frase:** nos últimos 10 segundos do descanso a tela do relógio pisca, e nos últimos 5 ela vira uma festa de cores para avisar que é hora da próxima série.
+
+**O que mudou**
+- Nos últimos 10 segundos, a tela inteira pisca na cor do momento (amarelo, laranja).
+- Nos últimos 5 segundos, a tela, o anel, o número e os botões trocam de cor juntos, depressa, com ondas saindo do centro e o número pulsando a cada segundo.
+- Os botões (−15 s, +30 s, Pular descanso) e o selo "SÉRIE 2 DE 5" agora acompanham a cor do descanso: tudo combina.
+
+**Por que importa para quem treina**
+- Dá para ver de longe, sem ler nada, que o descanso está acabando. Quem está do lado também vê.
+
+**Como usar**
+- Atualize o app do relógio e faça um treino: no fim de cada descanso, olhe o pulso.
+
+**Ideias de vídeo**
+- Close no relógio nos últimos 10 segundos do descanso, em câmera lenta: o pisca, a festa de cores e o corte para a pessoa pegando o peso.
+
+**Não prometer**
+- Só no relógio com Wear OS (Galaxy Watch e outros), com o app do relógio atualizado. Com a tela apagada (modo ambiente) não pisca, para poupar a bateria.
+
+---
+
 ## 2026-11-18b — Atualizar o relógio sem digitar nada, e o anel do descanso numa cor só
 
 **Em uma frase:** o relógio agora diz ao celular o próprio endereço e porta, e atualizar o app do relógio virou só esperar; e o anel do descanso fica inteiro na cor do momento.

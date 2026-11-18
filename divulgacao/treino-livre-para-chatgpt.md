@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-18b**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-18c**.
 
 ---
 
@@ -226,7 +226,7 @@ com cenas reais → halter) como linguagem visual em vídeos.
 
 ### 3.2b ⌚ O treino no relógio: Galaxy Watch, Pixel Watch e Wear OS (novo em 2026-11-11a)
 - Um app para o relógio (Galaxy Watch 4 em diante, Pixel Watch e outros com Wear OS 3+), ligado ao app Android do celular.
-- **Visual que chama atenção (2026-11-13a):** um anel colorido gira na borda da tela; no treino, uma fatia por série; no descanso, ele esvazia numa cor só, que muda aos poucos do verde ao amarelo, ao laranja e ao vermelho (desde 2026-11-18b), com o número na mesma cor. Atualizar o app do relógio é um toque: o relógio manda ao celular o próprio endereço, sem digitar nada. Cada série feita dá um clarão com ondas e "✓ SÉRIE FEITA" com vibração; passar do recorde deixa o botão dourado ("🏆 NOVO RECORDE!"); o fim do treino comemora em dourado.
+- **Visual que chama atenção (2026-11-13a):** um anel colorido gira na borda da tela; no treino, uma fatia por série; no descanso, ele esvazia numa cor só, que muda aos poucos do verde ao amarelo, ao laranja e ao vermelho (desde 2026-11-18b), com o número e os botões na mesma cor; nos últimos 10 segundos a tela pisca, e nos últimos 5 vira uma festa de cores (desde 2026-11-18c). Atualizar o app do relógio é um toque: o relógio manda ao celular o próprio endereço, sem digitar nada. Cada série feita dá um clarão com ondas e "✓ SÉRIE FEITA" com vibração; passar do recorde deixa o botão dourado ("🏆 NOVO RECORDE!"); o fim do treino comemora em dourado.
 - **Atualizar é um toque (2026-11-13b):** quando há versão nova, aparece "⬆ Atualizar o relógio" no celular e "⬆ Atualizar o app" no relógio; o celular instala sozinho (só a primeira instalação usa o modo de desenvolvedor com o código).
 - A instalação começa com "Qual é o seu relógio?": cada modelo com o seu caminho. Garmin, Amazfit, Huawei, Polar, Coros e Apple Watch não instalam o app (Garmin e cia. usam o batimento ao vivo).
 - No pulso: o exercício da vez, a série ("Série 2 de 4"), a carga e as repetições com − e +, e o **✓ Feito**.

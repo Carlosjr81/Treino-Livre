@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v212) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v213) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4515,8 +4515,18 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   laranja e vermelho. **O anel inteiro fica numa cor só, a do momento**, com
   um brilho mais claro da mesma cor girando (2026-11-18b, o dono: a cor
   seguinte não pode aparecer antes de o tempo chegar nela; a 18a pintava o
-  degradê todo no anel), e o número, o rótulo e a luz do fundo têm a mesma
-  cor (os 3 últimos segundos pulsam), com o "+30 s" alongando o
+  degradê todo no anel), e o número, o rótulo, a luz do fundo, **os
+  contornos do −15/+30, o Pular e o selo da série** têm a mesma cor
+  (`pintarDescanso`; fora do descanso voltam às de sempre). **Nos 10
+  últimos segundos a tela inteira pisca** na cor do momento (`piscada`), e
+  **nos 5 últimos é a festa** (2026-11-18c, pedido do dono: "ficar louco de
+  cor para avisar que está chegando a hora"): tela, anel, número e botões
+  trocam juntos entre as cores de `Cores.FESTA` (o fim do descanso e a
+  marca: vermelho, laranja, amarelo, rosa, roxo) a cada `FESTA_MS`, com
+  ondas saindo do centro e o número pulsando a cada segundo. Todos leem o
+  mesmo relógio (`SystemClock.uptimeMillis`), e o tique da tela anda a
+  60 ms nos 10 últimos segundos: as cores trocam no mesmo instante. Com o
+  "+30 s" alongando o
   anel em vez de reenchê-lo (`anotarTotal`); procurando o celular, um arco
   girando; no fim, dourado. Fundo com uma luz na cor do momento. Botões em
   pílula com degradê (o ✓ FEITO na cor da marca; **dourado** quando a carga

@@ -54,6 +54,28 @@ object Cores {
         return DESCANSO_CORES.last()
     }
 
+    // Os 5 últimos segundos do descanso (pedido do dono, 2026-11-18c: "ficar
+    // louco de cor para avisar que está chegando a hora"). As cores são as do
+    // fim do descanso e as da marca (laranja, rosa, roxo), as mesmas dos botões
+    // e do selo: a festa combina com o resto da tela. A tela inteira (anel,
+    // fundo, número, botões) troca junto, no mesmo compasso (FESTA_MS), porque
+    // todos leem a cor deste mesmo relógio (SystemClock.uptimeMillis).
+    val FESTA = intArrayOf(
+        Color.parseColor("#FF3B4E"),
+        Color.parseColor("#FF9F1C"),
+        Color.parseColor("#FFD23C"),
+        Color.parseColor("#E1306C"),
+        Color.parseColor("#B05BFF"),
+        Color.parseColor("#FF6A2B"),
+    )
+    const val FESTA_MS = 180L
+    fun festa(agora: Long = SystemClock.uptimeMillis(), passo: Int = 0): Int =
+        FESTA[(((agora / FESTA_MS) + passo) % FESTA.size).toInt()]
+
+    // nos 10 últimos segundos a cor do momento pisca (meia volta por 0,6 s)
+    fun piscada(agora: Long = SystemClock.uptimeMillis()): Float =
+        (0.5f + 0.5f * kotlin.math.sin(agora / 600.0 * 2 * Math.PI).toFloat())
+
     fun misturar(a: Int, b: Int, t: Float): Int {
         val u = t.coerceIn(0f, 1f)
         fun c(x: Int, y: Int) = (x + (y - x) * u).toInt()
@@ -99,6 +121,7 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
     private val pPonto = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val pFundo = Paint(Paint.ANTI_ALIAS_FLAG)
     private val pFlash = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val pPisca = Paint(Paint.ANTI_ALIAS_FLAG)
     private val oval = RectF()
     private val giroM = Matrix()
     private var chaveFundo = ""
@@ -133,7 +156,12 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
         // (pedido do dono, 2026-11-18b: a cor seguinte não pode aparecer antes
         // de o tempo chegar nela; antes o anel mostrava o degradê todo). A cor
         // é medida em passos de 1/400 para o degradê não ser refeito a cada quadro.
-        Modo.DESCANSO -> {
+        Modo.DESCANSO -> if (resta in 1..5) {
+            // a festa: o anel com as cores da festa, girando depressa, e a
+            // ordem muda no mesmo compasso da tela
+            val a = SystemClock.uptimeMillis()
+            intArrayOf(Cores.festa(a), Cores.festa(a, 1), Cores.festa(a, 2), Cores.festa(a, 3), Cores.festa(a))
+        } else {
             val c = Cores.doDescanso((mostrada * 400f).toInt() / 400f)
             intArrayOf(c, Cores.misturar(c, Color.WHITE, 0.35f), c, Cores.misturar(c, Color.BLACK, 0.25f), c)
         }
@@ -143,7 +171,8 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
 
     private fun corFundo(): Int = when (modo) {
         // a luz do fundo acompanha a ponta do arco, escurecida
-        Modo.DESCANSO -> Cores.misturar(Cores.doDescanso(mostrada), Color.BLACK, 0.72f)
+        Modo.DESCANSO -> if (resta in 1..5) Cores.misturar(Cores.festa(), Color.BLACK, 0.55f)
+            else Cores.misturar(Cores.doDescanso(mostrada), Color.BLACK, 0.72f)
         Modo.FIM -> Color.parseColor("#3A2C00")
         else -> Color.parseColor("#2E0B33")
     }
@@ -189,9 +218,10 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
         }
         cv.drawColor(Color.BLACK)
         cv.drawRect(0f, 0f, w, h, pFundo)
+        if (modo == Modo.DESCANSO && resta in 1..10) piscar(cv, cx, cy, r, agora)
 
         val vel = when (modo) {
-            Modo.DESCANSO -> if (resta <= 10) 260f else 110f
+            Modo.DESCANSO -> if (resta <= 5) 720f else if (resta <= 10) 260f else 110f
             Modo.FIM -> 200f
             Modo.PROCURANDO -> 240f
             else -> 55f
@@ -219,7 +249,7 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
         val pulso = 0.5f + 0.5f * sin(agora / 160.0).toFloat()
         pBrilho.alpha = when (modo) {
             Modo.FIM -> (60 + 90 * pulso).toInt()
-            Modo.DESCANSO -> if (resta <= 10) (70 + 120 * pulso).toInt() else 85
+            Modo.DESCANSO -> if (resta <= 5) 200 else if (resta <= 10) (70 + 150 * Cores.piscada(agora)).toInt() else 85
             else -> 55
         }
 
@@ -279,11 +309,37 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
                 if (mostrada > 0.005f) {
                     cv.drawArc(oval, -90f, 360f * mostrada, false, pBrilho)
                     cv.drawArc(oval, -90f, 360f * mostrada, false, pArco)
-                    cometa(cv, cx, cy, sw, -90f + 360f * mostrada, Cores.doDescanso(mostrada))
+                    cometa(cv, cx, cy, sw, -90f + 360f * mostrada, if (resta in 1..5) Cores.festa(agora, 1) else Cores.doDescanso(mostrada))
                 }
             }
         }
         if (vivo) postInvalidateDelayed(33L)
+    }
+
+    // Os 10 últimos segundos: a tela inteira pisca na cor do momento. Os 5
+    // últimos: a festa, a tela trocando de cor no compasso FESTA_MS, com uma
+    // onda saindo do centro a cada segundo e outra do meio para a borda.
+    private fun piscar(cv: Canvas, cx: Float, cy: Float, r: Float, agora: Long) {
+        pPisca.shader = null
+        if (resta <= 5) {
+            pPisca.style = Paint.Style.FILL
+            pPisca.color = Cores.festa(agora)
+            pPisca.alpha = (70 + 70 * Cores.piscada(agora * 3)).toInt()
+            cv.drawCircle(cx, cy, r, pPisca)
+            pPisca.style = Paint.Style.STROKE
+            for (k in 0..1) {
+                val t = ((agora + k * 500L) % 1000L) / 1000f
+                pPisca.color = Cores.festa(agora, k + 2)
+                pPisca.strokeWidth = r * 0.09f * (1f - t) + dens
+                pPisca.alpha = ((1f - t) * 220).toInt()
+                cv.drawCircle(cx, cy, r * (0.15f + 0.9f * t), pPisca)
+            }
+        } else {
+            pPisca.style = Paint.Style.FILL
+            pPisca.color = Cores.doDescanso(mostrada)
+            pPisca.alpha = (95 * Cores.piscada(agora)).toInt()
+            cv.drawCircle(cx, cy, r, pPisca)
+        }
     }
 
     // a ponta do arco: um ponto branco com halo, o que mais chama o olho

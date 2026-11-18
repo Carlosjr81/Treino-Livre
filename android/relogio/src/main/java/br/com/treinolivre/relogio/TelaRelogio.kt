@@ -111,6 +111,12 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     private lateinit var blocoDescanso: LinearLayout
     private lateinit var rotuloDescanso: TextView
     private lateinit var botoesDescanso: LinearLayout
+    // os fundos que mudam de cor com o descanso (2026-11-18c: "as cores
+    // combinando com o layout"): os contornos do −15/+30, o Pular e o selo
+    private val fundosContorno = mutableListOf<GradientDrawable>()
+    private var fundoPular: GradientDrawable? = null
+    private var fundoSerie: GradientDrawable? = null
+    private var corPintada = 0
     private lateinit var relogio: TextView
     private lateinit var blocoSerie: LinearLayout
     private lateinit var linhaPeso: LinearLayout
@@ -199,7 +205,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         serie = texto(11f, Color.WHITE, true).apply {
             letterSpacing = 0.12f
             setPadding(dp(12), dp(3), dp(12), dp(3))
-            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Cores.ROSA, Cores.ROXO)).apply { cornerRadius = dp(20).toFloat() }
+            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Cores.ROSA, Cores.ROXO)).apply { cornerRadius = dp(20).toFloat() }.also { fundoSerie = it }
         }
         caixa.addView(marca); caixa.addView(topo); caixa.addView(exNome)
         caixa.addView(serie, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(2), 0, dp(4)) })
@@ -210,10 +216,15 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             orientation = LinearLayout.VERTICAL
             addView(LinearLayout(this@TelaRelogio).apply {
                 orientation = LinearLayout.HORIZONTAL
-                addView(contorno("−15 s", Cores.CIANO) { enviar("menos") }, lp(1f))
-                addView(contorno("+30 s", Cores.CIANO) { enviar("mais") }, lp(1f))
+                listOf("−15 s" to "menos", "+30 s" to "mais").forEach { (rot, a) ->
+                    val g = GradientDrawable().apply { cornerRadius = dp(30).toFloat(); setColor(0x22FFFFFF); setStroke(dp(2), Cores.CIANO) }
+                    fundosContorno.add(g)
+                    addView(botao(rot, comToque(g)) { enviar(a) }, lp(1f))
+                }
             })
-            addView(pilula("⏭ Pular descanso", intArrayOf(Cores.VERDE, Cores.CIANO)) { enviar("pular") }, lp())
+            val gp = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Cores.VERDE, Cores.CIANO)).apply { cornerRadius = dp(30).toFloat() }
+            fundoPular = gp
+            addView(botao("⏭ Pular descanso", comToque(gp)) { enviar("pular") }, lp())
         }
         blocoDescanso = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -663,7 +674,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         serie.text = if (p.optBoolean("drop")) "↓ DROP" else "SÉRIE " + p.optInt("n") + " DE " + p.optInt("de")
         mostra(serie, !ambiente)
         val descansando = descansoAte() > 0
-        if (!descansando) palco.treino(feitas, total)
+        if (!descansando) { palco.treino(feitas, total); pintarDescanso(0) }
         mostra(blocoDescanso, descansando)
         mostra(botoesDescanso, !ambiente)
         val tempo = p.optBoolean("tempo")
@@ -743,14 +754,16 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         relogio.text = if (ambiente) "~" + ((resta + 59) / 60) + " min" else (resta / 60).toString() + ":" + (resta % 60).toString().padStart(2, '0')
         val fracao = ((ate - agora).toFloat() / descTotal).coerceIn(0f, 1f)
         // o número tem a cor da ponta do anel: muda aos poucos, do verde ao vermelho
-        val cor = if (ambiente) Color.WHITE else Cores.doDescanso(fracao)
+        // nos 5 últimos, a cor da festa, no mesmo compasso do anel
+        val cor = if (ambiente) Color.WHITE else if (resta in 1..5) Cores.festa() else Cores.doDescanso(fracao)
         relogio.setTextColor(cor)
         rotuloDescanso.setTextColor(if (ambiente) Cores.CINZA else cor)
+        pintarDescanso(if (ambiente) 0 else cor)
         palco.descanso(fracao, resta)
         if (!ambiente && resta != ultimoSegundo) {
             ultimoSegundo = resta
-            // os 3 últimos segundos pulsam
-            if (resta in 1..3) {
+            // os 5 últimos segundos pulsam
+            if (resta in 1..5) {
                 relogio.animate().cancel()
                 relogio.scaleX = 1.35f; relogio.scaleY = 1.35f
                 relogio.animate().scaleX(1f).scaleY(1f).setStartDelay(0L).setDuration(380L)
@@ -759,10 +772,30 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         }
     }
 
+    // Os botões e o selo da série na cor do descanso; 0 volta às cores de sempre
+    private fun pintarDescanso(cor: Int) {
+        if (cor == corPintada) return
+        corPintada = cor
+        val d = resources.displayMetrics.density
+        if (cor == 0) {
+            fundosContorno.forEach { it.setStroke((2 * d).toInt(), Cores.CIANO) }
+            fundoPular?.colors = intArrayOf(Cores.VERDE, Cores.CIANO)
+            fundoSerie?.colors = intArrayOf(Cores.ROSA, Cores.ROXO)
+            return
+        }
+        fundosContorno.forEach { it.setStroke((2 * d).toInt(), cor) }
+        fundoPular?.colors = intArrayOf(cor, Cores.misturar(cor, Color.WHITE, 0.3f))
+        fundoSerie?.colors = intArrayOf(Cores.misturar(cor, Color.BLACK, 0.15f), Cores.misturar(cor, Color.BLACK, 0.45f))
+    }
+
+    // a cada 250 ms; nos 10 últimos segundos, mais depressa, para o número e
+    // os botões trocarem de cor junto com o anel
     private val tique = object : Runnable {
         override fun run() {
             atualizarRelogio()
-            linha.postDelayed(this, 250L)
+            val ate = descansoAte()
+            val perto = ate > 0 && ate - System.currentTimeMillis() < 10_500L && !ambiente
+            linha.postDelayed(this, if (perto) 60L else 250L)
         }
     }
 

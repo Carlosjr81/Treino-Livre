@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v220) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v221) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5701,6 +5701,14 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   registro tem, tudo marcado, com a ficha achada pelo nome. O registro sai do
   histórico até o novo Finalizar; recordes, nível e conquistas se ajustam
   sozinhos.
+- **Os números do editor de ficha deixam o campo vazio enquanto se digita**
+  (2026-11-20c, relato do dono montando a ficha de um aluno: o "1" dos minutos
+  da esteira não saía, porque apagar virava 1 na hora e não dava para digitar
+  40). O número é conferido ao sair do campo e no Salvar (`numFicha`; vazio
+  volta para 30 min no aeróbico, 12 repetições e 3 séries na musculação).
+  **Aeróbico de uma série não mostra descanso** (o "auto 1:00" confundia), e
+  trocar musculação por aeróbico (ou o contrário) no ⇄ troca também séries,
+  repetições/minutos e descanso para os do tipo novo.
 - **⇄ Trocar no editor de ficha**: o exercício novo entra no mesmo lugar, com
   as séries, repetições, descanso e bi-set do antigo; sem busca, a lista
   mostra o mesmo grupo. Antes era tirar e acrescentar, e o novo ia para o fim.

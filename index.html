@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-20b";
+const VERSAO_APP = "2026-11-20c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -17000,16 +17000,27 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, 
     return () => clearTimeout(id);
   }, [movido, t]);
 
+  // O campo vazio enquanto se digita é de propósito (2026-11-20c, relato do
+  // dono: o "1" dos minutos da esteira não saía, porque apagar virava 1 na
+  // hora e "40" não dava para digitar). O número só é conferido ao sair do
+  // campo e ao salvar.
+  const numFicha = (v, padrao) => Math.max(1, parseInt(v) || padrao || 1);
   const salvar = () => {
     if (!t.nome.trim()) { avisar("Dê um nome para a ficha (ex.: Treino A - Peito e Tríceps)"); return; }
-    onSalvar(t);
+    onSalvar({ ...t, itens: t.itens.map((it) => { const e = todos.find((x) => x.id === it.exercicioId); const p = exCardio(e) ? (e.padrao || {}) : null;
+      return { ...it, series: numFicha(it.series, p ? 1 : 3), reps: numFicha(it.reps, p ? p.min || 30 : 12) }; }) });
   };
   const trocarEx = (id) => {
     const i = trocandoI;
     setTrocandoI(null);
     setBusca("");
     if (i === null || !t.itens[i]) return;
-    setT({ ...t, itens: t.itens.map((it, k) => (k === i ? { ...it, exercicioId: id, obs: "" } : it)) });
+    // trocar musculação por aeróbico (ou o contrário) troca também o que o
+    // número quer dizer: 12 repetições não são 12 minutos de esteira
+    const novo = todos.find((x) => x.id === id), velho = t.itens[i] && todos.find((x) => x.id === t.itens[i].exercicioId);
+    const mudouTipo = !!exCardio(novo) !== !!exCardio(velho);
+    const p = exCardio(novo) ? novo.padrao || {} : null;
+    setT({ ...t, itens: t.itens.map((it, k) => (k === i ? { ...it, exercicioId: id, obs: "", ...(mudouTipo ? { series: p ? 1 : 3, reps: p ? p.min || 30 : 12, descanso: null, drops: 0 } : {}) } : it)) });
   };
   const addEx = (id) => {
     const e = todos.find((x) => x.id === id);
@@ -17209,15 +17220,17 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, 
               <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ ...S.label, fontSize: 10 }}>Séries</div>
-                  <input type="number" style={S.inputMini} value={it.series} min={1}
+                  <input type="number" inputMode="numeric" style={S.inputMini} value={it.series} min={1}
                     aria-label={"Número de séries de " + nomeEx}
-                    onChange={(ev) => upItem(i, "series", Math.max(1, parseInt(ev.target.value) || 1))} />
+                    onChange={(ev) => upItem(i, "series", ev.target.value === "" ? "" : Math.max(1, parseInt(ev.target.value) || 1))}
+                    onBlur={() => { if (!(parseInt(it.series) >= 1)) upItem(i, "series", exCardioId(it.exercicioId) ? 1 : 3); }} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ ...S.label, fontSize: 10 }}>{exCardioId(it.exercicioId) ? "Minutos" : "Repetições"}</div>
-                  <input type="number" style={S.inputMini} value={it.reps} min={1}
+                  <input type="number" inputMode="numeric" style={S.inputMini} value={it.reps} min={1}
                     aria-label={(exCardioId(it.exercicioId) ? "Minutos de " : "Número de repetições de ") + nomeEx}
-                    onChange={(ev) => upItem(i, "reps", Math.max(1, parseInt(ev.target.value) || 1))} />
+                    onChange={(ev) => upItem(i, "reps", ev.target.value === "" ? "" : Math.max(1, parseInt(ev.target.value) || 1))}
+                    onBlur={() => { if (!(parseInt(it.reps) >= 1)) upItem(i, "reps", exCardioId(it.exercicioId) ? ((e && e.padrao && e.padrao.min) || 30) : 12); }} />
                 </div>
                 {!exCardioId(it.exercicioId) && !(e && e.tempo) && (
                   <div style={{ flex: 1 }}>
@@ -17232,6 +17245,9 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, 
                     </select>
                   </div>
                 )}
+                {/* aeróbico de uma série não tem descanso: o "auto 1:00" ali
+                    confundia (relato do dono, 2026-11-20c) */}
+                {exCardioId(it.exercicioId) && !(parseInt(it.series) > 1) ? null : (
                 <div style={{ flex: 1 }}>
                   <div style={{ ...S.label, fontSize: 10 }}>Descanso</div>
                   <select style={{ ...S.inputMini, padding: "10px 4px" }} value={it.descanso || 0}
@@ -17244,6 +17260,7 @@ function TelaEditarTreino({ treinoInicial, todos, onSalvar, onCancelar, avisar, 
                     ))}
                   </select>
                 </div>
+                )}
               </div>
               {i < t.itens.length - 1 && (
                 <button onClick={() => alternarConjunto(i)} aria-pressed={juntoComProximo}

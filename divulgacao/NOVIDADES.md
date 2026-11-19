@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-20c — Editar a ficha ficou mais fácil
+
+**Em uma frase:** no editor de ficha, dá para apagar e digitar os números livremente, e o aeróbico não mostra mais um descanso que não existe.
+
+**O que mudou**
+- Os campos de séries, repetições e minutos aceitam apagar tudo e digitar o número novo (antes o "1" não saía, e não dava para pôr 40 minutos de esteira).
+- Esteira, bicicleta e outros aeróbicos de uma série só não mostram mais o campo de descanso.
+- Trocar um exercício de musculação por um aeróbico já ajusta séries e minutos.
+
+**Por que importa para quem treina**
+- Montar a ficha (a sua ou a de um aluno) com o cardio no fim fica rápido, sem brigar com o campo.
+
+**Como usar**
+- Fichas › Editar › adicione "Caminhada na esteira" e digite os minutos.
+
+**Ideias de vídeo**
+- Montando uma ficha com 40 minutos de esteira no final, em poucos toques.
+
+**Não prometer**
+- O tempo de cardio é escolha de quem treina; o app não diz quanto cardio cada pessoa deve fazer.
+
+---
+
 ## 2026-11-20b — Tenho só 1 hora hoje: o treino se redesenha para caber
 
 **Em uma frase:** diga quanto tempo você tem e o app redesenha o treino do dia pela ciência para caber, e o treino ajustado agora mostra claramente o que mudou nesta semana e por quê.

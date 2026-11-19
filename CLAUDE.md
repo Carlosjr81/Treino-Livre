@@ -4663,6 +4663,7 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
     depois de liberar o Galaxy Wearable, o plugin do relógio, o Samsung
     Accessory Service e o Google Play Services no Xiaomi, o relógio conectou e
     marcou as séries ("funcionou tudo", o dono).
+    E no Galaxy S26 Ultra com o Watch 8 continuou funcionando com a 19c.
 - **Outras marcas** (2026-11-13a): o assistente de instalar começa com **"Qual
   é o seu relógio?"** (`MARCAS_RELOGIO`, guardado em
   `treinolivre:relogioMarca`): Galaxy Watch, Pixel Watch e "outro com Wear

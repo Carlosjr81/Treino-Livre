@@ -4659,7 +4659,10 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
     bateria dele e do Google Play Services) e o 🆘 mandam liberar o Galaxy
     Wearable, o plugin do relógio, o Samsung Accessory Service e o Google Play
     Services, e lembram que relógio de outro celular precisa ser restaurado.
-  - **Não validado no Redmi**: compilado pelo Actions, conferido só no código.
+  - **Validado no Redmi Note 13 Pro+ com o Galaxy Watch 6 (19/11/2026)**:
+    depois de liberar o Galaxy Wearable, o plugin do relógio, o Samsung
+    Accessory Service e o Google Play Services no Xiaomi, o relógio conectou e
+    marcou as séries ("funcionou tudo", o dono).
 - **Outras marcas** (2026-11-13a): o assistente de instalar começa com **"Qual
   é o seu relógio?"** (`MARCAS_RELOGIO`, guardado em
   `treinolivre:relogioMarca`): Galaxy Watch, Pixel Watch e "outro com Wear

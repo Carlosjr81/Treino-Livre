@@ -176,9 +176,46 @@ class CelularAtualizado : android.content.BroadcastReceiver() {
     }
 }
 
+// O relógio chama o celular por mensagem. O sistema entrega acordando o
+// OuvinteRelogio; o Xiaomi (e Oppo, Vivo, Huawei...) barra esse acordar sem o
+// "Início automático" ligado, e o relógio ficava em "Procurando o celular…"
+// (relato do dono, 2026-11-19a, Redmi + Galaxy Watch 6). Então, com o Jarvis
+// 🔒 ligado (o treino aberto), o BolsoService também ouve, por um ouvinte vivo
+// no próprio processo, que nenhuma marca barra. Os dois caminhos podem receber
+// a mesma mensagem: o requestId de cada uma é guardado e ela só vale uma vez.
+object OuvidoRelogio {
+    private val vistos = LinkedHashSet<String>()
+    private var ouvinte: com.google.android.gms.wearable.MessageClient.OnMessageReceivedListener? = null
+
+    @Synchronized fun primeiraVez(m: MessageEvent): Boolean {
+        val id = m.sourceNodeId + ":" + m.requestId + ":" + m.path + ":" + m.data.size
+        if (!vistos.add(id)) return false
+        while (vistos.size > 200) vistos.remove(vistos.first())
+        return true
+    }
+
+    fun ligar(contexto: Context) {
+        if (ouvinte != null) return
+        val c = contexto.applicationContext
+        val o = com.google.android.gms.wearable.MessageClient.OnMessageReceivedListener { m -> OuvinteRelogio.tratar(c, m) }
+        ouvinte = o
+        try { Wearable.getMessageClient(c).addListener(o) } catch (e: Exception) { ouvinte = null }
+    }
+
+    fun desligar(contexto: Context) {
+        val o = ouvinte ?: return
+        ouvinte = null
+        try { Wearable.getMessageClient(contexto.applicationContext).removeListener(o) } catch (e: Exception) { }
+    }
+}
+
 class OuvinteRelogio : WearableListenerService() {
-    override fun onMessageReceived(m: MessageEvent) {
-        val contexto = applicationContext
+    override fun onMessageReceived(m: MessageEvent) = tratar(applicationContext, m)
+
+    companion object {
+    fun tratar(contexto: Context, m: MessageEvent) {
+        if (!m.path.startsWith("/treino")) return
+        if (!OuvidoRelogio.primeiraVez(m)) return
         if (m.path == Relogio.VERSAO) {
             // guarda a versão do relógio (o site mostra se há versão nova) e
             // responde com a do celular: o relógio oferece o ⬆ Atualizar
@@ -227,5 +264,6 @@ class OuvinteRelogio : WearableListenerService() {
             // o Finalizar treino desliga sem essa marca.
             if (s != null) s.acaoRelogio(texto) else Relogio.desligado(contexto, true)
         }
+    }
     }
 }

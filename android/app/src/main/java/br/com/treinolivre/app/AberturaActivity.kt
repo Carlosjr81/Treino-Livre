@@ -21,6 +21,7 @@ class AberturaActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         if (savedInstanceState != null) return
         Site.lembrarVersao(this)
+        if (BolsoService.instancia == null) try { Relogio.desligado(applicationContext) } catch (e: Exception) { }
         val pedido = intent?.data
         if (pedido != null && pedido.scheme == "https") {
             abrir(pedido)

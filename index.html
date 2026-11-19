@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-18e";
+const VERSAO_APP = "2026-11-19a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3207,6 +3207,20 @@ const RELOGIO_NO_PULSO = (() => {
 // o app do relógio sai junto com o do celular: relógio mais velho = atualizar
 const RELOGIO_DESATUALIZADO = RELOGIO_NO_PULSO > 0 && NUMERO_APK > RELOGIO_NO_PULSO;
 const PACOTE_ANDROID = "br.com.treinolivre.app";
+// A marca do celular (fab=, mandada pelo app Android). Xiaomi, Oppo, Vivo,
+// Huawei e outras barram o app de acordar em segundo plano sem o "Início
+// automático", e o relógio fica em "Procurando o celular…" (relato do dono,
+// 2026-11-19a, Redmi Note 13 + Galaxy Watch 6). O app tem a tela que leva lá.
+const FABRICANTE_APP = (() => {
+  try {
+    const m = typeof location !== "undefined" && location.search.match(/[?&]fab=([a-z]+)/);
+    if (m) localStorage.setItem("treinolivre:fabricante", m[1]);
+    return m ? m[1] : (localStorage.getItem("treinolivre:fabricante") || "");
+  } catch (e) { return ""; }
+})();
+const CELULAR_BARRA_FUNDO = /xiaomi|redmi|poco|oppo|realme|oneplus|vivo|iqoo|huawei|honor|asus|meizu|tecno|infinix/.test(FABRICANTE_APP);
+const NOME_FABRICANTE = /xiaomi|redmi|poco/.test(FABRICANTE_APP) ? "Xiaomi" : FABRICANTE_APP ? FABRICANTE_APP.charAt(0).toUpperCase() + FABRICANTE_APP.slice(1) : "";
+const LINK_FUNDO_RELOGIO = "intent://relogio-fundo#Intent;scheme=treinolivre;package=br.com.treinolivre.app;S.browser_fallback_url=" + encodeURIComponent("https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk") + ";end";
 const META_PASSOS = 8000;
 
 function b64UrlParaPadrao(s) {
@@ -31097,6 +31111,8 @@ const PASSOS_RELOGIO = [
 ];
 // O que fazer quando aparece uma destas mensagens na tela de instalar
 const PROBLEMAS_RELOGIO = [
+  ["O relógio fica em \"Procurando o celular…\"",
+    "O relógio está conectado, mas o Treino Livre do celular não acordou. Em celulares **Xiaomi, Redmi, POCO, Oppo, Realme, Vivo, Huawei** e outros, o sistema barra isso: no celular, ligue o **Início automático** do Treino Livre e deixe a **Bateria sem restrições** (o botão **📱 Liberar o Início automático** abaixo leva até lá). Depois abra o Treino Livre **pelo ícone** e comece o treino."],
   ["O relógio apaga a tela e volta para o mostrador",
     "Com o treino aberto, o Treino Livre fica **em andamento** no relógio: o ícone dele aparece no mostrador, e um toque nele volta ao treino. Se o relógio pediu para permitir notificações, toque em **Permitir**. No Galaxy Watch, ajuda também: Configurações → **Tela** → **Mostrar último app** (ou Voltar ao último app) → **Sempre**. E ligar a **Tela sempre ligada** deixa o treino à vista, escurecido."],
   ["\"O celular e o relógio estão em redes diferentes\"",
@@ -31275,6 +31291,13 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
           <div style={{ height: "100%", width: (100 * nFeitos / PASSOS.length) + "%", background: "var(--ok)" }} />
         </div>
         {PASSOS.map((p, k) => cartao(p, k, PASSOS, k + 1))}
+        {EH_ANDROID && (CELULAR_BARRA_FUNDO || problemas) && (
+          <div style={{ ...S.card, marginTop: 4, borderColor: CELULAR_BARRA_FUNDO ? "var(--marca)" : "var(--borda)" }}>
+            <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>📱 {CELULAR_BARRA_FUNDO ? "Celular " + NOME_FABRICANTE + ": falta um passo" : "O relógio fica em \"Procurando o celular…\"?"}</div>
+            <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 8 }}>{textoGuia("Este celular não deixa o Treino Livre acordar quando o relógio chama, e o relógio fica em **Procurando o celular…**. Libere uma vez: **Início automático** ligado e **Bateria sem restrições** para o Treino Livre.")}</div>
+            <a href={LINK_FUNDO_RELOGIO} style={{ ...S.btnGhost, display: "block", textAlign: "center", textDecoration: "none" }}>📱 Liberar o Início automático</a>
+          </div>
+        )}
         <div style={{ ...S.card, marginTop: 4 }}>
           <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>🏋️ Depois de instalado: como treinar</div>
           <ol style={{ margin: 0, paddingLeft: 22, fontSize: 14, lineHeight: 1.55 }}>

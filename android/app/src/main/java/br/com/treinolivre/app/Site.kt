@@ -27,7 +27,9 @@ object Site {
         // pelo Wi-Fi (InstaladorRelogio). relogio=3: e entrega a série do relógio
         // sozinha (canal cifrado, confirmação e "Aparecer sobre outros apps")
         // rv: o número do app do relógio (o site oferece atualizar quando é mais velho)
-        val base = "$ENDERECO?" + PARAMETROS + (if (apk > 0) "&apk=$apk" else "") + (if (relogio > 0) "&rv=$relogio" else "")
+        // fab: a marca do celular (Xiaomi, Oppo...: o site mostra como liberar o Início automático)
+        val fab = (android.os.Build.MANUFACTURER ?: "").lowercase().filter { it in 'a'..'z' }.take(16)
+        val base = "$ENDERECO?" + PARAMETROS + (if (apk > 0) "&apk=$apk" else "") + (if (relogio > 0) "&rv=$relogio" else "") + (if (fab.isNotEmpty()) "&fab=$fab" else "")
         return Uri.parse(if (pacoteSaude == null) base else "$base#saude=$pacoteSaude")
     }
 

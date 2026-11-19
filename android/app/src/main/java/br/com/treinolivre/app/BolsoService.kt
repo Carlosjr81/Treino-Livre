@@ -202,6 +202,7 @@ class BolsoService : Service(), RecognitionListener {
         // pedindo: com o app fechado, o Jarvis não pode voltar a falar sozinho.
         if (intent == null) { encerrar(); return START_NOT_STICKY }
         instancia = this
+        OuvidoRelogio.ligar(this)
         usadoEm = System.currentTimeMillis()
         val p = getSharedPreferences(PREFS, MODE_PRIVATE)
         val snap = intent?.getStringExtra("snap")
@@ -266,7 +267,7 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
-        anotar("ligado (app de 2026-11-18e: o relógio é atualizado sozinho junto com o celular)")
+        anotar("ligado (app de 2026-11-19a: o celular ouve o relógio mesmo sem o Início automático)")
         linha.post(olheiro)
         linha.postDelayed(manterCanal, 15_000L)
         try { getSystemService(AudioManager::class.java)?.registerAudioPlaybackCallback(espiaoSom, linha) } catch (e: Exception) { }
@@ -1128,6 +1129,7 @@ class BolsoService : Service(), RecognitionListener {
         web = null
         try { trava?.let { if (it.isHeld) it.release() } } catch (e: Exception) { }
         instancia = null
+        OuvidoRelogio.desligar(this)
         // o relógio estava desatualizado no meio do treino: atualiza agora
         Handler(Looper.getMainLooper()).postDelayed({ Relogio.talvezAtualizar(applicationContext) }, 4000L)
         // O que ficou pendente continua guardado: o "Trazer" da tela do treino leva

@@ -431,6 +431,8 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     // hora em que o relógio ficou sozinho), ativo e com tudo entregue, devolve
     // o treino ao celular; antes disso, o que o relógio anotou vai primeiro.
     private fun receber(j: JSONObject) {
+        semResposta = false
+        linha.removeCallbacks(semRespostaR)
         val sc = semCel
         if (sc != null) {
             val novo = j.optLong("agora", 0L) > sc.desde
@@ -651,6 +653,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             }
             exNome.setTextColor(if (p != null && ativo && p.optBoolean("fim") && !ambiente) Cores.OURO else Color.WHITE)
             aviso.text = when {
+                p == null && semResposta -> "O celular está conectado, mas o Treino Livre não respondeu. Abra o app no celular pelo ícone. Celular Xiaomi, Redmi, POCO, Oppo, Vivo ou Motorola: libere o Início automático do Treino Livre (no app: Ajustes › Conectar aparelhos › Relógio)."
                 p == null -> "Abra o Treino Livre no celular, pelo ícone do app."
                 !ativo -> "Abra o Treino Livre pelo ícone do app no celular e comece uma ficha: o relógio acompanha o Jarvis da tela travada (🔒), que liga sozinho a cada série marcada."
                 p.optBoolean("fim") -> "Toque em Finalizar treino no celular."
@@ -757,6 +760,9 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
 
     private var acesoAte = 0L
     private val ACESO_MS = 20 * 60_000L
+    // pediu o estado ao celular, conectado, e nada voltou em 8 s
+    private var semResposta = false
+    private val semRespostaR = Runnable { if (painel == null && semCel == null) { semResposta = true; mostrar() } }
     private var estavaDescansando = false
     private fun atualizarRelogio() {
         val ate = descansoAte()
@@ -845,6 +851,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
                 return@addOnSuccessListener
             }
             nos.forEach { no -> Wearable.getMessageClient(this).sendMessage(no.id, "/treino/acao", dados) }
+            if (a == "estado" && painel == null) { linha.removeCallbacks(semRespostaR); linha.postDelayed(semRespostaR, 8000L) }
             // sem resposta em 6 s, o celular não recebeu: anota aqui
             if (esperando) linha.postDelayed({
                 if (esperando) {

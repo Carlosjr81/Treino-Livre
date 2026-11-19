@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v215) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v216) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4609,6 +4609,32 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   - **Não validado num relógio**: o `adb_wifi_enabled` escrito pelo app, o
     `requestNetwork` do Wi-Fi, a tela aberta pelo celular, a procura da
     porta no próprio relógio e a atualização sem toque.
+- **Xiaomi e outros celulares que barram o segundo plano** (2026-11-19a,
+  relato do dono: Galaxy S26 + Watch 8 perfeito; **Redmi Note 13 Pro+ com
+  Galaxy Watch 6** instalou e o relógio ficou em "Procurando o celular…").
+  O relógio chama o celular por mensagem, que o Google Play Services entrega
+  acordando o `OuvinteRelogio`; Xiaomi (MIUI/HyperOS), Oppo, Realme, Vivo,
+  Huawei, Honor e outras barram esse acordar sem o **Início automático**.
+  - **Com o treino aberto, o `BolsoService` também ouve** por um ouvinte vivo
+    no próprio processo (`OuvidoRelogio.ligar`, `MessageClient.addListener`),
+    que nenhuma marca barra. A mensagem pode chegar pelos dois caminhos: o
+    corpo do antigo `onMessageReceived` virou `OuvinteRelogio.tratar`, e
+    `OuvidoRelogio.primeiraVez` (nó, requestId, caminho, tamanho) só deixa
+    passar uma vez.
+  - **Abrir o app pelo ícone sem treino** publica o painel "desligado"
+    (`AberturaActivity`): o painel vai do celular ao relógio, caminho que
+    ninguém barra, e o relógio sai do "Procurando" para "Comece o treino".
+  - **A tela que leva ao Início automático** (`FundoActivity`,
+    `treinolivre://relogio-fundo`): os atalhos de cada marca (Segurança do
+    Xiaomi, ColorOS, Vivo, Huawei, Honor, Asus) e a bateria sem restrição, com
+    as configurações do app de reserva. Abre sozinha no fim da instalação do
+    relógio nessas marcas (uma vez, `fundoVisto`). O site sabe a marca pelo
+    `fab=` (`Site.endereco`, `FABRICANTE_APP`, `CELULAR_BARRA_FUNDO`) e
+    mostra o cartão "📱 Celular Xiaomi: falta um passo" no assistente do
+    relógio; o 🆘 ganhou "O relógio fica em Procurando o celular".
+  - **O relógio diz o que fazer**: pediu o estado, o celular está conectado e
+    nada voltou em 8 s (`semResposta`) → o aviso fala do Início automático.
+  - **Não validado no Redmi**: compilado pelo Actions, conferido só no código.
 - **Outras marcas** (2026-11-13a): o assistente de instalar começa com **"Qual
   é o seu relógio?"** (`MARCAS_RELOGIO`, guardado em
   `treinolivre:relogioMarca`): Galaxy Watch, Pixel Watch e "outro com Wear

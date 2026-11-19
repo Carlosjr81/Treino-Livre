@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-19a — O relógio conecta também com celular Xiaomi, Redmi e POCO
+
+**Em uma frase:** com celulares Xiaomi, Redmi, POCO, Oppo, Vivo e outros, o relógio deixa de ficar em "Procurando o celular…": o app passa a ouvir o relógio durante o treino e ensina a liberar o Início automático.
+
+**O que mudou**
+- Durante o treino, o celular escuta o relógio de um jeito que essas marcas não bloqueiam.
+- No fim da instalação do relógio, nesses celulares, abre uma tela com os dois ajustes que faltam (Início automático e bateria sem restrição), com o botão que leva direto a cada um.
+- O assistente do relógio mostra o aviso "Celular Xiaomi: falta um passo", e o relógio, quando o celular não responde, diz o que fazer.
+
+**Por que importa para quem treina**
+- O relógio passa a funcionar com muito mais celulares, não só Samsung.
+
+**Como usar**
+- Atualize o app do celular e do relógio. Em Xiaomi, Redmi ou POCO: Ajustes › Conectar aparelhos › Relógio › "📱 Liberar o Início automático", ligue o Treino Livre e escolha Bateria sem restrições.
+
+**Ideias de vídeo**
+- Um Redmi com Galaxy Watch: liberar o Início automático em 10 segundos e o relógio já marcando a série.
+
+**Não prometer**
+- Cada marca esconde o ajuste num lugar diferente; em alguns celulares a pessoa precisa achar o Treino Livre na lista. Só relógios com Wear OS (Galaxy Watch e outros).
+
+---
+
 ## 2026-11-18e — O relógio se atualiza sozinho junto com o celular
 
 **Em uma frase:** quando sai versão nova do app, o celular atualizado confere o relógio e já atualiza o app do relógio também, sem nenhum toque.

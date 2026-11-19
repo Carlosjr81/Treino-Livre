@@ -366,7 +366,10 @@ class InstaladorRelogio : ComponentActivity() {
                 log("✅ Pronto! O Treino Livre está no relógio.")
                 if (auto) fase("✅ Pronto! O app do relógio foi atualizado.")
                 Relogio.abrirNoRelogio(applicationContext)
-                linha.postDelayed({ voltarAoSite("pronto") }, 2500L)
+                if (FundoActivity.precisa() && !getSharedPreferences("relogio", MODE_PRIVATE).getBoolean("fundoVisto", false)) {
+                    log("📱 Falta uma coisa neste celular: liberar o Início automático do Treino Livre, senão o relógio fica \"Procurando o celular\".")
+                    linha.postDelayed({ FundoActivity.abrir(this@InstaladorRelogio); finish() }, 2500L)
+                } else linha.postDelayed({ voltarAoSite("pronto") }, 2500L)
             } else if (auto) {
                 if (System.currentTimeMillis() - inicioAuto < 6 * 60_000L) {
                     pedirAoRelogio()

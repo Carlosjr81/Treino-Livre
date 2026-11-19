@@ -78,6 +78,18 @@ class FundoActivity : Activity() {
         resultado = texto(15f, t = "")
         caixa.addView(botao("Testar a conexão com o relógio", rosa) { testar() }, lp(8))
         caixa.addView(resultado, lp(8))
+        // 2026-11-19c (Redmi + Watch 6, o relógio dizia "Nenhum celular
+        // conectado"): a ligação entre os dois é do Galaxy Wearable e do Google
+        // Play Services, e no Xiaomi eles também são barrados em segundo plano.
+        semNo = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = android.view.View.GONE }
+        semNo?.addView(texto(14f, cinza, t = "Libere estes apps como o Treino Livre (Início automático ligado e Bateria sem restrições): Galaxy Wearable, Galaxy Watch Manager (o plugin do relógio), Samsung Accessory Service e Google Play Services. Depois reinicie o relógio e o celular."), lp(6))
+        semNo?.addView(botao("Abrir o Galaxy Wearable", escuro) {
+            val i = packageManager.getLaunchIntentForPackage("com.samsung.android.app.watchmanager")
+            if (i == null || !tentar(i)) tentar(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.samsung.android.app.watchmanager")))
+        }, lp(8))
+        semNo?.addView(botao("Bateria do Galaxy Wearable", escuro) { abrirBateria("com.samsung.android.app.watchmanager", "Galaxy Wearable") }, lp(8))
+        semNo?.addView(botao("Bateria do Google Play Services", escuro) { abrirBateria("com.google.android.gms", "Google Play services") }, lp(8))
+        caixa.addView(semNo, lp(4))
         if (precisa()) caixa.addView(texto(15f, t = "Em celulares " + nomeDaMarca() + ", o sistema não deixa o Treino Livre acordar quando o relógio chama. Aí o relógio fica em \"Procurando o celular…\". Libere duas coisas, uma vez só:"), lp(18))
         else caixa.addView(texto(15f, t = "Se o teste falhar no Treino Livre, libere estas duas coisas (alguns celulares economizam bateria fechando o app):"), lp(18))
         caixa.addView(texto(16f, negrito = true, t = "1. Início automático"), lp(18))
@@ -95,6 +107,7 @@ class FundoActivity : Activity() {
     }
 
     private var resultado: TextView? = null
+    private var semNo: LinearLayout? = null
     private var ouvinte: MessageClient.OnMessageReceivedListener? = null
     private val linha = android.os.Handler(android.os.Looper.getMainLooper())
 
@@ -108,9 +121,11 @@ class FundoActivity : Activity() {
         try {
             Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nos ->
                 if (nos.isEmpty()) {
-                    dizer("✗ Nenhum relógio conectado a este celular.\n\nConfira: Bluetooth ligado, o app Galaxy Wearable (ou Wear OS / Pixel Watch) mostrando o relógio conectado, e o Google Play Services atualizado na Play Store. Celular Huawei ou Honor sem os serviços do Google não conecta relógio Wear OS.")
+                    runOnUiThread { semNo?.visibility = android.view.View.VISIBLE }
+                    dizer("✗ O Google não vê relógio nenhum ligado a este celular. O problema está antes do Treino Livre: na ligação entre o celular e o relógio.\n\n1. Abra o Galaxy Wearable (ou Wear OS / Pixel Watch): ele precisa mostrar o relógio Conectado.\n2. Bluetooth ligado e o Google Play Services atualizado na Play Store.\n3. O relógio precisa ter sido configurado com ESTE celular (relógio que já foi de outro celular: restaure pelo Galaxy Wearable).\n\nCelular Huawei ou Honor sem os serviços do Google não conecta relógio Wear OS.")
                     return@addOnSuccessListener
                 }
+                runOnUiThread { semNo?.visibility = android.view.View.GONE }
                 val nomes = nos.joinToString(", ") { it.displayName }
                 dizer("⏳ Relógio conectado: $nomes. Chamando o Treino Livre do relógio…")
                 Relogio.desligado(applicationContext)
@@ -176,10 +191,10 @@ class FundoActivity : Activity() {
         )
     }
 
-    private fun abrirBateria() {
+    private fun abrirBateria(pacote: String = packageName, rotulo: String = "Treino Livre") {
         tentar(
-            Intent("miui.intent.action.HIDDEN_APPS_CONFIG_ACTIVITY").putExtra("package_name", packageName).putExtra("package_label", "Treino Livre"),
-            detalhes(),
+            Intent("miui.intent.action.HIDDEN_APPS_CONFIG_ACTIVITY").putExtra("package_name", pacote).putExtra("package_label", rotulo),
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pacote")),
             Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
         )
     }

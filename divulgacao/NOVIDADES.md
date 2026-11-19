@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-19c — O que fazer quando o relógio não se liga ao celular
+
+**Em uma frase:** quando o relógio diz que não está ligado a nenhum celular, o app explica que o problema é a ligação entre os dois aparelhos e leva direto aos ajustes que resolvem.
+
+**O que mudou**
+- O teste de conexão mostra botões para abrir o Galaxy Wearable e liberar a bateria dele e do Google Play Services.
+- O relógio e a ajuda dizem exatamente quais apps liberar em celulares Xiaomi, Redmi e POCO.
+
+**Por que importa para quem treina**
+- Menos tentativa e erro para fazer o relógio funcionar em celulares que não são Samsung.
+
+**Como usar**
+- Ajustes › Conectar aparelhos › Relógio › "🔎 Testar a conexão com o relógio".
+
+**Ideias de vídeo**
+- Um Redmi com Galaxy Watch: o teste aponta o problema e, depois dos ajustes, o relógio marca a série.
+
+**Não prometer**
+- Se o Galaxy Wearable não mostrar o relógio conectado, o Treino Livre não tem como chegar a ele.
+
+---
+
 ## 2026-11-19b — Testar a conexão com o relógio, e quais marcas funcionam
 
 **Em uma frase:** um botão testa a conexão entre o celular e o relógio e diz exatamente onde ela para, e o app mostra quais celulares e relógios funcionam com o Treino Livre.

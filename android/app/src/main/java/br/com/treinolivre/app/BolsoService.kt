@@ -267,7 +267,7 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
-        anotar("ligado (app de 2026-11-19b: teste da conexão com o relógio)")
+        anotar("ligado (app de 2026-11-19c: o teste aponta os apps da ligação com o relógio)")
         linha.post(olheiro)
         linha.postDelayed(manterCanal, 15_000L)
         try { getSystemService(AudioManager::class.java)?.registerAudioPlaybackCallback(espiaoSom, linha) } catch (e: Exception) { }

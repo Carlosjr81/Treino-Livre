@@ -41,6 +41,8 @@
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
         <package android:name="com.android.chrome" />
+        <!-- o Galaxy Wearable, para o "Testar a conexão" abrir o app dele -->
+        <package android:name="com.samsung.android.app.watchmanager" />
         <intent>
             <action android:name="android.support.customtabs.action.CustomTabsService" />
         </intent>

@@ -662,7 +662,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             exNome.setTextColor(if (p != null && ativo && p.optBoolean("fim") && !ambiente) Cores.OURO else Color.WHITE)
             aviso.text = when {
                 p == null && semPlay -> "Este relógio não alcança o celular (Google Play Services). Reinicie o relógio e confira o app Galaxy Wearable (ou Wear OS) no celular."
-                p == null && semNo -> "Nenhum celular conectado ao relógio. No celular: Bluetooth ligado e o app Galaxy Wearable (ou Wear OS / Pixel Watch) aberto, mostrando o relógio conectado."
+                p == null && semNo -> "O relógio não está ligado a nenhum celular. No celular: Bluetooth ligado e o Galaxy Wearable mostrando o relógio Conectado. Xiaomi, Redmi, POCO: libere Início automático e bateria do Galaxy Wearable, do plugin do relógio e do Google Play Services."
                 p == null && semResposta -> "Conectado a " + (if (nomeCelular.isNotEmpty()) nomeCelular else "um celular") + ", mas o Treino Livre de lá não respondeu. No celular: abra o Treino Livre pelo ícone. Xiaomi, Redmi, POCO, Oppo, Vivo, Huawei: libere o Início automático e a bateria sem restrição (no app: Ajustes › Conectar aparelhos › Relógio › Testar a conexão)."
                 p == null -> "Abra o Treino Livre no celular, pelo ícone do app."
                 !ativo -> "Abra o Treino Livre pelo ícone do app no celular e comece uma ficha: o relógio acompanha o Jarvis da tela travada (🔒), que liga sozinho a cada série marcada."

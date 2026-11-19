@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v217) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v218) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4651,6 +4651,14 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
     3+ com celular Android com os serviços do Google; Xiaomi, Oppo, Vivo,
     Asus, Huawei com Google pedem o Início automático; Huawei sem Google,
     iPhone, Galaxy Watch 3 (Tizen) e Apple Watch não.
+  - **"Nenhum celular conectado" no Redmi** (2026-11-19c, foto do dono com o
+    relógio na versão 19b): o `NodeClient` do relógio não vê celular nenhum,
+    então a falha é na ligação do Galaxy Wearable / Google Play Services, antes
+    do Treino Livre. No Xiaomi esses apps também são barrados em segundo plano:
+    o relógio, o teste do celular (com botões para o Galaxy Wearable e a
+    bateria dele e do Google Play Services) e o 🆘 mandam liberar o Galaxy
+    Wearable, o plugin do relógio, o Samsung Accessory Service e o Google Play
+    Services, e lembram que relógio de outro celular precisa ser restaurado.
   - **Não validado no Redmi**: compilado pelo Actions, conferido só no código.
 - **Outras marcas** (2026-11-13a): o assistente de instalar começa com **"Qual
   é o seu relógio?"** (`MARCAS_RELOGIO`, guardado em

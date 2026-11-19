@@ -1,0 +1,42 @@
+1. GANCHO
+[gancho-1] Você treina há meses e não cresce? O problema pode ser a sua ficha.
+
+2. O APP MONTA O TREINO
+[monta-1] Eu criei o Treino Livre: um app grátis que monta o seu treino pela ciência.
+[monta-2] Três perguntas: objetivo, dias e nível.
+
+3. A LITERATURA
+[literatura-1] Cada músculo, duas vezes por semana.
+[literatura-2] (JARVIS) Schoenfeld e colegas, dois mil e dezesseis.
+[literatura-3] De dez a vinte séries por semana. E conta até o músculo que só ajuda: no supino, tríceps e ombro valem meia série.
+[literatura-4] (JARVIS) Pelland e colegas, dois mil e vinte e quatro.
+
+4. O CICLO DE 5 SEMANAS
+[ciclo-1] Tudo num ciclo de cinco semanas: sobe aos poucos e fecha com uma semana de recuperação.
+[ciclo-2] (JARVIS) Bell e colegas, dois mil e vinte e três.
+
+5. OS AJUSTES PELO HISTÓRICO
+[ajustes-1] A cada ciclo, ele olha o seu histórico.
+[ajustes-2] Carga parou? Mais duas séries.
+[ajustes-3] Carga caiu? Duas a menos.
+[ajustes-4] Evoluindo? Não mexe.
+
+6. O BOTÃO: ATUALIZAR SOZINHO
+[botao-1] Liga este botão: Atualizar sozinho pela ciência.
+[botao-2] E todo treino mostra o que mudou e por quê.
+
+7. AJUSTE POR TEMPO
+[tempo-1] Só tem uma hora hoje?
+[tempo-2] Toca em Tenho menos tempo, escolhe uma hora...
+[tempo-3] ...e ele redesenha: bi-set, descanso mais curto, e os exercícios grandes ficam.
+[tempo-4] (JARVIS) Iversen e colegas, dois mil e vinte e um.
+
+8. O JARVIS
+[jarvis-1] E com o Jarvis, nem encosta no celular.
+[jarvis-2] Jarvis, anota oitenta por dez.
+[jarvis-3] (JARVIS) Supino: oitenta por dez. Descanso de três minutos.
+
+9. APOIE O TREINO LIVRE
+[apoio-1] O Treino Livre é grátis, sem mensalidade e sem propaganda.
+[apoio-2] Ajude comprando pelo meu link ou com um Pix.
+[apoio-3] Link na bio: arroba carlos ponto jr ponto oitenta e um. E consulte um médico antes de começar.

@@ -15,6 +15,8 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import com.google.android.gms.wearable.MessageClient
+import com.google.android.gms.wearable.Wearable
 
 // O relógio ficava em "Procurando o celular…" num Redmi Note 13 Pro+ com um
 // Galaxy Watch 6 (relato do dono, 2026-11-19a; no Galaxy S26 com o Watch 8
@@ -69,7 +71,15 @@ class FundoActivity : Activity() {
         val escuro = Color.parseColor("#2A2A33")
 
         caixa.addView(texto(22f, negrito = true, t = "⌚ Deixe o relógio falar com o celular"))
-        caixa.addView(texto(15f, t = "Em celulares " + nomeDaMarca() + ", o sistema não deixa o Treino Livre acordar quando o relógio chama. Aí o relógio fica em \"Procurando o celular…\". Libere duas coisas, uma vez só:"), lp())
+        // 2026-11-19b: o teste que diz onde a conexão para (relato do dono, Redmi
+        // + Galaxy Watch 6 em "Procurando o celular" mesmo com tudo liberado)
+        caixa.addView(texto(16f, negrito = true, t = "🔎 Testar a conexão agora"), lp(16))
+        caixa.addView(texto(14f, cinza, t = "Com o relógio no pulso e o app Treino Livre aberto nele."), lp(4))
+        resultado = texto(15f, t = "")
+        caixa.addView(botao("Testar a conexão com o relógio", rosa) { testar() }, lp(8))
+        caixa.addView(resultado, lp(8))
+        if (precisa()) caixa.addView(texto(15f, t = "Em celulares " + nomeDaMarca() + ", o sistema não deixa o Treino Livre acordar quando o relógio chama. Aí o relógio fica em \"Procurando o celular…\". Libere duas coisas, uma vez só:"), lp(18))
+        else caixa.addView(texto(15f, t = "Se o teste falhar no Treino Livre, libere estas duas coisas (alguns celulares economizam bateria fechando o app):"), lp(18))
         caixa.addView(texto(16f, negrito = true, t = "1. Início automático"), lp(18))
         caixa.addView(texto(14f, cinza, t = "Na lista que abrir, ligue o Treino Livre. (No Xiaomi: Segurança › Apps › Permissões › Início automático.)"), lp(4))
         caixa.addView(botao("Abrir o Início automático", rosa) { abrirInicioAutomatico() }, lp(8))
@@ -82,6 +92,62 @@ class FundoActivity : Activity() {
             finish()
         }, lp(14))
         setContentView(ScrollView(this).apply { setBackgroundColor(Color.parseColor("#0B0B0F")); addView(caixa) })
+    }
+
+    private var resultado: TextView? = null
+    private var ouvinte: MessageClient.OnMessageReceivedListener? = null
+    private val linha = android.os.Handler(android.os.Looper.getMainLooper())
+
+    private fun dizer(t: String) { runOnUiThread { resultado?.text = t } }
+
+    // Três perguntas, na ordem em que a conexão pode parar: há relógio conectado
+    // a este celular (Google Play Services e o app do relógio)? O relógio tem o
+    // Treino Livre? O app do relógio responde (os dois sentidos da mensagem)?
+    private fun testar() {
+        dizer("⏳ Procurando o relógio…")
+        try {
+            Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nos ->
+                if (nos.isEmpty()) {
+                    dizer("✗ Nenhum relógio conectado a este celular.\n\nConfira: Bluetooth ligado, o app Galaxy Wearable (ou Wear OS / Pixel Watch) mostrando o relógio conectado, e o Google Play Services atualizado na Play Store. Celular Huawei ou Honor sem os serviços do Google não conecta relógio Wear OS.")
+                    return@addOnSuccessListener
+                }
+                val nomes = nos.joinToString(", ") { it.displayName }
+                dizer("⏳ Relógio conectado: $nomes. Chamando o Treino Livre do relógio…")
+                Relogio.desligado(applicationContext)
+                val o = MessageClient.OnMessageReceivedListener { m ->
+                    if (m.path == "/treino/pong") {
+                        linha.removeCallbacksAndMessages(null)
+                        tirarOuvinte()
+                        val v = String(m.data, Charsets.UTF_8).substringAfter("|", "")
+                        dizer("✓ Tudo certo: o relógio ($nomes) e o celular conversam nos dois sentidos" + (if (v.isNotEmpty()) " (app do relógio $v)" else "") + ".\n\nAgora comece o treino no Treino Livre deste celular: o relógio acompanha a partir da primeira série marcada." + (if (precisa()) "\n\nSe o relógio ainda ficar em \"Procurando\" com o app fechado, libere o Início automático abaixo." else ""))
+                    }
+                }
+                tirarOuvinte()
+                ouvinte = o
+                Wearable.getMessageClient(this).addListener(o)
+                nos.forEach { no -> Wearable.getMessageClient(this).sendMessage(no.id, "/treino/ping", ByteArray(0)) }
+                linha.postDelayed({
+                    tirarOuvinte()
+                    dizer("✗ O relógio ($nomes) está conectado, mas o Treino Livre dele não respondeu.\n\n• Confira se o app Treino Livre está instalado no relógio (instale de novo pelo assistente, se preciso).\n• O app do relógio precisa ser a versão nova: atualize pelo assistente.\n• Abra o Treino Livre no relógio e teste de novo.")
+                }, 8000L)
+            }.addOnFailureListener {
+                dizer("✗ Este celular não alcança relógios (Google Play Services indisponível ou desatualizado). Atualize o Google Play Services na Play Store.")
+            }
+        } catch (e: Exception) {
+            dizer("✗ Falhou: " + (e.message ?: e.javaClass.simpleName))
+        }
+    }
+
+    private fun tirarOuvinte() {
+        val o = ouvinte ?: return
+        ouvinte = null
+        try { Wearable.getMessageClient(this).removeListener(o) } catch (e: Exception) { }
+    }
+
+    override fun onDestroy() {
+        linha.removeCallbacksAndMessages(null)
+        tirarOuvinte()
+        super.onDestroy()
     }
 
     private fun tentar(vararg intents: Intent): Boolean {

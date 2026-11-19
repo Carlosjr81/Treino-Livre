@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-19a";
+const VERSAO_APP = "2026-11-19b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -31057,6 +31057,28 @@ const MARCAS_RELOGIO = [
   { id: "apple", icone: "⌚", nome: "Apple Watch", sub: "", wear: false, apple: true },
   { id: "outros", icone: "❤️", nome: "Garmin, Amazfit, Huawei, Polar, Coros, pulseiras", sub: "e outros sem Wear OS", wear: false },
 ];
+// Quais celulares e quais relógios funcionam (pedido do dono, 2026-11-19b:
+// "já preveja todas as conexões entre marcas de celulares e relógios"). O
+// relógio precisa ser Wear OS 3+ e o celular Android com os serviços do Google;
+// o que muda de uma marca de celular para outra é só o Início automático.
+const COMPAT_CELULAR = [
+  ["✅", "Samsung, Motorola, Google Pixel, Nokia, Sony", "Funciona direto."],
+  ["⚠️", "Xiaomi, Redmi, POCO", "Funciona depois de ligar o **Início automático** e a **Bateria sem restrições** do Treino Livre (Segurança › Apps › Permissões)."],
+  ["⚠️", "Oppo, Realme, OnePlus", "Ligue o **Início automático** (Gerenciar apps › Treino Livre) e a bateria **Sem restrições**."],
+  ["⚠️", "Vivo, iQOO", "Ligue o **Início automático em segundo plano** e a bateria **Sem restrições**."],
+  ["⚠️", "Asus, Tecno, Infinix, Meizu", "Ligue o **Início automático** e tire o Treino Livre da economia de bateria."],
+  ["⚠️", "Huawei, Honor com Google", "Em **Iniciar apps**, deixe o Treino Livre no manual com as três chaves ligadas."],
+  ["❌", "Huawei e Honor sem os serviços do Google", "Não conecta relógio Wear OS (o sistema não tem o serviço que liga os dois)."],
+  ["❌", "iPhone", "Não há app do Treino Livre para iPhone, e o Galaxy Watch não conecta ao iPhone."],
+];
+const COMPAT_RELOGIO = [
+  ["✅", "Galaxy Watch 4, 5, 6, 7, 8, Ultra e FE", "Com o app Galaxy Wearable no celular (em celular que não é Samsung, ele pede também o plugin do relógio)."],
+  ["✅", "Pixel Watch 1, 2, 3 e 4", "Com o app Pixel Watch no celular."],
+  ["✅", "TicWatch, Fossil Gen 6, Xiaomi Watch 2, OnePlus Watch 2, Oppo Watch, Montblanc", "Com Wear OS 3 ou mais novo e o app Wear OS (ou o da marca) no celular."],
+  ["❌", "Galaxy Watch 3, Active e mais antigos", "Usam outro sistema (Tizen), que não instala o app."],
+  ["❌", "Apple Watch", "Só conversa com iPhone."],
+  ["❤️", "Garmin, Amazfit, Huawei Watch GT, Polar, Coros, Xiaomi Smart Band", "Sem o app no pulso, mas o batimento ao vivo (transmitir FC) e a Conexão Saúde funcionam."],
+];
 const marcaRelogio = (id) => MARCAS_RELOGIO.find((m) => m.id === id) || null;
 // os passos do relógio escolhido: o modo de desenvolvedor e o Wi-Fi de cada um
 function passosRelogioDa(m) {
@@ -31112,7 +31134,7 @@ const PASSOS_RELOGIO = [
 // O que fazer quando aparece uma destas mensagens na tela de instalar
 const PROBLEMAS_RELOGIO = [
   ["O relógio fica em \"Procurando o celular…\"",
-    "O relógio está conectado, mas o Treino Livre do celular não acordou. Em celulares **Xiaomi, Redmi, POCO, Oppo, Realme, Vivo, Huawei** e outros, o sistema barra isso: no celular, ligue o **Início automático** do Treino Livre e deixe a **Bateria sem restrições** (o botão **📱 Liberar o Início automático** abaixo leva até lá). Depois abra o Treino Livre **pelo ícone** e comece o treino."],
+    "Toque em **🔎 Testar a conexão com o relógio** (no assistente): ele diz onde a conexão para. **Nenhum relógio conectado**: Bluetooth e o app Galaxy Wearable (ou Wear OS) com o relógio conectado; num celular que não é Samsung, o Galaxy Wearable pede também o plugin do relógio. **O app do relógio não respondeu**: instale ou atualize o app no relógio. **Tudo certo, mas fica em Procurando com o app fechado**: em **Xiaomi, Redmi, POCO, Oppo, Realme, Vivo, Huawei** e outros, ligue o **Início automático** e a **Bateria sem restrições** do Treino Livre. Depois abra o Treino Livre **pelo ícone** e comece o treino."],
   ["O relógio apaga a tela e volta para o mostrador",
     "Com o treino aberto, o Treino Livre fica **em andamento** no relógio: o ícone dele aparece no mostrador, e um toque nele volta ao treino. Se o relógio pediu para permitir notificações, toque em **Permitir**. No Galaxy Watch, ajuda também: Configurações → **Tela** → **Mostrar último app** (ou Voltar ao último app) → **Sempre**. E ligar a **Tela sempre ligada** deixa o treino à vista, escurecido."],
   ["\"O celular e o relógio estão em redes diferentes\"",
@@ -31291,13 +31313,30 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
           <div style={{ height: "100%", width: (100 * nFeitos / PASSOS.length) + "%", background: "var(--ok)" }} />
         </div>
         {PASSOS.map((p, k) => cartao(p, k, PASSOS, k + 1))}
-        {EH_ANDROID && (CELULAR_BARRA_FUNDO || problemas) && (
+        {EH_ANDROID && (
           <div style={{ ...S.card, marginTop: 4, borderColor: CELULAR_BARRA_FUNDO ? "var(--marca)" : "var(--borda)" }}>
-            <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>📱 {CELULAR_BARRA_FUNDO ? "Celular " + NOME_FABRICANTE + ": falta um passo" : "O relógio fica em \"Procurando o celular…\"?"}</div>
-            <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 8 }}>{textoGuia("Este celular não deixa o Treino Livre acordar quando o relógio chama, e o relógio fica em **Procurando o celular…**. Libere uma vez: **Início automático** ligado e **Bateria sem restrições** para o Treino Livre.")}</div>
-            <a href={LINK_FUNDO_RELOGIO} style={{ ...S.btnGhost, display: "block", textAlign: "center", textDecoration: "none" }}>📱 Liberar o Início automático</a>
+            <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>🔎 {CELULAR_BARRA_FUNDO ? "Celular " + NOME_FABRICANTE + ": falta um passo" : "O relógio fica em \"Procurando o celular…\"?"}</div>
+            <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 8 }}>{textoGuia(CELULAR_BARRA_FUNDO
+              ? "Este celular não deixa o Treino Livre acordar quando o relógio chama, e o relógio fica em **Procurando o celular…**. No botão abaixo: **Testar a conexão** diz onde ela para, e os atalhos ligam o **Início automático** e a **Bateria sem restrições**."
+              : "O botão abaixo **testa a conexão** com o relógio e diz onde ela para: sem relógio conectado ao celular, sem o app no relógio ou o app do celular sem acordar.")}</div>
+            <a href={LINK_FUNDO_RELOGIO} style={{ ...S.btnGhost, display: "block", textAlign: "center", textDecoration: "none" }}>🔎 Testar a conexão com o relógio</a>
           </div>
         )}
+        <details style={{ ...S.card, marginTop: 4 }}>
+          <summary style={{ fontWeight: 900, fontSize: 15, cursor: "pointer" }}>📋 Quais celulares e relógios funcionam</summary>
+          <div style={{ fontSize: 13, color: "var(--cinza)", margin: "8px 0" }}>O relógio precisa ter Wear OS 3 ou mais novo, e o celular, Android com os serviços do Google (Play Store).</div>
+          {[["Celular", COMPAT_CELULAR], ["Relógio", COMPAT_RELOGIO]].map(([tit, lista]) => (
+            <div key={tit} style={{ marginTop: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 4 }}>{tit}</div>
+              {lista.map(([s, nome, txt]) => (
+                <div key={nome} style={{ display: "flex", gap: 8, fontSize: 13, lineHeight: 1.45, padding: "5px 0", borderTop: "1px solid var(--borda)" }}>
+                  <span>{s}</span>
+                  <span><b>{nome}</b>: {textoGuia(txt)}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </details>
         <div style={{ ...S.card, marginTop: 4 }}>
           <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>🏋️ Depois de instalado: como treinar</div>
           <ol style={{ margin: 0, paddingLeft: 22, fontSize: 14, lineHeight: 1.55 }}>

@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v216) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v217) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4634,6 +4634,23 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
     relógio; o 🆘 ganhou "O relógio fica em Procurando o celular".
   - **O relógio diz o que fazer**: pediu o estado, o celular está conectado e
     nada voltou em 8 s (`semResposta`) → o aviso fala do Início automático.
+  - **Testar a conexão** (2026-11-19b, o dono: "fiz todas as configurações e
+    ainda não conectou"). A `FundoActivity` virou a tela de diagnóstico de
+    todo Android (o cartão "🔎 Testar a conexão com o relógio" do assistente
+    aparece sempre): pergunta os nós conectados (`NodeClient`; vazio =
+    Bluetooth, Galaxy Wearable ou Play Services), manda `/treino/ping` e
+    espera 8 s o `/treino/pong` do `AlertaRelogio` (sem resposta = o app do
+    relógio falta ou está velho). O texto diz o que fazer em cada caso.
+  - **O relógio dizia o motivo errado**: o "Celular desconectado" era escrito
+    e o `mostrar()` o apagava na hora com "Abra o Treino Livre no celular".
+    Hoje `semNo`, `semPlay` e `semResposta` (com o nome do celular
+    conectado) ficam guardados, e o relógio chama o celular de novo a cada
+    10 s enquanto não chega painel (`chamarDeNovo`).
+  - **Quais marcas funcionam** (`COMPAT_CELULAR`, `COMPAT_RELOGIO`, o
+    "📋 Quais celulares e relógios funcionam" do assistente): relógio Wear OS
+    3+ com celular Android com os serviços do Google; Xiaomi, Oppo, Vivo,
+    Asus, Huawei com Google pedem o Início automático; Huawei sem Google,
+    iPhone, Galaxy Watch 3 (Tizen) e Apple Watch não.
   - **Não validado no Redmi**: compilado pelo Actions, conferido só no código.
 - **Outras marcas** (2026-11-13a): o assistente de instalar começa com **"Qual
   é o seu relógio?"** (`MARCAS_RELOGIO`, guardado em

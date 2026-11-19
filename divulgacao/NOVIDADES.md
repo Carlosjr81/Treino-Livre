@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-19b — Testar a conexão com o relógio, e quais marcas funcionam
+
+**Em uma frase:** um botão testa a conexão entre o celular e o relógio e diz exatamente onde ela para, e o app mostra quais celulares e relógios funcionam com o Treino Livre.
+
+**O que mudou**
+- "🔎 Testar a conexão com o relógio": confere se há relógio conectado ao celular, se o app do relógio responde e o que fazer em cada caso.
+- O relógio, quando não acha o celular, agora diz o motivo certo (sem celular conectado, ou celular conectado com o app sem responder) e continua chamando sozinho.
+- A lista "Quais celulares e relógios funcionam", com o ajuste que cada marca de celular pede.
+
+**Por que importa para quem treina**
+- Quem tem celular Xiaomi, Oppo, Vivo ou outro descobre em segundos o que falta para o relógio marcar as séries.
+
+**Como usar**
+- Ajustes › Conectar aparelhos › Relógio › "🔎 Testar a conexão com o relógio", com o app aberto no relógio.
+
+**Ideias de vídeo**
+- O teste mostrando "✓ Tudo certo" e o relógio já marcando a série; a lista de marcas que funcionam.
+
+**Não prometer**
+- Só relógios com Wear OS 3 ou mais novo (Galaxy Watch 4 em diante, Pixel Watch e outros) e celular Android com a Play Store. Apple Watch, Galaxy Watch 3 e iPhone não.
+
+---
+
 ## 2026-11-19a — O relógio conecta também com celular Xiaomi, Redmi e POCO
 
 **Em uma frase:** com celulares Xiaomi, Redmi, POCO, Oppo, Vivo e outros, o relógio deixa de ficar em "Procurando o celular…": o app passa a ouvir o relógio durante o treino e ensina a liberar o Início automático.

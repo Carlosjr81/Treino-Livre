@@ -20,6 +20,13 @@ class AlertaRelogio : WearableListenerService() {
             try { com.google.android.gms.wearable.Wearable.getMessageClient(this).sendMessage(m.sourceNodeId, "/treino/versao", v.toString().toByteArray(Charsets.UTF_8)) } catch (e: Exception) { }
             return
         }
+        // o "Testar a conexão" do celular (2026-11-19b): responder já prova os
+        // dois sentidos, celular → relógio e relógio → celular
+        if (m.path == "/treino/ping") {
+            val v = try { packageManager.getPackageInfo(packageName, 0).longVersionCode } catch (e: Exception) { 0L }
+            try { com.google.android.gms.wearable.Wearable.getMessageClient(this).sendMessage(m.sourceNodeId, "/treino/pong", ((android.os.Build.MODEL ?: "") + "|" + v).toByteArray(Charsets.UTF_8)) } catch (e: Exception) { }
+            return
+        }
         if (m.path != "/treino/alerta") return
         val tipo = String(m.data, Charsets.UTF_8)
         val padrao = if (tipo == "fim") longArrayOf(0, 450, 180, 450, 180, 700) else longArrayOf(0, 160)

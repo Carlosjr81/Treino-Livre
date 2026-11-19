@@ -361,7 +361,11 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             agendarAlarmes()
             linha.removeCallbacks(procurarCelular)
             linha.post(procurarCelular)
-        } else enviar("estado")
+        } else {
+            enviar("estado")
+            linha.removeCallbacks(chamarDeNovo)
+            linha.postDelayed(chamarDeNovo, 10_000L)
+        }
         if (!ambiente) linha.post(tique)
     }
 
@@ -381,6 +385,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         Wearable.getMessageClient(this).removeListener(this)
         linha.removeCallbacks(tique)
         linha.removeCallbacks(procurarCelular)
+        linha.removeCallbacks(chamarDeNovo)
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         super.onPause()
     }
@@ -432,7 +437,10 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     // o treino ao celular; antes disso, o que o relógio anotou vai primeiro.
     private fun receber(j: JSONObject) {
         semResposta = false
+        semNo = false
+        semPlay = false
         linha.removeCallbacks(semRespostaR)
+        linha.removeCallbacks(chamarDeNovo)
         val sc = semCel
         if (sc != null) {
             val novo = j.optLong("agora", 0L) > sc.desde
@@ -653,7 +661,9 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             }
             exNome.setTextColor(if (p != null && ativo && p.optBoolean("fim") && !ambiente) Cores.OURO else Color.WHITE)
             aviso.text = when {
-                p == null && semResposta -> "O celular está conectado, mas o Treino Livre não respondeu. Abra o app no celular pelo ícone. Celular Xiaomi, Redmi, POCO, Oppo, Vivo ou Motorola: libere o Início automático do Treino Livre (no app: Ajustes › Conectar aparelhos › Relógio)."
+                p == null && semPlay -> "Este relógio não alcança o celular (Google Play Services). Reinicie o relógio e confira o app Galaxy Wearable (ou Wear OS) no celular."
+                p == null && semNo -> "Nenhum celular conectado ao relógio. No celular: Bluetooth ligado e o app Galaxy Wearable (ou Wear OS / Pixel Watch) aberto, mostrando o relógio conectado."
+                p == null && semResposta -> "Conectado a " + (if (nomeCelular.isNotEmpty()) nomeCelular else "um celular") + ", mas o Treino Livre de lá não respondeu. No celular: abra o Treino Livre pelo ícone. Xiaomi, Redmi, POCO, Oppo, Vivo, Huawei: libere o Início automático e a bateria sem restrição (no app: Ajustes › Conectar aparelhos › Relógio › Testar a conexão)."
                 p == null -> "Abra o Treino Livre no celular, pelo ícone do app."
                 !ativo -> "Abra o Treino Livre pelo ícone do app no celular e comece uma ficha: o relógio acompanha o Jarvis da tela travada (🔒), que liga sozinho a cada série marcada."
                 p.optBoolean("fim") -> "Toque em Finalizar treino no celular."
@@ -762,6 +772,20 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     private val ACESO_MS = 20 * 60_000L
     // pediu o estado ao celular, conectado, e nada voltou em 8 s
     private var semResposta = false
+    // 2026-11-19b: o "Celular desconectado" era escrito e o mostrar() o
+    // apagava na hora com "Abra o Treino Livre no celular" (visto no Redmi com
+    // o Watch 6). Hoje o motivo fica guardado e o mostrar() o usa.
+    private var semNo = false
+    private var semPlay = false
+    private var nomeCelular = ""
+    // enquanto não chega painel, o relógio chama o celular de novo a cada 10 s
+    private val chamarDeNovo = object : Runnable {
+        override fun run() {
+            if (painel != null || semCel != null) return
+            enviar("estado")
+            linha.postDelayed(this, 10_000L)
+        }
+    }
     private val semRespostaR = Runnable { if (painel == null && semCel == null) { semResposta = true; mostrar() } }
     private var estavaDescansando = false
     private fun atualizarRelogio() {
@@ -846,10 +870,15 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
                 if (a != "estado" && entrarSemCelular()) { aguardando = null; aplicarAqui(j); return@addOnSuccessListener }
                 aguardando = null
                 esperando = false
-                aviso.text = "Celular desconectado. Confira o Bluetooth e o app do relógio no celular (Galaxy Wearable, Pixel Watch ou Wear OS)."
+                semNo = true
+                semPlay = false
                 mostrar()
+                if (painel != null) aviso.text = "Celular desconectado. Confira o Bluetooth e o app do relógio no celular (Galaxy Wearable, Pixel Watch ou Wear OS)."
                 return@addOnSuccessListener
             }
+            semNo = false
+            semPlay = false
+            nomeCelular = nos.firstOrNull()?.displayName ?: ""
             nos.forEach { no -> Wearable.getMessageClient(this).sendMessage(no.id, "/treino/acao", dados) }
             if (a == "estado" && painel == null) { linha.removeCallbacks(semRespostaR); linha.postDelayed(semRespostaR, 8000L) }
             // sem resposta em 6 s, o celular não recebeu: anota aqui
@@ -864,8 +893,9 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         }.addOnFailureListener {
             if (a != "estado" && entrarSemCelular()) { aguardando = null; aplicarAqui(j); return@addOnFailureListener }
             esperando = false
-            aviso.text = "Este relógio não alcança o celular (Google Play Services)."
+            semPlay = true
             mostrar()
+            if (painel != null) aviso.text = "Este relógio não alcança o celular (Google Play Services)."
         }
     }
 

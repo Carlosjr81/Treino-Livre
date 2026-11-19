@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-19c**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-20a**.
 
 ---
 
@@ -35,7 +35,15 @@
 - **Em áudio** (novo em 2026-10-28a): "Ouvir a análise e o ajuste" e "Ouvir por que muda (o estudo)", para ouvir no fone.
 - **Não precisa criar um ajustado toda semana** (2026-10-28a): as séries mudam sozinhas a cada semana e as repetições a cada
   treino; os exercícios ficam os mesmos nas 5 semanas. No fim do ciclo, uma análise nova.
-- Não prometer: a faixa de 10 a 20 séries e os mínimos por músculo são referência, não prescrição.
+- **Montar pra mim pela ciência** (novo em 2026-11-20a): 3 perguntas (objetivo, 2 a 6 dias, nível) e o app monta o treino
+  com cada músculo 2 vezes por semana, as séries por semana no mínimo que faz crescer para o nível, exercícios grandes
+  primeiro e o ciclo de 5 semanas já ligado.
+- **Atualizar sozinho pela ciência** (novo em 2026-11-20a): um botão no cartão de cada treino (aba Fichas). Ligado, a cada
+  5 semanas o app reanalisa os treinos e reajusta as fichas sozinho: sobe as séries do músculo em que a carga parou, tira
+  onde a carga caiu ou passou do limite, completa o que está abaixo do mínimo e mantém o que está funcionando. Mostra o
+  porquê de cada mudança e dá para desfazer.
+- Não prometer: a faixa de 10 a 20 séries e os mínimos por músculo são referência, não prescrição. O app não garante
+  resultado e não substitui o profissional de Educação Física.
 
 ## 1. Em uma frase
 

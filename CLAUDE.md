@@ -716,7 +716,7 @@ Treino-Livre/
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
 ├── divulgacao/          ← o que o ChatGPT do dono lê para criar vídeos: o guia e o NOVIDADES
-└── testes/              ← as 30 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 41 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 1.932 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.064 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v218) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v219) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -884,7 +884,7 @@ Na ordem em que aparece no arquivo:
    `recordesPorExercicio`, `ultimaExecucao`, `sugerirCarga`,
    `recuperacaoMuscular`, `CONQUISTAS`.
 5. **Story** — `gerarImagemStory` (canvas 1080×1920), `compartilharImagem`.
-6. **Modelos do assistente** — `SPLITS` por dias/semana.
+6. **O assistente** — monta pela ciência com `montarProgramaLiteratura` (no bloco do plano de ajuste).
 7. **Som e tela** — `beep` (Web Audio), `ligarTravaTela`/`desligarTravaTela`
    (Wake Lock).
 7b. **Jarvis (voz)** — `criarOuvinte`, `jarvisFalar`, `normalizarFala`,
@@ -5705,6 +5705,85 @@ coloridos um embaixo do outro**. Ninguém dizia o que fazer primeiro.
   as séries, repetições, descanso e bi-set do antigo; sem busca, a lista
   mostra o mesmo grupo. Antes era tirar e acrescentar, e o novo ia para o fim.
 
+## Montar pela ciência e o reajuste automático (`montarProgramaLiteratura`, `reajusteAutomatico`, `CartaoAutoAjuste`)
+
+Pedido do dono (2026-11-20a): "na parte que o app monta o treino, use a
+literatura adequada, igual nos treinos ajustados; uma vez no ajuste da
+literatura, o treino é sempre reajustado automaticamente pelo histórico, sem
+nenhuma ação; e na própria ficha o botão de manter sempre se ajustando". Os
+dois blocos puros ficam no bloco do plano de ajuste (cobertos por
+`teste-montar.js`, 132 checagens).
+
+- **O "Montar pra mim" deixou as listas fixas** (`SPLITS`, apagado: com 3
+  dias era Peito/Tríceps, Costas/Bíceps, Pernas/Ombros, cada músculo 1×
+  por semana e 3 séries em tudo). `montarProgramaLiteratura(objetivo, dias,
+  nivel, catálogo)` usa a régua do ajuste:
+  - **Divisão pela frequência 2×** (`DIVISOES_MONTAR`): 2 e 3 dias corpo
+    inteiro; 4 superior/inferior; 5 superior, inferior, empurrar, puxar,
+    pernas; 6 empurrar/puxar/pernas 2×. O assistente ganhou 6 dias.
+  - **Volume por músculo** em séries fracionadas: `ALVO_MUSCULO` ×
+    `FATOR_NIVEL` (iniciante 0,8, intermediário 1,1, avançado 1,4; teto 18).
+    Os músculos são preenchidos na ordem `ORDEM_MUSCULOS_MONTAR`
+    (grandes primeiro), descontando o indireto que já veio dos compostos.
+    Braço, ombro, posterior, panturrilha e abdômen têm pelo menos 4 séries
+    diretas (`DIRETO_MINIMO_MONTAR`): só de carona, a ficha do iniciante
+    saía sem tríceps.
+  - Necessidade de 3 séries ou mais vai em 2 dias, pelo menos 2 por dia e no
+    máximo 6 do músculo por sessão (`PLANO_SERIES_SESSAO`). Limite da
+    sessão por nível (`LIMITE_SESSAO`: 6/7/8 exercícios, 20/24/26 séries;
+    com 2 dias, um exercício e 4 séries a mais).
+  - **Composto antes do isolado** nos grandes (`COMPOSTO_PRIMEIRO_MONTAR`:
+    sem isso o quadríceps do iniciante começava na extensora); iniciante
+    prefere máquina e polia e repete o mesmo exercício nos dois dias;
+    avançado prefere barra e halter e varia o exercício entre os dias. Só
+    musculação de academia (sem aeróbico, funcional, mini band, isometria).
+  - Ordem do dia: compostos, isolados, abdômen no fim. Repetições
+    (`REPS_OBJETIVO`): hipertrofia 8/12, força 5/10, definição 10/15.
+  - O programa nasce com `meso` (semana 1 agora, `ciclo: 1`),
+    `autoAjuste` (a caixa do assistente, ligada por padrão), `diasSemana`,
+    `nivel` e `objetivo`.
+- **O reajuste automático** (`reajusteAutomatico(fichas, histórico, ...)`),
+  a cada mesociclo novo: um efeito no raiz vê `semanaDoMeso.ciclo` passar de
+  `meso.ciclo` nos programas com `autoAjuste` e reajusta as fichas **no
+  lugar** (nunca com um treino aberto; uma vez por ciclo, `autoFeitoRef`),
+  com um aviso listando as mudanças. Músculo por músculo, pelo planejado das
+  fichas (`volumeDasFichas` com `vezes` = dias ÷ fichas) e pelo 1RM
+  estimado de cada exercício, as últimas 5 semanas contra as 5 antes
+  (`desempenhoPorMusculo`; sinal misturado sem subida conta como queda):
+  - abaixo do mínimo: completa; acima de 20: corta;
+  - carga caiu: −2 séries (se não ficar abaixo do mínimo);
+  - carga parou com 70% ou mais dos treinos feitos: +2, **até o mínimo + 6**
+    (`FOLGA_VOLUME`: o ganho por série cai, o cansaço não; sem esse teto o
+    volume subia até 20 em todo mundo empacado);
+  - carga subiu: fica; menos de 60% dos treinos: nada sobe pela carga parada
+    (a frase fala de constância);
+  - adutor, lombar, oblíquo, antebraço e trapézio sem série direta na ficha
+    não ganham exercício (`MENORES_REAJUSTE`): a pessoa escolheu não
+    treiná-los à parte.
+  - Aplicado com `aplicarPlanoNasFichas(..., teto)`: com o teto, a série
+    vai só para a ficha que já treina o grupo (ou o grupo afim,
+    `GRUPOS_AFINS`: bíceps no dia de costas), tudo numa ficha quando ela é
+    feita 2× por semana, exercício novo com pelo menos 2 séries, e mais de 6
+    num exercício passa para outro (`TETO_SERIES_EXERCICIO`). Achado no
+    navegador: sem isso, o leg press ia para a ficha de superior com 1 série.
+  - **Sem treino do programa nas últimas 4 semanas**: o ciclo recomeça pela
+    semana de base (volta com segurança).
+  - Cada ajuste fica em `programa.ajustes` (os 6 últimos; os 3 primeiros com
+    `antes`, as fichas de antes, para **Desfazer**), com os motivos.
+- **O botão** (pedido do dono, com print da lista): "🔁 Atualizar sozinho pela
+  ciência" em cada cartão de treino da aba Fichas (liga e desliga), e dentro do
+  treino o `CartaoAutoAjuste` (semana do ciclo, próxima reanálise, último
+  ajuste com "Ver por quê", Reanalisar agora, Desfazer o último, Desligar,
+  `AvisoSaude`). Ligar num treino **sem ciclo** usa `transicaoAjuste`:
+  aplica a primeira análise já, e o ciclo começa na próxima segunda (ou depois
+  de uma semana leve, se o histórico pede). Ligar num treino que já tem ciclo
+  só marca o ciclo de agora como analisado. O "treino ajustado" já nasce
+  ligado.
+- Conferido no navegador: o assistente com 4 dias de iniciante, o reajuste
+  disparando sozinho ao abrir o app (ciclo 2, 40 treinos de carga parada), o
+  liga e desliga na lista e o ligar com a semana leve antes. **Não validado num
+  aparelho.**
+
 ## O descanso pela ciência (`DESCANSO_CIENCIA`, `tipoDescanso`, `descansoDoItem`)
 
 Pedido do dono (2026-11-01a): "verifique nos melhores estudos qual o tempo de
@@ -5827,7 +5906,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 40 suítes (1.932 checagens)
+node testes/rodar.js      # as 41 suítes (2.064 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

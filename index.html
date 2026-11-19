@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-19c";
+const VERSAO_APP = "2026-11-20a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4938,31 +4938,6 @@ function linhasStoryTreino(d) {
   return l;
 }
 
-// ---------- MODELOS DO ASSISTENTE DE TREINO ----------
-const SPLITS = {
-  2: [
-    ["Treino A - Corpo superior", ["supino-maquina", "puxada-frente", "desenvolvimento-maquina", "remada-baixa", "rosca-alternada", "triceps-polia", "crucifixo-inverso", "abdominal-supra"]],
-    ["Treino B - Corpo inferior", ["leg-press", "cadeira-extensora", "mesa-flexora", "elevacao-pelvica", "abducao", "panturrilha", "agachamento-goblet", "prancha"]],
-  ],
-  3: [
-    ["Treino A - Peito e Tríceps", ["supino-maquina", "supino-inclinado", "peck-deck", "crossover", "triceps-polia", "triceps-corda", "triceps-frances", "abdominal-supra"]],
-    ["Treino B - Costas e Bíceps", ["puxada-frente", "remada-baixa", "remada-unilateral", "pulldown", "rosca-direta", "rosca-martelo", "rosca-alternada", "prancha"]],
-    ["Treino C - Pernas e Ombros", ["leg-press", "cadeira-extensora", "mesa-flexora", "panturrilha", "desenvolvimento", "elevacao-lateral", "abducao", "elevacao-pelvica"]],
-  ],
-  4: [
-    ["Treino A - Peito e Tríceps", ["supino-reto", "supino-inclinado", "peck-deck", "crossover", "triceps-polia", "triceps-corda", "supino-fechado", "triceps-frances"]],
-    ["Treino B - Costas e Bíceps", ["puxada-frente", "remada-curvada", "remada-baixa", "pulldown", "rosca-direta", "rosca-martelo", "rosca-scott", "rosca-concentrada"]],
-    ["Treino C - Pernas completas", ["agachamento", "leg-press", "cadeira-extensora", "mesa-flexora", "stiff", "cadeira-adutora", "panturrilha", "panturrilha-sentado"]],
-    ["Treino D - Ombros e Abdômen", ["desenvolvimento", "elevacao-lateral", "elevacao-frontal", "crucifixo-inverso", "encolhimento", "abdominal-supra", "prancha", "abdominal-obliquo"]],
-  ],
-  5: [
-    ["Treino A - Peito", ["supino-reto", "supino-inclinado", "crucifixo", "peck-deck", "crossover", "flexao", "supino-maquina", "paralelas-peito"]],
-    ["Treino B - Costas", ["puxada-frente", "remada-curvada", "remada-baixa", "remada-unilateral", "pulldown", "barra-fixa", "puxada-triangulo", "hiperextensao"]],
-    ["Treino C - Pernas", ["agachamento", "leg-press", "cadeira-extensora", "mesa-flexora", "stiff", "cadeira-adutora", "panturrilha", "agachamento-bulgaro"]],
-    ["Treino D - Ombros", ["desenvolvimento", "desenvolvimento-arnold", "elevacao-lateral", "elevacao-frontal", "crucifixo-inverso", "remada-alta", "face-pull", "encolhimento"]],
-    ["Treino E - Braços e Abdômen", ["rosca-direta", "rosca-martelo", "rosca-scott", "triceps-polia", "triceps-corda", "triceps-frances", "abdominal-supra", "prancha"]],
-  ],
-};
 
 // ---------------- SOM (Web Audio) ----------------
 let audioCtx = null;
@@ -12786,12 +12761,16 @@ function planoAjuste(lista, catalogo, usados) {
     if (x.total < alvo - 0.5) faltamM[x.id] = Math.ceil(alvo - x.total);
     else if (x.total > FAIXA_SERIES.max && x.direto > 0) sobramM[x.id] = Math.min(Math.ceil(x.total - FAIXA_SERIES.max), Math.floor(x.direto));
   });
+  return planoDe(lista, faltamM, sobramM, catalogo, usados);
+}
+// faltamM: { músculo: séries a mais por semana }; sobramM: { músculo: a menos }
+function planoDe(lista, faltamM, sobramM, catalogo, usados, alvos) {
   const faltam = lista.filter((x) => faltamM[x.id]).map((x) => {
     const add = faltamM[x.id];
     const sugestoes = exerciciosPara(x.id, catalogo, faltamM, sobramM, usados);
     // 2 vezes por semana: metade num dia, metade no outro (1 série só cabe num dia)
     const dias = add >= 2 ? [Math.ceil(add / 2), Math.floor(add / 2)] : [add];
-    return { musculo: x.id, nome: x.nome, total: x.total, alvo: ALVO_MUSCULO[x.id] || 6, add: add,
+    return { musculo: x.id, nome: x.nome, total: x.total, alvo: (alvos && alvos[x.id]) || ALVO_MUSCULO[x.id] || 6, add: add,
       dias: dias.map((n) => Math.min(PLANO_SERIES_SESSAO, n)), sugestoes: sugestoes };
   }).filter((f) => f.sugestoes.length);
   const sobram = lista.filter((x) => sobramM[x.id]).map((x) => ({ musculo: x.id, nome: x.nome, total: x.total, cortar: sobramM[x.id] }));
@@ -12803,7 +12782,10 @@ function planoAjuste(lista, catalogo, usados) {
 // nenhuma, para a ficha com menos séries.
 // vezes: quantas vezes cada ficha é feita por semana (dias ÷ fichas). Numa
 // ficha feita duas vezes, 2 séries acrescentadas somam 4 na semana.
-function aplicarPlanoNasFichas(fichas, plano, exPorId, novoId, vezes) {
+// teto (opcional): séries de um exercício numa ficha. Passou, a série nova vai
+// para a próxima sugestão que a ficha ainda não tem (outro ângulo do músculo).
+const GRUPOS_AFINS = { biceps: ["costas"], triceps: ["peito", "ombros"], ombros: ["peito", "triceps"], gluteos: ["pernas"], pernas: ["gluteos"], peito: ["triceps", "ombros"], costas: ["biceps"], abdomen: ["pernas", "gluteos"] };
+function aplicarPlanoNasFichas(fichas, plano, exPorId, novoId, vezes, teto) {
   const fator = Math.max(1, vezes || 1);
   const novas = fichas.map((f) => ({ ...f, itens: (f.itens || []).map((it) => ({ ...it })) }));
   const mudancas = [];
@@ -12816,14 +12798,27 @@ function aplicarPlanoNasFichas(fichas, plano, exPorId, novoId, vezes) {
     const temEx = novas.filter((f) => fa.sugestoes[0] && f.itens.some((it) => it.exercicioId === fa.sugestoes[0].id));
     const comGrupo = novas.filter((f) => temEx.indexOf(f) < 0 && gruposDa(f).indexOf(g) >= 0);
     const resto = novas.filter((f) => temEx.indexOf(f) < 0 && comGrupo.indexOf(f) < 0).sort((a, b) => seriesDa(a) - seriesDa(b));
-    const destino = temEx.concat(comGrupo, resto);
-    fa.dias.forEach((n0, k) => {
-      const n = Math.max(1, Math.round(n0 / fator));
+    // com teto (o reajuste automático), só fichas que já treinam o grupo; e
+    // com a ficha feita 2 vezes por semana (ou uma ficha só do grupo), tudo
+    // numa ficha: ela já dá a frequência de 2 vezes
+    // sem ficha do grupo, a do grupo afim (bíceps no dia de costas, tríceps no
+    // de peito ou ombro, glúteo no de pernas)
+    const afins = teto ? resto.filter((f) => (GRUPOS_AFINS[g] || []).some((a) => gruposDa(f).indexOf(a) >= 0)) : [];
+    const destino = teto && (temEx.length || comGrupo.length) ? temEx.concat(comGrupo) : teto && afins.length ? afins : temEx.concat(comGrupo, resto);
+    const dias = teto && (fator >= 2 || destino.length < 2) ? [fa.dias.reduce((a, b) => a + b, 0)] : fa.dias;
+    dias.forEach((n0, k) => {
+      const n1 = Math.max(1, Math.round(n0 / fator));
       const f = destino[k % Math.max(1, destino.length)];
       if (!f) return;
       // a melhor sugestão nos dois dias: a segunda costuma carregar outro músculo
-      const ex = fa.sugestoes[0];
-      const ja = f.itens.find((it) => it.exercicioId === ex.id);
+      let ex = fa.sugestoes[0];
+      let ja = f.itens.find((it) => it.exercicioId === ex.id);
+      if (ja && teto && (parseInt(ja.series) || 0) + n1 > teto) {
+        const outro = fa.sugestoes.find((e) => !f.itens.some((it) => it.exercicioId === e.id));
+        if (outro) { ex = outro; ja = null; }
+      }
+      // exercício novo com menos de 2 séries não vale a troca de aparelho
+      const n = !ja && teto ? Math.max(2, n1) : n1;
       if (ja) { ja.series = (parseInt(ja.series) || 0) + n; mudancas.push(f.nome + ": +" + n + " " + plural(n, "série", "séries") + " de " + ex.nome); return; }
       const reps = /abdomen|obliquos|panturrilha|antebraco/.test(fa.musculo) ? 15 : 12;
       f.itens.push({ uid: novoId(), exercicioId: ex.id, series: n, reps: reps, obs: "Ajuste: +" + fa.nome.replace(/ \(.*\)/, "").toLowerCase(), descanso: null, conjunto: null });
@@ -12978,6 +12973,234 @@ function volumeDasFichas(fichas, exPorId, vezes) {
     series: Array.from({ length: Math.round((parseInt(it.series) || 0) * (vezes || 1)) }, () => ({ peso: 1, reps: 1 })) })) }, exPorId));
   return listaVolumeFracionado(acc, 1);
 }
+// ---- Montar o treino pela ciência (montarProgramaLiteratura) ----
+// Pedido do dono (2026-11-20a): "na parte que o app monta o treino, use a
+// literatura adequada, igual nos treinos ajustados". O assistente antigo era
+// uma lista fixa por dias: com 3 dias, Peito/Tríceps, Costas/Bíceps,
+// Pernas/Ombros, cada músculo UMA vez por semana e 3 séries em tudo.
+// Agora é a mesma régua do ajuste:
+// - FREQUÊNCIA: cada músculo 2 vezes por semana (Schoenfeld 2016). A divisão
+//   sai dos dias: 2 e 3 dias, corpo inteiro; 4, superior e inferior; 5,
+//   superior, inferior, empurrar, puxar e pernas; 6, empurrar/puxar/pernas 2×.
+// - VOLUME por músculo, em séries fracionadas (o indireto vale ½), perto do
+//   mínimo que faz crescer (ALVO_MUSCULO) multiplicado pelo nível: iniciante
+//   cresce com menos (0,8), intermediário 1,1, avançado 1,4 (as faixas do RP;
+//   Pelland 2024 mostra o ganho subindo com o volume, cada vez menos).
+// - Os grandes primeiro, os compostos no começo do dia e o abdômen no fim.
+// - Repetições pelo objetivo: hipertrofia 8 nos compostos e 12 nos isolados;
+//   força 5 e 10; definição 10 e 15 (no déficit, o que mantém o músculo é
+//   continuar treinando pesado com volume: as séries são as mesmas).
+// - O programa já nasce no mesociclo de 5 semanas (semana 1 agora) e, por
+//   padrão, com o ajuste automático ligado (reajusteAutomatico, abaixo).
+const FATOR_NIVEL = { iniciante: 0.8, intermediario: 1.1, avancado: 1.4 };
+const TETO_ALVO_MONTAR = 18;
+const TETO_SERIES_EXERCICIO = 6;
+const LIMITE_SESSAO = { iniciante: { ex: 6, series: 20 }, intermediario: { ex: 7, series: 24 }, avancado: { ex: 8, series: 26 } };
+const ORDEM_MUSCULOS_MONTAR = ["quadriceps", "peito", "dorsal", "posteriores", "gluteos", "ombros", "triceps", "biceps", "panturrilha", "abdomen", "trapezio", "adutores", "obliquos", "lombar", "antebraco"];
+const M_SUPERIOR = ["peito", "dorsal", "ombros", "triceps", "biceps", "trapezio", "antebraco"];
+const M_INFERIOR = ["quadriceps", "posteriores", "gluteos", "panturrilha", "adutores", "abdomen", "obliquos", "lombar"];
+const M_EMPURRAR = ["peito", "ombros", "triceps"];
+const M_PUXAR = ["dorsal", "trapezio", "biceps", "antebraco", "lombar"];
+const DIVISOES_MONTAR = {
+  2: { nome: "corpo inteiro", dias: [["Corpo inteiro", ORDEM_MUSCULOS_MONTAR], ["Corpo inteiro", ORDEM_MUSCULOS_MONTAR]] },
+  3: { nome: "corpo inteiro", dias: [["Corpo inteiro", ORDEM_MUSCULOS_MONTAR], ["Corpo inteiro", ORDEM_MUSCULOS_MONTAR], ["Corpo inteiro", ORDEM_MUSCULOS_MONTAR]] },
+  4: { nome: "superior e inferior", dias: [["Superior", M_SUPERIOR], ["Inferior", M_INFERIOR], ["Superior", M_SUPERIOR], ["Inferior", M_INFERIOR]] },
+  5: { nome: "superior, inferior, empurrar, puxar e pernas", dias: [["Superior", M_SUPERIOR], ["Inferior", M_INFERIOR], ["Empurrar", M_EMPURRAR], ["Puxar", M_PUXAR], ["Pernas", M_INFERIOR]] },
+  6: { nome: "empurrar, puxar e pernas, duas vezes", dias: [["Empurrar", M_EMPURRAR], ["Puxar", M_PUXAR], ["Pernas", M_INFERIOR], ["Empurrar", M_EMPURRAR], ["Puxar", M_PUXAR], ["Pernas", M_INFERIOR]] },
+};
+const REPS_OBJETIVO = { massa: [8, 12], forca: [5, 10], definir: [10, 15] };
+const DIRETO_MINIMO_MONTAR = ["ombros", "triceps", "biceps", "posteriores", "panturrilha", "abdomen"];
+const COMPOSTO_PRIMEIRO_MONTAR = ["quadriceps", "peito", "dorsal", "gluteos"];
+const alvoDoMusculo = (m, fator) => Math.min(TETO_ALVO_MONTAR, Math.round((ALVO_MUSCULO[m] || 6) * (fator || 1)));
+function montarProgramaLiteratura(objetivo, dias, nivel, catalogo) {
+  const div = DIVISOES_MONTAR[dias] || DIVISOES_MONTAR[3];
+  const fator = FATOR_NIVEL[nivel] || 1;
+  const l0 = LIMITE_SESSAO[nivel] || LIMITE_SESSAO.intermediario;
+  // dois dias por semana: sessões um pouco maiores, senão não cabe o mínimo
+  const lim = { ex: l0.ex + (div.dias.length <= 2 ? 1 : 0), series: l0.series + (div.dias.length <= 2 ? 4 : 0) };
+  // musculação de academia: sem aeróbico, funcional, mini band, isometria e
+  // os exercícios que a pessoa criou
+  const cat = (catalogo || []).filter((e) => e && e.musc && !e.cardio && !e.func && !e.funcional && !e.tempo && !e.custom && !/mini band/i.test(e.equip || ""));
+  const porId = {};
+  cat.forEach((e) => { porId[e.id] = e; });
+  // iniciante: máquina e polia (aprende o movimento com segurança);
+  // avançado: barra e halter (mais carga e mais estabilizadores)
+  const bonus = {};
+  cat.forEach((e) => {
+    const eq = String(e.equip || "").toLowerCase();
+    let b = 0;
+    if (nivel === "iniciante" && /m[aá]quina|polia|cabo|smith/.test(eq)) b += 1.5;
+    if (nivel === "avancado" && /barra|halter/.test(eq) && !/fixa/.test(eq)) b += 1;
+    if (b) bonus[e.id] = b;
+  });
+  const sessoes = div.dias.map((d) => ({ nome: d[0], musculos: d[1], itens: [], series: 0 }));
+  const vol = {}, volD = {}, alvos = {};
+  ORDEM_MUSCULOS_MONTAR.forEach((m) => { alvos[m] = alvoDoMusculo(m, fator); });
+  const soma = (e, n) => { const m = musculosDoEx(e); m.p.forEach((x) => { vol[x] = (vol[x] || 0) + n; volD[x] = (volD[x] || 0) + n; }); m.s.forEach((x) => { vol[x] = (vol[x] || 0) + PESO_INDIRETO * n; }); };
+  const cabe = (s, n) => s.itens.length < lim.ex && s.series + n <= lim.series;
+  // corpo inteiro: um exercício por músculo por dia (senão não cabem todos)
+  const maxPorEx = (s) => (s.musculos.length > 8 ? 6 : 4);
+  ORDEM_MUSCULOS_MONTAR.forEach((m) => {
+    // o indireto conta pela metade, mas braço, ombro, posterior, panturrilha e
+    // abdômen ganham pelo menos 4 séries diretas: só de carona eles crescem pouco
+    const falta = Math.max(alvos[m] - (vol[m] || 0), DIRETO_MINIMO_MONTAR.indexOf(m) >= 0 ? 4 - (volD[m] || 0) : 0);
+    if (falta < 1.5) return;            // o indireto dos compostos já cobre
+    // nos grandes, o composto (leg press, supino, remada) vem antes do isolado
+    let bonusM = bonus;
+    if (COMPOSTO_PRIMEIRO_MONTAR.indexOf(m) >= 0) {
+      bonusM = Object.assign({}, bonus);
+      cat.forEach((e) => { const x = musculosDoEx(e); if (x.p.indexOf(m) >= 0 && x.p.length + x.s.length >= 3) bonusM[e.id] = (bonusM[e.id] || 0) + 1.5; });
+    }
+    const lista = exerciciosPara(m, cat, {}, {}, bonusM);
+    if (!lista.length) return;
+    const ss = sessoes.filter((s) => s.musculos.indexOf(m) >= 0).sort((a, b) => a.series - b.series);
+    if (!ss.length) return;
+    const resta = Math.round(falta);
+    // 2 dias por semana sempre que forem 3 séries ou mais, com pelo menos 2 por dia
+    const usar = resta >= 3 ? Math.min(ss.length, Math.max(2, Math.floor(resta / 2))) : 1;
+    const quotas = [];
+    // e no máximo 6 séries do músculo num dia: acima disso o ganho da sessão
+    // quase não sobe, e o resto do volume vai melhor em outro dia
+    for (let k = 0; k < usar; k++) quotas.push(Math.min(PLANO_SERIES_SESSAO, Math.max(2, Math.floor(resta / usar) + (k < resta % usar ? 1 : 0))));
+    let qi = 0;
+    for (const s of ss) {
+      if (qi >= quotas.length) break;
+      const n = quotas[qi];
+      const partes = n > maxPorEx(s) ? [Math.ceil(n / 2), Math.floor(n / 2)] : [n];
+      let pos = false;
+      partes.forEach((p, t) => {
+        if (!cabe(s, p)) return;
+        // iniciante repete o mesmo exercício nos dois dias (aprende a execução);
+        // os outros variam o ângulo de um dia para o outro
+        const rot = nivel === "iniciante" ? t : sessoes.indexOf(s) + t;
+        let e = null;
+        for (let u = 0; u < lista.length && !e; u++) { const c = lista[(rot + u) % lista.length]; if (!s.itens.some((it) => it.e.id === c.id)) e = c; }
+        if (!e) return;
+        s.itens.push({ e: e, series: p });
+        s.series += p;
+        soma(e, p);
+        pos = true;
+      });
+      if (pos) qi++;
+    }
+  });
+  const reps = REPS_OBJETIVO[objetivo] || REPS_OBJETIVO.massa;
+  const CORE = ["abdomen", "obliquos", "lombar"];
+  const LETRAS = "ABCDEFG";
+  const fichas = sessoes.map((s, i) => ({
+    nome: "Treino " + LETRAS[i] + " - " + s.nome,
+    itens: s.itens.map((x) => {
+      const m = musculosDoEx(x.e);
+      return { x: x, composto: m.p.length + m.s.length >= 3, core: CORE.indexOf(m.p[0]) >= 0, ord: ORDEM_MUSCULOS_MONTAR.indexOf(m.p[0]) };
+    }).sort((a, b) => (a.core - b.core) || (b.composto - a.composto) || (a.ord - b.ord))
+      .map((y) => ({ exercicioId: y.x.e.id, series: y.x.series, reps: y.composto ? reps[0] : reps[1], obs: "" })),
+  }));
+  const volume = volumeDasFichas(fichas, (id) => porId[id], 1);
+  return { divisao: div.nome, fichas: fichas, volume: volume, alvos: alvos,
+    abaixo: volume.filter((x) => alvos[x.id] && x.total < alvos[x.id] - 1).map((x) => x.id) };
+}
+
+// ---- O reajuste automático (reajusteAutomatico) ----
+// Pedido do dono: "uma vez que use o ajuste da literatura, o treino será
+// sempre reajustado automaticamente, sem nenhuma ação, reanalisado pelo
+// histórico". A cada mesociclo novo (a cada 5 semanas, logo depois do
+// deload), o app olha as últimas semanas daquele programa e decide, músculo
+// por músculo, o que a prática baseada em evidência manda (RP/Israetel,
+// Helms; volume pelo desempenho, Pelland 2024):
+// - planejado abaixo do mínimo: completa até o mínimo;
+// - acima de 20 séries: corta até 20;
+// - a carga CAIU nas últimas 5 semanas: −2 séries (é recuperação que falta);
+// - a carga PAROU e a pessoa treinou bem (70% dos treinos ou mais): +2
+//   séries, até o mínimo + 6 (o volume é o que sobe quando a carga empaca);
+// - a carga SUBIU: fica como está (o que funciona não se mexe);
+// - treinou pouco (menos de 60%): nada sobe pela carga parada: o que falta
+//   ali é constância, não volume.
+// O desempenho é o 1RM estimado (Epley) de cada exercício: o melhor das
+// últimas 5 semanas contra o das 5 anteriores.
+// FOLGA_VOLUME: a carga parada sobe o volume até o mínimo + 6, não até 20: o
+// ganho por série a mais vai caindo (Pelland 2024), e o cansaço não.
+const ADESAO_MINIMA = 0.6, ADESAO_BOA = 0.7, JANELA_REAJUSTE_DIAS = 35, FOLGA_VOLUME = 6;
+const MENORES_REAJUSTE = ["adutores", "lombar", "obliquos", "antebraco", "trapezio"];
+function desempenhoPorMusculo(historico, exPorId, agora) {
+  const a = {}, b = {};
+  (historico || []).forEach((h) => {
+    const d = (agora - new Date(h.data).getTime()) / 864e5;
+    const alvo = d >= 0 && d < JANELA_REAJUSTE_DIAS ? a : d >= JANELA_REAJUSTE_DIAS && d < 2 * JANELA_REAJUSTE_DIAS ? b : null;
+    if (!alvo) return;
+    (h.itens || []).forEach((it) => (it.series || []).forEach((s) => {
+      if (!serieConta(s) || ehCardio(s) || ehDrop(s) || (s && s.segundos)) return;
+      const p = parseFloat(s.peso) || 0, r = parseInt(s.reps) || 0;
+      if (p <= 0 || r <= 0 || r > 30) return;
+      const e1 = p * (1 + r / 30);
+      if (e1 > (alvo[it.exercicioId] || 0)) alvo[it.exercicioId] = e1;
+    }));
+  });
+  const porM = {};
+  Object.keys(a).filter((id) => b[id]).forEach((id) => {
+    const e = exPorId(id);
+    if (!e) return;
+    const st = a[id] > b[id] * 1.01 ? "subiu" : a[id] < b[id] * 0.97 ? "caiu" : "parou";
+    musculosDoEx(e).p.forEach((m) => { const x = porM[m] || (porM[m] = { subiu: 0, parou: 0, caiu: 0 }); x[st]++; });
+  });
+  const res = {};
+  Object.keys(porM).forEach((m) => {
+    const x = porM[m], n = x.subiu + x.parou + x.caiu;
+    // sinal misturado sem subida: a queda pesa mais (mais volume ali só piora)
+    res[m] = x.subiu * 2 >= n ? "subiu" : x.caiu > 0 && x.caiu >= x.parou ? "caiu" : "parou";
+  });
+  return res;
+}
+// opc: { diasSemana, nivel }. Devolve null sem treino deste programa nas
+// últimas 4 semanas (não há o que analisar).
+function reajusteAutomatico(fichas, historico, exPorId, catalogo, agora, opc) {
+  const o = opc || {};
+  const nomes = {};
+  (fichas || []).forEach((f) => { nomes[f.nome] = true; });
+  const recentes = (historico || []).filter((h) => { const t0 = new Date(h.data).getTime(); return nomes[h.nome] && t0 <= agora && agora - t0 < 28 * 864e5; });
+  if (!recentes.length) return null;
+  const dias = Math.max(1, o.diasSemana || fichas.length);
+  const vezes = Math.max(1, Math.round((dias / Math.max(1, fichas.length)) * 10) / 10);
+  const esperado = dias * 4;
+  const adesao = Math.min(1, recentes.length / esperado);
+  const fator = FATOR_NIVEL[o.nivel] || 1;
+  const lista = volumeDasFichas(fichas, exPorId, vezes);
+  const desemp = desempenhoPorMusculo(historico, exPorId, agora);
+  // os exercícios das próprias fichas vêm primeiro (soma ao que já existe), e
+  // a sugestão nova é musculação com repetições (sem isometria, funcional,
+  // aeróbico nem o exercício criado por outra pessoa que não está na ficha)
+  const usados = exerciciosConhecidos(fichas, [], historico).peso;
+  const cat = (catalogo || []).filter((e) => e && !e.cardio && !e.func && !e.funcional && !e.tempo && !/mini band/i.test(e.equip || "") && (!e.custom || usados[e.id]));
+  const faltamM = {}, sobramM = {}, alvos = {}, motivos = [];
+  const nc = (x) => String(x.nome || "").replace(/ \(.*\)/, "");
+  lista.forEach((x) => {
+    const alvo = alvoDoMusculo(x.id, fator);
+    alvos[x.id] = alvo;
+    const st = desemp[x.id];
+    // adutor, lombar, oblíquo, antebraço e trapézio sem nenhuma série direta
+    // na ficha: a pessoa escolheu não treiná-los à parte, e os compostos já
+    // os trabalham. O reajuste não enfia exercício novo para eles.
+    if (x.total < alvo - 0.5 && !(MENORES_REAJUSTE.indexOf(x.id) >= 0 && !x.direto)) {
+      faltamM[x.id] = Math.ceil(alvo - x.total);
+      motivos.push(nc(x) + ": ~" + num1v(x.total) + " séries por semana, abaixo do mínimo de " + alvo + ". Completa até o mínimo.");
+    } else if (x.total > FAIXA_SERIES.max && x.direto > 0) {
+      sobramM[x.id] = Math.min(Math.ceil(x.total - FAIXA_SERIES.max), Math.floor(x.direto));
+      motivos.push(nc(x) + ": ~" + num1v(x.total) + " séries por semana, acima de " + FAIXA_SERIES.max + ". Volta para " + FAIXA_SERIES.max + ".");
+    } else if (st === "caiu" && x.direto > 0 && x.total - 2 >= alvo) {
+      sobramM[x.id] = 2;
+      motivos.push(nc(x) + ": a carga caiu nas últimas 5 semanas. Duas séries a menos, para recuperar.");
+    } else if (st === "parou" && adesao >= ADESAO_BOA && x.direto > 0 && x.total + 2 <= Math.min(FAIXA_SERIES.max, alvo + FOLGA_VOLUME)) {
+      faltamM[x.id] = 2;
+      motivos.push(nc(x) + ": a carga parou, e você treinou bem. Duas séries a mais por semana.");
+    } else if (st === "subiu") {
+      motivos.push(nc(x) + ": a carga subiu. Fica como está.");
+    }
+  });
+  if (adesao < ADESAO_MINIMA) motivos.unshift("Você fez " + recentes.length + " de " + esperado + " treinos nas últimas 4 semanas. Carga parada não ganha séries: o que mais rende agora é a constância.");
+  else motivos.unshift("Você fez " + recentes.length + " de " + esperado + " treinos nas últimas 4 semanas.");
+  const plano = planoDe(lista, faltamM, sobramM, cat, usados, alvos);
+  return { plano: plano, motivos: motivos, adesao: adesao, treinos: recentes.length, esperado: esperado, vezes: vezes, desempenho: desemp };
+}
+
 // Os dois áudios do cartão (pedido do dono): a análise com o ajuste proposto,
 // e o estudo por trás, com o porquê de o treino mudar. Quem treina ouve no fone
 // a caminho da academia em vez de ler um cartão comprido. Texto falado: nada de
@@ -13310,7 +13533,9 @@ function PlanoAjuste({ historico, exPorId, catalogo, treinos, programas, onCriar
             <b>Não precisa criar outro toda semana.</b> A cada semana o app muda sozinho a quantidade de séries, e a cada treino as repetições do dia (pesado, moderado ou leve). Os exercícios ficam os mesmos durante as {MESOCICLO.length} semanas, para dar para ver a carga subindo.
           </div>
           <div style={{ marginTop: 6, color: "var(--cinza)" }}>
-            No fim do ciclo, na semana {MESOCICLO.length} (a de descanso), volte aqui: com as semanas novas no histórico, o app vê se ainda falta equilibrar algum músculo.
+            {ajustado.autoAjuste
+              ? <>🔁 O ajuste automático está ligado: no fim de cada ciclo, o app reanalisa os seus treinos e reajusta as fichas sozinho. Não precisa voltar aqui.</>
+              : <>No fim do ciclo, na semana {MESOCICLO.length} (a de descanso), volte aqui: com as semanas novas no histórico, o app vê se ainda falta equilibrar algum músculo. Ou ligue o 🔁 ajuste automático nas fichas do treino, e ele faz isso sozinho.</>}
           </div>
         </div>
         {audios}
@@ -16178,9 +16403,71 @@ function AvisoAdaptadoItem({ e, pulado, variacao, onPular, onFazer, onTrocar }) 
 }
 // ---------------- FIM DA TELA DO TREINO ADAPTADO ----------------
 
+// O botão do ajuste automático, dentro do treino (pedido do dono: "na própria
+// ficha já precisa ter o botão de manter ele sempre se ajustando").
+function CartaoAutoAjuste({ prog, onLigar, onReanalisar, onDesfazer }) {
+  const [ver, setVer] = useState(false);
+  const agora = Date.now();
+  const ligado = !!prog.autoAjuste;
+  const sm = prog.meso && prog.meso.inicio ? semanaDoMeso(prog.meso, agora) : null;
+  const dataC = (ms) => new Date(ms).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "numeric" });
+  const proxima = prog.meso && prog.meso.inicio ? prog.meso.inicio + (prog.meso.ciclo || 1) * MESOCICLO.length * 7 * 864e5 : null;
+  const ult = (prog.ajustes || [])[0] || null;
+  return (
+    <div style={{ ...S.card, borderColor: ligado ? "var(--ok)" : undefined }}>
+      <div style={S.label}>🔁 Ajuste automático pela ciência</div>
+      {!ligado ? (
+        <React.Fragment>
+          <div style={{ fontSize: 13, lineHeight: 1.55, margin: "6px 0 10px" }}>
+            Ligado, o app <b>reanalisa os seus treinos a cada 5 semanas</b> e reajusta as séries de cada músculo sozinho: completa o que está abaixo do mínimo,
+            <b> sobe</b> onde a carga parou, <b>tira</b> onde passou do limite ou onde a carga caiu, e deixa como está o que está funcionando. Você só treina.
+          </div>
+          <button style={{ ...S.btnGhost, width: "100%", fontWeight: 800, color: "var(--ok)", borderColor: "var(--ok)" }} onClick={() => onLigar(prog, true)}>
+            Ligar o ajuste automático
+          </button>
+        </React.Fragment>
+      ) : (
+        <React.Fragment>
+          <div style={{ fontSize: 13, lineHeight: 1.55, margin: "6px 0 8px" }}>
+            <b>✅ Ligado.</b>{" "}
+            {sm ? <>Semana {sm.semana} de {MESOCICLO.length}: {MESOCICLO_FACIL[sm.semana - 1]}</>
+              : prog.meso && prog.meso.inicio ? <>O ciclo começa {dataC(prog.meso.inicio)}.</> : null}
+            {proxima && <div style={{ marginTop: 4 }}>Próxima reanálise: <b>{dataC(Math.max(proxima, agora))}</b>, sozinha, quando você abrir o app.</div>}
+          </div>
+          {ult && (
+            <div style={{ border: "1px solid var(--borda2)", borderRadius: 10, padding: "8px 10px", fontSize: 12.5, lineHeight: 1.5, marginBottom: 8 }}>
+              <b>Último ajuste:</b> {new Date(ult.em).toLocaleDateString("pt-BR", { day: "numeric", month: "numeric" })}{ult.auto ? " (automático)" : ""} ·{" "}
+              {ult.mudancas.length ? ult.mudancas.length + " " + plural(ult.mudancas.length, "mudança", "mudanças") : "nada precisou mudar"}
+              <button onClick={() => setVer((v) => !v)} style={{ background: "none", border: "none", padding: "0 0 0 6px", color: "var(--marca)", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>
+                {ver ? "Fechar" : "Ver por quê"}
+              </button>
+              {ver && (
+                <div style={{ marginTop: 6 }}>
+                  {(ult.motivos || []).map((m, k) => <div key={"m" + k}>• {m}</div>)}
+                  {ult.mudancas.length > 0 && <div style={{ ...S.label, fontSize: 10, margin: "8px 0 4px" }}>O que mudou nas fichas</div>}
+                  {ult.mudancas.map((m, k) => <div key={"c" + k}>• {m}</div>)}
+                </div>
+              )}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={{ ...S.btnGhost, flex: 1, fontSize: 12.5 }} onClick={() => onReanalisar(prog)}>Reanalisar agora</button>
+            {ult && ult.antes && <button style={{ ...S.btnGhost, flex: 1, fontSize: 12.5 }} onClick={() => onDesfazer(prog)}>Desfazer o último</button>}
+          </div>
+          <button onClick={() => onLigar(prog, false)} style={{ background: "none", border: "none", color: "var(--cinza)", fontSize: 12, cursor: "pointer", marginTop: 8, padding: 0 }}>
+            Desligar o ajuste automático
+          </button>
+        </React.Fragment>
+      )}
+      <AvisoSaude />
+    </div>
+  );
+}
+
 function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, onTreinar, onNovaFicha,
   onEditar, onExcluirFicha, onCompartilharFicha, onNovoPrograma, onRenomearPrograma, onExcluirPrograma,
-  onCompartilharPrograma, onDuplicarFicha, onDuplicarPrograma, onLevarFicha, onMoverFicha, onAssistente, onTreinoLivre, pedirConfirmacao, historico, onAdaptado, nAdaptado }) {
+  onCompartilharPrograma, onDuplicarFicha, onDuplicarPrograma, onLevarFicha, onMoverFicha, onAssistente, onTreinoLivre, pedirConfirmacao, historico, onAdaptado, nAdaptado,
+  onAutoAjuste, onReanalisar, onDesfazerAjuste }) {
   // Dentro de um treino: lista de fichas. Se o programa aberto foi excluído,
   // cai de volta na lista em vez de alterar estado durante o render.
   const prog = progAberto ? programas.find((p) => p.id === progAberto) : null;
@@ -16190,6 +16477,7 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
       <div style={{ padding: "0 18px" }}>
         <button style={S.voltar} onClick={() => setProgAberto(null)}>← Todos os treinos</button>
         <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 12 }}>{prog.nome}</div>
+        {onAutoAjuste && fichas.length > 0 && <CartaoAutoAjuste prog={prog} onLigar={onAutoAjuste} onReanalisar={onReanalisar} onDesfazer={onDesfazerAjuste} />}
         <button style={{ ...S.btn, marginBottom: 14 }} onClick={() => onNovaFicha(prog.id)}><ComIcone nome="mais">Nova ficha neste treino</ComIcone></button>
         {fichas.length === 0 && (
           <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
@@ -16282,6 +16570,21 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
               {fichas.length ? fichas.length + " " + plural(fichas.length, "ficha", "fichas") + ": " + fichas.map((f) => f.nome).join(" · ")
                 : "Nenhuma ficha ainda: abra e toque em + Nova ficha."}
             </div>
+            {onAutoAjuste && fichas.length > 0 && (
+              // o liga e desliga já no cartão do treino (pedido do dono, com print):
+              // sem precisar abrir as fichas para achar
+              <button onClick={() => onAutoAjuste(p, !p.autoAjuste)} aria-pressed={!!p.autoAjuste}
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", cursor: "pointer", background: "transparent",
+                  border: "1px solid " + (p.autoAjuste ? "var(--ok)" : "var(--borda2)"), borderRadius: 12, padding: "10px 12px", marginBottom: 8, color: "var(--texto)" }}>
+                <span aria-hidden="true" style={{ width: 40, height: 24, borderRadius: 12, flexShrink: 0, position: "relative", background: p.autoAjuste ? "var(--ok)" : "var(--borda2)", transition: "background .2s" }}>
+                  <span style={{ position: "absolute", top: 3, left: p.autoAjuste ? 19 : 3, width: 18, height: 18, borderRadius: 9, background: "#fff", transition: "left .2s" }} />
+                </span>
+                <span style={{ fontSize: 13, lineHeight: 1.4 }}>
+                  <b>🔁 Atualizar sozinho pela ciência</b><br />
+                  <span style={{ color: "var(--cinza)", fontSize: 12 }}>{p.autoAjuste ? "Ligado: a cada 5 semanas o app reanalisa os seus treinos e reajusta as fichas." : "Desligado: toque para o app reajustar as fichas pelo seu histórico."}</span>
+                </span>
+              </button>
+            )}
             <button style={{ ...(usando ? S.btn : S.btnGhost), marginBottom: 8, fontWeight: 800 }} onClick={() => setProgAberto(p.id)}>Abrir fichas ›</button>
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => onRenomearPrograma(p)}><ComIcone nome="lapis" tamanho={16}>Renomear</ComIcone></button>
@@ -16303,6 +16606,10 @@ function TelaAssistente({ onGerar, onCancelar }) {
   const [objetivo, setObjetivo] = useState("massa");
   const [dias, setDias] = useState(3);
   const [nivel, setNivel] = useState("iniciante");
+  const [auto, setAuto] = useState(true);
+  const [ciencia, setCiencia] = useState(false);
+  const div = DIVISOES_MONTAR[dias] || DIVISOES_MONTAR[3];
+  const reps = REPS_OBJETIVO[objetivo] || REPS_OBJETIVO.massa;
   const Chip = ({ ativo, onClick, children }) => (
     <button onClick={onClick}
       style={{ border: "1px solid", borderColor: ativo ? "#E1306C" : "var(--borda2)", background: ativo ? "#E1306C22" : "transparent", color: ativo ? "#E1306C" : "var(--cinza)", borderRadius: 10, padding: "12px 10px", fontWeight: 800, fontSize: 14, cursor: "pointer", flex: 1 }}>
@@ -16314,7 +16621,7 @@ function TelaAssistente({ onGerar, onCancelar }) {
       <button style={S.voltar} onClick={onCancelar}>← Voltar</button>
       <div style={S.card}>
         <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 4 }}>🧭 Assistente de treino</div>
-        <div style={{ color: "var(--cinza)", fontSize: 14, marginBottom: 18 }}>Responda 3 perguntas e eu monto seu treino completo, prontinho para editar.</div>
+        <div style={{ color: "var(--cinza)", fontSize: 14, marginBottom: 18 }}>Responda 3 perguntas e eu monto o seu treino pela ciência: cada músculo 2 vezes por semana, as séries que fazem crescer e um ciclo de 5 semanas. Dá para editar tudo depois.</div>
 
         <div style={S.label}>1. Qual seu objetivo?</div>
         <div style={{ display: "flex", gap: 8, margin: "8px 0 16px" }}>
@@ -16325,8 +16632,8 @@ function TelaAssistente({ onGerar, onCancelar }) {
 
         <div style={S.label}>2. Quantos dias por semana?</div>
         <div style={{ display: "flex", gap: 8, margin: "8px 0 16px" }}>
-          {[2, 3, 4, 5].map((nd) => (
-            <Chip key={nd} ativo={dias === nd} onClick={() => setDias(nd)}>{nd}{nd === 5 ? "+" : ""}</Chip>
+          {[2, 3, 4, 5, 6].map((nd) => (
+            <Chip key={nd} ativo={dias === nd} onClick={() => setDias(nd)}>{nd}</Chip>
           ))}
         </div>
 
@@ -16337,7 +16644,25 @@ function TelaAssistente({ onGerar, onCancelar }) {
           <Chip ativo={nivel === "avancado"} onClick={() => setNivel("avancado")}>Avançado</Chip>
         </div>
 
-        <button style={S.btn} onClick={() => onGerar(objetivo, dias, nivel)}>⚡ Gerar meu treino</button>
+        <div style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: "10px 12px", marginBottom: 14, fontSize: 13, lineHeight: 1.55 }}>
+          <b>Como fica:</b> {div.dias.length} fichas, divisão <b>{div.nome}</b>. Cada músculo treina <b>2 vezes por semana</b>,
+          com {reps[0]} repetições nos exercícios grandes e {reps[1]} nos menores. As séries de cada músculo ficam no mínimo que faz crescer {nivel === "iniciante" ? "para quem está começando" : nivel === "avancado" ? "para quem já treina há anos" : "para o seu nível"}.
+          {" "}
+          <button onClick={() => setCiencia((v) => !v)} style={{ background: "none", border: "none", padding: 0, color: "var(--marca)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            {ciencia ? "Fechar" : "De onde vem isso?"}
+          </button>
+          {ciencia && <span style={{ display: "block", marginTop: 6, color: "var(--cinza)" }}>
+            Frequência de 2 vezes por semana por músculo (Schoenfeld, 2016); volume em séries por semana, contando pela metade o músculo que só ajuda (Pelland, Schoenfeld e colegas, 2024), perto do volume mínimo que faz crescer das tabelas do Renaissance Periodization; e o mesociclo de 5 semanas com uma semana leve no fim (Bell, 2023).
+          </span>}
+        </div>
+        <button onClick={() => setAuto((v) => !v)} aria-pressed={auto}
+          style={{ display: "flex", alignItems: "flex-start", gap: 10, width: "100%", textAlign: "left", background: "transparent", cursor: "pointer",
+            border: "1px solid " + (auto ? "var(--ok)" : "var(--borda2)"), borderRadius: 12, padding: "10px 12px", marginBottom: 14, color: "var(--texto)", fontSize: 13, lineHeight: 1.5 }}>
+          <span style={{ fontSize: 18, lineHeight: 1 }}>{auto ? "☑" : "☐"}</span>
+          <span><b>🔁 Manter sempre se ajustando pelo meu histórico</b><br />
+            <span style={{ color: "var(--cinza)" }}>A cada 5 semanas o app olha os seus treinos e reajusta as séries de cada músculo sozinho, sem você fazer nada.</span></span>
+        </button>
+        <button style={S.btn} onClick={() => onGerar(objetivo, dias, nivel, auto)}>⚡ Montar meu treino</button>
         <AvisoSaude />
       </div>
     </div>
@@ -33395,11 +33720,12 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       (tr.deload ? "• A partir de " + quando(tr.deloadInicio) + ": uma semana leve com o \"" + prog.nome + "\" (metade das séries).\n• " + maiusc(quando(tr.inicio)) + ": começa o treino novo."
         : "• Até domingo: siga com o \"" + prog.nome + "\".\n• " + maiusc(quando(tr.inicio)) + ": começa o treino novo.") +
       "\n• O \"" + prog.nome + "\" continua guardado, do jeito que está." +
+      "\n• 🔁 Depois, a cada " + MESOCICLO.length + " semanas, o app reanalisa os seus treinos e reajusta o treino novo sozinho (dá para desligar nas fichas)." +
       "\n\n" + (r.mudancas.length ? "O que muda nas fichas (" + r.mudancas.length + "):\n" + r.mudancas.join("\n") : "Os exercícios ficam os mesmos: muda só a organização das semanas.") + "\n\n⚕️ " + AVISO_SAUDE.curto,
       positivo: true, labelSim: "Criar" }, () => {
       const copias = r.fichas.map((f) => ({ ...f, id: "f-" + novoUid(), programaId: pid, itens: clonarItens(f.itens) }));
       setProgramas((ps) => [...ps.map((p) => (p.id === prog.id && tr.deload ? { ...p, deload: { inicio: tr.deloadInicio, fim: tr.inicio } } : p)),
-        { id: pid, nome: nome, meso: { inicio: tr.inicio }, de: prog.id }]);
+        { id: pid, nome: nome, meso: { inicio: tr.inicio, ciclo: 1 }, de: prog.id, autoAjuste: true, diasSemana: tr.frequencia, ajustes: [] }]);
       setTreinos((ts) => [...ts, ...copias]);
       setProgAberto(pid);
       setAba("treinos");
@@ -33407,6 +33733,115 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       setTimeout(() => avisar("✅ Pronto! O \"" + nome + "\" tem " + copias.length + " fichas e começa " + quando(tr.inicio) + "." + (tr.deload ? " Antes, faça uma semana leve com o \"" + prog.nome + "\": o app já mostra metade das séries." : " Até lá, siga o \"" + prog.nome + "\".") + " Na tela inicial, o app mostra a ficha do dia."), 200);
     });
   };
+
+  // ---- O reajuste automático pela ciência (reajusteAutomatico) ----
+  const calcularReajuste = (prog, nivelDias) => {
+    const fichas = treinos.filter((t) => t.programaId === prog.id);
+    if (!fichas.length) return null;
+    const r = reajusteAutomatico(fichas, historico, exPorId, EXERCICIOS.concat(customEx), Date.now(),
+      { diasSemana: (nivelDias && nivelDias.dias) || prog.diasSemana, nivel: prog.nivel });
+    const ap = r ? aplicarPlanoNasFichas(fichas, r.plano, exPorId, novoUid, r.vezes, TETO_SERIES_EXERCICIO) : null;
+    return { fichas: fichas, r: r, ap: ap };
+  };
+  // grava as fichas novas e o registro do ajuste (com como estavam antes, para
+  // desfazer); mexerMeso(p) devolve o mesociclo novo
+  const gravarReajuste = (prog, c, extra, mexerMeso) => {
+    const agora = Date.now();
+    const mudou = !!(c.ap && c.ap.mudancas.length);
+    const entrada = { em: agora, ciclo: extra.ciclo || null, auto: !!extra.auto,
+      mudancas: mudou ? c.ap.mudancas : [], motivos: c.r ? c.r.motivos : extra.motivos || [],
+      antes: mudou ? c.fichas.map((f) => ({ id: f.id, itens: f.itens })) : null };
+    if (mudou) setTreinos((ts) => ts.map((t) => { const n = c.ap.fichas.find((x) => x.id === t.id); return n ? { ...t, itens: n.itens } : t; }));
+    setProgramas((ps) => ps.map((p) => (p.id !== prog.id ? p : { ...p, ...(extra.prog || {}), meso: mexerMeso ? mexerMeso(p) : p.meso,
+      ajustes: [entrada, ...(p.ajustes || [])].slice(0, 6).map((a, i) => (i < 3 ? a : { ...a, antes: null })) })));
+    return entrada;
+  };
+  // Ligar o ajuste automático num treino que já existe: num treino sem
+  // mesociclo, o primeiro ajuste é aplicado agora e o ciclo começa na próxima
+  // segunda (ou depois de uma semana leve, se o histórico pede: transicaoAjuste).
+  const ligarAutoAjuste = (prog, ligar) => {
+    if (!ligar) {
+      pedirConfirmacao({ msg: "Desligar o ajuste automático do \"" + prog.nome + "\"? As fichas ficam como estão agora, e o app para de reajustá-las.", labelSim: "Desligar" },
+        () => setProgramas((ps) => ps.map((p) => (p.id === prog.id ? { ...p, autoAjuste: false } : p))));
+      return;
+    }
+    const fichas = treinos.filter((t) => t.programaId === prog.id);
+    if (!fichas.length) { avisar("Esse treino ainda não tem fichas."); return; }
+    const agora = Date.now();
+    if (prog.meso && prog.meso.inicio) {
+      const sm = semanaDoMeso(prog.meso, agora);
+      const dias = prog.diasSemana || transicaoAjuste(historico, agora, fichas.length).frequencia;
+      setProgramas((ps) => ps.map((p) => (p.id === prog.id ? { ...p, autoAjuste: true, diasSemana: dias, meso: { ...p.meso, ciclo: sm ? sm.ciclo : 1 } } : p)));
+      registrarEvento("auto-ajuste-ligado");
+      avisar("🔁 Ajuste automático ligado. No fim deste ciclo de " + MESOCICLO.length + " semanas, o app reanalisa os seus treinos e reajusta as fichas sozinho. Para ver agora o que mudaria, toque em \"Reanalisar agora\".");
+      return;
+    }
+    const tr = transicaoAjuste(historico, agora, fichas.length);
+    const c = calcularReajuste(prog, { dias: tr.frequencia });
+    const quando = (ms) => new Date(ms).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "numeric" });
+    const muda = c && c.ap ? c.ap.mudancas : [];
+    pedirConfirmacao({ msg: "Ligar o ajuste automático no \"" + prog.nome + "\"?\n\n" +
+      (tr.deload ? "• A partir de " + quando(tr.deloadInicio) + ": uma semana leve (metade das séries), porque " + (tr.puxadas >= 4 ? "você treina pesado há " + tr.puxadas + " semanas seguidas" : "a carga parou de subir") + ".\n• " : "• ") +
+      "O ciclo de " + MESOCICLO.length + " semanas começa " + quando(tr.inicio) + ": as séries mudam sozinhas a cada semana.\n• A cada " + MESOCICLO.length + " semanas o app reanalisa os seus treinos e reajusta as fichas, sem você fazer nada.\n\n" +
+      (muda.length ? "O que muda agora nas fichas (" + muda.length + "):\n" + muda.join("\n") : "Agora as fichas ficam como estão: " + (c && c.r ? "o volume de cada músculo já está na faixa." : "ainda não há treinos deste programa nas últimas 4 semanas para analisar.")) +
+      "\n\n⚕️ " + AVISO_SAUDE.curto, positivo: true, labelSim: "Ligar" }, () => {
+      gravarReajuste(prog, c || { fichas: fichas, r: null, ap: null }, { ciclo: 1, prog: { autoAjuste: true, diasSemana: tr.frequencia, deload: tr.deload ? { inicio: tr.deloadInicio, fim: tr.inicio } : prog.deload },
+        motivos: ["Ligado sem treinos deste programa nas últimas 4 semanas: a primeira análise vem no fim do ciclo."] },
+        () => ({ inicio: tr.inicio, ciclo: 1 }));
+      registrarEvento("auto-ajuste-ligado");
+      setTimeout(() => avisar("🔁 Ajuste automático ligado no \"" + prog.nome + "\"." + (muda.length ? " " + muda.length + " " + plural(muda.length, "mudança aplicada", "mudanças aplicadas") + " nas fichas." : "") + " O ciclo começa " + quando(tr.inicio) + "."), 200);
+    });
+  };
+  const reanalisarAgora = (prog) => {
+    const c = calcularReajuste(prog);
+    if (!c) { avisar("Esse treino ainda não tem fichas."); return; }
+    if (!c.r) { avisar("Ainda não há treinos deste programa nas últimas 4 semanas para analisar. Treine com as fichas dele e a análise passa a valer."); return; }
+    const motivos = c.r.motivos.join("\n• ");
+    if (!c.ap.mudancas.length) { avisar("✅ Nada precisa mudar agora.\n\n• " + motivos); return; }
+    pedirConfirmacao({ msg: "O que a análise dos seus treinos encontrou:\n\n• " + motivos + "\n\nO que muda nas fichas (" + c.ap.mudancas.length + "):\n" + c.ap.mudancas.join("\n") +
+      "\n\nDá para desfazer depois.\n\n⚕️ " + AVISO_SAUDE.curto, positivo: true, labelSim: "Aplicar" }, () => {
+      gravarReajuste(prog, c, { auto: false });
+      registrarEvento("auto-ajuste-manual");
+      setTimeout(() => avisar("✅ Fichas reajustadas: " + c.ap.mudancas.length + " " + plural(c.ap.mudancas.length, "mudança", "mudanças") + "."), 200);
+    });
+  };
+  const desfazerAjuste = (prog) => {
+    const a = (prog.ajustes || [])[0];
+    if (!a || !a.antes) { avisar("Não há ajuste para desfazer."); return; }
+    pedirConfirmacao({ msg: "Desfazer o ajuste de " + new Date(a.em).toLocaleDateString("pt-BR") + "? As fichas voltam a como estavam antes dele (" + a.mudancas.length + " " + plural(a.mudancas.length, "mudança", "mudanças") + ").", labelSim: "Desfazer" }, () => {
+      setTreinos((ts) => ts.map((t) => { const v = a.antes.find((x) => x.id === t.id); return v ? { ...t, itens: v.itens } : t; }));
+      setProgramas((ps) => ps.map((p) => (p.id === prog.id ? { ...p, ajustes: (p.ajustes || []).slice(1) } : p)));
+    });
+  };
+  // O automático: um mesociclo novo começou (semanaDoMeso.ciclo passou do
+  // último analisado). Nunca no meio de um treino; uma vez por ciclo.
+  const autoFeitoRef = useRef({});
+  useEffect(() => {
+    if (!carregado || sessao) return;
+    const agora = Date.now();
+    programas.forEach((p) => {
+      if (!p.autoAjuste || !p.meso || !p.meso.inicio) return;
+      const sm = semanaDoMeso(p.meso, agora);
+      if (!sm || sm.ciclo <= (p.meso.ciclo || 1)) return;
+      const k = p.id + ":" + sm.ciclo;
+      if (autoFeitoRef.current[k]) return;
+      autoFeitoRef.current[k] = true;
+      const c = calcularReajuste(p);
+      if (!c) return;
+      if (!c.r) {
+        // ficou mais de 4 semanas sem esse treino: o ciclo recomeça pela base
+        gravarReajuste(p, c, { auto: true, ciclo: 1, motivos: ["Mais de 4 semanas sem este treino: o ciclo recomeçou pela semana de base, com uma série a menos."] },
+          () => ({ inicio: segundaDaSemana(new Date(agora)).getTime(), ciclo: 1 }));
+        setTimeout(() => avisar("🔁 \"" + p.nome + "\": como você ficou um tempo sem esse treino, o ciclo recomeçou pela semana de base (uma série a menos), para voltar com segurança."), 1500);
+        return;
+      }
+      const e = gravarReajuste(p, c, { auto: true, ciclo: sm.ciclo }, (pp) => ({ ...pp.meso, ciclo: sm.ciclo }));
+      registrarEvento("auto-ajuste-ciclo");
+      setTimeout(() => avisar("🔁 Ciclo " + sm.ciclo + " do \"" + p.nome + "\": o app reanalisou os seus treinos. " +
+        (e.mudancas.length ? e.mudancas.length + " " + plural(e.mudancas.length, "mudança", "mudanças") + " nas fichas:\n" + e.mudancas.slice(0, 8).join("\n") + (e.mudancas.length > 8 ? "\n…" : "") : "Nada precisou mudar.") +
+        "\n\nVeja o porquê em Fichas › " + p.nome + "."), 1500);
+    });
+  }, [carregado, programas, sessao]);
 
   const iniciarSessao = (treino) => {
     if (!treino.itens.length) { avisar("Esta ficha ainda não tem exercícios. Edite a ficha primeiro."); return; }
@@ -34291,25 +34726,30 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   };
 
   // ---- Assistente: gera um treino completo em 3 respostas ----
-  const gerarTreinoAssistente = (objetivo, dias, nivel) => {
-    const reps = objetivo === "forca" ? 6 : objetivo === "definir" ? 15 : 10;
-    const series = objetivo === "forca" ? 4 : 3;
-    const qtd = nivel === "iniciante" ? 5 : nivel === "intermediario" ? 6 : 8;
-    const modelo = SPLITS[dias] || SPLITS[3];
+  // Pela ciência (montarProgramaLiteratura): frequência 2×, volume por músculo
+  // pelo nível, já no mesociclo e, por padrão, com o ajuste automático ligado.
+  const gerarTreinoAssistente = (objetivo, dias, nivel, auto) => {
+    const m = montarProgramaLiteratura(objetivo, dias, nivel, EXERCICIOS);
     const nomeObj = objetivo === "forca" ? "Força" : objetivo === "definir" ? "Definição" : "Hipertrofia";
     registrarEvento("treino-gerado-assistente");
-    const pid = "prog-" + Date.now();
-    setProgramas((prev) => [...prev, { id: pid, nome: "Meu Treino - " + nomeObj + " (" + dias + "x/sem)" }]);
-    const fichas = modelo.map((m, i) => ({
-      id: "gerada-" + Date.now() + "-" + i,
-      nome: m[0],
+    const agora = Date.now();
+    const pid = "prog-" + agora;
+    const ligado = auto !== false;
+    setProgramas((prev) => [...prev, { id: pid, nome: "Meu Treino - " + nomeObj + " (" + dias + "x/sem)",
+      meso: { inicio: segundaDaSemana(new Date(agora)).getTime(), ciclo: 1 }, autoAjuste: ligado, diasSemana: dias, nivel: nivel, objetivo: objetivo, ajustes: [] }]);
+    const fichas = m.fichas.map((f, i) => ({
+      id: "gerada-" + agora + "-" + i,
+      nome: f.nome,
       programaId: pid,
-      itens: m[1].slice(0, qtd).map((idEx) => ({ exercicioId: idEx, series: series, reps: reps, obs: "" })),
+      itens: f.itens.map((it) => ({ ...it, uid: novoUid(), descanso: null, conjunto: null })),
     }));
     setTreinos((prev) => [...fichas, ...prev]);
     setProgAberto(pid);
     setAba("treinos");
-    setTimeout(() => avisar("Treino gerado com " + fichas.length + " fichas! Pode editar tudo do seu jeito. 💪"), 150);
+    setTimeout(() => avisar("✅ Treino montado pela ciência: " + fichas.length + " fichas, divisão " + m.divisao + ", cada músculo 2 vezes por semana.\n\n" +
+      "Esta é a semana 1 de " + MESOCICLO.length + ": uma série a menos em cada exercício, para acertar a carga. As séries mudam sozinhas a cada semana." +
+      (ligado ? "\n\n🔁 A cada " + MESOCICLO.length + " semanas o app reanalisa os seus treinos e reajusta tudo sozinho." : "") +
+      "\n\nPode editar o que quiser. ⚕️ " + AVISO_SAUDE.curto), 150);
   };
 
   // ---- Story: imagem de um treino do histórico ----
@@ -34816,6 +35256,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             onMoverFicha={(id, d) => setTreinos((prev) => moverFicha(prev, id, d))}
             onDuplicarPrograma={duplicarPrograma}
             onAssistente={() => setAba("assistente")}
+            onAutoAjuste={ligarAutoAjuste} onReanalisar={reanalisarAgora} onDesfazerAjuste={desfazerAjuste}
             onAdaptado={() => setAba("adaptado")} nAdaptado={registrosAtivosAdaptado(adaptado).length}
             onTreinoLivre={iniciarTreinoLivre} />
         )}

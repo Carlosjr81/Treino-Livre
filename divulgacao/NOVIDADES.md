@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-11-20a — O treino que se ajusta sozinho pela ciência
+
+**Em uma frase:** o "Montar pra mim" agora monta o treino pelos estudos de hipertrofia, e um botão faz o app reajustar o treino sozinho a cada 5 semanas, olhando como você evoluiu.
+
+**O que mudou**
+- O "Montar pra mim" monta pela ciência: cada músculo treina 2 vezes por semana, com o número de séries que faz crescer para o seu nível (iniciante, intermediário ou avançado), exercícios grandes primeiro e o abdômen no fim. Agora dá para escolher até 6 dias.
+- O treino montado já vem no ciclo de 5 semanas, que muda as séries sozinho a cada semana.
+- Novo botão "🔁 Atualizar sozinho pela ciência" no cartão de cada treino, na aba Fichas. Ligado, a cada 5 semanas o app olha os seus treinos e reajusta as fichas sem você fazer nada: mais séries no músculo em que a carga parou, menos onde a carga caiu ou passou do limite, e mantém o que está funcionando.
+- Cada ajuste mostra o porquê, e dá para desfazer.
+
+**Por que importa para quem treina**
+- O treino nunca fica velho: ele acompanha o seu progresso, como faria uma planilha refeita a cada mês.
+- Quem está começando já sai com um treino equilibrado, sem músculo esquecido.
+
+**Como usar**
+- Início › Montar pra mim: responda objetivo, dias e nível, deixe marcado "Manter sempre se ajustando" e toque em Montar meu treino.
+- Para um treino que você já tem: aba Fichas › no cartão do treino, ligue "🔁 Atualizar sozinho pela ciência".
+
+**Ideias de vídeo**
+- "Monte um treino em 10 segundos": as 3 perguntas e as fichas prontas.
+- O botão sendo ligado e, depois, o aviso "Ciclo 2: o app reanalisou os seus treinos" com as mudanças.
+
+**Não prometer**
+- Não é prescrição nem substitui o profissional de Educação Física; os números são referência dos estudos.
+- Não prometa resultado nem prazo de ganho de músculo.
+- O reajuste só acontece com treinos registrados no app.
+
+---
+
 ## 2026-11-19c — O que fazer quando o relógio não se liga ao celular
 
 **Em uma frase:** quando o relógio diz que não está ligado a nenhum celular, o app explica que o problema é a ligação entre os dois aparelhos e leva direto aos ajustes que resolvem.

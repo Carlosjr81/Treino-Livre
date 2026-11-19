@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-11-20b — Tenho só 1 hora hoje: o treino se redesenha para caber
+
+**Em uma frase:** diga quanto tempo você tem e o app redesenha o treino do dia pela ciência para caber, e o treino ajustado agora mostra claramente o que mudou nesta semana e por quê.
+
+**O que mudou**
+- Novo "⏱ Tenho menos tempo hoje: ajustar ao meu tempo" no treino do dia, em cada ficha e no meio do treino.
+- Você escolhe 30, 45, 60, 75, 90 min (ou digita outro) e vê na hora como fica: quais exercícios viram bi-set, onde o descanso encurta, onde saem séries. Os exercícios grandes ficam.
+- "Só hoje" começa o treino assim. "Para sempre" deixa a ficha sempre cabendo naquele tempo, mesmo nas semanas mais fortes do ciclo.
+- O treino ajustado abre com o quadro "O que o app ajustou para hoje": as séries desta semana do ciclo, a carga que sobe pelo seu último treino, quando é a próxima reanálise pelo seu histórico e o tempo.
+
+**Por que importa para quem treina**
+- Dia corrido não precisa virar dia sem treino nem treino pela metade sem critério.
+- Fica claro que o treino está acompanhando você, semana a semana.
+
+**Como usar**
+- Início › no cartão "Seu treino de hoje", toque em "⏱ Tenho menos tempo hoje", escolha o tempo e "Só hoje: começar assim".
+- Já treinando: embaixo de "faltam ~X min", toque em "ajustar ao meu tempo".
+
+**Ideias de vídeo**
+- "Tenho 1 hora": a ficha de 2 horas virando 1 hora em um toque, com os bi-sets aparecendo.
+- O quadro "O que o app ajustou para hoje" lido em voz alta.
+
+**Não prometer**
+- Não é prescrição; menos tempo é menos volume, e o app diz isso.
+- A estimativa de tempo é aproximada: depende do ritmo de cada um e da academia cheia.
+
+---
+
 ## 2026-11-20a — O treino que se ajusta sozinho pela ciência
 
 **Em uma frase:** o "Montar pra mim" agora monta o treino pelos estudos de hipertrofia, e um botão faz o app reajustar o treino sozinho a cada 5 semanas, olhando como você evoluiu.

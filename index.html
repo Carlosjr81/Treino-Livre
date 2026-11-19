@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-20a";
+const VERSAO_APP = "2026-11-20b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3775,6 +3775,202 @@ function estimarRestanteSessao(sessao, exPorId, geral, modo) {
   return Math.round(segundosDasSeries(itens, geral, modo) / 60);
 }
 // ---------------- FIM DO TEMPO ESTIMADO
+
+// ---------------- AJUSTE AO TEMPO ----------------
+// Pedido do dono (2026-11-20b): "num dia específico o treino vai durar mais
+// de 2 horas e eu só tenho 1 hora: o ajuste por tempo redesenha o treino sem
+// perder performance e cabe no tempo do dia". Para um dia só, ou para sempre.
+//
+// O que a literatura sobre treino curto manda, nesta ordem (Iversen e
+// colegas, 2021, "No time to lift?"; Schoenfeld 2016 e Singer 2024 sobre
+// descanso; Robbins 2010 sobre o bi-set de músculos que não competem):
+// 0. O aeróbico do fim encolhe primeiro (até 10 min): ele não é o que a ficha
+//    de musculação existe para treinar.
+// 1. Bi-set entre músculos que NÃO competem (peito com costas, bíceps com
+//    tríceps, quadríceps com posterior): um descansa enquanto o outro
+//    trabalha, e a carga não cai. Nunca com o básico pesado de barra.
+// 2. Descanso mais curto onde quase não custa: isolado 60 s, composto 90 s,
+//    pesado 2 min. Acima de 60 a 90 s o ganho a mais é pequeno.
+// 3. Séries: tira primeiro dos isolados e dos músculos pequenos (que já
+//    trabalham de carona nos compostos), nunca abaixo de 2 por exercício; os
+//    compostos por último. O drop sai antes de cortar composto.
+// 4. Só então um exercício sai: primeiro o isolado cujo músculo outro
+//    exercício que fica já trabalha.
+// O que fica é feito com o mesmo esforço: menos volume com a mesma
+// intensidade mantém o ganho por semanas (Bickel 2011; Iversen 2021).
+const MUSC_PEQUENOS_TEMPO = ["biceps", "triceps", "panturrilha", "abdomen", "antebraco", "obliquos", "trapezio", "adutores", "lombar"];
+const DESCANSO_CURTO_TEMPO = { pesado: 120, composto: 90, isoladoGrande: 60, isoladoPequeno: 60, core: 45, isometria: 45, funcional: 30, aerobico: 45 };
+const PARES_TEMPO = [["peito", "dorsal"], ["biceps", "triceps"], ["quadriceps", "posteriores"], ["ombros", "dorsal"], ["peito", "biceps"], ["dorsal", "triceps"], ["gluteos", "abdomen"], ["quadriceps", "abdomen"], ["panturrilha", "abdomen"], ["ombros", "posteriores"]];
+// lista: [{ k, ex, it: { reps, descanso, conjunto }, n, drops, aquec: [...], min, fora }]
+function tempoDosItens(lista, geral, modo) {
+  return segundosDasSeries(lista.filter((x) => !x.fora).map((x) => {
+    const series = (x.aquec || []).slice();
+    const cardio = x.ex && x.ex.cardio;
+    for (let i = 0; i < x.n; i++) series.push(cardio ? { segundos: (x.min || 30) * 60 } : x.ex && x.ex.tempo ? { segundos: x.seg || "" } : { reps: x.it.reps });
+    for (let i = 0; i < (x.drops || 0); i++) series.push({ reps: x.it.reps, drop: true });
+    return { it: x.it, ex: x.ex, series: series };
+  }), geral, modo);
+}
+function planejarTempo(lista0, alvoSeg, geral, modo, podeReordenar) {
+  let L = lista0.map((x) => ({ ...x, it: { ...x.it }, n0: x.n, drops0: x.drops || 0, min0: x.min }));
+  const tempo = () => tempoDosItens(L, geral, modo);
+  const cabe = () => tempo() <= alvoSeg;
+  const nm = (x) => String((x.ex && x.ex.nome) || "Exercício").replace(/ \(.*\)/, "");
+  const mud = [];
+  if (cabe()) return { lista: L, mudancas: mud, cabe: true, seg: tempo() };
+  const info = (x) => { const m = (x.ex && x.ex.musc) || {}; const p = m.p || [], s = m.s || []; return { p: p, composto: p.length + s.length >= 3, pequeno: MUSC_PEQUENOS_TEMPO.indexOf(p[0]) >= 0, tipo: x.ex ? tipoDescanso(x.ex) : null }; };
+  const forca = (x) => x.ex && !x.ex.cardio && !x.ex.tempo;
+  // do menos importante para o mais: isolado de músculo pequeno, isolado,
+  // composto; no empate, o que vem mais para o fim do treino
+  const nota = (x, i) => { const f = info(x); return (f.composto ? 0 : 2) + (f.pequeno ? 1 : 0) + i * 0.01; };
+  const ordemCorte = () => L.map((x, i) => ({ x: x, v: nota(x, i) })).sort((a, b) => b.v - a.v).map((o) => o.x);
+  // 0. o aeróbico encolhe
+  L.forEach((x) => {
+    if (cabe() || x.fora || !(x.ex && x.ex.cardio)) return;
+    while (!cabe() && x.min > 10) x.min = Math.max(10, x.min - 5);
+    if (x.min !== x.min0) mud.push("🏃 " + nm(x) + ": " + x.min0 + " → " + x.min + " min");
+  });
+  // 1. bi-sets entre músculos que não competem
+  if (!cabe()) {
+    let id = 0;
+    const livre = (x) => !x.fora && !x.it.conjunto && forca(x) && info(x).tipo !== "pesado";
+    for (let i = 0; i < L.length && !cabe(); i++) {
+      const a = L[i];
+      if (!livre(a)) continue;
+      const pa = info(a).p;
+      let melhor = -1, mv = -1;
+      const ate = podeReordenar ? L.length : Math.min(L.length, i + 2);
+      for (let j = i + 1; j < ate; j++) {
+        const b = L[j];
+        if (!livre(b)) continue;
+        const pb = info(b).p;
+        if (pa.some((m) => pb.indexOf(m) >= 0)) continue;     // competem: não
+        const par = PARES_TEMPO.some((p) => (pa.indexOf(p[0]) >= 0 && pb.indexOf(p[1]) >= 0) || (pa.indexOf(p[1]) >= 0 && pb.indexOf(p[0]) >= 0));
+        const v = (par ? 10 : 1) - (j - i) * 0.01;
+        if (v > mv) { mv = v; melhor = j; }
+      }
+      if (melhor < 0) continue;
+      const b = L[melhor];
+      const cj = "tempo-" + (++id);
+      a.it.conjunto = cj; b.it.conjunto = cj;
+      if (melhor !== i + 1) { L.splice(melhor, 1); L.splice(i + 1, 0, b); }
+      mud.push("🔗 Bi-set: " + nm(a) + " + " + nm(b) + " (um descansa enquanto o outro trabalha)");
+      i++;
+    }
+  }
+  // 2. descanso mais curto onde quase não custa
+  if (!cabe()) {
+    const cortados = [];
+    ordemCorte().forEach((x) => {
+      if (cabe() || x.fora) return;
+      const t = info(x).tipo, d0 = descansoDoItem(x.it, x.ex, geral, modo), d1 = DESCANSO_CURTO_TEMPO[t];
+      if (d1 && d1 < d0) { x.it.descanso = d1; cortados.push(nm(x) + " " + textoSeg(d1)); }
+    });
+    if (cortados.length) mud.push("⏱ Descanso mais curto: " + cortados.join(", "));
+  }
+  // 3. séries: isolados primeiro, depois o drop, depois os compostos
+  const cortar = (filtro) => {
+    let mudou = true;
+    while (!cabe() && mudou) {
+      mudou = false;
+      for (const x of ordemCorte()) { if (cabe()) break; if (!x.fora && forca(x) && filtro(x) && x.n > 2) { x.n--; mudou = true; } }
+    }
+  };
+  cortar((x) => !info(x).composto);
+  L.forEach((x) => { if (!cabe() && x.drops) x.drops = 0; });
+  cortar(() => true);
+  // 4. um exercício sai: o isolado cujo músculo outro que fica já trabalha
+  while (!cabe()) {
+    const vivos = L.filter((x) => !x.fora);
+    if (vivos.length <= 1) break;
+    const coberto = (x) => vivos.some((y) => y !== x && (((y.ex && y.ex.musc) || {}).p || []).concat(((y.ex && y.ex.musc) || {}).s || []).indexOf(info(x).p[0]) >= 0);
+    const ord = ordemCorte().filter((x) => !x.fora);
+    const sai = ord.find((x) => !info(x).composto && coberto(x)) || ord.find((x) => !info(x).composto) || ord[0];
+    sai.fora = true;
+  }
+  // o bi-set que perdeu o par vira exercício solto
+  L.forEach((x, k) => {
+    if (!x.it.conjunto || x.fora) return;
+    const viz = L.filter((y, j) => !y.fora && j !== k && y.it.conjunto === x.it.conjunto);
+    if (!viz.length) x.it.conjunto = null;
+  });
+  L.forEach((x) => {
+    if (x.fora) mud.push("✕ Fica de fora hoje: " + nm(x) + (forca(x) ? " (o músculo dele é trabalhado por outro exercício)" : ""));
+    else {
+      if (x.n < x.n0) mud.push("➖ " + nm(x) + ": " + x.n0 + " → " + x.n + " séries");
+      if (x.drops < x.drops0) mud.push("➖ " + nm(x) + ": sem o drop");
+    }
+  });
+  return { lista: L, mudancas: mud, cabe: cabe(), seg: tempo() };
+}
+function textoSeg(s) { return s >= 60 ? (s % 60 ? Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0") : s / 60 + " min") : s + " s"; }
+// O ritmo da pessoa: quanto o relógio de verdade passa da conta (a mediana das
+// últimas vezes que fez aquela ficha). Quem demora mais que a conta precisa de
+// um corte maior para caber no mesmo tempo.
+function ritmoDaFicha(est) {
+  if (!est || est.real == null || !est.conta) return 1;
+  return Math.max(0.85, Math.min(1.6, est.real / est.conta));
+}
+// A ficha (para sempre, ou para mostrar antes de começar)
+function ajustarFichaAoTempo(ficha, minutos, exPorId, geral, modo, ritmo) {
+  const r = ritmo || 1;
+  const base = itensDaFicha(ficha, exPorId);
+  const lista = base.map((b, i) => {
+    const it = ficha.itens[i];
+    const cardio = b.ex && b.ex.cardio;
+    return { k: i, ex: b.ex, it: { reps: it.reps, descanso: it.descanso || null, conjunto: it.conjunto || null }, n: Math.max(1, parseInt(it.series) || 3),
+      drops: Math.min(3, parseInt(it.drops) || 0), aquec: b.series.filter((s) => s.aquec),
+      min: cardio ? parseInt(it.reps) || (b.ex.padrao && b.ex.padrao.min) || 30 : 0 };
+  });
+  const antes = tempoDosItens(lista, geral, modo);
+  const p = planejarTempo(lista, (minutos * 60) / r, geral, modo, true);
+  const itens = p.lista.filter((x) => !x.fora).map((x) => {
+    const o = ficha.itens[x.k];
+    const cardio = x.ex && x.ex.cardio;
+    const n = { ...o, series: x.n, descanso: x.it.descanso || null, conjunto: x.it.conjunto || null };
+    if (cardio) n.reps = x.min;
+    if (o.drops) n.drops = x.drops;
+    return n;
+  });
+  return { itens: itens, mudancas: p.mudancas, cabe: p.cabe, antes: Math.round((antes * r) / 60), depois: Math.round((p.seg * r) / 60) };
+}
+// O treino aberto (só hoje): mexe só no que falta. Sem mudar a ordem (a
+// voz e o foco seguem a posição), e o que sai fica "pulado hoje".
+function ajustarSessaoAoTempo(sessao, minutos, exPorId, geral, modo, ritmo) {
+  const r = ritmo || 1;
+  const lista = [];
+  (sessao.itens || []).forEach((item, i) => {
+    if (item.pulado) return;
+    const ex = exPorId(item.exercicioId) || null;
+    const pend = (item.series || []).filter((s) => !s.feito);
+    if (!pend.length) return;
+    const trab = pend.filter((s) => !s.aquec && !ehDrop(s));
+    const cardio = ex && ex.cardio;
+    lista.push({ k: i, ex: ex, it: { reps: (trab[0] && trab[0].reps) || "10", descanso: item.descanso || null, conjunto: item.conjunto || null },
+      n: trab.length, drops: pend.filter((s) => ehDrop(s)).length, aquec: pend.filter((s) => s.aquec),
+      min: cardio ? Math.max(1, Math.round((parseInt(trab[0] && trab[0].segundos) || 1800) / 60)) : 0,
+      seg: ex && ex.tempo && trab[0] ? trab[0].segundos : "" });
+  });
+  const antes = tempoDosItens(lista, geral, modo);
+  const p = planejarTempo(lista, (minutos * 60) / r, geral, modo, false);
+  const porK = {};
+  p.lista.forEach((x) => { porK[x.k] = x; });
+  const itens = (sessao.itens || []).map((item, i) => {
+    const x = porK[i];
+    if (!x) return item;
+    if (x.fora) return { ...item, pulado: true, puladoTempo: true };
+    let trab = 0, drops = 0;
+    const series = (item.series || []).filter((s) => {
+      if (s.feito || s.aquec) return true;
+      if (ehDrop(s)) return ++drops <= x.drops;
+      return ++trab <= x.n;
+    }).map((s) => (!s.feito && x.ex && x.ex.cardio && !s.aquec ? { ...s, segundos: x.min * 60 } : s));
+    return { ...item, series: series, descanso: x.it.descanso || item.descanso || null, conjunto: x.it.conjunto || null };
+  });
+  return { sessao: { ...sessao, itens: itens, tempoAlvo: minutos }, mudancas: p.mudancas, cabe: p.cabe,
+    antes: Math.round((antes * r) / 60), depois: Math.round((p.seg * r) / 60) };
+}
+// ---------------- FIM DO AJUSTE AO TEMPO
 
 // Só o que a voz precisa: as séries e, de cada exercício, o nome, o
 // equipamento (a barra no "de cada lado"), se é de tempo, o descanso e o recorde.
@@ -13906,7 +14102,7 @@ function CartaoAppAndroid({ onDepois }) {
 
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
   avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
-  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi, onIntervalado, onDesafio, onEsteira }) {
+  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi, onIntervalado, onDesafio, onEsteira, onAjustarTempo }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
@@ -14003,7 +14199,22 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
               {" · ⏱ " + textoTempoFicha(estimarTempoFicha(hoje.ficha, exPorId, historico, DESCANSO_GERAL, MODO_DESCANSO))}
               {hoje.motivo ? " · " + hoje.motivo : ""}
             </div>
+            {(() => {
+              // deixa à vista que o treino está sendo ajustado (pedido do dono)
+              const pr = programas.find((p) => p.id === hoje.ficha.programaId);
+              const sm = pr && pr.meso && pr.meso.inicio ? semanaDoMeso(pr.meso, Date.now()) : null;
+              if (!sm) return null;
+              return (
+                <div style={{ fontSize: 12.5, lineHeight: 1.5, border: "1px solid var(--ok)", borderRadius: 10, padding: "7px 10px", marginBottom: 10 }}>
+                  <b>🔁 Ajustado pela ciência</b> · semana {sm.semana} de {MESOCICLO.length} ({MESOCICLO[sm.semana - 1].nome}).{" "}
+                  <span style={{ color: "var(--cinza)" }}>{pr.autoAjuste ? "As séries, a carga e o volume se ajustam sozinhos pelo seu histórico." : "As séries mudam pelo ciclo. Ligue o ajuste automático em Fichas para o volume seguir o seu histórico."}</span>
+                </div>
+              );
+            })()}
             <button style={{ ...S.btn, fontSize: 17, padding: "16px 12px" }} onClick={() => onTreinar(hoje.ficha)}><ComIcone nome="play" tamanho={18}>Começar este treino</ComIcone></button>
+            {onAjustarTempo && hoje.ficha.itens.length > 1 && (
+              <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800 }} onClick={() => onAjustarTempo(hoje.ficha)}>⏱ Tenho menos tempo hoje: ajustar ao meu tempo</button>
+            )}
             {novato && (
               <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
                 Um treino de iniciante, pronto para usar. Quer outro objetivo ou mais dias?{" "}
@@ -16403,6 +16614,68 @@ function AvisoAdaptadoItem({ e, pulado, variacao, onPular, onFazer, onTrocar }) 
 }
 // ---------------- FIM DA TELA DO TREINO ADAPTADO ----------------
 
+// A janela do ajuste ao tempo. alvo: { ficha } antes de começar (com
+// fichaSemana, a ficha com as séries desta semana do ciclo, para a prévia),
+// ou { sessao } no meio do treino.
+function JanelaTempo({ alvo, exPorId, historico, geral, modo, ritmo, onHoje, onSempre, onTirarLimite, onFechar }) {
+  const ficha = alvo.ficha || null;
+  const previa = alvo.fichaSemana || ficha;
+  const atual = ficha ? Math.round((estimarTempoFicha(previa, exPorId, [], geral, modo) || { conta: 0 }).conta * (ritmo || 1)) : estimarRestanteSessao(alvo.sessao, exPorId, geral, modo);
+  const opcoes = [30, 45, 60, 75, 90, 120].filter((m) => m < atual);
+  const [min, setMin] = useState(opcoes.length ? opcoes[opcoes.length - 1] : 30);
+  const [outro, setOutro] = useState("");
+  const plano = useMemo(() => (ficha ? ajustarFichaAoTempo(previa, min, exPorId, geral, modo, ritmo) : ajustarSessaoAoTempo(alvo.sessao, min, exPorId, geral, modo, ritmo)), [min]);
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onFechar}>
+      <div role="dialog" aria-modal="true" aria-label="Ajustar ao tempo que você tem" onClick={(e) => e.stopPropagation()}
+        style={{ ...S.card, width: "100%", maxWidth: 420, maxHeight: "100%", overflowY: "auto", boxSizing: "border-box", marginBottom: 0 }}>
+        <div style={{ fontSize: 19, fontWeight: 900 }}>⏱ Ajustar ao tempo que você tem</div>
+        <div style={{ fontSize: 13, color: "var(--cinza)", margin: "6px 0 12px", lineHeight: 1.5 }}>
+          {ficha ? <>{alvo.fichaSemana && alvo.fichaSemana !== ficha ? "Nesta semana do ciclo, " : ""}"{ficha.nome}" leva <b>~{textoMinutos(Math.max(5, atual))}</b>{ritmo && ritmo !== 1 ? " no seu ritmo" : ""}.</> : <>Faltam <b>~{textoMinutos(Math.max(1, atual))}</b> do treino.</>}
+          {" "}Diga quanto tempo você tem e o app redesenha o treino pela ciência, sem perder o que mais dá resultado.
+        </div>
+        {ficha && ficha.tempoMax && (
+          <div style={{ fontSize: 12.5, border: "1px solid var(--ok)", borderRadius: 10, padding: "8px 10px", marginBottom: 10, lineHeight: 1.5 }}>
+            Esta ficha está ajustada para caber em <b>{ficha.tempoMax} min</b> sempre.{" "}
+            <button onClick={onTirarLimite} style={{ background: "none", border: "none", padding: 0, color: "var(--marca)", fontWeight: 800, fontSize: 12.5, cursor: "pointer" }}>Tirar o limite</button>
+          </div>
+        )}
+        <div style={S.label}>Quanto tempo você tem?</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "8px 0 8px" }}>
+          {(opcoes.length ? opcoes : [30]).map((m) => (
+            <button key={m} onClick={() => { setMin(m); setOutro(""); }} aria-pressed={min === m}
+              style={{ padding: "9px 12px", borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: "pointer", border: "1px solid " + (min === m ? "var(--marca)" : "var(--borda2)"),
+                background: min === m ? "var(--marca)" : "transparent", color: min === m ? "#fff" : "var(--texto)" }}>{textoMinutos(m)}</button>
+          ))}
+          <input inputMode="numeric" placeholder="outro (min)" value={outro} aria-label="Outro tempo, em minutos"
+            onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 3); setOutro(v); const n = parseInt(v); if (n >= 15 && n <= 300) setMin(n); }}
+            style={{ ...S.input, width: 110, padding: "9px 10px", fontSize: 13 }} />
+        </div>
+        <div style={{ border: "1px solid " + (plano.cabe ? "var(--ok)" : "var(--obs)"), borderRadius: 12, padding: "10px 12px", fontSize: 13, lineHeight: 1.55 }}>
+          <b>{plano.cabe ? "✅ Fica em ~" + textoMinutos(Math.max(5, plano.depois)) : "⚠ O mais perto que dá: ~" + textoMinutos(Math.max(5, plano.depois))}</b>
+          {plano.mudancas.length ? plano.mudancas.map((m, k) => <div key={k} style={{ marginTop: 4 }}>{m}</div>)
+            : <div style={{ marginTop: 4 }}>O treino já cabe nesse tempo: nada muda.</div>}
+          <div style={{ color: "var(--cinza)", fontSize: 12, marginTop: 8 }}>
+            A ordem do corte é a dos estudos de treino curto (Iversen e colegas, 2021): primeiro o bi-set de músculos que não competem e o descanso
+            dos isolados, depois as séries dos músculos pequenos; os exercícios grandes ficam. Faça o que ficou com o mesmo esforço de sempre:
+            menos séries com a mesma carga mantêm o resultado por semanas.
+          </div>
+        </div>
+        {ficha ? (
+          <React.Fragment>
+            <button style={{ ...S.btn, marginTop: 12 }} onClick={() => onHoje(min)}>▶ Só hoje: começar assim</button>
+            <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800 }} onClick={() => onSempre(min)}>💾 Para sempre: esta ficha sempre em {textoMinutos(min)}</button>
+          </React.Fragment>
+        ) : (
+          <button style={{ ...S.btn, marginTop: 12 }} onClick={() => onHoje(min)}>Aplicar no treino de hoje</button>
+        )}
+        <button style={{ ...S.btnGhost, marginTop: 8 }} onClick={onFechar}>Cancelar</button>
+        <AvisoSaude />
+      </div>
+    </div>
+  );
+}
+
 // O botão do ajuste automático, dentro do treino (pedido do dono: "na própria
 // ficha já precisa ter o botão de manter ele sempre se ajustando").
 function CartaoAutoAjuste({ prog, onLigar, onReanalisar, onDesfazer }) {
@@ -16467,7 +16740,7 @@ function CartaoAutoAjuste({ prog, onLigar, onReanalisar, onDesfazer }) {
 function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, onTreinar, onNovaFicha,
   onEditar, onExcluirFicha, onCompartilharFicha, onNovoPrograma, onRenomearPrograma, onExcluirPrograma,
   onCompartilharPrograma, onDuplicarFicha, onDuplicarPrograma, onLevarFicha, onMoverFicha, onAssistente, onTreinoLivre, pedirConfirmacao, historico, onAdaptado, nAdaptado,
-  onAutoAjuste, onReanalisar, onDesfazerAjuste }) {
+  onAutoAjuste, onReanalisar, onDesfazerAjuste, onAjustarTempo }) {
   // Dentro de um treino: lista de fichas. Se o programa aberto foi excluído,
   // cai de volta na lista em vez de alterar estado durante o render.
   const prog = progAberto ? programas.find((p) => p.id === progAberto) : null;
@@ -16508,8 +16781,13 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
               {t.itens.map((it) => { const e = exPorId(it.exercicioId); return e ? e.nome : null; }).filter(Boolean).join(" · ") || "Sem exercícios"}
             </div>
             {t.itens.length > 0 && (
-              <div style={{ fontSize: 13, fontWeight: 800, margin: "0 0 12px" }}>
-                ⏱ {textoTempoFicha(estimarTempoFicha(t, exPorId, historico, DESCANSO_GERAL, MODO_DESCANSO))}
+              <div style={{ fontSize: 13, fontWeight: 800, margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span>⏱ {textoTempoFicha(estimarTempoFicha(t, exPorId, historico, DESCANSO_GERAL, MODO_DESCANSO))}{t.tempoMax ? " · ajustada para " + t.tempoMax + " min" : ""}</span>
+                {onAjustarTempo && (
+                  <button onClick={() => onAjustarTempo(t)} style={{ background: "none", border: "1px solid var(--borda2)", borderRadius: 8, padding: "4px 8px", color: "var(--marca)", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+                    Ajustar ao meu tempo
+                  </button>
+                )}
               </div>
             )}
             <button style={{ ...S.btn, marginBottom: 8 }} onClick={() => onTreinar(t)}><ComIcone nome="play">Treinar</ComIcone></button>
@@ -16581,7 +16859,11 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
                 </span>
                 <span style={{ fontSize: 13, lineHeight: 1.4 }}>
                   <b>🔁 Atualizar sozinho pela ciência</b><br />
-                  <span style={{ color: "var(--cinza)", fontSize: 12 }}>{p.autoAjuste ? "Ligado: a cada 5 semanas o app reanalisa os seus treinos e reajusta as fichas." : "Desligado: toque para o app reajustar as fichas pelo seu histórico."}</span>
+                  <span style={{ color: "var(--cinza)", fontSize: 12 }}>{p.autoAjuste
+                    ? (() => { const sm = p.meso && p.meso.inicio ? semanaDoMeso(p.meso, Date.now()) : null;
+                      return (sm ? "Ligado · semana " + sm.semana + " de " + MESOCICLO.length + " (" + MESOCICLO[sm.semana - 1].nome + "). " : "Ligado. ") +
+                        "Toda semana as séries mudam pelo ciclo, todo treino a carga sobe pelo seu último resultado, e a cada " + MESOCICLO.length + " semanas o volume de cada músculo é reanalisado pelo seu histórico."; })()
+                    : "Desligado: toque para o app reajustar as fichas pelo seu histórico e pelos estudos."}</span>
                 </span>
               </button>
             )}
@@ -28011,7 +28293,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   autoSerie, onAlternarAuto, onEspelho,
   acoesVoz, vozAtiva, vozBarra, vozAnimado, onDescansando, responderVoz,
   dicas, onDicaVista, onLigarVoz, onEscolaVoz, onCorredor, onBpmEsteira,
-  adaptadoAtivos, onSintomaAdaptado, onAbrirAdaptado }) {
+  adaptadoAtivos, onSintomaAdaptado, onAbrirAdaptado, onAjustarTempo }) {
   // Recorde e última execução de cada exercício: servem de referência ao lado de
   // cada série e permitem festejar o recorde no instante em que ele acontece.
   const recordes = useMemo(() => recordesPorExercicio(historico), [historico]);
@@ -29632,6 +29914,11 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 faltam ~{textoMinutos(Math.max(1, faltaMin))} · até {new Date(Date.now() + faltaMin * 60000).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
               </div>
             )}
+            {faltaMin > 10 && onAjustarTempo && (
+              <button onClick={onAjustarTempo} style={{ background: "none", border: "none", padding: 0, marginTop: 2, color: "var(--marca)", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+                {sessao.tempoAlvo ? "⏱ ajustado p/ " + sessao.tempoAlvo + " min · mudar" : "⏱ ajustar ao meu tempo"}
+              </button>
+            )}
           </div>
         </div>
         {/* barra de avanço do treino: dá a sensação de estar chegando ao fim */}
@@ -29651,10 +29938,18 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           que é só digitar e tocar no ✓. Enquanto este guia está na tela, a dica
           da voz espera (uma dica de cada vez). */}
       {sessao.meso && (
-        <div style={{ ...S.card, padding: "10px 14px", fontSize: 12.5, lineHeight: 1.5 }}>
-          <b>📅 {sessao.meso.antes ? sessao.meso.nome : "Semana " + sessao.meso.semana + " de " + MESOCICLO.length} · {sessao.meso.dia}</b><br />
+        <div style={{ ...S.card, padding: "10px 14px", fontSize: 12.5, lineHeight: 1.5, borderColor: "var(--ok)" }}>
+          <div style={{ ...S.label, color: "var(--ok)", marginBottom: 4 }}>🔁 Treino ajustado pela ciência</div>
+          <b>📅 {sessao.meso.antes ? sessao.meso.nome : "Semana " + sessao.meso.semana + " de " + MESOCICLO.length + " (" + sessao.meso.nome + ")"} · {sessao.meso.dia}</b><br />
           {sessao.meso.facil || (sessao.meso.reserva.charAt(0).toUpperCase() + sessao.meso.reserva.slice(1) + ": " + sessao.meso.dica + ".")}
           <div style={{ color: "var(--cinza)", marginTop: 2 }}>Hoje: {sessao.meso.reps[0]} a {sessao.meso.reps[1]} repetições por série, {sessao.meso.diaDica}.</div>
+          <div style={{ marginTop: 8, fontWeight: 800 }}>O que o app ajustou para hoje:</div>
+          <div>• <b>Séries</b> (pelo ciclo de {MESOCICLO.length} semanas): {sessao.meso.seriesTxt || "as da ficha"}.</div>
+          <div>• <b>Carga</b> (pelo seu histórico): {sessao.meso.sobe ? "sobe em " + sessao.meso.sobe + " " + plural(sessao.meso.sobe, "exercício", "exercícios") + ", porque da última vez você fechou todas as repetições; nos outros, a da última vez" : "a da sua última vez em cada exercício; ela sobe quando você fechar todas as repetições"}.</div>
+          <div>• <b>Volume de cada músculo</b>: {sessao.meso.auto
+            ? "reanalisado pelo seu histórico a cada " + MESOCICLO.length + " semanas" + (sessao.meso.proxima ? "; a próxima reanálise é em " + new Date(sessao.meso.proxima).toLocaleDateString("pt-BR", { day: "numeric", month: "numeric" }) : "") + (sessao.meso.ultimo ? " (a última foi em " + new Date(sessao.meso.ultimo).toLocaleDateString("pt-BR", { day: "numeric", month: "numeric" }) + ")" : "")
+            : "o ajuste automático está desligado; ligue em Fichas para ele seguir o seu histórico"}.</div>
+          {sessao.tempoAlvo && <div>• <b>Tempo</b>: redesenhado para caber em {sessao.tempoAlvo} min.</div>}
         </div>
       )}
       {primeiroTreino && (
@@ -33652,8 +33947,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     else comecar();
   };
 
-  const comecarSessao = (treino, conferido) => {
-    if (!conferido && conferirAdaptadoAntes(() => comecarSessao(treino, true))) return;
+  const comecarSessao = (treino, conferido, tempoMin) => {
+    if (!conferido && conferirAdaptadoAntes(() => comecarSessao(treino, true, tempoMin))) return;
     const ativosAd = registrosAtivosAdaptado(adaptado);
     // treino de um programa com mesociclo: as séries da semana e o dia da ondulação
     const prog = programas.find((p) => p.id === treino.programaId);
@@ -33662,7 +33957,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     const sm = deloadAntes ? { semana: 5, ciclo: 0 } : prog && prog.meso ? semanaDoMeso(prog.meso, agoraS) : null;
     const irmas = sm ? treinos.filter((t) => t.programaId === prog.id) : [];
     const dia = sm ? diaDaOndulacao(Math.max(0, irmas.findIndex((t) => t.id === treino.id)), sm.semana) : null;
-    setSessao({
+    let nova = ({
       treinoId: treino.id,
       nome: treino.nome,
       inicio: Date.now(),
@@ -33699,6 +33994,21 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
         return { ...it, series: [...seriesAquecimento(exPorId(it.exercicioId), it.sugerido), ...it.series] };
       }),
     });
+    // o que o app ajustou para hoje, dito no treino (pedido do dono: "precisa
+    // ficar mais claro que está sendo ajustado semana a semana")
+    if (nova.meso) {
+      const mc = MESOCICLO[sm.semana - 1];
+      nova.meso.seriesTxt = deloadAntes || mc.fator ? "metade das séries, para recuperar" : mc.delta < 0 ? "uma série a menos em cada exercício (começo do ciclo)" : mc.delta > 0 ? "uma série a mais em cada exercício (semana mais forte)" : "as séries da ficha";
+      nova.meso.sobe = nova.itens.filter((it) => it.sugerido && it.sugerido.subiu).length;
+      nova.meso.auto = !!(prog && prog.autoAjuste);
+      nova.meso.proxima = prog && prog.meso && prog.meso.inicio ? prog.meso.inicio + (prog.meso.ciclo || 1) * MESOCICLO.length * 7 * 864e5 : null;
+      nova.meso.ultimo = prog && prog.ajustes && prog.ajustes[0] ? prog.ajustes[0].em : null;
+    }
+    // ⏱ o tempo do dia (só hoje), ou o limite que a ficha guarda (para sempre):
+    // com o limite, até a semana mais forte do ciclo cabe no tempo
+    const limite = tempoMin || treino.tempoMax;
+    if (limite) nova = ajustarSessaoAoTempo(nova, limite, exPorId, descanso, descansoModo, ritmoDaFicha(estimarTempoFicha(treino, exPorId, historico, descanso, descansoModo))).sessao;
+    setSessao(nova);
     setAba("sessao");
     // Quem já usou o Jarvis não quer ligar o microfone a cada treino. O toque em
     // "Treinar" é o gesto que o navegador exige para abrir o microfone.
@@ -33741,6 +34051,14 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     const r = reajusteAutomatico(fichas, historico, exPorId, EXERCICIOS.concat(customEx), Date.now(),
       { diasSemana: (nivelDias && nivelDias.dias) || prog.diasSemana, nivel: prog.nivel });
     const ap = r ? aplicarPlanoNasFichas(fichas, r.plano, exPorId, novoUid, r.vezes, TETO_SERIES_EXERCICIO) : null;
+    // a ficha que tem limite de tempo (⏱ para sempre) continua cabendo nele
+    if (ap) ap.fichas = ap.fichas.map((f) => {
+      if (!f.tempoMax) return f;
+      const t = ajustarFichaAoTempo(f, f.tempoMax, exPorId, descanso, descansoModo, 1);
+      if (!t.mudancas.length) return f;
+      ap.mudancas.push("⏱ " + f.nome + ": para caber em " + f.tempoMax + " min, " + t.mudancas.length + " " + plural(t.mudancas.length, "corte", "cortes"));
+      return { ...f, itens: t.itens };
+    });
     return { fichas: fichas, r: r, ap: ap };
   };
   // grava as fichas novas e o registro do ajuste (com como estavam antes, para
@@ -33843,14 +34161,26 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     });
   }, [carregado, programas, sessao]);
 
-  const iniciarSessao = (treino) => {
+  const iniciarSessao = (treino, tempoMin) => {
     if (!treino.itens.length) { avisar("Esta ficha ainda não tem exercícios. Edite a ficha primeiro."); return; }
-    if (sessao && sessao.treinoId === treino.id) { setAba("sessao"); return; }
+    if (sessao && sessao.treinoId === treino.id && !tempoMin) { setAba("sessao"); return; }
     if (sessao) {
-      pedirConfirmacao("Você já tem um treino em andamento (" + sessao.nome + "). Começar outro vai descartá-lo. Continuar?", () => comecarSessao(treino));
+      pedirConfirmacao("Você já tem um treino em andamento (" + sessao.nome + "). Começar outro vai descartá-lo. Continuar?", () => comecarSessao(treino, false, tempoMin));
       return;
     }
-    comecarSessao(treino);
+    comecarSessao(treino, false, tempoMin);
+  };
+  // ---- ⏱ Ajustar ao tempo (JanelaTempo) ----
+  const [ajusteTempo, setAjusteTempo] = useState(null);
+  const abrirAjusteTempo = (ficha) => {
+    if (!ficha) { if (sessao) setAjusteTempo({ sessao: true }); return; }
+    // a prévia com as séries desta semana do ciclo (as que o treino vai ter)
+    const prog = programas.find((p) => p.id === ficha.programaId);
+    const agoraT = Date.now();
+    const antesT = prog && prog.deload && agoraT >= prog.deload.inicio && agoraT < prog.deload.fim;
+    const sm = antesT ? { semana: 5 } : prog && prog.meso ? semanaDoMeso(prog.meso, agoraT) : null;
+    const fichaSemana = sm ? { ...ficha, itens: ficha.itens.map((it) => { const ex = exPorId(it.exercicioId); return exCardio(ex) || (ex && ex.tempo) ? it : { ...it, series: seriesNaSemana(it.series, sm.semana) }; }) } : ficha;
+    setAjusteTempo({ fichaId: ficha.id, fichaSemana: fichaSemana });
   };
 
   const iniciarTreinoLivre = () => {
@@ -35112,6 +35442,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             onIntervalado={() => setAba("intervalado")}
             onDesafio={() => setAba("desafio")}
             onEsteira={iniciarEsteira}
+            onAjustarTempo={abrirAjusteTempo}
             onEscolaVoz={() => setAba("escolaVoz")}
             convite={convite}
             onSeguir={() => {
@@ -35242,7 +35573,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           <TelaTreinos programas={programas} treinos={treinos} exPorId={exPorId} historico={historico}
             progAberto={progAberto} setProgAberto={setProgAberto}
             pedirConfirmacao={pedirConfirmacao}
-            onTreinar={iniciarSessao}
+            onTreinar={(t) => iniciarSessao(t)}
+            onAjustarTempo={abrirAjusteTempo}
             onNovaFicha={novaFicha}
             onEditar={(t, ordem) => { setEditandoTreino(JSON.parse(JSON.stringify(t))); setEditarOrdem(!!ordem); setAba("editarTreino"); }}
             onExcluirFicha={(id) => setTreinos(treinos.filter((x) => x.id !== id))}
@@ -35267,7 +35599,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             onCancelar={() => { setEditandoTreino(null); setAba("treinos"); }} />
         )}
         {aba === "sessao" && sessao && (
-          <TelaSessao sessao={sessao} setSessao={setSessao} exPorId={exPorId} todos={todos} pedirConfirmacao={pedirConfirmacao}
+          <TelaSessao sessao={sessao} setSessao={setSessao} exPorId={exPorId} todos={todos} pedirConfirmacao={pedirConfirmacao} onAjustarTempo={() => abrirAjusteTempo(null)}
             historico={historico} celebrar={celebrar}
             descanso={descanso} setDescanso={setDescanso}
             som={som} setSom={setSom}
@@ -35336,6 +35668,37 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           }} />
       )}
       {abrindoZumbi && <AberturaZumbi som={som} onFim={() => { setAbrindoZumbi(false); setAba("zumbi"); }} />}
+      {ajusteTempo && (() => {
+        const ficha = ajusteTempo.fichaId ? treinos.find((t) => t.id === ajusteTempo.fichaId) : null;
+        if (ajusteTempo.fichaId && !ficha) return null;
+        if (ajusteTempo.sessao && !sessao) return null;
+        const fichaDaSessao = sessao ? treinos.find((t) => t.id === sessao.treinoId) : null;
+        const ritmo = ritmoDaFicha(estimarTempoFicha(ficha || fichaDaSessao, exPorId, historico, descanso, descansoModo));
+        return (
+          <JanelaTempo alvo={ficha ? { ficha: ficha, fichaSemana: ajusteTempo.fichaSemana } : { sessao: sessao }} exPorId={exPorId} historico={historico}
+            geral={descanso} modo={descansoModo} ritmo={ritmo} onFechar={() => setAjusteTempo(null)}
+            onTirarLimite={() => { setTreinos((ts) => ts.map((t) => (t.id === ficha.id ? { ...t, tempoMax: null } : t))); setAjusteTempo(null); avisar("Limite de tempo tirado. A ficha fica como está; ajuste de novo quando quiser."); }}
+            onHoje={(min) => {
+              setAjusteTempo(null);
+              registrarEvento("ajuste-tempo-hoje");
+              if (ficha) { iniciarSessao(ficha, min); return; }
+              const r = ajustarSessaoAoTempo(sessao, min, exPorId, descanso, descansoModo, ritmo);
+              setSessao(r.sessao);
+              avisar(r.mudancas.length ? "⏱ Treino de hoje ajustado para ~" + textoMinutos(Math.max(5, r.depois)) + ":\n" + r.mudancas.join("\n") : "O que falta já cabe em " + textoMinutos(min) + ".");
+            }}
+            onSempre={(min) => {
+              const r = ajustarFichaAoTempo(ficha, min, exPorId, descanso, descansoModo, ritmo);
+              setAjusteTempo(null);
+              pedirConfirmacao({ msg: "Ajustar \"" + ficha.nome + "\" para caber sempre em " + textoMinutos(min) + "?\n\n" +
+                (r.mudancas.length ? "O que muda na ficha:\n" + r.mudancas.join("\n") : "Ela já cabe: nada muda agora.") +
+                "\n\nNas semanas mais fortes do ciclo e depois de cada reajuste automático, o app confere de novo e corta o que passar do tempo.", positivo: true, labelSim: "Salvar na ficha" }, () => {
+                setTreinos((ts) => ts.map((t) => (t.id === ficha.id ? { ...t, itens: r.itens, tempoMax: min } : t)));
+                registrarEvento("ajuste-tempo-sempre");
+                setTimeout(() => avisar("💾 \"" + ficha.nome + "\" agora cabe em ~" + textoMinutos(Math.max(5, r.depois)) + "."), 150);
+              });
+            }} />
+        );
+      })()}
       {modal && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.75)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
           onClick={() => setModal(null)}>

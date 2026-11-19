@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.064 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.083 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v219) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v220) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5784,6 +5784,56 @@ dois blocos puros ficam no bloco do plano de ajuste (cobertos por
   liga e desliga na lista e o ligar com a semana leve antes. **Não validado num
   aparelho.**
 
+- **À vista que está sendo ajustado** (2026-11-20b, o dono: "precisa ficar
+  mais claro que está sendo ajustado semana a semana pelo histórico e pela
+  literatura"). O quadro do topo do treino virou "🔁 Treino ajustado pela
+  ciência" com "O que o app ajustou para hoje": as **séries** (pelo ciclo:
+  `sessao.meso.seriesTxt`), a **carga** (pelo histórico: quantos
+  exercícios sobem, `sessao.meso.sobe`, do `sugerido.subiu`), o
+  **volume** (a próxima e a última reanálise, `proxima`, `ultimo`) e o
+  **tempo** quando foi ajustado. O cartão "Seu treino de hoje" diz "🔁
+  Ajustado pela ciência · semana N de 5", e o interruptor da lista diz o que
+  muda por semana, por treino e por ciclo.
+
+## Ajustar ao tempo do dia (`ajustarFichaAoTempo`, `ajustarSessaoAoTempo`, `JanelaTempo`)
+
+Pedido do dono (2026-11-20b): "um dia o treino vai durar mais de 2 horas e eu
+só tenho 1 hora: o ajuste por tempo redesenha o treino sem perder
+performance, para um dia específico ou para sempre". Bloco puro `AJUSTE AO
+TEMPO` (depois do tempo estimado), coberto em `teste-tempo.js`.
+
+- **A ordem do corte é a da literatura de treino curto** (Iversen e colegas
+  2021; descanso: Schoenfeld 2016, Singer 2024; bi-set: Robbins 2010),
+  parando assim que cabe (`planejarTempo`, que mede com a mesma conta do
+  tempo estimado):
+  0. o aeróbico encolhe até 10 min;
+  1. bi-set de músculos que não competem (`PARES_TEMPO` primeiro: peito e
+     costas, bíceps e tríceps, quadríceps e posterior), nunca com o básico
+     pesado de barra;
+  2. descanso curto onde custa pouco (`DESCANSO_CURTO_TEMPO`: isolado
+     60 s, composto 90 s, pesado 2 min);
+  3. séries: isolados e músculos pequenos primeiro, nunca abaixo de 2; o drop
+     sai antes; os compostos por último;
+  4. só então sai um exercício, primeiro o isolado cujo músculo outro que
+     fica já trabalha.
+- **O ritmo da pessoa** (`ritmoDaFicha`: relógio de verdade ÷ conta, entre
+  0,85 e 1,6): quem demora mais que a conta recebe corte maior.
+- **Só hoje**: antes de começar ("⏱ Tenho menos tempo hoje" no cartão do dia,
+  "Ajustar ao meu tempo" em cada ficha) o treino começa redesenhado
+  (`comecarSessao(treino, conferido, tempoMin)`), e no meio do treino ("⏱
+  ajustar ao meu tempo" embaixo do "faltam") mexe só no que falta, **sem
+  mudar a ordem** (a voz e o foco seguem a posição): o que sai fica "pulado
+  hoje" (`puladoTempo`). `sessao.tempoAlvo` guarda o pedido. Como a
+  lista de exercícios não muda, o Finalizar não pergunta se salva na ficha.
+- **Para sempre**: a ficha recebe o corte e `tempoMax`. Com ele, todo treino
+  dessa ficha é conferido ao começar (até a semana mais forte do ciclo cabe) e
+  o reajuste automático corta de novo o que passar do tempo. "Tirar o limite"
+  na janela.
+- A prévia antes de começar usa as séries desta semana do ciclo
+  (`fichaSemana`), e a janela diz "Nesta semana do ciclo".
+- Conferido no navegador: a janela no cartão do dia, o "Só hoje" abrindo o
+  treino com o tempo e o quadro do ajuste. **Não validado num aparelho.**
+
 ## O descanso pela ciência (`DESCANSO_CIENCIA`, `tipoDescanso`, `descansoDoItem`)
 
 Pedido do dono (2026-11-01a): "verifique nos melhores estudos qual o tempo de
@@ -5906,7 +5956,7 @@ A suíte vive em `testes/`, **dentro do repositório** (ver *Trabalhar de
 qualquer computador*). Ela recorta as funções do próprio `index.html`:
 
 ```bash
-node testes/rodar.js      # as 41 suítes (2.064 checagens)
+node testes/rodar.js      # as 41 suítes (2.083 checagens)
 node testes/verificar.js  # a conferida de publicação
 node testes/servir.js     # sobe o app em http://localhost:8765
 node testes/navegador.js  # abre o app no Chromium e diz se a tela desenhou sem erro

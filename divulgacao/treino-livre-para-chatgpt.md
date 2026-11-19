@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-20a**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-20b**.
 
 ---
 
@@ -42,6 +42,12 @@
   5 semanas o app reanalisa os treinos e reajusta as fichas sozinho: sobe as séries do músculo em que a carga parou, tira
   onde a carga caiu ou passou do limite, completa o que está abaixo do mínimo e mantém o que está funcionando. Mostra o
   porquê de cada mudança e dá para desfazer.
+- **Ajustar ao tempo do dia** (novo em 2026-11-20b): "⏱ Tenho menos tempo hoje" no treino do dia, em cada ficha e no meio
+  do treino. Diga quanto tempo tem (30 min, 1 h...) e o app redesenha: junta em bi-set músculos que não competem, encurta o
+  descanso dos isolados, tira séries dos músculos pequenos e mantém os exercícios grandes. Só hoje, ou para sempre (a ficha
+  passa a caber sempre naquele tempo).
+- **Dá para ver o ajuste** (2026-11-20b): o treino abre com "O que o app ajustou para hoje": as séries pelo ciclo, a carga pelo
+  seu último treino, a próxima reanálise do volume pelo histórico e o tempo.
 - Não prometer: a faixa de 10 a 20 séries e os mínimos por músculo são referência, não prescrição. O app não garante
   resultado e não substitui o profissional de Educação Física.
 

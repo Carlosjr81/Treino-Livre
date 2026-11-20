@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-20t — Atualizar o relógio guia o Wi-Fi
+
+**Em uma frase:** quando o relógio está num Wi-Fi diferente do celular, a atualização para, diz no celular e no relógio qual Wi-Fi escolher, e continua sozinha assim que o relógio troca.
+
+**O que mudou**
+- O celular diz o nome do Wi-Fi em que está, e avisa se o roteador do próprio celular está ligado.
+- O relógio mostra "📶 Abrir o Wi-Fi", que leva direto à tela de Wi-Fi dele.
+- Trocou o Wi-Fi no relógio, a instalação segue sozinha, sem tocar em mais nada.
+- Antes, o app ficava tentando de novo a cada meio minuto, com a mesma mensagem.
+
+**Por que importa para quem treina**
+- Atualizar o relógio virou seguir uma instrução só, em vez de adivinhar o que deu errado.
+
+**Como usar**
+- Toque em Atualizar o relógio; se o relógio pedir, toque em "Abrir o Wi-Fi" nele e escolha o Wi-Fi indicado.
+
+**Ideias de vídeo**
+- O relógio mostrando "Abrir o Wi-Fi", a troca de rede e a barra de progresso voltando a andar sozinha.
+
+**Não prometer**
+- Só com o app Android baixado do link do Treino Livre e um relógio Wear OS; o relógio precisa de Wi-Fi (não funciona só pelo Bluetooth ou 4G).
+
+---
+
 ## 2026-11-20s — O relógio acompanha o celular
 
 **Em uma frase:** voltou ao Treino Livre no celular, o app abre no relógio e a tela dele acende; e a hora de água fica 5 segundos no pulso depois de soltar o dedo.

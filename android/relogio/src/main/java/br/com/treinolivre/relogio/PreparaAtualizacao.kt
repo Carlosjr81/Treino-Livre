@@ -159,7 +159,7 @@ class PreparaAtualizacao : ComponentActivity() {
     private fun doCelular(p: Int, etapa: String, texto: String) {
         notiCelularEm = SystemClock.elapsedRealtime()
         etapaCelular = etapa
-        if (etapa == "codigo" || etapa == "erro") {
+        if (etapa == "codigo" || etapa == "erro" || etapa == "rede") {
             pctTexto.setTextColor(Cores.AMARELO)
             anel.cor(Cores.AMARELO)
         } else {
@@ -168,19 +168,20 @@ class PreparaAtualizacao : ComponentActivity() {
         }
         // o relógio fica com 15%; o celular anda de 15 a 100
         val novo = if (etapa == "pronto") 100 else 15 + p * 85 / 100
-        if (novo > pct || etapa == "codigo" || etapa == "erro") pct = maxOf(pct, novo)
+        if (novo > pct || etapa == "codigo" || etapa == "erro" || etapa == "rede") pct = maxOf(pct, novo)
         anel.ir(pct / 100f)
         pctTexto.text = "$pct%"
         etapaTexto.text = when (etapa) {
             "codigo" -> "🔑 Falta o código: abra Parear novo dispositivo e digite o código no celular"
+            "rede" -> texto.ifEmpty { "📶 Ponha o relógio no mesmo Wi-Fi do celular" } + "\nDepois, continua sozinho"
             "erro" -> texto.ifEmpty { "Parou no celular: veja lá o motivo" }
             "pronto" -> "✅ Pronto! O app novo abre já"
             else -> texto
         }
-        abrir.text = if (etapa == "codigo") "Abrir a Depuração" else "Abrir as opções"
-        abrir.visibility = if (etapa == "codigo" || !temDepuracao) View.VISIBLE else View.GONE
+        abrir.text = when (etapa) { "codigo" -> "Abrir a Depuração"; "rede" -> "📶 Abrir o Wi-Fi"; else -> "Abrir as opções" }
+        abrir.visibility = if (etapa == "codigo" || etapa == "rede" || !temDepuracao) View.VISIBLE else View.GONE
         deNovo.visibility = if (etapa == "erro") View.VISIBLE else View.GONE
-        if (etapa == "pronto" || etapa == "erro" || etapa == "codigo") AlertaRelogio.vibrar(this, longArrayOf(0, 120, 90, 120))
+        if (etapa == "pronto" || etapa == "erro" || etapa == "codigo" || etapa == "rede") AlertaRelogio.vibrar(this, longArrayOf(0, 120, 90, 120))
         mostrarLista()
     }
 
@@ -200,7 +201,7 @@ class PreparaAtualizacao : ComponentActivity() {
                 else -> "Esperando o celular começar…"
             }
             deNovo.visibility = if (semNoticia > 45) View.VISIBLE else View.GONE
-        } else if (etapaCelular != "pronto" && etapaCelular != "codigo" && etapaCelular != "erro" && semNoticia > 90) {
+        } else if (etapaCelular != "pronto" && etapaCelular != "codigo" && etapaCelular != "erro" && etapaCelular != "rede" && semNoticia > 90) {
             etapaTexto.text = "Sem notícia do celular há " + semNoticia + " s. Confira se o Treino Livre continua aberto nele"
             deNovo.visibility = View.VISIBLE
         }
@@ -211,7 +212,7 @@ class PreparaAtualizacao : ComponentActivity() {
         fun m(ok: Boolean, t: String) = (if (ok) "✓ " else "○ ") + t
         val celularFez = etapaCelular == "instalar" || etapaCelular == "pronto"
         listaTexto.text = listOf(
-            m(temWifi, "Wi-Fi" + (if (temWifi && ultimoIp.isNotEmpty()) " " + ultimoIp else "")),
+            m(temWifi && etapaCelular != "rede", "Wi-Fi" + (if (temWifi && ultimoIp.isNotEmpty()) " " + ultimoIp else "") + (if (etapaCelular == "rede") " (outra rede)" else "")),
             m(temDepuracao, "Depuração ligada"),
             m(temPorta || etapaCelular == "conectar" || celularFez, "Porta achada"),
             m(etapaCelular.isNotEmpty() && etapaCelular != "erro", "Celular trabalhando"),
@@ -245,12 +246,17 @@ class PreparaAtualizacao : ComponentActivity() {
     }
 
     private fun abrirOpcoes() {
+        // com o relógio noutro Wi-Fi, o botão leva direto ao Wi-Fi do relógio
+        if (etapaCelular == "rede") {
+            try { startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)); return } catch (e: Exception) { }
+        }
         try { startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)) }
         catch (e: Exception) { try { startActivity(Intent(Settings.ACTION_SETTINGS)) } catch (e2: Exception) { } }
     }
 
     private fun mandarIp(ip: String, repetir: Boolean = false) {
         if (ip == ultimoIp && !repetir) return
+        if (etapaCelular == "rede" && ip != ultimoIp) etapaTexto.text = "📶 Wi-Fi trocado (" + ip + "): avisando o celular…"
         ultimoIp = ip
         temWifi = true
         linha.post { mostrar() }

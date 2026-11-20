@@ -116,6 +116,9 @@ class InstaladorRelogio : ComponentActivity() {
     private lateinit var enderecoCon: EditText
     // a rede Wi-Fi a que o processo foi preso para falar com o relógio (solta no fim)
     private var presoAoWifi = false
+    // o relógio em outra rede (2026-11-20t): o endereço dele e a espera
+    @Volatile private var redeRelogio: String? = null
+    private var esperaRedeAte = 0L
     private lateinit var registro: TextView
     private lateinit var voltar: Button
     // O diagnóstico completo (2026-11-20h, pedido do dono: "monte um log que
@@ -356,7 +359,7 @@ class InstaladorRelogio : ComponentActivity() {
             if (Build.VERSION.SDK_INT >= 24) barra.setProgress(p, true) else barra.progress = p
             anel.ir(p)
             estado.text = linhaTexto
-            val parou = etapa == "erro" || etapa == "codigo"
+            val parou = etapa == "erro" || etapa == "codigo" || etapa == "rede"
             val idx = ETAPAS.indexOfFirst { it.first == etapaReal }
             etapasTexto.text = ETAPAS.filter { it.first != "par" || comCodigoAgora }.joinToString("\n") { (id, n) ->
                 val i = ETAPAS.indexOfFirst { it.first == id }
@@ -387,6 +390,75 @@ class InstaladorRelogio : ComponentActivity() {
             linha.postDelayed({ instalar(false) }, 5000L)
         } else instalar(false)
     }
+
+    // O relógio está noutro Wi-Fi (relato do dono, 2026-11-20t: Xiaomi em
+    // 192.168.1.x, relógio em 192.168.5.x, e o instalador tentando de novo a
+    // cada 30 s para sempre, com a mesma mensagem). Agora ele para de tentar,
+    // diz no celular e no relógio qual Wi-Fi escolher (o nome do Wi-Fi do
+    // celular, e o roteador dele se estiver ligado), e espera: o relógio manda
+    // o endereço a cada 5 s e a cada troca de rede, e quando chega um que o
+    // celular alcança, a instalação continua sozinha.
+    private fun esperarRede() {
+        val antes = redeRelogio
+        val nome = nomeWifi()
+        val roteador = roteadorLigado()
+        val qual = if (nome != null) "“" + nome + "”" else "o mesmo Wi-Fi do celular"
+        andar(pctAgora, "rede", "📶 No relógio: Wi-Fi → " + qual)
+        val t = StringBuilder("📶 Falta só o Wi-Fi do relógio\n\n")
+        t.append("O relógio está em outra rede" + (if (antes != null) " (" + antes + ")" else "") + ", e o celular não alcança ele por lá.\n\n")
+        t.append("No relógio: toque em “Abrir o Wi-Fi” (ou Configurações → Conexões → Wi-Fi) e escolha " + qual + ".")
+        if (roteador) t.append("\n\nOu escolha o Roteador Wi-Fi deste celular: ele está ligado.")
+        t.append("\n\nAssim que o relógio trocar de Wi-Fi, a instalação continua sozinha. Não precisa mexer aqui.")
+        fase(t.toString())
+        log("⏳ Esperando o relógio entrar no Wi-Fi " + qual + "…")
+        esperaRedeAte = System.currentTimeMillis() + 10 * 60_000L
+        linha.removeCallbacks(conferirRede)
+        linha.postDelayed(conferirRede, 2000L)
+    }
+
+    private val conferirRede: Runnable = object : Runnable {
+        override fun run() {
+            if (isFinishing || isDestroyed || trabalhando || redeRelogio == null) return
+            val h = Relogio.dicaHost?.takeIf { System.currentTimeMillis() - Relogio.dicaEm < 60_000L }
+            if (h != null && h != redeRelogio && alcancavel(h)) {
+                log("✓ O relógio entrou na rede do celular (" + h + "). Continuando…")
+                redeRelogio = null
+                inicioAuto = 0L
+                if (comCodigoAgora && codigo.text.length != 6) {
+                    fase("✓ Agora o relógio e o celular estão na mesma rede.\n\nNo relógio: Depuração por Wi-Fi → Parear novo dispositivo, e digite aqui o código de 6 números.")
+                    andar(pctAgora, "codigo", "🔑 Falta o código do relógio")
+                } else if (comCodigoAgora) instalar(true) else tentarAuto()
+                return
+            }
+            if (System.currentTimeMillis() > esperaRedeAte) {
+                redeRelogio = null
+                andar(pctAgora, "erro", "⚠ O relógio não trocou de Wi-Fi")
+                fase("⚠ O relógio continuou no outro Wi-Fi.\n\nPonha o relógio no mesmo Wi-Fi do celular e toque em Tentar de novo.")
+                deNovo.visibility = View.VISIBLE
+                return
+            }
+            // mantém a tela de atualizar aberta no relógio (ela manda o endereço)
+            pedirAoRelogio()
+            linha.postDelayed(this, 2000L)
+        }
+    }
+
+    // o nome do Wi-Fi do celular (precisa da localização liberada; sem ela, nulo)
+    private fun nomeWifi(): String? = try {
+        @Suppress("DEPRECATION")
+        val s = (applicationContext.getSystemService(WIFI_SERVICE) as android.net.wifi.WifiManager).connectionInfo?.ssid
+        s?.trim('"')?.takeIf { it.isNotBlank() && it != "<unknown ssid>" && it != "0x" }
+    } catch (e: Exception) { null }
+
+    // o Roteador Wi-Fi (ponto de acesso) do celular está ligado?
+    private fun roteadorLigado(): Boolean = try {
+        val wifi = meuIpWifi()?.substringBefore("/")
+        Collections.list(NetworkInterface.getNetworkInterfaces()).any { ni ->
+            val n = ni.name ?: ""
+            ni.isUp && (n.startsWith("ap") || n.startsWith("swlan") || n.startsWith("softap") || n.startsWith("wlan")) &&
+                ni.interfaceAddresses.any { ia -> ia.address is java.net.Inet4Address && !ia.address.isLoopbackAddress && ia.address.hostAddress != wifi }
+        }
+    } catch (e: Exception) { false }
 
     private fun pedirAoRelogio() {
         val agora = System.currentTimeMillis()
@@ -583,6 +655,8 @@ class InstaladorRelogio : ComponentActivity() {
                     log("📱 Falta uma coisa neste celular: liberar o Início automático do Treino Livre, senão o relógio fica \"Procurando o celular\".")
                     linha.postDelayed({ FundoActivity.abrir(this@InstaladorRelogio); finish() }, 2500L)
                 } else linha.postDelayed({ voltarAoSite("pronto") }, 2500L)
+            } else if (r == "rede") {
+                esperarRede()
             } else if (!auto) {
                 andar(pctAgora, "erro", "⚠ Parou: veja o motivo logo abaixo")
             } else if (auto) {
@@ -626,7 +700,7 @@ class InstaladorRelogio : ComponentActivity() {
             val digCon0 = enderecoCon.text.toString().trim().let { if (it.contains(":")) it.substringBeforeLast(":") else "" }
             val guardado = getSharedPreferences(PREFS, MODE_PRIVATE).getString("ultimoHost", null)?.ifEmpty { null }?.takeIf { alcancavel(it) }
             val alvo = hp ?: digCon0.ifEmpty { null } ?: dica ?: hostCon ?: guardado
-            if (!prenderAoWifi(alvo)) return "erro"
+            if (!prenderAoWifi(alvo)) { redeRelogio = alvo; return "rede" }
             // as portas abertas de cada endereço, procuradas uma vez só
             val portasDe = HashMap<String, List<Int>>()
             var portaDoPar = 0
@@ -932,13 +1006,8 @@ class InstaladorRelogio : ComponentActivity() {
         }
         if (meu != null && host != null && !mesmaRede(meu, host)) {
             val ip = meu.substringBefore("/")
-            log("🚫 O celular e o relógio estão em redes DIFERENTES:")
-            log("• celular: " + ip + "   • relógio: " + host)
-            log("Os números do começo precisam ser iguais (" + ip.substringBeforeLast(".") + ".…). Assim o celular não tem como chegar ao relógio.")
-            log("➡ No relógio: Configurações → Conexões → Wi-Fi, e escolha o MESMO Wi-Fi do celular (ou ligue o Roteador Wi-Fi do celular e conecte o relógio nele).")
-            log("➡ Depois, a Depuração por Wi-Fi do relógio mostra um endereço novo: confira que começa com " + ip.substringBeforeLast(".") + ", digite no segundo campo e toque em \"Já pareei antes\". Não precisa de código.")
-            log("Se o relógio não está em Wi-Fi nenhum (só no 4G ou no Bluetooth), a Depuração por Wi-Fi não funciona: ele precisa de Wi-Fi.")
-            linha.post { if (!auto) manual.visibility = View.VISIBLE }
+            det("redes diferentes: celular " + ip + " · relógio " + host + " · Wi-Fi do celular: " + (nomeWifi() ?: "?") + " · roteador do celular ligado: " + roteadorLigado())
+            log("📶 O relógio está em outro Wi-Fi (relógio " + host + ", celular " + ip + ").")
             return false
         }
         presoAoWifi = cm.bindProcessToNetwork(w)

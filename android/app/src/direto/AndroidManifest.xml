@@ -3,4 +3,6 @@
      a Play Store proíbe isso, e lá quem atualiza é a loja. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- o nome do Wi-Fi do celular, para dizer ao relógio qual escolher -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 </manifest>

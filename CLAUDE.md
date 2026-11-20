@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v237) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v238) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4807,6 +4807,19 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   em `relogio`/`chamada` e no log, e o "Testar a conexão" ganhou "⌚
   Abrir o app no relógio agora" com a resposta. A hora ao segurar ficou
   5 s depois de soltar (`FICA_MS`).
+- **O relógio em outro Wi-Fi** (2026-11-20t, diagnóstico do dono: Xiaomi em
+  192.168.1.x, Galaxy Watch em 192.168.5.x, o roteador do celular ligado, e o
+  instalador repetindo a mesma mensagem a cada 30 s para sempre). Hoje a
+  rede diferente é um resultado próprio (`"rede"`, `redeRelogio`): o
+  instalador para, diz no celular e no relógio qual Wi-Fi escolher (o nome do
+  Wi-Fi do celular, `nomeWifi`, com `ACCESS_WIFI_STATE` e a localização;
+  e o roteador do celular, se ligado, `roteadorLigado`) e espera até 10 min
+  (`esperarRede`, `conferirRede` a cada 2 s): o relógio manda o endereço
+  a cada 5 s e a cada troca de rede, e o primeiro que o celular alcança
+  (`alcancavel`, inclui o roteador do celular) continua a instalação
+  sozinho. No relógio, a etapa `rede` mostra o texto, "📶 Abrir o Wi-Fi"
+  (`ACTION_WIFI_SETTINGS`) e "Wi-Fi trocado: avisando o celular". **Não
+  validado num aparelho.**
 - **O celular se atualiza sozinho** (2026-11-20k, relato do dono: o site
   dizia "há o 143: atualizar", ele baixava, instalava e continuava no 141).
   O APK 143 publicado estava certo (mesma assinatura, `1.143` no

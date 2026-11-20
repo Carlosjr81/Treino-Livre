@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v233) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v234) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4751,7 +4751,20 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   0,48, `LARGURA` 1,38, a cruz mais fina, esfera 0,22 (0,53 e 1,5 também foram
   provados e deixavam o 3, o 5 e o 9 irreconhecíveis); `FICA_MS` 3,5 s, e a
   geleia segue o tempo todo: o afundar amortece em ~1,5 s e depois um balanço
-  leve continua, parando nos últimos 0,4 s antes de a hora sair.
+  leve continua, parando nos últimos 0,4 s antes de a hora sair. **2026-11-20p** (o dono: "pode
+  ser melhorado um pouco, ajuste esse tamanho"; no print, os números cortados
+  no meio da geleia): `ALTURA` 0,44, `LARGURA` 1,3, esfera 0,2, e a geleia
+  com metade da força (o afundar e o balanço esticavam os números para fora
+  da tela).
+- **O relógio abre junto com o celular** (2026-11-20p, pedido do dono:
+  "chamar sempre o relógio quando a tela do celular estiver no Treino Livre").
+  `Relogio.chamarRelogio` (no máximo uma vez por minuto) abre a tela do
+  treino no relógio ao abrir o app (`AberturaActivity`) e a cada cópia do
+  treino que a página manda ao `BolsoService` com a tela do celular ligada
+  (cada ✓). Na atualização, o instalador pede a tela de atualizar a cada 12 s
+  enquanto espera o endereço (o pedido com o relógio apagado se perdia), e o
+  relógio com a tela do treino aberta abre a de atualizar sozinho ao receber
+  `/treino/progresso`. **Não validado num relógio.**
 - **O celular se atualiza sozinho** (2026-11-20k, relato do dono: o site
   dizia "há o 143: atualizar", ele baixava, instalava e continuava no 141).
   O APK 143 publicado estava certo (mesma assinatura, `1.143` no

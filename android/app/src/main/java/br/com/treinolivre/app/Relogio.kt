@@ -112,14 +112,31 @@ object Relogio {
     // também automaticamente no relógio". O treino começou (o Jarvis 🔒 ligou):
     // a tela do Treino Livre abre em todo relógio conectado que tem o app.
     // Sem relógio, ou sem o app nele, não acontece nada.
-    fun abrirNoRelogio(contexto: Context, endereco: String = "treinolivre://relogio-tela") {
+    fun abrirNoRelogio(contexto: Context, endereco: String = "treinolivre://relogio-tela", aoResultado: ((String) -> Unit)? = null) {
         try {
             val intencao = android.content.Intent(android.content.Intent.ACTION_VIEW)
                 .addCategory(android.content.Intent.CATEGORY_BROWSABLE)
                 .setData(android.net.Uri.parse(endereco))
-            androidx.wear.remote.interactions.RemoteActivityHelper(contexto, java.util.concurrent.Executors.newSingleThreadExecutor())
+            val f = androidx.wear.remote.interactions.RemoteActivityHelper(contexto, java.util.concurrent.Executors.newSingleThreadExecutor())
                 .startRemoteActivity(intencao, null)
-        } catch (e: Exception) { }
+            if (aoResultado != null) f.addListener({
+                val r = try { f.get(); "aberto" } catch (e: Exception) { "falhou: " + (e.cause?.message ?: e.message ?: e.javaClass.simpleName) }
+                aoResultado(r)
+            }, java.util.concurrent.Executors.newSingleThreadExecutor())
+        } catch (e: Exception) { aoResultado?.invoke("falhou: " + (e.message ?: e.javaClass.simpleName)) }
+    }
+
+    // O relógio junto do celular (2026-11-20p, pedido do dono: "chamar sempre
+    // o relógio quando a tela do celular estiver no Treino Livre, para
+    // funcionarem simultaneamente"): ao abrir o app e a cada série marcada na
+    // tela do celular, a tela do treino abre no relógio. No máximo uma vez por
+    // minuto, para não arrancar o relógio de outra coisa a cada toque.
+    @Volatile private var chamouEm = 0L
+    fun chamarRelogio(contexto: Context) {
+        val agora = System.currentTimeMillis()
+        if (agora - chamouEm < 60_000L) return
+        chamouEm = agora
+        abrirNoRelogio(contexto.applicationContext)
     }
 
     // A atualização sem toque (pedido do dono, 2026-11-18e: "quando a

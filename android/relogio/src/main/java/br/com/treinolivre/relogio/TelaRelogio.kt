@@ -526,6 +526,15 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             runOnUiThread { entregou(j) }
             return
         }
+        // o celular está atualizando o relógio e a tela de atualizar não abriu
+        // (o pedido pode chegar com o relógio apagado): abre daqui (2026-11-20p)
+        if (m.path == "/treino/progresso") {
+            val etapa = String(m.data, Charsets.UTF_8).split("|").getOrNull(1) ?: ""
+            if (etapa != "pronto" && etapa != "erro") runOnUiThread {
+                try { startActivity(android.content.Intent(this, PreparaAtualizacao::class.java)) } catch (e: Exception) { }
+            }
+            return
+        }
         if (m.path != "/treino/celular") return
         val v = String(m.data, Charsets.UTF_8).trim().toLongOrNull() ?: 0L
         getSharedPreferences("relogio", MODE_PRIVATE).edit().putLong("celular", v).apply()

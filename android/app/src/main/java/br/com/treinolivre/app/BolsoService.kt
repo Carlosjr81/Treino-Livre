@@ -206,6 +206,10 @@ class BolsoService : Service(), RecognitionListener {
         usadoEm = System.currentTimeMillis()
         val p = getSharedPreferences(PREFS, MODE_PRIVATE)
         val snap = intent?.getStringExtra("snap")
+        // a página mandou uma cópia: o celular está no treino, o relógio vem junto
+        if (snap != null) try {
+            if (getSystemService(android.os.PowerManager::class.java)?.isInteractive == true) Relogio.chamarRelogio(this)
+        } catch (e: Exception) { }
         if (snap != null) {
             // Cópia nova da página: o que já foi entregue (aplicar) está nela
             // depois que a página aplicar; nada mais pendente.

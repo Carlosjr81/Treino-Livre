@@ -201,11 +201,11 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         // afundar amortece em ~1,5 s; depois a geleia segue balançando de leve
         // e para nos últimos 0,4 s, antes de a hora sair
         val fim = (FICA_MS / 1000f - tt).coerceIn(0f, 0.4f) / 0.4f
-        val k = 0.32f * exp(-2.4f * tt) * kotlin.math.cos(2f * PI.toFloat() * 2.1f * tt) +
-            0.05f * sin(2f * PI.toFloat() * 1.1f * tt) * fim
+        val k = 0.16f * exp(-2.4f * tt) * kotlin.math.cos(2f * PI.toFloat() * 2.1f * tt) +
+            0.025f * sin(2f * PI.toFloat() * 1.1f * tt) * fim
         // o balanço da tela toda: estica na largura e achata na altura, e o contrário
-        val w = 0.07f * exp(-1.8f * tt) * sin(2f * PI.toFloat() * 1.5f * tt) +
-            0.022f * sin(2f * PI.toFloat() * 0.8f * tt) * fim
+        val w = 0.035f * exp(-1.8f * tt) * sin(2f * PI.toFloat() * 1.5f * tt) +
+            0.012f * sin(2f * PI.toFloat() * 0.8f * tt) * fim
         val sx = 1f + w
         val sy = 1f - w
         val cx = width / 2f
@@ -500,21 +500,22 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         // protótipo em canvas com a fonte e a esfera de verdade (10:27, 23:59,
         // 08:48). A 20l os pôs pequenos e inteiros; a 20f, grandes mas sem
         // alinhar pela cruz, saíam cortados até não se ler.
-        // a altura de cada número, em fração da tela
-        const val ALTURA = 0.48f
+        // a altura de cada número, em fração da tela (20p: 0,48 cortava demais
+        // os números na geleia; 0,44, e a geleia com metade da força)
+        const val ALTURA = 0.44f
         // largura e o itálico desfeito (a Bodoni é itálica; positivo endireita)
-        const val LARGURA = 1.38f
+        const val LARGURA = 1.3f
         const val INCLINACAO = 0.2f
         const val BORDA = 0.012f
         // a cruz: a base dos números de cima, o topo dos de baixo, e as bordas
         // dos da esquerda e da direita, em frações da tela
-        const val LINHA_CIMA = 0.49f
-        const val LINHA_BAIXO = 0.51f
-        const val CRUZ_ESQ = 0.483f
-        const val CRUZ_DIR = 0.508f
+        const val LINHA_CIMA = 0.488f
+        const val LINHA_BAIXO = 0.512f
+        const val CRUZ_ESQ = 0.482f
+        const val CRUZ_DIR = 0.51f
         const val ATRASO = 0.06f
         // a esfera: 0 é plano, 1 é a curva inteira de uma bola
-        const val ESFERA = 0.22f
+        const val ESFERA = 0.2f
         const val MALHA = 28
         val SEMANA = arrayOf("DOM.", "SEG.", "TER.", "QUA.", "QUI.", "SEX.", "SÁB.")
     }

@@ -390,9 +390,9 @@ class InstaladorRelogio : ComponentActivity() {
 
     private fun pedirAoRelogio() {
         val agora = System.currentTimeMillis()
-        if (agora - pediuRelogioEm < 45_000L) return
+        if (agora - pediuRelogioEm < 12_000L) return
         pediuRelogioEm = agora
-        Relogio.abrirNoRelogio(applicationContext, Relogio.TELA_ATUALIZAR)
+        Relogio.abrirNoRelogio(applicationContext, Relogio.TELA_ATUALIZAR) { r -> det("abrir a tela de atualizar no relógio: " + r) }
         if (agora - inicioAuto > 3000L)
             fase("⌚ Olhe o relógio: abriu a tela de atualizar nele.\n\nSe ele pedir, toque em Abrir as opções e ligue a Depuração por Wi-Fi. O celular continua tentando sozinho.")
     }
@@ -614,8 +614,9 @@ class InstaladorRelogio : ComponentActivity() {
             // sem código, espera um pouco o relógio mandar o endereço e a porta
             if (!comCodigo) {
                 var e = 0
-                while (e < 40 && (Relogio.dicaPortas.isEmpty() || System.currentTimeMillis() - Relogio.dicaEm > 10 * 60_000L)) {
+                while (e < 60 && (Relogio.dicaPortas.isEmpty() || System.currentTimeMillis() - Relogio.dicaEm > 10 * 60_000L)) {
                     if (e == 0) { log("⌚ Pedindo ao relógio o endereço e a porta dele…"); andar(31, "achar", "⌚ Pedindo ao relógio o endereço dele…") }
+                    if (e % 24 == 12) linha.post { pedirAoRelogio() }
                     Thread.sleep(500); e++
                 }
             }

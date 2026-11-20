@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-20p — O relógio abre junto com o celular
+
+**Em uma frase:** abriu o Treino Livre no celular ou marcou uma série, o app do relógio abre sozinho; e a hora do relógio ficou do tamanho certo, sem cortar os números.
+
+**O que mudou**
+- Ao abrir o Treino Livre no celular, a tela do treino abre também no relógio.
+- A cada série marcada no celular (com a tela ligada), o relógio é chamado de novo, no máximo uma vez por minuto.
+- Na atualização pelo celular, a tela de atualizar do relógio é chamada de novo a cada poucos segundos, e o próprio relógio a abre se estiver na tela do treino.
+- A hora ao segurar a tela ficou um pouco menor, e o balanço da geleia mais suave: os números não saem cortados.
+
+**Por que importa para quem treina**
+- Celular e relógio funcionam juntos, sem precisar abrir o app no pulso.
+
+**Como usar**
+- Abra o Treino Livre no celular: o relógio acompanha.
+
+**Ideias de vídeo**
+- Abrindo o app no celular e o relógio acendendo com o treino no mesmo instante.
+
+**Não prometer**
+- Só com o app do relógio instalado, em relógios Wear OS, e o relógio conectado ao celular.
+
+---
+
 ## 2026-11-20o — A hora do relógio maior e por mais tempo
 
 **Em uma frase:** os números da hora no relógio ficaram ainda maiores, e ao soltar o dedo a hora fica 3,5 segundos balançando antes de voltar ao treino.

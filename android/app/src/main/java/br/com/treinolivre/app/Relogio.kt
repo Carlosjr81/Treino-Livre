@@ -42,6 +42,17 @@ object Relogio {
     // as portas abertas que o relógio achou nele mesmo (2026-11-18b)
     const val PORTAS = "/treino/portas"
     @Volatile var dicaPortas: List<Int> = emptyList()
+    // Celular → relógio: o andamento da instalação ("pct|etapa|texto"), para a
+    // tela de atualizar do relógio mostrar o mesmo painel (2026-11-20j)
+    const val PROGRESSO = "/treino/progresso"
+    fun progresso(contexto: Context, pct: Int, etapa: String, texto: String) {
+        val dados = (pct.toString() + "|" + etapa + "|" + texto).toByteArray(Charsets.UTF_8)
+        try {
+            Wearable.getNodeClient(contexto).connectedNodes.addOnSuccessListener { nos ->
+                nos.forEach { no -> Wearable.getMessageClient(contexto).sendMessage(no.id, PROGRESSO, dados).addOnFailureListener { } }
+            }
+        } catch (e: Exception) { }
+    }
 
     fun versaoDoCelular(contexto: Context): Long = try {
         val i = contexto.packageManager.getPackageInfo(contexto.packageName, 0)
@@ -230,7 +241,12 @@ class OuvinteRelogio : WearableListenerService() {
             val t = String(m.data, Charsets.UTF_8).trim()
             val ip = t.substringBefore("|")
             val ps = t.substringAfter("|", "").split(",").mapNotNull { it.trim().toIntOrNull() }.filter { it in 1..65535 }
-            if (ip.isNotEmpty() && ps.isNotEmpty()) { Relogio.dicaHost = ip; Relogio.dicaPortas = ps; Relogio.dicaEm = System.currentTimeMillis() }
+            // A busca do relógio antigo (app 1000126) dava mais de mil portas
+            // "abertas": o Bluetooth do relógio aceita a conexão por ele
+            // (relato do dono, 2026-11-20j). A Depuração por Wi-Fi abre uma ou
+            // duas; uma lista grande é falsa, e vale só o endereço.
+            if (ip.isNotEmpty()) { Relogio.dicaHost = ip; Relogio.dicaEm = System.currentTimeMillis() }
+            Relogio.dicaPortas = if (ps.size in 1..6) ps else emptyList()
             return
         }
         if (m.path == Relogio.ATUALIZAR) {

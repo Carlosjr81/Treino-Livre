@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-20j — Atualizar o relógio com porcentagem nas duas telas
+
+**Em uma frase:** a atualização do app do relógio agora mostra a porcentagem e cada etapa, no celular e no relógio, e não fica mais parada sem dizer nada.
+
+**O que mudou**
+- No celular: um painel com a porcentagem grande, a barra e as etapas (baixar, achar o relógio, parear, conectar, enviar e instalar, pronto), com ✓ no que já foi feito.
+- No relógio: um anel colorido na borda que enche, a porcentagem no meio e a lista do que já está pronto.
+- Se algo para, as duas telas dizem onde parou e o que fazer, com "Tentar de novo".
+- Conserto: o relógio podia mandar ao celular uma lista enorme de endereços errados, e a atualização parecia travada. Agora o celular percebe e, se for preciso, pede o código na hora.
+
+**Por que importa para quem treina**
+- Dá para ver que está andando e quanto falta, sem ficar na dúvida se travou.
+
+**Como usar**
+- Ajustes › ⌚ Instalar o app no relógio › Atualizar o relógio. Se o celular pedir o código: no relógio, Opções do desenvolvedor › Depuração por Wi-Fi › Parear novo dispositivo.
+
+**Ideias de vídeo**
+- Celular e relógio lado a lado: a barra do celular e o anel do relógio enchendo juntos até "Pronto".
+
+**Não prometer**
+- O anel no relógio só aparece depois que o relógio já tiver o app desta versão; quem tem o app antigo no relógio vê o painel só no celular desta vez.
+
+---
+
 ## 2026-11-20i — Botões com ação no relógio e na configuração
 
 **Em uma frase:** os botões do relógio e da configuração do relógio com o celular agora afundam, vibram e voltam com um pulinho, e o botão principal de cada passo pulsa.

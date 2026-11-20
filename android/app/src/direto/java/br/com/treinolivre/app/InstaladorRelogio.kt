@@ -7,6 +7,7 @@ import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -79,6 +80,17 @@ class InstaladorRelogio : ComponentActivity() {
     private var bytesApk: ByteArray? = null
     private lateinit var estado: TextView
     private lateinit var progresso: TextView
+    // O painel do andamento (pedido do dono, 2026-11-20j: "centralizar a
+    // informação e colocar avanço de status em percentual com dashboard")
+    private lateinit var cartaoEstado: LinearLayout
+    private lateinit var pctTexto: TextView
+    private lateinit var barra: android.widget.ProgressBar
+    private lateinit var etapasTexto: TextView
+    @Volatile private var pctAgora = 0
+    @Volatile private var etapaAgora = ""
+    @Volatile private var comCodigoAgora = false
+    @Volatile private var etapaReal = "baixar"
+    private var mandouRelogioEm = 0L
     private lateinit var deNovo: Button
 
     private val linha = Handler(Looper.getMainLooper())
@@ -153,12 +165,23 @@ class InstaladorRelogio : ComponentActivity() {
         val versao = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (e: Exception) { "?" }
         caixa.addView(texto(12f, CINZA, t = "App do celular: versão " + versao))
         caixa.addView(texto(14f, CINZA, t = "O app acha o relógio no Wi-Fi, baixa e instala. Você só digita o código de 6 números que o relógio mostra (uma vez só)."), lp(6))
-        val cartaoEstado = cartao().apply { visibility = View.GONE }
-        estado = texto(18f, negrito = true)
-        progresso = texto(13f, CINZA)
+        cartaoEstado = cartao().apply { visibility = View.GONE; gravity = Gravity.CENTER_HORIZONTAL }
+        pctTexto = texto(48f, negrito = true, t = "0%").apply { gravity = Gravity.CENTER }
+        barra = android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 100; progress = 0
+            progressTintList = android.content.res.ColorStateList.valueOf(ROSA)
+            progressBackgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#2A2A33"))
+            scaleY = 2.2f
+        }
+        estado = texto(17f, negrito = true).apply { gravity = Gravity.CENTER }
+        progresso = texto(13f, CINZA).apply { gravity = Gravity.CENTER }
+        etapasTexto = texto(14f).apply { setLineSpacing(0f, 1.45f) }
         deNovo = botaoCheio("🔁 Tentar de novo", ROSA).apply { visibility = View.GONE; setOnClickListener { tentarAuto() } }
-        cartaoEstado.addView(estado)
-        cartaoEstado.addView(progresso, lp(10))
+        cartaoEstado.addView(pctTexto)
+        cartaoEstado.addView(barra, lp(4))
+        cartaoEstado.addView(estado, lp(12))
+        cartaoEstado.addView(progresso, lp(6))
+        cartaoEstado.addView(etapasTexto, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(12) })
         cartaoEstado.addView(deNovo, lp(12))
         caixa.addView(cartaoEstado, lp(16))
 
@@ -256,7 +279,11 @@ class InstaladorRelogio : ComponentActivity() {
         // O relógio diz o próprio endereço (o app dele abre a tela de atualizar
         // e manda): antes de a pessoa abrir o Parear no relógio, para não cobrir
         // a janela do código depois.
-        if (!getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("pareado", false)) pedirAoRelogio()
+        if (!getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("pareado", false)) {
+            pedirAoRelogio()
+            // o relógio já mostra no painel dele que falta o código (2026-11-20j)
+            linha.postDelayed({ if (!trabalhando) Relogio.progresso(applicationContext, 0, "codigo", "Falta o código") }, 4000L)
+        }
         // em 25 s sem achar, oferece digitar o endereço
         linha.postDelayed({ if (!auto && hostPar == null && hostCon == null) manual.visibility = View.VISIBLE }, 25_000L)
 
@@ -284,6 +311,45 @@ class InstaladorRelogio : ComponentActivity() {
     }
 
     private fun fase(t: String) = linha.post { estado.text = t }
+
+    // As etapas, na ordem. "par" só existe com o código.
+    private val ETAPAS = listOf("baixar" to "Baixar o app do relógio", "achar" to "Achar o relógio no Wi-Fi",
+        "par" to "Parear com o código", "conectar" to "Conectar ao relógio", "instalar" to "Enviar e instalar", "pronto" to "Pronto")
+
+    // Uma chamada só move tudo: a porcentagem, a barra, a etapa e a lista; e
+    // manda ao relógio (no máximo a cada 1,2 s, ou quando a etapa muda).
+    private fun andar(pct: Int, etapa: String, texto: String? = null) {
+        val p = pct.coerceIn(0, 100)
+        if (p < pctAgora && etapa == etapaAgora) return
+        val mudouEtapa = etapa != etapaAgora
+        pctAgora = p; etapaAgora = etapa
+        if (ETAPAS.any { it.first == etapa }) etapaReal = etapa
+        val nome = ETAPAS.firstOrNull { it.first == etapa }?.second ?: etapa
+        val linhaTexto = texto ?: nome
+        linha.post {
+            cartaoEstado.visibility = View.VISIBLE
+            pctTexto.text = "$p%"
+            if (Build.VERSION.SDK_INT >= 24) barra.setProgress(p, true) else barra.progress = p
+            estado.text = linhaTexto
+            val parou = etapa == "erro" || etapa == "codigo"
+            val idx = ETAPAS.indexOfFirst { it.first == etapaReal }
+            etapasTexto.text = ETAPAS.filter { it.first != "par" || comCodigoAgora }.joinToString("\n") { (id, n) ->
+                val i = ETAPAS.indexOfFirst { it.first == id }
+                when {
+                    etapa == "pronto" || i < idx -> "✓ " + n
+                    i == idx -> (if (parou) "✗ " else "▶ ") + n
+                    else -> "○ " + n
+                }
+            }
+            pctTexto.setTextColor(if (parou) Color.parseColor("#FFB020") else if (etapa == "pronto") Color.parseColor("#4CD137") else Color.WHITE)
+            barra.progressTintList = android.content.res.ColorStateList.valueOf(if (parou) Color.parseColor("#FFB020") else if (etapa == "pronto") Color.parseColor("#4CD137") else ROSA)
+        }
+        val agora = System.currentTimeMillis()
+        if (mudouEtapa || agora - mandouRelogioEm > 1200L) {
+            mandouRelogioEm = agora
+            Relogio.progresso(applicationContext, p, etapa, linhaTexto.take(90))
+        }
+    }
 
     private fun tentarAuto() {
         if (trabalhando || isFinishing || isDestroyed) return
@@ -367,7 +433,7 @@ class InstaladorRelogio : ComponentActivity() {
         det(t)
         linha.post {
             registro.text = if (registro.text.isEmpty()) t else registro.text.toString() + "\n" + t
-            if (auto) progresso.text = t
+            if (trabalhando || auto) progresso.text = t
         }
     }
 
@@ -458,6 +524,9 @@ class InstaladorRelogio : ComponentActivity() {
         botao.isEnabled = false; botaoJa.isEnabled = false
         (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)?.hideSoftInputFromWindow(codigo.windowToken, 0)
         registro.text = ""
+        comCodigoAgora = comCodigo; pctAgora = 0; etapaAgora = ""; etapaReal = "baixar"
+        andar(1, "baixar")
+        linha.post { (cartaoEstado.parent?.parent as? ScrollView)?.smoothScrollTo(0, 0) }
         lifecycleScope.launch {
             det("--- tentativa " + (if (comCodigo) "com o código" else "sem código") + (if (auto) " (automática)" else "") + " · endereço digitado: " + (hp ?: "-") + (if (pp > 0) ":" + pp else ""))
             val r = withContext(Dispatchers.IO) { trabalhar(comCodigo, hp, pp, cod) }
@@ -469,6 +538,7 @@ class InstaladorRelogio : ComponentActivity() {
                 // O relógio esqueceu este celular (restaurado, autorizações
                 // revogadas, outro app): insistir não adianta, falta o código.
                 auto = false; inicioAuto = 0L
+                andar(pctAgora, "codigo", "🔑 Falta o código do relógio")
                 escondidosAuto.forEach { it.visibility = View.VISIBLE }
                 verDetalhesAuto?.visibility = View.GONE
                 fase("🔑 O relógio não reconhece mais este celular.\n\nNo relógio: Opções do desenvolvedor → Depuração por Wi-Fi → Parear novo dispositivo. Digite aqui só o código de 6 números: o resto é sozinho.")
@@ -479,6 +549,7 @@ class InstaladorRelogio : ComponentActivity() {
                 (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)?.showSoftInput(codigo, 0)
                 linha.post { (codigo.parent?.parent?.parent as? ScrollView)?.smoothScrollTo(0, cartaoCodigo.top) }
             } else if (r == "ok") {
+                andar(100, "pronto", "✅ Pronto! O app do relógio foi instalado.")
                 log("✅ Pronto! O Treino Livre está no relógio.")
                 if (auto) fase("✅ Pronto! O app do relógio foi atualizado.")
                 Relogio.abrirNoRelogio(applicationContext)
@@ -486,7 +557,10 @@ class InstaladorRelogio : ComponentActivity() {
                     log("📱 Falta uma coisa neste celular: liberar o Início automático do Treino Livre, senão o relógio fica \"Procurando o celular\".")
                     linha.postDelayed({ FundoActivity.abrir(this@InstaladorRelogio); finish() }, 2500L)
                 } else linha.postDelayed({ voltarAoSite("pronto") }, 2500L)
+            } else if (!auto) {
+                andar(pctAgora, "erro", "⚠ Parou: veja o motivo logo abaixo")
             } else if (auto) {
+                andar(pctAgora, "erro", "⚠ Não deu desta vez: tentando de novo…")
                 if (System.currentTimeMillis() - inicioAuto < 6 * 60_000L) {
                     pedirAoRelogio()
                     linha.postDelayed({ tentarAuto() }, 3000L)
@@ -506,7 +580,8 @@ class InstaladorRelogio : ComponentActivity() {
             // Baixa antes de prender ao Wi-Fi: o Wi-Fi da academia ou da empresa
             // pode não ter internet, e preso a ele o download não sairia.
             log("⬇ Baixando o app do relógio…")
-            val bytes = bytesApk ?: (baixar() ?: run { log("⚠ Não consegui baixar o app do relógio. Confira a internet."); return "erro" })
+            val bytes = bytesApk ?: (baixar { f -> andar(2 + (f * 28).toInt(), "baixar", "⬇ Baixando o app do relógio… " + (f * 100).toInt() + "%") } ?: run { log("⚠ Não consegui baixar o app do relógio. Confira a internet."); return "erro" })
+            andar(30, "achar")
             if (bytesApk == null) log("✓ Baixado (" + (bytes.size / 1024) + " KB).")
             bytesApk = bytes
             // o endereço que o próprio relógio mandou (vale por 10 minutos)
@@ -514,16 +589,16 @@ class InstaladorRelogio : ComponentActivity() {
             if (!comCodigo) {
                 var e = 0
                 while (e < 40 && (Relogio.dicaPortas.isEmpty() || System.currentTimeMillis() - Relogio.dicaEm > 10 * 60_000L)) {
-                    if (e == 0) log("⌚ Pedindo ao relógio o endereço e a porta dele…")
+                    if (e == 0) { log("⌚ Pedindo ao relógio o endereço e a porta dele…"); andar(31, "achar", "⌚ Pedindo ao relógio o endereço dele…") }
                     Thread.sleep(500); e++
                 }
             }
             val dica = Relogio.dicaHost?.takeIf { System.currentTimeMillis() - Relogio.dicaEm < 10 * 60_000L }
-            val dicaPortas = if (dica != null) Relogio.dicaPortas else emptyList()
+            val dicaPortas = if (dica != null && Relogio.dicaPortas.size <= 6) Relogio.dicaPortas else emptyList()
             if (dica != null && dicaPortas.isNotEmpty()) log("✓ O relógio mandou: " + dica + " (porta " + dicaPortas.joinToString(", ") + ").")
             val digCon0 = enderecoCon.text.toString().trim().let { if (it.contains(":")) it.substringBeforeLast(":") else "" }
-            val alvo = hp ?: digCon0.ifEmpty { null } ?: dica ?: hostCon
-                ?: getSharedPreferences(PREFS, MODE_PRIVATE).getString("ultimoHost", null)?.ifEmpty { null }
+            val guardado = getSharedPreferences(PREFS, MODE_PRIVATE).getString("ultimoHost", null)?.ifEmpty { null }?.takeIf { alcancavel(it) }
+            val alvo = hp ?: digCon0.ifEmpty { null } ?: dica ?: hostCon ?: guardado
             if (!prenderAoWifi(alvo)) return "erro"
             // as portas abertas de cada endereço, procuradas uma vez só
             val portasDe = HashMap<String, List<Int>>()
@@ -538,7 +613,7 @@ class InstaladorRelogio : ComponentActivity() {
                 hp?.let { hostsPar.add(it) }
                 dica?.let { hostsPar.add(it) }
                 hostCon?.let { hostsPar.add(it) }
-                getSharedPreferences(PREFS, MODE_PRIVATE).getString("ultimoHost", null)?.let { if (it.isNotEmpty()) hostsPar.add(it) }
+                guardado?.let { hostsPar.add(it) }
                 var esperaAchar = 0
                 while (hostsPar.isEmpty() && esperaAchar < 16) {
                     if (esperaAchar == 0) log("🔎 Procurando o relógio na rede…")
@@ -557,13 +632,16 @@ class InstaladorRelogio : ComponentActivity() {
                     val portas = LinkedHashSet<Int>()
                     if (h == hostPar && portaPar > 0) portas.add(portaPar)
                     if (h == hp && pp > 0) portas.add(pp)
-                    val abertas = acharPortas(h)
+                    andar(33, "achar", "🔎 Procurando o relógio em " + h + "…")
+                    val abertas = acharPortas(h, 33, 45)
                     portasDe[h] = abertas
                     // a de conectar conhecida vai por último: é a que não pareia
                     abertas.filter { !(h == hostCon && it == portaCon) }.forEach { portas.add(it) }
                     abertas.forEach { portas.add(it) }
                     if (portas.isEmpty()) continue
+                    var np = 0
                     for (p in portas) {
+                        andar(46 + minOf(np * 2, 8), "par", "🔐 Pareando com o código…"); np++
                         log("🔐 Pareando com o relógio (" + h + ":" + p + ")…")
                         val t0 = System.currentTimeMillis()
                         val ok = try { comPrazo(12_000L) { adb.pair(h, p, cod) } } catch (e: Exception) {
@@ -619,12 +697,24 @@ class InstaladorRelogio : ComponentActivity() {
             dica?.let { hosts.add(it) }
             hostCon?.let { hosts.add(it) }
             hp?.let { hosts.add(it) }
-            prefs.getString("ultimoHost", null)?.let { if (it.isNotEmpty()) hosts.add(it) }
+            guardado?.let { hosts.add(it) }
+            prefs.getString("ultimoHost", null)?.let { if (it.isNotEmpty() && it !in hosts) det("deixei de fora o endereço guardado " + it + ": não é de nenhuma rede deste celular agora") }
+            // Sem código e sem pareamento guardado, o relógio quase certamente
+            // não conhece este celular: poucas tentativas e já pede o código.
+            // Nunca centenas (o diagnóstico do dono, 2026-11-20j, tinha uma
+            // linha "Conectando…" para cada uma de mil portas falsas).
+            val jaPareou = prefs.getBoolean("pareado", false)
+            val maxTentativas = if (comCodigo) 12 else if (jaPareou) 10 else 4
+            var tentativas = 0
+            andar(56, "conectar")
 
             var con: AbsAdbConnectionManager? = null
             var ultimoErro = ""
             var recusou = false
-            val tentar = { h: String, p: Int ->
+            val tentar = tentar@{ h: String, p: Int ->
+                if (tentativas >= maxTentativas) return@tentar false
+                tentativas++
+                andar(56 + minOf(tentativas, 12), "conectar", "🔗 Conectando ao relógio…")
                 val a = if (con == null && ultimoErro.isEmpty()) adb else Adb(this)
                 log("🔗 Conectando ao relógio (" + h + ":" + p + ")…")
                 val t0 = System.currentTimeMillis()
@@ -646,7 +736,8 @@ class InstaladorRelogio : ComponentActivity() {
             for ((h, p) in candidatos) { if (tentar(h, p)) break }
             if (con == null) {
                 for (h in hosts) {
-                    val portas = (portasDe[h]?.filter { it != portaDoPar }?.ifEmpty { null }) ?: acharPortas(h)
+                    if (tentativas >= maxTentativas) break
+                    val portas = (portasDe[h]?.filter { it != portaDoPar }?.ifEmpty { null }) ?: acharPortas(h, 60, 68)
                     for (p in portas) { if (candidatos.contains(h to p) || p == portaDoPar) continue; if (tentar(h, p)) break }
                     if (con != null) break
                 }
@@ -654,7 +745,7 @@ class InstaladorRelogio : ComponentActivity() {
             val c = con
             if (c == null) {
                 if (ultimoErro.isNotEmpty()) log("⚠ A conexão falhou: " + ultimoErro)
-                if (recusou) {
+                if (recusou || (!comCodigo && !jaPareou)) {
                     // o relógio não conhece mais esta chave: o "pareado" daqui não vale
                     prefs.edit().putBoolean("pareado", false).apply()
                     log("🔑 O relógio não reconhece mais este celular. No relógio: Parear novo dispositivo, e digite aqui só o código.")
@@ -668,11 +759,16 @@ class InstaladorRelogio : ComponentActivity() {
                 return "erro"
             }
             log("📲 Instalando no relógio…")
+            andar(70, "instalar", "📲 Enviando o app ao relógio…")
             val stream = c.openStream("exec:cmd package install -r -S " + bytes.size)
             val saida = stream.openOutputStream()
             var i = 0
-            while (i < bytes.size) { val n = minOf(32 * 1024, bytes.size - i); saida.write(bytes, i, n); i += n }
+            while (i < bytes.size) {
+                val n = minOf(32 * 1024, bytes.size - i); saida.write(bytes, i, n); i += n
+                andar(70 + (25L * i / bytes.size).toInt(), "instalar", "📲 Enviando ao relógio… " + (100L * i / bytes.size) + "%")
+            }
             saida.flush()
+            andar(96, "instalar", "📲 O relógio está instalando…")
             val resposta = StringBuilder()
             val entrada = stream.openInputStream()
             val buf = ByteArray(1024)
@@ -727,7 +823,7 @@ class InstaladorRelogio : ComponentActivity() {
     // pelo relógio entre 30000 e 49999 a cada vez que ela é ligada (nas telas do
     // dono: 38329, 39165, 40149). Na rede local, porta fechada responde na
     // hora; 256 de cada vez, a faixa inteira leva poucos segundos.
-    private fun acharPortas(host: String): List<Int> {
+    private fun acharPortas(host: String, de: Int = 0, ate: Int = 0): List<Int> {
         log("🔎 Procurando o relógio em " + host + " (a porta muda a cada vez)…")
         val abertas = java.util.concurrent.ConcurrentLinkedQueue<Int>()
         val pool = java.util.concurrent.Executors.newFixedThreadPool(256)
@@ -738,14 +834,18 @@ class InstaladorRelogio : ComponentActivity() {
                 }
             }
             val fim = System.currentTimeMillis() + 60_000L
-            for (t in tarefas) {
+            for ((k, t) in tarefas.withIndex()) {
                 val resta = fim - System.currentTimeMillis()
                 if (resta <= 0) break
                 try { t.get(resta, java.util.concurrent.TimeUnit.MILLISECONDS) } catch (e: Exception) { }
+                if (ate > de && k % 1000 == 0) andar(de + (ate - de) * k / tarefas.size, etapaAgora.ifEmpty { "achar" }, "🔎 Procurando a porta do relógio… " + (100 * k / tarefas.size) + "%")
             }
         } finally { pool.shutdownNow() }
-        val l = abertas.toList().sorted()
-        det("portas abertas em " + host + " (30000–49999): " + (if (l.isEmpty()) "nenhuma" else l.joinToString(", ")))
+        var l = abertas.toList().sorted()
+        det("portas abertas em " + host + " (30000–49999): " + (if (l.isEmpty()) "nenhuma" else if (l.size > 20) l.size.toString() + " (" + l.take(10).joinToString(", ") + "…)" else l.joinToString(", ")))
+        // Muitas portas "abertas" não é o relógio: é algo no caminho aceitando
+        // tudo (VPN, proxy). Melhor nenhuma que mil tentativas.
+        if (l.size > 12) { det("lista falsa: descartada"); l = emptyList() }
         if (l.isNotEmpty()) log("✓ Achei o relógio na porta " + l.joinToString(", ") + ".")
         return l
     }
@@ -846,6 +946,12 @@ class InstaladorRelogio : ComponentActivity() {
         try { getSystemService(android.net.ConnectivityManager::class.java)?.bindProcessToNetwork(null) } catch (e: Exception) { }
     }
 
+    private fun alcancavel(host: String): Boolean = try {
+        Collections.list(NetworkInterface.getNetworkInterfaces()).any { ni ->
+            ni.isUp && ni.interfaceAddresses.any { ia -> ia.address is java.net.Inet4Address && !ia.address.isLoopbackAddress && mesmaRede(ia.address.hostAddress + "/" + ia.networkPrefixLength, host) }
+        }
+    } catch (e: Exception) { true }
+
     private fun mesmaRede(meu: String, host: String): Boolean = try {
         val ip = meu.substringBefore("/"); val pre = meu.substringAfter("/").toInt()
         val a = java.net.InetAddress.getByName(ip).address; val b = java.net.InetAddress.getByName(host).address
@@ -867,7 +973,7 @@ class InstaladorRelogio : ComponentActivity() {
         log("• No relógio, se a janela do código fechou, abra de novo: o código e a porta mudam.")
     }
 
-    private fun baixar(): ByteArray? = try {
+    private fun baixar(andamento: (Float) -> Unit = {}): ByteArray? = try {
         var url = URL(APK)
         var con: HttpURLConnection
         var saltos = 0
@@ -879,7 +985,20 @@ class InstaladorRelogio : ComponentActivity() {
             if (cod in 300..399 && saltos < 6) { url = URL(url, con.getHeaderField("Location")); con.disconnect(); saltos++; continue }
             break
         }
-        if (con.responseCode != 200) null else con.inputStream.use { it.readBytes() }
+        if (con.responseCode != 200) null else {
+            val total = con.contentLengthLong
+            val out = java.io.ByteArrayOutputStream(if (total > 0) total.toInt() else 1 shl 20)
+            con.inputStream.use { ent ->
+                val buf = ByteArray(64 * 1024)
+                var lido = 0L
+                while (true) {
+                    val n = ent.read(buf); if (n < 0) break
+                    out.write(buf, 0, n); lido += n
+                    if (total > 0) andamento(lido.toFloat() / total)
+                }
+            }
+            out.toByteArray()
+        }
     } catch (e: Exception) { null }
 
     private fun voltarAoSite(resultado: String) {

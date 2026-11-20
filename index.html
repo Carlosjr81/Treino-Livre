@@ -1738,7 +1738,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-20i";
+const VERSAO_APP = "2026-11-20j";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -31820,6 +31820,8 @@ const PROBLEMAS_RELOGIO = [
     "O código venceu (ele muda cada vez que a tela abre). No relógio, feche e abra de novo **Parear novo dispositivo** e digite o código **novo**."],
   ["\"O relógio não reconhece mais este celular\" (antes: \"recusou este celular\", \"Connection reset\")",
     "O relógio esqueceu o pareamento (foi restaurado, ou as autorizações de depuração foram apagadas). O app já para e pede o código: no relógio, **Parear novo dispositivo**, e digite **só o código**. O resto é sozinho."],
+  ["O relógio fica em \"O celular está instalando…\" e nada acontece",
+    "Era o app do relógio antigo: ele mandava ao celular mais de mil portas falsas, e o celular tentava uma por uma. O app do celular novo descarta essa lista e, se o relógio não conhece mais este celular, pede **o código na hora**. No relógio: Opções do desenvolvedor › Depuração por Wi-Fi › **Parear novo dispositivo**, e digite o código no celular. Depois disso, as próximas atualizações mostram a porcentagem nas duas telas."],
   ["\"Não achei o relógio\"",
     "A **Depuração por Wi-Fi** desligou sozinha (ela desliga quando o relógio sai do Wi-Fi ou reinicia). Ligue de novo no relógio e toque outra vez."],
   ["\"O relógio recusou: … UPDATE_INCOMPATIBLE\"",

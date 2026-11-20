@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v227) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v228) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4723,6 +4723,32 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   a cada segundo. **No modo ambiente a hora fica na tela**, parada, só no
   contorno cinza, com o descanso em minutos na bolha. Horas em 12 ou 24 h
   conforme o relógio. **Não validado num relógio**: compilado pelo Actions.
+- **O painel da atualização** (2026-11-20j, relato do dono com o
+  diagnóstico: o relógio parado em "O celular está instalando…" e o celular
+  com uma linha "Conectando…" para cada uma de **mais de mil portas**). A
+  busca de portas do relógio antigo batia no próprio endereço sem dizer a rede,
+  e o Wear OS mandava pelo Bluetooth do celular, que aceita toda conexão. Hoje:
+  o relógio procura em **127.0.0.1** (a depuração escuta em todos os endereços
+  dele; o pedido nem sai do aparelho), confirma pela rede Wi-Fi
+  (`WifiDoRelogio.rede`, `socketFactory`) e não manda lista com mais de 6;
+  o celular descarta lista com mais de 6 ao receber (`/treino/portas`) e o
+  `acharPortas` dele descarta mais de 12; o endereço guardado de outra rede
+  fica de fora (`alcancavel`: no relato, 192.168.176.28 de outro dia, com o
+  relógio em 10.185.225.28); e as tentativas de conectar têm teto
+  (`maxTentativas`: 12 com código, 10 pareado, **4 sem pareamento**, e aí já
+  pede o código). **O painel**: no celular, a porcentagem grande, a barra e as
+  etapas (✓ feito, ▶ agora, ✗ onde parou: baixar, achar, parear, conectar,
+  enviar e instalar, pronto), por `andar(pct, etapa, texto)`, com o
+  download e o envio medidos em bytes; o mesmo vai ao relógio por
+  `/treino/progresso` ("pct|etapa|texto", `Relogio.progresso`, a cada
+  1,2 s ou na troca de etapa). No relógio (`PreparaAtualizacao`), tudo no
+  centro: um anel na borda (`AnelAtualizacao`) com a porcentagem no meio,
+  a etapa e a lista (Wi-Fi, depuração, porta, celular trabalhando, instalado);
+  os primeiros 15% são do relógio, o resto do celular. **Nunca parada
+  calada**: sem notícia do celular em 45 s (ou 90 s no meio) diz o que fazer e
+  mostra "Tentar de novo"; com "codigo" mostra "Abrir a Depuração". O app do
+  relógio antigo não tem o painel: a primeira atualização para esta versão
+  ainda é pelo código.
 - **Botões com ação** (2026-11-20i, pedido do dono: "mais ação nos botões
   da configuração do relógio com o celular, e em todos os botões do
   relógio"). No relógio, todo botão (`botao()` da `TelaRelogio`) afunda no

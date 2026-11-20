@@ -103,6 +103,10 @@ half4 main(float2 p) {
     private var f = 0f; private var vf = 0f; private var ax = 0f; private var ay = 0f
     private var ultimo = 0L
     private var rodando = false
+    // quem mais sente o braço (a hora de água): empurrão na tela (x, y, esticar)
+    // e a gravidade na tela (de -1 a 1)
+    var aoTranco: ((Float, Float, Float) -> Unit)? = null
+    var aoInclinar: ((Float, Float) -> Unit)? = null
 
     init { clipChildren = false }
 
@@ -155,8 +159,10 @@ half4 main(float2 p) {
             vx -= lx * ganho * forte / 3f
             vy += ly * ganho * forte / 3f
             vw += (abs(lx) - abs(ly) + lz * 0.5f) * 0.006f
+            aoTranco?.invoke(-lx * ganho * forte / 3f, ly * ganho * forte / 3f, (abs(lx) - abs(ly) + lz * 0.5f) * 0.006f)
             animar()
         }
+        aoInclinar?.invoke(-gx / 9.81f, gy / 9.81f)
         // inclinou o pulso: o meio passa a pender para outro lado
         if (abs(alvoX() - px) > 0.004f || abs(alvoY() - py) > 0.004f) animar()
     }
@@ -172,13 +178,13 @@ half4 main(float2 p) {
         ultimo = agora
         // molas sub-amortecidas: balançam umas vezes e param
         val tx = alvoX(); val ty = alvoY()
-        vx += (-110f * (px - tx) - 6.5f * vx) * dt
-        vy += (-110f * (py - ty) - 6.5f * vy) * dt
+        vx += (-60f * (px - tx) - 3f * vx) * dt
+        vy += (-60f * (py - ty) - 3f * vy) * dt
         px = (px + vx * dt).coerceIn(-MAX_DESLOCA, MAX_DESLOCA)
         py = (py + vy * dt).coerceIn(-MAX_DESLOCA, MAX_DESLOCA)
-        vw += (-150f * w - 5.5f * vw) * dt
+        vw += (-80f * w - 3f * vw) * dt
         w = (w + vw * dt).coerceIn(-MAX_ESTICA, MAX_ESTICA)
-        vf += (-170f * f - 7f * vf) * dt
+        vf += (-90f * f - 3.5f * vf) * dt
         f = (f + vf * dt).coerceIn(-0.45f, 0.45f)
         aplicar()
         val quieto = abs(px - tx) < 0.0015f && abs(py - ty) < 0.0015f && abs(vx) < 0.01f && abs(vy) < 0.01f &&

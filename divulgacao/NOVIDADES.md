@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-11-20r — A hora do relógio numa bola de água
+
+**Em uma frase:** ao segurar a tela do relógio, a hora aparece como uma figura colada numa bola de água mole, que balança, faz ondas e escorre sobre a curva.
+
+**O que mudou**
+- Os números da hora parecem impressos numa esfera de água: a água desliza, e os números correm sobre a curva, apertando perto da borda.
+- A bola chega caindo e balançando, e onde o dedo sai ela afunda e solta ondas que andam pela superfície.
+- Mexer o braço chacoalha a água; inclinar o pulso faz a água pender.
+- A tela do treino ficou mais mole também: balança mais devagar e por mais tempo.
+
+**Por que importa para quem treina**
+- O relógio vira assunto na academia: a hora mexe como água no pulso.
+
+**Como usar**
+- Segure a tela do relógio até a hora aparecer, solte e mexa o braço.
+
+**Ideias de vídeo**
+- Câmera lenta no pulso: soltar o dedo e as ondas correndo pelos números.
+- Chacoalhar o braço com a hora na tela e a água balançando.
+
+**Não prometer**
+- Só no app do relógio novo (Wear OS); com a tela apagada a hora fica parada.
+
+---
+
 ## 2026-11-20q — A tela do relógio virou gelatina
 
 **Em uma frase:** a tela inteira do treino no relógio agora é uma esfera de gelatina, que pende quando você inclina o pulso, balança quando você mexe o braço e afunda onde você toca.

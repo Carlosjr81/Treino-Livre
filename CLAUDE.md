@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v235) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v236) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4756,6 +4756,20 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   no meio da geleia): `ALTURA` 0,44, `LARGURA` 1,3, esfera 0,2, e a geleia
   com metade da força (o afundar e o balanço esticavam os números para fora
   da tela).
+- **A hora é uma bola de água** (2026-11-20r, o dono: "uma esfera muito
+  gelatinosa, quase uma água, onde o número está projetado em cima e se
+  move"). Os números são uma figura colada na esfera: o ponto d da figura
+  vai para a bola em d + água (`aguaX`, `aguaY`), então a água desliza
+  e os números correm sobre a curva, apertando na borda; estica e achata
+  (`estica`); e até `ONDAS` (4) ondas andam pela superfície a 1,1 raio por
+  segundo, cada uma com um afundar no ponto em que nasceu. Molas moles
+  (k 38, ~1 Hz, uns 3 s para acalmar). A bola chega caindo com uma onda do
+  meio; soltar o dedo afunda ali e solta onda; o braço (`empurrar`, pelo
+  `aoTranco` da Gelatina) e o pulso inclinado (`gravidade`, pelo
+  `aoInclinar`, `PENDE_AGUA` 0,07) mexem a água. A malha (36×36) é refeita
+  a cada quadro enquanto a hora está à vista. As molas da tela do treino
+  (`Gelatina`) ficaram mais moles também (k 60). Conferido num protótipo em
+  canvas com a fonte e a mesma conta. **Não validado num relógio.**
 - **A tela inteira é uma esfera de gelatina** (`Gelatina.kt`, 2026-11-20q,
   pedido do dono: "todo o layout nesse estilo de esfera gelatinosa, com
   variação pelo acelerômetro: chacoalha, balança, sofre pressão"). Um

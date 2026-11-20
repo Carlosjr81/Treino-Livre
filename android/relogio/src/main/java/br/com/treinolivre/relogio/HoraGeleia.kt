@@ -123,6 +123,26 @@ class HoraGeleia(contexto: Context) : View(contexto) {
     // parar. A malha viva é a da esfera mais essa deformação, refeita a cada
     // quadro só enquanto ela dura.
     private var malhaViva = FloatArray(0)
+    // A esfera de água (2026-11-20r, o dono: "uma esfera muito gelatinosa,
+    // quase água, onde o número está projetado em cima e se move"). Os números
+    // são uma figura colada numa bola de água: a água desliza (os números
+    // correm sobre a curva e se apertam perto da borda), estica e achata
+    // devagar, e cada toque solta ondas que andam pela superfície. O braço
+    // mexe a água (o acelerômetro, pela Gelatina), e o pulso inclinado a faz
+    // pender. Molas moles e pouco amortecidas: ~1 balanço por segundo, que
+    // leva uns 3 s para acalmar.
+    private var aguaX = 0f
+    private var aguaY = 0f
+    private var vAguaX = 0f
+    private var vAguaY = 0f
+    private var estica = 0f
+    private var vEstica = 0f
+    private var pendeX = 0f
+    private var pendeY = 0f
+    // as ondas: x, y (frações do raio, do meio), quando (s) e força
+    private val ondas = FloatArray(ONDAS * 4)
+    private var proxOnda = 0
+    private var quadroEm = 0L
     private var soltouEm = 0L
     private var pressX = 0f
     private var pressY = 0f
@@ -143,6 +163,11 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         saindoEm = 0L
         chave = ""
         visibility = VISIBLE
+        // a bola de água chega caindo e balançando, com uma onda do meio
+        aguaX = 0f; aguaY = -0.06f; vAguaX = 0f; vAguaY = 0.9f
+        estica = 0f; vEstica = 1.3f
+        ondas.fill(0f); quadroEm = 0L
+        onda(0f, 0f, 0.8f)
         removeCallbacks(sumir)
         // segurança: se o soltar se perder, a hora não fica para sempre
         postDelayed(sumir, LIMITE_MS)
@@ -190,40 +215,104 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         postDelayed(sumir, FICA_MS)
         soltouEm = SystemClock.uptimeMillis()
         pressX = x; pressY = y
+        // o dedo saiu: a água afunda ali, solta ondas e foge do ponto
+        val r = lado / 2f
+        if (r > 0f) {
+            val nx = (x - width / 2f) / r
+            val ny = (y - height / 2f) / r
+            onda(nx, ny, 1.3f)
+            vAguaX -= nx * 0.7f; vAguaY -= ny * 0.7f
+            vEstica += 0.9f
+        }
         postInvalidateOnAnimation()
     }
 
-    // a esfera pressionada no ponto (pressX, pressY) e o balanço da geleia
-    private fun deformar(tt: Float): FloatArray {
+    // O braço mexeu (a Gelatina lê o acelerômetro): a água fica para trás e
+    // balança. ix, iy: o empurrão na tela; ie: o quanto estica.
+    fun empurrar(ix: Float, iy: Float, ie: Float) {
+        if (!mostrando || ambiente) return
+        vAguaX += ix * 2.4f; vAguaY += iy * 2.4f; vEstica += ie * 2f
+        val forte = hypot(ix, iy)
+        if (forte > 0.12f) onda(-ix / forte * 0.5f, -iy / forte * 0.5f, (forte * 2.5f).coerceAtMost(1.2f))
+    }
+
+    // o pulso inclinado: a água pende para baixo (x, y de -1 a 1, na tela)
+    fun gravidade(x: Float, y: Float) { pendeX = x; pendeY = y }
+
+    private fun onda(x: Float, y: Float, forca: Float) {
+        val k = proxOnda * 4
+        ondas[k] = x; ondas[k + 1] = y
+        ondas[k + 2] = SystemClock.uptimeMillis() / 1000f
+        ondas[k + 3] = forca
+        proxOnda = (proxOnda + 1) % ONDAS
+    }
+
+    // a física da água, um passo por quadro
+    private fun passoAgua(agora: Long) {
+        val dt = if (quadroEm == 0L) 0.016f else ((agora - quadroEm) / 1000f).coerceIn(0.001f, 0.05f)
+        quadroEm = agora
+        val tx = pendeX * PENDE_AGUA
+        val ty = pendeY * PENDE_AGUA
+        vAguaX += (-38f * (aguaX - tx) - 1.5f * vAguaX) * dt
+        vAguaY += (-38f * (aguaY - ty) - 1.5f * vAguaY) * dt
+        aguaX = (aguaX + vAguaX * dt).coerceIn(-0.3f, 0.3f)
+        aguaY = (aguaY + vAguaY * dt).coerceIn(-0.3f, 0.3f)
+        vEstica += (-55f * estica - 1.4f * vEstica) * dt
+        estica = (estica + vEstica * dt).coerceIn(-0.13f, 0.13f)
+    }
+
+    // A bola de água num instante: a figura dos números desliza sobre a curva
+    // (o ponto d da figura vai para a esfera em d + água), estica e achata, e
+    // as ondas empurram a superfície para fora e para dentro, a partir de
+    // onde nasceram.
+    private fun deformar(agora: Long): FloatArray {
         if (malhaViva.size != malha.size) malhaViva = FloatArray(malha.size)
-        // o afundar no ponto: puxa para ele, passa do ponto e volta, amortecendo
-        // (2026-11-20o, o dono: 3,5 s à vista, com a animação o tempo todo) o
-        // afundar amortece em ~1,5 s; depois a geleia segue balançando de leve
-        // e para nos últimos 0,4 s, antes de a hora sair
-        val fim = (FICA_MS / 1000f - tt).coerceIn(0f, 0.4f) / 0.4f
-        val k = 0.16f * exp(-2.4f * tt) * kotlin.math.cos(2f * PI.toFloat() * 2.1f * tt) +
-            0.025f * sin(2f * PI.toFloat() * 1.1f * tt) * fim
-        // o balanço da tela toda: estica na largura e achata na altura, e o contrário
-        val w = 0.035f * exp(-1.8f * tt) * sin(2f * PI.toFloat() * 1.5f * tt) +
-            0.012f * sin(2f * PI.toFloat() * 0.8f * tt) * fim
-        val sx = 1f + w
-        val sy = 1f - w
-        val cx = width / 2f
-        val cy = height / 2f
-        val alcance = lado * 0.38f
-        var i = 0
-        while (i < malha.size) {
-            var x = malha[i]
-            var y = malha[i + 1]
-            val dx = x - pressX
-            val dy = y - pressY
-            val q = (dx * dx + dy * dy) / (alcance * alcance)
-            val g = exp(-q)
-            x -= dx * g * k
-            y -= dy * g * k
-            malhaViva[i] = cx + (x - cx) * sx
-            malhaViva[i + 1] = cy + (y - cy) * sy
-            i += 2
+        val w = width.toFloat()
+        val h = height.toFloat()
+        val cx = w / 2f
+        val cy = h / 2f
+        val raio = if (redonda) lado / 2f else hypot(w, h) / 2f
+        val ts = agora / 1000f
+        val n = MALHA
+        var k = 0
+        for (j in 0..n) for (i in 0..n) {
+            // o ponto da figura, deslocado pela água
+            var dx = (w * i / n - cx) / raio + aguaX
+            var dy = (h * j / n - cy) / raio + aguaY
+            // colado na bola
+            val dist = sqrt(dx * dx + dy * dy)
+            if (dist > 0.0001f && dist < 1f) {
+                val f = (dist + ESFERA * (sin(dist * PI.toFloat() / 2f) - dist)) / dist
+                dx *= f; dy *= f
+            }
+            // estica e achata
+            dx *= 1f + estica
+            dy *= 1f - estica
+            // as ondas
+            var o = 0
+            while (o < ONDAS * 4) {
+                val forca = ondas[o + 3]
+                if (forca > 0f) {
+                    val tau = ts - ondas[o + 2]
+                    if (tau in 0f..3.2f) {
+                        val rx = dx - ondas[o]
+                        val ry = dy - ondas[o + 1]
+                        val r = sqrt(rx * rx + ry * ry) + 0.0001f
+                        // a frente da onda anda 1,1 raio por segundo
+                        val frente = ((1.1f * tau - r) / 0.25f).coerceIn(0f, 1f)
+                        val amp = forca * exp(-1.3f * tau) * exp(-0.7f * r) * frente
+                        // o anel que corre, e o afundar no ponto de onde nasceu
+                        val anel = 0.045f * amp * sin(9f * r - 10f * tau)
+                        val afunda = -0.16f * forca * exp(-2.6f * tau) * kotlin.math.cos(6.5f * tau) * exp(-r * r / 0.1f)
+                        val m = anel + afunda
+                        dx += rx / r * m
+                        dy += ry / r * m
+                    }
+                }
+                o += 4
+            }
+            malhaViva[k++] = cx + dx * raio
+            malhaViva[k++] = cy + dy * raio
         }
         return malhaViva
     }
@@ -409,7 +498,8 @@ class HoraGeleia(contexto: Context) : View(contexto) {
                 }
             }
             val tt = if (soltouEm > 0L && vivo) (agora - soltouEm) / 1000f else -1f
-            val pontos = if (tt >= 0f && tSai < 0f) deformar(tt) else malha
+            // à vista, a água se mexe o tempo todo; parada (ambiente), a bola fixa
+            val pontos = if (vivo) { passoAgua(agora); deformar(agora) } else malha
             c.drawBitmapMesh(bm, MALHA, MALHA, pontos, 0, null, 0, malhaPaint)
             // o fio da borda: o tempo que falta para o treino voltar
             if (tt >= 0f && tSai < 0f) {
@@ -516,7 +606,10 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         const val ATRASO = 0.06f
         // a esfera: 0 é plano, 1 é a curva inteira de uma bola
         const val ESFERA = 0.2f
-        const val MALHA = 28
+        const val MALHA = 36
+        // as ondas ao mesmo tempo, e quanto a água pende com o pulso inclinado
+        const val ONDAS = 4
+        const val PENDE_AGUA = 0.07f
         val SEMANA = arrayOf("DOM.", "SEG.", "TER.", "QUA.", "QUI.", "SEX.", "SÁB.")
     }
 }

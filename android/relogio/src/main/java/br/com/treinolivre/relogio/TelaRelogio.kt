@@ -356,6 +356,9 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         }
         hora = HoraGeleia(this)
         hora.info = { infoDaHora() }
+        // a água da hora sente o braço pelo mesmo acelerômetro da gelatina
+        gel.aoTranco = { x, y, e -> hora.empurrar(x, y, e) }
+        gel.aoInclinar = { x, y -> hora.gravidade(x, y) }
         raiz.addView(hora, FrameLayout.LayoutParams(tudo, tudo))
         raizTela = raiz
         setContentView(raiz)

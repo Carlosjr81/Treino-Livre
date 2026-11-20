@@ -4695,9 +4695,10 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   inteira. **A geleia**: cada número entra de um em um, passa do ponto e treme
   achatando e esticando (`sx = 1 − w`, `sy = 1 + w`, `w` uma senoide que
   morre), preso no canto perto do meio; os minutos dão um tremidinho a cada
-  segundo; na saída se achatam e somem. **A mais que a máscara**: a bolha diz o
-  descanso que falta na cor dele (`infoDaHora`) ou as séries feitas, e uma
-  bolinha anda na borda com os segundos, com o rastro do minuto. **No modo
+  segundo; na saída se achatam e somem. **A bolha e a bolinha laranja** ficam onde estão no
+  modelo (pedido seguinte do dono: "ajuste o layout de todos os elementos para
+  isso"): o dia da semana em cima e o dia embaixo; no descanso, "DESCANSO" e o
+  tempo que falta, na cor dele (`infoDaHora`); a bolinha pulsa a cada segundo. **No modo
   ambiente a hora fica na tela**, parada, só no contorno cinza (OLED), com o
   descanso em minutos na bolha: antes, com o app na frente, a tela apagada não
   mostrava hora nenhuma. Horas em 12 ou 24 h conforme o relógio. **Não

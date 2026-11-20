@@ -23,8 +23,8 @@
 **O que mudou**
 - Um toque num lugar vazio da tela do relógio (fora dos botões) mostra a hora: horas em cima, minutos embaixo, números enormes que vazam da tela, no degradê do Treino Livre (laranja, rosa e roxo).
 - Os números entram um de cada vez e tremem achatando e esticando, como gelatina; a cada segundo os minutos dão um tremidinho.
-- No meio, uma bolha com o dia da semana e o dia, e o descanso que falta (na cor do descanso) ou quantas séries já foram.
-- Uma bolinha branca anda pela borda com os segundos, deixando um rastro colorido.
+- Uma bolha com o dia da semana e o dia; no descanso, ela mostra o tempo que falta, na cor do descanso.
+- Uma bolinha laranja na borda pulsa a cada segundo.
 - Em menos de 4 segundos a hora some sozinha e o treino volta; um toque fecha antes.
 - Com a tela do relógio apagada, a hora fica à vista, só no contorno.
 

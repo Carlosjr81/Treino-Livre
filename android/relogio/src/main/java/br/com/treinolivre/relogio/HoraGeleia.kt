@@ -8,14 +8,11 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
-import android.graphics.SweepGradient
 import android.graphics.Typeface
 import android.os.SystemClock
 import android.text.format.DateFormat
 import android.view.View
 import java.util.Calendar
-import kotlin.math.PI
-import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.min
 import kotlin.math.sin
@@ -34,9 +31,9 @@ import kotlin.math.sin
 // treme, achatando e esticando (como uma gelatina), até parar; a cada segundo
 // os minutos dão um tremidinho; na saída, eles se achatam e somem.
 //
-// O que é a mais que a máscara: a bolha diz o descanso que falta (na cor do
-// descanso) ou as séries feitas; a bolinha da borda anda com os segundos,
-// com o rastro do minuto. No modo ambiente (tela apagada), a mesma hora só no
+// A bolha e a bolinha laranja da borda ficam onde estão no modelo; a mais que
+// a máscara: no descanso a bolha diz "DESCANSO" e o tempo que falta (na cor do
+// descanso), e a bolinha pulsa a cada segundo. No modo ambiente (tela apagada), a mesma hora só no
 // contorno cinza, parada, que gasta quase nada numa tela OLED.
 class HoraGeleia(contexto: Context) : View(contexto) {
     // o que vai na bolha embaixo do dia: (texto, cor), ou null para o dia sozinho
@@ -78,14 +75,10 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         letterSpacing = 0.08f
     }
     private val textoInfo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         textAlign = Paint.Align.CENTER
     }
     private val ponto = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val rastro = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeCap = Paint.Cap.ROUND
-    }
 
     // os quatro números já recortados no lugar, refeitos quando a hora muda
     private class Digito(val path: Path, val px: Float, val py: Float)
@@ -152,11 +145,9 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         preench.shader = LinearGradient(ox, oy, ox + lado, oy + lado,
             intArrayOf(Color.parseColor("#FFB36B"), Cores.LARANJA, Cores.ROSA, Color.parseColor("#B05BFF")),
             floatArrayOf(0f, 0.3f, 0.65f, 1f), Shader.TileMode.CLAMP)
-        textoDia.textSize = lado * 0.045f
-        textoInfo.textSize = lado * 0.078f
+        textoDia.textSize = lado * 0.042f
+        textoInfo.textSize = lado * 0.08f
         bolhaBorda.strokeWidth = 1.5f * d
-        rastro.strokeWidth = 3f * d
-        rastro.shader = SweepGradient(ox + lado / 2, oy + lado / 2, intArrayOf(Cores.LARANJA, Cores.ROSA, Cores.ROXO, Cores.LARANJA), null)
         horaFeita = ""
     }
 
@@ -241,9 +232,13 @@ class HoraGeleia(contexto: Context) : View(contexto) {
             c.restore()
         }
 
-        // a bolha com o dia (e o descanso ou as séries)
-        val bx = ox + lado * 0.57f
-        val by = oy + lado * 0.71f
+        // A bolha e a bolinha nas posições e tamanhos do modelo (2026-11-20d,
+        // "ajuste o layout de todos os elementos para isso"): a bolha um pouco à
+        // direita e abaixo do meio, o dia da semana em cima e o dia embaixo,
+        // centrados no meio da tela; a bolinha laranja na borda esquerda. No
+        // descanso, a mesma bolha diz "DESCANSO" e o tempo que falta, na cor dele.
+        val bx = ox + lado * 0.573f
+        val by = oy + lado * 0.708f
         var esc = 1f
         if (vivo) {
             val tb = t - 0.3f
@@ -256,52 +251,35 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         if (esc > 0.01f) {
             c.save()
             c.scale(esc, esc, bx, by)
-            val raio = lado * 0.105f
+            val raio = lado * 0.108f
             if (ambiente) {
                 bolhaBorda.color = Cores.CINZA
                 c.drawCircle(bx, by, raio, bolhaBorda)
             } else {
-                bolha.color = Color.argb(185, 18, 18, 24)
+                bolha.color = Color.argb(150, 40, 40, 48)
                 c.drawCircle(bx, by, raio, bolha)
-                bolhaBorda.color = Color.argb(90, 255, 255, 255)
-                c.drawCircle(bx, by, raio, bolhaBorda)
             }
-            val semana = SEMANA[cal.get(Calendar.DAY_OF_WEEK) - 1]
-            val dia = cal.get(Calendar.DAY_OF_MONTH).toString()
             val extra = info?.invoke()
             val tx = ox + lado * 0.5f
-            textoDia.color = if (ambiente) Cores.CINZA else Color.parseColor("#FFB36B")
-            if (extra == null) {
-                c.drawText(semana, tx, by - lado * 0.025f, textoDia)
-                textoInfo.color = if (ambiente) Cores.CINZA else Color.WHITE
-                c.drawText(dia, tx, by + lado * 0.06f, textoInfo)
-            } else {
-                c.drawText("$semana $dia", tx, by - lado * 0.025f, textoDia)
-                textoInfo.color = if (ambiente) Cores.CINZA else extra.second
-                c.drawText(extra.first, tx, by + lado * 0.06f, textoInfo)
-            }
+            val cima = extra?.let { "DESCANSO" } ?: SEMANA[cal.get(Calendar.DAY_OF_WEEK) - 1]
+            val baixo = extra?.first ?: cal.get(Calendar.DAY_OF_MONTH).toString()
+            textoDia.color = when { ambiente -> Cores.CINZA; extra != null -> extra.second; else -> Color.parseColor("#FFB36B") }
+            c.drawText(cima, tx, oy + lado * 0.677f, textoDia)
+            textoInfo.color = when { ambiente -> Cores.CINZA; extra != null -> extra.second; else -> Color.WHITE }
+            c.drawText(baixo, tx, oy + lado * 0.78f, textoInfo)
             c.restore()
         }
 
-        // a bolinha que anda com os segundos, com o rastro do minuto
+        // a bolinha laranja da borda esquerda, como no modelo: pulsa a cada segundo
         if (!ambiente && esc > 0.01f) {
-            val frac = (seg + (agora - segEm).coerceIn(0L, 999L) / 1000f) / 60f
-            val r = lado / 2 - 9f * d
-            rastro.alpha = (255 * min(1f, esc)).toInt()
-            val caixa = RectF(cx - r, cy - r, cx + r, cy + r)
-            c.save()
-            c.rotate(-90f, cx, cy)
-            c.drawArc(caixa, 0f, frac * 360f, false, rastro)
-            c.restore()
-            val ang = frac * 2 * PI - PI / 2
-            val px = cx + (r * cos(ang)).toFloat()
-            val py = cy + (r * sin(ang)).toFloat()
-            ponto.color = Color.BLACK
-            c.drawCircle(px, py, lado * 0.03f, ponto)
-            ponto.color = Color.WHITE
-            ponto.setShadowLayer(8f * d, 0f, 0f, Cores.LARANJA)
-            c.drawCircle(px, py, lado * 0.019f, ponto)
+            val ts = (agora - segEm) / 1000f
+            val pulso = 1f + 0.45f * exp(-6f * ts)
+            ponto.color = Cores.LARANJA
+            ponto.alpha = (255 * min(1f, esc)).toInt()
+            ponto.setShadowLayer(7f * d * pulso, 0f, 0f, Cores.LARANJA)
+            c.drawCircle(ox + lado * 0.025f, oy + lado * 0.5f, lado * 0.017f * pulso, ponto)
             ponto.clearShadowLayer()
+            ponto.alpha = 255
         }
 
         if (vivo) {

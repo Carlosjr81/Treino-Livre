@@ -436,7 +436,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         return false
     }
 
-    // a bolha da hora: o descanso que falta, na cor dele; senão as séries
+    // a bolha da hora: o descanso que falta, na cor dele; senão o dia
     private fun infoDaHora(): Pair<String, Int>? {
         val ate = descansoAte()
         val agora = System.currentTimeMillis()
@@ -448,11 +448,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             val cor = if (resta in 1..5) Cores.festa() else Cores.doDescanso(fracao)
             return Pair((resta / 60).toString() + ":" + (resta % 60).toString().padStart(2, '0'), cor)
         }
-        val p = painel ?: return null
-        if (!p.optBoolean("ativo", false) || p.optBoolean("carregando")) return null
-        if (p.optBoolean("fim")) return Pair("✓ fim", Cores.OURO)
-        val total = p.optInt("total")
-        return if (total > 0) Pair(p.optInt("feitas").toString() + "/" + total, Color.WHITE) else null
+        return null
     }
 
     override fun onPause() {

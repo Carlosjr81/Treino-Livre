@@ -249,6 +249,29 @@ console.log("--- o relogio sem o celular (2026-11-17b) ---");
   const b2 = criarBolso(Object.assign(snap(), { vistos: ["ja1"] }), EXERCICIOS);
   teste("o id que a pagina ja aplicou tambem nao entra", false, b2.deFora([{ t: "a", u: u, r: "8", k: "ja1" }], 0, 0, T0).mudou);
 }
+console.log("--- a copia muda na tela do treino: o relogio segue (2026-11-20y) ---");
+{
+  const copia = (mexer, vistos) => { const c = snap(); mexer(c); c.vistos = vistos || []; return c; };
+  let bc = criarBolso(snap(), EXERCICIOS);
+  teste("antes: o relogio mostra 80 kg", 80, bc.painel(T0).peso);
+  bc.trocarCopia(copia((c) => { c.itens[0].series[1].peso = "90"; c.itens[0].series[2].peso = "90"; c.itens[0].series.push({ peso: "90", reps: "10" }); }));
+  teste("a carga mudada no celular chega ao relogio", 90, bc.painel(T0).peso);
+  teste("a serie a mais chega ao relogio (6 + 1)", 7, bc.painel(T0).total);
+  bc = criarBolso(snap(), EXERCICIOS);
+  bc.ouvir(["Jarvis, 80 por 10"], T0);
+  const ev = B.marcarIdsBolso(bc.eventos());
+  bc.trocarCopia(copia((c) => { c.itens[0].series[2].peso = "90"; }));
+  teste("o que o relogio anotou e a tela ainda nao aplicou continua", true, bc.estado()[0].series[1].feito);
+  teste("... e a carga nova vale na serie seguinte", "90", bc.estado()[0].series[2].peso);
+  bc.trocarCopia(copia((c) => { c.itens[0].series[1].feito = true; c.itens[0].series[2].peso = "95"; }, [ev[0].k]));
+  teste("o que a tela ja aplicou nao entra duas vezes", false, !!bc.estado()[0].series[2].feito);
+  const agora = Date.now();
+  bc = criarBolso(snap(), EXERCICIOS);
+  const rr = bc.ouvir(["Jarvis, 80 por 10"], agora);
+  bc.trocarCopia(copia(() => {}));
+  teste("o descanso que o app conduz continua", rr.descansoAte, bc.descansoAte());
+  teste("copia torta e recusada", false, bc.trocarCopia({ itens: "x" }));
+}
 (async () => {
   const m = await B.cifrarBolso(ca, { ev: ev2, ts: 5 });
   // com aspas: "u1" solto aparece por acaso no base64 de vez em quando (o CI

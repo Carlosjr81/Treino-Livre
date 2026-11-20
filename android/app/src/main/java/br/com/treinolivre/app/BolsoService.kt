@@ -271,9 +271,10 @@ class BolsoService : Service(), RecognitionListener {
     }
 
     private fun ligar() {
-        anotar("ligado (app de 2026-11-19c: o teste aponta os apps da ligação com o relógio)")
+        anotar("ligado (app de 2026-11-20y: o relógio segue o que muda na tela do treino)")
         linha.post(olheiro)
         linha.postDelayed(manterCanal, 15_000L)
+        linha.postDelayed(olharCopia, 2_000L)
         try { getSystemService(AudioManager::class.java)?.registerAudioPlaybackCallback(espiaoSom, linha) } catch (e: Exception) { }
         val pm = getSystemService(PowerManager::class.java)
         // Com a tela travada a CPU dorme, e o fim do descanso chegaria atrasado.
@@ -434,6 +435,16 @@ class BolsoService : Service(), RecognitionListener {
         override fun run() {
             if (pronto && temCanal()) js("bolso.manter&&bolso.manter()") { }
             linha.postDelayed(this, 15_000L)
+        }
+    }
+
+    // A tela do treino mudou a carga, acrescentou série ou trocou exercício: a
+    // cópia nova chega pelo canal na página escondida, e o relógio precisa do
+    // painel novo (2026-11-20y: antes ele só mudava no próximo ✓).
+    private val olharCopia = object : Runnable {
+        override fun run() {
+            if (pronto && temCanal()) js("bolso.copiaNova?bolso.copiaNova():''") { if (it == "1") publicarRelogio() }
+            linha.postDelayed(this, 2_000L)
         }
     }
 

@@ -1743,7 +1743,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-20x";
+const VERSAO_APP = "2026-11-20y";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3180,7 +3180,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-162/treino-livre-162.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-164/treino-livre-164.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -4468,6 +4468,20 @@ function criarBolso(snapInicial, catalogo) {
       return animo(FRASES_BOLSO_VOLTA, "bolsoVolta") + " Descanso acabou. " + proxima();
     },
     descansoAte() { return fimDesc; },
+    // A tela do treino mudou a cópia (2026-11-20y: carga, séries a mais, ordem):
+    // o que foi anotado aqui e ela ainda não aplicou entra por cima, e o
+    // descanso que o app conduz continua.
+    trocarCopia(nova) {
+      if (!nova || !Array.isArray(nova.itens)) return false;
+      const vistos = new Set(Array.isArray(nova.vistos) ? nova.vistos : []);
+      const falta = eventos.filter((e) => e && (!e.k || !vistos.has(e.k)));
+      const s2 = Object.assign({}, nova);
+      if (falta.length) { s2.itens = aplicarEventosBolso(nova.itens, falta); s2.foco = foco; }
+      if (!(s2.descansoAte > 0) && fimDesc > Date.now()) s2.descansoAte = fimDesc;
+      montar(s2);
+      vistos.forEach((k) => vistosK.add(k));
+      return true;
+    },
     eventos() { return eventos.slice(); },
     limpar() { eventos = []; },
     semear(lista) { eventos = (lista || []).slice(); eventos.forEach((e) => { if (e && e.k) vistosK.add(e.k); }); },
@@ -29882,6 +29896,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // app fala a confirmação e conduz o descanso; a página só mostra.
   const canalTs = useRef(0);
   const [canalRelogio, setCanalRelogio] = useState("");
+  // o canal aberto, para mandar ao app a cópia do treino quando ela muda aqui
+  const canalPagRef = useRef(null);
+  const ultimaCopiaRef = useRef("");
   const aplicarDoBolso = (ev) => {
     const fins = ev.filter((e) => e.t === "f");
     const resto = ev.filter((e) => e.t !== "f");
@@ -29921,21 +29938,43 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         }
       }).catch(() => {});
     }, (e) => { if (vivo) setCanalRelogio(e); });
+    // a cópia vai junto das confirmações: a mensagem guardada no retransmissor
+    // é a última, e as confirmações não podem se perder
+    canalPagRef.current = { publicar: (extra) => cifrarBolso(canal, Object.assign({ ok: okIds, ts: Date.now() }, extra)).then((mm) => sala.publicar(mm)).catch(() => {}) };
+    ultimaCopiaRef.current = "";
     const acordar = () => { if (!document.hidden) sala.manter(); };
     document.addEventListener("visibilitychange", acordar);
     const vigia = setInterval(acordar, 10000);
-    return () => { vivo = false; clearInterval(vigia); document.removeEventListener("visibilitychange", acordar); sala.fechar(); };
+    return () => { vivo = false; canalPagRef.current = null; clearInterval(vigia); document.removeEventListener("visibilitychange", acordar); sala.fechar(); };
   }, [bolsoAtivo, bolsoAuto]);
+  const snapAgoraBolso = (itensAgora, foco, ateF) => snapshotBolso({ itens: itensAgora || sessao.itens }, exPorId, {
+    descanso: descanso, barra: parseFloat(vozBarra) || 20, recordes: recordes, descansoAte: ateF, nome: sessao.nome, vistos: lerVistosBolso(),
+    foco: foco != null ? foco : alvo ? alvo.ei : null,
+  });
+  // Mudou o treino aqui (a carga, uma série a mais, outro exercício, a ordem):
+  // a cópia nova vai ao app pelo canal, e o relógio mostra o mesmo, sem ajustar
+  // de novo lá (2026-11-20y, relato do dono). Sem canal (site antigo, sem
+  // internet), vale o próximo ✓, que já leva a cópia.
+  useEffect(() => {
+    if (!canalPagRef.current) return undefined;
+    const t = setTimeout(() => {
+      const c = canalPagRef.current;
+      if (!c) return;
+      const snap = snapAgoraBolso(null, null, fimDescanso || 0);
+      const chave = JSON.stringify(snap.itens) + "|" + snap.foco;
+      if (chave === ultimaCopiaRef.current) return;
+      ultimaCopiaRef.current = chave;
+      c.publicar({ copia: snap });
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [sessao.itens, canalRelogio]);
   // Ligar (ou atualizar) manda a cópia do treino ao app. É também o "Trazer":
   // o app devolve primeiro o que anotou e depois segue com a cópia nova.
   const ligarBolso = (itensAgora, foco, falar, fimFala, ate, trazer, crono) => {
     // Sem descanso novo (Ligar, Trazer, a abertura do treino), segue o que está correndo
     let ateF = ate;
     if (ateF == null) { ateF = fimDescanso || 0; if (fimDescanso) descansoNoBolso.current = fimDescanso; }
-    const snap = snapshotBolso({ itens: itensAgora || sessao.itens }, exPorId, {
-      descanso: descanso, barra: parseFloat(vozBarra) || 20, recordes: recordes, descansoAte: ateF, nome: sessao.nome, vistos: lerVistosBolso(),
-      foco: foco != null ? foco : alvo ? alvo.ei : null,
-    });
+    const snap = snapAgoraBolso(itensAgora, foco, ateF);
     try { localStorage.setItem("treinolivre:bolsoAtivo", String(Date.now())); } catch (e) {}
     setBolsoAtivo(true);
     try { window.location.href = linkBolso(snap, falar, fimFala, trazer, crono); } catch (e) {}
@@ -36369,12 +36408,21 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
 // estas funções de fora; nada aqui grava no armazenamento.
 if (MODO_BOLSO) {
   let motorBolso = null, canal = "", sala = null, estadoCanal = "desligado";
+  // a cópia nova vinda da tela do treino: só vale a mais nova que a última que o
+  // app mandou (a mensagem fica guardada no retransmissor e volta ao reconectar)
+  let copiaTs = 0, copiaMudou = false;
   const confirmados = new Set();
   const eventosComId = () => marcarIdsBolso(motorBolso.eventos());
   // a tela do treino confirma (no tópico "pag") cada acontecimento que aplicou
   const ouvirPagina = (uid, m) => {
     if (uid !== "pag" || !m || typeof m.c !== "string" || !canal) return;
-    decifrarBolso(canal, m).then((p) => { (p && Array.isArray(p.ok) ? p.ok : []).forEach((k) => confirmados.add(String(k))); }).catch(() => {});
+    decifrarBolso(canal, m).then((p) => {
+      (p && Array.isArray(p.ok) ? p.ok : []).forEach((k) => confirmados.add(String(k)));
+      if (p && p.copia && motorBolso && +p.ts > copiaTs && Date.now() - p.ts < 6 * 3600000) {
+        copiaTs = +p.ts;
+        if (motorBolso.trocarCopia(p.copia)) copiaMudou = true;
+      }
+    }).catch(() => {});
   };
   const abrirCanal = () => { if (!sala && canal) sala = salaBolso(canal, "app", ouvirPagina, (e) => { estadoCanal = e; }); };
   // manda à tela do treino, pelo canal cifrado, tudo o que ainda não voltou
@@ -36396,10 +36444,13 @@ if (MODO_BOLSO) {
       s.vistos = Array.from(vistos).concat(ja.map((e) => e.k).filter(Boolean));
       motorBolso = criarBolso(s, EXERCICIOS);
       motorBolso.semear(pendentesJson ? JSON.parse(pendentesJson) : []);
+      copiaTs = Math.max(copiaTs, Date.now());
       return "ok";
     },
     canal(c) { if (canalBolsoValido(c) && c !== canal) { canal = c; if (sala) { sala.fechar(); sala = null; } abrirCanal(); } return "ok"; },
     manter() { if (sala) sala.manter(); return ""; },
+    // o app pergunta a cada 2 s: a tela do treino mandou cópia nova? (o painel do relógio muda)
+    copiaNova() { const m = copiaMudou; copiaMudou = false; return m ? "1" : ""; },
     // quantos acontecimentos a tela do treino ainda não confirmou (-1: sem canal)
     semEntregar() { if (!canal || !motorBolso) return -1; return eventosComId().filter((e) => !confirmados.has(e.k)).length; },
     estadoCanal() { return canal ? estadoCanal : "sem canal (site antigo)"; },

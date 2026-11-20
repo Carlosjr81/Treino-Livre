@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-20y — O relógio acompanha o que você muda no celular
+
+**Em uma frase:** mudou o peso, acrescentou uma série ou trocou um exercício no celular durante o treino, e o relógio mostra o mesmo em poucos segundos, sem ajustar de novo no pulso.
+
+**O que mudou**
+- Antes, o relógio só via a mudança feita no celular depois do próximo ✓; até lá mostrava o peso e as séries antigos.
+- Agora a carga, as séries a mais, a troca de exercício e a ordem chegam ao relógio sozinhas, em uns 3 segundos.
+- O que já foi anotado no relógio e o descanso que está correndo não se perdem.
+
+**Por que importa para quem treina**
+- Ajusta num lugar só: no celular ou no relógio, e os dois mostram o mesmo.
+
+**Como usar**
+- Com o treino aberto e o relógio ligado, mude o que quiser no celular e olhe o pulso.
+- É preciso atualizar o app do celular para esta versão (Ajustes › Este app › atualizar).
+
+**Ideias de vídeo**
+- Mudando o peso no celular e o número trocando sozinho no relógio.
+
+**Não prometer**
+- Só no app Android com o relógio Wear OS, com internet no celular; sem internet, o relógio pega a mudança no próximo ✓.
+
+---
+
 ## 2026-11-20x — A arte do resumo aparece inteira
 
 **Em uma frase:** no resumo animado, a arte do Carlos na academia aparece inteira, do cabelo aos halteres, sem nada cortado.

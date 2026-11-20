@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v242) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v243) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4486,6 +4486,27 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   autorizo tudo"). Conferido no navegador com um retransmissor de mentira: a
   série chega marcada, o descanso corre, e a mesma mensagem duas vezes vira uma
   série só.
+- **O que muda no celular chega ao relógio** (2026-11-20y, relato do dono:
+  "aumentei as séries e o peso pelo celular e não carregou no relógio; tive
+  de ajustar lá também"). A cópia do treino só ia ao app no ✓ e no Começar
+  (o link `treinolivre://bolso` precisa de toque, e um link a cada tecla do
+  peso abriria a `BolsoActivity` no meio da digitação). Hoje a tela do treino
+  manda a cópia nova **pelo mesmo canal cifrado** (`snapAgoraBolso`,
+  `canalPagRef`), 1,2 s depois de qualquer mudança em `sessao.itens`, só
+  quando ela mudou (`ultimaCopiaRef`), junto das confirmações (`ok`: a
+  mensagem guardada no retransmissor é a última, e as confirmações não podem
+  sumir). A página escondida troca a cópia do motor (`trocarCopia`: o que
+  foi anotado lá e a tela ainda não aplicou entra por cima, e o descanso que o
+  app conduz continua; só vale cópia mais nova que a última do app,
+  `copiaTs`, porque a mensagem retida volta a cada reconexão), e o app
+  pergunta a cada 2 s (`olharCopia`, `bolso.copiaNova`) e republica o
+  painel do relógio. Sem canal, vale o próximo ✓. **Exige o app do celular
+  novo** (o `olharCopia` é nativo). Coberto em `teste-bolso.js` (a carga e
+  a série a mais no painel, o anotado no relógio que continua, sem duplicar,
+  o descanso, cópia torta). No navegador, com um retransmissor de mentira
+  dentro da página (o Chromium da sessão não abre conexão local): mudar o peso
+  publica a cópia, e decifrada ela tem o peso novo. **Não validado no
+  relógio.**
 - **A entrega garantida** (2026-11-11k, relato do dono: "o relógio diz que
   anotou e a série não apareceu no app, nem o peso ajustado"). O canal pode
   falhar (sem internet, retransmissor fora do ar, a página atrás de outro app),

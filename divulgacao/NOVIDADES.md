@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-20n — A hora do relógio ocupa a tela toda
+
+**Em uma frase:** ao segurar a tela do relógio, a hora aparece em quatro números enormes que enchem a tela, com uma cruz preta no meio e a bolha do dia.
+
+**O que mudou**
+- Os números da hora ficam retos, todos da mesma altura, um em cada canto da tela, vazando pelas bordas como num mostrador de relógio de marca.
+- A bolha com o dia da semana e o dia do mês voltou, no lugar do modelo.
+- No celular, a tela de instalar e atualizar o relógio ganhou o mesmo anel de porcentagem do relógio, centralizada e sem o título cortado.
+
+**Por que importa para quem treina**
+- A hora se lê de relance, de longe, no meio da série.
+
+**Como usar**
+- No relógio, segure a tela até a hora aparecer e solte: ela fica 2 segundos e balança.
+
+**Ideias de vídeo**
+- O pulso girando para a câmera: a tela cheia de números coloridos aparece e balança ao soltar.
+
+**Não prometer**
+- Só no app do relógio novo (o celular atualiza o relógio) e em relógios Wear OS.
+
+---
+
 ## 2026-11-20m — A hora do relógio balança como geleia ao soltar
 
 **Em uma frase:** ao soltar o dedo depois de ver a hora, o relógio afunda no ponto do toque e volta balançando como geleia, enquanto um fio na borda mostra o tempo até voltar ao treino.

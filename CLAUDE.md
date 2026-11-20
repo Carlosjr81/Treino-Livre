@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v231) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v232) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4739,6 +4739,14 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   por segundo) até parar em 1,6 s. A malha viva só é refeita enquanto dura. Um
   fio no degradê da marca corre na borda e se apaga nos 2 s (o tempo até o
   treino voltar), e o pulso sente um "tum-tum" curto.
+  **O desenho virou o do modelo azul** (2026-11-20n, o dono: "preencha melhor a
+  tela igual ao modelo"): cada número com a mesma altura (`ALTURA` 0,45 da
+  tela; a Bodoni tem algarismos de alturas diferentes, e cada um é escalado),
+  retos (`INCLINACAO` 0,2 desfaz o itálico, `LARGURA` 1,3), encostados numa
+  cruz preta fina no meio (`CRUZ_ESQ`/`CRUZ_DIR`, `LINHA_CIMA`/`LINHA_BAIXO`),
+  vazando pelas bordas, esfera leve (0,2), e a bolha do dia de volta onde está
+  no modelo. Conferido num protótipo em canvas com a fonte e a esfera de
+  verdade (10:27, 23:59, 08:48).
 - **O celular se atualiza sozinho** (2026-11-20k, relato do dono: o site
   dizia "há o 143: atualizar", ele baixava, instalava e continuava no 141).
   O APK 143 publicado estava certo (mesma assinatura, `1.143` no
@@ -4785,7 +4793,11 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   calada**: sem notícia do celular em 45 s (ou 90 s no meio) diz o que fazer e
   mostra "Tentar de novo"; com "codigo" mostra "Abrir a Depuração". O app do
   relógio antigo não tem o painel: a primeira atualização para esta versão
-  ainda é pelo código.
+  ainda é pelo código. **O painel do celular** (2026-11-20n: "não está bem
+  enquadrado"): o mesmo anel do relógio (`AnelPct`) com a porcentagem no
+  meio, o painel no meio da tela quando é só ele, e a tela fora das barras do
+  Android (o Android 15 desenha por baixo delas, e o título saía cortado);
+  a tela de atualizar o celular (`AtualizarApp`) ganhou a mesma moldura.
 - **Botões com ação** (2026-11-20i, pedido do dono: "mais ação nos botões
   da configuração do relógio com o celular, e em todos os botões do
   relógio"). No relógio, todo botão (`botao()` da `TelaRelogio`) afunda no

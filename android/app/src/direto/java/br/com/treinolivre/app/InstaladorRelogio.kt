@@ -85,6 +85,8 @@ class InstaladorRelogio : ComponentActivity() {
     private lateinit var cartaoEstado: LinearLayout
     private lateinit var pctTexto: TextView
     private lateinit var barra: android.widget.ProgressBar
+    private lateinit var anel: AnelPct
+    private lateinit var caixaTela: LinearLayout
     private lateinit var etapasTexto: TextView
     @Volatile private var pctAgora = 0
     @Volatile private var etapaAgora = ""
@@ -141,6 +143,7 @@ class InstaladorRelogio : ComponentActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(22), dp(18), dp(28))
         }
+        caixaTela = caixa
         fun texto(tam: Float, cor: Int = Color.WHITE, negrito: Boolean = false, t: String = "") = TextView(this).apply {
             textSize = tam; setTextColor(cor); text = t
             setLineSpacing(0f, 1.2f)
@@ -177,8 +180,15 @@ class InstaladorRelogio : ComponentActivity() {
         progresso = texto(13f, CINZA).apply { gravity = Gravity.CENTER }
         etapasTexto = texto(14f).apply { setLineSpacing(0f, 1.45f) }
         deNovo = botaoCheio("🔁 Tentar de novo", ROSA).apply { visibility = View.GONE; setOnClickListener { tentarAuto() } }
-        cartaoEstado.addView(pctTexto)
-        cartaoEstado.addView(barra, lp(4))
+        // o anel com a porcentagem no meio, como no relógio (2026-11-20n)
+        anel = AnelPct(this)
+        val roda = android.widget.FrameLayout(this)
+        roda.addView(anel, android.widget.FrameLayout.LayoutParams(dp(210), dp(210), Gravity.CENTER))
+        roda.addView(pctTexto, android.widget.FrameLayout.LayoutParams(android.widget.FrameLayout.LayoutParams.WRAP_CONTENT, android.widget.FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER))
+        pctTexto.textSize = 44f
+        barra.visibility = View.GONE
+        cartaoEstado.addView(roda, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(214)).apply { topMargin = dp(6) })
+        cartaoEstado.addView(barra)
         cartaoEstado.addView(estado, lp(12))
         cartaoEstado.addView(progresso, lp(6))
         cartaoEstado.addView(etapasTexto, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(12) })
@@ -273,7 +283,19 @@ class InstaladorRelogio : ComponentActivity() {
         voltar.setOnClickListener { voltarAoSite("") }
         caixa.addView(voltar, lp(14))
 
-        setContentView(ScrollView(this).apply { setBackgroundColor(Color.parseColor("#0B0B0F")); addView(caixa) })
+        // Fora da barra de status e da de navegação (o Android 15 desenha por
+        // baixo delas: o título saía cortado no alto, no print do dono), e o
+        // conteúdo ocupa a altura toda, para o painel poder ficar no meio.
+        setContentView(ScrollView(this).apply {
+            setBackgroundColor(Color.parseColor("#0B0B0F"))
+            isFillViewport = true
+            addView(caixa, android.widget.FrameLayout.LayoutParams(android.widget.FrameLayout.LayoutParams.MATCH_PARENT, android.widget.FrameLayout.LayoutParams.MATCH_PARENT))
+            setOnApplyWindowInsetsListener { v, ins ->
+                @Suppress("DEPRECATION")
+                v.setPadding(ins.systemWindowInsetLeft, ins.systemWindowInsetTop, ins.systemWindowInsetRight, ins.systemWindowInsetBottom)
+                ins
+            }
+        })
         cabecalhoDiag()
         buscar()
         // O relógio diz o próprio endereço (o app dele abre a tela de atualizar
@@ -300,8 +322,10 @@ class InstaladorRelogio : ComponentActivity() {
             escondidos.forEach { it.visibility = View.GONE }
             val verDetalhes = botaoCheio("Ver os detalhes", Color.parseColor("#2A2A33"))
             verDetalhesAuto = verDetalhes
-            verDetalhes.setOnClickListener { escondidos.forEach { it.visibility = View.VISIBLE }; verDetalhes.visibility = View.GONE }
+            verDetalhes.setOnClickListener { escondidos.forEach { it.visibility = View.VISIBLE }; verDetalhes.visibility = View.GONE; caixa.gravity = Gravity.TOP }
             caixa.addView(verDetalhes, caixa.indexOfChild(cartaoEstado) + 1, lp(10))
+            // só o painel e os botões: tudo no meio da tela
+            caixa.gravity = Gravity.CENTER_VERTICAL
             fase("⬆ Atualizando o app do relógio…\n\nNão precisa fazer nada: deixe o relógio no pulso, perto do celular.")
             linha.postDelayed({ tentarAuto() }, 400L)
         } else if (auto) {
@@ -330,6 +354,7 @@ class InstaladorRelogio : ComponentActivity() {
             cartaoEstado.visibility = View.VISIBLE
             pctTexto.text = "$p%"
             if (Build.VERSION.SDK_INT >= 24) barra.setProgress(p, true) else barra.progress = p
+            anel.ir(p)
             estado.text = linhaTexto
             val parou = etapa == "erro" || etapa == "codigo"
             val idx = ETAPAS.indexOfFirst { it.first == etapaReal }
@@ -343,6 +368,7 @@ class InstaladorRelogio : ComponentActivity() {
             }
             pctTexto.setTextColor(if (parou) Color.parseColor("#FFB020") else if (etapa == "pronto") Color.parseColor("#4CD137") else Color.WHITE)
             barra.progressTintList = android.content.res.ColorStateList.valueOf(if (parou) Color.parseColor("#FFB020") else if (etapa == "pronto") Color.parseColor("#4CD137") else ROSA)
+            anel.cor(if (parou) Color.parseColor("#FFB020") else if (etapa == "pronto") Color.parseColor("#4CD137") else 0)
         }
         val agora = System.currentTimeMillis()
         if (mudouEtapa || agora - mandouRelogioEm > 1200L) {

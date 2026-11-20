@@ -83,6 +83,11 @@ class AtualizarApp : ComponentActivity() {
             Acao.vivo(this)
         }
         caixa.addView(botao, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(20) })
+        caixa.setOnApplyWindowInsetsListener { v, ins ->
+            @Suppress("DEPRECATION")
+            v.setPadding(dp(24) + ins.systemWindowInsetLeft, dp(24) + ins.systemWindowInsetTop, dp(24) + ins.systemWindowInsetRight, dp(24) + ins.systemWindowInsetBottom)
+            ins
+        }
         setContentView(caixa)
         if (intent?.action == STATUS) tratarStatus(intent) else comecar()
     }

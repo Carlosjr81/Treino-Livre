@@ -87,6 +87,7 @@ class HoraGeleia(contexto: Context) : View(contexto) {
     private val brilho = Paint(Paint.ANTI_ALIAS_FLAG).apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP) }
     private val malhaPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val fundo = Paint().apply { color = Color.BLACK }
+    private val bolha = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bolhaBorda = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val textoDia = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
@@ -233,14 +234,14 @@ class HoraGeleia(contexto: Context) : View(contexto) {
             ox = 0f; oy = 0f
         }
         // na tela retangular o número cresce com a altura (há mais espaço)
-        numero.textSize = (if (redonda) lado else min(alt, larg * 1.15f)) * TAMANHO
+        numero.textSize = lado * 0.6f
         contorno.strokeWidth = lado * BORDA * 2f
         linhaAmb.strokeWidth = 1.6f * d
         preench.shader = LinearGradient(ox, oy, ox + larg, oy + alt,
             intArrayOf(Color.parseColor("#FFB36B"), Cores.LARANJA, Cores.ROSA, Color.parseColor("#B05BFF")),
             floatArrayOf(0f, 0.3f, 0.65f, 1f), Shader.TileMode.CLAMP)
-        textoDia.textSize = lado * 0.05f
-        textoInfo.textSize = lado * 0.062f
+        textoDia.textSize = lado * 0.038f
+        textoInfo.textSize = lado * 0.08f
         bolhaBorda.strokeWidth = 1.5f * d
         horaFeita = ""
         chave = ""
@@ -295,9 +296,18 @@ class HoraGeleia(contexto: Context) : View(contexto) {
             val p = Path()
             numero.getTextPath(ch.toString(), 0, 1, 0f, 0f, p)
             p.computeBounds(b, true)
-            val cx = ox + larg * COLUNAS[i]
+            // Igual ao modelo azul (2026-11-20n): cada número na altura de um
+            // quadrante (a Bodoni tem algarismos de alturas diferentes: o 7 desce,
+            // o 6 sobe; aqui todos ficam da mesma altura), encostado na cruz preta
+            // do meio, vazando pelas bordas da tela.
             val emCima = i < 2
-            val dx = cx - b.centerX()
+            val esq = i % 2 == 0
+            val k = if (b.height() > 0f) alt * ALTURA / b.height() else 1f
+            val m = android.graphics.Matrix()
+            m.setScale(k, k, b.left, b.top)
+            p.transform(m)
+            p.computeBounds(b, true)
+            val dx = if (esq) ox + larg * CRUZ_ESQ - b.right else ox + larg * CRUZ_DIR - b.left
             val dy = if (emCima) oy + alt * LINHA_CIMA - b.bottom else oy + alt * LINHA_BAIXO - b.top
             p.offset(dx, dy)
             p.computeBounds(b, true)
@@ -412,8 +422,8 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         // pouco à direita e abaixo do meio, o dia da semana em cima e o dia
         // embaixo, centrados no meio da tela; a bolinha laranja na borda
         // esquerda. No descanso, "DESCANSO" e o tempo que falta, na cor dele.
-        val bx = ox + larg * 0.5f
-        val by = oy + alt * 0.13f
+        val bx = ox + larg * 0.573f
+        val by = oy + alt * 0.708f
         var esc = 1f
         if (vivo) {
             val tb = t - 0.25f
@@ -426,19 +436,25 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         if (esc > 0.01f) {
             c.save()
             c.scale(esc, esc, bx, by)
-            // uma linha: "SEX. 20", ou "DESCANSO 0:45" na cor do descanso
+            // a bolha do modelo: o dia da semana em cima e o dia embaixo; no
+            // descanso, "DESCANSO" e o tempo que falta, na cor dele
+            val raio = lado * 0.108f
+            if (ambiente) {
+                bolhaBorda.color = Cores.CINZA
+                c.drawCircle(bx, by, raio, bolhaBorda)
+            } else {
+                bolha.color = Color.argb(185, 34, 34, 42)
+                c.drawCircle(bx, by, raio, bolha)
+            }
             val extra = info?.invoke()
-            val cima = (extra?.let { "DESCANSO" } ?: SEMANA[cal.get(Calendar.DAY_OF_WEEK) - 1]) + "  "
+            val cima = extra?.let { "DESCANSO" } ?: SEMANA[cal.get(Calendar.DAY_OF_WEEK) - 1]
             val baixo = extra?.first ?: cal.get(Calendar.DAY_OF_MONTH).toString()
             textoDia.color = when { ambiente -> Cores.CINZA; extra != null -> extra.second; else -> Color.parseColor("#FFB36B") }
             textoInfo.color = when { ambiente -> Cores.CINZA; extra != null -> extra.second; else -> Color.WHITE }
-            textoDia.textAlign = Paint.Align.LEFT
-            textoInfo.textAlign = Paint.Align.LEFT
-            val w1 = textoDia.measureText(cima)
-            val w2 = textoInfo.measureText(baixo)
-            val x0 = bx - (w1 + w2) / 2f
-            c.drawText(cima, x0, by + lado * 0.02f, textoDia)
-            c.drawText(baixo, x0 + w1, by + lado * 0.02f, textoInfo)
+            textoDia.textAlign = Paint.Align.CENTER
+            textoInfo.textAlign = Paint.Align.CENTER
+            c.drawText(cima, bx, by - lado * 0.031f, textoDia)
+            c.drawText(baixo, bx, by + lado * 0.072f, textoInfo)
             c.restore()
         }
 
@@ -472,24 +488,28 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         // depois de soltar o dedo, a hora fica este tempo à vista (2026-11-20l,
         // o dono: "com o dedo na tela fica difícil ver a hora")
         const val FICA_MS = 2000L
-        // Os quatro números inteiros dentro da tela (2026-11-20l, o dono com o
-        // print do relógio: a versão que vazava da tela, como na máscara, não
-        // deixava ler a hora). Conferido num protótipo em canvas com a fonte e
-        // a esfera de verdade, com 14:57, 23:59 e 10:11.
-        const val TAMANHO = 0.34f
-        const val LARGURA = 1.15f
-        const val INCLINACAO = 0.10f
-        const val BORDA = 0.022f
-        // a base dos números de cima e o topo dos de baixo, em frações da tela
-        const val LINHA_CIMA = 0.49f
-        const val LINHA_BAIXO = 0.535f
+        // Igual ao modelo azul que o dono mandou (2026-11-20n: "preencha melhor
+        // a tela"): quatro números enormes, retos, cada um num quadrante, com
+        // uma cruz preta fina no meio, vazando pelas bordas. Conferido num
+        // protótipo em canvas com a fonte e a esfera de verdade (10:27, 23:59,
+        // 08:48). A 20l os pôs pequenos e inteiros; a 20f, grandes mas sem
+        // alinhar pela cruz, saíam cortados até não se ler.
+        // a altura de cada número, em fração da tela
+        const val ALTURA = 0.45f
+        // largura e o itálico desfeito (a Bodoni é itálica; positivo endireita)
+        const val LARGURA = 1.3f
+        const val INCLINACAO = 0.2f
+        const val BORDA = 0.012f
+        // a cruz: a base dos números de cima, o topo dos de baixo, e as bordas
+        // dos da esquerda e da direita, em frações da tela
+        const val LINHA_CIMA = 0.488f
+        const val LINHA_BAIXO = 0.512f
+        const val CRUZ_ESQ = 0.478f
+        const val CRUZ_DIR = 0.512f
         const val ATRASO = 0.06f
-        // a esfera: 0 é plano, 1 é a curva inteira de uma bola (mais que isto
-        // aumenta o meio e corta os números na borda)
-        const val ESFERA = 0.25f
+        // a esfera: 0 é plano, 1 é a curva inteira de uma bola
+        const val ESFERA = 0.2f
         const val MALHA = 28
-        // o itálico puxa a linha de baixo para a esquerda: ela vai um pouco à direita
-        val COLUNAS = floatArrayOf(0.39f, 0.62f, 0.41f, 0.645f)
         val SEMANA = arrayOf("DOM.", "SEG.", "TER.", "QUA.", "QUI.", "SEX.", "SÁB.")
     }
 }

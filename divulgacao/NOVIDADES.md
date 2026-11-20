@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-20m — A hora do relógio balança como geleia ao soltar
+
+**Em uma frase:** ao soltar o dedo depois de ver a hora, o relógio afunda no ponto do toque e volta balançando como geleia, enquanto um fio na borda mostra o tempo até voltar ao treino.
+
+**O que mudou**
+- Onde o dedo sai, a hora afunda e volta passando do ponto, e a tela toda balança até parar.
+- Um fio colorido na borda vai se apagando nos 2 segundos em que a hora fica à vista.
+- Um toque curto no pulso confirma que soltou.
+
+**Por que importa para quem treina**
+- Dá tempo e graça para ler a hora sem o dedo na frente, e chama a atenção de quem está em volta.
+
+**Como usar**
+- No relógio, segure a tela até a hora aparecer e solte.
+
+**Ideias de vídeo**
+- Câmera lenta no pulso: o dedo solta, a hora "afunda" e balança, e o treino volta.
+
+**Não prometer**
+- Só no app do relógio novo (o celular atualiza o relógio) e em relógios Wear OS.
+
+---
+
 ## 2026-11-20l — A hora do relógio, inteira e sem o dedo na frente
 
 **Em uma frase:** ao segurar a tela do relógio, a hora aparece inteira e legível, e fica 2 segundos depois de soltar o dedo.

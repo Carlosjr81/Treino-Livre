@@ -454,7 +454,14 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 linha.removeCallbacks(segurarR)
                 if (engolir) { engolir = false; return true }
-                if (segurando) { segurando = false; onUserInteraction(); hora.soltar(); return true }
+                if (segurando) {
+                    segurando = false; onUserInteraction()
+                    // a pressão no ponto em que o dedo saiu, com um "tum" no pulso
+                    val p = IntArray(2).also { hora.getLocationInWindow(it) }
+                    hora.soltar(ev.x - p[0], ev.y - p[1])
+                    try { getSystemService(Vibrator::class.java)?.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 28, 150, 18), intArrayOf(0, 200, 0, 90), -1)) } catch (e: Exception) { }
+                    return true
+                }
             }
         }
         if (segurando || engolir) return true

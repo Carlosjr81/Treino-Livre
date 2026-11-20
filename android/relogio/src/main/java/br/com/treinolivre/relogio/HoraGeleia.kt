@@ -116,6 +116,17 @@ class HoraGeleia(contexto: Context) : View(contexto) {
     private var camada: Bitmap? = null
     private var tela: Canvas? = null
     private var malha = FloatArray(0)
+    // A pressão ao soltar (2026-11-20m, pedido do dono: "ação e animação para
+    // eu ver as horas antes de voltar ao treino"): onde o dedo saiu, a esfera
+    // afunda e volta balançando como geleia, e a tela toda estica e achata até
+    // parar. A malha viva é a da esfera mais essa deformação, refeita a cada
+    // quadro só enquanto ela dura.
+    private var malhaViva = FloatArray(0)
+    private var soltouEm = 0L
+    private var pressX = 0f
+    private var pressY = 0f
+    private val fio = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
+    private val caixaFio = RectF()
     private var chave = ""
     private val escalas = FloatArray(8)
 
@@ -125,6 +136,7 @@ class HoraGeleia(contexto: Context) : View(contexto) {
     fun mostrar() {
         if (ambiente) return
         if (mostrando && saindoEm == 0L) return
+        soltouEm = 0L
         mostrando = true
         inicio = SystemClock.uptimeMillis()
         saindoEm = 0L
@@ -148,6 +160,7 @@ class HoraGeleia(contexto: Context) : View(contexto) {
     fun esconderJa() {
         removeCallbacks(sumir)
         if (!mostrando) { if (!ambiente) visibility = GONE; return }
+        soltouEm = 0L
         mostrando = false
         saindoEm = 0L
         if (!ambiente) visibility = GONE
@@ -170,10 +183,42 @@ class HoraGeleia(contexto: Context) : View(contexto) {
     val aberta: Boolean get() = mostrando && saindoEm == 0L
 
     // soltou o dedo: fica FICA_MS à vista, sem o dedo na frente, e então sai
-    fun soltar() {
+    fun soltar(x: Float = width / 2f, y: Float = height / 2f) {
         if (!mostrando || saindoEm != 0L) return
         removeCallbacks(sumir)
         postDelayed(sumir, FICA_MS)
+        soltouEm = SystemClock.uptimeMillis()
+        pressX = x; pressY = y
+        postInvalidateOnAnimation()
+    }
+
+    // a esfera pressionada no ponto (pressX, pressY) e o balanço da geleia
+    private fun deformar(tt: Float): FloatArray {
+        if (malhaViva.size != malha.size) malhaViva = FloatArray(malha.size)
+        // o afundar no ponto: puxa para ele, passa do ponto e volta, amortecendo
+        val k = 0.32f * exp(-3.4f * tt) * kotlin.math.cos(2f * PI.toFloat() * 2.3f * tt)
+        // o balanço da tela toda: estica na largura e achata na altura, e o contrário
+        val w = 0.07f * exp(-2.6f * tt) * sin(2f * PI.toFloat() * 1.7f * tt)
+        val sx = 1f + w
+        val sy = 1f - w
+        val cx = width / 2f
+        val cy = height / 2f
+        val alcance = lado * 0.38f
+        var i = 0
+        while (i < malha.size) {
+            var x = malha[i]
+            var y = malha[i + 1]
+            val dx = x - pressX
+            val dy = y - pressY
+            val q = (dx * dx + dy * dy) / (alcance * alcance)
+            val g = exp(-q)
+            x -= dx * g * k
+            y -= dy * g * k
+            malhaViva[i] = cx + (x - cx) * sx
+            malhaViva[i + 1] = cy + (y - cy) * sy
+            i += 2
+        }
+        return malhaViva
     }
 
     override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
@@ -347,7 +392,19 @@ class HoraGeleia(contexto: Context) : View(contexto) {
                     tc.drawRect(0f, 0f, bm.width.toFloat(), bm.height.toFloat(), brilho)
                 }
             }
-            c.drawBitmapMesh(bm, MALHA, MALHA, malha, 0, null, 0, malhaPaint)
+            val tt = if (soltouEm > 0L && vivo) (agora - soltouEm) / 1000f else -1f
+            val pontos = if (tt in 0f..1.6f) deformar(tt) else malha
+            c.drawBitmapMesh(bm, MALHA, MALHA, pontos, 0, null, 0, malhaPaint)
+            // o fio da borda: o tempo que falta para o treino voltar
+            if (tt >= 0f && tSai < 0f) {
+                val resta = (1f - (agora - soltouEm) / FICA_MS.toFloat()).coerceIn(0f, 1f)
+                val m = lado * 0.022f
+                fio.strokeWidth = lado * 0.018f
+                fio.shader = preench.shader
+                if (redonda) caixaFio.set(ox + m, oy + m, ox + lado - m, oy + lado - m)
+                else caixaFio.set(m, m, width - m, height - m)
+                c.drawArc(caixaFio, -90f, 360f * resta, false, fio)
+            }
         }
 
         // O dia (ou o descanso) numa linha em cima, longe dos números (2026-11-20l);

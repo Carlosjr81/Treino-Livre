@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v230) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v231) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4730,7 +4730,15 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   canvas com a fonte e a esfera de verdade), o dia vai numa linha só em cima
   ("SEX.  20", ou "DESCANSO 0:45"), e **ao soltar o dedo a hora fica 2 s**
   (`FICA_MS`, `soltar`); um toque nesse meio tempo a fecha e não chega ao
-  botão embaixo (`engolir`).
+  botão embaixo (`engolir`). **A pressão ao soltar** (2026-11-20m, pedido do
+  dono: "ação e animação para ver as horas antes de voltar ao treino"; ele
+  sugeriu balanço ou pressão pontual, e foram as duas): no ponto em que o dedo
+  saiu, a esfera afunda e volta passando do ponto, amortecendo (`deformar`: os
+  pontos da malha puxados para ali por uma gaussiana de 0,38 da tela, força
+  0,32·e^(−3,4t)·cos(2π·2,3t)), e a tela toda estica e achata (±7%, 1,7 vez
+  por segundo) até parar em 1,6 s. A malha viva só é refeita enquanto dura. Um
+  fio no degradê da marca corre na borda e se apaga nos 2 s (o tempo até o
+  treino voltar), e o pulso sente um "tum-tum" curto.
 - **O celular se atualiza sozinho** (2026-11-20k, relato do dono: o site
   dizia "há o 143: atualizar", ele baixava, instalava e continuava no 141).
   O APK 143 publicado estava certo (mesma assinatura, `1.143` no

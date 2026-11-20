@@ -290,9 +290,16 @@
   .rs-anel   { position: absolute; left: 50%; top: 46%; width: 240vmax; height: 240vmax; border-radius: 50%; pointer-events: none;
                border: 10px solid #DD2A7B; box-shadow: 0 0 40px 8px rgba(124,255,60,.5), inset 0 0 40px 8px rgba(254,218,117,.4);
                animation: rsAnel .62s cubic-bezier(.5,0,.3,1) both; }
-  .rs-persiana > div { position: absolute; left: 0; right: 0; background: #060606; pointer-events: none;
+  .rs-persiana > div { position: absolute; left: 0; right: 0; background: #12051F; pointer-events: none;
                animation: rsPersiana .5s cubic-bezier(.6,0,.3,1) both; }
+  @keyframes rsPalma   { 0%, 100% { transform: rotate(-1.4deg); } 50% { transform: rotate(1.4deg); } }
+  @keyframes rsGiraAnel { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+  @keyframes rsEstrela { 0% { transform: scale(2.4); opacity: 0; } 60% { transform: scale(.9); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  .rs-palma  { animation: rsPalma 5.5s ease-in-out infinite; transform-box: view-box; }
+  .rs-anel-relogio { animation: rsGiraAnel 7s linear infinite; }
+  .rs-estrela { display: inline-block; animation: rsEstrela .45s cubic-bezier(.2,.9,.3,1.2) both; }
   @media (prefers-reduced-motion: reduce) {
+    .rs-palma, .rs-anel-relogio, .rs-estrela { animation: none; }
     .rs-raia, .rs-brilho, .rs-faixa, .rs-anel, .rs-persiana { display: none; }
     .rs-bate, .rs-t-corte, .rs-t-iris, .rs-t-zoom { animation: none; }
   }
@@ -1738,7 +1745,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-20t";
+const VERSAO_APP = "2026-11-20u";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -26603,8 +26610,111 @@ function useSobe(alvo, ms) {
   return v;
 }
 
-const ROTULO_RESUMO = { fontSize: 11.5, color: "#7CFF3C", fontWeight: 800, letterSpacing: 1.8, textTransform: "uppercase" };
-const NUMERO_RESUMO = { ...S.logo, fontSize: 76, lineHeight: 1.05, fontVariantNumeric: "tabular-nums" };
+// O visual do resumo (2026-11-20u, pedido do dono): a identidade do relógio
+// (o anel em degradê da marca girando, os números grossos com contorno) num
+// cenário de cidade de praia ao pôr do sol, no clima dos jogos de mundo aberto:
+// céu roxo, sol listrado, palmeiras, o chão em grade neon, as estrelas no topo
+// e o carimbo de missão. Só elementos genéricos do gênero: nenhum nome, logo,
+// fonte ou personagem de jogo nenhum.
+// A geometria vive numa tela de 1080×1920 (a do story): a tela do app desenha
+// o mesmo SVG, e o vídeo os mesmos caminhos (Path2D) no canvas.
+const CENARIO_NEON = {
+  horizonte: 1480, sol: { x: 540, y: 1330, r: 270 },
+  ceu: [[0, "#0B0418"], [0.42, "#24093F"], [0.64, "#5A1863"], [0.74, "#B8306E"], [0.771, "#F58529"]],
+  solCores: [[0, "#FFE36E"], [0.5, "#F58529"], [1, "#E1306C"]],
+  palmeiras: [{ x: 70, h: 900, lado: 1, fase: 0 }, { x: 205, h: 560, lado: 1, fase: 1.7 }, { x: 1015, h: 760, lado: -1, fase: 0.9 }, { x: 880, h: 430, lado: -1, fase: 2.4 }],
+};
+// as faixas que cortam o sol, mais largas perto do horizonte
+const FAIXAS_SOL = [[1352, 10], [1392, 15], [1428, 21], [1462, 28]];
+// uma palmeira: o tronco curvo e afinando, e as folhas caindo em arco
+function caminhoPalmeira(x, base, h, lado) {
+  const tx = x + lado * h * 0.22, ty = base - h;
+  const r = (v) => Math.round(v);
+  let d = "M" + r(x - 26) + " " + base + " Q" + r(x - 18 + lado * h * 0.04) + " " + r(base - h * 0.55) + " " + r(tx - 9) + " " + r(ty) +
+    " L" + r(tx + 9) + " " + r(ty) + " Q" + r(x + 18 + lado * h * 0.04) + " " + r(base - h * 0.55) + " " + r(x + 26) + " " + base + " Z";
+  const L = h * 0.42;
+  [-172, -146, -118, -88, -58, -30, -6].forEach((g, k) => {
+    const a = (g * Math.PI) / 180, comp = L * (k % 2 ? 0.86 : 1);
+    const px = tx + Math.cos(a) * comp, py = ty + Math.sin(a) * comp + comp * 0.48;
+    const mx = (tx + px) / 2, my = (ty + py) / 2 - comp * 0.32;
+    const nx = -Math.sin(a), ny = Math.cos(a), w = comp * 0.13;
+    d += " M" + r(tx) + " " + r(ty) + " Q" + r(mx + nx * w) + " " + r(my + ny * w) + " " + r(px) + " " + r(py) +
+      " Q" + r(mx - nx * w * 0.3) + " " + r(my - ny * w * 0.3 + comp * 0.06) + " " + r(tx) + " " + r(ty) + " Z";
+  });
+  return d;
+}
+// as linhas do chão em perspectiva (as verticais saem do ponto de fuga)
+function linhasChaoNeon() {
+  const H = CENARIO_NEON.horizonte, l = [];
+  for (let k = -9; k <= 9; k++) l.push([540 + k * 34, H, 540 + k * 300, 1920]);
+  return l;
+}
+// O fundo da tela: o mesmo desenho do vídeo, em SVG
+function CenarioNeon({ animar }) {
+  const N = CENARIO_NEON, H = N.horizonte;
+  return (
+    <svg aria-hidden="true" viewBox="0 0 1080 1920" preserveAspectRatio="xMidYMax slice"
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+      <defs>
+        <linearGradient id="cn-ceu" x1="0" y1="0" x2="0" y2="1">
+          {N.ceu.map(([o, cor]) => <stop key={o} offset={(o * 1920 / H)} stopColor={cor} />)}
+        </linearGradient>
+        <linearGradient id="cn-sol" x1="0" y1="0" x2="0" y2="1">
+          {N.solCores.map(([o, cor]) => <stop key={o} offset={o} stopColor={cor} />)}
+        </linearGradient>
+        <mask id="cn-faixas">
+          <rect x="0" y="0" width="1080" height={H} fill="#fff" />
+          {FAIXAS_SOL.map(([y, a]) => <rect key={y} x="0" y={y} width="1080" height={a} fill="#000" />)}
+        </mask>
+        <radialGradient id="cn-meio" cx="50%" cy="46%" r="55%">
+          <stop offset="0" stopColor="#06020E" stopOpacity=".72" /><stop offset="1" stopColor="#06020E" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect x="0" y="0" width="1080" height={H} fill="url(#cn-ceu)" />
+      <circle cx={N.sol.x} cy={N.sol.y} r={N.sol.r + 70} fill="#F58529" opacity=".18" />
+      <circle cx={N.sol.x} cy={N.sol.y} r={N.sol.r} fill="url(#cn-sol)" mask="url(#cn-faixas)" opacity=".92" />
+      <rect x="0" y={H} width="1080" height={1920 - H} fill="#12051F" />
+      <rect x="0" y={H - 3} width="1080" height="6" fill="#FF5FA2" opacity=".9" />
+      <g stroke="#E1306C" strokeWidth="3" opacity=".55">
+        {linhasChaoNeon().map(([x1, y1, x2, y2], k) => <line key={k} x1={x1} y1={y1} x2={x2} y2={y2} />)}
+        {[0, 1, 2, 3, 4, 5, 6].map((k) => { const y = H + Math.pow(k / 6, 2) * (1920 - H); return <line key={"h" + k} x1="0" y1={y} x2="1080" y2={y} />; })}
+      </g>
+      {N.palmeiras.map((p, k) => (
+        <path key={k} className={animar ? "rs-palma" : ""} d={caminhoPalmeira(p.x, H + 40, p.h, p.lado)} fill="#07020D"
+          style={{ transformOrigin: p.x + "px " + (H + 40) + "px", animationDelay: -p.fase + "s" }} />
+      ))}
+      <rect x="0" y="0" width="1080" height="1920" fill="url(#cn-meio)" />
+    </svg>
+  );
+}
+// O anel do relógio: o degradê da marca girando, com a luz correndo nele
+function AnelRelogioResumo() {
+  return (
+    <div aria-hidden="true" className="rs-anel-relogio" style={{ position: "absolute", left: "50%", top: "46%", width: "min(88vw, 400px)",
+      aspectRatio: "1", transform: "translate(-50%, -50%)", borderRadius: "50%", pointerEvents: "none",
+      background: "conic-gradient(from 0deg, #F58529, #E1306C, #B05BFF, #4DEBFF, #F58529)",
+      WebkitMaskImage: "radial-gradient(circle, transparent 64%, #000 65.5%, #000 69%, transparent 70.5%)",
+      maskImage: "radial-gradient(circle, transparent 64%, #000 65.5%, #000 69%, transparent 70.5%)",
+      filter: "drop-shadow(0 0 12px rgba(225,48,108,.8))", opacity: 0.6 }} />
+  );
+}
+// As estrelas do topo, acendendo conforme o resumo anda
+function EstrelasResumo({ acesas }) {
+  return (
+    <div aria-hidden="true" style={{ position: "absolute", top: 26, left: 14, display: "flex", gap: 3, zIndex: 3 }}>
+      {[0, 1, 2, 3, 4].map((k) => (
+        <span key={k} className={k < acesas ? "rs-estrela" : ""} style={{ fontSize: 22, lineHeight: 1, fontWeight: 900,
+          color: k < acesas ? "#FFD23F" : "rgba(255,255,255,.14)", animationDelay: k * 0.08 + "s",
+          textShadow: k < acesas ? "-2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000, 0 0 12px rgba(255,210,63,.8)" : "none" }}>★</span>
+      ))}
+    </div>
+  );
+}
+// o contorno grosso dos números e do carimbo (o dos números do relógio)
+const CONTORNO_RESUMO = "-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 -3px 0 #000, 0 3px 0 #000, -3px 0 0 #000, 3px 0 0 #000, 0 7px 0 #000";
+const ROTULO_RESUMO = { fontSize: 11.5, color: "#4DEBFF", fontWeight: 900, letterSpacing: 1.8, textTransform: "uppercase", textShadow: "0 0 10px rgba(77,235,255,.55), 0 2px 0 #000" };
+const NUMERO_RESUMO = { ...S.logo, fontSize: 76, lineHeight: 1.05, fontVariantNumeric: "tabular-nums", fontStyle: "italic", fontWeight: 900,
+  padding: "0 12px", WebkitTextStroke: "2px #000", filter: "drop-shadow(0 5px 0 #000) drop-shadow(0 0 18px rgba(225,48,108,.65))" };
 
 function MapaResumo({ trechos }) {
   // projeção plana: num percurso de alguns quilômetros a curvatura não aparece
@@ -26658,11 +26768,11 @@ function EfeitosCena({ forte, atraso }) {
 }
 // O carimbo da superação: bate por cima quando o número termina de subir
 function GritoResumo({ texto, cor, atraso }) {
-  const k = cor || "#7CFF3C";
+  const k = cor || "#FFD23F";
   return (
-    <div className="rs-grito" style={{ display: "inline-block", marginTop: 24, padding: "8px 18px", borderRadius: 10, border: "3px solid " + k,
-      color: k, fontWeight: 900, fontSize: 19, letterSpacing: 1.5, textTransform: "uppercase", background: "rgba(6,6,6,.82)",
-      textShadow: "0 0 16px " + k + "99", boxShadow: "0 0 26px " + k + "44, inset 0 0 14px " + k + "33",
+    <div className="rs-grito" style={{ display: "inline-block", marginTop: 26, padding: "0 10px", color: k, fontWeight: 900, fontSize: 30,
+      fontStyle: "italic", letterSpacing: 0.5, lineHeight: 1.1, textTransform: "uppercase",
+      textShadow: CONTORNO_RESUMO + ", 0 0 26px " + k + "AA",
       ...(atraso != null ? { animationDelay: atraso + "s" } : {}) }}>{texto}</div>
   );
 }
@@ -26697,7 +26807,7 @@ function CenaResumo({ c }) {
     return (
       <div style={{ textAlign: "center", padding: "0 24px", width: "100%", maxWidth: 360 }}>
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
-        <div className="rs-grito" style={{ ...S.logo, display: "inline-block", fontSize: 46, lineHeight: 1.08, marginTop: 12, animationDelay: ".3s" }}>{c.titulo}</div>
+        <div className="rs-grito" style={{ ...NUMERO_RESUMO, display: "inline-block", fontSize: 46, lineHeight: 1.08, marginTop: 12, animationDelay: ".3s" }}>{c.titulo}</div>
         <div style={{ display: "inline-block", textAlign: "left", marginTop: 8 }}>
           {c.itens.map((x, k) => (
             <div key={k} className="rs-marca" style={{ display: "flex", alignItems: "center", gap: 10, color: "#F2F0EC", fontSize: 17, fontWeight: 800, marginTop: 12, animationDelay: 0.9 + k * 0.22 + "s" }}>
@@ -26715,7 +26825,7 @@ function CenaResumo({ c }) {
     return (
       <div style={{ textAlign: "center", padding: "0 24px" }}>
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
-        <div style={{ ...S.logo, fontSize: 40, lineHeight: 1.15, margin: "14px 0 10px" }}>{c.titulo}</div>
+        <div style={{ ...NUMERO_RESUMO, fontSize: 40, lineHeight: 1.15, margin: "14px 0 10px" }}>{c.titulo}</div>
         <div style={{ color: "#BDBDBD", fontSize: 15, fontWeight: 700 }}>{c.dia}</div>
         {c.sub && <div style={{ color: "#8a8a8a", fontSize: 13.5, fontWeight: 700, marginTop: 6 }}>{c.sub}</div>}
       </div>
@@ -26910,7 +27020,10 @@ function CenaResumo({ c }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <div className="rs-bate" style={{ animationDelay: ".3s" }}><LogoBrilho largura={210} atraso={1.1} /></div>
-      <div className="rs-marca" style={{ textAlign: "center", marginTop: 14 }}>
+      <GritoResumo texto="Missão cumprida" atraso={0.9} />
+      <div className="rs-marca" style={{ color: "#7CFF3C", fontSize: 17, fontWeight: 900, fontStyle: "italic", letterSpacing: 1, marginTop: 8,
+        textShadow: "0 2px 0 #000, 0 0 12px rgba(124,255,60,.6)", animationDelay: "1.3s" }}>+ RESPEITO</div>
+      <div className="rs-marca" style={{ textAlign: "center", marginTop: 12, animationDelay: "1.5s" }}>
         <div style={{ color: "#F2F0EC", fontSize: 15, fontWeight: 800 }}>Cada treino é um desafio vencido.</div>
         <div style={{ ...ROTULO_RESUMO, marginTop: 7 }}>{c.fala.replace(/\.$/, "").replace(". ", " · ")}</div>
       </div>
@@ -26959,18 +27072,28 @@ function videoGradiente(c, x0, x1) {
   return g;
 }
 function videoTexto(c, txt, x, y, tam, cor, peso, largMax) {
-  c.font = (peso || 900) + " " + tam + "px " + VIDEO_FONTE;
+  // o número grande em degradê é o do relógio: inclinado, com o contorno preto
+  const forte = cor === "grad" && tam >= 90, est = forte ? "italic " : "";
+  c.font = est + (peso || 900) + " " + tam + "px " + VIDEO_FONTE;
   let t = tam;
   // encolhe até caber: número grande não pode sair da tela
-  while (largMax && c.measureText(txt).width > largMax && t > 24) { t -= 4; c.font = (peso || 900) + " " + t + "px " + VIDEO_FONTE; }
+  while (largMax && c.measureText(txt).width > largMax && t > 24) { t -= 4; c.font = est + (peso || 900) + " " + t + "px " + VIDEO_FONTE; }
   const w = c.measureText(txt).width;
+  if (forte) {
+    c.save(); c.lineJoin = "round"; c.strokeStyle = "#000"; c.lineWidth = Math.max(8, t * 0.09);
+    c.strokeText(txt, x, y + t * 0.06); c.strokeText(txt, x, y);
+    c.restore();
+    c.save(); c.shadowColor = "rgba(225,48,108,.7)"; c.shadowBlur = 30;
+  }
   c.fillStyle = cor === "grad" ? videoGradiente(c, x - w / 2, x + w / 2) : cor;
   c.fillText(txt, x, y);
+  if (forte) c.restore();
 }
 function videoRotulo(c, txt, y) {
   c.save();
   if ("letterSpacing" in c) c.letterSpacing = "6px";
-  videoTexto(c, txt.toUpperCase(), 540, y, 34, "#7CFF3C", 800);
+  c.shadowColor = "rgba(77,235,255,.6)"; c.shadowBlur = 18;
+  videoTexto(c, txt.toUpperCase(), 540, y, 34, "#4DEBFF", 900);
   c.restore();
 }
 // quebra em linhas que caibam; devolve a altura usada
@@ -27138,7 +27261,7 @@ function videoCenaInteira(c, cena, p, t) {
   if (clarao > 0) { c.fillStyle = "rgba(255,255,255," + clarao + ")"; c.fillRect(0, 0, 1080, 1920); }
 }
 // O fundo de novo, dentro de um recorte: a cena nova não pode deixar ver a velha
-function videoLimpa(c, t) { c.fillStyle = "#060606"; c.fillRect(0, 0, 1080, 1920); videoFundo(c, t); }
+function videoLimpa(c, t) { c.fillStyle = "#0B0418"; c.fillRect(0, 0, 1080, 1920); videoFundo(c, t); }
 // A passagem de uma cena para a outra (e de 0 a 1)
 function videoTransicao(c, tipo, e, t, velha, nova) {
   const k = suave(e);
@@ -27194,15 +27317,79 @@ function videoTransicao(c, tipo, e, t, velha, nova) {
   }
 }
 // O fundo respira: duas luzes da marca passeando atrás das cenas
+// o pôr do sol neon (o mesmo CENARIO_NEON da tela): céu, sol listrado, chão
+// em grade andando na direção de quem olha, palmeiras balançando, e o anel do
+// relógio girando atrás das cenas. Tudo função do tempo: o mesmo quadro sai
+// igual em qualquer aparelho.
 function videoFundo(c, t) {
-  const s = t / 1000;
-  const luz = (x, y, r, cor) => {
-    const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, cor); g.addColorStop(1, "rgba(6,6,6,0)");
-    c.fillStyle = g; c.fillRect(x - r, y - r, 2 * r, 2 * r);
-  };
-  luz(540 + 280 * Math.sin(s * 0.7), 760 + 200 * Math.cos(s * 0.5), 640, "rgba(221,42,123,0.20)");
-  luz(540 - 300 * Math.sin(s * 0.6 + 1), 1260 + 180 * Math.sin(s * 0.8), 600, "rgba(129,52,175,0.22)");
-  luz(540 + 200 * Math.cos(s * 0.9), 980, 440, "rgba(124,255,60,0.05)");
+  const N = CENARIO_NEON, H = N.horizonte, s = t / 1000;
+  c.save();
+  let g = c.createLinearGradient(0, 0, 0, H);
+  N.ceu.forEach(([o, cor]) => g.addColorStop(Math.min(1, (o * 1920) / H), cor));
+  c.fillStyle = g; c.fillRect(0, 0, 1080, H);
+  // o sol, com o halo e as faixas
+  c.globalAlpha = 0.18; c.fillStyle = "#F58529"; c.beginPath(); c.arc(N.sol.x, N.sol.y, N.sol.r + 70, 0, Math.PI * 2); c.fill();
+  c.globalAlpha = 0.92;
+  c.save();
+  // o recorte deixa as faixas de fora: o céu aparece por elas
+  c.beginPath();
+  let topo = 0;
+  FAIXAS_SOL.forEach(([y, a]) => { c.rect(0, topo, 1080, y - topo); topo = y + a; });
+  c.rect(0, topo, 1080, H - topo);
+  c.clip();
+  g = c.createLinearGradient(0, N.sol.y - N.sol.r, 0, N.sol.y + N.sol.r);
+  N.solCores.forEach(([o, cor]) => g.addColorStop(o, cor));
+  c.fillStyle = g; c.beginPath(); c.arc(N.sol.x, N.sol.y, N.sol.r, 0, Math.PI * 2); c.fill();
+  c.restore();
+  c.globalAlpha = 1;
+  // o chão
+  c.fillStyle = "#12051F"; c.fillRect(0, H, 1080, 1920 - H);
+  c.strokeStyle = "rgba(225,48,108,.55)"; c.lineWidth = 3;
+  c.beginPath();
+  linhasChaoNeon().forEach(([x1, y1, x2, y2]) => { c.moveTo(x1, y1); c.lineTo(x2, y2); });
+  const fase = (s * 0.6) % 1;
+  for (let k = 0; k < 7; k++) { const y = H + Math.pow((k + fase) / 6, 2) * (1920 - H); c.moveTo(0, y); c.lineTo(1080, y); }
+  c.stroke();
+  c.fillStyle = "rgba(255,95,162,.9)"; c.fillRect(0, H - 3, 1080, 6);
+  // as palmeiras, balançando presas na base
+  c.fillStyle = "#07020D";
+  N.palmeiras.forEach((p) => {
+    c.save(); c.translate(p.x, H + 40); c.rotate((1.4 * Math.PI / 180) * Math.sin((s + p.fase) * (2 * Math.PI / 5.5))); c.translate(-p.x, -(H + 40));
+    c.fill(new Path2D(caminhoPalmeira(p.x, H + 40, p.h, p.lado)));
+    c.restore();
+  });
+  // escurece o meio, onde ficam os números
+  g = c.createRadialGradient(540, 883, 0, 540, 883, 1100);
+  g.addColorStop(0, "rgba(6,2,14,.72)"); g.addColorStop(1, "rgba(6,2,14,0)");
+  c.fillStyle = g; c.fillRect(0, 0, 1080, 1920);
+  // o anel do relógio
+  c.translate(540, 900); c.rotate(s * (2 * Math.PI / 7));
+  let anel;
+  if (c.createConicGradient) {
+    anel = c.createConicGradient(0, 0, 0);
+    [["#F58529", 0], ["#E1306C", 0.25], ["#B05BFF", 0.5], ["#4DEBFF", 0.75], ["#F58529", 1]].forEach(([cor, o]) => anel.addColorStop(o, cor));
+  } else anel = videoGradiente(c, -440, 440);
+  c.globalAlpha = 0.55; c.strokeStyle = anel; c.lineWidth = 16; c.shadowColor = "#E1306C"; c.shadowBlur = 30;
+  c.beginPath(); c.arc(0, 0, 440, 0, Math.PI * 2); c.stroke();
+  // a luz correndo no anel
+  c.globalAlpha = 0.9; c.fillStyle = "#FFFFFF"; c.shadowColor = "#FFFFFF"; c.shadowBlur = 40;
+  c.beginPath(); c.arc(440, 0, 11, 0, Math.PI * 2); c.fill();
+  c.restore();
+}
+// as estrelas do topo, acendendo conforme o vídeo anda
+function videoEstrelas(c, acesas, p) {
+  c.save(); c.textAlign = "center"; c.textBaseline = "middle"; c.font = "900 64px " + VIDEO_FONTE;
+  for (let k = 0; k < 5; k++) {
+    const x = 90 + k * 78, y = 140;
+    if (k < acesas) {
+      const q = Math.max(0, Math.min(1, (p - k * 80) / 450)), e = q < 0.6 ? 2.4 - 1.5 * (q / 0.6) : 0.9 + 0.1 * ((q - 0.6) / 0.4);
+      c.save(); c.translate(x, y); c.scale(e, e);
+      c.lineWidth = 8; c.strokeStyle = "#000"; c.lineJoin = "round"; c.strokeText("★", 0, 0);
+      c.shadowColor = "rgba(255,210,63,.9)"; c.shadowBlur = 24; c.fillStyle = "#FFD23F"; c.fillText("★", 0, 0);
+      c.restore();
+    } else { c.fillStyle = "rgba(255,255,255,.14)"; c.fillText("★", x, y); }
+  }
+  c.restore();
 }
 // Raios dourados girando atrás da cena forte
 function videoRaios(c, cx, cy, t, a) {
@@ -27240,18 +27427,18 @@ function videoGrito(c, txt, y, q, cor) {
   if (q < 0 || !txt) return;
   const k = Math.min(1, q / 550);
   const s = k < 0.55 ? 2.6 - 1.68 * sobe(k / 0.55) : k < 0.75 ? 0.92 + 0.13 * ((k - 0.55) / 0.2) : 1.05 - 0.05 * ((k - 0.75) / 0.25);
-  cor = cor || "#7CFF3C";
+  cor = cor || "#FFD23F";
   txt = txt.toUpperCase();
   c.save();
   c.globalAlpha = Math.min(1, q / 200);
   c.translate(540, y); c.rotate((-3 * Math.PI) / 180); c.scale(s, s);
-  if ("letterSpacing" in c) c.letterSpacing = "4px";
-  let tam = 54; c.font = "900 " + tam + "px " + VIDEO_FONTE;
-  while (c.measureText(txt).width > 860 && tam > 30) { tam -= 4; c.font = "900 " + tam + "px " + VIDEO_FONTE; }
-  const w = c.measureText(txt).width + 64, h = tam + 40;
-  c.fillStyle = "rgba(6,6,6,.85)"; c.strokeStyle = cor; c.lineWidth = 7; c.shadowColor = cor; c.shadowBlur = 36;
-  c.beginPath(); arredondado(c, -w / 2, -h / 2, w, h, 18); c.fill(); c.stroke();
-  c.shadowBlur = 26; c.fillStyle = cor; c.textAlign = "center"; c.textBaseline = "middle";
+  if ("letterSpacing" in c) c.letterSpacing = "2px";
+  let tam = 84; c.font = "italic 900 " + tam + "px " + VIDEO_FONTE;
+  while (c.measureText(txt).width > 900 && tam > 34) { tam -= 4; c.font = "italic 900 " + tam + "px " + VIDEO_FONTE; }
+  c.textAlign = "center"; c.textBaseline = "middle"; c.lineJoin = "round";
+  c.strokeStyle = "#000"; c.lineWidth = tam * 0.22;
+  c.strokeText(txt, 0, 4 + tam * 0.12); c.strokeText(txt, 0, 4);
+  c.shadowColor = cor; c.shadowBlur = 30; c.fillStyle = cor;
   c.fillText(txt, 0, 4);
   c.restore();
 }
@@ -27482,19 +27669,27 @@ function videoFecho(c, cena, p) {
   }
   if (p > 580 && p < 900) { c.fillStyle = "rgba(255,255,255," + 0.75 * (1 - (p - 580) / 320) + ")"; c.fillRect(0, 0, 1080, 1920); }
   videoImpacto(c, 540, 800, p - 580, true);
-  const m = Math.max(0, Math.min(1, (p - 900) / 500));
+  videoGrito(c, "Missão cumprida", 1300, p - 900, "#FFD23F");
+  const r = Math.max(0, Math.min(1, (p - 1250) / 400));
+  if (r > 0) {
+    c.save(); c.globalAlpha = r; c.textAlign = "center"; c.lineJoin = "round"; c.font = "italic 900 54px " + VIDEO_FONTE;
+    c.strokeStyle = "#000"; c.lineWidth = 12; c.strokeText("+ RESPEITO", 540, 1400 + (1 - r) * 20);
+    c.shadowColor = "rgba(124,255,60,.7)"; c.shadowBlur = 22; c.fillStyle = "#7CFF3C"; c.fillText("+ RESPEITO", 540, 1400 + (1 - r) * 20);
+    c.restore();
+  }
+  const m = Math.max(0, Math.min(1, (p - 1400) / 500));
   c.globalAlpha = m; c.textAlign = "center";
-  videoTexto(c, "Cada treino é um desafio vencido.", 540, 1330 + (1 - m) * 30, 50, "#F2F0EC", 800, 960);
+  videoTexto(c, "Cada treino é um desafio vencido.", 540, 1500 + (1 - m) * 30, 50, "#F2F0EC", 800, 960);
   c.save();
   if ("letterSpacing" in c) c.letterSpacing = "6px";
-  videoTexto(c, cena.fala.replace(/\.$/, "").replace(". ", " · ").toUpperCase(), 540, 1410 + (1 - m) * 30, 36, "#7CFF3C", 800, 960);
+  videoTexto(c, cena.fala.replace(/\.$/, "").replace(". ", " · ").toUpperCase(), 540, 1570 + (1 - m) * 30, 36, "#4DEBFF", 800, 960);
   c.restore();
   c.globalAlpha = 1;
 }
 
 // Um quadro do vídeo inteiro no tempo t
 function videoQuadro(c, cenas, durs, t) {
-  c.fillStyle = "#060606"; c.fillRect(0, 0, 1080, 1920);
+  c.fillStyle = "#0B0418"; c.fillRect(0, 0, 1080, 1920);
   videoFundo(c, t);
   let i = 0, ini = 0;
   while (i < cenas.length - 1 && t >= ini + durs[i]) { ini += durs[i]; i++; }
@@ -27505,6 +27700,7 @@ function videoQuadro(c, cenas, durs, t) {
     const fr = k < i ? 1 : k > i ? 0 : Math.min(1, p / durs[i]);
     videoBarra(c, 40 + k * (larg + gap), 60, larg, 8, fr, "grad");
   });
+  videoEstrelas(c, Math.max(1, Math.round(((i + 1) / n) * 5)), p);
   const cena = cenas[i];
   const e = i > 0 ? p / VIDEO_TRANSICAO_MS : 1;
   c.textAlign = "center";
@@ -28086,11 +28282,12 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
   };
   return (
     <div role="dialog" aria-modal="true" aria-label="Resumo animado do treino" onClick={toque}
-      style={{ position: "fixed", inset: 0, zIndex: 92, background: "#060606", color: "#F2F0EC", overflow: "hidden",
+      style={{ position: "fixed", inset: 0, zIndex: 92, background: "#0B0418", color: "#F2F0EC", overflow: "hidden",
         display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", userSelect: "none" }}>
-      {/* o fundo respira: duas luzes da marca passeando atrás das cenas */}
-      <div className="rs-fundo" aria-hidden="true" style={{ left: "-30vmax", top: "-25vmax", background: "radial-gradient(circle, #DD2A7B, transparent 65%)" }} />
-      <div className="rs-fundo" aria-hidden="true" style={{ right: "-35vmax", bottom: "-30vmax", background: "radial-gradient(circle, #8134AF, transparent 65%)", animationDelay: "-4.5s" }} />
+      {/* o pôr do sol neon, o anel do relógio e as estrelas (2026-11-20u) */}
+      <CenarioNeon animar={!REDUZ_MOVIMENTO} />
+      <AnelRelogioResumo />
+      <EstrelasResumo acesas={Math.max(1, Math.round(((i + 1) / cenas.length) * 5))} />
       {/* barras de progresso, como story */}
       <div style={{ position: "absolute", top: 12, left: 12, right: 12, display: "flex", gap: 4, zIndex: 3 }}>
         {cenas.map((c, k) => (

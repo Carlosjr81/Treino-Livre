@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v238) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v239) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -2205,6 +2205,38 @@ chamar atenção; no último card use nosso logo atualizado".
   a nova entra com o recorte animado.
 - O `navegador.js` passou a servir as imagens do repositório (webp, png,
   jpg); o resto continua bloqueado, como num celular sem rede.
+
+### O pôr do sol neon e o visual do relógio (`CENARIO_NEON`, `CenarioNeon`, 2026-11-20u)
+
+Pedido do dono: "que se pareça com a identidade visual que adotamos no relógio
+e também seja inspirado no tema do jogo GTA 6 e clássicos do GTA". **Só
+elementos genéricos do gênero** (cidade de praia ao pôr do sol, palmeiras,
+estrelas, carimbo de missão): **nenhum nome, logo, fonte (a Pricedown) ou
+personagem de jogo nenhum**, a mesma regra das paródias do Monster, Run!. O
+texto de divulgação também não cita o jogo.
+
+- **Um cenário só, na tela e no vídeo**: a geometria (`CENARIO_NEON`,
+  `FAIXAS_SOL`, `caminhoPalmeira`, `linhasChaoNeon`) vive na tela de
+  1080×1920 do story. A tela desenha em SVG (`CenarioNeon`,
+  `xMidYMax slice`) e o vídeo os mesmos caminhos no canvas (`videoFundo`,
+  com `Path2D`): céu roxo, sol listrado (as faixas são um recorte, o céu
+  aparece por elas), chão em grade andando (no vídeo), palmeiras balançando
+  presas na base, e o meio escurecido onde ficam os números.
+- **O anel do relógio** gira atrás das cenas (`AnelRelogioResumo`; no vídeo,
+  `createConicGradient`, com o degradê linear de reserva), com a luz
+  correndo nele.
+- **Os números do relógio**: `NUMERO_RESUMO` inclinado, 900, contorno preto
+  (`WebkitTextStroke` e sombra dura) e brilho rosa; no vídeo, `videoTexto`
+  com `"grad"` e 90 px para cima faz o mesmo. Rótulos em ciano (#4DEBFF).
+- **O carimbo** (`GritoResumo`, `videoGrito`) perdeu a caixa: letra grande
+  amarela (#FFD23F), inclinada, com contorno preto grosso (`CONTORNO_RESUMO`).
+- **As estrelas** (`EstrelasResumo`, `videoEstrelas`): cinco no topo,
+  acendendo pela fração do resumo (todas no fecho).
+- **O fecho**: o logo, "Missão cumprida" e "+ RESPEITO" embaixo dele.
+- Movimento reduzido para as palmeiras, o anel e as estrelas.
+- Conferido no navegador: a tela e a folha com um quadro de cada cena do
+  vídeo. **Não validado num celular** (a fonte do sistema muda o desenho das
+  letras; no Chromium de teste saíam com serifa na tela).
 
 ### O resumo vira vídeo para o story (`GerarStoryResumo`)
 

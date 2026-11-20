@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-11-20u — O resumo animado ganhou o visual do relógio e clima de cidade de praia ao pôr do sol
+
+**Em uma frase:** o resumo animado do treino (na tela e no vídeo do story) agora tem céu roxo, sol listrado, palmeiras, chão em grade neon, o anel colorido do relógio girando e o carimbo "Missão cumprida" no fim.
+
+**O que mudou**
+- O fundo virou um pôr do sol neon: céu roxo, sol laranja e rosa com faixas, palmeiras balançando e o chão em grade.
+- O anel colorido do relógio gira atrás dos números, com uma luz correndo nele.
+- Os números ficaram grossos, inclinados e com contorno preto, como os da hora do relógio.
+- Cinco estrelas no topo acendem conforme o resumo anda; no fim, todas acesas.
+- As frases de impacto ("Peso vencido", "Recorde quebrado!") viraram letras grandes amarelas com contorno.
+- O fim mostra "Missão cumprida" e "+ Respeito" embaixo do logo.
+
+**Por que importa para quem treina**
+- O story do treino chama mais atenção no feed e tem a mesma cara do app no relógio.
+
+**Como usar**
+- No fim do treino, toque em "▶ Ver resumo animado"; para postar, toque no 📸.
+
+**Ideias de vídeo**
+- As estrelas acendendo uma a uma até o "Missão cumprida".
+- Lado a lado: o relógio no pulso e o story do treino com o mesmo anel colorido.
+
+**Não prometer**
+- É um estilo inspirado nos jogos de mundo aberto, sem nome, logo ou personagem de jogo nenhum; não fale em parceria ou ligação com jogo algum.
+
+---
+
 ## 2026-11-20t — Atualizar o relógio guia o Wi-Fi
 
 **Em uma frase:** quando o relógio está num Wi-Fi diferente do celular, a atualização para, diz no celular e no relógio qual Wi-Fi escolher, e continua sozinha assim que o relógio troca.

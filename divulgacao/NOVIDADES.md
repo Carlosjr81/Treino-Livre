@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-20o — A hora do relógio maior e por mais tempo
+
+**Em uma frase:** os números da hora no relógio ficaram ainda maiores, e ao soltar o dedo a hora fica 3,5 segundos balançando antes de voltar ao treino.
+
+**O que mudou**
+- Os quatro números ocupam mais a tela, com a cruz preta mais fina.
+- Depois de soltar, a hora fica 3,5 segundos: afunda no ponto do dedo, volta balançando e segue com um balanço leve até sair.
+
+**Por que importa para quem treina**
+- Mais tempo para ler a hora com calma, sem o dedo na frente.
+
+**Como usar**
+- No relógio, segure a tela até a hora aparecer e solte.
+
+**Ideias de vídeo**
+- O pulso parado: a hora balança suave como geleia e o treino volta sozinho.
+
+**Não prometer**
+- Só no app do relógio novo (o celular atualiza o relógio) e em relógios Wear OS.
+
+---
+
 ## 2026-11-20n — A hora do relógio ocupa a tela toda
 
 **Em uma frase:** ao segurar a tela do relógio, a hora aparece em quatro números enormes que enchem a tela, com uma cruz preta no meio e a bolha do dia.

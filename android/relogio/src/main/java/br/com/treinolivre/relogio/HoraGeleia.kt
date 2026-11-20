@@ -197,9 +197,15 @@ class HoraGeleia(contexto: Context) : View(contexto) {
     private fun deformar(tt: Float): FloatArray {
         if (malhaViva.size != malha.size) malhaViva = FloatArray(malha.size)
         // o afundar no ponto: puxa para ele, passa do ponto e volta, amortecendo
-        val k = 0.32f * exp(-3.4f * tt) * kotlin.math.cos(2f * PI.toFloat() * 2.3f * tt)
+        // (2026-11-20o, o dono: 3,5 s à vista, com a animação o tempo todo) o
+        // afundar amortece em ~1,5 s; depois a geleia segue balançando de leve
+        // e para nos últimos 0,4 s, antes de a hora sair
+        val fim = (FICA_MS / 1000f - tt).coerceIn(0f, 0.4f) / 0.4f
+        val k = 0.32f * exp(-2.4f * tt) * kotlin.math.cos(2f * PI.toFloat() * 2.1f * tt) +
+            0.05f * sin(2f * PI.toFloat() * 1.1f * tt) * fim
         // o balanço da tela toda: estica na largura e achata na altura, e o contrário
-        val w = 0.07f * exp(-2.6f * tt) * sin(2f * PI.toFloat() * 1.7f * tt)
+        val w = 0.07f * exp(-1.8f * tt) * sin(2f * PI.toFloat() * 1.5f * tt) +
+            0.022f * sin(2f * PI.toFloat() * 0.8f * tt) * fim
         val sx = 1f + w
         val sy = 1f - w
         val cx = width / 2f
@@ -403,7 +409,7 @@ class HoraGeleia(contexto: Context) : View(contexto) {
                 }
             }
             val tt = if (soltouEm > 0L && vivo) (agora - soltouEm) / 1000f else -1f
-            val pontos = if (tt in 0f..1.6f) deformar(tt) else malha
+            val pontos = if (tt >= 0f && tSai < 0f) deformar(tt) else malha
             c.drawBitmapMesh(bm, MALHA, MALHA, pontos, 0, null, 0, malhaPaint)
             // o fio da borda: o tempo que falta para o treino voltar
             if (tt >= 0f && tSai < 0f) {
@@ -487,7 +493,7 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         const val SEGURAR_MS = 380L
         // depois de soltar o dedo, a hora fica este tempo à vista (2026-11-20l,
         // o dono: "com o dedo na tela fica difícil ver a hora")
-        const val FICA_MS = 2000L
+        const val FICA_MS = 3500L
         // Igual ao modelo azul que o dono mandou (2026-11-20n: "preencha melhor
         // a tela"): quatro números enormes, retos, cada um num quadrante, com
         // uma cruz preta fina no meio, vazando pelas bordas. Conferido num
@@ -495,20 +501,20 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         // 08:48). A 20l os pôs pequenos e inteiros; a 20f, grandes mas sem
         // alinhar pela cruz, saíam cortados até não se ler.
         // a altura de cada número, em fração da tela
-        const val ALTURA = 0.45f
+        const val ALTURA = 0.48f
         // largura e o itálico desfeito (a Bodoni é itálica; positivo endireita)
-        const val LARGURA = 1.3f
+        const val LARGURA = 1.38f
         const val INCLINACAO = 0.2f
         const val BORDA = 0.012f
         // a cruz: a base dos números de cima, o topo dos de baixo, e as bordas
         // dos da esquerda e da direita, em frações da tela
-        const val LINHA_CIMA = 0.488f
-        const val LINHA_BAIXO = 0.512f
-        const val CRUZ_ESQ = 0.478f
-        const val CRUZ_DIR = 0.512f
+        const val LINHA_CIMA = 0.49f
+        const val LINHA_BAIXO = 0.51f
+        const val CRUZ_ESQ = 0.483f
+        const val CRUZ_DIR = 0.508f
         const val ATRASO = 0.06f
         // a esfera: 0 é plano, 1 é a curva inteira de uma bola
-        const val ESFERA = 0.2f
+        const val ESFERA = 0.22f
         const val MALHA = 28
         val SEMANA = arrayOf("DOM.", "SEG.", "TER.", "QUA.", "QUI.", "SEX.", "SÁB.")
     }

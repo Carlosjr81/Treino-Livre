@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v232) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v233) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4746,7 +4746,12 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   cruz preta fina no meio (`CRUZ_ESQ`/`CRUZ_DIR`, `LINHA_CIMA`/`LINHA_BAIXO`),
   vazando pelas bordas, esfera leve (0,2), e a bolha do dia de volta onde está
   no modelo. Conferido num protótipo em canvas com a fonte e a esfera de
-  verdade (10:27, 23:59, 08:48).
+  verdade (10:27, 23:59, 08:48). **2026-11-20o** (o dono: "pode ser melhor
+  ocupada, e 3,5 s depois de soltar, com a animação nesse período"): `ALTURA`
+  0,48, `LARGURA` 1,38, a cruz mais fina, esfera 0,22 (0,53 e 1,5 também foram
+  provados e deixavam o 3, o 5 e o 9 irreconhecíveis); `FICA_MS` 3,5 s, e a
+  geleia segue o tempo todo: o afundar amortece em ~1,5 s e depois um balanço
+  leve continua, parando nos últimos 0,4 s antes de a hora sair.
 - **O celular se atualiza sozinho** (2026-11-20k, relato do dono: o site
   dizia "há o 143: atualizar", ele baixava, instalava e continuava no 141).
   O APK 143 publicado estava certo (mesma assinatura, `1.143` no

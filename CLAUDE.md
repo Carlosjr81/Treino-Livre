@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v243) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v244) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4486,6 +4486,17 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   autorizo tudo"). Conferido no navegador com um retransmissor de mentira: a
   série chega marcada, o descanso corre, e a mesma mensagem duas vezes vira uma
   série só.
+- **O descanso termina junto no relógio e no celular** (2026-11-20z, relato
+  do dono: "existe um delay entre a contagem regressiva no relógio e no
+  celular"). O painel leva o fim do descanso na hora do celular
+  (`descansoAte`, e `da` na cópia), e o relógio comparava com a hora
+  dele: os dois relógios nunca estão acertados. Hoje o relógio mede a
+  diferença (`medirDesvio`: a hora daqui menos o `agora` do painel, no
+  menor valor visto, refeito a cada 30 min; o que sobra acima é a demora da
+  entrega) e converte ao receber (`paraRelogio`); o que volta do relógio
+  sozinho (`da` do pacote) é convertido de volta, e o "painel mais novo"
+  do modo sem celular também usa a diferença. Só no app do relógio. **Não
+  validado num relógio.**
 - **O que muda no celular chega ao relógio** (2026-11-20y, relato do dono:
   "aumentei as séries e o peso pelo celular e não carregou no relógio; tive
   de ajustar lá também"). A cópia do treino só ia ao app no ✓ e no Começar

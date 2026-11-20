@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-20z — O descanso no relógio e no celular termina junto
+
+**Em uma frase:** a contagem do descanso no relógio agora bate segundo a segundo com a do celular.
+
+**O que mudou**
+- O relógio do pulso e o celular nunca marcam exatamente a mesma hora, e essa diferença aparecia na contagem: um terminava antes do outro.
+- Agora o relógio mede essa diferença sozinho e corrige a contagem.
+
+**Por que importa para quem treina**
+- Olha no pulso ou no celular, o tempo que falta é o mesmo, e a vibração chega junto com o fim.
+
+**Como usar**
+- Nada a fazer além de atualizar o app do relógio (Ajustes › Instalar o app no relógio › Atualizar o relógio).
+
+**Ideias de vídeo**
+- Celular e relógio lado a lado, contando o descanso juntos até o zero.
+
+**Não prometer**
+- Pode sobrar uma fração de segundo, o tempo de a mensagem chegar ao relógio.
+
+---
+
 ## 2026-11-20y — O relógio acompanha o que você muda no celular
 
 **Em uma frase:** mudou o peso, acrescentou uma série ou trocou um exercício no celular durante o treino, e o relógio mostra o mesmo em poucos segundos, sem ajustar de novo no pulso.

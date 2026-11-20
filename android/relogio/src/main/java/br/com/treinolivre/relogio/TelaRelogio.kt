@@ -413,7 +413,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
                     val tt = m.getLong("t")
                     if (tt > t) { t = tt; melhor = try { JSONObject(m.getString("json") ?: "") } catch (e: Exception) { null } }
                 }
-                if (melhor != null && painel == null && semCel == null) receber(melhor)
+                if (melhor != null && painel == null && semCel == null) receber(paraRelogio(melhor))
             } finally { buf.release() }
         }
         val sc = semCel
@@ -534,7 +534,9 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             }
         }
         val j = try { if (ultimo != null) JSONObject(ultimo) else null } catch (e: Exception) { null } ?: return
-        runOnUiThread { receber(j) }
+        medirDesvio(j)
+        val jr = paraRelogio(j)
+        runOnUiThread { receber(jr) }
     }
 
     // A versão: o relógio diz a dele, o celular responde com a dele. Celular
@@ -588,7 +590,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         linha.removeCallbacks(chamarDeNovo)
         val sc = semCel
         if (sc != null) {
-            val novo = j.optLong("agora", 0L) > sc.desde
+            val novo = j.optLong("agora", 0L) + desvio() > sc.desde
             if (!novo) return
             if (sc.eventos.length() > 0) { entregar(); return }
             if (!j.optBoolean("ativo") || j.optBoolean("carregando")) return
@@ -687,7 +689,10 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
 
     private fun entregar() {
         val sc = semCel ?: return
-        val dados = sc.pacote().toString().toByteArray(Charsets.UTF_8)
+        val pac = sc.pacote()
+        val da = pac.optLong("da", 0L)
+        if (da > 0L) pac.put("da", da - desvio())
+        val dados = pac.toString().toByteArray(Charsets.UTF_8)
         Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nos ->
             nos.forEach { no -> Wearable.getMessageClient(this).sendMessage(no.id, "/treino/sem-celular", dados) }
         }
@@ -777,6 +782,33 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         txtRec.text = if (novo) "🏆 NOVO RECORDE! (era " + num(rec) + " kg)" else "🏆 Recorde: " + num(rec) + " kg"
         txtRec.setTextColor(if (novo) Cores.OURO else Cores.CINZA)
         feito.background = if (novo) fundoRecorde else fundoFeito
+    }
+
+    // O relógio do pulso e o do celular nunca marcam a mesma hora: uma diferença
+    // de segundos virava a contagem do descanso adiantada ou atrasada em relação
+    // à do celular (2026-11-20z, relato do dono). O painel traz a hora do celular
+    // (`agora`); a diferença para a hora daqui, no menor valor visto (o que
+    // sobra acima dele é a demora da entrega), converte o fim do descanso para o
+    // relógio daqui. Refeita a cada 30 min, para acompanhar um ajuste de hora.
+    private fun desvio(): Long = prefs.getLong("desvio", 0L)
+
+    private fun medirDesvio(j: JSONObject) {
+        val ag = j.optLong("agora", 0L)
+        if (ag <= 0L) return
+        val agora = System.currentTimeMillis()
+        val amostra = agora - ag
+        if (kotlin.math.abs(amostra) > 6 * 3600_000L) return
+        val velho = agora - prefs.getLong("desvioEm", 0L) > 30 * 60_000L
+        if (velho || amostra < desvio()) prefs.edit().putLong("desvio", amostra).putLong("desvioEm", agora).apply()
+    }
+
+    private fun paraRelogio(j: JSONObject): JSONObject {
+        val d = desvio()
+        if (d == 0L) return j
+        val ate = j.optLong("descansoAte", 0L)
+        if (ate > 0L) j.put("descansoAte", ate + d)
+        j.optJSONObject("copia")?.let { c -> val da = c.optLong("da", 0L); if (da > 0L) c.put("da", da + d) }
+        return j
     }
 
     private fun descansoAte(): Long {

@@ -104,6 +104,13 @@ class InstaladorRelogio : ComponentActivity() {
     private var presoAoWifi = false
     private lateinit var registro: TextView
     private lateinit var voltar: Button
+    // O diagnóstico completo (2026-11-20h, pedido do dono: "monte um log que
+    // lhe direcione exatamente para corrigir o erro"): tudo o que a tela diz,
+    // com a hora, mais o que ela não diz (redes, portas, anúncios, a chave, o
+    // erro inteiro com as causas). Vai num toque em "Enviar o diagnóstico".
+    private val diag = StringBuilder()
+    private val horaDiag = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
+    private lateinit var enviarDiag: Button
     private lateinit var cartaoCodigo: LinearLayout
     private lateinit var tituloCodigo: TextView
     private val escondidosAuto = mutableListOf<View>()
@@ -232,11 +239,15 @@ class InstaladorRelogio : ComponentActivity() {
 
         registro = texto(14f, t = "")
         caixa.addView(registro, lp(14))
+        enviarDiag = botaoCheio("📤 Enviar o diagnóstico (para o suporte)", Color.parseColor("#2A2A33"))
+        enviarDiag.setOnClickListener { enviarDiagnostico() }
+        caixa.addView(enviarDiag, lp(14))
         voltar = botaoCheio("Voltar ao Treino Livre", Color.parseColor("#2A2A33"))
         voltar.setOnClickListener { voltarAoSite("") }
         caixa.addView(voltar, lp(14))
 
         setContentView(ScrollView(this).apply { setBackgroundColor(Color.parseColor("#0B0B0F")); addView(caixa) })
+        cabecalhoDiag()
         buscar()
         // O relógio diz o próprio endereço (o app dele abre a tela de atualizar
         // e manda): antes de a pessoa abrir o Parear no relógio, para não cobrir
@@ -325,6 +336,7 @@ class InstaladorRelogio : ComponentActivity() {
                     linha.post {
                         resolvendo = false
                         val h = info?.host?.hostAddress
+                        det("rede anunciou: " + (info?.serviceType ?: "?") + " " + (info?.serviceName ?: "") + " em " + h + ":" + (info?.port ?: 0))
                         // o próprio celular também pode estar anunciando: fica de fora
                         if (info != null && h != null && h !in meusEnderecos() && h.indexOf(':') < 0) {
                             val tipo = info.serviceType ?: ""
@@ -347,9 +359,76 @@ class InstaladorRelogio : ComponentActivity() {
     }
 
     // ---- parear, conectar, baixar e instalar ----
-    private fun log(t: String) = linha.post {
-        registro.text = if (registro.text.isEmpty()) t else registro.text.toString() + "\n" + t
-        if (auto) progresso.text = t
+    private fun log(t: String) {
+        det(t)
+        linha.post {
+            registro.text = if (registro.text.isEmpty()) t else registro.text.toString() + "\n" + t
+            if (auto) progresso.text = t
+        }
+    }
+
+    // só no diagnóstico (detalhe técnico que não ajuda na tela)
+    private fun det(t: String) {
+        synchronized(diag) {
+            diag.append(horaDiag.format(Date())).append("  ").append(t).append('\n')
+            if (diag.length > 60_000) diag.delete(0, diag.length - 50_000)
+        }
+    }
+
+    // a exceção inteira: classe, mensagem e as causas, e onde nasceu
+    private fun erroInteiro(e: Throwable): String {
+        val b = StringBuilder()
+        var x: Throwable? = e
+        var n = 0
+        while (x != null && n < 5) {
+            if (n > 0) b.append(" ⟵ causa: ")
+            b.append(x.javaClass.name).append(": ").append(x.message ?: "")
+            x.stackTrace.firstOrNull { it.className.contains("adb") || it.className.contains("treinolivre") }?.let { b.append(" @").append(it.className.substringAfterLast('.')).append('.').append(it.methodName).append(':').append(it.lineNumber) }
+            x = x.cause; n++
+        }
+        return b.toString()
+    }
+
+    private fun cabecalhoDiag() {
+        val p = getSharedPreferences(PREFS, MODE_PRIVATE)
+        val vi = try { packageManager.getPackageInfo(packageName, 0) } catch (e: Exception) { null }
+        det("=== Diagnóstico do instalador do relógio (Treino Livre) ===")
+        det("app do celular: " + (vi?.versionName ?: "?") + " (código " + (try { vi?.longVersionCode } catch (e: Throwable) { null } ?: "?") + ")")
+        det("celular: " + android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL + " · Android " + android.os.Build.VERSION.RELEASE + " (SDK " + android.os.Build.VERSION.SDK_INT + ")")
+        det("pareado aqui: " + p.getBoolean("pareado", false) + " · último endereço: " + (p.getString("ultimoHost", "") ?: "") + " · última conexão: " + (p.getString("ultimoCon", "") ?: ""))
+        det("Wi-Fi do celular: " + (meuIpWifi() ?: "nenhum"))
+        try {
+            Collections.list(NetworkInterface.getNetworkInterfaces()).filter { it.isUp && !it.isLoopback }.forEach { ni ->
+                val ips = ni.interfaceAddresses.filter { it.address is java.net.Inet4Address }.joinToString(", ") { it.address.hostAddress + "/" + it.networkPrefixLength }
+                if (ips.isNotEmpty()) det("rede " + ni.name + ": " + ips)
+            }
+        } catch (e: Exception) { det("redes: " + e.message) }
+        try {
+            val cert = File(filesDir, "adb.cert")
+            if (cert.exists()) {
+                val md = java.security.MessageDigest.getInstance("SHA-256").digest(cert.readBytes())
+                det("chave deste celular: " + md.take(8).joinToString("") { "%02x".format(it) } + " (criada " + java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.US).format(Date(cert.lastModified())) + ")")
+            } else det("chave deste celular: ainda não criada")
+        } catch (e: Exception) { det("chave: " + e.message) }
+        val dicaTempo = if (Relogio.dicaEm > 0) ((System.currentTimeMillis() - Relogio.dicaEm) / 1000).toString() + " s atrás" else "nunca"
+        det("o relógio mandou o endereço: " + (Relogio.dicaHost ?: "não") + " portas " + Relogio.dicaPortas + " (" + dicaTempo + ")")
+        det("app no relógio (versão que ele disse): " + getSharedPreferences("relogio", MODE_PRIVATE).getLong("versao", 0L))
+    }
+
+    private fun enviarDiagnostico() {
+        val texto = synchronized(diag) { diag.toString() }
+        try {
+            val i = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(android.content.Intent.EXTRA_SUBJECT, "Diagnóstico do instalador do relógio")
+                putExtra(android.content.Intent.EXTRA_TEXT, texto)
+            }
+            startActivity(android.content.Intent.createChooser(i, "Enviar o diagnóstico"))
+        } catch (e: Exception) {
+            val cm = getSystemService(android.content.ClipboardManager::class.java)
+            cm?.setPrimaryClip(android.content.ClipData.newPlainText("diagnóstico", texto))
+            android.widget.Toast.makeText(this, "Diagnóstico copiado: cole na conversa.", android.widget.Toast.LENGTH_LONG).show()
+        }
     }
 
     // "192.168.176..28:35803" (o dono digitou assim): ponto dobrado e espaços
@@ -376,7 +455,10 @@ class InstaladorRelogio : ComponentActivity() {
         (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)?.hideSoftInputFromWindow(codigo.windowToken, 0)
         registro.text = ""
         lifecycleScope.launch {
+            det("--- tentativa " + (if (comCodigo) "com o código" else "sem código") + (if (auto) " (automática)" else "") + " · endereço digitado: " + (hp ?: "-") + (if (pp > 0) ":" + pp else ""))
             val r = withContext(Dispatchers.IO) { trabalhar(comCodigo, hp, pp, cod) }
+            det("--- resultado: " + r)
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("ultimoDiag", synchronized(diag) { diag.toString().takeLast(20_000) }).apply()
             trabalhando = false
             botao.isEnabled = true; botaoJa.isEnabled = true
             if (r == "recusou") {
@@ -479,9 +561,13 @@ class InstaladorRelogio : ComponentActivity() {
                     if (portas.isEmpty()) continue
                     for (p in portas) {
                         log("🔐 Pareando com o relógio (" + h + ":" + p + ")…")
+                        val t0 = System.currentTimeMillis()
                         val ok = try { comPrazo(12_000L) { adb.pair(h, p, cod) } } catch (e: Exception) {
-                            ultimoMsg = e.message ?: e.javaClass.simpleName; false
+                            ultimoMsg = e.message ?: e.javaClass.simpleName
+                            det("   ✗ parear em " + p + " (" + (System.currentTimeMillis() - t0) + " ms): " + erroInteiro(e)); false
                         }
+                        if (ok) det("   ✓ pareou em " + p + " (" + (System.currentTimeMillis() - t0) + " ms)")
+                        if (!ok && ultimoMsg.isEmpty()) det("   ✗ parear em " + p + ": a biblioteca respondeu que não (código errado ou porta errada)")
                         if (ok) {
                             pareou = true; portaDoPar = p
                             getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("pareado", true).putString("ultimoHost", h).apply()
@@ -537,9 +623,11 @@ class InstaladorRelogio : ComponentActivity() {
             val tentar = { h: String, p: Int ->
                 val a = if (con == null && ultimoErro.isEmpty()) adb else Adb(this)
                 log("🔗 Conectando ao relógio (" + h + ":" + p + ")…")
+                val t0 = System.currentTimeMillis()
                 val ok = try { comPrazo(15_000L) { a.connect(h, p) } } catch (e: Exception) {
                     val msg = e.message ?: e.javaClass.simpleName
                     ultimoErro = msg + (if (msg.contains("não respondeu")) "" else motivoDaConexao(a))
+                    det("   ✗ conectar em " + h + ":" + p + " (" + (System.currentTimeMillis() - t0) + " ms): " + erroInteiro(e) + " | motivo: " + motivoDaConexao(a))
                     // Recusa de verdade é o relógio ATENDER e cortar (a chave
                     // não é mais conhecida): "Connection reset", erro de TLS ou de
                     // autenticação. Porta fechada ou rede fora não é recusa.
@@ -593,6 +681,7 @@ class InstaladorRelogio : ComponentActivity() {
             try { stream.close() } catch (e: Exception) { }
             val txt = resposta.toString().trim()
             BolsoService.diario(this, "instalador do relógio: " + txt.take(120))
+            det("resposta do relógio à instalação: " + txt.take(400))
             if (txt.contains("Success")) {
                 // A permissão que deixa o app do relógio ligar a Depuração por
                 // Wi-Fi sozinho na próxima atualização (só dá para dar pelo ADB;
@@ -607,6 +696,7 @@ class InstaladorRelogio : ComponentActivity() {
             return "erro"
         } catch (e: Exception) {
             log("⚠ " + (e.message ?: e.javaClass.simpleName))
+            det("erro geral: " + erroInteiro(e))
             return "erro"
         } finally {
             try { adb.close() } catch (e: Exception) { }
@@ -651,6 +741,7 @@ class InstaladorRelogio : ComponentActivity() {
             }
         } finally { pool.shutdownNow() }
         val l = abertas.toList().sorted()
+        det("portas abertas em " + host + " (30000–49999): " + (if (l.isEmpty()) "nenhuma" else l.joinToString(", ")))
         if (l.isNotEmpty()) log("✓ Achei o relógio na porta " + l.joinToString(", ") + ".")
         return l
     }

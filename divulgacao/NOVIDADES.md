@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-11-20q — A tela do relógio virou gelatina
+
+**Em uma frase:** a tela inteira do treino no relógio agora é uma esfera de gelatina, que pende quando você inclina o pulso, balança quando você mexe o braço e afunda onde você toca.
+
+**O que mudou**
+- O treino no relógio aparece curvado, como numa bola de gelatina, com a borda mais escura e um brilho no alto.
+- Inclinou o pulso: o meio da tela pende devagar para baixo.
+- Mexeu o braço de repente: a gelatina fica para trás e volta balançando, esticando e achatando.
+- Cada toque afunda a gelatina no ponto do dedo; cada série feita a faz chacoalhar (mais forte no recorde e no fim do treino).
+- O toque continua certo: o botão funciona onde você o vê.
+
+**Por que importa para quem treina**
+- O relógio fica vivo no pulso e chama a atenção de quem está em volta na academia.
+
+**Como usar**
+- Nada a fazer: abra o treino no relógio e mexa o braço.
+
+**Ideias de vídeo**
+- Close no pulso: chacoalhar o braço e a tela balançando como gelatina.
+- Tocar no FEITO e a tela inteira tremer com a série feita.
+
+**Não prometer**
+- A curva da esfera só nos relógios com Wear OS 4 ou mais novo (Galaxy Watch 6, 7, 8); nos mais antigos a tela balança sem curvar.
+- Com a tela apagada (modo ambiente) a gelatina fica parada.
+
+---
+
 ## 2026-11-20p — O relógio abre junto com o celular
 
 **Em uma frase:** abriu o Treino Livre no celular ou marcou uma série, o app do relógio abre sozinho; e a hora do relógio ficou do tamanho certo, sem cortar os números.

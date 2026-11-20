@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v234) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v235) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4756,6 +4756,23 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   no meio da geleia): `ALTURA` 0,44, `LARGURA` 1,3, esfera 0,2, e a geleia
   com metade da força (o afundar e o balanço esticavam os números para fora
   da tela).
+- **A tela inteira é uma esfera de gelatina** (`Gelatina.kt`, 2026-11-20q,
+  pedido do dono: "todo o layout nesse estilo de esfera gelatinosa, com
+  variação pelo acelerômetro: chacoalha, balança, sofre pressão"). Um
+  FrameLayout envolve o palco, a rolagem e a frente (a comemoração e a hora
+  ficam fora). No Android 13+ um shader AGSL (`RuntimeShader`, como
+  `RenderEffect`) curva o conteúdo com a conta da hora (`ESFERA` 0,13,
+  menor por causa do texto), escurece a borda e põe um brilho; molas
+  sub-amortecidas movem o meio (a borda fica presa): a **gravidade** do
+  acelerômetro faz pender (`PENDE` 0,035 do raio), o **tranco** do braço
+  (o que sobra da gravidade filtrada) empurra pela inércia e estica/achata,
+  o **toque** afunda no ponto do dedo, e `sacudir` (cada série, mais forte
+  no recorde e no fim) chacoalha. O toque é corrigido pela mesma conta
+  (`fonte`), sem a pressão. Shader que não compila cai no jeito antigo; no
+  Wear OS 3 a física move e estica a view (translation/scale). Ambiente:
+  sensor desligado, sem efeito; parado, o quadro para de ser pedido.
+  Conferido só num protótipo em canvas com a mesma conta sobre um print do
+  relógio. **Não validado num relógio.**
 - **O relógio abre junto com o celular** (2026-11-20p, pedido do dono:
   "chamar sempre o relógio quando a tela do celular estiver no Treino Livre").
   `Relogio.chamarRelogio` (no máximo uma vez por minuto) abre a tela do

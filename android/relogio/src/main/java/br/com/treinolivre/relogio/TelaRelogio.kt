@@ -68,6 +68,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
                 ambiente = true
                 palco.ambiente = true
                 frente.ambiente = true
+                gel.ambiente = true
                 celebra.animate().cancel()
                 celebra.alpha = 0f
                 // tela apagada: a hora fica à vista, parada e só no contorno
@@ -80,6 +81,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
                 ambiente = false
                 palco.ambiente = false
                 frente.ambiente = false
+                gel.ambiente = false
                 hora.fixarAmbiente(false)
                 mostrar()
                 linha.post(tique)
@@ -107,6 +109,8 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     private var ultimoSegundo = -1
 
     private lateinit var palco: Palco
+    // a tela inteira numa esfera de gelatina (Gelatina, 2026-11-20q)
+    private lateinit var gel: Gelatina
     private lateinit var frente: Palco
     private lateinit var celebra: TextView
     // a hora com um toque (HoraGeleia), por cima de tudo
@@ -342,9 +346,12 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         val tudo = FrameLayout.LayoutParams.MATCH_PARENT
         val raiz = FrameLayout(this).apply {
             setBackgroundColor(Color.BLACK)
-            addView(palco, FrameLayout.LayoutParams(tudo, tudo))
-            addView(rolagem, FrameLayout.LayoutParams(tudo, tudo))
-            addView(frente, FrameLayout.LayoutParams(tudo, tudo))
+            gel = Gelatina(this@TelaRelogio).apply {
+                addView(palco, FrameLayout.LayoutParams(tudo, tudo))
+                addView(rolagem, FrameLayout.LayoutParams(tudo, tudo))
+                addView(frente, FrameLayout.LayoutParams(tudo, tudo))
+            }
+            addView(gel, FrameLayout.LayoutParams(tudo, tudo))
             addView(celebra, FrameLayout.LayoutParams(tudo, tudo))
         }
         hora = HoraGeleia(this)
@@ -370,6 +377,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         super.onResume()
         palco.vivo = true
         frente.vivo = true
+        gel.ligar()
         val dados = Wearable.getDataClient(this)
         dados.addListener(this)
         Wearable.getMessageClient(this).addListener(this)
@@ -487,6 +495,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         hora.esconderJa()
         palco.vivo = false
         frente.vivo = false
+        gel.desligar()
         Wearable.getDataClient(this).removeListener(this)
         Wearable.getMessageClient(this).removeListener(this)
         linha.removeCallbacks(tique)
@@ -689,6 +698,8 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         if (ambiente) return
         val cor = when (tipo) { RECORDE -> Cores.OURO; TREINO_COMPLETO -> Cores.VERDE; else -> Cores.ROSA }
         frente.flash(cor)
+        // a gelatina chacoalha com a série feita (mais forte no recorde e no fim)
+        gel.sacudir(if (tipo == SERIE) 1f else 1.6f)
         celebra.text = when (tipo) {
             RECORDE -> "🏆\nRECORDE!"
             TREINO_COMPLETO -> "🎉\nTREINO\nCOMPLETO!"

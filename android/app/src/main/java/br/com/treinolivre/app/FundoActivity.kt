@@ -65,6 +65,7 @@ class FundoActivity : Activity() {
             text = rotulo; isAllCaps = false; textSize = 16f; setTextColor(Color.WHITE); minHeight = dp(52)
             background = GradientDrawable().apply { cornerRadius = dp(26).toFloat(); setColor(cor) }
             setOnClickListener { acao() }
+            Acao.vivo(this)
         }
         val cinza = Color.parseColor("#9A9AA5")
         val rosa = Color.parseColor("#E1306C")

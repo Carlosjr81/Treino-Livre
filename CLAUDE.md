@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v226) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v227) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4723,6 +4723,17 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   a cada segundo. **No modo ambiente a hora fica na tela**, parada, só no
   contorno cinza, com o descanso em minutos na bolha. Horas em 12 ou 24 h
   conforme o relógio. **Não validado num relógio**: compilado pelo Actions.
+- **Botões com ação** (2026-11-20i, pedido do dono: "mais ação nos botões
+  da configuração do relógio com o celular, e em todos os botões do
+  relógio"). No relógio, todo botão (`botao()` da `TelaRelogio`) afunda no
+  toque, vibra 18 ms e volta com mola (Overshoot); o clique segue igual. No
+  celular, `Acao.vivo` faz o mesmo nos botões do instalador e do "Testar a
+  conexão" (`FundoActivity`), e `Acao.pulsar` faz o principal respirar
+  (os pulsos param enquanto o dedo aperta: os dois mexem na escala). No site,
+  as telas de conectar (`InstalarRelogio`, `GuiaConectar`) têm a classe
+  `vivo` (o toque afunda e acende) e `vibrarToque`; o botão de cada passo, o
+  de atualizar o relógio e o de baixar o app pulsam (`btn-pulsa`). Movimento
+  reduzido desliga o pulso e o afundar.
 - **A tela de cada relógio** (2026-11-20f, pedido do dono: "adapte a tela para
   cada modelo de relógio"). Pelo `isScreenRound` e pela largura: na redonda,
   a margem de 13% deixa a borda para o anel; na quadrada ou retangular (Oppo

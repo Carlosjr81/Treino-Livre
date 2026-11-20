@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-20i — Botões com ação no relógio e na configuração
+
+**Em uma frase:** os botões do relógio e da configuração do relógio com o celular agora afundam, vibram e voltam com um pulinho, e o botão principal de cada passo pulsa.
+
+**O que mudou**
+- No relógio: todo botão (✓ FEITO, − e +, +30 s, Pular, ◀ ▶) afunda no toque, vibra de leve e volta com mola.
+- No celular, na instalação do relógio e no teste da conexão: o mesmo efeito, e o botão principal "respira".
+- No passo a passo do relógio, o botão de cada etapa pulsa uma luz da marca para mostrar onde tocar.
+
+**Por que importa para quem treina**
+- No meio da série, com a mão suada, dá para sentir que o toque pegou sem precisar olhar duas vezes.
+
+**Como usar**
+- É só tocar. Quem ativou "reduzir movimento" no celular vê os botões parados.
+
+**Ideias de vídeo**
+- Câmera lenta no pulso: o dedo toca no ✓ FEITO, o botão afunda e volta com o clarão da série feita.
+
+**Não prometer**
+- O efeito do relógio vem com o app do relógio novo (o celular atualiza o relógio).
+
+---
+
 ## 2026-11-20h — O app avisa quando o app do celular está velho
 
 **Em uma frase:** o site se atualiza sozinho, o app instalado no celular não; agora o Treino Livre avisa quando o app do celular está atrasado e leva direto ao novo.

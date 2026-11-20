@@ -142,8 +142,11 @@ class InstaladorRelogio : ComponentActivity() {
         fun lp(topo: Int = 10) = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(topo) }
         fun botaoCheio(rotulo: String, cor: Int) = Button(this).apply {
             text = rotulo; isAllCaps = false; textSize = 16f; setTextColor(Color.WHITE)
-            background = GradientDrawable().apply { cornerRadius = dp(26).toFloat(); setColor(cor) }
+            background = android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x55FFFFFF),
+                GradientDrawable().apply { cornerRadius = dp(26).toFloat(); setColor(cor) }, null)
             minHeight = dp(52)
+            stateListAnimator = null
+            Acao.vivo(this)
         }
 
         caixa.addView(texto(22f, negrito = true, t = "⌚ Instalar o app no relógio"))
@@ -198,6 +201,7 @@ class InstaladorRelogio : ComponentActivity() {
         c3.addView(codigo, lp(6))
         c3.addView(texto(13f, CINZA, t = "Endereço e porta, não: o app acha sozinho. Ao digitar o 6º número, ele já começa."), lp(4))
         botao = botaoCheio("⌚ Parear e instalar", ROSA)
+        Acao.pulsar(botao)
         botao.setOnClickListener { instalar(codigo.text.toString().trim().length == 6) }
         c3.addView(botao, lp(8))
         val jaPareado = getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("pareado", false)

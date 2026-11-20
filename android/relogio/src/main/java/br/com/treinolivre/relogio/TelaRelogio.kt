@@ -194,6 +194,19 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             minimumHeight = dp(46)
             setPadding(dp(6), 0, dp(6), 0)
             setOnClickListener { v -> v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY); acao() }
+            // Ação em todo botão do relógio (pedido do dono, 2026-11-20i): o
+            // toque afunda, vibra curto e volta com mola; o clique segue igual.
+            setOnTouchListener { b, e ->
+                when (e.actionMasked) {
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        try { getSystemService(Vibrator::class.java)?.vibrate(VibrationEffect.createOneShot(18L, 200)) } catch (x: Exception) { }
+                        b.animate().scaleX(0.88f).scaleY(0.88f).setDuration(70L).start()
+                    }
+                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL ->
+                        b.animate().scaleX(1f).scaleY(1f).setDuration(380L).setInterpolator(OvershootInterpolator(4.5f)).start()
+                }
+                false
+            }
         }
         fun pilula(rotulo: String, cores: IntArray, tam: Float = 15f, acao: () -> Unit) = botao(rotulo, pilulaFundo(cores), tam, acao)
         fun contorno(rotulo: String, cor: Int, tam: Float = 15f, acao: () -> Unit) = botao(rotulo,

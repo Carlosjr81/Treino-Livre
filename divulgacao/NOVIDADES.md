@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-20f — Segure a tela do relógio para ver a hora, agora em esfera
+
+**Em uma frase:** a hora no relógio aparece enquanto você segura a tela e some ao soltar, com os números curvados como se estivessem numa bola.
+
+**O que mudou**
+- Segure a tela do relógio por meio segundo, em qualquer lugar: a hora aparece. Solte: volta o treino. (Antes era um toque, que podia ser confundido com um comando do treino.)
+- Segurar em cima de um botão não aperta o botão.
+- Os números gigantes ganharam o efeito de esfera: crescem no meio e se curvam na borda, com sombra e brilho, como a máscara do Galaxy Watch.
+- A tela do relógio se ajusta a cada modelo: redondo ou quadrado, pequeno ou grande.
+
+**Por que importa para quem treina**
+- Ver a hora sem sair do treino e sem risco de marcar uma série sem querer.
+
+**Como usar**
+- No treino, no relógio: segure a tela. Para voltar, é só soltar.
+
+**Ideias de vídeo**
+- O dedo segurando a tela do relógio no meio do descanso: os números em bola pulam tremendo; o dedo solta e o treino volta.
+
+**Não prometer**
+- Só nos relógios com Wear OS 3 ou mais novo (Galaxy Watch 4 em diante, Pixel Watch, Xiaomi Watch 2). Não funciona em pulseira nem no Amazfit Verge.
+
+---
+
 ## 2026-11-20e — Relógios Xiaomi no passo a passo, e a hora igual à máscara
 
 **Em uma frase:** o assistente do relógio agora sabe quais relógios Xiaomi recebem o app no pulso e o que fazer com os outros, e a tela da hora ficou com a bolha e a bolinha no lugar da máscara do Galaxy Watch.

@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v223) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v224) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4690,35 +4690,48 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   pulseiras não instalam app de fora: o cartão leva ao batimento ao vivo e à
   Conexão Saúde. Apple Watch: o cartão diz que não dá. Quem já tinha começado
   a instalar entra como Galaxy Watch.
-- **A hora com um toque** (`HoraGeleia.kt`, pedido do dono, 2026-11-20d:
-  "durante o treino não vejo a hora; 1 toque mostra a hora e já volta, com a
-  fonte e o efeito geleia da máscara do Galaxy Watch, nas cores do app"). Um
-  toque num lugar vazio da tela (não num botão: `clicavelEm` no
-  `dispatchTouchEvent`) mostra a hora por 3,8 s, com vibração curta, e volta
-  sozinha; um toque com a hora à vista só a fecha (o toque não passa ao botão
-  de baixo). **O desenho é o da máscara que o dono mandou**: quatro números
-  enormes (horas em cima, minutos embaixo) vazando da tela redonda, com um
-  contorno preto entre um e outro, e uma bolha translúcida com o dia. A fonte é
-  a **Bodoni Moda Black Italic** (OFL, `res/font`, crédito no `LICENSE` e
-  o texto em `android/relogio/FONTE-OFL.txt`): a da Samsung não é livre, e
-  esta foi a mais parecida entre as livres (Abril Fatface, Playfair, Rozha,
-  Gloock, DM Serif ficaram de fora). Os números são esticados na largura
-  (`LARGURA` 1,18) e endireitados um pouco (`INCLINACAO`); o tamanho e as
-  posições (`TAMANHO`, `COLUNAS`, `LINHA_CIMA`, `LINHA_BAIXO`) saíram de
-  sobrepor os números à foto do modelo num protótipo em canvas, para caberem
-  na tela redonda como lá (a primeira medida vazava demais: o dono pediu
-  "caber exatamente na tela igual ao modelo"). O preenchimento é o degradê da marca, um só para a tela
-  inteira. **A geleia**: cada número entra de um em um, passa do ponto e treme
-  achatando e esticando (`sx = 1 − w`, `sy = 1 + w`, `w` uma senoide que
-  morre), preso no canto perto do meio; os minutos dão um tremidinho a cada
-  segundo; na saída se achatam e somem. **A bolha e a bolinha laranja** ficam onde estão no
-  modelo (pedido seguinte do dono: "ajuste o layout de todos os elementos para
-  isso"): o dia da semana em cima e o dia embaixo; no descanso, "DESCANSO" e o
-  tempo que falta, na cor dele (`infoDaHora`); a bolinha pulsa a cada segundo. **No modo
-  ambiente a hora fica na tela**, parada, só no contorno cinza (OLED), com o
-  descanso em minutos na bolha: antes, com o app na frente, a tela apagada não
-  mostrava hora nenhuma. Horas em 12 ou 24 h conforme o relógio. **Não
-  validado num relógio**: compilado pelo Actions.
+- **A hora ao segurar a tela** (`HoraGeleia.kt`, pedido do dono,
+  2026-11-20d e 20f: "durante o treino não vejo a hora"). **Enquanto a pessoa
+  segura a tela** (380 ms parado, `SEGURAR_MS`, em qualquer lugar, até em cima
+  de um botão), aparece a hora; **ao soltar, volta o treino**. Não é um toque:
+  a primeira versão (20d) usava um toque num lugar vazio, e o dono pediu
+  segurar, porque um toque é comando do treino. Ao completar o tempo, o
+  `dispatchTouchEvent` manda um ACTION_CANCEL ao que está embaixo (o botão
+  não dispara, a rolagem para) e engole o resto do gesto; arrastar antes disso
+  é rolar a tela e não conta. **O desenho é o da máscara que o dono mandou**:
+  quatro números enormes (horas em cima, minutos embaixo) vazando da tela, com
+  um contorno preto entre um e outro, e uma bolha translúcida com o dia. A fonte
+  é a **Bodoni Moda Black Italic** (OFL, `res/font`, crédito no `LICENSE` e o
+  texto em `android/relogio/FONTE-OFL.txt`): a da Samsung não é livre, e esta
+  foi a mais parecida entre as livres (Abril Fatface, Playfair, Rozha, Gloock,
+  DM Serif ficaram de fora). Os números são esticados na largura (`LARGURA`
+  1,18) e endireitados um pouco (`INCLINACAO`); o tamanho e as posições
+  (`TAMANHO`, `COLUNAS`, `LINHA_CIMA`, `LINHA_BAIXO`) saíram de sobrepor
+  os números à foto do modelo num protótipo em canvas. **A esfera** ("a fonte
+  parece montada sobre uma esfera"): os números são desenhados numa camada
+  (`camada`, um Bitmap do tamanho da tela) e a camada é curvada por
+  `drawBitmapMesh` (`malha`, 28×28): o ponto à distância d do meio vai para
+  d + `ESFERA`·(sin(dπ/2) − d), com `ESFERA` 0,6; a borda ganha sombra e o
+  alto à esquerda um brilho, só nos números (SRC_ATOP). A camada só é
+  redesenhada quando a geleia muda (`chave`). O preenchimento é o degradê da
+  marca, um só para a tela inteira. **A geleia**: cada número entra de um em
+  um, passa do ponto e treme achatando e esticando (`sx = 1 − w`, `sy = 1 +
+  w`), preso no canto perto do meio; os minutos dão um tremidinho a cada
+  segundo; ao soltar, se achatam e somem. **A bolha e a bolinha laranja** ficam
+  onde estão no modelo: o dia da semana em cima e o dia embaixo; no descanso,
+  "DESCANSO" e o tempo que falta, na cor dele (`infoDaHora`); a bolinha pulsa
+  a cada segundo. **No modo ambiente a hora fica na tela**, parada, só no
+  contorno cinza, com o descanso em minutos na bolha. Horas em 12 ou 24 h
+  conforme o relógio. **Não validado num relógio**: compilado pelo Actions.
+- **A tela de cada relógio** (2026-11-20f, pedido do dono: "adapte a tela para
+  cada modelo de relógio"). Pelo `isScreenRound` e pela largura: na redonda,
+  a margem de 13% deixa a borda para o anel; na quadrada ou retangular (Oppo
+  Watch, alguns Fossil e Mobvoi), 5%. O texto da tela do treino acompanha o
+  tamanho (`escala` = largura em dp ÷ 225, entre 0,84 e 1,15: o Galaxy Watch
+  de 44 mm é o padrão, o de 40 mm e o Pixel Watch ficam um pouco menores). A
+  hora: na redonda, o desenho num quadrado do menor lado; na retangular, os
+  números ocupam a tela toda na proporção dela. As pulseiras (Smart Band,
+  Galaxy Fit) e os relógios sem Wear OS não rodam o app (ver `android/XIAOMI.md`).
 - **Sem o celular, o relógio segue sozinho** (`SemCelular.kt`, pedido do
   dono, 2026-11-17b: "acabou a bateria do celular e o treino no relógio não
   deu continuidade"). Cada painel leva a **cópia do treino** (`copia`, montada

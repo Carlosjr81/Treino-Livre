@@ -56,6 +56,36 @@ Xiaomi (o e-mail está no FAQ do Vela).
 3. **Marcar as séries sem tocar no celular**: o 🔒 Jarvis com a tela travada
    (voz no fone).
 
+## O "Xiaomi Smartwatch Verge" é o Amazfit Verge
+
+O Verge é da **Amazfit** (da Huami, empresa do grupo Xiaomi, vendido como
+"Xiaomi Amazfit Verge"), não da linha Xiaomi Watch. Ele roda o **Amazfit OS**,
+um Android 5.1 antigo e sem os serviços do Google: **não instala o app do
+relógio do Treino Livre**, que precisa do Wear OS 3 (Android 11) e do Google
+Play Services para conversar com o celular. O Verge Lite e os Amazfit novos
+(GTR, GTS, Balance, T-Rex) usam o Zepp OS, que também não aceita APK.
+
+Fazer um app só para o Amazfit OS seria outro projeto (um app de Android 5.1
+instalado por cabo, com um canal próprio de Bluetooth até o celular) para um
+relógio de 2018 que não recebe mais atualização: não compensa.
+
+O que funciona com ele: **passos, sono e batimento** pelo app Zepp (ou Amazfit),
+se ele ainda reconhecer o Verge, na Conexão Saúde (Zepp › Perfil › Contas ›
+Conexão Saúde); e o **🔒 Jarvis com a tela travada** para marcar as séries pela
+voz. Transmitir o batimento ao vivo, pelo que achei, o Verge não faz.
+
+Para o teste do app no pulso com um relógio Xiaomi, o modelo certo é o
+**Xiaomi Watch 2 ou 2 Pro** (Wear OS), ou qualquer Galaxy Watch 4 em diante.
+
+## As pulseiras e a "tela de cada modelo"
+
+O app do relógio se adapta sozinho à tela de cada relógio Wear OS: redonda ou
+quadrada, pequena ou grande (o texto e as margens acompanham, e a hora ocupa a
+tela na proporção dela). As **pulseiras** (Xiaomi Smart Band, Redmi Band,
+Galaxy Fit, Amazfit Band) não rodam app de fora nenhum: nelas não há tela do
+Treino Livre para adaptar. Com elas vale a Conexão Saúde e, nas que
+transmitem, o batimento ao vivo.
+
 ## Os celulares Xiaomi, Redmi e POCO
 
 Todos os com os serviços do Google (os vendidos no Brasil) rodam o app
@@ -83,6 +113,9 @@ liga relógio Wear OS nem tem Conexão Saúde do Google.
 
 ## O teste do dono: Xiaomi 13T Pro + relógio Xiaomi verde
 
+**Com o Amazfit Verge:** o app no pulso não roda (ver acima). Teste o 13T Pro
+com o app Android e, se o Zepp ainda reconhecer o Verge, a Conexão Saúde.
+
 **No 13T Pro** (HyperOS, com os serviços do Google):
 1. Instale o app Android do Treino Livre (o link em Ajustes), abra pelo ícone.
 2. Faça as liberações acima (Início automático, bateria, cadeado nos recentes).
@@ -94,7 +127,7 @@ liga relógio Wear OS nem tem Conexão Saúde do Google.
    e siga os passos (modo de desenvolvedor: 7 toques em Número da versão).
 2. Libere também o Mi Fitness (Início automático e bateria).
 3. Comece o treino no celular: o relógio abre sozinho. Marque uma série no
-   pulso e veja se entra no celular. Toque num lugar vazio da tela: a hora.
+   pulso e veja se entra no celular. Segure a tela: a hora; solte: o treino.
 4. Se ficar em "Procurando o celular": o "🔎 Testar a conexão" no celular.
 
 **Se for Watch S, Redmi Watch ou Smart Band (sem Play Store):**

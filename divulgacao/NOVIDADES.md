@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-20h — O app avisa quando o app do celular está velho
+
+**Em uma frase:** o site se atualiza sozinho, o app instalado no celular não; agora o Treino Livre avisa quando o app do celular está atrasado e leva direto ao novo.
+
+**O que mudou**
+- Em Ajustes, ao lado de "App Android N", aparece "há o N: atualizar" quando existe um app mais novo.
+- No assistente do relógio, com o app do celular antigo, o primeiro passo vira "Primeiro, atualize o app do celular", e os botões do relógio baixam o app novo.
+- O instalador do relógio ganhou "📤 Enviar o diagnóstico": um relatório completo de cada passo, para o suporte achar o problema de primeira.
+
+**Por que importa para quem treina**
+- Evita tentar instalar o relógio com um instalador velho, que não tem os consertos.
+
+**Como usar**
+- Ajustes › Este app: veja o número do App Android. Se aparecer "atualizar", toque, abra o arquivo e escolha Atualizar (os treinos ficam).
+
+**Ideias de vídeo**
+- "Por que meu app não muda?": o site atualiza sozinho, o app do celular pede um toque.
+
+**Não prometer**
+- O app do celular ainda não se atualiza sozinho (só pela Play Store, quando ele estiver lá).
+
+---
+
 ## 2026-11-20g — Instalar e atualizar o app do relógio: só o código
 
 **Em uma frase:** para instalar ou parear o app no relógio, basta digitar o código de 6 números que o relógio mostra; o celular acha o resto sozinho.

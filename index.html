@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-20g";
+const VERSAO_APP = "2026-11-20h";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5375,6 +5375,18 @@ const NO_APP_ANDROID = (() => {
     return daUrl || sessionStorage.getItem("treinolivre:app") === "1";
   } catch (e) { return daUrl; }
 })();
+// O app do celular não se atualiza sozinho; o site sim (relato do dono,
+// 2026-11-20h: "Versão 2026-11-20g · App Android 100", e o instalador do
+// relógio que rodou era o antigo). APK_ATUAL é o número do app Android da
+// última versão (o run_number do Actions no main): suba a cada publicação que
+// mexe em android/. Abaixo dele o site manda atualizar o app primeiro.
+const APK_ATUAL = 139;
+// o instalador do relógio "só o código" e o diagnóstico chegaram neste número
+const APK_INSTALADOR_MIN = 139;
+const APP_CELULAR_VELHO = /Android/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "") && NO_APP_ANDROID && NUMERO_APK < APK_ATUAL;
+const INSTALADOR_VELHO = /Android/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "") && NO_APP_ANDROID && NUMERO_APK < APK_INSTALADOR_MIN;
+// os botões do relógio: com o instalador velho, baixam o app novo primeiro
+const linkRelogio = (l) => (INSTALADOR_VELHO ? LINK_APK : l);
 
 // Lê o padrão 0x2A37: o primeiro byte diz se o valor vem em 1 ou 2 bytes.
 function lerBpm(dv) {
@@ -15266,7 +15278,7 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, descans
           <Resumo num={totalEx} txt="exercícios" />
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14 }}>
-          <span style={{ fontSize: 12, color: "var(--cinza)" }}>Versão <b style={{ color: "var(--texto)" }}>{VERSAO_APP}</b>{NUMERO_APK > 0 && <> · App Android <b style={{ color: "var(--texto)" }}>{NUMERO_APK}</b></>}</span>
+          <span style={{ fontSize: 12, color: "var(--cinza)" }}>Versão <b style={{ color: "var(--texto)" }}>{VERSAO_APP}</b>{NUMERO_APK > 0 && <> · App Android <b style={{ color: "var(--texto)" }}>{NUMERO_APK}</b></>}{APP_CELULAR_VELHO && <> · <a href={LINK_APK} style={{ color: "var(--marca)", fontWeight: 800 }}>há o {APK_ATUAL}: atualizar</a></>}</span>
           <button onClick={onAtualizar} style={{ ...S.btnGhost, width: "auto", padding: "8px 13px", fontSize: 12.5 }}>
             Buscar atualização
           </button>
@@ -30089,7 +30101,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 : <>Celular travado no bolso: ele ouve, anota as séries, conta o descanso e chama você na hora. Só no app Android.</>}
             </div>
             {NO_APP_ANDROID && RELOGIO_DESATUALIZADO && (
-              <a href={LINK_ATUALIZAR_RELOGIO} style={{ display: "block", marginTop: 6, color: "var(--marca)", fontSize: 12.5, fontWeight: 800, textDecoration: "none" }}>
+              <a href={linkRelogio(LINK_ATUALIZAR_RELOGIO)} style={{ display: "block", marginTop: 6, color: "var(--marca)", fontSize: 12.5, fontWeight: 800, textDecoration: "none" }}>
                 ⬆ O app do relógio tem versão nova: atualizar com um toque ›
               </a>
             )}
@@ -31883,7 +31895,7 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
             {p.id === "celular" && RELOGIO_APP >= RELOGIO_APP_ATUAL && <div style={{ fontSize: 13, color: "var(--ok)", marginBottom: 8, fontWeight: 700 }}>✓ O app do seu celular já é a versão nova.</div>}
             {p.id === "celular" && RELOGIO_APP > 0 && RELOGIO_APP < RELOGIO_APP_ATUAL && <div style={{ fontSize: 13, color: "var(--perigo)", marginBottom: 8, fontWeight: 700 }}>⚠ O app do seu celular é de uma versão anterior: instala no relógio, mas a série marcada no pulso ainda pede a notificação. Baixe de novo e instale por cima. Depois toque em ✓ Conferir o relógio (passo 5): é a volta dele que avisa a versão. Para ver qual app está instalado: Configurações → Apps → Treino Livre, embaixo do nome (1.98 ou maior).</div>}
             {p.botao && EH_ANDROID && botaoLink(p.botao.href, p.botao.rotulo, () => { if (p.id !== "celular") marcar(p.id, true); }, p.botao.href.indexOf("play.google") >= 0 ? "_blank" : undefined)}
-            {p.instalar && EH_ANDROID && botaoLink(LINK_INSTALAR_RELOGIO, "⌚ Instalar no relógio agora", () => marcar(p.id, true))}
+            {p.instalar && EH_ANDROID && botaoLink(linkRelogio(LINK_INSTALAR_RELOGIO), INSTALADOR_VELHO ? "⬇ Primeiro, atualizar o app do celular" : "⌚ Instalar no relógio agora", () => { if (!INSTALADOR_VELHO) marcar(p.id, true); })}
             {p.conferir && EH_ANDROID && botaoLink(LINK_CONFERIR_RELOGIO, "✓ Conferir o relógio")}
             {p.nota && <div style={{ fontSize: 12.5, color: "var(--cinza)", marginBottom: 10 }}>{p.nota}</div>}
             {!p.conferir && (
@@ -31912,6 +31924,14 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
         </div>
         {!EH_ANDROID && (
           <div style={{ ...S.card, borderColor: "var(--perigo)" }}>Precisa de um celular <b>Android</b> com o app do Treino Livre: o relógio conversa com o app, não com o navegador.</div>
+        )}
+        {INSTALADOR_VELHO && (
+          <div style={{ ...S.card, borderColor: "var(--marca)", fontSize: 14, lineHeight: 1.55 }}>
+            <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>⬇ Primeiro, atualize o app do celular</div>
+            <div style={{ marginBottom: 10 }}>{textoGuia("O instalador do relógio mora no **app do celular**, e o seu é o **" + (NUMERO_APK || "antigo") + "**. O novo (**" + APK_ATUAL + "**) pede **só o código** do relógio e acha o resto sozinho. O site se atualiza sozinho; o app do celular não.")}</div>
+            <a href={LINK_APK} style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none" }}>⬇ Baixar o app do celular novo</a>
+            <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 8 }}>{textoGuia("Abra o arquivo baixado e toque em **Atualizar** (instala por cima, os treinos ficam). Depois abra o Treino Livre **pelo ícone** e volte aqui.")}</div>
+          </div>
         )}
         <div style={{ fontWeight: 900, fontSize: 15, margin: "4px 0 8px" }}>Qual é o seu relógio?</div>
         <div role="radiogroup" aria-label="Qual é o seu relógio?" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
@@ -31955,7 +31975,7 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
           <div style={{ ...S.card, borderColor: RELOGIO_DESATUALIZADO ? "var(--marca)" : "var(--borda)" }}>
             <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 4 }}>{RELOGIO_DESATUALIZADO ? "⬆ Tem versão nova para o relógio" : "⬆ Atualizar o app do relógio"}</div>
             <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--cinza)", marginBottom: 10 }}>{textoGuia("Um toque: o celular baixa e instala sozinho. A tela de atualizar abre no relógio e liga o Wi-Fi e a depuração ela mesma. **Só na primeira vez** depois desta versão o relógio pode pedir que você toque em **Abrir as opções** e ligue a **Depuração por Wi-Fi**.")}</div>
-            <a href={LINK_ATUALIZAR_RELOGIO} style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none" }}>⬆ Atualizar o relógio</a>
+            <a href={linkRelogio(LINK_ATUALIZAR_RELOGIO)} style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none" }}>{INSTALADOR_VELHO ? "⬇ Primeiro, atualizar o app do celular" : "⬆ Atualizar o relógio"}</a>
           </div>
         )}
         {marca && marca.wear && st && (

@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v229) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v230) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4723,6 +4723,14 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   a cada segundo. **No modo ambiente a hora fica na tela**, parada, só no
   contorno cinza, com o descanso em minutos na bolha. Horas em 12 ou 24 h
   conforme o relógio. **Não validado num relógio**: compilado pelo Actions.
+  **Depois do teste no pulso (2026-11-20l)**: funcionou, mas os números vazavam
+  da tela e não dava para ler a hora, e o dedo ficava na frente. Hoje os quatro
+  números cabem inteiros (`TAMANHO` 0,34, `ESFERA` 0,25, `COLUNAS` com a linha
+  de baixo um pouco à direita por causa do itálico; conferido num protótipo em
+  canvas com a fonte e a esfera de verdade), o dia vai numa linha só em cima
+  ("SEX.  20", ou "DESCANSO 0:45"), e **ao soltar o dedo a hora fica 2 s**
+  (`FICA_MS`, `soltar`); um toque nesse meio tempo a fecha e não chega ao
+  botão embaixo (`engolir`).
 - **O celular se atualiza sozinho** (2026-11-20k, relato do dono: o site
   dizia "há o 143: atualizar", ele baixava, instalava e continuava no 141).
   O APK 143 publicado estava certo (mesma assinatura, `1.143` no

@@ -418,6 +418,8 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     private var toqueX = 0f
     private var toqueY = 0f
     private var segurando = false
+    // o toque que fechou a hora não chega ao botão embaixo
+    private var engolir = false
     private val segurarR = Runnable {
         if (ambiente || isFinishing) return@Runnable
         segurando = true
@@ -437,6 +439,9 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                // a hora ainda à vista depois de soltar: um toque só a fecha
+                if (!segurando && hora.aberta) { engolir = true; hora.esconder(); return true }
+                engolir = false
                 segurando = false
                 linha.removeCallbacks(segurarR)
                 toqueX = ev.x; toqueY = ev.y
@@ -448,10 +453,11 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
                 linha.removeCallbacks(segurarR)
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 linha.removeCallbacks(segurarR)
-                if (segurando) { segurando = false; onUserInteraction(); hora.esconder(); return true }
+                if (engolir) { engolir = false; return true }
+                if (segurando) { segurando = false; onUserInteraction(); hora.soltar(); return true }
             }
         }
-        if (segurando) return true
+        if (segurando || engolir) return true
         return super.dispatchTouchEvent(ev)
     }
 

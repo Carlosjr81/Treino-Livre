@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-20l — A hora do relógio, inteira e sem o dedo na frente
+
+**Em uma frase:** ao segurar a tela do relógio, a hora aparece inteira e legível, e fica 2 segundos depois de soltar o dedo.
+
+**O que mudou**
+- Os quatro números da hora cabem inteiros na tela redonda, ainda grandes e no degradê da marca.
+- O dia da semana e o dia do mês ficam numa linha só, em cima; no descanso, o tempo que falta.
+- Ao soltar o dedo, a hora continua na tela por 2 segundos: dá para ler sem o dedo na frente. Um toque fecha antes.
+
+**Por que importa para quem treina**
+- Ver a hora no meio do treino sem sair do app e sem tampar o número com o dedo.
+
+**Como usar**
+- No relógio, durante o treino, segure a tela até a hora aparecer e solte.
+
+**Ideias de vídeo**
+- Close no pulso: segura, solta, e a hora fica ali, enorme e colorida, enquanto a mão volta para o halter.
+
+**Não prometer**
+- Só no app do relógio novo (atualizado pelo celular) e em relógios Wear OS.
+
+---
+
 ## 2026-11-20k — O app do celular se atualiza sozinho
 
 **Em uma frase:** a partir desta versão, atualizar o app do celular é um toque: ele baixa sozinho, mostra a porcentagem e abre a janela do Android.

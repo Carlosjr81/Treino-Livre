@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-20d**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-20e**.
 
 ---
 
@@ -241,6 +241,7 @@ com cenas reais → halter) como linguagem visual em vídeos.
 ### 3.2b ⌚ O treino no relógio: Galaxy Watch, Pixel Watch e Wear OS (novo em 2026-11-11a)
 - Um app para o relógio (Galaxy Watch 4 em diante, Pixel Watch e outros com Wear OS 3+), ligado ao app Android do celular.
 - **Visual que chama atenção (2026-11-13a):** um anel colorido gira na borda da tela; no treino, uma fatia por série; no descanso, ele esvazia numa cor só, que muda aos poucos do verde ao amarelo, ao laranja e ao vermelho (desde 2026-11-18b), com o número e os botões na mesma cor; nos últimos 10 segundos a tela pisca, e nos últimos 5 vira uma festa de cores (desde 2026-11-18c). Com o treino aberto, a tela do relógio fica acesa o tempo todo (desde 2026-11-18d). Quando o app do celular é atualizado, ele atualiza o app do relógio sozinho, sem toque (desde 2026-11-18e; depois da primeira instalação). Funciona também com celulares Xiaomi, Redmi, POCO, Oppo e Vivo, liberando o Início automático uma vez (desde 2026-11-19a). Um botão testa a conexão entre celular e relógio e diz onde ela para, e o app lista quais celulares e relógios funcionam: relógios Wear OS 3+ (Galaxy Watch 4 em diante, Pixel Watch e outros) com celular Android com a Play Store; não Apple Watch, Galaxy Watch 3 nem iPhone (desde 2026-11-19b). Atualizar o app do relógio é um toque: o relógio manda ao celular o próprio endereço, sem digitar nada. Cada série feita dá um clarão com ondas e "✓ SÉRIE FEITA" com vibração; passar do recorde deixa o botão dourado ("🏆 NOVO RECORDE!"); o fim do treino comemora em dourado.
+- **Relógios Xiaomi (2026-11-20e):** o Xiaomi Watch 2 e o 2 Pro (com Wear OS) instalam o app do relógio, como o Galaxy Watch. Os Xiaomi Watch S, Redmi Watch e Smart Band não instalam app de fora; com eles, passos, sono e batimento chegam pelo Mi Fitness na Conexão Saúde, e o batimento ao vivo funciona nos que transmitem (Watch S4 41 mm, Smart Band 10). Celulares Xiaomi, Redmi e POCO funcionam depois de liberar o Início automático e a bateria.
 - **A hora com um toque (2026-11-20d):** um toque num lugar vazio da tela do relógio mostra a hora gigante, com números enormes que vazam da tela no degradê do app (laranja, rosa e roxo), entrando com efeito de gelatina; a bolha mostra o dia, ou o descanso que falta, e uma bolinha laranja pulsa na borda. Em menos de 4 segundos volta sozinha ao treino. Com a tela apagada, a hora fica à vista em contorno.
 - **Atualizar é um toque (2026-11-13b):** quando há versão nova, aparece "⬆ Atualizar o relógio" no celular e "⬆ Atualizar o app" no relógio; o celular instala sozinho (só a primeira instalação usa o modo de desenvolvedor com o código).
 - A instalação começa com "Qual é o seu relógio?": cada modelo com o seu caminho. Garmin, Amazfit, Huawei, Polar, Coros e Apple Watch não instalam o app (Garmin e cia. usam o batimento ao vivo).

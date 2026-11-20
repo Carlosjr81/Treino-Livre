@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-11-20e — Relógios Xiaomi no passo a passo, e a hora igual à máscara
+
+**Em uma frase:** o assistente do relógio agora sabe quais relógios Xiaomi recebem o app no pulso e o que fazer com os outros, e a tela da hora ficou com a bolha e a bolinha no lugar da máscara do Galaxy Watch.
+
+**O que mudou**
+- Em "Qual é o seu relógio?", duas opções novas: **Xiaomi Watch 2 / 2 Pro** (instala o app do relógio, ligado pelo Mi Fitness) e **Xiaomi Watch S, Redmi Watch, Smart Band** (não instalam app de fora; o app mostra como usar a Conexão Saúde e o batimento ao vivo).
+- A lista "Quais celulares e relógios funcionam" ganhou os Xiaomi, modelo por modelo.
+- O teste da conexão no celular mostra os botões do app que liga o seu relógio (Galaxy Wearable, Mi Fitness, Pixel Watch ou Wear OS).
+- Na hora com um toque: o dia da semana e o dia na bolha, e a bolinha laranja na borda pulsando a cada segundo, como na máscara; no descanso, a bolha diz "DESCANSO" e o tempo que falta.
+
+**Por que importa para quem treina**
+- Quem tem relógio Xiaomi sabe na hora o que dá para usar, sem tentar instalar o que o relógio não aceita.
+
+**Como usar**
+- Ajustes › ⌚ Instalar o app no relógio › escolha o seu Xiaomi. Para saber qual é: se o relógio tem a Play Store, é o Watch 2 / 2 Pro.
+
+**Ideias de vídeo**
+- "Tenho relógio Xiaomi: funciona?" Mostrar as duas opções e o que cada uma faz.
+
+**Não prometer**
+- Não dizer que o app do relógio funciona nos Xiaomi Watch S, Redmi Watch ou Smart Band: neles só a Conexão Saúde e o batimento ao vivo (nos que transmitem).
+- O relógio Xiaomi ainda não foi testado com o app: o primeiro teste é do dono.
+
+---
+
 ## 2026-11-20d — A hora no relógio com um toque, com efeito gelatina
 
 **Em uma frase:** no meio do treino, um toque na tela do relógio mostra a hora gigante, com números que tremem como gelatina, e em seguida volta sozinha ao treino.

@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-20d";
+const VERSAO_APP = "2026-11-20e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -31683,7 +31683,20 @@ const MARCAS_RELOGIO = [
       "Toque **7 vezes** em **Número da versão**, até aparecer que o modo de desenvolvedor foi ligado.",
       "Volte para **Configurações**: apareceu **Opções do desenvolvedor**. Se apareceu, deu certo.",
     ] },
-  { id: "wearos", icone: "⌚", nome: "Outro com Wear OS", sub: "TicWatch, Fossil, Xiaomi Watch 2, OnePlus, Oppo, Montblanc", wear: true, app: "do relógio (Wear OS ou o app da marca)",
+  // Xiaomi (2026-11-20d, pedido do dono: "avalie a integração com todos os
+  // relógios e celulares Xiaomi"): só o Watch 2 e o 2 Pro são Wear OS e
+  // instalam o app; os Watch S, Redmi Watch e Smart Band usam o sistema da
+  // Xiaomi, que só aceita apps de parceiros dela (ver android/XIAOMI.md).
+  { id: "xiaomiwear", icone: "⌚", nome: "Xiaomi Watch 2 / 2 Pro", sub: "Xiaomi com Wear OS (tem Play Store)", wear: true, app: "Mi Fitness",
+    wifi: "**Configurações → Conectividade → Wi-Fi**",
+    modo: [
+      "No relógio: **Configurações → Sistema → Sobre** (ou **Sobre o relógio → Versões**).",
+      "Toque **7 vezes** em **Número da versão** (Build number), até aparecer que o modo de desenvolvedor foi ligado.",
+      "Volte para **Configurações** (ou **Sistema**): apareceu **Opções do desenvolvedor**. Se apareceu, deu certo.",
+    ],
+    nota: "O Xiaomi Watch 2 se liga ao celular pelo **Mi Fitness**. Num celular Xiaomi, libere o **Início automático** e a **Bateria sem restrições** do Treino Livre, do Mi Fitness e do Google Play Services." },
+  { id: "xiaomi", icone: "⌚", nome: "Xiaomi Watch S, Redmi Watch, Smart Band", sub: "Xiaomi sem Play Store (HyperOS)", wear: false, xiaomi: true },
+  { id: "wearos", icone: "⌚", nome: "Outro com Wear OS", sub: "TicWatch, Fossil, OnePlus, Oppo, Montblanc", wear: true, app: "do relógio (Wear OS ou o app da marca)",
     wifi: "**Configurações → Conectividade → Wi-Fi**",
     modo: [
       "No relógio: **Configurações → Sistema → Sobre** (em alguns, **Sobre o relógio**).",
@@ -31700,7 +31713,7 @@ const MARCAS_RELOGIO = [
 // o que muda de uma marca de celular para outra é só o Início automático.
 const COMPAT_CELULAR = [
   ["✅", "Samsung, Motorola, Google Pixel, Nokia, Sony", "Funciona direto."],
-  ["⚠️", "Xiaomi, Redmi, POCO", "Funciona depois de ligar o **Início automático** e a **Bateria sem restrições** do Treino Livre **e também** do Galaxy Wearable, do plugin do relógio (Galaxy Watch Manager), do Samsung Accessory Service e do Google Play Services (Segurança › Apps › Permissões)."],
+  ["⚠️", "Xiaomi, Redmi, POCO (todos, com HyperOS ou MIUI)", "Funciona depois de ligar o **Início automático** e a **Bateria sem restrições** do Treino Livre **e também** do app que liga o relógio (Galaxy Wearable com o plugin Galaxy Watch Manager e o Samsung Accessory Service; ou o Mi Fitness, no Xiaomi Watch 2) e do Google Play Services (Segurança › Apps › Permissões). Celular Xiaomi da China, sem os serviços do Google, não conecta."],
   ["⚠️", "Oppo, Realme, OnePlus", "Ligue o **Início automático** (Gerenciar apps › Treino Livre) e a bateria **Sem restrições**."],
   ["⚠️", "Vivo, iQOO", "Ligue o **Início automático em segundo plano** e a bateria **Sem restrições**."],
   ["⚠️", "Asus, Tecno, Infinix, Meizu", "Ligue o **Início automático** e tire o Treino Livre da economia de bateria."],
@@ -31711,10 +31724,12 @@ const COMPAT_CELULAR = [
 const COMPAT_RELOGIO = [
   ["✅", "Galaxy Watch 4, 5, 6, 7, 8, Ultra e FE", "Com o app Galaxy Wearable no celular (em celular que não é Samsung, ele pede também o plugin do relógio)."],
   ["✅", "Pixel Watch 1, 2, 3 e 4", "Com o app Pixel Watch no celular."],
-  ["✅", "TicWatch, Fossil Gen 6, Xiaomi Watch 2, OnePlus Watch 2, Oppo Watch, Montblanc", "Com Wear OS 3 ou mais novo e o app Wear OS (ou o da marca) no celular."],
+  ["✅", "Xiaomi Watch 2 e Xiaomi Watch 2 Pro", "Wear OS: instala o app. Liga ao celular pelo app Mi Fitness."],
+  ["✅", "TicWatch, Fossil Gen 6, OnePlus Watch 2, Oppo Watch, Montblanc", "Com Wear OS 3 ou mais novo e o app Wear OS (ou o da marca) no celular."],
   ["❌", "Galaxy Watch 3, Active e mais antigos", "Usam outro sistema (Tizen), que não instala o app."],
   ["❌", "Apple Watch", "Só conversa com iPhone."],
-  ["❤️", "Garmin, Amazfit, Huawei Watch GT, Polar, Coros, Xiaomi Smart Band", "Sem o app no pulso, mas o batimento ao vivo (transmitir FC) e a Conexão Saúde funcionam."],
+  ["❤️", "Xiaomi Watch S1, S2, S3, S4 e S4 Sport, Redmi Watch e Xiaomi Smart Band", "Sistema da Xiaomi (HyperOS): não instala o app. Passos, sono e batimento chegam pelo Mi Fitness na Conexão Saúde; o batimento ao vivo, nos que transmitem (Watch S4 41 mm, Smart Band 10)."],
+  ["❤️", "Garmin, Amazfit, Huawei Watch GT, Polar, Coros", "Sem o app no pulso, mas o batimento ao vivo (transmitir FC) e a Conexão Saúde funcionam."],
 ];
 const marcaRelogio = (id) => MARCAS_RELOGIO.find((m) => m.id === id) || null;
 // os passos do relógio escolhido: o modo de desenvolvedor e o Wi-Fi de cada um
@@ -31919,10 +31934,15 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
         {marca && !marca.wear && !marca.apple && (
           <div style={{ ...S.card, fontSize: 14, lineHeight: 1.55 }}>
             <div style={{ fontWeight: 900, marginBottom: 6 }}>Este relógio não instala o app do Treino Livre</div>
-            <div style={{ marginBottom: 10 }}>{textoGuia("Garmin, Amazfit, Huawei, Polar, Coros e as pulseiras (Mi Band, Redmi, Galaxy Fit) têm sistema fechado: não aceitam app de fora. Mas dá para usar com o Treino Livre de **dois jeitos**:")}</div>
+            <div style={{ marginBottom: 10 }}>{textoGuia(marca.xiaomi
+              ? "Os Xiaomi Watch S (S1 a S4), os Redmi Watch e as Smart Band usam o sistema da própria Xiaomi (HyperOS), que só aceita apps de parceiros dela. **Para saber:** se o relógio tem a **Play Store**, ele é Wear OS (Xiaomi Watch 2 ou 2 Pro): escolha esse acima. Sem Play Store, dá para usar com o Treino Livre de **dois jeitos**:"
+              : "Garmin, Amazfit, Huawei, Polar, Coros e as pulseiras (Mi Band, Redmi, Galaxy Fit) têm sistema fechado: não aceitam app de fora. Mas dá para usar com o Treino Livre de **dois jeitos**:")}</div>
             <div style={{ marginBottom: 8 }}>{textoGuia("❤ **Batimento ao vivo no treino.** Ligue o modo de transmitir do relógio — Garmin *Transmitir FC*, Amazfit (Zepp) *Compartilhar FC*, Xiaomi *Transmissão de frequência cardíaca*, Huawei *Transmitir FC*, Polar e Coros — e conecte em **Histórico → ❤ Saúde**. A média e o pico entram no treino.")}</div>
             <button onClick={() => irGuia("bpm")} style={{ ...S.btn, marginBottom: 10 }}>❤ Como ligar o batimento ao vivo</button>
-            <div style={{ marginBottom: 8 }}>{textoGuia("📊 **Passos, sono, batimento e peso** pela **Conexão Saúde**: o app da marca grava lá, e o Treino Livre lê (no app Android).")}</div>
+            {marca.xiaomi && <div style={{ marginBottom: 8, fontSize: 13.5, color: "var(--cinza)" }}>{textoGuia("No Xiaomi, o batimento ao vivo só existe nos que transmitem (o Watch S4 de 41 mm e a Smart Band 10, entre outros): procure **Transmissão de frequência cardíaca** nos ajustes de exercício do relógio. Os mais antigos não transmitem; aí vale a Conexão Saúde.")}</div>}
+            <div style={{ marginBottom: 8 }}>{textoGuia(marca.xiaomi
+              ? "📊 **Passos, sono, batimento e peso** pela **Conexão Saúde**: no **Mi Fitness**, Perfil › Conexão Saúde (ou Apps de terceiros), ligue o que quer mandar. O Mi Fitness grava quando o relógio sincroniza, e o Treino Livre lê (no app Android)."
+              : "📊 **Passos, sono, batimento e peso** pela **Conexão Saúde**: o app da marca grava lá, e o Treino Livre lê (no app Android).")}</div>
             <button onClick={() => irGuia("outros")} style={{ ...S.btnGhost, marginBottom: 10 }}>📊 Como ligar a Conexão Saúde</button>
             <div style={{ fontSize: 13, color: "var(--cinza)" }}>{textoGuia("E para marcar as séries sem tocar no celular: o **🔒 Jarvis com a tela travada** ouve e fala no fone (\"Jarvis, 80 por 10\").")}</div>
           </div>

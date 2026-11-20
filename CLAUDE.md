@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v222) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v223) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4609,6 +4609,22 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   - **Não validado num relógio**: o `adb_wifi_enabled` escrito pelo app, o
     `requestNetwork` do Wi-Fi, a tela aberta pelo celular, a procura da
     porta no próprio relógio e a atualização sem toque.
+- **Os relógios e celulares Xiaomi** (avaliação de 2026-11-20e, pedido do
+  dono, que vai testar um 13T Pro com um relógio Xiaomi; o relatório inteiro
+  está em **`android/XIAOMI.md`**). Só o **Xiaomi Watch 2 e o 2 Pro** são Wear
+  OS (têm Play Store) e instalam o app do relógio; ligam ao celular pelo **Mi
+  Fitness**. Os Watch S (S1 a S5), Redmi Watch e Smart Band rodam o Xiaomi
+  Vela (HyperOS), que só aceita "quick apps" em JavaScript, distribuídos por
+  parceria com a Xiaomi: o app no pulso ali seria um segundo app, do zero, e
+  depende dela. Com eles vale a Conexão Saúde (o Mi Fitness grava quando
+  sincroniza) e o batimento ao vivo nos que transmitem (Watch S4 41 mm, Smart
+  Band 10; a 9 não). No assistente do relógio: "Xiaomi Watch 2 / 2 Pro"
+  (Wear OS, `app: "Mi Fitness"`) e "Xiaomi Watch S, Redmi Watch, Smart Band"
+  (`xiaomi: true`, o cartão de quem não instala, com o caminho do Mi Fitness);
+  as tabelas `COMPAT_CELULAR` e `COMPAT_RELOGIO` dizem o mesmo. O "Testar a
+  conexão" do celular (`FundoActivity`) mostra os botões do app que liga o
+  relógio que estiver instalado (`COMPANHEIROS`: Galaxy Wearable, Mi Fitness,
+  Pixel Watch, Wear OS; o manifesto os declara em `<queries>`).
 - **Xiaomi e outros celulares que barram o segundo plano** (2026-11-19a,
   relato do dono: Galaxy S26 + Watch 8 perfeito; **Redmi Note 13 Pro+ com
   Galaxy Watch 6** instalou e o relógio ficou em "Procurando o celular…").

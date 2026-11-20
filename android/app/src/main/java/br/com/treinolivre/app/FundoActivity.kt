@@ -82,12 +82,21 @@ class FundoActivity : Activity() {
         // conectado"): a ligação entre os dois é do Galaxy Wearable e do Google
         // Play Services, e no Xiaomi eles também são barrados em segundo plano.
         semNo = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = android.view.View.GONE }
-        semNo?.addView(texto(14f, cinza, t = "Libere estes apps como o Treino Livre (Início automático ligado e Bateria sem restrições): Galaxy Wearable, Galaxy Watch Manager (o plugin do relógio), Samsung Accessory Service e Google Play Services. Depois reinicie o relógio e o celular."), lp(6))
-        semNo?.addView(botao("Abrir o Galaxy Wearable", escuro) {
-            val i = packageManager.getLaunchIntentForPackage("com.samsung.android.app.watchmanager")
-            if (i == null || !tentar(i)) tentar(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.samsung.android.app.watchmanager")))
-        }, lp(8))
-        semNo?.addView(botao("Bateria do Galaxy Wearable", escuro) { abrirBateria("com.samsung.android.app.watchmanager", "Galaxy Wearable") }, lp(8))
+        // 2026-11-20d: o app que liga o relógio muda com a marca dele (Galaxy
+        // Wearable, Mi Fitness no Xiaomi Watch 2, Pixel Watch, Wear OS): os
+        // botões são os dos que estão instalados neste celular.
+        val companheiros = COMPANHEIROS.filter { instalado(it.first) }.ifEmpty { COMPANHEIROS.take(1) }
+        semNo?.addView(texto(14f, cinza, t = "Libere estes apps como o Treino Livre (Início automático ligado e Bateria sem restrições): " +
+            companheiros.joinToString(", ") { it.second } +
+            (if (companheiros.any { it.first.startsWith("com.samsung") }) ", Galaxy Watch Manager (o plugin do relógio), Samsung Accessory Service" else "") +
+            " e Google Play Services. Depois reinicie o relógio e o celular."), lp(6))
+        for ((pacote, nome) in companheiros) {
+            semNo?.addView(botao("Abrir o $nome", escuro) {
+                val i = packageManager.getLaunchIntentForPackage(pacote)
+                if (i == null || !tentar(i)) tentar(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pacote")))
+            }, lp(8))
+            semNo?.addView(botao("Bateria do $nome", escuro) { abrirBateria(pacote, nome) }, lp(8))
+        }
         semNo?.addView(botao("Bateria do Google Play Services", escuro) { abrirBateria("com.google.android.gms", "Google Play services") }, lp(8))
         caixa.addView(semNo, lp(4))
         if (precisa()) caixa.addView(texto(15f, t = "Em celulares " + nomeDaMarca() + ", o sistema não deixa o Treino Livre acordar quando o relógio chama. Aí o relógio fica em \"Procurando o celular…\". Libere duas coisas, uma vez só:"), lp(18))
@@ -106,6 +115,15 @@ class FundoActivity : Activity() {
         setContentView(ScrollView(this).apply { setBackgroundColor(Color.parseColor("#0B0B0F")); addView(caixa) })
     }
 
+    // os apps que ligam um relógio Wear OS ao celular, o da Samsung primeiro
+    private val COMPANHEIROS = listOf(
+        "com.samsung.android.app.watchmanager" to "Galaxy Wearable",
+        "com.xiaomi.wearable" to "Mi Fitness",
+        "com.mi.health" to "Mi Fitness",
+        "com.google.android.apps.wear.companion" to "Pixel Watch",
+        "com.google.android.wearable.app" to "Wear OS",
+    )
+
     private var resultado: TextView? = null
     private var semNo: LinearLayout? = null
     private var ouvinte: MessageClient.OnMessageReceivedListener? = null
@@ -122,7 +140,7 @@ class FundoActivity : Activity() {
             Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nos ->
                 if (nos.isEmpty()) {
                     runOnUiThread { semNo?.visibility = android.view.View.VISIBLE }
-                    dizer("✗ O Google não vê relógio nenhum ligado a este celular. O problema está antes do Treino Livre: na ligação entre o celular e o relógio.\n\n1. Abra o Galaxy Wearable (ou Wear OS / Pixel Watch): ele precisa mostrar o relógio Conectado.\n2. Bluetooth ligado e o Google Play Services atualizado na Play Store.\n3. O relógio precisa ter sido configurado com ESTE celular (relógio que já foi de outro celular: restaure pelo Galaxy Wearable).\n\nCelular Huawei ou Honor sem os serviços do Google não conecta relógio Wear OS.")
+                    dizer("✗ O Google não vê relógio nenhum ligado a este celular. O problema está antes do Treino Livre: na ligação entre o celular e o relógio.\n\n1. Abra o app que liga o relógio (Galaxy Wearable; Mi Fitness no Xiaomi Watch 2; Pixel Watch; ou Wear OS): ele precisa mostrar o relógio Conectado.\n2. Bluetooth ligado e o Google Play Services atualizado na Play Store.\n3. O relógio precisa ter sido configurado com ESTE celular (relógio que já foi de outro celular: restaure o relógio e configure de novo).\n\nCelular Huawei ou Honor sem os serviços do Google não conecta relógio Wear OS.")
                     return@addOnSuccessListener
                 }
                 runOnUiThread { semNo?.visibility = android.view.View.GONE }
@@ -164,6 +182,9 @@ class FundoActivity : Activity() {
         tirarOuvinte()
         super.onDestroy()
     }
+
+    private fun instalado(pacote: String): Boolean =
+        try { packageManager.getPackageInfo(pacote, 0); true } catch (e: Exception) { false }
 
     private fun tentar(vararg intents: Intent): Boolean {
         for (i in intents) {

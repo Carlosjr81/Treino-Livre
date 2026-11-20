@@ -41,8 +41,13 @@
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
         <package android:name="com.android.chrome" />
-        <!-- o Galaxy Wearable, para o "Testar a conexão" abrir o app dele -->
+        <!-- os apps que ligam o relógio (Galaxy Wearable, Mi Fitness, Pixel Watch,
+             Wear OS), para o "Testar a conexão" abrir o que estiver instalado -->
         <package android:name="com.samsung.android.app.watchmanager" />
+        <package android:name="com.xiaomi.wearable" />
+        <package android:name="com.mi.health" />
+        <package android:name="com.google.android.apps.wear.companion" />
+        <package android:name="com.google.android.wearable.app" />
         <intent>
             <action android:name="android.support.customtabs.action.CustomTabsService" />
         </intent>

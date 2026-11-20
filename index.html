@@ -1729,7 +1729,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-20f";
+const VERSAO_APP = "2026-11-20g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -31771,9 +31771,9 @@ const PASSOS_RELOGIO = [
   { id: "instalar", titulo: "Instale com um toque",
     lista: [
       "No relógio: **Configurações → Opções do desenvolvedor** → ligue **Depuração ADB** e depois **Depuração por Wi-Fi** (confirme com **Permitir**).",
-      "Toque no **nome** Depuração por Wi-Fi (não na chave) → **Parear novo dispositivo**. O relógio mostra um **código de 6 números** e, embaixo, um **endereço com a porta** (por exemplo 10.112.157.28:40149). **Deixe essa tela aberta** e a tela do relógio acesa (toque nela de vez em quando).",
-      "No celular, toque em **⌚ Instalar no relógio agora** (aqui embaixo). Na tela que abre, digite o **código** e toque em **Parear e instalar**.",
-      "Se o app disser que não achou o relógio: digite no **primeiro campo** o endereço que está embaixo do código. Se ele pedir o **segundo**: feche o código no relógio (✕); a tela da Depuração por Wi-Fi mostra **outro** Endereço IP e porta (a porta muda), digite esse no segundo campo.",
+      "Toque no **nome** Depuração por Wi-Fi (não na chave) → **Parear novo dispositivo**. O relógio mostra um **código de 6 números**. **Deixe essa tela aberta** e a tela do relógio acesa (toque nela de vez em quando).",
+      "No celular, toque em **⌚ Instalar no relógio agora** (aqui embaixo) e digite **só o código**. No 6º número ele já começa: acha o relógio, as portas, pareia e instala sozinho. Endereço e porta não precisa digitar.",
+      "Só se o app disser que não achou o relógio na rede: digite o **endereço** que aparece embaixo do código no relógio, **sem a porta** (por exemplo 10.112.157.28).",
       "Se o relógio perguntar **Permitir depuração?**, toque em **Permitir** (marque **Sempre permitir**).",
       "Espere **✅ Pronto! O Treino Livre está no relógio.** O app abre sozinho no relógio.",
     ],
@@ -31792,17 +31792,15 @@ const PROBLEMAS_RELOGIO = [
   ["O relógio apaga a tela e volta para o mostrador",
     "Com o treino aberto, o Treino Livre fica **em andamento** no relógio: o ícone dele aparece no mostrador, e um toque nele volta ao treino. Se o relógio pediu para permitir notificações, toque em **Permitir**. No Galaxy Watch, ajuda também: Configurações → **Tela** → **Mostrar último app** (ou Voltar ao último app) → **Sempre**. E ligar a **Tela sempre ligada** deixa o treino à vista, escurecido."],
   ["\"O celular e o relógio estão em redes diferentes\"",
-    "Compare o endereço do celular com o do relógio: o começo tem de ser igual (por exemplo **192.168.0**.171 e **192.168.0**.40). No relógio, Configurações → Conexões → **Wi-Fi**, e escolha o mesmo Wi-Fi do celular (ou o Roteador Wi-Fi do celular). Depois, **Já pareei antes** com o endereço novo: não precisa de código."],
+    "Compare o endereço do celular com o do relógio: o começo tem de ser igual (por exemplo **192.168.0**.171 e **192.168.0**.40). No relógio, Configurações → Conexões → **Wi-Fi**, e escolha o mesmo Wi-Fi do celular (ou o Roteador Wi-Fi do celular). Depois toque de novo: o app acha o relógio sozinho."],
   ["\"O celular não conseguiu chegar ao relógio\", \"ECONNABORTED\", \"Host unreachable\" ou \"não respondeu\"",
     "A rede está bloqueando, ou o Wi-Fi do relógio dormiu. Ligue o **Roteador Wi-Fi do celular**, conecte o relógio nele (passo 3), acenda a tela do relógio e tente de novo."],
   ["\"O pareamento falhou\"",
-    "O código venceu (ele muda cada vez que a tela abre). No relógio, feche e abra de novo **Parear novo dispositivo** e use o código e o endereço **novos**."],
-  ["\"O relógio recusou este celular\" ou \"Connection failed\"",
-    "O pareamento não valeu. Pareie de novo: código novo, o endereço dessa janela no primeiro campo, e **Parear e instalar**."],
+    "O código venceu (ele muda cada vez que a tela abre). No relógio, feche e abra de novo **Parear novo dispositivo** e digite o código **novo**."],
+  ["\"O relógio não reconhece mais este celular\" (antes: \"recusou este celular\", \"Connection reset\")",
+    "O relógio esqueceu o pareamento (foi restaurado, ou as autorizações de depuração foram apagadas). O app já para e pede o código: no relógio, **Parear novo dispositivo**, e digite **só o código**. O resto é sozinho."],
   ["\"Não achei o relógio\"",
     "A **Depuração por Wi-Fi** desligou sozinha (ela desliga quando o relógio sai do Wi-Fi ou reinicia). Ligue de novo no relógio e toque outra vez."],
-  ["\"Falta um passo\" ou o app pede o segundo endereço",
-    "No relógio, feche o código (✕): a tela da Depuração por Wi-Fi mostra o **Endereço IP e porta** para conectar. Digite no segundo campo."],
   ["\"O relógio recusou: … UPDATE_INCOMPATIBLE\"",
     "O app que está no relógio veio de outra versão. Desinstale o Treino Livre do relógio (segure o ícone) e instale de novo."],
   ["Conferir diz \"Nenhum relógio conectado\"",

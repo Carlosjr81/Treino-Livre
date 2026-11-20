@@ -104,6 +104,10 @@ class InstaladorRelogio : ComponentActivity() {
     private var presoAoWifi = false
     private lateinit var registro: TextView
     private lateinit var voltar: Button
+    private lateinit var cartaoCodigo: LinearLayout
+    private lateinit var tituloCodigo: TextView
+    private val escondidosAuto = mutableListOf<View>()
+    private var verDetalhesAuto: Button? = null
 
     private val ROSA = Color.parseColor("#E1306C")
     private val CINZA = Color.parseColor("#9A9AA5")
@@ -162,17 +166,32 @@ class InstaladorRelogio : ComponentActivity() {
         caixa.addView(c2, lp(10))
 
         val c3 = cartao()
-        c3.addView(texto(15f, negrito = true, t = "3. Digite o código que o relógio mostra"))
+        cartaoCodigo = c3
+        // Um campo só (2026-11-21a, relato do dono com prints: a porta de
+        // conectar foi parar no campo da porta de parear, e nada funcionou). O
+        // app procura as portas abertas do relógio e tenta parear em cada uma:
+        // ninguém precisa saber qual porta é qual.
+        tituloCodigo = texto(15f, negrito = true, t = "3. No relógio, toque em Parear novo dispositivo e digite aqui só o código")
+        c3.addView(tituloCodigo)
         codigo = EditText(this).apply {
             hint = "6 números"
             inputType = InputType.TYPE_CLASS_NUMBER
             textSize = 26f; gravity = Gravity.CENTER; letterSpacing = 0.3f
             setTextColor(Color.WHITE); setHintTextColor(CINZA)
             filters = arrayOf(android.text.InputFilter.LengthFilter(6))
+            // o 6º número já começa: nada de procurar botão
+            addTextChangedListener(object : android.text.TextWatcher {
+                override fun beforeTextChanged(t: CharSequence?, a: Int, b: Int, c: Int) {}
+                override fun onTextChanged(t: CharSequence?, a: Int, b: Int, c: Int) {}
+                override fun afterTextChanged(e: android.text.Editable?) {
+                    if (e?.length == 6 && !trabalhando) linha.postDelayed({ if (codigo.text.length == 6) instalar(true) }, 300L)
+                }
+            })
         }
         c3.addView(codigo, lp(6))
+        c3.addView(texto(13f, CINZA, t = "Endereço e porta, não: o app acha sozinho. Ao digitar o 6º número, ele já começa."), lp(4))
         botao = botaoCheio("⌚ Parear e instalar", ROSA)
-        botao.setOnClickListener { instalar(true) }
+        botao.setOnClickListener { instalar(codigo.text.toString().trim().length == 6) }
         c3.addView(botao, lp(8))
         val jaPareado = getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("pareado", false)
         botaoJa = botaoCheio("Já pareei antes: instalar ou atualizar", if (jaPareado) ROSA else Color.parseColor("#2A2A33"))
@@ -189,26 +208,23 @@ class InstaladorRelogio : ComponentActivity() {
         caixa.addView(c3, lp(10))
 
         manual = cartao().apply { visibility = View.GONE }
-        manual.addView(texto(14f, t = "Não achou o relógio? Digite o endereço e a porta que aparecem embaixo do código, na tela do relógio (por exemplo 192.168.0.12:37123)."))
+        manual.addView(texto(14f, t = "O app não achou o relógio sozinho? Digite só o endereço que aparece na tela do relógio (os números antes dos dois pontos, por exemplo 192.168.0.12). A porta não precisa: o app acha."))
         endereco = EditText(this).apply {
-            hint = "endereço:porta"; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            hint = "endereço do relógio"; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
             setTextColor(Color.WHITE); setHintTextColor(CINZA)
         }
         manual.addView(endereco, lp(6))
-        manual.addView(texto(14f, t = "Depois de parear, feche o código no relógio: a tela da Depuração por Wi-Fi mostra outro Endereço IP e porta (a porta é diferente). Se o app pedir, digite aqui:"), lp(12))
-        enderecoCon = EditText(this).apply {
-            hint = "endereço:porta para conectar"; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
-            setTextColor(Color.WHITE); setHintTextColor(CINZA)
-        }
-        manual.addView(enderecoCon, lp(6))
+        // o segundo campo saiu da tela (era o que confundia); fica só por dentro
+        enderecoCon = EditText(this).apply { visibility = View.GONE }
+        manual.addView(enderecoCon)
         caixa.addView(manual, lp(10))
 
         val ajuda = cartao()
         ajuda.addView(texto(15f, negrito = true, t = "🆘 Se aparecer uma mensagem de erro"))
         listOf(
             "\"não conseguiu chegar ao relógio\", ECONNABORTED, Host unreachable: a rede bloqueia ou o Wi-Fi do relógio dormiu. Use o Roteador Wi-Fi do celular, acenda a tela do relógio e tente de novo.",
-            "\"O pareamento falhou\": o código venceu. Abra de novo Parear novo dispositivo no relógio e use o código e o endereço novos.",
-            "\"O relógio recusou este celular\": pareie de novo com o código.",
+            "\"O pareamento falhou\": o código venceu. Abra de novo Parear novo dispositivo no relógio e digite o código novo.",
+            "\"O relógio não reconhece mais este celular\": no relógio, Parear novo dispositivo, e digite só o código.",
             "\"Não achei o relógio\": a Depuração por Wi-Fi desligou sozinha. Ligue de novo no relógio.",
             "\"Permitir depuração?\" no relógio: toque em Permitir (Sempre permitir).",
         ).forEach { ajuda.addView(texto(13f, CINZA, t = "• " + it), lp(6)) }
@@ -222,6 +238,10 @@ class InstaladorRelogio : ComponentActivity() {
 
         setContentView(ScrollView(this).apply { setBackgroundColor(Color.parseColor("#0B0B0F")); addView(caixa) })
         buscar()
+        // O relógio diz o próprio endereço (o app dele abre a tela de atualizar
+        // e manda): antes de a pessoa abrir o Parear no relógio, para não cobrir
+        // a janela do código depois.
+        if (!getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("pareado", false)) pedirAoRelogio()
         // em 25 s sem achar, oferece digitar o endereço
         linha.postDelayed({ if (!auto && hostPar == null && hostCon == null) manual.visibility = View.VISIBLE }, 25_000L)
 
@@ -234,8 +254,10 @@ class InstaladorRelogio : ComponentActivity() {
         if (auto && jaPareado) {
             cartaoEstado.visibility = View.VISIBLE
             val escondidos = listOf<View>(c1, c2, c3, manual, ajuda, registro)
+            escondidosAuto.addAll(escondidos)
             escondidos.forEach { it.visibility = View.GONE }
             val verDetalhes = botaoCheio("Ver os detalhes", Color.parseColor("#2A2A33"))
+            verDetalhesAuto = verDetalhes
             verDetalhes.setOnClickListener { escondidos.forEach { it.visibility = View.VISIBLE }; verDetalhes.visibility = View.GONE }
             caixa.addView(verDetalhes, caixa.indexOfChild(cartaoEstado) + 1, lp(10))
             fase("⬆ Atualizando o app do relógio…\n\nNão precisa fazer nada: deixe o relógio no pulso, perto do celular.")
@@ -335,7 +357,7 @@ class InstaladorRelogio : ComponentActivity() {
     private fun limparEndereco(t: String): String {
         val s = t.trim().replace(" ", "").replace(",", ".").replace(Regex("\\.{2,}"), ".")
         if (s.isEmpty()) return ""
-        return if (Regex("^\\d{1,3}(\\.\\d{1,3}){3}:\\d{2,5}$").matches(s)) s else { log("⚠ Ignorei o endereço \"" + t.trim() + "\": o certo é como 192.168.0.12:37123."); "" }
+        return if (Regex("^\\d{1,3}(\\.\\d{1,3}){3}(:\\d{2,5})?$").matches(s)) s else { log("⚠ Ignorei o endereço \"" + t.trim() + "\": o certo é como 192.168.0.12."); "" }
     }
 
     private fun instalar(comCodigo: Boolean) {
@@ -345,15 +367,10 @@ class InstaladorRelogio : ComponentActivity() {
         if (!comCodigo) pedirAoRelogio()
         val cod = codigo.text.toString().trim()
         if (comCodigo && cod.length != 6) { log("⚠ Digite os 6 números que aparecem na tela do relógio."); return }
-        // o endereço digitado vence o achado (é o do pareamento)
+        // o endereço digitado vence o achado; a porta, se veio, é só uma dica
         val dig = endereco.text.toString().trim()
         var hp = hostPar; var pp = portaPar
-        if (dig.contains(":")) { hp = dig.substringBeforeLast(":"); pp = dig.substringAfterLast(":").toIntOrNull() ?: 0 }
-        if (comCodigo && (hp == null || pp <= 0)) {
-            log("⚠ Ainda não achei o relógio. Confira se a tela Parear novo dispositivo está aberta no relógio, e o mesmo Wi-Fi.")
-            manual.visibility = View.VISIBLE
-            return
-        }
+        if (dig.isNotEmpty()) { hp = dig.substringBefore(":"); pp = dig.substringAfter(":", "").toIntOrNull() ?: 0 }
         trabalhando = true
         botao.isEnabled = false; botaoJa.isEnabled = false
         (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)?.hideSoftInputFromWindow(codigo.windowToken, 0)
@@ -362,7 +379,20 @@ class InstaladorRelogio : ComponentActivity() {
             val r = withContext(Dispatchers.IO) { trabalhar(comCodigo, hp, pp, cod) }
             trabalhando = false
             botao.isEnabled = true; botaoJa.isEnabled = true
-            if (r == "ok") {
+            if (r == "recusou") {
+                // O relógio esqueceu este celular (restaurado, autorizações
+                // revogadas, outro app): insistir não adianta, falta o código.
+                auto = false; inicioAuto = 0L
+                escondidosAuto.forEach { it.visibility = View.VISIBLE }
+                verDetalhesAuto?.visibility = View.GONE
+                fase("🔑 O relógio não reconhece mais este celular.\n\nNo relógio: Opções do desenvolvedor → Depuração por Wi-Fi → Parear novo dispositivo. Digite aqui só o código de 6 números: o resto é sozinho.")
+                tituloCodigo.text = "🔑 Digite aqui só o código que o relógio mostra"
+                tituloCodigo.setTextColor(ROSA)
+                codigo.setText("")
+                codigo.requestFocus()
+                (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)?.showSoftInput(codigo, 0)
+                linha.post { (codigo.parent?.parent?.parent as? ScrollView)?.smoothScrollTo(0, cartaoCodigo.top) }
+            } else if (r == "ok") {
                 log("✅ Pronto! O Treino Livre está no relógio.")
                 if (auto) fase("✅ Pronto! O app do relógio foi atualizado.")
                 Relogio.abrirNoRelogio(applicationContext)
@@ -409,23 +439,67 @@ class InstaladorRelogio : ComponentActivity() {
             val alvo = hp ?: digCon0.ifEmpty { null } ?: dica ?: hostCon
                 ?: getSharedPreferences(PREFS, MODE_PRIVATE).getString("ultimoHost", null)?.ifEmpty { null }
             if (!prenderAoWifi(alvo)) return "erro"
-            if (comCodigo && hp != null) {
-                log("🔐 Pareando com o relógio…")
-                val ok = try { comPrazo(25_000L) { adb.pair(hp, pp, cod) } } catch (e: Exception) {
-                    val msg = e.message ?: e.javaClass.simpleName
-                    log("⚠ O pareamento falhou: " + msg)
-                    if (msg.contains("connect") || msg.contains("ECONN") || msg.contains("abort") || msg.contains("não respondeu") || msg.contains("ETIMEDOUT") || msg.contains("EHOSTUNREACH") || msg.contains("ENETUNREACH")) explicarRede(hp)
-                    false
+            // as portas abertas de cada endereço, procuradas uma vez só
+            val portasDe = HashMap<String, List<Int>>()
+            var portaDoPar = 0
+            if (comCodigo) {
+                // Os endereços em que o relógio pode estar: o da janela do código
+                // (achado na rede ou digitado), o que o relógio mandou, o de
+                // conectar e o último que deu certo. Em cada um, as portas: a
+                // anunciada primeiro, depois todas as abertas. Parear na porta
+                // errada só falha (não gasta o código); na certa, pareia.
+                val hostsPar = LinkedHashSet<String>()
+                hp?.let { hostsPar.add(it) }
+                dica?.let { hostsPar.add(it) }
+                hostCon?.let { hostsPar.add(it) }
+                getSharedPreferences(PREFS, MODE_PRIVATE).getString("ultimoHost", null)?.let { if (it.isNotEmpty()) hostsPar.add(it) }
+                var esperaAchar = 0
+                while (hostsPar.isEmpty() && esperaAchar < 16) {
+                    if (esperaAchar == 0) log("🔎 Procurando o relógio na rede…")
+                    Thread.sleep(500); esperaAchar++
+                    hostPar?.let { hostsPar.add(it) }; hostCon?.let { hostsPar.add(it) }
+                    Relogio.dicaHost?.let { hostsPar.add(it) }
                 }
-                if (!ok) {
-                    log("Confira: o endereço tem de ser o da janela do código (Parear novo dispositivo), e o código muda a cada vez que essa janela abre.")
-                    if (getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("pareado", false))
-                        log("➡ Este celular já pareou com o relógio antes: não precisa de código. Feche o código no relógio, digite no segundo campo o endereço da tela Depuração por Wi-Fi e toque em \"Já pareei antes\".")
+                if (hostsPar.isEmpty()) {
+                    log("⚠ Ainda não achei o relógio na rede. Confira: relógio e celular no mesmo Wi-Fi (ou o relógio no Roteador Wi-Fi do celular), e a janela do código aberta no relógio. Se continuar, digite o endereço que aparece embaixo do código (sem a porta).")
+                    linha.post { manual.visibility = View.VISIBLE }
                     return "erro"
                 }
-                getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("pareado", true).putString("ultimoHost", hp).apply()
+                var pareou = false
+                var ultimoMsg = ""
+                laco@ for (h in hostsPar) {
+                    val portas = LinkedHashSet<Int>()
+                    if (h == hostPar && portaPar > 0) portas.add(portaPar)
+                    if (h == hp && pp > 0) portas.add(pp)
+                    val abertas = acharPortas(h)
+                    portasDe[h] = abertas
+                    // a de conectar conhecida vai por último: é a que não pareia
+                    abertas.filter { !(h == hostCon && it == portaCon) }.forEach { portas.add(it) }
+                    abertas.forEach { portas.add(it) }
+                    if (portas.isEmpty()) continue
+                    for (p in portas) {
+                        log("🔐 Pareando com o relógio (" + h + ":" + p + ")…")
+                        val ok = try { comPrazo(12_000L) { adb.pair(h, p, cod) } } catch (e: Exception) {
+                            ultimoMsg = e.message ?: e.javaClass.simpleName; false
+                        }
+                        if (ok) {
+                            pareou = true; portaDoPar = p
+                            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("pareado", true).putString("ultimoHost", h).apply()
+                            hostsPar.clear(); hostsPar.add(h)
+                            break@laco
+                        }
+                    }
+                }
+                if (!pareou) {
+                    log("⚠ O pareamento não deu certo" + (if (ultimoMsg.isNotEmpty()) " (" + ultimoMsg + ")" else "") + ".")
+                    if (portasDe.values.all { it.isEmpty() }) explicarRede(hostsPar.firstOrNull())
+                    else log("➡ Confira o código: ele muda cada vez que a janela Parear novo dispositivo abre. Feche e abra de novo no relógio, e digite o código novo.")
+                    return "erro"
+                }
                 linha.post { botaoJa.visibility = View.VISIBLE }
                 log("✓ Pareado. O relógio vai lembrar deste celular.")
+                // a janela do código fecha sozinha no relógio; a porta de conectar continua
+                Thread.sleep(1500)
             }
             // A porta de conectar é outra, e MUDA cada vez que a Depuração por
             // Wi-Fi é ligada (relato do dono: "o Já pareei antes pede tudo de
@@ -466,7 +540,11 @@ class InstaladorRelogio : ComponentActivity() {
                 val ok = try { comPrazo(15_000L) { a.connect(h, p) } } catch (e: Exception) {
                     val msg = e.message ?: e.javaClass.simpleName
                     ultimoErro = msg + (if (msg.contains("não respondeu")) "" else motivoDaConexao(a))
-                    if (msg.contains("Connection failed") || e.javaClass.simpleName.contains("Pairing") || e.javaClass.simpleName.contains("Authentication")) recusou = true
+                    // Recusa de verdade é o relógio ATENDER e cortar (a chave
+                    // não é mais conhecida): "Connection reset", erro de TLS ou de
+                    // autenticação. Porta fechada ou rede fora não é recusa.
+                    val tudo = (msg + " " + ultimoErro).lowercase()
+                    if (tudo.contains("reset") || tudo.contains("ssl") || tudo.contains("handshake") || tudo.contains("authentic") || e.javaClass.simpleName.contains("Pairing")) recusou = true
                     false
                 }
                 if (ok) { con = a; prefs.edit().putString("ultimoCon", h + ":" + p).putString("ultimoHost", h).apply() }
@@ -476,16 +554,21 @@ class InstaladorRelogio : ComponentActivity() {
             for ((h, p) in candidatos) { if (tentar(h, p)) break }
             if (con == null) {
                 for (h in hosts) {
-                    val portas = acharPortas(h)
-                    for (p in portas) { if (candidatos.contains(h to p)) continue; if (tentar(h, p)) break }
+                    val portas = (portasDe[h]?.filter { it != portaDoPar }?.ifEmpty { null }) ?: acharPortas(h)
+                    for (p in portas) { if (candidatos.contains(h to p) || p == portaDoPar) continue; if (tentar(h, p)) break }
                     if (con != null) break
                 }
             }
             val c = con
             if (c == null) {
                 if (ultimoErro.isNotEmpty()) log("⚠ A conexão falhou: " + ultimoErro)
+                if (recusou) {
+                    // o relógio não conhece mais esta chave: o "pareado" daqui não vale
+                    prefs.edit().putBoolean("pareado", false).apply()
+                    log("🔑 O relógio não reconhece mais este celular. No relógio: Parear novo dispositivo, e digite aqui só o código.")
+                    return "recusou"
+                }
                 when {
-                    recusou -> log("➡ O relógio recusou este celular: o pareamento não valeu. Abra Parear novo dispositivo no relógio, ponha o código e o endereço DESSA janela no primeiro campo, e toque em Parear e instalar.")
                     hosts.isEmpty() -> log("➡ Ainda não sei o endereço do relógio. Na tela da Depuração por Wi-Fi do relógio aparece o Endereço IP e porta: digite no segundo campo e toque de novo.")
                     else -> log("➡ Não achei o relógio. Confira no relógio: Depuração por Wi-Fi LIGADA (ela desliga sozinha quando o relógio sai do Wi-Fi ou reinicia), e relógio e celular no mesmo Wi-Fi. Se continuar, digite no segundo campo o Endereço IP e porta que a tela da Depuração por Wi-Fi mostra.")
                 }

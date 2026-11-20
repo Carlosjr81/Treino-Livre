@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-20g — Instalar e atualizar o app do relógio: só o código
+
+**Em uma frase:** para instalar ou parear o app no relógio, basta digitar o código de 6 números que o relógio mostra; o celular acha o resto sozinho.
+
+**O que mudou**
+- Saíram os campos de endereço e porta: o celular procura o relógio na rede, acha as portas dele e escolhe a certa sozinho.
+- No 6º número do código, a instalação já começa, sem botão.
+- Se o relógio "esqueceu" o celular (depois de restaurado, por exemplo), o app avisa na hora e pede só o código, em vez de ficar tentando.
+
+**Por que importa para quem treina**
+- Era o passo em que todo mundo travava: dois endereços parecidos, com portas diferentes. Agora é um número só.
+
+**Como usar**
+- No relógio: Opções do desenvolvedor › Depuração por Wi-Fi › Parear novo dispositivo. No celular: Ajustes › ⌚ Instalar o app no relógio › Instalar no relógio agora, e digite o código.
+
+**Ideias de vídeo**
+- Tela dividida: o código aparece no relógio, é digitado no celular, e em segundos o app abre no pulso.
+
+**Não prometer**
+- Ainda precisa do modo de desenvolvedor no relógio na primeira vez, e de relógio com Wear OS 3 ou mais novo. Não dizer que é instantâneo em qualquer rede: Wi-Fi de empresa pode bloquear (aí vale o Roteador Wi-Fi do celular).
+
+---
+
 ## 2026-11-20f — Segure a tela do relógio para ver a hora, agora em esfera
 
 **Em uma frase:** a hora no relógio aparece enquanto você segura a tela e some ao soltar, com os números curvados como se estivessem numa bola.

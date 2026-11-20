@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v236) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v237) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4796,6 +4796,17 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   enquanto espera o endereço (o pedido com o relógio apagado se perdia), e o
   relógio com a tela do treino aberta abre a de atualizar sozinho ao receber
   `/treino/progresso`. **Não validado num relógio.**
+  **2026-11-20s** (o dono: "o app do relógio não está abrindo junto"): o
+  `AberturaActivity` só roda com o app aberto do zero, e voltar pelos
+  recentes ou pelo ícone não passava por ele. Hoje o callback da sessão do
+  Chrome (`Canal`, `TAB_SHOWN` e `NAVIGATION_FINISHED`) chama o
+  relógio sempre que a aba do Treino Livre aparece (só no caminho com a
+  sessão; o `TwaLauncher` de reserva não tem callback). No relógio, a
+  tela chamada (`relogio-tela`) acende a tela (`setTurnScreenOn`):
+  apagado, ela abria por trás do mostrador. O resultado de cada chamada fica
+  em `relogio`/`chamada` e no log, e o "Testar a conexão" ganhou "⌚
+  Abrir o app no relógio agora" com a resposta. A hora ao segurar ficou
+  5 s depois de soltar (`FICA_MS`).
 - **O celular se atualiza sozinho** (2026-11-20k, relato do dono: o site
   dizia "há o 143: atualizar", ele baixava, instalava e continuava no 141).
   O APK 143 publicado estava certo (mesma assinatura, `1.143` no

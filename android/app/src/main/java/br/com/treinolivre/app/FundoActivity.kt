@@ -78,6 +78,15 @@ class FundoActivity : Activity() {
         caixa.addView(texto(14f, cinza, t = "Com o relógio no pulso e o app Treino Livre aberto nele."), lp(4))
         resultado = texto(15f, t = "")
         caixa.addView(botao("Testar a conexão com o relógio", rosa) { testar() }, lp(8))
+        // abre a tela do treino no relógio e diz o que o relógio respondeu
+        // (2026-11-20s: o relógio não abria junto com o celular)
+        caixa.addView(botao("⌚ Abrir o app no relógio agora", escuro) {
+            dizer("⌚ Pedindo ao relógio para abrir o Treino Livre…")
+            Relogio.abrirNoRelogio(applicationContext) { r ->
+                dizer(if (r == "aberto") "✅ O relógio recebeu o pedido e abriu o Treino Livre. Se a tela dele estava apagada, ela acende."
+                else "⚠ O relógio não abriu (" + r + "). Confira se o app Treino Livre está instalado nele e se o relógio está conectado ao celular.")
+            }
+        }, lp(8))
         caixa.addView(resultado, lp(8))
         // 2026-11-19c (Redmi + Watch 6, o relógio dizia "Nenhum celular
         // conectado"): a ligação entre os dois é do Galaxy Wearable e do Google

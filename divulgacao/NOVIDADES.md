@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-20s — O relógio acompanha o celular
+
+**Em uma frase:** voltou ao Treino Livre no celular, o app abre no relógio e a tela dele acende; e a hora de água fica 5 segundos no pulso depois de soltar o dedo.
+
+**O que mudou**
+- O app do relógio abre sempre que o Treino Livre aparece na tela do celular, e não só quando o app abre do zero.
+- Com o relógio apagado, a tela dele acende com o treino.
+- A hora fica 5 segundos depois de soltar o dedo, com a água balançando.
+- No "Testar a conexão" do celular há "Abrir o app no relógio agora", que diz se o relógio abriu.
+
+**Por que importa para quem treina**
+- Celular e relógio prontos juntos, sem procurar o app no pulso.
+
+**Como usar**
+- Abra o Treino Livre no celular: o relógio acompanha.
+
+**Ideias de vídeo**
+- Abrindo o app no celular e o relógio acendendo com o treino ao mesmo tempo.
+
+**Não prometer**
+- Só com o app do relógio instalado, num relógio Wear OS conectado ao celular; no máximo uma vez por minuto.
+
+---
+
 ## 2026-11-20r — A hora do relógio numa bola de água
 
 **Em uma frase:** ao segurar a tela do relógio, a hora aparece como uma figura colada numa bola de água mole, que balança, faz ondas e escorre sobre a curva.

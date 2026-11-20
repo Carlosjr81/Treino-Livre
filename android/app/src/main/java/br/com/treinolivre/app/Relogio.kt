@@ -136,7 +136,11 @@ object Relogio {
         val agora = System.currentTimeMillis()
         if (agora - chamouEm < 60_000L) return
         chamouEm = agora
-        abrirNoRelogio(contexto.applicationContext)
+        val app = contexto.applicationContext
+        abrirNoRelogio(app) { r ->
+            android.util.Log.i("TreinoLivre", "Relógio chamado: " + r)
+            try { app.getSharedPreferences("relogio", Context.MODE_PRIVATE).edit().putString("chamada", r).putLong("chamadaEm", System.currentTimeMillis()).apply() } catch (e: Exception) { }
+        }
     }
 
     // A atualização sem toque (pedido do dono, 2026-11-18e: "quando a

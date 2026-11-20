@@ -583,7 +583,7 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         const val SEGURAR_MS = 380L
         // depois de soltar o dedo, a hora fica este tempo à vista (2026-11-20l,
         // o dono: "com o dedo na tela fica difícil ver a hora")
-        const val FICA_MS = 3500L
+        const val FICA_MS = 5000L
         // Igual ao modelo azul que o dono mandou (2026-11-20n: "preencha melhor
         // a tela"): quatro números enormes, retos, cada um num quadrante, com
         // uma cruz preta fina no meio, vazando pelas bordas. Conferido num

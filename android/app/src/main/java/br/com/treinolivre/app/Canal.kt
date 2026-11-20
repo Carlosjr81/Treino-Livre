@@ -42,6 +42,14 @@ object Canal {
 
     private val retorno = object : CustomTabsCallback() {
         override fun onNavigationEvent(navigationEvent: Int, extras: Bundle?) {
+            // O Treino Livre voltou à tela do celular (2026-11-20s, o dono: "o app
+            // do relógio não está abrindo junto"): o AberturaActivity só roda
+            // quando o app abre do zero; voltar pelos recentes ou pelo ícone
+            // traz a tarefa de volta sem passar por ele. O Chrome avisa aqui.
+            if (navigationEvent == TAB_SHOWN || navigationEvent == NAVIGATION_FINISHED) {
+                val c = contexto
+                if (c != null) try { Relogio.chamarRelogio(c) } catch (e: Exception) { }
+            }
             // a cada página carregada, um canal novo (a página velha levou o dela)
             if (navigationEvent != NAVIGATION_FINISHED) return
             pronto = false

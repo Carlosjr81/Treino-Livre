@@ -150,8 +150,26 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     private lateinit var terminar: Button
     private lateinit var continuar: Button
 
+    // O celular abriu esta tela (treinolivre://relogio-tela): com o relógio
+    // apagado ela abria por trás da tela escura, e quem olhava o pulso via o
+    // mostrador (2026-11-20s). Chamada pelo celular, a tela acende.
+    private fun acenderSeChamado(i: android.content.Intent?) {
+        if (i?.data?.host != "relogio-tela") return
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 27) setTurnScreenOn(true)
+            else @Suppress("DEPRECATION") window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+        } catch (e: Exception) { }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        acenderSeChamado(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        acenderSeChamado(intent)
         lifecycle.addObserver(ambienteObs)
         semCel = SemCelular.guardado(prefs.getString("semCelular", null))
         copia = try { prefs.getString("copia", null)?.let { JSONObject(it) } } catch (e: Exception) { null }

@@ -41,6 +41,9 @@ de exercícios em exercicios-svg/, do projeto Everkinetic
 app; os arquivos são os originais, só com os números arredondados). As bibliotecas
 do app Android (AndroidX, Health Connect, Meta Wearables Device Access
 Toolkit, Google Play Services, Guava) seguem as licenças dos seus fabricantes.
+A fonte dos números da hora no app do relógio é a Bodoni Moda (© The Bodoni
+Moda Project Authors, SIL Open Font License 1.1, texto em
+android/relogio/FONTE-OFL.txt), usada sem modificação.
 
 Só no APK direto (o do GitHub, não o da Play Store), o instalador do app do
 relógio usa a libadb-android (© Muntashir Al-Islam, usada pela licença

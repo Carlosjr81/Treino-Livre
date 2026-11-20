@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-11-20d — A hora no relógio com um toque, com efeito gelatina
+
+**Em uma frase:** no meio do treino, um toque na tela do relógio mostra a hora gigante, com números que tremem como gelatina, e em seguida volta sozinha ao treino.
+
+**O que mudou**
+- Um toque num lugar vazio da tela do relógio (fora dos botões) mostra a hora: horas em cima, minutos embaixo, números enormes que vazam da tela, no degradê do Treino Livre (laranja, rosa e roxo).
+- Os números entram um de cada vez e tremem achatando e esticando, como gelatina; a cada segundo os minutos dão um tremidinho.
+- No meio, uma bolha com o dia da semana e o dia, e o descanso que falta (na cor do descanso) ou quantas séries já foram.
+- Uma bolinha branca anda pela borda com os segundos, deixando um rastro colorido.
+- Em menos de 4 segundos a hora some sozinha e o treino volta; um toque fecha antes.
+- Com a tela do relógio apagada, a hora fica à vista, só no contorno.
+
+**Por que importa para quem treina**
+- Com o app do treino na frente, o relógio não mostrava as horas. Agora dá para ver se ainda dá tempo de mais uma série sem sair do treino.
+
+**Como usar**
+- Com o treino aberto no relógio, toque uma vez num espaço vazio da tela (não num botão). Para voltar, é só esperar ou tocar de novo.
+- Precisa do app do relógio atualizado (o celular atualiza sozinho).
+
+**Ideias de vídeo**
+- Close no pulso no meio da série: um toque, os números gigantes pulam tremendo, e o treino volta. "Que horas são? Um toque."
+- Câmera lenta da gelatina nos números, com o descanso contando na bolha.
+
+**Não prometer**
+- Funciona só nos relógios com Wear OS 3 ou mais novo (Galaxy Watch 4 em diante, Pixel Watch). Não é uma máscara (mostrador) do relógio: aparece dentro do app do treino.
+
+---
+
 ## 2026-11-20c — Editar a ficha ficou mais fácil
 
 **Em uma frase:** no editor de ficha, dá para apagar e digitar os números livremente, e o aeróbico não mostra mais um descanso que não existe.

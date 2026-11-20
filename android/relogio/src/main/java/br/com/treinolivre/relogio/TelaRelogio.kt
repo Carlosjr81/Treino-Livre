@@ -21,6 +21,9 @@ import android.text.Spanned
 import android.text.style.RelativeSizeSpan
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
+import android.view.ViewConfiguration
+import android.view.ViewGroup
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.AccelerateInterpolator
@@ -68,14 +71,17 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
                 frente.ambiente = true
                 celebra.animate().cancel()
                 celebra.alpha = 0f
+                // tela apagada: a hora fica à vista, parada e só no contorno
+                hora.fixarAmbiente(true)
                 linha.removeCallbacks(tique)
                 mostrar()
             }
-            override fun onUpdateAmbient() { atualizarRelogio() }
+            override fun onUpdateAmbient() { atualizarRelogio(); hora.invalidate() }
             override fun onExitAmbient() {
                 ambiente = false
                 palco.ambiente = false
                 frente.ambiente = false
+                hora.fixarAmbiente(false)
                 mostrar()
                 linha.post(tique)
             }
@@ -104,6 +110,9 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     private lateinit var palco: Palco
     private lateinit var frente: Palco
     private lateinit var celebra: TextView
+    // a hora com um toque (HoraGeleia), por cima de tudo
+    private lateinit var hora: HoraGeleia
+    private lateinit var raizTela: FrameLayout
     private lateinit var marca: TextView
     private lateinit var topo: TextView
     private lateinit var exNome: TextView
@@ -319,6 +328,10 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             addView(frente, FrameLayout.LayoutParams(tudo, tudo))
             addView(celebra, FrameLayout.LayoutParams(tudo, tudo))
         }
+        hora = HoraGeleia(this)
+        hora.info = { infoDaHora() }
+        raiz.addView(hora, FrameLayout.LayoutParams(tudo, tudo))
+        raizTela = raiz
         setContentView(raiz)
         // a coroa (ou a moldura que gira, no Galaxy) rola a tela
         rolagem.requestFocus()
@@ -378,7 +391,72 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         }
     }
 
+    // Um toque num lugar vazio da tela mostra a hora (HoraGeleia), que volta
+    // sozinha; um toque com a hora à vista só a fecha (não aperta o botão de
+    // baixo). Toque em botão continua sendo o botão.
+    private var toqueX = 0f
+    private var toqueY = 0f
+    private var toqueEm = 0L
+    private var toqueNoBotao = false
+    private var engolindo = false
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
+            engolindo = false
+            if (hora.mostrando && !ambiente) {
+                engolindo = true
+                onUserInteraction()
+                hora.esconder()
+                return true
+            }
+            toqueX = ev.rawX; toqueY = ev.rawY; toqueEm = ev.eventTime
+            toqueNoBotao = clicavelEm(raizTela, ev.rawX.toInt(), ev.rawY.toInt())
+        }
+        if (engolindo) {
+            if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) engolindo = false
+            return true
+        }
+        val r = super.dispatchTouchEvent(ev)
+        if (ev.actionMasked == MotionEvent.ACTION_UP && !toqueNoBotao && !ambiente &&
+            ev.eventTime - toqueEm < 400L &&
+            Math.hypot((ev.rawX - toqueX).toDouble(), (ev.rawY - toqueY).toDouble()) < ViewConfiguration.get(this).scaledTouchSlop) {
+            hora.mostrar()
+            try { getSystemService(Vibrator::class.java)?.vibrate(VibrationEffect.createOneShot(25L, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (e: Exception) { }
+        }
+        return r
+    }
+
+    private fun clicavelEm(v: View, x: Int, y: Int): Boolean {
+        if (v.visibility != View.VISIBLE || v === hora) return false
+        val loc = IntArray(2)
+        v.getLocationOnScreen(loc)
+        if (x < loc[0] || y < loc[1] || x >= loc[0] + v.width || y >= loc[1] + v.height) return false
+        if (v.isClickable && v !is ScrollView) return true
+        if (v is ViewGroup) for (i in v.childCount - 1 downTo 0) if (clicavelEm(v.getChildAt(i), x, y)) return true
+        return false
+    }
+
+    // a bolha da hora: o descanso que falta, na cor dele; senão as séries
+    private fun infoDaHora(): Pair<String, Int>? {
+        val ate = descansoAte()
+        val agora = System.currentTimeMillis()
+        if (ate > agora) {
+            val resta = ((ate - agora + 999) / 1000).toInt()
+            val fracao = if (descTotal > 0) ((ate - agora).toFloat() / descTotal).coerceIn(0f, 1f) else 1f
+            // no ambiente a tela só é redesenhada uma vez por minuto
+            if (ambiente) return Pair("~" + ((resta + 59) / 60) + " min", Cores.CINZA)
+            val cor = if (resta in 1..5) Cores.festa() else Cores.doDescanso(fracao)
+            return Pair((resta / 60).toString() + ":" + (resta % 60).toString().padStart(2, '0'), cor)
+        }
+        val p = painel ?: return null
+        if (!p.optBoolean("ativo", false) || p.optBoolean("carregando")) return null
+        if (p.optBoolean("fim")) return Pair("✓ fim", Cores.OURO)
+        val total = p.optInt("total")
+        return if (total > 0) Pair(p.optInt("feitas").toString() + "/" + total, Color.WHITE) else null
+    }
+
     override fun onPause() {
+        hora.esconderJa()
         palco.vivo = false
         frente.vivo = false
         Wearable.getDataClient(this).removeListener(this)

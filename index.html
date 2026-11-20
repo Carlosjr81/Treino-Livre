@@ -1743,7 +1743,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-20w";
+const VERSAO_APP = "2026-11-20x";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -26629,14 +26629,25 @@ const ARTE_RESUMO = {
 // rosto, passeia de lado, abre, sobe. x é o lado (-1 a 1), y o ponto de foco
 // na altura da arte, z o zoom; a câmera vai do primeiro valor ao segundo
 const CAMERAS_RESUMO = [
-  { x: [0, 0], y: [0.3, 0.28], z: [1.0, 1.14] },
-  { x: [0.75, -0.25], y: [0.36, 0.36], z: [1.12, 1.14] },
-  { x: [-0.75, 0.2], y: [0.4, 0.36], z: [1.1, 1.16] },
-  { x: [0, 0.1], y: [0.28, 0.36], z: [1.32, 1.08] },
-  { x: [0.55, 0.45], y: [0.22, 0.46], z: [1.2, 1.2] },
-  { x: [-0.4, 0.45], y: [0.52, 0.3], z: [1.06, 1.22] },
+  { x: [0, 0], y: [-0.6, -0.3], z: [0.9, 0.98], r: [-1, 0] },
+  { x: [0.8, -0.8], y: [0, 0], z: [0.95, 0.95], r: [0.6, -0.6] },
+  { x: [-0.8, 0.8], y: [0.3, -0.3], z: [0.93, 0.97], r: [-0.5, 0.5] },
+  { x: [0, 0], y: [0.6, -0.6], z: [0.98, 0.9], r: [0, 0] },
+  { x: [0, 0], y: [-0.3, 0.3], z: [0.86, 0.98], r: [0.8, 0] },
+  { x: [0.5, -0.5], y: [-0.5, 0.5], z: [0.95, 0.95], r: [-0.7, 0.7] },
 ];
-const CAMERA_FECHO = { x: [0, 0], y: [0.3, 0.3], z: [1.0, 1.07] };
+const CAMERA_FECHO = { x: [0, 0], y: [0.18, 0.15], z: [0.94, 0.98], r: [0, 0] };
+// o fundo da sobra: a própria arte, reduzida a 36×48 e esticada de novo
+// (o borrado sai de graça, sem filtro a cada quadro)
+let BORRADO_RESUMO = null;
+function borradoDaArte(im) {
+  if (BORRADO_RESUMO && BORRADO_RESUMO.im === im) return BORRADO_RESUMO.tela;
+  const tela = document.createElement("canvas");
+  tela.width = 36; tela.height = 48;
+  tela.getContext("2d").drawImage(im, 0, 0, 36, 48);
+  BORRADO_RESUMO = { im: im, tela: tela };
+  return tela;
+}
 const escuroDaCena = (cena) => (cena && (cena.tipo === "vinheta" || cena.tipo === "fecho") ? 0.2 : 0.6);
 // um número de 0 a 1 que parece sorteado, mas sai igual para o mesmo n
 const quaseSorte = (n) => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
@@ -26648,8 +26659,12 @@ function brilho(c, x, y, r, cor, a) {
 }
 // Desenha a cena num canvas de 1080×1920 (o story). t: ms desde o começo;
 // plano: { i, p, tipo } (a cena e há quanto tempo ela começou); parado: sem
-// movimento (movimento reduzido). Tudo é função do tempo.
-function desenharCenaArte(c, t, plano, parado) {
+// movimento (movimento reduzido); vis: o pedaço do canvas que aparece (na tela
+// do celular, mais estreita que o story). Tudo é função do tempo.
+// A arte aparece INTEIRA, nunca cortada (pedido do dono, 2026-11-20x: "não
+// corta nada, deixa aparecer o cabelo"): ela cabe na tela, e a sobra em cima e
+// embaixo é a própria arte borrada.
+function desenharCenaArte(c, t, plano, parado, vis) {
   const A = ARTE_RESUMO, fundo = imagemMonstro(A.fundo), frente = imagemMonstro(A.frente);
   const s = parado ? 0 : t / 1000;
   if (!fundo) {
@@ -26658,20 +26673,32 @@ function desenharCenaArte(c, t, plano, parado) {
     c.fillStyle = g; c.fillRect(0, 0, 1080, 1920);
     return;
   }
+  const V = vis || { x: 0, y: 0, w: 1080, h: 1920 };
   const cam = plano.tipo === "fecho" ? CAMERA_FECHO : CAMERAS_RESUMO[(plano.i || 0) % CAMERAS_RESUMO.length];
   const u = parado ? 1 : suave(Math.min(1, (plano.p || 0) / 4800));
   const mix = (par) => par[0] + (par[1] - par[0]) * u;
   // o balanço de quem segura a câmera na mão
-  const bx = parado ? 0 : 6 * Math.sin(s * 0.9) + 3 * Math.sin(s * 2.3);
-  const by = parado ? 0 : 5 * Math.sin(s * 1.1 + 1) + 2 * Math.sin(s * 2.9);
-  const z = mix(cam.z), esc = (1920 / A.h) * z;
-  const lw = A.w * esc, lh = A.h * esc;
-  const folga = (lw - 1080) / 2;
-  const ox = 540 - lw / 2 - folga * mix(cam.x) + bx;
-  const oy = Math.max(1920 - lh, Math.min(0, 960 - mix(cam.y) * lh)) + by;
-  // ---- o fundo ----
+  const bx = parado ? 0 : 4 * Math.sin(s * 0.9) + 2 * Math.sin(s * 2.3);
+  const by = parado ? 0 : 4 * Math.sin(s * 1.1 + 1) + 2 * Math.sin(s * 2.9);
+  // a sobra: a arte borrada cobrindo a tela, andando devagar, escurecida
+  const bor = borradoDaArte(fundo), kb = Math.max(V.w / 36, V.h / 48) * 1.12;
+  c.drawImage(bor, V.x + V.w / 2 - 18 * kb + 20 * Math.sin(s * 0.3), V.y + V.h / 2 - 24 * kb, 36 * kb, 48 * kb);
+  c.fillStyle = "rgba(11,4,24,.4)"; c.fillRect(V.x, V.y, V.w, V.h);
+  // a arte inteira: cabe na tela (zoom até 0,98), anda na sobra e gira pouco
+  const e = Math.min(V.w / A.w, V.h / A.h) * mix(cam.z);
+  const lw = A.w * e, lh = A.h * e;
+  const cx = V.x + V.w / 2 + (mix(cam.x) * (V.w - lw)) / 2 + bx;
+  const cy = V.y + V.h / 2 + (mix(cam.y) * (V.h - lh)) / 2 + by;
+  const rot = parado ? 0 : (mix(cam.r) * Math.PI) / 180;
+  const naArte = () => { c.translate(cx, cy); c.rotate(rot); c.scale(e, e); c.translate(-A.w / 2, -A.h / 2); };
+  // a sombra da arte, como uma tela de jogo sobre o fundo
+  c.save(); naArte();
+  c.shadowColor = "rgba(0,0,0,.75)"; c.shadowBlur = 50; c.fillStyle = "#000"; c.fillRect(0, 0, A.w, A.h);
+  c.restore();
+  // ---- o fundo da arte ----
+  c.save(); naArte();
+  c.beginPath(); c.rect(0, 0, A.w, A.h); c.clip();
   c.save();
-  c.translate(ox, oy); c.scale(esc, esc);
   c.drawImage(fundo, 0, 0, A.w, A.h);
   if (!parado) {
     // o sol pulsando, com os raios girando devagar
@@ -26709,11 +26736,10 @@ function desenharCenaArte(c, t, plano, parado) {
   c.restore();
   // ---- a pessoa, mais perto: anda mais com a câmera e respira ----
   if (frente) {
-    const prof = 1.06, resp = parado ? 1 : 1 + 0.007 * Math.sin((s * 2 * Math.PI) / 3.6);
+    // a pessoa um pouco maior e deslocada com a câmera: a profundidade
+    const prof = parado ? 1 : 1.012 + 0.008 * u, resp = parado ? 1 : 1 + 0.007 * Math.sin((s * 2 * Math.PI) / 3.6);
     c.save();
-    c.translate(ox + (lw * (1 - prof)) / 2 - folga * mix(cam.x) * 0.12 + bx * 0.6, oy + lh * (1 - prof) + by * 0.6);
-    c.scale(esc * prof, esc * prof);
-    c.translate(A.w / 2, A.h); c.scale(1, resp); c.translate(-A.w / 2, -A.h);
+    c.translate(A.w / 2 - mix(cam.x) * 10 - bx * 0.8, A.h); c.scale(prof, prof * resp); c.translate(-A.w / 2, -A.h);
     c.drawImage(frente, 0, A.topoFrente, A.w, frente.naturalHeight * (A.w / frente.naturalWidth));
     if (!parado) {
       c.globalCompositeOperation = "lighter";
@@ -26735,6 +26761,11 @@ function desenharCenaArte(c, t, plano, parado) {
     }
     c.restore();
   }
+  c.restore();
+  // a borda da arte
+  c.save(); naArte();
+  c.strokeStyle = "#000"; c.lineWidth = 8 / e; c.strokeRect(0, 0, A.w, A.h);
+  c.restore();
   // ---- a poeira na luz, por cima de tudo ----
   if (!parado) {
     c.save(); c.globalCompositeOperation = "lighter";
@@ -26777,7 +26808,9 @@ function CenarioArte({ cena, indice, chave, animar }) {
       const k = Math.max((W * dpr) / 1080, (H * dpr) / 1920);
       c.setTransform(k, 0, 0, k, (W * dpr - 1080 * k) / 2, (H * dpr - 1920 * k) / 2);
       c.fillStyle = "#0B0418"; c.fillRect(0, 0, 1080, 1920);
-      desenharCenaArte(c, agora - ini, { i: planoRef.current.i, tipo: planoRef.current.tipo, p: agora - e.desde }, !animar);
+      const vw = (W * dpr) / k, vh = (H * dpr) / k;
+      desenharCenaArte(c, agora - ini, { i: planoRef.current.i, tipo: planoRef.current.tipo, p: agora - e.desde }, !animar,
+        { x: (1080 - vw) / 2, y: (1920 - vh) / 2, w: vw, h: vh });
       c.fillStyle = "rgba(11,4,24," + e.escuro + ")"; c.fillRect(0, 0, 1080, 1920);
       const g = c.createLinearGradient(0, 0, 0, 1920);
       g.addColorStop(0, "rgba(36,9,63,.7)"); g.addColorStop(0.2, "rgba(36,9,63,0)"); g.addColorStop(0.72, "rgba(36,9,63,0)"); g.addColorStop(1, "rgba(225,48,108,.35)");
@@ -27748,12 +27781,12 @@ function videoFecho(c, cena, p) {
   }
   if (p > 1430 && p < 1750) { c.fillStyle = "rgba(255,255,255," + 0.6 * (1 - (p - 1430) / 320) + ")"; c.fillRect(0, 0, 1080, 1920); }
   videoImpacto(c, 540, 1415, p - 1430, true);
-  videoGrito(c, "Missão cumprida", 205, p - 500, "#FFD23F");
+  videoGrito(c, "Missão cumprida", 190, p - 500, "#FFD23F");
   const r = Math.max(0, Math.min(1, (p - 900) / 400));
   if (r > 0) {
     c.save(); c.globalAlpha = r; c.textAlign = "center"; c.lineJoin = "round"; c.font = "italic 900 54px " + VIDEO_FONTE;
-    c.strokeStyle = "#000"; c.lineWidth = 12; c.strokeText("+ RESPEITO", 540, 300 + (1 - r) * 20);
-    c.shadowColor = "rgba(124,255,60,.7)"; c.shadowBlur = 22; c.fillStyle = "#7CFF3C"; c.fillText("+ RESPEITO", 540, 300 + (1 - r) * 20);
+    c.strokeStyle = "#000"; c.lineWidth = 12; c.strokeText("+ RESPEITO", 540, 282 + (1 - r) * 20);
+    c.shadowColor = "rgba(124,255,60,.7)"; c.shadowBlur = 22; c.fillStyle = "#7CFF3C"; c.fillText("+ RESPEITO", 540, 282 + (1 - r) * 20);
     c.restore();
   }
   const m = Math.max(0, Math.min(1, (p - 1900) / 500));

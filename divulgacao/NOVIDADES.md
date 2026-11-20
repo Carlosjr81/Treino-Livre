@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-20x — A arte do resumo aparece inteira
+
+**Em uma frase:** no resumo animado, a arte do Carlos na academia aparece inteira, do cabelo aos halteres, sem nada cortado.
+
+**O que mudou**
+- Antes a câmera chegava perto e cortava o topo do cabelo e as laterais; agora a arte cabe inteira na tela.
+- A câmera continua viva: a arte flutua, sobe, desce, anda de lado e gira de leve a cada cena.
+- O espaço que sobra em cima e embaixo é a própria arte, borrada e escurecida, como tela de jogo.
+
+**Por que importa para quem treina**
+- O story mostra a arte completa, do jeito que ela foi feita.
+
+**Como usar**
+- No fim do treino, toque em "▶ Ver resumo animado"; para postar, toque no 📸.
+
+**Ideias de vídeo**
+- Gravar a tela do resumo mostrando a arte flutuando inteira a cada cena.
+
+**Não prometer**
+- É um estilo inspirado nos jogos de mundo aberto, sem nome, logo ou personagem de jogo nenhum; não fale em parceria ou ligação com jogo algum.
+
+---
+
 ## 2026-11-20w — O resumo animado virou cena de videogame
 
 **Em uma frase:** o fundo do resumo animado ganhou vida, como num jogo: a câmera muda de plano a cada cena, o Carlos respira, o neon pisca, o sol brilha, os faróis acendem, pássaros cruzam a cidade, e a regata dele agora tem o logo do Treino Livre.

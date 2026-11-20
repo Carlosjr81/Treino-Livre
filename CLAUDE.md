@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v241) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v242) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -2250,8 +2250,16 @@ texto de divulgação também não cita o jogo.
     (a cena e há quanto tempo ela começou), posto pelo `videoQuadro`. Tudo é
     função do tempo (`quaseSorte` no lugar do sorteio): o quadro sai igual em
     qualquer aparelho.
-  - **O que se mexe**: um plano de câmera por cena (`CAMERAS_RESUMO`: chegar
-    no rosto, passear de lado, abrir, subir; `CAMERA_FECHO`), em 4,8 s; o
+  - **A arte aparece inteira, nunca cortada** (2026-11-20x, pedido do dono:
+    "não corta nada, deixa aparecer o cabelo, o corpo, tudo"). Ela é 3:4 e o
+    story 9:16: ela cabe na tela (zoom de no máximo 0,98, `z` das câmeras),
+    com sombra e borda preta, e a sobra em cima e embaixo é a própria arte
+    reduzida a 36×48 e esticada (`borradoDaArte`: o borrado sai de graça,
+    sem filtro a cada quadro), escurecida. Na tela do celular, mais estreita
+    que o story, o canvas passa a `desenharCenaArte` o pedaço visível
+    (`vis`), e a arte cabe nele. **Não volte a dar zoom que corte a arte.**
+  - **O que se mexe**: um plano de câmera por cena (`CAMERAS_RESUMO`: a arte
+    sobe, desce, anda de lado e gira até 1 grau, dentro da sobra; `CAMERA_FECHO`), em 4,8 s; o
     balanço de câmera na mão; a pessoa anda mais que o fundo (profundidade) e
     respira (3,6 s); o sol pulsa com raios girando; o neon rosa pisca como
     lâmpada velha; os faróis do carro; quatro pássaros cruzando a cidade; 42

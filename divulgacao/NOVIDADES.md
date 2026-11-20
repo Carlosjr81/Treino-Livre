@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-11-20v — O resumo animado agora é na academia
+
+**Em uma frase:** o fundo do resumo animado (na tela e no vídeo do story) virou uma arte do criador do app na academia, no estilo de capa de jogo, no lugar da paisagem de praia.
+
+**O que mudou**
+- A paisagem de praia saiu; entrou a arte do Carlos na academia, com halteres, rack e a cidade ao pôr do sol ao fundo.
+- Na abertura e no fim, a arte aparece inteira e o logo fica mais baixo, sem cobrir o rosto.
+- Nas cenas com números, a arte escurece para os números serem lidos, e um zoom lento dá movimento.
+- O anel colorido do relógio, as estrelas e o "Missão cumprida" continuam.
+
+**Por que importa para quem treina**
+- O story do treino tem a cara da academia, e quem vê no feed reconhece o app e o criador.
+
+**Como usar**
+- No fim do treino, toque em "▶ Ver resumo animado"; para postar, toque no 📸.
+
+**Ideias de vídeo**
+- A abertura do resumo com a arte aparecendo e o logo batendo embaixo.
+- Lado a lado: a foto real na academia e a arte no story.
+
+**Não prometer**
+- É um estilo inspirado nos jogos de mundo aberto, sem nome, logo ou personagem de jogo nenhum; não fale em parceria ou ligação com jogo algum.
+
+---
+
 ## 2026-11-20u — O resumo animado ganhou o visual do relógio e clima de cidade de praia ao pôr do sol
 
 **Em uma frase:** o resumo animado do treino (na tela e no vídeo do story) agora tem céu roxo, sol listrado, palmeiras, chão em grade neon, o anel colorido do relógio girando e o carimbo "Missão cumprida" no fim.

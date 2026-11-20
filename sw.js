@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v239";
+const CACHE = "treinolivre-v240";
 const CACHE_VOZ = "treinolivre-voz";
 // As falas gravadas do Monster, Run! (vozes/*.mp3): baixadas quando a história
 // começa e guardadas fora do cache da versão, para não sumirem a cada atualização.
@@ -21,6 +21,7 @@ const ARQUIVOS = [
   "./marombeiro-inteiro.webp",
   "./marombeiro-rosto.jpg",
   "./logo-treino-livre.webp",
+  "./fundo-resumo-gta.webp",
   "./idioma-en.js",
   // O "?v=3" precisa bater exatamente com o endereço usado no index.html,
   // senão o que é guardado aqui nunca é encontrado depois.

@@ -857,11 +857,12 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v239) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v240) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
+| `fundo-resumo-gta.webp` | O fundo do resumo animado e do vídeo do story: a arte do dono na academia, no estilo de capa de jogo (720×1280, ver *O pôr do sol neon e o visual do relógio*) |
 | `logo-treino-livre.webp` | O logo do app (halter, TREINO em vermelho na placa cromada, LIVRE cromado), recortado do último quadro da `abertura-v2.mp4` com fundo transparente (604×800, 48 KB). Usado na vinheta e no fim do resumo animado e do vídeo do story |
 | `abertura-v2.mp4` | A vinheta de abertura em vídeo (720×1280, 12 s, 1,8 MB, sem som), num cache próprio do `sw.js` (ver *A abertura*) |
 | `marombeiro-corpo.webp`, `-braco.webp`, `-cabeca.webp`, `-inteiro.webp`, `marombeiro-rosto.jpg` | O avatar animado do dono na "Fuga do Marombeiro" (ver *Monster, Run!*) |
@@ -2222,6 +2223,22 @@ texto de divulgação também não cita o jogo.
   com `Path2D`): céu roxo, sol listrado (as faixas são um recorte, o céu
   aparece por elas), chão em grade andando (no vídeo), palmeiras balançando
   presas na base, e o meio escurecido onde ficam os números.
+- **O fundo é a academia, não a praia** (2026-11-20v, pedido do dono: "muda
+  para um estilo de academia... pode ser o meu avatar"). Ele mandou uma arte
+  dele mesmo, no estilo de capa de jogo (academia com halteres e rack, cidade
+  ao pôr do sol); ela virou `fundo-resumo-gta.webp` (720×1280, 160 KB,
+  recortada de 1086×1448 no centro do rosto), `FUNDO_RESUMO`, na lista do
+  `sw.js`. O céu, o sol, as palmeiras e o chão em grade saíram do código.
+  Na tela é `CenarioAcademia` (a arte em `cover` com zoom lento, a camada
+  escura e os degradês roxo em cima e rosa embaixo); no vídeo, `videoFundo`
+  desenha o mesmo. **O escuro depende da cena** (`escuroDaCena`: 0,62 nas
+  cenas com número, 0,22 na vinheta e no fecho; no vídeo `ESCURO_VIDEO`,
+  posto pelo `videoQuadro` e misturado em 0,8 s na troca). Na vinheta e no
+  fecho o logo ficou menor e desceu (tela: `marginTop` 30 e 26 vh; vídeo:
+  y 1230 e 1060) para o rosto aparecer. O vídeo espera a arte como espera o
+  logo (`carregarImagemVideo`). Trocar a arte: outro arquivo, com outro nome
+  (o `sw.js` guarda o antigo), no mesmo formato 9:16 com o rosto no terço de
+  cima.
 - **O anel do relógio** gira atrás das cenas (`AnelRelogioResumo`; no vídeo,
   `createConicGradient`, com o degradê linear de reserva), com a luz
   correndo nele.

@@ -4687,9 +4687,11 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   o texto em `android/relogio/FONTE-OFL.txt`): a da Samsung não é livre, e
   esta foi a mais parecida entre as livres (Abril Fatface, Playfair, Rozha,
   Gloock, DM Serif ficaram de fora). Os números são esticados na largura
-  (`LARGURA` 1,35) e endireitados um pouco (`INCLINACAO`); as posições
-  (`COLUNAS`, `TAMANHO`) foram conferidas lado a lado com a foto num
-  protótipo em canvas. O preenchimento é o degradê da marca, um só para a tela
+  (`LARGURA` 1,18) e endireitados um pouco (`INCLINACAO`); o tamanho e as
+  posições (`TAMANHO`, `COLUNAS`, `LINHA_CIMA`, `LINHA_BAIXO`) saíram de
+  sobrepor os números à foto do modelo num protótipo em canvas, para caberem
+  na tela redonda como lá (a primeira medida vazava demais: o dono pediu
+  "caber exatamente na tela igual ao modelo"). O preenchimento é o degradê da marca, um só para a tela
   inteira. **A geleia**: cada número entra de um em um, passa do ponto e treme
   achatando e esticando (`sx = 1 − w`, `sy = 1 + w`, `w` uma senoide que
   morre), preso no canto perto do meio; os minutos dão um tremidinho a cada

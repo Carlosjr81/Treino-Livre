@@ -163,8 +163,6 @@ class HoraGeleia(contexto: Context) : View(contexto) {
     private fun montar(texto: String) {
         if (texto == horaFeita || lado <= 0f) return
         horaFeita = texto
-        val corte = oy + lado * 0.5f
-        val folga = lado * 0.01f
         val b = RectF()
         digitos = texto.mapIndexed { i, ch ->
             val p = Path()
@@ -173,7 +171,7 @@ class HoraGeleia(contexto: Context) : View(contexto) {
             val cx = ox + lado * COLUNAS[i]
             val emCima = i < 2
             val dx = cx - b.centerX()
-            val dy = if (emCima) corte - folga - b.bottom else corte + folga - b.top
+            val dy = if (emCima) oy + lado * LINHA_CIMA - b.bottom else oy + lado * LINHA_BAIXO - b.top
             p.offset(dx, dy)
             p.computeBounds(b, true)
             // a geleia treme presa no canto do número que fica perto do meio
@@ -318,13 +316,17 @@ class HoraGeleia(contexto: Context) : View(contexto) {
 
     companion object {
         const val DURACAO_MS = 3_800L
-        // o desenho conferido contra a foto da máscara (protótipo em canvas)
-        const val TAMANHO = 0.74f
-        const val LARGURA = 1.35f
-        const val INCLINACAO = 0.08f
-        const val BORDA = 0.035f
+        // o desenho conferido contra a foto da máscara (protótipo em canvas, os
+        // números sobrepostos aos dela: cabem na tela redonda como no modelo)
+        const val TAMANHO = 0.63f
+        const val LARGURA = 1.18f
+        const val INCLINACAO = 0.13f
+        const val BORDA = 0.0275f
+        // a base dos números de cima e o topo dos de baixo, em frações da tela
+        const val LINHA_CIMA = 0.495f
+        const val LINHA_BAIXO = 0.511f
         const val ATRASO = 0.07f
-        val COLUNAS = floatArrayOf(0.30f, 0.80f, 0.05f, 0.74f)
+        val COLUNAS = floatArrayOf(0.295f, 0.806f, 0.20f, 0.755f)
         val SEMANA = arrayOf("DOM.", "SEG.", "TER.", "QUA.", "QUI.", "SEX.", "SÁB.")
     }
 }

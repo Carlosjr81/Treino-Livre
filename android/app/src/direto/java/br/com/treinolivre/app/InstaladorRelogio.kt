@@ -622,6 +622,16 @@ class InstaladorRelogio : ComponentActivity() {
                     Relogio.dicaHost?.let { hostsPar.add(it) }
                 }
                 if (hostsPar.isEmpty()) {
+                    // A rede não anunciou o relógio e ele não mandou o endereço
+                    // (relato do dono, 2026-11-20k, no roteador do celular):
+                    // procura entre os aparelhos ligados na mesma rede.
+                    andar(32, "achar", "🔎 Procurando o relógio entre os aparelhos da rede…")
+                    // preso ao Wi-Fi, o roteador do celular ficaria fora do alcance
+                    soltarDoWifi()
+                    aparelhosNaRede().forEach { hostsPar.add(it) }
+                    hostsPar.firstOrNull()?.let { if (!noRoteadorDoCelular(it)) prenderAoWifi(it) }
+                }
+                if (hostsPar.isEmpty()) {
                     log("⚠ Ainda não achei o relógio na rede. Confira: relógio e celular no mesmo Wi-Fi (ou o relógio no Roteador Wi-Fi do celular), e a janela do código aberta no relógio. Se continuar, digite o endereço que aparece embaixo do código (sem a porta).")
                     linha.post { manual.visibility = View.VISIBLE }
                     return "erro"
@@ -698,6 +708,12 @@ class InstaladorRelogio : ComponentActivity() {
             hostCon?.let { hosts.add(it) }
             hp?.let { hosts.add(it) }
             guardado?.let { hosts.add(it) }
+            if (hosts.isEmpty() && candidatos.isEmpty()) {
+                andar(57, "conectar", "🔎 Procurando o relógio entre os aparelhos da rede…")
+                soltarDoWifi()
+                aparelhosNaRede().forEach { hosts.add(it) }
+                hosts.firstOrNull()?.let { if (!noRoteadorDoCelular(it)) prenderAoWifi(it) }
+            }
             prefs.getString("ultimoHost", null)?.let { if (it.isNotEmpty() && it !in hosts) det("deixei de fora o endereço guardado " + it + ": não é de nenhuma rede deste celular agora") }
             // Sem código e sem pareamento guardado, o relógio quase certamente
             // não conhece este celular: poucas tentativas e já pede o código.
@@ -944,6 +960,50 @@ class InstaladorRelogio : ComponentActivity() {
         if (!presoAoWifi) return
         presoAoWifi = false
         try { getSystemService(android.net.ConnectivityManager::class.java)?.bindProcessToNetwork(null) } catch (e: Exception) { }
+    }
+
+    // Os aparelhos ligados nas redes deste celular (o roteador do celular, o
+    // Wi-Fi), descobertos batendo numa porta fechada de cada endereço: quem
+    // existe responde "recusado" na hora; quem não existe fica mudo. Só em
+    // redes de até 1024 endereços (/22), e nunca a dos dados móveis.
+    private fun aparelhosNaRede(): List<String> {
+        val alvos = ArrayList<String>()
+        val meus = meusEnderecos()
+        try {
+            Collections.list(NetworkInterface.getNetworkInterfaces()).filter { it.isUp && !it.isLoopback && !it.name.startsWith("rmnet") && !it.name.startsWith("ccmni") }.forEach { ni ->
+                ni.interfaceAddresses.filter { it.address is java.net.Inet4Address && it.networkPrefixLength in 22..29 }.forEach { ia ->
+                    val b = ia.address.address
+                    val ip = ((b[0].toInt() and 255) shl 24) or ((b[1].toInt() and 255) shl 16) or ((b[2].toInt() and 255) shl 8) or (b[3].toInt() and 255)
+                    val mascara = -1 shl (32 - ia.networkPrefixLength)
+                    val rede = ip and mascara
+                    val n = 1 shl (32 - ia.networkPrefixLength)
+                    for (k in 1 until n - 1) {
+                        val x = rede or k
+                        val t = ((x ushr 24) and 255).toString() + "." + ((x ushr 16) and 255) + "." + ((x ushr 8) and 255) + "." + (x and 255)
+                        if (t !in meus) alvos.add(t)
+                    }
+                }
+            }
+        } catch (e: Exception) { det("varredura: " + e.message) }
+        if (alvos.isEmpty()) return emptyList()
+        val vivos = java.util.concurrent.ConcurrentLinkedQueue<String>()
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(128)
+        try {
+            alvos.forEach { t ->
+                pool.submit {
+                    try { java.net.Socket().use { it.connect(java.net.InetSocketAddress(t, 9), 900) }; vivos.add(t) }
+                    catch (e: java.net.ConnectException) { if ((e.message ?: "").contains("ECONNREFUSED") || (e.message ?: "").contains("refused")) vivos.add(t) }
+                    catch (e: Exception) { }
+                }
+            }
+            pool.shutdown()
+            pool.awaitTermination(20, java.util.concurrent.TimeUnit.SECONDS)
+        } catch (e: Exception) { } finally { pool.shutdownNow() }
+        val l = vivos.toList().sorted()
+        det("aparelhos na rede (" + alvos.size + " endereços olhados): " + (if (l.isEmpty()) "nenhum" else l.joinToString(", ")))
+        if (l.isNotEmpty()) log("✓ Aparelhos na rede: " + l.joinToString(", ") + ". Procurando qual é o relógio…")
+        // mais de 8 é rede grande (empresa): procurar porta em todos levaria minutos
+        return l.take(8)
     }
 
     private fun alcancavel(host: String): Boolean = try {

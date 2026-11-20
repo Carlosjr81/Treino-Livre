@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Só a versão direta (GitHub) instala a própria versão nova (AtualizarApp):
+     a Play Store proíbe isso, e lá quem atualiza é a loja. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+</manifest>

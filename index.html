@@ -1738,7 +1738,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-20j";
+const VERSAO_APP = "2026-11-20k";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3167,7 +3167,16 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // mesmo jeito que uma ficha chega por #ficha=. No caminho de ida, os treinos
 // do Treino Livre vão no link (?t=) e o app grava cada um no Health Connect.
 // No iPhone nada disso existe: a Apple não abre o Apple Saúde para sites.
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk";
+// O link leva o número no nome do arquivo (2026-11-20k, relato do dono: "o
+// celular não sai do 141"). Com o nome fixo, a pasta Downloads acumulava
+// "treino-livre (1).apk", "(2)…", e o aberto era um velho. O arquivo
+// treino-livre-N.apk só existe a partir da versão 145.
+// O NÚMERO NO LINK É O APK_ATUAL: o número do app Android da última versão (o
+// run_number do Actions no main). Suba os dois números do link a cada
+// publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
+// site se atualiza sozinho; o app do celular não).
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-145/treino-livre-145.apk";
+const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
 const LINK_APK_RELOGIO = "https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre-relogio.apk";
@@ -5384,18 +5393,20 @@ const NO_APP_ANDROID = (() => {
     return daUrl || sessionStorage.getItem("treinolivre:app") === "1";
   } catch (e) { return daUrl; }
 })();
-// O app do celular não se atualiza sozinho; o site sim (relato do dono,
-// 2026-11-20h: "Versão 2026-11-20g · App Android 100", e o instalador do
-// relógio que rodou era o antigo). APK_ATUAL é o número do app Android da
-// última versão (o run_number do Actions no main): suba a cada publicação que
-// mexe em android/. Abaixo dele o site manda atualizar o app primeiro.
-const APK_ATUAL = 143;
-// o instalador do relógio "só o código" e o diagnóstico chegaram neste número
-const APK_INSTALADOR_MIN = 139;
+// O app do celular abaixo do APK_ATUAL (definido junto do LINK_APK) é mandado
+// atualizar (relato do dono, 2026-11-20h: "App Android 100", e o instalador do
+// relógio que rodou era o antigo).
+// o instalador do relógio que não se perde em portas falsas e acha o relógio
+// sozinho no roteador do celular chegou neste número
+const APK_INSTALADOR_MIN = 145;
+// Do 145 em diante o app se atualiza sozinho (AtualizarApp): baixa com a
+// porcentagem e chama o instalador do Android, sem passar pela pasta Downloads.
+// (uma função: os testes recortam este trecho sem o LINK_APK e o NUMERO_APK)
+const linkAtualizarCelular = () => NUMERO_APK >= 145 ? "intent://atualizar-app#Intent;scheme=treinolivre;package=br.com.treinolivre.app;S.browser_fallback_url=" + encodeURIComponent(LINK_APK) + ";end" : LINK_APK;
 const APP_CELULAR_VELHO = /Android/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "") && NO_APP_ANDROID && NUMERO_APK < APK_ATUAL;
 const INSTALADOR_VELHO = /Android/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "") && NO_APP_ANDROID && NUMERO_APK < APK_INSTALADOR_MIN;
 // os botões do relógio: com o instalador velho, baixam o app novo primeiro
-const linkRelogio = (l) => (INSTALADOR_VELHO ? LINK_APK : l);
+const linkRelogio = (l) => (INSTALADOR_VELHO ? linkAtualizarCelular() : l);
 
 // Lê o padrão 0x2A37: o primeiro byte diz se o valor vem em 1 ou 2 bytes.
 function lerBpm(dv) {
@@ -15287,7 +15298,7 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, descans
           <Resumo num={totalEx} txt="exercícios" />
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14 }}>
-          <span style={{ fontSize: 12, color: "var(--cinza)" }}>Versão <b style={{ color: "var(--texto)" }}>{VERSAO_APP}</b>{NUMERO_APK > 0 && <> · App Android <b style={{ color: "var(--texto)" }}>{NUMERO_APK}</b></>}{APP_CELULAR_VELHO && <> · <a href={LINK_APK} style={{ color: "var(--marca)", fontWeight: 800 }}>há o {APK_ATUAL}: atualizar</a></>}</span>
+          <span style={{ fontSize: 12, color: "var(--cinza)" }}>Versão <b style={{ color: "var(--texto)" }}>{VERSAO_APP}</b>{NUMERO_APK > 0 && <> · App Android <b style={{ color: "var(--texto)" }}>{NUMERO_APK}</b></>}{APP_CELULAR_VELHO && <> · <a href={linkAtualizarCelular()} style={{ color: "var(--marca)", fontWeight: 800 }}>há o {APK_ATUAL}: atualizar</a></>}</span>
           <button onClick={onAtualizar} style={{ ...S.btnGhost, width: "auto", padding: "8px 13px", fontSize: 12.5 }}>
             Buscar atualização
           </button>
@@ -31820,6 +31831,8 @@ const PROBLEMAS_RELOGIO = [
     "O código venceu (ele muda cada vez que a tela abre). No relógio, feche e abra de novo **Parear novo dispositivo** e digite o código **novo**."],
   ["\"O relógio não reconhece mais este celular\" (antes: \"recusou este celular\", \"Connection reset\")",
     "O relógio esqueceu o pareamento (foi restaurado, ou as autorizações de depuração foram apagadas). O app já para e pede o código: no relógio, **Parear novo dispositivo**, e digite **só o código**. O resto é sozinho."],
+  ["O celular continua na versão antiga depois de baixar o app novo",
+    "Confira em Ajustes › Este app o número do **App Android**. Se não mudou, o arquivo aberto era um antigo: na pasta **Downloads** apague todos os **treino-livre.apk** e baixe de novo pelo **há o N: atualizar** (o arquivo novo leva o número no nome, como **treino-livre-145.apk**). Do 145 em diante o app se atualiza sozinho, com a porcentagem na tela."],
   ["O relógio fica em \"O celular está instalando…\" e nada acontece",
     "Era o app do relógio antigo: ele mandava ao celular mais de mil portas falsas, e o celular tentava uma por uma. O app do celular novo descarta essa lista e, se o relógio não conhece mais este celular, pede **o código na hora**. No relógio: Opções do desenvolvedor › Depuração por Wi-Fi › **Parear novo dispositivo**, e digite o código no celular. Depois disso, as próximas atualizações mostram a porcentagem nas duas telas."],
   ["\"Não achei o relógio\"",
@@ -31944,8 +31957,8 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
           <div style={{ ...S.card, borderColor: "var(--marca)", fontSize: 14, lineHeight: 1.55 }}>
             <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>⬇ Primeiro, atualize o app do celular</div>
             <div style={{ marginBottom: 10 }}>{textoGuia("O instalador do relógio mora no **app do celular**, e o seu é o **" + (NUMERO_APK || "antigo") + "**. O novo (**" + APK_ATUAL + "**) pede **só o código** do relógio e acha o resto sozinho. O site se atualiza sozinho; o app do celular não.")}</div>
-            <a href={LINK_APK} className="btn-pulsa" style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none" }}>⬇ Baixar o app do celular novo</a>
-            <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 8 }}>{textoGuia("Abra o arquivo baixado e toque em **Atualizar** (instala por cima, os treinos ficam). Depois abra o Treino Livre **pelo ícone** e volte aqui.")}</div>
+            <a href={linkAtualizarCelular()} className="btn-pulsa" style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none" }}>⬇ Baixar o app do celular novo</a>
+            <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 8 }}>{textoGuia(NUMERO_APK >= 145 ? "O app baixa sozinho, mostra a porcentagem e abre a janela do Android: toque em **Atualizar** (os treinos ficam)." : "O arquivo novo se chama **treino-livre-" + APK_ATUAL + ".apk**. Toque nele na notificação do download (ou em Arquivos › Downloads) e em **Atualizar**: os treinos ficam. Na pasta Downloads, **apague os treino-livre.apk antigos** para não abrir um deles por engano. Depois abra o Treino Livre **pelo ícone**: em Ajustes tem de aparecer **App Android " + APK_ATUAL + "**.")}</div>
           </div>
         )}
         <div style={{ fontWeight: 900, fontSize: 15, margin: "4px 0 8px" }}>Qual é o seu relógio?</div>

@@ -91,6 +91,9 @@ jobs:
         run: |
           cp android/app/build/outputs/apk/direto/release/app-direto-release.apk treino-livre.apk
           cp android/relogio/build/outputs/apk/release/relogio-release.apk treino-livre-relogio.apk
+          # o mesmo APK com o número no nome: na pasta Downloads do celular
+          # não se confunde com os treino-livre.apk antigos (2026-11-20k)
+          cp treino-livre.apk treino-livre-${{ github.run_number }}.apk
 
       - uses: actions/upload-artifact@v4
         with:
@@ -115,6 +118,7 @@ jobs:
           make_latest: "true"
           files: |
             treino-livre.apk
+            treino-livre-${{ github.run_number }}.apk
             treino-livre-relogio.apk
           body: |
             O app Android do Treino Livre: o mesmo app do site, com a aba ❤ Saúde lendo o Health Connect

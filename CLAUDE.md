@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v228) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v229) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4723,6 +4723,27 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   a cada segundo. **No modo ambiente a hora fica na tela**, parada, só no
   contorno cinza, com o descanso em minutos na bolha. Horas em 12 ou 24 h
   conforme o relógio. **Não validado num relógio**: compilado pelo Actions.
+- **O celular se atualiza sozinho** (2026-11-20k, relato do dono: o site
+  dizia "há o 143: atualizar", ele baixava, instalava e continuava no 141).
+  O APK 143 publicado estava certo (mesma assinatura, `1.143` no
+  manifesto, o link `latest` levando a ele): o que falhava era a pasta
+  Downloads, com vários `treino-livre (1).apk` de mesmo nome, e o aberto era
+  um velho. Hoje: **`AtualizarApp`** (`treinolivre://atualizar-app`, só na
+  versão direta; na loja abre a Play Store) baixa a última versão para dentro
+  do app com a porcentagem, confere o número pelo caminho do `latest`
+  (`android-N`), e entrega ao instalador do Android pelo `PackageInstaller`
+  (permissão `REQUEST_INSTALL_PACKAGES` só no `src/direto/AndroidManifest.xml`;
+  a primeira vez pede "Permitir desta fonte"). O release ganhou o mesmo APK com
+  o número no nome (`treino-livre-N.apk`), e o `LINK_APK` aponta para ele
+  (`APK_ATUAL` sai do número escrito no `LINK_APK`: **a cada publicação que mexe em `android/`, suba os dois números do link**): **o arquivo
+  `treino-livre-N.apk` só existe do 145 em diante**, e nos minutos entre o site
+  publicar e o Actions terminar o link dá 404. Do 145 em diante
+  (`linkAtualizarCelular`), "atualizar" chama o `AtualizarApp`. E o
+  instalador do relógio, sem anúncio na rede nem endereço do relógio, **procura
+  entre os aparelhos ligados** nas redes do celular (`aparelhosNaRede`: bate
+  numa porta fechada de cada endereço de redes /22 a /29, fora dos dados
+  móveis; "recusado" é aparelho vivo; até 8), soltando o Wi-Fi antes para o
+  roteador do celular ficar ao alcance.
 - **O painel da atualização** (2026-11-20j, relato do dono com o
   diagnóstico: o relógio parado em "O celular está instalando…" e o celular
   com uma linha "Conectando…" para cada uma de **mais de mil portas**). A

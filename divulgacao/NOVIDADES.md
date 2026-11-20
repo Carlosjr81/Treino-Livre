@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-20k — O app do celular se atualiza sozinho
+
+**Em uma frase:** a partir desta versão, atualizar o app do celular é um toque: ele baixa sozinho, mostra a porcentagem e abre a janela do Android.
+
+**O que mudou**
+- Em Ajustes, o "atualizar" baixa a versão nova para dentro do app, com a porcentagem e os MB na tela, e chama o instalador do Android: é só tocar em Atualizar.
+- O arquivo para baixar agora leva o número da versão no nome (treino-livre-145.apk), para não se confundir com os antigos na pasta Downloads.
+- O instalador do relógio acha o relógio sozinho entre os aparelhos ligados no roteador do celular, mesmo quando a rede não anuncia o relógio.
+
+**Por que importa para quem treina**
+- Acabou o "baixei e continua na versão velha": o celular atualiza de verdade, e o relógio vem atrás.
+
+**Como usar**
+- Ajustes › Este app: se aparecer "há o N: atualizar", toque. Na primeira vez o Android pede "Permitir desta fonte"; ligue e volte.
+
+**Ideias de vídeo**
+- O dedo toca em "atualizar", a porcentagem sobe de 0 a 100, "Atualizar" no Android, e o número novo aparece nos Ajustes.
+
+**Não prometer**
+- Quem ainda está numa versão antiga (até a 143) precisa baixar o arquivo uma última vez à mão; a atualização sozinha vale do 145 em diante. Não vale para a versão da Play Store, que a própria loja atualiza.
+
+---
+
 ## 2026-11-20j — Atualizar o relógio com porcentagem nas duas telas
 
 **Em uma frase:** a atualização do app do relógio agora mostra a porcentagem e cada etapa, no celular e no relógio, e não fica mais parada sem dizer nada.

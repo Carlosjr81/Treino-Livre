@@ -160,6 +160,20 @@
             </intent-filter>
         </activity>
 
+        <!-- O celular se atualiza sozinho: treinolivre://atualizar-app (2026-11-20k) -->
+        <activity
+            android:name=".AtualizarApp"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@android:style/Theme.Material.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="treinolivre" android:host="atualizar-app" />
+            </intent-filter>
+        </activity>
+
         <!-- Os toques do app do relógio (Galaxy Watch): /treino/acao -->
         <service
             android:name=".OuvinteRelogio"

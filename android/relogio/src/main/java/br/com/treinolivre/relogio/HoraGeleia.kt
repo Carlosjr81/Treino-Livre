@@ -1,11 +1,15 @@
 package br.com.treinolivre.relogio
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
@@ -13,41 +17,54 @@ import android.os.SystemClock
 import android.text.format.DateFormat
 import android.view.View
 import java.util.Calendar
+import kotlin.math.PI
 import kotlin.math.exp
+import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.sin
+import kotlin.math.sqrt
 
-// A hora com um toque (pedido do dono, 2026-11-20d: "durante o treino eu não
-// tenho visão da hora; 1 toque mostra a hora e já volta ao app, com a fonte e o
-// efeito geleia da máscara do Galaxy Watch, nas cores do Treino Livre").
+// A hora no relógio (pedido do dono, 2026-11-20d e 20f): "durante o treino não
+// vejo a hora". ENQUANTO a pessoa segura a tela, aparece a hora; ao soltar,
+// volta o treino. Segurar, e não tocar: um toque é comando do treino.
 //
-// O desenho é o da máscara que ele mandou: quatro números enormes, dois em cima
-// e dois embaixo, vazando da tela redonda, com um contorno preto separando um do
-// outro, e uma bolha translúcida com o dia. A fonte é a Bodoni Moda Black Italic
-// (licença OFL, livre), a mais parecida com a da Samsung, que não é livre.
-// O preenchimento é o degradê da marca, um só para a tela inteira.
+// O desenho é o da máscara do Galaxy Watch que ele mandou: quatro números
+// enormes, dois em cima e dois embaixo, vazando da tela, com um contorno preto
+// separando um do outro, e uma bolha translúcida com o dia. A fonte é a Bodoni
+// Moda Black Italic (licença OFL, livre), a mais parecida com a da Samsung, que
+// não é livre. O preenchimento é o degradê da marca, um só para a tela inteira.
+//
+// "A fonte parece montada sobre uma esfera": os números são desenhados numa
+// camada e a camada é curvada como a pele de uma bola (drawBitmapMesh): o meio
+// cresce e a borda encolhe, com sombra na borda e um brilho no alto à esquerda,
+// só nos números.
 //
 // O efeito geleia: cada número entra de um em um, cresce passando do ponto e
-// treme, achatando e esticando (como uma gelatina), até parar; a cada segundo
-// os minutos dão um tremidinho; na saída, eles se achatam e somem.
+// treme, achatando e esticando, até parar; a cada segundo os minutos dão um
+// tremidinho; ao soltar, eles se achatam e somem.
 //
-// A bolha e a bolinha laranja da borda ficam onde estão no modelo; a mais que
-// a máscara: no descanso a bolha diz "DESCANSO" e o tempo que falta (na cor do
-// descanso), e a bolinha pulsa a cada segundo. No modo ambiente (tela apagada), a mesma hora só no
-// contorno cinza, parada, que gasta quase nada numa tela OLED.
+// A bolha e a bolinha laranja da borda ficam onde estão no modelo; no descanso
+// a bolha diz "DESCANSO" e o tempo que falta, na cor dele. No modo ambiente
+// (tela apagada), a mesma hora só no contorno cinza, parada.
+//
+// Cada relógio: em tela redonda, o desenho do modelo num quadrado do tamanho do
+// menor lado; em tela quadrada ou retangular (Oppo Watch, alguns Fossil e
+// Mobvoi), os números ocupam a tela inteira, na proporção dela. Tudo é medido
+// em frações da tela, então vale para tela pequena e grande.
 class HoraGeleia(contexto: Context) : View(contexto) {
-    // o que vai na bolha embaixo do dia: (texto, cor), ou null para o dia sozinho
+    // o que vai na bolha no lugar do dia: (texto, cor), ou null para o dia
     var info: (() -> Pair<String, Int>?)? = null
     var aoSumir: (() -> Unit)? = null
 
     var ambiente = false
-        set(v) { field = v; invalidate() }
+        set(v) { field = v; chave = ""; invalidate() }
 
     var mostrando = false
         private set
     private var inicio = 0L
     private var saindoEm = 0L
     private val fonte: Typeface = try { resources.getFont(R.font.bodoni_moda_black_italic) } catch (e: Exception) { Typeface.create(Typeface.SERIF, Typeface.BOLD_ITALIC) }
+    private val redonda = resources.configuration.isScreenRound
 
     private val d = resources.displayMetrics.density
     private val numero = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -66,6 +83,9 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         color = Cores.CINZA
         strokeJoin = Paint.Join.ROUND
     }
+    private val sombra = Paint(Paint.ANTI_ALIAS_FLAG).apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP) }
+    private val brilho = Paint(Paint.ANTI_ALIAS_FLAG).apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP) }
+    private val malhaPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val fundo = Paint().apply { color = Color.BLACK }
     private val bolha = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bolhaBorda = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
@@ -84,27 +104,40 @@ class HoraGeleia(contexto: Context) : View(contexto) {
     private class Digito(val path: Path, val px: Float, val py: Float)
     private var digitos = emptyList<Digito>()
     private var horaFeita = ""
+    // o quadro do desenho: na redonda, o quadrado do menor lado; na
+    // retangular, a tela toda
     private var lado = 0f
+    private var larg = 0f
+    private var alt = 0f
     private var ox = 0f
     private var oy = 0f
     private var ultimoSeg = -1
     private var segEm = 0L
+    // a camada dos números e a malha que a curva em esfera
+    private var camada: Bitmap? = null
+    private var tela: Canvas? = null
+    private var malha = FloatArray(0)
+    private var chave = ""
+    private val escalas = FloatArray(8)
 
     init { visibility = GONE }
 
-    // Um toque: mostra, e volta sozinho ao treino.
+    // Segurou: mostra, e fica enquanto o dedo estiver na tela.
     fun mostrar() {
         if (ambiente) return
+        if (mostrando && saindoEm == 0L) return
         mostrando = true
         inicio = SystemClock.uptimeMillis()
         saindoEm = 0L
+        chave = ""
         visibility = VISIBLE
         removeCallbacks(sumir)
-        postDelayed(sumir, DURACAO_MS)
+        // segurança: se o soltar se perder, a hora não fica para sempre
+        postDelayed(sumir, LIMITE_MS)
         postInvalidateOnAnimation()
     }
 
-    // a saída com a geleia achatando
+    // soltou: a geleia achata e o treino volta
     fun esconder() {
         if (!mostrando || saindoEm != 0L) return
         removeCallbacks(sumir)
@@ -136,37 +169,86 @@ class HoraGeleia(contexto: Context) : View(contexto) {
 
     override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
         super.onSizeChanged(w, h, ow, oh)
+        if (w <= 0 || h <= 0) return
         lado = min(w, h).toFloat()
-        ox = (w - lado) / 2f
-        oy = (h - lado) / 2f
-        numero.textSize = lado * TAMANHO
+        if (redonda) {
+            larg = lado; alt = lado
+            ox = (w - lado) / 2f; oy = (h - lado) / 2f
+        } else {
+            larg = w.toFloat(); alt = h.toFloat()
+            ox = 0f; oy = 0f
+        }
+        // na tela retangular o número cresce com a altura (há mais espaço)
+        numero.textSize = (if (redonda) lado else min(alt, larg * 1.15f)) * TAMANHO
         contorno.strokeWidth = lado * BORDA * 2f
         linhaAmb.strokeWidth = 1.6f * d
-        preench.shader = LinearGradient(ox, oy, ox + lado, oy + lado,
+        preench.shader = LinearGradient(ox, oy, ox + larg, oy + alt,
             intArrayOf(Color.parseColor("#FFB36B"), Cores.LARANJA, Cores.ROSA, Color.parseColor("#B05BFF")),
             floatArrayOf(0f, 0.3f, 0.65f, 1f), Shader.TileMode.CLAMP)
         textoDia.textSize = lado * 0.042f
         textoInfo.textSize = lado * 0.08f
         bolhaBorda.strokeWidth = 1.5f * d
         horaFeita = ""
+        chave = ""
+
+        // a camada e a esfera
+        camada?.recycle()
+        val bm = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        camada = bm
+        tela = Canvas(bm)
+        val cx = w / 2f
+        val cy = h / 2f
+        val raio = if (redonda) lado / 2f else hypot(w.toFloat(), h.toFloat()) / 2f
+        sombra.shader = RadialGradient(cx, cy, raio,
+            intArrayOf(Color.TRANSPARENT, Color.TRANSPARENT, Color.argb(51, 0, 0, 0), Color.argb(115, 0, 0, 0)),
+            floatArrayOf(0f, 0.5f, 0.82f, 1f), Shader.TileMode.CLAMP)
+        brilho.shader = RadialGradient(cx - raio * 0.28f, cy - raio * 0.34f, raio * 0.62f,
+            intArrayOf(Color.argb(80, 255, 255, 255), Color.argb(25, 255, 255, 255), Color.TRANSPARENT),
+            floatArrayOf(0f, 0.45f, 1f), Shader.TileMode.CLAMP)
+        // A pele da bola: o ponto que estava a uma distância d (0 no meio, 1 na
+        // borda) vai para sin(d·π/2), misturado com a força: o meio cresce e a
+        // borda encolhe, como uma figura colada numa esfera vista de frente.
+        val n = MALHA
+        malha = FloatArray((n + 1) * (n + 1) * 2)
+        var k = 0
+        for (j in 0..n) for (i in 0..n) {
+            val x = w * i / n.toFloat()
+            val y = h * j / n.toFloat()
+            val dx = (x - cx) / raio
+            val dy = (y - cy) / raio
+            val dist = sqrt(dx * dx + dy * dy)
+            var f = 1f
+            if (dist > 0.0001f && dist < 1f) {
+                val curva = sin(dist * PI.toFloat() / 2f)
+                f = (dist + ESFERA * (curva - dist)) / dist
+            }
+            malha[k++] = cx + (x - cx) * f
+            malha[k++] = cy + (y - cy) * f
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        camada?.recycle(); camada = null; tela = null
     }
 
     private fun montar(texto: String) {
         if (texto == horaFeita || lado <= 0f) return
         horaFeita = texto
+        chave = ""
         val b = RectF()
         digitos = texto.mapIndexed { i, ch ->
             val p = Path()
             numero.getTextPath(ch.toString(), 0, 1, 0f, 0f, p)
             p.computeBounds(b, true)
-            val cx = ox + lado * COLUNAS[i]
+            val cx = ox + larg * COLUNAS[i]
             val emCima = i < 2
             val dx = cx - b.centerX()
-            val dy = if (emCima) oy + lado * LINHA_CIMA - b.bottom else oy + lado * LINHA_BAIXO - b.top
+            val dy = if (emCima) oy + alt * LINHA_CIMA - b.bottom else oy + alt * LINHA_BAIXO - b.top
             p.offset(dx, dy)
             p.computeBounds(b, true)
             // a geleia treme presa no canto do número que fica perto do meio
-            val px = (ox + lado / 2).coerceIn(b.left, b.right)
+            val px = (ox + larg / 2).coerceIn(b.left, b.right)
             val py = if (emCima) b.bottom else b.top
             Digito(p, px, py)
         }
@@ -183,8 +265,6 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         val seg = cal.get(Calendar.SECOND)
         if (seg != ultimoSeg) { ultimoSeg = seg; segEm = agora }
 
-        val cx = ox + lado / 2
-        val cy = oy + lado / 2
         val t = (agora - inicio) / 1000f
         val tSai = if (saindoEm > 0L) (agora - saindoEm) / 1000f else -1f
         val vivo = !ambiente && mostrando
@@ -192,61 +272,89 @@ class HoraGeleia(contexto: Context) : View(contexto) {
         // o fundo escurece rápido na entrada e clareia na saída
         val alfaFundo = when {
             !vivo -> 1f
-            tSai >= 0f -> (1f - (tSai - 0.18f) / 0.2f).coerceIn(0f, 1f)
-            else -> (t / 0.12f).coerceIn(0f, 1f)
+            tSai >= 0f -> (1f - (tSai - 0.12f) / 0.18f).coerceIn(0f, 1f)
+            else -> (t / 0.1f).coerceIn(0f, 1f)
         }
         fundo.alpha = (alfaFundo * 255).toInt()
         c.drawRect(0f, 0f, width.toFloat(), height.toFloat(), fundo)
 
+        // a geleia de cada número (0 = ainda não entrou ou já saiu)
         var tudoSaiu = true
-        digitos.forEachIndexed { i, dg ->
+        for (i in digitos.indices) {
             var sx = 1f
             var sy = 1f
             if (vivo) {
                 val ti = t - i * ATRASO
-                if (ti <= 0f) { tudoSaiu = false; return@forEachIndexed }
-                // entra crescendo, passa do ponto e treme achatando e esticando
-                val a = (ti / 0.18f).coerceIn(0f, 1f)
-                val e = 1f - (1f - a) * (1f - a) * (1f - a)
-                val w = 0.3f * exp(-4.2f * ti) * sin(17f * ti)
-                sx = e * (1f - w)
-                sy = e * (1f + w)
-                // a cada segundo, os minutos dão um tremidinho
-                if (i >= 2 && ti > 1f) {
-                    val ts = (agora - segEm) / 1000f
-                    val w2 = 0.045f * exp(-7f * ts) * sin(22f * ts)
-                    sx *= 1f - w2; sy *= 1f + w2
+                if (ti <= 0f) { tudoSaiu = false; sx = 0f; sy = 0f }
+                else {
+                    // entra crescendo, passa do ponto e treme achatando e esticando
+                    val a = (ti / 0.16f).coerceIn(0f, 1f)
+                    val e = 1f - (1f - a) * (1f - a) * (1f - a)
+                    val w = 0.3f * exp(-4.2f * ti) * sin(17f * ti)
+                    sx = e * (1f - w)
+                    sy = e * (1f + w)
+                    // a cada segundo, os minutos dão um tremidinho
+                    if (i >= 2 && ti > 1f) {
+                        val ts = (agora - segEm) / 1000f
+                        val w2 = 0.045f * exp(-7f * ts) * sin(22f * ts)
+                        sx *= 1f - w2; sy *= 1f + w2
+                    }
+                    if (tSai >= 0f) {
+                        val p = ((tSai - (3 - i) * 0.03f) / 0.18f).coerceIn(0f, 1f)
+                        if (p < 1f) tudoSaiu = false
+                        sx *= 1f + 0.4f * p
+                        sy *= 1f - p
+                        if (p >= 1f) { sx = 0f; sy = 0f }
+                    } else tudoSaiu = false
                 }
-                if (tSai >= 0f) {
-                    val p = ((tSai - (3 - i) * 0.04f) / 0.22f).coerceIn(0f, 1f)
-                    if (p < 1f) tudoSaiu = false
-                    sx *= 1f + 0.4f * p
-                    sy *= 1f - p
-                    if (p >= 1f) return@forEachIndexed
-                } else tudoSaiu = false
             }
-            c.save()
-            c.scale(sx, sy, dg.px, dg.py)
-            if (ambiente) c.drawPath(dg.path, linhaAmb)
-            else { c.drawPath(dg.path, contorno); c.drawPath(dg.path, preench) }
-            c.restore()
+            escalas[i * 2] = sx
+            escalas[i * 2 + 1] = sy
         }
 
-        // A bolha e a bolinha nas posições e tamanhos do modelo (2026-11-20d,
-        // "ajuste o layout de todos os elementos para isso"): a bolha um pouco à
-        // direita e abaixo do meio, o dia da semana em cima e o dia embaixo,
-        // centrados no meio da tela; a bolinha laranja na borda esquerda. No
-        // descanso, a mesma bolha diz "DESCANSO" e o tempo que falta, na cor dele.
-        val bx = ox + lado * 0.573f
-        val by = oy + lado * 0.708f
+        // a camada só é redesenhada quando algo mudou (a geleia parada não custa nada)
+        val bm = camada
+        val tc = tela
+        if (bm != null && tc != null) {
+            val nova = buildString {
+                append(texto); append(ambiente)
+                for (i in 0 until digitos.size * 2) { append(','); append((escalas[i] * 400).toInt()) }
+            }
+            if (nova != chave) {
+                chave = nova
+                bm.eraseColor(Color.TRANSPARENT)
+                digitos.forEachIndexed { i, dg ->
+                    val sx = escalas[i * 2]
+                    val sy = escalas[i * 2 + 1]
+                    if (sx <= 0.001f || sy <= 0.001f) return@forEachIndexed
+                    tc.save()
+                    tc.scale(sx, sy, dg.px, dg.py)
+                    if (ambiente) tc.drawPath(dg.path, linhaAmb)
+                    else { tc.drawPath(dg.path, contorno); tc.drawPath(dg.path, preench) }
+                    tc.restore()
+                }
+                if (!ambiente) {
+                    tc.drawRect(0f, 0f, bm.width.toFloat(), bm.height.toFloat(), sombra)
+                    tc.drawRect(0f, 0f, bm.width.toFloat(), bm.height.toFloat(), brilho)
+                }
+            }
+            c.drawBitmapMesh(bm, MALHA, MALHA, malha, 0, null, 0, malhaPaint)
+        }
+
+        // A bolha e a bolinha nas posições e tamanhos do modelo: a bolha um
+        // pouco à direita e abaixo do meio, o dia da semana em cima e o dia
+        // embaixo, centrados no meio da tela; a bolinha laranja na borda
+        // esquerda. No descanso, "DESCANSO" e o tempo que falta, na cor dele.
+        val bx = ox + larg * 0.573f
+        val by = oy + alt * 0.708f
         var esc = 1f
         if (vivo) {
-            val tb = t - 0.3f
+            val tb = t - 0.25f
             esc = if (tb <= 0f) 0f else {
                 val a = (tb / 0.2f).coerceIn(0f, 1f)
                 a * (1f + 0.25f * exp(-5f * tb) * sin(15f * tb))
             }
-            if (tSai >= 0f) esc *= (1f - tSai / 0.15f).coerceIn(0f, 1f)
+            if (tSai >= 0f) esc *= (1f - tSai / 0.12f).coerceIn(0f, 1f)
         }
         if (esc > 0.01f) {
             c.save()
@@ -260,13 +368,13 @@ class HoraGeleia(contexto: Context) : View(contexto) {
                 c.drawCircle(bx, by, raio, bolha)
             }
             val extra = info?.invoke()
-            val tx = ox + lado * 0.5f
+            val tx = ox + larg * 0.5f
             val cima = extra?.let { "DESCANSO" } ?: SEMANA[cal.get(Calendar.DAY_OF_WEEK) - 1]
             val baixo = extra?.first ?: cal.get(Calendar.DAY_OF_MONTH).toString()
             textoDia.color = when { ambiente -> Cores.CINZA; extra != null -> extra.second; else -> Color.parseColor("#FFB36B") }
-            c.drawText(cima, tx, oy + lado * 0.677f, textoDia)
+            c.drawText(cima, tx, by - lado * 0.031f, textoDia)
             textoInfo.color = when { ambiente -> Cores.CINZA; extra != null -> extra.second; else -> Color.WHITE }
-            c.drawText(baixo, tx, oy + lado * 0.78f, textoInfo)
+            c.drawText(baixo, tx, by + lado * 0.072f, textoInfo)
             c.restore()
         }
 
@@ -277,7 +385,7 @@ class HoraGeleia(contexto: Context) : View(contexto) {
             ponto.color = Cores.LARANJA
             ponto.alpha = (255 * min(1f, esc)).toInt()
             ponto.setShadowLayer(7f * d * pulso, 0f, 0f, Cores.LARANJA)
-            c.drawCircle(ox + lado * 0.025f, oy + lado * 0.5f, lado * 0.017f * pulso, ponto)
+            c.drawCircle(ox + larg * 0.025f, oy + alt * 0.5f, lado * 0.017f * pulso, ponto)
             ponto.clearShadowLayer()
             ponto.alpha = 255
         }
@@ -293,18 +401,25 @@ class HoraGeleia(contexto: Context) : View(contexto) {
     }
 
     companion object {
-        const val DURACAO_MS = 3_800L
+        // segurança: o dedo segurando mais que isto já não é para ver a hora
+        const val LIMITE_MS = 60_000L
+        // quanto segurar para a hora aparecer
+        const val SEGURAR_MS = 380L
         // o desenho conferido contra a foto da máscara (protótipo em canvas, os
-        // números sobrepostos aos dela: cabem na tela redonda como no modelo)
-        const val TAMANHO = 0.63f
+        // números sobrepostos aos dela), um pouco maior para a esfera, que
+        // encolhe a borda, continuar enchendo a tela como no modelo
+        const val TAMANHO = 0.68f
         const val LARGURA = 1.18f
         const val INCLINACAO = 0.13f
         const val BORDA = 0.0275f
         // a base dos números de cima e o topo dos de baixo, em frações da tela
         const val LINHA_CIMA = 0.495f
         const val LINHA_BAIXO = 0.511f
-        const val ATRASO = 0.07f
-        val COLUNAS = floatArrayOf(0.295f, 0.806f, 0.20f, 0.755f)
+        const val ATRASO = 0.06f
+        // a esfera: 0 é plano, 1 é a curva inteira de uma bola
+        const val ESFERA = 0.6f
+        const val MALHA = 28
+        val COLUNAS = floatArrayOf(0.279f, 0.83f, 0.176f, 0.775f)
         val SEMANA = arrayOf("DOM.", "SEG.", "TER.", "QUA.", "QUI.", "SEX.", "SÁB.")
     }
 }

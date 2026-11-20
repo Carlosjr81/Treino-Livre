@@ -23,7 +23,6 @@ import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.ViewConfiguration
-import android.view.ViewGroup
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.AccelerateInterpolator
@@ -160,16 +159,23 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         val d = resources.displayMetrics.density
         fun dp(v: Int) = (v * d).toInt()
         val largura = resources.displayMetrics.widthPixels
-        // tela redonda: as bordas ficam para o anel
-        val lado = (largura * 0.13).toInt()
+        // Cada relógio (2026-11-20f, pedido do dono: "adapte a tela para cada
+        // modelo"): na tela redonda as bordas ficam para o anel e a curva corta
+        // os cantos; na quadrada ou retangular (Oppo Watch, alguns Fossil e
+        // Mobvoi) a margem é pequena. O texto acompanha o tamanho da tela: o
+        // padrão é o Galaxy Watch de 44 mm (225 dp); um relógio de 40 mm ou o
+        // Pixel Watch (~192 dp) fica um pouco menor, um de 47 mm, maior.
+        val redonda = resources.configuration.isScreenRound
+        val escala = (largura / d / 225f).coerceIn(0.84f, 1.15f)
+        val lado = (largura * (if (redonda) 0.13 else 0.05)).toInt()
 
         val caixa = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(lado, (largura * 0.13).toInt(), lado, (largura * 0.24).toInt())
+            setPadding(lado, (largura * (if (redonda) 0.13 else 0.06)).toInt(), lado, (largura * (if (redonda) 0.24 else 0.1)).toInt())
         }
         fun texto(tam: Float, cor: Int = Color.WHITE, negrito: Boolean = false) = TextView(this).apply {
-            textSize = tam
+            textSize = tam * escala
             setTextColor(cor)
             gravity = Gravity.CENTER
             if (negrito) setTypeface(typeface, Typeface.BOLD)
@@ -178,7 +184,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         fun pilulaFundo(cores: IntArray): Drawable = comToque(GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, cores).apply { cornerRadius = dp(30).toFloat() })
         fun botao(rotulo: String, fundo: Drawable, tam: Float = 15f, acao: () -> Unit) = Button(this).apply {
             text = rotulo
-            textSize = tam
+            textSize = tam * escala
             isAllCaps = false
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Color.WHITE)
@@ -391,49 +397,49 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         }
     }
 
-    // Um toque num lugar vazio da tela mostra a hora (HoraGeleia), que volta
-    // sozinha; um toque com a hora à vista só a fecha (não aperta o botão de
-    // baixo). Toque em botão continua sendo o botão.
+    // Segurar a tela mostra a hora (HoraGeleia), e soltar volta ao treino
+    // (pedido do dono, 2026-11-20f: "um toque pode ser confundido com
+    // comando"). Vale em qualquer lugar da tela, até em cima de um botão: ao
+    // completar o tempo, o toque é cancelado para o que está embaixo (o botão
+    // não dispara). Arrastar (rolar a tela) não conta.
     private var toqueX = 0f
     private var toqueY = 0f
-    private var toqueEm = 0L
-    private var toqueNoBotao = false
-    private var engolindo = false
-
-    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
-            engolindo = false
-            if (hora.mostrando && !ambiente) {
-                engolindo = true
-                onUserInteraction()
-                hora.esconder()
-                return true
-            }
-            toqueX = ev.rawX; toqueY = ev.rawY; toqueEm = ev.eventTime
-            toqueNoBotao = clicavelEm(raizTela, ev.rawX.toInt(), ev.rawY.toInt())
-        }
-        if (engolindo) {
-            if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) engolindo = false
-            return true
-        }
-        val r = super.dispatchTouchEvent(ev)
-        if (ev.actionMasked == MotionEvent.ACTION_UP && !toqueNoBotao && !ambiente &&
-            ev.eventTime - toqueEm < 400L &&
-            Math.hypot((ev.rawX - toqueX).toDouble(), (ev.rawY - toqueY).toDouble()) < ViewConfiguration.get(this).scaledTouchSlop) {
-            hora.mostrar()
-            try { getSystemService(Vibrator::class.java)?.vibrate(VibrationEffect.createOneShot(25L, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (e: Exception) { }
-        }
-        return r
+    private var segurando = false
+    private val segurarR = Runnable {
+        if (ambiente || isFinishing) return@Runnable
+        segurando = true
+        cancelarToqueEmbaixo()
+        hora.mostrar()
+        try { getSystemService(Vibrator::class.java)?.vibrate(VibrationEffect.createOneShot(30L, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (e: Exception) { }
     }
 
-    private fun clicavelEm(v: View, x: Int, y: Int): Boolean {
-        if (v.visibility != View.VISIBLE || v === hora) return false
-        val loc = IntArray(2)
-        v.getLocationOnScreen(loc)
-        if (x < loc[0] || y < loc[1] || x >= loc[0] + v.width || y >= loc[1] + v.height) return false
-        if (v.isClickable && v !is ScrollView) return true
-        if (v is ViewGroup) for (i in v.childCount - 1 downTo 0) if (clicavelEm(v.getChildAt(i), x, y)) return true
-        return false
+    // o toque deixa de ser do botão ou da rolagem embaixo
+    private fun cancelarToqueEmbaixo() {
+        val agora = android.os.SystemClock.uptimeMillis()
+        val cancela = MotionEvent.obtain(agora, agora, MotionEvent.ACTION_CANCEL, toqueX, toqueY, 0)
+        super.dispatchTouchEvent(cancela)
+        cancela.recycle()
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                segurando = false
+                linha.removeCallbacks(segurarR)
+                toqueX = ev.x; toqueY = ev.y
+                if (!ambiente) linha.postDelayed(segurarR, HoraGeleia.SEGURAR_MS)
+            }
+            MotionEvent.ACTION_POINTER_DOWN -> if (!segurando) linha.removeCallbacks(segurarR)
+            MotionEvent.ACTION_MOVE -> if (!segurando &&
+                Math.hypot((ev.x - toqueX).toDouble(), (ev.y - toqueY).toDouble()) > ViewConfiguration.get(this).scaledTouchSlop)
+                linha.removeCallbacks(segurarR)
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                linha.removeCallbacks(segurarR)
+                if (segurando) { segurando = false; onUserInteraction(); hora.esconder(); return true }
+            }
+        }
+        if (segurando) return true
+        return super.dispatchTouchEvent(ev)
     }
 
     // a bolha da hora: o descanso que falta, na cor dele; senão o dia

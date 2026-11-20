@@ -857,12 +857,12 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v240) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v241) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
-| `fundo-resumo-gta.webp` | O fundo do resumo animado e do vídeo do story: a arte do dono na academia, no estilo de capa de jogo (720×1280, ver *O pôr do sol neon e o visual do relógio*) |
+| `resumo-fundo.webp`, `resumo-frente.webp` | As duas camadas da arte do dono na academia, no estilo de capa de jogo, que o resumo animado e o vídeo do story animam (ver *O pôr do sol neon e o visual do relógio*) |
 | `logo-treino-livre.webp` | O logo do app (halter, TREINO em vermelho na placa cromada, LIVRE cromado), recortado do último quadro da `abertura-v2.mp4` com fundo transparente (604×800, 48 KB). Usado na vinheta e no fim do resumo animado e do vídeo do story |
 | `abertura-v2.mp4` | A vinheta de abertura em vídeo (720×1280, 12 s, 1,8 MB, sem som), num cache próprio do `sw.js` (ver *A abertura*) |
 | `marombeiro-corpo.webp`, `-braco.webp`, `-cabeca.webp`, `-inteiro.webp`, `marombeiro-rosto.jpg` | O avatar animado do dono na "Fuga do Marombeiro" (ver *Monster, Run!*) |
@@ -2223,22 +2223,56 @@ texto de divulgação também não cita o jogo.
   com `Path2D`): céu roxo, sol listrado (as faixas são um recorte, o céu
   aparece por elas), chão em grade andando (no vídeo), palmeiras balançando
   presas na base, e o meio escurecido onde ficam os números.
-- **O fundo é a academia, não a praia** (2026-11-20v, pedido do dono: "muda
-  para um estilo de academia... pode ser o meu avatar"). Ele mandou uma arte
-  dele mesmo, no estilo de capa de jogo (academia com halteres e rack, cidade
-  ao pôr do sol); ela virou `fundo-resumo-gta.webp` (720×1280, 160 KB,
-  recortada de 1086×1448 no centro do rosto), `FUNDO_RESUMO`, na lista do
-  `sw.js`. O céu, o sol, as palmeiras e o chão em grade saíram do código.
-  Na tela é `CenarioAcademia` (a arte em `cover` com zoom lento, a camada
-  escura e os degradês roxo em cima e rosa embaixo); no vídeo, `videoFundo`
-  desenha o mesmo. **O escuro depende da cena** (`escuroDaCena`: 0,62 nas
-  cenas com número, 0,22 na vinheta e no fecho; no vídeo `ESCURO_VIDEO`,
-  posto pelo `videoQuadro` e misturado em 0,8 s na troca). Na vinheta e no
-  fecho o logo ficou menor e desceu (tela: `marginTop` 30 e 26 vh; vídeo:
-  y 1230 e 1060) para o rosto aparecer. O vídeo espera a arte como espera o
-  logo (`carregarImagemVideo`). Trocar a arte: outro arquivo, com outro nome
-  (o `sw.js` guarda o antigo), no mesmo formato 9:16 com o rosto no terço de
-  cima.
+- **O fundo é a academia, não a praia** (2026-11-20v e 20w, pedidos do dono:
+  "muda para um estilo de academia... pode ser o meu avatar"; depois "use
+  essa arte, coloca o logo na minha camiseta, animação de verdade, igual um
+  videogame, nada estático"). Ele mandou uma arte dele mesmo, no estilo de
+  capa de jogo (ele de braços cruzados sobre os halteres, rack, a cidade ao pôr
+  do sol). **Não há gerador de imagem na sessão**: a pose e o rosto são os da
+  arte dele; pose nova é ele quem gera e manda.
+  - **Duas camadas** (`ARTE_RESUMO`, 1086×1448, as coordenadas da arte):
+    `resumo-fundo.webp` (80 KB; o lugar da pessoa preenchido com
+    `cv2.inpaint`, porque a câmera anda e a borda aparece) e
+    `resumo-frente.webp` (210 KB, com alfa: a pessoa e os halteres de
+    baixo, a partir de `topoFrente` 17). A pessoa foi separada pelo
+    MediaPipe `selfie_multiclass` (cabelo, pele, rosto, roupa) rodando em
+    Python (**`ferramentas/arte-resumo.py`** refaz as duas a partir da arte;
+    o passo a passo está no topo dele); o roteiro: segmentar, a regata é a maior mancha de
+    "roupa" no meio do peito, o decote foi fechado um pouco (o tecido sobe
+    pela pele entre as alças até abaixo da barba, com a sombra do peito virando
+    as dobras), regata preta com reflexo laranja e rosa, e o `logo-treino-livre`
+    estampado no peito (150 px de largura, centro 528,762, um arco leve,
+    a tinta seguindo as dobras e recortada pela regata). As duas no `sw.js`.
+  - **A cena viva** (`desenharCenaArte(c, t, plano, parado)`, num canvas de
+    1080×1920) é **a mesma na tela e no vídeo**: na tela, `CenarioArte` é um
+    canvas que redesenha a cada quadro (`requestAnimationFrame`, até 1,5 de
+    densidade, cobrindo a tela); no vídeo, `videoFundo` com `PLANO_VIDEO`
+    (a cena e há quanto tempo ela começou), posto pelo `videoQuadro`. Tudo é
+    função do tempo (`quaseSorte` no lugar do sorteio): o quadro sai igual em
+    qualquer aparelho.
+  - **O que se mexe**: um plano de câmera por cena (`CAMERAS_RESUMO`: chegar
+    no rosto, passear de lado, abrir, subir; `CAMERA_FECHO`), em 4,8 s; o
+    balanço de câmera na mão; a pessoa anda mais que o fundo (profundidade) e
+    respira (3,6 s); o sol pulsa com raios girando; o neon rosa pisca como
+    lâmpada velha; os faróis do carro; quatro pássaros cruzando a cidade; 42
+    pontos de poeira subindo na luz; um reflexo passando nos óculos a cada 4,2 s;
+    a tela do relógio pulsando. Os pontos (sol, neon, faróis, relógio, óculos)
+    estão em `ARTE_RESUMO`, nas coordenadas da arte: **arte nova, pontos
+    novos**.
+  - **O escuro** depende da cena (`escuroDaCena`: 0,6 nas cenas com número,
+    0,2 na vinheta e no fecho; na tela vai mudando aos poucos, no vídeo é
+    misturado em 0,8 s).
+  - **A vinheta e o fecho** deixam o rosto e a camiseta à vista: na vinheta o
+    logo desce para os halteres (tela: `marginTop` 54vh; vídeo: y 1450, 300 px);
+    no fecho, "MISSÃO CUMPRIDA" e "+ RESPEITO" ficam no alto, sobre o cabelo
+    (vídeo: y 205 e 300), e o logo embaixo, acima dos botões (tela: coluna de
+    86vh com `space-between`; vídeo: y 1415, 290 px). A linha da fala saiu do
+    fecho (a voz já a diz).
+  - Movimento reduzido: a cena desenha parada.
+  - O vídeo espera as duas camadas como espera o logo (`carregarImagemVideo`).
+  - Conferido no navegador: a tela (vinheta e fecho) e um quadro de cada cena
+    do vídeo, cada um num plano diferente. **Não validado num celular** (o
+    desempenho do canvas a 60 quadros num aparelho médio também não).
 - **O anel do relógio** gira atrás das cenas (`AnelRelogioResumo`; no vídeo,
   `createConicGradient`, com o degradê linear de reserva), com a luz
   correndo nele.

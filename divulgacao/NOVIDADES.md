@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-11-20w — O resumo animado virou cena de videogame
+
+**Em uma frase:** o fundo do resumo animado ganhou vida, como num jogo: a câmera muda de plano a cada cena, o Carlos respira, o neon pisca, o sol brilha, os faróis acendem, pássaros cruzam a cidade, e a regata dele agora tem o logo do Treino Livre.
+
+**O que mudou**
+- Cada cena entra com um enquadramento diferente: chega no rosto, passeia de lado, abre, sobe.
+- Profundidade: o Carlos e os halteres andam num ritmo e a academia e a cidade em outro, como câmera de jogo.
+- Coisas que se mexem: o neon rosa pisca como lâmpada velha, o sol pulsa com raios, os faróis do carro acendem, pássaros voam, a poeira sobe na luz, um reflexo passa nos óculos e a tela do relógio pulsa.
+- A regata ficou preta, com o logo do Treino Livre estampado no peito.
+- No fim, "MISSÃO CUMPRIDA" aparece no alto, como em jogo, e o logo embaixo.
+- O vídeo do story tem exatamente os mesmos movimentos.
+
+**Por que importa para quem treina**
+- O story do treino parece uma tela de videogame, e chama atenção no feed de quem ainda não conhece o app.
+
+**Como usar**
+- No fim do treino, toque em "▶ Ver resumo animado"; para postar, toque no 📸.
+
+**Ideias de vídeo**
+- Gravar a tela do resumo e mostrar a câmera mudando de plano a cada número.
+- Close no neon piscando e no reflexo passando nos óculos.
+- O "MISSÃO CUMPRIDA" no fim, com as cinco estrelas acesas.
+
+**Não prometer**
+- É um estilo inspirado nos jogos de mundo aberto, sem nome, logo ou personagem de jogo nenhum; não fale em parceria ou ligação com jogo algum. Com "reduzir movimento" ligado no celular, a cena fica parada.
+
+---
+
 ## 2026-11-20v — O resumo animado agora é na academia
 
 **Em uma frase:** o fundo do resumo animado (na tela e no vídeo do story) virou uma arte do criador do app na academia, no estilo de capa de jogo, no lugar da paisagem de praia.

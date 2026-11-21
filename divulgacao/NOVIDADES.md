@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-11-21a — O resumo animado ganhou música
+
+**Em uma frase:** o resumo animado do treino agora toca uma trilha por baixo da narração, e o vídeo para o story sai com a música junto.
+
+**O que mudou**
+- Na tela, a música toca durante o resumo e abaixa sozinha cada vez que o narrador fala, para a voz ficar clara.
+- No vídeo do story, a música vai misturada com a narração, já no volume certo, entrando e saindo suave.
+- Dá para gerar o vídeo "Só com a música", sem baixar a voz do narrador.
+- Um botão 🎵 no topo do resumo liga e desliga a música, separado do 🔊 da voz.
+
+**Por que importa para quem treina**
+- O resumo do treino fica com clima de abertura de jogo, e o vídeo já sai pronto para postar, com som.
+
+**Como usar**
+- Termine um treino e toque em "Ver resumo animado". A música começa sozinha; o 🎵 desliga.
+- Para o story, toque no 📸 e escolha com a narração ou só com a música.
+
+**Ideias de vídeo**
+- O resumo rodando com a música e a voz do narrador contando os números do treino.
+
+**Não prometer**
+- O Instagram pode silenciar ou bloquear vídeos por causa da música; se acontecer, é gerar de novo com a 🎵 desligada.
+
+---
+
 ## 2026-11-20z — O descanso no relógio e no celular termina junto
 
 **Em uma frase:** a contagem do descanso no relógio agora bate segundo a segundo com a do celular.

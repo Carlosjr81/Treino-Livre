@@ -857,12 +857,13 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v244) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v245) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
 | `resumo-fundo.webp`, `resumo-frente.webp` | As duas camadas da arte do dono na academia, no estilo de capa de jogo, que o resumo animado e o vídeo do story animam (ver *O pôr do sol neon e o visual do relógio*) |
+| `resumo-musica-v1.m4a` | A música do resumo animado e do vídeo do story (85 s, AAC 128k, 1,4 MB), no cache de mídia do `sw.js` (ver *A música do resumo*) |
 | `logo-treino-livre.webp` | O logo do app (halter, TREINO em vermelho na placa cromada, LIVRE cromado), recortado do último quadro da `abertura-v2.mp4` com fundo transparente (604×800, 48 KB). Usado na vinheta e no fim do resumo animado e do vídeo do story |
 | `abertura-v2.mp4` | A vinheta de abertura em vídeo (720×1280, 12 s, 1,8 MB, sem som), num cache próprio do `sw.js` (ver *A abertura*) |
 | `marombeiro-corpo.webp`, `-braco.webp`, `-cabeca.webp`, `-inteiro.webp`, `marombeiro-rosto.jpg` | O avatar animado do dono na "Fuga do Marombeiro" (ver *Monster, Run!*) |
@@ -2296,6 +2297,42 @@ texto de divulgação também não cita o jogo.
 - Conferido no navegador: a tela e a folha com um quadro de cada cena do
   vídeo. **Não validado num celular** (a fonte do sistema muda o desenho das
   letras; no Chromium de teste saíam com serifa na tela).
+
+### A música do resumo (`MUSICA_RESUMO`, `useMusicaResumo`, 2026-11-21a)
+
+Pedido do dono: "adicionar essa música no resumo animado junto com a
+narração, com o volume da música e da narração adequado". **A faixa é de
+terceiros** (o arquivo veio com o nome de um rapper e de um jogo): foi dito ao
+dono que o repositório é público, que ela vai a todo mundo dentro do app e que
+o Instagram pode silenciar ou derrubar o vídeo, e ofereci uma batida própria ou
+uma faixa livre. **Ele escolheu usar esta mesmo assim, ciente do risco.** Para
+trocar: arquivo novo com outro número (`resumo-musica-v2.m4a`) e a constante.
+O nome do arquivo não cita o jogo nem o artista (a regra do visual de jogo).
+
+- **O arquivo**: o original sem o 1,25 s de silêncio do começo, AAC 128k
+  48 kHz, `faststart` (1,4 MB). Tem uma introdução baixa de uns 7 s, que
+  cai na vinheta. No cache de mídia do `sw.js` (o mesmo caminho da vinheta):
+  baixado uma vez, preservado entre versões, funciona offline.
+- **Na tela** (`useMusicaResumo`): pelo Web Audio (no iPhone o volume do
+  `<audio>` não muda), em loop, entra em fade. **A voz manda**: a cada
+  100 ms, com o `speechSynthesis.speaking`, a música vai a 0,11 sob a fala
+  (abaixa em ~0,1 s) e volta a 0,42 no silêncio (sobe em ~0,4 s). Para no
+  vídeo do story e ao fechar. Botão 🎵 no topo, separado do 🔊 (a voz), e a
+  escolha fica em `treinolivre:musicaResumo`.
+- **No vídeo do story** (`trilhaNarracao(narr, durs, musica)`): a música vai
+  por baixo da narração Piper na mesma trilha, a 0,55 sozinha e 0,16 sob a
+  voz (cerca de 10 dB abaixo dela), abaixando 0,3 s antes de cada frase e
+  voltando 0,7 s depois; frases a menos de 1,2 s uma da outra contam como uma.
+  Entra em fade (0,8 s), sai em fade (1,8 s) e passa por um compressor
+  (-10 dB, 8:1) contra picos. **"Sem narração" virou "Só com a música"**: o
+  vídeo sai com a trilha só da música. Com a 🎵 desligada, o vídeo sai como
+  antes.
+- Conferido no navegador (com uma cópia em Opus no lugar, porque o Chromium
+  de teste não tem AAC, e uma voz de mentira): a música abaixa em cada fala e
+  volta entre elas na tela; na trilha do vídeo, a fala sai com RMS 0,32 e a
+  música entre as frases com 0,03, o fim em 0, pico 0,72. **Não validado num
+  celular** (o AAC, o volume real contra a voz de cada aparelho, e se o
+  Instagram aceita o vídeo com esta música).
 
 ### O resumo vira vídeo para o story (`GerarStoryResumo`)
 

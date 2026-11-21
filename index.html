@@ -1743,7 +1743,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-20z";
+const VERSAO_APP = "2026-11-21a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -28010,22 +28010,83 @@ async function narrarCenas(cenas, aoProgresso, ritmo) {
   }
   return { taxa: (cfg.audio && cfg.audio.sample_rate) || 22050, clipes: clipes };
 }
-// A trilha inteira em 48 kHz, cada frase no começo da sua cena
-async function trilhaNarracao(narr, durs) {
+// ---- A música do resumo (2026-11-21a, pedido do dono) ----
+// Na tela e no vídeo do story, por baixo da narração. Arquivo com o número no
+// nome (como a vinheta): música nova entra como -v2, senão o cache de mídia
+// continua servindo a antiga. Escolha do dono, ciente de que a faixa é de
+// terceiros e que o Instagram pode silenciar o vídeo por causa dela.
+const MUSICA_RESUMO = "resumo-musica-v1.m4a";
+// Os volumes: a voz manda. Sob a fala a música abaixa (ducking) e volta no
+// silêncio entre as cenas. Na tela a voz é a do aparelho, mais baixa que um
+// arquivo de música no mesmo volume do celular: por isso a música abaixa mais.
+const MUSICA_TELA = { sozinha: 0.42, sobVoz: 0.11 };
+const MUSICA_VIDEO = { sozinha: 0.55, sobVoz: 0.16 };
+const CHAVE_MUSICA_RESUMO = "treinolivre:musicaResumo";
+function musicaResumoLigada() { try { return localStorage.getItem(CHAVE_MUSICA_RESUMO) !== "0"; } catch (e) { return true; } }
+let musicaResumoBuf = null;
+function carregarMusicaResumo() {
+  if (!musicaResumoBuf) {
+    musicaResumoBuf = fetch(MUSICA_RESUMO)
+      .then((r) => { if (!r.ok) throw new Error("sem música"); return r.arrayBuffer(); })
+      .then((ab) => new Promise((ok, falha) => {
+        const ctx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 48000, 48000);
+        const p = ctx.decodeAudioData(ab, ok, falha);
+        if (p && p.then) p.then(ok, falha);
+      }))
+      .catch(() => { musicaResumoBuf = null; return null; });
+  }
+  return musicaResumoBuf;
+}
+// A trilha inteira em 48 kHz, cada frase no começo da sua cena, e a música por
+// baixo: abaixa 0,3 s antes de cada frase, volta 0,7 s depois, entra e sai em
+// fade. Frases com menos de 1,2 s entre si contam como uma (a música não sobe
+// e desce no meio). Um compressor no fim segura os picos da soma.
+async function trilhaNarracao(narr, durs, musica) {
+  if (!narr && !musica) return null;
   const taxa = 48000;
   const total = durs.reduce((a, b) => a + b, 0) / 1000;
   const ctx = new OfflineAudioContext(1, Math.ceil(total * taxa), taxa);
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -10; comp.knee.value = 6; comp.ratio.value = 8; comp.attack.value = 0.003; comp.release.value = 0.25;
+  comp.connect(ctx.destination);
+  const falas = [];
   let ini = 0;
-  narr.clipes.forEach((cl, i) => {
+  if (narr) narr.clipes.forEach((cl, i) => {
     if (cl.length) {
       const b = ctx.createBuffer(1, cl.length, narr.taxa);
       b.copyToChannel(cl, 0);
       const s = ctx.createBufferSource();
-      s.buffer = b; s.connect(ctx.destination);
-      s.start((ini + VOZ_ENTRA_MS) / 1000);
+      s.buffer = b; s.connect(comp);
+      const t = (ini + VOZ_ENTRA_MS) / 1000;
+      s.start(t);
+      falas.push([t, t + cl.length / narr.taxa]);
     }
     ini += durs[i];
   });
+  if (musica) {
+    const juntas = [];
+    falas.forEach(([a, b]) => { const u = juntas[juntas.length - 1]; if (u && a - u[1] < 1.2) u[1] = Math.max(u[1], b); else juntas.push([a, b]); });
+    const alto = MUSICA_VIDEO.sozinha, baixo = MUSICA_VIDEO.sobVoz;
+    const m = ctx.createBufferSource();
+    m.buffer = musica; m.loop = true;
+    const duck = ctx.createGain(), fade = ctx.createGain();
+    m.connect(duck); duck.connect(fade); fade.connect(comp);
+    let nivel = juntas.length && juntas[0][0] < 0.5 ? baixo : alto;
+    duck.gain.setValueAtTime(nivel, 0);
+    juntas.forEach(([a, b]) => {
+      const ia = Math.max(0, a - 0.3);
+      duck.gain.setValueAtTime(nivel, ia);
+      duck.gain.linearRampToValueAtTime(baixo, Math.max(ia + 0.01, a));
+      duck.gain.setValueAtTime(baixo, b + 0.15);
+      duck.gain.linearRampToValueAtTime(alto, b + 0.7);
+      nivel = alto;
+    });
+    fade.gain.setValueAtTime(0, 0);
+    fade.gain.linearRampToValueAtTime(1, Math.min(0.8, total / 3));
+    fade.gain.setValueAtTime(1, Math.max(0.9, total - 1.8));
+    fade.gain.linearRampToValueAtTime(0, total);
+    m.start(0);
+  }
   const r = await ctx.startRendering();
   return { taxa: taxa, dados: r.getChannelData(0) };
 }
@@ -28213,7 +28274,7 @@ function GerarStoryResumo({ cenas, onVoltar }) {
     parou.current = false;
     setErro(""); setAviso("");
     if (!temCodec && !temGravador) { setRes({ blob: await imagemResumo(cenas), imagem: true }); setEtapa("pronto"); return; }
-    let trilha = null, falasMs = null, semVoz = "";
+    let trilha = null, falasMs = null, semVoz = "", narrOk = null;
     if (comVoz) {
       try {
         setEtapa("voz"); setProg(0);
@@ -28236,12 +28297,16 @@ function GerarStoryResumo({ cenas, onVoltar }) {
           if (parou.current) return;
           falasMs = narr.clipes.map((cl) => (cl.length / narr.taxa) * 1000);
         }
-        trilha = await trilhaNarracao(narr, videoDuracoes(cenas, falasMs));
+        narrOk = narr;
       } catch (e) {
-        trilha = null; falasMs = null;
+        narrOk = null; falasMs = null;
         semVoz = "A narração não carregou (sem internet ou sem espaço?). O vídeo vai sem voz.";
       }
     }
+    const musica = musicaResumoLigada() ? await carregarMusicaResumo() : null;
+    if (parou.current) return;
+    try { trilha = await trilhaNarracao(narrOk, videoDuracoes(cenas, falasMs), musica); }
+    catch (e) { trilha = null; }
     await carregarLogoApp();
     if (parou.current) return;
     const durs = videoDuracoes(cenas, falasMs);
@@ -28262,7 +28327,7 @@ function GerarStoryResumo({ cenas, onVoltar }) {
       }
       if (!r && !parou.current && temGravador) r = await gravarVideoResumo(cvRef.current, cenas, durs, trilha, setProg, fim);
       if (!r || parou.current) return;
-      if (trilha && !r.comVoz) semVoz = "Este aparelho não conseguiu pôr som no vídeo; ele vai sem a narração.";
+      if (trilha && !r.comVoz) semVoz = "Este aparelho não conseguiu pôr som no vídeo; ele vai mudo.";
       setRes(r);
       setAviso(semVoz);
       setEtapa("pronto");
@@ -28288,7 +28353,7 @@ function GerarStoryResumo({ cenas, onVoltar }) {
   const rotulo = { inicio: "Preparando", escolha: "Vídeo para o story", voz: "Baixando a voz do narrador",
     narrando: "Gravando a narração", video: "Montando o vídeo", pronto: res && res.imagem ? "Imagem pronta" : "Vídeo pronto", erro: "Não deu certo" }[etapa];
   const detalhe = { voz: "só desta vez: depois ela fica guardada no aparelho", narrando: "a voz roda no seu celular, nada sai dele",
-    video: "quadro a quadro, com a narração junto" }[etapa];
+    video: "quadro a quadro, com a narração e a música" }[etapa];
   const parar = (e) => e.stopPropagation();
   const cancelar = () => { parou.current = true; onVoltar(); };
   return (
@@ -28305,8 +28370,8 @@ function GerarStoryResumo({ cenas, onVoltar }) {
             </div>
           </button>
           <button onClick={() => gerar(false)} style={{ ...S.btnGhost, color: "#F2F0EC", borderColor: "#444444", padding: "12px 16px", textAlign: "left" }}>
-            <div style={{ fontWeight: 900, fontSize: 15 }}>🎵 Sem narração</div>
-            <div style={{ fontWeight: 600, fontSize: 12.5, color: "#8a8a8a", marginTop: 4 }}>Mais rápido. Dá para pôr música no próprio Instagram.</div>
+            <div style={{ fontWeight: 900, fontSize: 15 }}>🎵 Só com a música</div>
+            <div style={{ fontWeight: 600, fontSize: 12.5, color: "#8a8a8a", marginTop: 4 }}>Mais rápido, sem baixar a voz do narrador.</div>
           </button>
         </div>
       )}
@@ -28328,7 +28393,7 @@ function GerarStoryResumo({ cenas, onVoltar }) {
           </div>
         </div>
       )}
-      {res && !res.imagem && res.comVoz && <div style={{ fontSize: 12, color: "#8a8a8a", textAlign: "center" }}>Toque no ▶ para conferir com som antes de postar.</div>}
+      {res && !res.imagem && res.comVoz && <div style={{ fontSize: 12, color: "#8a8a8a", textAlign: "center", maxWidth: 320 }}>Toque no ▶ para conferir com som antes de postar. Se o Instagram silenciar o vídeo por causa da música, gere de novo com a 🎵 desligada no resumo.</div>}
       {erro && <div style={{ fontSize: 13, color: "#FF6B6B", textAlign: "center", maxWidth: 320 }}>{erro}</div>}
       {res && res.imagem && <div style={{ fontSize: 12, color: "#8a8a8a", textAlign: "center", maxWidth: 300 }}>Este navegador não monta vídeo; vai a imagem com os números.</div>}
       {aviso && <div style={{ fontSize: 13, color: /não|falhou/.test(aviso) ? "#FFB86B" : "#7CFF3C", textAlign: "center", maxWidth: 320 }}>{aviso}</div>}
@@ -28351,12 +28416,64 @@ function GerarStoryResumo({ cenas, onVoltar }) {
   );
 }
 
+// Toca a música do resumo na tela, pelo Web Audio (no iPhone o volume do
+// <audio> não muda), e abaixa enquanto a voz fala.
+function useMusicaResumo(ligada, parada) {
+  const no = useRef(null);
+  useEffect(() => {
+    if (!ligada || parada) return undefined;
+    let vivo = true, fonte = null, ganho = null, iv = null;
+    carregarMusicaResumo().then((buf) => {
+      if (!vivo || !buf) return;
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        fonte = audioCtx.createBufferSource();
+        fonte.buffer = buf; fonte.loop = true;
+        ganho = audioCtx.createGain();
+        ganho.gain.setValueAtTime(0, audioCtx.currentTime);
+        fonte.connect(ganho); ganho.connect(audioCtx.destination);
+        fonte.start();
+        no.current = { fonte: fonte, ganho: ganho };
+        let alvoAntes = -1;
+        const ajustar = () => {
+          let falando = false;
+          try { falando = window.speechSynthesis.speaking; } catch (e) {}
+          const alvo = document.hidden ? 0 : falando ? MUSICA_TELA.sobVoz : MUSICA_TELA.sozinha;
+          if (audioCtx.state === "suspended" && !document.hidden) audioCtx.resume();
+          if (alvo === alvoAntes) return;
+          // abaixa depressa (a frase já começou), sobe devagar
+          ganho.gain.setTargetAtTime(alvo, audioCtx.currentTime, alvo < alvoAntes ? 0.08 : 0.35);
+          alvoAntes = alvo;
+        };
+        ajustar();
+        iv = setInterval(ajustar, 100);
+      } catch (e) {}
+    });
+    return () => {
+      vivo = false;
+      clearInterval(iv);
+      if (fonte && ganho) {
+        try {
+          ganho.gain.cancelScheduledValues(audioCtx.currentTime);
+          ganho.gain.setTargetAtTime(0, audioCtx.currentTime, 0.12);
+          fonte.stop(audioCtx.currentTime + 0.6);
+        } catch (e) {}
+      }
+      no.current = null;
+    };
+  }, [ligada, parada]);
+}
+
 function ResumoAnimado({ d, vozCfg, onFechar }) {
   const cenas = useMemo(() => cenasResumo(d), [d]);
   const [i, setI] = useState(0);
   const [mudo, setMudo] = useState(!vozCfg || vozCfg.falar === false);
   const [volta, setVolta] = useState(0);   // muda ao rever, para recomeçar as barras
   const [story, setStory] = useState(false); // gerando o vídeo do story
+  const [musica, setMusica] = useState(musicaResumoLigada);
+  const [fechando, setFechando] = useState(false);
+  useMusicaResumo(musica, story || fechando);
   const ultima = i === cenas.length - 1;
   // Quanto a cena fica no ar: a fala inteira, nunca menos que a animação.
   // Antes era um relógio fixo por cena, e a frase longa ("5.770 quilos movidos.
@@ -28398,7 +28515,7 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
     return () => { vivo = false; clearTimeout(rede); };
   }, [i, volta, story, mudo]);
   useEffect(() => () => { try { window.speechSynthesis.cancel(); } catch (e) {} }, []);
-  const fechar = () => { try { window.speechSynthesis.cancel(); } catch (e) {} onFechar(); };
+  const fechar = () => { try { window.speechSynthesis.cancel(); } catch (e) {} setFechando(true); onFechar(); };
   const toque = (e) => {
     try { window.speechSynthesis.cancel(); } catch (er) {}
     const x = e.clientX / (window.innerWidth || 1);
@@ -28425,6 +28542,8 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
       <div style={{ position: "absolute", top: 24, right: 8, display: "flex", gap: 2, zIndex: 3 }}>
         <button aria-label="Compartilhar no story" onClick={(e) => { e.stopPropagation(); setStory(true); }}
           style={{ background: "none", border: "none", color: "#F2F0EC", fontSize: 20, padding: 10, cursor: "pointer" }}>📸</button>
+        <button aria-label={musica ? "Desligar a música" : "Ligar a música"} onClick={(e) => { e.stopPropagation(); const v = !musica; setMusica(v); try { localStorage.setItem(CHAVE_MUSICA_RESUMO, v ? "1" : "0"); } catch (er) {} }}
+          style={{ background: "none", border: "none", color: "#F2F0EC", fontSize: 20, padding: 10, cursor: "pointer", opacity: musica ? 1 : 0.45 }}>🎵</button>
         <button aria-label={mudo ? "Ligar a voz" : "Desligar a voz"} onClick={(e) => { e.stopPropagation(); if (!mudo) { try { window.speechSynthesis.cancel(); } catch (er) {} } setMudo(!mudo); }}
           style={{ background: "none", border: "none", color: "#F2F0EC", fontSize: 20, padding: 10, cursor: "pointer" }}>{mudo ? "🔇" : "🔊"}</button>
         <button aria-label="Fechar o resumo" onClick={(e) => { e.stopPropagation(); fechar(); }}

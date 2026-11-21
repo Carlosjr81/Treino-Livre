@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-11-21c — O resumo animado virou fim de fase de videogame
+
+**Em uma frase:** o resumo do treino agora comemora como um jogo: bônus atravessando a tela, contador de pontos subindo, medalha e a faixa de "Missão cumprida" no final.
+
+**O que mudou**
+- Letras novas de letreiro, grossas e com contorno, nos números, nos títulos e nos carimbos.
+- Um contador de pontos no canto sobe a cada cena, com o "+N" pulando, como dinheiro de jogo. São os pontos de nível que o treino deu de verdade.
+- Nos momentos fortes (volume alto, recorde, superação, meta da semana, subir de nível) um letreiro de bônus atravessa a tela.
+- No fim, uma faixa preta corta a tela com "Missão cumprida", uma medalha de ouro, prata ou bronze cai girando, e aparecem "+ Respeito" e o total de pontos.
+- Tudo isso também sai no vídeo para o story.
+
+**Por que importa para quem treina**
+- Bater um recorde ou subir de nível ganha a festa que merece, e o vídeo do story chama mais atenção.
+
+**Como usar**
+- Termine um treino e toque em "Ver resumo animado", ou no 📸 para gerar o vídeo.
+
+**Ideias de vídeo**
+- O letreiro de bônus passando pela tela no dia de recorde.
+- A medalha de ouro caindo no fim do resumo.
+
+**Não prometer**
+- A medalha de ouro só vem com recorde, superação, meta, nível novo ou missão cumprida; os pontos são os do nível, não dinheiro nem prêmio.
+
+---
+
 ## 2026-11-21b — Os textos do resumo animado ficaram nítidos
 
 **Em uma frase:** os números e os títulos do resumo animado não aparecem mais riscados por dentro.

@@ -296,6 +296,25 @@
   @keyframes rsEstrela { 0% { transform: scale(2.4); opacity: 0; } 60% { transform: scale(.9); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
   .rs-anel-relogio { animation: rsGiraAnel 7s linear infinite; }
   .rs-estrela { display: inline-block; animation: rsEstrela .45s cubic-bezier(.2,.9,.3,1.2) both; }
+  /* O clima de jogo nas vitórias (2026-11-21c): a fonte de letreiro, o bônus
+     que atravessa a tela, os pontos que sobem e a faixa da missão cumprida. */
+  @font-face { font-family: "Jogo Resumo"; src: url(fonte-resumo.woff2) format("woff2"); font-display: swap; }
+  @keyframes rsBonus { 0% { transform: translateX(115vw) skewX(-12deg); } 14% { transform: translateX(-3vw) skewX(-12deg); }
+                       20%, 78% { transform: translateX(0) skewX(-12deg); } 100% { transform: translateX(-125vw) skewX(-12deg); } }
+  @keyframes rsPts   { 0% { transform: translateY(10px) scale(.6); opacity: 0; } 14% { transform: translateY(0) scale(1.15); opacity: 1; }
+                       24% { transform: scale(1); } 78% { opacity: 1; transform: translateY(0); } 100% { transform: translateY(8px); opacity: 0; } }
+  @keyframes rsHud   { 0% { transform: scale(1); } 30% { transform: scale(1.22); } 100% { transform: scale(1); } }
+  @keyframes rsFaixaMissao { 0% { transform: scaleY(0); opacity: 0; } 100% { transform: scaleY(1); opacity: 1; } }
+  @keyframes rsMedalha { 0% { transform: translateY(-40vh) rotate(-40deg) scale(1.7); opacity: 0; } 60% { transform: translateY(0) rotate(10deg) scale(.94); opacity: 1; }
+                         80% { transform: rotate(-5deg) scale(1.05); } 100% { transform: none; opacity: 1; } }
+  .rs-bonus  { animation: rsBonus 2.6s cubic-bezier(.2,.8,.2,1) both; }
+  .rs-pts    { animation: rsPts 1.7s ease-out both; }
+  .rs-hud    { animation: rsHud .5s ease-out both; }
+  .rs-faixa-missao { transform-origin: 50% 50%; animation: rsFaixaMissao .32s cubic-bezier(.2,.9,.3,1.2) both; }
+  .rs-medalha { animation: rsMedalha .95s cubic-bezier(.2,.9,.3,1.15) both; }
+  @media (prefers-reduced-motion: reduce) {
+    .rs-bonus, .rs-pts, .rs-hud, .rs-faixa-missao, .rs-medalha { animation: none; }
+  }
   @media (prefers-reduced-motion: reduce) {
     .rs-anel-relogio, .rs-estrela { animation: none; }
     .rs-raia, .rs-brilho, .rs-faixa, .rs-anel, .rs-persiana { display: none; }
@@ -1743,7 +1762,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-21b";
+const VERSAO_APP = "2026-11-21c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -26420,6 +26439,12 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
   const est = calcularEstatisticas(ate);
   d.nivel = nivelDe(est);
   d.total = ate.length;
+  // os pontos que ESTE treino deu, e se ele fez subir de nível: o placar do jogo
+  try {
+    const nvAntes = nivelDe(calcularEstatisticas(ate.filter((x) => x.id !== registro.id)));
+    d.xpGanho = Math.max(0, d.nivel.xp - nvAntes.xp);
+    d.subiuNivel = d.nivel.indice > nvAntes.indice;
+  } catch (e) { d.xpGanho = 0; d.subiuNivel = false; }
   // a sequência é contada até hoje: só faz sentido num treino de hoje
   d.sequencia = diaStr(quando) === diaStr(new Date()) ? est.streak : 0;
   return d;
@@ -26589,13 +26614,31 @@ function cenasResumo(d) {
   }
   if (d.nivel) {
     const nv = d.nivel;
-    c.push({ tipo: "nivel", rotulo: "Seu nível", nivel: nv, total: d.total, sequencia: d.sequencia,
-      grito: nv.proximo ? "Subindo de nível" : "No topo",
+    c.push({ tipo: "nivel", rotulo: d.subiuNivel ? "Nível novo" : "Seu nível", nivel: nv, total: d.total, sequencia: d.sequencia,
+      grito: d.subiuNivel ? "Subiu de nível!" : nv.proximo ? "Subindo de nível" : "No topo", corGrito: d.subiuNivel ? "#FEDA75" : null, forte: !!d.subiuNivel,
       fala: "Nível " + nv.indice + ", " + nv.nome + "." + (d.sequencia >= 2 ? " Sequência de " + d.sequencia + " dias." : "") +
         (nv.proximo ? " Faltam " + nv.faltam + " pontos para " + nv.proximo.nome + "." : "") });
   }
   const meta = d.cardio && d.cardio.semana >= META_CARDIO_SEMANA;
-  c.push({ tipo: "fecho", fala: M ? "Você sobreviveu. Até a próxima missão." : meta ? "Meta cumprida. Até a próxima." : "Mais forte que a desculpa. Até a próxima." });
+  // a medalha do fim, como nos jogos: ouro para quem bateu um recorde, foi além
+  // da última vez, fechou a meta, subiu de nível ou cumpriu a missão; prata para
+  // um dia com duas vitórias ou mais; bronze para quem apareceu
+  const ouro = (f && (f.recordes.length || f.comp > 0)) || (d.recCorrida && d.recCorrida.length) || meta || d.subiuNivel || (M && M.completo);
+  const medalha = ouro ? "ouro" : vit.length >= 2 ? "prata" : "bronze";
+  c.push({ tipo: "fecho", medalha: medalha, pts: d.xpGanho || 0, fala: M ? "Você sobreviveu. Até a próxima missão." : meta ? "Meta cumprida. Até a próxima." : "Mais forte que a desculpa. Até a próxima." });
+  // O bônus que atravessa a tela nas cenas fortes, e os pontos do treino
+  // repartidos pelas cenas (a forte vale o triplo): o contador do canto sobe a
+  // cada uma. Os pontos são os de verdade (xpDe), não um número inventado.
+  const BONUS_RESUMO = { recordes: "Bônus de recorde", superacao: "Vitória do dia", perseguicoes: "Bônus de fuga", semana: "Bônus da semana",
+    nivel: "Nível novo!", numero: "Bônus de força", texto: "Bônus de superação" };
+  c.forEach((x) => { if (x.forte && x.tipo !== "fecho") x.bonus = BONUS_RESUMO[x.tipo] || "Bônus!"; });
+  const xpT = d.xpGanho || 0;
+  if (xpT > 0) {
+    const ganham = c.filter((x) => x.tipo !== "vinheta" && x.tipo !== "fecho");
+    const peso = ganham.reduce((a, x) => a + (x.forte ? 3 : 1), 0) || 1;
+    let resto = xpT;
+    ganham.forEach((x, k) => { x.pts = k === ganham.length - 1 ? resto : Math.round((xpT * (x.forte ? 3 : 1)) / peso); resto -= x.pts; });
+  }
   // tempo de cada cena: o suficiente para a frase caber
   c.forEach((x) => { x.ms = x.tipo === "vinheta" ? VIDEO_VINHETA_MS : Math.max(3400, x.fala.split(" ").length * 420 + 900); });
   return c;
@@ -26884,7 +26927,12 @@ function Contorno({ estilo, className, grosso, children }) {
   );
 }
 const ROTULO_RESUMO = { fontSize: 11.5, color: "#4DEBFF", fontWeight: 900, letterSpacing: 1.8, textTransform: "uppercase", textShadow: "0 0 10px rgba(77,235,255,.55), 0 2px 0 #000" };
-const NUMERO_RESUMO = { ...S.logo, fontSize: 76, lineHeight: 1.05, fontVariantNumeric: "tabular-nums", fontStyle: "italic", fontWeight: 900,
+// A fonte de letreiro (Rammetto One, SIL OFL, fonte-resumo.woff2): pesada, com
+// as pontinhas de serifa dos letreiros de jogo. Uma fonte livre: a de jogo
+// nenhum entra no app (a regra do visual de jogo). Ela só tem o peso 400 —
+// pedir 900 faria o navegador engrossar à força e borrar as letras.
+const FONTE_JOGO = "'Jogo Resumo', 'Arial Black', system-ui, sans-serif";
+const NUMERO_RESUMO = { ...S.logo, fontFamily: FONTE_JOGO, fontSize: 70, lineHeight: 1.08, fontVariantNumeric: "tabular-nums", fontStyle: "italic", fontWeight: 400, letterSpacing: 0,
   padding: "0 12px", filter: "drop-shadow(0 0 18px rgba(225,48,108,.6))" };
 
 function MapaResumo({ trechos }) {
@@ -26937,12 +26985,77 @@ function EfeitosCena({ forte, atraso }) {
     </React.Fragment>
   );
 }
+// O contador de pontos do canto, como o dinheiro do jogo: sobe a cada cena,
+// com o "+N" pulando quando a cena paga
+function HudPontos({ cenas, i }) {
+  // o fecho traz o total (na faixa da missão): não conta de novo
+  const pt = (x) => (x.tipo === "fecho" ? 0 : x.pts || 0);
+  const total = cenas.reduce((a, x) => a + pt(x), 0);
+  const ate = cenas.slice(0, i + 1).reduce((a, x) => a + pt(x), 0);
+  const [mostra, setMostra] = useState(0);
+  const atraso = cenas[i].pts ? ((cenas[i].impactoMs || 1450) + 200) : 0;
+  useEffect(() => {
+    let vivo = true, raf = 0;
+    const de = mostra, t0 = Date.now() + atraso;
+    const passo = () => {
+      if (!vivo) return;
+      const k = Math.max(0, Math.min(1, (Date.now() - t0) / 700));
+      setMostra(Math.round(de + (ate - de) * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) raf = requestAnimationFrame(passo);
+    };
+    raf = requestAnimationFrame(passo);
+    return () => { vivo = false; cancelAnimationFrame(raf); };
+  }, [ate]);
+  if (!total || cenas[i].tipo === "fecho") return null;
+  const pts = cenas[i].pts;
+  return (
+    <div aria-hidden="true" style={{ position: "absolute", top: 70, right: 14, zIndex: 3, textAlign: "right", pointerEvents: "none" }}>
+      <div style={{ ...ROTULO_RESUMO, fontSize: 10 }}>Pontos</div>
+      <Contorno key={"h" + i} className={pts ? "rs-hud" : ""} grosso={6} estilo={{ fontFamily: FONTE_JOGO, fontSize: 26, color: "#6BFF4F", lineHeight: 1.1,
+        fontVariantNumeric: "tabular-nums", filter: "drop-shadow(0 0 10px rgba(107,255,79,.55))", animationDelay: atraso / 1000 + "s" }}>{mostra.toLocaleString("pt-BR")}</Contorno>
+      {pts > 0 && <Contorno key={"p" + i} className="rs-pts" grosso={5} estilo={{ fontFamily: FONTE_JOGO, fontSize: 17, color: "#6BFF4F", marginTop: 4, animationDelay: atraso / 1000 + "s" }}>+{pts}</Contorno>}
+    </div>
+  );
+}
+// O bônus das cenas fortes: o letreiro atravessa a tela, inclinado, e sai
+function BonusResumo({ cena }) {
+  const atraso = ((cena.impactoMs || 1450) + 250) / 1000;
+  return (
+    <div aria-hidden="true" style={{ position: "absolute", top: "13%", left: 0, right: 0, zIndex: 3, textAlign: "center", pointerEvents: "none" }}>
+      <div className="rs-bonus" style={{ animationDelay: atraso + "s" }}>
+        <Contorno grosso={7} estilo={{ fontFamily: FONTE_JOGO, fontSize: 25, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 0.5,
+          filter: "drop-shadow(0 0 14px rgba(221,42,123,.9))" }}>{cena.bonus}</Contorno>
+        {cena.pts > 0 && <Contorno grosso={6} estilo={{ fontFamily: FONTE_JOGO, fontSize: 19, color: "#6BFF4F", marginTop: 2,
+          filter: "drop-shadow(0 0 10px rgba(107,255,79,.6))" }}>+{cena.pts} pontos</Contorno>}
+      </div>
+    </div>
+  );
+}
+// A medalha do fim (ouro, prata, bronze), desenhada aqui: fitas, disco e estrela
+const CORES_MEDALHA = {
+  ouro: ["#FFF2A8", "#FFD23F", "#B07A12"], prata: ["#FFFFFF", "#C9CED6", "#6E7580"], bronze: ["#FFD2A8", "#D98A4E", "#7A3F17"],
+};
+function Medalha({ tipo, tam, atraso }) {
+  const k = CORES_MEDALHA[tipo] || CORES_MEDALHA.bronze;
+  const t = tam || 64;
+  return (
+    <div className="rs-medalha" aria-label={"Medalha de " + tipo} style={{ position: "relative", width: t, height: t * 1.25, flexShrink: 0, animationDelay: (atraso || 0) + "s" }}>
+      <div style={{ position: "absolute", left: t * 0.18, top: 0, width: t * 0.26, height: t * 0.62, background: "#DD2A7B", border: "3px solid #000", transform: "skewX(14deg)" }} />
+      <div style={{ position: "absolute", right: t * 0.18, top: 0, width: t * 0.26, height: t * 0.62, background: "#4DEBFF", border: "3px solid #000", transform: "skewX(-14deg)" }} />
+      <div style={{ position: "absolute", left: 0, bottom: 0, width: t, height: t, borderRadius: "50%", border: "4px solid #000", boxSizing: "border-box",
+        background: "radial-gradient(circle at 35% 30%, " + k[0] + ", " + k[1] + " 45%, " + k[2] + ")",
+        boxShadow: "0 0 18px " + k[1] + ", inset 0 0 0 4px rgba(255,255,255,.35)", display: "flex", alignItems: "center", justifyContent: "center",
+        color: k[2], fontSize: t * 0.5, lineHeight: 1, textShadow: "0 1px 0 rgba(255,255,255,.6)" }}>★</div>
+    </div>
+  );
+}
+
 // O carimbo da superação: bate por cima quando o número termina de subir
 function GritoResumo({ texto, cor, atraso }) {
   const k = cor || "#FFD23F";
   return (
-    <Contorno className="rs-grito" grosso={7} estilo={{ display: "inline-block", marginTop: 26, padding: "0 10px", color: k, fontWeight: 900, fontSize: 30,
-      fontStyle: "italic", letterSpacing: 0.5, lineHeight: 1.1, textTransform: "uppercase", filter: "drop-shadow(0 0 14px " + k + "88)",
+    <Contorno className="rs-grito" grosso={7} estilo={{ display: "inline-block", marginTop: 26, padding: "0 10px", color: k, fontWeight: 400, fontSize: 27,
+      fontFamily: FONTE_JOGO, letterSpacing: 0.5, lineHeight: 1.15, textTransform: "uppercase", filter: "drop-shadow(0 0 14px " + k + "88)",
       ...(atraso != null ? { animationDelay: atraso + "s" } : {}) }}>{texto}</Contorno>
   );
 }
@@ -26977,7 +27090,7 @@ function CenaResumo({ c }) {
     return (
       <div style={{ textAlign: "center", padding: "0 24px", width: "100%", maxWidth: 360 }}>
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
-        <Contorno className="rs-grito" estilo={{ ...NUMERO_RESUMO, display: "inline-block", fontSize: 46, lineHeight: 1.08, marginTop: 12, animationDelay: ".3s" }}>{c.titulo}</Contorno>
+        <Contorno className="rs-grito" estilo={{ ...NUMERO_RESUMO, display: "inline-block", fontSize: 38, lineHeight: 1.12, marginTop: 12, animationDelay: ".3s" }}>{c.titulo}</Contorno>
         <div style={{ display: "inline-block", textAlign: "left", marginTop: 8 }}>
           {c.itens.map((x, k) => (
             <div key={k} className="rs-marca" style={{ display: "flex", alignItems: "center", gap: 10, color: "#F2F0EC", fontSize: 17, fontWeight: 800, marginTop: 12, animationDelay: 0.9 + k * 0.22 + "s" }}>
@@ -26995,7 +27108,7 @@ function CenaResumo({ c }) {
     return (
       <div style={{ textAlign: "center", padding: "0 24px" }}>
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
-        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 40, lineHeight: 1.15, margin: "14px 0 10px" }}>{c.titulo}</Contorno>
+        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 33, lineHeight: 1.2, margin: "14px 0 10px" }}>{c.titulo}</Contorno>
         <div style={{ color: "#BDBDBD", fontSize: 15, fontWeight: 700 }}>{c.dia}</div>
         {c.sub && <div style={{ color: "#D6D6D6", fontSize: 14, fontWeight: 800, marginTop: 6 }}>{c.sub}</div>}
       </div>
@@ -27159,7 +27272,7 @@ function CenaResumo({ c }) {
       <div style={{ textAlign: "center", width: "100%", maxWidth: 320, padding: "0 24px" }}>
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
         <div style={{ fontSize: 58, marginTop: 10 }} aria-hidden="true">{nv.icone}</div>
-        <div style={{ ...S.logo, fontSize: 40, lineHeight: 1.1 }}>Nível {nv.indice}</div>
+        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 40, lineHeight: 1.15 }}>Nível {nv.indice}</Contorno>
         <div style={{ color: "#F2F0EC", fontSize: 18, fontWeight: 900, marginTop: 4 }}>{nv.nome}</div>
         {nv.proximo && (
           <React.Fragment>
@@ -27189,10 +27302,18 @@ function CenaResumo({ c }) {
   // fecho: o logo do app bate de longe, solta o confete e fica brilhando
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", height: "86vh", paddingBottom: "11vh", boxSizing: "border-box" }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "-3vh" }}>
-      <GritoResumo texto="Missão cumprida" atraso={0.5} />
-      <div className="rs-marca" style={{ color: "#7CFF3C", fontSize: 17, fontWeight: 900, fontStyle: "italic", letterSpacing: 1, marginTop: 8,
-        textShadow: "0 2px 0 #000, 0 0 12px rgba(124,255,60,.6)", animationDelay: ".9s" }}>+ RESPEITO</div>
+      {/* a faixa preta que corta a tela, como no fim de missão dos jogos */}
+      <div className="rs-faixa-missao" style={{ width: "100vw", marginTop: "-3vh", padding: "10px 0 14px", animationDelay: ".35s",
+        background: "linear-gradient(90deg, transparent, rgba(0,0,0,.78) 14%, rgba(0,0,0,.78) 86%, transparent)",
+        display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <GritoResumo texto="Missão cumprida" atraso={0.5} />
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 8 }}>
+          {c.medalha && <Medalha tipo={c.medalha} tam={50} atraso={1.2} />}
+          <div className="rs-marca" style={{ textAlign: "left", animationDelay: ".9s" }}>
+            <Contorno grosso={6} estilo={{ fontFamily: FONTE_JOGO, fontSize: 18, color: "#6BFF4F", filter: "drop-shadow(0 0 10px rgba(107,255,79,.6))" }}>+ RESPEITO</Contorno>
+            {c.pts > 0 && <Contorno grosso={6} estilo={{ fontFamily: FONTE_JOGO, fontSize: 15, color: "#FFFFFF", marginTop: 2 }}>+{c.pts.toLocaleString("pt-BR")} pontos</Contorno>}
+          </div>
+        </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <div className="rs-bate" style={{ animationDelay: "1.1s" }}><LogoBrilho largura={118} atraso={1.8} /></div>
@@ -27231,6 +27352,7 @@ function CenaResumo({ c }) {
 // Sem WebCodecs (iPhone antes do iOS 16.4) volta o MediaRecorder, agora com a
 // narração tocada no próprio fluxo de áudio. Sem nenhum dos dois, sai a imagem.
 const VIDEO_FONTE = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+const VIDEO_FONTE_JOGO = "'Jogo Resumo', 'Arial Black', sans-serif";
 const VIDEO_CENA_MS = 2700, VIDEO_FECHO_MS = 3400, VIDEO_REVELA_MS = 700;
 // área onde as cenas aparecem (a linha varre só ela, como na tela)
 const VIDEO_TOPO = 470, VIDEO_BASE = 1530;
@@ -27247,10 +27369,13 @@ function videoGradiente(c, x0, x1) {
 function videoTexto(c, txt, x, y, tam, cor, peso, largMax) {
   // o número grande em degradê é o do relógio: inclinado, com o contorno preto
   const forte = cor === "grad" && tam >= 90, est = forte ? "italic " : "";
-  c.font = est + (peso || 900) + " " + tam + "px " + VIDEO_FONTE;
+  // o número grande vai na fonte de letreiro, que só tem o peso 400
+  const fam = forte ? VIDEO_FONTE_JOGO : VIDEO_FONTE, pp = forte ? 400 : (peso || 900);
+  if (forte) tam = Math.round(tam * 0.9);
+  c.font = est + pp + " " + tam + "px " + fam;
   let t = tam;
   // encolhe até caber: número grande não pode sair da tela
-  while (largMax && c.measureText(txt).width > largMax && t > 24) { t -= 4; c.font = est + (peso || 900) + " " + t + "px " + VIDEO_FONTE; }
+  while (largMax && c.measureText(txt).width > largMax && t > 24) { t -= 4; c.font = est + pp + " " + t + "px " + fam; }
   const w = c.measureText(txt).width;
   if (forte) {
     c.save(); c.lineJoin = "round"; c.strokeStyle = "#000"; c.lineWidth = Math.max(8, t * 0.09);
@@ -27579,8 +27704,8 @@ function videoGrito(c, txt, y, q, cor) {
   c.globalAlpha = Math.min(1, q / 200);
   c.translate(540, y); c.rotate((-3 * Math.PI) / 180); c.scale(s, s);
   if ("letterSpacing" in c) c.letterSpacing = "2px";
-  let tam = 84; c.font = "italic 900 " + tam + "px " + VIDEO_FONTE;
-  while (c.measureText(txt).width > 900 && tam > 34) { tam -= 4; c.font = "italic 900 " + tam + "px " + VIDEO_FONTE; }
+  let tam = 76; c.font = "400 " + tam + "px " + VIDEO_FONTE_JOGO;
+  while (c.measureText(txt).width > 900 && tam > 34) { tam -= 4; c.font = "400 " + tam + "px " + VIDEO_FONTE_JOGO; }
   c.textAlign = "center"; c.textBaseline = "middle"; c.lineJoin = "round";
   c.strokeStyle = "#000"; c.lineWidth = tam * 0.22;
   c.strokeText(txt, 0, 4 + tam * 0.12); c.strokeText(txt, 0, 4);
@@ -27815,18 +27940,110 @@ function videoFecho(c, cena, p) {
   }
   if (p > 1430 && p < 1750) { c.fillStyle = "rgba(255,255,255," + 0.6 * (1 - (p - 1430) / 320) + ")"; c.fillRect(0, 0, 1080, 1920); }
   videoImpacto(c, 540, 1415, p - 1430, true);
-  videoGrito(c, "Missão cumprida", 190, p - 500, "#FFD23F");
+  // a faixa preta da missão cumprida, abrindo de cima e de baixo
+  const fx = Math.max(0, Math.min(1, (p - 350) / 320));
+  if (fx > 0) {
+    c.save(); c.translate(0, 300); c.scale(1, fx);
+    const g = c.createLinearGradient(0, 0, 1080, 0);
+    g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(0.14, "rgba(0,0,0,.78)"); g.addColorStop(0.86, "rgba(0,0,0,.78)"); g.addColorStop(1, "rgba(0,0,0,0)");
+    c.fillStyle = g; c.fillRect(0, -160, 1080, 320);
+    c.restore();
+  }
+  videoGrito(c, "Missão cumprida", 220, p - 500, "#FFD23F");
+  if (cena.medalha) videoMedalha(c, 330, 368, 54, cena.medalha, p - 1200);
   const r = Math.max(0, Math.min(1, (p - 900) / 400));
   if (r > 0) {
-    c.save(); c.globalAlpha = r; c.textAlign = "center"; c.lineJoin = "round"; c.font = "italic 900 54px " + VIDEO_FONTE;
-    c.strokeStyle = "#000"; c.lineWidth = 12; c.strokeText("+ RESPEITO", 540, 282 + (1 - r) * 20);
-    c.shadowColor = "rgba(124,255,60,.7)"; c.shadowBlur = 22; c.fillStyle = "#7CFF3C"; c.fillText("+ RESPEITO", 540, 282 + (1 - r) * 20);
+    c.save(); c.globalAlpha = r; c.textAlign = "left"; c.lineJoin = "round";
+    const lin = (txt, y, tam, cor, brilho) => {
+      c.font = "400 " + tam + "px " + VIDEO_FONTE_JOGO;
+      c.strokeStyle = "#000"; c.lineWidth = tam * 0.24; c.strokeText(txt, 410, y + (1 - r) * 20);
+      c.save(); c.shadowColor = brilho; c.shadowBlur = 22; c.fillStyle = cor; c.fillText(txt, 410, y + (1 - r) * 20); c.restore();
+    };
+    lin("+ RESPEITO", cena.pts > 0 ? 362 : 388, 50, "#6BFF4F", "rgba(107,255,79,.7)");
+    if (cena.pts > 0) lin("+" + cena.pts.toLocaleString("pt-BR") + " pontos", 428, 40, "#FFFFFF", "rgba(221,42,123,.7)");
     c.restore();
   }
   const m = Math.max(0, Math.min(1, (p - 1900) / 500));
   c.globalAlpha = m; c.textAlign = "center";
   videoTexto(c, "Cada treino é um desafio vencido.", 540, 1722 + (1 - m) * 30, 50, "#F2F0EC", 800, 960);
   c.globalAlpha = 1;
+}
+
+// A medalha do fim no vídeo: as mesmas fitas, disco e estrela da tela
+function videoMedalha(c, x, y, r, tipo, q) {
+  if (q < 0) return;
+  const k = CORES_MEDALHA[tipo] || CORES_MEDALHA.bronze;
+  const e = Math.min(1, q / 950);
+  const cai = e < 0.6 ? 1 - e / 0.6 : 0, s = e < 0.6 ? 1.7 - 0.76 * (e / 0.6) : e < 0.8 ? 0.94 + 0.11 * ((e - 0.6) / 0.2) : 1.05 - 0.05 * ((e - 0.8) / 0.2);
+  c.save();
+  c.globalAlpha = Math.min(1, q / 200);
+  c.translate(x, y - cai * 500); c.rotate(((e < 0.6 ? -40 + 50 * (e / 0.6) : e < 0.8 ? 10 - 15 * ((e - 0.6) / 0.2) : -5 + 5 * ((e - 0.8) / 0.2)) * Math.PI) / 180); c.scale(s, s);
+  c.lineWidth = 6; c.strokeStyle = "#000";
+  [["#DD2A7B", -1], ["#4DEBFF", 1]].forEach(([cor, lado]) => {
+    c.save(); c.translate(lado * r * 0.36, -r * 1.05); c.transform(1, 0, -lado * 0.25, 1, 0, 0);
+    c.fillStyle = cor; c.fillRect(-r * 0.26, 0, r * 0.52, r * 1.1); c.strokeRect(-r * 0.26, 0, r * 0.52, r * 1.1);
+    c.restore();
+  });
+  const g = c.createRadialGradient(-r * 0.3, -r * 0.4, r * 0.1, 0, 0, r);
+  g.addColorStop(0, k[0]); g.addColorStop(0.45, k[1]); g.addColorStop(1, k[2]);
+  c.shadowColor = k[1]; c.shadowBlur = 30;
+  c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.fillStyle = g; c.fill();
+  c.shadowBlur = 0; c.lineWidth = 8; c.stroke();
+  c.textAlign = "center"; c.textBaseline = "middle"; c.font = "900 " + Math.round(r * 1.1) + "px " + VIDEO_FONTE;
+  c.fillStyle = k[2]; c.fillText("★", 0, 4);
+  c.restore();
+}
+// O contador de pontos do canto e o bônus que atravessa a tela, no vídeo
+function videoHud(c, cenas, i, p) {
+  const pt = (x) => (x.tipo === "fecho" ? 0 : x.pts || 0);
+  const total = cenas.reduce((a, x) => a + pt(x), 0);
+  if (!total || cenas[i].tipo === "fecho") return;
+  const antes = cenas.slice(0, i).reduce((a, x) => a + pt(x), 0);
+  const ini = (cenas[i].impactoMs || 1450) + 200;
+  const k = cenas[i].pts ? sobe((p - ini) / 700) : 0;
+  const v = Math.round(antes + (cenas[i].pts || 0) * k);
+  c.save(); c.textAlign = "right"; c.textBaseline = "middle"; c.lineJoin = "round";
+  if ("letterSpacing" in c) c.letterSpacing = "4px";
+  c.font = "900 26px " + VIDEO_FONTE; c.fillStyle = "#4DEBFF"; c.fillText("PONTOS", 1044, 116);
+  if ("letterSpacing" in c) c.letterSpacing = "0px";
+  const pulo = cenas[i].pts && p > ini && p < ini + 500 ? 1 + 0.22 * Math.sin(((p - ini) / 500) * Math.PI) : 1;
+  c.translate(1044, 168); c.scale(pulo, pulo);
+  c.font = "400 60px " + VIDEO_FONTE_JOGO;
+  const txt = v.toLocaleString("pt-BR");
+  c.strokeStyle = "#000"; c.lineWidth = 14; c.strokeText(txt, 0, 0);
+  c.shadowColor = "rgba(107,255,79,.7)"; c.shadowBlur = 20; c.fillStyle = "#6BFF4F"; c.fillText(txt, 0, 0);
+  c.restore();
+  const q = p - ini;
+  if (cenas[i].pts && q > 0 && q < 1700) {
+    const a = q < 240 ? q / 240 : q > 1320 ? 1 - (q - 1320) / 380 : 1;
+    c.save(); c.globalAlpha = a; c.textAlign = "right"; c.textBaseline = "middle"; c.lineJoin = "round";
+    c.font = "400 42px " + VIDEO_FONTE_JOGO;
+    const y = 236 + Math.max(0, (q - 1320) / 380) * 14;
+    c.strokeStyle = "#000"; c.lineWidth = 11; c.strokeText("+" + cenas[i].pts, 1044, y);
+    c.fillStyle = "#6BFF4F"; c.fillText("+" + cenas[i].pts, 1044, y);
+    c.restore();
+  }
+}
+function videoBonus(c, cena, p) {
+  if (!cena.bonus) return;
+  const q = p - ((cena.impactoMs || 1450) + 250), D = 2600;
+  if (q <= 0 || q >= D) return;
+  const k = q / D;
+  const x = k < 0.14 ? 1240 - 1272 * sobe(k / 0.14) : k < 0.2 ? -32 + 32 * ((k - 0.14) / 0.06) : k < 0.78 ? 0 : -1350 * Math.pow((k - 0.78) / 0.22, 2);
+  c.save(); c.translate(540 + x, 340); c.transform(1, 0, -0.21, 1, 0, 0);
+  c.textAlign = "center"; c.textBaseline = "middle"; c.lineJoin = "round";
+  let tam = 74; const txt = cena.bonus.toUpperCase();
+  c.font = "400 " + tam + "px " + VIDEO_FONTE_JOGO;
+  while (c.measureText(txt).width > 960 && tam > 36) { tam -= 4; c.font = "400 " + tam + "px " + VIDEO_FONTE_JOGO; }
+  c.strokeStyle = "#000"; c.lineWidth = tam * 0.24; c.strokeText(txt, 0, 0);
+  c.save(); c.shadowColor = "rgba(221,42,123,.95)"; c.shadowBlur = 34; c.fillStyle = "#FFFFFF"; c.fillText(txt, 0, 0); c.restore();
+  if (cena.pts > 0) {
+    c.font = "400 56px " + VIDEO_FONTE_JOGO;
+    const t2 = "+" + cena.pts + " pontos";
+    c.lineWidth = 13; c.strokeText(t2, 0, tam * 0.95);
+    c.shadowColor = "rgba(107,255,79,.7)"; c.shadowBlur = 22; c.fillStyle = "#6BFF4F"; c.fillText(t2, 0, tam * 0.95);
+  }
+  c.restore();
 }
 
 // Um quadro do vídeo inteiro no tempo t
@@ -27853,6 +28070,8 @@ function videoQuadro(c, cenas, durs, t) {
   else videoTransicao(c, transicaoDe(i), e, t,
     () => { c.textAlign = "center"; videoCenaInteira(c, cenas[i - 1], durs[i - 1] - 1, t); },
     () => { c.textAlign = "center"; videoCenaInteira(c, cena, p, t); });
+  videoBonus(c, cena, p);
+  videoHud(c, cenas, i, p);
   // o clarão da entrada
   if (i > 0 && p < 260) { c.fillStyle = "rgba(255,255,255," + 0.22 * (1 - p / 260) + ")"; c.fillRect(0, 0, 1080, 1920); }
   // o crédito fica no vídeo inteiro: é o que leva o app para o feed de quem não o conhece
@@ -28328,6 +28547,9 @@ function GerarStoryResumo({ cenas, onVoltar }) {
     try { trilha = await trilhaNarracao(narrOk, videoDuracoes(cenas, falasMs), musica); }
     catch (e) { trilha = null; }
     await carregarLogoApp();
+    // a fonte de letreiro tem de estar pronta antes do primeiro quadro: o canvas
+    // não espera por ela, e desenharia o número na fonte de reserva
+    try { await Promise.race([document.fonts.load("40px 'Jogo Resumo'"), new Promise((ok) => setTimeout(ok, 4000))]); } catch (e) {}
     if (parou.current) return;
     const durs = videoDuracoes(cenas, falasMs);
     if (!cvRef.current) {
@@ -28550,6 +28772,8 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
       <CenarioArte cena={cenas[i]} indice={i} chave={volta + "-" + i} animar={!REDUZ_MOVIMENTO} />
       <AnelRelogioResumo />
       <EstrelasResumo acesas={Math.max(1, Math.round(((i + 1) / cenas.length) * 5))} />
+      <HudPontos cenas={cenas} i={i} />
+      {cenas[i].bonus && !story && <BonusResumo key={"bonus-" + volta + "-" + i} cena={cenas[i]} />}
       {/* barras de progresso, como story */}
       <div style={{ position: "absolute", top: 12, left: 12, right: 12, display: "flex", gap: 4, zIndex: 3 }}>
         {cenas.map((c, k) => (

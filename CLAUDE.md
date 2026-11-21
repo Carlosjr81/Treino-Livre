@@ -857,12 +857,13 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v246) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v247) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
 | `resumo-fundo.webp`, `resumo-frente.webp` | As duas camadas da arte do dono na academia, no estilo de capa de jogo, que o resumo animado e o vídeo do story animam (ver *O pôr do sol neon e o visual do relógio*) |
+| `fonte-resumo.woff2` | A fonte de letreiro do resumo animado (Rammetto One, SIL OFL, 22 KB; licença em `fonte-resumo-OFL.txt`) |
 | `resumo-musica-v1.m4a` | A música do resumo animado e do vídeo do story (85 s, AAC 128k, 1,4 MB), no cache de mídia do `sw.js` (ver *A música do resumo*) |
 | `logo-treino-livre.webp` | O logo do app (halter, TREINO em vermelho na placa cromada, LIVRE cromado), recortado do último quadro da `abertura-v2.mp4` com fundo transparente (604×800, 48 KB). Usado na vinheta e no fim do resumo animado e do vídeo do story |
 | `abertura-v2.mp4` | A vinheta de abertura em vídeo (720×1280, 12 s, 1,8 MB, sem som), num cache próprio do `sw.js` (ver *A abertura*) |
@@ -2297,6 +2298,32 @@ texto de divulgação também não cita o jogo.
   Texto novo grande no resumo usa `<Contorno estilo={...}>`, nunca o traço
   por cima. O texto miúdo ganhou sombra escura (herdada da cena) para ler
   sobre a arte. O vídeo já desenhava o traço antes do preenchimento.
+- **Vitórias, bônus e pontos como num jogo** (2026-11-21c, pedido do dono:
+  "mais elementos que aparecem no jogo quando há conquistas, bônus e
+  vitórias; as letras e as cores do jogo"). **Ainda só o gênero**: a fonte do
+  jogo (a Pricedown) não entra; o letreiro é a **Rammetto One** (SIL OFL,
+  `fonte-resumo.woff2`, `FONTE_JOGO`/`VIDEO_FONTE_JOGO`), a mais
+  parecida entre doze fontes livres comparadas lado a lado. Só tem o peso 400:
+  pedir 900 engrossa à força e borra. Nos números grandes, no carimbo, nos
+  títulos, no bônus, nos pontos e na faixa. O vídeo espera a fonte carregar
+  (`document.fonts.load`, até 4 s) antes do primeiro quadro.
+  - **Os pontos de verdade** (`d.xpGanho`, `d.subiuNivel` em
+    `dadosResumo`): o `xpDe` com o treino menos o `xpDe` sem ele. São
+    repartidos pelas cenas (a forte vale o triplo, `x.pts`), e o **contador
+    do canto** (`HudPontos`, `videoHud`, verde como dinheiro de jogo) sobe a
+    cada cena, com o "+N" pulando. No fecho ele some: o total vai na faixa.
+  - **O bônus** (`x.bonus`, `BONUS_RESUMO`, `BonusResumo`,
+    `videoBonus`): nas cenas fortes, um letreiro inclinado atravessa a tela
+    ("Bônus de força", "Bônus de recorde", "Bônus de superação", "Bônus da
+    semana", "Vitória do dia", "Nível novo!") com os pontos da cena.
+  - **Subiu de nível** vira cena forte, com o carimbo dourado.
+  - **A faixa da missão cumprida** no fecho: a faixa preta atravessando a tela,
+    "Missão cumprida", a **medalha** (`Medalha`, `videoMedalha`, ouro com
+    recorde, superação, meta, nível novo ou missão do monstro; prata com duas
+    vitórias; bronze por ter aparecido) caindo e girando, "+ RESPEITO" e o
+    total de pontos.
+  - Conferido no navegador: a tela no volume (bônus e contador) e no fecho, e
+    uma folha de quadros do vídeo. **Não validado num celular.**
 - **O carimbo** (`GritoResumo`, `videoGrito`) perdeu a caixa: letra grande
   amarela (#FFD23F), inclinada, com contorno preto grosso (`CONTORNO_RESUMO`).
 - **As estrelas** (`EstrelasResumo`, `videoEstrelas`): cinco no topo,

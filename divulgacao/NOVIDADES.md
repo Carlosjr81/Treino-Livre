@@ -27,6 +27,7 @@
 - "O que mais puxou o coração": os exercícios que mais subiram o batimento naquele treino.
 - No aeróbico longo (esteira, bicicleta, rua), a deriva: quanto o coração subiu da primeira para a segunda metade.
 - Na aba ❤ Saúde, "O coração nos treinos": os últimos treinos lado a lado e a média da recuperação.
+- No resumo animado (e no vídeo do story), a cena nova "Seu coração no treino": um coração realista batendo no ritmo médio do treino, dentro de uma mira de realidade aumentada, com o pico, a zona, o esforço e a recuperação apontados nele, e um monitor com a curva do treino.
 
 **Por que importa para quem treina**
 - Dá para ver se o treino foi leve, moderado ou puxado de verdade, e acompanhar a recuperação melhorar ao longo das semanas.
@@ -39,10 +40,12 @@
 **Ideias de vídeo**
 - O gráfico do batimento de um treino de pernas, mostrando o exercício que mais puxou o coração.
 - A recuperação de um treino de corrida comparada com a de um mês antes.
+- O resumo animado chegando na cena do coração batendo em realidade aumentada, por cima da arte da academia.
 
 **Não prometer**
 - Não é ao vivo: o batimento do relógio chega depois do treino, quando o app abre.
 - Não é exame nem avaliação de saúde: são números do relógio, para acompanhar o próprio treino.
+- O eletrocardiograma do resumo é ilustrativo (o relógio não mede ECG no treino): o ritmo é o médio de verdade, o traçado não.
 - No iPhone não funciona (a Apple não libera o Apple Saúde para o app).
 
 ---

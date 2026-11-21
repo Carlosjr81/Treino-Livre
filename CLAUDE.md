@@ -5244,6 +5244,23 @@ app faz sozinho ao abrir.
   curva, no app Android e num treino de até 3 dias, "⌚ Buscar o batimento do
   relógio deste treino". Em ❤ Saúde, "⌚ O coração nos treinos": os últimos 8
   com médio, pico e quanto desceu, e a média da recuperação.
+- **No resumo animado** (`dadosCoracaoResumo`, cena `coracao`, depois do
+  aeróbico): a arte do coração em realidade aumentada (`desenharCoracaoAR`, uma
+  função só para a tela, `CenaCoracaoAR`, e o vídeo do story, numa caixa de
+  1080×1120 que no vídeo vai de y 370 a 1470). Um coração anatômico desenhado
+  à mão no canvas (corpo, átrios, aorta com os três ramos, veia cava, tronco
+  pulmonar, coronárias, gordura no sulco, fibras, brilho úmido), **batendo no
+  batimento médio do treino** com o "tum-tum" (`batidaCoracao`); em volta, a
+  mira (anéis girando, cantos, linha de varredura, a onda a cada batida, grade
+  de pontos) e até quatro marcadores com linha até o coração (pico, zona em que
+  mais ficou, esforço, recuperação ou mínimo); embaixo, o número médio subindo
+  e o monitor com o **ECG ilustrativo** (`ondaEcg`, dito na tela: o relógio
+  não mede ECG) por cima da curva de verdade. Sem a curva, a cena aparece com
+  a média e o pico da cinta. Forte (bônus e carimbo vermelho) com 3 min na Z5
+  ou 20 min em Z4 e Z5. O perfil de FC chega ao resumo pelo `FC_PERFIL`
+  (ponteiro de módulo posto pelo raiz, como o `TEMA_APP`). No vídeo, 4,8 s
+  sem narração. Conferido no navegador (tela e um quadro do vídeo). **Não
+  validado num celular** (o desempenho do canvas a 30 quadros).
 - **Informação geral, não exame**: a tela diz isso, e as frases não falam em
   "normal" nem "anormal" (a queda de 12 bpm é a referência dos estudos, dita
   como "boa recuperação").

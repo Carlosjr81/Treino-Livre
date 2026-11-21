@@ -1762,7 +1762,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-21c";
+const VERSAO_APP = "2026-11-21d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -26985,7 +26985,8 @@ function EfeitosCena({ forte, atraso }) {
     </React.Fragment>
   );
 }
-// O contador de pontos do canto, como o dinheiro do jogo: sobe a cada cena,
+// O contador de XP do canto (experiência, nunca dinheiro: pedido do dono,
+// 2026-11-21d): sobe a cada cena,
 // com o "+N" pulando quando a cena paga
 function HudPontos({ cenas, i }) {
   // o fecho traz o total (na faixa da missão): não conta de novo
@@ -27010,10 +27011,10 @@ function HudPontos({ cenas, i }) {
   const pts = cenas[i].pts;
   return (
     <div aria-hidden="true" style={{ position: "absolute", top: 70, right: 14, zIndex: 3, textAlign: "right", pointerEvents: "none" }}>
-      <div style={{ ...ROTULO_RESUMO, fontSize: 10 }}>Pontos</div>
-      <Contorno key={"h" + i} className={pts ? "rs-hud" : ""} grosso={6} estilo={{ fontFamily: FONTE_JOGO, fontSize: 26, color: "#6BFF4F", lineHeight: 1.1,
-        fontVariantNumeric: "tabular-nums", filter: "drop-shadow(0 0 10px rgba(107,255,79,.55))", animationDelay: atraso / 1000 + "s" }}>{mostra.toLocaleString("pt-BR")}</Contorno>
-      {pts > 0 && <Contorno key={"p" + i} className="rs-pts" grosso={5} estilo={{ fontFamily: FONTE_JOGO, fontSize: 17, color: "#6BFF4F", marginTop: 4, animationDelay: atraso / 1000 + "s" }}>+{pts}</Contorno>}
+      <div style={{ ...ROTULO_RESUMO, fontSize: 10 }}>⚡ XP</div>
+      <Contorno key={"h" + i} className={pts ? "rs-hud" : ""} grosso={6} estilo={{ fontFamily: FONTE_JOGO, fontSize: 26, color: "#5CE1FF", lineHeight: 1.1,
+        fontVariantNumeric: "tabular-nums", filter: "drop-shadow(0 0 10px rgba(92,225,255,.55))", animationDelay: atraso / 1000 + "s" }}>{mostra.toLocaleString("pt-BR")}</Contorno>
+      {pts > 0 && !cenas[i].bonus && <Contorno key={"p" + i} className="rs-pts" grosso={5} estilo={{ fontFamily: FONTE_JOGO, fontSize: 17, color: "#5CE1FF", marginTop: 4, animationDelay: atraso / 1000 + "s" }}>+{pts} XP</Contorno>}
     </div>
   );
 }
@@ -27025,8 +27026,8 @@ function BonusResumo({ cena }) {
       <div className="rs-bonus" style={{ animationDelay: atraso + "s" }}>
         <Contorno grosso={7} estilo={{ fontFamily: FONTE_JOGO, fontSize: 25, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 0.5,
           filter: "drop-shadow(0 0 14px rgba(221,42,123,.9))" }}>{cena.bonus}</Contorno>
-        {cena.pts > 0 && <Contorno grosso={6} estilo={{ fontFamily: FONTE_JOGO, fontSize: 19, color: "#6BFF4F", marginTop: 2,
-          filter: "drop-shadow(0 0 10px rgba(107,255,79,.6))" }}>+{cena.pts} pontos</Contorno>}
+        {cena.pts > 0 && <Contorno grosso={6} estilo={{ fontFamily: FONTE_JOGO, fontSize: 19, color: "#5CE1FF", marginTop: 2,
+          filter: "drop-shadow(0 0 10px rgba(92,225,255,.6))" }}>+{cena.pts} XP</Contorno>}
       </div>
     </div>
   );
@@ -27310,8 +27311,8 @@ function CenaResumo({ c }) {
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 8 }}>
           {c.medalha && <Medalha tipo={c.medalha} tam={50} atraso={1.2} />}
           <div className="rs-marca" style={{ textAlign: "left", animationDelay: ".9s" }}>
-            <Contorno grosso={6} estilo={{ fontFamily: FONTE_JOGO, fontSize: 18, color: "#6BFF4F", filter: "drop-shadow(0 0 10px rgba(107,255,79,.6))" }}>+ RESPEITO</Contorno>
-            {c.pts > 0 && <Contorno grosso={6} estilo={{ fontFamily: FONTE_JOGO, fontSize: 15, color: "#FFFFFF", marginTop: 2 }}>+{c.pts.toLocaleString("pt-BR")} pontos</Contorno>}
+            <Contorno grosso={6} estilo={{ fontFamily: FONTE_JOGO, fontSize: 18, color: "#FF5FA8", filter: "drop-shadow(0 0 10px rgba(255,95,168,.7))" }}>+ RESPEITO</Contorno>
+            {c.pts > 0 && <Contorno grosso={6} estilo={{ fontFamily: FONTE_JOGO, fontSize: 15, color: "#FFFFFF", marginTop: 2 }}>+{c.pts.toLocaleString("pt-BR")} XP</Contorno>}
           </div>
         </div>
       </div>
@@ -27959,8 +27960,8 @@ function videoFecho(c, cena, p) {
       c.strokeStyle = "#000"; c.lineWidth = tam * 0.24; c.strokeText(txt, 410, y + (1 - r) * 20);
       c.save(); c.shadowColor = brilho; c.shadowBlur = 22; c.fillStyle = cor; c.fillText(txt, 410, y + (1 - r) * 20); c.restore();
     };
-    lin("+ RESPEITO", cena.pts > 0 ? 362 : 388, 50, "#6BFF4F", "rgba(107,255,79,.7)");
-    if (cena.pts > 0) lin("+" + cena.pts.toLocaleString("pt-BR") + " pontos", 428, 40, "#FFFFFF", "rgba(221,42,123,.7)");
+    lin("+ RESPEITO", cena.pts > 0 ? 362 : 388, 50, "#FF5FA8", "rgba(255,95,168,.75)");
+    if (cena.pts > 0) lin("+" + cena.pts.toLocaleString("pt-BR") + " XP", 428, 40, "#5CE1FF", "rgba(92,225,255,.7)");
     c.restore();
   }
   const m = Math.max(0, Math.min(1, (p - 1900) / 500));
@@ -28004,14 +28005,14 @@ function videoHud(c, cenas, i, p) {
   const v = Math.round(antes + (cenas[i].pts || 0) * k);
   c.save(); c.textAlign = "right"; c.textBaseline = "middle"; c.lineJoin = "round";
   if ("letterSpacing" in c) c.letterSpacing = "4px";
-  c.font = "900 26px " + VIDEO_FONTE; c.fillStyle = "#4DEBFF"; c.fillText("PONTOS", 1044, 116);
+  c.font = "900 26px " + VIDEO_FONTE; c.fillStyle = "#4DEBFF"; c.fillText("⚡ XP", 1044, 116);
   if ("letterSpacing" in c) c.letterSpacing = "0px";
   const pulo = cenas[i].pts && p > ini && p < ini + 500 ? 1 + 0.22 * Math.sin(((p - ini) / 500) * Math.PI) : 1;
   c.translate(1044, 168); c.scale(pulo, pulo);
   c.font = "400 60px " + VIDEO_FONTE_JOGO;
   const txt = v.toLocaleString("pt-BR");
   c.strokeStyle = "#000"; c.lineWidth = 14; c.strokeText(txt, 0, 0);
-  c.shadowColor = "rgba(107,255,79,.7)"; c.shadowBlur = 20; c.fillStyle = "#6BFF4F"; c.fillText(txt, 0, 0);
+  c.shadowColor = "rgba(92,225,255,.7)"; c.shadowBlur = 20; c.fillStyle = "#5CE1FF"; c.fillText(txt, 0, 0);
   c.restore();
   const q = p - ini;
   if (cenas[i].pts && q > 0 && q < 1700) {
@@ -28019,8 +28020,8 @@ function videoHud(c, cenas, i, p) {
     c.save(); c.globalAlpha = a; c.textAlign = "right"; c.textBaseline = "middle"; c.lineJoin = "round";
     c.font = "400 42px " + VIDEO_FONTE_JOGO;
     const y = 236 + Math.max(0, (q - 1320) / 380) * 14;
-    c.strokeStyle = "#000"; c.lineWidth = 11; c.strokeText("+" + cenas[i].pts, 1044, y);
-    c.fillStyle = "#6BFF4F"; c.fillText("+" + cenas[i].pts, 1044, y);
+    c.strokeStyle = "#000"; c.lineWidth = 11; c.strokeText("+" + cenas[i].pts + " XP", 1044, y);
+    c.fillStyle = "#5CE1FF"; c.fillText("+" + cenas[i].pts + " XP", 1044, y);
     c.restore();
   }
 }
@@ -28039,9 +28040,9 @@ function videoBonus(c, cena, p) {
   c.save(); c.shadowColor = "rgba(221,42,123,.95)"; c.shadowBlur = 34; c.fillStyle = "#FFFFFF"; c.fillText(txt, 0, 0); c.restore();
   if (cena.pts > 0) {
     c.font = "400 56px " + VIDEO_FONTE_JOGO;
-    const t2 = "+" + cena.pts + " pontos";
+    const t2 = "+" + cena.pts + " XP";
     c.lineWidth = 13; c.strokeText(t2, 0, tam * 0.95);
-    c.shadowColor = "rgba(107,255,79,.7)"; c.shadowBlur = 22; c.fillStyle = "#6BFF4F"; c.fillText(t2, 0, tam * 0.95);
+    c.shadowColor = "rgba(92,225,255,.7)"; c.shadowBlur = 22; c.fillStyle = "#5CE1FF"; c.fillText(t2, 0, tam * 0.95);
   }
   c.restore();
 }

@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v247) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v248) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -2310,13 +2310,17 @@ texto de divulgação também não cita o jogo.
   - **Os pontos de verdade** (`d.xpGanho`, `d.subiuNivel` em
     `dadosResumo`): o `xpDe` com o treino menos o `xpDe` sem ele. São
     repartidos pelas cenas (a forte vale o triplo, `x.pts`), e o **contador
-    do canto** (`HudPontos`, `videoHud`, verde como dinheiro de jogo) sobe a
+    do canto** (`HudPontos`, `videoHud`, em azul, "⚡ XP") sobe a
     cada cena, com o "+N" pulando. No fecho ele some: o total vai na faixa.
   - **O bônus** (`x.bonus`, `BONUS_RESUMO`, `BonusResumo`,
     `videoBonus`): nas cenas fortes, um letreiro inclinado atravessa a tela
     ("Bônus de força", "Bônus de recorde", "Bônus de superação", "Bônus da
     semana", "Vitória do dia", "Nível novo!") com os pontos da cena.
   - **Subiu de nível** vira cena forte, com o carimbo dourado.
+  - **Nada de ganho financeiro nas letras** (2026-11-21d, pedido do dono):
+    o contador era verde como dinheiro de jogo e dizia "pontos". Hoje é
+    "⚡ XP" em azul (#5CE1FF), "+N XP" no bônus e no fecho, e o "+ RESPEITO"
+    em rosa. Nada de "$", "R$", moedas ou verde de dinheiro no resumo.
   - **A faixa da missão cumprida** no fecho: a faixa preta atravessando a tela,
     "Missão cumprida", a **medalha** (`Medalha`, `videoMedalha`, ouro com
     recorde, superação, meta, nível novo ou missão do monstro; prata com duas

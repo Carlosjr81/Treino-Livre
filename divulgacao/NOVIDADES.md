@@ -16,13 +16,35 @@
 
 ---
 
+## 2026-11-21d — No resumo, o que se ganha é experiência, não dinheiro
+
+**Em uma frase:** o contador do resumo animado agora mostra XP (experiência), em azul, e não lembra mais dinheiro.
+
+**O que mudou**
+- O contador do canto virou "⚡ XP", em azul, e os bônus mostram "+N XP".
+- O "+ Respeito" do fim ficou rosa, na cor do app.
+
+**Por que importa para quem treina**
+- O que o treino dá é evolução: experiência, respeito e nível, nunca dinheiro.
+
+**Como usar**
+- Nada muda: termine um treino e abra o resumo animado.
+
+**Ideias de vídeo**
+- O "+XP" subindo no canto enquanto o bônus passa pela tela.
+
+**Não prometer**
+- Nenhum prêmio em dinheiro: XP é só a experiência de nível dentro do app.
+
+---
+
 ## 2026-11-21c — O resumo animado virou fim de fase de videogame
 
 **Em uma frase:** o resumo do treino agora comemora como um jogo: bônus atravessando a tela, contador de pontos subindo, medalha e a faixa de "Missão cumprida" no final.
 
 **O que mudou**
 - Letras novas de letreiro, grossas e com contorno, nos números, nos títulos e nos carimbos.
-- Um contador de pontos no canto sobe a cada cena, com o "+N" pulando, como dinheiro de jogo. São os pontos de nível que o treino deu de verdade.
+- Um contador de XP (experiência) no canto sobe a cada cena, com o "+N XP" pulando. É a experiência de nível que o treino deu de verdade.
 - Nos momentos fortes (volume alto, recorde, superação, meta da semana, subir de nível) um letreiro de bônus atravessa a tela.
 - No fim, uma faixa preta corta a tela com "Missão cumprida", uma medalha de ouro, prata ou bronze cai girando, e aparecem "+ Respeito" e o total de pontos.
 - Tudo isso também sai no vídeo para o story.

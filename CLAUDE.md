@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v251) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v252) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -2337,6 +2337,28 @@ texto de divulgação também não cita o jogo.
 - Conferido no navegador: a tela e a folha com um quadro de cada cena do
   vídeo. **Não validado num celular** (a fonte do sistema muda o desenho das
   letras; no Chromium de teste saíam com serifa na tela).
+
+### A foto da pessoa no fundo (`FOTO_RESUMO`, `JanelaFotoResumo`, 2026-11-21h)
+
+Pedido do dono: "quem não mudar a foto vai com essa que está, não mude isso;
+quem quiser carregar a própria foto, faça essa opção". **A arte do app
+continua o padrão.**
+
+- **Onde escolhe**: o 🖼 no topo do resumo e o botão "🖼 Usar minha foto no
+  fundo" na primeira cena (a apresentação pausa com a janela aberta). Trocar a
+  foto ou "↩ Voltar à arte do Treino Livre".
+- **Onde fica**: no IndexedDB das fotos, chave `resumo-foto`, reduzida a
+  1440 px (`trocarFotoResumo`); a marca `treinolivre:resumoFoto` evita
+  abrir o banco para quem nunca escolheu. Vale para todo resumo seguinte, na
+  tela e no vídeo do story (o `carregarLogoApp` espera a foto). Fora do
+  backup: é enfeite, não treino.
+- **O desenho** (`desenharCenaArte`): a foto vira a arte inteira, com os
+  mesmos planos de câmera, o borrado e o escuro; sem a camada da frente e sem
+  sol, neon, faróis, relógio e óculos, que só têm lugar na arte do app. A poeira
+  continua. Enquanto a foto é lida do banco, o fundo é o degradê (sem piscar a
+  arte do app).
+- Conferido no navegador: a janela, a foto na tela e num quadro do vídeo.
+  **Não validado num celular** (a galeria e a câmera do Android).
 
 ### A música do resumo (`MUSICA_RESUMO`, `useMusicaResumo`, 2026-11-21a)
 

@@ -1762,7 +1762,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-21g";
+const VERSAO_APP = "2026-11-21h";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -26689,6 +26689,44 @@ const ARTE_RESUMO = {
   sol: [1042, 372], neon: [[206, 118], [334, 150]], farol: [[1046, 522], [1006, 526]],
   relogio: [664, 908], oculos: [430, 336, 712, 428],
 };
+// A foto da própria pessoa no fundo do resumo (2026-11-21h, pedido do dono:
+// "quem não mudar a foto vai com essa que está; quem quiser carregar a sua,
+// pode personalizar"). Fica no IndexedDB das fotos (chave própria), reduzida a
+// 1440 px, e vale para todo resumo dali em diante, na tela e no vídeo do story,
+// até a pessoa voltar à arte do Treino Livre. A marca no localStorage evita
+// abrir o banco para quem nunca escolheu foto.
+const CHAVE_FOTO_RESUMO = "resumo-foto";
+const MARCA_FOTO_RESUMO = "treinolivre:resumoFoto";
+const FOTO_RESUMO = { url: null, pedido: null };
+function temFotoResumo() { try { return localStorage.getItem(MARCA_FOTO_RESUMO) === "1"; } catch (e) { return false; } }
+function carregarFotoResumo() {
+  if (FOTO_RESUMO.url) return Promise.resolve(FOTO_RESUMO.url);
+  if (!temFotoResumo()) return Promise.resolve(null);
+  if (!FOTO_RESUMO.pedido) {
+    FOTO_RESUMO.pedido = lerFoto(CHAVE_FOTO_RESUMO).then((b) => {
+      FOTO_RESUMO.pedido = null;
+      if (!b) return null;
+      FOTO_RESUMO.url = URL.createObjectURL(b);
+      imagemMonstro(FOTO_RESUMO.url);
+      return carregarImagemVideo(FOTO_RESUMO.url).then(() => FOTO_RESUMO.url);
+    }).catch(() => { FOTO_RESUMO.pedido = null; return null; });
+  }
+  return FOTO_RESUMO.pedido;
+}
+// arquivo: a foto escolhida; null volta à arte do Treino Livre
+async function trocarFotoResumo(arquivo) {
+  const blob = arquivo ? await reduzirImagem(arquivo, 1440, 0.86) : null;
+  if (blob) await guardarFoto(CHAVE_FOTO_RESUMO, blob);
+  else { try { await apagarFoto(CHAVE_FOTO_RESUMO); } catch (e) {} }
+  if (FOTO_RESUMO.url) { delete IMAGENS_MONSTRO[FOTO_RESUMO.url]; try { URL.revokeObjectURL(FOTO_RESUMO.url); } catch (e) {} }
+  FOTO_RESUMO.url = null;
+  try { if (blob) localStorage.setItem(MARCA_FOTO_RESUMO, "1"); else localStorage.removeItem(MARCA_FOTO_RESUMO); } catch (e) {}
+  if (blob) {
+    FOTO_RESUMO.url = URL.createObjectURL(blob);
+    imagemMonstro(FOTO_RESUMO.url);
+    await carregarImagemVideo(FOTO_RESUMO.url);
+  }
+}
 // cada cena entra com um plano de câmera diferente, como num jogo: chega no
 // rosto, passeia de lado, abre, sobe. x é o lado (-1 a 1), y o ponto de foco
 // na altura da arte, z o zoom; a câmera vai do primeiro valor ao segundo
@@ -26729,7 +26767,13 @@ function brilho(c, x, y, r, cor, a) {
 // corta nada, deixa aparecer o cabelo"): ela cabe na tela, e a sobra em cima e
 // embaixo é a própria arte borrada.
 function desenharCenaArte(c, t, plano, parado, vis) {
-  const A = ARTE_RESUMO, fundo = imagemMonstro(A.fundo), frente = imagemMonstro(A.frente);
+  // com a foto da pessoa, ela é a arte inteira: sem a camada da frente e sem os
+  // brilhos (sol, neon, faróis, óculos), que só têm lugar na arte do app
+  const propria = FOTO_RESUMO.url ? imagemMonstro(FOTO_RESUMO.url) : null;
+  const esperando = !propria && (FOTO_RESUMO.pedido || FOTO_RESUMO.url);
+  const A = propria ? { w: propria.naturalWidth, h: propria.naturalHeight } : ARTE_RESUMO;
+  const fundo = propria || (esperando ? null : imagemMonstro(ARTE_RESUMO.fundo));
+  const frente = propria || esperando ? null : imagemMonstro(ARTE_RESUMO.frente);
   const s = parado ? 0 : t / 1000;
   if (!fundo) {
     const g = c.createLinearGradient(0, 0, 0, 1920);
@@ -26764,7 +26808,7 @@ function desenharCenaArte(c, t, plano, parado, vis) {
   c.beginPath(); c.rect(0, 0, A.w, A.h); c.clip();
   c.save();
   c.drawImage(fundo, 0, 0, A.w, A.h);
-  if (!parado) {
+  if (!parado && !propria) {
     // o sol pulsando, com os raios girando devagar
     const [sx, sy] = A.sol;
     c.globalCompositeOperation = "lighter";
@@ -27496,7 +27540,8 @@ function carregarImagemVideo(url) {
 // o logo e a arte do fundo (o vídeo não sai com o fundo de reserva)
 function carregarLogoApp() {
   imagemMonstro(ARTE_RESUMO.fundo); imagemMonstro(ARTE_RESUMO.frente);
-  return Promise.all([carregarImagemVideo(LOGO_APP), carregarImagemVideo(ARTE_RESUMO.fundo), carregarImagemVideo(ARTE_RESUMO.frente)]).then((r) => r[0]);
+  return Promise.all([carregarImagemVideo(LOGO_APP), carregarImagemVideo(ARTE_RESUMO.fundo), carregarImagemVideo(ARTE_RESUMO.frente),
+    carregarFotoResumo()]).then((r) => r[0]);
 }
 function videoLogo(c, cx, cy, larg, b) {
   const im = imagemMonstro(LOGO_APP);
@@ -28715,6 +28760,43 @@ function useMusicaResumo(ligada, parada) {
   }, [ligada, parada]);
 }
 
+// Escolher o fundo do resumo: a foto da pessoa ou a arte do Treino Livre
+function JanelaFotoResumo({ onFechar, onTrocou }) {
+  const [tem, setTem] = useState(temFotoResumo);
+  const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState("");
+  const entrada = useRef(null);
+  const trocar = (arq) => {
+    setOcupado(true); setErro("");
+    trocarFotoResumo(arq).then(() => { setTem(!!arq); setOcupado(false); onTrocou(); },
+      () => { setOcupado(false); setErro("Não consegui usar essa imagem. Tente outra foto."); });
+  };
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Fundo do resumo" onClick={(e) => { e.stopPropagation(); onFechar(); }}
+      style={{ position: "absolute", inset: 0, zIndex: 6, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "flex-end", justifyContent: "center", cursor: "default" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, background: "#17121F", borderRadius: "20px 20px 0 0",
+        padding: "20px 18px 28px", boxShadow: "0 -10px 40px rgba(0,0,0,.6)", textShadow: "none" }}>
+        <div style={{ fontWeight: 900, fontSize: 17, marginBottom: 6 }}>🖼 Fundo do resumo</div>
+        <div style={{ fontSize: 13.5, color: "#C9C3D1", lineHeight: 1.45, marginBottom: 14 }}>
+          {tem ? "Seu resumo está com a sua foto ao fundo, aqui e no vídeo do story." :
+            "Use uma foto sua (do treino, da academia, do shape) no fundo do resumo e do vídeo do story. Sem foto, fica a arte do Treino Livre."}
+        </div>
+        <input ref={entrada} type="file" accept="image/*" style={{ display: "none" }}
+          onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) trocar(f); }} />
+        <button disabled={ocupado} onClick={() => entrada.current && entrada.current.click()} style={{ ...S.btn, width: "100%", marginBottom: 10 }}>
+          {ocupado ? "Preparando a foto…" : tem ? "📷 Trocar a foto" : "📷 Escolher uma foto"}
+        </button>
+        {tem && (
+          <button disabled={ocupado} onClick={() => trocar(null)}
+            style={{ ...S.btnGhost, width: "100%", marginBottom: 10, color: "#F2F0EC", borderColor: "#444444" }}>↩ Voltar à arte do Treino Livre</button>
+        )}
+        {erro && <div style={{ color: "var(--perigo)", fontSize: 13, marginBottom: 10 }}>{erro}</div>}
+        <button onClick={onFechar} style={{ ...S.btnGhost, width: "100%", color: "#F2F0EC", borderColor: "#444444" }}>{tem ? "Pronto" : "Agora não"}</button>
+        <div style={{ fontSize: 11.5, color: "#8a8494", marginTop: 10, lineHeight: 1.4 }}>A foto fica só neste aparelho. Ela só sai daqui se você postar o vídeo.</div>
+      </div>
+    </div>
+  );
+}
 function ResumoAnimado({ d, vozCfg, onFechar }) {
   const cenas = useMemo(() => cenasResumo(d), [d]);
   const [i, setI] = useState(0);
@@ -28723,6 +28805,9 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
   const [story, setStory] = useState(false); // gerando o vídeo do story
   const [musica, setMusica] = useState(musicaResumoLigada);
   const [fechando, setFechando] = useState(false);
+  const [fundoAberto, setFundoAberto] = useState(false);   // escolhendo a foto do fundo
+  const [, setFotoV] = useState(0);
+  useEffect(() => { carregarFotoResumo().then((u) => { if (u) setFotoV((v) => v + 1); }); }, []);
   useMusicaResumo(musica, story || fechando);
   const ultima = i === cenas.length - 1;
   // Quanto a cena fica no ar: a fala inteira, nunca menos que a animação.
@@ -28734,7 +28819,7 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
   const [durCena, setDurCena] = useState(cenas[0].ms);
   useEffect(() => {
     // gerando o vídeo, a apresentação para: nem fala nem avança por baixo
-    if (story) { try { window.speechSynthesis.cancel(); } catch (e) {} return; }
+    if (story || fundoAberto) { try { window.speechSynthesis.cancel(); } catch (e) {} return; }
     const c = cenas[i];
     let vivo = true, rede = null, falou = false, fimFala = false;
     const t0 = Date.now();
@@ -28763,7 +28848,7 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
       if (!ultima) rede = setTimeout(seguir, c.ms);
     }
     return () => { vivo = false; clearTimeout(rede); };
-  }, [i, volta, story, mudo]);
+  }, [i, volta, story, mudo, fundoAberto]);
   useEffect(() => () => { try { window.speechSynthesis.cancel(); } catch (e) {} }, []);
   const fechar = () => { try { window.speechSynthesis.cancel(); } catch (e) {} setFechando(true); onFechar(); };
   const toque = (e) => {
@@ -28792,6 +28877,8 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
         ))}
       </div>
       <div style={{ position: "absolute", top: 24, right: 8, display: "flex", gap: 2, zIndex: 3 }}>
+        <button aria-label="Trocar o fundo pela sua foto" onClick={(e) => { e.stopPropagation(); setFundoAberto(true); }}
+          style={{ background: "none", border: "none", color: "#F2F0EC", fontSize: 20, padding: 10, cursor: "pointer" }}>🖼</button>
         <button aria-label="Compartilhar no story" onClick={(e) => { e.stopPropagation(); setStory(true); }}
           style={{ background: "none", border: "none", color: "#F2F0EC", fontSize: 20, padding: 10, cursor: "pointer" }}>📸</button>
         <button aria-label={musica ? "Desligar a música" : "Ligar a música"} onClick={(e) => { e.stopPropagation(); const v = !musica; setMusica(v); try { localStorage.setItem(CHAVE_MUSICA_RESUMO, v ? "1" : "0"); } catch (er) {} }}
@@ -28864,11 +28951,16 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
         </div>
       )}
       {story && <GerarStoryResumo cenas={cenas} onVoltar={(e) => { if (e) e.stopPropagation(); setStory(false); }} />}
-      {i === 0 && (
-        <div style={{ position: "absolute", bottom: 30, width: "100%", textAlign: "center", fontSize: 11.5, color: "#666666" }}>
-          toque para avançar · no canto esquerdo, volta
+      {i === 0 && !fundoAberto && (
+        <div style={{ position: "absolute", bottom: 30, width: "100%", textAlign: "center", fontSize: 11.5, color: "#9a94a3" }}>
+          <button onClick={(e) => { e.stopPropagation(); setFundoAberto(true); }}
+            style={{ background: "rgba(23,18,31,.8)", border: "1px solid #ffffff33", color: "#F2F0EC", borderRadius: 20, padding: "8px 16px",
+              fontSize: 13, fontWeight: 800, cursor: "pointer", marginBottom: 10 }}>{temFotoResumo() ? "🖼 Trocar a foto do fundo" : "🖼 Usar minha foto no fundo"}</button>
+          <div>toque para avançar · no canto esquerdo, volta</div>
         </div>
       )}
+      {fundoAberto && <JanelaFotoResumo onFechar={() => setFundoAberto(false)}
+        onTrocou={() => { setFotoV((v) => v + 1); BORRADO_RESUMO = null; }} />}
     </div>
   );
 }

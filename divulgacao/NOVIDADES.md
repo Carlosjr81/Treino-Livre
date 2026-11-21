@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-21h — Sua foto no fundo do resumo animado
+
+**Em uma frase:** agora dá para pôr uma foto sua no fundo do resumo animado e do vídeo do story; quem não escolher continua com a arte do Treino Livre.
+
+**O que mudou**
+- No resumo animado, o botão 🖼 (e "Usar minha foto no fundo" logo na abertura) deixa escolher uma foto da galeria ou tirar uma na hora.
+- A foto aparece no fundo de todas as cenas, com o mesmo movimento de câmera, e vai junto no vídeo do story.
+- A escolha fica guardada para os próximos resumos, e dá para voltar à arte do app a qualquer momento.
+
+**Por que importa para quem treina**
+- O vídeo do story passa a ser seu de verdade: o seu treino, os seus números e a sua foto da academia.
+
+**Como usar**
+- Termine um treino, toque em "Ver resumo animado" e depois no 🖼. Escolha a foto, e pronto.
+- Para tirar, 🖼 › "Voltar à arte do Treino Livre".
+
+**Ideias de vídeo**
+- Antes e depois: o mesmo resumo com a arte do app e com a foto da pessoa na academia.
+
+**Não prometer**
+- A foto fica só no celular; não passa para outro aparelho nem vai no backup.
+
+---
+
 ## 2026-11-21g — Atualizar o app do celular não se contradiz mais
 
 **Em uma frase:** quando o app avisa que há versão nova, tocar em atualizar espera ela ficar pronta em vez de dizer que você já está na mais nova.

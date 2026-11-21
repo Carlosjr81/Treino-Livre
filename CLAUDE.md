@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v256) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v257) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5097,6 +5097,15 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   numa porta fechada de cada endereço de redes /22 a /29, fora dos dados
   móveis; "recusado" é aparelho vivo; até 8), soltando o Wi-Fi antes para o
   roteador do celular ficar ao alcance.
+- **A porta certa primeiro** (2026-11-21m, diagnóstico do dono: "está
+  demorando", parado em "Conectando ao relógio (10.185.225.28:33195)"). O
+  relógio manda as portas abertas dele (três ali), só uma é a de conectar, e
+  cada porta errada esperava os 15 s do prazo. Hoje o instalador sonda cada
+  uma antes (`sondarAdb`: um "CNXN" do ADB numa conexão à parte, 1,5 s; a de
+  conectar responde STLS) e tenta primeiro as que responderam como ADB, depois
+  as mudas; as que responderam outra coisa ficam de fora (`ordenarPorSonda`,
+  que devolve a lista inteira se nada servir). A sonda vai no diagnóstico.
+  **Não validado num relógio.**
 - **"Há o 170" e "já está na mais nova" ao mesmo tempo** (2026-11-21g,
   print do dono). O push no `main` publica o site e dispara o Actions juntos:
   por uns 4 min o site já anuncia o N (`APK_ATUAL`) e o "latest" do GitHub

@@ -850,12 +850,17 @@ class InstaladorRelogio : ComponentActivity() {
                 else { if (ultimoErro.isEmpty()) ultimoErro = "não conectou"; if (a !== adb) try { a.close() } catch (e: Exception) { } }
                 ok
             }
-            for ((h, p) in candidatos) { if (tentar(h, p)) break }
+            // Cada porta errada custava os 15 s do prazo da conexão: o relógio
+            // manda as portas abertas dele (três no diagnóstico do dono,
+            // 2026-11-21m), e só uma é a de conectar. A sonda acha qual é em
+            // menos de 2 s e ela vai primeiro.
+            for ((h, p) in ordenarPorSonda(candidatos.toList())) { if (tentar(h, p)) break }
             if (con == null) {
                 for (h in hosts) {
                     if (tentativas >= maxTentativas) break
                     val portas = (portasDe[h]?.filter { it != portaDoPar }?.ifEmpty { null }) ?: acharPortas(h, 60, 68)
-                    for (p in portas) { if (candidatos.contains(h to p) || p == portaDoPar) continue; if (tentar(h, p)) break }
+                    val resto = portas.filter { !candidatos.contains(h to it) && it != portaDoPar }.map { h to it }
+                    for ((hh, p) in ordenarPorSonda(resto)) { if (tentar(hh, p)) break }
                     if (con != null) break
                 }
             }
@@ -1053,6 +1058,48 @@ class InstaladorRelogio : ComponentActivity() {
         val e = f.get(con) as? Throwable
         if (e == null) "" else " (" + e.javaClass.simpleName + ": " + (e.message ?: "") + (e.cause?.let { " / " + (it.message ?: it.javaClass.simpleName) } ?: "") + ")"
     } catch (e: Exception) { "" }
+
+    // Bate na porta com o "CNXN" do ADB e lê o cabeçalho da resposta (até 1,5 s).
+    // A porta de conectar da Depuração por Wi-Fi responde STLS (ou CNXN, AUTH);
+    // a de parear e as de outros serviços respondem outra coisa, fecham ou ficam
+    // mudas. É uma conexão à parte, fechada em seguida: não mexe na de verdade.
+    private fun sondarAdb(h: String, p: Int): String {
+        return try {
+            java.net.Socket().use { s ->
+                s.connect(java.net.InetSocketAddress(h, p), 1500)
+                s.soTimeout = 1500
+                val dados = "host::\u0000".toByteArray()
+                var soma = 0
+                dados.forEach { soma += (it.toInt() and 0xff) }
+                val cmd = 0x4e584e43
+                val b = java.nio.ByteBuffer.allocate(24 + dados.size).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+                b.putInt(cmd).putInt(0x01000001).putInt(256 * 1024).putInt(dados.size).putInt(soma).putInt(cmd xor -1).put(dados)
+                s.getOutputStream().write(b.array())
+                s.getOutputStream().flush()
+                val r = ByteArray(24)
+                var lido = 0
+                val ent = s.getInputStream()
+                while (lido < 24) { val n = ent.read(r, lido, 24 - lido); if (n <= 0) break; lido += n }
+                if (lido < 4) return "outro"
+                val c = java.nio.ByteBuffer.wrap(r, 0, 4).order(java.nio.ByteOrder.LITTLE_ENDIAN).int
+                if (c == 0x534c5453 || c == 0x4e584e43 || c == 0x48545541) "adb" else "outro"
+            }
+        } catch (e: java.net.SocketTimeoutException) { "mudo" } catch (e: Exception) { "outro" }
+    }
+
+    // As portas que responderam como ADB primeiro, depois as mudas; as que
+    // responderam outra coisa ficam de fora. Se nenhuma responder como ADB nem
+    // ficar muda, a lista volta inteira: a sonda nunca pode deixar sem tentativa.
+    private fun ordenarPorSonda(lista: List<Pair<String, Int>>): List<Pair<String, Int>> {
+        if (lista.size <= 1) return lista
+        val r = lista.map { it to sondarAdb(it.first, it.second) }
+        det("   sonda das portas: " + r.joinToString(", ") { it.first.first + ":" + it.first.second + " " + it.second })
+        val adb = r.filter { it.second == "adb" }.map { it.first }
+        val mudo = r.filter { it.second == "mudo" }.map { it.first }
+        if (adb.isNotEmpty()) log("✓ Achei a porta do relógio: " + adb.first().second + ".")
+        val boas = adb + mudo
+        return if (boas.isNotEmpty()) boas else lista
+    }
 
     // Roda a chamada da biblioteca com prazo: sem ele, uma rede que segura a
     // conexão deixava a tela em "Pareando…" para sempre.

@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-21m — Atualizar o app do relógio ficou mais rápido
+
+**Em uma frase:** ao atualizar o app do relógio, o celular agora descobre na hora qual é a porta certa do relógio em vez de esperar em cada uma.
+
+**O que mudou**
+- O relógio avisa várias portas abertas, e só uma serve. Antes o celular esperava até 15 segundos em cada porta errada; agora ele confere todas em menos de 2 segundos e vai direto na certa.
+
+**Por que importa para quem treina**
+- A atualização do relógio não fica parada em "Conectando ao relógio".
+
+**Como usar**
+- Atualize o app do celular e toque em "⬆ Atualizar o relógio", como sempre.
+
+**Ideias de vídeo**
+- Nenhuma: é uma melhoria por dentro.
+
+**Não prometer**
+- Não prometer tempo exato de atualização: depende do Wi-Fi do relógio.
+
+---
+
 ## 2026-11-21l — O sono sai do resumo animado
 
 **Em uma frase:** a cena dos sinais vitais do resumo animado não mostra mais as horas de sono; o resto continua igual.

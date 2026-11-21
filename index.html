@@ -1762,7 +1762,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-21j";
+const VERSAO_APP = "2026-11-21k";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3199,7 +3199,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-176/treino-livre-176.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-178/treino-livre-178.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -3303,6 +3303,9 @@ function lerPacoteSaude(texto, decodificar) {
     // oxigenação (%) e variabilidade da frequência cardíaca (RMSSD, ms): o que relógio e anel medem à noite
     spo2: lista(p.spo2).map((x) => ({ t: t(x && x.t), pct: num(x && x.pct, 70, 100) })).filter((x) => x.t && x.pct).slice(-120),
     vfc: lista(p.vfc).map((x) => ({ t: t(x && x.t), ms: num(x && x.ms, 5, 300) })).filter((x) => x.t && x.ms).slice(-120),
+    // a respiração (do sono, quase sempre) e o VO2máx estimado pelo relógio (2026-11-21k)
+    resp: lista(p.resp).map((x) => ({ t: t(x && x.t), rpm: num(x && x.rpm, 4, 60) })).filter((x) => x.t && x.rpm).slice(-120),
+    vo2: lista(p.vo2).map((x) => ({ t: t(x && x.t), ml: num(x && x.ml, 10, 95) })).filter((x) => x.t && x.ml).slice(-60),
     atividades: lista(p.atividades).map((a) => ({
       ini: t(a && a.ini), fim: t(a && a.fim), tipo: txt(a && a.tipo, 20), nome: txt(a && a.nome, 60), app: txt(a && a.app, 80),
     })).filter((a) => a.ini && a.fim && a.fim > a.ini).slice(-60),
@@ -3313,8 +3316,15 @@ function lerPacoteSaude(texto, decodificar) {
       const c = x && x.c, ini = c && t(c.ini), passo = c && num(c.p, 5, 600);
       const v = ini && passo && typeof c.v === "string" ? c.v.split(",").slice(0, 1000).map((n) => { const b = Number(n); return b >= 25 && b <= 250 ? Math.round(b) : 0; }) : null;
       const curva = v && v.filter((b) => b > 0).length >= 3 ? { ini: ini, p: passo, v: v } : null;
-      return { id: txt(x && x.id, 40), medio: num(x && x.medio, 25, 250), max: num(x && x.max, 25, 250), amostras: num(x && x.amostras, 1, 100000), curva: curva };
-    }).filter((x) => x.id && ((x.medio && x.max) || x.curva)),
+      // e o que mais o relógio mediu no treino: respiração, oxigênio, passos, calorias, distância
+      const xx = x && x.x, ex = {};
+      if (xx && typeof xx === "object") {
+        [["resp", 4, 80], ["respMax", 4, 90], ["spo2", 70, 100], ["spo2Min", 70, 100], ["passos", 1, 100000], ["m", 10, 300000], ["kcal", 1, 5000]]
+          .forEach(([k, mn, mx]) => { const v = num(xx[k], mn, mx); if (v !== null) ex[k] = v; });
+      }
+      return { id: txt(x && x.id, 40), medio: num(x && x.medio, 25, 250), max: num(x && x.max, 25, 250), amostras: num(x && x.amostras, 1, 100000), curva: curva,
+        extras: Object.keys(ex).length ? ex : null };
+    }).filter((x) => x.id && ((x.medio && x.max) || x.curva || x.extras)),
   };
 }
 
@@ -3332,10 +3342,12 @@ function batimentoNosTreinos(historico, fcTreinos) {
     if (!f) return r;
     const poeBpm = !(r.bpm && r.bpm.medio) && (f.medio || f.curva);
     const poeCurva = f.curva && !r.fcRelogio;
-    if (!poeBpm && !poeCurva) return r;
+    const poeVitais = f.extras && !r.vitaisRelogio;
+    if (!poeBpm && !poeCurva && !poeVitais) return r;
     mudou++;
     const n = { ...r };
     if (poeCurva) n.fcRelogio = f.curva;
+    if (poeVitais) n.vitaisRelogio = f.extras;
     if (poeBpm) {
       const d = f.medio ? { medio: f.medio, max: f.max } : resumoCurvaFc(f.curva, new Date(r.data).getTime());
       if (d && d.medio) n.bpm = { medio: Math.round(d.medio), max: Math.round(d.max), amostras: f.amostras || 0, fonte: "relogio" };
@@ -5428,6 +5440,8 @@ let TEMA_APP = "escuro";
 // animado ler a curva do relógio sem descer props por toda a árvore. Posto pelo
 // raiz a cada render, como o TEMA_APP.
 let FC_PERFIL = { max: 0, rep: 0 };
+// A saúde do relógio (o pacote da Conexão Saúde), para o resumo animado
+let SAUDE_RESUMO = null;
 const corGrupo = (g) => (TEMA_APP === "claro" && g && g.corL ? g.corL : (g && g.cor ? g.cor : "var(--cinza)"));
 
 const MUSCULOS = {
@@ -26555,6 +26569,7 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
   d.monstro = monstroResumo(registro);
   // o coração: a curva do relógio (Conexão Saúde) ou, sem ela, a média da cinta
   d.coracao = dadosCoracaoResumo(registro, exPorId);
+  d.vitais = dadosVitaisResumo(registro, SAUDE_RESUMO, d.cardio && d.cardio.km >= 0.05);
   if (!d.forca && !d.cardio && !d.monstro) return null;
   // os recordes de corrida e caminhada que este treino bateu
   if (d.cardio) {
@@ -26599,6 +26614,52 @@ function dadosCoracaoResumo(registro, exPorId) {
   const b = registro.bpm;
   if (b && b.medio > 0) return { medio: Math.round(b.medio), max: Math.round(b.max || b.medio), curva: null, rec: null, trimp: 0, zona: "" };
   return null;
+}
+
+// Os sinais vitais do treino e do dia (2026-11-21k, pedido do dono: "coloque os
+// dados cardíacos, respiratórios, tudo o que tiver disponível no resumo"). O que
+// o relógio mediu durante o treino (vitaisRelogio) vem primeiro; depois, o do
+// dia do treino que a Conexão Saúde trouxe: repouso, VFC, oxigênio e
+// respiração da noite, o sono, o VO2máx e os passos. Só entra o que existe, e a
+// cena só aparece com dois números ou mais.
+function dadosVitaisResumo(registro, saude, temKm) {
+  const fim = new Date(registro.data).getTime(), ini = fim - Math.max(1, registro.duracaoMin || 1) * 60000;
+  const v = registro.vitaisRelogio || {}, out = [];
+  const media = (arr, campo) => { const xs = (arr || []).filter((x) => x.t > fim - 30 * 864e5 && x.t <= fim).map((x) => x[campo]); return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0; };
+  const ultimo = (arr, ms, foraDoTreino) => (arr || []).filter((x) => x.t <= fim && x.t > fim - ms && (!foraDoTreino || x.t < ini || x.t > fim)).sort((a, b) => b.t - a.t)[0] || null;
+  const um = (x) => Math.round(x * 10) / 10;
+  if (v.resp) out.push({ k: "resp", icone: "🫁", rot: "Respiração no treino", val: Math.round(v.resp), un: "rpm", sub: v.respMax ? "máx " + Math.round(v.respMax) + " por minuto" : "por minuto", onde: "pulmao",
+    fala: "respiração de " + Math.round(v.resp) + " por minuto no treino" });
+  if (v.spo2) out.push({ k: "spo2", icone: "🩸", rot: "Oxigênio no treino", val: Math.round(v.spo2), un: "%", sub: v.spo2Min ? "mínimo " + Math.round(v.spo2Min) + "%" : "SpO2", onde: "pulmao",
+    fala: "oxigênio em " + Math.round(v.spo2) + " por cento" });
+  if (v.kcal) out.push({ k: "kcal", icone: "🔥", rot: "Calorias ativas", val: Math.round(v.kcal), un: "kcal", sub: "medidas pelo relógio", onde: "barriga",
+    fala: Math.round(v.kcal) + " calorias ativas pelo relógio" });
+  if (v.passos) out.push({ k: "passos", icone: "👣", rot: "Passos no treino", val: Math.round(v.passos), un: "", sub: !temKm && v.m ? um(v.m / 1000) + " km pelo relógio" : "pelo relógio", onde: "pe",
+    fala: Math.round(v.passos) + " passos" });
+  if (saude) {
+    const rep = ultimo(saude.repouso, 36 * 3600e3);
+    if (rep) { const m = media(saude.repouso, "bpm"); out.push({ k: "repouso", icone: "❤️", rot: "FC de repouso", val: Math.round(rep.bpm), un: "bpm", sub: m ? "média 30 dias: " + Math.round(m) : "", onde: "coracao",
+      fala: "batimento de repouso de " + Math.round(rep.bpm) }); }
+    const vf = ultimo(saude.vfc, 36 * 3600e3);
+    if (vf) { const m = media(saude.vfc, "ms"); out.push({ k: "vfc", icone: "〰️", rot: "VFC", val: Math.round(vf.ms), un: "ms", sub: m ? "média 30 dias: " + Math.round(m) + " ms" : "variabilidade do coração", onde: "coracao",
+      fala: "variabilidade de " + Math.round(vf.ms) + " milissegundos" }); }
+    const sono = (saude.sono || []).filter((x) => x.fim <= fim && x.fim > fim - 20 * 3600e3).sort((a, b) => (b.fim - b.ini) - (a.fim - a.ini))[0];
+    if (sono) { const min = Math.round((sono.fim - sono.ini) / 60000); out.push({ k: "sono", icone: "🌙", rot: "Sono da noite", val: Math.floor(min / 60) + "h" + String(min % 60).padStart(2, "0"), un: "", sub: min >= 420 ? "noite cheia" : "", onde: "cabeca",
+      fala: Math.floor(min / 60) + " horas" + (min % 60 ? " e " + (min % 60) + " minutos" : "") + " de sono" }); }
+    const vo = ultimo(saude.vo2, 120 * 864e5);
+    if (vo) out.push({ k: "vo2", icone: "📈", rot: "VO2máx", val: um(vo.ml), un: "", sub: "ml/kg/min · estimado", onde: "pulmao",
+      fala: "VO2 máximo estimado em " + Math.round(vo.ml) });
+    const rr = !v.resp && ultimo(saude.resp, 36 * 3600e3, true);
+    if (rr) out.push({ k: "respRep", icone: "🫁", rot: "Respiração em repouso", val: um(rr.rpm), un: "rpm", sub: "por minuto", onde: "pulmao",
+      fala: "respiração de " + Math.round(rr.rpm) + " por minuto em repouso" });
+    const sp = !v.spo2 && ultimo(saude.spo2, 36 * 3600e3, true);
+    if (sp) out.push({ k: "spo2n", icone: "🩸", rot: "Oxigênio (SpO2)", val: Math.round(sp.pct), un: "%", sub: "a última medida", onde: "pulmao",
+      fala: "oxigênio em " + Math.round(sp.pct) + " por cento" });
+    const dia = !v.passos && (saude.dias || []).find((x) => x.d === diaLocal(fim));
+    if (dia && dia.passos) out.push({ k: "passosDia", icone: "👣", rot: "Passos no dia", val: Math.round(dia.passos), un: "", sub: dia.passos >= META_PASSOS ? "meta do dia batida" : "meta " + META_PASSOS.toLocaleString("pt-BR"), onde: "pe",
+      fala: Math.round(dia.passos) + " passos no dia" });
+  }
+  return out.length >= 2 ? out.slice(0, 8) : null;
 }
 
 const DIAS_RESUMO = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
@@ -26739,6 +26800,13 @@ function cenasResumo(d) {
       fala: "Seu coração. Média de " + H.medio + " batimentos por minuto, pico de " + H.max + "." + zFala +
         (H.rec && H.rec.queda > 0 ? " Um minuto depois do treino, ele desceu " + H.rec.queda + " batimentos." : "") });
   }
+  if (d.vitais) {
+    const vv = d.vitais;
+    c.push({ tipo: "corpo", rotulo: "Seus sinais vitais", itens: vv, bpm: H ? H.medio : 72,
+      resp: (vv.find((x) => x.k === "resp" || x.k === "respRep") || {}).val || 16,
+      grito: "Corpo em leitura", impactoMs: 1500,
+      fala: "Seus sinais: " + vv.slice(0, 4).map((x) => x.fala).join(", ") + "." });
+  }
   if (M && M.fim) {
     c.push({ tipo: "historia", rotulo: M.completo ? "Missão cumprida" : M.parcial ? "Missão em parte" : "Você voltou inteiro", icone: M.missao.icone,
       texto: M.fim, cor: M.completo ? "#7CFF3C" : "#FFB020", fala: M.fim + (M.mo.instagram ? " No Instagram: arroba " + INSTAGRAM.split(".").join(" ponto ") + "." : ""), fotoGrande: M.mo.fotoCorpo || null, avatar: !!M.mo.avatar, rodape: M.mo.instagram ? "@" + INSTAGRAM : "" });
@@ -26789,7 +26857,7 @@ function cenasResumo(d) {
   // repartidos pelas cenas (a forte vale o triplo): o contador do canto sobe a
   // cada uma. Os pontos são os de verdade (xpDe), não um número inventado.
   const BONUS_RESUMO = { recordes: "Bônus de recorde", superacao: "Vitória do dia", perseguicoes: "Bônus de fuga", semana: "Bônus da semana",
-    nivel: "Nível novo!", numero: "Bônus de força", texto: "Bônus de superação", coracao: "Bônus do coração" };
+    nivel: "Nível novo!", numero: "Bônus de força", texto: "Bônus de superação", coracao: "Bônus do coração", corpo: "Bônus vital" };
   c.forEach((x) => { if (x.forte && x.tipo !== "fecho") x.bonus = BONUS_RESUMO[x.tipo] || "Bônus!"; });
   const xpT = d.xpGanho || 0;
   if (xpT > 0) {
@@ -27284,6 +27352,119 @@ function desenharCoracaoAR(c, cena, p, conta, parado) {
   if (H.curva) { c.textAlign = "right"; c.fillStyle = COR_AR; c.fillText("SEU TREINO", px + pw - 14, py + 26); }
   c.restore();
 }
+// ---- OS SINAIS VITAIS EM REALIDADE AUMENTADA (2026-11-21k): um corpo de
+// holograma (o esqueleto do Eyes Scan, com volume), com os pulmões respirando
+// no ritmo medido (ou 16 por minuto) e o coração batendo no médio do treino;
+// em volta, até oito marcadores, cada um ligado ao lugar do corpo de onde o
+// número vem (pulmão, coração, cabeça, barriga, pés). A mesma caixa de
+// 1080×1120 do coração, na tela e no vídeo.
+function desenharCorpoAR(c, cena, p, conta, parado) {
+  const ms = parado ? 0 : p, cx = 540;
+  const resp = Math.max(6, Math.min(60, cena.resp || 16));
+  const fase = parado ? 0.5 : 0.5 - 0.5 * Math.cos(((ms * resp) / 60000) * Math.PI * 2);
+  const bt = parado ? { f: 0.5, forca: 0 } : batidaCoracao(ms, cena.bpm || 72);
+  c.save(); c.textBaseline = "alphabetic";
+  // a plataforma de projeção nos pés, girando
+  c.save(); c.translate(cx, 1060); c.scale(1, 0.22);
+  c.strokeStyle = COR_AR; c.lineWidth = 6; c.globalAlpha = 0.7;
+  c.save(); c.rotate(ms / 2600); c.setLineDash([70, 26]); c.beginPath(); c.arc(0, 0, 230, 0, Math.PI * 2); c.stroke(); c.restore();
+  c.globalAlpha = 0.35; c.beginPath(); c.arc(0, 0, 290, 0, Math.PI * 2); c.stroke();
+  const pl = c.createRadialGradient(0, 0, 10, 0, 0, 300); pl.addColorStop(0, "rgba(77,235,255,.35)"); pl.addColorStop(1, "rgba(77,235,255,0)");
+  c.globalAlpha = 1; c.fillStyle = pl; c.beginPath(); c.arc(0, 0, 300, 0, Math.PI * 2); c.fill();
+  c.restore();
+  // o feixe que sobe da plataforma
+  const fx = c.createLinearGradient(0, 1060, 0, 60); fx.addColorStop(0, "rgba(77,235,255,.18)"); fx.addColorStop(1, "rgba(77,235,255,0)");
+  c.fillStyle = fx; c.beginPath(); c.moveTo(cx - 230, 1060); c.lineTo(cx - 170, 60); c.lineTo(cx + 170, 60); c.lineTo(cx + 230, 1060); c.closePath(); c.fill();
+  // o corpo: volume translúcido e o esqueleto
+  const ossos = [[[540, 210], [540, 250]], [[420, 262], [660, 262]], [[420, 262], [392, 420], [372, 560]], [[660, 262], [688, 420], [708, 560]],
+    [[540, 250], [540, 560]], [[472, 580], [608, 580]], [[480, 590], [474, 800], [468, 1010]], [[600, 590], [606, 800], [612, 1010]]];
+  const larg = [30, 0, 40, 40, 0, 0, 58, 58];
+  c.lineCap = "round"; c.lineJoin = "round";
+  ossos.forEach((o, k) => {
+    if (!larg[k]) return;
+    c.beginPath(); c.moveTo(o[0][0], o[0][1]); o.slice(1).forEach((q) => c.lineTo(q[0], q[1]));
+    c.strokeStyle = "rgba(77,235,255,.13)"; c.lineWidth = larg[k]; c.stroke();
+  });
+  // o tronco
+  c.beginPath(); c.moveTo(420, 250); c.quadraticCurveTo(540, 228, 660, 250); c.lineTo(640, 420); c.quadraticCurveTo(622, 500, 630, 600);
+  c.lineTo(450, 600); c.quadraticCurveTo(458, 500, 440, 420); c.closePath();
+  const tg = c.createLinearGradient(420, 250, 660, 600); tg.addColorStop(0, "rgba(77,235,255,.22)"); tg.addColorStop(1, "rgba(77,235,255,.08)");
+  c.fillStyle = tg; c.fill(); c.strokeStyle = "rgba(77,235,255,.7)"; c.lineWidth = 2.5; c.stroke();
+  // a cabeça
+  c.beginPath(); c.arc(540, 150, 58, 0, Math.PI * 2); c.fillStyle = "rgba(77,235,255,.16)"; c.fill(); c.strokeStyle = "rgba(77,235,255,.75)"; c.stroke();
+  // os pulmões respirando
+  const ps = 1 + 0.09 * fase;
+  [-1, 1].forEach((lado) => {
+    c.save(); c.translate(540 + lado * 50, 360); c.scale(ps, ps);
+    c.beginPath(); c.moveTo(0, -78);
+    c.bezierCurveTo(lado * 60, -80, lado * 82, 20, lado * 70, 92);
+    c.bezierCurveTo(lado * 40, 110, lado * 10, 96, lado * 6, 70);
+    c.lineTo(lado * 4, -60); c.closePath();
+    const lg = c.createRadialGradient(lado * 30, 0, 10, lado * 30, 10, 110);
+    lg.addColorStop(0, "rgba(255,160,190,.55)"); lg.addColorStop(1, "rgba(150,80,200,.25)");
+    c.fillStyle = lg; c.fill(); c.strokeStyle = "rgba(255,190,220,.85)"; c.lineWidth = 2.5; c.stroke();
+    c.strokeStyle = "rgba(255,210,230,.4)"; c.lineWidth = 1.6;
+    for (let r = 0; r < 4; r++) { c.beginPath(); c.moveTo(lado * 6, -40 + r * 22); c.quadraticCurveTo(lado * 30, -20 + r * 26, lado * (50 + r * 4), -4 + r * 28); c.stroke(); }
+    c.restore();
+  });
+  // a traqueia
+  c.strokeStyle = "rgba(255,190,220,.7)"; c.lineWidth = 6; c.beginPath(); c.moveTo(540, 220); c.lineTo(540, 290); c.stroke();
+  // o coração pequeno, batendo
+  c.save(); c.translate(565, 395); const hs = 34 * (1 + 0.12 * bt.forca); c.scale(hs, hs); c.rotate(-0.15);
+  c.shadowColor = "rgba(255,40,80,.9)"; c.shadowBlur = 24 / hs;
+  corpoCoracao(c); c.fillStyle = "#FF3B5C"; c.fill(); c.restore();
+  // as juntas, como no Eyes Scan
+  c.fillStyle = "#FFFFFF";
+  [[540, 250], [420, 262], [660, 262], [392, 420], [688, 420], [372, 560], [708, 560], [472, 590], [608, 590], [474, 800], [606, 800], [468, 1010], [612, 1010]]
+    .forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 6, 0, Math.PI * 2); c.fill(); });
+  // a varredura descendo o corpo
+  if (!parado) {
+    const y = 80 + ((ms / 2600) % 1) * 960;
+    const lgv = c.createLinearGradient(0, y - 60, 0, y + 3); lgv.addColorStop(0, "rgba(77,235,255,0)"); lgv.addColorStop(1, "rgba(77,235,255,.28)");
+    c.fillStyle = lgv; c.fillRect(330, y - 60, 420, 63);
+    c.fillStyle = "rgba(170,250,255,.9)"; c.fillRect(330, y, 420, 2);
+  }
+  // os marcadores ligados ao corpo
+  const ancora = { pulmao: [500, 360], coracao: [565, 395], cabeca: [540, 150], barriga: [540, 520], pe: [470, 1000] };
+  const itens = cena.itens || [];
+  const esq = itens.filter((x, k) => k % 2 === 0), dir = itens.filter((x, k) => k % 2 === 1);
+  const alt = 128, linhas = Math.max(esq.length, dir.length);
+  // as linhas se espalham pela altura do corpo, da cabeça aos pés
+  const passoY = linhas > 1 ? Math.min(250, (960 - alt) / (linhas - 1)) : 0;
+  const coluna = (lista, lado) => lista.forEach((m, j) => {
+    const ordem = itens.indexOf(m);
+    const a = parado ? 1 : Math.max(0, Math.min(1, (p - 500 - ordem * 260) / 420));
+    if (!a) return;
+    const y0 = 40 + j * passoY, cxx = lado < 0 ? 18 : 1080 - 18 - 290, borda = lado < 0 ? cxx + 290 : cxx;
+    const an = ancora[m.onde] || ancora.coracao, ax = lado < 0 ? an[0] - 30 : an[0] + 30, ay = an[1];
+    const ym = y0 + alt / 2;
+    c.strokeStyle = COR_AR; c.lineWidth = 2.5; c.globalAlpha = 0.8;
+    const l1 = Math.min(1, a * 2), l2 = Math.max(0, a * 2 - 1), cot = borda + (lado < 0 ? 26 : -26);
+    c.beginPath(); c.moveTo(ax, ay); c.lineTo(ax + (cot - ax) * l1, ay + (ym - ay) * l1);
+    if (l2 > 0) c.lineTo(cot + (borda - cot) * l2, ym);
+    c.stroke();
+    c.fillStyle = COR_AR; c.beginPath(); c.arc(ax, ay, 6, 0, Math.PI * 2); c.fill();
+    c.globalAlpha = 1;
+    if (l2 < 1) return;
+    c.fillStyle = "rgba(4,10,18,.8)"; c.strokeStyle = "rgba(77,235,255,.6)"; c.lineWidth = 2;
+    c.beginPath(); arredondado(c, cxx, y0, 290, alt, 14); c.fill(); c.stroke();
+    c.textAlign = "left";
+    c.font = "400 34px " + VIDEO_FONTE; c.fillText(m.icone, cxx + 12, y0 + 46);
+    c.font = "800 20px " + VIDEO_FONTE; c.fillStyle = COR_AR; c.fillText(m.rot.toUpperCase().slice(0, 22), cxx + 60, y0 + 32);
+    const num = typeof m.val === "number" ? Math.round(m.val * conta * (Number.isInteger(m.val) ? 1 : 10)) / (Number.isInteger(m.val) ? 1 : 10) : m.val;
+    const txt = (typeof num === "number" ? num.toLocaleString("pt-BR") : num) + (m.un ? " " + m.un : "");
+    let tam = 44; c.font = "400 " + tam + "px " + VIDEO_FONTE_JOGO;
+    while (c.measureText(txt).width > 216 && tam > 24) { tam -= 2; c.font = "400 " + tam + "px " + VIDEO_FONTE_JOGO; }
+    c.fillStyle = "#FFFFFF"; c.fillText(txt, cxx + 60, y0 + 80);
+    if (m.sub) { c.font = "600 18px " + VIDEO_FONTE; c.fillStyle = "#BFC7D0"; c.fillText(m.sub.slice(0, 28), cxx + 14, y0 + 112); }
+  });
+  coluna(esq, -1); coluna(dir, 1);
+  // o rodapé: de onde vêm os números
+  c.textAlign = "center"; c.font = "700 20px " + VIDEO_FONTE; c.fillStyle = "rgba(191,199,208,.9)";
+  c.fillText("RELÓGIO · CONEXÃO SAÚDE · INFORMAÇÃO GERAL", cx, 1110);
+  c.restore();
+}
+
 // Na tela: o mesmo desenho num canvas próprio, a 30 quadros
 function CenaCoracaoAR({ c }) {
   const ref = useRef(null);
@@ -27305,7 +27486,7 @@ function CenaCoracaoAR({ c }) {
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, tela.width, tela.height);
       ctx.setTransform(k, 0, 0, k, 0, 0);
       const p = agora - ini;
-      desenharCoracaoAR(ctx, c, p, REDUZ_MOVIMENTO ? 1 : sobe((p - 350) / 1100), REDUZ_MOVIMENTO);
+      (c.tipo === "corpo" ? desenharCorpoAR : desenharCoracaoAR)(ctx, c, p, REDUZ_MOVIMENTO ? 1 : sobe((p - 350) / 1100), REDUZ_MOVIMENTO);
       if (!REDUZ_MOVIMENTO) quadro = requestAnimationFrame(desenhar);
     };
     desenhar();
@@ -27314,7 +27495,8 @@ function CenaCoracaoAR({ c }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
       <div style={ROTULO_RESUMO}>{c.rotulo}</div>
-      <canvas ref={ref} aria-label={"Coração batendo: média de " + c.h.medio + " batimentos por minuto, pico de " + c.h.max}
+      <canvas ref={ref} aria-label={c.tipo === "corpo" ? "Sinais vitais: " + c.itens.map((x) => x.rot + " " + x.val + (x.un ? " " + x.un : "")).join(", ")
+          : "Coração batendo: média de " + c.h.medio + " batimentos por minuto, pico de " + c.h.max}
         style={{ width: "min(100vw, calc(64vh * 1080 / 1120))", aspectRatio: "1080 / 1120", display: "block", marginTop: 6 }} />
     </div>
   );
@@ -27700,7 +27882,7 @@ function CenaResumo({ c }) {
       </div>
     );
   }
-  if (c.tipo === "coracao") return <CenaCoracaoAR c={c} />;
+  if (c.tipo === "coracao" || c.tipo === "corpo") return <CenaCoracaoAR c={c} />;
   if (c.tipo === "radar") {
     // o número desce de 300 até a distância, e o monstro anda junto no radar
     const f = c.valor ? v / c.valor : 1, mostra = Math.round(RADAR_ALCANCE_M - (RADAR_ALCANCE_M - c.valor) * f);
@@ -28347,10 +28529,10 @@ function videoCena(c, cena, p) {
       c.globalAlpha = 1;
     });
     if (cena.sub) videoTexto(c, cena.sub, 540, 1160 + cena.linhas.length * 76, 40, "#BDBDBD", 700, 940);
-  } else if (t === "coracao") {
+  } else if (t === "coracao" || t === "corpo") {
     videoRotulo(c, cena.rotulo, 340);
     c.save(); c.translate(0, 370);
-    desenharCoracaoAR(c, cena, p, conta, false);
+    (t === "corpo" ? desenharCorpoAR : desenharCoracaoAR)(c, cena, p, conta, false);
     c.restore();
     c.textAlign = "center"; c.textBaseline = "alphabetic";
   } else if (t === "radar") {
@@ -28585,7 +28767,7 @@ const STORY_MAX_MS = 58500;
 function videoDuracoes(cenas, falasMs) {
   return cenas.map((x, i) => {
     // o carimbo bate em 2 s; a lista do "desafio vencido" precisa de mais
-    const base = x.tipo === "fecho" ? VIDEO_FECHO_MS : x.tipo === "vinheta" ? VIDEO_VINHETA_MS : x.tipo === "superacao" ? 3600 : x.tipo === "mapa" ? 3300 : x.tipo === "coracao" ? 4800 : VIDEO_CENA_MS;
+    const base = x.tipo === "fecho" ? VIDEO_FECHO_MS : x.tipo === "vinheta" ? VIDEO_VINHETA_MS : x.tipo === "superacao" ? 3600 : x.tipo === "mapa" ? 3300 : x.tipo === "coracao" || x.tipo === "corpo" ? 4800 : VIDEO_CENA_MS;
     const fala = falasMs && falasMs[i] ? VOZ_ENTRA_MS + falasMs[i] + VOZ_RESPIRO_MS : 0;
     return Math.max(base, Math.round(fala));
   });
@@ -35045,6 +35227,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   };
 
   TEMA_APP = tema;
+  SAUDE_RESUMO = saude;
   FC_PERFIL = { max: fcMaxima(corredor && corredor.idade) || 0,
     rep: (corredor && corredor.fcRepouso) || (saude && saude.repouso && saude.repouso.length ? saude.repouso[saude.repouso.length - 1].bpm : 0) };
   MODO_DESCANSO = descansoModo;

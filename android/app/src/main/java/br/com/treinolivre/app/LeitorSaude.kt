@@ -8,7 +8,9 @@ import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
+import androidx.health.connect.client.records.RespiratoryRateRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
+import androidx.health.connect.client.records.Vo2MaxRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.WeightRecord
@@ -44,6 +46,9 @@ object LeitorSaude {
         HealthPermission.getReadPermission(ExerciseSessionRecord::class),
         HealthPermission.getReadPermission(OxygenSaturationRecord::class),
         HealthPermission.getReadPermission(HeartRateVariabilityRmssdRecord::class),
+        // 2026-11-21k: a respiração e o VO2máx, para o resumo animado
+        HealthPermission.getReadPermission(RespiratoryRateRecord::class),
+        HealthPermission.getReadPermission(Vo2MaxRecord::class),
     )
     val ESCRITA = setOf(HealthPermission.getWritePermission(ExerciseSessionRecord::class))
     val TODAS = LEITURA + ESCRITA
@@ -137,6 +142,40 @@ object LeitorSaude {
         return JSONObject().put("ini", ini).put("p", passo).put("v", v.toString())
     }
 
+    // O que mais o relógio mediu durante o treino (2026-11-21k, pedido do dono:
+    // "coloque os dados cardíacos, respiratórios, tudo o que tiver disponível no
+    // resumo animado"): a respiração (média e máxima), a oxigenação (média e
+    // mínima), e os passos, as calorias ativas e a distância daquela janela.
+    private suspend fun outrosDoTreino(client: HealthConnectClient, ini: Long, fim: Long, tem: (String) -> Boolean): JSONObject {
+        val x = JSONObject()
+        val jan = TimeRangeFilter.between(Instant.ofEpochMilli(ini), Instant.ofEpochMilli(fim))
+        if (tem(HealthPermission.getReadPermission(RespiratoryRateRecord::class))) {
+            try {
+                val v = client.readRecords(ReadRecordsRequest(RespiratoryRateRecord::class, jan, pageSize = 500)).records.map { it.rate }
+                if (v.isNotEmpty()) x.put("resp", Math.round(v.average() * 10) / 10.0).put("respMax", Math.round(v.maxOrNull()!! * 10) / 10.0)
+            } catch (e: Exception) { }
+        }
+        if (tem(HealthPermission.getReadPermission(OxygenSaturationRecord::class))) {
+            try {
+                val v = client.readRecords(ReadRecordsRequest(OxygenSaturationRecord::class, jan, pageSize = 500)).records.map { it.percentage.value }
+                if (v.isNotEmpty()) x.put("spo2", Math.round(v.average() * 10) / 10.0).put("spo2Min", v.minOrNull()!!)
+            } catch (e: Exception) { }
+        }
+        val metricas = mutableSetOf<AggregateMetric<*>>()
+        if (tem(HealthPermission.getReadPermission(StepsRecord::class))) metricas += StepsRecord.COUNT_TOTAL
+        if (tem(HealthPermission.getReadPermission(DistanceRecord::class))) metricas += DistanceRecord.DISTANCE_TOTAL
+        if (tem(HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class))) metricas += ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL
+        if (metricas.isNotEmpty()) {
+            try {
+                val r = client.aggregate(AggregateRequest(metrics = metricas, timeRangeFilter = jan))
+                r[StepsRecord.COUNT_TOTAL]?.let { if (it > 0) x.put("passos", it) }
+                r[DistanceRecord.DISTANCE_TOTAL]?.let { if (it.inMeters >= 10) x.put("m", Math.round(it.inMeters)) }
+                r[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.let { if (it.inKilocalories >= 1) x.put("kcal", Math.round(it.inKilocalories)) }
+            } catch (e: Exception) { }
+        }
+        return x
+    }
+
     suspend fun ler(client: HealthConnectClient, permitidas: Set<String>, treinos: List<TreinoDoSite>, pacoteProprio: String): JSONObject {
         val tem = { p: String -> permitidas.contains(p) }
         val zona = ZoneId.systemDefault()
@@ -204,8 +243,9 @@ object LeitorSaude {
 
         // 3. o batimento que o relógio gravou durante cada treino daqui
         val fcTreinos = JSONArray()
-        if (temFc) {
-            for (t in treinos) {
+        for (t in treinos) {
+            val o = JSONObject().put("id", t.id)
+            if (temFc) {
                 try {
                     val r = client.aggregate(
                         AggregateRequest(
@@ -214,15 +254,14 @@ object LeitorSaude {
                         )
                     )
                     val medio = r[HeartRateRecord.BPM_AVG]; val max = r[HeartRateRecord.BPM_MAX]
-                    val curva = try { curvaFc(client, t.ini, t.fim) } catch (e: Exception) { null }
-                    if ((medio != null && max != null) || curva != null) {
-                        val o = JSONObject().put("id", t.id)
-                        if (medio != null && max != null) o.put("medio", medio).put("max", max).put("amostras", r[HeartRateRecord.MEASUREMENTS_COUNT] ?: 0)
-                        if (curva != null) o.put("c", curva)
-                        fcTreinos.put(o)
-                    }
+                    if (medio != null && max != null) o.put("medio", medio).put("max", max).put("amostras", r[HeartRateRecord.MEASUREMENTS_COUNT] ?: 0)
                 } catch (e: Exception) { }
+                val curva = try { curvaFc(client, t.ini, t.fim) } catch (e: Exception) { null }
+                if (curva != null) o.put("c", curva)
             }
+            val x = try { outrosDoTreino(client, t.ini, t.fim, tem) } catch (e: Exception) { null }
+            if (x != null && x.length() > 0) o.put("x", x)
+            if (o.length() > 1) fcTreinos.put(o)
         }
         saida.put("fcTreinos", fcTreinos)
 
@@ -277,6 +316,25 @@ object LeitorSaude {
             } catch (e: Exception) { }
         }
         saida.put("vfc", vfc)
+        // a respiração (a do sono, quase sempre) e o VO2máx que o relógio estima
+        val resp = JSONArray()
+        if (tem(HealthPermission.getReadPermission(RespiratoryRateRecord::class))) {
+            try {
+                client.readRecords(ReadRecordsRequest(RespiratoryRateRecord::class, janela, ascendingOrder = false, pageSize = 120)).records.forEach {
+                    resp.put(JSONObject().put("t", it.time.toEpochMilli()).put("rpm", it.rate))
+                }
+            } catch (e: Exception) { }
+        }
+        saida.put("resp", resp)
+        val vo2 = JSONArray()
+        if (tem(HealthPermission.getReadPermission(Vo2MaxRecord::class))) {
+            try {
+                client.readRecords(ReadRecordsRequest(Vo2MaxRecord::class, TimeRangeFilter.after(Instant.now().minusSeconds(120 * 86400L)), ascendingOrder = false, pageSize = 60)).records.forEach {
+                    vo2.put(JSONObject().put("t", it.time.toEpochMilli()).put("ml", it.vo2MillilitersPerMinuteKilogram))
+                }
+            } catch (e: Exception) { }
+        }
+        saida.put("vo2", vo2)
 
         val atividades = JSONArray()
         if (tem(HealthPermission.getReadPermission(ExerciseSessionRecord::class))) {

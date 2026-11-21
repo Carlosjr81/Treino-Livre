@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-11-21k — Os sinais vitais no resumo animado
+
+**Em uma frase:** o resumo animado ganhou a cena "Seus sinais vitais", com tudo o que o relógio mediu: respiração, oxigênio, calorias, passos, batimento de repouso, variabilidade do coração, sono da noite e VO2máx.
+
+**O que mudou**
+- O app Android passou a buscar também a respiração e o VO2máx que o relógio grava na Conexão Saúde.
+- Em cada treino, o app guarda a respiração, o oxigênio, os passos e as calorias que o relógio mediu durante o treino.
+- No resumo animado (e no vídeo do story), depois da cena do coração, um corpo em holograma com os pulmões respirando e o coração batendo, e cada número apontado no lugar do corpo de onde ele vem.
+- Os números do dia do treino entram junto: batimento de repouso e variabilidade do coração comparados com a média de 30 dias, as horas de sono da noite anterior e os passos do dia.
+
+**Por que importa para quem treina**
+- O resumo conta o treino inteiro, não só as séries: como o corpo estava (sono, repouso) e como ele respondeu (respiração, oxigênio, calorias).
+
+**Como usar**
+- Com o app Android e o relógio, toque em Sincronizar na aba ❤ Saúde uma vez para liberar as permissões novas (respiração e VO2máx). Depois, abra o resumo animado de um treino.
+
+**Ideias de vídeo**
+- O resumo chegando no corpo em holograma, com os pulmões respirando por cima da arte da academia.
+- Uma noite bem dormida e o batimento de repouso caindo, mostrados no resumo.
+
+**Não prometer**
+- Só aparecem os números que o relógio de cada pessoa mede; nem todo relógio grava respiração, oxigênio ou VO2máx durante o treino.
+- Não é exame nem avaliação de saúde.
+- No iPhone não funciona.
+
+---
+
 ## 2026-11-21j — O coração no treino, pelo relógio
 
 **Em uma frase:** quem usa relógio (Galaxy Watch e outros que gravam na Conexão Saúde) agora vê, em cada treino do histórico, a curva do batimento, o tempo em cada zona, quanto o coração desceu depois do treino e qual exercício mais puxou o coração.

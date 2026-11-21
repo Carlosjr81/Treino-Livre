@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v254) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v255) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5261,6 +5261,27 @@ app faz sozinho ao abrir.
   (ponteiro de módulo posto pelo raiz, como o `TEMA_APP`). No vídeo, 4,8 s
   sem narração. Conferido no navegador (tela e um quadro do vídeo). **Não
   validado num celular** (o desempenho do canvas a 30 quadros).
+- **Os sinais vitais no resumo** (2026-11-21k, pedido do dono: "coloque os
+  dados cardíacos, respiratórios, tudo o que tiver disponível no resumo
+  animado"). O app Android lê também a **respiração** (`RespiratoryRateRecord`)
+  e o **VO2máx** (`Vo2MaxRecord`): permissões novas, pedidas na próxima
+  sincronização à mão. Em cada treino, `outrosDoTreino` junta o que o relógio
+  mediu na janela (respiração média e máxima, oxigênio médio e mínimo, passos,
+  calorias ativas e distância), que vai no `x` do `fcTreinos` e fica no
+  registro em `vitaisRelogio`; o dia a dia ganhou `resp` e `vo2`.
+  `dadosVitaisResumo` monta a cena `corpo` ("Seus sinais vitais", depois do
+  coração) com até 8 números, os do treino primeiro e depois os do dia do
+  treino (FC de repouso e VFC com a média de 30 dias, o sono da noite, o
+  VO2máx, a respiração e o oxigênio da noite, os passos do dia); só aparece com
+  dois ou mais. A saúde chega ao resumo pelo `SAUDE_RESUMO` (ponteiro de
+  módulo, como o `FC_PERFIL`). A arte (`desenharCorpoAR`, a mesma caixa e
+  o mesmo canvas do coração, `CenaCoracaoAR`): um corpo em holograma com o
+  esqueleto do Eyes Scan, os **pulmões respirando** no ritmo medido (16 por
+  minuto sem medida), o coração batendo, a plataforma de projeção girando, a
+  varredura descendo e cada marcador ligado ao lugar do corpo de onde o número
+  vem. Coberto em `teste-saude.js` (o pacote novo e o registro). No
+  navegador: a tela e um quadro do vídeo. **Não validado num aparelho** (a
+  permissão nova e o que o Galaxy Watch grava de respiração e VO2máx).
 - **Informação geral, não exame**: a tela diz isso, e as frases não falam em
   "normal" nem "anormal" (a queda de 12 bpm é a referência dos estudos, dita
   como "boa recuperação").

@@ -155,6 +155,13 @@ console.log("\n--- a curva do relógio e o coração no treino ---");
   teste("TRIMP positivo", true, an.trimp > 0);
   teste("sem a idade, FC máxima estimada e nunca abaixo do pico", [true, true], (() => { const a = H.analiseCoracao(b2.historico[0], 0, 0, zonas); return [a.estimada, a.fcMax >= 160]; })());
   teste("treino sem curva: nada a analisar", null, H.analiseCoracao(reg, 180, 60, zonas));
+  const pv = Buffer.from(JSON.stringify({ v: 1, em: AGORA, resp: [{ t: AGORA - DIA, rpm: 14.2 }, { t: AGORA, rpm: 900 }], vo2: [{ t: AGORA - DIA, ml: 44.6 }],
+    fcTreinos: [{ id: "so-vitais", x: { resp: 27.4, respMax: 36, spo2: 96.5, spo2Min: 140, passos: 1830, kcal: 412, lixo: 5 } }] })).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const lv = H.lerPacoteSaude(pv, (x) => Buffer.from(x, "base64").toString("utf8"));
+  teste("a respiração e o VO2máx do dia a dia (sem número impossível)", [[14.2], [44.6]], [lv.resp.map((x) => x.rpm), lv.vo2.map((x) => x.ml)]);
+  teste("o treino só com o que o relógio mediu (respiração, oxigênio...) entra", { resp: 27.4, respMax: 36, spo2: 96.5, passos: 1830, kcal: 412 }, lv.fcTreinos[0].extras);
+  const bv = H.batimentoNosTreinos([{ id: "so-vitais", data: new Date(AGORA).toISOString(), itens: [] }], lv.fcTreinos);
+  teste("e vai para o registro, sem inventar batimento", [true, false], [!!bv.historico[0].vitaisRelogio, !!bv.historico[0].bpm]);
   teste("a frase da recuperação", "desceu 25 bpm em 1 minuto: uma recuperação rápida", H.textoRecuperacao({ queda: 25 }));
 }
 

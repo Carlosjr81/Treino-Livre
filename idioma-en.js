@@ -25,7 +25,7 @@ var TEXTOS_EN = {
   "Use uma foto sua (do treino, da academia, do shape) no fundo do resumo e do vídeo do story. Sem foto, fica a arte do Treino Livre.": "Use a photo of yours (workout, gym, physique) as the background of the summary and the story video. Without a photo, the Treino Livre art stays.",
   "Seu resumo está com a sua foto ao fundo, aqui e no vídeo do story.": "Your summary has your photo in the background, here and in the story video.",
   "Não consegui usar essa imagem. Tente outra foto.": "I couldn't use that image. Try another photo.",
-  "Seu coração no treino": "Your heart in the workout", "O coração no treino": "The heart in the workout", "Tempo em cada zona": "Time in each zone",
+  "Seu coração no treino": "Your heart in the workout", "Seus sinais vitais": "Your vital signs", "O coração no treino": "The heart in the workout", "Tempo em cada zona": "Time in each zone",
   "🔥 O que mais puxou o coração": "🔥 What pushed your heart the most", "⌚ O coração nos treinos": "⌚ The heart across workouts",
   "▶ Ver como": "▶ See how", "💛 Quero apoiar": "💛 I want to help", "Agora não": "Not now",
   "🔥 Curtiu? Ajude o app a crescer": "🔥 Enjoyed it? Help the app grow", "📸 Postar no story": "📸 Post to story",

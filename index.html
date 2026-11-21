@@ -1762,7 +1762,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-21h";
+const VERSAO_APP = "2026-11-21i";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3199,7 +3199,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-172/treino-livre-172.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-174/treino-livre-174.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -9662,8 +9662,10 @@ function Celebracao({ festa, onFechar }) {
 function CronometroSessao({ inicio }) {
   const [agora, setAgora] = useState(Date.now());
   useEffect(() => {
-    const iv = setInterval(() => setAgora(Date.now()), 1000);
-    return () => clearInterval(iv);
+    const iv = setInterval(() => { if (!document.hidden) setAgora(Date.now()); }, 1000);
+    const aoVoltar = () => { if (!document.hidden) setAgora(Date.now()); };
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", aoVoltar); };
   }, []);
   const seg = Math.max(0, Math.floor((agora - inicio) / 1000));
   const h = Math.floor(seg / 3600), m = Math.floor((seg % 3600) / 60), s = seg % 60;
@@ -26903,14 +26905,19 @@ function CenarioArte({ cena, indice, chave, animar }) {
     if (!tela) return undefined;
     const c = tela.getContext("2d");
     const ini = Date.now();
-    let quadro = 0, vivo = true;
+    let quadro = 0, vivo = true, ultQuadro = 0;
     const desenhar = () => {
       if (!vivo) return;
+      // 30 quadros por segundo, como o vídeo do story: a câmera da arte anda
+      // devagar, e desenhar a 60 (ou 120) gastava o dobro de bateria sem diferença
+      const agoraQ = Date.now();
+      if (animar && !document.hidden && agoraQ - ultQuadro < 30) { quadro = requestAnimationFrame(desenhar); return; }
+      ultQuadro = agoraQ;
       const dpr = Math.min(1.5, window.devicePixelRatio || 1);
       const W = tela.clientWidth, H = tela.clientHeight;
       if (tela.width !== Math.round(W * dpr) || tela.height !== Math.round(H * dpr)) { tela.width = Math.round(W * dpr); tela.height = Math.round(H * dpr); }
       const e = estado.current;
-      e.escuro += (alvo.current - e.escuro) * 0.06;
+      e.escuro += (alvo.current - e.escuro) * 0.12;
       const agora = Date.now();
       // cobre a tela com o 1080×1920 do story, sem deformar
       const k = Math.max((W * dpr) / 1080, (H * dpr) / 1920);
@@ -29174,7 +29181,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
 
   useEffect(() => {
     if (!fimDescanso) return;
-    const iv = setInterval(() => setAgora(Date.now()), 250);
+    // Confere a cada 250 ms (o bipe dos últimos segundos sai na hora), mas só
+    // redesenha quando o segundo mostrado muda: a tela do treino é grande, e
+    // redesenhá-la 4 vezes por segundo em todo descanso gastava bateria à toa
+    // (2026-11-21i, pedido do dono: "otimizar o consumo de bateria do celular").
+    const seg = (t) => Math.ceil((fimDescanso - t) / 1000);
+    const iv = setInterval(() => setAgora((a) => (seg(a) === seg(Date.now()) ? a : Date.now())), 250);
     return () => clearInterval(iv);
   }, [fimDescanso]);
 
@@ -29354,6 +29366,10 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // Segura a tela acesa enquanto o descanso corre e devolve o controle ao terminar
   useEffect(() => {
     if (!fimDescanso || acabou) { desligarTravaTela(); return; }
+    // No app Android o descanso é conduzido pelo próprio app (bipe, voz e o
+    // relógio do pulso funcionam com a tela apagada): segurar a tela acesa ali
+    // era gastar bateria sem ganhar nada. Só a página precisa dela.
+    if (descansoNoBolso.current && Math.abs(descansoNoBolso.current - fimDescanso) < 3000) return;
     ligarTravaTela();
     // o sistema solta a trava sozinho quando o app vai para segundo plano: ao voltar, repõe
     const aoVoltar = () => {
@@ -31607,7 +31623,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
           )}
           {!acabou && (
             <div style={{ height: 5, background: "var(--borda)", borderRadius: 3, marginTop: 10, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: pct + "%", background: restante <= 3 ? "#ED4956" : "#E1306C", borderRadius: 3, transition: "width 0.25s linear" }} />
+              <div style={{ height: "100%", width: pct + "%", background: restante <= 3 ? "#ED4956" : "#E1306C", borderRadius: 3, transition: "width 1s linear" }} />
             </div>
           )}
         </div>

@@ -444,7 +444,9 @@ class BolsoService : Service(), RecognitionListener {
     private val olharCopia = object : Runnable {
         override fun run() {
             if (pronto && temCanal()) js("bolso.copiaNova?bolso.copiaNova():''") { if (it == "1") publicarRelogio() }
-            linha.postDelayed(this, 2_000L)
+            // com a tela travada ninguém mexe no treino do celular: olhar a cada
+            // 2 s acordava a página escondida à toa (2026-11-21i, bateria)
+            linha.postDelayed(this, if (telaLivre()) 2_000L else 10_000L)
         }
     }
 

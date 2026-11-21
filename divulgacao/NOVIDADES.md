@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-21i — O app gasta menos bateria do celular
+
+**Em uma frase:** o Treino Livre ficou mais econômico com a bateria do celular durante o treino, sem mudar nada do que você vê ou ouve.
+
+**O que mudou**
+- O contador do descanso faz o mesmo trabalho com muito menos esforço do celular.
+- No app Android, a tela não fica mais presa acesa durante o descanso: o aviso de fim, a voz e o relógio do pulso continuam funcionando com a tela apagada.
+- O resumo animado e o app em segundo plano ficaram mais leves.
+
+**Por que importa para quem treina**
+- Sobra bateria no fim do treino, principalmente para quem treina com o celular no bolso e fone.
+
+**Como usar**
+- Nada a fazer: é só atualizar o app.
+
+**Ideias de vídeo**
+- Mostrar o descanso correndo com a tela apagada e o aviso de fim chegando no fone e no relógio.
+
+**Não prometer**
+- Não citar quantas horas de bateria a mais: depende do celular, do brilho e do que mais estiver ligado.
+
+---
+
 ## 2026-11-21h — Sua foto no fundo do resumo animado
 
 **Em uma frase:** agora dá para pôr uma foto sua no fundo do resumo animado e do vídeo do story; quem não escolher continua com a arte do Treino Livre.

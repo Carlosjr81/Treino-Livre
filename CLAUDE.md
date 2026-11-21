@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v252) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v253) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6394,6 +6394,31 @@ ficha escolhida. Bloco puro `TEMPO ESTIMADO DO TREINO`, coberto por
   a linha de cima do relógio diz "23 de 47 séries · ~25 min" (`textoFalta`,
   "1h05" acima de uma hora, para caber na borda redonda). Exige o app do
   relógio novo; o antigo ignora o campo.
+
+## A bateria do celular (2026-11-21i)
+
+Pedido do dono: "otimizar o consumo de bateria do celular durante o uso do app,
+sem perder qualidade". O que gastava sem dar nada em troca:
+
+- **O descanso redesenhava a tela do treino inteira 4 vezes por segundo**
+  (`setAgora` a cada 250 ms na `TelaSessao`, o maior componente do app, em
+  todo descanso). Continua conferindo a cada 250 ms (o bipe dos 3 últimos
+  segundos sai na hora), mas só redesenha quando o segundo mostrado muda; a
+  barra anda com transição de 1 s.
+- **A tela presa acesa no descanso** (`ligarTravaTela`) só quando é a página
+  que avisa o fim. No app Android, com o descanso conduzido pelo app
+  (`descansoNoBolso`), bipe, voz e relógio do pulso funcionam com a tela
+  apagada: a tela apaga no tempo do celular.
+- **O relógio do treino** (`CronometroSessao`) não redesenha com o app
+  escondido; na volta já aparece certo (conta pela hora de início).
+- **O fundo do resumo animado** desenha a 30 quadros por segundo (o vídeo do
+  story já é 30), não a 60 ou 120; o escurecer entre cenas compensa (0,12).
+- **O app Android** (`BolsoService.olharCopia`): com a tela travada ninguém
+  mexe no treino do celular, e a cópia é olhada a cada 10 s, não 2 s.
+- **O que fica como está, de propósito**: a tela acesa no percurso na rua (sem
+  ela o navegador para o GPS), o Eyes Scan (já a 24 quadros), e a trava de CPU
+  do Jarvis no bolso (sem ela o fim do descanso chega atrasado com a tela
+  apagada).
 
 ## Corpo, backup e lembretes
 

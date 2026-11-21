@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-21k**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-21l**.
 
 ---
 
@@ -210,7 +210,7 @@ com cenas reais → halter) como linguagem visual em vídeos.
   dele, com a curva: em cada treino, "❤ O coração no treino" mostra o gráfico, o tempo em cada zona, a recuperação
   (quanto o coração desceu 1 minuto depois), o exercício que mais puxou o coração e, no aeróbico longo, a deriva.
   No resumo animado, duas cenas com esses dados: o coração batendo em realidade aumentada e "Seus sinais vitais"
-  (respiração, oxigênio, calorias, passos, repouso, variabilidade do coração, sono e VO2máx, o que o relógio tiver). Na mesma aba, **batimento ao vivo** com cinta ou relógio que transmite (Garmin, Polar, Coros, Amazfit,
+  (respiração, oxigênio, calorias, passos, repouso, variabilidade do coração e VO2máx, o que o relógio tiver; o sono não entra). Na mesma aba, **batimento ao vivo** com cinta ou relógio que transmite (Garmin, Polar, Coros, Amazfit,
   Xiaomi, Huawei). No iPhone, a aba mostra os números do próprio app.
 - **👓 Óculos Ray-Ban Meta no Eyes Scan (Android, em teste):** o botão 👓 do scanner usa a câmera dos óculos;
   olhando para o espelho da academia (o 🪞 já começa ligado; dá para desligar), os óculos veem o corpo inteiro e contam as repetições.

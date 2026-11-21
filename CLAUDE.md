@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v255) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v256) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5271,7 +5271,7 @@ app faz sozinho ao abrir.
   registro em `vitaisRelogio`; o dia a dia ganhou `resp` e `vo2`.
   `dadosVitaisResumo` monta a cena `corpo` ("Seus sinais vitais", depois do
   coração) com até 8 números, os do treino primeiro e depois os do dia do
-  treino (FC de repouso e VFC com a média de 30 dias, o sono da noite, o
+  treino (FC de repouso e VFC com a média de 30 dias, o
   VO2máx, a respiração e o oxigênio da noite, os passos do dia); só aparece com
   dois ou mais. A saúde chega ao resumo pelo `SAUDE_RESUMO` (ponteiro de
   módulo, como o `FC_PERFIL`). A arte (`desenharCorpoAR`, a mesma caixa e
@@ -5286,7 +5286,10 @@ app faz sozinho ao abrir.
   `numeroJogo`, pedido do dono: "mantenha a identidade visual"): sombra dura,
   moldura no degradê da marca com brilho rosa, e o número no letreiro
   inclinado, contorno preto atrás e degradê amarelo-laranja-rosa. Placa nova
-  de canvas no resumo usa as duas.
+  de canvas no resumo usa as duas. **O sono não entra no resumo** (2026-11-21l,
+  pedido do dono), e as duas cenas são calculadas e desenhadas dentro de
+  `try`: dado estranho do relógio nunca derruba o resumo nem tira as cenas
+  de sempre ("não era para retirar, era só para adicionar").
 - **Informação geral, não exame**: a tela diz isso, e as frases não falam em
   "normal" nem "anormal" (a queda de 12 bpm é a referência dos estudos, dita
   como "boa recuperação").

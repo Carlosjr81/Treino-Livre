@@ -1762,7 +1762,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-21k";
+const VERSAO_APP = "2026-11-21l";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -26568,8 +26568,10 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
   }
   d.monstro = monstroResumo(registro);
   // o coração: a curva do relógio (Conexão Saúde) ou, sem ela, a média da cinta
-  d.coracao = dadosCoracaoResumo(registro, exPorId);
-  d.vitais = dadosVitaisResumo(registro, SAUDE_RESUMO, d.cardio && d.cardio.km >= 0.05);
+  // As cenas do relógio só acrescentam: um dado estranho vindo do relógio
+  // nunca pode derrubar o resumo nem tirar as cenas de sempre.
+  try { d.coracao = dadosCoracaoResumo(registro, exPorId); } catch (e) { d.coracao = null; }
+  try { d.vitais = dadosVitaisResumo(registro, SAUDE_RESUMO, d.cardio && d.cardio.km >= 0.05); } catch (e) { d.vitais = null; }
   if (!d.forca && !d.cardio && !d.monstro) return null;
   // os recordes de corrida e caminhada que este treino bateu
   if (d.cardio) {
@@ -26643,9 +26645,7 @@ function dadosVitaisResumo(registro, saude, temKm) {
     const vf = ultimo(saude.vfc, 36 * 3600e3);
     if (vf) { const m = media(saude.vfc, "ms"); out.push({ k: "vfc", icone: "〰️", rot: "VFC", val: Math.round(vf.ms), un: "ms", sub: m ? "média 30 dias: " + Math.round(m) + " ms" : "variabilidade do coração", onde: "coracao",
       fala: "variabilidade de " + Math.round(vf.ms) + " milissegundos" }); }
-    const sono = (saude.sono || []).filter((x) => x.fim <= fim && x.fim > fim - 20 * 3600e3).sort((a, b) => (b.fim - b.ini) - (a.fim - a.ini))[0];
-    if (sono) { const min = Math.round((sono.fim - sono.ini) / 60000); out.push({ k: "sono", icone: "🌙", rot: "Sono da noite", val: Math.floor(min / 60) + "h" + String(min % 60).padStart(2, "0"), un: "", sub: min >= 420 ? "noite cheia" : "", onde: "cabeca",
-      fala: Math.floor(min / 60) + " horas" + (min % 60 ? " e " + (min % 60) + " minutos" : "") + " de sono" }); }
+    // o sono não entra no resumo (pedido do dono, 2026-11-21l)
     const vo = ultimo(saude.vo2, 120 * 864e5);
     if (vo) out.push({ k: "vo2", icone: "📈", rot: "VO2máx", val: um(vo.ml), un: "", sub: "ml/kg/min · estimado", onde: "pulmao",
       fala: "VO2 máximo estimado em " + Math.round(vo.ml) });
@@ -27480,7 +27480,7 @@ function CenaCoracaoAR({ c }) {
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, tela.width, tela.height);
       ctx.setTransform(k, 0, 0, k, 0, 0);
       const p = agora - ini;
-      (c.tipo === "corpo" ? desenharCorpoAR : desenharCoracaoAR)(ctx, c, p, REDUZ_MOVIMENTO ? 1 : sobe((p - 350) / 1100), REDUZ_MOVIMENTO);
+      try { (c.tipo === "corpo" ? desenharCorpoAR : desenharCoracaoAR)(ctx, c, p, REDUZ_MOVIMENTO ? 1 : sobe((p - 350) / 1100), REDUZ_MOVIMENTO); } catch (e) { vivo = false; return; }
       if (!REDUZ_MOVIMENTO) quadro = requestAnimationFrame(desenhar);
     };
     desenhar();
@@ -28556,7 +28556,7 @@ function videoCena(c, cena, p) {
   } else if (t === "coracao" || t === "corpo") {
     videoRotulo(c, cena.rotulo, 340);
     c.save(); c.translate(0, 370);
-    (t === "corpo" ? desenharCorpoAR : desenharCoracaoAR)(c, cena, p, conta, false);
+    try { (t === "corpo" ? desenharCorpoAR : desenharCoracaoAR)(c, cena, p, conta, false); } catch (e) {}
     c.restore();
     c.textAlign = "center"; c.textBaseline = "alphabetic";
   } else if (t === "radar") {

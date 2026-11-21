@@ -1762,7 +1762,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-21d";
+const VERSAO_APP = "2026-11-21e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3199,7 +3199,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-166/treino-livre-166.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-168/treino-livre-168.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -32532,6 +32532,8 @@ const PROBLEMAS_RELOGIO = [
     "O Treino Livre do relógio está certo, mas o relógio não está ligado ao celular pelo Google: o problema é antes do app. Abra o **Galaxy Wearable** no celular: ele tem de mostrar o relógio **Conectado**. Em **Xiaomi, Redmi e POCO**, ligue o **Início automático** e a **Bateria sem restrições** também do **Galaxy Wearable**, do **plugin do relógio** (Galaxy Watch Manager), do **Samsung Accessory Service** e do **Google Play Services**, e reinicie os dois aparelhos. Relógio que já foi de outro celular precisa ser restaurado pelo Galaxy Wearable deste."],
   ["O relógio fica em \"Procurando o celular…\"",
     "Toque em **🔎 Testar a conexão com o relógio** (no assistente): ele diz onde a conexão para. **Nenhum relógio conectado**: Bluetooth e o app Galaxy Wearable (ou Wear OS) com o relógio conectado; num celular que não é Samsung, o Galaxy Wearable pede também o plugin do relógio. **O app do relógio não respondeu**: instale ou atualize o app no relógio. **Tudo certo, mas fica em Procurando com o app fechado**: em **Xiaomi, Redmi, POCO, Oppo, Realme, Vivo, Huawei** e outros, ligue o **Início automático** e a **Bateria sem restrições** do Treino Livre. Depois abra o Treino Livre **pelo ícone** e comece o treino."],
+  ["A bateria do relógio acaba rápido no treino",
+    "Desde a versão 2026-11-21e a tela do relógio **não fica mais acesa o treino inteiro**: ela apaga no tempo normal e acende quando você **levanta o pulso**, já no treino. Para isso, no relógio: Configurações → **Tela** → ligue **Levantar o pulso para ativar** (ou Acordar ao levantar) e, em **Mostrar último app** (ou Voltar ao último app), escolha **Sempre**. A **Tela sempre ligada** é opcional: com ela o treino fica à vista escurecido (gasta um pouco); sem ela a tela desliga de vez, que é o que mais poupa. Atualize também o app do relógio (⬆ Atualizar o relógio)."],
   ["O relógio apaga a tela e volta para o mostrador",
     "Com o treino aberto, o Treino Livre fica **em andamento** no relógio: o ícone dele aparece no mostrador, e um toque nele volta ao treino. Se o relógio pediu para permitir notificações, toque em **Permitir**. No Galaxy Watch, ajuda também: Configurações → **Tela** → **Mostrar último app** (ou Voltar ao último app) → **Sempre**. E ligar a **Tela sempre ligada** deixa o treino à vista, escurecido."],
   ["\"O celular e o relógio estão em redes diferentes\"",

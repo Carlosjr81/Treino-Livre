@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v248) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v249) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4527,12 +4527,21 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   com a esteira conduzindo, anota o tempo dela (`anotarDaEsteira`); com o ▶,
   o tempo que passou; senão, a série como está. Onde a tela não está (a cópia
   do app, o `#bolso=`), `aplicarEventosBolso` só marca a série. No
-  treino aberto a tela do relógio fica acesa o tempo todo (2026-11-18d, o
-  dono: "a tela do relógio está apagando"; antes, só no descanso): o
-  `FLAG_KEEP_SCREEN_ON` vale enquanto o painel está ativo, e apaga sozinho
-  depois de 20 min sem série nova, toque ou descanso (`acesoAte`,
-  `ACESO_MS`; um toque renova, `onUserInteraction`). No fim do treino
-  ou sem treino, volta a apagar como sempre.
+  treino aberto a tela do relógio **não fica mais acesa o tempo todo**
+  (2026-11-21e, pedido do dono: "a tela sempre ligada está consumindo muita
+  bateria; a tela só liga quando olhar para o relógio"). De 18d a 21d o
+  `FLAG_KEEP_SCREEN_ON` valia o treino inteiro. Hoje a tela apaga no tempo do
+  relógio e **quem acende é o próprio relógio, ao levantar o pulso** (no Galaxy
+  Watch, "Levantar o pulso para ativar"; um app não liga o sensor de gesto por
+  conta própria). O app continua na frente: com a Tela sempre ligada do
+  relógio, entra no modo ambiente (preto, a série e o descanso em minutos, o
+  sensor da gelatina desligado); sem ela, a tela desliga e o "Mostrar último
+  app: Sempre" do relógio traz o treino de volta. Ao acender, o painel que já
+  estava guardado aparece na hora (nada é buscado antes). Só nos **15 s
+  finais do descanso**, com a tela já acesa, ela não apaga (`acesoDescanso`,
+  no `tique`): é quando se olha a contagem. O 🆘 do relógio ganhou "A
+  bateria do relógio acaba rápido" com os ajustes. **Não validado num
+  relógio.**
 - **A cópia leva agora o nome do treino e o `pulado`** (`snapshotBolso`):
   antes, o motor do bolso podia mandar para um exercício pulado no Treino
   Adaptado.

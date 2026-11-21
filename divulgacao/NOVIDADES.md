@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-21e — O relógio gasta bem menos bateria no treino
+
+**Em uma frase:** a tela do relógio não fica mais acesa o treino inteiro: ela apaga sozinha e acende ao levantar o pulso, já mostrando o treino.
+
+**O que mudou**
+- Antes a tela ficava ligada o tempo todo durante o treino, e a bateria do relógio ia embora.
+- Agora ela apaga no tempo normal do relógio e acende quando você olha para o pulso, com a série e o descanso já na tela.
+- Nos últimos 15 segundos do descanso, se você está olhando, ela não apaga no meio da contagem.
+
+**Por que importa para quem treina**
+- O relógio aguenta o treino inteiro, e sobra bateria para o resto do dia.
+
+**Como usar**
+- Atualize o app do relógio. No relógio: Configurações › Tela › ligue "Levantar o pulso para ativar" e, em "Mostrar último app", escolha "Sempre".
+
+**Ideias de vídeo**
+- Levantar o pulso no meio do descanso e o treino aparecendo na hora.
+
+**Não prometer**
+- Quanto a bateria rende depende do relógio e dos ajustes dele; o gesto de acender é o do próprio relógio.
+
+---
+
 ## 2026-11-21d — No resumo, o que se ganha é experiência, não dinheiro
 
 **Em uma frase:** o contador do resumo animado agora mostra XP (experiência), em azul, e não lembra mais dinheiro.

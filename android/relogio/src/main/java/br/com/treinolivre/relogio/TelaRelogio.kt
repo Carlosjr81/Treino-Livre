@@ -430,14 +430,6 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         if (!ambiente) linha.post(tique)
     }
 
-    // um toque renova os 20 min da tela acesa (se o treino está aberto)
-    override fun onUserInteraction() {
-        super.onUserInteraction()
-        if (acesoAte != 0L || ultimoPainelAtivo()) {
-            acesoAte = System.currentTimeMillis() + ACESO_MS
-            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
-    }
 
     // Segurar a tela mostra a hora (HoraGeleia), e soltar volta ao treino
     // (pedido do dono, 2026-11-20f: "um toque pode ser confundido com
@@ -523,6 +515,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         linha.removeCallbacks(procurarCelular)
         linha.removeCallbacks(chamarDeNovo)
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        acesoDescanso = false
         super.onPause()
     }
 
@@ -817,10 +810,6 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         return if (ate > System.currentTimeMillis()) ate else 0L
     }
 
-    private fun ultimoPainelAtivo(): Boolean {
-        val p = painel ?: return false
-        return p.optBoolean("ativo", false) && !p.optBoolean("fim") && !p.optBoolean("carregando")
-    }
 
     private fun mostrar() {
         val p = painel
@@ -910,12 +899,15 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             aviso.text = if (ambiente) "📴 sem o celular" else avisoSemCelular()
             if (cardio && !ambiente) anterior.text = "Sem o celular o tempo não é medido: Terminei só marca a série."
         }
-        // Com o treino aberto a tela fica acesa o tempo todo (pedido do dono,
-        // 2026-11-18d: "a tela do relógio está apagando"; antes só no descanso).
-        // Esquecido aberto, apaga sozinho: 20 min sem série nova, toque ou
-        // descanso (o tique confere, acesoAte).
-        acesoAte = System.currentTimeMillis() + ACESO_MS
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // A tela NÃO fica acesa o treino inteiro (2026-11-21e, pedido do dono: "a
+        // tela sempre ligada está consumindo muita bateria"; de 18d a 21d ela
+        // ficava). Ela apaga no tempo do relógio, e quem acende é o próprio
+        // relógio, ao levantar o pulso. O app continua na frente: com a Tela
+        // sempre ligada do relógio, entra no modo ambiente (preto, a série e o
+        // descanso em minutos); sem ela, a tela desliga e o Mostrar último app
+        // (Sempre) traz o treino de volta. Os dados já estão na tela: ao acender,
+        // nada é buscado antes de mostrar. Só nos 15 s finais do descanso, com a
+        // tela já acesa, ela não apaga (é quando se olha a contagem).
         atualizarRelogio()
     }
 
@@ -947,8 +939,8 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         descAteVisto = ate
     }
 
-    private var acesoAte = 0L
-    private val ACESO_MS = 20 * 60_000L
+    // a tela segura acesa só nos 15 s finais do descanso (se já estava acesa)
+    private var acesoDescanso = false
     // pediu o estado ao celular, conectado, e nada voltou em 8 s
     private var semResposta = false
     // 2026-11-19b: o "Celular desconectado" era escrito e o mostrar() o
@@ -1023,8 +1015,12 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             atualizarRelogio()
             val ate = descansoAte()
             val agoraT = System.currentTimeMillis()
-            if (ate > agoraT) acesoAte = maxOf(acesoAte, agoraT + ACESO_MS)
-            if (acesoAte in 1 until agoraT) { acesoAte = 0L; window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+            val querAceso = ate > agoraT && ate - agoraT <= 15_000L && !ambiente
+            if (querAceso != acesoDescanso) {
+                acesoDescanso = querAceso
+                if (querAceso) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
             val perto = ate > 0 && ate - System.currentTimeMillis() < 10_500L && !ambiente
             linha.postDelayed(this, if (perto) 60L else 250L)
         }

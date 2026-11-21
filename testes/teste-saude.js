@@ -9,7 +9,7 @@ function pedaco(de, ate) {
 }
 const PACOTE_ANDROID = "br.com.treinolivre.app", LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk";
 eval(pedaco("// ---- SAÚDE: o que vem do Health Connect", "// ---- fim da saúde").replace(/^const (LINK_APK|PACOTE_ANDROID) .*$/gm, "") +
-  "\nglobalThis.H = { semRepetir, lerPacoteSaude, juntarSaude, resumoSaude, treinosParaSaude, batimentoNosTreinos, b64UrlParaPadrao, padraoParaB64Url, diaLocal };");
+  "\nglobalThis.H = { semRepetir, lerPacoteSaude, juntarSaude, resumoSaude, treinosParaSaude, batimentoNosTreinos, b64UrlParaPadrao, padraoParaB64Url, diaLocal, analiseCoracao, resumoCurvaFc, textoRecuperacao };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -101,10 +101,12 @@ const hist = [
   { id: "velho", nome: "X", data: new Date(AGORA - 40 * DIA).toISOString(), duracaoMin: 40, itens: [] },
 ];
 const vai = H.treinosParaSaude(hist, ["b", "c"], (id) => ex[id], AGORA);
-teste("mais de 30 dias fica de fora; enviado e com batimento também", ["a", "b"], vai.map((x) => x.id));
+teste("mais de 30 dias fica de fora; o de 2 dias com cinta ainda busca a curva do relógio", ["a", "b", "c"], vai.map((x) => x.id));
+teste("enviado, com batimento e com mais de 3 dias, sem curva: não vai mais", [], H.treinosParaSaude([{ ...hist[2], data: new Date(AGORA - 5 * DIA).toISOString() }], ["c"], (id) => ex[id], AGORA).map((x) => x.id));
+teste("com a curva já guardada: não vai mais", [], H.treinosParaSaude([{ ...hist[2], fcRelogio: { ini: 1, p: 15, v: [1] } }], ["c"], (id) => ex[id], AGORA).map((x) => x.id));
 teste("musculação com esteira no fim é musculação", "musculacao", vai[0].tipo);
 teste("só esteira é corrida", "corrida", vai[1].tipo);
-teste("o já enviado vai só buscar batimento (não grava de novo)", [true, false], vai.map((x) => x.g));
+teste("o já enviado vai só buscar batimento (não grava de novo)", [true, false, false], vai.map((x) => x.g));
 teste("o começo é o fim menos a duração", 60 * 60000, vai[0].fim - vai[0].ini);
 
 console.log("\n--- o batimento do relógio nos treinos ---");
@@ -113,6 +115,48 @@ teste("o treino sem batimento ganha o do relógio", { medio: 121, max: 150, amos
 teste("o treino que já tinha batimento fica com o dele", 130, b.historico[2].bpm.medio);
 teste("conta quantos mudaram", 1, b.mudou);
 teste("nada a mudar: a mesma lista (sem regravar)", true, H.batimentoNosTreinos(hist, []).historico === hist);
+
+console.log("\n--- a curva do relógio e o coração no treino ---");
+{
+  // um treino de 30 min que acabou em FIM; a curva vai 3 min além, em blocos de 15 s
+  const FIM = AGORA - DIA, INI = FIM - 30 * 60000, P = 15;
+  const n = Math.floor((FIM + 180000 - INI) / 1000 / P) + 1;
+  const v = [];
+  for (let k = 0; k < n; k++) {
+    const t = INI + k * P * 1000;
+    let b = t <= FIM ? 100 + Math.round(60 * (t - INI) / (FIM - INI)) : 160 - Math.round((t - FIM) / 1000 / 2);
+    if (k % 7 === 3 && t < FIM) b = 0;          // buracos de medida
+    v.push(b);
+  }
+  const pacote = Buffer.from(JSON.stringify({ v: 1, em: AGORA, fcTreinos: [
+    { id: "z", c: { ini: INI, p: P, v: v.join(",") } },
+    { id: "lixo", c: { ini: INI, p: P, v: "999,abc,10" } },
+    { id: "pouco", medio: 120, max: 140, c: { ini: INI, p: P, v: "0,0,120" } },
+  ] })).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const lido = H.lerPacoteSaude(pacote, (x) => Buffer.from(x, "base64").toString("utf8"));
+  teste("a curva chega (só os números de batimento possíveis)", [true, n], [!!lido.fcTreinos[0].curva, lido.fcTreinos[0].curva.v.length]);
+  teste("curva de lixo sem média não entra; com média, entra sem a curva curta", ["z", "pouco"], lido.fcTreinos.map((x) => x.id));
+  teste("menos de 3 medidas não vira curva", null, lido.fcTreinos[1].curva);
+  const reg = { id: "z", nome: "Pernas", data: new Date(FIM).toISOString(), duracaoMin: 30, itens: [
+    { exercicioId: "agacho", series: [{ peso: 80, reps: 10, t: FIM - 3 * 60000 }, { peso: 80, reps: 10, t: FIM - 60000 }] },
+    { exercicioId: "rosca", series: [{ peso: 10, reps: 12, t: INI + 5 * 60000 }] },
+  ] };
+  const b2 = H.batimentoNosTreinos([reg, { ...reg, id: "cinta", bpm: { medio: 99, max: 120 } }], [{ id: "z", curva: lido.fcTreinos[0].curva }, { id: "cinta", curva: lido.fcTreinos[0].curva }]);
+  teste("sem média do relógio, a média sai da curva (só o tempo do treino)", true, b2.historico[0].bpm.medio > 120 && b2.historico[0].bpm.medio < 140 && b2.historico[0].bpm.fonte === "relogio");
+  teste("com a cinta, o batimento dela fica e a curva entra junto", [99, true], [b2.historico[1].bpm.medio, !!b2.historico[1].fcRelogio]);
+  const zonas = [{ de: 0.5 }, { de: 0.6 }, { de: 0.7 }, { de: 0.8 }, { de: 0.9 }];
+  const an = H.analiseCoracao(b2.historico[0], 180, 60, zonas, (id) => id);
+  teste("médio, pico e mínimo do tempo do treino", [true, 160, true], [an.medio > 120 && an.medio < 140, an.max, an.min <= 101]);
+  teste("o tempo nas zonas soma o que foi medido", true, Math.abs(an.zonas.reduce((a, b) => a + b, 0) - Math.round(an.pontos.length * 15 / 60)) <= 2);
+  teste("a cobertura conta os buracos", true, an.cobertura > 0.8 && an.cobertura < 0.9);
+  teste("a recuperação: do pico do fim ao 1 minuto depois", true, !!an.recuperacao && an.recuperacao.queda >= 20 && an.recuperacao.queda <= 40);
+  teste("o exercício do fim puxou mais o coração que o do começo", ["agacho", "rosca"], an.exercicios.map((e) => e.id));
+  teste("a deriva do treino de 30 min sobe", true, an.deriva > 5);
+  teste("TRIMP positivo", true, an.trimp > 0);
+  teste("sem a idade, FC máxima estimada e nunca abaixo do pico", [true, true], (() => { const a = H.analiseCoracao(b2.historico[0], 0, 0, zonas); return [a.estimada, a.fcMax >= 160]; })());
+  teste("treino sem curva: nada a analisar", null, H.analiseCoracao(reg, 180, 60, zonas));
+  teste("a frase da recuperação", "desceu 25 bpm em 1 minuto: uma recuperação rápida", H.textoRecuperacao({ queda: 25 }));
+}
 
 console.log("\n--- os óculos Meta ---");
 eval(pedaco("// ---- ÓCULOS META", "// ---- fim dos óculos").replace(/^const /gm, "var ") + "\nglobalThis.O = { novaChaveOculos, linkOculos, enderecoOculos, ESTADOS_OCULOS };");

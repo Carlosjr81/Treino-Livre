@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v253) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v254) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5202,6 +5202,56 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   recorde, +30/−15/pular, desfazer, próximo, prancha, valor absurdo, pulado,
   fim). **Não validado num relógio**: a sessão na nuvem não monta APK, e nem
   um Galaxy Watch de verdade nem o emulador de Wear OS foram usados.
+
+## O coração no treino, pela curva do relógio (`analiseCoracao`, `CoracaoNoTreino`, 2026-11-21j)
+
+Pedido do dono: "use os dados do relógio na saúde do celular para registrar o
+batimento durante o treino e o cárdio, e mostre dados interessantes". Antes
+vinham só a média e o máximo (`fcTreinos`). Ao vivo não dá pela Conexão
+Saúde (o Samsung Health grava depois); chega na próxima sincronização, que o
+app faz sozinho ao abrir.
+
+- **A curva** (`LeitorSaude.curvaFc`, app Android): as medidas do
+  `HeartRateRecord` do começo do treino até **3 min depois do fim** (a
+  recuperação), em blocos de pelo menos 15 s, no máximo ~180, com 0 onde não
+  houve medida. Vai no `#saude=` como `c: { ini, p, v }` (`v` em texto
+  separado por vírgula) e fica no registro em `fcRelogio`
+  (`batimentoNosTreinos`): **também no treino que já tem o batimento da
+  cinta** (o da cinta continua sendo o `bpm`). Sem a média do relógio, a
+  média e o pico saem da curva (`resumoCurvaFc`).
+- **Quais treinos vão buscar** (`treinosParaSaude`): os de sempre e, nos 3
+  primeiros dias, o que ainda não tem a curva (sem relógio ela nunca vem, e o
+  link não pode crescer para sempre).
+- **A hora de cada série** (`t`, um efeito na `TelaSessao`, guardado no
+  histórico pelo `finalizarSessao`): a série é marcada por muitos caminhos
+  (✓, voz, câmera, relógio, esteira), e o efeito carimba toda série vista por
+  fazer que ficou feita. Série que já veio feita (treino reaberto) não ganha
+  hora inventada.
+- **A leitura** (`analiseCoracao`, bloco puro "O CORAÇÃO NO TREINO" dentro
+  do da saúde): médio, pico (e % da máxima), mínimo, **tempo em cada zona**
+  (`ZONAS_FC`, FC máxima pela idade do Corredor; sem idade, a de 35 anos e
+  nunca abaixo do pico visto, dito na tela), **TRIMP** bloco a bloco,
+  **recuperação** (o mais alto dos 2 últimos minutos menos o batimento ~1 min
+  depois), **o que mais puxou o coração** (o batimento no minuto e meio antes
+  de cada série, por exercício) e a **deriva** (só no aeróbico de 20 min ou
+  mais: a segunda metade sobre a primeira). O repouso é o do Corredor, senão o
+  do relógio (`saude.repouso`).
+- **Na tela**: "❤ O coração no treino" em cada treino do histórico, fechado
+  numa linha (médio, pico, zona em que mais ficou); aberto, o gráfico com as
+  faixas das zonas e a recuperação tracejada, as zonas, a recuperação, o top 3
+  e a deriva. Medido em menos de 60% do tempo: a dica de ligar "Medir
+  continuamente" no Samsung Health (ou começar um exercício no relógio). Sem
+  curva, no app Android e num treino de até 3 dias, "⌚ Buscar o batimento do
+  relógio deste treino". Em ❤ Saúde, "⌚ O coração nos treinos": os últimos 8
+  com médio, pico e quanto desceu, e a média da recuperação.
+- **Informação geral, não exame**: a tela diz isso, e as frases não falam em
+  "normal" nem "anormal" (a queda de 12 bpm é a referência dos estudos, dita
+  como "boa recuperação").
+- Coberto por `teste-saude.js` (o pacote, a curva torta, a cinta mantida,
+  as zonas, a cobertura, a recuperação, o exercício que mais puxou, a
+  deriva). No navegador: o cartão aberto e a aba Saúde. **Não validado num
+  aparelho** (o `readRecords` do Health Connect e a densidade de medidas do
+  Galaxy Watch fora de um exercício).
 
 ## O passo a passo de conectar (`GuiaConectar`, `GUIA_CONECTAR`)
 

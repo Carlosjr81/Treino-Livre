@@ -1762,7 +1762,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-21i";
+const VERSAO_APP = "2026-11-21j";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3199,7 +3199,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-174/treino-livre-174.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-176/treino-livre-176.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -3308,9 +3308,13 @@ function lerPacoteSaude(texto, decodificar) {
     })).filter((a) => a.ini && a.fim && a.fim > a.ini).slice(-60),
     enviados: lista(p.enviados).filter((x) => typeof x === "string").map((x) => x.slice(0, 40)),
     // o batimento que o relógio (ou o anel) gravou durante cada treino daqui
-    fcTreinos: lista(p.fcTreinos).map((x) => ({
-      id: txt(x && x.id, 40), medio: num(x && x.medio, 25, 250), max: num(x && x.max, 25, 250), amostras: num(x && x.amostras, 1, 100000),
-    })).filter((x) => x.id && x.medio && x.max),
+    // e, desde 2026-11-21j, a curva (c: começo, passo em segundos e os bpm)
+    fcTreinos: lista(p.fcTreinos).map((x) => {
+      const c = x && x.c, ini = c && t(c.ini), passo = c && num(c.p, 5, 600);
+      const v = ini && passo && typeof c.v === "string" ? c.v.split(",").slice(0, 1000).map((n) => { const b = Number(n); return b >= 25 && b <= 250 ? Math.round(b) : 0; }) : null;
+      const curva = v && v.filter((b) => b > 0).length >= 3 ? { ini: ini, p: passo, v: v } : null;
+      return { id: txt(x && x.id, 40), medio: num(x && x.medio, 25, 250), max: num(x && x.max, 25, 250), amostras: num(x && x.amostras, 1, 100000), curva: curva };
+    }).filter((x) => x.id && ((x.medio && x.max) || x.curva)),
   };
 }
 
@@ -3320,15 +3324,123 @@ function lerPacoteSaude(texto, decodificar) {
 function batimentoNosTreinos(historico, fcTreinos) {
   const por = {};
   (fcTreinos || []).forEach((x) => { por[x.id] = x; });
+  // A curva do relógio (fcRelogio) entra mesmo no treino que já tem o batimento
+  // da cinta: é ela que dá as zonas, a recuperação e o que mais puxou o coração.
   let mudou = 0;
   const novo = (historico || []).map((r) => {
     const f = por[String(r.id)];
-    if (!f || (r.bpm && r.bpm.medio)) return r;
+    if (!f) return r;
+    const poeBpm = !(r.bpm && r.bpm.medio) && (f.medio || f.curva);
+    const poeCurva = f.curva && !r.fcRelogio;
+    if (!poeBpm && !poeCurva) return r;
     mudou++;
-    return { ...r, bpm: { medio: Math.round(f.medio), max: Math.round(f.max), amostras: f.amostras || 0, fonte: "relogio" } };
+    const n = { ...r };
+    if (poeCurva) n.fcRelogio = f.curva;
+    if (poeBpm) {
+      const d = f.medio ? { medio: f.medio, max: f.max } : resumoCurvaFc(f.curva, new Date(r.data).getTime());
+      if (d && d.medio) n.bpm = { medio: Math.round(d.medio), max: Math.round(d.max), amostras: f.amostras || 0, fonte: "relogio" };
+    }
+    return n;
   });
   return { historico: mudou ? novo : historico, mudou: mudou };
 }
+
+// Média e máximo da curva, só do tempo do treino (a curva vai 3 min além do fim)
+function resumoCurvaFc(c, fim) {
+  if (!c || !c.v) return null;
+  const vals = c.v.filter((b, k) => b > 0 && c.ini + k * c.p * 1000 <= fim);
+  if (!vals.length) return null;
+  return { medio: vals.reduce((a, b) => a + b, 0) / vals.length, max: Math.max.apply(null, vals) };
+}
+
+// ---- O CORAÇÃO NO TREINO: a leitura da curva do relógio ----
+// O que a curva do relógio diz que a média sozinha não dizia. Tudo é dado de
+// relógio de pulso, e a tela diz isso: é informação geral, não exame. Recebe
+// `zonas` (as ZONAS_FC) por parâmetro para o teste alcançar sem o resto do app.
+// h: o registro do histórico (com fcRelogio); fcMax: a do perfil (0 = estimar);
+// fcRep: o repouso (0 = 60); nomeDe(id): o nome do exercício.
+const IDADE_PADRAO_FC = 35;
+function analiseCoracao(h, fcMax, fcRep, zonas, nomeDe) {
+  const c = h && h.fcRelogio;
+  if (!c || !Array.isArray(c.v) || !(c.p > 0)) return null;
+  const fim = new Date(h.data).getTime(), p = c.p * 1000;
+  const pts = [];
+  c.v.forEach((b, k) => { if (b > 0) pts.push([c.ini + k * p, b]); });
+  const durante = pts.filter((x) => x[0] <= fim);
+  if (durante.length < 3) return null;
+  const depois = pts.filter((x) => x[0] > fim);
+  const blocos = Math.max(1, Math.ceil((fim - c.ini) / p));
+  const cobertura = Math.min(1, durante.length / blocos);
+  const bpms = durante.map((x) => x[1]);
+  const medio = Math.round(bpms.reduce((a, b) => a + b, 0) / bpms.length);
+  const max = Math.max.apply(null, bpms), min = Math.min.apply(null, bpms);
+  const pico = durante.find((x) => x[1] === max);
+  // a FC máxima: a do perfil; sem idade, a de 35 anos, e nunca abaixo do pico visto
+  const estimada = !(fcMax > 0);
+  const fm = Math.max(estimada ? Math.round(208 - 0.7 * IDADE_PADRAO_FC) : fcMax, max);
+  const rep = fcRep > 0 ? fcRep : 60;
+  // tempo em cada zona: cada bloco medido vale o passo
+  const msZona = zonas.map(() => 0);
+  let trimp = 0;
+  durante.forEach((x) => {
+    const f = x[1] / fm;
+    let z = -1;
+    zonas.forEach((zz, k) => { if (f >= zz.de) z = k; });
+    if (z >= 0) msZona[z] += p;
+    // o TRIMP de Banister, bloco a bloco (mais fiel que pela média)
+    const r = Math.max(0, Math.min(1, (x[1] - rep) / (fm - rep)));
+    trimp += (p / 60000) * r * 0.64 * Math.exp(1.92 * r);
+  });
+  // a recuperação: o mais alto dos 2 últimos minutos e o batimento 1 min depois
+  let recuperacao = null;
+  const finais = durante.filter((x) => x[0] >= fim - 120000);
+  const umMin = depois.find((x) => x[0] - fim >= 40000 && x[0] - fim <= 110000);
+  if (finais.length && umMin) {
+    const de = Math.max.apply(null, finais.map((x) => x[1]));
+    if (de > umMin[1]) recuperacao = { de: de, para: umMin[1], queda: de - umMin[1] };
+    else recuperacao = { de: de, para: umMin[1], queda: 0 };
+  }
+  // o que mais puxou o coração: o batimento no minuto e meio até cada série
+  // marcada (a hora da série, `t`, existe desde 2026-11-21j)
+  const porEx = [];
+  (h.itens || []).forEach((it) => {
+    const janelas = (it.series || []).filter((s) => s && s.t > 0).map((s) => [s.t - 90000, s.t + 15000]);
+    if (!janelas.length) return;
+    const dentro = durante.filter((x) => janelas.some((j) => x[0] >= j[0] && x[0] <= j[1])).map((x) => x[1]);
+    if (dentro.length < 2) return;
+    porEx.push({ id: it.exercicioId, nome: nomeDe ? nomeDe(it.exercicioId) : it.exercicioId,
+      medio: Math.round(dentro.reduce((a, b) => a + b, 0) / dentro.length), max: Math.max.apply(null, dentro) });
+  });
+  porEx.sort((a, b) => b.medio - a.medio);
+  // a deriva cardíaca: no aeróbico longo, quanto a segunda metade subiu sobre a primeira
+  let deriva = null;
+  if (fim - c.ini >= 20 * 60000) {
+    const meio = c.ini + (fim - c.ini) / 2;
+    const a = durante.filter((x) => x[0] < meio && x[0] >= c.ini + 5 * 60000).map((x) => x[1]);
+    const b = durante.filter((x) => x[0] >= meio).map((x) => x[1]);
+    if (a.length >= 3 && b.length >= 3) {
+      const ma = a.reduce((s, v) => s + v, 0) / a.length, mb = b.reduce((s, v) => s + v, 0) / b.length;
+      deriva = Math.round(((mb - ma) / ma) * 1000) / 10;
+    }
+  }
+  const zonaMaior = msZona.indexOf(Math.max.apply(null, msZona));
+  return {
+    ini: c.ini, fim: fim, passo: c.p, pontos: durante, depois: depois, cobertura: cobertura,
+    medio: medio, max: max, min: min, picoEm: pico ? Math.round((pico[0] - c.ini) / 60000) : 0,
+    fcMax: fm, estimada: estimada, pctMax: Math.round((max / fm) * 100),
+    zonas: msZona.map((ms) => Math.round(ms / 60000)), zonaMaior: msZona[zonaMaior] > 0 ? zonaMaior : -1,
+    trimp: Math.round(trimp), recuperacao: recuperacao, exercicios: porEx, deriva: deriva,
+  };
+}
+// Para a tela: a frase da recuperação (informação geral, não diagnóstico)
+function textoRecuperacao(r) {
+  if (!r) return "";
+  if (r.queda >= 20) return "desceu " + r.queda + " bpm em 1 minuto: uma recuperação rápida";
+  if (r.queda >= 12) return "desceu " + r.queda + " bpm em 1 minuto: uma boa recuperação";
+  if (r.queda > 0) return "desceu " + r.queda + " bpm em 1 minuto";
+  return "ainda não tinha descido 1 minuto depois";
+}
+// ---- fim do coração
 
 // A sincronização nova substitui a leitura velha, mas a lista do que já foi
 // gravado no Health Connect só cresce: é ela que impede mandar o mesmo treino
@@ -3425,7 +3537,10 @@ function treinosParaSaude(historico, enviados, exPorId, agora) {
   const ja = {};
   (enviados || []).forEach((id) => { ja[id] = true; });
   return (historico || []).filter((r) => r && r.id && r.data && agora - new Date(r.data).getTime() < 30 * 86400000)
-    .filter((r) => !ja[r.id] || !(r.bpm && r.bpm.medio))
+    // a curva do relógio é procurada também no treino que já tem o batimento da
+    // cinta, mas só nos 3 primeiros dias (sem relógio ela nunca vem, e o link
+    // não pode crescer para sempre)
+    .filter((r) => !ja[r.id] || !(r.bpm && r.bpm.medio) || (!r.fcRelogio && agora - new Date(r.data).getTime() < 3 * 86400000))
     .slice(0, 40).map((r) => {
       const fim = new Date(r.data).getTime();
       const ini = fim - Math.max(1, r.duracaoMin || 1) * 60000;
@@ -29169,6 +29284,26 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   const [fimDescanso, setFimDescanso] = useState(() => (relogiosSalvos.current.desc ? relogiosSalvos.current.desc.fim : null));
   const [totalDescanso, setTotalDescanso] = useState(() => (relogiosSalvos.current.desc ? relogiosSalvos.current.desc.total || descanso : descanso));
   const [agora, setAgora] = useState(Date.now());
+  // A hora de cada série (`t`), para casar com a curva do batimento do relógio
+  // e dizer qual exercício mais puxou o coração (2026-11-21j). Fica num efeito
+  // só porque a série é marcada por muitos caminhos (✓, voz, câmera, relógio,
+  // esteira). Só ganha hora a série vista por fazer aqui: a que já veio feita
+  // (treino reaberto) não ganha uma hora inventada.
+  const viPorFazer = useRef({});
+  useEffect(() => {
+    const vi = viPorFazer.current;
+    let falta = false;
+    (sessao.itens || []).forEach((it) => (it.series || []).forEach((sr, si) => {
+      const k = it.uid + ":" + si;
+      if (!sr.feito) vi[k] = true;
+      else if (vi[k] && !sr.t) falta = true;
+    }));
+    if (!falta) return;
+    const agoraT = Date.now();
+    setSessao((p) => (p ? { ...p, itens: p.itens.map((it) => (it.series.some((sr, si) => sr.feito && !sr.t && vi[it.uid + ":" + si])
+      ? { ...it, series: it.series.map((sr, si) => (sr.feito && !sr.t && vi[it.uid + ":" + si] ? { ...sr, t: agoraT } : sr)) } : it)) } : p));
+  }, [sessao.itens]);
+
   const [avisou, setAvisou] = useState(false);
   const ultimoBipe = useRef(null);
   // Com a tela apagada o Android cala a síntese de voz da página, mas o som
@@ -31650,6 +31785,131 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   );
 }
 
+// O coração no treino (2026-11-21j): a curva do relógio, que chega pela
+// Conexão Saúde, com as zonas, a recuperação e o que mais puxou o coração.
+// Fecha numa linha: aberto, o gráfico e as leituras. Sem curva, no app Android
+// e num treino recente, um botão para buscá-la.
+function GraficoCoracao({ an }) {
+  const W = 320, H = 120, topo = Math.max(an.max, ...(an.depois.map((x) => x[1]))) + 8;
+  const base = Math.max(40, Math.min(an.min, ...(an.depois.map((x) => x[1]))) - 10);
+  const fimT = an.depois.length ? an.depois[an.depois.length - 1][0] : an.fim;
+  const x = (t) => ((t - an.ini) / Math.max(1, fimT - an.ini)) * W;
+  const y = (b) => H - ((b - base) / Math.max(1, topo - base)) * H;
+  const linha = (pts) => {
+    let d = "";
+    pts.forEach((p, k) => {
+      const salto = k === 0 || p[0] - pts[k - 1][0] > an.passo * 1000 * 2.5;
+      d += (salto ? "M" : "L") + x(p[0]).toFixed(1) + " " + y(p[1]).toFixed(1) + " ";
+    });
+    return d;
+  };
+  const faixas = ZONAS_FC.map((z, k) => {
+    const de = z.de * an.fcMax, ate = (ZONAS_FC[k + 1] ? ZONAS_FC[k + 1].de : 1.2) * an.fcMax;
+    const y1 = y(Math.min(ate, topo)), y2 = y(Math.max(de, base));
+    return y2 > y1 ? <rect key={k} x="0" y={y1} width={W} height={y2 - y1} fill={z.cor} opacity="0.13" /> : null;
+  });
+  const pico = an.pontos.find((p) => p[1] === an.max);
+  return (
+    <svg viewBox={"0 0 " + W + " " + (H + 14)} style={{ width: "100%", height: "auto", display: "block" }} aria-label={"Curva do batimento: médio " + an.medio + ", pico " + an.max}>
+      {faixas}
+      <path d={linha(an.pontos)} fill="none" stroke="#ED4956" strokeWidth="2" strokeLinejoin="round" />
+      {an.depois.length > 0 && <path d={linha([an.pontos[an.pontos.length - 1]].concat(an.depois))} fill="none" stroke="#8a8a8a" strokeWidth="1.6" strokeDasharray="3 3" />}
+      {an.depois.length > 0 && <line x1={x(an.fim)} x2={x(an.fim)} y1="0" y2={H} stroke="var(--cinza)" strokeWidth="1" strokeDasharray="2 3" />}
+      {pico && <circle cx={x(pico[0])} cy={y(pico[1])} r="3.5" fill="#ED4956" stroke="#fff" strokeWidth="1" />}
+      <text x="2" y={H + 12} fontSize="9" fill="var(--cinza)">início</text>
+      {an.depois.length > 0 && <text x={x(an.fim) + 3} y={H + 12} fontSize="9" fill="var(--cinza)">fim · recuperação</text>}
+      <text x="2" y="10" fontSize="9" fill="var(--cinza)">{topo - 8} bpm</text>
+    </svg>
+  );
+}
+function CoracaoNoTreino({ h, exPorId, fcPerfil, onSincronizarSaude }) {
+  const [aberto, setAberto] = useState(false);
+  const an = useMemo(() => analiseCoracao(h, (fcPerfil && fcPerfil.max) || 0, (fcPerfil && fcPerfil.rep) || 0, ZONAS_FC,
+    (id) => { const e = exPorId(id); return e ? e.nome : "Exercício"; }), [h, fcPerfil && fcPerfil.max, fcPerfil && fcPerfil.rep]);
+  if (!an) {
+    const recente = Date.now() - new Date(h.data).getTime() < 3 * 86400000;
+    if (NO_APP_ANDROID && onSincronizarSaude && recente && !h.fcRelogio) {
+      return (
+        <button onClick={onSincronizarSaude} style={{ ...S.btnGhost, width: "100%", marginTop: 10, fontSize: 13 }}>
+          ⌚ Buscar o batimento do relógio deste treino
+        </button>
+      );
+    }
+    return null;
+  }
+  const totalZ = an.zonas.reduce((a, b) => a + b, 0) || 1;
+  // a deriva só diz algo no aeróbico: na musculação o batimento sobe e desce a cada série
+  const soAerobico = (h.itens || []).length > 0 && h.itens.every((it) => { const e = exPorId(it.exercicioId); return e && e.cardio; });
+  const pct = (m) => Math.round((m / totalZ) * 100);
+  const rotulo = { fontSize: 11.5, color: "var(--cinza)" };
+  return (
+    <div style={{ marginTop: 10, border: "1px solid var(--borda)", borderRadius: 12, overflow: "hidden" }}>
+      <button onClick={() => setAberto(!aberto)} aria-expanded={aberto}
+        style={{ width: "100%", background: "var(--input)", border: "none", color: "var(--texto)", padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", textAlign: "left" }}>
+        <span style={{ fontSize: 18 }}>❤</span>
+        <span style={{ flex: 1, fontSize: 13.5 }}>
+          <b>O coração no treino</b>
+          <span style={{ color: "var(--cinza)" }}> · médio {an.medio} · pico {an.max}{an.zonaMaior >= 0 ? " · mais em " + ZONAS_FC[an.zonaMaior].nome.split(" ")[0] : ""}</span>
+        </span>
+        <span style={{ color: "var(--cinza)" }}>{aberto ? "▴" : "▾"}</span>
+      </button>
+      {aberto && (
+        <div style={{ padding: "10px 12px 12px" }}>
+          <GraficoCoracao an={an} />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, margin: "10px 0" }}>
+            <MiniStat valor={an.medio} nome="bpm médio" cor="#ED4956" />
+            <MiniStat valor={an.max} nome={"pico · " + an.pctMax + "% da máx."} />
+            <MiniStat valor={an.min} nome="mínimo" />
+            {an.trimp > 0 && <MiniStat valor={an.trimp} nome="esforço (TRIMP)" />}
+          </div>
+          <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 6 }}>Tempo em cada zona</div>
+          {ZONAS_FC.map((z, k) => (
+            <div key={k} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <span style={{ width: 118, fontSize: 12 }}>{z.nome}</span>
+              <div style={{ flex: 1, height: 8, background: "var(--borda)", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ width: pct(an.zonas[k]) + "%", height: "100%", background: z.cor }} />
+              </div>
+              <span style={{ width: 62, textAlign: "right", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{an.zonas[k]} min</span>
+            </div>
+          ))}
+          {an.recuperacao ? (
+            <div style={{ fontSize: 13, marginTop: 10 }}>
+              💨 <b>Recuperação:</b> do fim ({an.recuperacao.de} bpm) para {an.recuperacao.para} bpm, {textoRecuperacao(an.recuperacao)}.
+              <div style={rotulo}>Quanto mais o coração desce no minuto depois do esforço, melhor costuma estar o condicionamento. Compare com os seus próprios treinos.</div>
+            </div>
+          ) : (
+            <div style={{ ...rotulo, marginTop: 10 }}>💨 Para ver a recuperação, deixe o relógio no pulso uns 2 minutos depois do Finalizar.</div>
+          )}
+          {an.exercicios.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 4 }}>🔥 O que mais puxou o coração</div>
+              {an.exercicios.slice(0, 3).map((e, k) => (
+                <div key={e.id} style={{ fontSize: 13, display: "flex", justifyContent: "space-between" }}>
+                  <span>{k + 1}. {e.nome}</span><span style={{ color: "var(--cinza)", fontVariantNumeric: "tabular-nums" }}>{e.medio} bpm · pico {e.max}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {soAerobico && an.deriva !== null && Math.abs(an.deriva) >= 2 && (
+            <div style={{ fontSize: 13, marginTop: 10 }}>
+              📈 <b>Deriva:</b> a segunda metade ficou {an.deriva > 0 ? an.deriva + "% acima" : Math.abs(an.deriva) + "% abaixo"} da primeira.
+              {an.deriva > 5 && <div style={rotulo}>Subir mais de 5% no mesmo ritmo costuma acontecer com cansaço, calor ou pouca água.</div>}
+            </div>
+          )}
+          {an.cobertura < 0.6 && (
+            <div style={{ ...rotulo, marginTop: 10, background: "var(--input)", borderRadius: 8, padding: "8px 10px" }}>
+              ⌚ O relógio mediu em {Math.round(an.cobertura * 100)}% do tempo do treino. Para a curva completa no Galaxy Watch: Samsung Health › Configurações › Frequência cardíaca › <b>Medir continuamente</b>, ou comece um exercício no relógio junto com o treino.
+            </div>
+          )}
+          <div style={{ ...rotulo, marginTop: 10 }}>
+            Batimento do relógio, pela Conexão Saúde. FC máxima {an.estimada ? "estimada (informe a sua idade no painel do Corredor para afinar)" : "pela sua idade"}: {an.fcMax} bpm. Informação geral, não é exame.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MiniStat({ valor, nome, cor }) {
   return (
     <div style={{ flex: "1 1 60px", minWidth: 60 }}>
@@ -31659,7 +31919,7 @@ function MiniStat({ valor, nome, cor }) {
   );
 }
 
-function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEditar, onVirarFicha, onReabrir, onDesafiarTreino, pedirConfirmacao, historico, pesoCorporal, vozCfg }) {
+function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEditar, onVirarFicha, onReabrir, onDesafiarTreino, pedirConfirmacao, historico, pesoCorporal, vozCfg, fcPerfil, onSincronizarSaude }) {
   const [aberto, setAberto] = useState(false);
   const [verRota, setVerRota] = useState(false);
   const st = statsTreino(h);
@@ -31714,6 +31974,7 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
         {st.cargaMax > 0 && <MiniStat valor={st.cargaMax + "kg"} nome="carga máx." />}
         {st.densidade > 0 && <MiniStat valor={st.densidade + " kg/min"} nome="densidade" />}
       </div>
+      <CoracaoNoTreino h={h} exPorId={exPorId} fcPerfil={fcPerfil} onSincronizarSaude={onSincronizarSaude} />
 
       {/* Comparação e recordes */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
@@ -33218,7 +33479,32 @@ function JanelaEmergencia({ onFechar }) {
 let ABRIR_AJUDA = null;
 const abrirAjuda = (onde) => { if (ABRIR_AJUDA) ABRIR_AJUDA(onde || ""); };
 
-function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizar }) {
+// Os últimos treinos com a curva do relógio, lado a lado: é onde a
+// recuperação e o batimento médio viram tendência (2026-11-21j).
+function CoracaoNosTreinos({ historico, fcPerfil, cartao, titulo }) {
+  const lista = useMemo(() => (historico || []).filter((h) => h.fcRelogio).slice(0, 8)
+    .map((h) => ({ h: h, an: analiseCoracao(h, (fcPerfil && fcPerfil.max) || 0, (fcPerfil && fcPerfil.rep) || 0, ZONAS_FC, null) }))
+    .filter((x) => x.an), [historico, fcPerfil && fcPerfil.max, fcPerfil && fcPerfil.rep]);
+  if (!lista.length) return null;
+  const recs = lista.filter((x) => x.an.recuperacao && x.an.recuperacao.queda > 0).map((x) => x.an.recuperacao.queda);
+  const mediaRec = recs.length ? Math.round(recs.reduce((a, b) => a + b, 0) / recs.length) : 0;
+  return (
+    <div style={cartao}>
+      {titulo("⌚ O coração nos treinos")}
+      {mediaRec > 0 && <div style={{ fontSize: 13, marginBottom: 8 }}>💨 Na média, o coração desce <b>{mediaRec} bpm</b> no minuto depois do treino ({plural(recs.length, "treino", "treinos")}).</div>}
+      {lista.map(({ h, an }) => (
+        <div key={h.id} style={{ display: "flex", gap: 8, alignItems: "baseline", fontSize: 13, padding: "5px 0", borderTop: "1px solid var(--borda)" }}>
+          <span style={{ flex: 1 }}>{h.nome}<span style={{ color: "var(--cinza)", fontSize: 11.5 }}> · {new Date(h.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</span></span>
+          <span style={{ fontVariantNumeric: "tabular-nums" }}>❤ {an.medio}</span>
+          <span style={{ color: "var(--cinza)", fontVariantNumeric: "tabular-nums" }}>pico {an.max}</span>
+          {an.recuperacao && an.recuperacao.queda > 0 && <span style={{ color: "var(--ok)", fontVariantNumeric: "tabular-nums" }}>↓{an.recuperacao.queda}</span>}
+        </div>
+      ))}
+      <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 6 }}>Toque no treino em Histórico › Treinos para ver a curva, as zonas e o que mais puxou o coração.</div>
+    </div>
+  );
+}
+function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizar, fcPerfil }) {
   const agora = Date.now();
   const r = useMemo(() => resumoSaude(saude, agora), [saude]);
   const tem = !!(r && saude && saude.dias && saude.dias.length);
@@ -33445,6 +33731,7 @@ function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCar
           {!tem && pesoApp && <div>{numero(fmtNum(pesoApp.peso), "kg")}<div style={{ fontSize: 12, color: "var(--cinza)" }}>última pesagem</div></div>}
         </div>
       </div>
+      <CoracaoNosTreinos historico={historico} fcPerfil={fcPerfil} cartao={cartao} titulo={titulo} />
     </React.Fragment>
   );
 }
@@ -33554,7 +33841,10 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
   medidas, onSalvarMedida, onExcluirMedida, avisar,
   fotos, onAdicionarFoto, onExcluirFoto,
   meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor, onComecar, onAbrirGrupo,
-  saude, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizarSaude, plano, nLixeira, onLixeira, sugestaoLixeira, onRecuperarSugestao }) {
+  saude, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizarSaude, plano, nLixeira, onLixeira, sugestaoLixeira, onRecuperarSugestao, corredor }) {
+  // a FC máxima pela idade do Corredor, e o repouso do perfil ou o do relógio
+  const ultRep = saude && saude.repouso && saude.repouso.length ? saude.repouso[saude.repouso.length - 1].bpm : 0;
+  const fcPerfil = { max: fcMaxima(corredor && corredor.idade) || 0, rep: (corredor && corredor.fcRepouso) || ultRep || 0 };
   const [secao, setSecao] = useState(secaoInicial || "treinos");
   const [semSugestao, setSemSugestao] = useState("");
   const recordes = useMemo(() => calcularRecordes(historico), [historico]);
@@ -33587,7 +33877,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
       )}
 
       {secao === "saude" && (
-        <TelaSaude saude={saude} historico={historico} medidas={medidas} bpm={bpm} cardioEstado={cardioEstado}
+        <TelaSaude saude={saude} historico={historico} medidas={medidas} bpm={bpm} cardioEstado={cardioEstado} fcPerfil={fcPerfil}
           onConectarCardio={onConectarCardio} onDesconectarCardio={onDesconectarCardio} onSincronizar={onSincronizarSaude} />
       )}
 
@@ -33653,7 +33943,8 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
         <CardTreino key={h.id} h={h} exPorId={exPorId} recordes={recordes} historico={historico} pesoCorporal={pesoCorporal} vozCfg={vozCfg}
           comparacao={compararAnterior(historico, h)}
           onExcluir={onExcluir} onStory={onStory} onEditar={onEditar} onVirarFicha={onVirarFicha} pedirConfirmacao={pedirConfirmacao}
-          onReabrir={podeReabrir && onReabrir && podeReabrir(h) ? onReabrir : null} onDesafiarTreino={onDesafiarTreino} />
+          onReabrir={podeReabrir && onReabrir && podeReabrir(h) ? onReabrir : null} onDesafiarTreino={onDesafiarTreino}
+          fcPerfil={fcPerfil} onSincronizarSaude={onSincronizarSaude} />
       ))}
     </div>
   );
@@ -35477,6 +35768,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           const nova = ehCardio(s) ? { segundos: s.segundos, ...copiaCardio(s) }
             : ehTempo(s) ? { segundos: s.segundos } : { peso: s.peso, reps: s.reps };
           if (ehAquecimento(s)) nova.aquec = true;
+          if (s.t > 0) nova.t = s.t;   // a hora da série: casa com a curva do relógio
           return nova;
         }),
       })).filter((it) => it.series.length > 0),
@@ -36572,7 +36864,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             meta={meta} setMeta={setMeta} secaoInicial={secaoHistorico}
             onStoryProgresso={storyProgresso} onDesafiar={desafiarAmigo} pesoCorporal={pesoCorporal} vozCfg={voz} onCorredor={() => setAba("corredor")} onComecar={() => setAba("inicio")}
             saude={saude} bpm={bpm} cardioEstado={cardioEstado} onConectarCardio={conectarCardio} onDesconectarCardio={desconectarCardio}
-            onSincronizarSaude={sincronizarSaude}
+            onSincronizarSaude={sincronizarSaude} corredor={corredor}
             plano={{ catalogo: EXERCICIOS.concat(customEx), treinos: treinos, programas: programas, onCriar: criarProgramaAjustado, vozCfg: voz }}
             onAbrirGrupo={(g) => { setGrupoAberto(g); setExercicioAberto(null); setAba("exercicios"); }} />
         )}

@@ -100,6 +100,43 @@ object LeitorSaude {
     // Grava os treinos do app, lê o Health Connect e devolve o pacote que o
     // site entende (lerPacoteSaude, no index.html). Cada parte só roda com a
     // permissão dela: quem negou o sono continua vendo os passos.
+    // A curva do batimento do treino (2026-11-21j, pedido do dono: "use os dados
+    // do relógio na Conexão Saúde para registrar o batimento durante o treino e
+    // o cárdio, e mostre dados interessantes"). A média e o máximo diziam pouco;
+    // a curva diz em que zona o treino passou, o que mais puxou o coração e
+    // quanto ele desceu no minuto depois. Vai do começo até 3 min depois do fim
+    // (a recuperação), em blocos de pelo menos 15 s (no máximo ~180 pontos, para
+    // o link de volta não crescer), com 0 no bloco sem medida.
+    private suspend fun curvaFc(client: HealthConnectClient, ini: Long, fim: Long): JSONObject? {
+        val ate = fim + 180_000L
+        val passo = maxOf(15L, ((ate - ini) / 1000 + 179) / 180)
+        val n = ((ate - ini) / 1000 / passo + 1).toInt()
+        if (n <= 0 || n > 1000) return null
+        val soma = DoubleArray(n); val qtd = IntArray(n)
+        var token: String? = null
+        var paginas = 0
+        do {
+            val resp = client.readRecords(ReadRecordsRequest(HeartRateRecord::class,
+                TimeRangeFilter.between(Instant.ofEpochMilli(ini), Instant.ofEpochMilli(ate)), pageToken = token))
+            for (rec in resp.records) for (s in rec.samples) {
+                val tt = s.time.toEpochMilli()
+                if (tt < ini || tt > ate) continue
+                val k = ((tt - ini) / 1000 / passo).toInt()
+                if (k in 0 until n) { soma[k] += s.beatsPerMinute.toDouble(); qtd[k]++ }
+            }
+            token = resp.pageToken
+            paginas++
+        } while (!token.isNullOrEmpty() && paginas < 20)
+        var algum = 0
+        val v = StringBuilder()
+        for (k in 0 until n) {
+            if (k > 0) v.append(',')
+            if (qtd[k] > 0) { v.append(Math.round(soma[k] / qtd[k])); algum++ } else v.append('0')
+        }
+        if (algum < 3) return null
+        return JSONObject().put("ini", ini).put("p", passo).put("v", v.toString())
+    }
+
     suspend fun ler(client: HealthConnectClient, permitidas: Set<String>, treinos: List<TreinoDoSite>, pacoteProprio: String): JSONObject {
         val tem = { p: String -> permitidas.contains(p) }
         val zona = ZoneId.systemDefault()
@@ -177,8 +214,12 @@ object LeitorSaude {
                         )
                     )
                     val medio = r[HeartRateRecord.BPM_AVG]; val max = r[HeartRateRecord.BPM_MAX]
-                    if (medio != null && max != null) {
-                        fcTreinos.put(JSONObject().put("id", t.id).put("medio", medio).put("max", max).put("amostras", r[HeartRateRecord.MEASUREMENTS_COUNT] ?: 0))
+                    val curva = try { curvaFc(client, t.ini, t.fim) } catch (e: Exception) { null }
+                    if ((medio != null && max != null) || curva != null) {
+                        val o = JSONObject().put("id", t.id)
+                        if (medio != null && max != null) o.put("medio", medio).put("max", max).put("amostras", r[HeartRateRecord.MEASUREMENTS_COUNT] ?: 0)
+                        if (curva != null) o.put("c", curva)
+                        fcTreinos.put(o)
                     }
                 } catch (e: Exception) { }
             }

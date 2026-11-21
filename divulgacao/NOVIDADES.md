@@ -16,6 +16,37 @@
 
 ---
 
+## 2026-11-21j — O coração no treino, pelo relógio
+
+**Em uma frase:** quem usa relógio (Galaxy Watch e outros que gravam na Conexão Saúde) agora vê, em cada treino do histórico, a curva do batimento, o tempo em cada zona, quanto o coração desceu depois do treino e qual exercício mais puxou o coração.
+
+**O que mudou**
+- O app Android passou a buscar no relógio o batimento do treino inteiro, minuto a minuto, e não só a média e o máximo.
+- Em cada treino do histórico aparece "❤ O coração no treino": o gráfico do batimento com as zonas pintadas, os minutos em cada zona, o pico, o mínimo e o esforço do treino.
+- A recuperação: quanto o coração desceu no minuto depois de terminar.
+- "O que mais puxou o coração": os exercícios que mais subiram o batimento naquele treino.
+- No aeróbico longo (esteira, bicicleta, rua), a deriva: quanto o coração subiu da primeira para a segunda metade.
+- Na aba ❤ Saúde, "O coração nos treinos": os últimos treinos lado a lado e a média da recuperação.
+
+**Por que importa para quem treina**
+- Dá para ver se o treino foi leve, moderado ou puxado de verdade, e acompanhar a recuperação melhorar ao longo das semanas.
+
+**Como usar**
+- Treine com o relógio no pulso e o app Android do Treino Livre instalado. Depois, abra o app: o batimento chega sozinho. Em Histórico, toque em "❤ O coração no treino".
+- Para a curva completa no Galaxy Watch: Samsung Health › Configurações › Frequência cardíaca › Medir continuamente.
+- Informe a idade no painel do Corredor para as zonas ficarem certas.
+
+**Ideias de vídeo**
+- O gráfico do batimento de um treino de pernas, mostrando o exercício que mais puxou o coração.
+- A recuperação de um treino de corrida comparada com a de um mês antes.
+
+**Não prometer**
+- Não é ao vivo: o batimento do relógio chega depois do treino, quando o app abre.
+- Não é exame nem avaliação de saúde: são números do relógio, para acompanhar o próprio treino.
+- No iPhone não funciona (a Apple não libera o Apple Saúde para o app).
+
+---
+
 ## 2026-11-21i — O app gasta menos bateria do celular
 
 **Em uma frase:** o Treino Livre ficou mais econômico com a bateria do celular durante o treino, sem mudar nada do que você vê ou ouve.

@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v257) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v258) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -2460,6 +2460,31 @@ Testado no Chromium (que não tem H.264 nem AAC: saiu VP9 + Opus), com a voz
 da nuvem): MP4 de 57,9 s, `moov` antes do `mdat`, nenhum `moof`, a trilha de
 áudio com as falas de 0,6 s a 56,5 s, e os quadros conferidos pelo ffmpeg.
 **No celular é que se confere a faber, o H.264 e o AAC** (item 33z).
+
+**No iPhone** (2026-11-21n, relato de quem usa iPhone: "não consigo gerar o
+resumo com narração"). O Safari até o iOS 18 tem o `VideoEncoder` mas não o
+`AudioEncoder`: o vídeo quadro a quadro saía **mudo**, com a narração pronta.
+Hoje, com trilha e sem codificador de som, o vídeo vai pelo `MediaRecorder`
+(`semSomNoCodec`), que leva o som. O som desse gravador é o `audioCtx` do
+app (`proprio`): no iPhone, um contexto criado depois da espera da narração
+nasce suspenso e grava silêncio. Junto, para o iPhone em geral:
+- **O primeiro toque libera som e voz** (`liberarSomIos`, em `touchend` e
+  `click`, só no iOS): retoma o `audioCtx` com um instante de silêncio e
+  fala uma frase vazia. Sem isso a voz e a música que começam depois de uma
+  espera (o resumo, o fim do descanso) eram recusadas caladas.
+- **A sessão de som vira "playback" só no resumo animado**
+  (`sessaoDeSomIos`): toca mesmo com a chave do silencioso, mas pausa a
+  música de outro app; no resto do app ela fica como está.
+- **Compartilhar manda só o arquivo** (vídeo e imagem): com o texto junto, a
+  janela do iPhone trata os dois como itens e o Instagram pode não aparecer.
+  Sem a janela, o aviso diz que o vídeo foi para Arquivos › Downloads.
+- **Nada de "lookbehind" nas expressões** (`(?<=`): o Safari só o entende do
+  iOS 16.4 em diante, e antes disso o script inteiro não abre (tela branca).
+  Eram três (`falarComEmocao`, `partesDaFala`, `separarAlvo`).
+  `teste-ios.js` reprova isso e as funções que só chegaram no iOS 15.4+.
+- A falha da narração diz o motivo no aviso.
+- Conferido no Chromium fingindo ser iPhone, sem `AudioEncoder`: o vídeo sai
+  pelo gravador, em MP4, com som. **Não validado num iPhone.**
 
 **O mapa por cima de tudo.** O Leaflet põe as camadas em z-index 400 a 1000, e o
 mapa ao vivo do percurso aparecia **por cima** do resumo. O `div` do mapa leva

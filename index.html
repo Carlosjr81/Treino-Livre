@@ -1762,7 +1762,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-21m";
+const VERSAO_APP = "2026-11-21n";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5247,7 +5247,7 @@ async function compartilharImagem(blob, texto, avisarFn) {
   try {
     const file = new File([blob], "treino-livre.png", { type: "image/png" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], text: texto });
+      await navigator.share(EH_IOS ? { files: [file] } : { files: [file], text: texto });
       return;
     }
   } catch (e) { if (e && e.name === "AbortError") return; }
@@ -7717,7 +7717,7 @@ let audioNarracao = null;
 // Fala com emoção na voz do aparelho: frase por frase, com o ritmo, o tom e a
 // pausa da emoção. A pausa entre as frases é o que mais tira o jeito de robô.
 function falarComEmocao(texto, emo, cfg, fim) {
-  const frases = String(texto || "").split(/(?<=[.!?…])\s+/).filter(Boolean);
+  const frases = String(texto || "").replace(/([.!?…])\s+/g, "$1\u0001").split("\u0001").filter(Boolean);
   let i = 0, fechou = false;
   const fecha = () => { if (!fechou) { fechou = true; if (fim) fim(); } };
   const proxima = () => {
@@ -13676,7 +13676,7 @@ function falaCienciaAjuste(plano, tr) {
 // (aí o seguinte entra em fila, sem cortar o que ainda está sendo dito).
 let FALA_LONGA = null;
 function partesDaFala(texto) {
-  const frases = String(texto).split(/(?<=[.!?])\s+/).filter(Boolean);
+  const frases = String(texto).replace(/([.!?])\s+/g, "$1\u0001").split("\u0001").filter(Boolean);
   const partes = [];
   frases.forEach((f) => {
     const u = partes.length - 1;
@@ -19982,7 +19982,7 @@ function idDaFala(genero, texto) {
 // da gravação e é dita pela voz do aparelho logo depois.
 function separarAlvo(modelo) {
   if (String(modelo).indexOf("{alvo}") < 0) return { gravavel: modelo, alvo: "" };
-  const fr = String(modelo).split(/(?<=[.!?])\s+/);
+  const fr = String(modelo).replace(/([.!?])\s+/g, "$1\u0001").split("\u0001");
   return { gravavel: fr.filter((s) => s.indexOf("{alvo}") < 0).join(" "), alvo: fr.filter((s) => s.indexOf("{alvo}") >= 0).join(" ") };
 }
 // Todas as falas que podem ser gravadas, sem repetir: é o roteiro da pasta vozes/
@@ -29121,10 +29121,13 @@ function gravarVideoResumo(cv, cenas, durs, trilha, aoProgresso, cancelado) {
   const tipo = VIDEO_TIPOS.find((t) => MediaRecorder.isTypeSupported(t));
   videoQuadro(c, cenas, durs, 0);
   const fluxo = cv.captureStream(30);
-  let actx = null, fonte = null;
+  let actx = null, fonte = null, proprio = true;
   if (trilha) {
     try {
-      actx = new AudioContext({ sampleRate: 48000 });
+      // no iPhone o som só toca num contexto liberado por um toque: usa o do app
+      proprio = !(EH_IOS && audioCtx);
+      actx = proprio ? new AudioContext({ sampleRate: 48000 }) : audioCtx;
+      if (actx.state !== "running") actx.resume();
       const dest = actx.createMediaStreamDestination();
       const b = actx.createBuffer(1, trilha.dados.length, trilha.taxa);
       b.copyToChannel(trilha.dados, 0);
@@ -29140,7 +29143,7 @@ function gravarVideoResumo(cv, cenas, durs, trilha, aoProgresso, cancelado) {
     rec.onerror = (e) => rej(e.error || new Error("gravação falhou"));
     rec.onstop = () => {
       fluxo.getTracks().forEach((t) => t.stop());
-      if (actx) actx.close().catch(() => {});
+      if (actx && proprio) actx.close().catch(() => {});
       if (cancelado()) { res(null); return; }
       res({ blob: new Blob(pedacos, { type: tipo.split(";")[0] }), comVoz: !!fonte });
     };
@@ -29178,12 +29181,13 @@ async function compartilharVideo(blob, texto, avisarFn) {
   try {
     const file = new File([blob], nome, { type: blob.type });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], text: texto });
+      await navigator.share(EH_IOS ? { files: [file] } : { files: [file], text: texto });
       return "compartilhou";
     }
   } catch (e) { if (e && e.name === "AbortError") return "cancelou"; }
   baixarArquivo(blob, nome);
-  if (avisarFn) avisarFn("Vídeo salvo na galeria/downloads! Agora é só postar no story. 💪");
+  if (avisarFn) avisarFn(EH_IOS ? "Vídeo salvo em Arquivos › Downloads. Abra lá, toque em compartilhar e em Salvar vídeo para ele ir para as Fotos. 💪"
+    : "Vídeo salvo na galeria/downloads! Agora é só postar no story. 💪");
   return "baixou";
 }
 function baixarArquivo(blob, nome) {
@@ -29241,7 +29245,8 @@ function GerarStoryResumo({ cenas, onVoltar }) {
         narrOk = narr;
       } catch (e) {
         narrOk = null; falasMs = null;
-        semVoz = "A narração não carregou (sem internet ou sem espaço?). O vídeo vai sem voz.";
+        semVoz = "A narração não carregou (sem internet ou sem espaço?). O vídeo vai sem voz." +
+          (e && e.message ? " Motivo: " + String(e.message).slice(0, 80) : "");
       }
     }
     const musica = musicaResumoLigada() ? await carregarMusicaResumo() : null;
@@ -29265,7 +29270,11 @@ function GerarStoryResumo({ cenas, onVoltar }) {
     try {
       let r = null;
       const fim = () => parou.current;
-      if (temCodec && (await codecVideo())) {
+      // Sem o codificador de som (o iPhone até o iOS 18 não tem o AudioEncoder),
+      // o vídeo quadro a quadro sairia mudo: com trilha, vai pelo gravador, que
+      // leva o som junto (2026-11-21n, relato de quem usa iPhone).
+      const semSomNoCodec = !!trilha && temGravador && !(await codecAudio());
+      if (temCodec && !semSomNoCodec && (await codecVideo())) {
         try { r = await montarMp4(cvRef.current, cenas, durs, trilha, setProg, fim); }
         catch (e) { r = null; if (!temGravador) throw e; }
       }
@@ -29372,6 +29381,7 @@ function useMusicaResumo(ligada, parada) {
       try {
         audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === "suspended") audioCtx.resume();
+        sessaoDeSomIos("playback");
         fonte = audioCtx.createBufferSource();
         fonte.buffer = buf; fonte.loop = true;
         ganho = audioCtx.createGain();
@@ -29397,6 +29407,7 @@ function useMusicaResumo(ligada, parada) {
     return () => {
       vivo = false;
       clearInterval(iv);
+      sessaoDeSomIos("auto");
       if (fonte && ganho) {
         try {
           ganho.gain.cancelScheduledValues(audioCtx.currentTime);
@@ -34559,6 +34570,38 @@ function Abertura({ onFim }) {
 const EH_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent || "") ||
   (/Mac/.test(navigator.userAgent || "") && navigator.maxTouchPoints > 1);
 const EH_ANDROID = /Android/i.test(navigator.userAgent || "");
+// O iPhone só deixa tocar som e falar depois de um toque, e o que começa
+// depois de uma espera (a narração do resumo, a música, o fim do descanso)
+// nasce mudo: o contexto de som fica "suspenso" e a voz é recusada calada.
+// Então o primeiro toque em qualquer lugar libera os dois: retoma o som do app
+// com um instante de silêncio e fala uma frase vazia. Cada toque depois só
+// retoma o som se o iPhone o tiver parado (chamada, outro app tocando).
+// Sem mudar a sessão de som: a música de outro app continua (2026-11-21n).
+let vozIosLiberada = false;
+function liberarSomIos() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state !== "running") {
+      audioCtx.resume();
+      const b = audioCtx.createBuffer(1, 1, 22050), f = audioCtx.createBufferSource();
+      f.buffer = b; f.connect(audioCtx.destination); f.start(0);
+    }
+  } catch (e) {}
+  if (!vozIosLiberada) {
+    try {
+      const sy = window.speechSynthesis;
+      if (sy && !sy.speaking) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; sy.speak(u); vozIosLiberada = true; }
+    } catch (e) {}
+  }
+}
+if (EH_IOS && typeof document !== "undefined") {
+  ["touchend", "click"].forEach((ev) => document.addEventListener(ev, liberarSomIos, { capture: true, passive: true }));
+}
+// A sessão de som do iPhone (Safari 16.4+): "playback" toca mesmo com a chave
+// do silencioso, mas pausa a música de outro app; por isso só no resumo animado.
+function sessaoDeSomIos(tipo) {
+  try { if (EH_IOS && navigator.audioSession) navigator.audioSession.type = tipo; } catch (e) {}
+}
 
 function ComoInstalar({ onFechar, onCopiarLink }) {
   const passos = NAVEGADOR_INAPP

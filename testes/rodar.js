@@ -37,6 +37,7 @@ const SUITES = [
   ["teste-acesso", "o login com aprovação: o formato do Firestore, sem internet e o painel do dono"],
   ["teste-espelho", "o modo espelho: o sentido, os nomes dos lados e a seta"],
   ["teste-ano", "o mapa dos 12 meses: dia treinado, a regua da pessoa e a sequencia"],
+  ["teste-ios", "o iPhone: nada que derrube o app num Safari antigo, e o video com som"],
   ["teste-montar", "montar o treino pela ciencia e o reajuste automatico pelo historico"],
   ["teste-esquecidos", "o musculo que voce parou de treinar, na regua do seu ritmo"],
   ["teste-volume", "series por musculo com o indireto, o plano de ajuste e a periodizacao"],

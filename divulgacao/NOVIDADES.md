@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-11-21n — Resumo animado com narração no iPhone
+
+**Em uma frase:** no iPhone, o vídeo do resumo animado agora sai com a narração e a música, e o app ficou mais compatível com iPhones mais antigos.
+
+**O que mudou**
+- O vídeo do story gerado no iPhone saía sem som. Agora sai com a narração e a música.
+- No iPhone, a voz e a música do resumo animado começam junto com as cenas, sem ficar mudas.
+- A música do resumo toca mesmo com o iPhone no modo silencioso.
+- Compartilhar o vídeo ou a imagem no iPhone abre direto as opções do Instagram.
+- iPhones com o sistema mais antigo (iOS 15 e 16) abrem o app normalmente.
+
+**Por que importa para quem treina**
+- Quem treina com iPhone também consegue postar o resumo do treino narrado no story.
+
+**Como usar**
+- No resumo animado, toque no 📸 e escolha "Com a narração". No iPhone a montagem do vídeo leva o tempo do próprio vídeo (cerca de um minuto).
+
+**Ideias de vídeo**
+- Um iPhone gerando o resumo narrado e postando no story.
+
+**Não prometer**
+- Não prometer em todo iPhone: a voz do narrador baixa uns 90 MB e precisa de espaço e de um iPhone que aguente.
+
+---
+
 ## 2026-11-21m — Atualizar o app do relógio ficou mais rápido
 
 **Em uma frase:** ao atualizar o app do relógio, o celular agora descobre na hora qual é a porta certa do relógio em vez de esperar em cada uma.

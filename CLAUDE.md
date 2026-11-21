@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v250) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v251) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5075,6 +5075,15 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   numa porta fechada de cada endereço de redes /22 a /29, fora dos dados
   móveis; "recusado" é aparelho vivo; até 8), soltando o Wi-Fi antes para o
   roteador do celular ficar ao alcance.
+- **"Há o 170" e "já está na mais nova" ao mesmo tempo** (2026-11-21g,
+  print do dono). O push no `main` publica o site e dispara o Actions juntos:
+  por uns 4 min o site já anuncia o N (`APK_ATUAL`) e o "latest" do GitHub
+  ainda é o de antes, e o `AtualizarApp` dizia "Você já está na versão mais
+  nova". Hoje o link leva a versão anunciada (`atualizar-app?v=N`,
+  `linkAtualizarCelular`), e o app, vendo o "latest" abaixo dela, diz "A
+  versão N está saindo agora" e confere de 20 em 20 s (até 12 min), sem cache
+  (`useCaches = false`). O app 168 e anteriores não sabem esperar: neles,
+  tentar de novo depois de uns minutos.
 - **O painel da atualização** (2026-11-20j, relato do dono com o
   diagnóstico: o relógio parado em "O celular está instalando…" e o celular
   com uma linha "Conectando…" para cada uma de **mais de mil portas**). A

@@ -133,23 +133,49 @@ class AtualizarApp : ComponentActivity() {
             mostrar(1, "Procurando a versão nova…")
             // segue o endereço "latest" até o arquivo, e lê o número da versão
             // no caminho (…/download/android-143/…)
-            var url = URL(APK)
+            val meu = try { packageManager.getPackageInfo(packageName, 0).longVersionCode } catch (e: Throwable) { 0L }
+            // A versão que o site anunciou (?v=N). O site sai do ar minutos antes
+            // de o GitHub terminar de montar o app novo: nesse meio tempo o
+            // "latest" ainda é o de antes, e esta tela dizia "você já está na
+            // versão mais nova" logo depois de o site dizer "há o 170" (relato
+            // do dono, 2026-11-21g). Hoje ela espera a versão anunciada sair,
+            // conferindo de 20 em 20 s, por até 12 min.
+            val esperado = (intent?.data?.getQueryParameter("v")?.toIntOrNull() ?: 0).toLong()
             var con: HttpURLConnection
-            var saltos = 0
             var numero = 0
+            var tentativa = 0
             while (true) {
-                con = url.openConnection() as HttpURLConnection
-                con.instanceFollowRedirects = false
-                con.connectTimeout = 15000; con.readTimeout = 30000
-                val c = con.responseCode
-                if (c in 300..399 && saltos < 6) {
-                    val prox = con.getHeaderField("Location")
-                    Regex("android-(\\d+)").find(prox ?: "")?.let { numero = it.groupValues[1].toInt() }
-                    url = URL(url, prox); con.disconnect(); saltos++; continue
+                var url = URL(APK)
+                var saltos = 0
+                numero = 0
+                while (true) {
+                    con = url.openConnection() as HttpURLConnection
+                    con.instanceFollowRedirects = false
+                    con.useCaches = false
+                    con.setRequestProperty("Cache-Control", "no-cache")
+                    con.connectTimeout = 15000; con.readTimeout = 30000
+                    val c = con.responseCode
+                    if (c in 300..399 && saltos < 6) {
+                        val prox = con.getHeaderField("Location")
+                        Regex("android-(\\d+)").find(prox ?: "")?.let { numero = it.groupValues[1].toInt() }
+                        url = URL(url, prox); con.disconnect(); saltos++; continue
+                    }
+                    break
+                }
+                if (esperado > meu && numero in 1 until esperado) {
+                    con.disconnect()
+                    tentativa++
+                    if (tentativa > 36) {
+                        mostrar(0, "⏳ A versão " + esperado + " ainda não saiu", "O GitHub está demorando para publicar. Tente de novo daqui a alguns minutos.", Color.parseColor("#FFB020"))
+                        botao("🔁 Tentar de novo") { trabalhando = false; comecar() }
+                        return
+                    }
+                    mostrar(3, "⏳ A versão " + esperado + " está saindo agora", "O GitHub está terminando de montar o app novo (leva uns minutos). Confiro sozinho a cada 20 s: pode deixar esta tela aberta.")
+                    Thread.sleep(20_000L)
+                    continue
                 }
                 break
             }
-            val meu = try { packageManager.getPackageInfo(packageName, 0).longVersionCode } catch (e: Throwable) { 0L }
             if (numero > 0 && numero <= meu) {
                 con.disconnect()
                 mostrar(100, "✅ Você já está na versão mais nova (" + meu + ")", "Não há nada para atualizar.", Color.parseColor("#4CD137"))

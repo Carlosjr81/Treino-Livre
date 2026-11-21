@@ -1762,7 +1762,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-21f";
+const VERSAO_APP = "2026-11-21g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3199,7 +3199,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-170/treino-livre-170.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-172/treino-livre-172.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -5445,7 +5445,9 @@ const APK_INSTALADOR_MIN = 145;
 // Do 145 em diante o app se atualiza sozinho (AtualizarApp): baixa com a
 // porcentagem e chama o instalador do Android, sem passar pela pasta Downloads.
 // (uma função: os testes recortam este trecho sem o LINK_APK e o NUMERO_APK)
-const linkAtualizarCelular = () => NUMERO_APK >= 145 ? "intent://atualizar-app#Intent;scheme=treinolivre;package=br.com.treinolivre.app;S.browser_fallback_url=" + encodeURIComponent(LINK_APK) + ";end" : LINK_APK;
+// ?v= leva a versão anunciada: o app espera ela sair no GitHub em vez de dizer
+// "já está na mais nova" nos minutos entre o site e o app novo (2026-11-21g)
+const linkAtualizarCelular = () => NUMERO_APK >= 145 ? "intent://atualizar-app?v=" + APK_ATUAL + "#Intent;scheme=treinolivre;package=br.com.treinolivre.app;S.browser_fallback_url=" + encodeURIComponent(LINK_APK) + ";end" : LINK_APK;
 const APP_CELULAR_VELHO = /Android/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "") && NO_APP_ANDROID && NUMERO_APK < APK_ATUAL;
 const INSTALADOR_VELHO = /Android/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "") && NO_APP_ANDROID && NUMERO_APK < APK_INSTALADOR_MIN;
 // os botões do relógio: com o instalador velho, baixam o app novo primeiro

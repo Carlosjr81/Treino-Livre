@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-21g — Atualizar o app do celular não se contradiz mais
+
+**Em uma frase:** quando o app avisa que há versão nova, tocar em atualizar espera ela ficar pronta em vez de dizer que você já está na mais nova.
+
+**O que mudou**
+- Logo depois de uma publicação, a versão nova leva alguns minutos para ficar pronta para baixar; nesse meio tempo a tela de atualizar dizia "já está na versão mais nova".
+- Agora ela diz "a versão nova está saindo agora", confere sozinha a cada 20 segundos e baixa assim que ela aparece.
+
+**Por que importa para quem treina**
+- Atualizar é um toque só, sem mensagem confusa.
+
+**Como usar**
+- Ajustes › Este app › "há o N: atualizar". Se aparecer "está saindo agora", é só esperar com a tela aberta.
+
+**Ideias de vídeo**
+- Não é assunto de vídeo: é um conserto.
+
+**Não prometer**
+- Nada novo.
+
+---
+
 ## 2026-11-21f — Os ajustes de bateria do relógio num toque
 
 **Em uma frase:** o app agora sugere sempre os ajustes que fazem o relógio poupar bateria, liga sozinho o que consegue e abre a tela certa do relógio para o resto.

@@ -5282,6 +5282,11 @@ app faz sozinho ao abrir.
   vem. Coberto em `teste-saude.js` (o pacote novo e o registro). No
   navegador: a tela e um quadro do vídeo. **Não validado num aparelho** (a
   permissão nova e o que o Galaxy Watch grava de respiração e VO2máx).
+  **As placas das duas cenas seguem o visual de jogo** (`placaJogo`,
+  `numeroJogo`, pedido do dono: "mantenha a identidade visual"): sombra dura,
+  moldura no degradê da marca com brilho rosa, e o número no letreiro
+  inclinado, contorno preto atrás e degradê amarelo-laranja-rosa. Placa nova
+  de canvas no resumo usa as duas.
 - **Informação geral, não exame**: a tela diz isso, e as frases não falam em
   "normal" nem "anormal" (a queda de 12 bpm é a referência dos estudos, dita
   como "boa recuperação").

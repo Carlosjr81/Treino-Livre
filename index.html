@@ -27293,13 +27293,10 @@ function desenharCoracaoAR(c, cena, p, conta, parado) {
     c.globalAlpha = 1;
     if (l2 < 1) return;
     c.save(); c.globalAlpha = Math.min(1, (a - 0.95) * 20 + 0.6);
-    c.fillStyle = "rgba(4,10,18,.78)"; c.strokeStyle = (m.cor || COR_AR) + "AA"; c.lineWidth = 2;
-    c.beginPath(); arredondado(c, caixaX, caixaY, 246, 128, 14); c.fill(); c.stroke();
+    placaJogo(c, caixaX, caixaY, 246, 128);
     c.textAlign = "left";
-    c.font = "800 21px " + VIDEO_FONTE; c.fillStyle = m.cor || COR_AR; c.fillText(m.rot, caixaX + 16, caixaY + 32);
-    c.font = "400 46px " + VIDEO_FONTE_JOGO; c.fillStyle = "#FFFFFF";
-    let tam = 46; while (c.measureText(m.val).width > 214 && tam > 26) { tam -= 2; c.font = "400 " + tam + "px " + VIDEO_FONTE_JOGO; }
-    c.fillText(m.val, caixaX + 16, caixaY + 84);
+    c.font = "800 21px " + VIDEO_FONTE; c.fillStyle = m.cor || COR_AR; c.fillText(m.rot, caixaX + 16, caixaY + 34);
+    numeroJogo(c, m.val, caixaX + 16, caixaY + 86, 46, 214);
     if (m.sub) { c.font = "600 19px " + VIDEO_FONTE; c.fillStyle = "#BFC7D0"; c.fillText(m.sub.slice(0, 26), caixaX + 16, caixaY + 113); }
     c.restore();
   });
@@ -27446,16 +27443,13 @@ function desenharCorpoAR(c, cena, p, conta, parado) {
     c.fillStyle = COR_AR; c.beginPath(); c.arc(ax, ay, 6, 0, Math.PI * 2); c.fill();
     c.globalAlpha = 1;
     if (l2 < 1) return;
-    c.fillStyle = "rgba(4,10,18,.8)"; c.strokeStyle = "rgba(77,235,255,.6)"; c.lineWidth = 2;
-    c.beginPath(); arredondado(c, cxx, y0, 290, alt, 14); c.fill(); c.stroke();
+    placaJogo(c, cxx, y0, 290, alt);
     c.textAlign = "left";
     c.font = "400 34px " + VIDEO_FONTE; c.fillText(m.icone, cxx + 12, y0 + 46);
     c.font = "800 20px " + VIDEO_FONTE; c.fillStyle = COR_AR; c.fillText(m.rot.toUpperCase().slice(0, 22), cxx + 60, y0 + 32);
     const num = typeof m.val === "number" ? Math.round(m.val * conta * (Number.isInteger(m.val) ? 1 : 10)) / (Number.isInteger(m.val) ? 1 : 10) : m.val;
     const txt = (typeof num === "number" ? num.toLocaleString("pt-BR") : num) + (m.un ? " " + m.un : "");
-    let tam = 44; c.font = "400 " + tam + "px " + VIDEO_FONTE_JOGO;
-    while (c.measureText(txt).width > 216 && tam > 24) { tam -= 2; c.font = "400 " + tam + "px " + VIDEO_FONTE_JOGO; }
-    c.fillStyle = "#FFFFFF"; c.fillText(txt, cxx + 60, y0 + 80);
+    numeroJogo(c, txt, cxx + 60, y0 + 80, 44, 216);
     if (m.sub) { c.font = "600 18px " + VIDEO_FONTE; c.fillStyle = "#BFC7D0"; c.fillText(m.sub.slice(0, 28), cxx + 14, y0 + 112); }
   });
   coluna(esq, -1); coluna(dir, 1);
@@ -28036,6 +28030,36 @@ function videoGradiente(c, x0, x1) {
   const g = c.createLinearGradient(x0, 0, x1, 0);
   g.addColorStop(0, "#F58529"); g.addColorStop(0.5, "#DD2A7B"); g.addColorStop(1, "#8134AF");
   return g;
+}
+
+// A placa dos números nas cenas do coração e dos sinais vitais, no visual de
+// jogo do resumo (2026-11-21k, pedido do dono: "mantenha a identidade visual"):
+// fundo escuro, sombra dura preta, a moldura no degradê da marca com brilho
+// rosa, e um filete ciano no alto, como os painéis do relógio.
+function placaJogo(c, x, y, w, h) {
+  c.save();
+  c.fillStyle = "rgba(0,0,0,.85)"; c.beginPath(); arredondado(c, x + 6, y + 7, w, h, 12); c.fill();
+  c.fillStyle = "rgba(14,6,28,.9)"; c.beginPath(); arredondado(c, x, y, w, h, 12); c.fill();
+  c.shadowColor = "rgba(225,48,108,.75)"; c.shadowBlur = 16;
+  c.strokeStyle = videoGradiente(c, x, x + w); c.lineWidth = 3.5;
+  c.beginPath(); arredondado(c, x, y, w, h, 12); c.stroke();
+  c.shadowBlur = 0; c.fillStyle = "rgba(77,235,255,.85)"; c.fillRect(x + 14, y + 3, Math.min(70, w * 0.3), 3);
+  c.restore();
+}
+// O número na placa: a fonte de letreiro, inclinada, o contorno preto atrás e o
+// degradê da marca por cima, como os números grandes do resumo.
+function numeroJogo(c, txt, x, y, tam, largMax) {
+  let t = tam; c.font = "italic 400 " + t + "px " + VIDEO_FONTE_JOGO;
+  while (c.measureText(txt).width > largMax && t > 22) { t -= 2; c.font = "italic 400 " + t + "px " + VIDEO_FONTE_JOGO; }
+  const w = c.measureText(txt).width;
+  c.save(); c.lineJoin = "round"; c.strokeStyle = "#000"; c.lineWidth = Math.max(6, t * 0.16);
+  c.strokeText(txt, x + 2, y + 3); c.strokeText(txt, x, y);
+  c.shadowColor = "rgba(225,48,108,.6)"; c.shadowBlur = 14;
+  const g = c.createLinearGradient(0, y - t, 0, y);
+  g.addColorStop(0, "#FFE36E"); g.addColorStop(0.55, "#FF9A3C"); g.addColorStop(1, "#FF3E8A");
+  c.fillStyle = g; c.fillText(txt, x, y);
+  c.restore();
+  return w;
 }
 function videoTexto(c, txt, x, y, tam, cor, peso, largMax) {
   // o número grande em degradê é o do relógio: inclinado, com o contorno preto

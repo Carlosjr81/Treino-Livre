@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v245) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v246) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -2288,6 +2288,15 @@ texto de divulgação também não cita o jogo.
 - **Os números do relógio**: `NUMERO_RESUMO` inclinado, 900, contorno preto
   (`WebkitTextStroke` e sombra dura) e brilho rosa; no vídeo, `videoTexto`
   com `"grad"` e 90 px para cima faz o mesmo. Rótulos em ciano (#4DEBFF).
+- **O contorno fica atrás do texto** (`Contorno`, 2026-11-21b, print do
+  dono: "os textos ficaram todos falhados"). O `-webkit-text-stroke` por cima
+  do texto em degradê riscava por dentro das letras (o itálico pesado tem
+  contornos que se cruzam) e o `text-shadow` de oito direções deixava dentes
+  nas curvas. Hoje o número, o título e o carimbo são duas camadas: uma preta
+  atrás, com o traço grosso e a sombra de baixo, e o texto limpo na frente.
+  Texto novo grande no resumo usa `<Contorno estilo={...}>`, nunca o traço
+  por cima. O texto miúdo ganhou sombra escura (herdada da cena) para ler
+  sobre a arte. O vídeo já desenhava o traço antes do preenchimento.
 - **O carimbo** (`GritoResumo`, `videoGrito`) perdeu a caixa: letra grande
   amarela (#FFD23F), inclinada, com contorno preto grosso (`CONTORNO_RESUMO`).
 - **As estrelas** (`EstrelasResumo`, `videoEstrelas`): cinco no topo,

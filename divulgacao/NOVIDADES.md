@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-21b — Os textos do resumo animado ficaram nítidos
+
+**Em uma frase:** os números e os títulos do resumo animado não aparecem mais riscados por dentro.
+
+**O que mudou**
+- O contorno preto das letras passou para trás do texto, e as letras ficaram inteiras e lisas.
+- As linhas menores (dia, exercícios, comparações) ganharam uma sombra escura e ficaram mais fáceis de ler sobre a arte.
+
+**Por que importa para quem treina**
+- O resumo, e o print dele no story, ficam com cara de abertura de jogo, sem letra falhada.
+
+**Como usar**
+- Nada muda: termine um treino e abra o "Ver resumo animado".
+
+**Ideias de vídeo**
+- Um antes e depois do número grande, de perto.
+
+**Não prometer**
+- Nada novo.
+
+---
+
 ## 2026-11-21a — O resumo animado ganhou música
 
 **Em uma frase:** o resumo animado do treino agora toca uma trilha por baixo da narração, e o vídeo para o story sai com a música junto.

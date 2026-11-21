@@ -1743,7 +1743,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-21a";
+const VERSAO_APP = "2026-11-21b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -26860,11 +26860,32 @@ function EstrelasResumo({ acesas }) {
     </div>
   );
 }
-// o contorno grosso dos números e do carimbo (o dos números do relógio)
-const CONTORNO_RESUMO = "-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 -3px 0 #000, 0 3px 0 #000, -3px 0 0 #000, 3px 0 0 #000, 0 7px 0 #000";
+// O contorno grosso dos números e do carimbo (o dos números do relógio), numa
+// camada preta ATRÁS do texto (2026-11-21b). Antes ele era desenhado por cima:
+// o -webkit-text-stroke no texto em degradê riscava por dentro das letras (a
+// fonte em itálico pesado tem contornos que se cruzam, e o "4" e o "a" saíam
+// com linhas no meio), e o text-shadow de oito direções deixava dentes nas
+// curvas. No celular do dono os textos pareciam "falhados". Atrás, a camada
+// preta pode ter o traço que quiser: o que se cruza nela é preto sobre preto.
+const PINTURA_TEXTO = ["backgroundImage", "background", "WebkitBackgroundClip", "backgroundClip", "color", "WebkitTextFillColor", "WebkitTextStroke", "textShadow"];
+function Contorno({ estilo, className, grosso, children }) {
+  const fora = {}, tinta = {};
+  Object.keys(estilo || {}).forEach((k) => { if (PINTURA_TEXTO.indexOf(k) >= 0) tinta[k] = estilo[k]; else fora[k] = estilo[k]; });
+  delete tinta.WebkitTextStroke;
+  const g = grosso || 8;
+  return (
+    <div className={className} style={fora}>
+      <span style={{ position: "relative", display: "inline-block" }}>
+        <span aria-hidden="true" style={{ position: "absolute", left: 0, top: 0, width: "100%", color: "#000", WebkitTextFillColor: "#000",
+          WebkitTextStroke: g + "px #000", textShadow: "0 " + Math.round(g * 0.75) + "px 0 #000", pointerEvents: "none" }}>{children}</span>
+        <span style={{ position: "relative", textShadow: "none", ...tinta }}>{children}</span>
+      </span>
+    </div>
+  );
+}
 const ROTULO_RESUMO = { fontSize: 11.5, color: "#4DEBFF", fontWeight: 900, letterSpacing: 1.8, textTransform: "uppercase", textShadow: "0 0 10px rgba(77,235,255,.55), 0 2px 0 #000" };
 const NUMERO_RESUMO = { ...S.logo, fontSize: 76, lineHeight: 1.05, fontVariantNumeric: "tabular-nums", fontStyle: "italic", fontWeight: 900,
-  padding: "0 12px", WebkitTextStroke: "2px #000", filter: "drop-shadow(0 5px 0 #000) drop-shadow(0 0 18px rgba(225,48,108,.65))" };
+  padding: "0 12px", filter: "drop-shadow(0 0 18px rgba(225,48,108,.6))" };
 
 function MapaResumo({ trechos }) {
   // projeção plana: num percurso de alguns quilômetros a curvatura não aparece
@@ -26920,10 +26941,9 @@ function EfeitosCena({ forte, atraso }) {
 function GritoResumo({ texto, cor, atraso }) {
   const k = cor || "#FFD23F";
   return (
-    <div className="rs-grito" style={{ display: "inline-block", marginTop: 26, padding: "0 10px", color: k, fontWeight: 900, fontSize: 30,
-      fontStyle: "italic", letterSpacing: 0.5, lineHeight: 1.1, textTransform: "uppercase",
-      textShadow: CONTORNO_RESUMO + ", 0 0 26px " + k + "AA",
-      ...(atraso != null ? { animationDelay: atraso + "s" } : {}) }}>{texto}</div>
+    <Contorno className="rs-grito" grosso={7} estilo={{ display: "inline-block", marginTop: 26, padding: "0 10px", color: k, fontWeight: 900, fontSize: 30,
+      fontStyle: "italic", letterSpacing: 0.5, lineHeight: 1.1, textTransform: "uppercase", filter: "drop-shadow(0 0 14px " + k + "88)",
+      ...(atraso != null ? { animationDelay: atraso + "s" } : {}) }}>{texto}</Contorno>
   );
 }
 
@@ -26957,7 +26977,7 @@ function CenaResumo({ c }) {
     return (
       <div style={{ textAlign: "center", padding: "0 24px", width: "100%", maxWidth: 360 }}>
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
-        <div className="rs-grito" style={{ ...NUMERO_RESUMO, display: "inline-block", fontSize: 46, lineHeight: 1.08, marginTop: 12, animationDelay: ".3s" }}>{c.titulo}</div>
+        <Contorno className="rs-grito" estilo={{ ...NUMERO_RESUMO, display: "inline-block", fontSize: 46, lineHeight: 1.08, marginTop: 12, animationDelay: ".3s" }}>{c.titulo}</Contorno>
         <div style={{ display: "inline-block", textAlign: "left", marginTop: 8 }}>
           {c.itens.map((x, k) => (
             <div key={k} className="rs-marca" style={{ display: "flex", alignItems: "center", gap: 10, color: "#F2F0EC", fontSize: 17, fontWeight: 800, marginTop: 12, animationDelay: 0.9 + k * 0.22 + "s" }}>
@@ -26975,9 +26995,9 @@ function CenaResumo({ c }) {
     return (
       <div style={{ textAlign: "center", padding: "0 24px" }}>
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
-        <div style={{ ...NUMERO_RESUMO, fontSize: 40, lineHeight: 1.15, margin: "14px 0 10px" }}>{c.titulo}</div>
+        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 40, lineHeight: 1.15, margin: "14px 0 10px" }}>{c.titulo}</Contorno>
         <div style={{ color: "#BDBDBD", fontSize: 15, fontWeight: 700 }}>{c.dia}</div>
-        {c.sub && <div style={{ color: "#8a8a8a", fontSize: 13.5, fontWeight: 700, marginTop: 6 }}>{c.sub}</div>}
+        {c.sub && <div style={{ color: "#D6D6D6", fontSize: 14, fontWeight: 800, marginTop: 6 }}>{c.sub}</div>}
       </div>
     );
   }
@@ -26985,7 +27005,7 @@ function CenaResumo({ c }) {
     return (
       <div style={{ textAlign: "center" }}>
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
-        <div style={{ ...NUMERO_RESUMO, marginTop: 10 }}>{v.toLocaleString("pt-BR", { minimumFractionDigits: c.casas, maximumFractionDigits: c.casas })}</div>
+        <Contorno estilo={{ ...NUMERO_RESUMO, marginTop: 10 }}>{v.toLocaleString("pt-BR", { minimumFractionDigits: c.casas, maximumFractionDigits: c.casas })}</Contorno>
         <div style={{ color: "#F2F0EC", fontSize: 22, fontWeight: 900, letterSpacing: 1 }}>{c.unidade}</div>
         {c.sub && <div style={{ color: "#BDBDBD", fontSize: 16, fontWeight: 700, marginTop: 14 }}>{c.sub}</div>}
       </div>
@@ -26995,7 +27015,7 @@ function CenaResumo({ c }) {
     return (
       <div style={{ textAlign: "center", padding: "0 20px" }}>
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
-        <div style={{ ...NUMERO_RESUMO, fontSize: 64, marginTop: 10, ...(c.cor ? { background: "none", WebkitTextFillColor: c.cor, color: c.cor } : {}) }}>{c.texto}</div>
+        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 64, marginTop: 10, ...(c.cor ? { background: "none", WebkitTextFillColor: c.cor, color: c.cor } : {}) }}>{c.texto}</Contorno>
         {c.sub && <div style={{ color: "#BDBDBD", fontSize: 16, fontWeight: 700, marginTop: 14 }}>{c.sub}</div>}
       </div>
     );
@@ -27006,7 +27026,7 @@ function CenaResumo({ c }) {
     return (
       <div style={{ textAlign: "center", width: "100%", maxWidth: 320, padding: "0 20px" }}>
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
-        <div style={{ ...NUMERO_RESUMO, marginTop: 10 }}>{Math.round(v)}</div>
+        <Contorno estilo={{ ...NUMERO_RESUMO, marginTop: 10 }}>{Math.round(v)}</Contorno>
         <div style={{ color: "#F2F0EC", fontSize: 22, fontWeight: 900, letterSpacing: 1 }}>kcal{c.estimado ? " (média)" : ""}</div>
         <div style={{ position: "relative", height: 10, borderRadius: 5, marginTop: 26, overflow: "visible",
           background: "linear-gradient(90deg, #3a3a3a 0 25%, #1B76BC 25% 50%, #DD2A7B 50% 100%)" }}>
@@ -27070,7 +27090,7 @@ function CenaResumo({ c }) {
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
         {c.foto ? <img src={c.foto} alt="" style={{ width: 74, height: 74, borderRadius: 37, objectFit: "cover", marginTop: 8, border: "3px solid #7CFF3C" }} />
           : <div style={{ fontSize: 50, marginTop: 8 }} aria-hidden="true">{c.icone}</div>}
-        <div style={{ ...NUMERO_RESUMO, fontSize: 64 }}>{Math.round(v)}<span style={{ fontSize: 30 }}>/{c.total}</span></div>
+        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 64 }}>{Math.round(v)}<span style={{ fontSize: 30 }}>/{c.total}</span></Contorno>
         <div style={{ color: "#F2F0EC", fontSize: 15, fontWeight: 900, letterSpacing: 1, marginBottom: 8 }}>{plural(c.valor, "fuga", "fugas")}</div>
         {c.linhas.map((l, k) => (
           <div key={k} className="rs-marca" style={{ color: l.ok ? "#B9F6CA" : "#FFB4B4", fontSize: 15.5, fontWeight: 800, marginTop: 6, textAlign: "left", animationDelay: 0.6 + k * 0.18 + "s" }}>{l.texto}</div>
@@ -27102,7 +27122,7 @@ function CenaResumo({ c }) {
               : <text y="6" textAnchor="middle" fontSize="16">{c.icone}</text>}
           </g>
         </svg>
-        <div style={{ ...NUMERO_RESUMO, fontSize: 64, background: "none", WebkitTextFillColor: c.cor, color: c.cor }}>{mostra} m</div>
+        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 64, background: "none", WebkitTextFillColor: c.cor, color: c.cor }}>{mostra} m</Contorno>
         <div style={{ color: c.cor, fontSize: 16, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}>{c.sub}</div>
       </div>
     );
@@ -27126,7 +27146,7 @@ function CenaResumo({ c }) {
       <div style={{ textAlign: "center", padding: "0 24px" }}>
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
         <div style={{ fontSize: 54, marginTop: 10 }} aria-hidden="true">🏆</div>
-        <div style={{ ...NUMERO_RESUMO, fontSize: 64 }}>{Math.round(v)}</div>
+        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 64 }}>{Math.round(v)}</Contorno>
         {c.nomes.map((n, k) => (
           <div key={n} className="rs-marca" style={{ color: "#F2F0EC", fontSize: 16, fontWeight: 800, marginTop: 8, animationDelay: 0.6 + k * 0.15 + "s" }}>{n}</div>
         ))}
@@ -28587,7 +28607,7 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
             <div className="rs-zoom" style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
               <div className={cenas[i].grito ? "rs-pop" : ""} style={{ width: "100%", display: "flex", justifyContent: "center",
                 ...(cenas[i].impactoMs ? { animationDelay: cenas[i].impactoMs / 1000 + "s" } : {}) }}>
-                <CenaResumo c={cenas[i]} />
+                <div style={{ display: "contents", textShadow: "0 1px 2px rgba(0,0,0,.95), 0 2px 10px rgba(0,0,0,.85)" }}><CenaResumo c={cenas[i]} /></div>
               </div>
               {cenas[i].grito && <div style={{ textAlign: "center" }}>
                 <GritoResumo texto={cenas[i].grito} cor={cenas[i].corGrito} atraso={cenas[i].impactoMs ? cenas[i].impactoMs / 1000 : null} /></div>}

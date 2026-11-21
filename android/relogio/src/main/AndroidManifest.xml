@@ -32,6 +32,19 @@
             android:name="com.google.android.wearable.standalone"
             android:value="false" />
 
+        <!-- poupar bateria: o que dá para ligar sozinho, e os ajustes de Tela
+             num toque (treinolivre://relogio-ajustes, também aberta pelo celular) -->
+        <activity
+            android:name=".AjustesTela"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="treinolivre" android:host="relogio-ajustes" />
+            </intent-filter>
+        </activity>
+
         <!-- a tela de atualizar: o celular a abre (RemoteActivityHelper) -->
         <activity
             android:name=".PreparaAtualizacao"

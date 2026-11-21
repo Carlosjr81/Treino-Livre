@@ -1762,7 +1762,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-21e";
+const VERSAO_APP = "2026-11-21f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3199,7 +3199,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-168/treino-livre-168.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-170/treino-livre-170.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -3227,6 +3227,11 @@ const NUMERO_APK = (() => {
 // O "Conferir o relógio": o app pergunta ao relógio e volta com #relogio=. Um
 // app antigo, sem essa tela, faz o Chrome baixar o app novo.
 const LINK_CONFERIR_RELOGIO = "intent://relogio#Intent;scheme=treinolivre;package=br.com.treinolivre.app;S.browser_fallback_url=" + encodeURIComponent("https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk") + ";end";
+// Poupar bateria no relógio (2026-11-21f): o app do celular abre no relógio a
+// tela que liga sozinho o que dá e leva aos ajustes de Tela. Precisa do app do
+// celular a partir do 170; antes disso, o link baixa o app novo.
+const APK_AJUSTES_MIN = 170;
+const LINK_AJUSTES_RELOGIO = "intent://relogio-ajustes#Intent;scheme=treinolivre;package=br.com.treinolivre.app;S.browser_fallback_url=" + encodeURIComponent("https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk") + ";end";
 // O instalador sugerido (Play Store): manda o APK para o relógio pelo Wi-Fi
 const LINK_INSTALADOR_RELOGIO = "https://play.google.com/store/search?q=Bugjaeger&c=apps";
 // O instalador dentro do app do celular (InstaladorRelogio): acha o relógio no
@@ -30836,6 +30841,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                 ⬆ O app do relógio tem versão nova: atualizar com um toque ›
               </a>
             )}
+            {NO_APP_ANDROID && RELOGIO_NO_PULSO > 0 && <CartaoBateriaRelogio compacto />}
             {NO_APP_ANDROID && !RELOGIO_DESATUALIZADO && (
               <button onClick={() => abrirInstalarRelogio()} style={{ marginTop: 6, background: "none", border: "none", padding: 0, color: "var(--marca)", fontSize: 12.5, fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
                 ⌚ Tem Galaxy Watch, Pixel Watch ou outro Wear OS? Marque as séries no pulso: instalar o app no relógio ›
@@ -32533,7 +32539,7 @@ const PROBLEMAS_RELOGIO = [
   ["O relógio fica em \"Procurando o celular…\"",
     "Toque em **🔎 Testar a conexão com o relógio** (no assistente): ele diz onde a conexão para. **Nenhum relógio conectado**: Bluetooth e o app Galaxy Wearable (ou Wear OS) com o relógio conectado; num celular que não é Samsung, o Galaxy Wearable pede também o plugin do relógio. **O app do relógio não respondeu**: instale ou atualize o app no relógio. **Tudo certo, mas fica em Procurando com o app fechado**: em **Xiaomi, Redmi, POCO, Oppo, Realme, Vivo, Huawei** e outros, ligue o **Início automático** e a **Bateria sem restrições** do Treino Livre. Depois abra o Treino Livre **pelo ícone** e comece o treino."],
   ["A bateria do relógio acaba rápido no treino",
-    "Desde a versão 2026-11-21e a tela do relógio **não fica mais acesa o treino inteiro**: ela apaga no tempo normal e acende quando você **levanta o pulso**, já no treino. Para isso, no relógio: Configurações → **Tela** → ligue **Levantar o pulso para ativar** (ou Acordar ao levantar) e, em **Mostrar último app** (ou Voltar ao último app), escolha **Sempre**. A **Tela sempre ligada** é opcional: com ela o treino fica à vista escurecido (gasta um pouco); sem ela a tela desliga de vez, que é o que mais poupa. Atualize também o app do relógio (⬆ Atualizar o relógio)."],
+    "Desde a versão 2026-11-21e a tela do relógio **não fica mais acesa o treino inteiro**: ela apaga no tempo normal e acende quando você **levanta o pulso**, já no treino. Para isso, no relógio: Configurações → **Tela** → ligue **Levantar o pulso para ativar** (ou Acordar ao levantar) e, em **Mostrar último app** (ou Voltar ao último app), escolha **Sempre**. A **Tela sempre ligada** é opcional: com ela o treino fica à vista escurecido (gasta um pouco); sem ela a tela desliga de vez, que é o que mais poupa. O atalho: **⚙ Abrir os ajustes de Tela no relógio** (no cartão 🔋 daqui e no 🔒 do treino) ou **🔋 Poupar bateria** no próprio relógio, que já liga sozinho o que dá. Atualize também o app do relógio (⬆ Atualizar o relógio)."],
   ["O relógio apaga a tela e volta para o mostrador",
     "Com o treino aberto, o Treino Livre fica **em andamento** no relógio: o ícone dele aparece no mostrador, e um toque nele volta ao treino. Se o relógio pediu para permitir notificações, toque em **Permitir**. No Galaxy Watch, ajuda também: Configurações → **Tela** → **Mostrar último app** (ou Voltar ao último app) → **Sempre**. E ligar a **Tela sempre ligada** deixa o treino à vista, escurecido."],
   ["\"O celular e o relógio estão em redes diferentes\"",
@@ -32575,6 +32581,31 @@ function lerPassosRelogio() { try { return JSON.parse(localStorage.getItem("trei
 function vibrarToque(e) {
   try { if (e && e.target && e.target.closest && e.target.closest("a,button") && navigator.vibrate) navigator.vibrate(12); } catch (x) {}
 }
+// O cartão "Poupar bateria" do relógio: sugerido até a pessoa dizer que ajustou
+function CartaoBateriaRelogio({ compacto }) {
+  const [ok, setOk] = useState(() => { try { return localStorage.getItem("treinolivre:relogioTelaOk") === "1"; } catch (e) { return false; } });
+  const [abriu, setAbriu] = useState(false);
+  if (ok) return null;
+  const velho = NUMERO_APK > 0 && NUMERO_APK < APK_AJUSTES_MIN;
+  const link = velho ? linkAtualizarCelular() : LINK_AJUSTES_RELOGIO;
+  const pronto = () => { try { localStorage.setItem("treinolivre:relogioTelaOk", "1"); } catch (e) {} setOk(true); };
+  return (
+    <div style={compacto ? { marginTop: 8, padding: "10px 12px", borderRadius: 12, border: "1px solid var(--ok)", fontSize: 12.5, lineHeight: 1.45 }
+      : { ...S.card, borderColor: "var(--ok)" }}>
+      <div style={{ fontWeight: 900, fontSize: compacto ? 13.5 : 15, marginBottom: 4 }}>🔋 Relógio gastando bateria? Ajuste a tela uma vez</div>
+      <div style={{ fontSize: compacto ? 12.5 : 13.5, lineHeight: 1.5, color: "var(--cinza)", marginBottom: 8 }}>
+        {textoGuia("No treino a tela do relógio apaga sozinha e acende quando você levanta o pulso, já no Treino Livre. No relógio, em **Tela**: **Levantar o pulso para ativar** ligado e **Mostrar último app: Sempre**. O botão abre esses ajustes no relógio (e o que dá, o app liga sozinho).")}
+      </div>
+      <a href={link} onClick={() => setAbriu(true)} className="btn-pulsa"
+        style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none", padding: compacto ? "9px 12px" : undefined, fontSize: compacto ? 13.5 : undefined }}>
+        {velho ? "⬇ Primeiro, atualizar o app do celular" : "⚙ Abrir os ajustes de Tela no relógio"}
+      </a>
+      {abriu && !velho && <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 6 }}>Olhe o relógio: a tela 🔋 Poupar bateria abriu lá. Se não abriu, atualize o app do relógio (⬆ Atualizar o relógio).</div>}
+      <button onClick={pronto} style={{ marginTop: 8, background: "none", border: "none", padding: 0, color: "var(--marca)", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>✓ Já ajustei</button>
+    </div>
+  );
+}
+
 function InstalarRelogio({ status: statusEm, onFechar }) {
   const status = String(statusEm || "").split("|")[0];
   const conferidoEm = +String(statusEm || "").split("|")[1] || 0;
@@ -32719,6 +32750,7 @@ function InstalarRelogio({ status: statusEm, onFechar }) {
             <a href={linkRelogio(LINK_ATUALIZAR_RELOGIO)} className={RELOGIO_DESATUALIZADO || INSTALADOR_VELHO ? "btn-pulsa" : ""} style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none" }}>{INSTALADOR_VELHO ? "⬇ Primeiro, atualizar o app do celular" : "⬆ Atualizar o relógio"}</a>
           </div>
         )}
+        {marca && marca.wear && EH_ANDROID && (RELOGIO_NO_PULSO > 0 || feitos.instalar || status === "pronto") && <CartaoBateriaRelogio />}
         {marca && marca.wear && st && (
            <div role="status" style={{ ...S.card, borderColor: st.ok ? "var(--ok)" : "var(--borda2)", fontSize: 14, lineHeight: 1.5, fontWeight: 700 }}>
              {conferidoEm > 0 && <div style={{ fontSize: 12, color: "var(--cinza)", fontWeight: 700, marginBottom: 4 }}>Conferido às {new Date(conferidoEm).toLocaleTimeString("pt-BR")}</div>}

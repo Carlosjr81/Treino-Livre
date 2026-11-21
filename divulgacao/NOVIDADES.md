@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-21f — Os ajustes de bateria do relógio num toque
+
+**Em uma frase:** o app agora sugere sempre os ajustes que fazem o relógio poupar bateria, liga sozinho o que consegue e abre a tela certa do relógio para o resto.
+
+**O que mudou**
+- No relógio, o botão "🔋 Poupar bateria" abre uma tela que liga sozinha o que dá e mostra os dois ajustes que faltam, com um botão que abre direto os ajustes de Tela.
+- No celular, um cartão no assistente do relógio e no treino abre essa mesma tela no relógio, num toque.
+- Os avisos somem quando você toca em "Já ajustei".
+
+**Por que importa para quem treina**
+- Ninguém precisa caçar menu no relógio: o caminho para a bateria durar o treino inteiro fica a um toque.
+
+**Como usar**
+- No relógio: toque em "🔋 Poupar bateria" e depois em "Abrir os ajustes de Tela". Lá: "Levantar o pulso para ativar" ligado e "Mostrar último app" em "Sempre".
+- Atualize o app do celular e o do relógio para aparecer.
+
+**Ideias de vídeo**
+- Um toque no celular e a tela de ajustes abrindo no relógio.
+
+**Não prometer**
+- Cada relógio tem os próprios nomes de ajuste: em alguns o app liga sozinho, em outros abre a tela para você ligar.
+
+---
+
 ## 2026-11-21e — O relógio gasta bem menos bateria no treino
 
 **Em uma frase:** a tela do relógio não fica mais acesa o treino inteiro: ela apaga sozinha e acende ao levantar o pulso, já mostrando o treino.

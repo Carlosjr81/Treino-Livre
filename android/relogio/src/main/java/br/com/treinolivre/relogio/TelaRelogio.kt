@@ -73,6 +73,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
                 celebra.alpha = 0f
                 // tela apagada: a hora fica à vista, parada e só no contorno
                 hora.fixarAmbiente(true)
+                if (::bateria.isInitialized) bateria.visibility = View.GONE
                 linha.removeCallbacks(tique)
                 mostrar()
             }
@@ -83,6 +84,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
                 frente.ambiente = false
                 gel.ambiente = false
                 hora.fixarAmbiente(false)
+                mostrarBateria()
                 mostrar()
                 linha.post(tique)
             }
@@ -147,6 +149,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     private lateinit var dica: TextView
     private lateinit var aviso: TextView
     private lateinit var atualizar: Button
+    private lateinit var bateria: Button
     private lateinit var terminar: Button
     private lateinit var continuar: Button
 
@@ -349,6 +352,11 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             if (entrarSemCelular()) { semCel?.let { mostrarPainel(it.painel(System.currentTimeMillis())) }; agendarAlarmes() }
         }.apply { visibility = View.GONE }
         caixa.addView(continuar, lp())
+        // Poupar bateria (2026-11-21f): sugerido até a pessoa dizer que ajustou
+        bateria = pilula("🔋 Poupar bateria: ajustar a tela", intArrayOf(Cores.VERDE, Cores.CIANO)) {
+            startActivity(android.content.Intent(this, AjustesTela::class.java))
+        }.apply { visibility = View.GONE }
+        caixa.addView(bateria, lp())
 
         val rolagem = ScrollView(this).apply {
             isVerticalScrollBarEnabled = false
@@ -396,6 +404,9 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
 
     override fun onResume() {
         super.onResume()
+        mostrarBateria()
+        // o que dá para ligar sozinho, liga (uma vez por abertura; só mexe no que está desligado)
+        try { AjustesTela.aplicarSozinho(this) } catch (e: Exception) { }
         palco.vivo = true
         frente.vivo = true
         gel.ligar()
@@ -564,6 +575,10 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         val v = String(m.data, Charsets.UTF_8).trim().toLongOrNull() ?: 0L
         getSharedPreferences("relogio", MODE_PRIVATE).edit().putLong("celular", v).apply()
         runOnUiThread { mostrarAtualizar() }
+    }
+
+    private fun mostrarBateria() {
+        if (::bateria.isInitialized) bateria.visibility = if (!ambiente && !AjustesTela.ajustada(this)) View.VISIBLE else View.GONE
     }
 
     private fun mostrarAtualizar() {

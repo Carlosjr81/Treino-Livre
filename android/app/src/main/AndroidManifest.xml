@@ -143,6 +143,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="treinolivre" android:host="relogio" />
+                <!-- poupar bateria: abre os ajustes de Tela no relógio (2026-11-21f) -->
+                <data android:scheme="treinolivre" android:host="relogio-ajustes" />
             </intent-filter>
         </activity>
 

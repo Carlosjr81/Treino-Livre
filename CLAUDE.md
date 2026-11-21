@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v249) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v250) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -4542,6 +4542,31 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   no `tique`): é quando se olha a contagem. O 🆘 do relógio ganhou "A
   bateria do relógio acaba rápido" com os ajustes. **Não validado num
   relógio.**
+- **Os ajustes de Tela sempre sugeridos, e sozinhos quando dá** (2026-11-21f,
+  pedido do dono: "deixe essas configurações sempre sugestivas; se der,
+  configure automaticamente; senão abra a tela que preciso configurar").
+  - **Sozinho** (`AjustesTela.aplicarSozinho`, a cada abertura da tela do
+    treino): com a `WRITE_SECURE_SETTINGS` que o instalador dá pelo ADB, liga
+    o acender ao levantar o pulso pelos nomes que o Android e o Wear OS
+    conhecem (`secure wake_gesture_enabled`, `global tilt_to_wake`), **só se
+    a chave já existe e está desligada**. O "Mostrar último app" da Samsung não
+    tem nome público: para descobrir, o instalador anota no diagnóstico os
+    ajustes de tela e de gesto do relógio (`anotarAjustesDeTela`: `settings
+    list` filtrado por wake, wrist, tilt, raise, lift, last_app, ambient, aod,
+    always_on...). Com esses nomes no diagnóstico do dono, dá para ligar
+    sozinho também esses.
+  - **No relógio**: a tela **🔋 Poupar bateria** (`AjustesTela`,
+    `treinolivre://relogio-ajustes`): o que ligou sozinho, os dois ajustes
+    (Levantar o pulso: ligado; Mostrar último app: Sempre), "⚙ Abrir os
+    ajustes de Tela" (`ACTION_DISPLAY_SETTINGS`, senão os ajustes gerais) e
+    "✓ Já ajustei". A tela do treino mostra o botão "🔋 Poupar bateria:
+    ajustar a tela" até o "Já ajustei" (`telaAjustada`).
+  - **No celular**: o `CartaoBateriaRelogio` no assistente do relógio e no
+    cartão 🔒 do treino (com o relógio instalado), com "⚙ Abrir os ajustes de
+    Tela no relógio" (`LINK_AJUSTES_RELOGIO`: o app do celular, a partir do
+    170, abre a tela 🔋 no relógio pelo `RemoteActivityHelper`; antes disso
+    o link atualiza o app do celular) e "✓ Já ajustei"
+    (`treinolivre:relogioTelaOk`). **Não validado num relógio.**
 - **A cópia leva agora o nome do treino e o `pulado`** (`snapshotBolso`):
   antes, o motor do bolso podia mandar para um exercício pulado no Treino
   Adaptado.

@@ -905,6 +905,7 @@ class InstaladorRelogio : ComponentActivity() {
                 // fica até o app ser desinstalado). E a depuração desligada de
                 // novo: a próxima vez o relógio liga, sem ninguém mexer.
                 executar(c, "pm grant br.com.treinolivre.app android.permission.WRITE_SECURE_SETTINGS")
+                anotarAjustesDeTela(c)
                 executar(c, "settings put global adb_wifi_enabled 0")
                 return "ok"
             }
@@ -922,7 +923,8 @@ class InstaladorRelogio : ComponentActivity() {
     }
 
     // Um comando no relógio, esperando a resposta por no máximo 8 s
-    private fun executar(c: AbsAdbConnectionManager, comando: String) {
+    private fun executar(c: AbsAdbConnectionManager, comando: String): String {
+        var saida = ""
         try {
             comPrazo(8_000L) {
                 val s = c.openStream("exec:" + comando)
@@ -932,8 +934,21 @@ class InstaladorRelogio : ComponentActivity() {
                 while (true) { val n = try { entrada.read(buf) } catch (e: Exception) { -1 }; if (n <= 0) break; r.append(String(buf, 0, n)) }
                 try { s.close() } catch (e: Exception) { }
                 BolsoService.diario(this, "relógio: " + comando.take(60) + " → " + r.toString().trim().take(80))
+                saida = r.toString()
             }
         } catch (e: Exception) { }
+        return saida
+    }
+
+    // Os ajustes de tela e de gesto do relógio (2026-11-21f): vão para o
+    // diagnóstico, para saber os nomes que cada marca usa e um dia ligar
+    // sozinho também o "Mostrar último app" e o "Levantar o pulso".
+    private fun anotarAjustesDeTela(c: AbsAdbConnectionManager) {
+        val filtro = Regex("(?i)(wake|wrist|tilt|raise|lift|gesture|last_app|recent|ambient|aod|always_on|screen_off_timeout)")
+        for (onde in listOf("global", "secure", "system")) {
+            val linhas = executar(c, "settings list " + onde).lines().filter { filtro.containsMatchIn(it) }.take(40)
+            if (linhas.isNotEmpty()) det("ajustes de tela do relógio (" + onde + "): " + linhas.joinToString(" | "))
+        }
     }
 
     // Procura as portas abertas do relógio. A da Depuração por Wi-Fi é sorteada

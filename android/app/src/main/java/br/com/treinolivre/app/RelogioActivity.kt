@@ -27,6 +27,15 @@ class RelogioActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         @Suppress("DEPRECATION") overridePendingTransition(0, 0)
         if (savedInstanceState != null) return
+        // Poupar bateria (2026-11-21f): abre no relógio a tela que liga sozinho o
+        // que dá e leva aos ajustes de Tela; o site continua onde estava
+        if (intent?.data?.host == "relogio-ajustes") {
+            Relogio.abrirNoRelogio(applicationContext, "treinolivre://relogio-ajustes") { r ->
+                BolsoService.diario(applicationContext, "ajustes de tela no relógio: " + r)
+            }
+            finish()
+            return
+        }
         Handler(Looper.getMainLooper()).postDelayed({ voltar("erro") }, 8000L)
         try {
             Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nos ->

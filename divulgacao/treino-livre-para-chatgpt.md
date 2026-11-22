@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-22a**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-22b**.
 
 ---
 
@@ -531,6 +531,14 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 - **🌅 Como seu corpo acordou** (novo em 2026-11-22a, com relógio ou anel no Android): uma nota de 0 a 100 de manhã, feita com a variabilidade do coração, o batimento de repouso e o sono da noite, comparados com a média da própria pessoa. Três faixas: descansado, em ordem, pedindo calma. Aparece na aba ❤ Saúde, no cartão do treino de hoje, no começo do treino no relógio e no resumo animado. É informação geral, não exame.
 - **🎁 Retrospectiva do ano** (novo em 2026-11-22a): o ano inteiro animado, no visual do resumo, com vídeo para o story: treinos, horas, toneladas, km, exercício favorito, músculos, recordes, mês mais forte, dia favorito e maior sequência. Em Histórico › Números, e na tela inicial em dezembro e na primeira quinzena de janeiro.
 - **❤ O coração no descanso, no relógio** (novo em 2026-11-22a, app do relógio): entre as séries, o relógio mostra o batimento caindo e até onde ele precisa chegar ("❤ 128 → 105"); quando chega, vibra duas vezes e mostra "PRONTO". Quanto o coração levou para voltar vai para o treino e para o resumo animado ("Coração pronto entre as séries").
+- **O visual de jogo no app inteiro** (2026-11-22b): os títulos, os botões principais e os números na letra de letreiro do resumo animado, o fundo roxo-escuro com as luzes da marca, cartões com brilho e rótulos em ciano, nos temas escuro e claro.
+- **🏋 Calculadora de anilhas** (novo em 2026-11-22b): no treino, em exercício de barra, e pela voz ("Jarvis, anilhas para 100 quilos"): mostra a barra desenhada com as anilhas de cada lado, nas cores das anilhas olímpicas.
+- **💪 Quanto sobrou na série** (novo em 2026-11-22b): depois de marcar a série, um toque diz quantas repetições ainda sobravam (no limite, 1, 2, 3 ou mais). Na próxima vez, a carga sugerida sobe dois passos se tudo foi fácil, e fica se alguma foi no limite.
+- **🏅 Medalha do mês** (novo em 2026-11-22b): todo mês, 12 treinos (ou 30 km para quem mais corre e caminha). A medalha gira quando é conquistada, fica guardada nos últimos 12 meses e aparece no resumo animado do treino que a fechou.
+- **🔥 Sequência com folga** (novo em 2026-11-22b): um dia sem treino por semana não quebra a sequência.
+- **🏟 Ranking da academia** (novo em 2026-11-22b): no Desafio entre amigos, a opção "Minha academia" cria um ranking para quem treina no mesmo lugar, com convite próprio.
+- **🎞 Vídeo da evolução** (novo em 2026-11-22b): em Histórico › Corpo, as fotos de progresso viram um resumo animado com as datas e o peso, com vídeo para o story.
+- **Widget e bloco no relógio** (novo em 2026-11-22b): um widget para a tela inicial do Android e um bloco no mostrador do relógio (deslizando), com o treino de agora ou um convite para treinar.
 - **🔥 Reações dos amigos** (novo em 2026-11-22a, no Desafio entre amigos): reagir ao último treino de cada amigo com 💪 🔥 👏 🏆 😮 e mandar um comentário curto. Quem recebe vê um aviso ao abrir o app ("Ana reagiu 🔥 ao seu treino: monstro!"), e as reações aparecem no resumo animado daquele treino ("A galera reagiu").
 
 ---

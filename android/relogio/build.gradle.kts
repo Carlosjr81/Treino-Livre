@@ -51,4 +51,8 @@ dependencies {
     implementation("androidx.wear:wear-ongoing:1.0.0")
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.activity:activity-ktx:1.9.3")
+    // o bloco (tile) do Treino Livre no mostrador
+    implementation("androidx.wear.tiles:tiles:1.4.1")
+    implementation("androidx.wear.protolayout:protolayout:1.2.1")
+    implementation("com.google.guava:guava:33.3.1-android")
 }

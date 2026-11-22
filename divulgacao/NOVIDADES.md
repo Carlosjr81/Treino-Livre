@@ -16,6 +16,45 @@
 
 ---
 
+## 2026-11-22b — O app inteiro com cara de jogo, anilhas, medalha do mês e mais
+
+**Em uma frase:** o visual do resumo animado chegou ao app todo, e vieram a calculadora de anilhas, o "quanto sobrou na série", a medalha do mês, a sequência com folga, o ranking da academia, o vídeo da evolução com as fotos, o widget do celular e o bloco no relógio.
+
+**O que mudou**
+- 🎮 **Visual novo em todas as telas:** títulos, botões principais e números na letra de letreiro do resumo, fundo roxo-escuro com as luzes da marca, cartões com brilho. Vale no tema escuro e no claro.
+- 🏋 **Calculadora de anilhas:** no treino, nos exercícios de barra, e pela voz ("Jarvis, anilhas para 100 quilos"). Mostra a barra com as anilhas de cada lado.
+- 💪 **Quanto sobrou na série:** depois de marcar a série, toque em quantas repetições ainda sobravam. A carga da próxima vez sobe mais quando tudo foi fácil, e segura quando foi no limite.
+- 🏅 **Medalha do mês:** 12 treinos no mês (ou 30 km para quem mais corre). A medalha gira quando você conquista e aparece no resumo animado do treino que fechou o desafio.
+- 🔥 **Sequência com folga:** um dia sem treino por semana não quebra mais a sequência.
+- 🏟 **Ranking da academia:** no Desafio entre amigos, escolha "Minha academia" e mande o convite para a galera do seu treino.
+- 🎞 **Vídeo da evolução:** em Histórico › Corpo, as fotos de progresso viram um vídeo animado com as datas e o peso, pronto para o story.
+- 📱⌚ **Widget e bloco do relógio:** coloque o Treino Livre na tela inicial do celular e no mostrador do relógio: mostra o treino de agora ou chama para treinar.
+
+**Por que importa para quem treina**
+- Menos conta de cabeça na hora de montar a barra, e a carga certa na próxima vez.
+- A medalha e a sequência com folga ajudam a manter o ritmo sem culpa por um dia de descanso.
+- O vídeo da evolução mostra a mudança que o espelho do dia a dia esconde.
+
+**Como usar**
+- Anilhas: no treino, toque em "🏋 Anilhas" no exercício de barra, ou fale com o Jarvis.
+- Sobrou quanto: aparece embaixo das séries depois do ✓.
+- Medalha e sequência: Histórico › Números.
+- Ranking da academia: Histórico › Números › Desafio entre amigos › Minha academia.
+- Vídeo da evolução: Histórico › Corpo › 🎞 Vídeo da evolução (a partir de duas fotos).
+- Widget: segure a tela inicial do Android › Widgets › Treino Livre (app Android novo). Bloco do relógio: deslize o mostrador e adicione o Treino Livre (app do relógio novo).
+
+**Ideias de vídeo**
+- Antes e depois do app: a tela antiga e a nova, com cara de jogo.
+- "Quanto ponho de cada lado?": pergunta ao Jarvis e a barra aparece desenhada.
+- A medalha do mês girando no fim de novembro.
+- O vídeo da evolução das fotos, do começo até hoje.
+
+**Não prometer**
+- A medalha e a sequência são incentivo, não indicam se o treino está certo para a pessoa.
+- O widget e o bloco do relógio só no Android e no relógio Wear OS, com os apps novos.
+
+---
+
 ## 2026-11-22a — Foto com os números, nota do corpo, retrospectiva do ano, coração no descanso e reações dos amigos
 
 **Em uma frase:** cinco funções novas, todas no visual de jogo do resumo animado: a selfie com os números do treino, a nota de como o corpo acordou, a retrospectiva do ano, o relógio avisando quando o coração voltou no descanso, e reações aos treinos dos amigos.

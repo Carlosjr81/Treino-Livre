@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- O fundo do widget: o roxo escuro do resumo animado, com a borda rosa da marca -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:angle="315" android:startColor="#FF1C1327" android:endColor="#FF3A1430" />
+    <corners android:radius="22dp" />
+    <stroke android:width="2dp" android:color="#AADD2A7B" />
+</shape>

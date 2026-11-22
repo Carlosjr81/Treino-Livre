@@ -88,6 +88,8 @@ object Relogio {
     }
 
     fun publicar(contexto: Context, json: String) {
+        // o widget da tela inicial mostra o mesmo painel
+        WidgetTreino.guardar(contexto, json)
         try {
             val pedido = PutDataMapRequest.create(ESTADO).apply {
                 dataMap.putString("json", json)

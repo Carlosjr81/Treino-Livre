@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_raiz"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_fundo"
+    android:orientation="vertical"
+    android:padding="14dp">
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TREINO LIVRE"
+        android:textColor="#FFF58529"
+        android:textSize="12sp"
+        android:textStyle="bold|italic"
+        android:letterSpacing="0.12" />
+    <TextView
+        android:id="@+id/widget_linha1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Bora treinar? 💪"
+        android:textColor="#FFFFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold|italic"
+        android:maxLines="1" />
+    <TextView
+        android:id="@+id/widget_linha2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Toque para começar"
+        android:textColor="#FF4DEBFF"
+        android:textSize="13sp"
+        android:maxLines="1" />
+    <TextView
+        android:id="@+id/widget_botao"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/widget_botao"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="7dp"
+        android:paddingBottom="7dp"
+        android:text="▶ TREINAR"
+        android:textColor="#FFFFFFFF"
+        android:textSize="14sp"
+        android:textStyle="bold|italic" />
+</LinearLayout>

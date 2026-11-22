@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v259) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v260) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6142,6 +6142,22 @@ Pedido do dono: "implemente as 5 ideias e mantenha a identidade visual que adota
 - **🔥 As reações dos amigos** (`EMOJIS_REACAO`, `reagirTreino`, `lerReacoesLista`, `reacoesRecebidas`, `reacoesDoTreino`). Cada pessoa publica, junto dos números dela no grupo, as reações que DEU (`re`: alvo, a hora do treino `ul.d`, o emoji, um comentário de até 60 letras), guardadas em `treinolivre:reacoes` (21 dias, 30 no máximo). Uma por treino: outro emoji troca, o mesmo de novo desfaz. O `eventosGrupo` escreve no mural as novas, e a que veio para mim é `eu: true` (o aviso ao abrir o app). No cartão de cada amigo, os botões e o "💬 Comentar"; no meu, as que recebi. No resumo animado, a cena "A galera reagiu" (tipo recordes com `icone`). Sem servidor novo: o mesmo tópico do grupo.
 
 Coberto por `teste-retrospectiva.js` (a retrospectiva e a foto), `teste-saude.js` (a nota), `teste-grupo.js` (as reações) e `teste-bolso.js` (o `fr`). No navegador: a aba Saúde com a nota, a retrospectiva na tela, os três modelos da foto, as cenas novas do resumo e o reagir no desafio. **Não validado num celular nem num relógio.**
+
+## O visual de jogo no app inteiro e as ideias menores (2026-11-22b)
+
+Pedido do dono: "melhore a identidade visual de todo o app baseado no resumo animado" e "implemente as ideias menores".
+
+- **O visual**, por variáveis e pelo objeto `S` (sem mexer tela por tela): fundo `--fundo-app` (o preto puxado para o roxo, com duas luzes da marca), `--card-grad` e `--sombra-card` nos cartões, `--topo` (o cabeçalho translúcido com desfoque), rótulos `S.label` em `--rotulo` (ciano no escuro, petróleo no claro), títulos `S.logo` e botões principais `S.btn` na letra de letreiro (`FONTE_LETREIRO`, literal porque o `S` nasce antes do `FONTE_JOGO`), e `S.numero`/`.num-jogo` para número grande. Botão afunda no toque (CSS global, fora do movimento reduzido). A fonte é pré-carregada no `<head>`. O `NUMERO_RESUMO` desliga o `filter` herdado do `S.logo` (o `Contorno` já faz a sombra). As regras de *A cor significa alguma coisa* continuam.
+- **🏋 A calculadora de anilhas** (`anilhasPara`, `falaAnilhas`, `CalculadoraAnilhas`, `ABRIR_ANILHAS`): as anilhas comuns (25 a 1,25), da maior para a menor; o que não fecha é **sobra dita**, nunca arredondada calada. Botão "🏋 Anilhas" nos exercícios de barra (não barra fixa) e a voz ("anilhas para 100 quilos", `tipo: "anilhas"`, antes da ajuda), com a barra do Jarvis (`voz.barra`).
+- **💪 O esforço da série** (`rir` na série: quantas sobravam, 0 a 3+): a linha "Sobraram quantas na série N?" embaixo das séries, para a última feita. `sugerirCarga`: tudo fechado com 3+ sobrando em todas sobe dois passos (`folga`); fechado com alguma no limite (0) segura (`noLimite`); sem esforço em todas, a regra de sempre. Vai ao histórico.
+- **🏅 A medalha do mês** (`desafioDoMes`, `medalhasDoAno`, `CartaoDesafioMes`, `MedalhaMes`; o `Medalha` é o do fim do resumo): 12 treinos, ou 30 km para quem teve mais da metade dos treinos dos 60 dias anteriores com 1 km ou mais. No resumo, a cena "Desafio de <mês>" no treino que fechou a meta (com ele ganha, sem ele não).
+- **🔥 A sequência com folga** (`sequenciaComFolga`, `CartaoSequencia`): um dia sem treino por semana (segunda a domingo) não quebra; hoje ainda não conta como falta. **A sequência de dias seguidos de antes (`est.streak`) não mudou**: ela entra no nível e nas conquistas.
+- **🏟 O ranking da academia**: o foco `academia` do Desafio entre amigos (`f: "a"` no link e na sala), que conta como o de treinos, com nome e convite próprios.
+- **🎞 O vídeo da evolução** (`cenasEvolucaoFotos`): as fotos de progresso (até 8, espalhadas) viram cenas do tipo `foto` (novo, na tela e no vídeo do story, que espera as imagens), com a data e o peso de perto, e a diferença na balança. `VOZ_RESUMO` leva a voz do raiz para o painel das fotos.
+- **📱 O widget do celular** (`WidgetTreino.kt`, `res/layout/widget_treino.xml`): o último painel que o Jarvis do bolso publicou para o relógio (`Relogio.publicar` guarda uma cópia), ou "Bora treinar?" com a nota do corpo; um toque abre o app. **⌚ O bloco do relógio** (`BlocoTreino.kt`, Tiles 1.4 + ProtoLayout 1.2 + Guava): o último painel que a tela do relógio recebeu (`ultimoPainel`), e "▶ ABRIR". **Não validados num aparelho.**
+- O aviso da sequência à noite no relógio ficou de fora (precisaria de um agendamento no app do relógio).
+
+Coberto por `teste-medalha.js` (anilhas, esforço, medalha, sequência). No navegador: os dois temas, a calculadora, o esforço da série, os cartões da medalha e da sequência, as cenas da evolução.
 
 ## Navegação e telas
 

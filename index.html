@@ -44,21 +44,41 @@
   integrity="sha384-bm7MnzvK++ykSwVJ2tynSE5TRdN+xL418osEVF2DE/L/gfWHj91J2Sphe582B1Bh" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js?v=3"
   integrity="sha384-1qlE7MZPM2pHD/pBZCU/yB8UCP52RYL8bge/qNdfNBCWToySp8/M+JL2waXU4hjJ" crossorigin="anonymous"></script>
+<link rel="preload" href="fonte-resumo.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+  /* A identidade do resumo animado no app inteiro (2026-11-22b, pedido do dono:
+     "melhore a identidade visual de todo o app baseado no resumo animado"):
+     o preto puxado para o roxo da arte, as luzes da marca no fundo, os cartões
+     com um degradê leve, os rótulos em ciano e a letra de letreiro nos títulos,
+     nos botões principais e nos números. */
   :root {
-    --bg: #000000; --bg2: #0A0A0A; --card: #121212;
-    --borda: #262626; --borda2: #363636;
+    --bg: #07040C; --bg2: #0D0815; --card: #140E1C;
+    --borda: #2A2034; --borda2: #3C2F49;
+    --card-grad: linear-gradient(165deg, #1C1327 0%, #130D1A 62%, #110B17 100%);
+    --sombra-card: 0 8px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
+    --fundo-app: radial-gradient(900px 520px at 105% -8%, rgba(221,42,123,.18), transparent 62%), radial-gradient(760px 480px at -12% 108%, rgba(129,52,175,.20), transparent 62%), #07040C;
+    --topo: rgba(7,4,12,.86);
+    --rotulo: #4DEBFF; --rotulo-brilho: 0 0 10px rgba(77,235,255,.35);
+    --sombra-letreiro: drop-shadow(0 3px 0 rgba(0,0,0,.6));
+    --num-sombra: 0 2px 0 rgba(0,0,0,.55);
     --texto: #F2F0EB; --cinza: #A8A8A8; --cinza2: #949AA3;
     --perigo: #F58E8E; --perigo-borda: #F58E8E55;
     --aviso-bg: #2A1512; --ok: #4ADE80; --ok-bg: #173B1E;
     --obs: #C7A94B; --input: #000000;
     --mapa-bg: #0B0B0B; --mapa-txt: #E8E8E8;
     --marca: #E1306C;
-    --barra: rgba(12,12,12,0.92); --barra-sombra: 0 -10px 30px rgba(0,0,0,0.55);
+    --barra: rgba(13,8,20,0.92); --barra-sombra: 0 -10px 30px rgba(0,0,0,0.55);
   }
   [data-tema="claro"] {
-    --bg: #FFFFFF; --bg2: #FFFFFF; --card: #FFFFFF;
-    --borda: #DBDBDB; --borda2: #C4C4C4;
+    --bg: #FBF8FD; --bg2: #FFFFFF; --card: #FFFFFF;
+    --borda: #E4DCEA; --borda2: #CDBFD8;
+    --card-grad: linear-gradient(165deg, #FFFFFF 0%, #FFFFFF 55%, #FBF5FE 100%);
+    --sombra-card: 0 6px 18px rgba(80,24,100,.08);
+    --fundo-app: radial-gradient(900px 520px at 105% -8%, rgba(221,42,123,.10), transparent 62%), radial-gradient(760px 480px at -12% 108%, rgba(129,52,175,.10), transparent 62%), #FBF8FD;
+    --topo: rgba(251,248,253,.88);
+    --rotulo: #0A7489; --rotulo-brilho: none;
+    --sombra-letreiro: drop-shadow(0 2px 0 rgba(60,10,60,.18));
+    --num-sombra: none;
     --texto: #262626; --cinza: #6B6B6B; --cinza2: #6E6E6E;
     --perigo: #C62828; --perigo-borda: #C6282855;
     --aviso-bg: #FFF1EF; --ok: #1B7F3B; --ok-bg: #E8F7EC;
@@ -68,6 +88,14 @@
     --barra: rgba(255,255,255,0.95); --barra-sombra: 0 -8px 26px rgba(38,38,38,0.12);
   }
   html, body { margin: 0; padding: 0; background: var(--bg); }
+  /* o toque afunda um pouco, como os botões do resumo */
+  button { transition: transform .12s ease, filter .12s ease; }
+  button:active:not(:disabled) { transform: scale(.97); filter: brightness(1.08); }
+  @media (prefers-reduced-motion: reduce) { button:active:not(:disabled) { transform: none; } }
+  .medalha-gira { animation: medalhaGira 3.2s ease-in-out infinite; }
+  @keyframes medalhaGira { 0%, 60% { transform: rotateY(0); } 80% { transform: rotateY(180deg); } 100% { transform: rotateY(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .medalha-gira { animation: none; } }
+  .num-jogo { font-family: "Jogo Resumo", "Arial Black", system-ui, sans-serif; font-style: italic; font-weight: 400; text-shadow: var(--num-sombra); }
   * { -webkit-tap-highlight-color: transparent; }
   a { color: #8ECDF5; }
   [data-tema="claro"] a { color: #00376B; }
@@ -1762,7 +1790,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-22a";
+const VERSAO_APP = "2026-11-22b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2866,6 +2894,36 @@ function ultimaExecucao(historico, exercicioId) {
 // séries saíram com as repetições combinadas — que é como a sobrecarga progressiva
 // funciona na prática, sem precisar lembrar de nada.
 const PASSO_CARGA = (peso) => (peso >= 60 ? 5 : peso >= 20 ? 2.5 : 1);
+// ---- A CALCULADORA DE ANILHAS (2026-11-22b, pedido do dono: "100 kg, quais
+// anilhas ponho de cada lado?"). As anilhas comuns de academia, da maior para a
+// menor; o que não fecha com elas aparece como sobra, nunca arredondado calado.
+const ANILHAS_PADRAO = [25, 20, 15, 10, 5, 2.5, 1.25];
+const COR_ANILHA = { 25: "#E53935", 20: "#1E63D6", 15: "#F2C200", 10: "#2E9E4F", 5: "#F2F0EC", 2.5: "#3A3A3A", 1.25: "#9A9AA5" };
+function anilhasPara(total, barra, disponiveis) {
+  const t = Number(total), b = Number(barra) || 0;
+  if (!(t > 0)) return null;
+  if (t < b) return { lado: [], porLado: 0, sobra: 0, abaixo: true };
+  const lista = (disponiveis || ANILHAS_PADRAO).slice().sort((x, y) => y - x);
+  let resto = Math.round(((t - b) / 2) * 1000) / 1000;
+  const porLado = resto, lado = [];
+  lista.forEach((p) => { while (resto >= p - 1e-9 && lado.length < 20) { lado.push(p); resto = Math.round((resto - p) * 1000) / 1000; } });
+  return { lado: lado, porLado: porLado, sobra: Math.round(resto * 2 * 100) / 100, abaixo: false };
+}
+// "25, 10 e 5"
+function textoAnilhas(lado) {
+  const nomes = lado.map((p) => String(p).replace(".", ","));
+  return nomes.length <= 1 ? nomes.join("") : nomes.slice(0, -1).join(", ") + " e " + nomes[nomes.length - 1];
+}
+function falaAnilhas(total, barra) {
+  const r = anilhasPara(total, barra);
+  if (!r) return "Diga o peso total, por exemplo: Jarvis, anilhas para 100 quilos.";
+  const tt = String(total).replace(".", ",");
+  if (r.abaixo) return tt + " quilos é menos que a barra de " + barra + ". Use halteres ou uma barra mais leve.";
+  if (!r.lado.length) return "Para " + tt + " quilos, só a barra de " + barra + ".";
+  return "Para " + tt + " quilos com a barra de " + barra + ": de cada lado, " + textoAnilhas(r.lado) + "." +
+    (r.sobra > 0 ? " Sobram " + String(r.sobra).replace(".", ",") + " quilos que as anilhas comuns não fecham." : "");
+}
+
 function sugerirCarga(historico, exercicioId, repsAlvo) {
   const ult = ultimaExecucao(historico, exercicioId);
   if (!ult) return null;
@@ -2899,6 +2957,18 @@ function sugerirCarga(historico, exercicioId, repsAlvo) {
   const alvo = parseInt(repsAlvo) || 0;
   const bateuTudo = alvo > 0 && validas.length > 0 &&
     validas.every((s) => cargaDe(s) >= melhor && repsDe(s) >= alvo);
+  // O esforço que a pessoa marcou (rir: quantas repetições ainda sobravam,
+  // 2026-11-22b). Fechou tudo com 3 ou mais sobrando em todas: sobe dois passos.
+  // Fechou, mas alguma foi no limite (0): fica, porque a próxima vez ainda é
+  // de consolidar. Sem esforço marcado, a regra de sempre.
+  const rirs = validas.map((s) => (s.rir === undefined || s.rir === null || s.rir === "" ? null : Number(s.rir))).filter((x) => x !== null && isFinite(x));
+  if (bateuTudo && rirs.length === validas.length && rirs.every((x) => x >= 3)) {
+    const p1 = melhor + PASSO_CARGA(melhor);
+    return { peso: p1 + PASSO_CARGA(p1), subiu: true, anterior: melhor, reps: repsNoMelhor, folga: true };
+  }
+  if (bateuTudo && rirs.some((x) => x === 0)) {
+    return { peso: melhor, subiu: false, anterior: melhor, reps: repsNoMelhor, noLimite: true };
+  }
   if (bateuTudo) {
     return { peso: melhor + PASSO_CARGA(melhor), subiu: true, anterior: melhor, reps: repsNoMelhor };
   }
@@ -3199,7 +3269,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-182/treino-livre-182.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-184/treino-livre-184.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -5563,15 +5633,20 @@ const GRAD = "linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)";
 // enfeite de cabeçalho e como preenchimento de barra de progresso — e barra
 // que muda de cor ao longo do comprimento não diz nada, porque a informação
 // já é o comprimento. Progresso agora é `var(--marca)` sólido.
+// a letra de letreiro do resumo (aqui por literal: S nasce antes do FONTE_JOGO)
+const FONTE_LETREIRO = "'Jogo Resumo', 'Arial Black', system-ui, sans-serif";
 const S = {
-  app: { minHeight: "100vh", background: "var(--bg)", color: "var(--texto)", fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif", paddingBottom: "calc(96px + env(safe-area-inset-bottom))" },
-  header: { padding: "20px 18px 10px", position: "sticky", top: 0, background: "var(--bg)", zIndex: 5 },
-  logo: { fontSize: 27, fontWeight: 900, letterSpacing: -0.5, display: "inline-block", backgroundImage: GRAD, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" },
-  faixa: { height: 3, width: 72, marginTop: 10, background: GRAD, borderRadius: 2 },
-  card: { background: "var(--card)", borderRadius: 18, padding: 16, marginBottom: 12, border: "1px solid var(--borda)" },
-  label: { fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--cinza)", fontWeight: 700 },
-  btn: { background: GRAD, color: "#FFFFFF", border: "none", borderRadius: 12, padding: "13px 16px", fontWeight: 800, fontSize: 15, width: "100%", cursor: "pointer" },
-  btnGhost: { background: "transparent", color: "var(--texto)", border: "1px solid var(--borda2)", borderRadius: 12, padding: "12px 16px", fontWeight: 700, fontSize: 14, width: "100%", cursor: "pointer" },
+  app: { minHeight: "100vh", background: "var(--fundo-app)", backgroundAttachment: "fixed", color: "var(--texto)", fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif", paddingBottom: "calc(96px + env(safe-area-inset-bottom))" },
+  header: { padding: "20px 18px 10px", position: "sticky", top: 0, background: "var(--topo)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", zIndex: 5 },
+  logo: { fontSize: 27, fontFamily: FONTE_LETREIRO, fontStyle: "italic", fontWeight: 400, letterSpacing: 0.2, display: "inline-block", backgroundImage: GRAD, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+    filter: "var(--sombra-letreiro)", paddingRight: 4 },
+  faixa: { height: 4, width: 84, marginTop: 10, background: GRAD, borderRadius: 2, boxShadow: "0 0 12px rgba(221,42,123,.55)" },
+  card: { background: "var(--card-grad)", borderRadius: 18, padding: 16, marginBottom: 12, border: "1px solid var(--borda)", boxShadow: "var(--sombra-card)" },
+  label: { fontSize: 11, textTransform: "uppercase", letterSpacing: 1.8, color: "var(--rotulo)", fontWeight: 900, textShadow: "var(--rotulo-brilho)" },
+  btn: { background: GRAD, color: "#FFFFFF", border: "none", borderRadius: 14, padding: "13px 16px", fontFamily: FONTE_LETREIRO, fontStyle: "italic", fontWeight: 400, fontSize: 16,
+    letterSpacing: 0.3, width: "100%", cursor: "pointer", textShadow: "0 2px 0 rgba(0,0,0,.35)", boxShadow: "0 4px 0 rgba(90,10,60,.55), 0 0 18px rgba(221,42,123,.35)" },
+  btnGhost: { background: "transparent", color: "var(--texto)", border: "1px solid var(--borda2)", borderRadius: 14, padding: "12px 16px", fontWeight: 800, fontSize: 14, width: "100%", cursor: "pointer" },
+  numero: { fontFamily: FONTE_LETREIRO, fontStyle: "italic", fontWeight: 400, textShadow: "var(--num-sombra)" },
   input: { background: "var(--input)", border: "1px solid var(--borda2)", borderRadius: 12, color: "var(--texto)", padding: "12px 14px", fontSize: 16, width: "100%", boxSizing: "border-box" },
   inputMini: { background: "var(--input)", border: "1px solid var(--borda2)", borderRadius: 10, color: "var(--texto)", padding: "10px 8px", fontSize: 16, width: "100%", boxSizing: "border-box", textAlign: "center" },
   voltar: { background: "none", border: "none", color: "var(--cinza)", fontWeight: 700, fontSize: 14, padding: 0, cursor: "pointer", marginBottom: 12 },
@@ -8314,6 +8389,11 @@ function interpretarVoz(fala, ctx) {
   // Passar mal vem antes de tudo: "socorro" já foi pedido de ajuda com os
   // comandos, e quem fala isso no treino precisa é do SAMU.
   if (tem(/\b(passando mal|passei mal|to mal|estou mal|mal estar|dor no peito|aperto no peito|nao consigo respirar|falta de ar|tontura|to tonto|to tonta|estou tonto|estou tonta|vou desmaiar|desmai\w*|socorro|emergencia|samu|chama (a |uma )?ambulancia)\b/)) return { tipo: "malEstar" };
+  // "anilhas para 100 quilos" (2026-11-22b): a calculadora de anilhas
+  if (tem(/\banilhas?\b/)) {
+    const m = f.match(/(\d+(?:[.,]\d+)?)/);
+    return { tipo: "anilhas", kg: m ? parseFloat(m[1].replace(",", ".")) : null };
+  }
   if (tem(/\b(ajuda|me ajuda)\b/) ||
       (tem(/\bcomandos?\b/) && tem(/\b(quais|qual|lista|listar|ver|mostra|mostrar|principais|todos|ensina|diz|fala|sao|existem|conhece)\b/)) ||
       tem(/\bo que (voce|vc) (faz|sabe)\b/) || tem(/\bo que (eu )?posso (dizer|falar|pedir)\b/) ||
@@ -9618,8 +9698,8 @@ function NumerosGerais({ historico }) {
       <div style={{ ...S.label, marginBottom: 12 }}>Seus números</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {itens.map(([nome, val]) => (
-          <div key={nome} style={{ background: "var(--input)", border: "1px solid var(--borda)", borderRadius: 12, padding: "10px 12px" }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: "var(--texto)" }}>{val}</div>
+          <div key={nome} style={{ background: "var(--bg2)", border: "1px solid var(--borda)", borderRadius: 12, padding: "10px 12px" }}>
+            <div style={{ ...S.numero, fontSize: 19, color: "var(--texto)" }}>{val}</div>
             <div style={{ fontSize: 10, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.5 }}>{nome}</div>
           </div>
         ))}
@@ -25082,7 +25162,7 @@ function falasFantasmaGrupo(est, membros, meuId, a, agora) {
 }
 function linkGrupo(g) {
   const m = Object.keys(g.membros || {}).slice(0, 30).map((id) => Object.assign({ i: id }, g.membros[id]));
-  return LINK_APP + "#grupo=" + padraoParaB64Url(b64Codificar(JSON.stringify({ c: g.codigo, n: g.nome, f: g.foco === "corrida" ? "c" : undefined, m: m })));
+  return LINK_APP + "#grupo=" + padraoParaB64Url(b64Codificar(JSON.stringify({ c: g.codigo, n: g.nome, f: g.foco === "corrida" ? "c" : g.foco === "academia" ? "a" : undefined, m: m })));
 }
 function lerPacoteGrupo(texto, decodificar) {
   try {
@@ -25097,6 +25177,7 @@ function lerPacoteGrupo(texto, decodificar) {
     });
     const r = { codigo: cod.codigo, nome: String(p.n || "Desafio da galera").slice(0, 40), membros: membros };
     if (p.f === "c") r.foco = "corrida";
+    if (p.f === "a") r.foco = "academia";
     return r;
   } catch (e) { return null; }
 }
@@ -25311,7 +25392,7 @@ function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar, onDesaf
       aoEstado: setEstado,
       aoParticipante: (uid, obj) => {
         if (uid === "sala") {
-          if (obj && typeof obj.n === "string") salvar((l) => l.map((x) => (x.codigo === cod.codigo && !x.dono ? Object.assign({}, x, { nome: obj.n.slice(0, 40) }, obj.f === "c" ? { foco: "corrida" } : {}) : x)));
+          if (obj && typeof obj.n === "string") salvar((l) => l.map((x) => (x.codigo === cod.codigo && !x.dono ? Object.assign({}, x, { nome: obj.n.slice(0, 40) }, obj.f === "c" ? { foco: "corrida" } : obj.f === "a" ? { foco: "academia" } : {}) : x)));
           return;
         }
         if (!idDeMembroGrupo(uid)) return;
@@ -25324,7 +25405,7 @@ function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar, onDesaf
     if (nomeRef.current) sala.publicar(meusRef.current);
     // só quem criou diz o nome do desafio: quem entrou pelo código não sabe o
     // nome e apagaria o de verdade com "Desafio ABCDE2"
-    if (g.dono) sala.publicarSala({ n: g.nome, f: g.foco === "corrida" ? "c" : undefined });
+    if (g.dono) sala.publicarSala({ n: g.nome, f: g.foco === "corrida" ? "c" : g.foco === "academia" ? "a" : undefined });
     // de 5 em 5 s: quem está correndo agora muda de número a todo instante
     const iv = setInterval(() => setTique((t) => t + 1), 5000);
     return () => { clearInterval(iv); salaRef.current = null; sala.fechar(); };
@@ -25339,7 +25420,7 @@ function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar, onDesaf
     guardarApelido(ap);
     const broker = 1 + Math.floor(Math.random() * DESAFIO_BROKERS.length);
     const codigo = novoCodigoSala(null, broker);
-    const novo = { codigo: codigo, nome: (nomeGrupo.trim() || (focoNovo === "corrida" ? "Corrida da galera" : "Desafio da galera")).slice(0, 40), membros: {}, criado: Date.now(), dono: true, foco: focoNovo === "corrida" ? "corrida" : undefined };
+    const novo = { codigo: codigo, nome: (nomeGrupo.trim() || (focoNovo === "corrida" ? "Corrida da galera" : "Desafio da galera")).slice(0, 40), membros: {}, criado: Date.now(), dono: true, foco: focoNovo === "corrida" ? "corrida" : focoNovo === "academia" ? "academia" : undefined };
     salvar((l) => l.concat([novo]));
     setAtual(codigo);
     setCriando(false);
@@ -25357,7 +25438,8 @@ function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar, onDesaf
   const convidar = async () => {
     if (!g) return;
     const url = linkGrupo(g);
-    const texto = "⚔️ Entra no meu desafio \"" + g.nome + "\" no Treino Livre! Código " + g.codigo + ". " +
+    const texto = (g.foco === "academia" ? "🏟 Entra no ranking \"" + g.nome + "\" no Treino Livre: quem treina aqui na academia! Código " + g.codigo + ". "
+      : "⚔️ Entra no meu desafio \"" + g.nome + "\" no Treino Livre! Código " + g.codigo + ". ") +
       (g.foco === "corrida" ? "Ranking de km na rua e na esteira, ritmo e quem está correndo agora, ao vivo." : "Ranking de treinos da semana, sequência, volume e km, ao vivo.") +
       " (app gratuito do @" + INSTAGRAM + ")";
     if (navigator.share) {
@@ -25687,14 +25769,16 @@ function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar, onDesaf
             <input style={{ ...S.input, marginBottom: 8 }} placeholder="Nome do desafio" value={nomeGrupo} maxLength={40}
               onChange={(e) => setNomeGrupo(e.target.value)} />
             <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-              {[["treinos", "🏋 Treinos da academia"], ["corrida", "🏃 Corrida e caminhada"]].map(([id, rot]) => (
-                <button key={id} onClick={() => { setFocoNovo(id); if (nomeGrupo === "Desafio da galera" || nomeGrupo === "Corrida da galera") setNomeGrupo(id === "corrida" ? "Corrida da galera" : "Desafio da galera"); }}
+              {[["treinos", "🏋 Treinos"], ["corrida", "🏃 Corrida"], ["academia", "🏟 Minha academia"]].map(([id, rot]) => (
+                <button key={id} onClick={() => { setFocoNovo(id); if (["Desafio da galera", "Corrida da galera", "Ranking da academia"].indexOf(nomeGrupo) >= 0) setNomeGrupo(id === "corrida" ? "Corrida da galera" : id === "academia" ? "Ranking da academia" : "Desafio da galera"); }}
                   aria-pressed={focoNovo === id}
                   style={{ ...S.btnGhost, flex: 1, padding: "9px 6px", fontSize: 13, borderColor: focoNovo === id ? "var(--marca)" : undefined, color: focoNovo === id ? "var(--marca)" : "var(--texto)", fontWeight: focoNovo === id ? 800 : 600 }}>{rot}</button>
               ))}
             </div>
             <div style={{ fontSize: 12, color: "var(--cinza)", marginBottom: 8, lineHeight: 1.5 }}>
-              {focoNovo === "corrida"
+              {focoNovo === "academia"
+                ? "Um ranking para quem treina na mesma academia: troque o nome pelo da sua (por exemplo, \"Academia Força Total\") e mande o convite no grupo da academia ou num cartaz com o código. Treinos, volume, séries e recordes da semana. "
+                : focoNovo === "corrida"
                 ? "Km na rua e na esteira, ritmo, maior distância, e quem está correndo agora. Durante a sua corrida a voz avisa quando você passar alguém, e compara com a última corrida de cada um no mesmo tempo."
                 : "Treinos, dias, minutos, volume, séries e recordes da semana, e quem está treinando agora. Durante o treino a voz avisa quando você passar alguém no volume."}
               {" Vale ao vivo, todos ao mesmo tempo, e em horários diferentes: cada um treina quando pode."}
@@ -26765,6 +26849,11 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
     }
   } catch (e) { d.recFc = null; }
   try { const rx = reacoesDoTreino(registro); d.reacoes = rx.length ? rx : null; } catch (e) { d.reacoes = null; }
+  try {
+    const t = quando.getTime();
+    const com = desafioDoMes(comEle, t, t), sem = desafioDoMes(outros, t, t);
+    d.medalhaMes = com.ganhou && !sem.ganhou ? com : null;
+  } catch (e) { d.medalhaMes = null; }
   if (!d.forca && !d.cardio && !d.monstro) return null;
   // os recordes de corrida e caminhada que este treino bateu
   if (d.cardio) {
@@ -26853,6 +26942,66 @@ function dadosVitaisResumo(registro, saude, temKm) {
       fala: Math.round(dia.passos) + " passos no dia" });
   }
   return out.length >= 2 ? out.slice(0, 8) : null;
+}
+
+// ---- A MEDALHA DO MÊS (2026-11-22b, pedido do dono). Um desafio fixo por
+// mês, igual para todo mundo: 12 treinos, ou 30 km para quem treina mais
+// correndo e caminhando (a maior parte dos treinos dos últimos 60 dias com km).
+const DESAFIO_MES = { treinos: 12, km: 30 };
+const NOMES_MES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+function kmDoTreino(h) {
+  let km = 0;
+  (h.itens || []).forEach((it) => (it.series || []).forEach((sr) => { if (ehCardio(sr)) km += medirCardio(sr, 75, sr.mod).km || 0; }));
+  if (h.rota && h.rota.km) km = Math.max(km, h.rota.km);
+  return km;
+}
+function desafioDoMes(historico, agora, ate) {
+  const d = new Date(agora), ini = new Date(d.getFullYear(), d.getMonth(), 1).getTime(), fim = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
+  const lim = ate || fim;
+  const t = (h) => new Date(h.data).getTime();
+  const recentes = (historico || []).filter((h) => t(h) < ini && t(h) >= ini - 60 * 864e5);
+  const comKm = recentes.filter((h) => kmDoTreino(h) >= 1).length;
+  const tipo = recentes.length >= 4 && comKm / recentes.length > 0.5 ? "km" : "treinos";
+  const doMes = (historico || []).filter((h) => t(h) >= ini && t(h) < fim && t(h) <= lim);
+  const feito = tipo === "km" ? Math.round(doMes.reduce((a, h) => a + kmDoTreino(h), 0) * 10) / 10 : doMes.length;
+  const alvo = DESAFIO_MES[tipo];
+  const restam = Math.max(0, Math.ceil((fim - Math.max(agora, ini)) / 864e5));
+  return { ano: d.getFullYear(), mes: d.getMonth(), nomeMes: NOMES_MES[d.getMonth()], tipo: tipo, alvo: alvo, feito: feito,
+    pct: Math.min(100, Math.round((feito / alvo) * 100)), ganhou: feito >= alvo, falta: Math.max(0, Math.round((alvo - feito) * 10) / 10), restam: restam };
+}
+// as medalhas dos últimos 12 meses (o de agora entra só se já foi ganho)
+function medalhasDoAno(historico, agora) {
+  const out = [], d = new Date(agora);
+  for (let k = 0; k < 12; k++) {
+    const m = new Date(d.getFullYear(), d.getMonth() - k, 15).getTime();
+    const r = desafioDoMes(historico, k ? m : agora);
+    if (r.ganhou) out.push(r);
+  }
+  return out;
+}
+// ---- A SEQUÊNCIA COM FOLGA (2026-11-22b, no jeito do Duolingo): um dia sem
+// treino por semana (de segunda a domingo) não quebra a sequência. Hoje ainda
+// não conta como falta: dá tempo de treinar.
+function sequenciaComFolga(historico, agora) {
+  const dias = {};
+  (historico || []).forEach((h) => { const t = new Date(h.data).getTime(); if (t <= agora) dias[diaLocal(t)] = true; });
+  const DIA = 864e5;
+  const segunda = (t) => { const x = new Date(t); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return diaLocal(x.getTime()); };
+  let cur = new Date(agora); cur.setHours(12, 0, 0, 0); cur = cur.getTime();
+  if (!dias[diaLocal(cur)]) cur -= DIA;
+  const folga = {};
+  let span = 0, ate = 0, treinos = 0;
+  for (let k = 0; k < 2000; k++) {
+    if (dias[diaLocal(cur)]) { span++; treinos++; ate = span; }
+    else {
+      const sem = segunda(cur);
+      if (folga[sem]) break;
+      folga[sem] = true; span++;
+    }
+    cur -= DIA;
+  }
+  const semAtual = segunda(agora);
+  return { dias: treinos ? ate : 0, treinos: treinos, folgaUsada: !!folga[semAtual] && treinos > 0 };
 }
 
 // ---- A RETROSPECTIVA DO ANO (2026-11-22a, pedido do dono: o "Wrapped" de
@@ -27200,6 +27349,13 @@ function cenasResumo(d) {
       nomes: rc.map((r) => nomeDistancia(r.m) + " · " + fmtTempoRota(r.ms)),
       fala: plural(d.recCorrida.length, "Recorde pessoal", "Recordes pessoais") + ": " +
         rc.slice(0, 2).map((r) => falaDist(r.m) + " em " + textoDuracao(Math.round(r.ms / 1000))).join(", e ") + "." });
+  }
+  if (d.medalhaMes) {
+    const mm = d.medalhaMes;
+    c.push({ tipo: "recordes", icone: "🏅", rotulo: "Desafio de " + mm.nomeMes, valor: mm.alvo,
+      nomes: [mm.tipo === "km" ? mm.alvo + " km no mês: feito!" : mm.alvo + " treinos no mês: feito!", "Medalha de " + mm.nomeMes + " conquistada"],
+      grito: "Medalha conquistada!", corGrito: "#FEDA75", forte: true,
+      fala: "Desafio de " + mm.nomeMes + " cumprido! " + (mm.tipo === "km" ? mm.alvo + " quilômetros" : mm.alvo + " treinos") + " no mês. A medalha é sua." });
   }
   if (d.reacoes) {
     const rx = d.reacoes;
@@ -27983,7 +28139,7 @@ const ROTULO_RESUMO = { fontSize: 11.5, color: "#4DEBFF", fontWeight: 900, lette
 // nenhum entra no app (a regra do visual de jogo). Ela só tem o peso 400 —
 // pedir 900 faria o navegador engrossar à força e borrar as letras.
 const FONTE_JOGO = "'Jogo Resumo', 'Arial Black', system-ui, sans-serif";
-const NUMERO_RESUMO = { ...S.logo, fontFamily: FONTE_JOGO, fontSize: 70, lineHeight: 1.08, fontVariantNumeric: "tabular-nums", fontStyle: "italic", fontWeight: 400, letterSpacing: 0,
+const NUMERO_RESUMO = { ...S.logo, filter: "none", paddingRight: 0, fontFamily: FONTE_JOGO, fontSize: 70, lineHeight: 1.08, fontVariantNumeric: "tabular-nums", fontStyle: "italic", fontWeight: 400, letterSpacing: 0,
   padding: "0 12px", filter: "drop-shadow(0 0 18px rgba(225,48,108,.6))" };
 
 function MapaResumo({ trechos }) {
@@ -28135,6 +28291,19 @@ function CenaResumo({ c }) {
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "54vh" }}>
         <div className="rs-bate" style={{ animationDelay: ".35s" }}><LogoBrilho largura={150} atraso={1} /></div>
         <div className="rs-marca" style={{ ...ROTULO_RESUMO, marginTop: 20, animationDelay: "1.1s" }}>{c.rotulo}</div>
+      </div>
+    );
+  }
+  if (c.tipo === "foto") {
+    return (
+      <div style={{ textAlign: "center", width: "100%", padding: "0 20px" }}>
+        <div style={ROTULO_RESUMO}>{c.rotulo}</div>
+        <div className="rs-bate" style={{ margin: "12px auto 0", width: "min(70vw, 40vh)", aspectRatio: "3 / 4", borderRadius: 16, overflow: "hidden",
+          border: "4px solid #DD2A7B", boxShadow: "0 0 30px rgba(221,42,123,.5), 0 10px 0 #000", background: "#000" }}>
+          <img src={c.url} alt={"Foto de " + c.titulo} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        </div>
+        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 34, marginTop: 14, display: "inline-block" }}>{c.titulo}</Contorno>
+        {c.sub && <div style={{ color: "#F2F0EC", fontSize: 17, fontWeight: 900, marginTop: 4 }}>{c.sub}</div>}
       </div>
     );
   }
@@ -28801,6 +28970,23 @@ function videoCena(c, cena, p) {
   const conta = sobe((p - 350) / 1100);
   const t = cena.tipo;
   c.textAlign = "center"; c.textBaseline = "alphabetic";
+  if (t === "foto") {
+    videoRotulo(c, cena.rotulo, 520);
+    const im = imagemMonstro(cena.url);
+    const a = Math.min(1, Math.max(0, (p - 200) / 450)), k = 1.25 - 0.25 * sobe(a);
+    const w = 600 * k, h = 800 * k, x = 540 - w / 2, y = 960 - h / 2;
+    c.save(); c.globalAlpha = a;
+    c.shadowColor = "rgba(221,42,123,.6)"; c.shadowBlur = 40; c.fillStyle = "#000"; c.fillRect(x - 6, y - 6, w + 12, h + 12); c.shadowBlur = 0;
+    if (im) {
+      const e = Math.max(w / im.naturalWidth, h / im.naturalHeight), iw = im.naturalWidth * e, ih = im.naturalHeight * e;
+      c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip(); c.drawImage(im, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih); c.restore();
+    }
+    c.strokeStyle = videoGradiente(c, x, x + w); c.lineWidth = 10; c.strokeRect(x, y, w, h);
+    c.restore();
+    videoTexto(c, cena.titulo, 540, 1450, 96, "grad", 900, 960);
+    if (cena.sub) videoTexto(c, cena.sub, 540, 1515, 46, "#F2F0EC", 900, 960);
+    return;
+  }
   if (t === "superacao") {
     videoRotulo(c, cena.rotulo, 600);
     const q = p - 300;
@@ -29642,6 +29828,7 @@ function GerarStoryResumo({ cenas, onVoltar }) {
     try { trilha = await trilhaNarracao(narrOk, videoDuracoes(cenas, falasMs), musica); }
     catch (e) { trilha = null; }
     await carregarLogoApp();
+    await Promise.all(cenas.filter((x) => x.tipo === "foto").map((x) => carregarImagemVideo(x.url)));
     // a fonte de letreiro tem de estar pronta antes do primeiro quadro: o canvas
     // não espera por ela, e desenharia o número na fonte de reserva
     try { await Promise.race([document.fonts.load("40px 'Jogo Resumo'"), new Promise((ok) => setTimeout(ok, 4000))]); } catch (e) {}
@@ -30028,6 +30215,7 @@ const MODELOS_FOTO = [
   { id: "placar", nome: "🎮 Placar" }, { id: "letreiro", nome: "🔥 Letreiro" }, { id: "missao", nome: "⭐ Missão" },
 ];
 let ABRIR_FOTO_NUMEROS = null;
+let VOZ_RESUMO = null;
 function desenharTracado(c, trechos, x, y, w, h) {
   const todos = [].concat.apply([], trechos || []).filter((p) => p && isFinite(p[0]) && isFinite(p[1]));
   if (todos.length < 2) return;
@@ -32755,6 +32943,28 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
             {ehAerobico && (
               <PainelCardio it={it} ex={ex} historico={historico} exPorId={exPorId} pesoCorporal={pesoCorporal} vozCfg={vozCfg} onCorredor={onCorredor} />
             )}
+            {!ehAerobico && !ehIsometria && (() => {
+              // O esforço da última série feita (2026-11-22b): quantas repetições
+              // ainda sobravam. Opcional; com ele a carga da próxima vez sobe certo.
+              let k = -1;
+              it.series.forEach((x, j) => { if (x.feito && !ehAquecimento(x) && !ehDrop(x)) k = j; });
+              if (k < 0) return null;
+              const v = it.series[k].rir;
+              const op = [["0", "no limite"], ["1", "1"], ["2", "2"], ["3", "3 ou mais"]];
+              return (
+                <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", margin: "2px 0 8px", fontSize: 12 }}>
+                  <span style={{ color: "var(--cinza)", marginRight: 2 }}>💪 Sobraram quantas na série {it.series.filter((x, j) => j <= k && !ehAquecimento(x) && !ehDrop(x)).length}?</span>
+                  {op.map(([val, rot]) => {
+                    const sel = String(v) === val;
+                    return (
+                      <button key={val} onClick={() => upSerie(ei, k, "rir", sel ? "" : val)} aria-pressed={sel}
+                        style={{ padding: "4px 9px", borderRadius: 14, fontSize: 12, fontWeight: 800, cursor: "pointer",
+                          background: sel ? "#E1306C" : "transparent", color: sel ? "#FFFFFF" : "var(--texto)", border: "1px solid " + (sel ? "#E1306C" : "var(--borda2)") }}>{rot}</button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
             {it.series.some(ehAquecimento) && (
               <div style={{ fontSize: 10, color: "var(--obs)", marginBottom: 6 }}>
                 A = aquecimento: conta no volume (kg), mas não nas séries do músculo nem nos recordes. Descanso de 1 min.
@@ -32779,6 +32989,11 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                   style={{ ...S.btnGhost, flex: 2, padding: "11px 8px", color: "#FF8A3D", borderColor: "#FF8A3D66", fontWeight: 800 }}>
                   ↓ Drop
                 </button>
+              )}
+              {ex && /barra/i.test(ex.equip || "") && !/barra fixa/i.test(ex.equip || "") && ABRIR_ANILHAS && (
+                <button onClick={() => { const sx = it.series.find((x) => !x.feito) || it.series[it.series.length - 1] || {}; ABRIR_ANILHAS(cargaDe(sx) || null, (vozCfg && vozCfg.barra) != null ? vozCfg.barra : 20); }}
+                  aria-label={"Quais anilhas pôr na barra em " + ex.nome} title="Calculadora de anilhas"
+                  style={{ ...S.btnGhost, flex: 2, padding: "11px 8px", fontWeight: 800 }}>🏋 Anilhas</button>
               )}
               {it.series.length > 1 && (
                 <button onClick={() => rmSerie(ei)} title="Remover a última série"
@@ -33619,7 +33834,42 @@ function AntesDepois({ fotos, urls, medidas, onFechar }) {
   );
 }
 
+// ---- A EVOLUÇÃO EM VÍDEO (2026-11-22b, pedido do dono): as fotos de
+// progresso viram um resumo animado, com o vídeo do story de sempre. Até 8
+// fotos, espalhadas do começo ao fim, cada uma com a data e o peso de perto.
+function cenasEvolucaoFotos(fotos, urls, medidas) {
+  const ord = (fotos || []).filter((f) => urls[f.id]).sort((a, b) => new Date(a.data) - new Date(b.data));
+  if (ord.length < 2) return null;
+  const n = Math.min(8, ord.length), esc = [];
+  for (let k = 0; k < n; k++) esc.push(ord[Math.round((k * (ord.length - 1)) / (n - 1))]);
+  const usadas = esc.filter((f, k) => esc.indexOf(f) === k);
+  const c = [];
+  imagemMonstro(LOGO_APP); imagemMonstro(ARTE_RESUMO.fundo); imagemMonstro(ARTE_RESUMO.frente);
+  const primeira = usadas[0], ultima = usadas[usadas.length - 1];
+  const intervalo = textoIntervalo(primeira.data, ultima.data);
+  c.push({ tipo: "vinheta", rotulo: "Sua evolução", fala: "Treino Livre. Sua evolução." });
+  c.push({ tipo: "abre", rotulo: "Antes e depois", titulo: "A sua evolução", dia: intervalo + " de treino", sub: usadas.length + " fotos",
+    grito: "Olha o que você construiu", fala: "A sua evolução em " + intervalo + "." });
+  usadas.forEach((f, k) => {
+    imagemMonstro(urls[f.id]);
+    const dt = new Date(f.data), kg = pesoPerto(medidas, f.data);
+    c.push({ tipo: "foto", url: urls[f.id], rotulo: k === 0 ? "O começo" : k === usadas.length - 1 ? "Hoje" : "No caminho",
+      titulo: dt.getDate() + " de " + MESES_RESUMO[dt.getMonth()].slice(0, 3) + ". " + dt.getFullYear(), sub: kg ? num1(kg) + " kg" : "",
+      fala: (k === 0 ? "O começo. " : k === usadas.length - 1 ? "E hoje. " : "") + dt.getDate() + " de " + MESES_RESUMO[dt.getMonth()] + "." });
+  });
+  const p0 = pesoPerto(medidas, primeira.data), p1 = pesoPerto(medidas, ultima.data);
+  if (p0 && p1 && Math.abs(p1 - p0) >= 0.1) {
+    const dif = Math.round((p1 - p0) * 10) / 10;
+    c.push({ tipo: "texto", rotulo: "Na balança", texto: (dif > 0 ? "+" : "−") + num1(Math.abs(dif)) + " kg", sub: "em " + intervalo,
+      grito: "Constância vence", fala: "Na balança, " + num1(Math.abs(dif)) + " quilos " + (dif > 0 ? "a mais" : "a menos") + " em " + intervalo + "." });
+  }
+  c.push({ tipo: "fecho", medalha: usadas.length >= 4 ? "ouro" : "prata", pts: 0, fala: "Cada treino conta. Até a próxima foto." });
+  c.forEach((x) => { x.ms = x.tipo === "vinheta" ? VIDEO_VINHETA_MS : Math.max(3000, x.fala.split(" ").length * 420 + 900); });
+  return c;
+}
+
 function PainelFotos({ fotos, medidas, onAdicionar, onExcluir, pedirConfirmacao }) {
+  const [evolucao, setEvolucao] = useState(null);
   const [urls, setUrls] = useState({});
   const [aberta, setAberta] = useState(null);
   const [comparar, setComparar] = useState(false);
@@ -33661,10 +33911,17 @@ function PainelFotos({ fotos, medidas, onAdicionar, onExcluir, pedirConfirmacao 
         📷 Adicionar foto de hoje
       </button>
       {ordenadas.length >= 2 && (
-        <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800 }} onClick={() => setComparar(true)}>
-          ⇆ Antes e depois
-        </button>
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <button style={{ ...S.btnGhost, flex: 1, fontWeight: 800 }} onClick={() => setComparar(true)}>
+            ⇆ Antes e depois
+          </button>
+          <button style={{ ...S.btnGhost, flex: 1, fontWeight: 900, color: "#E1306C", borderColor: "#E1306C66" }}
+            onClick={() => { const c = cenasEvolucaoFotos(fotos, urls, medidas); if (c) setEvolucao({ cenas: c }); }}>
+            🎞 Vídeo da evolução
+          </button>
+        </div>
       )}
+      {evolucao && <ResumoAnimado d={evolucao} vozCfg={VOZ_RESUMO} onFechar={() => setEvolucao(null)} />}
 
       {ordenadas.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 14 }}>
@@ -34646,6 +34903,68 @@ function CoracaoNosTreinos({ historico, fcPerfil, cartao, titulo }) {
     </div>
   );
 }
+// ---- A CALCULADORA DE ANILHAS NA TELA (2026-11-22b) ----
+let ABRIR_ANILHAS = null;
+function CalculadoraAnilhas({ inicial, barraInicial, onFechar }) {
+  const [total, setTotal] = useState(inicial ? String(inicial) : "");
+  const [barra, setBarra] = useState(barraInicial != null ? barraInicial : 20);
+  const r = anilhasPara(parseFloat(String(total).replace(",", ".")), barra);
+  // as anilhas desenhadas na barra, as maiores perto do centro (como se põe)
+  const alturas = { 25: 120, 20: 112, 15: 100, 10: 86, 5: 64, 2.5: 52, 1.25: 42 };
+  const larg = (p) => (p >= 10 ? 13 : 10);
+  const lado = r && !r.abaixo ? r.lado : [];
+  const somaL = lado.reduce((a, p) => a + larg(p) + 2, 0);
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Calculadora de anilhas" onClick={onFechar}
+      style={{ position: "fixed", inset: 0, zIndex: 95, background: "rgba(0,0,0,.72)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...S.card, ...FUNDO_JOGO, width: "100%", maxWidth: 420, padding: 18, marginBottom: 0 }}>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 24, flex: 1 }}>🏋 Anilhas</Contorno>
+          <button aria-label="Fechar" onClick={onFechar} style={{ background: "none", border: "none", color: "#F2F0EC", fontSize: 22, cursor: "pointer" }}>✕</button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+          <input type="number" inputMode="decimal" value={total} autoFocus placeholder="100" aria-label="Peso total na barra, em quilos"
+            onChange={(e) => setTotal(e.target.value)} style={{ ...S.input, fontSize: 28, fontFamily: FONTE_LETREIRO, fontStyle: "italic", textAlign: "center", flex: 1 }} />
+          <span style={{ fontWeight: 900, fontSize: 18 }}>kg no total</span>
+        </div>
+        <div style={{ ...ROTULO_RESUMO, margin: "14px 0 6px" }}>A barra</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {[20, 15, 10, 0].map((b) => (
+            <button key={b} onClick={() => setBarra(b)} style={{ padding: "7px 12px", borderRadius: 16, fontWeight: 900, fontSize: 13, cursor: "pointer",
+              background: barra === b ? "#FFD23F" : "transparent", color: barra === b ? "#060606" : "#F2F0EC", border: "1px solid " + (barra === b ? "#FFD23F" : "#ffffff44") }}>{b ? b + " kg" : "sem barra"}</button>
+          ))}
+        </div>
+        <svg viewBox="0 0 320 140" width="100%" style={{ marginTop: 14 }} aria-hidden="true">
+          <rect x="0" y="64" width="320" height="12" rx="4" fill="#B9B9C2" />
+          <rect x={160 - 50 - somaL} y="56" width="8" height="28" rx="2" fill="#8E8E98" />
+          <rect x={160 + 42 + somaL} y="56" width="8" height="28" rx="2" fill="#8E8E98" />
+          {[-1, 1].map((ld) => {
+            let x = 0;
+            return lado.map((p, k) => {
+              const w = larg(p), h = alturas[p] || 40;
+              const px = ld < 0 ? 160 - 40 - x - w : 160 + 40 + x;
+              x += w + 2;
+              return <rect key={ld + "-" + k} x={px} y={70 - h / 2} width={w} height={h} rx="3" fill={COR_ANILHA[p] || "#888"} stroke="#000" strokeWidth="1.5" />;
+            });
+          })}
+        </svg>
+        <div style={{ textAlign: "center", marginTop: 8, lineHeight: 1.5 }}>
+          {!r ? <span style={{ color: "#B9AFC4" }}>Digite o peso total que quer levantar.</span>
+            : r.abaixo ? <span style={{ color: "#FF9A3C", fontWeight: 800 }}>É menos que a barra de {barra} kg.</span>
+            : !lado.length ? <b>Só a barra.</b>
+            : <React.Fragment>
+                <div style={{ ...ROTULO_RESUMO }}>De cada lado</div>
+                <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 30, lineHeight: 1.25 }}>{lado.map((p) => String(p).replace(".", ",")).join(" + ")}</Contorno>
+                <div style={{ fontSize: 13, color: "#E8E2EE" }}>{String(r.porLado).replace(".", ",")} kg por lado{barra ? " + a barra de " + barra : ""}</div>
+                {r.sobra > 0 && <div style={{ fontSize: 13, color: "#FF9A3C", fontWeight: 800, marginTop: 4 }}>Sobram {String(r.sobra).replace(".", ",")} kg: as anilhas comuns não fecham esse peso.</div>}
+              </React.Fragment>}
+        </div>
+        <div style={{ fontSize: 11, color: "#9a94a3", textAlign: "center", marginTop: 10 }}>Pela voz: "Jarvis, anilhas para 100 quilos".</div>
+      </div>
+    </div>
+  );
+}
+
 // ---- A NOTA DO CORPO NA TELA (2026-11-22a), no visual do resumo animado ----
 function AnelNota({ nota, cor, tam }) {
   const t = tam || 96, r = t / 2 - 8, C = 2 * Math.PI * r;
@@ -34703,6 +35022,68 @@ function LinhaDisposicao({ saude }) {
     <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0 10px", padding: "7px 10px", borderRadius: 12, ...FUNDO_JOGO }}>
       <span style={{ fontFamily: FONTE_JOGO, fontStyle: "italic", fontSize: 20, color: nd.faixa.cor, textShadow: "0 2px 0 #000" }}>{nd.nota}</span>
       <span style={{ fontSize: 12.5, lineHeight: 1.35 }}>🌅 <b>{nd.faixa.nome}</b> · {nd.faixa.id === "baixa" ? "um dia mais leve pode cair bem" : nd.faixa.id === "alta" ? "bom dia para puxar mais" : "treine como planejado"}</span>
+    </div>
+  );
+}
+
+// ---- A MEDALHA DO MÊS NA TELA (2026-11-22b): uma medalha de ouro que gira quando ganha ----
+function MedalhaMes({ ganhou, tamanho, rotulo }) {
+  const t = tamanho || 64;
+  return (
+    <div className={ganhou ? "medalha-gira" : ""} aria-hidden="true" style={{ width: t, height: t * 1.25, position: "relative", flexShrink: 0, filter: ganhou ? "drop-shadow(0 0 10px rgba(255,210,63,.6))" : "grayscale(1) opacity(.45)" }}>
+      <div style={{ position: "absolute", left: t * 0.28, top: 0, width: t * 0.18, height: t * 0.5, background: "#DD2A7B", transform: "skewX(12deg)" }} />
+      <div style={{ position: "absolute", right: t * 0.28, top: 0, width: t * 0.18, height: t * 0.5, background: "#8134AF", transform: "skewX(-12deg)" }} />
+      <div style={{ position: "absolute", left: 0, bottom: 0, width: t, height: t, borderRadius: "50%", border: "3px solid #8A5A00",
+        background: "radial-gradient(circle at 35% 30%, #FFF4B0, #FFD23F 45%, #E0A100 80%)", display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: FONTE_LETREIRO, fontStyle: "italic", fontSize: t * 0.32, color: "#5A3A00" }}>{rotulo || "★"}</div>
+    </div>
+  );
+}
+function CartaoDesafioMes({ historico }) {
+  const agora = Date.now();
+  const r = useMemo(() => desafioDoMes(historico, agora), [historico]);
+  const medalhas = useMemo(() => medalhasDoAno(historico, agora), [historico]);
+  return (
+    <div style={{ ...S.card, ...FUNDO_JOGO, padding: 16 }}>
+      <div style={{ ...ROTULO_RESUMO }}>🏅 Desafio de {r.nomeMes}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 10 }}>
+        <MedalhaMes ganhou={r.ganhou} rotulo={String(r.mes + 1)} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 30, lineHeight: 1.1 }}>{num1(r.feito) + " / " + r.alvo}</Contorno>
+          <div style={{ fontSize: 13, marginTop: 4, color: "#E8E2EE" }}>{r.tipo === "km" ? "km no mês (correndo ou caminhando)" : "treinos no mês"}</div>
+          <div style={{ height: 8, borderRadius: 4, background: "#ffffff1f", overflow: "hidden", marginTop: 8 }}>
+            <div style={{ width: r.pct + "%", height: "100%", background: GRAD, boxShadow: "0 0 10px rgba(221,42,123,.6)" }} />
+          </div>
+          <div style={{ fontSize: 12.5, marginTop: 6, color: r.ganhou ? "#FFD23F" : "#B9AFC4", fontWeight: r.ganhou ? 900 : 600 }}>
+            {r.ganhou ? "Medalha de " + r.nomeMes + " conquistada! 🎉" : "Faltam " + num1(r.falta) + (r.tipo === "km" ? " km" : " " + plural(r.falta, "treino", "treinos")) + " em " + r.restam + " " + plural(r.restam, "dia", "dias")}
+          </div>
+        </div>
+      </div>
+      {medalhas.length > 0 && (
+        <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #ffffff22" }}>
+          <div style={{ fontSize: 12, color: "#B9AFC4", marginBottom: 6 }}>Suas medalhas: {medalhas.length} nos últimos 12 meses</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {medalhas.map((m) => <div key={m.ano + "-" + m.mes} title={m.nomeMes + " de " + m.ano} style={{ textAlign: "center", fontSize: 10, color: "#E8E2EE" }}>
+              <MedalhaMes ganhou tamanho={28} rotulo={String(m.mes + 1)} /><div>{m.nomeMes.slice(0, 3)}</div></div>)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+function CartaoSequencia({ historico }) {
+  const r = useMemo(() => sequenciaComFolga(historico, Date.now()), [historico]);
+  return (
+    <div style={{ ...S.card, ...FUNDO_JOGO, padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ fontSize: 34 }} aria-hidden="true">🔥</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ ...ROTULO_RESUMO }}>Sequência com folga</div>
+        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 28, lineHeight: 1.1 }}>{r.dias + " " + plural(r.dias, "dia", "dias")}</Contorno>
+        <div style={{ fontSize: 12.5, color: "#E8E2EE", marginTop: 2 }}>
+          {r.dias ? "🛡 Folga desta semana: " + (r.folgaUsada ? "já usada. Treine amanhã para não quebrar." : "disponível. Um dia sem treino não quebra a sequência.")
+            : "Treine hoje para começar. Um dia de folga por semana não quebra a sequência."}
+        </div>
+      </div>
     </div>
   );
 }
@@ -35114,6 +35495,8 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
       {secao === "stats" && historico.length > 0 && (
         <React.Fragment>
           {onRetrospectiva && <CartaoRetrospectiva historico={historico} exPorId={exPorId} onAbrir={onRetrospectiva} />}
+          <CartaoDesafioMes historico={historico} />
+          <CartaoSequencia historico={historico} />
           <CartaoNivel est={est} />
           <MetaSemanal historico={historico} meta={meta} setMeta={setMeta} />
           <PainelConquistas est={est} />
@@ -35634,6 +36017,9 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   const [modal, setModal] = useState(null);
   const [resumoAnim, setResumoAnim] = useState(null);
   const [fotoNumeros, setFotoNumeros] = useState(null);
+  VOZ_RESUMO = voz;
+  const [anilhas, setAnilhas] = useState(null);
+  ABRIR_ANILHAS = (kg, barra) => setAnilhas({ kg: kg, barra: barra });
   ABRIR_FOTO_NUMEROS = (info) => setFotoNumeros(info);
   const [retroDepois, setRetroDepois] = useState(() => { try { return localStorage.getItem("treinolivre:retroDepois") || ""; } catch (e) { return ""; } });
   const abrirRetrospectiva = () => {
@@ -36866,6 +37252,12 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     anotarDiario(ouvido, "entendido: " + (ROTULO_TIPO[c.tipo] || c.tipo) + (comNome ? " (com o nome)" : " (sem o nome)"));
     registrarEvento("jarvis-comando");
 
+    if (c.tipo === "anilhas") {
+      const b = voz.barra != null ? voz.barra : 20;
+      setAnilhas({ kg: c.kg, barra: b });
+      mostrarVoz(bruto, falaAnilhas(c.kg, b), true);
+      return;
+    }
     if (c.tipo === "malEstar") {
       setEmergencia(true);
       mostrarVoz(bruto, EMERGENCIA.falado, true);
@@ -37039,6 +37431,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           if (ehAquecimento(s)) nova.aquec = true;
           if (s.t > 0) nova.t = s.t;   // a hora da série: casa com a curva do relógio
           if (s.fr > 0) nova.fr = s.fr;  // o coração pronto no descanso (o relógio)
+          if (s.rir !== undefined && s.rir !== null && s.rir !== "") nova.rir = Number(s.rir);  // o esforço da série
           return nova;
         }),
       })).filter((it) => it.series.length > 0),
@@ -38149,6 +38542,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
 
       {resumoAnim && <ResumoAnimado d={resumoAnim} vozCfg={voz} onFechar={() => setResumoAnim(null)} />}
       {fotoNumeros && <FotoComNumeros info={fotoNumeros} avisar={avisar} onFechar={() => setFotoNumeros(null)} />}
+      {anilhas && <CalculadoraAnilhas inicial={anilhas.kg} barraInicial={anilhas.barra} onFechar={() => setAnilhas(null)} />}
       {dorManha && adaptado.registros.some((r) => r.id === dorManha.regId) && (
         <JanelaDorManha reg={adaptado.registros.find((r) => r.id === dorManha.regId)}
           onResponder={(v) => {

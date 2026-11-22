@@ -633,6 +633,9 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     private fun mostrarPainel(j: JSONObject) {
         val antes = painel
         painel = j
+        // o bloco do mostrador lê o último painel
+        try { prefs.edit().putString("ultimoPainel", JSONObject(j.toString()).put("recebido", System.currentTimeMillis()).apply { remove("copia") }.toString()).apply() } catch (e: Exception) { }
+        BlocoTreino.atualizar(this)
         esperando = false
         aviso.text = ""
         val nova = j.optString("uid") + ":" + j.optInt("si", -1)

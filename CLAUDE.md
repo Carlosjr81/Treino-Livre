@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v262) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v263) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5037,6 +5037,17 @@ publicado na mesma versão (Release), ao lado do `treino-livre.apk`.
   no meio da geleia): `ALTURA` 0,44, `LARGURA` 1,3, esfera 0,2, e a geleia
   com metade da força (o afundar e o balanço esticavam os números para fora
   da tela).
+- **O visual do resumo na tela do treino** (2026-11-22e, pedido do dono): a
+  letra de letreiro do app (Rammetto One, convertida do `fonte-resumo.woff2`
+  para `res/font/letreiro.ttf`, OFL em `android/relogio/LETREIRO-OFL.txt`)
+  no nome do exercício, nos números da carga, das repetições e do tempo e no
+  descanso, por `TextoJogo` (o contorno preto **atrás** do preenchimento,
+  inclinado, e o degradê amarelo-laranja-rosa nos números); a linha de cima em
+  ciano (#4DEBFF), o selo da série e o ✓ FEITO / ■ TERMINEI na mesma letra, e o
+  fundo do `Palco` no roxo-escuro do resumo (#0B0418), não no preto (o modo
+  ambiente continua preto). **A bolinha laranja da hora saiu**: no mostrador
+  ela avisa notificação, e ali não avisava nada (pedido do dono). **Não
+  validado num relógio.**
 - **A hora é uma bola de água** (2026-11-20r, o dono: "uma esfera muito
   gelatinosa, quase uma água, onde o número está projetado em cima e se
   move"). Os números são uma figura colada na esfera: o ponto d da figura

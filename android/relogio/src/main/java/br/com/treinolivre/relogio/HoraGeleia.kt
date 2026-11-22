@@ -554,17 +554,9 @@ class HoraGeleia(contexto: Context) : View(contexto) {
             c.restore()
         }
 
-        // a bolinha laranja da borda esquerda, como no modelo: pulsa a cada segundo
-        if (!ambiente && esc > 0.01f) {
-            val ts = (agora - segEm) / 1000f
-            val pulso = 1f + 0.45f * exp(-6f * ts)
-            ponto.color = Cores.LARANJA
-            ponto.alpha = (255 * min(1f, esc)).toInt()
-            ponto.setShadowLayer(7f * d * pulso, 0f, 0f, Cores.LARANJA)
-            c.drawCircle(ox + larg * 0.025f, oy + alt * 0.5f, lado * 0.017f * pulso, ponto)
-            ponto.clearShadowLayer()
-            ponto.alpha = 255
-        }
+        // A bolinha laranja da borda esquerda saiu (2026-11-22e, pedido do dono):
+        // no mostrador do relógio ela avisa que há notificação; aqui não
+        // avisava nada e ficava sobrando.
 
         if (vivo) {
             if (tSai >= 0f && tudoSaiu && alfaFundo <= 0f) {

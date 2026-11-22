@@ -215,6 +215,19 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             gravity = Gravity.CENTER
             if (negrito) setTypeface(typeface, Typeface.BOLD)
         }
+        // A letra de letreiro do app (2026-11-22e): o nome do exercício, os
+        // números e o descanso no visual do resumo animado (TextoJogo)
+        val letreiro: Typeface? = try { resources.getFont(R.font.letreiro) } catch (e: Exception) { null }
+        val DEGRADE_JOGO = intArrayOf(Color.parseColor("#FFE36E"), Color.parseColor("#FF9A3C"), Color.parseColor("#FF3E8A"))
+        fun jogo(tam: Float, cor: Int = Color.WHITE, cores: IntArray? = null, traco: Float = 3f) = TextoJogo(this).apply {
+            textSize = tam * escala
+            setTextColor(cor)
+            gravity = Gravity.CENTER
+            if (letreiro != null) typeface = letreiro else setTypeface(typeface, Typeface.BOLD_ITALIC)
+            this.cores = cores
+            this.traco = traco * d
+            setPadding(dp(4), 0, dp(6), dp(2))
+        }
         fun comToque(fundo: Drawable): Drawable = RippleDrawable(ColorStateList.valueOf(0x55FFFFFF), fundo, null)
         fun pilulaFundo(cores: IntArray): Drawable = comToque(GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, cores).apply { cornerRadius = dp(30).toFloat() })
         fun botao(rotulo: String, fundo: Drawable, tam: Float = 15f, acao: () -> Unit) = Button(this).apply {
@@ -263,9 +276,11 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             letterSpacing = 0.25f
             addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> pintarMarca() }
         }
-        topo = texto(11f, Cores.CINZA)
-        exNome = texto(17f, negrito = true).apply { maxLines = 2; setPadding(0, dp(2), 0, dp(2)) }
+        // o rótulo em ciano, como no resumo animado
+        topo = texto(11f, Color.parseColor("#4DEBFF"), true)
+        exNome = jogo(15f, Color.WHITE, null, 3f).apply { maxLines = 2; setLineSpacing(0f, 0.92f) }
         serie = texto(11f, Color.WHITE, true).apply {
+            if (letreiro != null) typeface = letreiro
             letterSpacing = 0.12f
             setPadding(dp(12), dp(3), dp(12), dp(3))
             background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Cores.ROSA, Cores.ROXO)).apply { cornerRadius = dp(20).toFloat() }.also { fundoSerie = it }
@@ -273,7 +288,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         caixa.addView(marca); caixa.addView(topo); caixa.addView(exNome)
         caixa.addView(serie, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(2), 0, dp(4)) })
 
-        relogio = texto(48f, Cores.VERDE, true)
+        relogio = jogo(44f, Cores.VERDE, null, 5f)
         rotuloDescanso = texto(11f, Cores.CINZA, true).apply { text = "DESCANSO"; letterSpacing = 0.25f }
         botoesDescanso = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -299,9 +314,9 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         }
         caixa.addView(blocoDescanso)
 
-        txtPeso = texto(24f, negrito = true)
-        txtReps = texto(24f, negrito = true)
-        txtSeg = texto(24f, negrito = true)
+        txtPeso = jogo(23f, Color.WHITE, DEGRADE_JOGO, 4f)
+        txtReps = jogo(23f, Color.WHITE, DEGRADE_JOGO, 4f)
+        txtSeg = jogo(23f, Color.WHITE, DEGRADE_JOGO, 4f)
         txtRec = texto(11f, Cores.CINZA, true)
         linhaPeso = ajuste(txtPeso, { mudarPeso(-1) }, { mudarPeso(1) })
         linhaReps = ajuste(txtReps, { reps = maxOf(0, reps - 1); mostrarValores() }, { reps = minOf(999, reps + 1); mostrarValores() })
@@ -322,7 +337,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             esperando = true
             mostrar()
             enviar(j)
-        }.apply { minHeight = dp(56); minimumHeight = dp(56); letterSpacing = 0.08f }
+        }.apply { minHeight = dp(56); minimumHeight = dp(56); letterSpacing = 0.04f; if (letreiro != null) typeface = letreiro; setShadowLayer(0.1f, 0f, 2f * d, 0x66000000) }
         // Aeróbico (esteira, bicicleta...): o tempo e a distância são medidos no
         // celular; o relógio só diz que acabou (pedido do dono, 2026-11-14a)
         terminar = pilula("■ TERMINEI", intArrayOf(Cores.VERDE, Cores.CIANO), 19f) {
@@ -330,7 +345,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             esperando = true
             mostrar()
             enviar(JSONObject().put("a", "terminar").put("ei", p.optInt("ei", -1)))
-        }.apply { minHeight = dp(56); minimumHeight = dp(56); letterSpacing = 0.08f }
+        }.apply { minHeight = dp(56); minimumHeight = dp(56); letterSpacing = 0.04f; if (letreiro != null) typeface = letreiro; setShadowLayer(0.1f, 0f, 2f * d, 0x66000000) }
         blocoSerie = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(linhaPeso); addView(linhaReps); addView(linhaSeg)

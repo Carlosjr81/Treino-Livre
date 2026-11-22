@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-22e — O relógio com a cara do resumo animado
+
+**Em uma frase:** a tela do treino no relógio ganhou o visual do resumo animado, e a hora (segurando a tela) perdeu a bolinha laranja que não servia para nada.
+
+**O que mudou**
+- O nome do exercício, a carga, as repetições e o tempo do descanso na letra de letreiro do app, com o contorno preto e os números no degradê amarelo, laranja e rosa.
+- A linha de cima em azul-ciano, o selo da série e os botões principais na mesma letra, e o fundo no roxo-escuro do resumo.
+- Na hora que aparece ao segurar a tela, a bolinha laranja da borda saiu: no mostrador do relógio ela avisa notificação, e ali não avisava nada.
+
+**Por que importa para quem treina**
+- O relógio no pulso fica com a mesma cara do app e do resumo, e os números se leem de longe.
+
+**Como usar**
+- Atualize o app do relógio ("⬆ Atualizar o relógio" no app do celular).
+
+**Ideias de vídeo**
+- O pulso no meio da série: a carga em letreiro dourado, com o anel girando.
+
+**Não prometer**
+- Só no relógio Wear OS com o app do relógio atualizado.
+
+---
+
 ## 2026-11-22d — Cada bordão no momento certo
 
 **Em uma frase:** o Jarvis agora escolhe o bordão pela hora do treino: "Hora do show!" no começo, "Baby, don't hurt me!" antes da série mais pesada, "Última! Eu quero, eu posso!" na última, "Light weight, baby!" no recorde e "Trapézio descendente!" no encolhimento.

@@ -33,7 +33,7 @@ const fonte = [
 ].join("\n");
 const memoria = {};
 globalThis.localStorage = { getItem: (k) => (k in memoria ? memoria[k] : null), setItem: (k, v) => { memoria[k] = String(v); }, removeItem: (k) => { delete memoria[k]; } };
-eval(fonte + "\nglobalThis.B = { criarBolso, aplicarEventosBolso, snapshotBolso, lerPacoteBolso, linkBolso, marcarIdsBolso, novosEventosBolso, eventosBolsoValidos, canalBolso, canalBolsoValido, cifrarBolso, decifrarBolso };");
+eval(fonte + "\nglobalThis.B = { criarBolso, aplicarEventosBolso, snapshotBolso, lerPacoteBolso, linkBolso, marcarIdsBolso, novosEventosBolso, eventosBolsoValidos, canalBolso, canalBolsoValido, cifrarBolso, decifrarBolso, criarRecuperacaoFc, fcDoRelogio };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -297,6 +297,47 @@ console.log("--- o coração no descanso (o relógio mede quanto ele levou para 
   const its = aplicarEventosBolso(sessao().itens, [{ t: "a", u: "u1", i: 0, p: "80", r: "10", fr: 48 }]);
   teste("aplicado, a série guarda o fr", true, its[0].series.some((x) => x.fr === 48));
   teste("o histórico leva o fr da série", true, /if \(s\.fr > 0\) nova\.fr = s\.fr;/.test(html));
+}
+
+// ---- o coração entre as séries no celular (2026-11-22f) ----
+{
+  const rc = B.criarRecuperacaoFc();
+  let t = 1e6;
+  // aquecendo: 90 bpm por 30 s (a base)
+  for (let k = 0; k < 15; k++) { rc.ler(90, t); t += 2000; }
+  // a série: sobe a 150
+  for (let k = 0; k < 12; k++) { rc.ler(150, t); t += 2000; }
+  rc.inicio(t);
+  const e0 = rc.estado(t);
+  teste("o alvo é 35% do caminho (no mínimo base + 10)", true, e0.alvo >= 100 && e0.alvo <= 115);
+  teste("o pico é o da série", true, e0.pk >= 140);
+  let voltou = 0;
+  // o descanso: desce para 95
+  for (let k = 0; k < 40 && !voltou; k++) { t += 2000; if (rc.ler(95, t)) voltou = t; }
+  teste("o coração volta durante o descanso", true, voltou > 0);
+  const e1 = rc.estado(t);
+  teste("o estado diz que voltou e em quantos segundos", true, e1.pr && e1.s >= 15 && e1.s < 80);
+  const fr = rc.fim();
+  teste("o fim devolve os segundos da recuperação", e1.s, fr);
+  // um descanso em que não volta
+  for (let k = 0; k < 12; k++) { t += 2000; rc.ler(155, t); }
+  rc.inicio(t);
+  for (let k = 0; k < 10; k++) { t += 2000; rc.ler(150, t); }
+  teste("sem voltar, o fim devolve 0", 0, rc.fim());
+  // nunca antes dos 15 s
+  const r2 = B.criarRecuperacaoFc();
+  let u = 0;
+  for (let k = 0; k < 10; k++) { r2.ler(80, u); u += 2000; }
+  for (let k = 0; k < 10; k++) { r2.ler(140, u); u += 2000; }
+  r2.inicio(u);
+  teste("antes de 15 s não conta", false, r2.ler(80, u + 5000));
+  teste("leitura absurda é ignorada", false, r2.ler(400, u + 6000) || r2.estado(u + 6000).b === 400);
+  teste("o batimento do relógio é conferido", { b: 120, alvo: 100, pk: 150, pr: true, s: 42 }, B.fcDoRelogio({ b: "120", alvo: 100, pk: 150, pr: 1, s: 42 }));
+  teste("e recusa o que não é batimento", null, B.fcDoRelogio({ b: 999 }));
+  teste("e recusa lixo", null, B.fcDoRelogio("<script>"));
+  teste("a faixa do descanso mostra o coração", true, /coração recuperado/.test(html) && /volta a /.test(html));
+  const kt = require("fs").readFileSync(require("path").join(__dirname, "..", "android/relogio/src/main/java/br/com/treinolivre/relogio/TelaRelogio.kt"), "utf8");
+  teste("o relógio alterna o tempo e o coração e manda o batimento", true, /CORAÇÃO → /.test(kt) && /put\("a", "fc"\)/.test(kt));
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
   process.exit(mal ? 1 : 0);

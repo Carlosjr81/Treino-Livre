@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-11-22f — O coração voltando entre as séries, no relógio e no celular
+
+**Em uma frase:** no descanso, o relógio alterna o tempo com o batimento ("❤ 128 → volta a 105") e o celular mostra o mesmo na faixa do descanso, até o "coração recuperado".
+
+**O que mudou**
+- No relógio, o número grande do descanso alterna: alguns segundos o tempo, alguns o coração, com até onde ele precisa descer. Quando o coração volta, o relógio vibra e fica verde: "coração pronto, voltou em 42 s".
+- No celular, a faixa do descanso ganhou a linha do coração: o batimento de agora, a barra da volta e "coração recuperado · voltou em 42 s". A voz avisa "Coração recuperado".
+- Sem relógio, o celular mede sozinho com a cinta cardíaca ou com a esteira conectada.
+- Se o relógio ainda não tem a permissão do sensor, a própria tela diz "Toque: ver o coração voltar".
+- Quanto o coração levou para voltar vai para o treino e para o resumo animado.
+
+**Por que importa para quem treina**
+- Dá para ver, série a série, como o corpo está respondendo ao descanso, sem tirar os olhos do treino.
+
+**Como usar**
+- Atualize o app do celular e o do relógio. No relógio, permita o sensor de batimento quando ele pedir. Sem relógio, conecte a cinta no treino.
+
+**Ideias de vídeo**
+- Tela dividida: o pulso alternando "1:30" e "❤ 128", e o celular com a barra enchendo até "coração recuperado".
+
+**Não prometer**
+- Não é exame nem diz quando é seguro voltar a treinar: é informação geral. Precisa de relógio Wear OS com o app, ou de cinta ou esteira com batimento.
+
+---
+
 ## 2026-11-22e — O relógio com a cara do resumo animado
 
 **Em uma frase:** a tela do treino no relógio ganhou o visual do resumo animado, e a hora (segurando a tela) perdeu a bolinha laranja que não servia para nada.

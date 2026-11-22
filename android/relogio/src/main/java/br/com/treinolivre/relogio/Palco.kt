@@ -26,13 +26,13 @@ object Cores {
     val VERMELHO = Color.parseColor("#FF4757")
     val OURO = Color.parseColor("#FFD43B")
     val CINZA = Color.parseColor("#9A9AA5")
+    // o roxo-escuro do resumo animado (2026-11-22e), por baixo da luz do fundo
+    val FUNDO_JOGO = Color.parseColor("#0B0418")
 
     // O descanso passando em cor (pedido do dono, 2026-11-18a: "mais gradiente
     // para demonstrar o tempo passando"). Em vez de três degraus (verde, amarelo
     // nos 10 s, vermelho nos 3 s), a cor anda sem saltos pela fração que falta:
     // verde-água cheio, verde, lima, amarelo, laranja e vermelho no fim. O anel,
-    // o roxo-escuro do resumo animado (#0B0418), por baixo da luz do fundo
-    private val FUNDO_JOGO = Color.parseColor("#0B0418")
     // o número e o fundo têm sempre a mesma cor, a do momento (2026-11-18b).
     val DESCANSO_CORES = intArrayOf(
         Color.parseColor("#FF3B4E"), // 0: acabou
@@ -218,9 +218,9 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
             chaveFundo = kf
             // a luz na cor do momento sobre o roxo-escuro do resumo animado
             // (2026-11-22e): o mesmo fundo do app, não o preto puro
-            pFundo.shader = RadialGradient(cx, cy, r * 1.05f, intArrayOf(cf, FUNDO_JOGO), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
+            pFundo.shader = RadialGradient(cx, cy, r * 1.05f, intArrayOf(cf, Cores.FUNDO_JOGO), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
         }
-        cv.drawColor(FUNDO_JOGO)
+        cv.drawColor(Cores.FUNDO_JOGO)
         cv.drawRect(0f, 0f, w, h, pFundo)
         if (modo == Modo.DESCANSO && resta in 1..10) piscar(cv, cx, cy, r, agora)
 

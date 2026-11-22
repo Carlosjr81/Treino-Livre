@@ -296,8 +296,12 @@ class OuvinteRelogio : WearableListenerService() {
         }
         if (m.path != Relogio.ACAO) return
         val texto = String(m.data, Charsets.UTF_8)
+        // o batimento do descanso (2026-11-22f): sem o treino aberto aqui, não
+        // há para onde levar, e não pode desligar o relógio por isso
+        val ehFc = try { JSONObject(texto).optString("a") == "fc" } catch (e: Exception) { false }
         Handler(Looper.getMainLooper()).post {
             val s = BolsoService.instancia
+            if (ehFc) { s?.acaoRelogio(texto); return@post }
             // sem o Jarvis ligado: o celular religou sem o treino (a bateria tinha
             // acabado). O relógio pode seguir com a cópia dele (semJarvis);
             // o Finalizar treino desliga sem essa marca.

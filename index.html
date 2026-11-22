@@ -121,6 +121,10 @@
     background: linear-gradient(90deg, #FEDA75, #FA7E1E, #D62976, #962FBF, #4F5BD5);
     animation: desliza 1.1s ease-in-out infinite; }
   @keyframes desliza { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+  /* o coração da faixa do descanso batendo (2026-11-22f) */
+  @keyframes fcBate { 0%, 40%, 100% { transform: scale(1); } 15% { transform: scale(1.25); } 28% { transform: scale(1.08); } }
+  .fc-bate { display: inline-block; animation: fcBate 1s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) { .fc-bate { animation: none; } }
   /* Botões com ação (pedido do dono, 2026-11-20i: "mais ação nos botões da
      configuração do relógio com o celular"): o toque afunda o botão e ele volta
      com mola; o botão principal de cada passo pulsa uma luz da marca. */
@@ -1858,7 +1862,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-22e";
+const VERSAO_APP = "2026-11-22f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3337,7 +3341,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-186/treino-livre-186.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-187/treino-livre-187.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -4927,6 +4931,55 @@ function lerPacoteBolso(texto, decodificar) {
     const dg = Array.isArray(p && p.dg) ? p.dg.filter((s) => typeof s === "string").slice(-40).map((s) => s.slice(0, 170)) : null;
     return { ev: ev, fim: !!(p && p.fim), dg: dg, em: Date.now() };
   } catch (e) { return null; }
+}
+// ---- O CORAÇÃO ENTRE AS SÉRIES (2026-11-22f, pedido do dono: "onde está a
+// recuperação do coração entre as séries? Faça aparecer no relógio e no
+// celular"). A mesma régua do relógio (CoracaoNoDescanso.kt), para o celular
+// medir sozinho com a cinta ou a esteira quando não há relógio:
+// - a base é o batimento mais baixo do treino (média de 5 leituras);
+// - o pico é o mais alto dos 20 s antes de o descanso começar (a série);
+// - "voltou" é chegar a 35% do caminho entre a base e o pico (no mínimo
+//   base + 10), e só conta depois de 15 s de descanso.
+// Informação geral, não é exame nem diz quando é seguro treinar.
+function criarRecuperacaoFc() {
+  let media = 0, base = 0, recentes = [], ini = 0, pico = 0, alvo = 0, prontoEm = 0, bpm = 0, em = 0;
+  return {
+    // devolve true no instante em que o coração voltou
+    ler(v, t) {
+      v = +v;
+      if (!(v >= 35 && v <= 230)) return false;
+      media = media > 0 ? media * 0.6 + v * 0.4 : v;
+      bpm = Math.round(media); em = t;
+      recentes.push([t, media]);
+      while (recentes.length && t - recentes[0][0] > 25000) recentes.shift();
+      if (recentes.length >= 5 && (base <= 0 || media < base)) base = media;
+      if (ini > 0 && !prontoEm && alvo > 0 && t - ini >= 15000 && media <= alvo) { prontoEm = t; return true; }
+      return false;
+    },
+    inicio(t) {
+      ini = t; prontoEm = 0;
+      const ps = recentes.filter((r) => t - r[0] <= 20000).map((r) => r[1]);
+      pico = ps.length ? Math.max.apply(null, ps) : media;
+      alvo = base > 0 && pico > base ? Math.round(Math.max(base + 10, base + (pico - base) * 0.35)) : 0;
+    },
+    // o fim do descanso: os segundos que o coração levou para voltar (0: não voltou)
+    fim() {
+      const r = prontoEm > 0 && ini > 0 ? Math.min(600, Math.max(1, Math.round((prontoEm - ini) / 1000))) : 0;
+      ini = 0; alvo = 0;
+      return r;
+    },
+    estado(t) {
+      return { b: t - em < 10000 ? bpm : 0, alvo: alvo, pk: Math.round(pico), pr: prontoEm > 0, s: prontoEm > 0 && ini > 0 ? Math.round((prontoEm - ini) / 1000) : 0 };
+    },
+  };
+}
+// o batimento que o relógio manda pelo canal cifrado: conferido campo a campo
+function fcDoRelogio(c) {
+  if (!c || typeof c !== "object") return null;
+  const b = Math.round(+c.b);
+  if (!(b >= 35 && b <= 230)) return null;
+  const n = (v, lo, hi) => { v = Math.round(+v); return v >= lo && v <= hi ? v : 0; };
+  return { b: b, alvo: n(c.alvo, 35, 230), pk: n(c.pk, 35, 230), pr: +c.pr === 1 || c.pr === true, s: n(c.s, 1, 600) };
 }
 // ==== FIM DO BOLSO ====
 
@@ -30684,6 +30737,51 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   // esteira). Só ganha hora a série vista por fazer aqui: a que já veio feita
   // (treino reaberto) não ganha uma hora inventada.
   const viPorFazer = useRef({});
+  // O coração entre as séries (2026-11-22f): o relógio manda o batimento dele
+  // (fcRelogio); sem relógio, o celular mede com a cinta ou a esteira (recFc).
+  const recFc = useRef(null);
+  if (!recFc.current) recFc.current = criarRecuperacaoFc();
+  const [fcRelogio, setFcRelogio] = useState(null);
+  const fcRelogioRef = useRef(null);
+  fcRelogioRef.current = fcRelogio;
+  const [fcAqui, setFcAqui] = useState(null);
+  const bpmFonteRef = useRef(0);
+  const frPendRef = useRef(0);
+  const descFcRef = useRef(0);
+  const feitasFcRef = useRef(-1);
+  const falouFcRef = useRef(false);
+  const feitasAgora = (sessao.itens || []).reduce((n, it) => n + (it.series || []).filter((sr) => sr.feito).length, 0);
+  useEffect(() => {
+    const ant = descFcRef.current;
+    if (fimDescanso === ant) return;
+    // o +15 s e o +30 s mexem no fim do mesmo descanso: só é descanso novo
+    // depois de uma série a mais, ou quando o anterior já tinha acabado
+    const novo = fimDescanso && (!ant || feitasAgora !== feitasFcRef.current || ant < Date.now());
+    if (ant && (novo || !fimDescanso)) {
+      const r = recFc.current.fim();
+      const w = fcRelogioRef.current;
+      frPendRef.current = r || (w && w.pr && Date.now() - w.em < 60000 ? w.s : 0) || 0;
+    }
+    if (novo) {
+      recFc.current.inicio(Date.now());
+      feitasFcRef.current = feitasAgora;
+      falouFcRef.current = false;
+      setFcAqui(null);
+      setFcRelogio(null);
+    }
+    descFcRef.current = fimDescanso || 0;
+  }, [fimDescanso, feitasAgora]);
+  // a cinta e a esteira alimentam a conta a cada 2 s; só no descanso há o que mostrar
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const v = bpmFonteRef.current;
+      if (!(v > 0)) return;
+      const t = Date.now();
+      recFc.current.ler(v, t);
+      if (descFcRef.current) setFcAqui(recFc.current.estado(t));
+    }, 2000);
+    return () => clearInterval(iv);
+  }, []);
   useEffect(() => {
     const vi = viPorFazer.current;
     let falta = false;
@@ -30694,8 +30792,18 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     }));
     if (!falta) return;
     const agoraT = Date.now();
+    // a recuperação do coração (fr) vai na primeira série carimbada, uma vez;
+    // a série que já veio com ela (o ✓ do relógio) fica com a dela
+    let fr = frPendRef.current;
+    frPendRef.current = 0;
     setSessao((p) => (p ? { ...p, itens: p.itens.map((it) => (it.series.some((sr, si) => sr.feito && !sr.t && vi[it.uid + ":" + si])
-      ? { ...it, series: it.series.map((sr, si) => (sr.feito && !sr.t && vi[it.uid + ":" + si] ? { ...sr, t: agoraT } : sr)) } : it)) } : p));
+      ? { ...it, series: it.series.map((sr, si) => {
+        if (!(sr.feito && !sr.t && vi[it.uid + ":" + si])) return sr;
+        const x = { ...sr, t: agoraT };
+        if (fr > 0 && !sr.fr) x.fr = fr;
+        fr = 0;
+        return x;
+      }) } : it)) } : p));
   }, [sessao.itens]);
 
   const [avisou, setAvisou] = useState(false);
@@ -30733,6 +30841,14 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       if (som) beep(880, 0.12, 0.25);
     }
   }, [restante, fimDescanso, acabou, som]);
+
+  useEffect(() => {
+    if (!fimDescanso || falouFcRef.current) return;
+    const pr = (fcRelogio && fcRelogio.pr) || (fcAqui && fcAqui.pr);
+    if (!pr) return;
+    falouFcRef.current = true;
+    if (!acabou) setTimeout(() => falarRef.current("Coração recuperado."), 300);
+  }, [fcRelogio, fcAqui]);
 
   falarRef.current = (frase) => {
     if (vozAtiva && responderVoz) responderVoz(frase, true);
@@ -31314,6 +31430,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   const confirmadaAgora = btSessao.est.confirmada;
   const [baseEst, setBaseEst] = useState(() => (sessao.esteiraParcial && sessao.esteiraParcial.painel) || ZERO_EST);
   const dadoBruto = btSessao.est.dado || {};
+  bpmFonteRef.current = btSessao.est.confirmada && dadoBruto.bpm > 0 && dadoBruto.bpmEm && Date.now() - dadoBruto.bpmEm < 10000 ? dadoBruto.bpm : bpm > 0 ? bpm : 0;
   // Tudo conta pelo odômetro (ver criarOdometroEsteira): o painel zerado ao
   // parar não apaga nada, e o que ele já tinha mostrado continua valendo.
   const odoEst = useRef(criarOdometroEsteira());
@@ -31954,6 +32071,8 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
             ultimoBipe.current = null;
           } else if (!da) { descansoNoBolso.current = 0; setFimDescanso(null); }
         }
+        const fcv = fcDoRelogio(p.fc);
+        if (fcv && Date.now() - p.ts < 20000) setFcRelogio(Object.assign(fcv, { em: Date.now() }));
       }).catch(() => {});
     }, (e) => { if (vivo) setCanalRelogio(e); });
     // a cópia vai junto das confirmações: a mensagem guardada no retransmissor
@@ -32276,6 +32395,12 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
   };
 
   const pct = fimDescanso && totalDescanso > 0 ? Math.max(0, Math.min(100, (restante / totalDescanso) * 100)) : 0;
+  // o coração na faixa do descanso: o do relógio vence (é o mesmo que ele mostra no pulso)
+  const fcMostrar = fimDescanso && fcRelogio && agora - fcRelogio.em < 12000 ? Object.assign({ fonte: "relogio" }, fcRelogio)
+    : fimDescanso && fcAqui && fcAqui.b > 0 ? Object.assign({ fonte: "aqui" }, fcAqui) : null;
+  const fcVolta = fcMostrar && !fcMostrar.pr && fcMostrar.alvo > 0 && fcMostrar.pk > fcMostrar.alvo
+    ? Math.max(0, Math.min(1, (fcMostrar.pk - fcMostrar.b) / (fcMostrar.pk - fcMostrar.alvo))) : null;
+  const [dicaFcVista, setDicaFcVista] = useState(() => { try { return !!localStorage.getItem("treinolivre:dicaFcDesc"); } catch (e) { return true; } });
 
   const btnSom = (
     <button onClick={() => { setSom(!som); if (!som) beep(700, 0.1, 0.2); }}
@@ -33176,6 +33301,37 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
               </button>
             </div>
           </div>
+          {fcMostrar ? (
+            <div role="status" aria-live="polite" style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10,
+              background: fcMostrar.pr ? "var(--ok-bg)" : "rgba(237,73,86,.08)", border: "1px solid " + (fcMostrar.pr ? "var(--ok)" : "#ED495655") }}>
+              <span className={fcMostrar.pr ? "" : "fc-bate"} aria-hidden="true" style={{ fontSize: 22, color: fcMostrar.pr ? "var(--ok)" : "#ED4956" }}>{fcMostrar.pr ? "✓" : "❤"}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 900, fontSize: 16, color: fcMostrar.pr ? "var(--ok)" : "#ED4956", fontVariantNumeric: "tabular-nums" }}>
+                  ❤ {fcMostrar.b} bpm{fcMostrar.pr ? " · coração recuperado" : fcMostrar.alvo > 0 ? " → volta a " + fcMostrar.alvo : " · medindo a volta"}
+                </div>
+                {fcVolta !== null && (
+                  <div style={{ height: 4, background: "var(--borda)", borderRadius: 2, marginTop: 5, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: Math.round(fcVolta * 100) + "%", background: "var(--ok)", borderRadius: 2, transition: "width 1.5s ease" }} />
+                  </div>
+                )}
+                <div style={{ fontSize: 11, color: "var(--cinza)", marginTop: 3, lineHeight: 1.35 }}>
+                  {fcMostrar.pr && fcMostrar.s > 0 ? "Voltou em " + fcMostrar.s + " s de descanso · " : ""}
+                  {fcMostrar.fonte === "relogio" ? "⌚ pelo relógio" : "📶 pela cinta ou esteira"} · informação geral, não é exame
+                </div>
+              </div>
+            </div>
+          ) : !acabou && !dicaFcVista && !bpm && (
+            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--cinza)", lineHeight: 1.4 }}>
+              <span style={{ flex: 1 }}>❤ Veja o coração voltar entre as séries: com a cinta, a esteira ou o app do relógio.</span>
+              {onConectarCardio && (
+                <button onClick={onConectarCardio} style={{ border: "1px solid #ED495666", background: "transparent", color: "#ED4956", borderRadius: 8, padding: "6px 9px", fontWeight: 800, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
+                  Conectar
+                </button>
+              )}
+              <button aria-label="Dispensar a dica do coração" onClick={() => { setDicaFcVista(true); try { localStorage.setItem("treinolivre:dicaFcDesc", "1"); } catch (e) {} }}
+                style={{ border: "none", background: "transparent", color: "var(--cinza)", fontSize: 16, cursor: "pointer", padding: "4px 6px" }}>✕</button>
+            </div>
+          )}
           {acabou && calouNoFundo && typeof Notification !== "undefined" && Notification.permission === "default" && (
             <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10, fontSize: 12, color: "var(--cinza)", lineHeight: 1.4 }}>
               <span style={{ flex: 1 }}>Com a tela apagada o celular cala a voz. A notificação avisa mesmo assim.</span>
@@ -39039,6 +39195,17 @@ if (MODO_BOLSO) {
       return JSON.stringify(Object.assign({}, r, { ev: eventosComId(), painel: motorBolso.painel(t) }));
     },
     entregue() { if (motorBolso) motorBolso.limpar(); return "ok"; },
+    // o batimento do descanso, vindo do relógio (2026-11-22f): vai junto do que
+    // ainda não voltou, porque a mensagem guardada no retransmissor é a última
+    fc(json) {
+      let c = {};
+      try { c = JSON.parse(json); } catch (e) {}
+      const fc = fcDoRelogio(c);
+      if (!fc || !canal || !motorBolso) return "";
+      if (!sala) abrirCanal(); else sala.manter();
+      cifrarBolso(canal, { ev: eventosComId(), fc: fc, ts: Date.now() }).then((m) => { if (sala) sala.publicar(m); }).catch(() => {});
+      return "ok";
+    },
   };
 }
 // ?modo=corrida: o app chama de fora, a cada segundo e a cada leitura do GPS

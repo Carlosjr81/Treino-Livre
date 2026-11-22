@@ -371,9 +371,13 @@ class BolsoService : Service(), RecognitionListener {
     // Um toque no relógio: "feito" (com a carga e as repetições ajustadas lá),
     // desfazer, +30 s, -15 s, pular o descanso, próximo, anterior, ou só o painel.
     fun acaoRelogio(texto: String) {
+        val acao = try { JSONObject(texto).optString("a", "") } catch (e: Exception) { "" }
+        // O batimento do descanso, a cada poucos segundos (2026-11-22f): vai à
+        // tela do treino pelo canal cifrado. Não conta como uso (o desligar por
+        // esquecido continua valendo), não vai ao diário e não refaz o painel.
+        if (acao == "fc") { if (pronto) js("bolso.fc&&bolso.fc(" + q(texto) + ")") { }; return }
         usadoEm = System.currentTimeMillis()
         if (!pronto) { publicarRelogio(); return }
-        val acao = try { JSONObject(texto).optString("a", "") } catch (e: Exception) { "" }
         if (acao.isEmpty() || acao == "estado") { publicarRelogio(); return }
         anotar("relógio: " + acao)
         if (pronto) js("bolso.estadoCanal&&bolso.estadoCanal()") { e -> if (e.isNotEmpty() && e != "conectado") anotar("canal: " + e) }

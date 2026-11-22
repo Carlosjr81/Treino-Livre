@@ -39,6 +39,13 @@ class CoracaoNoDescanso(private val ctx: Context, private val aoPronto: () -> Un
     var ultimaRecuperacao = 0
         private set
 
+    // o pico da série que acabou (onde o descanso começou)
+    val picoBpm get() = Math.round(pico).toInt()
+    // há sensor de batimento neste relógio?
+    fun temSensor() = sm?.getDefaultSensor(Sensor.TYPE_HEART_RATE) != null
+    // segundos de descanso até o coração voltar (0: ainda não voltou)
+    fun segundosAtePronto() = if (prontoEm > 0 && descIni > 0) ((prontoEm - descIni) / 1000).toInt() else 0
+
     fun temPermissao() = ctx.checkSelfPermission(android.Manifest.permission.BODY_SENSORS) == PackageManager.PERMISSION_GRANTED
 
     fun ligar() {

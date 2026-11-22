@@ -67,5 +67,18 @@ teste("uma falta na semana não quebra (a folga), e hoje ainda não conta", [12,
 const duas = dias.filter((x) => new Date(x.data).getDate() !== 17);
 teste("duas faltas na mesma semana quebram", 2, M.sequenciaComFolga(duas, sab).dias);
 teste("sem treino, sequência zero", 0, M.sequenciaComFolga([], sab).dias);
+
+console.log("\n--- as frases da academia (2026-11-22c) ---");
+{
+  const F = eval("(" + trecho("const FRASES_MAROMBA = ").replace(/^const FRASES_MAROMBA = /, "").replace(/;\s*$/, "") + ")");
+  const todas = Object.keys(F).reduce((a, k) => a.concat(F[k]), []);
+  teste("tem frase em cada momento (anotou, volta, fim, aula, cobrança, fecho)", true, ["anotou", "volta", "fimEx", "aula", "cobranca", "fecho"].every((k) => F[k].length >= 5));
+  teste("sem palavrão", [], todas.filter((x) => /porra|caralho|merda|foda|puta/i.test(x)));
+  teste("sem remédio nem 'bomba'", [], todas.filter((x) => /bomba|anabol|hormôn|esteroid|suplement/i.test(x)));
+  teste("nada que mande treinar com dor (o aviso de saúde manda parar)", [], todas.filter((x) => /\bdor\b|até cair|até vomitar|no pain/i.test(x)));
+  teste("sem o nome de pessoa real (art. 18 do Código Civil)", [], todas.filter((x) => /ronnie|coleman|cariani|cutler|jorlan|waldemar|franco|toguro|bambam|arnold/i.test(x)));
+  teste("nenhuma promessa de resultado", [], todas.filter((x) => /garant|em \d+ dias|vai ficar (grande|monstro)/i.test(x)));
+  teste("as listas de sempre continuam e ganham as novas", true, /const ANIMO_ANOTOU = \["Boa!"[^\n]*\.concat\(/.test(html) && /const FRASES_BOLSO_VOLTA = \["Bora!"[^\n]*\.concat\(/.test(html));
+}
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

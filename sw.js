@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v260";
+const CACHE = "treinolivre-v261";
 const CACHE_VOZ = "treinolivre-voz";
 // As falas gravadas do Monster, Run! (vozes/*.mp3): baixadas quando a história
 // começa e guardadas fora do cache da versão, para não sumirem a cada atualização.
@@ -205,8 +205,13 @@ async function verificarLembrete() {
     if (marca && (await marca.text()) === hoje) return;
     await c.put("/lembrete-enviado", new Response(hoje));
 
-    await self.registration.showNotification("Hora do treino!", {
-      body: "Seus musculos ja descansaram. Escolhe uma ficha e vamos.",
+    // a cobranca do dia, no jeito da academia (2026-11-22c): a mesma o dia todo
+    const COBRANCA = ["O shape não vem por delivery.", "Desculpa não levanta peso.", "O ferro não mente: quem aparece, colhe.",
+      "Dia de perna não se pula.", "Ninguém fica monstro no sofá.", "Constância é o que separa o frango do monstro."];
+    const TITULOS = ["Hora do show! 💪", "Bora, monstro! 🏋", "O ferro tá chamando! 🔥", "Hora do treino! 💪"];
+    const nDia = Math.floor(Date.now() / 864e5);
+    await self.registration.showNotification(TITULOS[nDia % TITULOS.length], {
+      body: COBRANCA[nDia % COBRANCA.length] + " Seus músculos já descansaram: escolhe uma ficha e bora.",
       icon: "./icon-192.png",
       badge: "./icon-192.png",
       tag: "treino-livre-lembrete",

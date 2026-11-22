@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-11-22c — O Jarvis fala a língua da academia
+
+**Em uma frase:** o incentivo e a cobrança do app ganharam os bordões e as gírias da academia: "Birl!", "Bora, monstro!", "Tá saindo da jaula o monstro!", "Yeah buddy!", "Light weight, baby!".
+
+**O que mudou**
+- Depois de anotar uma série, o Jarvis pode dizer "Birl!", "Série paga!", "Esmagou!", "Yeah buddy!" ou "Light weight, baby!".
+- No fim do descanso: "Bora, monstro!", "Hora do show!", "Tá saindo da jaula o monstro!", "Ajuda o maluco que tá doente!".
+- A aula guiada e a contagem da câmera ganharam "Atitude de monstro!" e "Mais um pouco, o pump tá vindo!".
+- A cobrança ficou com humor: o lembrete e a meta da semana trazem "O shape não vem por delivery.", "Desculpa não levanta peso.", "Dia de perna não se pula.", "Ninguém fica monstro no sofá." (uma por dia).
+- O resumo animado sorteia carimbos como "Light weight, baby!" e "Série paga!", e fecha com "Treino pago. Até a próxima, monstro." ou "Birl! Mais um pra conta.".
+
+**Por que importa para quem treina**
+- Treinar com o app parece treinar com um parceiro de academia, não com uma planilha.
+
+**Como usar**
+- Nada a configurar: as frases giram sozinhas, e as de antes continuam no sorteio.
+
+**Ideias de vídeo**
+- Série pesada e o Jarvis gritando "Light weight, baby!" no fone.
+- O lembrete chegando: "O shape não vem por delivery."
+
+**Não prometer**
+- As frases são bordões da academia e não citam nem representam nenhuma celebridade.
+
+---
+
 ## 2026-11-22b — O app inteiro com cara de jogo, anilhas, medalha do mês e mais
 
 **Em uma frase:** o visual do resumo animado chegou ao app todo, e vieram a calculadora de anilhas, o "quanto sobrou na série", a medalha do mês, a sequência com folga, o ranking da academia, o vídeo da evolução com as fotos, o widget do celular e o bloco no relógio.

@@ -862,6 +862,48 @@ const EXERCICIOS = [
 // o que ela não é (prescrição, consulta, acompanhamento profissional) e o
 // que fazer (médico antes; parar ao sentir dor, tontura ou falta de ar).
 // Não substitui a revisão de um advogado: é o aviso, não o contrato.
+// ---- O JEITO DE FALAR DA ACADEMIA (2026-11-22c, pedido do dono: "frases e
+// jargões do mundo fitness e bodybuilder, e frases icônicas das celebridades").
+// Os bordões que viraram da academia inteira (o "Birl", o "tá saindo da jaula o
+// monstro", o "Yeah buddy!" e o "Light weight, baby!") entram como gíria, SEM o
+// nome de ninguém: usar o nome de uma pessoa real num produto comercial pede a
+// autorização dela (Código Civil, art. 18), e frase que não dá para conferir
+// palavra por palavra não vai na boca de ninguém. Regras: nada de palavrão,
+// nada de remédio e "bomba", e nada que mande treinar com dor (o aviso de saúde
+// manda parar). Cada lista soma às frases de antes, que continuam.
+const FRASES_MAROMBA = {
+  // depois de anotar a série
+  anotou: ["Birl!", "Isso, monstro!", "Série paga!", "Esmagou!", "Yeah buddy!", "Light weight, baby!", "Ninguém segura!", "Sem frango hoje!", "Pesado e bonito!"],
+  // o fim do descanso: a volta para o ferro
+  volta: ["Bora, monstro!", "Hora do show!", "Tá saindo da jaula o monstro!", "Ajuda o maluco que tá doente!", "O ferro tá te chamando!",
+    "Yeah buddy, bora!", "Foco no shape!", "Sobe pro ferro!", "Bora pagar a próxima!", "Levanta que o shape não espera!"],
+  // acabou um exercício
+  fimEx: ["Exercício pago!", "Esse já era, monstro!", "Destruiu esse!", "Ain't nothing but a peanut!", "O shape agradece!"],
+  // no meio da aula guiada e do contador da câmera
+  aula: ["Bora, monstro!", "Não para agora, tá voando!", "Foco no shape!", "Atitude de monstro!", "Mais um pouco, o pump tá vindo!", "Light weight, baby!"],
+  tecnico: ["Firme, monstro.", "Tá voando.", "Light weight, baby!", "Isso é treino de monstro."],
+  // a cobrança: o lembrete e a meta da semana (com humor, nunca humilhando)
+  cobranca: ["O shape não vem por delivery.", "Desculpa não levanta peso.", "O ferro não mente: quem aparece, colhe.",
+    "Frango que falta treino continua frango.", "Dia de perna não se pula.", "Constância é o que separa o frango do monstro.",
+    "Ninguém fica monstro no sofá.", "O ferro tá esperando, e ele não tem pressa: você tem."],
+  lembreteTitulo: ["Hora do show! 💪", "Bora, monstro! 🏋", "O ferro tá chamando! 🔥", "Hora do treino! 💪", "Birl! Dia de treino 🦍"],
+  // o fim do resumo animado
+  fecho: ["Mais forte que a desculpa. Até a próxima.", "Treino pago. Até a próxima, monstro.", "Birl! Mais um pra conta. Até a próxima.",
+    "Saiu da jaula hoje. Até a próxima.", "Yeah buddy! Até a próxima."],
+  // os carimbos do resumo (o "grito"), em sorteio com os de antes
+  gritoPeso: ["Light weight, baby!", "Ain't nothing but a peanut!", "Peso vencido"],
+  gritoSeries: ["Série paga!", "Série a série, sem parar"],
+  gritoRecorde: ["Yeah buddy!", "Recorde quebrado!"],
+};
+// a frase do dia (a mesma o dia inteiro, para não piscar a cada abertura)
+function fraseDoDia(lista, desloca) {
+  if (!lista || !lista.length) return "";
+  const d = new Date(), n = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 864e5) + (desloca || 0);
+  return lista[((n % lista.length) + lista.length) % lista.length];
+}
+// sorteia uma frase da lista
+const sorteiaFrase = (lista) => (lista && lista.length ? lista[Math.floor(Math.random() * lista.length)] : "");
+
 const AVISO_SAUDE = {
   curto: "Sugestão automática e educativa, feita com auxílio de inteligência artificial a partir de estudos científicos. Não é prescrição de treino nem substitui o médico ou o profissional de Educação Física. Consulte um médico antes de começar ou mudar o seu treino.",
   completo: [
@@ -1790,7 +1832,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-22b";
+const VERSAO_APP = "2026-11-22c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3908,8 +3950,8 @@ const CORRIDA_APP = (() => {
     return parseInt(localStorage.getItem("treinolivre:corridaApp1")) || 0;
   } catch (e) { return 0; }
 })();
-const FRASES_BOLSO_VOLTA = ["Bora!", "Vamos que vamos!", "Hora de voltar!", "Foco agora!", "É agora!", "Mais uma, você consegue!", "Respira e vai!"];
-const FRASES_BOLSO_FIM_EX = ["Esse já foi!", "Fechou esse!", "Mandou bem nesse!", "Um a menos!"];
+const FRASES_BOLSO_VOLTA = ["Bora!", "Vamos que vamos!", "Hora de voltar!", "Foco agora!", "É agora!", "Mais uma, você consegue!", "Respira e vai!"].concat((typeof FRASES_MAROMBA !== "undefined" ? FRASES_MAROMBA.volta : []));
+const FRASES_BOLSO_FIM_EX = ["Esse já foi!", "Fechou esse!", "Mandou bem nesse!", "Um a menos!"].concat((typeof FRASES_MAROMBA !== "undefined" ? FRASES_MAROMBA.fimEx : []));
 const BOLSO_SO_NA_TELA = "Essa eu faço com a tela destravada.";
 // O app Android que sabe falar com a tela travada abre o site com ?bolso=2.
 // Guardado: depois da primeira abertura pelo ícone, a página sabe. Sem isto, um
@@ -7738,7 +7780,7 @@ const FRASES_TECNICO = {
     "Boa. Não para.",
     "Firme.",
     "Aguenta mais um pouco.",
-  ],
+  ].concat((typeof FRASES_MAROMBA !== "undefined" ? FRASES_MAROMBA.tecnico : [])),
 };
 function criarTecnico(frases) {
   let ultimaEm = -99;      // em qual repetição falou pela última vez
@@ -7956,8 +7998,8 @@ function ecoDaPropriaVoz(txt) {
 // A mesma palavra toda série cansa em dez minutos. Estas listas giram, e nunca
 // repetem a de antes — é o que faz o Jarvis soar como alguém, e não como um
 // aviso gravado.
-const ANIMO_ANOTOU = ["Boa!", "Isso!", "Show!", "Mandou bem!", "É isso aí!", "Firme!", "Pegou bem!"];
-const ANIMO_VOLTA = ["Bora!", "Vamos que vamos!", "Hora de voltar!", "Partiu a próxima!", "Tá na hora!"];
+const ANIMO_ANOTOU = ["Boa!", "Isso!", "Show!", "Mandou bem!", "É isso aí!", "Firme!", "Pegou bem!"].concat((typeof FRASES_MAROMBA !== "undefined" ? FRASES_MAROMBA.anotou : []));
+const ANIMO_VOLTA = ["Bora!", "Vamos que vamos!", "Hora de voltar!", "Partiu a próxima!", "Tá na hora!"].concat((typeof FRASES_MAROMBA !== "undefined" ? FRASES_MAROMBA.volta : []));
 const ultimoAnimo = {};
 function animo(lista, chave) {
   if (!lista.length) return "";
@@ -12316,7 +12358,7 @@ const FRASES_AULA = [
   "Segura o ritmo.", "Isso. Assim mesmo.", "Metade. Não para agora.",
   "Respira e continua.", "Tá indo bem.", "Aguenta mais um pouco.",
   "Capricha na forma.", "Força aí.",
-];
+].concat((typeof FRASES_MAROMBA !== "undefined" ? FRASES_MAROMBA.aula : []));
 
 function PlayerAula({ aula, exPorId, som, vozCfg, onSair, onConcluir }) {
   const roteiro = useMemo(() => montarRoteiro(aula), [aula]);
@@ -12954,7 +12996,7 @@ function MetaSemanal({ historico, meta, setMeta }) {
         <div style={{ fontSize: 12, color: "var(--cinza)" }}>
           {bateu
             ? "Tudo que vier agora é lucro."
-            : "Faltam " + (meta - feitos) + " " + plural(meta - feitos, "treino", "treinos") + " até domingo."}
+            : "Faltam " + (meta - feitos) + " " + plural(meta - feitos, "treino", "treinos") + " até domingo. " + fraseDoDia(FRASES_MAROMBA.cobranca)}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
           <button onClick={() => setMeta(Math.max(1, meta - 1))} aria-label="Diminuir a meta semanal"
@@ -27089,7 +27131,7 @@ function cenasRetrospectiva(r, historico) {
   if (r.volume > 0) {
     const ton = r.volume >= 10000, eq = equivalencia(r.volume);
     c.push({ tipo: "numero", rotulo: "Peso movido no ano", valor: ton ? r.volume / 1000 : r.volume, casas: ton ? 1 : 0,
-      unidade: ton ? "toneladas" : "kg", sub: eq || "", grito: ton ? "Você moveu montanhas" : "Peso vencido", forte: ton,
+      unidade: ton ? "toneladas" : "kg", sub: eq || "", grito: ton ? "Você moveu montanhas" : sorteiaFrase(FRASES_MAROMBA.gritoPeso), forte: ton,
       fala: (ton ? num1(r.volume / 1000) + " toneladas" : r.volume.toLocaleString("pt-BR") + " quilos") + " movidos no ano." });
   }
   if (r.km >= 1) c.push({ tipo: "numero", rotulo: "Distância no ano", valor: r.km, casas: 1, unidade: "km",
@@ -27231,7 +27273,7 @@ function cenasResumo(d) {
       const ton = f.volume >= 10000;
       const eq = equivalencia(f.volume);
       c.push({ tipo: "numero", rotulo: "Volume", valor: ton ? f.volume / 1000 : f.volume, casas: ton ? 1 : 0,
-        unidade: ton ? "toneladas movidas" : "kg movidos", sub: eq || "", grito: ton ? "Você moveu montanhas" : "Peso vencido", forte: ton,
+        unidade: ton ? "toneladas movidas" : "kg movidos", sub: eq || "", grito: ton ? "Você moveu montanhas" : sorteiaFrase(FRASES_MAROMBA.gritoPeso), forte: ton,
         fala: (ton ? num1(f.volume / 1000) + " toneladas" : f.volume.toLocaleString("pt-BR") + " quilos") + " movidos." +
           (eq ? " " + eq.replace(/^\S+\s/, "").replace(/^o mesmo/, "O mesmo") + "." : "") });
     }
@@ -27240,7 +27282,7 @@ function cenasResumo(d) {
     if (f.cargaMax) partes.push("carga máx. " + fmtNum(f.cargaMax) + " kg");
     if (f.segundos) partes.push(f.segundos + " s de isometria");
     c.push({ tipo: "numero", rotulo: "Séries", valor: f.series, casas: 0, unidade: plural(f.series, "série", "séries"),
-      sub: partes.join(" · "), grito: "Série a série, sem parar",
+      sub: partes.join(" · "), grito: sorteiaFrase(FRASES_MAROMBA.gritoSeries),
       fala: f.series + " " + plural(f.series, "série", "séries") + (f.reps ? ", " + f.reps + " repetições" : "") +
         (f.cargaMax ? ". Carga máxima de " + fmtNum(f.cargaMax) + " quilos" : "") + "." });
     if (f.listaGrupos.length) {
@@ -27254,7 +27296,7 @@ function cenasResumo(d) {
     }
     if (f.recordes.length) {
       c.push({ tipo: "recordes", rotulo: plural(f.recordes.length, "Recorde pessoal", "Recordes pessoais"), valor: f.recordes.length,
-        nomes: f.recordes.slice(0, 4), grito: plural(f.recordes.length, "Recorde quebrado!", "Recordes quebrados!"), corGrito: "#FEDA75", forte: true,
+        nomes: f.recordes.slice(0, 4), grito: f.recordes.length === 1 ? sorteiaFrase(FRASES_MAROMBA.gritoRecorde) : "Recordes quebrados!", corGrito: "#FEDA75", forte: true,
         fala: (f.recordes.length === 1 ? "Recorde quebrado! " : f.recordes.length + " recordes quebrados! ") + "Você superou o seu melhor em " +
           f.recordes.slice(0, 3).map(nomeFalado).join(", ") + "." });
     }
@@ -27395,7 +27437,7 @@ function cenasResumo(d) {
   // um dia com duas vitórias ou mais; bronze para quem apareceu
   const ouro = (f && (f.recordes.length || f.comp > 0)) || (d.recCorrida && d.recCorrida.length) || meta || d.subiuNivel || (M && M.completo);
   const medalha = ouro ? "ouro" : vit.length >= 2 ? "prata" : "bronze";
-  c.push({ tipo: "fecho", medalha: medalha, pts: d.xpGanho || 0, fala: M ? "Você sobreviveu. Até a próxima missão." : meta ? "Meta cumprida. Até a próxima." : "Mais forte que a desculpa. Até a próxima." });
+  c.push({ tipo: "fecho", medalha: medalha, pts: d.xpGanho || 0, fala: M ? "Você sobreviveu. Até a próxima missão." : meta ? "Meta cumprida. Até a próxima." : sorteiaFrase(FRASES_MAROMBA.fecho) });
   // O bônus que atravessa a tela nas cenas fortes, e os pontos do treino
   // repartidos pelas cenas (a forte vale o triplo): o contador do canto sobe a
   // cada uma. Os pontos são os de verdade (xpDe), não um número inventado.
@@ -36779,14 +36821,15 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       if (store.get(chave)) return;
       if (historico.some((x) => diaStr(x.data) === diaStr(agora))) return;
       store.set(chave, "1");
-      const texto = "Seus músculos já descansaram. Escolhe uma ficha e vamos. 💪";
+      const texto = fraseDoDia(FRASES_MAROMBA.cobranca) + " Seus músculos já descansaram: escolhe uma ficha e bora. 💪";
+      const tituloL = fraseDoDia(FRASES_MAROMBA.lembreteTitulo, 3);
       try {
         if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-          new Notification("Hora do treino!", { body: texto, icon: "icon-192.png", badge: "icon-192.png", tag: "treino-livre-lembrete" });
+          new Notification(tituloL, { body: texto, icon: "icon-192.png", badge: "icon-192.png", tag: "treino-livre-lembrete" });
           return;
         }
       } catch (e) {}
-      avisar("🔔 Hora do treino!\n\n" + texto);
+      avisar("🔔 " + tituloL + "\n\n" + texto);
     };
     conferir();
     const iv = setInterval(conferir, 30000);

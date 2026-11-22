@@ -16,6 +16,44 @@
 
 ---
 
+## 2026-11-22a — Foto com os números, nota do corpo, retrospectiva do ano, coração no descanso e reações dos amigos
+
+**Em uma frase:** cinco funções novas, todas no visual de jogo do resumo animado: a selfie com os números do treino, a nota de como o corpo acordou, a retrospectiva do ano, o relógio avisando quando o coração voltou no descanso, e reações aos treinos dos amigos.
+
+**O que mudou**
+- 📷 **Foto com os números:** no fim do treino, no histórico e no fim do resumo animado. Tira uma selfie (ou escolhe da galeria) e o app escreve por cima os números do treino, com a letra de letreiro, o contorno preto e o degradê do app. Três modelos: Placar, Letreiro e Missão. Na corrida, vai o desenho do percurso.
+- 🌅 **Como seu corpo acordou:** uma nota de 0 a 100, feita com o que o relógio mede à noite (variabilidade do coração, batimento de repouso e sono), comparada com a média da própria pessoa. Aparece na aba Saúde, no cartão do treino de hoje, no relógio no começo do treino e no resumo animado.
+- 🎁 **Retrospectiva do ano:** o seu ano animado, com vídeo para o story: treinos, horas, toneladas, km, exercício favorito, músculos, recordes, mês mais forte, dia favorito e maior sequência. Em Histórico › Números, e na tela inicial em dezembro.
+- ❤ **O coração no descanso (app do relógio):** entre as séries, o relógio mostra o batimento caindo e onde ele precisa chegar; quando chega, vibra e mostra "PRONTO". O tempo que o coração levou para voltar vai para o resumo animado.
+- 🔥 **Reações dos amigos:** no Desafio entre amigos, reaja ao último treino de cada um (💪 🔥 👏 🏆 😮) e mande um comentário. Quem recebe é avisado ao abrir o app, e as reações aparecem no resumo animado do treino.
+
+**Por que importa para quem treina**
+- A selfie com os números é o jeito mais bonito de mostrar o treino no story.
+- A nota da manhã ajuda a decidir se é dia de puxar mais ou de pegar leve.
+- O relógio diz quando o coração voltou: menos chute no tempo de descanso.
+- As reações fazem a galera se cobrar e se animar.
+
+**Como usar**
+- Foto: termine o treino e toque em "📷 Foto com os números", ou no histórico em "📷 Foto com números".
+- Nota do corpo: app Android com relógio ou anel; durma com ele e sincronize de manhã.
+- Retrospectiva: Histórico › Números › "▶ Ver minha retrospectiva".
+- Coração no descanso: atualize o app do relógio e permita o sensor de batimento.
+- Reações: Histórico › Números › Desafio entre amigos, no cartão de cada amigo.
+
+**Ideias de vídeo**
+- Selfie na academia virando um "placar de jogo" com os números do treino.
+- O relógio no pulso no descanso: o coração caindo até vibrar "PRONTO".
+- A retrospectiva do ano passando no story, cena a cena.
+- Um amigo reagindo 🔥 e o aviso chegando.
+
+**Não prometer**
+- A nota do corpo e o coração no descanso são informação geral, não exame, e não dizem que alguém está "liberado" para treinar.
+- A nota só aparece com relógio ou anel que mede a noite, no Android, e depois de uns dias de uso.
+- O coração no descanso só no app do relógio (Wear OS), com a tela do treino aberta no pulso.
+- As reações passam pelo mesmo retransmissor do desafio: quem tem o código do grupo vê o apelido e o comentário.
+
+---
+
 ## 2026-11-21n — Resumo animado com narração no iPhone
 
 **Em uma frase:** no iPhone, o vídeo do resumo animado agora sai com a narração e a música, e o app ficou mais compatível com iPhones mais antigos.

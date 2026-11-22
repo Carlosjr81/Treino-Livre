@@ -9,7 +9,7 @@ function pedaco(de, ate) {
 }
 const PACOTE_ANDROID = "br.com.treinolivre.app", LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/latest/download/treino-livre.apk";
 eval(pedaco("// ---- SAÚDE: o que vem do Health Connect", "// ---- fim da saúde").replace(/^const (LINK_APK|PACOTE_ANDROID) .*$/gm, "") +
-  "\nglobalThis.H = { semRepetir, lerPacoteSaude, juntarSaude, resumoSaude, treinosParaSaude, batimentoNosTreinos, b64UrlParaPadrao, padraoParaB64Url, diaLocal, analiseCoracao, resumoCurvaFc, textoRecuperacao };");
+  "\nglobalThis.H = { semRepetir, lerPacoteSaude, juntarSaude, resumoSaude, treinosParaSaude, batimentoNosTreinos, b64UrlParaPadrao, padraoParaB64Url, diaLocal, analiseCoracao, resumoCurvaFc, textoRecuperacao, notaDisposicao };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -174,5 +174,31 @@ teste("sem o app, o Chrome baixa o APK", true, O.linkOculos(ch).includes("S.brow
 teste("o quadro vem só do próprio aparelho (127.0.0.1)", "http://127.0.0.1:47890/quadro.jpg?k=" + ch, O.enderecoOculos("/quadro.jpg", ch));
 teste("todo estado que o app manda tem frase", true, ["iniciando", "registrando", "permissao", "procurando", "conectando", "transmitindo", "sem-oculos", "sem-permissao", "erro"].every((e) => !!O.ESTADOS_OCULOS[e]));
 
+
+console.log("\n--- como o corpo acordou (a nota do dia) ---");
+{
+  const ag = 1800000000000, D = 864e5, Hh = 3600e3;
+  const base = (vfcHoje, repHoje, sonoH) => {
+    const s = { vfc: [], repouso: [], sono: [] };
+    for (let d = 1; d <= 10; d++) { s.vfc.push({ t: ag - d * D - 3 * Hh, ms: 45 }); s.repouso.push({ t: ag - d * D - 3 * Hh, bpm: 60 }); }
+    if (vfcHoje) s.vfc.push({ t: ag - 3 * Hh, ms: vfcHoje });
+    if (repHoje) s.repouso.push({ t: ag - 3 * Hh, bpm: repHoje });
+    if (sonoH) s.sono.push({ ini: ag - 3 * Hh - sonoH * Hh, fim: ag - 3 * Hh });
+    return s;
+  };
+  teste("sem saúde, sem nota", null, H.notaDisposicao(null, ag));
+  teste("com uma parte só, sem nota (é pouco para dizer algo)", null, H.notaDisposicao(base(50, 0, 0), ag));
+  const bom = H.notaDisposicao(base(58, 54, 8), ag);
+  teste("VFC acima, repouso abaixo e 8 h de sono: descansado", ["alta", true], [bom.faixa.id, bom.nota >= 70]);
+  const ruim = H.notaDisposicao(base(32, 68, 5), ag);
+  teste("VFC abaixo, repouso acima e noite curta: pedindo calma", ["baixa", true], [ruim.faixa.id, ruim.nota < 45]);
+  const igual = H.notaDisposicao(base(45, 60, 7), ag);
+  teste("tudo na média: em ordem", "media", igual.faixa.id);
+  teste("a régua é a média da própria pessoa (a de hoje fica fora)", "Variabilidade do coração: 58 ms (sua média: 45)", bom.partes[0].txt);
+  teste("medida de ontem à tarde não é a da noite (passou de 20 h)", null,
+    H.notaDisposicao({ vfc: [{ t: ag - 30 * Hh, ms: 60 }].concat(base(0, 0, 0).vfc), repouso: base(0, 0, 0).repouso.concat([{ t: ag - 30 * Hh, bpm: 50 }]), sono: [] }, ag));
+  teste("nunca 'liberado' nem 'prescrição' nas frases", false, /liberad|prescri|personal/i.test(JSON.stringify([bom, ruim, igual].map((x) => x.faixa))));
+  teste("a faixa baixa manda procurar um médico se algo estiver fora do normal", true, /médico/.test(ruim.faixa.frase));
+}
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

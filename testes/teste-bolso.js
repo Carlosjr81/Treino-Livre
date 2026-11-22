@@ -283,6 +283,21 @@ console.log("--- a copia muda na tela do treino: o relogio segue (2026-11-20y) -
   let recusou = false;
   try { await B.decifrarBolso("aaaaaaaaaaaaaaaa." + "B".repeat(43), m); } catch (e) { recusou = true; }
   teste("outra chave nao decifra", true, recusou);
-  console.log("\n" + ok + " passou / " + mal + " falhou");
+  
+console.log("--- o coração no descanso (o relógio mede quanto ele levou para voltar) ---");
+{
+  const bb = criarBolso(snap(), EXERCICIOS);
+  bb.acao({ a: "feito", ei: 0, p: 80, r: 10, fr: 48 }, T0);
+  teste("o ✓ do relógio leva os segundos de recuperação no acontecimento", 48, bb.eventos()[0].fr);
+  const bz = criarBolso(snap(), EXERCICIOS);
+  bz.acao({ a: "feito", ei: 0, p: 80, r: 10, fr: 9999 }, T0);
+  teste("recuperação absurda fica de fora", true, bz.eventos()[0].fr === undefined);
+  teste("a validação aceita o fr numérico", 1, B.eventosBolsoValidos([{ t: "a", u: "u1", i: 0, fr: 48 }]).length);
+  teste("e recusa o que não é número", 0, B.eventosBolsoValidos([{ t: "a", u: "u1", i: 0, fr: "x<script>" }]).length);
+  const its = aplicarEventosBolso(sessao().itens, [{ t: "a", u: "u1", i: 0, p: "80", r: "10", fr: 48 }]);
+  teste("aplicado, a série guarda o fr", true, its[0].series.some((x) => x.fr === 48));
+  teste("o histórico leva o fr da série", true, /if \(s\.fr > 0\) nova\.fr = s\.fr;/.test(html));
+}
+console.log("\n" + ok + " passou / " + mal + " falhou");
   process.exit(mal ? 1 : 0);
 })();

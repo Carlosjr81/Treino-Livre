@@ -109,6 +109,10 @@ var TEXTOS_EN = {
   // --- Tela inicial ---
   "⚠ Faça um backup": "⚠ Make a backup",
   "Seu treino de hoje": "Today's workout", "Começar este treino": "Start this workout",
+  "🌅 Como seu corpo acordou": "🌅 How your body woke up", "Corpo descansado": "Well rested", "Corpo em ordem": "Body in balance", "Corpo pedindo calma": "Body asking for calm",
+  "📷 Foto com os números": "📷 Photo with your stats", "📷 Foto com números": "📷 Photo with stats", "📷 Foto com os números (selfie no story)": "📷 Photo with your stats (story selfie)",
+  "🤳 Tirar foto": "🤳 Take photo", "🖼 Da galeria": "🖼 From gallery", "📤 Compartilhar no story": "📤 Share to story",
+  "▶ Ver minha retrospectiva": "▶ See my year in review", "💬 Comentar": "💬 Comment", "🎮 Placar": "🎮 Scoreboard", "🔥 Letreiro": "🔥 Billboard", "⭐ Missão": "⭐ Mission",
   "Um treino de iniciante, pronto para usar. Quer outro objetivo ou mais dias?": "A beginner workout, ready to use. Want a different goal or more days?",
   "Monte o seu": "Build your own", "— são 3 perguntas.": "— it's 3 questions.", "Escolher outra ficha": "Choose another workout",
   "Primeira vez por aqui": "First time here", "Anotar o treino sem parar o treino": "Log your workout without stopping your workout",

@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-21n**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-22a**.
 
 ---
 
@@ -527,6 +527,11 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 - **O ▶ da série de tempo continua contando com o app fechado**: dá para sair da esteira para outro app e voltar.
 - **Atualização automática:** quando sai versão nova aparece uma faixa "Atualizar".
 - **💛 Apoie o Treino Livre** (Ajustes, Ajuda e o fim de cada treino): doar pelo Pix (R$ 5, 10, 20, 50 ou outro, com QR code e copia e cola), comprar no Mercado Livre, na Shopee ou na Shein pelos links de afiliado do criador (mesmo preço, a loja repassa uma parte), o vídeo de como apoiar pelo próprio app (desde 2026-11-17c; o vídeo pelos destaques do Instagram fica para quem chega pelo perfil), indicar a um amigo e seguir no Instagram. O total arrecadado e a meta são números reais, atualizados pelo criador.
+- **📷 Foto com os números** (novo em 2026-11-22a): no fim do treino, no histórico e no fim do resumo animado. A pessoa tira uma selfie na academia (ou escolhe da galeria) e o app escreve por cima os números do treino no visual de jogo do resumo animado: volume, séries, tempo, recordes; na corrida, distância, ritmo e o desenho do percurso. Três modelos (Placar, Letreiro, Missão). Sem foto, vai a arte do Treino Livre. A foto não sai do celular até a pessoa postar.
+- **🌅 Como seu corpo acordou** (novo em 2026-11-22a, com relógio ou anel no Android): uma nota de 0 a 100 de manhã, feita com a variabilidade do coração, o batimento de repouso e o sono da noite, comparados com a média da própria pessoa. Três faixas: descansado, em ordem, pedindo calma. Aparece na aba ❤ Saúde, no cartão do treino de hoje, no começo do treino no relógio e no resumo animado. É informação geral, não exame.
+- **🎁 Retrospectiva do ano** (novo em 2026-11-22a): o ano inteiro animado, no visual do resumo, com vídeo para o story: treinos, horas, toneladas, km, exercício favorito, músculos, recordes, mês mais forte, dia favorito e maior sequência. Em Histórico › Números, e na tela inicial em dezembro e na primeira quinzena de janeiro.
+- **❤ O coração no descanso, no relógio** (novo em 2026-11-22a, app do relógio): entre as séries, o relógio mostra o batimento caindo e até onde ele precisa chegar ("❤ 128 → 105"); quando chega, vibra duas vezes e mostra "PRONTO". Quanto o coração levou para voltar vai para o treino e para o resumo animado ("Coração pronto entre as séries").
+- **🔥 Reações dos amigos** (novo em 2026-11-22a, no Desafio entre amigos): reagir ao último treino de cada amigo com 💪 🔥 👏 🏆 😮 e mandar um comentário curto. Quem recebe vê um aviso ao abrir o app ("Ana reagiu 🔥 ao seu treino: monstro!"), e as reações aparecem no resumo animado daquele treino ("A galera reagiu").
 
 ---
 

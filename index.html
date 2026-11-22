@@ -1762,7 +1762,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-21n";
+const VERSAO_APP = "2026-11-22a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3199,7 +3199,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-180/treino-livre-180.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-182/treino-livre-182.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -3534,6 +3534,57 @@ function ultimaEMedia(lista, campo, agora) {
   const sem = l.filter((x) => agora - x.t < 7 * 86400000);
   const med = sem.length ? sem.reduce((a, x) => a + x[campo], 0) / sem.length : null;
   return { ultima: Math.round(l[l.length - 1][campo]), t: l[l.length - 1].t, media: med === null ? null : Math.round(med) };
+}
+
+// ---- COMO O CORPO ACORDOU (2026-11-22a, pedido do dono: a nota do dia, no
+// jeito do Whoop, do Oura e da Body Battery do Garmin). Sai do que o relógio
+// já manda à Conexão Saúde: a variabilidade do coração (VFC) e o batimento de
+// repouso, cada um comparado com a média da PRÓPRIA pessoa nos últimos 30 dias,
+// e as horas da última noite. Com menos de duas dessas partes, não há nota.
+// Informação geral, não exame nem avaliação: nunca "liberado para treinar".
+const FAIXAS_DISPOSICAO = [
+  { min: 70, id: "alta", nome: "Corpo descansado", curto: "descansado", cor: "#7CFF3C",
+    frase: "Seus sinais estão acima da sua média. Se você se sentir bem, é um bom dia para puxar um pouco mais." },
+  { min: 45, id: "media", nome: "Corpo em ordem", curto: "em ordem", cor: "#FFD23F",
+    frase: "Seus sinais estão perto da sua média. Treine como planejado e ouça o corpo." },
+  { min: 0, id: "baixa", nome: "Corpo pedindo calma", curto: "pedindo calma", cor: "#FF9A3C",
+    frase: "Seus sinais estão abaixo da sua média (cansaço, noite curta, estresse ou começo de gripe costumam fazer isso). Um dia mais leve pode cair bem. Sentiu algo fora do normal, procure um médico." },
+];
+function notaDisposicao(saude, agora) {
+  if (!saude) return null;
+  const DIA = 864e5, H = 3600e3;
+  const lim = (n) => Math.max(0, Math.min(100, n));
+  // a medida da última noite (de até 20 h atrás) e a média dos 30 dias antes dela
+  const recente = (arr) => (arr || []).filter((x) => x && x.t <= agora && x.t > agora - 20 * H).sort((a, b) => b.t - a.t)[0] || null;
+  const media = (arr, campo, ult) => {
+    const xs = (arr || []).filter((x) => x && x.t < ult.t - H && x.t > agora - 30 * DIA).map((x) => x[campo]);
+    return xs.length >= 3 ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
+  };
+  const partes = [];
+  const vf = recente(saude.vfc);
+  if (vf) {
+    const m = media(saude.vfc, "ms", vf);
+    if (m) partes.push({ k: "vfc", n: lim(50 + (vf.ms / m - 1) * 250), peso: 0.4, icone: "〰️",
+      txt: "Variabilidade do coração: " + Math.round(vf.ms) + " ms (sua média: " + Math.round(m) + ")" });
+  }
+  const rp = recente(saude.repouso);
+  if (rp) {
+    const m = media(saude.repouso, "bpm", rp);
+    if (m) partes.push({ k: "repouso", n: lim(50 - (rp.bpm - m) * 8), peso: 0.3, icone: "❤️",
+      txt: "Batimento de repouso: " + Math.round(rp.bpm) + " bpm (sua média: " + Math.round(m) + ")" });
+  }
+  // a noite que terminou nas últimas 14 h
+  const sono = (saude.sono || []).filter((x) => x && x.fim <= agora && x.fim > agora - 14 * H).reduce((a, x) => a + (x.fim - x.ini), 0);
+  if (sono >= 2 * H) {
+    const h = sono / H;
+    partes.push({ k: "sono", n: lim(((h - 4) / 4) * 100), peso: 0.3, icone: "🌙",
+      txt: "Sono: " + Math.floor(h) + " h " + String(Math.round((h % 1) * 60)).padStart(2, "0") + " min" });
+  }
+  if (partes.length < 2) return null;
+  const pesoT = partes.reduce((a, x) => a + x.peso, 0);
+  const nota = Math.round(partes.reduce((a, x) => a + x.n * x.peso, 0) / pesoT);
+  const faixa = FAIXAS_DISPOSICAO.find((f) => nota >= f.min);
+  return { nota: nota, faixa: faixa, partes: partes, em: agora };
 }
 
 // O tipo de atividade que o Health Connect entende, a partir do treino
@@ -4158,6 +4209,7 @@ function snapshotBolso(sessao, exPorId, cfg) {
     foco: c.foco != null ? c.foco : null,
     descansoAte: c.descansoAte || 0,
     vistos: c.vistos || [],
+    cp: corpoParaRelogio(),
     itens: (sessao.itens || []).map((it) => {
       const ex = exPorId(it.exercicioId) || {};
       const rec = c.recordes && c.recordes[it.exercicioId];
@@ -4176,6 +4228,14 @@ function snapshotBolso(sessao, exPorId, cfg) {
       };
     }),
   };
+}
+// A nota do corpo de hoje, curta, para o relógio mostrar no começo do treino
+function corpoParaRelogio() {
+  try {
+    if (typeof notaDisposicao !== "function" || typeof SAUDE_RESUMO === "undefined" || !SAUDE_RESUMO) return undefined;
+    const nd = notaDisposicao(SAUDE_RESUMO, Date.now());
+    return nd ? [nd.nota, nd.faixa.curto] : undefined;
+  } catch (e) { return undefined; }
 }
 function linkBolso(snap, falar, fimFala, trazer, crono) {
   const d = padraoParaB64Url(b64Codificar(JSON.stringify(snap)));
@@ -4229,6 +4289,8 @@ function aplicarEventosBolso(itens, eventos) {
       if (e.r != null) v.reps = String(e.r);
       if (e.sg != null) v.segundos = String(e.sg);
       if (e.aq) v.aquec = true;
+      // quanto o coração levou para voltar no descanso antes desta série (o relógio)
+      if (Number(e.fr) > 0 && Number(e.fr) <= 600) v.fr = Math.round(Number(e.fr));
       ss[i] = Object.assign({}, ss[i], v);
     } else if (e.t === "x") {
       if (ss[e.i] && ss[e.i].feito) ss[e.i] = Object.assign({}, ss[e.i], { feito: false });
@@ -4477,6 +4539,7 @@ function criarBolso(snapInicial, catalogo) {
     const total = itens.reduce((n, it) => n + it.series.length, 0);
     const out = { v: 1, ativo: true, treino: snap.nome || "", feitas: feitas, total: total, agora: agora,
       descansoAte: fimDesc > agora ? fimDesc : 0 };
+    if (Array.isArray(snap.cp) && snap.cp.length === 2) out.cp = snap.cp;
     // Pedido do dono (2026-11-17a): o tempo que falta, ao lado de "23 de 47
     // séries". O descanso de cada item já vem na cópia (o da ficha ou o da
     // ciência), por isso o modo "fixo": vale o do item, senão o geral.
@@ -4550,6 +4613,9 @@ function criarBolso(snapInicial, catalogo) {
       if (p != null && p > 0) d.peso = p;
       if (r != null && r > 0) d.reps = Math.round(r);
       const res = anotar(d, agora, ei);
+      // o relógio mede quanto o coração levou para voltar no descanso (2026-11-22a)
+      const fr = num(c.fr, 600);
+      if (res.mudou && fr > 0 && eventos.length) eventos[eventos.length - 1].fr = Math.round(fr);
       // o id do relógio vai no acontecimento: se ele mandar de novo (sem resposta,
       // virou "sem celular"), não entra duas vezes
       if (res.mudou && kOk(c.k) && eventos.length) { eventos[eventos.length - 1].k = c.k; vistosK.add(c.k); }
@@ -4647,7 +4713,7 @@ function eventosBolsoValidos(lista) {
     (e.i == null || (Number.isInteger(e.i) && e.i >= 0 && e.i < 100)) &&
     (e.k == null || (typeof e.k === "string" && e.k.length < 30)) &&
     (e.campo == null || ["peso", "reps", "segundos"].indexOf(e.campo) >= 0) &&
-    ["p", "r", "sg", "valor"].every((k) => e[k] == null || /^\d{1,4}([.,]\d{1,2})?$/.test(String(e[k]))) &&
+    ["p", "r", "sg", "valor", "fr"].every((k) => e[k] == null || /^\d{1,4}([.,]\d{1,2})?$/.test(String(e[k]))) &&
     (e.o == null || (typeof e.o === "string" && e.o.length < 300)));
 }
 // Cada acontecimento ganha um id (k) na página escondida: o mesmo chega pelo
@@ -14314,7 +14380,8 @@ function CartaoAppAndroid({ onDepois }) {
 
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
   avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
-  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi, onIntervalado, onDesafio, onEsteira, onAjustarTempo }) {
+  convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi, onIntervalado, onDesafio, onEsteira, onAjustarTempo,
+  saude, onRetrospectiva, retroDepois, onRetroDepois }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
@@ -14399,12 +14466,22 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
           instalar". */}
 
 
+      {/* A retrospectiva do ano: só em dezembro e na primeira quinzena de
+          janeiro (decisão de 2026-11-22a), com "Agora não" para o ano todo */}
+      {onRetrospectiva && (() => {
+        const d = new Date(), ano = anoDaRetrospectiva(Date.now());
+        const epoca = d.getMonth() === 11 || (d.getMonth() === 0 && d.getDate() <= 15);
+        return epoca && retroDepois !== String(ano)
+          ? <CartaoRetrospectiva historico={historico} exPorId={exPorId} onAbrir={onRetrospectiva} onDepois={() => onRetroDepois(String(ano))} /> : null;
+      })()}
+
       {/* O que a pessoa vem fazer aqui: começar o treino. O app escolhe a ficha
           de hoje e diz por quê; as outras ficam a um toque. */}
       <div style={{ ...S.card, borderColor: "#E1306C44" }}>
         {hoje ? (
           <React.Fragment>
             <div style={S.label}>Seu treino de hoje</div>
+            <LinhaDisposicao saude={saude} />
             <div style={{ fontSize: 21, fontWeight: 900, margin: "6px 0 2px", lineHeight: 1.25 }}>{hoje.ficha.nome}</div>
             <div style={{ fontSize: 13, color: "var(--cinza)", marginBottom: 12, lineHeight: 1.5 }}>
               {hoje.ficha.itens.length} {plural(hoje.ficha.itens.length, "exercício", "exercícios")}
@@ -24667,6 +24744,47 @@ function numerosDoGrupo(historico, agora) {
     se: se, pr: pr, sa: sa, ds: ds, dd: dd, gs: gs, sem: seg, ul: ul,
     kr: Math.round(kr * 10) / 10, ke: Math.round(ke * 10) / 10, mc: Math.round(mc), lg: Math.round(lg * 10) / 10, rp: Math.round(rp), uc: uc };
 }
+// ---- As reações aos treinos dos amigos (2026-11-22a, pedido do dono: o
+// "kudos" do Strava e do Hevy). Cada pessoa publica, junto dos números dela, as
+// reações que DEU (re: [{ p: de quem é o treino, d: a hora do treino, e: o
+// emoji, c: um comentário curto, em }]): o retransmissor guarda a mensagem de
+// cada um, e todo mundo do grupo vê todas. Sem servidor novo: o mesmo tópico.
+const EMOJIS_REACAO = ["💪", "🔥", "👏", "🏆", "😮"];
+const REACAO_DIAS = 21;
+function lerReacoesLista(x, agora) {
+  return (Array.isArray(x) ? x : []).slice(0, 40).filter((r) => r && idDeMembroGrupo(r.p) && isFinite(Number(r.d)) &&
+    EMOJIS_REACAO.indexOf(r.e) >= 0 && (!agora || !r.em || agora - Number(r.em) < REACAO_DIAS * 864e5))
+    .map((r) => {
+      const o = { p: r.p, d: Number(r.d), e: r.e, em: Number(r.em) || 0 };
+      const c = typeof r.c === "string" ? r.c.replace(/[\r\n\t]+/g, " ").trim().slice(0, 60) : "";
+      if (c) o.c = c;
+      return o;
+    });
+}
+function lerMinhasReacoes() {
+  try { return lerReacoesLista(JSON.parse(localStorage.getItem("treinolivre:reacoes") || "[]"), Date.now()); } catch (e) { return []; }
+}
+// Uma reação por treino: a nova troca a antiga; o mesmo emoji de novo (sem
+// comentário) desfaz
+function reagirTreino(lista, p, d, e, c, agora) {
+  const antes = (lista || []).find((x) => x.p === p && x.d === d);
+  const resto = (lista || []).filter((x) => !(x.p === p && x.d === d));
+  if (antes && antes.e === e && !c) return resto;
+  const nova = { p: p, d: d, e: e, em: agora };
+  const cc = String(c || "").replace(/[\r\n\t]+/g, " ").trim().slice(0, 60);
+  if (cc) nova.c = cc; else if (antes && antes.c && antes.e !== e) nova.c = antes.c;
+  return [nova].concat(resto).slice(0, 30);
+}
+function gravarMinhasReacoes(l) { try { localStorage.setItem("treinolivre:reacoes", JSON.stringify(l)); } catch (e) {} }
+// As reações que um treino recebeu, de todos do grupo (as minhas incluídas)
+function reacoesRecebidas(membros, alvoId, d, meuId, minhas) {
+  const out = [];
+  Object.keys(membros || {}).forEach((id) => {
+    const l = id === meuId ? minhas || [] : membros[id].re || [];
+    l.forEach((x) => { if (x.p === alvoId && x.d === d) out.push({ id: id, n: id === meuId ? "Você" : membros[id].n, e: x.e, c: x.c || "" }); });
+  });
+  return out;
+}
 // O que chega do retransmissor ou do link é de outra pessoa: conferido campo a campo
 function lerMembroGrupo(m) {
   if (!m || typeof m !== "object") return null;
@@ -24696,6 +24814,8 @@ function lerMembroGrupo(m) {
   if (m.ul && typeof m.ul === "object" && isFinite(Number(m.ul.d))) {
     r.ul = { d: Number(m.ul.d), n: String(m.ul.n || "Treino").slice(0, 40), min: Math.round(num(m.ul.min, 300)), v: Math.round(num(m.ul.v, 1e7)), km: Math.round(num(m.ul.km, 1e3) * 10) / 10 };
   }
+  const re = lerReacoesLista(m.re, Date.now());
+  if (re.length) r.re = re;
   return r;
 }
 // Ranking pela métrica escolhida. Empate divide a posição; quem empata fica
@@ -24807,6 +24927,15 @@ function eventosGrupo(antes, depois, meuId, agora, regua) {
     }
     const marco = MARCOS_SEQUENCIA.filter((x) => (a.sq || 0) < x && (d.sq || 0) >= x).pop();
     if (marco) ev.push({ ico: "🔥", txt: d.n + " chegou a " + marco + " dias seguidos" });
+    // as reações novas: a que veio para mim vira aviso
+    const chave = (x) => x.p + "|" + x.d + "|" + x.e + "|" + (x.c || "");
+    const ja = {};
+    (a.re || []).forEach((x) => { ja[chave(x)] = true; });
+    (d.re || []).filter((x) => !ja[chave(x)] && (!x.em || agora - x.em < 3 * 864e5)).slice(0, 3).forEach((x) => {
+      const fala = x.c ? ": “" + x.c + "”" : "";
+      if (x.p === meuId) ev.push({ ico: x.e, txt: d.n + " reagiu " + x.e + " ao seu treino" + fala, eu: true });
+      else ev.push({ ico: x.e, txt: d.n + " reagiu " + x.e + " ao treino de " + nome(x.p) + fala });
+    });
   });
   // quem passou quem, na régua principal (treinos na semana). Virada de semana
   // não é ultrapassagem: todo mundo volta a zero.
@@ -25134,11 +25263,22 @@ function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar, onDesaf
   const [abertoId, setAbertoId] = useState(null);
   const [muralTodo, setMuralTodo] = useState(false);
   const [, setTique] = useState(0);
+  const [minhasRe, setMinhasRe] = useState(() => lerMinhasReacoes());
+  const [comentando, setComentando] = useState(null);   // { p, d } do treino que ganha comentário
+  const [comentario, setComentario] = useState("");
   const agora = Date.now();
   const g = grupos.find((x) => x.codigo === atual) || null;
   const nome = ((corredor && corredor.apelido) || "").trim();
-  const meus = useMemo(() => Object.assign({ n: nome || "Eu", at: Date.now() }, numerosDoGrupo(historico, Date.now())), [historico, nome]);
+  const meus = useMemo(() => Object.assign({ n: nome || "Eu", at: Date.now() }, numerosDoGrupo(historico, Date.now()),
+    minhasRe.length ? { re: minhasRe } : {}), [historico, nome, minhasRe]);
   const salaRef = useRef(null);
+  const reagir = (p, d, e, c) => {
+    if (!nome) { avisar("Escolha um apelido antes: é como os amigos vão ver a sua reação."); return; }
+    const l = reagirTreino(lerMinhasReacoes(), p, d, e, c, Date.now());
+    gravarMinhasReacoes(l);
+    setMinhasRe(l);
+    try { if (navigator.vibrate) navigator.vibrate(20); } catch (er) {}
+  };
   const meusRef = useRef(meus);
   meusRef.current = meus;
   const nomeRef = useRef(nome);
@@ -25190,7 +25330,7 @@ function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar, onDesaf
     return () => { clearInterval(iv); salaRef.current = null; sala.fechar(); };
   }, [atual]);
   // números novos (um treino terminou com a tela aberta): publica na mesma conexão
-  useEffect(() => { if (salaRef.current && nome) salaRef.current.publicar(meus); }, [meus.tt, meus.ts, meus.ms, meus.vs, meus.ks, meus.sq, meus.se, meus.pr, meus.n]);
+  useEffect(() => { if (salaRef.current && nome) salaRef.current.publicar(meus); }, [meus.tt, meus.ts, meus.ms, meus.vs, meus.ks, meus.sq, meus.se, meus.pr, meus.n, minhasRe]);
 
   const guardarApelido = (n) => { if (setCorredor && n) setCorredor((c) => Object.assign({}, c, { apelido: n.slice(0, 24) })); };
   const criar = () => {
@@ -25473,6 +25613,44 @@ function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar, onDesaf
                         {!eu && m.at ? <div style={{ color: "var(--cinza)" }}>Números atualizados {quandoFoi(m.at, agora)}</div> : null}
                       </div>
                     )}
+                    {m.ul && (() => {
+                      // as reações ao último treino (2026-11-22a)
+                      const rec = reacoesRecebidas(g.membros, x.id, m.ul.d, meuId, minhasRe);
+                      const minha = !eu && minhasRe.find((r) => r.p === x.id && r.d === m.ul.d);
+                      const cont = {};
+                      rec.forEach((r) => { cont[r.e] = (cont[r.e] || 0) + 1; });
+                      const comentarios = rec.filter((r) => r.c);
+                      return (
+                        <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>
+                          {rec.length > 0 && (
+                            <div style={{ fontSize: 12.5, marginBottom: 6, lineHeight: 1.5 }}>
+                              {Object.keys(cont).map((e) => <span key={e} style={{ marginRight: 8, fontWeight: 800 }}>{e} {cont[e]}</span>)}
+                              <span style={{ color: "var(--cinza)" }}>{rec.map((r) => r.n).slice(0, 3).join(", ")}{rec.length > 3 ? " e mais " + (rec.length - 3) : ""}</span>
+                              {comentarios.slice(0, 3).map((r, k) => <div key={k} style={{ color: "var(--texto)" }}>💬 <b>{r.n}</b>: {r.c}</div>)}
+                            </div>
+                          )}
+                          {!eu && (
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                              {EMOJIS_REACAO.map((e) => (
+                                <button key={e} aria-label={"Reagir " + e + " ao treino de " + m.n} onClick={() => reagir(x.id, m.ul.d, e)}
+                                  className="vivo" style={{ fontSize: 20, padding: "4px 9px", borderRadius: 18, cursor: "pointer", lineHeight: 1.2,
+                                    background: minha && minha.e === e ? "#E1306C33" : "var(--bg2)", border: "1px solid " + (minha && minha.e === e ? "#E1306C" : "var(--borda2)") }}>{e}</button>
+                              ))}
+                              <button onClick={() => { setComentando({ p: x.id, d: m.ul.d }); setComentario((minha && minha.c) || ""); }}
+                                style={{ fontSize: 12.5, fontWeight: 800, padding: "7px 10px", borderRadius: 18, cursor: "pointer", background: "none", color: "var(--marca)", border: "1px solid var(--borda2)" }}>💬 Comentar</button>
+                            </div>
+                          )}
+                          {!eu && comentando && comentando.p === x.id && comentando.d === m.ul.d && (
+                            <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                              <input value={comentario} maxLength={60} autoFocus placeholder={"Mande uma força para " + m.n}
+                                onChange={(e) => setComentario(e.target.value)} style={{ ...S.input, flex: 1, padding: "9px 10px", fontSize: 14 }} />
+                              <button onClick={() => { reagir(x.id, m.ul.d, (minha && minha.e) || "🔥", comentario.trim() || " "); setComentando(null); }}
+                                style={{ ...S.btnGhost, width: "auto", padding: "9px 12px" }}>Enviar</button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                     {!aberto && <div style={{ fontSize: 11, color: "var(--cinza)", marginTop: 3 }}>toque para ver mais</div>}
                   </div>
                 </div>
@@ -26572,6 +26750,21 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
   // nunca pode derrubar o resumo nem tirar as cenas de sempre.
   try { d.coracao = dadosCoracaoResumo(registro, exPorId); } catch (e) { d.coracao = null; }
   try { d.vitais = dadosVitaisResumo(registro, SAUDE_RESUMO, d.cardio && d.cardio.km >= 0.05); } catch (e) { d.vitais = null; }
+  // 2026-11-22a: como o corpo acordou naquele dia, o coração pronto entre as
+  // séries (o relógio mede no descanso) e as reações dos amigos ao treino
+  try {
+    const ini = new Date(quando.getTime() - Math.max(1, registro.duracaoMin || 1) * 60000);
+    d.disposicao = notaDisposicao(SAUDE_RESUMO, ini.getTime());
+  } catch (e) { d.disposicao = null; }
+  try {
+    const frs = [];
+    (registro.itens || []).forEach((it) => (it.series || []).forEach((sr) => { if (sr.fr > 0 && sr.fr <= 600) frs.push(sr.fr); }));
+    if (frs.length >= 2) {
+      const o = frs.slice().sort((a, b) => a - b);
+      d.recFc = { med: o[Math.floor(o.length / 2)], melhor: o[0], n: o.length };
+    }
+  } catch (e) { d.recFc = null; }
+  try { const rx = reacoesDoTreino(registro); d.reacoes = rx.length ? rx : null; } catch (e) { d.reacoes = null; }
   if (!d.forca && !d.cardio && !d.monstro) return null;
   // os recordes de corrida e caminhada que este treino bateu
   if (d.cardio) {
@@ -26662,6 +26855,180 @@ function dadosVitaisResumo(registro, saude, temKm) {
   return out.length >= 2 ? out.slice(0, 8) : null;
 }
 
+// ---- A RETROSPECTIVA DO ANO (2026-11-22a, pedido do dono: o "Wrapped" de
+// dezembro). Tudo sai do histórico, no aparelho. O ano é o do calendário.
+function retrospectivaAno(historico, ano, exPorId) {
+  const doAno = (historico || []).filter((h) => new Date(h.data).getFullYear() === ano)
+    .sort((a, b) => new Date(a.data) - new Date(b.data));
+  if (doAno.length < 3) return null;
+  const r = { ano: ano, treinos: doAno.length, minutos: 0, volume: 0, series: 0, km: 0, maiorKm: 0, dias: 0,
+    favorito: null, grupos: [], mes: null, diaSemana: null, sequencia: 0, cargas: [], recordes: 0 };
+  const dias = {}, porEx = {}, porGrupo = {}, porMes = {}, porDia = {}, cargaMax = {};
+  doAno.forEach((h) => {
+    const d = new Date(h.data);
+    dias[diaLocal(d.getTime())] = true;
+    porMes[d.getMonth()] = (porMes[d.getMonth()] || 0) + 1;
+    porDia[d.getDay()] = (porDia[d.getDay()] || 0) + 1;
+    r.minutos += Math.min(300, h.duracaoMin || 0);
+    let kmT = 0;
+    (h.itens || []).forEach((it) => {
+      const e = exPorId(it.exercicioId);
+      let usou = false;
+      (it.series || []).forEach((sr) => {
+        if (ehCardio(sr)) { kmT += medirCardio(sr, 75, sr.mod).km || 0; usou = true; return; }
+        if (!ehTempo(sr)) r.volume += cargaDe(sr) * repsDe(sr);
+        if (!serieConta(sr)) return;
+        usou = true;
+        r.series += 1;
+        if (e && e.grupo) porGrupo[e.grupo] = (porGrupo[e.grupo] || 0) + 1;
+        const c = ehTempo(sr) ? 0 : cargaDe(sr);
+        if (c > 0 && (!cargaMax[it.exercicioId] || c > cargaMax[it.exercicioId])) cargaMax[it.exercicioId] = c;
+      });
+      if (usou && it.exercicioId) porEx[it.exercicioId] = (porEx[it.exercicioId] || 0) + 1;
+    });
+    if (h.rota && h.rota.km) kmT = Math.max(kmT, h.rota.km);
+    r.km += kmT;
+    r.maiorKm = Math.max(r.maiorKm, kmT);
+  });
+  r.volume = Math.round(r.volume);
+  r.km = Math.round(r.km * 10) / 10;
+  r.maiorKm = Math.round(r.maiorKm * 100) / 100;
+  const ds = Object.keys(dias).sort();
+  r.dias = ds.length;
+  // a maior sequência de dias seguidos dentro do ano
+  let seq = 0, ant = null;
+  ds.forEach((x) => {
+    const pp = x.split("-").map(Number), t = new Date(pp[0], pp[1] - 1, pp[2], 12).getTime();
+    seq = ant !== null && Math.round((t - ant) / 864e5) === 1 ? seq + 1 : 1;
+    ant = t;
+    r.sequencia = Math.max(r.sequencia, seq);
+  });
+  const top = (o) => Object.keys(o).sort((a, b) => o[b] - o[a])[0];
+  const fav = top(porEx);
+  if (fav && exPorId(fav)) r.favorito = { nome: exPorId(fav).nome, vezes: porEx[fav] };
+  r.grupos = Object.keys(porGrupo).sort((a, b) => porGrupo[b] - porGrupo[a])
+    .map((g) => ({ id: g, series: porGrupo[g], grupo: GRUPOS.find((x) => x.id === g) })).filter((x) => x.grupo).slice(0, 5);
+  const m = top(porMes);
+  if (m != null) r.mes = { mes: Number(m), treinos: porMes[m] };
+  const dd = top(porDia);
+  if (dd != null) r.diaSemana = { dia: Number(dd), treinos: porDia[dd] };
+  r.cargas = Object.keys(cargaMax).sort((a, b) => cargaMax[b] - cargaMax[a]).slice(0, 3)
+    .map((id) => (exPorId(id) ? exPorId(id).nome + " · " + fmtNum(cargaMax[id]) + " kg" : null)).filter(Boolean);
+  // os recordes batidos no ano (a primeira vez num exercício não conta)
+  try {
+    const rec = calcularRecordes(historico);
+    doAno.forEach((h) => { const x = rec[h.id] || {}; r.recordes += Object.keys(x).filter((k) => x[k].peso).length; });
+  } catch (e) {}
+  return r;
+}
+// As cenas da retrospectiva, com os mesmos tipos de cena do resumo do treino:
+// a tela e o vídeo do story já sabem desenhar todas.
+function cenasRetrospectiva(r, historico) {
+  const c = [];
+  imagemMonstro(LOGO_APP); imagemMonstro(ARTE_RESUMO.fundo); imagemMonstro(ARTE_RESUMO.frente);
+  const NOMES_DIA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+  c.push({ tipo: "vinheta", rotulo: "Sua retrospectiva " + r.ano, fala: "Treino Livre. Sua retrospectiva de " + r.ano + "." });
+  c.push({ tipo: "abre", rotulo: "Retrospectiva", titulo: "Seu " + r.ano + " no Treino Livre", dia: r.dias + " " + plural(r.dias, "dia treinado", "dias treinados"),
+    sub: "Bora ver o que você conquistou", grito: "Que ano!", fala: "Seu " + r.ano + " no Treino Livre. Bora ver o que você conquistou." });
+  c.push({ tipo: "numero", rotulo: "Treinos no ano", valor: r.treinos, casas: 0, unidade: plural(r.treinos, "treino", "treinos"),
+    sub: r.dias + " " + plural(r.dias, "dia", "dias") + " em que você apareceu", grito: r.treinos >= 100 ? "Constância de campeão" : "Você apareceu", forte: r.treinos >= 100,
+    fala: r.treinos + " treinos em " + r.ano + "." });
+  const horas = Math.round(r.minutos / 60);
+  if (horas >= 1) c.push({ tipo: "numero", rotulo: "Tempo treinando", valor: horas, casas: 0, unidade: plural(horas, "hora", "horas"),
+    sub: horas >= 4 ? "o mesmo que " + Math.round(horas / 2) + " filmes de 2 horas" : "", grito: "Tempo bem gasto",
+    fala: horas + " horas treinando." + (horas >= 4 ? " O mesmo que " + Math.round(horas / 2) + " filmes." : "") });
+  if (r.volume > 0) {
+    const ton = r.volume >= 10000, eq = equivalencia(r.volume);
+    c.push({ tipo: "numero", rotulo: "Peso movido no ano", valor: ton ? r.volume / 1000 : r.volume, casas: ton ? 1 : 0,
+      unidade: ton ? "toneladas" : "kg", sub: eq || "", grito: ton ? "Você moveu montanhas" : "Peso vencido", forte: ton,
+      fala: (ton ? num1(r.volume / 1000) + " toneladas" : r.volume.toLocaleString("pt-BR") + " quilos") + " movidos no ano." });
+  }
+  if (r.km >= 1) c.push({ tipo: "numero", rotulo: "Distância no ano", valor: r.km, casas: 1, unidade: "km",
+    sub: r.maiorKm >= 1 ? "a maior: " + num1(r.maiorKm) + " km num treino só" : "", grito: "Cada km, uma vitória",
+    fala: num1(r.km) + " quilômetros percorridos." });
+  if (r.favorito) c.push({ tipo: "abre", rotulo: "Seu exercício favorito", titulo: r.favorito.nome,
+    dia: r.favorito.vezes + " " + plural(r.favorito.vezes, "vez", "vezes") + " no ano", sub: "", grito: "Parceiro fiel",
+    fala: "Seu exercício favorito: " + nomeFalado(r.favorito.nome) + ", " + r.favorito.vezes + " vezes." });
+  if (r.grupos.length) c.push({ tipo: "grupos", rotulo: "Os músculos do seu ano", grupos: r.grupos, indireto: "", grito: "Músculos desafiados",
+    fala: "O que você mais treinou: " + r.grupos.slice(0, 2).map((g) => g.grupo.nome.toLowerCase()).join(" e ") + "." });
+  if (r.recordes > 0 || r.cargas.length) c.push({ tipo: "recordes", rotulo: r.recordes ? plural(r.recordes, "Recorde no ano", "Recordes no ano") : "Suas maiores cargas",
+    valor: r.recordes || r.cargas.length, nomes: r.cargas, grito: r.recordes ? "Você superou o seu melhor" : "Força de sobra", corGrito: "#FEDA75", forte: r.recordes > 0,
+    fala: (r.recordes ? r.recordes + " " + plural(r.recordes, "recorde quebrado", "recordes quebrados") + " no ano. " : "") +
+      (r.cargas[0] ? "A maior carga: " + nomeFalado(r.cargas[0].replace(/ · .*/, "")) + "." : "") });
+  if (r.mes) c.push({ tipo: "texto", rotulo: "Seu mês mais forte", texto: maiuscula(MESES_RESUMO[r.mes.mes]), sub: r.mes.treinos + " " + plural(r.mes.treinos, "treino", "treinos"),
+    grito: "Mês de fogo", fala: "Seu mês mais forte foi " + MESES_RESUMO[r.mes.mes] + ", com " + r.mes.treinos + " treinos." });
+  if (r.diaSemana) c.push({ tipo: "texto", rotulo: "Seu dia favorito", texto: NOMES_DIA[r.diaSemana.dia], sub: r.diaSemana.treinos + " treinos nesse dia da semana",
+    grito: "Dia sagrado", fala: "E o seu dia favorito: " + NOMES_DIA[r.diaSemana.dia].toLowerCase() + "." });
+  if (r.sequencia >= 2) c.push({ tipo: "numero", rotulo: "Maior sequência", valor: r.sequencia, casas: 0, unidade: "dias seguidos",
+    sub: "", grito: "Sem desistir", forte: r.sequencia >= 7, fala: "Sua maior sequência: " + r.sequencia + " dias seguidos." });
+  const vit = [r.treinos + " treinos concluídos"];
+  if (r.volume >= 1000) vit.push(num1(r.volume / 1000) + " toneladas movidas");
+  if (r.km >= 1) vit.push(num1(r.km) + " km percorridos");
+  if (r.recordes) vit.push(r.recordes + " " + plural(r.recordes, "recorde quebrado", "recordes quebrados"));
+  if (r.sequencia >= 3) vit.push(r.sequencia + " dias seguidos");
+  c.push({ tipo: "superacao", rotulo: "O seu " + r.ano, titulo: "Ano vencido", itens: vit.slice(0, 4), forte: true, impactoMs: 750,
+    sub: "Cada treino foi uma escolha. Você escolheu aparecer.", fala: "Ano vencido. Cada treino foi uma escolha, e você escolheu aparecer." });
+  try {
+    const est = calcularEstatisticas(historico || []);
+    const nv = nivelDe(est);
+    c.push({ tipo: "nivel", rotulo: "Seu nível", nivel: nv, total: (historico || []).length, sequencia: 0, grito: nv.proximo ? "Subindo de nível" : "No topo",
+      fala: "Nível " + nv.indice + ", " + nv.nome + "." });
+  } catch (e) {}
+  c.push({ tipo: "fecho", medalha: r.treinos >= 100 ? "ouro" : r.treinos >= 30 ? "prata" : "bronze", pts: 0, fala: "Que venha " + (r.ano + 1) + ". Até a próxima." });
+  c.forEach((x) => { if (x.forte && x.tipo !== "fecho") x.bonus = "Bônus do ano"; });
+  c.forEach((x) => { x.ms = x.tipo === "vinheta" ? VIDEO_VINHETA_MS : Math.max(3400, x.fala.split(" ").length * 420 + 900); });
+  return c;
+}
+// O ano que a retrospectiva mostra: o de agora, e na primeira quinzena de
+// janeiro o que acabou de terminar
+function anoDaRetrospectiva(agora) {
+  const d = new Date(agora);
+  return d.getMonth() === 0 && d.getDate() <= 15 ? d.getFullYear() - 1 : d.getFullYear();
+}
+
+// ---- A FOTO COM OS NÚMEROS (2026-11-22a): o que vai escrito por cima ----
+function infoFotoDoTreino(d) {
+  if (!d) return null;
+  const dia = DIAS_RESUMO[d.data.getDay()] + ", " + d.data.getDate() + " de " + MESES_RESUMO[d.data.getMonth()];
+  const it = [];
+  const f = d.forca, k = d.cardio;
+  if (k && k.km >= 0.05 && k.perfil !== "natacao") it.push({ rot: "Distância", val: num1v(k.km) + " km" });
+  if (k && k.ritmo && k.km >= 0.05 && !/bike/.test(k.perfil || "")) it.push({ rot: "Ritmo", val: fmtRitmo(k.ritmo) });
+  if (f && f.volume > 0) it.push({ rot: "Volume", val: f.volume >= 10000 ? num1v(f.volume / 1000) + " t" : f.volume.toLocaleString("pt-BR") + " kg" });
+  if (f && f.series) it.push({ rot: "Séries", val: String(f.series) });
+  if (d.duracao) it.push({ rot: "Tempo", val: d.duracao + " min" });
+  if (k && k.kcal) it.push({ rot: "Gasto", val: "~" + Math.round(k.kcal) + " kcal" });
+  if (d.coracao && d.coracao.medio) it.push({ rot: "Coração", val: d.coracao.medio + " bpm" });
+  if (f && f.recordes && f.recordes.length) it.unshift({ rot: plural(f.recordes.length, "Recorde", "Recordes"), val: f.recordes.length + " 🏆" });
+  return { titulo: d.nome, dia: dia, itens: it.slice(0, 4), trechos: k && k.trechos ? k.trechos : null,
+    selo: (f && f.recordes && f.recordes.length) ? "Recorde quebrado!" : "Missão cumprida" };
+}
+function infoFotoDoAno(r) {
+  const it = [{ rot: "Treinos", val: String(r.treinos) }, { rot: "Horas", val: String(Math.round(r.minutos / 60)) }];
+  if (r.volume >= 1000) it.push({ rot: "Toneladas", val: num1v(r.volume / 1000) });
+  if (r.km >= 1) it.push({ rot: "Km", val: num1v(r.km) });
+  if (it.length < 4) it.push({ rot: "Dias", val: String(r.dias) });
+  return { titulo: "Meu " + r.ano + " no Treino Livre", dia: "Retrospectiva " + r.ano, itens: it.slice(0, 4), selo: "Ano vencido" };
+}
+
+// ---- AS REAÇÕES DOS AMIGOS NO RESUMO (2026-11-22a): as que chegaram neste treino ----
+function reacoesDoTreino(registro) {
+  if (typeof lerGrupos !== "function") return [];
+  const t = new Date(registro.data).getTime(), eu = meuIdGrupo(), out = [], vistas = {};
+  lerGrupos().forEach((g) => Object.keys(g.membros || {}).forEach((id) => {
+    if (id === eu) return;
+    const m = g.membros[id];
+    (m.re || []).forEach((x) => {
+      if (x.p !== eu || Math.abs(x.d - t) > 60000) return;
+      const ch = id + x.e + (x.c || "");
+      if (vistas[ch]) return;
+      vistas[ch] = true;
+      out.push({ n: m.n, e: x.e, c: x.c || "" });
+    });
+  }));
+  return out;
+}
+
 const DIAS_RESUMO = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 const MESES_RESUMO = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 // As cenas: o que aparece e o que é dito. Cena que não tem número para mostrar
@@ -26700,6 +27067,14 @@ function cenasResumo(d) {
     }
   } else c.push({ tipo: "abre", rotulo: "Resumo do treino", titulo: d.nome, dia: dia, sub: sub, grito: "Desafio aceito",
     fala: "Resumo do treino. " + nomeFalado(d.nome) + ". Desafio aceito." });
+  // Como o corpo acordou naquele dia (a nota do relógio). Só a nota e a faixa:
+  // as horas de sono entram na conta, mas não aparecem no resumo (pedido do dono)
+  if (d.disposicao) {
+    const nd = d.disposicao;
+    c.push({ tipo: "numero", rotulo: "Como seu corpo acordou", valor: nd.nota, casas: 0, unidade: "de 100", sub: nd.faixa.nome + " · pelo seu relógio",
+      grito: nd.faixa.id === "alta" ? "Pronto para a missão" : nd.faixa.id === "media" ? "Corpo em ordem" : "Respeitou o corpo", corGrito: nd.faixa.cor,
+      fala: "Seu corpo acordou com nota " + nd.nota + " de 100. " + nd.faixa.nome + "." });
+  }
 
   const f = d.forca;
   if (f) {
@@ -26800,6 +27175,12 @@ function cenasResumo(d) {
       fala: "Seu coração. Média de " + H.medio + " batimentos por minuto, pico de " + H.max + "." + zFala +
         (H.rec && H.rec.queda > 0 ? " Um minuto depois do treino, ele desceu " + H.rec.queda + " batimentos." : "") });
   }
+  if (d.recFc) {
+    const rf = d.recFc;
+    c.push({ tipo: "numero", rotulo: "Coração pronto entre as séries", valor: rf.med, casas: 0, unidade: "segundos em média",
+      sub: "o mais rápido: " + rf.melhor + " s · medido pelo relógio", grito: rf.med <= 60 ? "Recuperação de atleta" : "Coração voltando",
+      forte: rf.med <= 45, fala: "Entre as séries, seu coração voltou em " + rf.med + " segundos, em média." });
+  }
   if (d.vitais) {
     const vv = d.vitais;
     c.push({ tipo: "corpo", rotulo: "Seus sinais vitais", itens: vv, bpm: H ? H.medio : 72,
@@ -26819,6 +27200,12 @@ function cenasResumo(d) {
       nomes: rc.map((r) => nomeDistancia(r.m) + " · " + fmtTempoRota(r.ms)),
       fala: plural(d.recCorrida.length, "Recorde pessoal", "Recordes pessoais") + ": " +
         rc.slice(0, 2).map((r) => falaDist(r.m) + " em " + textoDuracao(Math.round(r.ms / 1000))).join(", e ") + "." });
+  }
+  if (d.reacoes) {
+    const rx = d.reacoes;
+    c.push({ tipo: "recordes", icone: "🔥", rotulo: "A galera reagiu", valor: rx.length,
+      nomes: rx.slice(0, 4).map((x) => x.e + " " + x.n + (x.c ? ": " + x.c : "")), grito: "Treino aplaudido", corGrito: "#FF9A3C",
+      fala: plural(rx.length, "Uma reação", rx.length + " reações") + " dos amigos: " + rx.slice(0, 3).map((x) => x.n).join(", ") + "." });
   }
   // O "Desafio vencido": as vitórias do dia numa lista só, com o que foi superado
   const vit = [];
@@ -26858,6 +27245,7 @@ function cenasResumo(d) {
   // cada uma. Os pontos são os de verdade (xpDe), não um número inventado.
   const BONUS_RESUMO = { recordes: "Bônus de recorde", superacao: "Vitória do dia", perseguicoes: "Bônus de fuga", semana: "Bônus da semana",
     nivel: "Nível novo!", numero: "Bônus de força", texto: "Bônus de superação", coracao: "Bônus do coração", corpo: "Bônus vital" };
+  c.forEach((x) => { if (x.forte && x.rotulo === "Coração pronto entre as séries") x.bonus = "Bônus do coração"; });
   c.forEach((x) => { if (x.forte && x.tipo !== "fecho") x.bonus = BONUS_RESUMO[x.tipo] || "Bônus!"; });
   const xpT = d.xpGanho || 0;
   if (xpT > 0) {
@@ -27923,7 +28311,7 @@ function CenaResumo({ c }) {
     return (
       <div style={{ textAlign: "center", padding: "0 24px" }}>
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
-        <div style={{ fontSize: 54, marginTop: 10 }} aria-hidden="true">🏆</div>
+        <div style={{ fontSize: 54, marginTop: 10 }} aria-hidden="true">{c.icone || "🏆"}</div>
         <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 64 }}>{Math.round(v)}</Contorno>
         {c.nomes.map((n, k) => (
           <div key={n} className="rs-marca" style={{ color: "#F2F0EC", fontSize: 16, fontWeight: 800, marginTop: 8, animationDelay: 0.6 + k * 0.15 + "s" }}>{n}</div>
@@ -28605,7 +28993,7 @@ function videoCena(c, cena, p) {
     }
   } else if (t === "recordes") {
     videoRotulo(c, cena.rotulo, 600);
-    videoTexto(c, "🏆", 540, 820, 170, "#FFFFFF", 400);
+    videoTexto(c, cena.icone || "🏆", 540, 820, 170, "#FFFFFF", 400);
     videoTexto(c, String(Math.round((cena.valor || 0) * conta)), 540, 1050, 220, "grad", 900);
     cena.nomes.forEach((n, k) => {
       const a = Math.max(0, Math.min(1, (p - 600 - k * 150) / 400));
@@ -29458,7 +29846,8 @@ function JanelaFotoResumo({ onFechar, onTrocou }) {
   );
 }
 function ResumoAnimado({ d, vozCfg, onFechar }) {
-  const cenas = useMemo(() => cenasResumo(d), [d]);
+  // a retrospectiva do ano chega com as cenas prontas (d.cenas)
+  const cenas = useMemo(() => d.cenas || cenasResumo(d), [d]);
   const [i, setI] = useState(0);
   const [mudo, setMudo] = useState(!vozCfg || vozCfg.falar === false);
   const [volta, setVolta] = useState(0);   // muda ao rever, para recomeçar as barras
@@ -29602,6 +29991,10 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
           <button onClick={(e) => { e.stopPropagation(); setStory(true); }} style={{ ...S.btn, width: "100%", marginBottom: 10 }}>
             📸 Compartilhar no story
           </button>
+          {ABRIR_FOTO_NUMEROS && (d.fotoInfo || d.data) && (
+            <button onClick={(e) => { e.stopPropagation(); try { window.speechSynthesis.cancel(); } catch (er) {} const inf = d.fotoInfo || infoFotoDoTreino(d); if (inf) ABRIR_FOTO_NUMEROS(inf); }}
+              style={{ ...S.btnGhost, width: "100%", marginBottom: 10, color: "#FFD23F", borderColor: "#FFD23F88", fontWeight: 900 }}>📷 Foto com os números</button>
+          )}
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={(e) => { e.stopPropagation(); setVolta((v) => v + 1); setI(0); }}
               style={{ ...S.btnGhost, flex: 1, color: "#F2F0EC", borderColor: "#444444" }}>↺ Rever</button>
@@ -29623,6 +30016,213 @@ function ResumoAnimado({ d, vozCfg, onFechar }) {
         onTrocou={() => { setFotoV((v) => v + 1); BORRADO_RESUMO = null; }} />}
     </div>
   );
+}
+
+// ---- A FOTO COM OS NÚMEROS (2026-11-22a, pedido do dono: o "adesivo" do
+// Strava). A pessoa tira uma selfie na academia (ou escolhe da galeria) e o app
+// escreve por cima os números do treino, no visual do resumo animado: a fonte
+// de letreiro, o contorno preto, o degradê da marca, as placas e o carimbo.
+// Sem foto, vai a arte do Treino Livre. Tudo no aparelho: a foto não sai do
+// celular até a pessoa escolher onde postar.
+const MODELOS_FOTO = [
+  { id: "placar", nome: "🎮 Placar" }, { id: "letreiro", nome: "🔥 Letreiro" }, { id: "missao", nome: "⭐ Missão" },
+];
+let ABRIR_FOTO_NUMEROS = null;
+function desenharTracado(c, trechos, x, y, w, h) {
+  const todos = [].concat.apply([], trechos || []).filter((p) => p && isFinite(p[0]) && isFinite(p[1]));
+  if (todos.length < 2) return;
+  const lats = todos.map((p) => p[0]), lngs = todos.map((p) => p[1]);
+  const la0 = Math.min.apply(null, lats), la1 = Math.max.apply(null, lats), lo0 = Math.min.apply(null, lngs), lo1 = Math.max.apply(null, lngs);
+  const kx = Math.cos((((la0 + la1) / 2) * Math.PI) / 180);
+  const dx = Math.max(1e-6, (lo1 - lo0) * kx), dy = Math.max(1e-6, la1 - la0);
+  const e = Math.min(w / dx, h / dy) * 0.9;
+  const ox = x + (w - dx * e) / 2, oy = y + (h - dy * e) / 2;
+  const P = (p) => [ox + (p[1] - lo0) * kx * e, oy + (la1 - p[0]) * e];
+  const caminho = () => { c.beginPath(); (trechos || []).forEach((t) => t.forEach((p, i) => { const q = P(p); if (i) c.lineTo(q[0], q[1]); else c.moveTo(q[0], q[1]); })); };
+  c.save(); c.lineJoin = "round"; c.lineCap = "round";
+  caminho(); c.strokeStyle = "rgba(0,0,0,.85)"; c.lineWidth = 30; c.stroke();
+  c.shadowColor = "#FF3E8A"; c.shadowBlur = 30;
+  caminho(); c.strokeStyle = videoGradiente(c, x, x + w); c.lineWidth = 14; c.stroke();
+  c.shadowBlur = 0;
+  const a = P(todos[0]), b = P(todos[todos.length - 1]);
+  [[a, "#7CFF3C"], [b, "#FFD23F"]].forEach(([q, cor]) => { c.fillStyle = "#000"; c.beginPath(); c.arc(q[0], q[1], 20, 0, Math.PI * 2); c.fill(); c.fillStyle = cor; c.beginPath(); c.arc(q[0], q[1], 13, 0, Math.PI * 2); c.fill(); });
+  c.restore();
+}
+function textoJogo(c, txt, x, y, tam, cor, largMax) {
+  let t = tam; c.font = "italic 400 " + t + "px " + VIDEO_FONTE_JOGO;
+  while (largMax && c.measureText(txt).width > largMax && t > 24) { t -= 2; c.font = "italic 400 " + t + "px " + VIDEO_FONTE_JOGO; }
+  c.save(); c.lineJoin = "round"; c.strokeStyle = "#000"; c.lineWidth = Math.max(6, t * 0.18);
+  c.strokeText(txt, x + 3, y + 4); c.strokeText(txt, x, y);
+  c.fillStyle = cor; c.fillText(txt, x, y); c.restore();
+}
+function rotuloFoto(c, txt, x, y, tam) {
+  c.save(); c.font = "900 " + (tam || 30) + "px " + VIDEO_FONTE; c.fillStyle = "#4DEBFF";
+  c.shadowColor = "rgba(77,235,255,.6)"; c.shadowBlur = 12; c.fillText(String(txt).toUpperCase(), x, y); c.restore();
+}
+function carimboFoto(c, txt, x, y, tam, ang) {
+  c.save(); c.translate(x, y); c.rotate(((ang || -6) * Math.PI) / 180);
+  textoJogo(c, String(txt).toUpperCase(), 0, 0, tam, "#FFD23F", Math.min(900, 2 * Math.min(x, 1080 - x) - 40));
+  c.restore();
+}
+function desenharFotoNumeros(c, img, info, modelo) {
+  const W = 1080, H = 1920;
+  c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, W, H);
+  if (img && img.naturalWidth) {
+    const e = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+    const w = img.naturalWidth * e, h = img.naturalHeight * e;
+    c.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+  } else {
+    try { desenharCenaArte(c, 0, { i: 0, p: 4800, tipo: "fecho" }, true); } catch (e) { c.fillStyle = "#170B27"; c.fillRect(0, 0, W, H); }
+  }
+  // escurece em cima e embaixo, para os números lerem em qualquer foto
+  let g = c.createLinearGradient(0, 0, 0, 520); g.addColorStop(0, "rgba(0,0,0,.7)"); g.addColorStop(1, "rgba(0,0,0,0)");
+  c.fillStyle = g; c.fillRect(0, 0, W, 520);
+  g = c.createLinearGradient(0, 1000, 0, H); g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0,.88)");
+  c.fillStyle = g; c.fillRect(0, 1000, W, H - 1000);
+  // a moldura no degradê da marca, como as placas do relógio
+  c.strokeStyle = videoGradiente(c, 0, W); c.lineWidth = 14; c.strokeRect(7, 7, W - 14, H - 14);
+  videoLogo(c, 150, 170, 190);
+  c.textAlign = "left";
+  const it = info.itens || [];
+  if (modelo === "letreiro") {
+    c.textAlign = "center";
+    textoJogo(c, info.titulo, 540, 560, 64, "#FFFFFF", 960);
+    rotuloFoto(c, info.dia, 540, 625, 32);
+    if (info.trechos) desenharTracado(c, info.trechos, 190, 680, 700, 380);
+    const p = it[0];
+    if (p) {
+      rotuloFoto(c, p.rot, 540, 1150, 40);
+      numeroJogo(c, p.val, 540, 1340, 200, 980);
+    }
+    const resto = it.slice(1, 4);
+    if (resto.length) {
+      placaJogo(c, 60, 1430, 960, 220);
+      const cw = 960 / resto.length;
+      resto.forEach((x, k) => { const cx = 60 + cw * k + cw / 2; rotuloFoto(c, x.rot, cx, 1505, 28); numeroJogo(c, x.val, cx, 1600, 70, cw - 30); });
+    }
+    carimboFoto(c, info.selo || "Missão cumprida", 540, 1745, 70, -5);
+  } else if (modelo === "missao") {
+    c.textAlign = "center";
+    // a faixa preta atravessando a tela, como no fim do resumo
+    c.save(); c.translate(540, 700); c.rotate((-4 * Math.PI) / 180);
+    c.fillStyle = "rgba(0,0,0,.82)"; c.fillRect(-640, -95, 1280, 190);
+    c.fillStyle = videoGradiente(c, -640, 640); c.fillRect(-640, -95, 1280, 8); c.fillRect(-640, 87, 1280, 8);
+    textoJogo(c, String(info.selo || "Missão cumprida").toUpperCase(), 0, 38, 96, "#FFD23F", 1000);
+    c.restore();
+    // as cinco estrelas acesas
+    c.font = "70px " + VIDEO_FONTE;
+    for (let k = 0; k < 5; k++) { c.fillStyle = "#FFD23F"; c.fillText("★", 540 + (k - 2) * 90, 560); }
+    textoJogo(c, info.titulo, 540, 900, 60, "#FFFFFF", 960);
+    rotuloFoto(c, info.dia, 540, 960, 30);
+    it.slice(0, 4).forEach((x, k) => {
+      const y = 1060 + k * 165;
+      placaJogo(c, 80, y, 920, 135);
+      c.textAlign = "left"; rotuloFoto(c, x.rot, 120, y + 82, 34);
+      c.textAlign = "right"; numeroJogo(c, x.val, 960, y + 98, 80, 520);
+      c.textAlign = "center";
+    });
+  } else {
+    // o placar: o título, o traçado (se houver) e a placa com quatro números
+    if (info.trechos) desenharTracado(c, info.trechos, 140, 360, 800, 760);
+    c.textAlign = "center"; carimboFoto(c, info.selo || "Missão cumprida", 660, 320, 62, -7); c.textAlign = "left";
+    textoJogo(c, info.titulo, 60, 1250, 66, "#FFFFFF", 960);
+    rotuloFoto(c, info.dia, 64, 1310, 32);
+    const n = Math.min(4, it.length);
+    if (n) {
+      const linhas = n > 2 ? 2 : 1, alt = linhas * 200 + 40;
+      placaJogo(c, 60, 1360, 960, alt);
+      c.textAlign = "center";
+      it.slice(0, 4).forEach((x, k) => {
+        const col = n === 1 ? 0 : k % 2, lin = n === 1 ? 0 : Math.floor(k / 2);
+        const cw = n === 1 ? 960 : 480, cx = 60 + cw * col + cw / 2, y = 1360 + 40 + lin * 200;
+        rotuloFoto(c, x.rot, cx, y + 40, 30);
+        numeroJogo(c, x.val, cx, y + 140, 96, cw - 40);
+      });
+    }
+  }
+  // o crédito, sempre
+  c.textAlign = "center";
+  c.font = "800 32px " + VIDEO_FONTE; c.fillStyle = "#F2F0EC"; c.shadowColor = "#000"; c.shadowBlur = 8;
+  c.fillText("Treino Livre · @" + INSTAGRAM, 540, H - 50);
+  c.restore();
+}
+function FotoComNumeros({ info, onFechar, avisar }) {
+  const cvRef = useRef(null);
+  const [img, setImg] = useState(null);
+  const [modelo, setModelo] = useState("placar");
+  const [pronto, setPronto] = useState(0);
+  const urlRef = useRef(null);
+  useEffect(() => {
+    let vivo = true;
+    const fonte = document.fonts && document.fonts.load ? document.fonts.load("400 60px 'Jogo Resumo'").catch(() => {}) : Promise.resolve();
+    Promise.race([Promise.all([carregarLogoApp(), fonte]), new Promise((ok) => setTimeout(ok, 5000))]).then(() => { if (vivo) setPronto((v) => v + 1); });
+    return () => { vivo = false; if (urlRef.current) try { URL.revokeObjectURL(urlRef.current); } catch (e) {} };
+  }, []);
+  useEffect(() => {
+    const cv = cvRef.current;
+    if (!cv) return;
+    try { desenharFotoNumeros(cv.getContext("2d"), img, info, modelo); } catch (e) {}
+  }, [img, modelo, pronto]);
+  const escolher = (f) => {
+    if (!f) return;
+    if (urlRef.current) try { URL.revokeObjectURL(urlRef.current); } catch (e) {}
+    const u = URL.createObjectURL(f);
+    urlRef.current = u;
+    const im = new Image();
+    im.onload = () => setImg(im);
+    im.onerror = () => avisar && avisar("Não consegui abrir essa foto. Tente outra.");
+    im.src = u;
+  };
+  const gerar = (fn) => { const cv = cvRef.current; if (cv) cv.toBlob((b) => b && fn(b), "image/png"); };
+  const compartilhar = () => gerar((b) => compartilharImagem(b, "Treino concluído no Treino Livre! 💪 Me siga: @" + INSTAGRAM + " " + LINK_APP, avisar));
+  const botaoFoto = (rot, captura) => (
+    <label className="vivo" style={{ ...S.btnGhost, flex: 1, textAlign: "center", color: "#F2F0EC", borderColor: "#ffffff44", cursor: "pointer", boxSizing: "border-box" }}>
+      {rot}
+      <input type="file" accept="image/*" capture={captura || undefined} style={{ display: "none" }}
+        onChange={(e) => { escolher(e.target.files && e.target.files[0]); e.target.value = ""; }} />
+    </label>
+  );
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Foto com os números do treino"
+      style={{ position: "fixed", inset: 0, zIndex: 96, background: "#0B0418", color: "#F2F0EC", overflowY: "auto" }}>
+      <div style={{ maxWidth: 460, margin: "0 auto", padding: "14px 16px 30px" }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
+          <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 24, flex: 1 }}>📷 Foto com os números</Contorno>
+          <button aria-label="Fechar" onClick={onFechar} style={{ background: "none", border: "none", color: "#F2F0EC", fontSize: 24, cursor: "pointer", padding: 8 }}>✕</button>
+        </div>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <canvas ref={cvRef} width={1080} height={1920} aria-label={"Prévia: " + info.titulo + ", " + (info.itens || []).map((x) => x.rot + " " + x.val).join(", ")}
+            style={{ width: "min(100%, calc(58vh * 0.5625))", aspectRatio: "9 / 16", borderRadius: 14, boxShadow: "0 0 24px rgba(221,42,123,.35)", background: "#170B27" }} />
+        </div>
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", margin: "12px 0" }}>
+          {MODELOS_FOTO.map((m) => (
+            <button key={m.id} onClick={() => setModelo(m.id)} className="vivo"
+              style={{ padding: "8px 12px", borderRadius: 18, fontWeight: 900, fontSize: 13, cursor: "pointer", color: modelo === m.id ? "#060606" : "#F2F0EC",
+                background: modelo === m.id ? "#FFD23F" : "transparent", border: "1px solid " + (modelo === m.id ? "#FFD23F" : "#ffffff44") }}>{m.nome}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          {botaoFoto("🤳 Tirar foto", "user")}
+          {botaoFoto("🖼 Da galeria", null)}
+        </div>
+        <button onClick={compartilhar} style={{ ...S.btn, width: "100%" }}>📤 Compartilhar no story</button>
+        <div style={{ fontSize: 11.5, color: "#9a94a3", textAlign: "center", marginTop: 10, lineHeight: 1.5 }}>
+          {img ? "Sua foto fica só no seu celular até você postar." : "Sem foto, vai a arte do Treino Livre. Tire uma selfie na academia ou escolha uma da galeria."}
+        </div>
+      </div>
+    </div>
+  );
+}
+// O botão do histórico: monta os números do treino e abre a foto
+function abrirFotoDoTreino(registro, exPorId, historico, pesoCorporal, avisar) {
+  const montar = (p) => {
+    const d = dadosResumo(registro, exPorId, historico, pesoCorporal, p);
+    const info = d ? infoFotoDoTreino(d) : null;
+    if (info && ABRIR_FOTO_NUMEROS) ABRIR_FOTO_NUMEROS(info);
+    else if (avisar) avisar("Este treino não tem números para a foto.");
+  };
+  if (registro.rota && registro.id) lerRota(registro.id).then(montar, () => montar(null));
+  else montar(null);
 }
 
 // O botão que abre o resumo, com a rota do GPS quando houver
@@ -32584,8 +33184,12 @@ function CardTreino({ h, exPorId, recordes, comparacao, onExcluir, onStory, onEd
         </div>
       )}
       {(st.series > 0 || st.cardioMin > 0) && (
-        <BotaoResumoAnimado registro={h} exPorId={exPorId} historico={historico} pesoCorporal={pesoCorporal} vozCfg={vozCfg}
-          estilo={{ marginTop: 8, padding: "9px 12px", fontSize: 13 }} />
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <BotaoResumoAnimado registro={h} exPorId={exPorId} historico={historico} pesoCorporal={pesoCorporal} vozCfg={vozCfg}
+            estilo={{ flex: 1, padding: "9px 12px", fontSize: 13 }} />
+          <button onClick={() => abrirFotoDoTreino(h, exPorId, historico, pesoCorporal)}
+            style={{ ...S.btnGhost, flex: 1, padding: "9px 12px", fontSize: 13, fontWeight: 900, color: "#E1306C", borderColor: "#E1306C66" }}>📷 Foto com números</button>
+        </div>
       )}
 
       {/* Séries */}
@@ -34042,6 +34646,87 @@ function CoracaoNosTreinos({ historico, fcPerfil, cartao, titulo }) {
     </div>
   );
 }
+// ---- A NOTA DO CORPO NA TELA (2026-11-22a), no visual do resumo animado ----
+function AnelNota({ nota, cor, tam }) {
+  const t = tam || 96, r = t / 2 - 8, C = 2 * Math.PI * r;
+  const id = "anelNota" + t;
+  return (
+    <svg width={t} height={t} viewBox={"0 0 " + t + " " + t} aria-hidden="true" style={{ flexShrink: 0 }}>
+      <defs><linearGradient id={id} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#F58529" /><stop offset=".5" stopColor="#DD2A7B" /><stop offset="1" stopColor="#8134AF" /></linearGradient></defs>
+      <circle cx={t / 2} cy={t / 2} r={r} fill="rgba(0,0,0,.35)" stroke="rgba(255,255,255,.12)" strokeWidth="8" />
+      <circle cx={t / 2} cy={t / 2} r={r} fill="none" stroke={"url(#" + id + ")"} strokeWidth="8" strokeLinecap="round"
+        strokeDasharray={C} strokeDashoffset={C * (1 - nota / 100)} transform={"rotate(-90 " + t / 2 + " " + t / 2 + ")"}
+        style={{ filter: "drop-shadow(0 0 6px " + cor + ")", transition: "stroke-dashoffset 1.2s ease" }} />
+      <text x="50%" y="56%" textAnchor="middle" fontFamily={FONTE_JOGO} fontStyle="italic" fontSize={t * 0.34} fill="#FFFFFF"
+        stroke="#000" strokeWidth="3" paintOrder="stroke">{nota}</text>
+    </svg>
+  );
+}
+const FUNDO_JOGO = { background: "linear-gradient(160deg, #170B27 0%, #2B0E3A 60%, #3A1430 100%)", color: "#F2F0EC", border: "1px solid #DD2A7B66",
+  boxShadow: "0 0 18px rgba(221,42,123,.18)" };
+function CartaoDisposicao({ saude }) {
+  const nd = useMemo(() => notaDisposicao(saude, Date.now()), [saude]);
+  if (!nd) {
+    if (!saude || !saude.em) return null;
+    return (
+      <div style={{ ...S.card, ...FUNDO_JOGO, fontSize: 13, lineHeight: 1.5 }}>
+        <div style={{ ...ROTULO_RESUMO, marginBottom: 4 }}>🌅 Como seu corpo acordou</div>
+        A nota do dia aparece quando o relógio ou o anel manda pelo menos duas medidas da noite (variabilidade do coração, batimento de repouso e sono) e há uns dias de histórico para comparar.
+        Durma com o relógio e sincronize de manhã.
+      </div>
+    );
+  }
+  return (
+    <div style={{ ...S.card, ...FUNDO_JOGO, padding: 16 }}>
+      <div style={{ ...ROTULO_RESUMO, marginBottom: 10 }}>🌅 Como seu corpo acordou</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <AnelNota nota={nd.nota} cor={nd.faixa.cor} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Contorno estilo={{ fontFamily: FONTE_JOGO, fontStyle: "italic", fontSize: 21, lineHeight: 1.15, color: nd.faixa.cor }}>{nd.faixa.nome}</Contorno>
+          <div style={{ fontSize: 13, lineHeight: 1.5, marginTop: 6, color: "#E8E2EE" }}>{nd.faixa.frase}</div>
+        </div>
+      </div>
+      <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #ffffff22", fontSize: 12.5, lineHeight: 1.7 }}>
+        {nd.partes.map((p) => <div key={p.k}>{p.icone} {p.txt}</div>)}
+      </div>
+      <div style={{ fontSize: 11, color: "#B9AFC4", marginTop: 8, lineHeight: 1.45 }}>
+        Comparado com a sua própria média dos últimos 30 dias. Informação geral a partir do seu relógio: não é exame nem avaliação de saúde.
+      </div>
+    </div>
+  );
+}
+// a mesma nota numa linha, no cartão do treino de hoje
+function LinhaDisposicao({ saude }) {
+  const nd = useMemo(() => notaDisposicao(saude, Date.now()), [saude]);
+  if (!nd) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0 10px", padding: "7px 10px", borderRadius: 12, ...FUNDO_JOGO }}>
+      <span style={{ fontFamily: FONTE_JOGO, fontStyle: "italic", fontSize: 20, color: nd.faixa.cor, textShadow: "0 2px 0 #000" }}>{nd.nota}</span>
+      <span style={{ fontSize: 12.5, lineHeight: 1.35 }}>🌅 <b>{nd.faixa.nome}</b> · {nd.faixa.id === "baixa" ? "um dia mais leve pode cair bem" : nd.faixa.id === "alta" ? "bom dia para puxar mais" : "treine como planejado"}</span>
+    </div>
+  );
+}
+
+// ---- A RETROSPECTIVA DO ANO NA TELA (2026-11-22a) ----
+function CartaoRetrospectiva({ historico, exPorId, onAbrir, onDepois }) {
+  const ano = anoDaRetrospectiva(Date.now());
+  const r = useMemo(() => retrospectivaAno(historico, ano, exPorId), [historico, ano]);
+  if (!r) return null;
+  return (
+    <div style={{ ...S.card, ...FUNDO_JOGO, padding: 16, position: "relative", overflow: "hidden" }}>
+      <div style={{ ...ROTULO_RESUMO }}>🎁 Retrospectiva {ano}</div>
+      <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 30, lineHeight: 1.15, marginTop: 8, display: "inline-block" }}>Seu {ano} no Treino Livre</Contorno>
+      <div style={{ fontSize: 13.5, marginTop: 8, lineHeight: 1.5, color: "#E8E2EE" }}>
+        {r.treinos} treinos · {Math.round(r.minutos / 60)} horas{r.volume >= 1000 ? " · " + num1(r.volume / 1000) + " t" : ""}{r.km >= 1 ? " · " + num1(r.km) + " km" : ""}. Veja o seu ano animado e mande no story.
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <button onClick={onAbrir} className="vivo" style={{ ...S.btnGhost, flex: 1, color: "#FFD23F", borderColor: "#FFD23F88", fontWeight: 900 }}>▶ Ver minha retrospectiva</button>
+        {onDepois && <button onClick={onDepois} style={{ ...S.btnGhost, width: "auto", color: "#B9AFC4", borderColor: "#ffffff33" }}>Agora não</button>}
+      </div>
+    </div>
+  );
+}
+
 function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizar, fcPerfil }) {
   const agora = Date.now();
   const r = useMemo(() => resumoSaude(saude, agora), [saude]);
@@ -34059,6 +34744,7 @@ function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCar
 
   return (
     <React.Fragment>
+      <CartaoDisposicao saude={saude} />
       {/* ---- de onde vêm os números ----
           Todo Android vê o Sincronizar: o botão chama o app instalado pelo
           esquema treinolivre://, venha a página do ícone do APK, do ícone que o
@@ -34379,7 +35065,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
   medidas, onSalvarMedida, onExcluirMedida, avisar,
   fotos, onAdicionarFoto, onExcluirFoto,
   meta, setMeta, onStoryProgresso, onDesafiar, secaoInicial, pesoCorporal, vozCfg, onCorredor, onComecar, onAbrirGrupo,
-  saude, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizarSaude, plano, nLixeira, onLixeira, sugestaoLixeira, onRecuperarSugestao, corredor }) {
+  saude, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizarSaude, plano, nLixeira, onLixeira, sugestaoLixeira, onRecuperarSugestao, corredor, onRetrospectiva }) {
   // a FC máxima pela idade do Corredor, e o repouso do perfil ou o do relógio
   const ultRep = saude && saude.repouso && saude.repouso.length ? saude.repouso[saude.repouso.length - 1].bpm : 0;
   const fcPerfil = { max: fcMaxima(corredor && corredor.idade) || 0, rep: (corredor && corredor.fcRepouso) || ultRep || 0 };
@@ -34427,6 +35113,7 @@ function TelaHistorico({ historico, exPorId, onExcluir, onStory, onEditar, onVir
 
       {secao === "stats" && historico.length > 0 && (
         <React.Fragment>
+          {onRetrospectiva && <CartaoRetrospectiva historico={historico} exPorId={exPorId} onAbrir={onRetrospectiva} />}
           <CartaoNivel est={est} />
           <MetaSemanal historico={historico} meta={meta} setMeta={setMeta} />
           <PainelConquistas est={est} />
@@ -34946,6 +35633,14 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   }, [sessao]);
   const [modal, setModal] = useState(null);
   const [resumoAnim, setResumoAnim] = useState(null);
+  const [fotoNumeros, setFotoNumeros] = useState(null);
+  ABRIR_FOTO_NUMEROS = (info) => setFotoNumeros(info);
+  const [retroDepois, setRetroDepois] = useState(() => { try { return localStorage.getItem("treinolivre:retroDepois") || ""; } catch (e) { return ""; } });
+  const abrirRetrospectiva = () => {
+    const r = retrospectivaAno(historico, anoDaRetrospectiva(Date.now()), exPorId);
+    if (!r) { avisar("A retrospectiva aparece a partir de 3 treinos no ano."); return; }
+    setResumoAnim({ cenas: cenasRetrospectiva(r, historico), fotoInfo: infoFotoDoAno(r) });
+  };
   // a abertura do zumbi passa toda vez que a modalidade é aberta
   const [abrindoZumbi, setAbrindoZumbi] = useState(false);   // dados do resumo animado aberto pelo fim do treino
   const [copiado, setCopiado] = useState(false);
@@ -35602,7 +36297,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     const agora = Date.now();
     const id = meuIdGrupo();
     const apelido = corredor && corredor.apelido;
-    const dados = apelido ? Object.assign({ n: apelido, at: agora }, numerosDoGrupo(historico, agora)) : null;
+    const minhasRe = lerMinhasReacoes();
+    const dados = apelido ? Object.assign({ n: apelido, at: agora }, numerosDoGrupo(historico, agora), minhasRe.length ? { re: minhasRe } : {}) : null;
     const marca = dados ? JSON.stringify(Object.assign({}, dados, { at: 0 })) : "";
     let feitos = {};
     try { feitos = JSON.parse(localStorage.getItem("treinolivre:grupoPub") || "{}") || {}; } catch (e) {}
@@ -36342,6 +37038,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             : ehTempo(s) ? { segundos: s.segundos } : { peso: s.peso, reps: s.reps };
           if (ehAquecimento(s)) nova.aquec = true;
           if (s.t > 0) nova.t = s.t;   // a hora da série: casa com a curva do relógio
+          if (s.fr > 0) nova.fr = s.fr;  // o coração pronto no descanso (o relógio)
           return nova;
         }),
       })).filter((it) => it.series.length > 0),
@@ -37232,6 +37929,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
         ))}
         {aba === "inicio" && (
           <TelaInicio programas={programas} treinos={treinos} historico={historico}
+            saude={saude} onRetrospectiva={abrirRetrospectiva} retroDepois={retroDepois}
+            onRetroDepois={(a) => { setRetroDepois(a); try { localStorage.setItem("treinolivre:retroDepois", a); } catch (e) {} }}
             meta={meta} exPorId={exPorId} avisoBackup={avisoBackup} onBaixarBackup={baixarBackup}
             onAbrirGrupo={(g) => { setGrupoAberto(g); setExercicioAberto(null); setAba("exercicios"); }}
             onAbrirProgresso={() => { setSecaoHistorico("stats"); setAba("historico"); }}
@@ -37424,7 +38123,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             onDescartar={() => { setSessao(null); setAba("inicio"); }} />
         )}
         {aba === "historico" && (
-          <TelaHistorico historico={historico} exPorId={exPorId}
+          <TelaHistorico historico={historico} exPorId={exPorId} onRetrospectiva={abrirRetrospectiva}
             nLixeira={lixeira.length + (achadoUltimo ? 1 : 0)} onLixeira={() => setLixeiraAberta(true)}
             sugestaoLixeira={(lixeira[0] && Date.now() - lixeira[0].em < 2 * 86400000 ? lixeira[0].reg : null) || achadoUltimo}
             onRecuperarSugestao={(r) => recuperarTreinos([r])}
@@ -37449,6 +38148,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       </div>
 
       {resumoAnim && <ResumoAnimado d={resumoAnim} vozCfg={voz} onFechar={() => setResumoAnim(null)} />}
+      {fotoNumeros && <FotoComNumeros info={fotoNumeros} avisar={avisar} onFechar={() => setFotoNumeros(null)} />}
       {dorManha && adaptado.registros.some((r) => r.id === dorManha.regId) && (
         <JanelaDorManha reg={adaptado.registros.find((r) => r.id === dorManha.regId)}
           onResponder={(v) => {
@@ -37532,6 +38232,13 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
                 if (reg.rota) lerRota(reg.id).then(abrir, () => abrir(null));
                 else abrir(null);
               }}>▶ Ver resumo animado</button>
+            )}
+            {modal.resumoRegistro && (
+              <button style={{ ...S.btnGhost, marginBottom: 10, fontWeight: 900, color: "#E1306C", borderColor: "#E1306C66" }} onClick={() => {
+                const reg = modal.resumoRegistro;
+                setModal(null);
+                abrirFotoDoTreino(reg, exPorId, historico, pesoCorporal, avisar);
+              }}>📷 Foto com os números (selfie no story)</button>
             )}
             {modal.resumoRegistro && desafioDoTreino(modal.resumoRegistro, exPorId) && (
               <button style={{ ...S.btnGhost, marginBottom: 10 }} onClick={() => {

@@ -26,7 +26,7 @@ const fonte = [
   "const GRUPO_POR_EXERCICIO = { \"supino-reto\": \"peito\", agachamento: \"pernas\" };",
   html.slice(ini, fim),
 ].join("\n");
-eval(fonte + "\nglobalThis.G = { falasFantasmaGrupo, falasAoVivoGrupo, textoCardioGrupo, metricasDoFoco, tipoCardioGrupo, minhasPosicoesGrupo, totaisGrupo, eventosGrupo, aplicarMembrosGrupo, falaGrupo, numerosDoGrupo, lerMembroGrupo, rankingGrupo, fraseGrupo, linkGrupo, lerPacoteGrupo, fmtMetricaGrupo, juntarGrupoRecebido, b64Decodificar };");
+eval(fonte + "\nglobalThis.G = { falasFantasmaGrupo, falasAoVivoGrupo, textoCardioGrupo, metricasDoFoco, tipoCardioGrupo, minhasPosicoesGrupo, totaisGrupo, eventosGrupo, aplicarMembrosGrupo, falaGrupo, numerosDoGrupo, lerMembroGrupo, rankingGrupo, fraseGrupo, linkGrupo, lerPacoteGrupo, fmtMetricaGrupo, juntarGrupoRecebido, b64Decodificar, reagirTreino, lerReacoesLista, reacoesRecebidas, EMOJIS_REACAO };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -269,5 +269,29 @@ contem("atrás", G.falasFantasmaGrupo(fc, CM, "eu", { t: "esteira-corrida", km: 
 contem("passou a distância toda dela", G.falasFantasmaGrupo(fc, CM, "eu", { t: "rua-corrida", km: 5.1, seg: 1900 }, agora).join(" "), "Você passou os 5 quilômetros da última corrida de Ana.");
 teste("pedalada não compara com corrida", "", G.falasFantasmaGrupo(novoEst(), CM, "eu", { t: "rua-bike", km: 3, seg: 600 }, agora).join(" "));
 
+
+console.log("\n--- as reações aos treinos dos amigos ---");
+{
+  const ag = Date.now(), dT = ag - 3600e3;
+  const m = G.lerMembroGrupo({ n: "Ana", re: [{ p: "eu12345", d: dT, e: "🔥", c: "monstro!\nvaleu", em: ag }, { p: "eu12345", d: dT, e: "💩", em: ag },
+    { p: "x", d: dT, e: "🔥" }, { p: "bia12345", d: dT, e: "👏", c: "a".repeat(200), em: ag }, { p: "bia12345", d: dT - 1, e: "💪", em: ag - 30 * 864e5 }] });
+  teste("lê só as reações válidas (emoji da lista, id certo, recentes)", 2, m.re.length);
+  teste("o comentário vem numa linha só", "monstro! valeu", m.re[0].c);
+  teste("e no máximo 60 letras", 60, m.re[1].c.length);
+  let l = G.reagirTreino([], "ana12345", dT, "🔥", "", ag);
+  teste("reagir acrescenta", ["🔥"], l.map((x) => x.e));
+  l = G.reagirTreino(l, "ana12345", dT, "👏", "", ag);
+  teste("outro emoji no mesmo treino troca (uma reação por treino)", ["👏"], l.map((x) => x.e));
+  l = G.reagirTreino(l, "ana12345", dT, "👏", "boa!", ag);
+  teste("comentar mantém o emoji e guarda o texto", ["👏", "boa!"], [l[0].e, l[0].c]);
+  teste("o mesmo emoji de novo, sem comentário, desfaz", 0, G.reagirTreino([{ p: "ana12345", d: dT, e: "🔥", em: ag }], "ana12345", dT, "🔥", "", ag).length);
+  const antes = { eu12345: { n: "Carlos", tt: 5 }, ana12345: { n: "Ana", tt: 3 } };
+  const depois = { eu12345: { n: "Carlos", tt: 5 }, ana12345: { n: "Ana", tt: 3, re: [{ p: "eu12345", d: dT, e: "🔥", c: "monstro!", em: ag }] } };
+  const ev = G.eventosGrupo(antes, depois, "eu12345", ag, "ts");
+  teste("a reação que chegou para mim vira aviso", [{ ico: "🔥", txt: "Ana reagiu 🔥 ao seu treino: “monstro!”", eu: true }], ev);
+  teste("a mesma reação de novo não avisa outra vez", 0, G.eventosGrupo(depois, depois, "eu12345", ag, "ts").length);
+  const rec = G.reacoesRecebidas(depois, "eu12345", dT, "eu12345", []);
+  teste("as reações que um treino recebeu", [{ id: "ana12345", n: "Ana", e: "🔥", c: "monstro!" }], rec);
+}
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

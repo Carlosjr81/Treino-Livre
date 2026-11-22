@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v258) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v259) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6130,6 +6130,18 @@ dicas de resolver problemas... altamente sugestivo para os usuários".
   vem marcado e é o único com o botão em degradê (regra das cores: um primário
   por tela). A `BemVindo` aponta para o guia rápido, e a ajuda do Jarvis para
   o "como resolver".
+
+## As cinco funções de 2026-11-22a (no visual do resumo animado)
+
+Pedido do dono: "implemente as 5 ideias e mantenha a identidade visual que adotamos no resumo animado; o que puder entrar no resumo animado, adicione". As cinco usam a letra de letreiro (`FONTE_JOGO`, `VIDEO_FONTE_JOGO`), o contorno preto atrás (`Contorno`, `numeroJogo`, `textoJogo`), as placas (`placaJogo`) e o fundo escuro da marca (`FUNDO_JOGO`).
+
+- **📷 A foto com os números** (`FotoComNumeros`, `desenharFotoNumeros`, `infoFotoDoTreino`, `infoFotoDoAno`, `ABRIR_FOTO_NUMEROS`, ponteiro de módulo como o `ABRIR_GUIA`). Um canvas de 1080×1920 com a selfie (câmera da frente) ou a foto da galeria cobrindo a tela, ou a arte do resumo (`desenharCenaArte` parado) sem foto; três modelos (`MODELOS_FOTO`: placar, letreiro, missão); o traçado do percurso (`desenharTracado`) na corrida. Entradas: o fim do treino, o histórico (ao lado do resumo animado) e o fim do resumo animado (com `d.fotoInfo` na retrospectiva). Compartilhar é o `compartilharImagem` de sempre. A foto não é guardada.
+- **🌅 Como o corpo acordou** (`notaDisposicao`, `FAIXAS_DISPOSICAO`, `CartaoDisposicao`, `LinhaDisposicao`, `AnelNota`). VFC (peso 0,4) e repouso (0,3) da última noite (até 20 h) contra a média da própria pessoa em 30 dias (pelo menos 3 medidas), e o sono das últimas 14 h (0,3); com menos de duas partes, não há nota. Faixas: 70+ descansado, 45+ em ordem, abaixo pedindo calma (manda procurar o médico se algo estiver fora do normal). **Informação geral, nunca "liberado"** (ver *A defesa legal*). Aparece na aba ❤ Saúde, numa linha no cartão do treino de hoje, no relógio (`corpoParaRelogio` põe `cp` na cópia do bolso; o painel leva `cp` e o relógio mostra "🌅 Corpo 78 · descansado" no lugar de "0 de N séries") e no resumo animado (cena "Como seu corpo acordou", pela saúde do dia do treino). **O sono entra na conta, mas não aparece no resumo** (pedido do dono, 2026-11-21l).
+- **🎁 A retrospectiva do ano** (`retrospectivaAno`, `cenasRetrospectiva`, `anoDaRetrospectiva`, `CartaoRetrospectiva`). As cenas são dos tipos que o resumo já desenha (abre, numero, grupos, recordes, texto, superacao, nivel, fecho), na tela e no vídeo do story: o `ResumoAnimado` aceita `d.cenas` prontas. O ano é o do calendário; na primeira quinzena de janeiro, o que acabou. Em Histórico › Números sempre (a partir de 3 treinos no ano), e **na tela inicial só em dezembro e na primeira quinzena de janeiro**, com "Agora não" para o ano (`treinolivre:retroDepois`): decisão de 2026-11-22a, outra exceção pequena à regra da tela inicial.
+- **❤ O coração no descanso, no relógio** (`CoracaoNoDescanso.kt`). O sensor de batimento do próprio relógio (`BODY_SENSORS`, pedido junto com o das notificações; uma vez só), ligado só com a tela do treino aberta e um treino ativo. Base: o mais baixo do treino; pico: o mais alto dos 20 s antes do descanso; pronto: voltar a 35% do caminho entre os dois (no mínimo base + 10), depois de 15 s de descanso. Na tela, embaixo do tempo: "❤ 128 → 105", e "❤ 104 · PRONTO ✓" com duas vibrações curtas. O ✓ seguinte leva `fr` (os segundos até o pronto), que o motor do bolso põe no acontecimento, `aplicarEventosBolso` grava na série, e o `finalizarSessao` leva ao histórico; com duas séries ou mais, o resumo tem a cena "Coração pronto entre as séries" (a mediana). Sem o celular (`SemCelular`), o `fr` não vai. **Não validado num relógio.**
+- **🔥 As reações dos amigos** (`EMOJIS_REACAO`, `reagirTreino`, `lerReacoesLista`, `reacoesRecebidas`, `reacoesDoTreino`). Cada pessoa publica, junto dos números dela no grupo, as reações que DEU (`re`: alvo, a hora do treino `ul.d`, o emoji, um comentário de até 60 letras), guardadas em `treinolivre:reacoes` (21 dias, 30 no máximo). Uma por treino: outro emoji troca, o mesmo de novo desfaz. O `eventosGrupo` escreve no mural as novas, e a que veio para mim é `eu: true` (o aviso ao abrir o app). No cartão de cada amigo, os botões e o "💬 Comentar"; no meu, as que recebi. No resumo animado, a cena "A galera reagiu" (tipo recordes com `icone`). Sem servidor novo: o mesmo tópico do grupo.
+
+Coberto por `teste-retrospectiva.js` (a retrospectiva e a foto), `teste-saude.js` (a nota), `teste-grupo.js` (as reações) e `teste-bolso.js` (o `fr`). No navegador: a aba Saúde com a nota, a retrospectiva na tela, os três modelos da foto, as cenas novas do resumo e o reagir no desafio. **Não validado num celular nem num relógio.**
 
 ## Navegação e telas
 

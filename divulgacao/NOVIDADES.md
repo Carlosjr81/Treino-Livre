@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-11-22d — Cada bordão no momento certo
+
+**Em uma frase:** o Jarvis agora escolhe o bordão pela hora do treino: "Hora do show!" no começo, "Baby, don't hurt me!" antes da série mais pesada, "Última! Eu quero, eu posso!" na última, "Light weight, baby!" no recorde e "Trapézio descendente!" no encolhimento.
+
+**O que mudou**
+- **Começo do treino:** "Hora do show!", "Saí de casa, comi pra caramba: hora do show!", "Eu quero, eu posso! Bora!", "Ain't nothing to it, but to do it!".
+- **Série mais pesada que a anterior:** "Baby, don't hurt me!", "Ajuda o maluco que tá doente!", "Que não vai dar o quê, rapaz?".
+- **Última série do exercício:** "Última! Eu quero, eu posso!".
+- **Recorde pessoal:** "Light weight, baby!", "Yeah buddy!", "Yeah baby!", "Aqui é bodybuilder!", "Ain't nothing but a peanut!".
+- **Encolhimento (trapézio):** "Trapézio descendente!".
+- **Cobrança:** entrou "Todo mundo quer ser fisiculturista, mas ninguém quer levantar peso pesado."
+
+**Por que importa para quem treina**
+- O bordão certo na hora certa: a frase da série pesada chega quando a série é pesada.
+
+**Como usar**
+- Com o "Jeito animado" do Jarvis ligado (o padrão), as frases vêm sozinhas.
+
+**Ideias de vídeo**
+- Carga subiu, fim do descanso, e o fone: "Próxima: série 3 de supino. Baby, don't hurt me!".
+- O recorde com "Light weight, baby!".
+
+**Não prometer**
+- Os bordões são gírias da academia e não citam nem representam nenhuma celebridade.
+
+---
+
 ## 2026-11-22c — O Jarvis fala a língua da academia
 
 **Em uma frase:** o incentivo e a cobrança do app ganharam os bordões e as gírias da academia: "Birl!", "Bora, monstro!", "Tá saindo da jaula o monstro!", "Yeah buddy!", "Light weight, baby!".

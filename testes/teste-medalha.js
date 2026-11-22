@@ -80,5 +80,18 @@ console.log("\n--- as frases da academia (2026-11-22c) ---");
   teste("nenhuma promessa de resultado", [], todas.filter((x) => /garant|em \d+ dias|vai ficar (grande|monstro)/i.test(x)));
   teste("as listas de sempre continuam e ganham as novas", true, /const ANIMO_ANOTOU = \["Boa!"[^\n]*\.concat\(/.test(html) && /const FRASES_BOLSO_VOLTA = \["Bora!"[^\n]*\.concat\(/.test(html));
 }
+
+console.log("\n--- cada bordão no seu momento (2026-11-22d) ---");
+{
+  eval(trecho("const FRASES_MAROMBA = ") + trecho("const sorteiaFrase = ") + trecho("function bordaoDoMomento(") + trecho("const ehTrapezio = ") + "\nglobalThis.BM = { FRASES_MAROMBA, bordaoDoMomento, ehTrapezio };");
+  const F = BM.FRASES_MAROMBA;
+  teste("o recorde vem com um bordão de recorde", true, F.recorde.indexOf(BM.bordaoDoMomento({ recorde: true, ultima: true })) >= 0);
+  teste("a série mais pesada vem antes da última", true, F.pesada.indexOf(BM.bordaoDoMomento({ pesada: true, ultima: true })) >= 0);
+  teste("a última série: 'Eu quero, eu posso'", true, F.ultima.indexOf(BM.bordaoDoMomento({ ultima: true })) >= 0);
+  teste("sem momento especial, nada (vale a frase de sempre)", "", BM.bordaoDoMomento({}));
+  teste("o encolhimento é trapézio", [true, false], [BM.ehTrapezio({ id: "encolhimento-halteres", nome: "Encolhimento com halteres" }), BM.ehTrapezio({ id: "supino", nome: "Supino" })]);
+  teste("as frases pedidas pelo dono estão lá", true, ["Yeah baby!", "Light weight, baby!", "Baby, don't hurt me!", "Ajuda o maluco que tá doente!", "Trapézio descendente!"]
+    .every((x) => JSON.stringify(F).indexOf(x) >= 0) && JSON.stringify(F).indexOf("Eu quero, eu posso") >= 0 && JSON.stringify(F).indexOf("comi pra caramba") >= 0);
+}
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v261) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v262) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6165,6 +6165,7 @@ Pedido do dono: "frases e jargões do mundo fitness e bodybuilder, e frases icô
 
 - **Um objeto de dados no primeiro script** (`FRASES_MAROMBA`: anotou, volta, fimEx, aula, tecnico, cobranca, lembreteTitulo, fecho e os carimbos do resumo), que **soma** às listas de antes (`ANIMO_ANOTOU`, `ANIMO_VOLTA`, `FRASES_BOLSO_*`, `FRASES_AULA`, `FRASES_TECNICO.animo`): nada saiu. `fraseDoDia` (a mesma o dia todo: o lembrete e a meta da semana) e `sorteiaFrase` (o resumo). O lembrete em segundo plano do `sw.js` tem uma lista curta própria (o service worker não vê o app).
 - **Os bordões entram como gíria, SEM o nome de ninguém** ("Birl!", "Tá saindo da jaula o monstro!", "Hora do show!", "Ajuda o maluco que tá doente!", "Yeah buddy!", "Light weight, baby!", "Ain't nothing but a peanut!"). Dois motivos, ditos ao dono: usar o nome de uma pessoa real num produto comercial pede a autorização dela (Código Civil, art. 18, e o direito de imagem), e frase atribuída a alguém tem de ser conferida palavra por palavra (de vários dos citados não há frase conhecida que se possa confirmar, e frase inventada na boca de alguém é pior que nenhuma). **Para pôr nomes**: a autorização por escrito de cada um, e a frase exata.
+- **Cada bordão no seu momento** (2026-11-22d, com as frases que o dono mandou): `bordaoDoMomento` escolhe, nessa ordem, o do recorde (no `conferirRecorde`), o do trapézio (`ehTrapezio`, ao anotar pela voz), o da série mais pesada que a anterior e o da última série (os dois no fim do descanso, depois do "Próxima: …"); e o começo do treino fala um de `FRASES_MAROMBA.inicio` (com o jeito animado). "Olhou, sorriu, é transer, tio" ficou de fora: o sentido não ficou claro e parece piada de sexo, falada em voz alta na academia; o dono decide.
 - **Regras** (cobradas no `teste-medalha.js`): sem palavrão; sem remédio, "bomba" ou anabolizante; nada que mande treinar com dor (o aviso de saúde manda parar); sem promessa de resultado; a cobrança com humor, nunca humilhando.
 
 ## Navegação e telas

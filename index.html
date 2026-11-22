@@ -873,7 +873,7 @@ const EXERCICIOS = [
 // manda parar). Cada lista soma às frases de antes, que continuam.
 const FRASES_MAROMBA = {
   // depois de anotar a série
-  anotou: ["Birl!", "Isso, monstro!", "Série paga!", "Esmagou!", "Yeah buddy!", "Light weight, baby!", "Ninguém segura!", "Sem frango hoje!", "Pesado e bonito!"],
+  anotou: ["Birl!", "Isso, monstro!", "Série paga!", "Esmagou!", "Yeah buddy!", "Yeah baby!", "Light weight, baby!", "Ninguém segura!", "Sem frango hoje!", "Pesado e bonito!"],
   // o fim do descanso: a volta para o ferro
   volta: ["Bora, monstro!", "Hora do show!", "Tá saindo da jaula o monstro!", "Ajuda o maluco que tá doente!", "O ferro tá te chamando!",
     "Yeah buddy, bora!", "Foco no shape!", "Sobe pro ferro!", "Bora pagar a próxima!", "Levanta que o shape não espera!"],
@@ -885,7 +885,8 @@ const FRASES_MAROMBA = {
   // a cobrança: o lembrete e a meta da semana (com humor, nunca humilhando)
   cobranca: ["O shape não vem por delivery.", "Desculpa não levanta peso.", "O ferro não mente: quem aparece, colhe.",
     "Frango que falta treino continua frango.", "Dia de perna não se pula.", "Constância é o que separa o frango do monstro.",
-    "Ninguém fica monstro no sofá.", "O ferro tá esperando, e ele não tem pressa: você tem."],
+    "Ninguém fica monstro no sofá.", "O ferro tá esperando, e ele não tem pressa: você tem.",
+    "Todo mundo quer ser fisiculturista, mas ninguém quer levantar peso pesado."],
   lembreteTitulo: ["Hora do show! 💪", "Bora, monstro! 🏋", "O ferro tá chamando! 🔥", "Hora do treino! 💪", "Birl! Dia de treino 🦍"],
   // o fim do resumo animado
   fecho: ["Mais forte que a desculpa. Até a próxima.", "Treino pago. Até a próxima, monstro.", "Birl! Mais um pra conta. Até a próxima.",
@@ -894,7 +895,32 @@ const FRASES_MAROMBA = {
   gritoPeso: ["Light weight, baby!", "Ain't nothing but a peanut!", "Peso vencido"],
   gritoSeries: ["Série paga!", "Série a série, sem parar"],
   gritoRecorde: ["Yeah buddy!", "Recorde quebrado!"],
+  // 2026-11-22d (pedido do dono, com as frases dele): cada bordão no momento
+  // em que ele faz sentido
+  // o começo do treino
+  inicio: ["Hora do show!", "Saí de casa, comi pra caramba: hora do show!", "Eu quero, eu posso! Bora!", "Ain't nothing to it, but to do it!",
+    "Birl! Bora treinar!", "Tá saindo da jaula o monstro!"],
+  // a última série do exercício
+  ultima: ["Última! Eu quero, eu posso!", "Última série! Ain't nothing to it, but to do it!", "É a última, monstro: eu quero, eu posso!",
+    "Última! Que não vai dar o quê, rapaz?"],
+  // a série mais pesada que a de antes
+  pesada: ["Baby, don't hurt me!", "Light weight, baby!", "Ajuda o maluco que tá doente!", "Que não vai dar o quê, rapaz?", "Mais peso? Light weight, baby!"],
+  // o recorde pessoal
+  recorde: ["Light weight, baby!", "Yeah buddy!", "Yeah baby!", "Aqui é bodybuilder!", "Ain't nothing but a peanut!"],
+  // o trapézio (o encolhimento)
+  trapezio: ["Trapézio descendente!", "Olha o trapézio descendente, monstro!"],
 };
+// O bordão do momento: o recorde, o trapézio, a série mais pesada e a última
+// série, nessa ordem. Sem momento especial, nada (vale a frase de sempre).
+function bordaoDoMomento(c) {
+  if (!c) return "";
+  if (c.recorde) return sorteiaFrase(FRASES_MAROMBA.recorde);
+  if (c.trapezio) return sorteiaFrase(FRASES_MAROMBA.trapezio);
+  if (c.pesada) return sorteiaFrase(FRASES_MAROMBA.pesada);
+  if (c.ultima) return sorteiaFrase(FRASES_MAROMBA.ultima);
+  return "";
+}
+const ehTrapezio = (ex) => !!ex && /encolhimento|shrug|trap[eé]zio/i.test((ex.id || "") + " " + (ex.nome || ""));
 // a frase do dia (a mesma o dia inteiro, para não piscar a cada abertura)
 function fraseDoDia(lista, desloca) {
   if (!lista || !lista.length) return "";
@@ -1832,7 +1858,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-22c";
+const VERSAO_APP = "2026-11-22d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -30780,7 +30806,17 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       // Essa é a frase que evita tirar o telefone do bolso entre as séries — e
       // ela não pode depender do microfone estar ligado: falar e ouvir são
       // coisas diferentes, e quem treina de fone quer o retorno de qualquer jeito.
-      const prox = alvo ? " Próxima: série " + (alvo.si + 1) + " de " + nomeDoItem(alvo.ei) + "." : "";
+      let prox = alvo ? " Próxima: série " + (alvo.si + 1) + " de " + nomeDoItem(alvo.ei) + "." : "";
+      // a última série, ou mais pesada que a de antes, ganha o bordão dela
+      if (alvo && vozAnimado) {
+        const itA = sessao.itens[alvo.ei], sA = itA && itA.series[alvo.si];
+        if (sA) {
+          const trab = itA.series.filter((x) => !ehAquecimento(x) && !ehDrop(x));
+          const antes = itA.series.slice(0, alvo.si).filter((x) => x.feito && !ehAquecimento(x) && !ehDrop(x)).pop();
+          const b = bordaoDoMomento({ pesada: antes && cargaDe(sA) > cargaDe(antes), ultima: trab[trab.length - 1] === sA });
+          if (b) prox += " " + b;
+        }
+      }
       const frase = (vozAnimado ? animo(ANIMO_VOLTA, "volta") + " Descanso fechado." : "Descanso concluído.") + prox;
       const escondido = typeof document !== "undefined" && document.visibilityState !== "visible";
       setCalouNoFundo(escondido);
@@ -31211,7 +31247,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
         destaque: (ex ? ex.nome : "Exercício") + "\n" + peso + " kg × " + reps,
         detalhe: "Seu melhor era " + rec.peso + " kg. Você subiu " + ganho.toLocaleString("pt-BR") + " kg!",
       });
-      return "Recorde pessoal! " + fmtNum(peso) + " quilos em " + (ex ? nomeFalado(ex.nome) : "exercício") +
+      return bordaoDoMomento({ recorde: true }) + " Recorde pessoal! " + fmtNum(peso) + " quilos em " + (ex ? nomeFalado(ex.nome) : "exercício") +
         ". Seu melhor era " + fmtNum(rec.peso) + ". Subiu " + fmtNum(ganho) + ".";
     }
     return null;
@@ -31779,7 +31815,7 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     // porque o reconhecimento erra e é ouvindo o número de volta que dá para pegar.
     const nomeEx = ex ? nomeFalado(ex.nome) : "exercício";
     let fala = vozAnimado
-      ? animo(ANIMO_ANOTOU, "anotou") + " Anotei " + nomeEx + ", " + feito + "." + extra
+      ? (ehTrapezio(ex) ? bordaoDoMomento({ trapezio: true }) : animo(ANIMO_ANOTOU, "anotou")) + " Anotei " + nomeEx + ", " + feito + "." + extra
       : "Anotei: " + nomeEx + ", " + feito + "." + extra;
     if (c.aquecimento) fala += " Contei como aquecimento.";
     // No modo direto a pessoa escolheu respostas enxutas: a posição da série já
@@ -36937,6 +36973,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     if (limite) nova = ajustarSessaoAoTempo(nova, limite, exPorId, descanso, descansoModo, ritmoDaFicha(estimarTempoFicha(treino, exPorId, historico, descanso, descansoModo))).sessao;
     setSessao(nova);
     setAba("sessao");
+    // o começo do treino com um bordão da academia (2026-11-22d)
+    if (vozRef.current.animado !== false) narrarVoz(sorteiaFrase(FRASES_MAROMBA.inicio), vozRef.current);
     // Quem já usou o Jarvis não quer ligar o microfone a cada treino. O toque em
     // "Treinar" é o gesto que o navegador exige para abrir o microfone.
     if (vozRef.current.preferido && !vozAtiva) ligarVoz();

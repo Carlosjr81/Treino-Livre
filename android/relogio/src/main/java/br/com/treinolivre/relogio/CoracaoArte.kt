@@ -3,7 +3,6 @@ package br.com.treinolivre.relogio
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.DashPathEffect
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
@@ -28,7 +27,16 @@ class CoracaoArte(ctx: Context) : View(ctx) {
     var volta = 0f          // 0..1: quanto do caminho do pico ao alvo já desceu
     var pronto = false
     var animando = false
-        set(v) { field = v; if (v) postInvalidateOnAnimation() }
+        set(v) { val era = field; field = v; if (v && !era) postInvalidateOnAnimation() }
+    // ms entre quadros: 33 no descanso, 66 atrás da série (meio ritmo, menos bateria)
+    var intervalo = 33L
+    // o anel da volta (só no descanso: atrás da série não há volta a medir)
+    var anel = true
+
+    override fun onVisibilityChanged(v: View, vis: Int) {
+        super.onVisibilityChanged(v, vis)
+        if (vis == VISIBLE && animando) postInvalidateOnAnimation()
+    }
     private val t0 = SystemClock.uptimeMillis()
 
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -131,17 +139,17 @@ class CoracaoArte(ctx: Context) : View(ctx) {
             Color.TRANSPARENT, Shader.TileMode.CLAMP)
         c.drawCircle(cx, cy, L * 0.5f, p)
         p.shader = null
-        // o anel tracejado girando
-        p.style = Paint.Style.STROKE; p.strokeWidth = L * 0.014f; p.color = COR_AR; p.alpha = 150
-        p.pathEffect = DashPathEffect(floatArrayOf(L * 0.09f, L * 0.035f, L * 0.015f, L * 0.035f), 0f)
-        c.save(); c.rotate((ms / 3800.0 * 180 / PI).toFloat(), cx, cy); c.drawCircle(cx, cy, r0 * 1.08f, p); c.restore()
-        p.pathEffect = null; p.alpha = 255
+        // atrás dos dados, sem o anel tracejado da mira: a borda da tela já tem
+        // o anel do descanso, e três anéis juntos virariam ruído
         // o anel da volta
+        p.style = Paint.Style.STROKE; p.pathEffect = null
         p.strokeCap = Paint.Cap.ROUND; p.strokeWidth = L * 0.05f
         val arco = RectF(cx - r0 * 0.94f, cy - r0 * 0.94f, cx + r0 * 0.94f, cy + r0 * 0.94f)
-        p.color = 0x1AFFFFFF; c.drawArc(arco, 0f, 360f, false, p)
-        val frac = if (pronto) 1f else volta.coerceIn(0f, 1f)
-        if (frac > 0f) { p.color = if (pronto) Cores.VERDE else COR_AR; c.drawArc(arco, -90f, frac * 360f, false, p) }
+        if (anel) {
+            p.color = 0x1AFFFFFF; c.drawArc(arco, 0f, 360f, false, p)
+            val frac = if (pronto) 1f else volta.coerceIn(0f, 1f)
+            if (frac > 0f) { p.color = if (pronto) Cores.VERDE else COR_AR; c.drawArc(arco, -90f, frac * 360f, false, p) }
+        }
         // a onda de cada batida
         if (animando && f < 0.6f) {
             p.strokeWidth = L * 0.016f; p.color = if (pronto) Cores.VERDE else Color.parseColor("#FF3B5C")
@@ -161,6 +169,6 @@ class CoracaoArte(ctx: Context) : View(ctx) {
             p.strokeCap = Paint.Cap.ROUND; p.strokeJoin = Paint.Join.ROUND
             c.drawPath(Path().apply { moveTo(cx + r0 * 0.62f, cy + r0 * 0.73f); lineTo(cx + r0 * 0.7f, cy + r0 * 0.81f); lineTo(cx + r0 * 0.84f, cy + r0 * 0.62f) }, p)
         }
-        if (animando && isAttachedToWindow) postInvalidateDelayed(33L)
+        if (animando && isAttachedToWindow && visibility == VISIBLE) postInvalidateDelayed(intervalo)
     }
 }

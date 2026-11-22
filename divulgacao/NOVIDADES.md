@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-22h — No relógio, o coração bate atrás dos números
+
+**Em uma frase:** no relógio, o coração batendo fica atrás do tempo do descanso e dos dados da série, em vez de trocar de tela.
+
+**O que mudou**
+- No descanso, o coração do resumo animado aparece grande atrás do tempo, com o anel que enche até ele voltar e fica verde com ✓; embaixo do tempo, "❤ 128 → 105" e "PRONTO em 42 s".
+- Na série, o mesmo coração bem apagado, batendo no seu batimento de agora, atrás da carga e das repetições.
+- O tempo do descanso não sai mais da tela.
+
+**Por que importa para quem treina**
+- Num relance se vê o tempo e o coração juntos, sem esperar a tela trocar.
+
+**Como usar**
+- Atualize o app do relógio e permita o sensor de batimento.
+
+**Ideias de vídeo**
+- Close no pulso durante o descanso: o tempo correndo na frente e o coração batendo atrás, ficando verde.
+
+**Não prometer**
+- Não é exame. Precisa de relógio Wear OS com o app e o sensor de batimento ligado.
+
+---
+
 ## 2026-11-22g — O coração do resumo no descanso, e o app que se atualiza sozinho
 
 **Em uma frase:** o coração batendo do resumo animado agora aparece no descanso, no celular e no relógio, e o app (com o relógio) se atualiza sozinho.

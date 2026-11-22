@@ -75,6 +75,8 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
                 hora.fixarAmbiente(true)
                 if (::bateria.isInitialized) bateria.visibility = View.GONE
                 linha.removeCallbacks(tique)
+                // tela apagada: sem o coração atrás (gasta e não se vê)
+                if (::fundoFc.isInitialized) { fundoFc.animando = false; fundoFc.animate().cancel(); fundoFc.alpha = 0f; fundoFc.visibility = View.GONE; fundoAlvo = 0f }
                 mostrar()
             }
             override fun onUpdateAmbient() { atualizarRelogio(); hora.invalidate() }
@@ -135,7 +137,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     // o batimento no descanso e o aviso de "pronto" (2026-11-22a)
     private lateinit var coracao: CoracaoNoDescanso
     private lateinit var fcTxt: TextView
-    private lateinit var arteFc: CoracaoArte
+    private lateinit var fundoFc: CoracaoArte
     private lateinit var blocoSerie: LinearLayout
     private lateinit var linhaPeso: LinearLayout
     private lateinit var linhaReps: LinearLayout
@@ -310,16 +312,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         blocoDescanso = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(rotuloDescanso)
-            // o número grande e, na vista do coração, a arte do coração batendo
-            // ao lado (2026-11-22g); a linha tem altura fixa para nada pular
-            arteFc = CoracaoArte(this@TelaRelogio).apply { visibility = View.GONE }
-            addView(LinearLayout(this@TelaRelogio).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER
-                minimumHeight = dp(76)
-                addView(arteFc, LinearLayout.LayoutParams(dp(76), dp(76)).apply { rightMargin = dp(2) })
-                addView(relogio, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            addView(relogio)
             addView(fcTxt)
             addView(botoesDescanso)
         }
@@ -416,6 +409,10 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             setBackgroundColor(Color.BLACK)
             gel = Gelatina(this@TelaRelogio).apply {
                 addView(palco, FrameLayout.LayoutParams(tudo, tudo))
+                // o coração batendo atrás dos dados (2026-11-22h): grande, no meio
+                val lado = (minOf(resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels) * 0.78f).toInt()
+                fundoFc = CoracaoArte(this@TelaRelogio).apply { alpha = 0f; visibility = View.GONE }
+                addView(fundoFc, FrameLayout.LayoutParams(lado, lado, Gravity.CENTER))
                 addView(rolagem, FrameLayout.LayoutParams(tudo, tudo))
                 addView(frente, FrameLayout.LayoutParams(tudo, tudo))
             }
@@ -1030,7 +1027,8 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         val ate = descansoAte()
         if (ate <= 0L) {
             descAteVisto = 0L
-            if (estavaDescansando) { estavaDescansando = false; coracao.fimDescanso(); esconderArte(); rotuloDescanso.text = "DESCANSO"; mostrar() }
+            if (estavaDescansando) { estavaDescansando = false; coracao.fimDescanso(); mostrar() }
+            atualizarFundoFc(System.currentTimeMillis(), false)
             return
         }
         if (!estavaDescansando) { coracao.inicioDescanso(System.currentTimeMillis()); descIniTela = System.currentTimeMillis() }
@@ -1048,7 +1046,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         relogio.setTextColor(cor)
         rotuloDescanso.setTextColor(if (ambiente) Cores.CINZA else cor)
         pintarDescanso(if (ambiente) 0 else cor)
-        mostrarCoracao(agora, resta, tempoTxt)
+        mostrarCoracao(agora)
         palco.descanso(fracao, resta)
         if (!ambiente && resta != ultimoSegundo) {
             ultimoSegundo = resta
@@ -1067,32 +1065,53 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     //
     // A recuperação na tela (2026-11-22f, pedido do dono: "onde está a
     // recuperação do coração entre as séries? Pode mesclar o tempo de tela").
-    // A tela é pequena para os dois números grandes, então o número grande
-    // alterna: 5 s o tempo do descanso, 3 s o coração ("❤ 128", com
-    // "CORAÇÃO → 105" em cima e o tempo embaixo). Quando o coração volta, ele
-    // fica 4 s à vista em verde. Nos 10 últimos segundos é só o tempo (é a hora
-    // de voltar ao ferro), e no ambiente não alterna.
+    // O coração no descanso (2026-11-22f) e, desde 2026-11-22h, ATRÁS dos dados.
+    // Pergunta do dono: alternar as telas do coração e do treino, ou pôr a
+    // recuperação ao fundo? Ao fundo: alternando, quem olhava o pulso ficava 3
+    // de cada 8 s sem ver o tempo, e esperava a vez do coração. Atrás, os dois
+    // estão sempre à vista e nada pula:
+    // - no descanso, o coração do resumo animado grande atrás do tempo (bem
+    //   visível), com o anel que enche até ele voltar, verde com ✓ quando volta;
+    //   a linha embaixo do tempo diz o número ("❤ 128 → 105", "PRONTO ✓");
+    // - na série, o mesmo coração bem apagado, batendo no batimento de agora
+    //   (sem o anel: a volta é coisa do descanso), a meio ritmo de quadros;
+    // - no ambiente, sem leitura ou sem permissão, nada atrás.
     // Sem a permissão, a linha diz como ligar; sem leitura ainda, "medindo".
-    private var vistaCoracao = false
-    private fun esconderArte() {
-        vistaCoracao = false
-        if (::arteFc.isInitialized) { arteFc.animando = false; arteFc.visibility = View.GONE }
-    }
     private var ultimoFcEnvio = 0L
     private var ultimoFcChave = ""
-    private fun mostrarCoracao(agora: Long, resta: Int, tempoTxt: String) {
+    private var fundoAlvo = -1f
+    private fun atualizarFundoFc(agora: Long, descansando: Boolean) {
+        if (!::fundoFc.isInitialized) return
+        val ativo = semCel != null || (painel?.optBoolean("ativo") == true && painel?.optBoolean("fim") != true)
+        val ver = !ambiente && ativo && coracao.temPermissao() && coracao.fresco(agora)
+        val alvoA = when { !ver -> 0f; descansando -> if (coracao.prontoEm > 0) 0.62f else 0.5f; else -> 0.16f }
+        if (alvoA != fundoAlvo) {
+            fundoAlvo = alvoA
+            fundoFc.animate().cancel()
+            if (alvoA > 0f) fundoFc.visibility = View.VISIBLE
+            fundoFc.animate().alpha(alvoA).setDuration(450L).withEndAction { if (fundoAlvo == 0f) fundoFc.visibility = View.GONE }.start()
+        }
+        fundoFc.animando = ver
+        if (!ver) return
+        fundoFc.intervalo = if (descansando) 33L else 66L
+        fundoFc.anel = descansando
+        fundoFc.bpm = coracao.bpm
+        fundoFc.pronto = descansando && coracao.prontoEm > 0
+        val pk = coracao.picoBpm; val al = coracao.alvo
+        fundoFc.volta = if (descansando && al > 0 && pk > al) ((pk - coracao.bpm).toFloat() / (pk - al)).coerceIn(0f, 1f) else 0f
+    }
+
+    private fun mostrarCoracao(agora: Long) {
         val corFc = 0xFFFF6B81.toInt()
-        rotuloDescanso.text = "DESCANSO"
-        if (!coracao.temSensor()) { fcTxt.visibility = View.GONE; esconderArte(); return }
+        atualizarFundoFc(agora, true)
+        if (!coracao.temSensor()) { fcTxt.visibility = View.GONE; return }
         if (!coracao.temPermissao()) {
-            esconderArte()
             fcTxt.visibility = if (ambiente) View.GONE else View.VISIBLE
             fcTxt.text = "❤ Toque: ver o coração voltar"
             fcTxt.setTextColor(corFc)
             return
         }
         if (!coracao.fresco(agora)) {
-            esconderArte()
             fcTxt.visibility = if (ambiente) View.GONE else View.VISIBLE
             fcTxt.text = "❤ medindo…"
             fcTxt.setTextColor(Cores.CINZA)
@@ -1101,37 +1120,10 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         fcTxt.visibility = View.VISIBLE
         val b = coracao.bpm
         val pronto = coracao.prontoEm > 0
-        val desde = if (descIniTela > 0) agora - descIniTela else 0L
-        val fase = desde % 8_000L
-        val agoraPronto = pronto && agora - coracao.prontoEm < 4_000L
-        val ver = !ambiente && resta > 10 && (agoraPronto || (desde > 4_000L && fase >= 5_000L))
-        if (ver != vistaCoracao) {
-            vistaCoracao = ver
-            relogio.animate().cancel()
-            relogio.alpha = 0.2f
-            relogio.animate().alpha(1f).setDuration(260L).start()
-            arteFc.visibility = if (ver) View.VISIBLE else View.GONE
-            arteFc.animando = ver
-            if (ver) { arteFc.scaleX = 0.6f; arteFc.scaleY = 0.6f; arteFc.animate().scaleX(1f).scaleY(1f).setDuration(380L).setInterpolator(OvershootInterpolator(2f)).start() }
-        }
-        if (ver) {
-            arteFc.bpm = b
-            arteFc.pronto = pronto
-            val pk = coracao.picoBpm; val al = coracao.alvo
-            arteFc.volta = if (al > 0 && pk > al) ((pk - b).toFloat() / (pk - al)).coerceIn(0f, 1f) else 0f
-            relogio.text = b.toString()
-            val cor = if (pronto) Cores.VERDE else corFc
-            relogio.setTextColor(cor)
-            rotuloDescanso.text = when { pronto -> "CORAÇÃO PRONTO ✓"; coracao.alvo > 0 -> "CORAÇÃO → " + coracao.alvo; else -> "CORAÇÃO" }
-            rotuloDescanso.setTextColor(cor)
-            fcTxt.text = "⏱ " + tempoTxt + if (pronto) "  ·  voltou em " + coracao.segundosAtePronto() + " s" else ""
-            fcTxt.setTextColor(Cores.CINZA)
-        } else {
-            when {
-                pronto -> { fcTxt.text = "❤ $b · PRONTO ✓"; fcTxt.setTextColor(if (ambiente) Color.WHITE else Cores.VERDE) }
-                coracao.alvo > 0 -> { fcTxt.text = "❤ $b → " + coracao.alvo; fcTxt.setTextColor(if (ambiente) Cores.CINZA else corFc) }
-                else -> { fcTxt.text = "❤ $b bpm"; fcTxt.setTextColor(if (ambiente) Cores.CINZA else corFc) }
-            }
+        when {
+            pronto -> { fcTxt.text = "❤ $b · PRONTO em " + coracao.segundosAtePronto() + " s ✓"; fcTxt.setTextColor(if (ambiente) Color.WHITE else Cores.VERDE) }
+            coracao.alvo > 0 -> { fcTxt.text = "❤ $b → " + coracao.alvo; fcTxt.setTextColor(if (ambiente) Cores.CINZA else corFc) }
+            else -> { fcTxt.text = "❤ $b bpm"; fcTxt.setTextColor(if (ambiente) Cores.CINZA else corFc) }
         }
         // o mesmo número vai à tela do treino no celular, quando muda (no máximo a cada 3 s)
         val chave = "$b|${coracao.alvo}|$pronto"

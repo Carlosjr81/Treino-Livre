@@ -344,7 +344,7 @@ console.log("--- o coração no descanso (o relógio mede quanto ele levou para 
   teste("o site se atualiza sozinho só fora do treino", true, /const podeAtualizarSo = !!versaoNova && !sessao && !algoVivo/.test(html));
   const autoKt = require("fs").readFileSync(require("path").join(__dirname, "..", "android/app/src/direto/java/br/com/treinolivre/app/AtualizaSozinho.kt"), "utf8");
   teste("o celular só instala de tela apagada e sem treino", true, /pm\.isInteractive\) return false/.test(autoKt) && /BolsoService\.instancia != null/.test(autoKt) && /USER_ACTION_NOT_REQUIRED/.test(autoKt));
-  teste("o relógio alterna o tempo e o coração e manda o batimento", true, /CORAÇÃO → /.test(kt) && /put\("a", "fc"\)/.test(kt));
+  teste("o relógio põe o coração atrás dos dados e manda o batimento", true, /fundoFc = CoracaoArte/.test(kt) && /descansando -> if \(coracao\.prontoEm > 0\) 0\.62f else 0\.5f; else -> 0\.16f/.test(kt) && /put\("a", "fc"\)/.test(kt));
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
   process.exit(mal ? 1 : 0);

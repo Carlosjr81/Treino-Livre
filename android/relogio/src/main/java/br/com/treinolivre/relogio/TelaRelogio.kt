@@ -135,6 +135,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     // o batimento no descanso e o aviso de "pronto" (2026-11-22a)
     private lateinit var coracao: CoracaoNoDescanso
     private lateinit var fcTxt: TextView
+    private lateinit var arteFc: CoracaoArte
     private lateinit var blocoSerie: LinearLayout
     private lateinit var linhaPeso: LinearLayout
     private lateinit var linhaReps: LinearLayout
@@ -309,7 +310,16 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         blocoDescanso = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(rotuloDescanso)
-            addView(relogio)
+            // o número grande e, na vista do coração, a arte do coração batendo
+            // ao lado (2026-11-22g); a linha tem altura fixa para nada pular
+            arteFc = CoracaoArte(this@TelaRelogio).apply { visibility = View.GONE }
+            addView(LinearLayout(this@TelaRelogio).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                minimumHeight = dp(76)
+                addView(arteFc, LinearLayout.LayoutParams(dp(76), dp(76)).apply { rightMargin = dp(2) })
+                addView(relogio, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             addView(fcTxt)
             addView(botoesDescanso)
         }
@@ -1020,7 +1030,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         val ate = descansoAte()
         if (ate <= 0L) {
             descAteVisto = 0L
-            if (estavaDescansando) { estavaDescansando = false; coracao.fimDescanso(); mostrar() }
+            if (estavaDescansando) { estavaDescansando = false; coracao.fimDescanso(); esconderArte(); rotuloDescanso.text = "DESCANSO"; mostrar() }
             return
         }
         if (!estavaDescansando) { coracao.inicioDescanso(System.currentTimeMillis()); descIniTela = System.currentTimeMillis() }
@@ -1064,21 +1074,25 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
     // de voltar ao ferro), e no ambiente não alterna.
     // Sem a permissão, a linha diz como ligar; sem leitura ainda, "medindo".
     private var vistaCoracao = false
+    private fun esconderArte() {
+        vistaCoracao = false
+        if (::arteFc.isInitialized) { arteFc.animando = false; arteFc.visibility = View.GONE }
+    }
     private var ultimoFcEnvio = 0L
     private var ultimoFcChave = ""
     private fun mostrarCoracao(agora: Long, resta: Int, tempoTxt: String) {
         val corFc = 0xFFFF6B81.toInt()
         rotuloDescanso.text = "DESCANSO"
-        if (!coracao.temSensor()) { fcTxt.visibility = View.GONE; vistaCoracao = false; return }
+        if (!coracao.temSensor()) { fcTxt.visibility = View.GONE; esconderArte(); return }
         if (!coracao.temPermissao()) {
-            vistaCoracao = false
+            esconderArte()
             fcTxt.visibility = if (ambiente) View.GONE else View.VISIBLE
             fcTxt.text = "❤ Toque: ver o coração voltar"
             fcTxt.setTextColor(corFc)
             return
         }
         if (!coracao.fresco(agora)) {
-            vistaCoracao = false
+            esconderArte()
             fcTxt.visibility = if (ambiente) View.GONE else View.VISIBLE
             fcTxt.text = "❤ medindo…"
             fcTxt.setTextColor(Cores.CINZA)
@@ -1096,9 +1110,16 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
             relogio.animate().cancel()
             relogio.alpha = 0.2f
             relogio.animate().alpha(1f).setDuration(260L).start()
+            arteFc.visibility = if (ver) View.VISIBLE else View.GONE
+            arteFc.animando = ver
+            if (ver) { arteFc.scaleX = 0.6f; arteFc.scaleY = 0.6f; arteFc.animate().scaleX(1f).scaleY(1f).setDuration(380L).setInterpolator(OvershootInterpolator(2f)).start() }
         }
         if (ver) {
-            relogio.text = "❤ $b"
+            arteFc.bpm = b
+            arteFc.pronto = pronto
+            val pk = coracao.picoBpm; val al = coracao.alvo
+            arteFc.volta = if (al > 0 && pk > al) ((pk - b).toFloat() / (pk - al)).coerceIn(0f, 1f) else 0f
+            relogio.text = b.toString()
             val cor = if (pronto) Cores.VERDE else corFc
             relogio.setTextColor(cor)
             rotuloDescanso.text = when { pronto -> "CORAÇÃO PRONTO ✓"; coracao.alvo > 0 -> "CORAÇÃO → " + coracao.alvo; else -> "CORAÇÃO" }
@@ -1146,7 +1167,7 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         } catch (e: Exception) { }
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         val i = permissions.indexOf(android.Manifest.permission.BODY_SENSORS)
         if (i < 0) return

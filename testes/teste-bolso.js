@@ -335,8 +335,15 @@ console.log("--- o coração no descanso (o relógio mede quanto ele levou para 
   teste("o batimento do relógio é conferido", { b: 120, alvo: 100, pk: 150, pr: true, s: 42 }, B.fcDoRelogio({ b: "120", alvo: 100, pk: 150, pr: 1, s: 42 }));
   teste("e recusa o que não é batimento", null, B.fcDoRelogio({ b: 999 }));
   teste("e recusa lixo", null, B.fcDoRelogio("<script>"));
-  teste("a faixa do descanso mostra o coração", true, /coração recuperado/.test(html) && /volta a /.test(html));
+  teste("a faixa do descanso mostra o coração", true, /Coração recuperado ✓/.test(html) && /volta a /.test(html));
   const kt = require("fs").readFileSync(require("path").join(__dirname, "..", "android/relogio/src/main/java/br/com/treinolivre/relogio/TelaRelogio.kt"), "utf8");
+  teste("a faixa do descanso desenha o coração do resumo batendo", true, /function CoracaoRecuperando/.test(html) && /<CoracaoRecuperando fc=\{fcMostrar\}/.test(html) && /desenharCoracaoAnatomico\(c\);\n  c\.restore\(\);\n  \/\/ a varredura/.test(html));
+  const arteKt = require("fs").readFileSync(require("path").join(__dirname, "..", "android/relogio/src/main/java/br/com/treinolivre/relogio/CoracaoArte.kt"), "utf8");
+  teste("o relógio tem o mesmo coração (o corpo do resumo) batendo no tum-tum", true, /cubicTo\(-0\.85f, -0\.45f, -0\.97f, 0\.05f, -0\.72f, 0\.38f\)/.test(arteKt) && /0\.16f/.test(arteKt));
+  teste("atualizar sozinho não apaga a voz nem a vinheta", true, /"treinolivre-voz", "treinolivre-midia", "treinolivre-falas"/.test(html));
+  teste("o site se atualiza sozinho só fora do treino", true, /const podeAtualizarSo = !!versaoNova && !sessao && !algoVivo/.test(html));
+  const autoKt = require("fs").readFileSync(require("path").join(__dirname, "..", "android/app/src/direto/java/br/com/treinolivre/app/AtualizaSozinho.kt"), "utf8");
+  teste("o celular só instala de tela apagada e sem treino", true, /pm\.isInteractive\) return false/.test(autoKt) && /BolsoService\.instancia != null/.test(autoKt) && /USER_ACTION_NOT_REQUIRED/.test(autoKt));
   teste("o relógio alterna o tempo e o coração e manda o batimento", true, /CORAÇÃO → /.test(kt) && /put\("a", "fc"\)/.test(kt));
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");

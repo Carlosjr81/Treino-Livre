@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-11-22g — O coração do resumo no descanso, e o app que se atualiza sozinho
+
+**Em uma frase:** o coração batendo do resumo animado agora aparece no descanso, no celular e no relógio, e o app (com o relógio) se atualiza sozinho.
+
+**O que mudou**
+- No descanso, o mesmo coração do resumo animado bate no seu batimento de agora, dentro de um anel que enche conforme ele volta. Voltou: tudo fica verde com um ✓.
+- No celular, ao lado do coração, o batimento em letreiro, "volta a 105" ou "voltou em 42 s", e um eletrocardiograma ilustrativo correndo embaixo.
+- No relógio, na vista do coração, a arte aparece ao lado do número.
+- O app se atualiza sozinho: abriu fora do treino, a versão nova entra na hora; no meio do treino, espera ele acabar.
+- No Android (app baixado do site), a versão nova é baixada em segundo plano e instalada sozinha com a tela apagada, sem treino aberto. Depois, o relógio se atualiza quando o celular estiver em uso.
+- Atualizar não baixa de novo a voz da narração nem a vinheta.
+
+**Por que importa para quem treina**
+- Ver o coração voltando fica bonito e claro de relance; e ninguém precisa lembrar de atualizar nada.
+
+**Como usar**
+- Desta vez, atualize o app do celular como antes; daí em diante ele cuida sozinho. Se o Android pedir, toque na notificação "versão pronta" e permita "instalar desta fonte" uma vez.
+
+**Ideias de vídeo**
+- Close no descanso: o coração batendo, o anel azul enchendo e virando verde com o ✓, e o pulso vibrando.
+
+**Não prometer**
+- O eletrocardiograma é ilustrativo: nem o relógio nem a cinta medem ECG aqui. Não é exame. A atualização sozinha no celular vale para o app baixado do site (na Play Store, quem atualiza é a loja), e em alguns celulares o Android ainda pede um toque.
+
+---
+
 ## 2026-11-22f — O coração voltando entre as séries, no relógio e no celular
 
 **Em uma frase:** no descanso, o relógio alterna o tempo com o batimento ("❤ 128 → volta a 105") e o celular mostra o mesmo na faixa do descanso, até o "coração recuperado".

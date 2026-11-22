@@ -170,6 +170,11 @@ object Relogio {
     fun talvezAtualizar(contexto: Context) {
         if (!InstaladorRelogio.ATUALIZA_PELO_WIFI || InstaladorRelogio.aberto) return
         if (BolsoService.instancia != null) return
+        // o celular se atualiza sozinho de tela apagada (de madrugada, 2026-11-22g):
+        // a tela de atualizar não acende no pulso de quem dorme. Fica para quando
+        // o celular estiver em uso (a conferida de 3 em 3 horas pergunta de novo)
+        val tela = contexto.getSystemService(android.os.PowerManager::class.java)
+        if (tela != null && !tela.isInteractive) return
         val pr = contexto.getSharedPreferences("relogio", Context.MODE_PRIVATE)
         val rel = pr.getLong("versao", 0L) - 1_000_000L
         val meu = versaoDoCelular(contexto)

@@ -24,6 +24,8 @@ class AberturaActivity : ComponentActivity() {
         if (BolsoService.instancia == null) try { Relogio.desligado(applicationContext) } catch (e: Exception) { }
         // abriu o Treino Livre no celular: abre no relógio também
         try { Relogio.chamarRelogio(applicationContext) } catch (e: Exception) { }
+        // a versão nova do app chega sozinha (2026-11-22g): confere e agenda
+        try { AtualizaSozinho.agendar(applicationContext) } catch (e: Throwable) { }
         val pedido = intent?.data
         if (pedido != null && pedido.scheme == "https") {
             abrir(pedido)

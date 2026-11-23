@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-22h**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-23a**.
 
 ---
 
@@ -46,6 +46,10 @@
   do treino. Diga quanto tempo tem (30 min, 1 h...) e o app redesenha: junta em bi-set músculos que não competem, encurta o
   descanso dos isolados, tira séries dos músculos pequenos e mantém os exercícios grandes. Só hoje, ou para sempre (a ficha
   passa a caber sempre naquele tempo).
+- **Faltei um dia: juntar treinos** (novo em 2026-11-23a): "🔗 Faltei um dia: juntar com outro treino" no treino do dia (e
+  dentro de cada treino em Fichas). Marque o treino de hoje e o que perdeu (até 3) e quanto tempo tem: o app monta um treino só,
+  com o principal de cada músculo (os básicos e compostos primeiro), tira o que se repete e encaixa no tempo. É só para aquele
+  dia: nenhuma ficha muda, e o treino de hoje segue a ordem depois da última ficha juntada.
 - **Dá para ver o ajuste** (2026-11-20b): o treino abre com "O que o app ajustou para hoje": as séries pelo ciclo, a carga pelo
   seu último treino, a próxima reanálise do volume pelo histórico e o tempo.
 - Não prometer: a faixa de 10 a 20 séries e os mínimos por músculo são referência, não prescrição. O app não garante

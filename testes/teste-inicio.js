@@ -35,6 +35,8 @@ console.log("\n--- a vez da próxima (A, B, C) ---");
 teste("sem histórico: a primeira, 'uma boa para começar'", ["Treino A", "Uma boa para começar."], (() => { const r = H.fichaDeHoje([prog[1]], abc, [], dia(16)); return [r.ficha.nome, r.motivo]; })());
 teste("fez a A: agora a B", "Treino B", H.fichaDeHoje([prog[1]], abc, [{ nome: "Treino A" }], dia(16)).ficha.nome);
 teste("fez a C: volta para a A", "Treino A", H.fichaDeHoje([prog[1]], abc, [{ nome: "Treino C" }], dia(16)).ficha.nome);
+teste("juntou A + B (faltou um dia): agora a C", "Treino C", H.fichaDeHoje([prog[1]], abc, [{ nome: "Treino A + Treino B", juntas: ["Treino A", "Treino B"] }], dia(16)).ficha.nome);
+teste("juntou B + A, em qualquer ordem: agora a C", "Treino C", H.fichaDeHoje([prog[1]], abc, [{ nome: "Treino B + Treino A", juntas: ["Treino B", "Treino A"] }], dia(16)).ficha.nome);
 teste("o último foi uma corrida (não é ficha): a primeira", "Treino A", H.fichaDeHoje([prog[1]], abc, [{ nome: "Corrida na rua" }], dia(16)).ficha.nome);
 
 console.log("\n--- casos de borda ---");

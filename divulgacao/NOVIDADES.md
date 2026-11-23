@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-23a — Faltou um dia? Junte os treinos
+
+**Em uma frase:** quando você falta um dia, o app junta o treino de hoje com o que você perdeu num treino só, com o principal de cada músculo, sem ficar enorme e sem mexer nas suas fichas.
+
+**O que mudou**
+- Botão novo "🔗 Faltei um dia: juntar com outro treino" no treino de hoje (e dentro de cada treino, em Fichas).
+- Você marca as fichas (até 3) e quanto tempo tem; o app mostra antes o treino que sai, com o tempo.
+- Fica o principal de cada músculo (os básicos e compostos primeiro), o que se repete entra uma vez, e o que não compete vai em bi-set para caber no tempo.
+- É só para aquele dia: as fichas continuam como estão, e depois o treino de hoje segue a ordem normal.
+
+**Por que importa para quem treina**
+- Faltar um dia não deixa um músculo sem treino na semana, e você não precisa encarar duas fichas inteiras de uma vez.
+
+**Como usar**
+- No Início, toque em "🔗 Faltei um dia: juntar com outro treino", marque a ficha que você perdeu, escolha o tempo e toque em "Começar o treino junto".
+
+**Ideias de vídeo**
+- "Faltou na quarta? Olha o que o app faz": marcar Peito + Costas, mostrar o treino de 1 h 12 no lugar de quase 2 h.
+
+**Não prometer**
+- Não é para usar toda semana: juntar sempre deixa cada músculo com menos treino. Não promete o mesmo resultado de fazer as duas fichas inteiras.
+
+---
+
 ## 2026-11-22h — No relógio, o coração bate atrás dos números
 
 **Em uma frase:** no relógio, o coração batendo fica atrás do tempo do descanso e dos dados da série, em vez de trocar de tela.

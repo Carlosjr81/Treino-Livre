@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v266) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v267) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6513,6 +6513,41 @@ TEMPO` (depois do tempo estimado), coberto em `teste-tempo.js`.
   (`fichaSemana`), e a janela diz "Nesta semana do ciclo".
 - Conferido no navegador: a janela no cartão do dia, o "Só hoje" abrindo o
   treino com o tempo e o quadro do ajuste. **Não validado num aparelho.**
+
+## Faltei um dia: juntar treinos (`juntarFichas`, `JanelaJuntar`, 2026-11-23a)
+
+Pedido do dono: "quando eu faltar um dia, juntar 2 ou 3 fichas num treino só,
+sem perder o desenvolvimento da semana e sem deixar o treino extremamente
+extenso; pontual, não entra na ficha; com os principais exercícios, nas
+metodologias que já usamos". Bloco puro no fim do `AJUSTE AO TEMPO`, coberto
+em `teste-tempo.js` e `teste-inicio.js`.
+
+- **A escolha** (`juntarFichas`): o mesmo exercício das duas fichas entra uma
+  vez (com o maior número de séries); por grupo muscular fica o **principal**
+  (`ORDEM_TIPO_JUNTAR` pelo `tipoDescanso`: básico pesado, composto,
+  isolado; no empate, o que vem antes na ficha), até 2 nos grupos grandes
+  (pernas até 3) e 1 nos pequenos (`LIMITE_JUNTAR`), primeiro um por músculo
+  principal (frente e trás da coxa) e depois completa; compostos até 4
+  séries, isolados até 3; aeróbico um só, no fim, até 15 min. A ordem: pesados,
+  compostos, isolados, abdômen, aeróbico. Depois, o `planejarTempo` de
+  sempre encaixa no tempo do dia (bi-set de músculos que não competem,
+  descanso curto, séries). O que sustenta: manter a intensidade do principal de
+  cada músculo segura o ganho numa semana apertada (Bickel 2011, Iversen 2021).
+- **O tempo** sugerido (`tempoSugeridoJuntar`): a ficha mais longa + 15 min,
+  entre 45 e 90; a pessoa escolhe de 45 min a 2 h. As séries são as da semana
+  do ciclo (`fichaDaSemanaJuntar`, a mesma conta da prévia do ⏱).
+- **Pontual**: o treino é uma sessão com `treinoId` "junto-…" e
+  `juntas` (os nomes das fichas). Nenhuma ficha muda, o Finalizar não pergunta
+  se salva na ficha nem se vira ficha, e o histórico guarda `juntas`. O
+  `fichaDeHoje` segue depois da ficha juntada mais adiantada no programa.
+- **Entradas**: "🔗 Faltei um dia: juntar com outro treino" no cartão do treino
+  de hoje (já marcada a ficha do dia), "🔗 Faltei um dia: juntar fichas num
+  treino só" dentro de cada treino em Fichas, e a Central de Ajuda. A janela
+  mostra o treino que sai, o tempo (e o das fichas separadas), os grupos, o
+  que saiu ou encurtou e o `AvisoSaude`. Com um treino aberto, não abre.
+- No navegador: A + B em 75 min (8 exercícios, ~1 h 12 contra ~1 h 57 das
+  fichas separadas), o treino começando e o histórico com `juntas`, sem
+  mexer nas fichas. **Não validado num aparelho.**
 
 ## O descanso pela ciência (`DESCANSO_CIENCIA`, `tipoDescanso`, `descansoDoItem`)
 

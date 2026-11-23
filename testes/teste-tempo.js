@@ -13,7 +13,7 @@ eval("const DESCANSO_AQUECIMENTO = 60;\n" +
   pedaco("const DESCANSO_CIENCIA = {", "\n};\n") + "\n};\n" +
   pedaco("const MUSC_GRANDES_DESCANSO", "// ---------------- FIM DO DESCANSO PELA CIÊNCIA") +
   "function ehDrop(s) { return !!(s && s.drop); }\n" + pedaco("// ---------------- TEMPO ESTIMADO DO TREINO", "// ---------------- FIM DO AJUSTE AO TEMPO") +
-  "\nglobalThis.T = { estimarTempoFicha, estimarRestanteSessao, textoTempoFicha, textoMinutos, repsMedias, segundosDasSeries, ajustarFichaAoTempo, ajustarSessaoAoTempo, ritmoDaFicha };");
+  "\nglobalThis.T = { estimarTempoFicha, estimarRestanteSessao, textoTempoFicha, textoMinutos, repsMedias, segundosDasSeries, ajustarFichaAoTempo, ajustarSessaoAoTempo, ritmoDaFicha, juntarFichas, tempoSugeridoJuntar };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -120,6 +120,37 @@ teste("no treino aberto: o feito fica igual", ses.itens[0].series, aS.sessao.ite
 teste("no treino aberto: o que falta cabe em 45", true, T.estimarRestanteSessao(aS.sessao, porId, 90, "ciencia") <= 46);
 teste("no treino aberto: quem sai fica pulado hoje", true, aS.sessao.itens.filter((x) => x.pulado).every((x) => x.puladoTempo));
 teste("no treino aberto: guarda o tempo pedido", 45, aS.sessao.tempoAlvo);
+
+console.log("--- juntar treinos (faltei um dia) ---");
+const fA = ficha("A - Peito e Tríceps", [item("supino-reto", 4, "8-10"), item("supino-halteres", 3, "10"), item("crucifixo", 3, "12"),
+  item("elevacao-lateral", 3, "12"), item("triceps-corda", 3, "12"), item("triceps-frances", 3, "12")]);
+const fB = ficha("B - Costas e Bíceps", [item("puxada-frente", 4, "10"), item("remada-curvada", 4, "8"), item("remada-baixa", 3, "10"),
+  item("rosca-direta", 3, "10"), item("rosca-martelo", 3, "12"), item("abdominal-supra", 3, "15")]);
+const fC = ficha("C - Pernas", [item("agachamento", 4, "8"), item("leg-press", 4, "10"), item("cadeira-extensora", 3, "12"),
+  item("mesa-flexora", 3, "12"), item("stiff", 3, "10"), item("panturrilha", 4, "15")]);
+const j2 = T.juntarFichas([fA, fB], porId, 75, 90, "ciencia", 1);
+const ids2 = j2.itens.map((x) => x.exercicioId);
+console.log("  (A + B em 75 min: " + ids2.join(", ") + " · ~" + j2.depois + " min, separadas ~" + j2.soma + ")");
+teste("A + B: cabe em 75 min", true, j2.cabe && j2.depois <= 76);
+teste("A + B: bem menos que as duas fichas separadas", true, j2.depois < j2.soma * 0.75);
+teste("A + B: o básico de cada um fica (supino reto, remada curvada)", true, ids2.indexOf("supino-reto") >= 0 && ids2.indexOf("remada-curvada") >= 0);
+teste("A + B: todo grupo das fichas é trabalhado", true, ["peito", "costas", "ombros", "triceps", "biceps"].every((g) => j2.grupos.indexOf(g) >= 0));
+teste("A + B: grupo pequeno com um exercício só", 1, ids2.filter((id) => porId(id).grupo === "triceps").length);
+teste("A + B: os compostos vêm antes dos isolados", true, ids2.indexOf("supino-reto") < ids2.indexOf("triceps-corda") && ids2.indexOf("remada-curvada") < ids2.indexOf("rosca-direta"));
+teste("A + B: o crucifixo sai (o supino já trabalha o peito)", true, ids2.indexOf("crucifixo") < 0 && j2.mudancas.some((m) => /crucifixo/i.test(m)));
+teste("A + B: composto até 4 séries, isolado até 3", true, j2.itens.every((it) => it.series <= 4) && j2.itens.filter((it) => /rosca|triceps|elevacao/.test(it.exercicioId)).every((it) => it.series <= 3));
+const j3 = T.juntarFichas([fA, fB, fC], porId, 90, 90, "ciencia", 1);
+const ids3 = j3.itens.map((x) => x.exercicioId);
+console.log("  (A + B + C em 90 min: " + ids3.join(", ") + " · ~" + j3.depois + " min)");
+teste("três fichas: cabem em 90 min", true, j3.depois <= 91);
+teste("três fichas: pernas com a frente e a trás da coxa", true, ids3.some((id) => /agachamento|leg-press/.test(id)) && ids3.some((id) => /stiff|mesa-flexora/.test(id)));
+teste("o mesmo exercício nas duas fichas entra uma vez", 1, T.juntarFichas([fA, ficha("A2", [item("supino-reto", 5, "6")])], porId, 120, 90, "ciencia", 1).itens.filter((x) => x.exercicioId === "supino-reto").length);
+const jc = T.juntarFichas([fA, ficha("Esteira", [item("esteira-caminhada", 1, "40")])], porId, 120, 90, "ciencia", 1);
+teste("aeróbico: no fim e curto (até 15 min)", ["esteira-caminhada", 15], [jc.itens[jc.itens.length - 1].exercicioId, jc.itens[jc.itens.length - 1].reps]);
+teste("o tempo sugerido: a mais longa + 15, entre 45 e 90", [60, 90, 45], [T.tempoSugeridoJuntar([45, 40]), T.tempoSugeridoJuntar([95]), T.tempoSugeridoJuntar([20])]);
+teste("as fichas não mudam", 6, fA.itens.length);
+const fonteIni = html.slice(html.indexOf("function fichaDeHoje("), html.indexOf("// ---- fim do treino de hoje"));
+teste("o treino de hoje segue depois da última ficha juntada", true, /ultimo\.juntas/.test(fonteIni));
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

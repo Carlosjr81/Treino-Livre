@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-23a**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-23b**.
 
 ---
 
@@ -50,6 +50,11 @@
   dentro de cada treino em Fichas). Marque o treino de hoje e o que perdeu (até 3) e quanto tempo tem: o app monta um treino só,
   com o principal de cada músculo (os básicos e compostos primeiro), tira o que se repete e encaixa no tempo. É só para aquele
   dia: nenhuma ficha muda, e o treino de hoje segue a ordem depois da última ficha juntada.
+- **Treino extra** (novo em 2026-11-23b): "➕ Já treinei tudo: fazer um treino extra" no treino do dia (e dentro de cada
+  treino em Fichas). Para a semana em que todas as fichas já foram feitas: o app escolhe os músculos descansados que não estão
+  na próxima ficha (nem os grandes da seguinte) e que ainda não passaram de 20 séries na semana, e monta um treino leve
+  (3 séries de 10 a 12, parando com 2 sobrando) no tempo escolhido. Mostra por que cada músculo entrou ou ficou de fora. Sem
+  músculo livre, sugere caminhada leve. Não entra em ficha e não muda o treino de amanhã.
 - **Dá para ver o ajuste** (2026-11-20b): o treino abre com "O que o app ajustou para hoje": as séries pelo ciclo, a carga pelo
   seu último treino, a próxima reanálise do volume pelo histórico e o tempo.
 - Não prometer: a faixa de 10 a 20 séries e os mínimos por músculo são referência, não prescrição. O app não garante

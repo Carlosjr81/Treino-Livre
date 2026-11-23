@@ -51,6 +51,7 @@ const SUITES = [
   ["teste-corrida-app", "a corrida do desafio conduzida pelo app (tela travada) e a voz com os nomes"],
   ["teste-descanso", "o descanso pela ciencia: o tipo de cada exercicio e quem manda"],
   ["teste-tempo", "o tempo estimado da ficha e o que falta do treino"],
+  ["teste-extra", "o treino extra fora da ficha: só o que está descansado e não atrapalha a semana"],
   ["teste-idioma", "o app em ingles: o dicionario, os moldes e nunca meia frase"],
   ["teste-poses", "o movimento animado: os desenhos de cada exercicio e a licenca"],
   ["teste-lixeira", "a lixeira do historico: guardar 30 dias, recuperar sem duplicar e o backup que so acrescenta"],

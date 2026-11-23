@@ -1337,6 +1337,19 @@ const AJUDA_CATEGORIAS = [
   { id: "problemas", icone: "\u{1F6E0}", nome: "Resolver problemas" },
 ];
 const AJUDA_APP = [
+  { id: "treino-extra", cat: "fichas", icone: "➕", titulo: "Já treinei a semana toda: treino extra",
+    resumo: "Um treino a mais, fora da ficha, só com os músculos descansados que não atrapalham os próximos treinos.",
+    passos: [
+      "Na tela **Início**, toque em **➕ Já treinei tudo: fazer um treino extra** (ou, em **Fichas**, dentro do treino, em **➕ Já treinei tudo: treino extra fora da ficha**).",
+      "Escolha quanto tempo você tem. O app mostra os músculos escolhidos, por que cada um entrou e por que os outros ficaram de fora.",
+      "Toque em **Começar o treino extra**. Pare cada série com 2 repetições sobrando.",
+    ],
+    dicas: [
+      "Ficam de fora os músculos da próxima ficha, os grandes da seguinte, os treinados há pouco (3 dias os grandes, 2 os pequenos) e os que já passaram de 20 séries na semana.",
+      "Sem nenhum músculo livre, o extra vira uma caminhada leve.",
+      "O extra não muda as fichas nem a ordem delas: o treino de amanhã continua o mesmo.",
+    ],
+    ir: { destino: "inicio", rotulo: "Ir para o Início" } },
   { id: "juntar-treinos", cat: "fichas", icone: "🔗", titulo: "Faltei um dia: juntar dois treinos num só",
     resumo: "Junte o treino de hoje com o que você perdeu, só para hoje, sem mudar as fichas.",
     passos: [
@@ -1871,7 +1884,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-23a";
+const VERSAO_APP = "2026-11-23b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4427,6 +4440,133 @@ function juntarFichas(fichas, exPorId, minutos, geral, modo, ritmo) {
 function tempoSugeridoJuntar(estimativas) {
   const maior = Math.max.apply(null, (estimativas || []).concat([0]));
   return Math.max(45, Math.min(90, Math.round((maior + 15) / 15) * 15));
+}
+// ---- ➕ O TREINO EXTRA (2026-11-23b) ----
+// Pedido do dono: "aquela semana em que você já treinou tudo e quer fazer mais
+// um treino e não sabe o que treinar: um treino extra que não entre na ficha,
+// com o grupo muscular que estará descansado, e que não afete a semana de
+// treino nem a semana futura". As regras, nesta ordem:
+// - DESCANSADO: o músculo trabalhado como principal precisa de 72 h (os
+//   grandes: quadríceps, posterior, glúteos, dorsal, peito, lombar, adutores)
+//   ou 48 h (os outros) desde a última série direta, e 24 h desde a última
+//   indireta. É a faixa de recuperação que os estudos de dano muscular e de
+//   frequência apontam (Schoenfeld 2016; Dankel 2017);
+// - NÃO ATRAPALHA O QUE VEM: fica de fora todo músculo principal da próxima
+//   ficha (é amanhã) e os grandes da seguinte (depois de amanhã, 48 h só);
+// - NÃO PASSA DA SEMANA: músculo que já chegou a 20 séries na semana
+//   (FAIXA_SERIES.max, com o indireto valendo ½) fica de fora;
+// - ESCOLHE pelo que mais falta na semana até o alvo de cada músculo
+//   (ALVO_MUSCULO), e por quanto tempo está parado;
+// - LEVE DE PROPÓSITO: 3 séries por exercício, 10 a 12 repetições, parando com
+//   2 sobrando (longe da falha, que é o que mais cansa e mais demora para
+//   recuperar: Pareja-Blanco 2017; Refalo 2023), no máximo 4 músculos e o
+//   tempo do dia (planejarTempo);
+// - os exercícios que a pessoa já conhece primeiro (exerciciosPara, com o
+//   peso de quem está nas fichas); nenhum que tenha como principal um músculo
+//   que ficou de fora;
+// - nada descansado: o extra vira 25 min de caminhada leve, que não cansa
+//   músculo nenhum.
+const MUSCULOS_GRANDES_EXTRA = ["quadriceps", "posteriores", "gluteos", "dorsal", "peito", "lombar", "adutores"];
+const HORAS_EXTRA = { grande: 72, pequeno: 48, indireto: 24 };
+const SERIES_EXTRA = 3;
+const REPS_EXTRA = "10-12";
+const OBS_EXTRA = "Treino extra: pare com 2 repetições sobrando (longe da falha).";
+function seriesPorTempoExtra(min) { return min <= 30 ? 9 : min <= 45 ? 15 : min <= 60 ? 18 : 21; }
+function musculosDaFichaExtra(f, exPorId, soGrandes) {
+  const out = {};
+  ((f && f.itens) || []).forEach((it) => {
+    const e = exPorId(it.exercicioId);
+    if (!e || e.cardio) return;
+    musculosDoEx(e).p.forEach((m) => { if (!soGrandes || MUSCULOS_GRANDES_EXTRA.indexOf(m) >= 0) out[m] = 1; });
+  });
+  return out;
+}
+// o.proximas: [a próxima ficha, a seguinte]; o.usados: { id: peso } (exerciciosConhecidos)
+function treinoExtra(o) {
+  const agora = o.agora || Date.now();
+  const exPorId = o.exPorId;
+  const dir = {}, ind = {};
+  (o.historico || []).forEach((h) => {
+    const t = new Date(h.data).getTime();
+    if (!(t <= agora)) return;
+    (h.itens || []).forEach((it) => {
+      const e = exPorId(it.exercicioId);
+      if (!e || e.cardio) return;
+      const n = (it.series || []).filter((x) => serieConta(x) && !ehCardio(x)).length;
+      if (!n) return;
+      const m = musculosDoEx(e);
+      m.p.forEach((x) => { if (!dir[x] || t > dir[x]) dir[x] = t; });
+      if (n >= 2) m.s.forEach((x) => { if (!ind[x] || t > ind[x]) ind[x] = t; });
+    });
+  });
+  const prox = (o.proximas || [])[0], prox2 = (o.proximas || [])[1];
+  const amanha = musculosDaFichaExtra(prox, exPorId, false);
+  const depois = prox2 && prox2 !== prox ? musculosDaFichaExtra(prox2, exPorId, true) : {};
+  const semana = {};
+  volumeFracionadoPeriodo(o.historico || [], exPorId, agora, 0).lista.forEach((x) => { semana[x.id] = x.total; });
+  const horas = (t) => (t ? (agora - t) / 36e5 : Infinity);
+  const nomeM = (m) => String(MUSCULOS[m] || m).replace(/ \(.*\)/, "");
+  const fora = [], cand = [];
+  Object.keys(ALVO_MUSCULO).forEach((m) => {
+    const grande = MUSCULOS_GRANDES_EXTRA.indexOf(m) >= 0;
+    const precisa = grande ? HORAS_EXTRA.grande : HORAS_EXTRA.pequeno;
+    const hd = horas(dir[m]), hi = horas(ind[m]);
+    let motivo = "";
+    if (amanha[m]) motivo = "é da próxima ficha (" + prox.nome + ")";
+    else if (depois[m]) motivo = "é da ficha seguinte (" + prox2.nome + ")";
+    else if (hd < precisa) motivo = "treinado há " + (hd < 24 ? Math.max(1, Math.round(hd)) + " h" : Math.round(hd / 24) + " " + plural(Math.round(hd / 24), "dia", "dias")) + ": precisa de " + precisa / 24 + " " + plural(precisa / 24, "dia", "dias");
+    else if (hi < HORAS_EXTRA.indireto) motivo = "trabalhou de carona há menos de 1 dia";
+    else if ((semana[m] || 0) >= FAIXA_SERIES.max) motivo = "já tem ~" + Math.round(semana[m]) + " séries na semana";
+    if (motivo) { fora.push({ id: m, nome: nomeM(m), motivo: motivo }); return; }
+    const falta = (ALVO_MUSCULO[m] || 6) - (semana[m] || 0);
+    const parado = Math.min(14, (isFinite(hd) ? hd : 14 * 24) / 24);
+    cand.push({ id: m, nome: nomeM(m), grande: grande, falta: falta, semana: semana[m] || 0, dias: isFinite(hd) ? Math.floor(hd / 24) : null,
+      nota: falta + parado * 0.3 + (grande ? 1 : 0) - (m === "lombar" || m === "adutores" || m === "antebraco" ? 3 : 0) });
+  });
+  cand.sort((a, b) => b.nota - a.nota);
+  const minutos = o.minutos || 45;
+  let orcamento = seriesPorTempoExtra(minutos);
+  const proibidos = {};
+  fora.forEach((f) => { proibidos[f.id] = 1; });
+  const faltamMap = {};
+  cand.forEach((c) => { if (c.falta > 0) faltamMap[c.id] = Math.ceil(c.falta); });
+  const catalogo = (o.catalogo || []).filter((e) => !e.cardio && !e.func && !(e.musc && (e.musc.p || []).some((x) => proibidos[x])));
+  const escolhidos = [], usadosIds = {};
+  const lista = [];
+  cand.forEach((c) => {
+    if (escolhidos.length >= 4 || orcamento < SERIES_EXTRA) return;
+    // abdômen e oblíquos (e bíceps e antebraço) são um lugar só: dois de core num extra é pouco treino
+    const g = grupoDoMusculo(c.id);
+    if ((g === "abdomen" || g === "biceps") && escolhidos.some((x) => grupoDoMusculo(x.id) === g)) return;
+    // grande com bastante faltando: dois exercícios (6 séries); o resto, um (3)
+    const quer = c.grande && c.falta >= 5 && orcamento >= 2 * SERIES_EXTRA ? 2 : 1;
+    const opc = exerciciosPara(c.id, catalogo, faltamMap, proibidos, o.usados || {}).filter((e) => !usadosIds[e.id]);
+    if (!opc.length) return;
+    const pega = opc.slice(0, quer);
+    pega.forEach((e) => {
+      usadosIds[e.id] = 1;
+      orcamento -= SERIES_EXTRA;
+      lista.push({ e: e, m: c.id, rank: ORDEM_TIPO_JUNTAR[tipoDescanso(e) || "isoladoGrande"] != null ? ORDEM_TIPO_JUNTAR[tipoDescanso(e) || "isoladoGrande"] : 3 });
+    });
+    escolhidos.push({ id: c.id, nome: c.nome, series: pega.length * SERIES_EXTRA, semana: c.semana, dias: c.dias, falta: c.falta });
+  });
+  if (!lista.length) {
+    const cam = exPorId("esteira-caminhada");
+    return { descansar: true, itens: cam ? [{ exercicioId: cam.id, series: 1, reps: 25, obs: "Caminhada leve: dá para conversar o tempo todo.", descanso: null, conjunto: null }] : [],
+      musculos: [], fora: fora, mudancas: [], cabe: true, depois: 25 };
+  }
+  lista.sort((a, b) => a.rank - b.rank);
+  const pl = lista.map((x, k) => ({ k: k, c: { it: { exercicioId: x.e.id, reps: x.e.tempo ? 30 : REPS_EXTRA, obs: OBS_EXTRA } }, ex: x.e,
+    it: { reps: x.e.tempo ? 30 : REPS_EXTRA, descanso: null, conjunto: null }, n: SERIES_EXTRA, drops: 0, aquec: [], min: 0, seg: x.e.tempo ? 30 : "" }));
+  const p = planejarTempo(pl, minutos * 60 * (o.ritmo ? 1 / o.ritmo : 1), o.geral || 90, o.modo, true);
+  const itens = p.lista.filter((x) => !x.fora).map((x) => ({ exercicioId: x.c.it.exercicioId, series: x.n, reps: x.c.it.reps, obs: x.c.it.obs,
+    descanso: x.it.descanso || null, conjunto: x.it.conjunto || null }));
+  return { descansar: false, itens: itens, musculos: escolhidos, fora: fora, mudancas: p.mudancas, cabe: p.cabe, depois: Math.round(p.seg * (o.ritmo || 1) / 60) };
+}
+function nomeTreinoExtra(plano) {
+  if (plano.descansar) return "Treino extra · caminhada leve";
+  const n = plano.musculos.map((m) => m.nome);
+  return "Treino extra · " + (n.length > 1 ? n.slice(0, -1).join(", ") + " e " + n[n.length - 1] : n[0] || "");
 }
 // ---------------- FIM DO AJUSTE AO TEMPO
 
@@ -14619,7 +14759,8 @@ function fichaDeHoje(programas, treinos, historico, agora) {
   const hoje = DIAS_FICHA[(agora || new Date()).getDay()];
   const doDia = ordem.find((t) => new RegExp("\\b" + hoje + "\\b").test(semAcento(t.nome)));
   if (doDia) return { ficha: doDia, motivo: "Hoje é " + (hoje === "terca" ? "terça" : hoje === "sabado" ? "sábado" : hoje) + "." };
-  const ultimo = (historico || [])[0];
+  // o treino extra não é ficha nenhuma: a ordem segue pelo treino de antes dele
+  const ultimo = (historico || []).find((h) => !h.extra);
   // o treino junto (faltei um dia) vale pelas fichas que juntou: a próxima é a
   // que vem depois da mais adiantada delas no programa
   const juntas = ultimo && Array.isArray(ultimo.juntas) ? ordem.filter((t) => ultimo.juntas.indexOf(t.nome) >= 0) : [];
@@ -14677,7 +14818,7 @@ function CartaoAppAndroid({ onDepois }) {
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
   avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
   convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi, onIntervalado, onDesafio, onEsteira, onAjustarTempo, onJuntar,
-  saude, onRetrospectiva, retroDepois, onRetroDepois }) {
+  saude, onRetrospectiva, retroDepois, onRetroDepois, onExtra }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
@@ -14803,6 +14944,9 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
             {onJuntar && treinos.filter((t) => t.itens && t.itens.length).length > 1 && (
               <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800 }} onClick={() => onJuntar(hoje.ficha)}>🔗 Faltei um dia: juntar com outro treino</button>
             )}
+            {onExtra && historico.length > 0 && (
+              <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800 }} onClick={onExtra}>➕ Já treinei tudo: fazer um treino extra</button>
+            )}
             {novato && (
               <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
                 Um treino de iniciante, pronto para usar. Quer outro objetivo ou mais dias?{" "}
@@ -14922,7 +15066,13 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
           <div style={{ color: "var(--cinza)", fontSize: 13, marginTop: 2 }}>
             {new Date(ultima.data).toLocaleDateString("pt-BR")} · {ultima.duracaoMin} min · {ultima.itens.length} exercícios
             <br />
-            {fmtKg(statsTreino(ultima).volume)} de volume · {statsTreino(ultima).series} séries
+            {(() => {
+              // aeróbico sem carga: a distância e o gasto, não "0 kg de volume"
+              const st = statsTreino(ultima);
+              const cd = !(st.volume > 0) && cardioParaStory(ultima, exPorId, null);
+              if (cd) return (cd.km >= 0.05 ? (cd.km < 1 ? Math.round(cd.km * 1000) + " m" : num1(cd.km) + " km") + " · " : "") + Math.round(cd.min) + " min de aeróbico" + (cd.kcal >= 1 ? " · ~" + Math.round(cd.kcal) + " kcal" : "");
+              return fmtKg(st.volume) + " de volume · " + st.series + " séries";
+            })()}
           </div>
         </div>
       )}
@@ -17303,6 +17453,79 @@ function JanelaJuntar({ programas, treinos, inicial, exPorId, historico, geral, 
   );
 }
 
+// A janela do treino extra: o tempo do dia, os músculos escolhidos e por quê,
+// o que ficou de fora e por quê, e o treino. Não entra em ficha nenhuma.
+function JanelaExtra({ montar, exPorId, onComecar, onFechar }) {
+  const [min, setMin] = useState(45);
+  const plano = useMemo(() => montar(min), [min]);
+  const [verFora, setVerFora] = useState(false);
+  const nomeEx = (id) => { const e = exPorId(id); return e ? e.nome : "Exercício"; };
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onFechar}>
+      <div role="dialog" aria-modal="true" aria-label="Treino extra" onClick={(e) => e.stopPropagation()}
+        style={{ ...S.card, width: "100%", maxWidth: 440, maxHeight: "100%", overflowY: "auto", boxSizing: "border-box", marginBottom: 0 }}>
+        <div style={{ fontSize: 19, fontWeight: 900 }}>➕ Treino extra</div>
+        <div style={{ fontSize: 13, color: "var(--cinza)", margin: "6px 0 12px", lineHeight: 1.5 }}>
+          Já treinou a semana e quer mais um? O app escolhe os músculos <b>descansados</b> que <b>não estão nas próximas fichas</b> e que ainda cabem na semana. Leve de propósito, para não atrapalhar os próximos treinos. <b>Não entra em ficha nenhuma.</b>
+        </div>
+        <div style={S.label}>⏱ Quanto tempo você tem</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "8px 0 4px" }}>
+          {[30, 45, 60, 75].map((m) => (
+            <button key={m} onClick={() => setMin(m)} aria-pressed={min === m}
+              style={{ border: "1px solid " + (min === m ? "var(--marca)" : "var(--borda2)"), background: min === m ? "#E1306C1A" : "transparent", color: "var(--texto)", borderRadius: 18, padding: "7px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+              {textoMinutos(m)}
+            </button>
+          ))}
+        </div>
+        <div style={{ marginTop: 12, border: "1px solid var(--borda2)", borderRadius: 12, padding: "10px 12px" }}>
+          {plano.descansar ? (
+            <div style={{ fontSize: 13.5, lineHeight: 1.55, marginBottom: 8 }}>
+              <b>Hoje nenhum músculo está descansado e livre das próximas fichas.</b> O melhor extra é uma <b>caminhada leve</b>: ajuda a recuperar e não cansa o treino de amanhã.
+            </div>
+          ) : (
+            <React.Fragment>
+              <div style={{ fontWeight: 900, fontSize: 15 }}>{plano.itens.length} {plural(plano.itens.length, "exercício", "exercícios")} · ~{textoMinutos(Math.max(5, plano.depois))}</div>
+              <div style={{ fontSize: 12.5, color: "var(--cinza)", margin: "4px 0 8px", lineHeight: 1.5 }}>
+                {plano.musculos.map((m, k) => (
+                  <div key={k}>✅ <b style={{ color: "var(--texto)" }}>{m.nome}</b>{": " + (m.dias == null ? "sem treino recente" : "descansado há " + m.dias + " " + plural(m.dias, "dia", "dias")) + " · " + Math.round(m.semana) + " séries na semana" + (m.falta > 0 ? ", faltam ~" + Math.ceil(m.falta) + " até o alvo" : "")}</div>
+                ))}
+              </div>
+            </React.Fragment>
+          )}
+          {plano.itens.map((it, k) => {
+            const par = it.conjunto && plano.itens[k - 1] && plano.itens[k - 1].conjunto === it.conjunto;
+            const ex = exPorId(it.exercicioId);
+            return (
+              <div key={k} style={{ fontSize: 13.5, padding: "4px 0", borderTop: k ? "1px solid var(--borda)" : "none", display: "flex", gap: 8 }}>
+                <span style={{ color: "var(--cinza)", width: 18, flexShrink: 0 }}>{par ? "🔗" : k + 1 + "."}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>{nomeEx(it.exercicioId)}</span>
+                <span style={{ color: "var(--cinza)", whiteSpace: "nowrap" }}>{exCardio(ex) ? it.reps + " min" : ex && ex.tempo ? it.series + "×" + it.reps + " s" : it.series + "×" + it.reps}</span>
+              </div>
+            );
+          })}
+          {!plano.descansar && <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>💪 Pare cada série com <b>2 repetições sobrando</b>: longe da falha, o extra soma estímulo sem deixar cansaço para os próximos dias.</div>}
+          {plano.fora.length > 0 && (
+            <React.Fragment>
+              <button onClick={() => setVerFora((v) => !v)} style={{ background: "none", border: "none", padding: 0, marginTop: 8, color: "var(--marca)", fontWeight: 800, fontSize: 12.5, cursor: "pointer" }}>
+                {verFora ? "▴ Esconder" : "▾ Por que os outros ficaram de fora (" + plano.fora.length + ")"}
+              </button>
+              {verFora && <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.55, marginTop: 4 }}>{plano.fora.map((f, k) => <div key={k}>✕ {f.nome}: {f.motivo}</div>)}</div>}
+            </React.Fragment>
+          )}
+        </div>
+        <AvisoSaude />
+        <button style={{ ...S.btn, marginTop: 10, opacity: plano.itens.length ? 1 : 0.5 }} disabled={!plano.itens.length} onClick={() => onComecar(plano)}>
+          <ComIcone nome="play" tamanho={18}>Começar o treino extra</ComIcone>
+        </button>
+        <button style={{ ...S.btnGhost, marginTop: 8 }} onClick={onFechar}>Cancelar</button>
+        <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
+          O extra conta no histórico, nos recordes e no volume da semana, mas não muda a ordem das fichas: o treino de amanhã continua o mesmo.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function JanelaTempo({ alvo, exPorId, historico, geral, modo, ritmo, onHoje, onSempre, onTirarLimite, onFechar }) {
   const ficha = alvo.ficha || null;
   const previa = alvo.fichaSemana || ficha;
@@ -17426,7 +17649,7 @@ function CartaoAutoAjuste({ prog, onLigar, onReanalisar, onDesfazer }) {
 function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, onTreinar, onNovaFicha,
   onEditar, onExcluirFicha, onCompartilharFicha, onNovoPrograma, onRenomearPrograma, onExcluirPrograma,
   onCompartilharPrograma, onDuplicarFicha, onDuplicarPrograma, onLevarFicha, onMoverFicha, onAssistente, onTreinoLivre, pedirConfirmacao, historico, onAdaptado, nAdaptado,
-  onAutoAjuste, onReanalisar, onDesfazerAjuste, onAjustarTempo, onJuntar }) {
+  onAutoAjuste, onReanalisar, onDesfazerAjuste, onAjustarTempo, onJuntar, onExtra }) {
   // Dentro de um treino: lista de fichas. Se o programa aberto foi excluído,
   // cai de volta na lista em vez de alterar estado durante o render.
   const prog = progAberto ? programas.find((p) => p.id === progAberto) : null;
@@ -17440,6 +17663,9 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
         <button style={{ ...S.btn, marginBottom: 14 }} onClick={() => onNovaFicha(prog.id)}><ComIcone nome="mais">Nova ficha neste treino</ComIcone></button>
         {onJuntar && fichas.filter((t) => t.itens.length).length > 1 && (
           <button style={{ ...S.btnGhost, marginTop: -6, marginBottom: 14, fontWeight: 800 }} onClick={() => onJuntar(null)}>🔗 Faltei um dia: juntar fichas num treino só</button>
+        )}
+        {onExtra && fichas.filter((t) => t.itens.length).length > 0 && (
+          <button style={{ ...S.btnGhost, marginTop: -6, marginBottom: 14, fontWeight: 800 }} onClick={onExtra}>➕ Já treinei tudo: treino extra fora da ficha</button>
         )}
         {fichas.length === 0 && (
           <div style={{ ...S.card, textAlign: "center", color: "var(--cinza)" }}>
@@ -37447,7 +37673,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       }).map((it, i, todos) => {
         // o primeiro exercício de força do dia ganha o aquecimento em rampa
         const primeiro = todos.findIndex((x) => !x.pulado && seriesAquecimento(exPorId(x.exercicioId), x.sugerido).length);
-        if (i !== primeiro) return it;
+        // o extra é leve e de músculos pequenos: sem a rampa, para não alongar
+        if (i !== primeiro || treino.extra) return it;
         return { ...it, series: [...seriesAquecimento(exPorId(it.exercicioId), it.sugerido), ...it.series] };
       }),
     });
@@ -37465,6 +37692,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     // com o limite, até a semana mais forte do ciclo cabe no tempo
     // o treino junto (faltei um dia): os nomes das fichas, para o histórico e o treino de hoje
     if (treino.juntas) nova.juntas = treino.juntas;
+    if (treino.extra) nova.extra = true;
     const limite = tempoMin || treino.tempoMax;
     if (limite) nova = ajustarSessaoAoTempo(nova, limite, exPorId, descanso, descansoModo, ritmoDaFicha(estimarTempoFicha(treino, exPorId, historico, descanso, descansoModo))).sessao;
     setSessao(nova);
@@ -37651,6 +37879,30 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     const nomes = fichas.map((f) => f.nome);
     comecarSessao({ id: "junto-" + Date.now(), nome: nomes.join(" + "), programaId: null, itens: plano.itens, juntas: nomes });
     if (plano.mudancas.length) setTimeout(() => avisar("🔗 Treino junto montado: " + plano.itens.length + " exercícios, ~" + textoMinutos(Math.max(5, plano.depois)) + ". O principal de cada músculo entrou; nenhuma ficha mudou."), 400);
+  };
+  // ---- ➕ Treino extra (fora da ficha) ----
+  const [extraAberto, setExtraAberto] = useState(false);
+  const abrirExtra = () => {
+    if (sessao) { avisar("Termine ou feche o treino aberto antes de montar o extra."); return; }
+    setExtraAberto(true);
+  };
+  const montarExtra = (minutos) => {
+    // as próximas fichas: a de hoje (ou amanhã, se a de hoje já foi feita) e a seguinte
+    const hj = fichaDeHoje(programas, treinos, historico);
+    const prox = hj && hj.ficha;
+    let prox2 = null;
+    if (prox) {
+      const irmas = treinos.filter((t) => t.programaId === prox.programaId && t.itens && t.itens.length);
+      prox2 = irmas.length > 1 ? irmas[(irmas.indexOf(prox) + 1) % irmas.length] : null;
+    }
+    const fichasProg = prox ? treinos.filter((t) => t.programaId === prox.programaId) : [];
+    return treinoExtra({ historico: historico, exPorId: exPorId, catalogo: EXERCICIOS.concat(customEx || []), proximas: [prox, prox2].filter(Boolean),
+      usados: exerciciosConhecidos(fichasProg, treinos, historico).peso, agora: Date.now(), minutos: minutos, geral: descanso, modo: descansoModo });
+  };
+  const comecarExtra = (plano) => {
+    setExtraAberto(false);
+    registrarEvento("treino-extra");
+    comecarSessao({ id: "extra-" + Date.now(), nome: nomeTreinoExtra(plano), programaId: null, itens: plano.itens, extra: true });
   };
   // ---- ⏱ Ajustar ao tempo (JanelaTempo) ----
   const [ajusteTempo, setAjusteTempo] = useState(null);
@@ -38039,6 +38291,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     const resumoBpm = resumoCardioRef.current ? resumoCardioRef.current.fechar() : null;
     if (resumoBpm) registro.bpm = resumoBpm;
     if (sessao.juntas && sessao.juntas.length) registro.juntas = sessao.juntas.slice(0, 3);
+    if (sessao.extra) registro.extra = true;
     resumoCardioRef.current = criarResumoCardio();
     // Salva as observações de volta na ficha (altura do banco, polia etc. ficam guardadas).
     // Casa pelo exercício, e não pela posição: dá para adicionar e remover exercícios
@@ -38938,6 +39191,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             onEsteira={iniciarEsteira}
             onAjustarTempo={abrirAjusteTempo}
             onJuntar={abrirJuntar}
+            onExtra={abrirExtra}
             onEscolaVoz={() => setAba("escolaVoz")}
             convite={convite}
             onSeguir={() => {
@@ -39071,6 +39325,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             onTreinar={(t) => iniciarSessao(t)}
             onAjustarTempo={abrirAjusteTempo}
             onJuntar={abrirJuntar}
+            onExtra={abrirExtra}
             onNovaFicha={novaFicha}
             onEditar={(t, ordem) => { setEditandoTreino(JSON.parse(JSON.stringify(t))); setEditarOrdem(!!ordem); setAba("editarTreino"); }}
             onExcluirFicha={(id) => setTreinos(treinos.filter((x) => x.id !== id))}
@@ -39166,6 +39421,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           }} />
       )}
       {abrindoZumbi && <AberturaZumbi som={som} onFim={() => { setAbrindoZumbi(false); setAba("zumbi"); }} />}
+      {extraAberto && <JanelaExtra montar={montarExtra} exPorId={exPorId} onComecar={comecarExtra} onFechar={() => setExtraAberto(false)} />}
       {juntando && (
         <JanelaJuntar programas={programas} treinos={treinos} inicial={juntando.inicial} exPorId={exPorId} historico={historico}
           geral={descanso} modo={descansoModo} semana={fichaDaSemanaJuntar} onComecar={comecarJunto} onFechar={() => setJuntando(null)} />

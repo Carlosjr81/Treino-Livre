@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-11-23b — Já treinou tudo? Faça um treino extra
+
+**Em uma frase:** na semana em que você já fez todas as fichas e quer treinar mais, o app monta um treino extra só com os músculos descansados que não atrapalham os próximos treinos, sem mexer nas fichas.
+
+**O que mudou**
+- Botão novo "➕ Já treinei tudo: fazer um treino extra" no treino de hoje (e dentro de cada treino, em Fichas).
+- O app deixa de fora os músculos da próxima ficha, os grandes da ficha seguinte, os treinados há pouco (3 dias os grandes, 2 os pequenos) e os que já passaram de 20 séries na semana, e diz o motivo de cada um.
+- Escolhe os que mais faltam na semana, com os exercícios que você já conhece primeiro: 3 séries de 10 a 12, parando com 2 repetições sobrando.
+- Você escolhe o tempo (30 min a 1 h 15). Sem nenhum músculo livre, o extra vira uma caminhada leve.
+- Não entra em ficha nenhuma, e o treino de amanhã continua o mesmo.
+- Na tela inicial, o "Último treino" de caminhada ou corrida mostra a distância e os minutos, e não mais "0 kg de volume".
+
+**Por que importa para quem treina**
+- Treinar a mais sem saber o quê costuma cansar justamente o músculo do treino de amanhã. O extra soma treino na semana sem roubar o próximo dia.
+
+**Como usar**
+- No Início, toque em "➕ Já treinei tudo: fazer um treino extra", escolha o tempo, veja os músculos escolhidos e toque em "Começar o treino extra".
+
+**Ideias de vídeo**
+- "Já fiz todas as fichas da semana, e agora?": abrir o extra, mostrar quem entrou e o "por que os outros ficaram de fora".
+
+**Não prometer**
+- Não promete mais resultado nem recuperação garantida; é uma sugestão automática, leve, e cada um conhece o próprio cansaço. Não substitui descanso quando o corpo pede.
+
+---
+
 ## 2026-11-23a — Faltou um dia? Junte os treinos
 
 **Em uma frase:** quando você falta um dia, o app junta o treino de hoje com o que você perdeu num treino só, com o principal de cada músculo, sem ficar enorme e sem mexer nas suas fichas.

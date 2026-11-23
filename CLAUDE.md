@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v267) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v268) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6548,6 +6548,43 @@ em `teste-tempo.js` e `teste-inicio.js`.
 - No navegador: A + B em 75 min (8 exercícios, ~1 h 12 contra ~1 h 57 das
   fichas separadas), o treino começando e o histórico com `juntas`, sem
   mexer nas fichas. **Não validado num aparelho.**
+
+## Já treinei tudo: o treino extra (`treinoExtra`, `JanelaExtra`, 2026-11-23b)
+
+Pedido do dono: "aquela semana que você já treinou tudo e quer fazer mais um
+treino e não sabe o que treinar: um treino extra que não entre na ficha, com o
+grupo muscular que estará descansado, e que não afete a semana de treino nem a
+futura". Bloco puro logo depois do `juntarFichas` (no `AJUSTE AO TEMPO`),
+coberto por `teste-extra.js` (17 checagens).
+
+- **Quem fica de fora** (cada um com o motivo na tela): músculo principal da
+  **próxima ficha** (`fichaDeHoje`: é amanhã), os **grandes da seguinte**
+  (`MUSCULOS_GRANDES_EXTRA`; depois de amanhã são só 48 h), o treinado há
+  pouco (`HORAS_EXTRA`: 72 h os grandes, 48 h os pequenos desde a última série
+  direta, 24 h desde a indireta) e o que já tem 20 séries ou mais na semana
+  (`FAIXA_SERIES.max`, com o indireto valendo ½).
+- **Quem entra**: os que mais faltam até o `ALVO_MUSCULO` na semana, e há quanto
+  tempo estão parados; lombar, adutores e antebraço por último; abdômen e
+  oblíquos (e bíceps e antebraço) ocupam um lugar só; no máximo 4 músculos.
+  Os exercícios saem do `exerciciosPara` (os conhecidos primeiro, pelo
+  `exerciciosConhecidos`), sem mini band e sem nenhum que tenha como principal
+  um músculo de fora.
+- **Leve de propósito**: 3 séries de 10 a 12, "pare com 2 repetições sobrando"
+  na observação (longe da falha, que é o que mais cansa: Pareja-Blanco 2017,
+  Refalo 2023), dois exercícios só para músculo grande com bastante faltando,
+  as séries pelo tempo (`seriesPorTempoExtra`: 30 min 9, 45 min 15, 1 h 18,
+  1 h 15 21), sem a rampa de aquecimento, e o `planejarTempo` de sempre.
+- **Nada livre**: 25 min de caminhada leve (`descansar`).
+- **Fora da ficha**: sessão `extra-…` com `extra: true`, que vai ao histórico
+  (`registro.extra`). O Finalizar não pergunta nada, e o `fichaDeHoje` pula o
+  extra ao achar o último treino: o treino de amanhã não muda.
+- **Entradas**: "➕ Já treinei tudo: fazer um treino extra" no cartão do treino
+  de hoje, "➕ Já treinei tudo: treino extra fora da ficha" dentro de cada
+  treino em Fichas, e a Central de Ajuda. Com um treino aberto, não abre.
+- De carona (print do dono): o "Último treino" do Início mostra distância,
+  minutos e kcal no aeróbico, em vez de "0 kg de volume".
+- No navegador: a janela (Bíceps, Oblíquos, Trapézio e Adutores, com a A como
+  próxima ficha) e o treino começando com `extra`. **Não validado num aparelho.**
 
 ## O descanso pela ciência (`DESCANSO_CIENCIA`, `tipoDescanso`, `descansoDoItem`)
 

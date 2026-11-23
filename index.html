@@ -1884,7 +1884,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-23b";
+const VERSAO_APP = "2026-11-23c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -13762,6 +13762,30 @@ const MESOCICLO_FACIL = [
   "Semana mais forte: uma série a mais em cada exercício, chegando perto do limite.",
   "Semana de descanso: metade das séries e um pouco menos de peso. É nela que o músculo se recupera e cresce.",
 ];
+// A semana do ciclo no resumo animado (2026-11-23c, pedido do dono: "explique
+// em que semana estamos da metodologia, principalmente na que reduzimos o
+// volume, para o pessoal saber que a redução foi do método e não preguiça").
+// curto: a linha embaixo do título; texto: a explicação; fala: o que a voz diz.
+const CICLO_RESUMO = [
+  { curto: "Base · começo do ciclo", grito: "Começo do ciclo",
+    texto: "Primeira semana do ciclo: uma série a menos e parando com umas 3 repetições sobrando. É de propósito: o corpo pega o ritmo antes de o volume subir.",
+    fala: "Semana 1 de 5, a base do ciclo. Uma série a menos, de propósito: o volume sobe nas próximas semanas." },
+  { curto: "Acúmulo · o volume sobe", grito: "Volume subindo",
+    texto: "Semana de acúmulo: as séries da ficha, com carga firme. Cada semana pede um pouco mais que a anterior.",
+    fala: "Semana 2 de 5, acúmulo. As séries da ficha, com carga firme." },
+  { curto: "Acúmulo · mais carga", grito: "Volume subindo",
+    texto: "Semana de acúmulo: tentando subir a carga ou uma repetição. O ciclo está chegando perto do pico.",
+    fala: "Semana 3 de 5, acúmulo. Hora de subir a carga ou uma repetição." },
+  { curto: "Pico · a semana mais forte", grito: "Semana de pico", forte: true,
+    texto: "Semana de pico: uma série a mais em cada exercício, chegando perto do limite. É a semana mais pesada do ciclo.",
+    fala: "Semana 4 de 5, o pico. Uma série a mais em cada exercício: a semana mais pesada do ciclo." },
+  { curto: "Descanso planejado", grito: "Recuperar também é treino", cor: "#4DEBFF",
+    texto: "Semana de descanso planejado: metade das séries e um pouco menos de peso. Não é preguiça nem falta de força: o método manda reduzir agora, para o corpo se recuperar e crescer. Depois o ciclo recomeça mais forte.",
+    fala: "Semana 5 de 5, descanso planejado. O volume menor é do método, não é preguiça: é nesta semana que o corpo se recupera e cresce. Depois o ciclo recomeça mais forte." },
+];
+const CICLO_ANTES_RESUMO = { curto: "Semana leve antes da troca", grito: "Recuperar também é treino", cor: "#4DEBFF",
+  texto: "Semana leve antes do treino novo: metade das séries e um pouco menos de peso, de propósito. Não é preguiça: o método manda chegar descansado na troca, para começar o ciclo novo com tudo.",
+  fala: "Semana leve antes da troca de treino. O volume menor é do método, não é preguiça: você chega descansado no treino novo." };
 const FACIL_ANTES_DA_TROCA = "Semana leve antes de trocar de treino: metade das séries e um pouco menos de peso, para chegar descansado no treino novo.";
 const DIAS_ONDULACAO = [
   { id: "pesado", nome: "Dia pesado", reps: [6, 8], dica: "carga alta, descanso de 2 a 3 minutos" },
@@ -27300,6 +27324,9 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
   const comEle = [registro].concat(outros);
   const d = { nome: registro.nome || "Treino", data: quando, duracao: registro.duracaoMin || 0,
     exercicios: (registro.itens || []).length, forca: null, cardio: null, nivel: null };
+  // a semana do ciclo (programa com o mesociclo ligado)
+  const rc = registro.ciclo;
+  d.ciclo = rc && rc.s >= 1 && rc.s <= MESOCICLO.length ? { semana: rc.s, antes: !!rc.antes, leve: !!rc.antes || rc.s === MESOCICLO.length } : null;
 
   // ---- força: tudo o que não é aeróbico ----
   const f = { series: 0, reps: 0, volume: 0, cargaMax: 0, segundos: 0, grupos: {} };
@@ -27762,6 +27789,12 @@ function cenasResumo(d) {
     }
   } else c.push({ tipo: "abre", rotulo: "Resumo do treino", titulo: d.nome, dia: dia, sub: sub, grito: "Desafio aceito",
     fala: "Resumo do treino. " + nomeFalado(d.nome) + ". Desafio aceito." });
+  if (d.ciclo) {
+    const ci = d.ciclo, x = ci.antes ? CICLO_ANTES_RESUMO : CICLO_RESUMO[ci.semana - 1];
+    c.push({ tipo: "ciclo", rotulo: "Seu ciclo de treino", semana: ci.semana, total: MESOCICLO.length, antes: ci.antes, leve: ci.leve,
+      titulo: ci.antes ? "Semana leve" : "Semana " + ci.semana + " de " + MESOCICLO.length, sub: x.curto, texto: x.texto,
+      grito: x.grito, corGrito: x.cor || null, forte: !!x.forte, fala: x.fala });
+  }
   // Como o corpo acordou naquele dia (a nota do relógio). Só a nota e a faixa:
   // as horas de sono entram na conta, mas não aparecem no resumo (pedido do dono)
   if (d.disposicao) {
@@ -27807,9 +27840,11 @@ function cenasResumo(d) {
     if (f.comp !== null && f.comp !== undefined) {
       c.push({ tipo: "texto", rotulo: "Comparando", texto: (f.comp >= 0 ? "+" : "−") + Math.abs(f.comp) + "%",
         sub: "de volume que da última vez", cor: f.comp >= 0 ? "#7CFF3C" : null,
-        grito: f.comp > 0 ? "Você se superou" : f.comp === 0 ? "Constância vence" : "Aparecer já é vencer", forte: f.comp > 0,
+        grito: f.comp > 0 ? "Você se superou" : f.comp === 0 ? "Constância vence" : d.ciclo && d.ciclo.leve ? "Descanso planejado" : "Aparecer já é vencer", forte: f.comp > 0,
+        corGrito: f.comp < 0 && d.ciclo && d.ciclo.leve ? "#4DEBFF" : null,
+        sub2: f.comp < 0 && d.ciclo && d.ciclo.leve ? "menos volume de propósito: é a semana leve do ciclo" : "",
         fala: f.comp === 0 ? "O mesmo volume da última vez. Constância é o que vence." : Math.abs(f.comp) + " por cento " + (f.comp > 0 ? "a mais" : "a menos") + " de volume que da última vez." +
-          (f.comp > 0 ? " Você se superou." : " Dia mais leve também conta: o importante é aparecer.") });
+          (f.comp > 0 ? " Você se superou." : d.ciclo && d.ciclo.leve ? " Como o ciclo pede nesta semana: menos volume de propósito, para recuperar." : " Dia mais leve também conta: o importante é aparecer.") });
     }
   }
 
@@ -29025,6 +29060,32 @@ function CenaResumo({ c }) {
         <div style={ROTULO_RESUMO}>{c.rotulo}</div>
         <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 64, marginTop: 10, ...(c.cor ? { background: "none", WebkitTextFillColor: c.cor, color: c.cor } : {}) }}>{c.texto}</Contorno>
         {c.sub && <div style={{ color: "#BDBDBD", fontSize: 16, fontWeight: 700, marginTop: 14 }}>{c.sub}</div>}
+        {c.sub2 && <div style={{ color: "#4DEBFF", fontSize: 15, fontWeight: 800, marginTop: 8 }}>{c.sub2}</div>}
+      </div>
+    );
+  }
+  if (c.tipo === "ciclo") {
+    // as cinco semanas do ciclo, a de agora acesa; a de descanso com a bateria
+    return (
+      <div style={{ textAlign: "center", padding: "0 22px", maxWidth: 380 }}>
+        <div style={ROTULO_RESUMO}>{c.rotulo}</div>
+        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 52, marginTop: 10 }}>{c.titulo}</Contorno>
+        <div style={{ color: c.leve ? "#4DEBFF" : "#F2F0EC", fontSize: 18, fontWeight: 900, marginTop: 6 }}>{c.sub}</div>
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 16 }}>
+          {Array.from({ length: c.total }, (_, k) => {
+            const agora = !c.antes && k + 1 === c.semana, descanso = k + 1 === c.total;
+            const aceso = c.antes ? descanso : agora;
+            return (
+              <div key={k} className="rs-marca" style={{ width: 52, padding: "8px 0", borderRadius: 10, fontWeight: 900, fontSize: 13, animationDelay: 0.3 + k * 0.1 + "s",
+                color: aceso ? "#0B0418" : "#BDBDBD", border: "2px solid " + (aceso ? "transparent" : descanso ? "#4DEBFF66" : "#ffffff33"),
+                background: aceso ? (descanso ? "#4DEBFF" : GRAD) : !c.antes && k + 1 < c.semana ? "#ffffff1f" : "transparent",
+                boxShadow: aceso ? "0 0 16px " + (descanso ? "#4DEBFF99" : "#E1306C99") : "none" }}>
+                {descanso ? "🔋" : "S" + (k + 1)}
+              </div>
+            );
+          })}
+        </div>
+        <div className="rs-marca" style={{ color: "#F2F0EC", fontSize: 15.5, fontWeight: 700, lineHeight: 1.5, marginTop: 16, animationDelay: "0.8s", textShadow: "0 1px 3px #000" }}>{c.texto}</div>
       </div>
     );
   }
@@ -29703,6 +29764,26 @@ function videoCena(c, cena, p) {
     videoRotulo(c, cena.rotulo, 780);
     videoTexto(c, cena.texto, 540, 1010, 200, cena.cor || "grad", 900, 980);
     if (cena.sub) videoParagrafo(c, cena.sub, 1120, 48, "#BDBDBD", 700, 920, 2);
+    if (cena.sub2) videoParagrafo(c, cena.sub2, 1260, 44, "#4DEBFF", 800, 920, 2);
+  } else if (t === "ciclo") {
+    videoRotulo(c, cena.rotulo, 420);
+    videoTexto(c, cena.titulo, 540, 600, 120, "grad", 900, 980);
+    videoTexto(c, cena.sub, 540, 700, 54, cena.leve ? "#4DEBFF" : "#F2F0EC", 900, 980);
+    const w = 150, gap = 18, x0 = 540 - (cena.total * w + (cena.total - 1) * gap) / 2;
+    for (let k = 0; k < cena.total; k++) {
+      const a = Math.max(0, Math.min(1, (p - 300 - k * 100) / 300));
+      const agora = !cena.antes && k + 1 === cena.semana, descanso = k + 1 === cena.total, aceso = cena.antes ? descanso : agora;
+      const x = x0 + k * (w + gap), y = 770;
+      c.save(); c.globalAlpha = a;
+      c.beginPath(); c.roundRect ? c.roundRect(x, y, w, 110, 24) : c.rect(x, y, w, 110);
+      if (aceso) { c.shadowColor = descanso ? "#4DEBFF" : "#E1306C"; c.shadowBlur = 40; c.fillStyle = descanso ? "#4DEBFF" : videoGradiente(c, x, x + w); c.fill(); c.shadowBlur = 0; }
+      else { c.fillStyle = !cena.antes && k + 1 < cena.semana ? "rgba(255,255,255,.12)" : "rgba(0,0,0,.35)"; c.fill(); c.lineWidth = 5; c.strokeStyle = descanso ? "rgba(77,235,255,.45)" : "rgba(255,255,255,.25)"; c.stroke(); }
+      videoTexto(c, descanso ? "🔋" : "S" + (k + 1), x + w / 2, y + 76, 52, aceso ? "#0B0418" : "#BDBDBD", 900);
+      c.restore();
+    }
+    c.globalAlpha = Math.max(0, Math.min(1, (p - 700) / 500));
+    videoParagrafo(c, cena.texto, 1010, 48, "#F2F0EC", 700, 920, 8);
+    c.globalAlpha = 1;
   } else if (t === "gasto") {
     videoRotulo(c, cena.rotulo, 700);
     videoTexto(c, String(Math.round((cena.valor || 0) * conta)), 540, 930, 240, "grad", 900);
@@ -38291,6 +38372,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     const resumoBpm = resumoCardioRef.current ? resumoCardioRef.current.fechar() : null;
     if (resumoBpm) registro.bpm = resumoBpm;
     if (sessao.juntas && sessao.juntas.length) registro.juntas = sessao.juntas.slice(0, 3);
+    // a semana do ciclo, para o resumo animado dizer em que ponto do método o treino estava
+    if (sessao.meso && sessao.meso.semana >= 1 && sessao.meso.semana <= MESOCICLO.length) registro.ciclo = { s: sessao.meso.semana, antes: !!sessao.meso.antes };
     if (sessao.extra) registro.extra = true;
     resumoCardioRef.current = criarResumoCardio();
     // Salva as observações de volta na ficha (altura do banco, polia etc. ficam guardadas).

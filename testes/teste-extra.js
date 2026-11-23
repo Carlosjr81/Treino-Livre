@@ -33,7 +33,7 @@ eval(
   pedaco("// ---------------- TEMPO ESTIMADO DO TREINO", "// ---------------- FIM DO AJUSTE AO TEMPO") +
   "const semAcento = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n" +
   pedaco("const DIAS_FICHA = ", "\n") + "\n" + funcao("fichaDeHoje") +
-  "\nglobalThis.X = { treinoExtra, nomeTreinoExtra, musculosDoEx, fichaDeHoje, estimarTempoFicha };"
+  "\nglobalThis.X = { CICLO_RESUMO, CICLO_ANTES_RESUMO, MESOCICLO, treinoExtra, nomeTreinoExtra, musculosDoEx, fichaDeHoje, estimarTempoFicha };"
 );
 const X = globalThis.X;
 
@@ -101,6 +101,13 @@ teste("sem histórico e sem fichas, ainda monta", true, X.treinoExtra({ historic
 console.log("--- o treino de hoje não muda ---");
 const comExtra = [{ id: "x", nome: "Treino extra · Ombros", data: new Date(agora - 0.1 * DIA).toISOString(), extra: true, itens: [] }].concat(hist);
 teste("depois do extra, o treino de hoje continua o A", "a", X.fichaDeHoje([{ id: "p", nome: "P" }], [A, B, C], comExtra, new Date(agora)).ficha.id);
+
+console.log("--- a semana do ciclo no resumo animado ---");
+teste("uma explicação por semana do ciclo", X.MESOCICLO.length, X.CICLO_RESUMO.length);
+const leve = X.CICLO_RESUMO[X.MESOCICLO.length - 1];
+teste("a semana de descanso diz que é do método, não preguiça", true, /método/.test(leve.texto) && /preguiça/.test(leve.texto) && /método/.test(leve.fala) && /preguiça/.test(leve.fala));
+teste("a semana leve antes da troca também", true, /método/.test(X.CICLO_ANTES_RESUMO.texto) && /preguiça/.test(X.CICLO_ANTES_RESUMO.fala));
+teste("nenhuma promete resultado nem fala em prescrição", true, X.CICLO_RESUMO.concat([X.CICLO_ANTES_RESUMO]).every((x) => !/garant|prescri|personal/i.test(x.texto + x.fala)));
 
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

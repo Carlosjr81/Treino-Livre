@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v268) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v269) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -2139,6 +2139,27 @@ Treino Livre e não um relatório.
   percurso na rua (antes de salvar). O do fim do treino abre no componente
   raiz (`resumoAnim`), porque o modal que tem o botão fecha ao tocar.
 - `prefers-reduced-motion`: sem varredura, números já no valor final.
+
+### A semana do ciclo no resumo (`CICLO_RESUMO`, cena `ciclo`, 2026-11-23c)
+
+Pedido do dono: "explique em que semana estamos dentro da metodologia,
+principalmente na semana que reduzimos o volume, para o pessoal saber que a
+redução foi baseada na metodologia e não por preguiça".
+
+- **O registro guarda a semana** (`registro.ciclo = { s, antes }`, do
+  `sessao.meso` no `finalizarSessao`): o resumo revisto no histórico fala da
+  semana em que o treino aconteceu. Treino antigo, sem o campo, fica sem a cena.
+- **A cena vem logo depois da abertura**, antes dos números (que numa semana
+  leve são menores): "Semana N de 5", a fase, as cinco semanas com a de agora
+  acesa (a 5ª com 🔋, ciano) e a explicação (`CICLO_RESUMO`, um por semana;
+  `CICLO_ANTES_RESUMO` para a semana leve antes da troca). Na semana leve,
+  o texto e a fala dizem "não é preguiça: é o método", e o carimbo é
+  "Recuperar também é treino".
+- **Na semana leve, o "Comparando" negativo** troca o "dia mais leve também
+  conta" por "menos volume de propósito: é a semana leve do ciclo".
+- Tela (`CenaResumo`) e vídeo do story (`videoCena`, tipo `ciclo`).
+  Coberto em `teste-extra.js`. Conferido no navegador (tela e um quadro do
+  vídeo). **Não validado num celular.**
 
 ### Impacto e superação nas cenas (`grito`, `forte`, `EfeitosCena`, `videoImpacto`)
 

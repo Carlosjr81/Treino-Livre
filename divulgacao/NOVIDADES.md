@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-11-23c — O resumo diz em que semana do ciclo você está
+
+**Em uma frase:** quem treina com o ciclo de 5 semanas vê no resumo animado em que semana está, e na semana leve o app explica que o volume menor é do método, não preguiça.
+
+**O que mudou**
+- O resumo animado ganhou a cena "Seu ciclo de treino": "Semana 3 de 5", a fase (base, acúmulo, pico ou descanso planejado), as cinco semanas com a de agora acesa e uma explicação curta do que aquela semana pede.
+- Na semana de descanso (e na semana leve antes de trocar de treino), a cena diz com todas as letras: metade das séries e menos peso é o método mandando recuperar, não preguiça nem falta de força. A voz fala o mesmo.
+- Na semana leve, a comparação com o treino anterior ("menos volume") também explica que foi de propósito.
+- Vale na tela e no vídeo do story.
+
+**Por que importa para quem treina**
+- Quem posta o treino da semana leve não precisa se explicar: o próprio vídeo mostra que a redução faz parte do plano. E quem treina entende que descansar também é parte de crescer.
+
+**Como usar**
+- Nada a fazer: com o treino ajustado (o ciclo de 5 semanas), a cena aparece sozinha no resumo animado de cada treino.
+
+**Ideias de vídeo**
+- "Semana de deload não é preguiça": mostrar a cena da semana 5 com a bateria acesa e o "Recuperar também é treino".
+
+**Não prometer**
+- Não promete mais resultado por seguir o ciclo; é uma explicação do método que o app usa. Não substitui orientação de profissional.
+
+---
+
 ## 2026-11-23b — Já treinou tudo? Faça um treino extra
 
 **Em uma frase:** na semana em que você já fez todas as fichas e quer treinar mais, o app monta um treino extra só com os músculos descansados que não atrapalham os próximos treinos, sem mexer nas fichas.

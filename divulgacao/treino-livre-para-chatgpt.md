@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-23b**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-23c**.
 
 ---
 
@@ -55,6 +55,9 @@
   na próxima ficha (nem os grandes da seguinte) e que ainda não passaram de 20 séries na semana, e monta um treino leve
   (3 séries de 10 a 12, parando com 2 sobrando) no tempo escolhido. Mostra por que cada músculo entrou ou ficou de fora. Sem
   músculo livre, sugere caminhada leve. Não entra em ficha e não muda o treino de amanhã.
+- **A semana do ciclo no resumo animado** (novo em 2026-11-23c): com o treino ajustado (ciclo de 5 semanas), o resumo
+  mostra "Semana N de 5", a fase e o que ela pede. Na semana de descanso (e na leve antes de trocar de treino), explica que o
+  volume menor é do método, para recuperar, e não preguiça. Na tela e no vídeo do story.
 - **Dá para ver o ajuste** (2026-11-20b): o treino abre com "O que o app ajustou para hoje": as séries pelo ciclo, a carga pelo
   seu último treino, a próxima reanálise do volume pelo histórico e o tempo.
 - Não prometer: a faixa de 10 a 20 séries e os mínimos por músculo são referência, não prescrição. O app não garante

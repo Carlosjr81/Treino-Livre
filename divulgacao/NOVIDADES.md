@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-11-24a — O telão da arena no resumo, no app e no relógio
+
+**Em uma frase:** o resumo animado, a comemoração de recorde e o relógio ganharam o visual de telão de ginásio em dia de jogo, com parede de LED, lasers e placa luminosa.
+
+**O que mudou**
+- No resumo animado (na tela e no vídeo do story), uma parede de LED azul no alto, com faixas de luz correndo de lado, três lasers verdes varrendo e, embaixo, a placa de LED do perímetro em âmbar e amarelo com palavras do app passando: TREINO LIVRE, BORA, SÉRIE FEITA, FOCO, + RESPEITO.
+- Nas cenas fortes (recorde, volume grande, meta da semana), no instante do impacto, o telão inteiro troca de cor junto (azul, verde, âmbar, rosa, ciano), como na hora do gol.
+- Na abertura e no fim do resumo, os lasers descem do alto e deixam o rosto e o logo livres.
+- No app, o recorde e o nível novo aparecem com o telão em festa por trás do cartão, com o título passando na placa.
+- No relógio, cada série feita acende o telão por quase 2 segundos ("SÉRIE FEITA", "RECORDE", "TREINO COMPLETO" passando na placa), e os 5 últimos segundos do descanso também.
+
+**Por que importa para quem treina**
+- Bater um recorde ou fechar a série vira um momento de estádio, no pulso e no story. Dá vontade de postar e de buscar a próxima.
+
+**Como usar**
+- Nada a ligar: aparece sozinho no ▶ Resumo animado de qualquer treino, no vídeo do story, nos recordes e no relógio (com o app do relógio atualizado).
+
+**Ideias de vídeo**
+- Gravar a tela do resumo animado na cena do volume ou do recorde, no instante em que o telão troca de cor.
+- Close no relógio ao tocar em ✓ FEITO: lasers e placa passando "SÉRIE FEITA".
+- Antes e depois: o resumo de antes e o novo, com o telão.
+
+**Não prometer**
+- Não citar liga, time, campeonato, patrocinador ou jogo nenhum: o visual é inspirado em arenas em geral.
+- No relógio, depende de o app do relógio estar atualizado.
+
+---
+
 ## 2026-11-23c — O resumo diz em que semana do ciclo você está
 
 **Em uma frase:** quem treina com o ciclo de 5 semanas vê no resumo animado em que semana está, e na semana leve o app explica que o volume menor é do método, não preguiça.

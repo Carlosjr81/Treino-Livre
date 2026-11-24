@@ -1884,7 +1884,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-23c";
+const VERSAO_APP = "2026-11-24a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3363,7 +3363,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-189/treino-livre-189.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-191/treino-livre-191.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -10260,6 +10260,39 @@ function Confete({ pecas = 44 }) {
   );
 }
 
+// O telão da arena atrás da comemoração (recorde, nível novo): o mesmo desenho
+// do resumo animado, em festa o tempo todo, com o título passando na placa
+function TelaoFesta({ palavras }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const tela = ref.current;
+    if (!tela) return undefined;
+    const c = tela.getContext("2d");
+    const ini = Date.now();
+    let quadro = 0, vivo = true, ult = 0;
+    const desenhar = () => {
+      if (!vivo) return;
+      const agora = Date.now();
+      if (!REDUZ_MOVIMENTO && agora - ult < 30) { quadro = requestAnimationFrame(desenhar); return; }
+      ult = agora;
+      const dpr = Math.min(1.5, window.devicePixelRatio || 1);
+      const W = tela.clientWidth, H = tela.clientHeight;
+      if (tela.width !== Math.round(W * dpr) || tela.height !== Math.round(H * dpr)) { tela.width = Math.round(W * dpr); tela.height = Math.round(H * dpr); }
+      const k = Math.max((W * dpr) / 1080, (H * dpr) / 1920);
+      c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, tela.width, tela.height);
+      c.setTransform(k, 0, 0, k, (W * dpr - 1080 * k) / 2, (H * dpr - 1920 * k) / 2);
+      const vw = (W * dpr) / k, vh = (H * dpr) / k;
+      const vis = { x: (1080 - vw) / 2, y: (1920 - vh) / 2, w: vw, h: vh };
+      // a parede no alto da tela e a placa embaixo, onde quer que a tela corte
+      desenharTelao(c, agora - ini, { festa: true, palavras: palavras, paredeY: vis.y + 70, placaY: vis.y + vis.h - 150 }, REDUZ_MOVIMENTO, vis);
+      if (!REDUZ_MOVIMENTO) quadro = requestAnimationFrame(desenhar);
+    };
+    desenhar();
+    return () => { vivo = false; cancelAnimationFrame(quadro); };
+  }, [palavras]);
+  return <canvas ref={ref} aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />;
+}
+
 function Celebracao({ festa, onFechar }) {
   useEffect(() => {
     if (!festa) return;
@@ -10270,10 +10303,11 @@ function Celebracao({ festa, onFechar }) {
   return (
     <div role="status" aria-live="assertive" onClick={onFechar}
       style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 55, display: "flex",
-        alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", padding: 24 }}>
+        alignItems: "center", justifyContent: "center", background: "rgba(5,3,16,0.82)", padding: 24 }}>
+      <TelaoFesta palavras={festa.palavras || [String(festa.titulo || "").toUpperCase(), "TREINO LIVRE", "+ RESPEITO", "BORA"]} />
       <Confete />
       <div className="celebra-cartao"
-        style={{ ...S.card, marginBottom: 0, textAlign: "center", maxWidth: 330, width: "100%", border: "2px solid #E1306C" }}>
+        style={{ ...S.card, marginBottom: 0, textAlign: "center", maxWidth: 330, width: "100%", border: "2px solid #E1306C", position: "relative" }}>
         <div className="celebra-icone" style={{ fontSize: 54, lineHeight: 1 }} aria-hidden="true">{festa.icone}</div>
         <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase", color: "#E1306C", marginTop: 10 }}>
           {festa.titulo}
@@ -28234,6 +28268,129 @@ function desenharCenaArte(c, t, plano, parado, vis) {
     c.restore();
   }
 }
+// ---- O TELÃO DA ARENA (2026-11-24a, pedido do dono, com dois vídeos de jogo
+// num ginásio: "quero esse efeito do telão com esse tipo de animação no
+// resumo, no relógio e no app"). Só os elementos genéricos de arena, sem nome,
+// logo, liga nem patrocinador nenhum (a regra do visual de jogo): a parede de
+// LED com as faixas azuis correndo de lado, os lasers verdes varrendo de uma
+// treliça, e a placa do perímetro em âmbar com palavras do próprio app passando,
+// com o fio ciano em cima. Tudo em pontinhos de LED (as linhas escuras).
+// Desenhado no 1080×1920 do story: a mesma função na tela (CenarioArte, e a
+// comemoração do app) e no vídeo (videoFundo). Tudo é função do tempo.
+const TELAO = {
+  azul: ["#4FC3FF", "#1E6BFF", "#0A2BD9"],
+  laser: [59, 255, 90],
+  ambar: "#FFB21A", amarelo: "#FFD23F", ciano: "#35E0F0", letra: "#1A0B00",
+  festa: ["#1E6BFF", "#3BFF5A", "#FFB21A", "#E1306C", "#35E0F0", "#FFD23F"],
+  palavras: ["TREINO LIVRE", "BORA", "SÉRIE FEITA", "FOCO", "+ RESPEITO", "SEM DESCULPA", "MAIS UMA", "NO LIMITE"],
+  parede: { y: 250, h: 98 },
+  placa: { y: 1646, h: 46 },
+};
+// plano: { tipo, p (ms na cena), forte, imp (ms do impacto), festa (a comemoração
+// do app: festa o tempo todo), palavras, semParede, paredeY, placaY }
+function desenharTelao(c, t, plano, parado, vis) {
+  vis = vis || { x: 0, y: 0, w: 1080, h: 1920 };
+  plano = plano || {};
+  const s = parado ? 0 : t / 1000;
+  const ponta = plano.tipo === "vinheta" || plano.tipo === "fecho";
+  const q = plano.forte ? (plano.p || 0) - (plano.imp || 1450) : -1;
+  // a festa: logo depois do impacto da cena forte, as cores trocando juntas
+  const festa = plano.festa ? 1 : q >= 0 && q < 1700 ? 1 - q / 1700 : 0;
+  const x0 = vis.x, W = vis.w;
+  const P = { y: plano.paredeY != null ? plano.paredeY : TELAO.parede.y, h: TELAO.parede.h };
+  const yb = ponta ? vis.y + 14 : P.y + P.h + 16;
+  const cf = (k) => TELAO.festa[(Math.floor(s * 7) + k) % TELAO.festa.length];
+  c.save();
+  // 1) a parede de LED: colunas azuis, com faixas claras correndo para a
+  // esquerda e colunas que se partem em degraus (as "letras" passando)
+  if (!ponta && !plano.semParede) {
+    c.globalAlpha = 0.85; c.fillStyle = "#03051A"; c.fillRect(x0, P.y - 8, W, P.h + 16);
+    const g = c.createLinearGradient(0, P.y, 0, P.y + P.h);
+    g.addColorStop(0, TELAO.azul[0]); g.addColorStop(0.45, TELAO.azul[1]); g.addColorStop(1, TELAO.azul[2]);
+    const larg = 15, passo = 22, n = Math.ceil(W / passo) + 1, ini = Math.floor(x0 / passo);
+    for (let k = 0; k < n; k++) {
+      const x = (ini + k) * passo, u = x / 1080;
+      let b = 0.75 * Math.pow(Math.max(0, Math.sin(u * 9 + s * 4.2)), 2) + 0.6 * Math.pow(Math.max(0, Math.sin(u * 3.1 - s * 1.4)), 3);
+      b = Math.min(1, 0.16 + b + 0.5 * festa);
+      const degrau = Math.sin((ini + k) * 1.7 + Math.floor(s * 2.5) * 2.3) > 0.55 ? 0.5 : 1;
+      c.globalAlpha = b;
+      c.fillStyle = festa > 0.05 ? cf(Math.floor((ini + k) / 6)) : g;
+      c.fillRect(x, P.y + P.h * (1 - degrau), larg, P.h * degrau);
+    }
+    // a luz que a parede joga para baixo
+    c.globalAlpha = 0.5;
+    const luz = c.createLinearGradient(0, P.y + P.h, 0, P.y + P.h + 110);
+    luz.addColorStop(0, festa > 0.05 ? cf(0) : "rgba(30,107,255,.55)"); luz.addColorStop(1, "rgba(30,107,255,0)");
+    c.fillStyle = luz; c.fillRect(x0, P.y + P.h, W, 110);
+    // os pontinhos de LED
+    c.globalAlpha = 0.45; c.fillStyle = "#000";
+    for (let y = P.y; y < P.y + P.h; y += 6) c.fillRect(x0, y, W, 2);
+    // a treliça embaixo
+    c.globalAlpha = 0.7; c.strokeStyle = "#5A5A6E"; c.lineWidth = 3;
+    c.beginPath(); c.moveTo(x0, yb); c.lineTo(x0 + W, yb); c.moveTo(x0, yb + 12); c.lineTo(x0 + W, yb + 12); c.stroke();
+    c.lineWidth = 1.5; c.beginPath();
+    for (let x = Math.floor(x0 / 24) * 24; x < x0 + W; x += 24) { c.moveTo(x, yb); c.lineTo(x + 12, yb + 12); c.lineTo(x + 24, yb); }
+    c.stroke();
+  }
+  // 2) os lasers: três fontes na treliça, os feixes subindo e abrindo, varrendo
+  // devagar; na festa, mais fortes, mais depressa e com feixes descendo também
+  c.globalCompositeOperation = "lighter";
+  const L = TELAO.laser, forca = Math.min(1, (ponta ? 0.6 : 0.34) + 0.6 * festa);
+  [0.2, 0.5, 0.8].forEach((fx, k) => {
+    const x = x0 + W * fx, y = yb;
+    // na vinheta e no fecho os focos ficam no alto e os feixes descem (o rosto e o logo ficam livres)
+    const feixes = ponta ? [1] : festa > 0.05 ? [-1, 1] : [-1];
+    feixes.forEach((sent) => {
+      const base = sent < 0 ? -Math.PI / 2 + (fx - 0.5) * 1.3 : Math.PI / 2 - (fx - 0.5) * 1.6;
+      const a = base + Math.sin(s * (0.9 + 2.2 * festa) + k * 2.1 + (sent > 0 ? 1.3 : 0)) * 0.38;
+      const comp = sent < 0 ? 560 : 1500, al = forca * (sent < 0 ? 1 : ponta ? 0.55 : 0.42);
+      const ex = x + Math.cos(a) * comp, ey = y + Math.sin(a) * comp;
+      const gr = c.createLinearGradient(x, y, ex, ey);
+      gr.addColorStop(0, "rgba(" + L + "," + 0.55 * al + ")"); gr.addColorStop(1, "rgba(" + L + ",0)");
+      const ab = sent < 0 ? 0.075 : 0.05;
+      c.globalAlpha = 1; c.fillStyle = gr;
+      c.beginPath(); c.moveTo(x, y);
+      c.lineTo(x + Math.cos(a - ab) * comp, y + Math.sin(a - ab) * comp);
+      c.lineTo(x + Math.cos(a + ab) * comp, y + Math.sin(a + ab) * comp); c.closePath(); c.fill();
+      const nucleo = c.createLinearGradient(x, y, ex, ey);
+      nucleo.addColorStop(0, "rgba(220,255,225," + 0.9 * al + ")"); nucleo.addColorStop(1, "rgba(" + L + ",0)");
+      c.strokeStyle = nucleo; c.lineWidth = 4;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(ex, ey); c.stroke();
+    });
+    const pt = c.createRadialGradient(x, y, 0, x, y, 34);
+    pt.addColorStop(0, "rgba(235,255,240," + Math.min(1, forca + 0.3) + ")"); pt.addColorStop(0.3, "rgba(" + L + "," + forca + ")"); pt.addColorStop(1, "rgba(" + L + ",0)");
+    c.fillStyle = pt; c.beginPath(); c.arc(x, y, 34, 0, Math.PI * 2); c.fill();
+  });
+  c.globalCompositeOperation = "source-over";
+  // 3) a placa do perímetro: painéis âmbar e amarelos com as palavras passando,
+  // e o fio ciano em cima (fora da vinheta e do fecho, que têm o logo embaixo)
+  if (ponta && !plano.festa) { c.restore(); return; }
+  const pl = TELAO.placa, py = plano.placaY != null ? plano.placaY : pl.y;
+  const palavras = plano.palavras && plano.palavras.length ? plano.palavras : TELAO.palavras;
+  c.globalAlpha = 0.95;
+  c.fillStyle = "#04121A"; c.fillRect(x0, py - 16, W, 8);
+  c.fillStyle = TELAO.ciano;
+  const desl = (s * 260) % 40;
+  for (let x = x0 - 40 + (40 - desl); x < x0 + W; x += 40) { c.globalAlpha = 0.95; c.fillRect(x, py - 15, 22, 6); }
+  c.save();
+  c.beginPath(); c.rect(x0, py, W, pl.h); c.clip();
+  c.fillStyle = "#120700"; c.fillRect(x0, py, W, pl.h);
+  c.font = "400 28px " + VIDEO_FONTE_JOGO; c.textAlign = "center"; c.textBaseline = "middle";
+  if ("letterSpacing" in c) c.letterSpacing = "2px";
+  const painel = 330, primeiro = Math.floor((x0 + s * 150) / painel);
+  for (let j = 0; j < Math.ceil(W / painel) + 2; j++) {
+    const idx = primeiro + j, x = idx * painel - s * 150;
+    const cor = festa > 0.05 ? cf(idx) : idx % 2 ? TELAO.ambar : TELAO.amarelo;
+    c.globalAlpha = 1; c.fillStyle = cor; c.fillRect(x + 3, py + 2, painel - 6, pl.h - 4);
+    c.fillStyle = TELAO.letra;
+    c.fillText(palavras[((idx % palavras.length) + palavras.length) % palavras.length], x + painel / 2, py + pl.h / 2 + 2, painel - 30);
+  }
+  if ("letterSpacing" in c) c.letterSpacing = "0px";
+  c.globalAlpha = 0.3; c.fillStyle = "#000";
+  for (let y = py; y < py + pl.h; y += 5) c.fillRect(x0, y, W, 1.5);
+  c.restore();
+  c.restore();
+}
 // ---- O CORAÇÃO EM REALIDADE AUMENTADA (2026-11-21j, pedido do dono: "uma arte
 // do coração batendo e do ritmo cardíaco, bem legal, com realidade aumentada
 // realista"). Um coração anatômico desenhado aqui (corpo, átrios, aorta, veia
@@ -28757,7 +28914,7 @@ function CenarioArte({ cena, indice, chave, animar }) {
   const alvo = useRef(escuroDaCena(cena));
   alvo.current = escuroDaCena(cena);
   const planoRef = useRef({ i: indice, tipo: cena && cena.tipo });
-  planoRef.current = { i: indice, tipo: cena && cena.tipo };
+  planoRef.current = { i: indice, tipo: cena && cena.tipo, forte: !!(cena && cena.forte), imp: (cena && cena.impactoMs) || IMPACTO_MS };
   useEffect(() => {
     const tela = ref.current;
     if (!tela) return undefined;
@@ -28788,6 +28945,9 @@ function CenarioArte({ cena, indice, chave, animar }) {
       const g = c.createLinearGradient(0, 0, 0, 1920);
       g.addColorStop(0, "rgba(36,9,63,.7)"); g.addColorStop(0.2, "rgba(36,9,63,0)"); g.addColorStop(0.72, "rgba(36,9,63,0)"); g.addColorStop(1, "rgba(225,48,108,.35)");
       c.fillStyle = g; c.fillRect(0, 0, 1080, 1920);
+      // o telão da arena por cima do fundo e por baixo da cena
+      desenharTelao(c, agora - ini, { tipo: planoRef.current.tipo, forte: planoRef.current.forte, imp: planoRef.current.imp, p: agora - e.desde }, !animar,
+        { x: (1080 - vw) / 2, y: (1920 - vh) / 2, w: vw, h: vh });
       if (animar && !document.hidden) quadro = requestAnimationFrame(desenhar);
       else quadro = setTimeout(desenhar, animar ? 500 : 400);
     };
@@ -29622,6 +29782,7 @@ function videoFundo(c, t) {
   g.addColorStop(0, "rgba(36,9,63,.7)"); g.addColorStop(0.2, "rgba(36,9,63,0)");
   g.addColorStop(0.72, "rgba(36,9,63,0)"); g.addColorStop(1, "rgba(225,48,108,.35)");
   c.fillStyle = g; c.fillRect(0, 0, 1080, 1920);
+  desenharTelao(c, t, PLANO_VIDEO, false);
   // o anel do relógio
   c.translate(540, 900); c.rotate(s * (2 * Math.PI / 7));
   let anel;
@@ -30084,7 +30245,7 @@ function videoQuadro(c, cenas, durs, t) {
   const p = t - ini;
   const ea = i > 0 ? Math.min(1, p / 800) : 1;
   ESCURO_VIDEO = escuroDaCena(cenas[i]) * ea + (i > 0 ? escuroDaCena(cenas[i - 1]) : 0) * (1 - ea);
-  PLANO_VIDEO = { i: i, p: p, tipo: cenas[i].tipo };
+  PLANO_VIDEO = { i: i, p: p, tipo: cenas[i].tipo, forte: !!cenas[i].forte, imp: cenas[i].impactoMs || IMPACTO_MS };
   c.fillStyle = "#0B0418"; c.fillRect(0, 0, 1080, 1920);
   videoFundo(c, t);
   // barras de progresso no topo, como as do story

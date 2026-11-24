@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-23c**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-24a**.
 
 ---
 
@@ -58,6 +58,11 @@
 - **A semana do ciclo no resumo animado** (novo em 2026-11-23c): com o treino ajustado (ciclo de 5 semanas), o resumo
   mostra "Semana N de 5", a fase e o que ela pede. Na semana de descanso (e na leve antes de trocar de treino), explica que o
   volume menor é do método, para recuperar, e não preguiça. Na tela e no vídeo do story.
+- **O telão da arena** (novo em 2026-11-24a): o resumo animado (tela e vídeo do story) ganhou o visual de telão de ginásio
+  em dia de jogo: uma parede de LED azul com faixas correndo, três lasers verdes varrendo e a placa de LED do perímetro, em
+  âmbar, com palavras do app passando (TREINO LIVRE, BORA, SÉRIE FEITA, + RESPEITO). No impacto das cenas fortes, tudo troca
+  de cor junto, como num gol. O mesmo telão aparece atrás da comemoração de recorde e de nível no app, e no relógio a cada série
+  feita e nos 5 últimos segundos do descanso. Elementos genéricos de arena: nenhuma liga, time ou marca.
 - **Dá para ver o ajuste** (2026-11-20b): o treino abre com "O que o app ajustou para hoje": as séries pelo ciclo, a carga pelo
   seu último treino, a próxima reanálise do volume pelo histórico e o tempo.
 - Não prometer: a faixa de 10 a 20 séries e os mínimos por músculo são referência, não prescrição. O app não garante

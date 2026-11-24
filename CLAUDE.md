@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v269) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v270) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -2160,6 +2160,40 @@ redução foi baseada na metodologia e não por preguiça".
 - Tela (`CenaResumo`) e vídeo do story (`videoCena`, tipo `ciclo`).
   Coberto em `teste-extra.js`. Conferido no navegador (tela e um quadro do
   vídeo). **Não validado num celular.**
+
+### O telão da arena (`TELAO`, `desenharTelao`, `TelaoFesta`, `Telao.kt`, 2026-11-24a)
+
+Pedido do dono, com dois vídeos de jogo num ginásio: "quero esse efeito do
+telão com esse tipo de animação no resumo animado, no relógio e no app". **Só
+o genérico de arena**: nenhum nome de liga, time, patrocinador ou logo (a
+regra do visual de jogo). As palavras da placa são do app.
+
+- **Os três elementos**, desenhados no 1080×1920 do story por
+  `desenharTelao(c, t, plano, parado, vis)`: a **parede de LED** (y 250,
+  98 de altura: colunas azuis com faixas claras correndo para a esquerda e
+  colunas que se partem em degraus, a luz que ela joga para baixo, linhas
+  escuras de pontinhos de LED e a treliça), os **três lasers verdes** saindo
+  da treliça e varrendo (modo "lighter"), e a **placa do perímetro** (y 1646:
+  painéis âmbar e amarelos com `TELAO.palavras` passando, o fio ciano em
+  cima). Tudo é função do tempo.
+- **A festa**: nas cenas `forte`, do impacto (`imp`) até 1,7 s depois, as
+  cores trocam juntas (`TELAO.festa`) e os lasers descem também. Na vinheta e
+  no fecho não há parede nem placa (o logo e as frases moram ali): os focos
+  ficam no alto e os feixes descem.
+- **Onde**: no fundo do resumo, na tela (`CenarioArte`, com `forte` e `imp`
+  no plano) e no vídeo (`videoFundo`, pelo `PLANO_VIDEO`), por baixo da cena
+  e por cima da arte. Cena nova no vídeo não pode pôr nada importante entre
+  250 e 370 nem entre 1630 e 1692. No app, `TelaoFesta` atrás da `Celebracao`
+  (recorde, nível), sempre em festa, com o título na placa (`paredeY`,
+  `placaY` acompanham a tela).
+- **No relógio** (`Telao.kt`, o mesmo desenho em proporção da tela redonda):
+  na camada da frente do `Palco`, a cada série feita, por `TELAO_MS` (1,9 s,
+  festa nos primeiros 0,9 s) com "SÉRIE FEITA", "RECORDE" ou "TREINO
+  COMPLETO" na placa (`frente.telao(...)` no `celebrar`), e no fundo nos 5
+  últimos segundos do descanso. Nunca no modo ambiente.
+- Movimento reduzido: o telão desenha parado. Conferido no navegador (tela,
+  quadros do vídeo, a comemoração). **Não validado num celular nem num
+  relógio** (o relógio foi só compilado pelo Actions).
 
 ### Impacto e superação nas cenas (`grito`, `forte`, `EfeitosCena`, `videoImpacto`)
 

@@ -16,30 +16,31 @@
 
 ---
 
-## 2026-11-24a — O telão da arena no resumo, no app e no relógio
+## 2026-11-24a — Efeitos de LED futuristas no resumo, no app e no relógio
 
-**Em uma frase:** o resumo animado, a comemoração de recorde e o relógio ganharam o visual de telão de ginásio em dia de jogo, com parede de LED, lasers e placa luminosa.
+**Em uma frase:** o resumo animado, a comemoração de recorde e o relógio ganharam efeitos de luz futuristas, inspirados em telão de arena: barras de LED correndo, uma faixa de luz varrendo a tela e lasers.
 
 **O que mudou**
-- No resumo animado (na tela e no vídeo do story), uma parede de LED azul no alto, com faixas de luz correndo de lado, três lasers verdes varrendo e, embaixo, a placa de LED do perímetro em âmbar e amarelo com palavras do app passando: TREINO LIVRE, BORA, SÉRIE FEITA, FOCO, + RESPEITO.
-- Nas cenas fortes (recorde, volume grande, meta da semana), no instante do impacto, o telão inteiro troca de cor junto (azul, verde, âmbar, rosa, ciano), como na hora do gol.
-- Na abertura e no fim do resumo, os lasers descem do alto e deixam o rosto e o logo livres.
-- No app, o recorde e o nível novo aparecem com o telão em festa por trás do cartão, com o título passando na placa.
-- No relógio, cada série feita acende o telão por quase 2 segundos ("SÉRIE FEITA", "RECORDE", "TREINO COMPLETO" passando na placa), e os 5 últimos segundos do descanso também.
+- No resumo animado (na tela e no vídeo do story), barras de luz azuis correm por trás da cena e acendem em ondas, com a textura de pontinhos de LED.
+- A cada cena nova, uma faixa dessas barras atravessa a tela bem acesa, como uma varredura.
+- Lasers verdes descem do alto e varrem a tela.
+- Nas cenas fortes (recorde, volume grande, meta da semana), no instante do impacto, barras e lasers trocam de cor juntos (azul, verde, âmbar, rosa, ciano, roxo), como na hora do gol.
+- No app, o recorde e o nível novo aparecem com esses efeitos em festa por trás do cartão.
+- No relógio, cada série feita acende a varredura, as barras e os lasers por quase 2 segundos, e os 5 últimos segundos do descanso também.
 
 **Por que importa para quem treina**
-- Bater um recorde ou fechar a série vira um momento de estádio, no pulso e no story. Dá vontade de postar e de buscar a próxima.
+- Fechar a série ou bater um recorde vira um momento de show, no pulso e no story. Dá vontade de postar e de buscar a próxima.
 
 **Como usar**
 - Nada a ligar: aparece sozinho no ▶ Resumo animado de qualquer treino, no vídeo do story, nos recordes e no relógio (com o app do relógio atualizado).
 
 **Ideias de vídeo**
-- Gravar a tela do resumo animado na cena do volume ou do recorde, no instante em que o telão troca de cor.
-- Close no relógio ao tocar em ✓ FEITO: lasers e placa passando "SÉRIE FEITA".
-- Antes e depois: o resumo de antes e o novo, com o telão.
+- Gravar a tela do resumo animado no instante em que a cena forte bate e as luzes trocam de cor.
+- Close no relógio ao tocar em ✓ FEITO: a faixa de luz atravessando e os lasers.
+- Antes e depois: o resumo de antes e o novo.
 
 **Não prometer**
-- Não citar liga, time, campeonato, patrocinador ou jogo nenhum: o visual é inspirado em arenas em geral.
+- Não citar liga, time, campeonato, patrocinador ou jogo nenhum: os efeitos são inspirados em telões de arena em geral.
 - No relógio, depende de o app do relógio estar atualizado.
 
 ---

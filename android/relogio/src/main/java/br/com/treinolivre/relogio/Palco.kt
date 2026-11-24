@@ -99,7 +99,6 @@ object Cores {
 class Palco(c: Context, private val frente: Boolean = false) : View(c) {
     companion object {
         const val TELAO_MS = 1900f
-        val FESTA_DESCANSO = arrayOf("BORA", "VALENDO", "FOCO", "MAIS UMA")
     }
     enum class Modo { PROCURANDO, PARADO, TREINO, DESCANSO, FIM }
 
@@ -119,10 +118,8 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
     private var ultimo = 0L
     private var flashCor = 0
     private var flashEm = 0L
-    // o telão da arena na comemoração (Telao.kt)
+    // os efeitos de LED na comemoração (Telao.kt)
     private var telaoEm = 0L
-    private var telaoPalavras = arrayOf("TREINO LIVRE")
-    private val letreiro: android.graphics.Typeface? = try { c.resources.getFont(R.font.letreiro) } catch (e: Exception) { null }
     private val dens = c.resources.displayMetrics.density
 
     private val pTrilho = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
@@ -151,9 +148,8 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
         invalidate()
     }
 
-    // O telão acende junto da comemoração e some em TELAO_MS
-    fun telao(palavras: Array<String>) {
-        telaoPalavras = palavras
+    // Os efeitos de LED acendem junto da comemoração e somem em TELAO_MS
+    fun telao() {
         telaoEm = SystemClock.uptimeMillis()
         invalidate()
     }
@@ -239,8 +235,8 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
         cv.drawColor(Cores.FUNDO_JOGO)
         cv.drawRect(0f, 0f, w, h, pFundo)
         if (modo == Modo.DESCANSO && resta in 1..10) piscar(cv, cx, cy, r, agora)
-        // a festa dos 5 últimos segundos também acende o telão da arena
-        if (modo == Modo.DESCANSO && resta in 1..5) Telao.desenhar(cv, w, h, agora / 1000f, 0.75f, true, FESTA_DESCANSO, letreiro)
+        // a festa dos 5 últimos segundos também acende os efeitos de LED
+        if (modo == Modo.DESCANSO && resta in 1..5) Telao.desenhar(cv, w, h, agora / 1000f, 0.75f, true, -1f)
 
         val vel = when (modo) {
             Modo.DESCANSO -> if (resta <= 5) 720f else if (resta <= 10) 260f else 110f
@@ -384,7 +380,8 @@ class Palco(c: Context, private val frente: Boolean = false) : View(c) {
         if (t >= TELAO_MS) { telaoEm = 0L; return }
         // entra em 150 ms e some nos últimos 500
         val forca = min(1f, t / 150f) * min(1f, (TELAO_MS - t) / 500f)
-        Telao.desenhar(cv, w, h, agora / 1000f, forca, t < 900f, telaoPalavras, letreiro)
+        // a faixa de luz atravessa a tela nos primeiros 650 ms
+        Telao.desenhar(cv, w, h, agora / 1000f, forca, t < 900f, if (t < 650f) t / 650f else -1f)
     }
 
     private fun desenharFlash(cv: Canvas, cx: Float, cy: Float, r: Float, agora: Long) {

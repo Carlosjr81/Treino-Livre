@@ -775,12 +775,8 @@ class TelaRelogio : ComponentActivity(), DataClient.OnDataChangedListener, Messa
         if (ambiente) return
         val cor = when (tipo) { RECORDE -> Cores.OURO; TREINO_COMPLETO -> Cores.VERDE; else -> Cores.ROSA }
         frente.flash(cor)
-        // o telão da arena por trás do aviso (2026-11-24a)
-        frente.telao(when (tipo) {
-            RECORDE -> arrayOf("RECORDE", "TREINO LIVRE", "+ RESPEITO")
-            TREINO_COMPLETO -> arrayOf("TREINO COMPLETO", "MISSÃO CUMPRIDA", "+ RESPEITO")
-            else -> arrayOf("SÉRIE FEITA", "BORA", "TREINO LIVRE")
-        })
+        // os efeitos de LED por trás do aviso (2026-11-24a)
+        frente.telao()
         // a gelatina chacoalha com a série feita (mais forte no recorde e no fim)
         gel.sacudir(if (tipo == SERIE) 1f else 1.6f)
         celebra.text = when (tipo) {

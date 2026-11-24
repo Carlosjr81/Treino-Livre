@@ -2161,38 +2161,39 @@ redução foi baseada na metodologia e não por preguiça".
   Coberto em `teste-extra.js`. Conferido no navegador (tela e um quadro do
   vídeo). **Não validado num celular.**
 
-### O telão da arena (`TELAO`, `desenharTelao`, `TelaoFesta`, `Telao.kt`, 2026-11-24a)
+### Os efeitos de LED (`TELAO`, `desenharTelao`, `TelaoFesta`, `Telao.kt`, 2026-11-24a)
 
-Pedido do dono, com dois vídeos de jogo num ginásio: "quero esse efeito do
-telão com esse tipo de animação no resumo animado, no relógio e no app". **Só
-o genérico de arena**: nenhum nome de liga, time, patrocinador ou logo (a
-regra do visual de jogo). As palavras da placa são do app.
+Pedido do dono, com dois vídeos de jogo num ginásio: primeiro "quero esse efeito
+do telão no resumo, no relógio e no app"; depois, vendo a primeira versão (uma
+parede de LED, treliça e placa com palavras): **"não precisa colocar um telão.
+Use só os efeitos visuais que aparecem no telão para recriar as animações;
+gostei porque são futuristas"**. Então **nada de telão desenhado**: só os
+efeitos, soltos na própria animação, sem nome, logo nem marca.
 
-- **Os três elementos**, desenhados no 1080×1920 do story por
-  `desenharTelao(c, t, plano, parado, vis)`: a **parede de LED** (y 250,
-  98 de altura: colunas azuis com faixas claras correndo para a esquerda e
-  colunas que se partem em degraus, a luz que ela joga para baixo, linhas
-  escuras de pontinhos de LED e a treliça), os **três lasers verdes** saindo
-  da treliça e varrendo (modo "lighter"), e a **placa do perímetro** (y 1646:
-  painéis âmbar e amarelos com `TELAO.palavras` passando, o fio ciano em
-  cima). Tudo é função do tempo.
-- **A festa**: nas cenas `forte`, do impacto (`imp`) até 1,7 s depois, as
-  cores trocam juntas (`TELAO.festa`) e os lasers descem também. Na vinheta e
-  no fecho não há parede nem placa (o logo e as frases moram ali): os focos
-  ficam no alto e os feixes descem.
-- **Onde**: no fundo do resumo, na tela (`CenarioArte`, com `forte` e `imp`
-  no plano) e no vídeo (`videoFundo`, pelo `PLANO_VIDEO`), por baixo da cena
-  e por cima da arte. Cena nova no vídeo não pode pôr nada importante entre
-  250 e 370 nem entre 1630 e 1692. No app, `TelaoFesta` atrás da `Celebracao`
-  (recorde, nível), sempre em festa, com o título na placa (`paredeY`,
-  `placaY` acompanham a tela).
-- **No relógio** (`Telao.kt`, o mesmo desenho em proporção da tela redonda):
-  na camada da frente do `Palco`, a cada série feita, por `TELAO_MS` (1,9 s,
-  festa nos primeiros 0,9 s) com "SÉRIE FEITA", "RECORDE" ou "TREINO
-  COMPLETO" na placa (`frente.telao(...)` no `celebrar`), e no fundo nos 5
+- **Os efeitos**, desenhados no 1080×1920 do story por
+  `desenharTelao(c, t, plano, parado, vis)`:
+  - **as barras de luz** verticais, de larguras diferentes, correndo de lado
+    e acendendo em ondas (azul, apagando em cima e embaixo), algumas partidas
+    em degraus, com **a textura de pontinhos de LED** (linhas escuras que
+    recortam só as barras: elas são desenhadas numa tela à parte,
+    `TELAO_TELA`, em meia resolução, e somadas com "lighter");
+  - **a varredura**: nos primeiros 750 ms de cada cena, uma faixa dessas
+    barras atravessa a tela bem acesa;
+  - **os lasers** verdes descendo do alto (as fontes ficam fora da tela) e
+    varrendo; fracos nas cenas comuns, mais fortes nas fortes, na vinheta e no
+    fecho;
+  - **a festa**: nas cenas `forte`, do impacto (`imp`) até 1,7 s depois,
+    barras e lasers trocam de cor juntos (`TELAO.festa`).
+- **Onde**: no fundo do resumo, na tela (`CenarioArte`, com `forte` e
+  `imp` no plano) e no vídeo (`videoFundo`, pelo `PLANO_VIDEO`), por
+  cima da arte e por baixo da cena. No app, `TelaoFesta` atrás da
+  `Celebracao` (recorde, nível), sempre em festa.
+- **No relógio** (`Telao.kt`, os mesmos efeitos na régua da tela redonda):
+  na camada da frente do `Palco`, a cada série feita, por `TELAO_MS`
+  (1,9 s: a varredura nos primeiros 650 ms, festa até 900 ms), e no fundo nos 5
   últimos segundos do descanso. Nunca no modo ambiente.
-- Movimento reduzido: o telão desenha parado. Conferido no navegador (tela,
-  quadros do vídeo, a comemoração). **Não validado num celular nem num
+- Movimento reduzido: desenha parado, sem varredura. Conferido no navegador
+  (tela, quadros do vídeo, a comemoração). **Não validado num celular nem num
   relógio** (o relógio foi só compilado pelo Actions).
 
 ### Impacto e superação nas cenas (`grito`, `forte`, `EfeitosCena`, `videoImpacto`)

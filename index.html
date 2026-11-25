@@ -2125,7 +2125,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-25g";
+const VERSAO_APP = "2026-11-25h";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -2964,6 +2964,7 @@ function cardioDaSemana(historico, exPorId, inicioMs, pesoKg) {
         const m = medirCardio(s, pesoKg, e && e.cardio);
         if (m.met >= 6) r.vigoroso += m.min;
         else if (m.met >= 3) r.moderado += m.min;
+        r.min = (r.min || 0) + m.min; r.kcal = (r.kcal || 0) + (m.kcal || 0);
       });
     });
   });
@@ -4118,7 +4119,12 @@ function gastoDoDia(o) {
     atividade = Math.round(tmb * (rotina.fator - 1)) + treino.kcal + Math.round(numB(o.passos) * 0.04 * (numB(o.kg) / 75 || 1));
     fonte = "estimado";
   }
-  return { tmb: tmb, atividade: Math.round(atividade), tef: tef, treino: treino.kcal, total: Math.round(tmb + atividade + tef), fonte: fonte };
+  // A meta usa a digestão de quem come o que gasta (10% do total: E = (repouso
+  // + atividade) / 0,9), e não a do que já foi comido: com a real, cada
+  // comida a mais subia a própria meta em 10% dela (2026-11-25h).
+  const tefMeta = Math.round((tmb + atividade) / 9);
+  return { tmb: tmb, atividade: Math.round(atividade), tef: tef, treino: treino.kcal, total: Math.round(tmb + atividade + tef),
+    totalMeta: Math.round(tmb + atividade + tefMeta), tefMeta: tefMeta, fonte: fonte };
 }
 // A meta do dia pelo objetivo. piso: nunca abaixo do repouso nem de
 // 1.200 (mulher) / 1.500 (homem), as menores que dispensam acompanhamento.
@@ -4242,7 +4248,7 @@ function gastoPeloCorpo(dias, pesos) {
 function faseReal(dias, kg) {
   const julg = (dias || []).filter((d) => d.status && d.status.id !== "vazio" && d.gasto);
   if (julg.length < 2) return null;
-  const media = Math.round(julg.reduce((a, d) => a + (d.comeu - d.gasto.total), 0) / julg.length);
+  const media = Math.round(julg.reduce((a, d) => a + (d.comeu - (d.gastoUsado || d.gasto.total)), 0) / julg.length);
   const kgSemana = Math.round((media * 7 / KCAL_POR_KG) * 100) / 100;
   const id = media > 100 ? "bulking" : media < -100 ? "cutting" : "manutencao";
   const nomes = { bulking: "BULKING (superávit)", cutting: "CUTTING (déficit)", manutencao: "MANUTENÇÃO" };
@@ -28235,7 +28241,9 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
     // da semana em que ele aconteceu.
     const ini = segundaDaSemana(quando).getTime(), fim = ini + 7 * 864e5;
     const daSemana = outros.filter((x) => new Date(x.data).getTime() >= ini && new Date(x.data).getTime() < fim);
-    const semana = cardioDaSemana(daSemana, exPorId, ini, pesoKg).equivalente + minutosOMS(met, min);
+    const cs = cardioDaSemana(daSemana, exPorId, ini, pesoKg);
+    const semana = cs.equivalente + minutosOMS(met, min);
+    const semanaKcal = Math.round((cs.kcal || 0) + kcal), semanaMin = Math.round((cs.min || 0) + min);
     let antes = null;
     outros.filter((x) => new Date(x.data) < quando)
       .sort((a, b) => new Date(b.data) - new Date(a.data))
@@ -28253,10 +28261,20 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
       nome: principal.ex ? principal.ex.nome : registro.nome, perfil: perfil,
       min: min, km: km, vel: vel, ritmo: vel ? 60 / vel : 0, kcal: kcal, met: met,
       incl: ehEsteiraPerfil(perfil) ? numDe(s0.incl) : 0, watts: principal.r.watts,
-      estimado: principal.r.estimado, semana: Math.round(semana), antes: antes,
+      estimado: principal.r.estimado, semana: Math.round(semana), semanaKcal: semanaKcal, semanaMin: semanaMin, antes: antes,
       ganho: ro ? ro.ganho || 0 : 0, regiao: ro ? ro.regiao || null : null,
       trechos: pts && pts.length > 1 ? trechosRota(pts) : null,
     };
+  }
+  // Treino só de força numa semana com aeróbico: o acumulado da semana
+  // aparece também (2026-11-25h, o dono deu falta dele no resumo).
+  if (!d.cardio) {
+    try {
+      const ini = segundaDaSemana(quando).getTime(), fim = ini + 7 * 864e5;
+      const daSemana = outros.filter((x) => { const t = new Date(x.data).getTime(); return t >= ini && t < fim && t <= quando.getTime(); });
+      const cs = cardioDaSemana(daSemana, exPorId, ini, pesoKg);
+      if (cs.min >= 1) d.semanaCardio = { semana: Math.round(cs.equivalente), semanaKcal: Math.round(cs.kcal || 0), semanaMin: Math.round(cs.min) };
+    } catch (e) { d.semanaCardio = null; }
   }
   d.monstro = monstroResumo(registro);
   // o coração: a curva do relógio (Conexão Saúde) ou, sem ela, a média da cinta
@@ -28612,6 +28630,16 @@ const DIAS_RESUMO = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta"
 const MESES_RESUMO = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 // As cenas: o que aparece e o que é dito. Cena que não tem número para mostrar
 // não entra — esteira sem velocidade não tem cena de ritmo.
+// O acumulado da semana: os minutos da meta da OMS (vigoroso vale dobrado),
+// e os minutos e as kcal de aeróbico feitos de segunda até o treino.
+function cenaSemanaCardio(k) {
+  const extra = (k.semanaMin ? k.semanaMin + " min de aeróbico" : "") + (k.semanaKcal ? (k.semanaMin ? " · " : "") + "~" + fmtKcalResumo(k.semanaKcal) + " kcal" : "");
+  return { tipo: "semana", rotulo: "Aeróbico na semana", valor: k.semana, forte: k.semana >= META_CARDIO_SEMANA, extra: extra,
+    grito: k.semana >= META_CARDIO_SEMANA ? "Meta batida!" : "Faltam " + (META_CARDIO_SEMANA - k.semana) + " min", corGrito: k.semana >= META_CARDIO_SEMANA ? "#FEDA75" : null,
+    fala: (k.semana >= META_CARDIO_SEMANA ? "Meta da semana batida: " + k.semana + " minutos." : "Na semana, " + k.semana + " de " + META_CARDIO_SEMANA + " minutos da meta.") +
+      (k.semanaKcal ? " Cerca de " + k.semanaKcal + " calorias de aeróbico na semana." : "") };
+}
+function fmtKcalResumo(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
 function cenasResumo(d) {
   const c = [];
   const dia = DIAS_RESUMO[d.data.getDay()] + ", " + d.data.getDate() + " de " + MESES_RESUMO[d.data.getMonth()];
@@ -28705,6 +28733,7 @@ function cenasResumo(d) {
     }
   }
 
+  if (!d.cardio && d.semanaCardio) c.push(cenaSemanaCardio(d.semanaCardio));
   const k = d.cardio;
   if (k) {
     // num treino misto, o rótulo diz que a cena é do aeróbico
@@ -28727,9 +28756,7 @@ function cenasResumo(d) {
     c.push({ tipo: "gasto", rotulo: pre + "Gasto", valor: Math.round(k.kcal), met: k.met, intensidade: int, estimado: k.estimado,
       grito: int === "vigorosa" ? "No limite" : "Energia queimada", corGrito: int === "vigorosa" ? "#FF5A5F" : null,
       fala: "Cerca de " + Math.round(k.kcal) + " calorias. Intensidade " + int + "." });
-    c.push({ tipo: "semana", rotulo: "Aeróbico na semana", valor: k.semana, forte: k.semana >= META_CARDIO_SEMANA,
-      grito: k.semana >= META_CARDIO_SEMANA ? "Meta batida!" : "Faltam " + (META_CARDIO_SEMANA - k.semana) + " min", corGrito: k.semana >= META_CARDIO_SEMANA ? "#FEDA75" : null,
-      fala: k.semana >= META_CARDIO_SEMANA ? "Meta da semana batida: " + k.semana + " minutos." : "Na semana, " + k.semana + " de " + META_CARDIO_SEMANA + " minutos da meta." });
+    c.push(cenaSemanaCardio(k));
     if (k.trechos) c.push({ tipo: "mapa", rotulo: "Percurso", trechos: k.trechos, sub: k.regiao || "", grito: "Terreno conquistado", impactoMs: 2300,
       fala: "Esse foi o seu percurso" + (k.regiao ? ", em " + k.regiao.split(",")[0] : "") + "." });
     if (k.antes) {
@@ -30080,6 +30107,7 @@ function CenaResumo({ c }) {
         <div style={{ color: "#BDBDBD", fontSize: 14, fontWeight: 700, marginTop: 8, padding: "0 24px" }}>
           {v >= META_CARDIO_SEMANA ? "Meta da OMS cumprida" : "Meta da OMS: 150 min moderados (vigoroso vale dobrado)"}
         </div>
+        {c.extra && <div style={{ color: "#4DEBFF", fontSize: 15, fontWeight: 900, marginTop: 6, padding: "0 24px" }}>{c.extra}</div>}
       </div>
     );
   }
@@ -30765,6 +30793,7 @@ function videoCena(c, cena, p) {
     videoTexto(c, String(Math.round(v)), 540, 990, 130, "#F2F0EC", 900);
     videoTexto(c, "de " + META_CARDIO_SEMANA + " min", 540, 1060, 42, "#8a8a8a", 700);
     videoParagrafo(c, v >= META_CARDIO_SEMANA ? "Meta da OMS cumprida" : "Meta da OMS: 150 min moderados", 1310, 44, "#BDBDBD", 700, 900, 2);
+    if (cena.extra) videoTexto(c, cena.extra, 540, 1440, 44, "#4DEBFF", 800);
   } else if (t === "mapa") {
     videoRotulo(c, cena.rotulo, 560);
     const todos = [].concat.apply([], cena.trechos);
@@ -37383,14 +37412,22 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
     return l.map(calcDia);
   }, [nutricao, historico, saude, kg, tmb, perfil.rotina, mediaAtivas]); // eslint-disable-line
   const corpo = useMemo(() => {
-    const pre = ultimos.slice(0, -1).map((x) => { const m = x.gasto ? metaDoDia(perfil, x.gasto.total, kg, x.treino.min) : null; return Object.assign({}, x, { meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) }); });
-    return gastoPeloCorpo(pre.slice(-28), pesos);
+    const pre = ultimos.slice(0, -1).map((x) => { const m = x.gasto ? metaDoDia(perfil, x.gasto.totalMeta, kg, x.treino.min) : null; return Object.assign({}, x, { meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) }); });
+    const c = gastoPeloCorpo(pre.slice(-28), pesos);
+    if (!c) return null;
+    // o viés da conta: quanto o corpo gastou a mais (ou a menos) que a conta,
+    // na média dos mesmos dias anotados. Corrigir pelo viés, e não misturar
+    // com a média, mantém o treino de hoje inteiro no gasto de hoje.
+    const conta = pre.slice(-28).filter((x) => x.gasto && x.tot.itens >= 2 && x.comeu >= 300);
+    const mediaConta = conta.length ? conta.reduce((a, x) => a + x.gasto.totalMeta, 0) / conta.length : 0;
+    return Object.assign({}, c, { vies: mediaConta ? Math.round(c.kcal - mediaConta) : 0 });
   }, [ultimos, pesos]); // eslint-disable-line
   const comMeta = (x) => {
     if (!x.gasto) return Object.assign({}, x, { meta: null, status: statusDoDia(0, null) });
-    const g = corpo ? Math.round(0.5 * x.gasto.total + 0.5 * (corpo.kcal + (x.gasto.treino || 0) * 0.3)) : x.gasto.total;
+    const ajuste = corpo ? Math.round(0.5 * corpo.vies) : 0;
+    const g = x.gasto.totalMeta + ajuste;
     const m = metaDoDia(perfil, g, kg, x.treino.min);
-    return Object.assign({}, x, { gastoUsado: g, meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) });
+    return Object.assign({}, x, { gastoUsado: g, ajusteCorpo: ajuste, meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) });
   };
   const dias = ultimos.map(comMeta);
   const atual = dias.find((x) => x.d === diaVer) || comMeta(calcDia(diaVer));
@@ -37577,7 +37614,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                 <div style={S.card}>
                   <div style={{ ...S.label, marginBottom: 8 }}>O balanço do dia</div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, textAlign: "center", marginBottom: 10 }}>
-                    {[["Gastou", fmtKcal(atual.gastoUsado || atual.gasto.total), "#4DEBFF"], ["Comeu", fmtKcal(t.k), "#FFB21A"], [(t.k - (atual.gastoUsado || atual.gasto.total)) >= 0 ? "Superávit" : "Déficit", fmtKcal(Math.abs(t.k - (atual.gastoUsado || atual.gasto.total))), (t.k - (atual.gastoUsado || atual.gasto.total)) >= 0 ? "#FF4D6D" : "#4CD137"]].map(([r, v, c]) => (
+                    {[["Gastou", fmtKcal(atual.gastoUsado || atual.gasto.totalMeta), "#4DEBFF"], ["Comeu", fmtKcal(t.k), "#FFB21A"], [(t.k - (atual.gastoUsado || atual.gasto.totalMeta)) >= 0 ? "Superávit" : "Déficit", fmtKcal(Math.abs(t.k - (atual.gastoUsado || atual.gasto.totalMeta))), (t.k - (atual.gastoUsado || atual.gasto.totalMeta)) >= 0 ? "#FF4D6D" : "#4CD137"]].map(([r, v, c]) => (
                       <div key={r} style={{ padding: "8px 4px", borderRadius: 12, background: c + "14", border: "1px solid " + c + "55" }}>
                         <div style={{ fontFamily: FONTE_JOGO, fontSize: 19, color: c }}>{v}</div>
                         <div style={{ fontSize: 10.5, fontWeight: 900, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.6 }}>{r}</div>
@@ -37585,9 +37622,10 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                     ))}
                   </div>
                   <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.6 }}>
-                    Repouso {fmtKcal(atual.gasto.tmb)} · dia a dia e treino {fmtKcal(atual.gasto.atividade)}{atual.treino.kcal ? " (treino " + fmtKcal(atual.treino.kcal) + ")" : ""} · digestão {fmtKcal(atual.gasto.tef)}
+                    Repouso (metabolismo basal) {fmtKcal(atual.gasto.tmb)} + dia a dia e treino {fmtKcal(atual.gasto.atividade)}{atual.treino.kcal ? " (treinos do app " + fmtKcal(atual.treino.kcal) + ")" : ""} + digestão {fmtKcal(atual.gasto.tefMeta)}{atual.ajusteCorpo ? " " + (atual.ajusteCorpo > 0 ? "+" : "−") + " ajuste do seu corpo " + fmtKcal(Math.abs(atual.ajusteCorpo)) : ""} = {fmtKcal(atual.gastoUsado || atual.gasto.totalMeta)} kcal.
+                    <br />A meta ({fmtKcal(meta.k)}) sai desse gasto e do seu objetivo{meta.delta ? " (" + (meta.delta > 0 ? "+" : "−") + fmtKcal(Math.abs(meta.delta)) + ")" : ""}, e o passou ou não passou compara o que você comeu com ela.
                     <br />{atual.gasto.fonte === "relogio" ? "⌚ Atividade medida pelo relógio (Conexão Saúde)." : atual.gasto.fonte === "media" ? "⌚ Atividade pela média do seu relógio (hoje ainda não sincronizou)." : "📐 Atividade estimada pela sua rotina e pelos treinos do app. Com o relógio sincronizado na aba Saúde, fica medida."}
-                    {corpo && <span><br />🧬 Seu corpo mostra um gasto de ~{fmtKcal(corpo.kcal)} kcal por dia (comida de {corpo.dias} dias × o peso que mudou): a meta usa metade disso.</span>}
+                    {corpo && <span><br />🧬 Seu corpo mostra um gasto de ~{fmtKcal(corpo.kcal)} kcal por dia (comida de {corpo.dias} dias × o peso que mudou){corpo.vies ? ": a conta corrige metade da diferença" : ""}.</span>}
                     {meta.noPiso && <span><br />⚠ A meta parou no piso seguro ({fmtKcal(meta.k)} kcal): abaixo disso, só com nutricionista.</span>}
                   </div>
                 </div>

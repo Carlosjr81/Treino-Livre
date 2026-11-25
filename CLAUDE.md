@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.360 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.363 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v277) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v278) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -2112,7 +2112,10 @@ Treino Livre e não um relatório.
     ritmo (km/h na bicicleta; inclinação e subida quando houver), gasto com a
     régua de intensidade da OMS, anel da meta da semana, **o traçado da rua**
     (pontilhado azul da silhueta, coberto pelo verde que se desenha) e a
-    comparação com a última vez;
+    comparação com a última vez; o acumulado da semana (`cenaSemanaCardio`:
+    os minutos da meta da OMS, e os minutos e as kcal de aeróbico desde
+    segunda) aparece **também em treino só de força** quando houve aeróbico na
+    semana (`d.semanaCardio`, 2026-11-25h: o dono deu falta dele);
   - **nível** (`nivelDe`, contando os treinos até aquele dia), total de
     treinos e a sequência — só num treino de hoje, porque ela é contada até
     hoje;
@@ -6759,6 +6762,14 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
     Valores (os totais à mão: grava `q` 1 sem o `a`, para não multiplicar
     de novo), a refeição, e 🗑 Tirar do dia (dois toques). Mantém id, hora e
     quem anotou; o item guarda o modo (`md`) para abrir do mesmo jeito.
+  - **A meta fica parada enquanto se come** (2026-11-25h, conferência pedida
+    pelo dono). A meta usa `totalMeta` (repouso + atividade com os treinos +
+    a digestão de quem come o que gasta, `(tmb + atividade) / 9`), e não a
+    digestão do que já foi comido, que subia a meta em 10% de cada comida. O
+    gasto pelo corpo entra como **correção do viés** (`corpo.vies`: o gasto
+    medido pelo peso menos a média da conta nos mesmos dias; metade dele,
+    `ajusteCorpo`), e não mais misturado à média, que deixava só 65% do treino
+    do dia. O cartão "O balanço do dia" mostra a soma inteira até a meta.
 - **Os dados ficam no aparelho**: `nutricao` no registro principal
   (`{ perfil, dias: { "AAAA-MM-DD": { itens, agua, aguaEv, sono } }, vistos }`,
   `lerNutricao` confere e guarda 400 dias), no backup em texto e em arquivo. A

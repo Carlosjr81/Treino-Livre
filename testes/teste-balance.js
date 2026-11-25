@@ -215,5 +215,13 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   const man = { id: "m", n: "Bolo", q: 1, k: 300, p: 3, c: 40, g: 12, de: "manual" };
   teste("item à mão abre e salva à mão", 350, B.valorItem(B.itemEditado(man, { modo: "porcao", k: "350", n: "Bolo" })).k);
 }
+// ---- a meta cruza repouso, atividade e treino, e não sobe com o que se come (2026-11-25h)
+{
+  const base = { tmb: 1750, treino: { kcal: 400, min: 60 }, rotina: "sentado", kg: 80 };
+  const g1 = B.gastoDoDia(Object.assign({ comeu: 1500 }, base)), g2 = B.gastoDoDia(Object.assign({ comeu: 3000 }, base));
+  teste("comer mais não sobe o gasto da meta", g1.totalMeta, g2.totalMeta);
+  teste("o treino entra inteiro no gasto", true, Math.abs(400 - (g1.totalMeta - B.gastoDoDia(Object.assign({ comeu: 1500 }, base, { treino: { kcal: 0, min: 0 } })).totalMeta - Math.round(400 / 9))) <= 1);
+  teste("digestão da meta: 10% do total", Math.round(g1.totalMeta * 0.1), g1.tefMeta);
+}
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

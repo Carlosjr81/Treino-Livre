@@ -16,6 +16,26 @@
 
 ---
 
+## 2026-11-25h — A meta do Body Balance mais justa, e o acumulado da semana no resumo
+
+**Em uma frase:** a meta de calorias do dia soma o metabolismo basal, o dia a dia e o treino inteiro, sem subir conforme se come, e o resumo animado mostra o aeróbico acumulado da semana até em treino só de musculação.
+
+**O que mudou**
+- O cartão "O balanço do dia" mostra a conta inteira: repouso (metabolismo basal) + dia a dia e treino + digestão = o gasto, e a meta que sai dele.
+- A meta não sobe mais quando a pessoa come (antes, cada comida aumentava um pouco a própria meta).
+- O treino do dia conta inteiro no gasto, mesmo quando o app já aprendeu o gasto pelo peso.
+- No resumo animado, a cena "Aeróbico na semana" aparece também em treino só de musculação, com os minutos e as calorias de aeróbico desde segunda.
+
+**Por que importa para quem treina:** "passei ou não passei da meta" fica certo, e quem fez a esteira num dia e a musculação no outro continua vendo o acumulado da semana.
+
+**Como usar:** Balance › Hoje › O balanço do dia; e o ▶ Resumo animado de qualquer treino da semana.
+
+**Ideias de vídeo:** mostrar a conta do dia (basal + treino) e o corpo enchendo até a meta; o resumo de um treino de perna mostrando os minutos de esteira da semana.
+
+**Não prometer:** gasto exato; é estimativa, que fica mais certa com o relógio e com as pesagens.
+
+---
+
 ## 2026-11-25g — Corrigir o que já foi anotado no Body Balance
 
 **Em uma frase:** tocar num alimento da lista do dia abre a correção: quantidade, valores, refeição ou tirar.

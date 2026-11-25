@@ -28,7 +28,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("// ---------------- JARVIS BODY BALANCE: AS CONTAS", "// ---------------- FIM DO BODY BALANCE") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
-  " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento," +
+  " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida," +
   " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps };");
 const B = globalThis.B;
 
@@ -185,5 +185,19 @@ relogios.shift().f();
 teste("permissão negada não fica religando", [1, 0], [negado, relogios.length]);
 teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps({ code: 1 })) && /Localização está ligada/.test(B.textoErroGps({ code: 2 })) && /Pode começar/.test(B.textoErroGps({ code: 3 })));
 
+// ---- porções × vezes no dia, e os gramas da balança (2026-11-25f)
+{
+  const far = B.ALIMENTOS_BR.find((a) => a.id === "farinha-arroz");
+  const q1 = B.quantidadeComida(far, "porcao", 1.5, "", 4);
+  teste("1,5 porção × 4 vezes = 6 porções", [6, 4], [q1.q, q1.vz]);
+  teste("o texto diz a conta", true, /1,5 porções × 4 vezes = 6 porções/.test(q1.texto));
+  teste("as kcal são as de 6 porções", far.k * 6, B.valorItem(B.itemDeAlimento(far, q1.q)).k);
+  const q2 = B.quantidadeComida(far, "gramas", "", 45, 2);
+  teste("45 g × 2 vezes = 90 g = 3 porções de 30 g", [3, 90], [Math.round(q2.q * 100) / 100, q2.gm]);
+  teste("gramas vazios não anotam", 0, B.quantidadeComida(far, "gramas", "", "", 1).q);
+  teste("vezes absurdas ficam no teto", 20, B.quantidadeComida(far, "porcao", 1, "", 99).vz);
+  const leite = B.ALIMENTOS_BR.find((a) => a.liq > 0);
+  teste("bebida pesada em ml", true, / ml/.test(B.quantidadeComida(leite, "gramas", "", 300, 1).texto));
+}
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

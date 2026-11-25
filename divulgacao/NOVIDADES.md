@@ -16,6 +16,26 @@
 
 ---
 
+## 2026-11-25f — Quantas vezes no dia, e os gramas da balança
+
+**Em uma frase:** no Body Balance dá para anotar o dia inteiro de uma vez (a porção e quantas vezes comeu) e digitar os gramas que deram na balança.
+
+**O que mudou**
+- Ao escolher um alimento, a pergunta **"Quantas vezes no dia?"** (1× a 5×, e o + para mais). Ex.: farinha de arroz, 1,5 porção, 4 vezes = 6 porções (180 g), tudo num toque.
+- **⚖️ Pesei (g)**: em vez da porção pronta, digita-se o que a balança mostrou (em ml nas bebidas), de cada vez, e as vezes no dia.
+- A porção também aceita um número digitado ("outra").
+- A lista do dia mostra a conta ("45 g × 3 vezes = 135 g").
+
+**Por que importa para quem treina:** quem pesa a comida anota o número exato, e quem só tem tempo à noite anota o dia todo em poucos toques.
+
+**Como usar:** Balance › + Comida › escolha o alimento › 🥄 Porções ou ⚖️ Pesei › quantas vezes no dia › + Adicionar. Comendo agora, deixe 1×.
+
+**Ideias de vídeo:** pesar a farinha na balança da cozinha e digitar no app; anotar o dia inteiro em 20 segundos antes de dormir.
+
+**Não prometer:** que o app sabe o peso sozinho; os valores são médias de tabela e de rótulo.
+
+---
+
 ## 2026-11-25e — Mais alimentos, farinhas e suplementos no Body Balance
 
 **Em uma frase:** a lista de alimentos quase triplicou: farinhas, suplementos e muito mais comida do dia a dia, com filtros por grupo para achar rápido.

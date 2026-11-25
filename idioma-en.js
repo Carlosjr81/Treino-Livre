@@ -16,6 +16,7 @@ var TEXTOS_EN = {
   "Balance": "Balance",
   "Jarvis Body Balance": "Jarvis Body Balance",
   "🍚 Carboidratos": "🍚 Carbs", "🍗 Proteínas": "🍗 Proteins", "🌾 Farinhas": "🌾 Flours", "🥤 Suplementos": "🥤 Supplements", "🍎 Frutas": "🍎 Fruits", "🥗 Verduras": "🥗 Vegetables", "🥑 Gorduras": "🥑 Fats", "🍫 Doces e lanches": "🍫 Sweets and snacks", "🍽 Pratos": "🍽 Dishes", "🥤 Bebidas": "🥤 Drinks", "🍺 Álcool": "🍺 Alcohol",
+  "🥄 Porções": "🥄 Servings", "Quantas porções de cada vez?": "How many servings each time?", "Quanto deu na balança, de cada vez?": "What did the scale show, each time?", "Quantas vezes no dia?": "How many times in the day?", "Comendo agora, deixe 1×. Anotando o dia inteiro de uma vez, marque quantas vezes comeu.": "Eating now? Leave 1×. Logging the whole day at once? Mark how many times you ate it.",
   "Hoje": "Today",
   "Semana": "Week",
   "Mês": "Month",

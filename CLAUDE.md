@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.347 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.354 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v275) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v276) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6745,6 +6745,14 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
     📷 Foto (método do prato), ✏️ Manual (só as kcal já bastam: entram como
     "outros"), 💧 Água. O aviso de anotado é um balão que some (o `avisar` do
     app abre uma janela, e seria uma por comida).
+  - **Porções × vezes, ou os gramas da balança** (`quantidadeComida`,
+    2026-11-25f, pedido do dono: "às vezes marco na hora, às vezes o dia
+    inteiro de uma vez; e peso na balança"). Escolhido o alimento: 🥄 Porções
+    (os números ou "outra" digitada) ou ⚖️ Pesei (gramas, ou ml na bebida, de
+    cada vez), e "Quantas vezes no dia?" (1× a 5×, − e + até 20). O `q` do
+    item são as porções totais; o item guarda também `vz`, `gm` e o texto
+    `qtx` ("1,5 porções × 4 vezes = 6 porções (180 g)"), que a lista do dia
+    mostra.
 - **Os dados ficam no aparelho**: `nutricao` no registro principal
   (`{ perfil, dias: { "AAAA-MM-DD": { itens, agua, aguaEv, sono } }, vistos }`,
   `lerNutricao` confere e guarda 400 dias), no backup em texto e em arquivo. A

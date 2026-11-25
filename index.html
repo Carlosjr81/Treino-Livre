@@ -2125,7 +2125,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-25f";
+const VERSAO_APP = "2026-11-25g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4299,6 +4299,25 @@ function itensDoPrato(partes, tamanho, comOleo) {
 }
 function itemDeAlimento(a, q, de) {
   return { a: a.id, n: a.nome, ic: a.ic, q: Math.round(q * 100) / 100, k: a.k, p: a.p, c: a.c, g: a.g, alc: a.alc || 0, liq: a.liq || 0, por: a.por, de: de || "app" };
+}
+// Editar um item já anotado (2026-11-25g, pedido do dono: "entrar neles e
+// corrigir os valores"). Com o alimento da tabela, a quantidade é refeita por
+// porções ou gramas × vezes; "à mão" grava os totais digitados (q = 1, sem o
+// alimento, para a conta não voltar a multiplicar). Mantém id, hora e quem
+// anotou (de); a refeição pode mudar.
+function itemEditado(it, ed) {
+  const base = { id: it.id, t: it.t, de: it.de || "app", r: ed.r || it.r };
+  const a = ed.modo !== "mao" && it.a ? ALIMENTOS_BR.find((x) => x.id === it.a) : null;
+  if (a) {
+    const qt = quantidadeComida(a, ed.modo === "gramas" ? "gramas" : "porcao", ed.porcoes, ed.gramas, ed.vezes);
+    if (!(qt.q > 0)) return null;
+    return Object.assign({}, itemDeAlimento(a, qt.q, it.de), base, { vz: qt.vz, gm: qt.gm, qtx: qt.texto, md: ed.modo === "gramas" ? "gramas" : "porcao" });
+  }
+  const k = Math.round(numB(ed.k));
+  if (!(k > 0)) return null;
+  const v = valorItem(it);
+  return Object.assign({}, base, { n: String(ed.n || it.n || "Anotado à mão").trim().slice(0, 60) || "Anotado à mão", ic: it.ic || "🍽", q: 1, k: k,
+    p: numB(ed.p), c: numB(ed.c), g: numB(ed.g), alc: v.alc, liq: v.liq, qtx: "corrigido à mão" });
 }
 // Quanto entrou: porções (ou os gramas da balança) vezes quantas vezes no dia
 // (pedido do dono, 2026-11-25f: anotar o dia inteiro de uma vez, ou pesar na
@@ -36971,6 +36990,108 @@ const fmtKcal = (n) => Math.round(n).toLocaleString("pt-BR");
 const fmtLitros = (ml) => (ml / 1000).toFixed(1).replace(".", ",") + " L";
 
 // A janela de anotar: buscar, foto do prato, manual e água
+function JanelaEditarComida({ item, onSalvar, onTirar, onFechar }) {
+  const a = item.a ? ALIMENTOS_BR.find((x) => x.id === item.a) : null;
+  const vz0 = Math.max(1, Math.round(numB(item.vz)) || 1);
+  const fmt = (x) => String(Math.round(x * 100) / 100).replace(".", ",");
+  const v0 = valorItem(item);
+  const [modo, setModo] = useState(a ? (item.md === "gramas" && numB(a.gr) > 0 ? "gramas" : "porcao") : "mao");
+  const [porcoes, setPorcoes] = useState(fmt((numB(item.q) || 1) / vz0));
+  const [gramas, setGramas] = useState(numB(item.gm) > 0 ? fmt(numB(item.gm) / vz0) : a && numB(a.gr) > 0 ? fmt((numB(item.q) || 1) * numB(a.gr) / vz0) : "");
+  const [vezes, setVezes] = useState(vz0);
+  const [r, setR] = useState(item.r || refeicaoDaHora(item.t || Date.now()));
+  const [mao, setMao] = useState({ n: item.n || "", k: String(v0.k), p: String(v0.p), c: String(v0.c), g: String(v0.g) });
+  const [certeza, setCerteza] = useState(false);
+  const num = (x) => String(x || "").replace(",", ".");
+  const ed = { modo: modo, porcoes: num(porcoes), gramas: num(gramas), vezes: vezes, r: r, n: mao.n, k: num(mao.k), p: num(mao.p), c: num(mao.c), g: num(mao.g) };
+  const novo = itemEditado(item, ed);
+  const v = novo ? valorItem(novo) : null;
+  const un = a && a.liq ? "ml" : "g";
+  const chip = (on, cor) => ({ padding: "9px 10px", minWidth: 40, borderRadius: 10, fontWeight: 900, cursor: "pointer",
+    border: "1px solid " + (on ? (cor || "#E1306C") : "var(--borda2)"), background: on ? (cor || "#E1306C") + "22" : "transparent", color: on ? (cor || "#E1306C") : "var(--texto)" });
+  return (
+    <div role="dialog" aria-modal="true" onClick={onFechar} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(5,3,16,.8)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...S.card, width: "100%", maxWidth: 520, maxHeight: "92vh", overflowY: "auto", margin: 0, borderRadius: "20px 20px 0 0", padding: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ ...S.logo, fontSize: 18 }}>Corrigir</div>
+          <button onClick={onFechar} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 14px" }}>✕</button>
+        </div>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10 }}>
+          <span style={{ fontSize: 36 }}>{item.ic || "🍽"}</span>
+          <div><div style={{ fontWeight: 900, fontSize: 16 }}>{item.n}</div>{a && <div style={{ fontSize: 12, color: "var(--cinza)" }}>1 porção = {a.por}</div>}</div>
+        </div>
+        {a && (
+          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+            <button onClick={() => setModo("porcao")} style={{ ...chip(modo === "porcao"), flex: 1 }}>🥄 Porções</button>
+            {numB(a.gr) > 0 && <button onClick={() => setModo("gramas")} style={{ ...chip(modo === "gramas"), flex: 1 }}>⚖️ Pesei ({un})</button>}
+            <button onClick={() => setModo("mao")} style={{ ...chip(modo === "mao"), flex: 1 }}>✏️ Valores</button>
+          </div>
+        )}
+        {modo === "porcao" && (
+          <div>
+            <div style={{ ...S.label, marginBottom: 6 }}>Quantas porções de cada vez?</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
+              {[0.5, 1, 1.5, 2, 3, 4].map((x) => (
+                <button key={x} onClick={() => setPorcoes(fmt(x))} style={chip(num(porcoes) === String(x))}>{fmt(x)}</button>
+              ))}
+              <input inputMode="decimal" value={porcoes} onChange={(e) => setPorcoes(e.target.value.replace(/[^0-9.,]/g, ""))} aria-label="Porções de cada vez"
+                style={{ ...S.input, width: 76, textAlign: "center" }} />
+            </div>
+          </div>
+        )}
+        {modo === "gramas" && (
+          <div>
+            <div style={{ ...S.label, marginBottom: 6 }}>Quanto deu na balança, de cada vez?</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <input inputMode="decimal" value={gramas} onChange={(e) => setGramas(e.target.value.replace(/[^0-9.,]/g, ""))} aria-label={"Quantidade em " + un}
+                style={{ ...S.input, flex: 1, fontSize: 18, fontWeight: 900, textAlign: "center" }} />
+              <span style={{ fontWeight: 900, fontSize: 16 }}>{un}</span>
+            </div>
+          </div>
+        )}
+        {modo !== "mao" && (
+          <div>
+            <div style={{ ...S.label, margin: "8px 0 6px" }}>Quantas vezes no dia?</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
+              {[1, 2, 3, 4, 5].map((x) => <button key={x} onClick={() => setVezes(x)} style={chip(vezes === x)}>{x}×</button>)}
+              <button aria-label="Menos uma vez" onClick={() => setVezes((x) => Math.max(1, x - 1))} style={chip(false)}>−</button>
+              <button aria-label="Mais uma vez" onClick={() => setVezes((x) => Math.min(20, x + 1))} style={chip(vezes > 5)}>+{vezes > 5 ? " " + vezes + "×" : ""}</button>
+            </div>
+          </div>
+        )}
+        {modo === "mao" && (
+          <div>
+            <input value={mao.n} onChange={(e) => setMao({ ...mao, n: e.target.value })} aria-label="Nome" placeholder="Nome" style={{ ...S.input, width: "100%", marginBottom: 8 }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 6 }}>
+              {[["k", "kcal (total)"], ["p", "Proteína (g)"], ["c", "Carboidrato (g)"], ["g", "Gordura (g)"]].map(([c, rot]) => (
+                <label key={c} style={{ fontSize: 12, color: "var(--cinza)", fontWeight: 800 }}>{rot}
+                  <input inputMode="decimal" value={mao[c]} onChange={(e) => setMao({ ...mao, [c]: e.target.value.replace(/[^0-9.,]/g, "") })} style={{ ...S.input, width: "100%", marginTop: 4 }} />
+                </label>
+              ))}
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", marginBottom: 10 }}>Os totais do que você comeu, como no rótulo ou na sua conta.</div>
+          </div>
+        )}
+        <div style={{ ...S.label, marginBottom: 6 }}>Refeição</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+          {REFEICOES_BALANCE.map((x) => <button key={x.id} onClick={() => setR(x.id)} style={{ ...chip(r === x.id), fontSize: 12 }}>{x.ic} {x.nome}</button>)}
+        </div>
+        {novo && novo.qtx && modo !== "mao" && <div style={{ fontSize: 12.5, fontWeight: 800, textAlign: "center", marginBottom: 6 }}>{novo.qtx}</div>}
+        {v && (
+          <div style={{ display: "flex", gap: 10, justifyContent: "space-around", marginBottom: 12, fontSize: 12.5, fontWeight: 800 }}>
+            <span style={{ fontFamily: FONTE_JOGO, fontSize: 22 }}>{v.k} kcal</span>
+            <span style={{ color: CORES_BALANCE.p }}>P {v.p}g</span><span style={{ color: CORES_BALANCE.c }}>C {v.c}g</span><span style={{ color: CORES_BALANCE.g }}>G {v.g}g</span>
+          </div>
+        )}
+        {v && v.k !== v0.k && <div style={{ fontSize: 11.5, color: "var(--cinza)", textAlign: "center", marginBottom: 8 }}>Antes: {v0.k} kcal</div>}
+        <button disabled={!novo} onClick={() => onSalvar(novo)} style={{ ...S.btn, width: "100%", opacity: novo ? 1 : 0.5 }}>✓ Salvar a correção</button>
+        <button onClick={() => (certeza ? onTirar(item.id) : setCerteza(true))} style={{ ...S.btnGhost, width: "100%", marginTop: 8, color: certeza ? "var(--perigo)" : "var(--texto)" }}>
+          {certeza ? "Toque de novo para tirar do dia" : "🗑 Tirar do dia"}
+        </button>
+      </div>
+    </div>
+  );
+}
 function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
   const [aba, setAba] = useState(aba0 || "buscar");
   const [busca, setBusca] = useState("");
@@ -37098,7 +37219,7 @@ function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
                 <span style={{ fontFamily: FONTE_JOGO, fontSize: 22 }}>{v.k} kcal</span>
                 <span style={{ color: CORES_BALANCE.p }}>P {v.p}g</span><span style={{ color: CORES_BALANCE.c }}>C {v.c}g</span><span style={{ color: CORES_BALANCE.g }}>G {v.g}g</span>
               </div>
-              <button disabled={!(qt.q > 0)} onClick={() => onAdd([{ ...itemDeAlimento(escolhido, qt.q), vz: qt.vz, gm: qt.gm, qtx: qt.texto }])} style={{ ...S.btn, width: "100%", opacity: qt.q > 0 ? 1 : 0.5 }}>+ Adicionar</button>
+              <button disabled={!(qt.q > 0)} onClick={() => onAdd([{ ...itemDeAlimento(escolhido, qt.q), vz: qt.vz, gm: qt.gm, qtx: qt.texto, md: modoQ === "gramas" && numB(escolhido.gr) > 0 ? "gramas" : "porcao" }])} style={{ ...S.btn, width: "100%", opacity: qt.q > 0 ? 1 : 0.5 }}>+ Adicionar</button>
               <button onClick={() => setEscolhido(null)} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>← Outro alimento</button>
             </div>
           );
@@ -37220,6 +37341,7 @@ function GraficoSemanaBalance({ dias }) {
 function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pesoCorporal, medidas, corredor, avisar, pedirConfirmacao, onPercurso, onEsteira, sincronizarRelogio }) {
   const [secao, setSecao] = useState("hoje");
   const [janela, setJanela] = useState(null);
+  const [editando, setEditando] = useState(null);
   const [diaVer, setDiaVer] = useState(() => diaLocal(Date.now()));
   const [festa, setFesta] = useState(false);
   const [toast, setToast] = useState("");
@@ -37321,6 +37443,12 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
     if (sincronizarRelogio && ehHoje) setTimeout(() => sincronizarRelogio(estadoRelogio.current), 120);
   };
   const tirar = (id) => mudarDia(diaVer, (d) => Object.assign({}, d, { itens: (d.itens || []).filter((x) => x.id !== id) }));
+  const salvarEdicao = (novo) => {
+    mudarDia(diaVer, (d) => Object.assign({}, d, { itens: (d.itens || []).map((x) => (x.id === novo.id ? novo : x)) }));
+    setEditando(null);
+    mostrar("✓ " + novo.n + " corrigido");
+    if (sincronizarRelogio && ehHoje) setTimeout(() => sincronizarRelogio(estadoRelogio.current), 120);
+  };
   const mudarPerfil = (m) => setNutricao((n) => Object.assign({}, n, { perfil: Object.assign({}, n.perfil || {}, m) }));
 
   const abaSec = (id, rot) => (
@@ -37517,7 +37645,8 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
               </div>
 
               <div style={S.card}>
-                <div style={{ ...S.label, marginBottom: 8 }}>O que você comeu</div>
+                <div style={{ ...S.label, marginBottom: 2 }}>O que você comeu</div>
+                <div style={{ fontSize: 11.5, color: "var(--cinza)", marginBottom: 8 }}>Toque num alimento para corrigir a quantidade ou os valores.</div>
                 {!(atual.dia.itens || []).length && <div style={{ fontSize: 13, color: "var(--cinza)" }}>Nada anotado {ehHoje ? "ainda hoje" : "neste dia"}. Toque em + Comida, ou marque pelo relógio.</div>}
                 {REFEICOES_BALANCE.map((r) => {
                   const its = (atual.dia.itens || []).filter((it) => (it.r || refeicaoDaHora(it.t || Date.now())) === r.id);
@@ -37528,9 +37657,12 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                       <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, fontSize: 13, marginBottom: 4 }}><span>{r.ic} {r.nome}</span><span>{fmtKcal(soma)} kcal</span></div>
                       {its.map((it) => (
                         <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, padding: "5px 0", borderBottom: "1px solid var(--borda)" }}>
+                          <button onClick={() => setEditando(it)} aria-label={"Corrigir " + it.n} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "var(--texto)", fontSize: 13, textAlign: "left", padding: 0, cursor: "pointer" }}>
                           <span>{it.ic || "\u{1F37D}"}</span>
                           <span style={{ flex: 1, minWidth: 0 }}>{it.n}{typeof it.qtx === "string" && it.qtx ? " · " + it.qtx.slice(0, 60) : numB(it.q) !== 1 ? " ×" + String(Math.round(numB(it.q) * 10) / 10).replace(".", ",") : ""} {it.de === "relogio" ? "⌚" : it.de === "foto" ? "📷" : ""}</span>
                           <span style={{ fontWeight: 800 }}>{valorItem(it).k}</span>
+                          <span aria-hidden="true" style={{ color: "var(--cinza)", fontSize: 12 }}>✎</span>
+                          </button>
                           <button aria-label={"Tirar " + it.n} onClick={() => tirar(it.id)} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 900, cursor: "pointer" }}>✕</button>
                         </div>
                       ))}
@@ -37646,6 +37778,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
         </div>
       )}
       {janela && <JanelaComida aba0={janela} recentes={recentes} onAdd={adicionar} onFechar={() => setJanela(null)} />}
+      {editando && <JanelaEditarComida item={editando} onSalvar={salvarEdicao} onTirar={(id) => { tirar(id); setEditando(null); }} onFechar={() => setEditando(null)} />}
       {toast && <div role="status" style={{ position: "fixed", left: "50%", bottom: 96, transform: "translateX(-50%)", zIndex: 70, padding: "10px 18px", borderRadius: 24,
         background: "#0b0418ee", border: "1px solid #4DEBFF", color: "#fff", fontWeight: 900, fontSize: 14, boxShadow: "0 0 18px #4DEBFF66", whiteSpace: "nowrap", maxWidth: "90vw", overflow: "hidden", textOverflow: "ellipsis" }}>{toast}</div>}
     </div>

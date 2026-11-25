@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.354 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.360 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v276) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v277) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6753,6 +6753,12 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
     item são as porções totais; o item guarda também `vz`, `gm` e o texto
     `qtx` ("1,5 porções × 4 vezes = 6 porções (180 g)"), que a lista do dia
     mostra.
+  - **Corrigir o que já foi anotado** (`itemEditado`, `JanelaEditarComida`,
+    2026-11-25g, pedido do dono). Tocar num alimento da lista do dia abre
+    a correção: porções ou gramas × vezes (com o alimento da tabela), ✏️
+    Valores (os totais à mão: grava `q` 1 sem o `a`, para não multiplicar
+    de novo), a refeição, e 🗑 Tirar do dia (dois toques). Mantém id, hora e
+    quem anotou; o item guarda o modo (`md`) para abrir do mesmo jeito.
 - **Os dados ficam no aparelho**: `nutricao` no registro principal
   (`{ perfil, dias: { "AAAA-MM-DD": { itens, agua, aguaEv, sono } }, vistos }`,
   `lerNutricao` confere e guarda 400 dias), no backup em texto e em arquivo. A

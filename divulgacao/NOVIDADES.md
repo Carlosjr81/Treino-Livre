@@ -16,6 +16,26 @@
 
 ---
 
+## 2026-11-25g — Corrigir o que já foi anotado no Body Balance
+
+**Em uma frase:** tocar num alimento da lista do dia abre a correção: quantidade, valores, refeição ou tirar.
+
+**O que mudou**
+- Cada alimento de "O que você comeu" virou um botão (com o ✎).
+- Na correção: as porções ou os gramas da balança × quantas vezes no dia, ou **✏️ Valores** para digitar as calorias e os macros totais (do rótulo, por exemplo).
+- Dá para mudar a refeição (café, almoço, lanche, jantar, ceia) e tirar do dia (com dois toques, para não apagar sem querer).
+- A tela mostra quanto era antes e quanto fica.
+
+**Por que importa para quem treina:** anotou errado na correria do dia? Corrige à noite sem apagar e anotar de novo, e o balanço do dia fica certo.
+
+**Como usar:** Balance › O que você comeu › toque no alimento › ajuste › ✓ Salvar a correção.
+
+**Ideias de vídeo:** anotar "2 porções" de frango, pesar na balança à noite e corrigir para 400 g em 5 segundos.
+
+**Não prometer:** que o app sabe sozinho o que foi comido; os valores são da tabela ou do que a pessoa digitar.
+
+---
+
 ## 2026-11-25f — Quantas vezes no dia, e os gramas da balança
 
 **Em uma frase:** no Body Balance dá para anotar o dia inteiro de uma vez (a porção e quantas vezes comeu) e digitar os gramas que deram na balança.

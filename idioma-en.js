@@ -16,7 +16,7 @@ var TEXTOS_EN = {
   "Balance": "Balance",
   "Jarvis Body Balance": "Jarvis Body Balance",
   "🍚 Carboidratos": "🍚 Carbs", "🍗 Proteínas": "🍗 Proteins", "🌾 Farinhas": "🌾 Flours", "🥤 Suplementos": "🥤 Supplements", "🍎 Frutas": "🍎 Fruits", "🥗 Verduras": "🥗 Vegetables", "🥑 Gorduras": "🥑 Fats", "🍫 Doces e lanches": "🍫 Sweets and snacks", "🍽 Pratos": "🍽 Dishes", "🥤 Bebidas": "🥤 Drinks", "🍺 Álcool": "🍺 Alcohol",
-  "🥄 Porções": "🥄 Servings", "Quantas porções de cada vez?": "How many servings each time?", "Quanto deu na balança, de cada vez?": "What did the scale show, each time?", "Quantas vezes no dia?": "How many times in the day?", "Comendo agora, deixe 1×. Anotando o dia inteiro de uma vez, marque quantas vezes comeu.": "Eating now? Leave 1×. Logging the whole day at once? Mark how many times you ate it.",
+  "🥄 Porções": "🥄 Servings", "Corrigir": "Fix", "✏️ Valores": "✏️ Values", "Refeição": "Meal", "✓ Salvar a correção": "✓ Save the fix", "🗑 Tirar do dia": "🗑 Remove from the day", "Toque de novo para tirar do dia": "Tap again to remove from the day", "Toque num alimento para corrigir a quantidade ou os valores.": "Tap a food to fix the amount or the values.", "Os totais do que você comeu, como no rótulo ou na sua conta.": "The totals of what you ate, from the label or your own math.", "Quantas porções de cada vez?": "How many servings each time?", "Quanto deu na balança, de cada vez?": "What did the scale show, each time?", "Quantas vezes no dia?": "How many times in the day?", "Comendo agora, deixe 1×. Anotando o dia inteiro de uma vez, marque quantas vezes comeu.": "Eating now? Leave 1×. Logging the whole day at once? Mark how many times you ate it.",
   "Hoje": "Today",
   "Semana": "Week",
   "Mês": "Month",

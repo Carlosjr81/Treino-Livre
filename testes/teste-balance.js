@@ -28,7 +28,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("// ---------------- JARVIS BODY BALANCE: AS CONTAS", "// ---------------- FIM DO BODY BALANCE") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
-  " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida," +
+  " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado," +
   " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps };");
 const B = globalThis.B;
 
@@ -198,6 +198,22 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("vezes absurdas ficam no teto", 20, B.quantidadeComida(far, "porcao", 1, "", 99).vz);
   const leite = B.ALIMENTOS_BR.find((a) => a.liq > 0);
   teste("bebida pesada em ml", true, / ml/.test(B.quantidadeComida(leite, "gramas", "", 300, 1).texto));
+}
+// ---- corrigir um item já anotado (2026-11-25g)
+{
+  const far = B.ALIMENTOS_BR.find((a) => a.id === "farinha-arroz");
+  const it = Object.assign(B.itemDeAlimento(far, 6), { id: "x1", t: 5, r: "almoco", de: "relogio", vz: 4, gm: 180, md: "porcao" });
+  const e1 = B.itemEditado(it, { modo: "gramas", gramas: "40", vezes: 4, r: "jantar" });
+  teste("pelos gramas: 40 g × 4 = 160 g", [160, "x1", 5, "jantar", "relogio"], [e1.gm, e1.id, e1.t, e1.r, e1.de]);
+  teste("as kcal seguem os gramas", Math.round(far.k * 160 / far.gr), B.valorItem(e1).k);
+  const e2 = B.itemEditado(it, { modo: "porcao", porcoes: "2", vezes: 3 });
+  teste("porções × vezes refeitas", [6, "almoco"], [e2.q, e2.r]);
+  const e3 = B.itemEditado(it, { modo: "mao", n: "Farinha (rótulo)", k: "500", p: "8", c: "110", g: "2" });
+  const v3 = B.valorItem(e3);
+  teste("à mão grava os totais, sem multiplicar de novo", [500, 8, 110, 2, undefined], [v3.k, v3.p, v3.c, v3.g, e3.a]);
+  teste("valor vazio não salva", null, B.itemEditado(it, { modo: "mao", k: "" }));
+  const man = { id: "m", n: "Bolo", q: 1, k: 300, p: 3, c: 40, g: 12, de: "manual" };
+  teste("item à mão abre e salva à mão", 350, B.valorItem(B.itemEditado(man, { modo: "porcao", k: "350", n: "Bolo" })).k);
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

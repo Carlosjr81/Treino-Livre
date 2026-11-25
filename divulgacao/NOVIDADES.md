@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-25j — Body Balance: ajuste fino do gasto para atletas acompanhados
+
+- **Em uma frase:** contas liberadas pelo criador do app ganham um ajuste fino do gasto calórico para fases de preparação de atleta, e a balança do dia de retenção ou perda de água para de enganar a conta.
+- **O que mudou:** nas contas marcadas pelo criador, o Perfil do Body Balance tem um cartão para marcar o que interfere no metabolismo; a conta parte do que os estudos mostram e passa a usar o que o próprio corpo mostrou (comida anotada × balança). O peso de dias de perda de água fica fora da conta.
+- **Por que importa para quem treina:** quem está em preparação acompanhada tem o metabolismo diferente, e a meta comum erraria para mais ou para menos.
+- **Como usar:** só aparece em contas liberadas pelo criador; para todos os outros, nada muda.
+- **Ideias de vídeo:** não divulgar como recurso aberto; no máximo, "a conta aprende com o seu corpo: anote a comida e se pese".
+- **Não prometer:** não falar de nenhuma substância, não sugerir uso, não dizer que o app acompanha atleta; é registro, e uso de qualquer coisa assim é com o médico.
+
+---
+
 ## 2026-11-25i — O Body Balance no resumo animado e no story
 
 **Em uma frase:** o resultado do Body Balance do dia (o que comeu, a meta, o gasto e o déficit ou superávit) agora aparece no resumo animado, na imagem do story e na foto com os números.

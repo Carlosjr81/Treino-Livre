@@ -2048,6 +2048,30 @@ const REFEICOES_BALANCE = [
   { id: "jantar", nome: "Jantar", ic: "\u{1F319}", ate: 22 },
   { id: "ceia", nome: "Ceia e beliscos", ic: "\u{1F36A}", ate: 24.1 },
 ];
+// O modo preparação (2026-11-25j, pedido do dono): o que hormônios,
+// estimulantes e diuréticos fazem com o gasto. "efeito" é só o ponto de
+// partida tirado dos estudos (sobre o repouso, "tmb", ou sobre o gasto do
+// dia, "total"); depois de 14 dias anotados com pesagens desde o começo do
+// uso, vale o que o corpo da pessoa mostrou (comida × balança). Só aparece
+// para o dono e para as contas que ele marcar como bodybuilder no painel.
+// Registro pessoal: o app não indica, receita nem orienta o uso de nada.
+const SUBSTANCIAS_PREPARO = [
+  { id: "androgeno", nome: "Testosterona e derivados", ic: "\u{1F489}", sobre: "tmb", efeito: 0.04,
+    diz: "Mais massa magra, e o gasto em repouso sobe junto com ela (cada kg de massa magra gasta ~13 a 22 kcal/dia).",
+    fonte: "Bhasin e colegas 1996 (NEJM): +6 kg de massa magra em 10 semanas; Wang e colegas 2010: o gasto de repouso de cada tecido" },
+  { id: "tireoide", nome: "Hormônio da tireoide (T3 / T4)", ic: "\u{1F98B}", sobre: "tmb", efeito: 0.10,
+    diz: "Acelera o metabolismo de repouso; acima do normal, de 10% a mais de 30%. Também queima músculo se a proteína faltar.",
+    fonte: "Kim 2008 (Thyroid): a tireoide e o gasto de repouso" },
+  { id: "gh", nome: "GH e peptídeos", ic: "\u{1F9EC}", sobre: "tmb", efeito: 0.04,
+    diz: "Sobe um pouco o gasto de repouso e a queima de gordura; o número dos estudos é fraco, e o corpo corrige.",
+    fonte: "Salomon e colegas 1989 (NEJM): GH em adultos e o metabolismo basal" },
+  { id: "estimulante", nome: "Estimulantes e termogênicos", ic: "\u26A1", sobre: "total", efeito: 0.04,
+    diz: "Cafeína, efedrina, ioimbina, clembuterol e afins: sobem o gasto do dia em ~3 a 5% e tiram a fome (a fome não muda a conta: vale o que você anota).",
+    fonte: "Astrup e colegas 1992: efedrina + cafeína, ~+4% no gasto do dia; Dulloo 1989: cafeína, ~+3%" },
+  { id: "diuretico", nome: "Diurético", ic: "\u{1F4A7}", sobre: "nada", efeito: 0, agua: true,
+    diz: "Não queima gordura: tira água. O peso cai e volta, e isso enganaria a conta. Marque o dia de uso: o peso daquele dia e dos 3 seguintes fica fora.",
+    fonte: "a água não é gordura: 1 kg de água pesa igual e não tem caloria" },
+];
 // Os objetivos. ritmo = % do peso por semana (a régua dos estudos abaixo).
 const OBJETIVOS_BALANCE = [
   { id: "perder", nome: "Perder gordura", fase: "CUTTING", ic: "\u{1F525}", ritmo: 0.7, ritmos: [0.5, 0.7, 1.0], prot: 2.2,
@@ -2125,7 +2149,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-25i";
+const VERSAO_APP = "2026-11-25j";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4415,10 +4439,17 @@ function contasDoBalance(o) {
     const l = ((saude && saude.dias) || []).filter((d) => d.d !== hoje && d.kcal > 0).slice(-14);
     return l.length >= 3 ? Math.round(l.reduce((a, d) => a + d.kcal, 0) / l.length) : 0;
   })();
+  // o modo preparação: só com a chave do dono (o.preparo) e algum uso marcado
+  const prep = o.preparo && perfilG.preparo && typeof perfilG.preparo === "object" ? perfilG.preparo : null;
+  const usosNoDia = (d) => prep ? SUBSTANCIAS_PREPARO.filter((x) => { const u = prep.usos && prep.usos[x.id]; return u && u.desde && u.desde <= d && (!u.ate || u.ate >= d); }) : [];
+  const diureticos = prep && Array.isArray(prep.diureticos) ? prep.diureticos.filter((d) => typeof d === "string") : [];
   const pesos = (() => {
     const l = (medidas || []).filter((m) => numB(m.peso) > 0).map((m) => ({ t: new Date(m.data).getTime(), kg: numB(m.peso) }));
     ((saude && saude.peso) || []).forEach((x) => l.push({ t: x.t, kg: x.kg }));
-    return l;
+    // o peso do dia de diurético e dos 3 seguintes é água: fica fora da conta
+    if (!diureticos.length) return l;
+    const faixas = diureticos.map((d) => { const t = new Date(d + "T00:00:00").getTime(); return [t, t + 4 * 864e5]; });
+    return l.filter((p) => !faixas.some((f) => p.t >= f[0] && p.t < f[1]));
   })();
   const calcDia = (d) => {
     const dia = (nutricao.dias || {})[d] || { itens: [], agua: 0 };
@@ -4445,16 +4476,42 @@ function contasDoBalance(o) {
     const mediaConta = conta.length ? conta.reduce((a, x) => a + x.gasto.totalMeta, 0) / conta.length : 0;
     return Object.assign({}, c, { vies: mediaConta ? Math.round(c.kcal - mediaConta) : 0 });
   })();
+  // o que o corpo mostrou desde que o uso começou: os mesmos 28 dias no
+  // máximo, só os dias com algum uso marcado
+  const inicioPrep = (() => {
+    if (!prep) return null;
+    const l = SUBSTANCIAS_PREPARO.filter((x) => x.efeito && usosNoDia(hoje).indexOf(x) >= 0).map((x) => prep.usos[x.id].desde);
+    return l.length ? l.sort()[0] : null;
+  })();
+  const corpoPrep = (() => {
+    if (!inicioPrep) return null;
+    const pre = ultimos.slice(0, -1).filter((x) => x.d >= inicioPrep).map((x) => { const m = x.gasto ? metaDoDia(perfil, x.gasto.totalMeta, kg, x.treino.min) : null; return Object.assign({}, x, { meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) }); });
+    const c = gastoPeloCorpo(pre.slice(-28), pesos);
+    if (!c) return null;
+    const conta = pre.slice(-28).filter((x) => x.gasto && x.tot.itens >= 2 && x.comeu >= 300);
+    const mediaConta = conta.length ? conta.reduce((a, x) => a + x.gasto.totalMeta, 0) / conta.length : 0;
+    return Object.assign({}, c, { vies: mediaConta ? Math.round(c.kcal - mediaConta) : 0 });
+  })();
   const comMeta = (x) => {
     if (!x.gasto) return Object.assign({}, x, { meta: null, status: statusDoDia(0, null) });
-    const ajuste = corpo ? Math.round(0.5 * corpo.vies) : 0;
+    const geral = corpo ? 0.5 * corpo.vies : 0;
+    let ajuste = Math.round(geral), preparo = null;
+    const usos = usosNoDia(x.d).filter((u) => u.efeito);
+    if (usos.length) {
+      // o ponto de partida dos estudos, trocado aos poucos pelo que o corpo mostrou
+      const estudos = Math.round(usos.reduce((a, u) => a + u.efeito * (u.sobre === "total" ? x.gasto.totalMeta : tmb), 0));
+      const peso = corpoPrep ? Math.min(1, corpoPrep.dias / 21) : 0;
+      ajuste = Math.round((1 - peso) * (estudos + geral) + peso * (corpoPrep ? corpoPrep.vies : 0));
+      preparo = { estudos: estudos, peso: peso, corpo: corpoPrep ? corpoPrep.vies : null, dias: corpoPrep ? corpoPrep.dias : 0, usos: usos.map((u) => u.nome) };
+    }
+    const diuretico = diureticos.indexOf(x.d) >= 0;
     const g = x.gasto.totalMeta + ajuste;
     const m = metaDoDia(perfil, g, kg, x.treino.min);
-    return Object.assign({}, x, { gastoUsado: g, ajusteCorpo: ajuste, meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) });
+    return Object.assign({}, x, { gastoUsado: g, ajusteCorpo: ajuste, preparo: preparo, diuretico: diuretico, meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) });
   };
   const dias = ultimos.map(comMeta);
   return { perfil: perfil, kg: kg, idade: idade, tmb: tmb, completo: completo, ob: ob, hoje: hoje, mediaAtivas: mediaAtivas, pesos: pesos,
-    calcDia: calcDia, ultimos: ultimos, corpo: corpo, comMeta: comMeta, dias: dias };
+    calcDia: calcDia, ultimos: ultimos, corpo: corpo, comMeta: comMeta, dias: dias, prep: prep, corpoPrep: corpoPrep, inicioPrep: inicioPrep };
 }
 // O dia de um treino no Body Balance, para o resumo e o story. Dia sem
 // anotação (menos de 2 itens e 300 kcal) ou perfil sem configurar: nada.
@@ -6776,7 +6833,7 @@ function balancoParaResumo(tMs) {
     const o = BALANCE_RESUMO;
     if (!o || !o.nutricao || !o.nutricao.dias) return null;
     const c = BALANCE_CACHE.de;
-    if (!c || c.nutricao !== o.nutricao || c.historico !== o.historico || c.saude !== o.saude || c.medidas !== o.medidas || c.pesoCorporal !== o.pesoCorporal) {
+    if (!c || c.nutricao !== o.nutricao || c.historico !== o.historico || c.saude !== o.saude || c.medidas !== o.medidas || c.pesoCorporal !== o.pesoCorporal || c.preparo !== o.preparo) {
       BALANCE_CACHE = { de: o, cb: contasDoBalance(o) };
     }
     return resumoBalanceDia(BALANCE_CACHE.cb, diaLocal(tMs || Date.now()));
@@ -37472,6 +37529,56 @@ function GraficoSemanaBalance({ dias }) {
   );
 }
 
+// O modo preparação no Perfil do Balance (só com preparoLiberado())
+function CartaoPreparo({ preparo, hoje, cb, onMudar }) {
+  const usos = (preparo && preparo.usos) || {};
+  const mudarUso = (id, m) => onMudar(Object.assign({}, preparo, { usos: Object.assign({}, usos, { [id]: Object.assign({}, usos[id] || {}, m) }) }));
+  const ativo = (u) => u && u.desde && u.desde <= hoje && (!u.ate || u.ate >= hoje);
+  const cp = cb && cb.corpoPrep;
+  return (
+    <div style={{ ...S.card, borderColor: "#B05BFF88" }}>
+      <div style={{ ...S.label, marginBottom: 6 }}>🧪 Modo preparação (bodybuilder)</div>
+      <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.55, marginBottom: 10 }}>
+        Marque o que você usa e desde quando. A conta do gasto começa pela faixa dos estudos e, conforme você anota a comida e se pesa, passa a usar
+        o que o seu corpo mostrou desde o começo do uso (comida × balança): é ele que diz quanto o seu metabolismo mudou de verdade.
+        {cp ? " Hoje: o seu corpo mostra ~" + fmtKcal(cp.kcal) + " kcal por dia nesse período (" + cp.dias + " dias anotados)." : ""}
+      </div>
+      {SUBSTANCIAS_PREPARO.map((x) => {
+        const u = usos[x.id] || {};
+        const on = ativo(u);
+        return (
+          <div key={x.id} style={{ borderTop: "1px solid var(--borda)", padding: "10px 0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 20 }}>{x.ic}</span>
+              <div style={{ flex: 1, fontWeight: 900, fontSize: 14 }}>{x.nome}</div>
+              <button onClick={() => mudarUso(x.id, on ? { ate: hoje } : { desde: u.desde && !u.ate ? u.desde : hoje, ate: "" })}
+                style={{ padding: "7px 12px", borderRadius: 10, fontWeight: 900, fontSize: 12.5, cursor: "pointer",
+                  border: "1px solid " + (on ? "#B05BFF" : "var(--borda2)"), background: on ? "#B05BFF22" : "transparent", color: on ? "#B05BFF" : "var(--texto)" }}>
+                {on ? "Em uso" : "Não uso"}
+              </button>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.5, marginTop: 4 }}>{x.diz}{x.efeito ? " Ponto de partida: +" + Math.round(x.efeito * 100) + "% " + (x.sobre === "total" ? "no gasto do dia." : "no gasto em repouso.") : ""}</div>
+            {u.desde && (
+              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                <label style={{ flex: 1, fontSize: 11.5, color: "var(--cinza)", fontWeight: 800 }}>Desde
+                  <input type="date" value={u.desde} max={hoje} onChange={(e) => e.target.value && mudarUso(x.id, { desde: e.target.value })} style={{ ...S.input, width: "100%", marginTop: 3 }} />
+                </label>
+                <label style={{ flex: 1, fontSize: 11.5, color: "var(--cinza)", fontWeight: 800 }}>Parei em
+                  <input type="date" value={u.ate || ""} max={hoje} onChange={(e) => mudarUso(x.id, { ate: e.target.value || "" })} style={{ ...S.input, width: "100%", marginTop: 3 }} />
+                </label>
+              </div>
+            )}
+            <div style={{ fontSize: 10.5, color: "var(--cinza2)", marginTop: 4 }}>{x.fonte}</div>
+          </div>
+        );
+      })}
+      <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 8, borderTop: "1px solid var(--borda)", paddingTop: 8 }}>
+        🔒 Fica só neste aparelho e não vai para o resumo, o story nem os amigos. É um registro pessoal: o app não indica, receita nem orienta o uso de
+        nenhuma substância. Hormônio, estimulante e diurético só com acompanhamento médico, com exames.
+      </div>
+    </div>
+  );
+}
 function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pesoCorporal, medidas, corredor, avisar, pedirConfirmacao, onPercurso, onEsteira, sincronizarRelogio }) {
   const [secao, setSecao] = useState("hoje");
   const [janela, setJanela] = useState(null);
@@ -37484,8 +37591,9 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
   useEffect(() => () => clearTimeout(toastT.current), []);
   const estadoRelogio = useRef(null);
   const hojeTela = diaLocal(Date.now());
-  const cb = useMemo(() => contasDoBalance({ nutricao: nutricao, historico: historico, exPorId: exPorId, saude: saude, pesoCorporal: pesoCorporal, medidas: medidas, corredor: corredor }),
-    [nutricao, historico, saude, pesoCorporal, medidas, corredor, hojeTela]); // eslint-disable-line
+  const prepOk = preparoLiberado();
+  const cb = useMemo(() => contasDoBalance({ nutricao: nutricao, historico: historico, exPorId: exPorId, saude: saude, pesoCorporal: pesoCorporal, medidas: medidas, corredor: corredor, preparo: prepOk }),
+    [nutricao, historico, saude, pesoCorporal, medidas, corredor, hojeTela, prepOk]); // eslint-disable-line
   const { perfil, kg, idade, tmb, completo, ob, hoje, mediaAtivas, pesos, calcDia, ultimos, corpo, comMeta, dias } = cb;
   const perfilG = nutricao.perfil || {};
   const atual = dias.find((x) => x.d === diaVer) || comMeta(calcDia(diaVer));
@@ -37657,6 +37765,16 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                 <button onClick={() => adicionar([], 250)} style={{ ...S.btnGhost, padding: "12px 6px", fontWeight: 900, color: "#35E0F0", borderColor: "#35E0F066" }}>💧 +250 ml</button>
                 <button onClick={() => setJanela("agua")} style={{ ...S.btnGhost, padding: "12px 6px", fontWeight: 900, color: "#35E0F0", borderColor: "#35E0F066" }}>💧 Outra água</button>
               </div>
+              {prepOk && cb.prep && cb.prep.usos && cb.prep.usos.diuretico && cb.prep.usos.diuretico.desde && (() => {
+                const lista = Array.isArray(cb.prep.diureticos) ? cb.prep.diureticos : [];
+                const marcado = lista.indexOf(diaVer) >= 0;
+                return (
+                  <button onClick={() => mudarPerfil({ preparo: Object.assign({}, perfil.preparo || {}, { diureticos: marcado ? lista.filter((d) => d !== diaVer) : lista.concat([diaVer]).slice(-120) }) })}
+                    style={{ ...S.btnGhost, width: "100%", marginBottom: 12, fontWeight: 900, color: marcado ? "#35E0F0" : "var(--texto)", borderColor: marcado ? "#35E0F0" : "var(--borda2)" }}>
+                    {marcado ? "💧 Dia de diurético marcado: o peso até 3 dias depois fica fora da conta (toque para desmarcar)" : "💧 Tomei diurético " + (ehHoje ? "hoje" : "neste dia")}
+                  </button>
+                );
+              })()}
 
               {meta && (
                 <div style={S.card}>
@@ -37684,6 +37802,10 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                     <br />A meta ({fmtKcal(meta.k)}) sai desse gasto e do seu objetivo{meta.delta ? " (" + (meta.delta > 0 ? "+" : "−") + fmtKcal(Math.abs(meta.delta)) + ")" : ""}, e o passou ou não passou compara o que você comeu com ela.
                     <br />{atual.gasto.fonte === "relogio" ? "⌚ Atividade medida pelo relógio (Conexão Saúde)." : atual.gasto.fonte === "media" ? "⌚ Atividade pela média do seu relógio (hoje ainda não sincronizou)." : "📐 Atividade estimada pela sua rotina e pelos treinos do app. Com o relógio sincronizado na aba Saúde, fica medida."}
                     {corpo && <span><br />🧬 Seu corpo mostra um gasto de ~{fmtKcal(corpo.kcal)} kcal por dia (comida de {corpo.dias} dias × o peso que mudou){corpo.vies ? ": a conta corrige metade da diferença" : ""}.</span>}
+                    {atual.preparo && <span><br />🧪 Modo preparação ({atual.preparo.usos.join(", ")}): {atual.preparo.peso >= 1
+                      ? "o ajuste é o que o seu corpo mostrou desde o começo do uso (" + atual.preparo.dias + " dias)."
+                      : "começa pelos estudos (+" + fmtKcal(atual.preparo.estudos) + " kcal) e passa a valer o seu corpo aos poucos (" + atual.preparo.dias + " de 21 dias anotados com pesagens)."}</span>}
+                    {atual.diuretico && <span><br />💧 Dia de diurético: o peso de hoje e dos 3 dias seguintes não entra na conta (é água, não gordura).</span>}
                     {meta.noPiso && <span><br />⚠ A meta parou no piso seguro ({fmtKcal(meta.k)} kcal): abaixo disso, só com nutricionista.</span>}
                   </div>
                 </div>
@@ -37847,6 +37969,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
           {secao === "perfil" && (
             <div>
               {perfilForm}
+              {prepOk && <CartaoPreparo preparo={perfil.preparo || {}} hoje={hoje} cb={cb} onMudar={(p) => mudarPerfil({ preparo: p })} />}
               {sincronizarRelogio && (
                 <div style={S.card}>
                   <div style={{ ...S.label, marginBottom: 6 }}>⌚ No relógio</div>
@@ -40630,7 +40753,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     return daqui ? daqui.kg : null;
   }, [medidas, saude]);
   // o Body Balance para o resumo animado e o story (as mesmas contas da aba)
-  BALANCE_RESUMO = { nutricao: nutricao, historico: historico, exPorId: exPorId, saude: saude, pesoCorporal: pesoCorporal, medidas: medidas, corredor: corredor };
+  BALANCE_RESUMO = { nutricao: nutricao, historico: historico, exPorId: exPorId, saude: saude, pesoCorporal: pesoCorporal, medidas: medidas, corredor: corredor, preparo: preparoLiberado() };
 
   // Ida para o app Android: os treinos que ainda não estão no Health Connect
   // vão no link, e a parte nativa grava, lê tudo e volta para cá com #saude=.
@@ -42740,6 +42863,10 @@ function TelaProntidao({ onPronto, onSair, onCancelar }) {
 // Quem está dentro, para os Ajustes (o cartão da conta e o painel do dono).
 // Ponteiro de módulo, como o CONTROLE_AULA: o porteiro está acima de tudo.
 let CONTA_ATUAL = null;
+// o modo preparação (hormônios, estimulantes, diurético) do Body Balance: só o
+// dono e as contas que ele marcou como bodybuilder no painel. A pessoa não
+// muda esse campo (as regras só deixam o dono gravar em usuarios/).
+function preparoLiberado() { return !!(CONTA_ATUAL && (CONTA_ATUAL.dono || CONTA_ATUAL.bodybuilder)); }
 
 function Porteiro({ children }) {
   const ligado = acessoLigado();
@@ -42817,7 +42944,7 @@ function Porteiro({ children }) {
       // a conta guardada leva o que decide o plano: sem rede, o vencimento
       // continua valendo (liberadoSemRede)
       const conta = d ? { email: d.email || s.email, criadoEm: d.criadoEm || 0, pagoAte: d.pagoAte || 0, vitalicio: !!d.vitalicio, plano: d.plano || "",
-        cortesia: !!d.cortesia, cortesiaAte: d.cortesiaAte || 0, cortesiaMotivo: d.cortesiaMotivo || "" } : null;
+        cortesia: !!d.cortesia, cortesiaAte: d.cortesiaAte || 0, cortesiaMotivo: d.cortesiaMotivo || "", bodybuilder: !!d.bodybuilder } : null;
       gravarSessaoConta(Object.assign({}, s, { status: d && d.status, ate: (d && d.ate) || 0, motivo: (d && d.motivo) || "", conferidoEm: agora, nome: (d && d.nome) || s.nome, cob: cob, conta: conta }));
       // o dono fica sabendo, ao abrir o app, de quem está esperando a liberação
       // e de quem avisou que pagou
@@ -42869,7 +42996,8 @@ function Porteiro({ children }) {
   if (fase === "dentro" && !prontoSaude) { CONTA_ATUAL = null; return <TelaProntidao onPronto={() => setProntoSaude(true)} onSair={sair} />; }
   if (fase === "dentro") {
     CONTA_ATUAL = s ? { email: s.email, nome: s.nome, uid: s.uid, ate: s.ate || 0, dono: ehEmailDono(s.email) && !!s.verificado, sair: sair,
-      cob: s.cob || null, plano: s.conta ? planoDaConta(s.conta, Date.now(), s.cob) : null, assinar: () => setAssinando(true) } : null;
+      cob: s.cob || null, plano: s.conta ? planoDaConta(s.conta, Date.now(), s.cob) : null, assinar: () => setAssinando(true),
+      bodybuilder: !!(s.conta && s.conta.bodybuilder) } : null;
     const app = CONTA_ATUAL && CONTA_ATUAL.dono ? React.cloneElement(children, { contaPendentes: pendentes, contaPagamentos: pagPend, contaAuto: autoNov, onContaVista: () => { setPendentes(0); setPagPend(0); setAutoNov(0); } }) : children;
     const fecharAviso = () => { try { localStorage.setItem("treinolivre:avisoVence", new Date().toDateString()); } catch (x) {} setAvisoVence(null); };
     return (
@@ -44658,6 +44786,11 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
                 {!souEu && <button onClick={() => setAcao({ uid: c.uid, tipo: "pagamento", plano: "", valor: "" })} style={pequeno}>💳 Registrar pagamento</button>}
                 {(pagamentos || []).some((p) => p.conta === c.uid) && <button onClick={() => setVerPagamentos({ busca: c.email || "" })} style={pequeno}>💳 Ver pagamentos</button>}
                 <button onClick={() => setEditando({ uid: c.uid, campo: "nota", valor: c.nota || "" })} style={pequeno}>📝 Nota</button>
+                {!souEu && (c.bodybuilder
+                  ? <button onClick={() => pedirConfirmacao({ labelSim: "Tirar", msg: "Tirar o modo bodybuilder de " + (c.nome || c.email) + "?\n\nO modo preparação do Body Balance (hormônios, estimulantes e diurético) some da tela e sai da conta dela." },
+                      () => gravar(c, { bodybuilder: false }, "Modo bodybuilder retirado."))} style={pequeno}>🧪 Tirar o modo bodybuilder</button>
+                  : <button onClick={() => pedirConfirmacao({ positivo: true, labelSim: "Liberar", msg: "Classificar " + (c.nome || c.email) + " como bodybuilder?\n\nLibera, no Body Balance dela, o modo preparação: marcar hormônios, estimulantes e diurético para a conta do gasto. Só faça para quem você confia. Ela vê na próxima vez que o app conferir a conta (ao abrir)." },
+                      () => gravar(c, { bodybuilder: true }, "Modo bodybuilder liberado."))} style={pequeno}>🧪 Classificar como bodybuilder</button>)}
                 <button disabled={mexendo === c.uid} onClick={() => pedirConfirmacao({ positivo: true, labelSim: "Mandar o link",
                   msg: "Resetar a senha de " + (c.nome || c.email) + "?\n\nChega no e-mail " + c.email + " um link para a pessoa criar uma senha nova. A senha atual continua valendo até ela criar a nova." }, () => resetarSenha(c))}
                   style={pequeno}>🔑 Resetar a senha</button>

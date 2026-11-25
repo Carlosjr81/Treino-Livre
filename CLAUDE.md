@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.367 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.373 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v279) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v280) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6824,6 +6824,31 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
   e o corpo passando da meta. **Não validado num aparelho**: o relógio (a tela
   dividida, a de comida, a fila) e a parte nativa do celular foram só
   compilados pelo Actions.
+
+### O modo preparação (`SUBSTANCIAS_PREPARO`, `CartaoPreparo`, `preparoLiberado`, 2026-11-25j)
+
+Pedido do dono: "ajustar o gasto alterado por hormônios, estimulantes e
+diurético; no meu caso não há risco de ter isso na tela; e a opção de eu ligar
+para as pessoas que eu confiar; por padrão não aparece para todos, só para
+quem eu classificar como bodybuilder".
+
+- **Quem vê**: `preparoLiberado()` = `CONTA_ATUAL.dono || CONTA_ATUAL.bodybuilder`.
+  O `bodybuilder` mora em `usuarios/`, onde só o dono grava (as regras não
+  mudaram): no painel, em cada conta, "⋯ Mais opções" › "🧪 Classificar como
+  bodybuilder" / "Tirar o modo bodybuilder". Com o porteiro desligado, ninguém vê.
+- **A conta**: `SUBSTANCIAS_PREPARO` (primeiro script) dá o ponto de partida
+  dos estudos (testosterona +4% do repouso, T3/T4 +10%, GH +4%, estimulantes
+  +4% do gasto do dia; Bhasin 1996, Kim 2008, Salomon 1989, Astrup 1992, Dulloo
+  1989), e o corpo assume: o gasto medido pelo peso **desde o começo do uso**
+  (`corpoPrep`) pesa `dias/21`; com 21 dias anotados com pesagens, vale só o
+  corpo. **Diurético não mexe no gasto**: o peso do dia marcado ("💧 Tomei
+  diurético hoje", no Hoje) e dos 3 seguintes sai da conta (é água).
+- **Fica no aparelho** (`nutricao.perfil.preparo = { usos: { id: { desde, ate } }, diureticos }`).
+  Os nomes não vão a resumo, story, amigos nem servidor; o resumo só leva os
+  números do dia (já ajustados). O cartão diz que não recomenda nem orienta uso.
+- Coberto em `teste-balance.js` (sem a chave nada muda, o T3, o diurético, antes
+  do começo). No navegador: o Perfil e o Hoje (com a chave forçada). **Não
+  validado num aparelho** (nem o botão do painel com o Firebase de verdade).
 
 ## Já treinei tudo: o treino extra (`treinoExtra`, `JanelaExtra`, 2026-11-23b)
 

@@ -28,7 +28,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("// ---------------- JARVIS BODY BALANCE: AS CONTAS", "// ---------------- FIM DO BODY BALANCE") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
-  " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia," +
+  " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO," +
   " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps };");
 const B = globalThis.B;
 
@@ -237,6 +237,24 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   const vazio = B.contasDoBalance({ nutricao: { perfil: nutricao.perfil, dias: {} }, historico: [], pesoCorporal: 85 });
   teste("dia sem anotação não entra no resumo", null, B.resumoBalanceDia(vazio, hoje));
   teste("sem perfil configurado, nada", null, B.resumoBalanceDia(B.contasDoBalance({ nutricao: { perfil: {}, dias: nutricao.dias } }), hoje));
+}
+// ---- o modo preparação: só com a chave do dono, e o corpo assume (2026-11-25j)
+{
+  const hoje = diaLocal(Date.now()), antes = diaLocal(Date.now() - 10 * 864e5);
+  const arroz = B.ALIMENTOS_BR.find((a) => a.id === "arroz") || B.ALIMENTOS_BR[0];
+  const it = (q) => Object.assign(B.itemDeAlimento(arroz, q), { id: "i" + q, t: Date.now() });
+  const preparo = { usos: { tireoide: { desde: antes } }, diureticos: [hoje] };
+  const nutricao = { perfil: { objetivo: "perder", sexo: "m", idade: 40, cm: 178, kg: 85, rotina: "sentado", preparo: preparo }, dias: { [hoje]: { itens: [it(4), it(5)], agua: 0 } } };
+  const base = { nutricao: nutricao, historico: [], exPorId: () => null, saude: null, pesoCorporal: 85, corredor: {},
+    medidas: [{ data: new Date().toISOString(), peso: 82 }, { data: new Date(Date.now() - 20 * 864e5).toISOString(), peso: 85 }] };
+  const sem = B.contasDoBalance(base), com = B.contasDoBalance(Object.assign({}, base, { preparo: true }));
+  const xs = sem.dias.find((d) => d.d === hoje), xc = com.dias.find((d) => d.d === hoje);
+  teste("sem a chave do dono, o preparo não muda nada", [null, 0], [xs.preparo, xs.ajusteCorpo]);
+  teste("com a chave, o T3 sobe o gasto em ~10% do repouso", Math.round(com.tmb * 0.1), xc.ajusteCorpo);
+  teste("com a chave, a meta sobe junto", true, xc.meta.k > xs.meta.k);
+  teste("o peso do dia de diurético sai da conta", [2, 1], [sem.pesos.length, com.pesos.length]);
+  teste("diurético não mexe no gasto", 0, B.SUBSTANCIAS_PREPARO.find((x) => x.id === "diuretico").efeito);
+  teste("antes do uso começar, nada muda", null, com.dias.find((d) => d.d < antes).preparo);
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

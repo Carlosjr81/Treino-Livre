@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-25d**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-25e**.
 
 ---
 
@@ -65,6 +65,7 @@
   bulking, os minutos de caminhada que compensam o excesso e um plano leve de 3 dias, o acerto da semana e do mês, e o sono.
   No relógio, o ícone abre a tela dividida TREINO / COMIDA & ÁGUA, e cada toque chega sozinho ao celular. É registro e
   informação geral, não dieta nem plano alimentar (isso é do nutricionista).
+- **Alimentos e suplementos** (2026-11-25e): 149 itens com porção caseira, entre eles farinhas (arroz, mandioca, trigo, aveia, milho, amêndoas, coco, linhaça), maltodextrina, dextrose, whey, caseína, albumina, creatina e outros suplementos, com filtros por grupo na hora de anotar. Os valores são médias de tabela e de rótulos comuns; o app não recomenda suplemento.
 - **Os efeitos de LED** (novo em 2026-11-24a): o resumo animado (tela e vídeo do story) ganhou efeitos de luz
   futuristas, como os de telão de arena: barras de luz azuis correndo e acendendo em ondas, com textura de pontinhos de
   LED; uma faixa de luz que atravessa a tela a cada cena nova; e lasers verdes varrendo do alto. No impacto das cenas fortes,

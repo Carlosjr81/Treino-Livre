@@ -16,6 +16,26 @@
 
 ---
 
+## 2026-11-25e — Mais alimentos, farinhas e suplementos no Body Balance
+
+**Em uma frase:** a lista de alimentos quase triplicou: farinhas, suplementos e muito mais comida do dia a dia, com filtros por grupo para achar rápido.
+
+**O que mudou**
+- **Farinhas**: de arroz, de mandioca, de trigo, de aveia, fubá, de amêndoas, de coco, de linhaça, polvilho e amido de milho.
+- **Suplementos**: maltodextrina, dextrose, waxy maize, palatinose, gel de carboidrato, hipercalórico, whey (comum e isolado), caseína, albumina, proteína vegetal, shake pronto, barra de proteína, colágeno, creatina, BCAA, glutamina, beta-alanina, pré-treino, cafeína, ômega 3, multivitamínico e isotônico.
+- **Mais comida**: inhame, milho, quinoa, lentilha, grão-de-bico, wrap, torrada, crepioca, panqueca de aveia, alcatra, picanha, atum, sardinha, salmão, camarão, peito de peru, omelete, tofu, cottage, iogurte grego e proteico, morango, uva, abacaxi, manga, paçoca, pudim, mel, pipoca, lasanha, yakisoba, sushi, água de coco, caipirinha e outros. São 149 itens.
+- **Filtros por grupo** na hora de anotar: Carboidratos, Proteínas, Farinhas, Suplementos, Frutas, Verduras, Gorduras, Doces, Pratos, Bebidas e Álcool. A busca também acha por apelido ("malto", "maisena", "mass").
+
+**Por que importa para quem treina:** o shake de malto e whey do pós-treino e a tapioca com farinha agora entram com um toque, sem digitar número de rótulo.
+
+**Como usar:** Balance › + Comida › toque no grupo (ex.: 🥤 Suplementos) ou busque pelo nome.
+
+**Ideias de vídeo:** "Anotando o pós-treino em 5 segundos: malto + whey"; a lista de suplementos aparecendo no filtro.
+
+**Não prometer:** que os valores são os do seu produto (são médias de tabela e de rótulos comuns; para o exato, a aba ✏️ Manual com o rótulo) nem recomendar suplemento.
+
+---
+
 ## 2026-11-25d — Só a série e as repetições: o app faz o resto
 
 **Em uma frase:** a pergunta "quantas sobraram" saiu; você marca só a série e as repetições que fez, e o app deduz se a carga estava fácil, certa ou pesada.

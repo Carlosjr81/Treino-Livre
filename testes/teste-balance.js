@@ -141,6 +141,10 @@ const kt = fs.readFileSync(path.join(__dirname, "..", "android", "relogio", "src
 const rap = [...kt.matchAll(/Rapido\("([a-z-]+)", "[^"]*", "[^"]*", (\d+), ([\d.]+), ([\d.]+), ([\d.]+), (\d+)\)/g)].map((m) => ({ a: m[1], k: +m[2], p: +m[3], c: +m[4], g: +m[5], liq: +m[6] }));
 teste("o relógio tem os mesmos rápidos do site", B.RAPIDOS_RELOGIO, rap.map((x) => x.a));
 teste("e os mesmos números (kcal, macros, líquido)", [], rap.filter((x) => { const a = B.ALIMENTOS_BR.find((y) => y.id === x.a); return !a || a.k !== x.k || a.p !== x.p || a.c !== x.c || a.g !== x.g || (a.liq || 0) !== x.liq; }).map((x) => x.a));
+teste("as farinhas e os suplementos pedidos estão lá (2026-11-25e)", [], ["farinha-arroz", "farinha-mandioca", "farinha-trigo", "maltodextrina", "dextrose", "creatina", "caseina", "albumina", "hipercalorico"].filter((id) => !B.ALIMENTOS_BR.find((a) => a.id === id)));
+teste("nenhum id repetido", [], B.ALIMENTOS_BR.map((a) => a.id).filter((x, i, l) => l.indexOf(x) !== i));
+{ const html0 = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8"); const linhaG = html0.slice(html0.indexOf("const GRUPOS_ALIMENTO")).split("\n")[0];
+  teste("todo grupo tem o seu filtro", [], [...new Set(B.ALIMENTOS_BR.map((a) => a.cat))].filter((c) => linhaG.indexOf("[\"" + c + "\"") < 0)); }
 teste("todo alimento tem porção, kcal e macros que fecham (± 25%)", [], B.ALIMENTOS_BR.filter((a) => {
   const k = a.p * 4 + a.c * 4 + a.g * 9 + (a.alc || 0) * 7;
   return !a.por || !(a.k >= 0) || (a.k > 20 && Math.abs(k - a.k) > 0.25 * a.k);

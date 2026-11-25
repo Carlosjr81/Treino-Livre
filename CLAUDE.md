@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.344 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.347 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v274) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v275) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6680,7 +6680,7 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
   (`gPrato` de cada alimento) e pergunta do óleo e do molho. Sem servidor
   nem chave de API, não há modelo de visão; se um dia houver, ele só
   preencheria as marcações.
-- **Os dados** (primeiro script): `ALIMENTOS_BR` (58 alimentos brasileiros,
+- **Os dados** (primeiro script): `ALIMENTOS_BR` (149 alimentos e suplementos desde 2026-11-25e: farinhas de arroz, mandioca, trigo, aveia, milho, amêndoas, coco e linhaça, polvilho e amido; maltodextrina, dextrose, waxy maize, palatinose, gel, hipercalórico, whey isolado, caseína, albumina, proteína vegetal, creatina, BCAA, glutamina e outros; mais carboidratos, proteínas, frutas, doces, pratos e bebidas; o campo `b` são palavras a mais para a busca, e `GRUPOS_ALIMENTO` são os filtros por grupo na janela de anotar, que `teste-balance.js` cobra que cubram todo `cat`. Antes eram 58 alimentos brasileiros,
   porção caseira, kcal e macros pela TACO; `liq` para as bebidas, `alc`
   para o álcool), `RAPIDOS_RELOGIO`, `CORES_BALANCE` (proteína #FF4D6D,
   carbo #FFB21A, gordura #B05BFF, álcool/outros #8A8F9E, água #35E0F0),

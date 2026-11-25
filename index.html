@@ -1902,7 +1902,7 @@ const ALIMENTOS_BR = [
   { id: "granola", nome: "Granola", cat: "carbo", por: "3 colheres de sopa (30 g)", gr: 30, k: 130, p: 3.0, c: 20.0, g: 4.5, gPrato: 0, ic: "\u{1F963}" },
   { id: "leite", nome: "Leite integral", cat: "proteina", por: "1 copo (200 ml)", gr: 200, k: 123, p: 6.0, c: 9.0, g: 6.6, gPrato: 0, ic: "\u{1F95B}", liq: 200 },
   { id: "iogurte", nome: "Iogurte natural", cat: "proteina", por: "1 pote (170 g)", gr: 170, k: 105, p: 7.0, c: 8.0, g: 5.0, gPrato: 0, ic: "\u{1F95B}" },
-  { id: "whey", nome: "Whey protein", cat: "proteina", por: "1 dosador (30 g)", gr: 30, k: 120, p: 24.0, c: 3.0, g: 1.5, gPrato: 0, ic: "\u{1F964}" },
+  { id: "whey", nome: "Whey protein", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 120, p: 24.0, c: 3.0, g: 1.5, gPrato: 0, ic: "\u{1F964}" },
   { id: "pasta-amendoim", nome: "Pasta de amendoim", cat: "gordura", por: "1 colher de sopa (15 g)", gr: 15, k: 90, p: 3.5, c: 3.0, g: 7.5, gPrato: 0, ic: "\u{1F95C}" },
   { id: "castanhas", nome: "Castanhas e nozes", cat: "gordura", por: "1 punhado (30 g)", gr: 30, k: 190, p: 5.0, c: 5.0, g: 18.0, gPrato: 0, ic: "\u{1F95C}" },
   { id: "azeite", nome: "Azeite ou óleo", cat: "gordura", por: "1 colher de sopa (13 ml)", gr: 13, k: 117, p: 0, c: 0, g: 13.0, gPrato: 0, ic: "\u{1FAD2}" },
@@ -1934,7 +1934,108 @@ const ALIMENTOS_BR = [
   { id: "pf", nome: "Prato feito (arroz, feijão, bife e salada)", cat: "prato", por: "1 prato", gr: 450, k: 650, p: 42.0, c: 70.0, g: 20.0, gPrato: 0, ic: "\u{1F37D}" },
   { id: "marmita-fit", nome: "Marmita fit (frango, arroz integral, legumes)", cat: "prato", por: "1 marmita", gr: 400, k: 450, p: 40.0, c: 50.0, g: 9.0, gPrato: 0, ic: "\u{1F371}" },
   { id: "lanche", nome: "Lanche (pão, queijo, presunto)", cat: "prato", por: "1 sanduíche", gr: 120, k: 320, p: 16.0, c: 32.0, g: 13.0, gPrato: 0, ic: "\u{1F96A}" },
+  // farinhas e amidos (2026-11-25e, pedido do dono: "farinhas, maltodextrina, dextrose, mais suplementos")
+  { id: "farinha-arroz", nome: "Farinha de arroz", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 109, p: 1.8, c: 24.0, g: 0.4, gPrato: 0, ic: "🌾" },
+  { id: "farinha-mandioca", nome: "Farinha de mandioca", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 110, p: 0.4, c: 26.7, g: 0.1, gPrato: 250, ic: "🌾", b: "farinha de mesa torrada" },
+  { id: "farinha-trigo", nome: "Farinha de trigo", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 108, p: 2.9, c: 22.5, g: 0.4, gPrato: 0, ic: "🌾" },
+  { id: "farinha-aveia", nome: "Farinha de aveia", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 118, p: 4.2, c: 20.0, g: 2.6, gPrato: 0, ic: "🌾" },
+  { id: "fuba", nome: "Fubá / farinha de milho", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 106, p: 2.2, c: 23.7, g: 0.6, gPrato: 0, ic: "🌽", b: "flocao polenta angu" },
+  { id: "farinha-amendoas", nome: "Farinha de amêndoas", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 180, p: 6.3, c: 6.0, g: 15.0, gPrato: 0, ic: "🌰", b: "low carb" },
+  { id: "farinha-coco", nome: "Farinha de coco", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 120, p: 5.0, c: 18.0, g: 4.5, gPrato: 0, ic: "🥥", b: "low carb" },
+  { id: "farinha-linhaca", nome: "Farinha de linhaça", cat: "farinha", por: "1 colher de sopa (15 g)", gr: 15, k: 74, p: 2.1, c: 6.5, g: 4.8, gPrato: 0, ic: "🌾", b: "semente" },
+  { id: "polvilho", nome: "Polvilho (doce ou azedo)", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 105, p: 0.1, c: 26.0, g: 0, gPrato: 0, ic: "🌾", b: "goma fecula amido" },
+  { id: "amido-milho", nome: "Amido de milho", cat: "farinha", por: "1 colher de sopa (20 g)", gr: 20, k: 70, p: 0.1, c: 17.4, g: 0, gPrato: 0, ic: "🌽", b: "maisena" },
+  // suplementos
+  { id: "maltodextrina", nome: "Maltodextrina", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 114, p: 0, c: 28.5, g: 0, gPrato: 0, ic: "🥤", b: "malto carboidrato em po" },
+  { id: "dextrose", nome: "Dextrose", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 109, p: 0, c: 27.3, g: 0, gPrato: 0, ic: "🥤", b: "glicose carboidrato em po" },
+  { id: "waxy-maize", nome: "Waxy maize", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 114, p: 0, c: 28.5, g: 0, gPrato: 0, ic: "🥤", b: "amido de milho ceroso carboidrato em po" },
+  { id: "palatinose", nome: "Palatinose", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 120, p: 0, c: 30.0, g: 0, gPrato: 0, ic: "🥤", b: "isomaltulose carboidrato em po" },
+  { id: "gel-carbo", nome: "Gel de carboidrato", cat: "suplemento", por: "1 sachê (30 g)", gr: 30, k: 80, p: 0, c: 20.0, g: 0, gPrato: 0, ic: "🧃", b: "carb up corrida" },
+  { id: "hipercalorico", nome: "Hipercalórico (massa)", cat: "suplemento", por: "1 dose (100 g)", gr: 100, k: 380, p: 20.0, c: 70.0, g: 2.5, gPrato: 0, ic: "🥤", b: "mass ganhador de peso" },
+  { id: "whey-isolado", nome: "Whey protein isolado", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 110, p: 27.0, c: 0.5, g: 0.3, gPrato: 0, ic: "🥤", b: "proteina" },
+  { id: "caseina", nome: "Caseína", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 110, p: 24.0, c: 3.0, g: 0.5, gPrato: 0, ic: "🥤", b: "proteina noturna" },
+  { id: "albumina", nome: "Albumina", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 112, p: 24.0, c: 3.0, g: 0, gPrato: 0, ic: "🥚", b: "proteina clara de ovo" },
+  { id: "proteina-vegetal", nome: "Proteína vegetal (ervilha e arroz)", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 120, p: 22.0, c: 3.0, g: 2.0, gPrato: 0, ic: "🌱", b: "vegana proteina" },
+  { id: "shake-pronto", nome: "Shake de proteína pronto", cat: "suplemento", por: "1 garrafinha (250 ml)", gr: 250, k: 150, p: 25.0, c: 9.0, g: 1.5, gPrato: 0, ic: "🧃", liq: 250, b: "whey bebida proteica" },
+  { id: "barra-proteina", nome: "Barra de proteína", cat: "suplemento", por: "1 barra (45 g)", gr: 45, k: 180, p: 15.0, c: 18.0, g: 6.0, gPrato: 0, ic: "🍫", b: "protein bar" },
+  { id: "colageno", nome: "Colágeno", cat: "suplemento", por: "1 dose (10 g)", gr: 10, k: 36, p: 9.0, c: 0, g: 0, gPrato: 0, ic: "🥄" },
+  { id: "creatina", nome: "Creatina", cat: "suplemento", por: "1 dose (3 a 5 g)", gr: 5, k: 0, p: 0, c: 0, g: 0, gPrato: 0, ic: "🥄" },
+  { id: "bcaa", nome: "BCAA", cat: "suplemento", por: "1 dose (5 g)", gr: 5, k: 20, p: 5.0, c: 0, g: 0, gPrato: 0, ic: "🥄", b: "aminoacido" },
+  { id: "glutamina", nome: "Glutamina", cat: "suplemento", por: "1 dose (5 g)", gr: 5, k: 20, p: 5.0, c: 0, g: 0, gPrato: 0, ic: "🥄", b: "aminoacido" },
+  { id: "beta-alanina", nome: "Beta-alanina", cat: "suplemento", por: "1 dose (3 g)", gr: 3, k: 0, p: 0, c: 0, g: 0, gPrato: 0, ic: "🥄" },
+  { id: "pre-treino", nome: "Pré-treino", cat: "suplemento", por: "1 dose (10 g)", gr: 10, k: 14, p: 0, c: 3.5, g: 0, gPrato: 0, ic: "⚡", b: "cafeina pre workout" },
+  { id: "cafeina", nome: "Cafeína (cápsula)", cat: "suplemento", por: "1 cápsula", gr: 1, k: 0, p: 0, c: 0, g: 0, gPrato: 0, ic: "💊" },
+  { id: "omega3", nome: "Ômega 3", cat: "suplemento", por: "2 cápsulas (2 g)", gr: 2, k: 18, p: 0, c: 0, g: 2.0, gPrato: 0, ic: "💊", b: "oleo de peixe" },
+  { id: "multivitaminico", nome: "Multivitamínico", cat: "suplemento", por: "1 cápsula", gr: 1, k: 0, p: 0, c: 0, g: 0, gPrato: 0, ic: "💊", b: "vitamina" },
+  { id: "isotonico", nome: "Isotônico", cat: "suplemento", por: "1 garrafa (500 ml)", gr: 500, k: 120, p: 0, c: 30.0, g: 0, gPrato: 0, ic: "🧃", liq: 500, b: "bebida esportiva" },
+  // mais carboidratos
+  { id: "inhame", nome: "Inhame ou cará cozido", cat: "carbo", por: "1 pedaço (100 g)", gr: 100, k: 97, p: 2.0, c: 23.0, g: 0.1, gPrato: 480, ic: "🍠" },
+  { id: "milho", nome: "Milho verde cozido", cat: "carbo", por: "1 espiga ou 4 colheres (100 g)", gr: 100, k: 98, p: 3.2, c: 19.0, g: 0.6, gPrato: 400, ic: "🌽" },
+  { id: "quinoa", nome: "Quinoa cozida", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 120, p: 4.4, c: 21.3, g: 1.9, gPrato: 480, ic: "🍚" },
+  { id: "lentilha", nome: "Lentilha cozida", cat: "carbo", por: "1 concha (100 g)", gr: 100, k: 93, p: 6.3, c: 16.3, g: 0.5, gPrato: 480, ic: "🫘" },
+  { id: "grao-bico", nome: "Grão-de-bico cozido", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 164, p: 8.9, c: 27.0, g: 2.6, gPrato: 480, ic: "🫘" },
+  { id: "pao-sirio", nome: "Pão sírio ou wrap", cat: "carbo", por: "1 unidade (60 g)", gr: 60, k: 165, p: 5.5, c: 33.0, g: 1.0, gPrato: 0, ic: "🫓", b: "rap10 tortilha" },
+  { id: "torrada", nome: "Torrada", cat: "carbo", por: "3 unidades (30 g)", gr: 30, k: 120, p: 3.5, c: 22.0, g: 2.0, gPrato: 0, ic: "🍞" },
+  { id: "cereal", nome: "Cereal matinal", cat: "carbo", por: "1 xícara (30 g)", gr: 30, k: 115, p: 2.0, c: 26.0, g: 0.5, gPrato: 0, ic: "🥣", b: "sucrilhos flocos de milho" },
+  { id: "crepioca", nome: "Crepioca (ovo e tapioca)", cat: "carbo", por: "1 unidade", gr: 90, k: 180, p: 7.0, c: 25.0, g: 5.0, gPrato: 0, ic: "🫓" },
+  { id: "panqueca-aveia", nome: "Panqueca de aveia e banana", cat: "carbo", por: "1 unidade", gr: 100, k: 190, p: 9.0, c: 27.0, g: 5.0, gPrato: 0, ic: "🥞" },
+  { id: "arroz-feijao", nome: "Arroz com feijão", cat: "carbo", por: "1 prato raso (240 g)", gr: 240, k: 235, p: 9.2, c: 47.0, g: 0.9, gPrato: 0, ic: "🍚" },
+  // mais proteínas
+  { id: "alcatra", nome: "Alcatra ou patinho grelhado", cat: "proteina", por: "1 bife (100 g)", gr: 100, k: 210, p: 31.0, c: 0, g: 9.0, gPrato: 520, ic: "🥩" },
+  { id: "picanha", nome: "Picanha", cat: "gordura", por: "1 fatia (100 g)", gr: 100, k: 290, p: 25.0, c: 0, g: 21.0, gPrato: 520, ic: "🥩", b: "churrasco" },
+  { id: "frango-desfiado", nome: "Frango desfiado", cat: "proteina", por: "3 colheres de sopa (100 g)", gr: 100, k: 163, p: 31.0, c: 0, g: 3.5, gPrato: 480, ic: "🍗" },
+  { id: "atum", nome: "Atum em lata (em água)", cat: "proteina", por: "1 lata drenada (100 g)", gr: 100, k: 115, p: 26.0, c: 0, g: 1.0, gPrato: 0, ic: "🐟" },
+  { id: "sardinha", nome: "Sardinha em lata", cat: "proteina", por: "1 lata drenada (85 g)", gr: 85, k: 180, p: 18.0, c: 0, g: 12.0, gPrato: 0, ic: "🐟" },
+  { id: "salmao", nome: "Salmão grelhado", cat: "proteina", por: "1 filé (100 g)", gr: 100, k: 230, p: 25.0, c: 0, g: 14.0, gPrato: 450, ic: "🐟" },
+  { id: "camarao", nome: "Camarão cozido", cat: "proteina", por: "1 porção (100 g)", gr: 100, k: 100, p: 21.0, c: 0, g: 1.5, gPrato: 450, ic: "🦐" },
+  { id: "peito-peru", nome: "Peito de peru", cat: "proteina", por: "4 fatias (40 g)", gr: 40, k: 45, p: 7.0, c: 1.0, g: 1.2, gPrato: 0, ic: "🥓" },
+  { id: "presunto", nome: "Presunto", cat: "proteina", por: "2 fatias (30 g)", gr: 30, k: 45, p: 5.0, c: 0.5, g: 2.5, gPrato: 0, ic: "🥓" },
+  { id: "clara", nome: "Clara de ovo", cat: "proteina", por: "1 clara (33 g)", gr: 33, k: 17, p: 3.6, c: 0.2, g: 0, gPrato: 0, ic: "🥚" },
+  { id: "omelete", nome: "Omelete (2 ovos)", cat: "proteina", por: "1 omelete", gr: 110, k: 200, p: 13.0, c: 1.0, g: 16.0, gPrato: 0, ic: "🍳" },
+  { id: "tofu", nome: "Tofu", cat: "proteina", por: "1 fatia (100 g)", gr: 100, k: 80, p: 8.0, c: 2.0, g: 4.5, gPrato: 450, ic: "🧈", b: "vegano soja" },
+  { id: "cottage", nome: "Queijo cottage", cat: "proteina", por: "2 colheres de sopa (50 g)", gr: 50, k: 49, p: 6.3, c: 1.6, g: 1.9, gPrato: 0, ic: "🧀" },
+  { id: "ricota", nome: "Ricota", cat: "proteina", por: "1 fatia (30 g)", gr: 30, k: 42, p: 3.4, c: 1.0, g: 2.6, gPrato: 0, ic: "🧀" },
+  { id: "requeijao", nome: "Requeijão", cat: "gordura", por: "1 colher de sopa (30 g)", gr: 30, k: 80, p: 2.9, c: 0.8, g: 7.2, gPrato: 0, ic: "🧀" },
+  { id: "iogurte-grego", nome: "Iogurte grego", cat: "proteina", por: "1 pote (100 g)", gr: 100, k: 117, p: 6.0, c: 13.0, g: 4.5, gPrato: 0, ic: "🥛" },
+  { id: "iogurte-proteico", nome: "Iogurte proteico", cat: "proteina", por: "1 pote (160 g)", gr: 160, k: 100, p: 15.0, c: 7.0, g: 1.0, gPrato: 0, ic: "🥛", b: "high protein" },
+  { id: "leite-desnatado", nome: "Leite desnatado", cat: "proteina", por: "1 copo (200 ml)", gr: 200, k: 70, p: 6.6, c: 10.0, g: 0.4, gPrato: 0, ic: "🥛", liq: 200 },
+  { id: "strogonoff", nome: "Strogonoff de frango", cat: "proteina", por: "1 concha (150 g)", gr: 150, k: 230, p: 18.0, c: 6.0, g: 15.0, gPrato: 480, ic: "🍲" },
+  // mais frutas
+  { id: "morango", nome: "Morango", cat: "fruta", por: "10 unidades (100 g)", gr: 100, k: 30, p: 0.9, c: 6.8, g: 0.3, gPrato: 0, ic: "🍓" },
+  { id: "uva", nome: "Uva", cat: "fruta", por: "1 cacho pequeno (100 g)", gr: 100, k: 53, p: 0.7, c: 13.6, g: 0.2, gPrato: 0, ic: "🍇" },
+  { id: "abacaxi", nome: "Abacaxi", cat: "fruta", por: "1 fatia (100 g)", gr: 100, k: 48, p: 0.9, c: 12.3, g: 0.1, gPrato: 0, ic: "🍍" },
+  { id: "melancia", nome: "Melancia", cat: "fruta", por: "1 fatia (200 g)", gr: 200, k: 66, p: 1.8, c: 16.0, g: 0, gPrato: 0, ic: "🍉" },
+  { id: "manga", nome: "Manga", cat: "fruta", por: "½ unidade (140 g)", gr: 140, k: 90, p: 0.6, c: 22.0, g: 0.3, gPrato: 0, ic: "🥭" },
+  { id: "pera", nome: "Pera", cat: "fruta", por: "1 média (130 g)", gr: 130, k: 70, p: 0.8, c: 18.0, g: 0.1, gPrato: 0, ic: "🍐" },
+  { id: "kiwi", nome: "Kiwi", cat: "fruta", por: "1 unidade (75 g)", gr: 75, k: 46, p: 0.9, c: 11.0, g: 0.4, gPrato: 0, ic: "🥝" },
+  { id: "goiaba", nome: "Goiaba", cat: "fruta", por: "1 média (170 g)", gr: 170, k: 92, p: 1.9, c: 22.0, g: 0.7, gPrato: 0, ic: "🍐" },
+  { id: "tamara", nome: "Tâmara", cat: "fruta", por: "3 unidades (24 g)", gr: 24, k: 67, p: 0.5, c: 18.0, g: 0, gPrato: 0, ic: "🌴" },
+  { id: "uva-passa", nome: "Uva-passa", cat: "fruta", por: "1 colher de sopa (15 g)", gr: 15, k: 45, p: 0.5, c: 12.0, g: 0, gPrato: 0, ic: "🍇" },
+  // mais lanches e doces
+  { id: "pacoca", nome: "Paçoca", cat: "doce", por: "1 unidade (20 g)", gr: 20, k: 104, p: 3.0, c: 10.0, g: 6.0, gPrato: 0, ic: "🥜" },
+  { id: "brigadeiro", nome: "Brigadeiro", cat: "doce", por: "1 unidade (20 g)", gr: 20, k: 80, p: 1.0, c: 12.0, g: 3.0, gPrato: 0, ic: "🍫" },
+  { id: "pudim", nome: "Pudim de leite", cat: "doce", por: "1 fatia (100 g)", gr: 100, k: 250, p: 6.0, c: 40.0, g: 7.0, gPrato: 0, ic: "🍮" },
+  { id: "acucar", nome: "Açúcar", cat: "doce", por: "1 colher de chá (5 g)", gr: 5, k: 20, p: 0, c: 5.0, g: 0, gPrato: 0, ic: "🧂" },
+  { id: "mel", nome: "Mel", cat: "doce", por: "1 colher de sopa (20 g)", gr: 20, k: 62, p: 0, c: 17.0, g: 0, gPrato: 0, ic: "🍯" },
+  { id: "pipoca", nome: "Pipoca", cat: "doce", por: "3 xícaras (25 g)", gr: 25, k: 110, p: 3.0, c: 16.0, g: 4.0, gPrato: 0, ic: "🍿" },
+  { id: "barra-cereal", nome: "Barra de cereal", cat: "doce", por: "1 barra (22 g)", gr: 22, k: 90, p: 1.2, c: 16.0, g: 2.4, gPrato: 0, ic: "🍫" },
+  { id: "esfiha", nome: "Esfiha", cat: "gordura", por: "1 unidade (80 g)", gr: 80, k: 230, p: 8.0, c: 30.0, g: 8.0, gPrato: 0, ic: "🥟" },
+  // mais pratos prontos
+  { id: "lasanha", nome: "Lasanha", cat: "prato", por: "1 porção (250 g)", gr: 250, k: 400, p: 22.0, c: 35.0, g: 18.0, gPrato: 0, ic: "🍝" },
+  { id: "yakisoba", nome: "Yakisoba", cat: "prato", por: "1 prato (350 g)", gr: 350, k: 450, p: 22.0, c: 60.0, g: 13.0, gPrato: 0, ic: "🍜" },
+  { id: "sushi", nome: "Sushi", cat: "prato", por: "8 peças", gr: 250, k: 300, p: 12.0, c: 50.0, g: 5.0, gPrato: 0, ic: "🍣", b: "japones" },
+  { id: "sopa", nome: "Sopa de legumes", cat: "prato", por: "1 prato fundo (300 ml)", gr: 300, k: 120, p: 5.0, c: 18.0, g: 3.0, gPrato: 0, ic: "🥣", b: "caldo" },
+  // mais bebidas
+  { id: "agua-coco", nome: "Água de coco", cat: "bebida", por: "1 copo (300 ml)", gr: 300, k: 66, p: 0, c: 15.6, g: 0, gPrato: 0, ic: "🥥", liq: 300 },
+  { id: "cha", nome: "Chá sem açúcar", cat: "bebida", por: "1 xícara (200 ml)", gr: 200, k: 2, p: 0, c: 0.4, g: 0, gPrato: 0, ic: "🍵", liq: 200 },
+  { id: "cafe-leite", nome: "Café com leite", cat: "bebida", por: "1 xícara (200 ml)", gr: 200, k: 70, p: 3.5, c: 5.5, g: 3.5, gPrato: 0, ic: "☕", liq: 200 },
+  { id: "suco-uva", nome: "Suco de uva integral", cat: "bebida", por: "1 copo (200 ml)", gr: 200, k: 140, p: 0, c: 34.0, g: 0, gPrato: 0, ic: "🧃", liq: 200 },
+  { id: "energetico", nome: "Energético", cat: "doce", por: "1 lata (250 ml)", gr: 250, k: 113, p: 0, c: 28.0, g: 0, gPrato: 0, ic: "⚡", liq: 250 },
+  { id: "destilado", nome: "Destilado (cachaça, vodka, uísque)", cat: "alcool", por: "1 dose (50 ml)", gr: 50, k: 112, p: 0, c: 0, g: 0, alc: 16.0, gPrato: 0, ic: "🥃", liq: 50 },
+  { id: "caipirinha", nome: "Caipirinha", cat: "alcool", por: "1 copo (200 ml)", gr: 200, k: 250, p: 0, c: 25.0, g: 0, alc: 21.0, gPrato: 0, ic: "🍹", liq: 200 },
 ];
+// Os grupos da busca de alimentos (2026-11-25e)
+const GRUPOS_ALIMENTO = [["", "Todos"], ["carbo", "🍚 Carboidratos"], ["proteina", "🍗 Proteínas"], ["farinha", "🌾 Farinhas"], ["suplemento", "🥤 Suplementos"], ["fruta", "🍎 Frutas"], ["verdura", "🥗 Verduras"], ["gordura", "🥑 Gorduras"], ["doce", "🍫 Doces e lanches"], ["prato", "🍽 Pratos"], ["bebida", "🥤 Bebidas"], ["alcool", "🍺 Álcool"]];
 // O que o relógio oferece sem o celular ter mandado os favoritos
 const RAPIDOS_RELOGIO = ["cafe", "banana", "pao", "frango", "pf", "whey", "lanche", "chocolate", "refri", "cerveja"];
 // As cores do corpo que enche (as mesmas na tela e no relógio)
@@ -2024,7 +2125,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-25d";
+const VERSAO_APP = "2026-11-25e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -36854,6 +36955,7 @@ const fmtLitros = (ml) => (ml / 1000).toFixed(1).replace(".", ",") + " L";
 function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
   const [aba, setAba] = useState(aba0 || "buscar");
   const [busca, setBusca] = useState("");
+  const [grupoAl, setGrupoAl] = useState("");
   const [escolhido, setEscolhido] = useState(null);
   const [q, setQ] = useState(1);
   const [foto, setFoto] = useState(null);
@@ -36871,8 +36973,9 @@ function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
       return rec.concat(resto);
     }
     const pal = b.split(/\s+/);
-    return ALIMENTOS_BR.filter((a) => pal.every((p) => semAcento(a.nome + " " + a.cat).indexOf(p) >= 0));
+    return ALIMENTOS_BR.filter((a) => pal.every((p) => semAcento(a.nome + " " + a.cat + " " + (a.b || "")).indexOf(p) >= 0));
   }, [busca, recentes]);
+  const listaGrupo = grupoAl ? lista.filter((a) => a.cat === grupoAl) : lista;
   const doPrato = ALIMENTOS_BR.filter((a) => a.gPrato > 0);
   const itensPrato = itensDoPrato(Object.keys(partes).map((id) => ({ id: id, fr: partes[id] })), tam, oleo);
   const kPrato = itensPrato.reduce((a, it) => a + valorItem(it).k, 0);
@@ -36894,10 +36997,16 @@ function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
 
         {aba === "buscar" && !escolhido && (
           <div>
-            <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Arroz, frango, banana, whey..." style={{ ...S.input, width: "100%", marginBottom: 8 }} />
+            <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Arroz, frango, farinha, malto, whey..." style={{ ...S.input, width: "100%", marginBottom: 8 }} />
+            <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 6 }}>
+              {GRUPOS_ALIMENTO.map(([id, rot]) => (
+                <button key={id || "todos"} onClick={() => setGrupoAl(id)} style={{ flex: "none", padding: "6px 11px", borderRadius: 16, fontSize: 12, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap",
+                  border: "1px solid " + (grupoAl === id ? "#E1306C" : "var(--borda2)"), background: grupoAl === id ? "#E1306C22" : "transparent", color: grupoAl === id ? "#E1306C" : "var(--texto)" }}>{rot}</button>
+              ))}
+            </div>
             {!busca && recentes && recentes.length > 0 && <div style={{ ...S.label, marginBottom: 6 }}>Os que você mais usa vêm primeiro</div>}
             <div style={{ display: "grid", gap: 6 }}>
-              {lista.slice(0, 60).map((a) => (
+              {listaGrupo.slice(0, grupoAl || busca ? 200 : 80).map((a) => (
                 <button key={a.id} onClick={() => { setEscolhido(a); setQ(1); }} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", padding: "10px 12px",
                   borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card2, transparent)", color: "var(--texto)", cursor: "pointer" }}>
                   <span style={{ fontSize: 22 }}>{a.ic}</span>
@@ -36908,7 +37017,7 @@ function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
                   <span style={{ fontWeight: 900, fontSize: 13 }}>{a.k} kcal</span>
                 </button>
               ))}
-              {!lista.length && <div style={{ fontSize: 13, color: "var(--cinza)" }}>Não achei. Use a aba ✏️ Manual com o número do rótulo.</div>}
+              {!listaGrupo.length && <div style={{ fontSize: 13, color: "var(--cinza)" }}>Não achei. Use a aba ✏️ Manual com o número do rótulo.</div>}
             </div>
           </div>
         )}

@@ -15,6 +15,7 @@ var TEXTOS_EN = {
   // o Jarvis Body Balance (2026-11-25a)
   "Balance": "Balance",
   "Jarvis Body Balance": "Jarvis Body Balance",
+  "🍚 Carboidratos": "🍚 Carbs", "🍗 Proteínas": "🍗 Proteins", "🌾 Farinhas": "🌾 Flours", "🥤 Suplementos": "🥤 Supplements", "🍎 Frutas": "🍎 Fruits", "🥗 Verduras": "🥗 Vegetables", "🥑 Gorduras": "🥑 Fats", "🍫 Doces e lanches": "🍫 Sweets and snacks", "🍽 Pratos": "🍽 Dishes", "🥤 Bebidas": "🥤 Drinks", "🍺 Álcool": "🍺 Alcohol",
   "Hoje": "Today",
   "Semana": "Week",
   "Mês": "Month",

@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-25b — A carga se acerta quando a série não fecha
+
+**Em uma frase:** se você não aguentou as repetições da ficha, o próximo treino já vem com a carga certa para elas, calculada pelo que você fez de verdade.
+
+**O que mudou**
+- Antes, quem pegava 100 kg para 12 repetições e só fazia 4 via o app pedir 100 kg × 12 de novo no treino seguinte.
+- Agora, faltando muitas repetições, o app calcula a sua força do dia pela melhor série (a mesma conta do recorde estimado) e sugere a carga que fecha as repetições da ficha, com a folga da semana do ciclo. No exemplo: 75 kg para as 12.
+- Faltaram só 1 ou 2 (10 de 12)? A carga fica: a meta é completar as repetições antes de subir.
+- O exercício mostra o porquê ("↓ 75 kg: na última vez saíram 4 de 12 com 100 kg"), e o Jarvis fala junto.
+- A semana leve do ciclo agora vem de verdade uns 10% mais leve, e não serve de régua para a semana seguinte.
+- Vale para todos os exercícios com carga; o aquecimento acompanha a carga nova.
+
+**Por que importa para quem treina:** errar a carga para cima é série perdida e técnica ruim; o app aprende com o dia ruim em vez de insistir nele.
+
+**Como usar:** nada a fazer. Treine e marque as repetições que saíram de verdade (e, se quiser, quantas sobravam): o próximo treino já vem acertado.
+
+**Ideias de vídeo:** "Não aguentou o peso? O app ajusta sozinho"; antes e depois: 100 × 4 e, no treino seguinte, 75 × 12 cravado.
+
+**Não prometer:** que a carga sugerida é exata para todo mundo (é uma estimativa a partir do que você anotou: ajuste se precisar) nem resultado.
+
+---
+
 ## 2026-11-25a — Jarvis Body Balance: comida, água e o balanço do corpo (e o GPS da rua consertado)
 
 **Em uma frase:** o app ganhou uma aba nova, o Jarvis Body Balance, que junta comida, água, treino, relógio e sono para mostrar se o seu dia está em cutting (déficit) ou bulking (superávit), com um corpo que enche de cor e marcação pelo relógio.

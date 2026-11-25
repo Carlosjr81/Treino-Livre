@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.083 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.331 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v271) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v272) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5597,6 +5597,23 @@ compartilhados por aí precisam continuar abrindo.
   preenchido com o da última vez. Se todas as séries fecharam as repetições
   combinadas, sobe um passo (`PASSO_CARGA`: 1 kg abaixo de 20, 2,5 kg até 60,
   5 kg acima). É sobrecarga progressiva sem o usuário consultar nada.
+  **Quando as repetições não fecham** (2026-11-25b, relato do dono: "era
+  supino 100 × 12, aguentei 100 × 4; o próximo não pode pedir 100 × 12 de
+  novo"): faltaram até 2 (10 de 12), fica a carga e a meta é completar
+  (dupla progressão, `FOLGA_DUPLA_PROGRESSAO`); faltaram mais, a carga é
+  refeita pelo 1RM estimado da série mais forte (Epley, a do `est1RM`; as
+  repetições que sobravam, `rir`, entram na conta) para as repetições da
+  ficha com a reserva da semana do ciclo (`cargaParaReps`, `RESERVA_SEMANA`:
+  3, 2, 1, 1; sem ciclo, 2), sempre para baixo no degrau da anilha e nunca
+  acima do usado. 100 × 4 com meta de 12 → 75 kg. Vale para todos os
+  exercícios de carga; isometria e aeróbico seguem como eram. O treino mostra
+  "↓ 75 kg: na última vez saíram 4 de 12 com 100 kg" (`baixou`,
+  `repsFeitas`, `alvo`), o quadro do ciclo conta quantos desceram
+  (`meso.desce`) e o Jarvis diz o porquê. **A semana leve do ciclo**
+  (`ciclo.s === 5` no registro) não vira a régua do treino seguinte
+  (`ultimaExecucaoValida`), e nela a carga sugerida é uns 10% menor
+  (`cargaDeload`), como o `MESOCICLO` sempre prometeu e não fazia. A rampa do
+  aquecimento acompanha a carga nova. Coberto em `teste-medalha.js`.
 - **Recorde à vista** — durante o treino, cada exercício mostra o recorde de
   carga e como foi na última vez.
 - **Celebração** (`Celebracao` + `Confete`) — dispara ao bater recorde de carga

@@ -14,12 +14,12 @@ const fonte = [
   trecho("const ehAquecimento = "), trecho("const serieConta = "), trecho("const ehTempo = "), trecho("const temValor = "),
   trecho("const ehCardio = "), trecho("const numDe = "), trecho("const segundosDe = "), trecho("const cargaDe = "), trecho("const repsDe = "),
   trecho("function ehDrop("), trecho("function moldeCardio("), trecho("function ultimaExecucao("), trecho("const PASSO_CARGA = "),
-  trecho("function diaLocal("),
+  trecho("function diaLocal("), trecho("function cargaDeload("),
   "function medirCardio(s) { return { km: numDe(s.km) }; }",
   entre("// ---- A CALCULADORA DE ANILHAS (2026-11-22b", "\n// Monta as séries de um exercício"),
   entre("// ---- A MEDALHA DO MÊS (2026-11-22b", "// ---- A RETROSPECTIVA DO ANO"),
 ].join("\n");
-eval(fonte + "\nglobalThis.M = { anilhasPara, falaAnilhas, sugerirCarga, desafioDoMes, medalhasDoAno, sequenciaComFolga };");
+eval(fonte + "\nglobalThis.M = { anilhasPara, falaAnilhas, sugerirCarga, cargaParaReps, cargaDeload, desafioDoMes, medalhasDoAno, sequenciaComFolga };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -41,6 +41,22 @@ teste("sem esforço marcado: sobe um passo (a regra de sempre)", [65, true], (()
 teste("todas com 3 ou mais sobrando: sobe dois passos", [70, true, true], (() => { const r = M.sugerirCarga(hist([3, 4, 3]), "supino", 10); return [r.peso, r.subiu, r.folga]; })());
 teste("alguma no limite (0): fica, para consolidar", [60, false, true], (() => { const r = M.sugerirCarga(hist([2, 1, 0]), "supino", 10); return [r.peso, r.subiu, r.noLimite]; })());
 teste("esforço em parte das séries: a regra de sempre", 65, M.sugerirCarga(hist([3, null, 3]), "supino", 10).peso);
+
+console.log("\n--- as repetições que não fecharam (2026-11-25b) ---");
+const hs = (series, extra) => [Object.assign({ data: "2026-11-25T18:00:00", itens: [{ exercicioId: "supino", series: series.map(([p, r, rir]) => Object.assign({ peso: String(p), reps: String(r), feito: true }, rir === undefined ? {} : { rir })) }] }, extra || {})];
+teste("o caso do dono: 100 × 4 com meta de 12 não volta a pedir 100", [75, true, false], (() => { const r = M.sugerirCarga(hs([[100, 4], [100, 4], [100, 3]]), "supino", 12); return [r.peso, r.baixou, r.subiu]; })());
+teste("a fala sabe o que aconteceu: 4 de 12 com 100", [4, 12, 100], (() => { const r = M.sugerirCarga(hs([[100, 4], [100, 3]]), "supino", 12); return [r.repsFeitas, r.alvo, r.anterior]; })());
+teste("faltaram 2 (10 de 12): fica a carga, para completar", [100, false], (() => { const r = M.sugerirCarga(hs([[100, 10], [100, 9], [100, 8]]), "supino", 12); return [r.peso, !!r.baixou]; })());
+teste("faltaram 3 (9 de 12): desce", true, M.sugerirCarga(hs([[100, 9], [100, 8]]), "supino", 12).baixou);
+teste("a reserva marcada entra na conta (com 3 sobrando, mais carga)", true, M.sugerirCarga(hs([[100, 4, 3]]), "supino", 12).peso > M.sugerirCarga(hs([[100, 4, 0]]), "supino", 12).peso);
+teste("semana de reserva 3 pede menos que a de reserva 1", true, M.sugerirCarga(hs([[40, 5]]), "supino", 12, 3).peso < M.sugerirCarga(hs([[40, 5]]), "supino", 12, 1).peso);
+teste("nunca sobe acima do que foi usado", true, M.sugerirCarga(hs([[20, 9]]), "supino", 12, 0).peso <= 20);
+teste("carga leve no degrau de 1 kg", 0, M.sugerirCarga(hs([[18, 5]]), "supino", 15).peso % 1);
+teste("a série mais forte manda, não a mais cansada", 75, M.sugerirCarga(hs([[100, 5], [100, 3], [90, 4]]), "supino", 12).peso);
+teste("a semana leve do ciclo não vira a régua", [100, true], (() => { const h = [...hs([[90, 12], [90, 12]], { ciclo: { s: 5 } })].concat(hs([[100, 12], [100, 12]]).map((x) => Object.assign({}, x, { data: "2026-11-18T18:00:00" }))); const r = M.sugerirCarga(h, "supino", 12); return [r.anterior, r.subiu]; })());
+teste("só houve a semana leve: vale ela", 90, M.sugerirCarga(hs([[90, 12]], { ciclo: { s: 5 } }), "supino", 12).anterior);
+teste("a carga da semana leve: uns 10% a menos, no degrau", [90, 40, 35], [M.cargaDeload(100), M.cargaDeload(45), M.cargaDeload(40)]);
+teste("1RM 113 para 12 com 2 sobrando: 75 kg", 75, M.cargaParaReps(113.33, 12, 2));
 
 console.log("\n--- a medalha do mês ---");
 const ag = new Date(2026, 10, 20, 12).getTime();

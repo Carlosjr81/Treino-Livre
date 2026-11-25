@@ -16,6 +16,25 @@
 
 ---
 
+## 2026-11-25d — Só a série e as repetições: o app faz o resto
+
+**Em uma frase:** a pergunta "quantas sobraram" saiu; você marca só a série e as repetições que fez, e o app deduz se a carga estava fácil, certa ou pesada.
+
+**O que mudou**
+- Depois de marcar a série não aparece mais a pergunta de esforço.
+- Passou da meta em todas as séries por 3 repetições ou mais: a carga estava leve, e o próximo treino sobe mais que o normal.
+- Fechou certinho: sobe um degrau. Ficou abaixo: a carga se acerta pelo que você aguentou (como na versão anterior).
+
+**Por que importa para quem treina:** menos toque no meio do treino, e a carga continua se ajustando sozinha.
+
+**Como usar:** marque a série; se fez um número diferente do que estava escrito, troque o número antes. Só isso.
+
+**Ideias de vídeo:** "Treino sem burocracia: marca a série e o app ajusta a carga sozinho".
+
+**Não prometer:** que a carga sugerida é exata para todo mundo nem resultado.
+
+---
+
 ## 2026-11-25c — Carga e repetições de cada série, para o máximo de volume que você aguenta
 
 **Em uma frase:** o treino já vem com a carga e as repetições de cada série planejadas pelo seu cansaço de verdade, para você fazer o máximo de repetições boas sem cair da faixa da ficha.

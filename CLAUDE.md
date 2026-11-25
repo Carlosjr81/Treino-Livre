@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.343 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.344 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v273) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v274) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5629,6 +5629,13 @@ compartilhados por aí precisam continuar abrindo.
   bateu o topo (`bateuSerie`). O histórico passou a guardar também o `drop`
   (antes se perdia, e o drop contava como série de trabalho na sugestão).
   O treino mostra "📈 plano de volume: 100×12 · 90×12 · 90×11 · 85×12".
+  **Só a série e as repetições** (2026-11-25d, pedido do dono: "não quero
+  marcar nada além das séries e repetições; faça a conta você"). A pergunta
+  "Sobraram quantas na série?" (o `rir`, de 2026-11-22b) saiu da tela, do
+  histórico e das contas. A sobra é deduzida: passou da meta de todas as
+  séries por 3 ou mais, sobe dois degraus (até três, pelo 1RM estimado);
+  fechou certinho, um degrau; não fechou, as regras acima. **Não volte a
+  pedir esforço marcado à mão sem falar com ele.**
 - **Recorde à vista** — durante o treino, cada exercício mostra o recorde de
   carga e como foi na última vez.
 - **Celebração** (`Celebracao` + `Confete`) — dispara ao bater recorde de carga

@@ -35,12 +35,14 @@ teste("o que não fecha vira sobra, nunca arredondado calado", 1, M.anilhasPara(
 teste("barra de 10: 25 de cada lado para 60", [25], M.anilhasPara(60, 10).lado);
 teste("a fala diz as anilhas de cada lado", "Para 100 quilos com a barra de 20: de cada lado, 25 e 15.", M.falaAnilhas(100, 20));
 
-console.log("\n--- o esforço da série na sugestão de carga ---");
-const hist = (rirs) => [{ data: "2026-11-20T18:00:00", itens: [{ exercicioId: "supino", series: rirs.map((r) => Object.assign({ peso: "60", reps: "10", feito: true }, r === null ? {} : { rir: r })) }] }];
-teste("sem esforço marcado: sobe um passo (a regra de sempre)", [65, true], (() => { const r = M.sugerirCarga(hist([null, null, null]), "supino", 10); return [r.peso, r.subiu]; })());
-teste("todas com 3 ou mais sobrando: sobe dois passos", [70, true, true], (() => { const r = M.sugerirCarga(hist([3, 4, 3]), "supino", 10); return [r.peso, r.subiu, r.folga]; })());
-teste("alguma no limite (0): fica, para consolidar", [60, false, true], (() => { const r = M.sugerirCarga(hist([2, 1, 0]), "supino", 10); return [r.peso, r.subiu, r.noLimite]; })());
-teste("esforço em parte das séries: a regra de sempre", 65, M.sugerirCarga(hist([3, null, 3]), "supino", 10).peso);
+console.log("\n--- a sobra deduzida das repetições (2026-11-25d) ---");
+const hist = (reps) => [{ data: "2026-11-20T18:00:00", itens: [{ exercicioId: "supino", series: reps.map((r) => ({ peso: "60", reps: String(r), feito: true })) }] }];
+teste("fechou certinho: sobe um degrau", [65, true], (() => { const r = M.sugerirCarga(hist([10, 10, 10]), "supino", 10); return [r.peso, r.subiu]; })());
+teste("passou 3 ou mais em todas: sobe mais, pela conta", [70, true, true], (() => { const r = M.sugerirCarga(hist([14, 13, 13]), "supino", 10); return [r.peso, r.subiu, r.folga]; })());
+teste("passou muito: no máximo três degraus", true, M.sugerirCarga(hist([30, 30, 30]), "supino", 10).peso <= 75);
+teste("passou só em parte das séries: um degrau", 65, M.sugerirCarga(hist([14, 10, 10]), "supino", 10).peso);
+teste("a pergunta 'sobraram quantas' saiu da tela", false, html.includes("Sobraram quantas"));
+teste("o histórico não guarda mais o esforço marcado", false, /nova\.rir = /.test(html));
 
 console.log("\n--- as repetições que não fecharam (2026-11-25b) ---");
 const hs = (series, extra) => [Object.assign({ data: "2026-11-25T18:00:00", itens: [{ exercicioId: "supino", series: series.map(([p, r, rir]) => Object.assign({ peso: String(p), reps: String(r), feito: true }, rir === undefined ? {} : { rir })) }] }, extra || {})];
@@ -48,7 +50,6 @@ teste("o caso do dono: 100 × 4 com meta de 12 não volta a pedir 100", [75, tru
 teste("a fala sabe o que aconteceu: 4 de 12 com 100", [4, 12, 100], (() => { const r = M.sugerirCarga(hs([[100, 4], [100, 3]]), "supino", 12); return [r.repsFeitas, r.alvo, r.anterior]; })());
 teste("faltaram 2 (10 de 12): fica a carga, para completar", [100, false], (() => { const r = M.sugerirCarga(hs([[100, 10], [100, 9], [100, 8]]), "supino", 12); return [r.peso, !!r.baixou]; })());
 teste("faltaram 3 (9 de 12): desce", true, M.sugerirCarga(hs([[100, 9], [100, 8]]), "supino", 12).baixou);
-teste("a reserva marcada entra na conta (com 3 sobrando, mais carga)", true, M.sugerirCarga(hs([[100, 4, 3]]), "supino", 12).peso > M.sugerirCarga(hs([[100, 4, 0]]), "supino", 12).peso);
 teste("semana de reserva 3 pede menos que a de reserva 1", true, M.sugerirCarga(hs([[40, 5]]), "supino", 12, 3).peso < M.sugerirCarga(hs([[40, 5]]), "supino", 12, 1).peso);
 teste("nunca sobe acima do que foi usado", true, M.sugerirCarga(hs([[20, 9]]), "supino", 12, 0).peso <= 20);
 teste("carga leve no degrau de 1 kg", 0, M.sugerirCarga(hs([[18, 5]]), "supino", 15).peso % 1);

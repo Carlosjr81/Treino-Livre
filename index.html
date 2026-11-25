@@ -2024,7 +2024,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-25c";
+const VERSAO_APP = "2026-11-25d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3217,7 +3217,7 @@ function fadigaDoExercicio(historico, exercicioId, n) {
     if (!it) continue;
     const ss = (it.series || []).filter((x) => serieConta(x) && !ehDrop(x) && !ehTempo(x) && cargaDe(x) > 0 && repsDe(x) > 0);
     if (ss.length < 2) continue;
-    const rm = ss.map((x) => cargaDe(x) * (1 + (repsDe(x) + (Number(x.rir) > 0 ? Math.min(5, Number(x.rir)) : 0)) / 30));
+    const rm = ss.map((x) => cargaDe(x) * (1 + repsDe(x) / 30));
     rm.forEach((v, i) => { if (i) (por[i] = por[i] || []).push(v / rm[0]); });
     vezes++;
   }
@@ -3304,17 +3304,20 @@ function sugerirCarga(historico, exercicioId, repsAlvo, reserva) {
   const bateuSerie = (s) => (s.meta > 0 ? repsDe(s) >= s.meta && (cargaDe(s) >= melhor || s.recuo) : cargaDe(s) >= melhor && repsDe(s) >= alvo);
   const bateuTudo = alvo > 0 && validas.length > 0 && validas.every(bateuSerie) &&
     validas.some((s) => cargaDe(s) >= melhor && repsDe(s) >= alvo);
-  // O esforço que a pessoa marcou (rir: quantas repetições ainda sobravam,
-  // 2026-11-22b). Fechou tudo com 3 ou mais sobrando em todas: sobe dois passos.
-  // Fechou, mas alguma foi no limite (0): fica, porque a próxima vez ainda é
-  // de consolidar. Sem esforço marcado, a regra de sempre.
-  const rirs = validas.map((s) => (s.rir === undefined || s.rir === null || s.rir === "" ? null : Number(s.rir))).filter((x) => x !== null && isFinite(x));
-  if (bateuTudo && rirs.length === validas.length && rirs.every((x) => x >= 3)) {
+  // A sobra é deduzida das repetições, sem perguntar nada (2026-11-25d, pedido
+  // do dono: "não quero marcar nada além das séries e repetições; faça a conta
+  // você"). Passou da meta de todas as séries por 3 ou mais: a carga era leve
+  // demais: sobe dois degraus, ou até três se o 1RM estimado da série mais forte
+  // (contando como se tivesse ido ao limite, o lado seguro) pedir.
+  const sobraDe = (s) => repsDe(s) - (s.meta > 0 ? s.meta : alvo);
+  if (bateuTudo && validas.every((s) => sobraDe(s) >= 3)) {
+    let rmF = 0;
+    validas.forEach((s) => { rmF = Math.max(rmF, cargaDe(s) * (1 + repsDe(s) / 30)); });
     const p1 = melhor + PASSO_CARGA(melhor);
-    return { peso: p1 + PASSO_CARGA(p1), subiu: true, anterior: melhor, reps: repsNoMelhor, folga: true };
-  }
-  if (bateuTudo && rirs.some((x) => x === 0)) {
-    return { peso: melhor, subiu: false, anterior: melhor, reps: repsNoMelhor, noLimite: true };
+    const p3 = p1 + PASSO_CARGA(p1) + PASSO_CARGA(p1 + PASSO_CARGA(p1));
+    const p2 = p1 + PASSO_CARGA(p1);
+    const nova = Math.max(p2, Math.min(p3, cargaParaReps(rmF, alvo, reserva)));
+    return { peso: nova, subiu: true, anterior: melhor, reps: repsNoMelhor, folga: true };
   }
   if (bateuTudo) {
     return { peso: melhor + PASSO_CARGA(melhor), subiu: true, anterior: melhor, reps: repsNoMelhor };
@@ -3328,13 +3331,11 @@ function sugerirCarga(historico, exercicioId, repsAlvo, reserva) {
     return { peso: melhor, subiu: false, anterior: melhor, reps: repsNoMelhor, repsFeitas: repsTopo, alvo };
   }
   // Faltaram mais: a carga é refeita pelo 1RM estimado da série mais forte
-  // (as repetições que sobravam, quando marcadas, entram na conta).
   let rm1 = 0;
   validas.forEach((s) => {
     const p = cargaDe(s), r = repsDe(s);
     if (!p || !r) return;
-    const sobra = s.rir === undefined || s.rir === null || s.rir === "" ? 0 : Math.max(0, Math.min(5, Number(s.rir) || 0));
-    rm1 = Math.max(rm1, p * (1 + (r + sobra) / 30));
+    rm1 = Math.max(rm1, p * (1 + r / 30));
   });
   if (!rm1) return { peso: melhor, subiu: false, anterior: melhor, reps: repsNoMelhor };
   const nova = Math.min(melhor, cargaParaReps(rm1, alvo, reserva));
@@ -34610,28 +34611,6 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
             {ehAerobico && (
               <PainelCardio it={it} ex={ex} historico={historico} exPorId={exPorId} pesoCorporal={pesoCorporal} vozCfg={vozCfg} onCorredor={onCorredor} />
             )}
-            {!ehAerobico && !ehIsometria && (() => {
-              // O esforço da última série feita (2026-11-22b): quantas repetições
-              // ainda sobravam. Opcional; com ele a carga da próxima vez sobe certo.
-              let k = -1;
-              it.series.forEach((x, j) => { if (x.feito && !ehAquecimento(x) && !ehDrop(x)) k = j; });
-              if (k < 0) return null;
-              const v = it.series[k].rir;
-              const op = [["0", "no limite"], ["1", "1"], ["2", "2"], ["3", "3 ou mais"]];
-              return (
-                <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", margin: "2px 0 8px", fontSize: 12 }}>
-                  <span style={{ color: "var(--cinza)", marginRight: 2 }}>💪 Sobraram quantas na série {it.series.filter((x, j) => j <= k && !ehAquecimento(x) && !ehDrop(x)).length}?</span>
-                  {op.map(([val, rot]) => {
-                    const sel = String(v) === val;
-                    return (
-                      <button key={val} onClick={() => upSerie(ei, k, "rir", sel ? "" : val)} aria-pressed={sel}
-                        style={{ padding: "4px 9px", borderRadius: 14, fontSize: 12, fontWeight: 800, cursor: "pointer",
-                          background: sel ? "#E1306C" : "transparent", color: sel ? "#FFFFFF" : "var(--texto)", border: "1px solid " + (sel ? "#E1306C" : "var(--borda2)") }}>{rot}</button>
-                    );
-                  })}
-                </div>
-              );
-            })()}
             {it.series.some(ehAquecimento) && (
               <div style={{ fontSize: 10, color: "var(--obs)", marginBottom: 6 }}>
                 A = aquecimento: conta no volume (kg), mas não nas séries do músculo nem nos recordes. Descanso de 1 min.
@@ -39949,7 +39928,6 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           if (ehAquecimento(s)) nova.aquec = true;
           if (s.t > 0) nova.t = s.t;   // a hora da série: casa com a curva do relógio
           if (s.fr > 0) nova.fr = s.fr;  // o coração pronto no descanso (o relógio)
-          if (s.rir !== undefined && s.rir !== null && s.rir !== "") nova.rir = Number(s.rir);  // o esforço da série
           if (ehDrop(s)) nova.drop = true;          // o drop não vira série de trabalho na próxima sugestão
           if (s.meta > 0) nova.meta = s.meta;       // a meta que o plano deu à série
           if (s.recuo) nova.recuo = true;           // a série de recuo, mais leve de propósito

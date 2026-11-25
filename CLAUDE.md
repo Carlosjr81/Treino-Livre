@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.331 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.343 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v272) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v273) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -5614,6 +5614,21 @@ compartilhados por aí precisam continuar abrindo.
   (`ultimaExecucaoValida`), e nela a carga sugerida é uns 10% menor
   (`cargaDeload`), como o `MESOCICLO` sempre prometeu e não fazia. A rampa do
   aquecimento acompanha a carga nova. Coberto em `teste-medalha.js`.
+  **O plano de volume série por série** (2026-11-25c, pedido do dono:
+  "ajuste peso e reps extraindo o máximo de volume que eu aguentar, segundo o
+  histórico e os estudos"). `planoDeSeries` monta carga e repetições de cada
+  série: a faixa da ficha (`faixaReps`: "8-12" é 8 a 12, "12" é 10 a 12), a
+  primeira no topo dela com a carga sugerida, as seguintes na mesma carga
+  enquanto o cansaço previsto deixa ficar na faixa (as repetições descem com
+  ele) e, quando cairia abaixo, a **série de recuo** (back-off): a carga desce
+  para voltar ao topo da faixa. O cansaço é o da própria pessoa
+  (`fadigaDoExercicio`: o 1RM estimado de cada posição de série ÷ o da
+  primeira, mediana das últimas 4 vezes; sem histórico, 2,5% por série). Cada
+  série guarda a sua meta (`meta`, `recuo`), que vai ao histórico, e a
+  sugestão seguinte sobe quando todas fecharam a meta delas e a primeira
+  bateu o topo (`bateuSerie`). O histórico passou a guardar também o `drop`
+  (antes se perdia, e o drop contava como série de trabalho na sugestão).
+  O treino mostra "📈 plano de volume: 100×12 · 90×12 · 90×11 · 85×12".
 - **Recorde à vista** — durante o treino, cada exercício mostra o recorde de
   carga e como foi na última vez.
 - **Celebração** (`Celebracao` + `Confete`) — dispara ao bater recorde de carga

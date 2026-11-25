@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-25b**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-25c**.
 
 ---
 
@@ -560,6 +560,7 @@ Mais a opção 🎲 **Aleatória**, que sorteia uma história diferente a cada v
 - **🏋 Calculadora de anilhas** (novo em 2026-11-22b): no treino, em exercício de barra, e pela voz ("Jarvis, anilhas para 100 quilos"): mostra a barra desenhada com as anilhas de cada lado, nas cores das anilhas olímpicas.
 - **💪 Quanto sobrou na série** (novo em 2026-11-22b): depois de marcar a série, um toque diz quantas repetições ainda sobravam (no limite, 1, 2, 3 ou mais). Na próxima vez, a carga sugerida sobe dois passos se tudo foi fácil, e fica se alguma foi no limite.
 - **↓ A carga se acerta quando não deu** (novo em 2026-11-25b): se a série ficou longe da meta (ex.: a ficha pedia 100 kg × 12 e saíram 4), o próximo treino já vem com a carga recalculada pelo que você aguentou (75 kg para as 12), e o app diz o porquê. Faltaram só 1 ou 2, a carga fica e a meta é completar. Na semana leve do ciclo, a carga vem uns 10% menor.
+- **📈 Plano de volume série por série** (novo em 2026-11-25c): cada série já vem com a carga e as repetições dela, pelo cansaço que o seu histórico mostra entre uma série e outra. A primeira no topo da faixa; as seguintes na mesma carga enquanto as repetições ficam dentro da faixa; quando cairiam demais, a carga desce um pouco para você continuar fazendo repetições boas (ex.: 100×12 · 90×12 · 90×11 · 85×12).
 - **🏅 Medalha do mês** (novo em 2026-11-22b): todo mês, 12 treinos (ou 30 km para quem mais corre e caminha). A medalha gira quando é conquistada, fica guardada nos últimos 12 meses e aparece no resumo animado do treino que a fechou.
 - **🔥 Sequência com folga** (novo em 2026-11-22b): um dia sem treino por semana não quebra a sequência.
 - **🏟 Ranking da academia** (novo em 2026-11-22b): no Desafio entre amigos, a opção "Minha academia" cria um ranking para quem treina no mesmo lugar, com convite próprio.

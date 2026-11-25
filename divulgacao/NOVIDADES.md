@@ -16,6 +16,27 @@
 
 ---
 
+## 2026-11-25c — Carga e repetições de cada série, para o máximo de volume que você aguenta
+
+**Em uma frase:** o treino já vem com a carga e as repetições de cada série planejadas pelo seu cansaço de verdade, para você fazer o máximo de repetições boas sem cair da faixa da ficha.
+
+**O que mudou**
+- Antes, todas as séries vinham iguais (100 × 12, 100 × 12, 100 × 12), e quem cansa entre uma e outra fazia 12, 9, 7.
+- Agora o app olha as suas últimas vezes naquele exercício, mede quanto você cai de uma série para a outra e monta o plano: a primeira no topo da faixa; as seguintes na mesma carga enquanto as repetições ficam dentro da faixa; quando cairiam abaixo, a carga desce um pouco (a série de recuo) para você voltar a fazer as repetições certas.
+- Exemplo: em vez de 100 × 12, 9, 7, o plano fica 100 × 12 · 90 × 12 · 90 × 11 · 85 × 12: mais repetições boas e mais volume.
+- Cada série tem a sua meta. Fechou todas, a carga sobe na próxima vez.
+- Ficha com faixa ("8-12") usa a faixa; com um número só ("12"), vale de 10 a 12.
+
+**Por que importa para quem treina:** o que faz o músculo crescer são as séries perto do limite dentro da faixa de repetições. Insistir numa carga que você não aguenta na terceira série é série desperdiçada.
+
+**Como usar:** nada a fazer. Comece o treino: o plano aparece no exercício ("📈 plano de volume") e as séries já vêm preenchidas. Marque o que fez de verdade.
+
+**Ideias de vídeo:** "Por que a sua terceira série não rende (e como o app resolve)"; a tela com o plano 100×12 · 90×12 · 85×12.
+
+**Não prometer:** que o plano é exato para todo mundo (é uma previsão pelo seu histórico, e no começo usa uma média) nem resultado.
+
+---
+
 ## 2026-11-25b — A carga se acerta quando a série não fecha
 
 **Em uma frase:** se você não aguentou as repetições da ficha, o próximo treino já vem com a carga certa para elas, calculada pelo que você fez de verdade.

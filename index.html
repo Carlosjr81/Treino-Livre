@@ -2024,7 +2024,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-25b";
+const VERSAO_APP = "2026-11-25c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3189,6 +3189,83 @@ function ultimaExecucaoValida(historico, exercicioId) {
   }
   return leve;
 }
+// A faixa de repetições da ficha: "8-12" → 8 a 12; "12" → 10 a 12 (as duas
+// abaixo do número ainda são da dupla progressão).
+function faixaReps(reps) {
+  const t = String(reps === undefined || reps === null ? "" : reps);
+  const m = t.match(/(\d+)\s*[-–a]\s*(\d+)/);
+  if (m) { const a = parseInt(m[1]), b = parseInt(m[2]); if (a > 0 && b > 0) return { lo: Math.min(a, b), hi: Math.max(a, b) }; }
+  const n = parseInt(t) || 0;
+  if (!n) return null;
+  return { lo: Math.max(1, n - FOLGA_DUPLA_PROGRESSAO), hi: n };
+}
+// O cansaço entre as séries de cada um, pelo histórico (2026-11-25c). Para
+// cada posição de série, quanto da força da primeira sobrou (o 1RM estimado
+// da série ÷ o da primeira), a mediana das últimas 4 vezes. Sem histórico,
+// uns 2,5% por série (perto de uma repetição a menos por série com uns 2 a 3
+// minutos de descanso: Willardson e Burkett 2006, Senna 2011). Nunca sobe de
+// uma série para a seguinte, e nunca abaixo de 70%.
+const FADIGA_PADRAO = 0.025;
+function fadigaDoExercicio(historico, exercicioId, n) {
+  const ord = [...(historico || [])].sort((a, b) => new Date(b.data) - new Date(a.data));
+  const por = [];
+  let vezes = 0;
+  for (const h of ord) {
+    if (vezes >= 4) break;
+    if (h.ciclo && h.ciclo.s === 5) continue;
+    const it = (h.itens || []).find((x) => x.exercicioId === exercicioId);
+    if (!it) continue;
+    const ss = (it.series || []).filter((x) => serieConta(x) && !ehDrop(x) && !ehTempo(x) && cargaDe(x) > 0 && repsDe(x) > 0);
+    if (ss.length < 2) continue;
+    const rm = ss.map((x) => cargaDe(x) * (1 + (repsDe(x) + (Number(x.rir) > 0 ? Math.min(5, Number(x.rir)) : 0)) / 30));
+    rm.forEach((v, i) => { if (i) (por[i] = por[i] || []).push(v / rm[0]); });
+    vezes++;
+  }
+  const f = [1];
+  for (let i = 1; i < n; i++) {
+    const l = por[i];
+    let v;
+    if (l && l.length) { const o = l.slice().sort((a, b) => a - b); v = o[Math.floor((o.length - 1) / 2)]; }
+    else v = f[i - 1] - FADIGA_PADRAO;
+    f.push(Math.max(0.7, Math.min(f[i - 1], v)));
+  }
+  return f;
+}
+// O plano série por série que tira o maior volume que a pessoa aguenta dentro
+// da faixa da ficha (2026-11-25c, pedido do dono: "ajuste peso e reps
+// extraindo o máximo de volume que eu aguentar, segundo o histórico e os
+// estudos"). O volume que faz crescer são as séries perto da falha dentro de
+// uma faixa de repetições (Schoenfeld 2017, Baz-Valle 2022): a primeira série
+// vai no topo da faixa com a carga sugerida; as seguintes ficam na mesma carga
+// enquanto o cansaço previsto deixa ficar dentro da faixa (as repetições
+// descem com ele); quando cairia abaixo, a carga recua para voltar ao topo da
+// faixa (a série de recuo, back-off, Helms e colegas, "The Muscle and Strength
+// Pyramid"). Mais repetições boas do que repetir a carga e fazer 5 de 12.
+function planoDeSeries(historico, exercicioId, repsFicha, n, pesoBase, reserva) {
+  const fx = faixaReps(repsFicha);
+  const W0 = parseFloat(pesoBase) || 0;
+  const qtd = Math.max(1, parseInt(n) || 1);
+  if (!fx || !W0) return null;
+  const res = reserva === undefined ? RESERVA_PADRAO : reserva;
+  const f = fadigaDoExercicio(historico, exercicioId, qtd);
+  const C = W0 * (1 + (fx.hi + res) / 30);
+  const repsCom = (cap, w) => Math.floor(30 * (cap / w - 1) - res + 1e-9);
+  let w = W0;
+  return f.map((fi, i) => {
+    const cap = C * fi;
+    let r = repsCom(cap, w);
+    let recuo = false;
+    if (r < fx.lo) {
+      const nw = Math.min(w, cargaParaReps(cap, fx.hi, res));
+      if (nw < w) { w = nw; recuo = true; }
+      r = repsCom(cap, w);
+    }
+    return { peso: w, reps: Math.max(fx.lo, Math.min(fx.hi, i === 0 ? fx.hi : r)), recuo };
+  });
+}
+function textoPlano(plano) {
+  return (plano || []).map((p) => fmtNum(p.peso) + "×" + p.reps).join(" · ");
+}
 function sugerirCarga(historico, exercicioId, repsAlvo, reserva) {
   const ult = ultimaExecucaoValida(historico, exercicioId);
   if (!ult) return null;
@@ -3219,9 +3296,14 @@ function sugerirCarga(historico, exercicioId, repsAlvo, reserva) {
     if (p > melhor) { melhor = p; repsNoMelhor = repsDe(s); }
   });
   if (!melhor) return null;
-  const alvo = parseInt(repsAlvo) || 0;
-  const bateuTudo = alvo > 0 && validas.length > 0 &&
-    validas.every((s) => cargaDe(s) >= melhor && repsDe(s) >= alvo);
+  // a faixa da ficha: "8-12" é 8 a 12; "12" é 10 a 12. A meta é o topo dela.
+  const fx = faixaReps(repsAlvo);
+  const alvo = fx ? fx.hi : 0;
+  // cada série tem a sua meta quando o app montou o plano (meta): a de
+  // recuo, mais leve de propósito, vale se fechou a dela
+  const bateuSerie = (s) => (s.meta > 0 ? repsDe(s) >= s.meta && (cargaDe(s) >= melhor || s.recuo) : cargaDe(s) >= melhor && repsDe(s) >= alvo);
+  const bateuTudo = alvo > 0 && validas.length > 0 && validas.every(bateuSerie) &&
+    validas.some((s) => cargaDe(s) >= melhor && repsDe(s) >= alvo);
   // O esforço que a pessoa marcou (rir: quantas repetições ainda sobravam,
   // 2026-11-22b). Fechou tudo com 3 ou mais sobrando em todas: sobe dois passos.
   // Fechou, mas alguma foi no limite (0): fica, porque a próxima vez ainda é
@@ -3242,7 +3324,7 @@ function sugerirCarga(historico, exercicioId, repsAlvo, reserva) {
   validas.forEach((s) => { if (cargaDe(s) >= melhor) repsTopo = Math.max(repsTopo, repsDe(s)); });
   // Faltaram até 2 (10 de 12): fica a carga, e a meta é completar as
   // repetições antes de subir (a dupla progressão).
-  if (!alvo || repsTopo >= alvo - FOLGA_DUPLA_PROGRESSAO) {
+  if (!alvo || repsTopo >= fx.lo) {
     return { peso: melhor, subiu: false, anterior: melhor, reps: repsNoMelhor, repsFeitas: repsTopo, alvo };
   }
   // Faltaram mais: a carga é refeita pelo 1RM estimado da série mais forte
@@ -3304,11 +3386,10 @@ function montarSeries(ex, qtdSeries, repsAlvo, sug, drops) {
     const seg = sug && sug.segundos ? String(sug.segundos) : "30";
     return Array.from({ length: n }, () => ({ segundos: seg, feito: false }));
   }
-  let series = Array.from({ length: n }, () => ({
-    peso: sug && sug.peso ? String(sug.peso) : "",
-    reps: String(repsAlvo || ""),
-    feito: false,
-  }));
+  const plano = sug && sug.plano && sug.plano.length === n ? sug.plano : null;
+  let series = Array.from({ length: n }, (_, i) => plano
+    ? Object.assign({ peso: String(plano[i].peso), reps: String(plano[i].reps), meta: plano[i].reps, feito: false }, plano[i].recuo ? { recuo: true } : {})
+    : { peso: sug && sug.peso ? String(sug.peso) : "", reps: String(repsAlvo || ""), feito: false });
   for (let k = 0; k < Math.min(3, parseInt(drops) || 0); k++) series = inserirDrop(series, series.length - 1);
   return series;
 }
@@ -34327,6 +34408,11 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
                     🎯 mesma carga: complete as {it.sugerido.alvo} antes de subir (última: {it.sugerido.repsFeitas})
                   </span>
                 )}
+                {it.sugerido && it.sugerido.plano && it.sugerido.plano.length > 1 && it.sugerido.plano.some((p, k) => k && (p.reps !== it.sugerido.plano[0].reps || p.peso !== it.sugerido.plano[0].peso)) && (
+                  <span style={{ color: "var(--cinza)", fontWeight: 700 }}>
+                    📈 plano de volume: {textoPlano(it.sugerido.plano)} (pelo seu cansaço entre as séries)
+                  </span>
+                )}
                 {it.sugerido && it.sugerido.deload && (
                   <span style={{ color: "var(--cinza)", fontWeight: 700 }}>🔋 semana leve: carga uns 10% menor</span>
                 )}
@@ -39230,6 +39316,12 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
         let sug0 = sugerirCarga(historico, it.exercicioId, it.reps, sm ? RESERVA_SEMANA[sm.semana - 1] : undefined);
         // semana leve do ciclo (ou a semana leve antes da troca): uns 10% a menos
         if (sug0 && sug0.peso && sm && sm.semana === 5) sug0 = Object.assign({}, sug0, { peso: cargaDeload(sug0.peso), subiu: false, baixou: false, deload: true });
+        // o plano série por série (carga e repetições de cada uma)
+        const nSer = sm && !exCardio(ex) && !(ex && ex.tempo) ? seriesNaSemana(it.series, sm.semana) : it.series;
+        if (sug0 && sug0.peso && !sug0.tempo && ex && !exCardio(ex) && !ex.tempo) {
+          const pl = planoDeSeries(historico, it.exercicioId, it.reps, nSer, sug0.peso, sm ? RESERVA_SEMANA[sm.semana - 1] : undefined);
+          if (pl) sug0 = Object.assign({}, sug0, { plano: pl });
+        }
         const sug = ead && ead.estado !== "livre" && sug0 && sug0.subiu
           ? (sug0.anterior !== undefined ? Object.assign({}, sug0, { peso: sug0.anterior, subiu: false }) : null) : sug0;
         return {
@@ -39858,6 +39950,9 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           if (s.t > 0) nova.t = s.t;   // a hora da série: casa com a curva do relógio
           if (s.fr > 0) nova.fr = s.fr;  // o coração pronto no descanso (o relógio)
           if (s.rir !== undefined && s.rir !== null && s.rir !== "") nova.rir = Number(s.rir);  // o esforço da série
+          if (ehDrop(s)) nova.drop = true;          // o drop não vira série de trabalho na próxima sugestão
+          if (s.meta > 0) nova.meta = s.meta;       // a meta que o plano deu à série
+          if (s.recuo) nova.recuo = true;           // a série de recuo, mais leve de propósito
           return nova;
         }),
       })).filter((it) => it.series.length > 0),

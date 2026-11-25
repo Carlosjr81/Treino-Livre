@@ -49,15 +49,15 @@ object ComidaPulso {
     // (os mesmos números do ALIMENTOS_BR do site: o teste-balance confere)
     val PADRAO = listOf(
         Rapido("cafe", "Café", "☕", 2, 0.1, 0.3, 0.0, 50),
-        Rapido("banana", "Banana", "\u{1F34C}", 69, 0.9, 18.0, 0.1, 0),
-        Rapido("pao", "Pão francês", "\u{1F956}", 150, 4.0, 29.3, 1.6, 0),
-        Rapido("frango", "Frango grelhado", "\u{1F357}", 159, 32.0, 0.0, 2.5, 0),
-        Rapido("pf", "Prato feito", "\u{1F37D}", 650, 42.0, 70.0, 20.0, 0),
-        Rapido("whey", "Whey protein", "\u{1F964}", 120, 24.0, 3.0, 1.5, 0),
-        Rapido("lanche", "Lanche", "\u{1F96A}", 320, 16.0, 32.0, 13.0, 0),
-        Rapido("chocolate", "Chocolate ao leite", "\u{1F36B}", 135, 2.0, 15.0, 7.5, 0),
-        Rapido("refri", "Refrigerante comum", "\u{1F964}", 140, 0.0, 35.0, 0.0, 350),
-        Rapido("cerveja", "Cerveja", "\u{1F37A}", 147, 1.1, 12.0, 0.0, 350),
+        Rapido("banana", "Banana", "🍌", 69, 0.9, 18.0, 0.1, 0),
+        Rapido("pao", "Pão francês", "🥖", 150, 4.0, 29.3, 1.6, 0),
+        Rapido("frango", "Frango grelhado", "🍗", 159, 32.0, 0.0, 2.5, 0),
+        Rapido("pf", "Prato feito", "🍽", 650, 42.0, 70.0, 20.0, 0),
+        Rapido("whey", "Whey protein", "🥤", 120, 24.0, 3.0, 1.5, 0),
+        Rapido("lanche", "Lanche", "🥪", 320, 16.0, 32.0, 13.0, 0),
+        Rapido("chocolate", "Chocolate ao leite", "🍫", 135, 2.0, 15.0, 7.5, 0),
+        Rapido("refri", "Refrigerante comum", "🥤", 140, 0.0, 35.0, 0.0, 350),
+        Rapido("cerveja", "Cerveja", "🍺", 147, 1.1, 12.0, 0.0, 350),
     )
 
     data class Rapido(val a: String, val n: String, val ic: String, val k: Int, val p: Double, val c: Double, val g: Double, val liq: Int)
@@ -155,7 +155,7 @@ object ComidaPulso {
         for (i in 0 until fav.length()) {
             val f = fav.optJSONObject(i) ?: continue
             if (f.optString("a").isEmpty()) continue
-            l.add(Rapido(f.optString("a"), f.optString("n"), f.optString("ic", "\u{1F37D}"), f.optInt("k"), f.optDouble("p", 0.0), f.optDouble("c", 0.0), f.optDouble("g", 0.0), f.optInt("liq")))
+            l.add(Rapido(f.optString("a"), f.optString("n"), f.optString("ic", "🍽"), f.optInt("k"), f.optDouble("p", 0.0), f.optDouble("c", 0.0), f.optDouble("g", 0.0), f.optInt("liq")))
         }
         return if (l.isEmpty()) PADRAO else l
     }
@@ -193,13 +193,13 @@ class ComidaRelogio : ComponentActivity(), MessageClient.OnMessageReceivedListen
         aviso = TextView(this).apply { gravity = Gravity.CENTER; setTextColor(Cores.OURO); textSize = 13f; visibility = View.GONE; typeface = Typeface.DEFAULT_BOLD; setPadding(0, dp(4), 0, dp(4)) }
         raiz.addView(aviso)
         val agua = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        agua.addView(botao("\u{1F4A7} +200", intArrayOf(Color.parseColor("#1DD1A1"), Color.parseColor("#35E0F0"))) { anotarAgua(200) }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(4) })
-        agua.addView(botao("\u{1F4A7} +500", intArrayOf(Color.parseColor("#35E0F0"), Color.parseColor("#2E7BFF"))) { anotarAgua(500) }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { leftMargin = dp(4) })
+        agua.addView(botao("💧 +200", intArrayOf(Color.parseColor("#1DD1A1"), Color.parseColor("#35E0F0"))) { anotarAgua(200) }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(4) })
+        agua.addView(botao("💧 +500", intArrayOf(Color.parseColor("#35E0F0"), Color.parseColor("#2E7BFF"))) { anotarAgua(500) }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { leftMargin = dp(4) })
         raiz.addView(agua, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(6) })
         lista = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         raiz.addView(lista, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(6) })
         raiz.addView(botao("↩ Desfazer o último", null) { desfazer() }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(44)).apply { topMargin = dp(8) })
-        raiz.addView(botao("\u{1F3CB}️ Ir para o treino", null) {
+        raiz.addView(botao("🏋️ Ir para o treino", null) {
             startActivity(android.content.Intent(this, TelaRelogio::class.java)); finish()
         }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(44)).apply { topMargin = dp(6) })
         val rolar = ScrollView(this).apply { isVerticalScrollBarEnabled = false; addView(raiz); setBackgroundColor(Cores.FUNDO_JOGO) }
@@ -258,7 +258,7 @@ class ComidaRelogio : ComponentActivity(), MessageClient.OnMessageReceivedListen
         val h = ComidaPulso.contas(this)
         anel.atualizar(h)
         val faltaMl = (h.metaAgua - h.agua).coerceAtLeast(0)
-        linha.text = (if (h.metaAgua > 0) "\u{1F4A7} ${"%.1f".format(h.agua / 1000.0)} de ${"%.1f".format(h.metaAgua / 1000.0)} L" else "\u{1F4A7} ${"%.1f".format(h.agua / 1000.0)} L") +
+        linha.text = (if (h.metaAgua > 0) "💧 ${"%.1f".format(h.agua / 1000.0)} de ${"%.1f".format(h.metaAgua / 1000.0)} L" else "💧 ${"%.1f".format(h.agua / 1000.0)} L") +
             (if (h.pendentes > 0) "\n⏳ ${h.pendentes} esperando o celular" else "\n✓ tudo no celular")
         if (faltaMl == 0 && h.metaAgua > 0) linha.append(" · água em dia")
         val passou = h.meta > 0 && h.k > h.meta
@@ -266,10 +266,10 @@ class ComidaRelogio : ComponentActivity(), MessageClient.OnMessageReceivedListen
             AlertaRelogio.vibrar(this, longArrayOf(0, 200, 100, 200))
             // passou da meta: o aeróbico que compensa (caminhada rápida, uns 4,6 kcal/min)
             val min = ((h.k - h.meta) / 4.6).toInt().coerceAtMost(60)
-            aviso.text = "⚠ Passou ${h.k - h.meta} kcal\n\u{1F6B6} +$min min de caminhada compensam"
+            aviso.text = "⚠ Passou ${h.k - h.meta} kcal\n🚶 +$min min de caminhada compensam"
             aviso.setTextColor(Color.parseColor("#FF4D6D")); aviso.visibility = View.VISIBLE
         } else if (!passou && h.meta > 0 && h.k >= h.meta * 0.98) {
-            aviso.text = "\u{1F3AF} META DO DIA ATINGIDA"; aviso.setTextColor(Cores.OURO); aviso.visibility = View.VISIBLE
+            aviso.text = "🎯 META DO DIA ATINGIDA"; aviso.setTextColor(Cores.OURO); aviso.visibility = View.VISIBLE
         }
         passouAntes = passou
     }

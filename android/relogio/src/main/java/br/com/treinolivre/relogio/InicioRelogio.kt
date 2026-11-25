@@ -75,7 +75,7 @@ class TelaDividida(c: Context, private val treinando: Boolean, private val fonte
         cv.drawRect(0f, meio - r * 0.008f, w, meio + r * 0.008f, p)
         p.shader = null
         if (fonte != null) { txt.typeface = fonte; sombra.typeface = fonte }
-        escrever(cv, "\u{1F3CB}️", w / 2f, meio * 0.42f, r * 0.11f, false)
+        escrever(cv, "🏋️", w / 2f, meio * 0.42f, r * 0.11f, false)
         escrever(cv, "TREINO", w / 2f, meio * 0.72f, r * 0.115f, true)
         if (treinando) {
             txt.typeface = Typeface.DEFAULT_BOLD
@@ -86,7 +86,7 @@ class TelaDividida(c: Context, private val treinando: Boolean, private val fonte
             if (fonte != null) txt.typeface = fonte
         }
         escrever(cv, "COMIDA & ÁGUA", w / 2f, meio + (h - meio) * 0.36f, r * 0.085f, true)
-        escrever(cv, "\u{1F4A7}\u{1F34E}", w / 2f, meio + (h - meio) * 0.66f, r * 0.1f, false)
+        escrever(cv, "💧🍎", w / 2f, meio + (h - meio) * 0.66f, r * 0.1f, false)
         if (vivo) postInvalidateDelayed(40L)
     }
 

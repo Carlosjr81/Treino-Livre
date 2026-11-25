@@ -90,7 +90,7 @@ object Comida {
             if (e.optString("tipo") == "agua") agua += e.optInt("ml") else if (e.optString("tipo") == "comida") nomes.add(e.optString("a"))
         }
         val partes = mutableListOf<String>()
-        if (agua > 0) partes.add("\u{1F4A7} +$agua ml")
+        if (agua > 0) partes.add("💧 +$agua ml")
         if (nomes.isNotEmpty()) partes.add(nomes.size.toString() + (if (nomes.size == 1) " alimento" else " alimentos"))
         try {
             val nm = c.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

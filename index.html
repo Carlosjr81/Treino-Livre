@@ -418,6 +418,13 @@
     .confete-peca { display: none; }
     .celebra-cartao, .celebra-icone, .jarvis-onda, .jarvis-faixa { animation: none; }
   }
+
+/* Jarvis Body Balance: a onda do corpo que enche e o limite passado */
+@keyframes bbOnda { from { transform: translateX(0); } to { transform: translateX(60px); } }
+.bb-onda { animation: bbOnda 2.4s linear infinite; }
+@keyframes bbPulsa { 0%,100% { transform: scale(1); } 50% { transform: scale(1.035); } }
+.bb-passou, .bb-pulsa { animation: bbPulsa 1.1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .bb-onda, .bb-passou, .bb-pulsa { animation: none; } }
 </style>
 </head>
 <body>
@@ -1600,8 +1607,26 @@ const AJUDA_APP = [
       "Deixe a **tela ligada** (o modo bolso a deixa preta e gasta quase nada).",
       "No fim, o mapa colorido pelo ritmo, os melhores tempos e o percurso vão para o histórico.",
     ],
-    dicas: ["Com a tela travada, o navegador para o GPS. Para correr com o celular travado no bolso, use o **Desafio** no app Android."],
+    dicas: ["Com a tela travada, o navegador para o GPS. Para correr com o celular travado no bolso, use o **Desafio** no app Android.",
+      "O GPS ainda não achou você? Pode tocar em **Começar** mesmo assim: o tempo já conta e a distância entra assim que ele achar. Em lugar aberto leva poucos segundos.",
+      "Aparece \"Sem permissão de localização\"? Configurações › Apps › Chrome › Permissões › Localização › Permitir, e ligue a Localização na barra do alto."],
     ir: { rotulo: "Abrir a corrida na rua", destino: "percurso" } },
+  { id: "body-balance", cat: "cardio", icone: "⚖\uFE0F", titulo: "Jarvis Body Balance: comida, água e balanço",
+    resumo: "Anote o que come e bebe e veja, no corpo que enche por cor, se o dia está gerando cutting (déficit) ou bulking (superávit).",
+    passos: [
+      "Toque em **Balance** na barra de baixo e configure em 30 segundos: objetivo, idade, altura e peso.",
+      "Anote com **+ Comida** (busca de alimentos brasileiros), **📷 Foto do prato** (você marca o que tem e quanto do prato ocupa) ou **💧 +250 ml**.",
+      "O corpo da esquerda enche com proteína, carboidrato e gordura; o da direita com água. Chegou na cabeça, a meta do dia foi atingida.",
+      "Passou da meta? O app diz quantos minutos de caminhada compensam hoje e monta um plano leve para os próximos 3 dias.",
+      "Em **Semana** e **Mês**: quantos dias acertou, o saldo e se você está de fato em cutting ou bulking, conferido pela balança.",
+    ],
+    dicas: [
+      "Com o relógio sincronizado (aba Saúde), o gasto do dia vem das calorias ativas dele; o sono também.",
+      "No relógio, abra o Treino Livre e escolha **COMIDA & ÁGUA**: água e os seus alimentos mais usados ficam a um toque e chegam aqui sozinhos.",
+      "Depois de 14 dias anotados com pesagens, o app mede o seu gasto de verdade pela comida e pelo peso, e ajusta a meta.",
+      "É informação geral: não substitui o nutricionista nem o médico.",
+    ],
+    ir: { destino: "balance", rotulo: "Abrir o Body Balance" } },
   { id: "desafio", cat: "cardio", icone: "\u{1F3C1}", titulo: "Desafiar amigos",
     resumo: "Corrida ao vivo, ou um ranking da semana com a galera.",
     passos: [
@@ -1833,6 +1858,121 @@ const DESCANSO_CIENCIA = {
     "Grgic e colegas, 2017 — revisão sobre descanso e hipertrofia (Eur J Sport Sci)",
   ],
 };
+
+// ---------------- JARVIS BODY BALANCE: OS DADOS ----------------
+// (2026-11-25a) O controle da alimentação, do balanço de energia e da água.
+// Os alimentos: valores médios por porção caseira, da Tabela Brasileira de
+// Composição de Alimentos (TACO, NEPA/Unicamp, 4ª ed.) e de rótulos comuns.
+// São médias: o rótulo do produto vale mais, e a tela diz isso.
+// k = kcal, p = proteína, c = carboidrato, g = gordura (gramas), por porção.
+// gPrato = gramas que ocupariam um prato raso médio inteiro (o método do prato
+// da foto: "o arroz ocupa 1/4 do prato" vira gramas por aqui); 0 = não vai no prato.
+const ALIMENTOS_BR = [
+  // pratos e acompanhamentos
+  { id: "arroz", nome: "Arroz branco", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 128, p: 2.5, c: 28.1, g: 0.2, gPrato: 520, ic: "\u{1F35A}" },
+  { id: "arroz-int", nome: "Arroz integral", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 124, p: 2.6, c: 25.8, g: 1.0, gPrato: 520, ic: "\u{1F35A}" },
+  { id: "feijao", nome: "Feijão (carioca ou preto)", cat: "carbo", por: "1 concha (140 g)", gr: 140, k: 107, p: 6.7, c: 19.0, g: 0.7, gPrato: 560, ic: "\u{1FAD8}" },
+  { id: "macarrao", nome: "Macarrão cozido", cat: "carbo", por: "1 pegador (110 g)", gr: 110, k: 112, p: 3.7, c: 21.9, g: 1.3, gPrato: 480, ic: "\u{1F35D}" },
+  { id: "batata-frita", nome: "Batata frita", cat: "gordura", por: "1 porção média (100 g)", gr: 100, k: 267, p: 5.0, c: 35.6, g: 13.1, gPrato: 330, ic: "\u{1F35F}" },
+  { id: "batata-cozida", nome: "Batata cozida ou purê", cat: "carbo", por: "1 escumadeira (100 g)", gr: 100, k: 80, p: 1.6, c: 14.0, g: 2.0, gPrato: 480, ic: "\u{1F954}" },
+  { id: "batata-doce", nome: "Batata-doce cozida", cat: "carbo", por: "1 pedaço médio (100 g)", gr: 100, k: 77, p: 0.6, c: 18.4, g: 0.1, gPrato: 480, ic: "\u{1F360}" },
+  { id: "mandioca", nome: "Mandioca cozida", cat: "carbo", por: "1 pedaço (100 g)", gr: 100, k: 125, p: 0.6, c: 30.1, g: 0.3, gPrato: 480, ic: "\u{1F954}" },
+  { id: "farofa", nome: "Farofa", cat: "carbo", por: "2 colheres de sopa (30 g)", gr: 30, k: 122, p: 0.6, c: 24.0, g: 2.7, gPrato: 250, ic: "\u{1F96B}" },
+  { id: "cuscuz", nome: "Cuscuz de milho", cat: "carbo", por: "1 fatia (100 g)", gr: 100, k: 113, p: 2.2, c: 25.3, g: 0.7, gPrato: 450, ic: "\u{1F33D}" },
+  { id: "salada", nome: "Salada de folhas e tomate", cat: "verdura", por: "1 prato de sobremesa (100 g)", gr: 100, k: 18, p: 1.2, c: 3.2, g: 0.2, gPrato: 200, ic: "\u{1F957}" },
+  { id: "legumes", nome: "Legumes cozidos (brócolis, cenoura)", cat: "verdura", por: "1 escumadeira (100 g)", gr: 100, k: 30, p: 1.6, c: 5.5, g: 0.3, gPrato: 330, ic: "\u{1F966}" },
+  // proteínas
+  { id: "bife", nome: "Bife grelhado", cat: "proteina", por: "1 bife médio (100 g)", gr: 100, k: 220, p: 32.0, c: 0, g: 10.0, gPrato: 520, ic: "\u{1F969}" },
+  { id: "carne-moida", nome: "Carne moída refogada", cat: "proteina", por: "3 colheres de sopa (100 g)", gr: 100, k: 212, p: 26.7, c: 0, g: 10.9, gPrato: 520, ic: "\u{1F969}" },
+  { id: "frango", nome: "Frango grelhado (peito)", cat: "proteina", por: "1 filé médio (100 g)", gr: 100, k: 159, p: 32.0, c: 0, g: 2.5, gPrato: 480, ic: "\u{1F357}" },
+  { id: "frango-frito", nome: "Frango frito (coxa ou sobrecoxa)", cat: "gordura", por: "1 pedaço (100 g)", gr: 100, k: 260, p: 26.0, c: 4.0, g: 15.0, gPrato: 480, ic: "\u{1F357}" },
+  { id: "peixe", nome: "Peixe grelhado (tilápia)", cat: "proteina", por: "1 filé (100 g)", gr: 100, k: 128, p: 26.0, c: 0, g: 2.6, gPrato: 450, ic: "\u{1F41F}" },
+  { id: "ovo", nome: "Ovo cozido", cat: "proteina", por: "1 unidade (50 g)", gr: 50, k: 73, p: 6.7, c: 0.3, g: 4.8, gPrato: 0, ic: "\u{1F95A}" },
+  { id: "ovo-frito", nome: "Ovo frito", cat: "gordura", por: "1 unidade", gr: 50, k: 120, p: 7.0, c: 0.3, g: 10.0, gPrato: 0, ic: "\u{1F373}" },
+  { id: "linguica", nome: "Linguiça calabresa", cat: "gordura", por: "1 gomo (60 g)", gr: 60, k: 178, p: 9.6, c: 1.0, g: 15.0, gPrato: 450, ic: "\u{1F32D}" },
+  { id: "feijoada", nome: "Feijoada", cat: "gordura", por: "1 concha cheia (200 g)", gr: 200, k: 345, p: 20.0, c: 20.0, g: 20.0, gPrato: 560, ic: "\u{1F372}" },
+  // pães e café da manhã
+  { id: "pao", nome: "Pão francês", cat: "carbo", por: "1 unidade (50 g)", gr: 50, k: 150, p: 4.0, c: 29.3, g: 1.6, gPrato: 0, ic: "\u{1F956}" },
+  { id: "pao-forma", nome: "Pão de forma integral", cat: "carbo", por: "2 fatias (50 g)", gr: 50, k: 126, p: 4.7, c: 24.0, g: 1.7, gPrato: 0, ic: "\u{1F35E}" },
+  { id: "tapioca", nome: "Tapioca", cat: "carbo", por: "1 média (50 g de goma)", gr: 50, k: 120, p: 0, c: 30.0, g: 0, gPrato: 0, ic: "\u{1FAD3}" },
+  { id: "pao-queijo", nome: "Pão de queijo", cat: "gordura", por: "1 unidade (30 g)", gr: 30, k: 105, p: 2.0, c: 13.0, g: 5.0, gPrato: 0, ic: "\u{1F9C0}" },
+  { id: "queijo", nome: "Queijo muçarela", cat: "gordura", por: "1 fatia (20 g)", gr: 20, k: 66, p: 4.5, c: 0.6, g: 5.0, gPrato: 0, ic: "\u{1F9C0}" },
+  { id: "manteiga", nome: "Manteiga ou margarina", cat: "gordura", por: "1 ponta de faca (10 g)", gr: 10, k: 72, p: 0.1, c: 0, g: 8.2, gPrato: 0, ic: "\u{1F9C8}" },
+  { id: "aveia", nome: "Aveia em flocos", cat: "carbo", por: "2 colheres de sopa (30 g)", gr: 30, k: 118, p: 4.2, c: 20.0, g: 2.6, gPrato: 0, ic: "\u{1F963}" },
+  { id: "granola", nome: "Granola", cat: "carbo", por: "3 colheres de sopa (30 g)", gr: 30, k: 130, p: 3.0, c: 20.0, g: 4.5, gPrato: 0, ic: "\u{1F963}" },
+  { id: "leite", nome: "Leite integral", cat: "proteina", por: "1 copo (200 ml)", gr: 200, k: 123, p: 6.0, c: 9.0, g: 6.6, gPrato: 0, ic: "\u{1F95B}", liq: 200 },
+  { id: "iogurte", nome: "Iogurte natural", cat: "proteina", por: "1 pote (170 g)", gr: 170, k: 105, p: 7.0, c: 8.0, g: 5.0, gPrato: 0, ic: "\u{1F95B}" },
+  { id: "whey", nome: "Whey protein", cat: "proteina", por: "1 dosador (30 g)", gr: 30, k: 120, p: 24.0, c: 3.0, g: 1.5, gPrato: 0, ic: "\u{1F964}" },
+  { id: "pasta-amendoim", nome: "Pasta de amendoim", cat: "gordura", por: "1 colher de sopa (15 g)", gr: 15, k: 90, p: 3.5, c: 3.0, g: 7.5, gPrato: 0, ic: "\u{1F95C}" },
+  { id: "castanhas", nome: "Castanhas e nozes", cat: "gordura", por: "1 punhado (30 g)", gr: 30, k: 190, p: 5.0, c: 5.0, g: 18.0, gPrato: 0, ic: "\u{1F95C}" },
+  { id: "azeite", nome: "Azeite ou óleo", cat: "gordura", por: "1 colher de sopa (13 ml)", gr: 13, k: 117, p: 0, c: 0, g: 13.0, gPrato: 0, ic: "\u{1FAD2}" },
+  // frutas
+  { id: "banana", nome: "Banana", cat: "fruta", por: "1 média (70 g)", gr: 70, k: 69, p: 0.9, c: 18.0, g: 0.1, gPrato: 0, ic: "\u{1F34C}" },
+  { id: "maca", nome: "Maçã", cat: "fruta", por: "1 média (130 g)", gr: 130, k: 73, p: 0.4, c: 19.5, g: 0.2, gPrato: 0, ic: "\u{1F34E}" },
+  { id: "laranja", nome: "Laranja", cat: "fruta", por: "1 média (180 g)", gr: 180, k: 86, p: 1.8, c: 21.0, g: 0.2, gPrato: 0, ic: "\u{1F34A}" },
+  { id: "mamao", nome: "Mamão", cat: "fruta", por: "1 fatia (150 g)", gr: 150, k: 60, p: 0.7, c: 15.0, g: 0.2, gPrato: 0, ic: "\u{1F348}" },
+  { id: "abacate", nome: "Abacate", cat: "gordura", por: "2 colheres de sopa (60 g)", gr: 60, k: 58, p: 0.7, c: 3.6, g: 5.0, gPrato: 0, ic: "\u{1F951}" },
+  { id: "acai", nome: "Açaí na tigela (com granola)", cat: "doce", por: "1 tigela (300 ml)", gr: 300, k: 450, p: 6.0, c: 70.0, g: 16.0, gPrato: 0, ic: "\u{1F347}" },
+  // lanches e doces
+  { id: "pizza", nome: "Pizza", cat: "gordura", por: "1 fatia (100 g)", gr: 100, k: 260, p: 11.0, c: 30.0, g: 10.0, gPrato: 0, ic: "\u{1F355}" },
+  { id: "hamburguer", nome: "Hambúrguer (sanduíche)", cat: "gordura", por: "1 unidade", gr: 200, k: 500, p: 25.0, c: 40.0, g: 26.0, gPrato: 0, ic: "\u{1F354}" },
+  { id: "salgado", nome: "Salgado frito (coxinha, pastel)", cat: "gordura", por: "1 unidade (80 g)", gr: 80, k: 225, p: 8.0, c: 26.0, g: 10.0, gPrato: 0, ic: "\u{1F95F}" },
+  { id: "chocolate", nome: "Chocolate ao leite", cat: "doce", por: "1 barrinha (25 g)", gr: 25, k: 135, p: 2.0, c: 15.0, g: 7.5, gPrato: 0, ic: "\u{1F36B}" },
+  { id: "biscoito", nome: "Biscoito recheado", cat: "doce", por: "3 unidades (40 g)", gr: 40, k: 190, p: 2.4, c: 28.0, g: 8.0, gPrato: 0, ic: "\u{1F36A}" },
+  { id: "bolo", nome: "Bolo simples", cat: "doce", por: "1 fatia (60 g)", gr: 60, k: 200, p: 3.0, c: 30.0, g: 7.5, gPrato: 0, ic: "\u{1F370}" },
+  { id: "sorvete", nome: "Sorvete", cat: "doce", por: "1 bola (60 g)", gr: 60, k: 120, p: 2.0, c: 15.0, g: 6.0, gPrato: 0, ic: "\u{1F366}" },
+  // bebidas (liq = ml que contam também como líquido do dia)
+  { id: "cafe", nome: "Café sem açúcar", cat: "bebida", por: "1 xícara (50 ml)", gr: 50, k: 2, p: 0.1, c: 0.3, g: 0, gPrato: 0, ic: "☕", liq: 50 },
+  { id: "cafe-acucar", nome: "Café com açúcar", cat: "bebida", por: "1 xícara (50 ml)", gr: 50, k: 22, p: 0.1, c: 5.3, g: 0, gPrato: 0, ic: "☕", liq: 50 },
+  { id: "suco", nome: "Suco de laranja natural", cat: "bebida", por: "1 copo (250 ml)", gr: 250, k: 115, p: 1.7, c: 26.0, g: 0.5, gPrato: 0, ic: "\u{1F9C3}", liq: 250 },
+  { id: "refri", nome: "Refrigerante comum", cat: "doce", por: "1 lata (350 ml)", gr: 350, k: 140, p: 0, c: 35.0, g: 0, gPrato: 0, ic: "\u{1F964}", liq: 350 },
+  { id: "refri-zero", nome: "Refrigerante zero", cat: "bebida", por: "1 lata (350 ml)", gr: 350, k: 2, p: 0, c: 0, g: 0, gPrato: 0, ic: "\u{1F964}", liq: 350 },
+  // o álcool tem 7 kcal por grama e não é carboidrato: fica em "alc"
+  { id: "cerveja", nome: "Cerveja", cat: "alcool", por: "1 lata (350 ml)", gr: 350, k: 147, p: 1.1, c: 12.0, g: 0, alc: 13.9, gPrato: 0, ic: "\u{1F37A}", liq: 350 },
+  { id: "vinho", nome: "Vinho", cat: "alcool", por: "1 taça (150 ml)", gr: 150, k: 125, p: 0.1, c: 4.0, g: 0, alc: 15.5, gPrato: 0, ic: "\u{1F377}", liq: 150 },
+  // pratos prontos (para marcar rápido, inclusive no relógio)
+  { id: "pf", nome: "Prato feito (arroz, feijão, bife e salada)", cat: "prato", por: "1 prato", gr: 450, k: 650, p: 42.0, c: 70.0, g: 20.0, gPrato: 0, ic: "\u{1F37D}" },
+  { id: "marmita-fit", nome: "Marmita fit (frango, arroz integral, legumes)", cat: "prato", por: "1 marmita", gr: 400, k: 450, p: 40.0, c: 50.0, g: 9.0, gPrato: 0, ic: "\u{1F371}" },
+  { id: "lanche", nome: "Lanche (pão, queijo, presunto)", cat: "prato", por: "1 sanduíche", gr: 120, k: 320, p: 16.0, c: 32.0, g: 13.0, gPrato: 0, ic: "\u{1F96A}" },
+];
+// O que o relógio oferece sem o celular ter mandado os favoritos
+const RAPIDOS_RELOGIO = ["cafe", "banana", "pao", "frango", "pf", "whey", "lanche", "chocolate", "refri", "cerveja"];
+// As cores do corpo que enche (as mesmas na tela e no relógio)
+const CORES_BALANCE = { p: "#FF4D6D", c: "#FFB21A", g: "#B05BFF", alc: "#8A8F9E", agua: "#35E0F0" };
+// As refeições do dia, pela hora em que a comida foi marcada
+const REFEICOES_BALANCE = [
+  { id: "cafe", nome: "Café da manhã", ic: "☕", ate: 10.5 },
+  { id: "almoco", nome: "Almoço", ic: "\u{1F37D}", ate: 15 },
+  { id: "lanche", nome: "Lanche da tarde", ic: "\u{1F96A}", ate: 18.5 },
+  { id: "jantar", nome: "Jantar", ic: "\u{1F319}", ate: 22 },
+  { id: "ceia", nome: "Ceia e beliscos", ic: "\u{1F36A}", ate: 24.1 },
+];
+// Os objetivos. ritmo = % do peso por semana (a régua dos estudos abaixo).
+const OBJETIVOS_BALANCE = [
+  { id: "perder", nome: "Perder gordura", fase: "CUTTING", ic: "\u{1F525}", ritmo: 0.7, ritmos: [0.5, 0.7, 1.0], prot: 2.2,
+    diz: "Comer um pouco menos do que gasta (déficit). O peso cai de 0,5% a 1% por semana, mantendo o músculo." },
+  { id: "ganhar", nome: "Ganhar massa", fase: "BULKING", ic: "\u{1F4AA}", ritmo: 0.35, ritmos: [0.25, 0.35, 0.5], prot: 1.8,
+    diz: "Comer um pouco mais do que gasta (superávit), sem exagero: 0,25% a 0,5% do peso por semana, a maior parte músculo." },
+  { id: "recomp", nome: "Recomposição", fase: "RECOMP", ic: "⚖️", ritmo: 0, ritmos: [0], prot: 2.2,
+    diz: "Comer perto do que gasta, com bastante proteína e treino forte: perde gordura e ganha músculo devagar, o peso quase não muda." },
+  { id: "manter", nome: "Manter o peso", fase: "MANUTENÇÃO", ic: "\u{1F3AF}", ritmo: 0, ritmos: [0], prot: 1.6,
+    diz: "Comer o mesmo que gasta. Bom para descansar de uma fase de dieta ou de ganho." },
+];
+// As referências que sustentam as contas (aparecem na tela "De onde vêm os números")
+const FONTES_BALANCE = [
+  "Mifflin, St Jeor e colegas (1990, Am J Clin Nutr): a fórmula do gasto em repouso, a mais precisa entre as de uso comum (revisão de Frankenfield, 2005, J Am Diet Assoc).",
+  "Helms, Aragon e Fitschen (2014, J Int Soc Sports Nutr): na dieta de quem treina, perder 0,5% a 1% do peso por semana, proteína alta e gordura de 15% a 30% das calorias.",
+  "Iraki, Fitschen, Espinar e Helms (2019, Sports): na fase de ganho, superávit pequeno (ganhar 0,25% a 0,5% do peso por semana) e 1,6 a 2,2 g de proteína por kg.",
+  "Morton e colegas (2018, Br J Sports Med, meta-análise): a proteína ajuda o ganho de massa até cerca de 1,6 g por kg por dia (com folga até 2,2).",
+  "Jäger e colegas (2017, posição da ISSN sobre proteína): 1,4 a 2,0 g por kg por dia para quem treina, mais em déficit.",
+  "Hall e colegas (2011, Lancet): o corpo se adapta à dieta, e as 7.700 kcal por quilo valem só como conta inicial; por isso o app também mede o gasto pelo seu próprio peso.",
+  "Westerterp (2004, Nutr Metab): digerir a comida gasta cerca de 10% das calorias do dia.",
+  "Nedeltcheva e colegas (2010, Ann Intern Med): na dieta, dormir 5,5 h em vez de 8,5 h fez metade do peso perdido vir de músculo em vez de gordura.",
+  "Spiegel e colegas (2004, Ann Intern Med): dormir pouco aumenta a grelina e baixa a leptina, e a fome sobe.",
+  "EFSA (2010): a água do dia, de todas as fontes, é de cerca de 2,0 L para mulheres e 2,5 L para homens; ACSM (2007): repor a perda no treino.",
+  "Ainsworth e colegas (Compendium of Physical Activities, 2011): o gasto de cada atividade (MET).",
+  "Tabela TACO (NEPA/Unicamp): a composição dos alimentos brasileiros.",
+];
 </script>
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
@@ -1884,7 +2024,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-24a";
+const VERSAO_APP = "2026-11-25a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3363,7 +3503,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-192/treino-livre-192.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-194/treino-livre-194.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -3418,6 +3558,27 @@ const RELOGIO_NO_PULSO = (() => {
 // o app do relógio sai junto com o do celular: relógio mais velho = atualizar
 const RELOGIO_DESATUALIZADO = RELOGIO_NO_PULSO > 0 && NUMERO_APK > RELOGIO_NO_PULSO;
 const PACOTE_ANDROID = "br.com.treinolivre.app";
+// O app Android que conversa com o relógio sobre comida e água abre o site com
+// ?comida=1 (2026-11-25a). Sem isto, um APK antigo mandaria o Chrome à loja.
+const COMIDA_APP = (() => {
+  try {
+    const m = typeof location !== "undefined" && location.search.match(/[?&]comida=(\d+)/);
+    if (m) localStorage.setItem("treinolivre:comidaApp", m[1]);
+    return parseInt(localStorage.getItem("treinolivre:comidaApp")) || 0;
+  } catch (e) { return 0; }
+})();
+// O que vem do backup ou do armazenamento, conferido
+function lerNutricao(n) {
+  const r = { perfil: {}, dias: {}, vistos: [] };
+  if (!n || typeof n !== "object") return r;
+  if (n.perfil && typeof n.perfil === "object") r.perfil = n.perfil;
+  if (n.dias && typeof n.dias === "object") {
+    const corte = new Date(Date.now() - 400 * 864e5).toISOString().slice(0, 10);
+    Object.keys(n.dias).forEach((d) => { if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d >= corte && n.dias[d] && typeof n.dias[d] === "object") r.dias[d] = { itens: Array.isArray(n.dias[d].itens) ? n.dias[d].itens.slice(0, 120) : [], agua: Number(n.dias[d].agua) || 0, sono: Number(n.dias[d].sono) || 0, aguaEv: Array.isArray(n.dias[d].aguaEv) ? n.dias[d].aguaEv.slice(-60) : [] }; });
+  }
+  if (Array.isArray(n.vistos)) r.vistos = n.vistos.filter((x) => typeof x === "string").slice(-400);
+  return r;
+}
 // A marca do celular (fab=, mandada pelo app Android). Xiaomi, Oppo, Vivo,
 // Huawei e outras barram o app de acordar em segundo plano sem o "Início
 // automático", e o relógio fica em "Procurando o celular…" (relato do dono,
@@ -3632,6 +3793,333 @@ function diaLocal(ms) {
   const d = new Date(ms);
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
+
+// ---------------- JARVIS BODY BALANCE: AS CONTAS ----------------
+// (2026-11-25a) Bloco puro, coberto por teste-balance.js. Recebe tudo por
+// parâmetro (nada de relógio nem de estado): o gasto do dia, a meta pelo
+// objetivo, se o dia acertou, a compensação, a tendência do peso e o gasto
+// medido pelo próprio corpo. As fontes estão em FONTES_BALANCE.
+const KCAL_POR_KG = 7700;
+const MET_CAMINHADA_RAPIDA = 4.3;   // 5,5 km/h (Compendium, 17200)
+const MET_CORRIDA_LEVE = 8.3;       // 8 km/h (Compendium, 12030)
+const MET_MUSCULACAO = 5.0;         // treino de força com pouco descanso
+const ROTINAS_BALANCE = [
+  { id: "sentado", nome: "Sentado quase o dia todo", fator: 1.2 },
+  { id: "pe", nome: "Em pé ou andando parte do dia", fator: 1.35 },
+  { id: "ativo", nome: "Trabalho físico ou muito ativo", fator: 1.5 },
+];
+const numB = (x) => { const n = typeof x === "number" ? x : parseFloat(String(x || "").replace(",", ".")); return isFinite(n) ? n : 0; };
+
+// O gasto em repouso (Mifflin-St Jeor)
+function tmbMifflin(p) {
+  const kg = numB(p && p.kg), cm = numB(p && p.cm), idade = numB(p && p.idade);
+  if (kg < 30 || cm < 120 || idade < 12) return null;
+  return Math.round(10 * kg + 6.25 * cm - 5 * idade + (p.sexo === "f" ? -161 : 5));
+}
+// Um item anotado: a porção do alimento vezes a quantidade (ou o que a pessoa digitou)
+function valorItem(it) {
+  const q = numB(it && it.q) || 1;
+  const r = (x) => Math.round(numB(x) * q * 10) / 10;
+  return { k: Math.round(numB(it && it.k) * q), p: r(it && it.p), c: r(it && it.c), g: r(it && it.g), alc: r(it && it.alc), liq: Math.round(numB(it && it.liq) * q) };
+}
+// O que entrou num dia: kcal, macros, álcool e os líquidos (água + bebidas)
+function totaisDoDia(dia) {
+  const t = { k: 0, p: 0, c: 0, g: 0, alc: 0, agua: 0, itens: 0 };
+  ((dia && dia.itens) || []).forEach((it) => {
+    const v = valorItem(it);
+    t.k += v.k; t.p += v.p; t.c += v.c; t.g += v.g; t.alc += v.alc; t.agua += v.liq; t.itens += 1;
+  });
+  t.agua += Math.round(numB(dia && dia.agua));
+  ["p", "c", "g", "alc"].forEach((x) => { t[x] = Math.round(t[x]); });
+  return t;
+}
+// As kcal de cada macro, para encher o corpo na proporção certa
+function kcalMacros(t) {
+  const p = t.p * 4, c = t.c * 4, g = t.g * 9, alc = t.alc * 7;
+  const soma = p + c + g + alc;
+  // o que a pessoa digitou só em kcal (sem macros) entra como "outros" na cor do álcool
+  const resto = Math.max(0, (t.k || 0) - soma);
+  return { p: p, c: c, g: g, alc: alc + resto, total: Math.max(soma + resto, t.k || 0) };
+}
+// O gasto líquido dos treinos de um dia (acima do repouso, que a TMB já conta)
+function kcalTreinosDoDia(historico, dia, kg, exPorId) {
+  let k = 0, min = 0;
+  (historico || []).forEach((h) => {
+    if (diaLocal(new Date(h.data).getTime()) !== dia) return;
+    let minCardio = 0;
+    (h.itens || []).forEach((it) => {
+      const e = exPorId ? exPorId(it.exercicioId) : null;
+      (it.series || []).forEach((s) => {
+        if (!serieConta(s) || !ehCardio(s)) return;
+        const m = medirCardio(s, kg, e && e.cardio);
+        if (!m || !m.min) return;
+        minCardio += m.min;
+        k += Math.max(0, m.kcal - (m.min * kg * 3.5) / 200);
+      });
+    });
+    const dur = Math.min(300, numB(h.duracaoMin));
+    const forca = Math.max(0, dur - minCardio);
+    k += ((MET_MUSCULACAO - 1) * 3.5 * kg / 200) * forca;
+    min += dur;
+  });
+  return { kcal: Math.round(k), min: Math.round(min) };
+}
+// O gasto do dia: repouso + o dia a dia + treino + digestão (10% do que comeu).
+// Com o relógio (as calorias ativas do Health Connect), a atividade é a
+// medida; sem ele, o fator da rotina e os treinos daqui. Num dia que ainda não
+// acabou, vale o maior entre o medido até agora e a média dos dias inteiros.
+function gastoDoDia(o) {
+  const tmb = o.tmb;
+  if (!tmb) return null;
+  const tef = Math.round(0.1 * numB(o.comeu));
+  const treino = o.treino || { kcal: 0, min: 0 };
+  const rotina = ROTINAS_BALANCE.find((r) => r.id === o.rotina) || ROTINAS_BALANCE[0];
+  let atividade, fonte;
+  const medido = o.ativas > 0 ? o.ativas : 0;
+  if (medido || o.mediaAtivas > 0) {
+    const base = o.hoje ? Math.max(medido, numB(o.mediaAtivas)) : medido || numB(o.mediaAtivas);
+    // treino feito sem o relógio no pulso: o que o app mediu entra se for maior
+    atividade = Math.max(base, treino.kcal);
+    fonte = medido ? "relogio" : "media";
+  } else {
+    atividade = Math.round(tmb * (rotina.fator - 1)) + treino.kcal + Math.round(numB(o.passos) * 0.04 * (numB(o.kg) / 75 || 1));
+    fonte = "estimado";
+  }
+  return { tmb: tmb, atividade: Math.round(atividade), tef: tef, treino: treino.kcal, total: Math.round(tmb + atividade + tef), fonte: fonte };
+}
+// A meta do dia pelo objetivo. piso: nunca abaixo do repouso nem de
+// 1.200 (mulher) / 1.500 (homem), as menores que dispensam acompanhamento.
+function metaDoDia(perfil, gasto, kg, treinoMin) {
+  const ob = OBJETIVOS_BALANCE.find((o) => o.id === (perfil && perfil.objetivo)) || OBJETIVOS_BALANCE[0];
+  if (!gasto || !kg) return null;
+  const ritmo = perfil && typeof perfil.ritmo === "number" ? perfil.ritmo : ob.ritmo;
+  const porDia = (kg * ritmo / 100 * KCAL_POR_KG) / 7;
+  let delta = 0;
+  if (ob.id === "perder") delta = -Math.min(porDia, 0.25 * gasto);
+  else if (ob.id === "ganhar") delta = Math.min(porDia, 0.2 * gasto);
+  else if (ob.id === "recomp") delta = -0.05 * gasto;
+  const piso = Math.max(perfil && perfil.tmb ? perfil.tmb : 0, perfil && perfil.sexo === "f" ? 1200 : 1500);
+  let k = Math.round(gasto + delta);
+  const noPiso = k < piso;
+  if (noPiso) k = piso;
+  const p = Math.round(kg * ob.prot);
+  const g = Math.round(Math.max(0.6 * kg, (0.25 * k) / 9));
+  const c = Math.max(0, Math.round((k - p * 4 - g * 9) / 4));
+  const agua = Math.round((35 * kg + (numB(treinoMin) / 60) * 500) / 50) * 50;
+  return { k: k, p: p, c: c, g: g, agua: agua, delta: Math.round(k - gasto), noPiso: noPiso, objetivo: ob.id };
+}
+// O dia acertou? Pela direção do objetivo: no cutting passar é o erro, no
+// bulking faltar também é. Dia quase sem anotação não é julgado.
+function statusDoDia(comeu, meta, objetivo, itens) {
+  if (!meta || !meta.k || (itens !== undefined && itens < 2) || comeu < 300) return { id: "vazio", nome: "sem registro", cor: "var(--cinza2)" };
+  const r = comeu / meta.k;
+  const faixas = objetivo === "ganhar" ? [[0.95, 1.15, "certo"], [0.85, 1.25, "perto"]]
+    : objetivo === "perder" ? [[0.8, 1.05, "certo"], [0.65, 1.15, "perto"]]
+    : [[0.92, 1.08, "certo"], [0.85, 1.15, "perto"]];
+  const id = r >= faixas[0][0] && r <= faixas[0][1] ? "certo" : r >= faixas[1][0] && r <= faixas[1][1] ? "perto" : "errou";
+  const nomes = { certo: "na meta", perto: "perto", errou: r > 1 ? "passou" : "faltou" };
+  const cores = { certo: "#4CD137", perto: "#FFB21A", errou: "#FF4D6D" };
+  return { id: id, nome: nomes[id], cor: cores[id], razao: r };
+}
+// Quantos minutos de aeróbico gastam um tanto de kcal (o líquido, acima do repouso)
+function minutosParaGastar(kcal, kg) {
+  const porMin = (met) => ((met - 1) * 3.5 * kg) / 200;
+  if (!(kcal > 0) || !(kg > 0)) return { caminhada: 0, corrida: 0 };
+  return { caminhada: Math.ceil(kcal / porMin(MET_CAMINHADA_RAPIDA)), corrida: Math.ceil(kcal / porMin(MET_CORRIDA_LEVE)) };
+}
+// Passou da meta hoje: aeróbico a mais hoje (até 60 min) e o resto nos
+// próximos dias. Nada de dia de fome: no dia seguinte a comida cai no máximo
+// 10% da meta e nunca abaixo do piso; o resto vira movimento.
+const CARDIO_MAX_DIA = 60, CARDIO_MAX_COMPENSA = 40, DIAS_COMPENSA = 3;
+function compensacaoDeHoje(comeu, meta, kg) {
+  if (!meta) return null;
+  const excesso = Math.round(comeu - meta.k);
+  if (excesso <= 50) return null;
+  const m = minutosParaGastar(excesso, kg);
+  const hojeMin = Math.min(CARDIO_MAX_DIA, m.caminhada);
+  const porMinCam = ((MET_CAMINHADA_RAPIDA - 1) * 3.5 * kg) / 200;
+  const sobra = Math.max(0, Math.round(excesso - hojeMin * porMinCam));
+  return { excesso: excesso, hojeMin: hojeMin, corridaMin: Math.min(CARDIO_MAX_DIA, m.corrida), sobra: sobra };
+}
+// O saldo dos últimos 7 dias julgados e o plano dos próximos dias
+function planoCompensacao(dias, objetivo, kg, piso) {
+  const julg = (dias || []).filter((d) => d.status && d.status.id !== "vazio" && d.meta);
+  if (!julg.length) return null;
+  const saldo = Math.round(julg.reduce((a, d) => a + (d.comeu - d.meta.k), 0));
+  const metaMedia = julg.reduce((a, d) => a + d.meta.k, 0) / julg.length;
+  const r = { saldo: saldo, dias: julg.length, menosKcal: 0, maisKcal: 0, cardioMin: 0, porDia: DIAS_COMPENSA };
+  if (objetivo === "ganhar") {
+    // no bulking o erro que mais atrapalha é faltar: completar aos poucos
+    if (saldo < -0.15 * metaMedia) r.maisKcal = Math.min(Math.round(-saldo / DIAS_COMPENSA), Math.round(0.1 * metaMedia));
+    else if (saldo > 0.6 * metaMedia) r.menosKcal = Math.min(Math.round(saldo / DIAS_COMPENSA / 2), Math.round(0.1 * metaMedia));
+    return r;
+  }
+  if (saldo <= 100) return r;
+  const comida = Math.min(Math.round((saldo / DIAS_COMPENSA) * 0.5), Math.round(0.1 * metaMedia), Math.max(0, Math.round(metaMedia - (piso || 0))));
+  r.menosKcal = Math.max(0, comida);
+  const resto = saldo - r.menosKcal * DIAS_COMPENSA;
+  if (resto > 0) r.cardioMin = Math.min(CARDIO_MAX_COMPENSA, Math.ceil(minutosParaGastar(resto / DIAS_COMPENSA, kg).caminhada));
+  return r;
+}
+// A tendência do peso: média que anda devagar (10% por dia), que tira a água
+// e o sal do dia a dia da balança (o "peso de verdade").
+function tendenciaPeso(pesos, agora) {
+  const l = (pesos || []).filter((x) => x && x.kg > 20 && x.t).sort((a, b) => a.t - b.t);
+  if (!l.length) return null;
+  const DIA = 864e5;
+  const pontos = [];
+  let tr = l[0].kg, t = l[0].t;
+  pontos.push({ t: t, kg: l[0].kg, tr: tr });
+  for (let i = 1; i < l.length; i++) {
+    const dias = Math.max(0, (l[i].t - t) / DIA);
+    const a = 1 - Math.pow(0.9, Math.max(1, dias));
+    tr = tr + a * (l[i].kg - tr);
+    t = l[i].t;
+    pontos.push({ t: t, kg: l[i].kg, tr: tr });
+  }
+  const fim = pontos[pontos.length - 1];
+  const ref = pontos.filter((p) => p.t <= fim.t - 13 * DIA).pop();
+  const porSemana = ref ? ((fim.tr - ref.tr) / ((fim.t - ref.t) / DIA)) * 7 : null;
+  return { atual: Math.round(fim.tr * 10) / 10, ultimo: fim.kg, porSemana: porSemana === null ? null : Math.round(porSemana * 100) / 100, pontos: pontos, desde: agora && fim.t ? Math.round((agora - fim.t) / DIA) : 0 };
+}
+// O gasto medido pelo próprio corpo (a ideia dos apps mais elogiados): no que
+// a pessoa comeu nos dias anotados e no quanto a tendência do peso andou.
+// Só com 14 dias anotados e duas pesagens a 10 dias ou mais uma da outra.
+function gastoPeloCorpo(dias, pesos) {
+  const anot = (dias || []).filter((d) => d.status && d.status.id !== "vazio");
+  if (anot.length < 14) return null;
+  const ini = new Date(anot[0].d + "T12:00:00").getTime(), fim = new Date(anot[anot.length - 1].d + "T12:00:00").getTime();
+  const l = (pesos || []).filter((p) => p && p.kg > 20 && p.t >= ini - 2 * 864e5 && p.t <= fim + 864e5);
+  if (l.length < 3) return null;
+  const span = (Math.max.apply(null, l.map((p) => p.t)) - Math.min.apply(null, l.map((p) => p.t))) / 864e5;
+  if (span < 10) return null;
+  // a reta que melhor passa pelas pesagens (mínimos quadrados): sem o atraso
+  // da média móvel, e um dia de água a mais não muda a inclinação
+  const mx = l.reduce((a, p) => a + p.t, 0) / l.length, my = l.reduce((a, p) => a + p.kg, 0) / l.length;
+  let num = 0, den = 0;
+  l.forEach((p) => { num += (p.t - mx) * (p.kg - my); den += (p.t - mx) * (p.t - mx); });
+  if (!den) return null;
+  const kgPorDia = (num / den) * 864e5;
+  const media = anot.reduce((s, d) => s + d.comeu, 0) / anot.length;
+  const kcal = Math.round(media - kgPorDia * KCAL_POR_KG);
+  if (kcal < 1100 || kcal > 6000) return null;
+  return { kcal: kcal, dias: anot.length, span: Math.round(span) };
+}
+// O que a pessoa está fazendo de verdade, pelo saldo médio dos dias anotados
+function faseReal(dias, kg) {
+  const julg = (dias || []).filter((d) => d.status && d.status.id !== "vazio" && d.gasto);
+  if (julg.length < 2) return null;
+  const media = Math.round(julg.reduce((a, d) => a + (d.comeu - d.gasto.total), 0) / julg.length);
+  const kgSemana = Math.round((media * 7 / KCAL_POR_KG) * 100) / 100;
+  const id = media > 100 ? "bulking" : media < -100 ? "cutting" : "manutencao";
+  const nomes = { bulking: "BULKING (superávit)", cutting: "CUTTING (déficit)", manutencao: "MANUTENÇÃO" };
+  return { id: id, nome: nomes[id], media: media, kgSemana: kgSemana, dias: julg.length, pctPeso: kg ? Math.round((kgSemana / kg) * 1000) / 10 : null };
+}
+// A noite que terminou no dia (a do Health Connect, ou a digitada)
+function sonoDoDia(sono, dia, manual) {
+  let ms = 0;
+  (sono || []).forEach((x) => { if (x && x.fim && diaLocal(x.fim) === dia) ms += x.fim - x.ini; });
+  if (ms > 0) return { h: Math.round((ms / 3600000) * 10) / 10, fonte: "relogio" };
+  if (manual > 0) return { h: manual, fonte: "manual" };
+  return null;
+}
+function conselhoSono(h, objetivo) {
+  if (!h) return null;
+  if (h < 6) return objetivo === "perder"
+    ? "Menos de 6 h: num estudo com dieta, quem dormiu 5,5 h perdeu metade do peso em músculo, em vez de gordura. Hoje, priorize dormir mais cedo."
+    : "Menos de 6 h: a fome aumenta (mais grelina, menos leptina) e o treino rende menos. Hoje, priorize dormir mais cedo.";
+  if (h < 7) return "Entre 6 e 7 h: dá para melhorar. Com sono curto a fome sobe; tente deitar 30 min antes.";
+  return "Sono em dia (7 h ou mais): é quando o músculo se recupera e a fome fica sob controle.";
+}
+// A semana e o mês: quantos dias acertaram, passaram ou faltaram
+function resumoDias(dias) {
+  const r = { certo: 0, perto: 0, errou: 0, vazio: 0, comeu: 0, meta: 0, julgados: 0 };
+  (dias || []).forEach((d) => {
+    const id = d.status ? d.status.id : "vazio";
+    r[id] = (r[id] || 0) + 1;
+    if (id !== "vazio") { r.julgados++; r.comeu += d.comeu; r.meta += d.meta ? d.meta.k : 0; }
+  });
+  r.acerto = r.julgados ? Math.round(((r.certo + r.perto * 0.5) / r.julgados) * 100) : null;
+  r.saldo = Math.round(r.comeu - r.meta);
+  return r;
+}
+// A refeição pela hora
+function refeicaoDaHora(t) {
+  const d = new Date(t), h = d.getHours() + d.getMinutes() / 60;
+  return (REFEICOES_BALANCE.find((r) => h < r.ate) || REFEICOES_BALANCE[REFEICOES_BALANCE.length - 1]).id;
+}
+// O prato pela foto: cada alimento com a fração do prato que ocupa vira gramas
+// (método do prato). Fotos enganam para menos (os apps de foto erraram 250 a
+// 345 kcal por refeição no teste do NIH de 2026): óleo e molho entram à parte.
+const TAMANHOS_PRATO = [{ id: "p", nome: "Pequeno", f: 0.7 }, { id: "m", nome: "Médio", f: 1 }, { id: "g", nome: "Grande (cheio)", f: 1.35 }];
+function itensDoPrato(partes, tamanho, comOleo) {
+  const f = (TAMANHOS_PRATO.find((x) => x.id === tamanho) || TAMANHOS_PRATO[1]).f;
+  const itens = [];
+  (partes || []).forEach((p) => {
+    const a = ALIMENTOS_BR.find((x) => x.id === p.id);
+    if (!a || !a.gPrato || !(p.fr > 0)) return;
+    const gramas = a.gPrato * p.fr * f;
+    itens.push(itemDeAlimento(a, gramas / a.gr, "foto"));
+  });
+  if (comOleo && itens.length) itens.push(itemDeAlimento(ALIMENTOS_BR.find((x) => x.id === "azeite"), comOleo, "foto"));
+  return itens;
+}
+function itemDeAlimento(a, q, de) {
+  return { a: a.id, n: a.nome, ic: a.ic, q: Math.round(q * 100) / 100, k: a.k, p: a.p, c: a.c, g: a.g, alc: a.alc || 0, liq: a.liq || 0, por: a.por, de: de || "app" };
+}
+// O que vem do relógio (#comida=): conferido campo a campo, como todo link
+function lerPacoteComida(texto, decodificar) {
+  let p;
+  try { p = JSON.parse(decodificar(b64UrlParaPadrao(texto))); } catch (e) { return null; }
+  const ev = Array.isArray(p && p.ev) ? p.ev : [];
+  const num = (x, mn, mx) => (typeof x === "number" && isFinite(x) && x >= mn && x <= mx ? x : 0);
+  return ev.slice(0, 200).map((e) => ({
+    k: typeof (e && e.k) === "string" ? e.k.slice(0, 40) : "",
+    t: num(e && e.t, 946684800000, 4102444800000),
+    tipo: e && (e.tipo === "agua" || e.tipo === "desfazer") ? e.tipo : "comida",
+    a: typeof (e && e.a) === "string" ? e.a.slice(0, 40) : "",
+    ref: typeof (e && e.ref) === "string" ? e.ref.slice(0, 40) : "",
+    ml: num(e && e.ml, 0, 3000),
+    q: num(e && e.q, 0.1, 20) || 1,
+  })).filter((e) => e.k && e.t && (e.tipo === "agua" ? e.ml > 0 : e.tipo === "desfazer" ? !!e.ref : !!ALIMENTOS_BR.find((x) => x.id === e.a)));
+}
+// Põe no dia certo o que veio do relógio, uma vez só (vistos)
+function aplicarComidaDoRelogio(nut, eventos) {
+  const vistos = new Set(nut.vistos || []);
+  const dias = Object.assign({}, nut.dias || {});
+  let n = 0;
+  (eventos || []).forEach((e) => {
+    if (vistos.has(e.k)) return;
+    vistos.add(e.k);
+    if (e.tipo === "desfazer") {
+      // o relógio desfez um toque que já tinha mandado: some de qualquer dia
+      Object.keys(dias).forEach((dd) => {
+        const x = dias[dd];
+        const ag = (x.aguaEv || []).find((w) => w.k === e.ref);
+        const tinha = (x.itens || []).some((it) => it.id === e.ref);
+        if (!ag && !tinha) return;
+        dias[dd] = Object.assign({}, x, {
+          itens: (x.itens || []).filter((it) => it.id !== e.ref),
+          agua: ag ? Math.max(0, numB(x.agua) - ag.ml) : x.agua,
+          aguaEv: (x.aguaEv || []).filter((w) => w.k !== e.ref),
+        });
+      });
+      n++;
+      return;
+    }
+    const d = diaLocal(e.t);
+    const dia = Object.assign({ itens: [], agua: 0 }, dias[d] || {});
+    if (e.tipo === "agua") { dia.agua = numB(dia.agua) + e.ml; dia.aguaEv = (dia.aguaEv || []).concat([{ k: e.k, ml: e.ml }]).slice(-60); }
+    else {
+      const a = ALIMENTOS_BR.find((x) => x.id === e.a);
+      dia.itens = (dia.itens || []).concat([Object.assign(itemDeAlimento(a, e.q, "relogio"), { id: e.k, t: e.t, r: refeicaoDaHora(e.t) })]);
+    }
+    dias[d] = dia;
+    n++;
+  });
+  return { nut: Object.assign({}, nut, { dias: dias, vistos: Array.from(vistos).slice(-400) }), n: n };
+}
+// ---------------- FIM DO BODY BALANCE ----------------
 
 // O que a tela de Saúde mostra. A noite de sono pertence ao dia em que a
 // pessoa acordou: quem dormiu de domingo para segunda dormiu "na segunda".
@@ -10562,6 +11050,7 @@ const TRACOS_ICONE = {
   haltere: ["M6.8 7v10", "M17.2 7v10", "M3.6 9.4v5.2", "M20.4 9.4v5.2", "M6.8 12h10.4"],
   prancheta: ["M8.6 4.4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-13a2 2 0 0 0-2-2h-1.6", "M9.4 3h5.2c.4 0 .8.4.8.8v1.4c0 .4-.4.8-.8.8H9.4c-.4 0-.8-.4-.8-.8V3.8c0-.4.4-.8.8-.8z", "M8.8 11.2h6.4", "M8.8 15h4.2"],
   historico: ["M3.6 12a8.4 8.4 0 1 0 2.5-6", "M3.4 3.8v4.4h4.4", "M12 7.6V12l3 1.9"],
+  balanca: ["M12 4.2v15.6", "M6.4 19.8h11.2", "M4.4 7.6h15.2", "M12 4.2a1.2 1.2 0 1 0 0 .1", "M4.4 7.6 2 13a2.6 2.6 0 0 0 4.8 0z", "M19.6 7.6 17.2 13a2.6 2.6 0 0 0 4.8 0z"],
   ajuda: ["M12 3.2a8.8 8.8 0 1 0 0 17.6 8.8 8.8 0 0 0 0-17.6z", "M9.5 9.4a2.6 2.6 0 0 1 5 .9c0 1.8-2.5 2.3-2.5 3.9"],
   sol: ["M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6z", "M12 2.6v2", "M12 19.4v2", "M2.6 12h2", "M19.4 12h2", "M5.4 5.4l1.4 1.4", "M17.2 17.2l1.4 1.4", "M5.4 18.6l1.4-1.4", "M17.2 6.8l1.4-1.4"],
   lua: ["M19.8 14.6A8.2 8.2 0 0 1 9.4 4.2a8.2 8.2 0 1 0 10.4 10.4z"],
@@ -21311,6 +21800,45 @@ function LegendaRitmo({ faixas, pedala }) {
   );
 }
 
+// ---- O vigia do GPS (2026-11-25a, relato do dono: "aperto Começar na corrida de
+// rua e não acontece nada"). Três defeitos somados: (1) o watchPosition tinha
+// timeout de 30 s, e quando o GPS demorava (lugar fechado, celular acordando o
+// GPS) a tela marcava erro e o Começar ficava DESATIVADO até a primeira posição;
+// (2) sem posição, o Começar só deixava um aviso, e nada começava; (3) os outros
+// três que usam o GPS (desafio, intervalado e Monster Run na rua) engoliam o
+// erro calados. O vigia religa o GPS sozinho quando ele demora (o Chrome do
+// Android pode largar o watch depois de um timeout), pede uma posição rápida
+// pela rede para o mapa aparecer logo (marcada como "grossa": não entra no
+// percurso, o filtro de 35 m já a recusaria), e diz o motivo de cada falha.
+const GPS_ESPERA_MS = 45000;
+function textoErroGps(e) {
+  if (!e) return "";
+  if (e.code === 1) return "Sem permissão de localização. No celular: Configurações › Apps › Chrome › Permissões › Localização › Permitir (e no site, o cadeado ao lado do endereço › Localização).";
+  if (e.code === 2) return "O celular não está entregando a localização. Confira se a Localização está ligada (puxe a barra do alto da tela) e se o modo é de alta precisão.";
+  return "O GPS ainda não achou você. Em lugar aberto, longe de prédios, ele acha em poucos segundos. Pode começar: a distância entra assim que ele achar.";
+}
+function vigiarGps(aoLer, aoErro, opcoes) {
+  if (typeof navigator === "undefined" || !navigator.geolocation) { if (aoErro) aoErro({ code: 2, semGps: true }); return () => {}; }
+  let id = null, vivo = true, religar = null;
+  const ligar = () => {
+    if (!vivo) return;
+    try { if (id !== null) navigator.geolocation.clearWatch(id); } catch (e) { /* segue */ }
+    id = navigator.geolocation.watchPosition((pos) => { if (vivo) aoLer(pos); }, (e) => {
+      if (!vivo) return;
+      if (aoErro) aoErro(e);
+      // a permissão negada não volta sozinha; o resto, religa
+      if (e.code !== 1) { clearTimeout(religar); religar = setTimeout(ligar, 3000); }
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: GPS_ESPERA_MS });
+  };
+  ligar();
+  if (opcoes && opcoes.rapida) {
+    try {
+      navigator.geolocation.getCurrentPosition((pos) => { if (vivo) aoLer(pos, true); }, () => {},
+        { enableHighAccuracy: false, maximumAge: 120000, timeout: 15000 });
+    } catch (e) { /* segue */ }
+  }
+  return () => { vivo = false; clearTimeout(religar); try { if (id !== null) navigator.geolocation.clearWatch(id); } catch (e) { /* segue */ } };
+}
 function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, onSalvar, onVoltar, historico,
   bpm, onConectarCardio, corredor, onPainel, onZumbi, onIntervalado, onDesafio }) {
   const [modo, setModo] = useState("corrida-rua");
@@ -21330,6 +21858,7 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
   const saltos = useRef(0);
   const leitura = useRef(null);
   const faseRef = useRef("preparo");
+  const esperaGps = useRef(false);
   const seguirRef = useRef(true);
   const mapaRef = useRef(null);
   const divRef = useRef(null);
@@ -21407,14 +21936,23 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
 
   // ---- cada leitura do GPS ----
   const lerRef = useRef(() => {});
-  lerRef.current = (pos) => {
+  lerRef.current = (pos, grossa) => {
     const c = pos.coords;
     const p = { lat: c.latitude, lng: c.longitude, acc: c.accuracy, alt: c.altitude === null || c.altitude === undefined ? null : c.altitude, t: Date.now() };
+    // a posição rápida pela rede só põe o mapa no lugar: não vale como ponto
+    if (grossa) { if (!leitura.current) { desenharPosicao(p); if (!local) procurarLugar(p, 0); } return; }
     leitura.current = p;
     setGps(Math.round(p.acc));
     setErroGps("");
     desenharPosicao(p);
     if (faseRef.current !== "rodando") return;
+    if (!pts.current.length && esperaGps.current) {
+      esperaGps.current = false;
+      if (som) beep(1200, 0.12, 0.2);
+      falar("GPS achou você. A distância está contando.");
+      setAviso("");
+      procurarLugar(p, 0, "inicio");
+    }
     p.seg = seg.current;
     const lista = pts.current;
     const ult = lista.length && lista[lista.length - 1].seg === p.seg ? lista[lista.length - 1] : null;
@@ -21447,15 +21985,11 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
     }
     if (r.m - geo.current.m >= 400 && Date.now() - geo.current.t > 30000) procurarLugar(p, r.m);
   };
-  useEffect(() => {
-    if (!navigator.geolocation) { setErroGps("Este navegador não tem acesso ao GPS."); return; }
-    const id = navigator.geolocation.watchPosition((pos) => lerRef.current(pos), (e) => {
-      setErroGps(e.code === 1
-        ? "Sem permissão de localização. Libere a localização para este site nas configurações do navegador."
-        : "O GPS ainda não respondeu. Em lugar aberto ele acha mais rápido.");
-    }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
-    return () => navigator.geolocation.clearWatch(id);
-  }, []);
+  const [tentativaGps, setTentativaGps] = useState(0);
+  useEffect(() => vigiarGps((pos, grossa) => lerRef.current(pos, grossa), (e) => {
+    if (e.semGps) { setErroGps("Este navegador não tem acesso ao GPS."); return; }
+    if (!leitura.current || e.code === 1) setErroGps(textoErroGps(e));
+  }, { rapida: true }), [tentativaGps]);
 
   // o relógio corre entre um ponto e outro
   useEffect(() => {
@@ -21501,9 +22035,13 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
   }, [fase]);
 
   const comecar = () => {
-    const p0 = leitura.current;
-    if (!p0) { setAviso("Esperando o GPS achar você. Em lugar aberto leva alguns segundos."); return; }
-    pts.current = [Object.assign({}, p0, { t: Date.now(), seg: 0 })];
+    // Começa sempre (2026-11-25a): sem posição, o relógio já anda e o primeiro
+    // ponto entra quando o GPS achar a pessoa. Posição velha ou imprecisa não
+    // vira o primeiro ponto.
+    const ult = leitura.current;
+    const p0 = ult && Date.now() - ult.t < 15000 && ult.acc <= ROTA_PRECISAO_MAX * 2 ? ult : null;
+    esperaGps.current = !p0;
+    pts.current = p0 ? [Object.assign({}, p0, { t: Date.now(), seg: 0 })] : [];
     seg.current = 0; saltos.current = 0; kmFalado.current = 0; boletimR.current = null;
     passos.current = criarContadorPassos();
     fcAmostras.current = [];
@@ -21517,13 +22055,14 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
     lugares.current = { ruas: [], bairros: [] };
     inicio.current = Date.now();
     if (linhaRef.current) linhaRef.current.setLatLngs([]);
-    setAviso(p0.acc > ROTA_PRECISAO_MAX ? "O GPS ainda está impreciso (±" + Math.round(p0.acc) + " m). Os primeiros metros podem ficar de fora." : "");
+    setAviso(!p0 ? "Começou! O GPS ainda está procurando você: o tempo já conta, e a distância entra assim que ele achar (em lugar aberto, poucos segundos)."
+      : p0.acc > ROTA_PRECISAO_MAX ? "O GPS ainda está impreciso (±" + Math.round(p0.acc) + " m). Os primeiros metros podem ficar de fora." : "");
     setSeguir(true);
     setFase("rodando");
     ligarTravaTela();
     if (som) beep(1200, 0.15, 0.25);
-    falar(mod.nome + " começou. Bom treino.");
-    procurarLugar(p0, 0, "inicio");
+    falar(mod.nome + " começou. Bom treino." + (p0 ? "" : " O GPS ainda está procurando você."));
+    if (p0) procurarLugar(p0, 0, "inicio");
   };
   const pausar = () => { setFase("pausado"); falar("Pausado."); };
   const continuar = () => {
@@ -21696,6 +22235,7 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
           {erroMapa || (local ? "📍 " + local.curto + (local.regiao && local.regiao !== local.curto ? " — " + local.regiao : "") : "📍 procurando onde você está...")}
           <div style={{ fontSize: 11, marginTop: 2, color: erroGps ? "var(--perigo)" : gps !== null && gps > ROTA_PRECISAO_MAX ? "var(--obs)" : "var(--cinza2)" }}>
             {erroGps || (gps === null ? "Ligando o GPS..." : "GPS: precisão de ±" + gps + " m" + (gps > ROTA_PRECISAO_MAX ? " — ainda impreciso" : ""))}
+            {fase === "rodando" && !pts.current.length ? " · ⏳ esperando a primeira posição" : ""}
           </div>
         </div>
       </div>
@@ -21720,9 +22260,14 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
               </button>
             ))}
           </div>
-          <button onClick={comecar} style={{ ...S.btn, width: "100%", fontSize: 17 }} disabled={!!erroGps && !leitura.current}>
+          <button onClick={comecar} style={{ ...S.btn, width: "100%", fontSize: 17 }}>
             ▶ Começar
           </button>
+          {erroGps && !leitura.current && (
+            <button onClick={() => { setErroGps(""); setTentativaGps((n) => n + 1); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8, fontSize: 13, fontWeight: 800 }}>
+              🔄 Procurar o GPS de novo
+            </button>
+          )}
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
             {onConectarCardio && (
               <button onClick={onConectarCardio} style={{ ...S.btnGhost, flex: 1, fontSize: 13, fontWeight: 800, color: bpm ? "var(--ok)" : "var(--texto)", borderColor: bpm ? "var(--ok)" : "var(--borda2)" }}>
@@ -23120,8 +23665,7 @@ function TelaZumbi({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, onVivo
   };
   useEffect(() => {
     if (etapa !== "sessao" || cfgFinal.fonte !== "gps" || !navigator.geolocation) return;
-    const id = navigator.geolocation.watchPosition(lerGps, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
-    return () => navigator.geolocation.clearWatch(id);
+    return vigiarGps(lerGps, null);
   }, [etapa]);
   useEffect(() => {
     if (etapa !== "sessao" || cfgFinal.fonte !== "passos") return;
@@ -24175,8 +24719,7 @@ function TelaIntervalado({ historico, exPorId, vozCfg, som, onSalvar, onVoltar, 
   };
   useEffect(() => {
     if (etapa !== "sessao" || esteira || !navigator.geolocation) return;
-    const id = navigator.geolocation.watchPosition(lerGps, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
-    return () => navigator.geolocation.clearWatch(id);
+    return vigiarGps(lerGps, null);
   }, [etapa]);
   const kmhAgora = () => { const u = ultimaPos.current; return u && Date.now() - u.t < 6000 ? u.kmh : null; };
   useEffect(() => {
@@ -26755,8 +27298,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
   };
   useEffect(() => {
     if (etapa !== "corrida" || esteira || !navigator.geolocation || condR.current) return;
-    const id = navigator.geolocation.watchPosition(lerGps, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
-    return () => navigator.geolocation.clearWatch(id);
+    return vigiarGps(lerGps, null);
   }, [etapa]);
 
   useEffect(() => {
@@ -36088,6 +36630,725 @@ function CartaoRetrospectiva({ historico, exPorId, onAbrir, onDepois }) {
   );
 }
 
+
+// ---------------- JARVIS BODY BALANCE: A TELA ----------------
+// O corpo que enche: as camadas por cor, de baixo para cima (proteína,
+// carboidrato, gordura, outros). Cheio até a cabeça = a meta do dia; passou,
+// o contorno acende em vermelho e o que sobrou aparece em cima.
+const CORPO_PARTES = [
+  { t: "c", cx: 60, cy: 25, r: 17 },
+  { t: "r", x: 53, y: 40, w: 14, h: 10, rx: 4 },
+  { t: "r", x: 33, y: 48, w: 54, h: 92, rx: 18 },
+  { t: "r", x: 17, y: 52, w: 15, h: 88, rx: 7.5 },
+  { t: "r", x: 88, y: 52, w: 15, h: 88, rx: 7.5 },
+  { t: "r", x: 36, y: 128, w: 22, h: 124, rx: 10 },
+  { t: "r", x: 62, y: 128, w: 22, h: 124, rx: 10 },
+];
+const CORPO_TOPO = 8, CORPO_BASE = 252;
+function FormaCorpo(props) {
+  return CORPO_PARTES.map((p, i) => p.t === "c"
+    ? <circle key={i} cx={p.cx} cy={p.cy} r={p.r} {...props} />
+    : <rect key={i} x={p.x} y={p.y} width={p.w} height={p.h} rx={p.rx} {...props} />);
+}
+function CorpoBalance({ id, camadas, cheio, passou, titulo, valor, sub, corBorda }) {
+  const alt = CORPO_BASE - CORPO_TOPO;
+  const nivel = Math.max(0, Math.min(1, cheio));
+  let y = CORPO_BASE;
+  const total = camadas.reduce((a, c) => a + c.v, 0) || 1;
+  const faixas = camadas.filter((c) => c.v > 0).map((c, i) => {
+    const h = (c.v / total) * nivel * alt;
+    y -= h;
+    return <rect key={i} x="0" y={y} width="120" height={h + 0.6} fill={c.cor} />;
+  });
+  const topo = CORPO_BASE - nivel * alt;
+  const borda = passou ? "#FF4D6D" : corBorda || "#E1306C";
+  return (
+    <div style={{ textAlign: "center", flex: 1, minWidth: 0 }}>
+      <div className={passou ? "bb-passou" : ""} style={{ position: "relative", display: "inline-block" }}>
+        <svg viewBox="0 0 120 260" style={{ width: "100%", maxWidth: 150, height: "auto", display: "block", filter: "drop-shadow(0 0 14px " + borda + "66)" }} aria-hidden="true">
+          <defs>
+            <clipPath id={"bb-" + id}><FormaCorpo /></clipPath>
+            <linearGradient id={"bbv-" + id} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#ffffff" stopOpacity="0.28" /><stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <g clipPath={"url(#bb-" + id + ")"}>
+            <rect x="0" y="0" width="120" height="260" fill="#120a24" />
+            <g className="bb-enche">{faixas}</g>
+            {nivel > 0.01 && (
+              <g style={{ transform: "translateY(" + (topo - 4) + "px)" }}>
+                <path className="bb-onda" d="M-120 4 Q-105 0 -90 4 T-60 4 T-30 4 T0 4 T30 4 T60 4 T90 4 T120 4 T150 4 T180 4 T210 4 T240 4 V10 H-120 Z" fill="#ffffff" opacity="0.32" />
+              </g>
+            )}
+            <rect x="0" y="0" width="120" height="260" fill={"url(#bbv-" + id + ")"} />
+            {/* os pontinhos de LED por cima do que encheu */}
+            {Array.from({ length: 32 }, (_, k) => <rect key={k} x="0" y={k * 8 + 6} width="120" height="1.6" fill="#000" opacity="0.22" />)}
+          </g>
+          <FormaCorpo fill="none" stroke={borda} strokeWidth="2.2" />
+          <line x1="8" x2="112" y1={CORPO_TOPO} y2={CORPO_TOPO} stroke={passou ? "#FF4D6D" : "#FFD23F"} strokeWidth="1.6" strokeDasharray="4 3" />
+        </svg>
+        <div style={{ position: "absolute", top: -2, left: 0, right: 0, fontSize: 8.5, fontWeight: 900, letterSpacing: 1, color: passou ? "#FF4D6D" : "#FFD23F" }}>META</div>
+      </div>
+      <div style={{ ...ROTULO_RESUMO, fontSize: 10.5, marginTop: 6 }}>{titulo}</div>
+      <div style={{ fontFamily: FONTE_JOGO, fontSize: 20, lineHeight: 1.15, color: passou ? "#FF4D6D" : "var(--texto)" }}>{valor}</div>
+      {sub && <div style={{ fontSize: 11.5, color: "var(--cinza)" }}>{sub}</div>}
+    </div>
+  );
+}
+function BarraMacro({ nome, cor, v, meta, un }) {
+  const f = meta ? Math.min(1.2, v / meta) : 0;
+  return (
+    <div style={{ marginBottom: 7 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 800 }}>
+        <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 3, background: cor, marginRight: 6 }} />{nome}</span>
+        <span style={{ color: v > meta * 1.1 ? "#FF4D6D" : "var(--cinza)" }}>{Math.round(v)} / {meta} {un || "g"}</span>
+      </div>
+      <div style={{ height: 7, borderRadius: 4, background: "var(--borda)", overflow: "hidden", marginTop: 3 }}>
+        <div style={{ width: Math.min(100, f * 100) + "%", height: "100%", background: cor, boxShadow: "0 0 8px " + cor, transition: "width .6s" }} />
+      </div>
+    </div>
+  );
+}
+const fmtKcal = (n) => Math.round(n).toLocaleString("pt-BR");
+const fmtLitros = (ml) => (ml / 1000).toFixed(1).replace(".", ",") + " L";
+
+// A janela de anotar: buscar, foto do prato, manual e água
+function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
+  const [aba, setAba] = useState(aba0 || "buscar");
+  const [busca, setBusca] = useState("");
+  const [escolhido, setEscolhido] = useState(null);
+  const [q, setQ] = useState(1);
+  const [foto, setFoto] = useState(null);
+  const [partes, setPartes] = useState({});
+  const [tam, setTam] = useState("m");
+  const [oleo, setOleo] = useState(0);
+  const [man, setMan] = useState({ n: "", k: "", p: "", c: "", g: "" });
+  const [ml, setMl] = useState("");
+  useEffect(() => () => { if (foto) URL.revokeObjectURL(foto); }, [foto]);
+  const lista = useMemo(() => {
+    const b = semAcento(busca.trim());
+    if (!b) {
+      const rec = (recentes || []).map((id) => ALIMENTOS_BR.find((a) => a.id === id)).filter(Boolean);
+      const resto = ALIMENTOS_BR.filter((a) => rec.indexOf(a) < 0);
+      return rec.concat(resto);
+    }
+    const pal = b.split(/\s+/);
+    return ALIMENTOS_BR.filter((a) => pal.every((p) => semAcento(a.nome + " " + a.cat).indexOf(p) >= 0));
+  }, [busca, recentes]);
+  const doPrato = ALIMENTOS_BR.filter((a) => a.gPrato > 0);
+  const itensPrato = itensDoPrato(Object.keys(partes).map((id) => ({ id: id, fr: partes[id] })), tam, oleo);
+  const kPrato = itensPrato.reduce((a, it) => a + valorItem(it).k, 0);
+  const abaBtn = (id, rot) => (
+    <button key={id} onClick={() => setAba(id)} style={{ flex: 1, padding: "9px 4px", borderRadius: 10, border: "1px solid " + (aba === id ? "#E1306C" : "var(--borda2)"),
+      background: aba === id ? "#E1306C22" : "transparent", color: aba === id ? "#E1306C" : "var(--texto)", fontWeight: 900, fontSize: 12.5, cursor: "pointer" }}>{rot}</button>
+  );
+  const FRACOES = [[0.125, "⅛"], [0.25, "¼"], [0.33, "⅓"], [0.5, "½"], [0.75, "¾"]];
+  return (
+    <div role="dialog" aria-modal="true" onClick={onFechar} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(5,3,16,.8)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...S.card, width: "100%", maxWidth: 520, maxHeight: "92vh", overflowY: "auto", margin: 0, borderRadius: "20px 20px 0 0", padding: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ ...S.logo, fontSize: 18 }}>Anotar</div>
+          <button onClick={onFechar} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 14px" }}>✕</button>
+        </div>
+        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+          {abaBtn("buscar", "🔎 Buscar")}{abaBtn("foto", "📷 Foto")}{abaBtn("manual", "✏️ Manual")}{abaBtn("agua", "💧 Água")}
+        </div>
+
+        {aba === "buscar" && !escolhido && (
+          <div>
+            <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Arroz, frango, banana, whey..." style={{ ...S.input, width: "100%", marginBottom: 8 }} />
+            {!busca && recentes && recentes.length > 0 && <div style={{ ...S.label, marginBottom: 6 }}>Os que você mais usa vêm primeiro</div>}
+            <div style={{ display: "grid", gap: 6 }}>
+              {lista.slice(0, 60).map((a) => (
+                <button key={a.id} onClick={() => { setEscolhido(a); setQ(1); }} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", padding: "10px 12px",
+                  borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card2, transparent)", color: "var(--texto)", cursor: "pointer" }}>
+                  <span style={{ fontSize: 22 }}>{a.ic}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontWeight: 800, fontSize: 14 }}>{a.nome}</span>
+                    <span style={{ display: "block", fontSize: 11.5, color: "var(--cinza)" }}>{a.por}</span>
+                  </span>
+                  <span style={{ fontWeight: 900, fontSize: 13 }}>{a.k} kcal</span>
+                </button>
+              ))}
+              {!lista.length && <div style={{ fontSize: 13, color: "var(--cinza)" }}>Não achei. Use a aba ✏️ Manual com o número do rótulo.</div>}
+            </div>
+          </div>
+        )}
+        {aba === "buscar" && escolhido && (() => {
+          const v = valorItem(itemDeAlimento(escolhido, q));
+          return (
+            <div>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10 }}>
+                <span style={{ fontSize: 40 }}>{escolhido.ic}</span>
+                <div><div style={{ fontWeight: 900, fontSize: 16 }}>{escolhido.nome}</div><div style={{ fontSize: 12, color: "var(--cinza)" }}>1 porção = {escolhido.por}</div></div>
+              </div>
+              <div style={{ ...S.label, marginBottom: 6 }}>Quantas porções?</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+                {[0.5, 1, 1.5, 2, 3, 4].map((x) => (
+                  <button key={x} onClick={() => setQ(x)} style={{ padding: "9px 14px", borderRadius: 10, fontWeight: 900, cursor: "pointer",
+                    border: "1px solid " + (q === x ? "#E1306C" : "var(--borda2)"), background: q === x ? "#E1306C22" : "transparent", color: q === x ? "#E1306C" : "var(--texto)" }}>
+                    {String(x).replace(".", ",")}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "space-around", marginBottom: 12, fontSize: 12.5, fontWeight: 800 }}>
+                <span style={{ fontFamily: FONTE_JOGO, fontSize: 22 }}>{v.k} kcal</span>
+                <span style={{ color: CORES_BALANCE.p }}>P {v.p}g</span><span style={{ color: CORES_BALANCE.c }}>C {v.c}g</span><span style={{ color: CORES_BALANCE.g }}>G {v.g}g</span>
+              </div>
+              <button onClick={() => onAdd([itemDeAlimento(escolhido, q)])} style={{ ...S.btn, width: "100%" }}>+ Adicionar</button>
+              <button onClick={() => setEscolhido(null)} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>← Outro alimento</button>
+            </div>
+          );
+        })()}
+
+        {aba === "foto" && (
+          <div>
+            <label style={{ ...S.btnGhost, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", cursor: "pointer", marginBottom: 10, boxSizing: "border-box" }}>
+              📷 {foto ? "Tirar outra foto" : "Fotografar o prato"}
+              <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+                onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) { if (foto) URL.revokeObjectURL(foto); setFoto(URL.createObjectURL(f)); } }} />
+            </label>
+            {foto && <img src={foto} alt="O prato" style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 14, marginBottom: 10, border: "1px solid var(--borda2)" }} />}
+            <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 10 }}>
+              Olhando a foto, toque no que tem no prato e diga quanto do prato cada um ocupa: o app converte em gramas pelo
+              método do prato. É uma estimativa: no teste do NIH (2026), até os apps de foto com inteligência artificial erraram
+              250 a 345 kcal para menos por refeição, quase sempre na gordura. Por isso marque o óleo e o molho.
+            </div>
+            <div style={{ ...S.label, marginBottom: 6 }}>Tamanho do prato</div>
+            <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+              {TAMANHOS_PRATO.map((t) => (
+                <button key={t.id} onClick={() => setTam(t.id)} style={{ flex: 1, padding: "8px 4px", borderRadius: 10, fontWeight: 800, fontSize: 12.5, cursor: "pointer",
+                  border: "1px solid " + (tam === t.id ? "#E1306C" : "var(--borda2)"), background: tam === t.id ? "#E1306C22" : "transparent", color: tam === t.id ? "#E1306C" : "var(--texto)" }}>{t.nome}</button>
+              ))}
+            </div>
+            <div style={{ ...S.label, marginBottom: 6 }}>O que tem no prato?</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 10 }}>
+              {doPrato.map((a) => {
+                const on = partes[a.id] > 0;
+                return (
+                  <div key={a.id} style={{ borderRadius: 12, border: "1px solid " + (on ? "#4DEBFF" : "var(--borda2)"), background: on ? "#4DEBFF14" : "transparent", padding: 6 }}>
+                    <button onClick={() => setPartes((p) => { const n = { ...p }; if (n[a.id]) delete n[a.id]; else n[a.id] = 0.25; return n; })}
+                      style={{ width: "100%", background: "none", border: "none", color: "var(--texto)", fontWeight: 800, fontSize: 12.5, textAlign: "left", cursor: "pointer", padding: 2 }}>
+                      {a.ic} {a.nome}
+                    </button>
+                    {on && (
+                      <div style={{ display: "flex", gap: 3, marginTop: 4 }}>
+                        {FRACOES.map(([f, r]) => (
+                          <button key={f} onClick={() => setPartes((p) => ({ ...p, [a.id]: f }))} style={{ flex: 1, padding: "4px 0", borderRadius: 7, fontWeight: 900, fontSize: 13, cursor: "pointer",
+                            border: "1px solid " + (partes[a.id] === f ? "#4DEBFF" : "var(--borda2)"), background: partes[a.id] === f ? "#4DEBFF33" : "transparent", color: "var(--texto)" }}>{r}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ ...S.label, marginBottom: 6 }}>Feito com óleo, manteiga ou molho?</div>
+            <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+              {[[0, "Não / pouco"], [0.5, "½ colher"], [1, "1 colher"], [2, "2 colheres"]].map(([v, r]) => (
+                <button key={v} onClick={() => setOleo(v)} style={{ flex: 1, padding: "8px 2px", borderRadius: 10, fontWeight: 800, fontSize: 12, cursor: "pointer",
+                  border: "1px solid " + (oleo === v ? "#B05BFF" : "var(--borda2)"), background: oleo === v ? "#B05BFF22" : "transparent", color: "var(--texto)" }}>{r}</button>
+              ))}
+            </div>
+            <div style={{ textAlign: "center", marginBottom: 10 }}>
+              <span style={{ fontFamily: FONTE_JOGO, fontSize: 26 }}>~{fmtKcal(kPrato)} kcal</span>
+              <div style={{ fontSize: 11.5, color: "var(--cinza)" }}>{itensPrato.map((it) => it.n.split(" (")[0] + " " + Math.round(ALIMENTOS_BR.find((a) => a.id === it.a).gr * it.q) + " g").join(" · ")}</div>
+            </div>
+            <button disabled={!itensPrato.length} onClick={() => onAdd(itensPrato)} style={{ ...S.btn, width: "100%", opacity: itensPrato.length ? 1 : 0.5 }}>+ Adicionar o prato</button>
+          </div>
+        )}
+
+        {aba === "manual" && (
+          <div>
+            <input value={man.n} onChange={(e) => setMan({ ...man, n: e.target.value })} placeholder="Nome (ex.: barra de proteína)" style={{ ...S.input, width: "100%", marginBottom: 8 }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {[["k", "kcal"], ["p", "Proteína (g)"], ["c", "Carboidrato (g)"], ["g", "Gordura (g)"]].map(([c, r]) => (
+                <label key={c} style={{ fontSize: 12, color: "var(--cinza)", fontWeight: 800 }}>{r}
+                  <input inputMode="decimal" value={man[c]} onChange={(e) => setMan({ ...man, [c]: e.target.value })} style={{ ...S.input, width: "100%", marginTop: 4 }} />
+                </label>
+              ))}
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", margin: "8px 0 10px" }}>Só as kcal já bastam: sem os macros, entra como "outros" no corpo.</div>
+            <button disabled={!(numB(man.k) > 0)} onClick={() => onAdd([{ n: man.n.trim() || "Anotado à mão", ic: "\u{1F37D}", q: 1, k: numB(man.k), p: numB(man.p), c: numB(man.c), g: numB(man.g), alc: 0, liq: 0, de: "manual" }])}
+              style={{ ...S.btn, width: "100%", opacity: numB(man.k) > 0 ? 1 : 0.5 }}>+ Adicionar</button>
+          </div>
+        )}
+
+        {aba === "agua" && (
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+              {[[200, "🥛 Copo 200 ml"], [300, "🥤 Copo grande 300 ml"], [500, "🍶 Garrafa 500 ml"], [1000, "💧 Garrafa 1 L"]].map(([v, r]) => (
+                <button key={v} onClick={() => onAdd([], v)} style={{ padding: "16px 6px", borderRadius: 14, border: "1px solid #35E0F066", background: "#35E0F014", color: "var(--texto)", fontWeight: 900, fontSize: 14, cursor: "pointer" }}>{r}</button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input inputMode="numeric" value={ml} onChange={(e) => setMl(e.target.value)} placeholder="Outro (ml)" style={{ ...S.input, flex: 1 }} />
+              <button disabled={!(numB(ml) > 0)} onClick={() => onAdd([], Math.min(3000, numB(ml)))} style={{ ...S.btn, padding: "10px 16px" }}>+ ml</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// As barras da semana: o que comeu contra a meta, na cor do acerto
+function GraficoSemanaBalance({ dias }) {
+  const max = Math.max(1, ...dias.map((d) => Math.max(d.comeu || 0, d.meta ? d.meta.k : 0))) * 1.12;
+  const NOMES = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
+  return (
+    <svg viewBox="0 0 320 150" style={{ width: "100%", height: "auto" }} aria-hidden="true">
+      {dias.map((d, i) => {
+        const x = 12 + i * 44, h = ((d.comeu || 0) / max) * 110, mh = d.meta ? (d.meta.k / max) * 110 : 0;
+        const cor = d.status ? d.status.cor : "var(--cinza2)";
+        return (
+          <g key={i}>
+            <rect x={x} y={120 - h} width="28" height={h} rx="5" fill={cor} opacity={d.futuro ? 0.15 : 0.9} style={{ filter: "drop-shadow(0 0 4px " + (d.status ? d.status.cor : "#0000") + ")" }} />
+            {mh > 0 && <line x1={x - 4} x2={x + 32} y1={120 - mh} y2={120 - mh} stroke="#FFD23F" strokeWidth="2" strokeDasharray="3 2" />}
+            <text x={x + 14} y="136" textAnchor="middle" fontSize="10" fill="var(--cinza)" fontWeight="800">{NOMES[i]}</text>
+            {d.comeu > 0 && <text x={x + 14} y={Math.max(10, 115 - h)} textAnchor="middle" fontSize="8.5" fill="var(--texto)" fontWeight="900">{Math.round(d.comeu / 100) / 10}k</text>}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pesoCorporal, medidas, corredor, avisar, pedirConfirmacao, onPercurso, onEsteira, sincronizarRelogio }) {
+  const [secao, setSecao] = useState("hoje");
+  const [janela, setJanela] = useState(null);
+  const [diaVer, setDiaVer] = useState(() => diaLocal(Date.now()));
+  const [festa, setFesta] = useState(false);
+  const [toast, setToast] = useState("");
+  const toastT = useRef(null);
+  const mostrar = (m) => { setToast(m); clearTimeout(toastT.current); toastT.current = setTimeout(() => setToast(""), 2200); };
+  useEffect(() => () => clearTimeout(toastT.current), []);
+  const estadoRelogio = useRef(null);
+  const perfilG = nutricao.perfil || {};
+  const kg = numB(perfilG.kg) || numB(pesoCorporal) || 0;
+  const idade = numB(perfilG.idade) || numB(corredor && corredor.idade) || 0;
+  const perfil = Object.assign({}, perfilG, { kg: kg, idade: idade });
+  const tmb = tmbMifflin(perfil);
+  perfil.tmb = tmb;
+  const completo = !!(tmb && perfil.objetivo);
+  const ob = OBJETIVOS_BALANCE.find((o) => o.id === perfil.objetivo) || OBJETIVOS_BALANCE[0];
+  const hoje = diaLocal(Date.now());
+  // a média das calorias ativas dos dias inteiros com o relógio (14 dias)
+  const mediaAtivas = useMemo(() => {
+    const l = ((saude && saude.dias) || []).filter((d) => d.d !== hoje && d.kcal > 0).slice(-14);
+    return l.length >= 3 ? Math.round(l.reduce((a, d) => a + d.kcal, 0) / l.length) : 0;
+  }, [saude, hoje]);
+  const pesos = useMemo(() => {
+    const l = (medidas || []).filter((m) => numB(m.peso) > 0).map((m) => ({ t: new Date(m.data).getTime(), kg: numB(m.peso) }));
+    ((saude && saude.peso) || []).forEach((x) => l.push({ t: x.t, kg: x.kg }));
+    return l;
+  }, [medidas, saude]);
+  const calcDia = (d) => {
+    const dia = (nutricao.dias || {})[d] || { itens: [], agua: 0 };
+    const tot = totaisDoDia(dia);
+    const treino = kcalTreinosDoDia(historico, d, kg || 75, exPorId);
+    const sd = ((saude && saude.dias) || []).find((x) => x.d === d);
+    const gasto = tmb ? gastoDoDia({ tmb: tmb, comeu: tot.k, treino: treino, rotina: perfil.rotina, ativas: sd ? sd.kcal : 0, mediaAtivas: mediaAtivas, passos: sd ? sd.passos : 0, kg: kg, hoje: d === hoje }) : null;
+    return { d: d, dia: dia, tot: tot, comeu: tot.k, treino: treino, gasto: gasto };
+  };
+  // os últimos 35 dias, para a semana, o mês e o gasto pelo corpo
+  const ultimos = useMemo(() => {
+    const l = [];
+    for (let i = 34; i >= 0; i--) l.push(diaLocal(Date.now() - i * 864e5));
+    return l.map(calcDia);
+  }, [nutricao, historico, saude, kg, tmb, perfil.rotina, mediaAtivas]); // eslint-disable-line
+  const corpo = useMemo(() => {
+    const pre = ultimos.slice(0, -1).map((x) => { const m = x.gasto ? metaDoDia(perfil, x.gasto.total, kg, x.treino.min) : null; return Object.assign({}, x, { meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) }); });
+    return gastoPeloCorpo(pre.slice(-28), pesos);
+  }, [ultimos, pesos]); // eslint-disable-line
+  const comMeta = (x) => {
+    if (!x.gasto) return Object.assign({}, x, { meta: null, status: statusDoDia(0, null) });
+    const g = corpo ? Math.round(0.5 * x.gasto.total + 0.5 * (corpo.kcal + (x.gasto.treino || 0) * 0.3)) : x.gasto.total;
+    const m = metaDoDia(perfil, g, kg, x.treino.min);
+    return Object.assign({}, x, { gastoUsado: g, meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) });
+  };
+  const dias = ultimos.map(comMeta);
+  const atual = dias.find((x) => x.d === diaVer) || comMeta(calcDia(diaVer));
+  const ehHoje = diaVer === hoje;
+  const meta = atual.meta;
+  const t = atual.tot;
+  const pct = meta ? t.k / meta.k : 0;
+  const passou = pct > 1.0;
+  const macros = kcalMacros(t);
+  const recentes = useMemo(() => {
+    const cont = {};
+    Object.values(nutricao.dias || {}).forEach((d) => (d.itens || []).forEach((it) => { if (it.a) cont[it.a] = (cont[it.a] || 0) + 1; }));
+    return Object.keys(cont).sort((a, b) => cont[b] - cont[a]).slice(0, 10);
+  }, [nutricao]);
+  const tendencia = tendenciaPeso(pesos, Date.now());
+  const semana7 = dias.slice(-7);
+  const fase = faseReal(semana7, kg);
+  const plano = planoCompensacao(semana7.filter((d) => d.d !== hoje), perfil.objetivo, kg, meta ? Math.max(tmb || 0, perfil.sexo === "f" ? 1200 : 1500) : 0);
+  const compHoje = ehHoje && meta ? compensacaoDeHoje(t.k, meta, kg) : null;
+  const sono = sonoDoDia(saude && saude.sono, diaVer, numB(atual.dia.sono));
+  {
+    const h0 = dias[dias.length - 1];
+    const fav = recentes.filter((id) => { const a = ALIMENTOS_BR.find((x) => x.id === id); return a && !a.gPrato; }).concat(RAPIDOS_RELOGIO).filter((x, i, l) => l.indexOf(x) === i).slice(0, 10);
+    estadoRelogio.current = h0 && h0.meta ? { d: h0.d, k: h0.tot.k, meta: h0.meta.k, p: h0.tot.p, c: h0.tot.c, g: h0.tot.g, mp: h0.meta.p, mc: h0.meta.c, mg: h0.meta.g,
+      agua: h0.tot.agua, magua: h0.meta.agua, ob: ob.fase, fav: fav.map((id) => { const a = ALIMENTOS_BR.find((x) => x.id === id); return { a: a.id, n: a.nome.split(" (")[0], ic: a.ic, k: a.k, p: a.p, c: a.c, g: a.g, liq: a.liq || 0 }; }),
+      vistos: (nutricao.vistos || []).slice(-80) } : null;
+  }
+  const limiteAntes = useRef(null);
+  useEffect(() => {
+    if (!ehHoje || !meta) return;
+    const chegou = t.k >= meta.k * 0.98;
+    if (limiteAntes.current === false && chegou) { setFesta(true); setTimeout(() => setFesta(false), 3200); }
+    limiteAntes.current = chegou;
+  }, [t.k, meta && meta.k, ehHoje]); // eslint-disable-line
+
+  const mudarDia = (d, f) => setNutricao((n) => {
+    const dd = Object.assign({}, n.dias || {});
+    dd[d] = f(Object.assign({ itens: [], agua: 0 }, dd[d] || {}));
+    return Object.assign({}, n, { dias: dd });
+  });
+  const adicionar = (itens, aguaMl) => {
+    const agora = Date.now();
+    const quando = ehHoje ? agora : new Date(diaVer + "T12:00:00").getTime();
+    mudarDia(diaVer, (d) => Object.assign({}, d, {
+      itens: (d.itens || []).concat(itens.map((it, i) => Object.assign({}, it, { id: "b" + agora.toString(36) + i, t: quando, r: refeicaoDaHora(quando) }))),
+      agua: numB(d.agua) + (aguaMl || 0),
+    }));
+    setJanela(null);
+    mostrar(aguaMl ? "💧 +" + aguaMl + " ml" : "✓ " + (itens.length === 1 ? itens[0].n : itens.length + " alimentos") + " anotado" + (itens.length === 1 ? "" : "s"));
+    if (sincronizarRelogio && ehHoje) setTimeout(() => sincronizarRelogio(estadoRelogio.current), 120);
+  };
+  const tirar = (id) => mudarDia(diaVer, (d) => Object.assign({}, d, { itens: (d.itens || []).filter((x) => x.id !== id) }));
+  const mudarPerfil = (m) => setNutricao((n) => Object.assign({}, n, { perfil: Object.assign({}, n.perfil || {}, m) }));
+
+  const abaSec = (id, rot) => (
+    <button key={id} onClick={() => setSecao(id)} style={{ flex: 1, padding: "10px 4px", borderRadius: 12, cursor: "pointer", fontWeight: 900, fontSize: 13,
+      border: "1px solid " + (secao === id ? "transparent" : "var(--borda2)"), background: secao === id ? GRAD : "transparent", color: secao === id ? "#fff" : "var(--texto)" }}>{rot}</button>
+  );
+  const chip = (on, onClick, rot, cor) => (
+    <button onClick={onClick} style={{ padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 13,
+      border: "1px solid " + (on ? cor || "#E1306C" : "var(--borda2)"), background: on ? (cor || "#E1306C") + "22" : "transparent", color: on ? cor || "#E1306C" : "var(--texto)" }}>{rot}</button>
+  );
+
+  const perfilForm = (
+    <div style={S.card}>
+      <div style={{ ...S.label, marginBottom: 8 }}>Seu objetivo</div>
+      <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+        {OBJETIVOS_BALANCE.map((o) => (
+          <button key={o.id} onClick={() => mudarPerfil({ objetivo: o.id, ritmo: o.ritmo })} style={{ textAlign: "left", padding: "12px 14px", borderRadius: 14, cursor: "pointer",
+            border: "1px solid " + (perfil.objetivo === o.id ? "#E1306C" : "var(--borda2)"), background: perfil.objetivo === o.id ? "#E1306C18" : "transparent", color: "var(--texto)" }}>
+            <div style={{ fontWeight: 900, fontSize: 15 }}>{o.ic} {o.nome} <span style={{ fontSize: 10.5, color: "#4DEBFF", letterSpacing: 1 }}>{o.fase}</span></div>
+            <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 3, lineHeight: 1.4 }}>{o.diz}</div>
+          </button>
+        ))}
+      </div>
+      {ob.ritmos.length > 1 && perfil.objetivo && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ ...S.label, marginBottom: 6 }}>Ritmo ({ob.id === "perder" ? "perder" : "ganhar"} por semana)</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {ob.ritmos.map((r) => chip((perfil.ritmo || ob.ritmo) === r, () => mudarPerfil({ ritmo: r }), String(r).replace(".", ",") + "% do peso" + (kg ? " (" + (Math.round(kg * r) / 100).toFixed(2).replace(".", ",") + " kg)" : "")))}
+          </div>
+        </div>
+      )}
+      <div style={{ ...S.label, marginBottom: 6 }}>Você</div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+        {chip(perfil.sexo === "m", () => mudarPerfil({ sexo: "m" }), "Homem")}{chip(perfil.sexo === "f", () => mudarPerfil({ sexo: "f" }), "Mulher")}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--cinza)" }}>Idade<input inputMode="numeric" defaultValue={idade || ""} onBlur={(e) => mudarPerfil({ idade: numB(e.target.value) || null })} style={{ ...S.input, width: "100%", marginTop: 4 }} /></label>
+        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--cinza)" }}>Altura (cm)<input inputMode="numeric" defaultValue={perfil.cm || ""} onBlur={(e) => mudarPerfil({ cm: numB(e.target.value) || null })} style={{ ...S.input, width: "100%", marginTop: 4 }} /></label>
+        <label style={{ fontSize: 12, fontWeight: 800, color: "var(--cinza)" }}>Peso (kg)<input inputMode="decimal" defaultValue={perfilG.kg || ""} placeholder={pesoCorporal ? String(pesoCorporal).replace(".", ",") : ""} onBlur={(e) => mudarPerfil({ kg: numB(e.target.value) || null })} style={{ ...S.input, width: "100%", marginTop: 4 }} /></label>
+      </div>
+      <div style={{ fontSize: 11.5, color: "var(--cinza)", marginBottom: 10 }}>
+        {pesoCorporal && !perfilG.kg ? "O peso vem da sua última pesagem (Corpo ou balança ligada à Conexão Saúde). " : ""}
+        Sem relógio, o app usa a sua rotina para estimar o gasto do dia:
+      </div>
+      <div style={{ display: "grid", gap: 6 }}>
+        {ROTINAS_BALANCE.map((r) => chip((perfil.rotina || "sentado") === r.id, () => mudarPerfil({ rotina: r.id }), r.nome))}
+      </div>
+    </div>
+  );
+
+  const sincronizado = mediaAtivas > 0 || (((saude && saude.dias) || []).some((d) => d.d === hoje && d.kcal > 0));
+  return (
+    <div className="pg" style={{ paddingBottom: 30 }}>
+      {festa && <div style={{ position: "fixed", inset: 0, zIndex: 50, pointerEvents: "none" }}><TelaoFesta /></div>}
+      <div style={{ ...S.card, background: "linear-gradient(135deg,#1b0b33,#0b0418 60%,#2a0a1e)", borderColor: "#E1306C55", textAlign: "center", padding: "18px 14px 14px" }}>
+        <div style={{ ...ROTULO_RESUMO, fontSize: 11 }}>Jarvis</div>
+        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 30, lineHeight: 1.1, padding: "0 6px" }} grosso={6}>Body Balance</Contorno>
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 4 }}>Comida, água, treino, relógio e sono na mesma conta</div>
+        {completo && <div style={{ marginTop: 8, display: "inline-block", padding: "5px 12px", borderRadius: 20, background: "#E1306C22", border: "1px solid #E1306C66", fontWeight: 900, fontSize: 12 }}>{ob.ic} {ob.nome} · {ob.fase}</div>}
+      </div>
+
+      {!completo && (
+        <div>
+          <div style={{ ...S.card, borderColor: "#4DEBFF66" }}>
+            <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 4 }}>⚡ Configure em 30 segundos</div>
+            <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.5 }}>Diga o objetivo, a idade, a altura e o peso. Com isso o app calcula o seu gasto (e usa o relógio quando houver) e a meta de cada dia.</div>
+          </div>
+          {perfilForm}
+          <AvisoSaude />
+        </div>
+      )}
+
+      {completo && (
+        <div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+            {abaSec("hoje", "Hoje")}{abaSec("semana", "Semana")}{abaSec("mes", "Mês")}{abaSec("perfil", "Perfil")}
+          </div>
+
+          {secao === "hoje" && (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <button onClick={() => setDiaVer(diaLocal(new Date(diaVer + "T12:00:00").getTime() - 864e5))} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 14px" }}>◀</button>
+                <div style={{ fontWeight: 900 }}>{ehHoje ? "Hoje" : new Date(diaVer + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}</div>
+                <button disabled={ehHoje} onClick={() => setDiaVer(diaLocal(new Date(diaVer + "T12:00:00").getTime() + 864e5))} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 14px", opacity: ehHoje ? 0.3 : 1 }}>▶</button>
+              </div>
+
+              <div style={{ ...S.card, borderColor: passou ? "#FF4D6D" : "var(--borda)", position: "relative", overflow: "hidden" }}>
+                {meta && pct >= 0.98 && (
+                  <div className={passou ? "bb-pulsa" : ""} style={{ textAlign: "center", marginBottom: 10, padding: "8px 10px", borderRadius: 12, fontWeight: 900,
+                    background: passou ? "#FF4D6D22" : "#FFD23F22", border: "1px solid " + (passou ? "#FF4D6D" : "#FFD23F"), color: passou ? "#FF4D6D" : "#FFD23F" }}>
+                    {passou ? "⚠ LIMITE PASSADO: +" + fmtKcal(t.k - meta.k) + " kcal acima da meta" : "🎯 META DO DIA ATINGIDA: a partir daqui, passa do objetivo"}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+                  <CorpoBalance id="comida" cheio={pct} passou={passou} titulo="Comida" valor={fmtKcal(t.k) + " kcal"}
+                    sub={meta ? (passou ? "meta " + fmtKcal(meta.k) : "faltam " + fmtKcal(meta.k - t.k)) : ""}
+                    camadas={[{ v: macros.p, cor: CORES_BALANCE.p }, { v: macros.c, cor: CORES_BALANCE.c }, { v: macros.g, cor: CORES_BALANCE.g }, { v: macros.alc, cor: CORES_BALANCE.alc }]} />
+                  <CorpoBalance id="agua" cheio={meta ? t.agua / meta.agua : 0} passou={false} corBorda="#35E0F0" titulo="Líquidos" valor={fmtLitros(t.agua)}
+                    sub={meta ? "meta " + fmtLitros(meta.agua) : ""} camadas={[{ v: 1, cor: CORES_BALANCE.agua }]} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap", fontSize: 11, fontWeight: 800, color: "var(--cinza)", marginTop: 10 }}>
+                  {[["Proteína", CORES_BALANCE.p], ["Carboidrato", CORES_BALANCE.c], ["Gordura", CORES_BALANCE.g], ["Álcool e outros", CORES_BALANCE.alc], ["Água", CORES_BALANCE.agua]].map(([n, c]) => (
+                    <span key={n}><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 3, background: c, marginRight: 4 }} />{n}</span>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                <button onClick={() => setJanela("buscar")} style={{ ...S.btn, padding: "14px 6px" }}>+ Comida</button>
+                <button onClick={() => setJanela("foto")} style={{ ...S.btnGhost, padding: "14px 6px", fontWeight: 900 }}>📷 Foto do prato</button>
+                <button onClick={() => adicionar([], 250)} style={{ ...S.btnGhost, padding: "12px 6px", fontWeight: 900, color: "#35E0F0", borderColor: "#35E0F066" }}>💧 +250 ml</button>
+                <button onClick={() => setJanela("agua")} style={{ ...S.btnGhost, padding: "12px 6px", fontWeight: 900, color: "#35E0F0", borderColor: "#35E0F066" }}>💧 Outra água</button>
+              </div>
+
+              {meta && (
+                <div style={S.card}>
+                  <div style={{ ...S.label, marginBottom: 8 }}>Macros do dia</div>
+                  <BarraMacro nome="Proteína" cor={CORES_BALANCE.p} v={t.p} meta={meta.p} />
+                  <BarraMacro nome="Carboidrato" cor={CORES_BALANCE.c} v={t.c} meta={meta.c} />
+                  <BarraMacro nome="Gordura" cor={CORES_BALANCE.g} v={t.g} meta={meta.g} />
+                  {t.alc > 0 && <div style={{ fontSize: 11.5, color: "var(--cinza)" }}>🍺 Álcool: {t.alc} g ({t.alc * 7} kcal que não são nem carboidrato nem gordura).</div>}
+                </div>
+              )}
+
+              {atual.gasto && meta && (
+                <div style={S.card}>
+                  <div style={{ ...S.label, marginBottom: 8 }}>O balanço do dia</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, textAlign: "center", marginBottom: 10 }}>
+                    {[["Gastou", fmtKcal(atual.gastoUsado || atual.gasto.total), "#4DEBFF"], ["Comeu", fmtKcal(t.k), "#FFB21A"], [(t.k - (atual.gastoUsado || atual.gasto.total)) >= 0 ? "Superávit" : "Déficit", fmtKcal(Math.abs(t.k - (atual.gastoUsado || atual.gasto.total))), (t.k - (atual.gastoUsado || atual.gasto.total)) >= 0 ? "#FF4D6D" : "#4CD137"]].map(([r, v, c]) => (
+                      <div key={r} style={{ padding: "8px 4px", borderRadius: 12, background: c + "14", border: "1px solid " + c + "55" }}>
+                        <div style={{ fontFamily: FONTE_JOGO, fontSize: 19, color: c }}>{v}</div>
+                        <div style={{ fontSize: 10.5, fontWeight: 900, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.6 }}>{r}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.6 }}>
+                    Repouso {fmtKcal(atual.gasto.tmb)} · dia a dia e treino {fmtKcal(atual.gasto.atividade)}{atual.treino.kcal ? " (treino " + fmtKcal(atual.treino.kcal) + ")" : ""} · digestão {fmtKcal(atual.gasto.tef)}
+                    <br />{atual.gasto.fonte === "relogio" ? "⌚ Atividade medida pelo relógio (Conexão Saúde)." : atual.gasto.fonte === "media" ? "⌚ Atividade pela média do seu relógio (hoje ainda não sincronizou)." : "📐 Atividade estimada pela sua rotina e pelos treinos do app. Com o relógio sincronizado na aba Saúde, fica medida."}
+                    {corpo && <span><br />🧬 Seu corpo mostra um gasto de ~{fmtKcal(corpo.kcal)} kcal por dia (comida de {corpo.dias} dias × o peso que mudou): a meta usa metade disso.</span>}
+                    {meta.noPiso && <span><br />⚠ A meta parou no piso seguro ({fmtKcal(meta.k)} kcal): abaixo disso, só com nutricionista.</span>}
+                  </div>
+                </div>
+              )}
+
+              {compHoje && (
+                <div style={{ ...S.card, borderColor: "#FF4D6D88", background: "linear-gradient(135deg,#2a0a14,var(--card))" }}>
+                  <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>🔥 Para compensar hoje</div>
+                  <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+                    Você passou {fmtKcal(compHoje.excesso)} kcal. Dá para equilibrar com <b>{compHoje.hojeMin} min de caminhada rápida</b> ou <b>{compHoje.corridaMin} min de corrida leve</b> hoje
+                    {compHoje.sobra > 0 ? ", e o resto (" + fmtKcal(compHoje.sobra) + " kcal) entra nos próximos 3 dias, sem dia de fome." : "."}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                    {onPercurso && <button onClick={onPercurso} style={{ ...S.btnGhost, flex: 1, fontWeight: 900 }}>🗺 Caminhar na rua</button>}
+                    {onEsteira && <button onClick={onEsteira} style={{ ...S.btnGhost, flex: 1, fontWeight: 900 }}>🏃 Esteira</button>}
+                  </div>
+                </div>
+              )}
+              {!compHoje && ehHoje && meta && ob.id === "ganhar" && new Date().getHours() >= 17 && t.k < meta.k * 0.85 && (
+                <div style={{ ...S.card, borderColor: "#FFB21A88" }}>
+                  <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>💪 Faltam {fmtKcal(meta.k - t.k)} kcal para o bulking</div>
+                  <div style={{ fontSize: 13, lineHeight: 1.55 }}>Um lanche resolve sem pesar: whey com banana e aveia (~310 kcal, 30 g de proteína), ou um sanduíche com ovo (~320 kcal).
+                    {meta.p - t.p > 20 ? " Faltam " + Math.round(meta.p - t.p) + " g de proteína." : ""}</div>
+                </div>
+              )}
+
+              {plano && (plano.menosKcal > 0 || plano.cardioMin > 0 || plano.maisKcal > 0) && (
+                <div style={{ ...S.card, borderColor: "#4DEBFF66" }}>
+                  <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>🧭 Plano para os próximos 3 dias</div>
+                  <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+                    Nos últimos {plano.dias} dias anotados você ficou {plano.saldo > 0 ? fmtKcal(plano.saldo) + " kcal acima" : fmtKcal(-plano.saldo) + " kcal abaixo"} da meta.
+                    {plano.menosKcal > 0 && <span> Coma <b>{fmtKcal(plano.menosKcal)} kcal a menos</b> por dia</span>}
+                    {plano.cardioMin > 0 && <span>{plano.menosKcal > 0 ? " e" : ""} faça <b>{plano.cardioMin} min a mais de caminhada</b> por dia</span>}
+                    {plano.maisKcal > 0 && <span> Coma <b>{fmtKcal(plano.maisKcal)} kcal a mais</b> por dia (um lanche com proteína)</span>}.
+                    {" "}Sem cortes grandes: compensar devagar protege o músculo e o treino.
+                  </div>
+                </div>
+              )}
+
+              <div style={S.card}>
+                <div style={{ ...S.label, marginBottom: 8 }}>😴 Sono {ehHoje ? "desta noite" : "da noite"}</div>
+                {sono ? (
+                  <div>
+                    <div style={{ fontFamily: FONTE_JOGO, fontSize: 22 }}>{String(sono.h).replace(".", ",")} h <span style={{ fontSize: 11, color: "var(--cinza)", fontFamily: "inherit" }}>{sono.fonte === "relogio" ? "⌚ do relógio" : "✏️ digitado"}</span></div>
+                    <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 4 }}>{conselhoSono(sono.h, ob.id)}</div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: 12.5, color: "var(--cinza)", marginBottom: 8 }}>O relógio não mandou o sono desta noite (sincronize em Histórico › Saúde). Quantas horas você dormiu?</div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {[5, 6, 7, 8, 9].map((h) => chip(false, () => mudarDia(diaVer, (d) => Object.assign({}, d, { sono: h })), h + " h"))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={S.card}>
+                <div style={{ ...S.label, marginBottom: 8 }}>O que você comeu</div>
+                {!(atual.dia.itens || []).length && <div style={{ fontSize: 13, color: "var(--cinza)" }}>Nada anotado {ehHoje ? "ainda hoje" : "neste dia"}. Toque em + Comida, ou marque pelo relógio.</div>}
+                {REFEICOES_BALANCE.map((r) => {
+                  const its = (atual.dia.itens || []).filter((it) => (it.r || refeicaoDaHora(it.t || Date.now())) === r.id);
+                  if (!its.length) return null;
+                  const soma = its.reduce((a, it) => a + valorItem(it).k, 0);
+                  return (
+                    <div key={r.id} style={{ marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, fontSize: 13, marginBottom: 4 }}><span>{r.ic} {r.nome}</span><span>{fmtKcal(soma)} kcal</span></div>
+                      {its.map((it) => (
+                        <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, padding: "5px 0", borderBottom: "1px solid var(--borda)" }}>
+                          <span>{it.ic || "\u{1F37D}"}</span>
+                          <span style={{ flex: 1, minWidth: 0 }}>{it.n}{numB(it.q) !== 1 ? " ×" + String(Math.round(numB(it.q) * 10) / 10).replace(".", ",") : ""} {it.de === "relogio" ? "⌚" : it.de === "foto" ? "📷" : ""}</span>
+                          <span style={{ fontWeight: 800 }}>{valorItem(it).k}</span>
+                          <button aria-label={"Tirar " + it.n} onClick={() => tirar(it.id)} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 900, cursor: "pointer" }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+                {numB(atual.dia.agua) > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginTop: 4 }}><span>💧 Água</span><span>{fmtLitros(numB(atual.dia.agua))} <button onClick={() => mudarDia(diaVer, (d) => Object.assign({}, d, { agua: Math.max(0, numB(d.agua) - 250) }))} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 900, cursor: "pointer" }}>−250</button></span></div>}
+              </div>
+            </div>
+          )}
+
+          {secao === "semana" && (() => {
+            const seg = (() => { const d = new Date(); const w = (d.getDay() + 6) % 7; return diaLocal(Date.now() - w * 864e5); })();
+            const iSeg = dias.findIndex((x) => x.d === seg);
+            const sem = Array.from({ length: 7 }, (_, i) => { const x = dias[iSeg + i]; return x ? Object.assign({}, x, { futuro: x.d > hoje }) : { comeu: 0, futuro: true }; });
+            const r = resumoDias(sem.filter((x) => !x.futuro));
+            return (
+              <div>
+                <div style={S.card}>
+                  <div style={{ ...S.label, marginBottom: 6 }}>Esta semana</div>
+                  <GraficoSemanaBalance dias={sem} />
+                  <div style={{ fontSize: 11.5, color: "var(--cinza)", textAlign: "center" }}>Linha amarela: a meta de cada dia · verde na meta · laranja perto · vermelho {ob.id === "ganhar" ? "faltou ou passou muito" : "passou"}</div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                  {[["Acerto", r.acerto === null ? "—" : r.acerto + "%", "#4CD137"], ["Saldo da semana", (r.saldo > 0 ? "+" : "") + fmtKcal(r.saldo) + " kcal", r.saldo > 0 && ob.id !== "ganhar" ? "#FF4D6D" : "#4DEBFF"],
+                    ["Dias na meta", r.certo + " de " + r.julgados, "#FFD23F"], ["Peso (tendência)", tendencia ? String(tendencia.atual).replace(".", ",") + " kg" : "—", "#B05BFF"]].map(([n, v, c]) => (
+                    <div key={n} style={{ ...S.card, margin: 0, textAlign: "center", borderColor: c + "55" }}>
+                      <div style={{ fontFamily: FONTE_JOGO, fontSize: 20, color: c }}>{v}</div>
+                      <div style={{ fontSize: 10.5, fontWeight: 900, color: "var(--cinza)", textTransform: "uppercase" }}>{n}</div>
+                    </div>
+                  ))}
+                </div>
+                {fase && (
+                  <div style={{ ...S.card, borderColor: "#E1306C66" }}>
+                    <div style={{ ...S.label, marginBottom: 6 }}>O que você está fazendo de verdade</div>
+                    <div style={{ fontFamily: FONTE_JOGO, fontSize: 22 }}>{fase.nome}</div>
+                    <div style={{ fontSize: 13, lineHeight: 1.55, marginTop: 4 }}>
+                      Média de {fase.media > 0 ? "+" : ""}{fmtKcal(fase.media)} kcal por dia contra o gasto: no ritmo de {fase.kgSemana > 0 ? "ganhar" : "perder"} ~{String(Math.abs(fase.kgSemana)).replace(".", ",")} kg por semana
+                      {fase.pctPeso !== null ? " (" + String(Math.abs(fase.pctPeso)).replace(".", ",") + "% do peso)" : ""}.
+                      {" "}{(fase.id === "bulking" && ob.id === "perder") ? "⚠ O objetivo é perder gordura, mas a comida está gerando ganho." : (fase.id === "cutting" && ob.id === "ganhar") ? "⚠ O objetivo é ganhar massa, mas a comida não chega: o corpo não tem com o que crescer." : "Na direção do objetivo."}
+                    </div>
+                    {tendencia && tendencia.porSemana !== null && <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 6 }}>A balança confirma: a tendência do peso anda {tendencia.porSemana > 0 ? "+" : ""}{String(tendencia.porSemana).replace(".", ",")} kg por semana.</div>}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {secao === "mes" && (() => {
+            const agora = new Date();
+            const primeiro = new Date(agora.getFullYear(), agora.getMonth(), 1);
+            const nDias = new Date(agora.getFullYear(), agora.getMonth() + 1, 0).getDate();
+            const vazio = (primeiro.getDay() + 6) % 7;
+            const doMes = dias.filter((x) => x.d.slice(0, 7) === diaLocal(Date.now()).slice(0, 7));
+            const r = resumoDias(doMes);
+            return (
+              <div>
+                <div style={S.card}>
+                  <div style={{ ...S.label, marginBottom: 8 }}>{agora.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5 }}>
+                    {["S", "T", "Q", "Q", "S", "S", "D"].map((x, i) => <div key={"h" + i} style={{ textAlign: "center", fontSize: 10, fontWeight: 900, color: "var(--cinza)" }}>{x}</div>)}
+                    {Array.from({ length: vazio }, (_, i) => <div key={"v" + i} />)}
+                    {Array.from({ length: nDias }, (_, i) => {
+                      const d = diaLocal(new Date(agora.getFullYear(), agora.getMonth(), i + 1, 12).getTime());
+                      const x = dias.find((y) => y.d === d);
+                      const cor = x && x.status && x.status.id !== "vazio" ? x.status.cor : null;
+                      return (
+                        <button key={d} onClick={() => { setDiaVer(d > hoje ? hoje : d); setSecao("hoje"); }} style={{ aspectRatio: "1", borderRadius: 8, fontSize: 11.5, fontWeight: 900, cursor: "pointer",
+                          border: "1px solid " + (d === hoje ? "#fff" : "var(--borda2)"), background: cor ? cor + "cc" : "transparent", color: cor ? "#0b0418" : "var(--cinza)", boxShadow: cor ? "0 0 8px " + cor + "88" : "none" }}>{i + 1}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div style={S.card}>
+                  <div style={{ fontFamily: FONTE_JOGO, fontSize: 24 }}>{r.acerto === null ? "—" : r.acerto + "% de acerto"}</div>
+                  <div style={{ fontSize: 13, lineHeight: 1.6, marginTop: 4 }}>
+                    ✅ {r.certo} na meta · 🟠 {r.perto} perto · 🔴 {r.errou} {ob.id === "ganhar" ? "fora" : "passou"} · ⚪ {r.vazio} sem registro
+                    <br />Saldo do mês: {r.saldo > 0 ? "+" : ""}{fmtKcal(r.saldo)} kcal ({r.saldo > 0 ? "≈ +" : "≈ −"}{String(Math.abs(Math.round((r.saldo / KCAL_POR_KG) * 100) / 100)).replace(".", ",")} kg na conta).
+                    {tendencia && tendencia.porSemana !== null && <span><br />Peso: tendência de {String(tendencia.atual).replace(".", ",")} kg, andando {tendencia.porSemana > 0 ? "+" : ""}{String(tendencia.porSemana).replace(".", ",")} kg/semana.</span>}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {secao === "perfil" && (
+            <div>
+              {perfilForm}
+              {sincronizarRelogio && (
+                <div style={S.card}>
+                  <div style={{ ...S.label, marginBottom: 6 }}>⌚ No relógio</div>
+                  <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 8 }}>
+                    Abra o Treino Livre no relógio e escolha "Comida e água": água e os seus alimentos mais usados ficam a um toque, e entram aqui sozinhos.
+                  </div>
+                  <button onClick={() => sincronizarRelogio(estadoRelogio.current, true)} style={{ ...S.btnGhost, width: "100%", fontWeight: 900 }}>⌚ Mandar metas e favoritos ao relógio</button>
+                </div>
+              )}
+              <div style={S.card}>
+                <div style={{ ...S.label, marginBottom: 6 }}>De onde vêm os números</div>
+                <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.55 }}>
+                  {sincronizado ? "⌚ O gasto usa as calorias ativas do seu relógio (Conexão Saúde)." : "📐 Sem relógio sincronizado, o gasto é estimado pela rotina e pelos treinos do app."}
+                  <ul style={{ paddingLeft: 18, margin: "8px 0 0" }}>{FONTES_BALANCE.map((f, i) => <li key={i} style={{ marginBottom: 4 }}>{f}</li>)}</ul>
+                </div>
+              </div>
+              <div style={{ ...S.card, fontSize: 12, color: "var(--cinza)", lineHeight: 1.55 }}>
+                O Jarvis Body Balance é uma ferramenta de registro e de informação geral: ele não monta dieta e não substitui o
+                nutricionista (no Brasil, o plano alimentar é atividade do nutricionista, Lei 8.234/1991) nem o médico. Gestantes,
+                menores de 18 anos e quem tem doença (diabetes, rins, transtorno alimentar) devem seguir só o que o profissional orientar.
+              </div>
+              <AvisoSaude />
+            </div>
+          )}
+        </div>
+      )}
+      {janela && <JanelaComida aba0={janela} recentes={recentes} onAdd={adicionar} onFechar={() => setJanela(null)} />}
+      {toast && <div role="status" style={{ position: "fixed", left: "50%", bottom: 96, transform: "translateX(-50%)", zIndex: 70, padding: "10px 18px", borderRadius: 24,
+        background: "#0b0418ee", border: "1px solid #4DEBFF", color: "#fff", fontWeight: 900, fontSize: 14, boxShadow: "0 0 18px #4DEBFF66", whiteSpace: "nowrap", maxWidth: "90vw", overflow: "hidden", textOverflow: "ellipsis" }}>{toast}</div>}
+    </div>
+  );
+}
+
 function TelaSaude({ saude, historico, medidas, bpm, cardioEstado, onConectarCardio, onDesconectarCardio, onSincronizar, fcPerfil }) {
   const agora = Date.now();
   const r = useMemo(() => resumoSaude(saude, agora), [saude]);
@@ -36818,6 +38079,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   const [meta, setMeta] = useState(3);
   // { idade }: só para a FC máxima e as zonas do painel do corredor
   const [corredor, setCorredor] = useState({ idade: null });
+  // o Jarvis Body Balance: o perfil, os dias anotados e os ids do relógio já vistos
+  const [nutricao, setNutricao] = useState({ perfil: {}, dias: {}, vistos: [] });
   // o link #corrida= que abriu o app: a sala e os resultados de quem já correu
   const [conviteDesafio, setConviteDesafio] = useState(null);
   const [medidas, setMedidas] = useState([]);
@@ -37232,7 +38495,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   const [atualizandoSo, setAtualizandoSo] = useState(false);
   const algoVivo = Object.keys(vivos).some((k) => vivos[k]);
   const podeAtualizarSo = !!versaoNova && !sessao && !algoVivo && !modal && !resumoAnim
-    && ["inicio", "exercicios", "fichas", "historico"].indexOf(aba) >= 0;
+    && ["inicio", "exercicios", "fichas", "historico", "balance"].indexOf(aba) >= 0;
   useEffect(() => {
     if (!podeAtualizarSo || atualizandoSo || document.visibilityState !== "visible") return undefined;
     let tentou = null;
@@ -37335,7 +38598,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   const exportarDados = () => {
     // O backup não leva a sessão em andamento de propósito: restaurar num outro
     // aparelho um treino pela metade só confundiria.
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, descansoModo, som, tema, programas, meta, medidas, lembrete, voz, convite, entrou, dicas, botaoVoz, corredor, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, descansoModo, som, tema, programas, meta, medidas, lembrete, voz, convite, entrou, dicas, botaoVoz, corredor, nutricao, seedV3: true });
     setModal({
       msg: "Backup dos seus dados. Toque em Copiar e guarde em local seguro (ex.: cole numa conversa sua no WhatsApp). Para restaurar, use Importar dados.",
       texto: dados,
@@ -37369,6 +38632,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           if (d.tema) setTema(d.tema);
           if (d.meta) setMeta(d.meta);
           if (d.corredor && typeof d.corredor === "object") setCorredor(lerCorredor(d.corredor));
+          if (d.nutricao && typeof d.nutricao === "object") setNutricao(lerNutricao(d.nutricao));
           if (d.medidas) setMedidas(d.medidas);
           if (d.lembrete) setLembrete(d.lembrete);
           if (d.voz) setVoz(lerVoz(d.voz));
@@ -37456,6 +38720,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
         if (d.dicas && typeof d.dicas === "object") setDicas(d.dicas);
         if (d.botaoVoz && typeof d.botaoVoz.y === "number") setBotaoVoz(d.botaoVoz);
         if (d.corredor && typeof d.corredor === "object") setCorredor(lerCorredor(d.corredor));
+          if (d.nutricao && typeof d.nutricao === "object") setNutricao(lerNutricao(d.nutricao));
         if (d.saude && typeof d.saude === "object" && Array.isArray(d.saude.dias)) setSaude(d.saude);
         if (d.meta) mt = d.meta;
         md = d.medidas || [];
@@ -37519,6 +38784,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       const mRL = hash.match(/#relogio=([a-z]+)/);
       const mB = hash.match(/#bolso=([^&]+)/);
       const mG = hash.match(/#grupo=([^&]+)/);
+      const mCAL = hash.match(/[#&]comida=([^&]+)/);
+      if (mCAL) setTimeout(() => receberComida(mCAL[1]), 400);
       const mCA = hash.match(/#corridaApp=([^&]+)/);
       if (mCA) {
         const pacC = lerPacoteCorrida(mCA[1], b64Decodificar);
@@ -37538,7 +38805,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       }
       if (mOE) setTimeout(() => abrirGuia("oculos", OCULOS_ERROS[mOE[1]] || OCULOS_ERROS.erro), 300);
       if (mRL) setTimeout(() => abrirInstalarRelogio(STATUS_RELOGIO[mRL[1]] ? mRL[1] : "erro"), 300);
-      if (mF || mP || mD || mA || mC || mS || mO || mOE || mB || mG || mCA || mRL) {
+      if (mF || mP || mD || mA || mC || mS || mO || mOE || mB || mG || mCA || mRL || mCAL) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e2) {}
       }
       // Atalhos do ícone do app na tela inicial (definidos no manifest.json)
@@ -37622,8 +38889,31 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   // meio do treino, que pareciam o app travado.
   const temSessaoRef = useRef(false);
   temSessaoRef.current = !!sessao;
+  // As anotações do relógio (comida e água): entram uma vez só, no dia em que
+  // foram feitas, e a tela diz quantas chegaram.
+  const receberComida = (texto) => {
+    const ev = lerPacoteComida(texto, b64Decodificar);
+    if (!ev || !ev.length) return;
+    let n = 0;
+    setNutricao((nut) => { const r = aplicarComidaDoRelogio(nut, ev); n = r.n; return r.nut; });
+    setTimeout(() => { if (n > 0) setAvisoRelogioComida(n); }, 60);
+  };
+  const receberComidaRef = useRef(receberComida);
+  receberComidaRef.current = receberComida;
+  const [avisoRelogioComida, setAvisoRelogioComida] = useState(0);
+  useEffect(() => {
+    if (!avisoRelogioComida) return undefined;
+    const t = setTimeout(() => setAvisoRelogioComida(0), 6000);
+    return () => clearTimeout(t);
+  }, [avisoRelogioComida]);
   useEffect(() => {
     const aoHash = () => {
+      const mCAL = (window.location.hash || "").match(/[#&]comida=([^&]+)/);
+      if (mCAL) {
+        try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
+        receberComidaRef.current(mCAL[1]);
+        return;
+      }
       const mCA = (window.location.hash || "").match(/#corridaApp=([^&]+)/);
       if (mCA) {
         try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
@@ -37738,13 +39028,13 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   const dadosRef = useRef("");
   useEffect(() => {
     if (!carregado) return;
-    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, descansoModo, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, saude, seedV3: true });
+    dadosRef.current = JSON.stringify({ treinos, historico, customEx, descanso, descansoModo, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, nutricao, saude, seedV3: true });
     const t = setTimeout(() => {
       const deu = store.set(STORAGE_KEY, dadosRef.current);
       setSemGravar((antes) => (antes === !deu ? antes : !deu));
     }, 400);
     return () => clearTimeout(t);
-  }, [treinos, historico, customEx, descanso, descansoModo, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, saude, carregado]);
+  }, [treinos, historico, customEx, descanso, descansoModo, som, tema, programas, sessao, meta, medidas, fotos, lembrete, ultimoBackup, voz, convite, entrou, dicas, botaoVoz, corredor, nutricao, saude, carregado]);
 
   // Fechou o app ou trocou de aba no meio do treino? Grava na hora, sem esperar o respiro.
   useEffect(() => {
@@ -38694,7 +39984,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       if (!hh.rota) continue;
       try { const c = await lerFoto(chaveRota(hh.id)); if (c) rotasDados[hh.id] = c; } catch (err) {}
     }
-    const dados = JSON.stringify({ treinos, historico, customEx, descanso, descansoModo, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, rotasDados, lembrete, voz, convite, entrou, dicas, botaoVoz, corredor, adaptado, seedV3: true });
+    const dados = JSON.stringify({ treinos, historico, customEx, descanso, descansoModo, som, tema, programas, meta, medidas, fotos, fotosDados, fotosEx, rotasDados, lembrete, voz, convite, entrou, dicas, botaoVoz, corredor, nutricao, adaptado, seedV3: true });
     try {
       const blob = new Blob([dados], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -38765,7 +40055,9 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             if (d.tema) setTema(d.tema);
             if (d.meta) setMeta(d.meta);
             if (d.corredor && typeof d.corredor === "object") setCorredor(lerCorredor(d.corredor));
+          if (d.nutricao && typeof d.nutricao === "object") setNutricao(lerNutricao(d.nutricao));
           if (d.corredor && typeof d.corredor === "object") setCorredor(lerCorredor(d.corredor));
+          if (d.nutricao && typeof d.nutricao === "object") setNutricao(lerNutricao(d.nutricao));
             if (d.lembrete) setLembrete(d.lembrete);
             if (d.voz) setVoz(lerVoz(d.voz));
             if (d.adaptado && Array.isArray(d.adaptado.registros)) setAdaptado(d.adaptado);
@@ -38797,6 +40089,18 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   // Ida para o app Android: os treinos que ainda não estão no Health Connect
   // vão no link, e a parte nativa grava, lê tudo e volta para cá com #saude=.
   // O Chrome só abre outro app depois de um toque — por isso é um botão.
+  // O estado de hoje vai ao relógio pela parte nativa (treinolivre://comida?d=):
+  // a meta, o que entrou, a água e os favoritos. Só no app novo (comida=1), e
+  // sozinho só quando o relógio já falou com o celular (rv=).
+  const sincronizarComidaRelogio = (est, forcar) => {
+    if (!est) return;
+    if (!COMIDA_APP) { if (forcar) avisar("Atualize o app do celular (Ajustes › App Android) para o relógio receber comida e água."); return; }
+    if (!forcar && !RELOGIO_NO_PULSO) return;
+    try { store.set(STORAGE_KEY, dadosRef.current); } catch (e) {}
+    const d = padraoParaB64Url(b64Codificar(JSON.stringify(est)));
+    window.location.href = "intent://comida?d=" + d + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID +
+      ";S.browser_fallback_url=" + encodeURIComponent(LINK_APK) + ";end";
+  };
   const sincronizarSaude = () => {
     const t = treinosParaSaude(historico, saude && saude.enviados, exPorId, Date.now());
     const d = padraoParaB64Url(b64Codificar(JSON.stringify({ v: 1, t: t })));
@@ -39319,8 +40623,9 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     { id: "exercicios", nome: "Exercícios", icone: "haltere" },
     { id: "treinos", nome: "Fichas", icone: "prancheta" },
     { id: "historico", nome: "Histórico", icone: "historico" },
+    { id: "balance", nome: "Balance", icone: "balanca" },
   ];
-  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente", editarHistorico: "Corrigir treino", ajustes: "Ajustes", escolaVoz: "Escola do Jarvis", funcional: "Treino funcional" };
+  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", balance: "Jarvis Body Balance", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente", editarHistorico: "Corrigir treino", ajustes: "Ajustes", escolaVoz: "Escola do Jarvis", funcional: "Treino funcional" };
 
   // a janela para seguir no Instagram: uma vez por abertura do app (JanelaSeguir)
   useEffect(() => {
@@ -39582,6 +40887,17 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             onVoltar={() => setAba("inicio")}
             adaptadoAtivos={registrosAtivosAdaptado(adaptado)} onSintomaAdaptado={anotarDorAdaptado} onAbrirAdaptado={() => setAba("adaptado")}
             onDescartar={() => { setSessao(null); setAba("inicio"); }} />
+        )}
+        {avisoRelogioComida > 0 && (
+          <button onClick={() => { setAba("balance"); setAvisoRelogioComida(0); }} style={{ position: "fixed", left: "50%", top: 70, transform: "translateX(-50%)", zIndex: 65, padding: "10px 16px", borderRadius: 24, background: "#0b0418ee", border: "1px solid #35E0F0", color: "#fff", fontWeight: 900, fontSize: 13.5, boxShadow: "0 0 18px #35E0F066", cursor: "pointer", whiteSpace: "nowrap" }}>
+            ⌚ {avisoRelogioComida} {avisoRelogioComida === 1 ? "anotação do relógio entrou" : "anotações do relógio entraram"} no Body Balance ▶
+          </button>
+        )}
+        {aba === "balance" && (
+          <TelaBodyBalance nutricao={nutricao} setNutricao={setNutricao} historico={historico} exPorId={exPorId} saude={saude}
+            pesoCorporal={pesoCorporal} medidas={medidas} corredor={corredor} avisar={avisar} pedirConfirmacao={pedirConfirmacao}
+            onPercurso={() => setAba("percurso")} onEsteira={() => iniciarEsteira("esteira-caminhada")}
+            sincronizarRelogio={NO_APP_ANDROID ? sincronizarComidaRelogio : null} />
         )}
         {aba === "historico" && (
           <TelaHistorico historico={historico} exPorId={exPorId} onRetrospectiva={abrirRetrospectiva}

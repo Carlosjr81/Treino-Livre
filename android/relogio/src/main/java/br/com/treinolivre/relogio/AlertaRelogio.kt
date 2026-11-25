@@ -27,6 +27,12 @@ class AlertaRelogio : WearableListenerService() {
             try { com.google.android.gms.wearable.Wearable.getMessageClient(this).sendMessage(m.sourceNodeId, "/treino/pong", ((android.os.Build.MODEL ?: "") + "|" + v).toByteArray(Charsets.UTF_8)) } catch (e: Exception) { }
             return
         }
+        // o celular recebeu o que o relógio anotou de comida e água: sai da fila
+        if (m.path == ComidaPulso.OK) {
+            val ks = try { org.json.JSONObject(String(m.data, Charsets.UTF_8)).optJSONArray("ks") } catch (e: Exception) { null }
+            if (ks != null) ComidaPulso.confirmar(this, ks)
+            return
+        }
         if (m.path != "/treino/alerta") return
         val tipo = String(m.data, Charsets.UTF_8)
         val padrao = if (tipo == "fim") longArrayOf(0, 450, 180, 450, 180, 700) else longArrayOf(0, 160)

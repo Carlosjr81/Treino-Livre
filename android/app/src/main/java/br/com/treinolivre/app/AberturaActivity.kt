@@ -33,7 +33,10 @@ class AberturaActivity : ComponentActivity() {
         }
         lifecycleScope.launch {
             val pacote = withTimeoutOrNull(4000L) { leituraAutomatica() }
-            abrir(Site.endereco(pacote))
+            // o que o relógio marcou de comida e água vai junto (#comida=, ou &comida= depois da saúde)
+            val comida = try { Comida.fragmento(this@AberturaActivity) } catch (e: Exception) { "" }
+            val base = Site.endereco(pacote).toString()
+            abrir(android.net.Uri.parse(if (comida.isEmpty()) base else base + (if (base.contains("#")) "&" else "#") + comida))
         }
     }
 

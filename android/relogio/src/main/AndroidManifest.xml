@@ -61,14 +61,25 @@
             </intent-filter>
         </activity>
 
+        <!-- o ícone (2026-11-25a): a tela dividida, treino em cima, comida e água embaixo -->
         <activity
-            android:name=".TelaRelogio"
+            android:name=".InicioRelogio"
             android:exported="true"
-            android:launchMode="singleTask">
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".ComidaRelogio"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
+        <activity
+            android:name=".TelaRelogio"
+            android:exported="true"
+            android:launchMode="singleTask">
             <!-- o celular abre esta tela quando o treino começa (RemoteActivityHelper) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

@@ -117,6 +117,19 @@
             </intent-filter>
         </activity>
 
+        <!-- comida e água do relógio (2026-11-25a): leva ao site e manda o estado ao relógio -->
+        <activity
+            android:name=".ComidaActivity"
+            android:exported="true"
+            android:theme="@style/Tema.Bolso">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="treinolivre" android:host="comida" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".BolsoService"
             android:exported="false"

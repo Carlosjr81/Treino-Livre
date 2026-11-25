@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-24a**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-25a**.
 
 ---
 
@@ -58,6 +58,13 @@
 - **A semana do ciclo no resumo animado** (novo em 2026-11-23c): com o treino ajustado (ciclo de 5 semanas), o resumo
   mostra "Semana N de 5", a fase e o que ela pede. Na semana de descanso (e na leve antes de trocar de treino), explica que o
   volume menor é do método, para recuperar, e não preguiça. Na tela e no vídeo do story.
+- **Jarvis Body Balance** (novo em 2026-11-25a): a aba **Balance** controla comida, água e o balanço de energia. Dois corpos
+  enchem por cor (proteína vermelha, carboidrato amarelo, gordura roxa; água azul) até a meta do dia; passou, o corpo fica
+  vermelho. Anota por busca de alimentos brasileiros, foto do prato (a pessoa marca o que tem e quanto do prato ocupa: é
+  estimativa) ou toque na água. Mostra gastou × comeu (com o relógio, o gasto medido por ele), se o dia está em cutting ou
+  bulking, os minutos de caminhada que compensam o excesso e um plano leve de 3 dias, o acerto da semana e do mês, e o sono.
+  No relógio, o ícone abre a tela dividida TREINO / COMIDA & ÁGUA, e cada toque chega sozinho ao celular. É registro e
+  informação geral, não dieta nem plano alimentar (isso é do nutricionista).
 - **Os efeitos de LED** (novo em 2026-11-24a): o resumo animado (tela e vídeo do story) ganhou efeitos de luz
   futuristas, como os de telão de arena: barras de luz azuis correndo e acendendo em ondas, com textura de pontinhos de
   LED; uma faixa de luz que atravessa a tela a cada cena nova; e lasers verdes varrendo do alto. No impacto das cenas fortes,

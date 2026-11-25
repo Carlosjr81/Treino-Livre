@@ -716,7 +716,7 @@ Treino-Livre/
 ├── COMECE-AQUI.md       ← como preparar uma máquina nova
 ├── vozes/               ← as falas gravadas do Monster, Run! e o roteiro delas
 ├── divulgacao/          ← o que o ChatGPT do dono lê para criar vídeos: o guia e o NOVIDADES
-└── testes/              ← as 41 suítes, o servidor local e o LEIA-ME delas
+└── testes/              ← as 43 suítes, o servidor local e o LEIA-ME delas
 ```
 
 **A pasta `testes/` fica dentro do repositório de propósito.** Um `git clone`
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v270) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v271) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -2581,6 +2581,21 @@ Entrada pelo botão **🗺 Caminhada ou corrida na rua (GPS)** na tela inicial
   (OLED apagado gasta quase nada), e quando acontece a tela avisa e o resumo diz
   quanto tempo entrou em linha reta. **Não prometa gravação com a tela
   bloqueada**: só um app nativo faz isso.
+- **O Começar nunca fica travado, e o GPS religa sozinho** (`vigiarGps`,
+  `textoErroGps`, 2026-11-25a, relato do dono: "aperto Começar na corrida de
+  rua e não acontece nada"). Eram três defeitos: o `watchPosition` tinha prazo
+  de 30 s, e quando o GPS demorava a tela marcava erro e o **Começar ficava
+  desativado** até a primeira posição; sem posição, o Começar só deixava um
+  aviso; e o desafio, o intervalado e o Monster Run na rua engoliam o erro
+  calados. Hoje o vigia religa o GPS 3 s depois de cada demora (a permissão
+  negada não), pede uma posição rápida pela rede só para o mapa aparecer (não
+  vira ponto), e o Começar **começa sempre**: sem posição, o tempo já conta e o
+  primeiro ponto entra quando o GPS achar ("GPS achou você"; `esperaGps`).
+  Posição velha (mais de 15 s) ou ruim não vira o primeiro ponto. As
+  mensagens dizem a causa (permissão do Chrome, Localização desligada, lugar
+  fechado) e há "🔄 Procurar o GPS de novo". O mesmo vigia está nos quatro.
+  Coberto em `teste-balance.js`; no navegador, com um GPS de mentira que
+  demora: religou 3 vezes, o Começar iniciou e a distância entrou depois.
 - **A rota vai para o IndexedDB** (`guardarRota`, chave `rota-<id>`, a loja das
   fotos), no formato de linha do Google Maps (`compactarRota`): uma hora cabe em
   uns 20 KB. O resumo (km, tempo, ritmo, parciais, subida, ruas, bairros) vai em
@@ -6249,7 +6264,8 @@ Pedido do dono: "frases e jargões do mundo fitness e bodybuilder, e frases icô
 
 ## Navegação e telas
 
-Quatro abas na barra inferior (`Início`, `Exercícios`, `Fichas`, `Histórico`) e
+Cinco abas na barra inferior (`Início`, `Exercícios`, `Fichas`, `Histórico` e, desde
+2026-11-25a, `Balance`, o Jarvis Body Balance) e
 telas internas roteadas pela mesma variável `aba`: `assistente`, `funcional`, `novoExercicio`,
 `escolaVoz`,
 `editarTreino`, `editarHistorico`, `sessao`, `ajustes`.
@@ -6604,6 +6620,136 @@ em `teste-tempo.js` e `teste-inicio.js`.
 - No navegador: A + B em 75 min (8 exercícios, ~1 h 12 contra ~1 h 57 das
   fichas separadas), o treino começando e o histórico com `juntas`, sem
   mexer nas fichas. **Não validado num aparelho.**
+
+## Jarvis Body Balance: comida, água e o balanço de energia (aba `balance`, 2026-11-25a)
+
+Pedido do dono: "um pilar do sistema": o controle da alimentação que entende se
+o dia está gerando **bulking ou cutting**, foto do prato, a integração com o
+relógio para marcar comida e água a toques, o corpo que enche por cor, o
+limite claro, o aeróbico que compensa, o acompanhamento diário, semanal e
+mensal, a compensação nos dias seguintes, a ciência, os dados do relógio e do
+sono (e a opção de digitar quando não houver). **Uma aba própria na barra de
+baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
+
+- **O que os apps elogiados fazem e foi trazido** (pesquisa de 2026-11-25): o
+  gasto medido pelo próprio corpo (a ideia do MacroFactor), a base de
+  alimentos (aqui a TACO, em porções caseiras), a foto (Cal AI, Lose It). **A
+  foto não é "reconhecimento mágico"**: o teste do NIH de 2026 com MyFitnessPal,
+  Lose It, Cal AI e Appediet achou 250 a 345 kcal a menos por refeição, quase
+  sempre na gordura. Aqui a foto é o **método do prato**: a pessoa marca o que
+  tem e quanto do prato ocupa (⅛ a ¾, prato P/M/G), o app converte em gramas
+  (`gPrato` de cada alimento) e pergunta do óleo e do molho. Sem servidor
+  nem chave de API, não há modelo de visão; se um dia houver, ele só
+  preencheria as marcações.
+- **Os dados** (primeiro script): `ALIMENTOS_BR` (58 alimentos brasileiros,
+  porção caseira, kcal e macros pela TACO; `liq` para as bebidas, `alc`
+  para o álcool), `RAPIDOS_RELOGIO`, `CORES_BALANCE` (proteína #FF4D6D,
+  carbo #FFB21A, gordura #B05BFF, álcool/outros #8A8F9E, água #35E0F0),
+  `REFEICOES_BALANCE` (pela hora), `OBJETIVOS_BALANCE` (perder/CUTTING,
+  ganhar/BULKING, recomposição, manter, com o ritmo e a proteína) e
+  `FONTES_BALANCE` (Mifflin 1990, Helms 2014, Iraki 2019, Morton 2018, ISSN
+  2017, Hall 2011, Westerterp 2004, Nedeltcheva 2010, Spiegel 2004, EFSA 2010,
+  Compendium 2011, TACO).
+- **As contas** (bloco puro `JARVIS BODY BALANCE: AS CONTAS`, depois do
+  `diaLocal`, coberto por `teste-balance.js`):
+  - repouso pela Mifflin-St Jeor (`tmbMifflin`); o gasto do dia
+    (`gastoDoDia`) = repouso + atividade + 10% do que comeu. **Atividade**:
+    com o relógio, as calorias ativas da Conexão Saúde do dia (`saude.dias[].kcal`;
+    num dia em andamento, o maior entre o medido e a média dos 14 dias inteiros);
+    sem ele, o fator da rotina (sentado 1,2, em pé 1,35, ativo 1,5) + os treinos
+    daqui (`kcalTreinosDoDia`: aeróbico pelo `medirCardio`, força a 5 MET,
+    sempre acima do repouso) + os passos;
+  - a meta (`metaDoDia`): cutting com déficit pelo ritmo (0,5 a 1% do peso por
+    semana, até 25% do gasto), bulking com superávit (0,25 a 0,5%, até 20%),
+    recomposição −5%, manter = gasto; **piso** no repouso e em 1.200/1.500;
+    proteína 2,2 (cutting e recomp), 1,8 (bulking), 1,6 g/kg (manter); gordura
+    ≥ 25% e ≥ 0,6 g/kg; o resto carboidrato; água 35 ml/kg + 500 ml por hora de
+    treino;
+  - **o gasto pelo corpo** (`gastoPeloCorpo`): com 14 dias anotados e 3
+    pesagens em 10 dias ou mais, a média do que comeu menos a inclinação do
+    peso (a reta de mínimos quadrados, não a média móvel, que atrasa: com ela
+    o teste dava 2.288 para 2.550 de verdade) × 7.700. A meta usa metade dele;
+  - o dia julgado pela direção do objetivo (`statusDoDia`): no cutting passar é
+    o erro, no bulking faltar também; menos de 2 itens ou 300 kcal não é julgado;
+  - passou hoje (`compensacaoDeHoje`): minutos de caminhada rápida (4,3 MET) ou
+    corrida leve (8,3 MET) que gastam o excesso, até 60 min, o resto nos
+    próximos dias; **o plano de 3 dias** (`planoCompensacao`): no máximo 10% da
+    meta a menos por dia, nunca abaixo do piso, o resto em caminhada (até
+    40 min); no bulking, faltando, um lanche a mais (até 10%);
+  - **o que a pessoa está fazendo de verdade** (`faseReal`): o saldo médio
+    contra o gasto vira BULKING / CUTTING / MANUTENÇÃO, em kg por semana e % do
+    peso, conferido pela tendência da balança (`tendenciaPeso`, média de 10%
+    ao dia) e avisado quando vai contra o objetivo;
+  - o sono (`sonoDoDia`): a noite do Health Connect que terminou no dia, ou a
+    digitada (5 a 9 h); o conselho (`conselhoSono`) cita o músculo perdido na
+    dieta com sono curto (Nedeltcheva) e a fome (Spiegel).
+- **A tela** (`TelaBodyBalance`, antes da `TelaSaude`): o primeiro acesso é
+  "Configure em 30 segundos" (objetivo, sexo, idade, altura, peso: a idade vem
+  do Corredor e o peso da última pesagem, aqui ou da balança na Conexão Saúde).
+  Depois, **Hoje · Semana · Mês · Perfil**:
+  - Hoje: **os dois corpos** (`CorpoBalance`, SVG próprio com `FormaCorpo`):
+    o da comida enche de baixo para cima nas cores dos macros (proporcionais às
+    kcal de cada um), com onda e pontinhos de LED; cheio até a cabeça (a linha
+    META) é a meta. **Chegou**: faixa "🎯 META DO DIA ATINGIDA" e os efeitos de
+    LED em festa (`TelaoFesta`); **passou**: contorno vermelho pulsando e
+    "⚠ LIMITE PASSADO: +N kcal". O da água enche de ciano. Depois: + Comida,
+    📷 Foto do prato, 💧 +250 ml, os macros, o balanço (gastou, comeu, déficit ou
+    superávit, de onde veio cada número), a compensação (com "🗺 Caminhar na
+    rua" e "🏃 Esteira"), o lanche que falta no bulking, o plano de 3 dias, o
+    sono e a lista por refeição (◀ ▶ muda de dia);
+  - Semana: as barras de seg a dom na cor do acerto com a meta tracejada,
+    acerto %, saldo, dias na meta, peso, e "o que você está fazendo de verdade";
+  - Mês: o calendário colorido (tocar abre o dia), o acerto e o saldo;
+  - Perfil: o objetivo e o ritmo, o corpo, a rotina, "⌚ Mandar metas e
+    favoritos ao relógio", as fontes e o aviso (ver abaixo).
+  - A janela de anotar (`JanelaComida`): 🔎 Buscar (os mais usados primeiro),
+    📷 Foto (método do prato), ✏️ Manual (só as kcal já bastam: entram como
+    "outros"), 💧 Água. O aviso de anotado é um balão que some (o `avisar` do
+    app abre uma janela, e seria uma por comida).
+- **Os dados ficam no aparelho**: `nutricao` no registro principal
+  (`{ perfil, dias: { "AAAA-MM-DD": { itens, agua, aguaEv, sono } }, vistos }`,
+  `lerNutricao` confere e guarda 400 dias), no backup em texto e em arquivo. A
+  foto do prato não é guardada.
+- **O relógio** (pedido do dono: "marcar com simples toques, sem pegar o
+  celular"):
+  - **o ícone abre a tela dividida** (`InicioRelogio`, `TelaDividida`):
+    TREINO em cima (com "● em andamento" quando há treino), COMIDA & ÁGUA
+    embaixo, os efeitos de LED passando. O celular abrindo o treino
+    (`relogio-tela`) e o bloco continuam indo direto ao treino;
+  - **a tela de comida e água** (`ComidaRelogio`): o anel do dia (as kcal nas
+    cores dos macros, a água por dentro, vermelho pulsando ao passar), 💧 +200 e
+    +500, os rápidos (os mais usados que o celular mandou, ou
+    `ComidaPulso.PADRAO` = `RAPIDOS_RELOGIO`, com os números da tabela: o teste
+    confere), ↩ Desfazer e "Ir para o treino". Passou da meta: vibra e diz os
+    minutos de caminhada;
+  - **a fila**: cada toque é um acontecimento com id (`k`), guardado no
+    relógio até o celular confirmar (`/treino/comida` → `/treino/comida-ok`,
+    também pelo `AlertaRelogio` com a tela fechada); o desfazer de algo já
+    mandado vai como `tipo: "desfazer"` com a referência;
+  - **no celular** (`Comida`, `ComidaActivity`): o `OuvinteRelogio` guarda a
+    fila (`prefs comida/pend`), confirma e põe a notificação "⌚ Do relógio:
+    💧 +500 ml · 1 alimento — toque para levar"; a fila vai ao site no
+    `#comida=` (a notificação, `treinolivre://comida?entregar=1`) e na abertura
+    do app (`AberturaActivity`, junto do `#saude=` como `&comida=`). Ela só sai
+    da fila quando a página diz que viu (os `vistos` do estado): entregar duas
+    vezes não duplica (`aplicarComidaDoRelogio`), perder sim;
+  - **a volta ao relógio**: a cada anotação no app (um toque) e no botão do
+    Perfil, `treinolivre://comida?d=` publica o estado de hoje (meta, o que
+    entrou, macros, água, objetivo e os favoritos) no `/treino/comida-estado`
+    (DataItem). Só no app novo (`?comida=1` no endereço, `COMIDA_APP`) e,
+    sozinho, só com o relógio conhecido (`RELOGIO_NO_PULSO`);
+  - na página, a chegada vira "⌚ N anotações do relógio entraram no Body
+    Balance ▶".
+- **O que nunca escrever**: plano alimentar, dieta prescrita, "personal". O
+  Perfil diz que é ferramenta de registro e informação geral e que o plano
+  alimentar é do nutricionista (Lei 8.234/1991); gestantes, menores e quem tem
+  doença seguem o profissional. A tela tem o `AvisoSaude`. O teste cobra.
+- Coberto por `teste-balance.js` (57 checagens). No navegador: o primeiro
+  acesso, o Hoje com os dois corpos, a Semana, o Mês, a foto do prato com 4
+  alimentos e óleo (~898 kcal), e o `#comida=` com 3 toques do relógio entrando
+  e o corpo passando da meta. **Não validado num aparelho**: o relógio (a tela
+  dividida, a de comida, a fila) e a parte nativa do celular foram só
+  compilados pelo Actions.
 
 ## Já treinei tudo: o treino extra (`treinoExtra`, `JanelaExtra`, 2026-11-23b)
 

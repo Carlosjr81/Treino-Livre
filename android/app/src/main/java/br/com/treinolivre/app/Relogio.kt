@@ -299,6 +299,14 @@ class OuvinteRelogio : WearableListenerService() {
             }
             return
         }
+        if (m.path == Comida.ADD) {
+            // comida e água marcadas no relógio: guarda, confirma e avisa
+            val j = try { JSONObject(String(m.data, Charsets.UTF_8)) } catch (e: Exception) { return }
+            val ks = Comida.guardar(contexto, j.optJSONArray("ev") ?: org.json.JSONArray())
+            try { Wearable.getMessageClient(contexto).sendMessage(m.sourceNodeId, Comida.OK, JSONObject().put("ks", ks).toString().toByteArray(Charsets.UTF_8)) } catch (e: Exception) { }
+            Comida.avisar(contexto)
+            return
+        }
         if (m.path != Relogio.ACAO) return
         val texto = String(m.data, Charsets.UTF_8)
         // o batimento do descanso (2026-11-22f): sem o treino aberto aqui, não

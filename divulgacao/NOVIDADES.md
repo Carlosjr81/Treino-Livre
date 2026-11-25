@@ -16,6 +16,42 @@
 
 ---
 
+## 2026-11-25a — Jarvis Body Balance: comida, água e o balanço do corpo (e o GPS da rua consertado)
+
+**Em uma frase:** o app ganhou uma aba nova, o Jarvis Body Balance, que junta comida, água, treino, relógio e sono para mostrar se o seu dia está em cutting (déficit) ou bulking (superávit), com um corpo que enche de cor e marcação pelo relógio.
+
+**O que mudou**
+- Aba **Balance** na barra de baixo. Configura em 30 segundos: objetivo (perder gordura, ganhar massa, recomposição ou manter), idade, altura e peso.
+- **Dois corpos que enchem**: o da comida enche de baixo para cima com as cores da proteína (vermelho), do carboidrato (amarelo) e da gordura (roxo); o da água, de azul. Cheio até a cabeça é a meta do dia. Chegou, a tela comemora com luzes; passou, o corpo fica vermelho e pulsa, com o tanto que passou.
+- **Anotar é rápido**: busca de alimentos brasileiros em porção caseira (arroz, feijão, bife, frango, pão, tapioca, cuscuz, açaí...), água a um toque, e **foto do prato**: você fotografa, marca o que tem e quanto do prato cada um ocupa, e o app estima as calorias, perguntando do óleo e do molho (onde as fotos mais enganam).
+- **O balanço do dia**: quanto gastou (com o relógio, as calorias que ele mediu; sem ele, a rotina e os treinos do app), quanto comeu, e o déficit ou superávit.
+- **Passou da meta?** O app diz quantos minutos de caminhada ou corrida compensam hoje, com botão para ir para a rua ou para a esteira, e monta um plano leve para os próximos 3 dias (sem dia de fome).
+- **Semana e mês**: barras coloridas por acerto, calendário do mês, % de acerto, saldo, e "o que você está fazendo de verdade": cutting ou bulking, quantos kg por semana, conferido pela balança.
+- Depois de 14 dias anotados com pesagens, o app **mede o seu gasto de verdade** pelo que você comeu e pelo que o peso fez, e ajusta a meta.
+- **Sono**: vem do relógio; sem ele, você toca em quantas horas dormiu. Dormiu pouco, o app explica o que isso faz com a fome e com o músculo.
+- **No relógio**: abrir o Treino Livre mostra a tela dividida, TREINO em cima e COMIDA & ÁGUA embaixo. Na comida e água: o anel do dia, água +200 e +500 ml e os seus alimentos mais usados a um toque. Tudo chega sozinho ao app do celular (mesmo marcado longe dele).
+- **Conserto**: na corrida e caminhada na rua, o botão Começar ficava travado quando o GPS demorava. Agora ele começa sempre: o tempo já conta, e a distância entra assim que o GPS achar você. O GPS também religa sozinho quando demora.
+
+**Por que importa para quem treina**
+- Treino sem comida certa não vira resultado. Agora dá para ver, no mesmo app, se o que você come está a favor do objetivo, e corrigir no mesmo dia, sem culpa e sem dieta maluca.
+
+**Como usar**
+- Toque em **Balance** na barra de baixo, configure, e anote com **+ Comida**, **📷 Foto do prato** ou **💧 +250 ml**. No relógio, abra o Treino Livre e escolha **COMIDA & ÁGUA** (com o app do relógio atualizado).
+
+**Ideias de vídeo**
+- O corpo enchendo de cor a cada refeição, até a cabeça, e a festa de luzes na meta.
+- A foto do prato: fotografar o PF, tocar em arroz, feijão, bife e batata frita, e ver as calorias.
+- No pulso, no meio do dia: tocar em "💧 +500" e ver chegar no celular.
+- "Cutting ou bulking de verdade?": a tela da semana mostrando o que a comida está fazendo.
+
+**Não prometer**
+- Não é dieta nem plano alimentar: é registro e informação. Quem precisa de plano procura um nutricionista.
+- A foto do prato é estimativa, não balança: o app diz isso.
+- Não prometer quilos perdidos ou ganhos; os números são médias dos estudos e da tabela TACO.
+- O relógio precisa estar com o app atualizado; a parte do relógio ainda não foi testada num aparelho de verdade.
+
+---
+
 ## 2026-11-24a — Efeitos de LED futuristas no resumo, no app e no relógio
 
 **Em uma frase:** o resumo animado, a comemoração de recorde e o relógio ganharam efeitos de luz futuristas, inspirados em telão de arena: barras de LED correndo, uma faixa de luz varrendo a tela e lasers.

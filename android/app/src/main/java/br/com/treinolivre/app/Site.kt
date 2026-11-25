@@ -33,7 +33,8 @@ object Site {
         return Uri.parse(if (pacoteSaude == null) base else "$base#saude=$pacoteSaude")
     }
 
-    const val PARAMETROS = "app=android&bolso=2&corrida=1&relogio=3"
+    // comida=1: e recebe do relógio comida e água para o Jarvis Body Balance (ComidaActivity)
+    const val PARAMETROS = "app=android&bolso=2&corrida=1&relogio=3&comida=1"
 
     // o número deste app (o do build no GitHub), que o site mostra nos Ajustes
     var apk = 0L

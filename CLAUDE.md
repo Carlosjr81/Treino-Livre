@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.363 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.367 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v278) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v279) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6770,6 +6770,16 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
     medido pelo peso menos a média da conta nos mesmos dias; metade dele,
     `ajusteCorpo`), e não mais misturado à média, que deixava só 65% do treino
     do dia. O cartão "O balanço do dia" mostra a soma inteira até a meta.
+  - **O Body Balance nas estatísticas publicadas** (2026-11-25i, pedido do
+    dono). As contas da aba viraram uma função pura, `contasDoBalance` (a
+    tela usa ela também), e `resumoBalanceDia` dá o dia de um treino. O raiz
+    põe `BALANCE_RESUMO` (ponteiro, como o `SAUDE_RESUMO`, depois do
+    `pesoCorporal`), e `balancoParaResumo(t)` faz a conta com cache. Entra
+    no resumo animado (cena "Body Balance do dia": comeu, meta, gasto,
+    déficit ou superávit; e "Body Balance na meta" entre as vitórias), na
+    imagem do story (uma linha 🍽) e na foto com os números (Déficit ou
+    Superávit). Dia sem anotação (menos de 2 itens e 300 kcal) ou perfil sem
+    configurar não aparece.
 - **Os dados ficam no aparelho**: `nutricao` no registro principal
   (`{ perfil, dias: { "AAAA-MM-DD": { itens, agua, aguaEv, sono } }, vistos }`,
   `lerNutricao` confere e guarda 400 dias), no backup em texto e em arquivo. A

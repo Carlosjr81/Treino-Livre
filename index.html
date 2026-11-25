@@ -2125,7 +2125,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-25h";
+const VERSAO_APP = "2026-11-25i";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4396,6 +4396,77 @@ function aplicarComidaDoRelogio(nut, eventos) {
   });
   return { nut: Object.assign({}, nut, { dias: dias, vistos: Array.from(vistos).slice(-400) }), n: n };
 }
+// As contas da aba Balance numa função só (2026-11-25i): a tela, o resumo
+// animado, o story e a foto com os números usam os mesmos números.
+function contasDoBalance(o) {
+  const nutricao = o.nutricao || { perfil: {}, dias: {} }, historico = o.historico || [], exPorId = o.exPorId || (() => null);
+  const saude = o.saude, pesoCorporal = o.pesoCorporal, medidas = o.medidas, corredor = o.corredor;
+  const perfilG = nutricao.perfil || {};
+  const kg = numB(perfilG.kg) || numB(pesoCorporal) || 0;
+  const idade = numB(perfilG.idade) || numB(corredor && corredor.idade) || 0;
+  const perfil = Object.assign({}, perfilG, { kg: kg, idade: idade });
+  const tmb = tmbMifflin(perfil);
+  perfil.tmb = tmb;
+  const completo = !!(tmb && perfil.objetivo);
+  const ob = OBJETIVOS_BALANCE.find((o) => o.id === perfil.objetivo) || OBJETIVOS_BALANCE[0];
+  const hoje = diaLocal(Date.now());
+  // a média das calorias ativas dos dias inteiros com o relógio (14 dias)
+  const mediaAtivas = (() => {
+    const l = ((saude && saude.dias) || []).filter((d) => d.d !== hoje && d.kcal > 0).slice(-14);
+    return l.length >= 3 ? Math.round(l.reduce((a, d) => a + d.kcal, 0) / l.length) : 0;
+  })();
+  const pesos = (() => {
+    const l = (medidas || []).filter((m) => numB(m.peso) > 0).map((m) => ({ t: new Date(m.data).getTime(), kg: numB(m.peso) }));
+    ((saude && saude.peso) || []).forEach((x) => l.push({ t: x.t, kg: x.kg }));
+    return l;
+  })();
+  const calcDia = (d) => {
+    const dia = (nutricao.dias || {})[d] || { itens: [], agua: 0 };
+    const tot = totaisDoDia(dia);
+    const treino = kcalTreinosDoDia(historico, d, kg || 75, exPorId);
+    const sd = ((saude && saude.dias) || []).find((x) => x.d === d);
+    const gasto = tmb ? gastoDoDia({ tmb: tmb, comeu: tot.k, treino: treino, rotina: perfil.rotina, ativas: sd ? sd.kcal : 0, mediaAtivas: mediaAtivas, passos: sd ? sd.passos : 0, kg: kg, hoje: d === hoje }) : null;
+    return { d: d, dia: dia, tot: tot, comeu: tot.k, treino: treino, gasto: gasto };
+  };
+  // os últimos 35 dias, para a semana, o mês e o gasto pelo corpo
+  const ultimos = (() => {
+    const l = [];
+    for (let i = 34; i >= 0; i--) l.push(diaLocal(Date.now() - i * 864e5));
+    return l.map(calcDia);
+  })();
+  const corpo = (() => {
+    const pre = ultimos.slice(0, -1).map((x) => { const m = x.gasto ? metaDoDia(perfil, x.gasto.totalMeta, kg, x.treino.min) : null; return Object.assign({}, x, { meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) }); });
+    const c = gastoPeloCorpo(pre.slice(-28), pesos);
+    if (!c) return null;
+    // o viés da conta: quanto o corpo gastou a mais (ou a menos) que a conta,
+    // na média dos mesmos dias anotados. Corrigir pelo viés, e não misturar
+    // com a média, mantém o treino de hoje inteiro no gasto de hoje.
+    const conta = pre.slice(-28).filter((x) => x.gasto && x.tot.itens >= 2 && x.comeu >= 300);
+    const mediaConta = conta.length ? conta.reduce((a, x) => a + x.gasto.totalMeta, 0) / conta.length : 0;
+    return Object.assign({}, c, { vies: mediaConta ? Math.round(c.kcal - mediaConta) : 0 });
+  })();
+  const comMeta = (x) => {
+    if (!x.gasto) return Object.assign({}, x, { meta: null, status: statusDoDia(0, null) });
+    const ajuste = corpo ? Math.round(0.5 * corpo.vies) : 0;
+    const g = x.gasto.totalMeta + ajuste;
+    const m = metaDoDia(perfil, g, kg, x.treino.min);
+    return Object.assign({}, x, { gastoUsado: g, ajusteCorpo: ajuste, meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) });
+  };
+  const dias = ultimos.map(comMeta);
+  return { perfil: perfil, kg: kg, idade: idade, tmb: tmb, completo: completo, ob: ob, hoje: hoje, mediaAtivas: mediaAtivas, pesos: pesos,
+    calcDia: calcDia, ultimos: ultimos, corpo: corpo, comMeta: comMeta, dias: dias };
+}
+// O dia de um treino no Body Balance, para o resumo e o story. Dia sem
+// anotação (menos de 2 itens e 300 kcal) ou perfil sem configurar: nada.
+function resumoBalanceDia(cb, dia) {
+  if (!cb || !cb.completo) return null;
+  const x = cb.dias.find((y) => y.d === dia) || cb.comMeta(cb.calcDia(dia));
+  if (!x || !x.meta || !x.gasto || x.tot.itens < 2 || x.comeu < 300) return null;
+  const gasto = x.gastoUsado || x.gasto.totalMeta;
+  return { dia: dia, comeu: Math.round(x.comeu), meta: x.meta.k, gasto: Math.round(gasto), saldo: Math.round(x.comeu - gasto),
+    status: x.status, objetivo: cb.ob.id, fase: cb.ob.nome, treino: Math.round(x.treino.kcal || 0),
+    prot: Math.round(x.tot.p || 0), protMeta: x.meta.p };
+}
 // ---------------- FIM DO BODY BALANCE ----------------
 
 // O que a tela de Saúde mostra. A noite de sono pertence ao dia em que a
@@ -6537,6 +6608,7 @@ function linhasStoryCardio(d) {
   }
   if (c.kcal >= 1) l.push({ t: "🔥 cerca de " + Math.round(c.kcal) + " kcal", tam: 40, cor: "#A8A8A9", esp: 60 });
   if (c.posicao) l.push({ t: "🏁 " + c.posicao, tam: 44, cor: "#E1306C", esp: 60 });
+  if (d.balance) l.push({ t: "🍽 " + textoBalance(d.balance).linha, tam: 34, cor: "#A8A8A9", esp: 60 });
   if (d.recordes > 0) l.push({ t: "🏆 " + d.recordes + " " + plural(d.recordes, "novo recorde pessoal!", "novos recordes pessoais!"), tam: 44, cor: "#E1306C", esp: 40 });
   return l;
 }
@@ -6571,6 +6643,7 @@ function linhasStoryTreino(d) {
   if (d.cargaMax) l.push({ t: "🏋️ carga máxima " + d.cargaMax + " kg", tam: 40, cor: "#A8A8A9", esp: 60 });
   // musculação com esteira no fim: o aeróbico entra numa linha
   if (d.cardio && d.cardio.min > 0) l.push({ t: "🏃 " + (d.cardio.km >= 0.05 ? num1(d.cardio.km) + " km em " : "") + Math.round(d.cardio.min) + " min de aeróbico", tam: 40, cor: "#A8A8A9", esp: 60 });
+  if (d.balance) l.push({ t: "🍽 " + textoBalance(d.balance).linha, tam: 34, cor: "#A8A8A9", esp: 60 });
   if (d.recordes > 0) l.push({ t: "🏆 " + d.recordes + " " + plural(d.recordes, "novo recorde pessoal!", "novos recordes pessoais!"), tam: 44, cor: "#E1306C", esp: 40 });
   return l;
 }
@@ -6695,6 +6768,24 @@ let TEMA_APP = "escuro";
 let FC_PERFIL = { max: 0, rep: 0 };
 // A saúde do relógio (o pacote da Conexão Saúde), para o resumo animado
 let SAUDE_RESUMO = null;
+// o Body Balance para o resumo e o story (posto pelo raiz, como o SAUDE_RESUMO)
+let BALANCE_RESUMO = null;
+let BALANCE_CACHE = { de: null, cb: null };
+function balancoParaResumo(tMs) {
+  try {
+    const o = BALANCE_RESUMO;
+    if (!o || !o.nutricao || !o.nutricao.dias) return null;
+    const c = BALANCE_CACHE.de;
+    if (!c || c.nutricao !== o.nutricao || c.historico !== o.historico || c.saude !== o.saude || c.medidas !== o.medidas || c.pesoCorporal !== o.pesoCorporal) {
+      BALANCE_CACHE = { de: o, cb: contasDoBalance(o) };
+    }
+    return resumoBalanceDia(BALANCE_CACHE.cb, diaLocal(tMs || Date.now()));
+  } catch (e) { return null; }
+}
+function textoBalance(b) {
+  const fmt = (n) => String(Math.round(Math.abs(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return { linha: fmt(b.comeu) + " de " + fmt(b.meta) + " kcal · " + (b.saldo < 0 ? "déficit " : "superávit ") + fmt(b.saldo) + " · " + ({ certo: "na meta", perto: "quase na meta" }[b.status.id] || (b.comeu > b.meta ? "passou da meta" : "abaixo da meta")), fmt: fmt };
+}
 const corGrupo = (g) => (TEMA_APP === "claro" && g && g.corL ? g.corL : (g && g.cor ? g.cor : "var(--cinza)"));
 
 const MUSCULOS = {
@@ -28276,6 +28367,7 @@ function dadosResumo(registro, exPorId, historico, pesoKg, pts) {
       if (cs.min >= 1) d.semanaCardio = { semana: Math.round(cs.equivalente), semanaKcal: Math.round(cs.kcal || 0), semanaMin: Math.round(cs.min) };
     } catch (e) { d.semanaCardio = null; }
   }
+  d.balance = balancoParaResumo(quando.getTime());
   d.monstro = monstroResumo(registro);
   // o coração: a curva do relógio (Conexão Saúde) ou, sem ela, a média da cinta
   // As cenas do relógio só acrescentam: um dado estranho vindo do relógio
@@ -28596,6 +28688,7 @@ function infoFotoDoTreino(d) {
   if (d.duracao) it.push({ rot: "Tempo", val: d.duracao + " min" });
   if (k && k.kcal) it.push({ rot: "Gasto", val: "~" + Math.round(k.kcal) + " kcal" });
   if (d.coracao && d.coracao.medio) it.push({ rot: "Coração", val: d.coracao.medio + " bpm" });
+  if (d.balance) it.push({ rot: d.balance.saldo < 0 ? "Déficit" : "Superávit", val: textoBalance(d.balance).fmt(d.balance.saldo) + " kcal" });
   if (f && f.recordes && f.recordes.length) it.unshift({ rot: plural(f.recordes.length, "Recorde", "Recordes"), val: f.recordes.length + " 🏆" });
   return { titulo: d.nome, dia: dia, itens: it.slice(0, 4), trechos: k && k.trechos ? k.trechos : null,
     selo: (f && f.recordes && f.recordes.length) ? "Recorde quebrado!" : "Missão cumprida" };
@@ -28828,8 +28921,20 @@ function cenasResumo(d) {
       nomes: rx.slice(0, 4).map((x) => x.e + " " + x.n + (x.c ? ": " + x.c : "")), grito: "Treino aplaudido", corGrito: "#FF9A3C",
       fala: plural(rx.length, "Uma reação", rx.length + " reações") + " dos amigos: " + rx.slice(0, 3).map((x) => x.n).join(", ") + "." });
   }
+  // O Body Balance do dia do treino (2026-11-25i): comeu, meta, gasto e o saldo
+  if (d.balance) {
+    const b = d.balance, tb = textoBalance(b), fmtB = tb.fmt, certo = b.status.id === "certo";
+    const passou = b.comeu > b.meta;
+    c.push({ tipo: "numero", rotulo: "Body Balance do dia", valor: b.comeu, casas: 0, unidade: "kcal",
+      sub: "meta " + fmtB(b.meta) + " · gastou ~" + fmtB(b.gasto) + " · " + (b.saldo < 0 ? "déficit " : "superávit ") + fmtB(b.saldo),
+      grito: certo ? "Na meta!" : b.status.id === "perto" ? "Quase na meta" : passou ? "Passou da meta" : "Abaixo da meta",
+      corGrito: certo ? "#7CFF3C" : b.status.id === "perto" ? "#FFB21A" : "#FF5A5F", forte: certo,
+      fala: "No Body Balance do dia, " + fmtB(b.comeu) + " de " + fmtB(b.meta) + " calorias da meta. Gasto de cerca de " + fmtB(b.gasto) +
+        (b.saldo < 0 ? ": déficit de " : ": superávit de ") + fmtB(b.saldo) + ". " + (certo ? "Na meta." : b.status.id === "perto" ? "Quase na meta." : passou ? "Passou da meta." : "Abaixo da meta.") });
+  }
   // O "Desafio vencido": as vitórias do dia numa lista só, com o que foi superado
   const vit = [];
+  if (d.balance && d.balance.status.id === "certo") vit.push("Body Balance na meta");
   if (f && f.series) vit.push(f.series + " " + plural(f.series, "série concluída", "séries concluídas"));
   if (f && f.recordes.length) vit.push(f.recordes.length + " " + plural(f.recordes.length, "recorde quebrado", "recordes quebrados"));
   if (f && f.comp > 0) vit.push("+" + f.comp + "% de volume");
@@ -37378,58 +37483,11 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
   const mostrar = (m) => { setToast(m); clearTimeout(toastT.current); toastT.current = setTimeout(() => setToast(""), 2200); };
   useEffect(() => () => clearTimeout(toastT.current), []);
   const estadoRelogio = useRef(null);
+  const hojeTela = diaLocal(Date.now());
+  const cb = useMemo(() => contasDoBalance({ nutricao: nutricao, historico: historico, exPorId: exPorId, saude: saude, pesoCorporal: pesoCorporal, medidas: medidas, corredor: corredor }),
+    [nutricao, historico, saude, pesoCorporal, medidas, corredor, hojeTela]); // eslint-disable-line
+  const { perfil, kg, idade, tmb, completo, ob, hoje, mediaAtivas, pesos, calcDia, ultimos, corpo, comMeta, dias } = cb;
   const perfilG = nutricao.perfil || {};
-  const kg = numB(perfilG.kg) || numB(pesoCorporal) || 0;
-  const idade = numB(perfilG.idade) || numB(corredor && corredor.idade) || 0;
-  const perfil = Object.assign({}, perfilG, { kg: kg, idade: idade });
-  const tmb = tmbMifflin(perfil);
-  perfil.tmb = tmb;
-  const completo = !!(tmb && perfil.objetivo);
-  const ob = OBJETIVOS_BALANCE.find((o) => o.id === perfil.objetivo) || OBJETIVOS_BALANCE[0];
-  const hoje = diaLocal(Date.now());
-  // a média das calorias ativas dos dias inteiros com o relógio (14 dias)
-  const mediaAtivas = useMemo(() => {
-    const l = ((saude && saude.dias) || []).filter((d) => d.d !== hoje && d.kcal > 0).slice(-14);
-    return l.length >= 3 ? Math.round(l.reduce((a, d) => a + d.kcal, 0) / l.length) : 0;
-  }, [saude, hoje]);
-  const pesos = useMemo(() => {
-    const l = (medidas || []).filter((m) => numB(m.peso) > 0).map((m) => ({ t: new Date(m.data).getTime(), kg: numB(m.peso) }));
-    ((saude && saude.peso) || []).forEach((x) => l.push({ t: x.t, kg: x.kg }));
-    return l;
-  }, [medidas, saude]);
-  const calcDia = (d) => {
-    const dia = (nutricao.dias || {})[d] || { itens: [], agua: 0 };
-    const tot = totaisDoDia(dia);
-    const treino = kcalTreinosDoDia(historico, d, kg || 75, exPorId);
-    const sd = ((saude && saude.dias) || []).find((x) => x.d === d);
-    const gasto = tmb ? gastoDoDia({ tmb: tmb, comeu: tot.k, treino: treino, rotina: perfil.rotina, ativas: sd ? sd.kcal : 0, mediaAtivas: mediaAtivas, passos: sd ? sd.passos : 0, kg: kg, hoje: d === hoje }) : null;
-    return { d: d, dia: dia, tot: tot, comeu: tot.k, treino: treino, gasto: gasto };
-  };
-  // os últimos 35 dias, para a semana, o mês e o gasto pelo corpo
-  const ultimos = useMemo(() => {
-    const l = [];
-    for (let i = 34; i >= 0; i--) l.push(diaLocal(Date.now() - i * 864e5));
-    return l.map(calcDia);
-  }, [nutricao, historico, saude, kg, tmb, perfil.rotina, mediaAtivas]); // eslint-disable-line
-  const corpo = useMemo(() => {
-    const pre = ultimos.slice(0, -1).map((x) => { const m = x.gasto ? metaDoDia(perfil, x.gasto.totalMeta, kg, x.treino.min) : null; return Object.assign({}, x, { meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) }); });
-    const c = gastoPeloCorpo(pre.slice(-28), pesos);
-    if (!c) return null;
-    // o viés da conta: quanto o corpo gastou a mais (ou a menos) que a conta,
-    // na média dos mesmos dias anotados. Corrigir pelo viés, e não misturar
-    // com a média, mantém o treino de hoje inteiro no gasto de hoje.
-    const conta = pre.slice(-28).filter((x) => x.gasto && x.tot.itens >= 2 && x.comeu >= 300);
-    const mediaConta = conta.length ? conta.reduce((a, x) => a + x.gasto.totalMeta, 0) / conta.length : 0;
-    return Object.assign({}, c, { vies: mediaConta ? Math.round(c.kcal - mediaConta) : 0 });
-  }, [ultimos, pesos]); // eslint-disable-line
-  const comMeta = (x) => {
-    if (!x.gasto) return Object.assign({}, x, { meta: null, status: statusDoDia(0, null) });
-    const ajuste = corpo ? Math.round(0.5 * corpo.vies) : 0;
-    const g = x.gasto.totalMeta + ajuste;
-    const m = metaDoDia(perfil, g, kg, x.treino.min);
-    return Object.assign({}, x, { gastoUsado: g, ajusteCorpo: ajuste, meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) });
-  };
-  const dias = ultimos.map(comMeta);
   const atual = dias.find((x) => x.d === diaVer) || comMeta(calcDia(diaVer));
   const ehHoje = diaVer === hoje;
   const meta = atual.meta;
@@ -40421,6 +40479,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
         nome: registro.nome, series: st.series, reps: st.reps, volume: st.volume,
         duracao: registro.duracaoMin, densidade: st.densidade, cargaMax: st.cargaMax, recordes: nRec,
         cardio: cardioParaStory(registro, exPorId, pesoCorporal),
+        balance: balancoParaResumo(new Date(registro.data).getTime()),
       },
     });
 
@@ -40570,6 +40629,8 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     if (hc && (!daqui || hc.t > daqui.t)) return hc.kg;
     return daqui ? daqui.kg : null;
   }, [medidas, saude]);
+  // o Body Balance para o resumo animado e o story (as mesmas contas da aba)
+  BALANCE_RESUMO = { nutricao: nutricao, historico: historico, exPorId: exPorId, saude: saude, pesoCorporal: pesoCorporal, medidas: medidas, corredor: corredor };
 
   // Ida para o app Android: os treinos que ainda não estão no Health Connect
   // vão no link, e a parte nativa grava, lê tudo e volta para cá com #saude=.
@@ -40837,6 +40898,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       nome: h.nome, series: st.series, reps: st.reps, volume: st.volume,
       duracao: h.duracaoMin, densidade: st.densidade, cargaMax: st.cargaMax, recordes: nRec,
       cardio: cardioParaStory(h, exPorId, pesoCorporal),
+      balance: balancoParaResumo(new Date(h.data).getTime()),
     }));
     compartilharImagem(blob, "Treino concluído no Treino Livre! 💪 " + LINK_APP, avisar);
   };

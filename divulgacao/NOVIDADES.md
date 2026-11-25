@@ -16,6 +16,26 @@
 
 ---
 
+## 2026-11-25i — O Body Balance no resumo animado e no story
+
+**Em uma frase:** o resultado do Body Balance do dia (o que comeu, a meta, o gasto e o déficit ou superávit) agora aparece no resumo animado, na imagem do story e na foto com os números.
+
+**O que mudou**
+- Cena nova no resumo animado: "Body Balance do dia", com as calorias comidas subindo, a meta, o gasto e o saldo, e o carimbo "Na meta!", "Quase na meta" ou "Passou da meta". Também no vídeo do story.
+- Dia na meta entra nas vitórias do "Hoje você venceu".
+- A imagem do story ganhou a linha 🍽 com o Body Balance, e a foto com os números mostra o déficit ou o superávit.
+- Só aparece com o Body Balance configurado e o dia anotado.
+
+**Por que importa para quem treina:** quem está em cutting ou bulking mostra que o treino e a comida andaram juntos naquele dia.
+
+**Como usar:** anote a comida no Balance e veja o resumo animado do treino do dia.
+
+**Ideias de vídeo:** o resumo animado de um dia de cutting terminando em "Na meta!" com o déficit na tela.
+
+**Não prometer:** gasto exato; é estimativa.
+
+---
+
 ## 2026-11-25h — A meta do Body Balance mais justa, e o acumulado da semana no resumo
 
 **Em uma frase:** a meta de calorias do dia soma o metabolismo basal, o dia a dia e o treino inteiro, sem subir conforme se come, e o resumo animado mostra o aeróbico acumulado da semana até em treino só de musculação.

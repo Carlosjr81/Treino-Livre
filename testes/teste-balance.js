@@ -28,7 +28,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("// ---------------- JARVIS BODY BALANCE: AS CONTAS", "// ---------------- FIM DO BODY BALANCE") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
-  " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado," +
+  " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia," +
   " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps };");
 const B = globalThis.B;
 
@@ -222,6 +222,21 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("comer mais não sobe o gasto da meta", g1.totalMeta, g2.totalMeta);
   teste("o treino entra inteiro no gasto", true, Math.abs(400 - (g1.totalMeta - B.gastoDoDia(Object.assign({ comeu: 1500 }, base, { treino: { kcal: 0, min: 0 } })).totalMeta - Math.round(400 / 9))) <= 1);
   teste("digestão da meta: 10% do total", Math.round(g1.totalMeta * 0.1), g1.tefMeta);
+}
+// ---- o Body Balance do dia para o resumo e o story (2026-11-25i)
+{
+  const hoje = diaLocal(Date.now());
+  const arroz = B.ALIMENTOS_BR.find((a) => a.id === "arroz") || B.ALIMENTOS_BR[0];
+  const it = (q) => Object.assign(B.itemDeAlimento(arroz, q), { id: "i" + q, t: Date.now() });
+  const nutricao = { perfil: { objetivo: "perder", sexo: "m", idade: 40, cm: 178, kg: 85, rotina: "sentado" }, dias: { [hoje]: { itens: [it(4), it(5)], agua: 0 } } };
+  const cb = B.contasDoBalance({ nutricao: nutricao, historico: [], exPorId: () => null, saude: null, pesoCorporal: 85, medidas: [], corredor: {} });
+  const r = B.resumoBalanceDia(cb, hoje);
+  const x = cb.dias.find((d) => d.d === hoje);
+  teste("o resumo usa os números da tela", [x.comeu, x.meta.k], [r.comeu, r.meta]);
+  teste("o saldo é comeu menos o gasto", r.comeu - r.gasto, r.saldo);
+  const vazio = B.contasDoBalance({ nutricao: { perfil: nutricao.perfil, dias: {} }, historico: [], pesoCorporal: 85 });
+  teste("dia sem anotação não entra no resumo", null, B.resumoBalanceDia(vazio, hoje));
+  teste("sem perfil configurado, nada", null, B.resumoBalanceDia(B.contasDoBalance({ nutricao: { perfil: {}, dias: nutricao.dias } }), hoje));
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

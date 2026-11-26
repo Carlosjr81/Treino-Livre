@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-26c — Catálogo de alimentos: compare dois e veja o que muda de verdade
+
+- **Em uma frase:** agora dá para procurar os alimentos pelos números e pôr dois lado a lado, com o que é igual nos dois lados fora da conta, para ver só o que a troca muda.
+- **O que mudou:** o Balance ganhou o **🔎 Catálogo**. Em **Procurar**, a lista ordena por proteína por 100 kcal, fibra, índice glicêmico, menos calorias — ou por **o que encaixa no que ainda falta hoje**, dizendo quantos gramas cabem na meta do dia e qual número é o limite. Em **Comparar**, você põe na base o que é igual (o whey do shake) e em A e B o que muda (a maltodextrina e a farinha de arroz): a tabela mostra o total de cada lado e, na coluna da direita, só a diferença. Os alimentos ganharam **fibra** e **índice glicêmico** onde há valor publicado. Decidiu, um toque lança a opção escolhida no dia.
+- **Por que importa para quem treina:** a dúvida na dieta quase nunca é "o que comer", é "este ou aquele". Comparar os dois shakes inteiros esconde a resposta, porque o que é igual nos dois lados entra nos dois totais. Tirando a base, sobra a única coisa que você trocou.
+- **Como usar:** Balance › Hoje › 🔎 Catálogo: comparar alimentos e escolher. Ou, anotando uma comida, "Em dúvida entre dois? Abrir o catálogo e comparar".
+- **Ideias de vídeo:** a comparação na tela de 40 g de maltodextrina contra 40 g de farinha de arroz no mesmo shake, mostrando que a diferença não está onde parece.
+- **Não prometer:** não é plano alimentar nem dieta prescrita; os valores mudam com a marca e com o preparo, e montar a dieta é com o nutricionista.
+
+---
+
 ## 2026-11-26b — As telas ganharam margem, e o nome deixou de aparecer duas vezes
 
 - **Em uma frase:** o Balance, o Desafio, o Intervalado, o Monster Run, o painel do corredor, o percurso na rua e o desafio entre amigos deixaram de encostar na beirada do celular, e nenhuma tela escreve o mesmo nome grande duas vezes.

@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.385 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.427 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v284) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v285) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6818,7 +6818,7 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
   Perfil diz que é ferramenta de registro e informação geral e que o plano
   alimentar é do nutricionista (Lei 8.234/1991); gestantes, menores e quem tem
   doença seguem o profissional. A tela tem o `AvisoSaude`. O teste cobra.
-- Coberto por `teste-balance.js` (57 checagens). No navegador: o primeiro
+- Coberto por `teste-balance.js` (140 checagens). No navegador: o primeiro
   acesso, o Hoje com os dois corpos, a Semana, o Mês, a foto do prato com 4
   alimentos e óleo (~898 kcal), e o `#comida=` com 3 toques do relógio entrando
   e o corpo passando da meta. **Não validado num aparelho**: o relógio (a tela
@@ -6851,6 +6851,60 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
 - **O gasto pelo corpo prefere a pesagem da manhã** (em jejum, oscila menos) e
   o `CartaoPreparo` diz quantos dias faltam para o corpo assumir a conta (ou o
   que falta: dias anotados, pesagens, intervalo).
+
+### O catálogo: comparar e escolher (`compararAlimentos`, `JanelaCatalogo`, 2026-11-26c)
+
+Pedido do dono: "na dieta o que importa é a escolha; quero pesquisar os
+alimentos pelos valores nutricionais e ver qual é melhor para bater as metas.
+Exemplo: melhor 50 g de whey com 40 g de maltodextrina ou 50 g de whey com 40 g
+de farinha de arroz? Preciso avaliar maltodextrina contra farinha de arroz,
+porque é o único parâmetro que mudou."
+
+- **A base é o que faz a comparação valer.** Comparar os dois shakes inteiros
+  esconde a resposta: o whey entra nos dois totais e dilui a diferença. Então a
+  tela tem uma **base** (os itens iguais dos dois lados) e duas opções: os
+  totais aparecem com a base somada, e **a diferença é medida só no que mudou**
+  (`compararAlimentos(base, a, b)`; `dif.fib` sai de `soA`/`soB`, não dos
+  totais). O título diz o que mudou: "A troca mexe só no carboidrato".
+- **A régua é 100 g** (`porCemAlimento`). Os valores de `ALIMENTOS_BR` valem
+  para a porção de cada item (`gr` gramas), e comparar dois alimentos com
+  porções diferentes sem converter é comparar colher com dosador.
+- **Fibra (`f`) e índice glicêmico (`ig`)** entraram no catálogo: sem eles,
+  maltodextrina e farinha de arroz pareciam quase iguais. A fibra é da TACO, no
+  tamanho da porção (como os outros macros). O IG é a média das tabelas
+  internacionais (Atkinson, Brand-Miller e colegas, 2021). **Alimento sem valor
+  publicado confiável fica sem o campo** e a tela escreve isso — farinha crua,
+  waxy maize e hipercalórico são os casos. Um traço é melhor que um número
+  inventado, e o `teste-balance.js` cobra que esses três continuem sem `ig`.
+- **O encaixe** (`encaixeAlimento`): a nota é o cosseno entre a mistura do
+  alimento e a mistura do que ainda falta no dia, as duas medidas em kcal
+  (proteína e carboidrato a 4, gordura a 9). É o que põe peito de frango e
+  azeite na mesma régua sem o tamanho da porção decidir nada.
+  **Macro que já bateu a meta não entra como limite** (`cheios`): 2,5 g de
+  gordura num frango diziam "cabem 0 g", que é verdade de régua e mentira de
+  leitura. Ele é reportado à parte ("a gordura já está na meta").
+- **O veredito** (`vereditoComparacao`, `distanciaDaMeta`) mede a distância
+  até zerar o que falta **nos três macros em kcal equivalentes**, não só nas
+  calorias: sobrar 20 g de proteína e faltar 20 g de carboidrato não é estar na
+  meta. Abaixo de 20 kcal de diferença entre as duas, não há vencedora. O texto
+  diz "a opção B deixa o dia mais perto da sua meta" — uma leitura dos números
+  da própria pessoa, nunca "coma a B".
+- **O ruído da tabela tem nome** (`DIF_MACRO` 1 g, `DIF_KCAL` 5 kcal,
+  `DIF_FIBRA` 0,3 g): abaixo disso a linha sai como "igual". A fibra tem
+  régua própria porque 0,7 g dela é diferença e 0,7 g de gordura é ruído.
+- **Entradas**: o botão no Balance › Hoje, o atalho dentro da janela de anotar
+  ("Em dúvida entre dois?"), o "⚖️ Comparar com outro alimento" no alimento já
+  escolhido, e a Central de Ajuda. Decidido, "✓ Anotar a A" lança a opção com a
+  base no dia (`anotarDoCatalogo`, pelo mesmo `quantidadeComida` em gramas).
+- A busca virou uma só (`buscarAlimentos`), usada pelo catálogo e pela janela
+  de anotar.
+- **O que nunca escrever ali**: plano alimentar, dieta, "coma isto". O rodapé
+  diz que os valores mudam com a marca e com o preparo e que a dieta é com o
+  nutricionista (Lei 8.234/1991, como no resto do Balance).
+- Coberto por `teste-balance.js` (o exemplo do dono ponta a ponta, a base que
+  não muda a diferença, o encaixe, a ordenação, a busca, o veredito e os
+  valores novos). No navegador: a lista ordenada pelo encaixe e a comparação
+  whey + malto contra whey + farinha de arroz. **Não validado num aparelho.**
 
 ### O modo preparação (`SUBSTANCIAS_PREPARO`, `CartaoPreparo`, `preparoLiberado`, 2026-11-25j)
 

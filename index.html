@@ -1627,6 +1627,21 @@ const AJUDA_APP = [
       "É informação geral: não substitui o nutricionista nem o médico.",
     ],
     ir: { destino: "balance", rotulo: "Abrir o Body Balance" } },
+  { id: "catalogo", cat: "cardio", icone: "\u{1F50E}", titulo: "Catálogo: comparar alimentos e escolher",
+    resumo: "Procure os alimentos pelos números e ponha dois lado a lado para ver o que muda de verdade na troca.",
+    passos: [
+      "Em **Balance → Hoje**, toque em **🔎 Catálogo: comparar alimentos e escolher**.",
+      "Na aba **🔎 Procurar**, ordene por proteína por 100 kcal, fibra, índice glicêmico ou por **🎯 Encaixa no que falta hoje** — e veja quantos gramas ainda cabem na meta do dia.",
+      "Na aba **⚖️ Comparar**, ponha na **base** o que é igual nos dois lados (o whey, por exemplo) e em **A** e **B** o que muda (a maltodextrina e a farinha de arroz).",
+      "A tabela mostra o total de cada lado e, na coluna da direita, só a diferença — é ela que responde qual trocar.",
+      "Decidiu? **✓ Anotar a A** (ou a B) lança tudo no dia, com a base junto.",
+    ],
+    dicas: [
+      "Tocando num alimento da lista, **⚖️ Pôr em A** ou **Pôr em B** manda ele direto para a comparação.",
+      "O índice glicêmico vem das tabelas internacionais e vale para o alimento sozinho: numa refeição misturada o efeito muda. Farinha crua e waxy maize saem em branco porque não têm valor publicado confiável.",
+      "Os valores mudam com a marca e com o preparo. É informação geral para comparar — montar a sua dieta é com o nutricionista.",
+    ],
+    ir: { destino: "balance", rotulo: "Abrir o Body Balance" } },
   { id: "desafio", cat: "cardio", icone: "\u{1F3C1}", titulo: "Desafiar amigos",
     resumo: "Corrida ao vivo, ou um ranking da semana com a galera.",
     passos: [
@@ -1869,18 +1884,18 @@ const DESCANSO_CIENCIA = {
 // da foto: "o arroz ocupa 1/4 do prato" vira gramas por aqui); 0 = não vai no prato.
 const ALIMENTOS_BR = [
   // pratos e acompanhamentos
-  { id: "arroz", nome: "Arroz branco", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 128, p: 2.5, c: 28.1, g: 0.2, gPrato: 520, ic: "\u{1F35A}" },
-  { id: "arroz-int", nome: "Arroz integral", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 124, p: 2.6, c: 25.8, g: 1.0, gPrato: 520, ic: "\u{1F35A}" },
-  { id: "feijao", nome: "Feijão (carioca ou preto)", cat: "carbo", por: "1 concha (140 g)", gr: 140, k: 107, p: 6.7, c: 19.0, g: 0.7, gPrato: 560, ic: "\u{1FAD8}" },
-  { id: "macarrao", nome: "Macarrão cozido", cat: "carbo", por: "1 pegador (110 g)", gr: 110, k: 112, p: 3.7, c: 21.9, g: 1.3, gPrato: 480, ic: "\u{1F35D}" },
+  { id: "arroz", nome: "Arroz branco", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 128, p: 2.5, c: 28.1, g: 0.2, f: 1.6, ig: 73, gPrato: 520, ic: "\u{1F35A}" },
+  { id: "arroz-int", nome: "Arroz integral", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 124, p: 2.6, c: 25.8, g: 1.0, f: 2.7, ig: 68, gPrato: 520, ic: "\u{1F35A}" },
+  { id: "feijao", nome: "Feijão (carioca ou preto)", cat: "carbo", por: "1 concha (140 g)", gr: 140, k: 107, p: 6.7, c: 19.0, g: 0.7, f: 11.9, ig: 29, gPrato: 560, ic: "\u{1FAD8}" },
+  { id: "macarrao", nome: "Macarrão cozido", cat: "carbo", por: "1 pegador (110 g)", gr: 110, k: 112, p: 3.7, c: 21.9, g: 1.3, f: 1.8, ig: 49, gPrato: 480, ic: "\u{1F35D}" },
   { id: "batata-frita", nome: "Batata frita", cat: "gordura", por: "1 porção média (100 g)", gr: 100, k: 267, p: 5.0, c: 35.6, g: 13.1, gPrato: 330, ic: "\u{1F35F}" },
-  { id: "batata-cozida", nome: "Batata cozida ou purê", cat: "carbo", por: "1 escumadeira (100 g)", gr: 100, k: 80, p: 1.6, c: 14.0, g: 2.0, gPrato: 480, ic: "\u{1F954}" },
-  { id: "batata-doce", nome: "Batata-doce cozida", cat: "carbo", por: "1 pedaço médio (100 g)", gr: 100, k: 77, p: 0.6, c: 18.4, g: 0.1, gPrato: 480, ic: "\u{1F360}" },
-  { id: "mandioca", nome: "Mandioca cozida", cat: "carbo", por: "1 pedaço (100 g)", gr: 100, k: 125, p: 0.6, c: 30.1, g: 0.3, gPrato: 480, ic: "\u{1F954}" },
-  { id: "farofa", nome: "Farofa", cat: "carbo", por: "2 colheres de sopa (30 g)", gr: 30, k: 122, p: 0.6, c: 24.0, g: 2.7, gPrato: 250, ic: "\u{1F96B}" },
-  { id: "cuscuz", nome: "Cuscuz de milho", cat: "carbo", por: "1 fatia (100 g)", gr: 100, k: 113, p: 2.2, c: 25.3, g: 0.7, gPrato: 450, ic: "\u{1F33D}" },
-  { id: "salada", nome: "Salada de folhas e tomate", cat: "verdura", por: "1 prato de sobremesa (100 g)", gr: 100, k: 18, p: 1.2, c: 3.2, g: 0.2, gPrato: 200, ic: "\u{1F957}" },
-  { id: "legumes", nome: "Legumes cozidos (brócolis, cenoura)", cat: "verdura", por: "1 escumadeira (100 g)", gr: 100, k: 30, p: 1.6, c: 5.5, g: 0.3, gPrato: 330, ic: "\u{1F966}" },
+  { id: "batata-cozida", nome: "Batata cozida ou purê", cat: "carbo", por: "1 escumadeira (100 g)", gr: 100, k: 80, p: 1.6, c: 14.0, g: 2.0, f: 1.3, ig: 78, gPrato: 480, ic: "\u{1F954}" },
+  { id: "batata-doce", nome: "Batata-doce cozida", cat: "carbo", por: "1 pedaço médio (100 g)", gr: 100, k: 77, p: 0.6, c: 18.4, g: 0.1, f: 2.2, ig: 63, gPrato: 480, ic: "\u{1F360}" },
+  { id: "mandioca", nome: "Mandioca cozida", cat: "carbo", por: "1 pedaço (100 g)", gr: 100, k: 125, p: 0.6, c: 30.1, g: 0.3, f: 1.6, ig: 46, gPrato: 480, ic: "\u{1F954}" },
+  { id: "farofa", nome: "Farofa", cat: "carbo", por: "2 colheres de sopa (30 g)", gr: 30, k: 122, p: 0.6, c: 24.0, g: 2.7, f: 1.9, gPrato: 250, ic: "\u{1F96B}" },
+  { id: "cuscuz", nome: "Cuscuz de milho", cat: "carbo", por: "1 fatia (100 g)", gr: 100, k: 113, p: 2.2, c: 25.3, g: 0.7, f: 2, ig: 65, gPrato: 450, ic: "\u{1F33D}" },
+  { id: "salada", nome: "Salada de folhas e tomate", cat: "verdura", por: "1 prato de sobremesa (100 g)", gr: 100, k: 18, p: 1.2, c: 3.2, g: 0.2, f: 1.5, gPrato: 200, ic: "\u{1F957}" },
+  { id: "legumes", nome: "Legumes cozidos (brócolis, cenoura)", cat: "verdura", por: "1 escumadeira (100 g)", gr: 100, k: 30, p: 1.6, c: 5.5, g: 0.3, f: 2.5, gPrato: 330, ic: "\u{1F966}" },
   // proteínas
   { id: "bife", nome: "Bife grelhado", cat: "proteina", por: "1 bife médio (100 g)", gr: 100, k: 220, p: 32.0, c: 0, g: 10.0, gPrato: 520, ic: "\u{1F969}" },
   { id: "carne-moida", nome: "Carne moída refogada", cat: "proteina", por: "3 colheres de sopa (100 g)", gr: 100, k: 212, p: 26.7, c: 0, g: 10.9, gPrato: 520, ic: "\u{1F969}" },
@@ -1892,40 +1907,40 @@ const ALIMENTOS_BR = [
   { id: "linguica", nome: "Linguiça calabresa", cat: "gordura", por: "1 gomo (60 g)", gr: 60, k: 178, p: 9.6, c: 1.0, g: 15.0, gPrato: 450, ic: "\u{1F32D}" },
   { id: "feijoada", nome: "Feijoada", cat: "gordura", por: "1 concha cheia (200 g)", gr: 200, k: 345, p: 20.0, c: 20.0, g: 20.0, gPrato: 560, ic: "\u{1F372}" },
   // pães e café da manhã
-  { id: "pao", nome: "Pão francês", cat: "carbo", por: "1 unidade (50 g)", gr: 50, k: 150, p: 4.0, c: 29.3, g: 1.6, gPrato: 0, ic: "\u{1F956}" },
-  { id: "pao-forma", nome: "Pão de forma integral", cat: "carbo", por: "2 fatias (50 g)", gr: 50, k: 126, p: 4.7, c: 24.0, g: 1.7, gPrato: 0, ic: "\u{1F35E}" },
+  { id: "pao", nome: "Pão francês", cat: "carbo", por: "1 unidade (50 g)", gr: 50, k: 150, p: 4.0, c: 29.3, g: 1.6, f: 1.2, ig: 75, gPrato: 0, ic: "\u{1F956}" },
+  { id: "pao-forma", nome: "Pão de forma integral", cat: "carbo", por: "2 fatias (50 g)", gr: 50, k: 126, p: 4.7, c: 24.0, g: 1.7, f: 1.2, ig: 75, gPrato: 0, ic: "\u{1F35E}" },
   { id: "tapioca", nome: "Tapioca", cat: "carbo", por: "1 média (50 g de goma)", gr: 50, k: 120, p: 0, c: 30.0, g: 0, gPrato: 0, ic: "\u{1FAD3}" },
   { id: "pao-queijo", nome: "Pão de queijo", cat: "gordura", por: "1 unidade (30 g)", gr: 30, k: 105, p: 2.0, c: 13.0, g: 5.0, gPrato: 0, ic: "\u{1F9C0}" },
   { id: "queijo", nome: "Queijo muçarela", cat: "gordura", por: "1 fatia (20 g)", gr: 20, k: 66, p: 4.5, c: 0.6, g: 5.0, gPrato: 0, ic: "\u{1F9C0}" },
   { id: "manteiga", nome: "Manteiga ou margarina", cat: "gordura", por: "1 ponta de faca (10 g)", gr: 10, k: 72, p: 0.1, c: 0, g: 8.2, gPrato: 0, ic: "\u{1F9C8}" },
-  { id: "aveia", nome: "Aveia em flocos", cat: "carbo", por: "2 colheres de sopa (30 g)", gr: 30, k: 118, p: 4.2, c: 20.0, g: 2.6, gPrato: 0, ic: "\u{1F963}" },
-  { id: "granola", nome: "Granola", cat: "carbo", por: "3 colheres de sopa (30 g)", gr: 30, k: 130, p: 3.0, c: 20.0, g: 4.5, gPrato: 0, ic: "\u{1F963}" },
-  { id: "leite", nome: "Leite integral", cat: "proteina", por: "1 copo (200 ml)", gr: 200, k: 123, p: 6.0, c: 9.0, g: 6.6, gPrato: 0, ic: "\u{1F95B}", liq: 200 },
-  { id: "iogurte", nome: "Iogurte natural", cat: "proteina", por: "1 pote (170 g)", gr: 170, k: 105, p: 7.0, c: 8.0, g: 5.0, gPrato: 0, ic: "\u{1F95B}" },
-  { id: "whey", nome: "Whey protein", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 120, p: 24.0, c: 3.0, g: 1.5, gPrato: 0, ic: "\u{1F964}" },
-  { id: "pasta-amendoim", nome: "Pasta de amendoim", cat: "gordura", por: "1 colher de sopa (15 g)", gr: 15, k: 90, p: 3.5, c: 3.0, g: 7.5, gPrato: 0, ic: "\u{1F95C}" },
-  { id: "castanhas", nome: "Castanhas e nozes", cat: "gordura", por: "1 punhado (30 g)", gr: 30, k: 190, p: 5.0, c: 5.0, g: 18.0, gPrato: 0, ic: "\u{1F95C}" },
+  { id: "aveia", nome: "Aveia em flocos", cat: "carbo", por: "2 colheres de sopa (30 g)", gr: 30, k: 118, p: 4.2, c: 20.0, g: 2.6, f: 2.7, ig: 55, gPrato: 0, ic: "\u{1F963}" },
+  { id: "granola", nome: "Granola", cat: "carbo", por: "3 colheres de sopa (30 g)", gr: 30, k: 130, p: 3.0, c: 20.0, g: 4.5, f: 1.8, gPrato: 0, ic: "\u{1F963}" },
+  { id: "leite", nome: "Leite integral", cat: "proteina", por: "1 copo (200 ml)", gr: 200, k: 123, p: 6.0, c: 9.0, g: 6.6, ig: 39, gPrato: 0, ic: "\u{1F95B}", liq: 200 },
+  { id: "iogurte", nome: "Iogurte natural", cat: "proteina", por: "1 pote (170 g)", gr: 170, k: 105, p: 7.0, c: 8.0, g: 5.0, ig: 41, gPrato: 0, ic: "\u{1F95B}" },
+  { id: "whey", nome: "Whey protein", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 120, p: 24.0, c: 3.0, g: 1.5, f: 0, gPrato: 0, ic: "\u{1F964}" },
+  { id: "pasta-amendoim", nome: "Pasta de amendoim", cat: "gordura", por: "1 colher de sopa (15 g)", gr: 15, k: 90, p: 3.5, c: 3.0, g: 7.5, f: 1.2, gPrato: 0, ic: "\u{1F95C}" },
+  { id: "castanhas", nome: "Castanhas e nozes", cat: "gordura", por: "1 punhado (30 g)", gr: 30, k: 190, p: 5.0, c: 5.0, g: 18.0, f: 1, gPrato: 0, ic: "\u{1F95C}" },
   { id: "azeite", nome: "Azeite ou óleo", cat: "gordura", por: "1 colher de sopa (13 ml)", gr: 13, k: 117, p: 0, c: 0, g: 13.0, gPrato: 0, ic: "\u{1FAD2}" },
   // frutas
-  { id: "banana", nome: "Banana", cat: "fruta", por: "1 média (70 g)", gr: 70, k: 69, p: 0.9, c: 18.0, g: 0.1, gPrato: 0, ic: "\u{1F34C}" },
-  { id: "maca", nome: "Maçã", cat: "fruta", por: "1 média (130 g)", gr: 130, k: 73, p: 0.4, c: 19.5, g: 0.2, gPrato: 0, ic: "\u{1F34E}" },
-  { id: "laranja", nome: "Laranja", cat: "fruta", por: "1 média (180 g)", gr: 180, k: 86, p: 1.8, c: 21.0, g: 0.2, gPrato: 0, ic: "\u{1F34A}" },
-  { id: "mamao", nome: "Mamão", cat: "fruta", por: "1 fatia (150 g)", gr: 150, k: 60, p: 0.7, c: 15.0, g: 0.2, gPrato: 0, ic: "\u{1F348}" },
-  { id: "abacate", nome: "Abacate", cat: "gordura", por: "2 colheres de sopa (60 g)", gr: 60, k: 58, p: 0.7, c: 3.6, g: 5.0, gPrato: 0, ic: "\u{1F951}" },
+  { id: "banana", nome: "Banana", cat: "fruta", por: "1 média (70 g)", gr: 70, k: 69, p: 0.9, c: 18.0, g: 0.1, f: 1.4, ig: 51, gPrato: 0, ic: "\u{1F34C}" },
+  { id: "maca", nome: "Maçã", cat: "fruta", por: "1 média (130 g)", gr: 130, k: 73, p: 0.4, c: 19.5, g: 0.2, f: 1.7, ig: 36, gPrato: 0, ic: "\u{1F34E}" },
+  { id: "laranja", nome: "Laranja", cat: "fruta", por: "1 média (180 g)", gr: 180, k: 86, p: 1.8, c: 21.0, g: 0.2, f: 2, ig: 43, gPrato: 0, ic: "\u{1F34A}" },
+  { id: "mamao", nome: "Mamão", cat: "fruta", por: "1 fatia (150 g)", gr: 150, k: 60, p: 0.7, c: 15.0, g: 0.2, f: 2.7, ig: 60, gPrato: 0, ic: "\u{1F348}" },
+  { id: "abacate", nome: "Abacate", cat: "gordura", por: "2 colheres de sopa (60 g)", gr: 60, k: 58, p: 0.7, c: 3.6, g: 5.0, f: 3.8, gPrato: 0, ic: "\u{1F951}" },
   { id: "acai", nome: "Açaí na tigela (com granola)", cat: "doce", por: "1 tigela (300 ml)", gr: 300, k: 450, p: 6.0, c: 70.0, g: 16.0, gPrato: 0, ic: "\u{1F347}" },
   // lanches e doces
   { id: "pizza", nome: "Pizza", cat: "gordura", por: "1 fatia (100 g)", gr: 100, k: 260, p: 11.0, c: 30.0, g: 10.0, gPrato: 0, ic: "\u{1F355}" },
   { id: "hamburguer", nome: "Hambúrguer (sanduíche)", cat: "gordura", por: "1 unidade", gr: 200, k: 500, p: 25.0, c: 40.0, g: 26.0, gPrato: 0, ic: "\u{1F354}" },
   { id: "salgado", nome: "Salgado frito (coxinha, pastel)", cat: "gordura", por: "1 unidade (80 g)", gr: 80, k: 225, p: 8.0, c: 26.0, g: 10.0, gPrato: 0, ic: "\u{1F95F}" },
-  { id: "chocolate", nome: "Chocolate ao leite", cat: "doce", por: "1 barrinha (25 g)", gr: 25, k: 135, p: 2.0, c: 15.0, g: 7.5, gPrato: 0, ic: "\u{1F36B}" },
+  { id: "chocolate", nome: "Chocolate ao leite", cat: "doce", por: "1 barrinha (25 g)", gr: 25, k: 135, p: 2.0, c: 15.0, g: 7.5, f: 1.3, gPrato: 0, ic: "\u{1F36B}" },
   { id: "biscoito", nome: "Biscoito recheado", cat: "doce", por: "3 unidades (40 g)", gr: 40, k: 190, p: 2.4, c: 28.0, g: 8.0, gPrato: 0, ic: "\u{1F36A}" },
   { id: "bolo", nome: "Bolo simples", cat: "doce", por: "1 fatia (60 g)", gr: 60, k: 200, p: 3.0, c: 30.0, g: 7.5, gPrato: 0, ic: "\u{1F370}" },
   { id: "sorvete", nome: "Sorvete", cat: "doce", por: "1 bola (60 g)", gr: 60, k: 120, p: 2.0, c: 15.0, g: 6.0, gPrato: 0, ic: "\u{1F366}" },
   // bebidas (liq = ml que contam também como líquido do dia)
   { id: "cafe", nome: "Café sem açúcar", cat: "bebida", por: "1 xícara (50 ml)", gr: 50, k: 2, p: 0.1, c: 0.3, g: 0, gPrato: 0, ic: "☕", liq: 50 },
   { id: "cafe-acucar", nome: "Café com açúcar", cat: "bebida", por: "1 xícara (50 ml)", gr: 50, k: 22, p: 0.1, c: 5.3, g: 0, gPrato: 0, ic: "☕", liq: 50 },
-  { id: "suco", nome: "Suco de laranja natural", cat: "bebida", por: "1 copo (250 ml)", gr: 250, k: 115, p: 1.7, c: 26.0, g: 0.5, gPrato: 0, ic: "\u{1F9C3}", liq: 250 },
-  { id: "refri", nome: "Refrigerante comum", cat: "doce", por: "1 lata (350 ml)", gr: 350, k: 140, p: 0, c: 35.0, g: 0, gPrato: 0, ic: "\u{1F964}", liq: 350 },
+  { id: "suco", nome: "Suco de laranja natural", cat: "bebida", por: "1 copo (250 ml)", gr: 250, k: 115, p: 1.7, c: 26.0, g: 0.5, ig: 50, gPrato: 0, ic: "\u{1F9C3}", liq: 250 },
+  { id: "refri", nome: "Refrigerante comum", cat: "doce", por: "1 lata (350 ml)", gr: 350, k: 140, p: 0, c: 35.0, g: 0, ig: 63, gPrato: 0, ic: "\u{1F964}", liq: 350 },
   { id: "refri-zero", nome: "Refrigerante zero", cat: "bebida", por: "1 lata (350 ml)", gr: 350, k: 2, p: 0, c: 0, g: 0, gPrato: 0, ic: "\u{1F964}", liq: 350 },
   // o álcool tem 7 kcal por grama e não é carboidrato: fica em "alc"
   { id: "cerveja", nome: "Cerveja", cat: "alcool", por: "1 lata (350 ml)", gr: 350, k: 147, p: 1.1, c: 12.0, g: 0, alc: 13.9, gPrato: 0, ic: "\u{1F37A}", liq: 350 },
@@ -1935,26 +1950,26 @@ const ALIMENTOS_BR = [
   { id: "marmita-fit", nome: "Marmita fit (frango, arroz integral, legumes)", cat: "prato", por: "1 marmita", gr: 400, k: 450, p: 40.0, c: 50.0, g: 9.0, gPrato: 0, ic: "\u{1F371}" },
   { id: "lanche", nome: "Lanche (pão, queijo, presunto)", cat: "prato", por: "1 sanduíche", gr: 120, k: 320, p: 16.0, c: 32.0, g: 13.0, gPrato: 0, ic: "\u{1F96A}" },
   // farinhas e amidos (2026-11-25e, pedido do dono: "farinhas, maltodextrina, dextrose, mais suplementos")
-  { id: "farinha-arroz", nome: "Farinha de arroz", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 109, p: 1.8, c: 24.0, g: 0.4, gPrato: 0, ic: "🌾" },
-  { id: "farinha-mandioca", nome: "Farinha de mandioca", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 110, p: 0.4, c: 26.7, g: 0.1, gPrato: 250, ic: "🌾", b: "farinha de mesa torrada" },
-  { id: "farinha-trigo", nome: "Farinha de trigo", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 108, p: 2.9, c: 22.5, g: 0.4, gPrato: 0, ic: "🌾" },
-  { id: "farinha-aveia", nome: "Farinha de aveia", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 118, p: 4.2, c: 20.0, g: 2.6, gPrato: 0, ic: "🌾" },
-  { id: "fuba", nome: "Fubá / farinha de milho", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 106, p: 2.2, c: 23.7, g: 0.6, gPrato: 0, ic: "🌽", b: "flocao polenta angu" },
-  { id: "farinha-amendoas", nome: "Farinha de amêndoas", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 180, p: 6.3, c: 6.0, g: 15.0, gPrato: 0, ic: "🌰", b: "low carb" },
-  { id: "farinha-coco", nome: "Farinha de coco", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 120, p: 5.0, c: 18.0, g: 4.5, gPrato: 0, ic: "🥥", b: "low carb" },
-  { id: "farinha-linhaca", nome: "Farinha de linhaça", cat: "farinha", por: "1 colher de sopa (15 g)", gr: 15, k: 74, p: 2.1, c: 6.5, g: 4.8, gPrato: 0, ic: "🌾", b: "semente" },
-  { id: "polvilho", nome: "Polvilho (doce ou azedo)", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 105, p: 0.1, c: 26.0, g: 0, gPrato: 0, ic: "🌾", b: "goma fecula amido" },
-  { id: "amido-milho", nome: "Amido de milho", cat: "farinha", por: "1 colher de sopa (20 g)", gr: 20, k: 70, p: 0.1, c: 17.4, g: 0, gPrato: 0, ic: "🌽", b: "maisena" },
+  { id: "farinha-arroz", nome: "Farinha de arroz", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 109, p: 1.8, c: 24.0, g: 0.4, f: 0.7, gPrato: 0, ic: "🌾" },
+  { id: "farinha-mandioca", nome: "Farinha de mandioca", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 110, p: 0.4, c: 26.7, g: 0.1, f: 1.9, gPrato: 250, ic: "🌾", b: "farinha de mesa torrada" },
+  { id: "farinha-trigo", nome: "Farinha de trigo", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 108, p: 2.9, c: 22.5, g: 0.4, f: 0.7, gPrato: 0, ic: "🌾" },
+  { id: "farinha-aveia", nome: "Farinha de aveia", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 118, p: 4.2, c: 20.0, g: 2.6, f: 2.7, gPrato: 0, ic: "🌾" },
+  { id: "fuba", nome: "Fubá / farinha de milho", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 106, p: 2.2, c: 23.7, g: 0.6, f: 1.7, gPrato: 0, ic: "🌽", b: "flocao polenta angu" },
+  { id: "farinha-amendoas", nome: "Farinha de amêndoas", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 180, p: 6.3, c: 6.0, g: 15.0, f: 3.6, gPrato: 0, ic: "🌰", b: "low carb" },
+  { id: "farinha-coco", nome: "Farinha de coco", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 120, p: 5.0, c: 18.0, g: 4.5, f: 11.4, gPrato: 0, ic: "🥥", b: "low carb" },
+  { id: "farinha-linhaca", nome: "Farinha de linhaça", cat: "farinha", por: "1 colher de sopa (15 g)", gr: 15, k: 74, p: 2.1, c: 6.5, g: 4.8, f: 5, gPrato: 0, ic: "🌾", b: "semente" },
+  { id: "polvilho", nome: "Polvilho (doce ou azedo)", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 105, p: 0.1, c: 26.0, g: 0, f: 0, gPrato: 0, ic: "🌾", b: "goma fecula amido" },
+  { id: "amido-milho", nome: "Amido de milho", cat: "farinha", por: "1 colher de sopa (20 g)", gr: 20, k: 70, p: 0.1, c: 17.4, g: 0, f: 0, gPrato: 0, ic: "🌽", b: "maisena" },
   // suplementos
-  { id: "maltodextrina", nome: "Maltodextrina", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 114, p: 0, c: 28.5, g: 0, gPrato: 0, ic: "🥤", b: "malto carboidrato em po" },
-  { id: "dextrose", nome: "Dextrose", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 109, p: 0, c: 27.3, g: 0, gPrato: 0, ic: "🥤", b: "glicose carboidrato em po" },
-  { id: "waxy-maize", nome: "Waxy maize", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 114, p: 0, c: 28.5, g: 0, gPrato: 0, ic: "🥤", b: "amido de milho ceroso carboidrato em po" },
-  { id: "palatinose", nome: "Palatinose", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 120, p: 0, c: 30.0, g: 0, gPrato: 0, ic: "🥤", b: "isomaltulose carboidrato em po" },
+  { id: "maltodextrina", nome: "Maltodextrina", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 114, p: 0, c: 28.5, g: 0, f: 0, ig: 105, gPrato: 0, ic: "🥤", b: "malto carboidrato em po" },
+  { id: "dextrose", nome: "Dextrose", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 109, p: 0, c: 27.3, g: 0, f: 0, ig: 100, gPrato: 0, ic: "🥤", b: "glicose carboidrato em po" },
+  { id: "waxy-maize", nome: "Waxy maize", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 114, p: 0, c: 28.5, g: 0, f: 0, gPrato: 0, ic: "🥤", b: "amido de milho ceroso carboidrato em po" },
+  { id: "palatinose", nome: "Palatinose", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 120, p: 0, c: 30.0, g: 0, f: 0, ig: 32, gPrato: 0, ic: "🥤", b: "isomaltulose carboidrato em po" },
   { id: "gel-carbo", nome: "Gel de carboidrato", cat: "suplemento", por: "1 sachê (30 g)", gr: 30, k: 80, p: 0, c: 20.0, g: 0, gPrato: 0, ic: "🧃", b: "carb up corrida" },
   { id: "hipercalorico", nome: "Hipercalórico (massa)", cat: "suplemento", por: "1 dose (100 g)", gr: 100, k: 380, p: 20.0, c: 70.0, g: 2.5, gPrato: 0, ic: "🥤", b: "mass ganhador de peso" },
-  { id: "whey-isolado", nome: "Whey protein isolado", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 110, p: 27.0, c: 0.5, g: 0.3, gPrato: 0, ic: "🥤", b: "proteina" },
-  { id: "caseina", nome: "Caseína", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 110, p: 24.0, c: 3.0, g: 0.5, gPrato: 0, ic: "🥤", b: "proteina noturna" },
-  { id: "albumina", nome: "Albumina", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 112, p: 24.0, c: 3.0, g: 0, gPrato: 0, ic: "🥚", b: "proteina clara de ovo" },
+  { id: "whey-isolado", nome: "Whey protein isolado", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 110, p: 27.0, c: 0.5, g: 0.3, f: 0, gPrato: 0, ic: "🥤", b: "proteina" },
+  { id: "caseina", nome: "Caseína", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 110, p: 24.0, c: 3.0, g: 0.5, f: 0, gPrato: 0, ic: "🥤", b: "proteina noturna" },
+  { id: "albumina", nome: "Albumina", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 112, p: 24.0, c: 3.0, g: 0, f: 0, gPrato: 0, ic: "🥚", b: "proteina clara de ovo" },
   { id: "proteina-vegetal", nome: "Proteína vegetal (ervilha e arroz)", cat: "suplemento", por: "1 dosador (30 g)", gr: 30, k: 120, p: 22.0, c: 3.0, g: 2.0, gPrato: 0, ic: "🌱", b: "vegana proteina" },
   { id: "shake-pronto", nome: "Shake de proteína pronto", cat: "suplemento", por: "1 garrafinha (250 ml)", gr: 250, k: 150, p: 25.0, c: 9.0, g: 1.5, gPrato: 0, ic: "🧃", liq: 250, b: "whey bebida proteica" },
   { id: "barra-proteina", nome: "Barra de proteína", cat: "suplemento", por: "1 barra (45 g)", gr: 45, k: 180, p: 15.0, c: 18.0, g: 6.0, gPrato: 0, ic: "🍫", b: "protein bar" },
@@ -1967,19 +1982,19 @@ const ALIMENTOS_BR = [
   { id: "cafeina", nome: "Cafeína (cápsula)", cat: "suplemento", por: "1 cápsula", gr: 1, k: 0, p: 0, c: 0, g: 0, gPrato: 0, ic: "💊" },
   { id: "omega3", nome: "Ômega 3", cat: "suplemento", por: "2 cápsulas (2 g)", gr: 2, k: 18, p: 0, c: 0, g: 2.0, gPrato: 0, ic: "💊", b: "oleo de peixe" },
   { id: "multivitaminico", nome: "Multivitamínico", cat: "suplemento", por: "1 cápsula", gr: 1, k: 0, p: 0, c: 0, g: 0, gPrato: 0, ic: "💊", b: "vitamina" },
-  { id: "isotonico", nome: "Isotônico", cat: "suplemento", por: "1 garrafa (500 ml)", gr: 500, k: 120, p: 0, c: 30.0, g: 0, gPrato: 0, ic: "🧃", liq: 500, b: "bebida esportiva" },
+  { id: "isotonico", nome: "Isotônico", cat: "suplemento", por: "1 garrafa (500 ml)", gr: 500, k: 120, p: 0, c: 30.0, g: 0, ig: 78, gPrato: 0, ic: "🧃", liq: 500, b: "bebida esportiva" },
   // mais carboidratos
-  { id: "inhame", nome: "Inhame ou cará cozido", cat: "carbo", por: "1 pedaço (100 g)", gr: 100, k: 97, p: 2.0, c: 23.0, g: 0.1, gPrato: 480, ic: "🍠" },
-  { id: "milho", nome: "Milho verde cozido", cat: "carbo", por: "1 espiga ou 4 colheres (100 g)", gr: 100, k: 98, p: 3.2, c: 19.0, g: 0.6, gPrato: 400, ic: "🌽" },
-  { id: "quinoa", nome: "Quinoa cozida", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 120, p: 4.4, c: 21.3, g: 1.9, gPrato: 480, ic: "🍚" },
-  { id: "lentilha", nome: "Lentilha cozida", cat: "carbo", por: "1 concha (100 g)", gr: 100, k: 93, p: 6.3, c: 16.3, g: 0.5, gPrato: 480, ic: "🫘" },
-  { id: "grao-bico", nome: "Grão-de-bico cozido", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 164, p: 8.9, c: 27.0, g: 2.6, gPrato: 480, ic: "🫘" },
-  { id: "pao-sirio", nome: "Pão sírio ou wrap", cat: "carbo", por: "1 unidade (60 g)", gr: 60, k: 165, p: 5.5, c: 33.0, g: 1.0, gPrato: 0, ic: "🫓", b: "rap10 tortilha" },
-  { id: "torrada", nome: "Torrada", cat: "carbo", por: "3 unidades (30 g)", gr: 30, k: 120, p: 3.5, c: 22.0, g: 2.0, gPrato: 0, ic: "🍞" },
-  { id: "cereal", nome: "Cereal matinal", cat: "carbo", por: "1 xícara (30 g)", gr: 30, k: 115, p: 2.0, c: 26.0, g: 0.5, gPrato: 0, ic: "🥣", b: "sucrilhos flocos de milho" },
-  { id: "crepioca", nome: "Crepioca (ovo e tapioca)", cat: "carbo", por: "1 unidade", gr: 90, k: 180, p: 7.0, c: 25.0, g: 5.0, gPrato: 0, ic: "🫓" },
-  { id: "panqueca-aveia", nome: "Panqueca de aveia e banana", cat: "carbo", por: "1 unidade", gr: 100, k: 190, p: 9.0, c: 27.0, g: 5.0, gPrato: 0, ic: "🥞" },
-  { id: "arroz-feijao", nome: "Arroz com feijão", cat: "carbo", por: "1 prato raso (240 g)", gr: 240, k: 235, p: 9.2, c: 47.0, g: 0.9, gPrato: 0, ic: "🍚" },
+  { id: "inhame", nome: "Inhame ou cará cozido", cat: "carbo", por: "1 pedaço (100 g)", gr: 100, k: 97, p: 2.0, c: 23.0, g: 0.1, f: 1.9, ig: 54, gPrato: 480, ic: "🍠" },
+  { id: "milho", nome: "Milho verde cozido", cat: "carbo", por: "1 espiga ou 4 colheres (100 g)", gr: 100, k: 98, p: 3.2, c: 19.0, g: 0.6, f: 3.9, ig: 52, gPrato: 400, ic: "🌽" },
+  { id: "quinoa", nome: "Quinoa cozida", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 120, p: 4.4, c: 21.3, g: 1.9, f: 2.8, ig: 53, gPrato: 480, ic: "🍚" },
+  { id: "lentilha", nome: "Lentilha cozida", cat: "carbo", por: "1 concha (100 g)", gr: 100, k: 93, p: 6.3, c: 16.3, g: 0.5, f: 7.9, ig: 32, gPrato: 480, ic: "🫘" },
+  { id: "grao-bico", nome: "Grão-de-bico cozido", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 164, p: 8.9, c: 27.0, g: 2.6, f: 7.6, ig: 28, gPrato: 480, ic: "🫘" },
+  { id: "pao-sirio", nome: "Pão sírio ou wrap", cat: "carbo", por: "1 unidade (60 g)", gr: 60, k: 165, p: 5.5, c: 33.0, g: 1.0, f: 1.6, ig: 57, gPrato: 0, ic: "🫓", b: "rap10 tortilha" },
+  { id: "torrada", nome: "Torrada", cat: "carbo", por: "3 unidades (30 g)", gr: 30, k: 120, p: 3.5, c: 22.0, g: 2.0, f: 1.1, ig: 70, gPrato: 0, ic: "🍞" },
+  { id: "cereal", nome: "Cereal matinal", cat: "carbo", por: "1 xícara (30 g)", gr: 30, k: 115, p: 2.0, c: 26.0, g: 0.5, f: 0.9, gPrato: 0, ic: "🥣", b: "sucrilhos flocos de milho" },
+  { id: "crepioca", nome: "Crepioca (ovo e tapioca)", cat: "carbo", por: "1 unidade", gr: 90, k: 180, p: 7.0, c: 25.0, g: 5.0, f: 0.5, gPrato: 0, ic: "🫓" },
+  { id: "panqueca-aveia", nome: "Panqueca de aveia e banana", cat: "carbo", por: "1 unidade", gr: 100, k: 190, p: 9.0, c: 27.0, g: 5.0, f: 4, gPrato: 0, ic: "🥞" },
+  { id: "arroz-feijao", nome: "Arroz com feijão", cat: "carbo", por: "1 prato raso (240 g)", gr: 240, k: 235, p: 9.2, c: 47.0, g: 0.9, f: 9.6, gPrato: 0, ic: "🍚" },
   // mais proteínas
   { id: "alcatra", nome: "Alcatra ou patinho grelhado", cat: "proteina", por: "1 bife (100 g)", gr: 100, k: 210, p: 31.0, c: 0, g: 9.0, gPrato: 520, ic: "🥩" },
   { id: "picanha", nome: "Picanha", cat: "gordura", por: "1 fatia (100 g)", gr: 100, k: 290, p: 25.0, c: 0, g: 21.0, gPrato: 520, ic: "🥩", b: "churrasco" },
@@ -1992,41 +2007,41 @@ const ALIMENTOS_BR = [
   { id: "presunto", nome: "Presunto", cat: "proteina", por: "2 fatias (30 g)", gr: 30, k: 45, p: 5.0, c: 0.5, g: 2.5, gPrato: 0, ic: "🥓" },
   { id: "clara", nome: "Clara de ovo", cat: "proteina", por: "1 clara (33 g)", gr: 33, k: 17, p: 3.6, c: 0.2, g: 0, gPrato: 0, ic: "🥚" },
   { id: "omelete", nome: "Omelete (2 ovos)", cat: "proteina", por: "1 omelete", gr: 110, k: 200, p: 13.0, c: 1.0, g: 16.0, gPrato: 0, ic: "🍳" },
-  { id: "tofu", nome: "Tofu", cat: "proteina", por: "1 fatia (100 g)", gr: 100, k: 80, p: 8.0, c: 2.0, g: 4.5, gPrato: 450, ic: "🧈", b: "vegano soja" },
+  { id: "tofu", nome: "Tofu", cat: "proteina", por: "1 fatia (100 g)", gr: 100, k: 80, p: 8.0, c: 2.0, g: 4.5, f: 1, gPrato: 450, ic: "🧈", b: "vegano soja" },
   { id: "cottage", nome: "Queijo cottage", cat: "proteina", por: "2 colheres de sopa (50 g)", gr: 50, k: 49, p: 6.3, c: 1.6, g: 1.9, gPrato: 0, ic: "🧀" },
   { id: "ricota", nome: "Ricota", cat: "proteina", por: "1 fatia (30 g)", gr: 30, k: 42, p: 3.4, c: 1.0, g: 2.6, gPrato: 0, ic: "🧀" },
   { id: "requeijao", nome: "Requeijão", cat: "gordura", por: "1 colher de sopa (30 g)", gr: 30, k: 80, p: 2.9, c: 0.8, g: 7.2, gPrato: 0, ic: "🧀" },
   { id: "iogurte-grego", nome: "Iogurte grego", cat: "proteina", por: "1 pote (100 g)", gr: 100, k: 117, p: 6.0, c: 13.0, g: 4.5, gPrato: 0, ic: "🥛" },
   { id: "iogurte-proteico", nome: "Iogurte proteico", cat: "proteina", por: "1 pote (160 g)", gr: 160, k: 100, p: 15.0, c: 7.0, g: 1.0, gPrato: 0, ic: "🥛", b: "high protein" },
-  { id: "leite-desnatado", nome: "Leite desnatado", cat: "proteina", por: "1 copo (200 ml)", gr: 200, k: 70, p: 6.6, c: 10.0, g: 0.4, gPrato: 0, ic: "🥛", liq: 200 },
+  { id: "leite-desnatado", nome: "Leite desnatado", cat: "proteina", por: "1 copo (200 ml)", gr: 200, k: 70, p: 6.6, c: 10.0, g: 0.4, ig: 37, gPrato: 0, ic: "🥛", liq: 200 },
   { id: "strogonoff", nome: "Strogonoff de frango", cat: "proteina", por: "1 concha (150 g)", gr: 150, k: 230, p: 18.0, c: 6.0, g: 15.0, gPrato: 480, ic: "🍲" },
   // mais frutas
-  { id: "morango", nome: "Morango", cat: "fruta", por: "10 unidades (100 g)", gr: 100, k: 30, p: 0.9, c: 6.8, g: 0.3, gPrato: 0, ic: "🍓" },
-  { id: "uva", nome: "Uva", cat: "fruta", por: "1 cacho pequeno (100 g)", gr: 100, k: 53, p: 0.7, c: 13.6, g: 0.2, gPrato: 0, ic: "🍇" },
-  { id: "abacaxi", nome: "Abacaxi", cat: "fruta", por: "1 fatia (100 g)", gr: 100, k: 48, p: 0.9, c: 12.3, g: 0.1, gPrato: 0, ic: "🍍" },
-  { id: "melancia", nome: "Melancia", cat: "fruta", por: "1 fatia (200 g)", gr: 200, k: 66, p: 1.8, c: 16.0, g: 0, gPrato: 0, ic: "🍉" },
-  { id: "manga", nome: "Manga", cat: "fruta", por: "½ unidade (140 g)", gr: 140, k: 90, p: 0.6, c: 22.0, g: 0.3, gPrato: 0, ic: "🥭" },
-  { id: "pera", nome: "Pera", cat: "fruta", por: "1 média (130 g)", gr: 130, k: 70, p: 0.8, c: 18.0, g: 0.1, gPrato: 0, ic: "🍐" },
-  { id: "kiwi", nome: "Kiwi", cat: "fruta", por: "1 unidade (75 g)", gr: 75, k: 46, p: 0.9, c: 11.0, g: 0.4, gPrato: 0, ic: "🥝" },
-  { id: "goiaba", nome: "Goiaba", cat: "fruta", por: "1 média (170 g)", gr: 170, k: 92, p: 1.9, c: 22.0, g: 0.7, gPrato: 0, ic: "🍐" },
-  { id: "tamara", nome: "Tâmara", cat: "fruta", por: "3 unidades (24 g)", gr: 24, k: 67, p: 0.5, c: 18.0, g: 0, gPrato: 0, ic: "🌴" },
-  { id: "uva-passa", nome: "Uva-passa", cat: "fruta", por: "1 colher de sopa (15 g)", gr: 15, k: 45, p: 0.5, c: 12.0, g: 0, gPrato: 0, ic: "🍇" },
+  { id: "morango", nome: "Morango", cat: "fruta", por: "10 unidades (100 g)", gr: 100, k: 30, p: 0.9, c: 6.8, g: 0.3, f: 1.7, gPrato: 0, ic: "🍓" },
+  { id: "uva", nome: "Uva", cat: "fruta", por: "1 cacho pequeno (100 g)", gr: 100, k: 53, p: 0.7, c: 13.6, g: 0.2, f: 0.9, ig: 59, gPrato: 0, ic: "🍇" },
+  { id: "abacaxi", nome: "Abacaxi", cat: "fruta", por: "1 fatia (100 g)", gr: 100, k: 48, p: 0.9, c: 12.3, g: 0.1, f: 1, ig: 59, gPrato: 0, ic: "🍍" },
+  { id: "melancia", nome: "Melancia", cat: "fruta", por: "1 fatia (200 g)", gr: 200, k: 66, p: 1.8, c: 16.0, g: 0, f: 0.2, ig: 76, gPrato: 0, ic: "🍉" },
+  { id: "manga", nome: "Manga", cat: "fruta", por: "½ unidade (140 g)", gr: 140, k: 90, p: 0.6, c: 22.0, g: 0.3, f: 2.2, ig: 51, gPrato: 0, ic: "🥭" },
+  { id: "pera", nome: "Pera", cat: "fruta", por: "1 média (130 g)", gr: 130, k: 70, p: 0.8, c: 18.0, g: 0.1, f: 3.9, ig: 38, gPrato: 0, ic: "🍐" },
+  { id: "kiwi", nome: "Kiwi", cat: "fruta", por: "1 unidade (75 g)", gr: 75, k: 46, p: 0.9, c: 11.0, g: 0.4, f: 2, ig: 58, gPrato: 0, ic: "🥝" },
+  { id: "goiaba", nome: "Goiaba", cat: "fruta", por: "1 média (170 g)", gr: 170, k: 92, p: 1.9, c: 22.0, g: 0.7, f: 10.7, gPrato: 0, ic: "🍐" },
+  { id: "tamara", nome: "Tâmara", cat: "fruta", por: "3 unidades (24 g)", gr: 24, k: 67, p: 0.5, c: 18.0, g: 0, f: 1.6, ig: 42, gPrato: 0, ic: "🌴" },
+  { id: "uva-passa", nome: "Uva-passa", cat: "fruta", por: "1 colher de sopa (15 g)", gr: 15, k: 45, p: 0.5, c: 12.0, g: 0, f: 0.6, ig: 64, gPrato: 0, ic: "🍇" },
   // mais lanches e doces
-  { id: "pacoca", nome: "Paçoca", cat: "doce", por: "1 unidade (20 g)", gr: 20, k: 104, p: 3.0, c: 10.0, g: 6.0, gPrato: 0, ic: "🥜" },
-  { id: "brigadeiro", nome: "Brigadeiro", cat: "doce", por: "1 unidade (20 g)", gr: 20, k: 80, p: 1.0, c: 12.0, g: 3.0, gPrato: 0, ic: "🍫" },
+  { id: "pacoca", nome: "Paçoca", cat: "doce", por: "1 unidade (20 g)", gr: 20, k: 104, p: 3.0, c: 10.0, g: 6.0, f: 0.6, gPrato: 0, ic: "🥜" },
+  { id: "brigadeiro", nome: "Brigadeiro", cat: "doce", por: "1 unidade (20 g)", gr: 20, k: 80, p: 1.0, c: 12.0, g: 3.0, f: 0.3, gPrato: 0, ic: "🍫" },
   { id: "pudim", nome: "Pudim de leite", cat: "doce", por: "1 fatia (100 g)", gr: 100, k: 250, p: 6.0, c: 40.0, g: 7.0, gPrato: 0, ic: "🍮" },
-  { id: "acucar", nome: "Açúcar", cat: "doce", por: "1 colher de chá (5 g)", gr: 5, k: 20, p: 0, c: 5.0, g: 0, gPrato: 0, ic: "🧂" },
-  { id: "mel", nome: "Mel", cat: "doce", por: "1 colher de sopa (20 g)", gr: 20, k: 62, p: 0, c: 17.0, g: 0, gPrato: 0, ic: "🍯" },
-  { id: "pipoca", nome: "Pipoca", cat: "doce", por: "3 xícaras (25 g)", gr: 25, k: 110, p: 3.0, c: 16.0, g: 4.0, gPrato: 0, ic: "🍿" },
-  { id: "barra-cereal", nome: "Barra de cereal", cat: "doce", por: "1 barra (22 g)", gr: 22, k: 90, p: 1.2, c: 16.0, g: 2.4, gPrato: 0, ic: "🍫" },
+  { id: "acucar", nome: "Açúcar", cat: "doce", por: "1 colher de chá (5 g)", gr: 5, k: 20, p: 0, c: 5.0, g: 0, f: 0, ig: 65, gPrato: 0, ic: "🧂" },
+  { id: "mel", nome: "Mel", cat: "doce", por: "1 colher de sopa (20 g)", gr: 20, k: 62, p: 0, c: 17.0, g: 0, f: 0.1, ig: 61, gPrato: 0, ic: "🍯" },
+  { id: "pipoca", nome: "Pipoca", cat: "doce", por: "3 xícaras (25 g)", gr: 25, k: 110, p: 3.0, c: 16.0, g: 4.0, f: 3.6, ig: 65, gPrato: 0, ic: "🍿" },
+  { id: "barra-cereal", nome: "Barra de cereal", cat: "doce", por: "1 barra (22 g)", gr: 22, k: 90, p: 1.2, c: 16.0, g: 2.4, f: 0.8, gPrato: 0, ic: "🍫" },
   { id: "esfiha", nome: "Esfiha", cat: "gordura", por: "1 unidade (80 g)", gr: 80, k: 230, p: 8.0, c: 30.0, g: 8.0, gPrato: 0, ic: "🥟" },
   // mais pratos prontos
   { id: "lasanha", nome: "Lasanha", cat: "prato", por: "1 porção (250 g)", gr: 250, k: 400, p: 22.0, c: 35.0, g: 18.0, gPrato: 0, ic: "🍝" },
   { id: "yakisoba", nome: "Yakisoba", cat: "prato", por: "1 prato (350 g)", gr: 350, k: 450, p: 22.0, c: 60.0, g: 13.0, gPrato: 0, ic: "🍜" },
   { id: "sushi", nome: "Sushi", cat: "prato", por: "8 peças", gr: 250, k: 300, p: 12.0, c: 50.0, g: 5.0, gPrato: 0, ic: "🍣", b: "japones" },
-  { id: "sopa", nome: "Sopa de legumes", cat: "prato", por: "1 prato fundo (300 ml)", gr: 300, k: 120, p: 5.0, c: 18.0, g: 3.0, gPrato: 0, ic: "🥣", b: "caldo" },
+  { id: "sopa", nome: "Sopa de legumes", cat: "prato", por: "1 prato fundo (300 ml)", gr: 300, k: 120, p: 5.0, c: 18.0, g: 3.0, f: 4.5, gPrato: 0, ic: "🥣", b: "caldo" },
   // mais bebidas
-  { id: "agua-coco", nome: "Água de coco", cat: "bebida", por: "1 copo (300 ml)", gr: 300, k: 66, p: 0, c: 15.6, g: 0, gPrato: 0, ic: "🥥", liq: 300 },
+  { id: "agua-coco", nome: "Água de coco", cat: "bebida", por: "1 copo (300 ml)", gr: 300, k: 66, p: 0, c: 15.6, g: 0, f: 0, gPrato: 0, ic: "🥥", liq: 300 },
   { id: "cha", nome: "Chá sem açúcar", cat: "bebida", por: "1 xícara (200 ml)", gr: 200, k: 2, p: 0, c: 0.4, g: 0, gPrato: 0, ic: "🍵", liq: 200 },
   { id: "cafe-leite", nome: "Café com leite", cat: "bebida", por: "1 xícara (200 ml)", gr: 200, k: 70, p: 3.5, c: 5.5, g: 3.5, gPrato: 0, ic: "☕", liq: 200 },
   { id: "suco-uva", nome: "Suco de uva integral", cat: "bebida", por: "1 copo (200 ml)", gr: 200, k: 140, p: 0, c: 34.0, g: 0, gPrato: 0, ic: "🧃", liq: 200 },
@@ -2152,7 +2167,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-26b";
+const VERSAO_APP = "2026-11-26c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4559,6 +4574,172 @@ function resumoBalanceDia(cb, dia) {
     status: x.status, objetivo: cb.ob.id, fase: cb.ob.nome, treino: Math.round(x.treino.kcal || 0),
     prot: Math.round(x.tot.p || 0), protMeta: x.meta.p };
 }
+// ---------------- O CATÁLOGO: COMPARAR E ESCOLHER ----------------
+// Pedido do dono (2026-11-26c): "na dieta o que importa é a escolha; quero
+// pesquisar os alimentos pelos valores e ver qual é melhor para bater a meta.
+// Exemplo: 50 g de whey com 40 g de maltodextrina ou 50 g de whey com 40 g de
+// farinha de arroz? Preciso avaliar maltodextrina contra farinha de arroz,
+// porque é o único parâmetro que mudou."
+//
+// Daí a forma da comparação: uma BASE igual dos dois lados (o whey) e duas
+// opções (o carboidrato). O total de cada shake aparece, mas a diferença é
+// medida só no que mudou — comparar os dois totais inteiros esconde o que a
+// pergunta tem de responder.
+
+// Os números de cada alimento valem para a porção dele (`gr` gramas), não
+// para 100 g. Comparar dois só é honesto numa régua só, e a régua é 100 g
+// (ou 100 ml na bebida).
+function porCemAlimento(a) {
+  if (!a || !a.gr) return null;
+  const q = 100 / a.gr;
+  return { k: a.k * q, p: (a.p || 0) * q, c: (a.c || 0) * q, g: (a.g || 0) * q,
+    fib: a.f == null ? null : a.f * q, ig: a.ig == null ? null : a.ig, liq: !!a.liq };
+}
+
+// O alimento em N gramas (ou ml, na bebida).
+function alimentoEm(a, gramas) {
+  const q = (Number(gramas) || 0) / ((a && a.gr) || 100);
+  if (!a) return { k: 0, p: 0, c: 0, g: 0, fib: null };
+  return { k: a.k * q, p: (a.p || 0) * q, c: (a.c || 0) * q, g: (a.g || 0) * q,
+    fib: a.f == null ? null : a.f * q };
+}
+
+// A busca do catálogo, a mesma da janela de anotar: todas as palavras têm de
+// casar, no nome, no grupo ou nos apelidos (`b`).
+function buscarAlimentos(busca, grupo, recentes) {
+  const b = semAcento(String(busca || "").trim());
+  let l;
+  if (!b) {
+    const rec = (recentes || []).map((id) => ALIMENTOS_BR.find((a) => a.id === id)).filter(Boolean);
+    l = rec.concat(ALIMENTOS_BR.filter((a) => rec.indexOf(a) < 0));
+  } else {
+    const pal = b.split(/\s+/);
+    l = ALIMENTOS_BR.filter((a) => pal.every((p) => semAcento(a.nome + " " + a.cat + " " + (a.b || "")).indexOf(p) >= 0));
+  }
+  return grupo ? l.filter((a) => a.cat === grupo) : l;
+}
+
+// O que falta para a meta de hoje. Nunca negativo: passou da meta é zero, e
+// não "falta menos 200" — quem passou não tem o que preencher.
+function faltaDoDia(tot, meta) {
+  if (!meta) return null;
+  const n = (x) => Math.max(0, Math.round(x || 0));
+  return { k: n(meta.k - ((tot && tot.k) || 0)), p: n(meta.p - ((tot && tot.p) || 0)),
+    c: n(meta.c - ((tot && tot.c) || 0)), g: n(meta.g - ((tot && tot.g) || 0)) };
+}
+
+// Quanto um alimento se parece com o que falta, e quanto dele cabe.
+// A semelhança é o cosseno entre as duas misturas medidas em kcal (proteína e
+// carboidrato a 4, gordura a 9): é o que põe peito de frango e azeite na mesma
+// régua sem o tamanho da porção decidir nada. 100 é a mistura exata do que
+// falta; 0 é não ter nada do que falta.
+function encaixeAlimento(a, falta) {
+  const c = porCemAlimento(a);
+  if (!c || !falta) return null;
+  const va = [c.p * 4, c.c * 4, c.g * 9], vf = [falta.p * 4, falta.c * 4, falta.g * 9];
+  const na = Math.sqrt(va.reduce((x, y) => x + y * y, 0)), nf = Math.sqrt(vf.reduce((x, y) => x + y * y, 0));
+  const nota = na > 0 && nf > 0 ? Math.round(va.reduce((x, y, i) => x + y * vf[i], 0) / (na * nf) * 100) : 0;
+  // Quanto cabe: o primeiro limite entre as calorias e os três macros. Macro
+  // que JÁ bateu a meta não entra como limite — senão 2,5 g de gordura num
+  // frango diriam "cabem 0 g", que é verdade de régua e mentira de leitura.
+  // Ele é reportado à parte, em `cheios`.
+  let cabe = Infinity, limite = "";
+  const cheios = [];
+  const prova = (resta, por100, nome) => {
+    if (por100 <= 0.05) return;   // o alimento quase não tem isso: não limita nada
+    if (resta <= 0) { cheios.push(nome); return; }
+    const g = resta / por100 * 100;
+    if (g < cabe) { cabe = g; limite = nome; }
+  };
+  prova(falta.k, c.k, "calorias"); prova(falta.p, c.p, "proteína");
+  prova(falta.c, c.c, "carboidrato"); prova(falta.g, c.g, "gordura");
+  return { nota: nota, cabe: isFinite(cabe) ? Math.round(cabe) : 0, limite: limite, cheios: cheios, por100: c };
+}
+
+const DIF_MACRO = 1, DIF_KCAL = 5, DIF_FIBRA = 0.3;
+const ORDENS_CATALOGO = [
+  { id: "encaixe", nome: "🎯 Encaixa no que falta hoje", precisaMeta: true },
+  { id: "pk", nome: "💪 Proteína por 100 kcal" },
+  { id: "p", nome: "🍗 Mais proteína" },
+  { id: "c", nome: "🍚 Mais carboidrato" },
+  { id: "g", nome: "🥑 Mais gordura" },
+  { id: "fib", nome: "🌾 Mais fibra" },
+  { id: "kmenos", nome: "🪶 Menos calorias" },
+  { id: "k", nome: "🔥 Mais calorias" },
+  { id: "ig", nome: "⚡ Índice glicêmico: do mais rápido" },
+  { id: "nome", nome: "🔤 Nome" },
+];
+// Tudo é ordenado na régua de 100 g, menos o encaixe (que já é uma nota).
+function ordenarCatalogo(lista, ordem, falta) {
+  const l = (lista || []).slice();
+  if (ordem === "nome") return l.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  if (ordem === "encaixe") {
+    if (!falta) return l;
+    return l.map((a) => ({ a: a, e: encaixeAlimento(a, falta) }))
+      .filter((x) => x.e && x.e.nota > 0 && x.a.k > 0)
+      .sort((x, y) => y.e.nota - x.e.nota || y.e.cabe - x.e.cabe).map((x) => x.a);
+  }
+  const valor = (a) => {
+    const c = porCemAlimento(a);
+    if (!c) return -1;
+    if (ordem === "pk") return c.k > 0 ? c.p / c.k * 100 : -1;
+    if (ordem === "ig") return c.ig == null ? -1 : c.ig;
+    if (ordem === "fib") return c.fib == null ? -1 : c.fib;
+    if (ordem === "kmenos") return -c.k;
+    return c[ordem] != null ? c[ordem] : -1;
+  };
+  return l.map((a) => ({ a: a, v: valor(a) })).filter((x) => x.v > (ordem === "kmenos" ? -1e9 : -1))
+    .sort((x, y) => y.v - x.v).map((x) => x.a);
+}
+
+// A comparação. `base` são os itens iguais dos dois lados; `a` e `b` são o que
+// muda. Cada item é { a: alimento, g: gramas }.
+function compararAlimentos(base, a, b) {
+  const soma = (itens) => (itens || []).filter(Boolean).reduce((t, x) => {
+    const v = alimentoEm(x.a, x.g);
+    return { k: t.k + v.k, p: t.p + v.p, c: t.c + v.c, g: t.g + v.g,
+      fib: v.fib == null ? t.fib : (t.fib || 0) + v.fib };
+  }, { k: 0, p: 0, c: 0, g: 0, fib: null });
+  const baseT = soma(base);
+  const soA = a ? alimentoEm(a.a, a.g) : null, soB = b ? alimentoEm(b.a, b.g) : null;
+  const totA = soma((base || []).concat(a ? [a] : []));
+  const totB = soma((base || []).concat(b ? [b] : []));
+  const d = (x, y) => (y || 0) - (x || 0);
+  const dif = { k: d(totA.k, totB.k), p: d(totA.p, totB.p), c: d(totA.c, totB.c), g: d(totA.g, totB.g),
+    fib: soA && soB && soA.fib != null && soB.fib != null ? soB.fib - soA.fib : null };
+  // O que de fato mudou. Abaixo de 1 g de macro (4 a 9 kcal) e de 5 kcal é ruído
+  // da tabela, e chamar isso de diferença faria a tela mentir com precisão.
+  const MACROS = [["p", "proteína"], ["c", "carboidrato"], ["g", "gordura"]];
+  const mudou = MACROS.filter((m) => Math.abs(dif[m[0]]) >= DIF_MACRO);
+  return { base: baseT, soA: soA, soB: soB, totA: totA, totB: totB, dif: dif,
+    mudou: mudou.map((m) => m[1]), temBase: !!(base && base.length), igualK: Math.abs(dif.k) < 5 };
+}
+
+// O que sobra da meta depois de comer, e a distância até zerá-la. A distância
+// é medida nos TRÊS macros em kcal equivalentes, não só nas calorias: sobrar
+// 20 g de proteína e faltar 20 g de carboidrato não é estar na meta.
+function sobraDepois(tot, falta) {
+  return { k: Math.round(falta.k - (tot.k || 0)), p: Math.round(falta.p - (tot.p || 0)),
+    c: Math.round(falta.c - (tot.c || 0)), g: Math.round(falta.g - (tot.g || 0)) };
+}
+function distanciaDaMeta(tot, falta) {
+  const s = sobraDepois(tot, falta);
+  return Math.round(Math.abs(s.p) * 4 + Math.abs(s.c) * 4 + Math.abs(s.g) * 9);
+}
+
+// Qual das duas deixa o dia mais perto da meta. É uma leitura dos números da
+// própria pessoa, não uma recomendação de comer: a tela diz "fica mais perto
+// da sua meta de hoje", nunca "escolha esta".
+function vereditoComparacao(cmp, falta) {
+  if (!cmp || !cmp.soA || !cmp.soB) return null;
+  if (!falta || (falta.k <= 0 && falta.p <= 0 && falta.c <= 0 && falta.g <= 0)) return null;
+  const da = distanciaDaMeta(cmp.totA, falta), db = distanciaDaMeta(cmp.totB, falta);
+  const dif = Math.abs(da - db);
+  return { a: da, b: db, perto: dif < 20 ? "" : (da < db ? "a" : "b"), dif: dif,
+    sobraA: sobraDepois(cmp.totA, falta), sobraB: sobraDepois(cmp.totB, falta) };
+}
+// ---------------- FIM DO CATÁLOGO ----------------
+
 // ---------------- FIM DO BODY BALANCE ----------------
 
 // O que a tela de Saúde mostra. A noite de sono pertence ao dia em que a
@@ -37332,7 +37513,323 @@ function JanelaEditarComida({ item, onSalvar, onTirar, onFechar }) {
     </div>
   );
 }
-function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
+// A tela do catálogo. Duas partes: procurar o alimento pelos números, e
+// comparar duas opções com a mesma base dos dois lados (ver o bloco das contas).
+const fmtG = (n) => (Math.round((n || 0) * 10) / 10).toString().replace(".", ",");
+function LinhaMacros({ v, por }) {
+  return (
+    <div style={{ fontSize: 11.5, color: "var(--cinza)", fontWeight: 700, marginTop: 2 }}>
+      <b style={{ color: "var(--texto)" }}>{Math.round(v.k)} kcal</b>
+      {" · "}<span style={{ color: CORES_BALANCE.p }}>P {fmtG(v.p)}</span>
+      {" · "}<span style={{ color: CORES_BALANCE.c }}>C {fmtG(v.c)}</span>
+      {" · "}<span style={{ color: CORES_BALANCE.g }}>G {fmtG(v.g)}</span>
+      {v.fib != null && v.fib > 0 ? " · fibra " + fmtG(v.fib) : ""}
+      {por ? <span style={{ opacity: 0.7 }}>{" (" + por + ")"}</span> : null}
+    </div>
+  );
+}
+function JanelaCatalogo({ falta, recentes, inicial, onAnotar, onFechar }) {
+  const [aba, setAba] = useState(inicial ? "comparar" : "lista");
+  const [busca, setBusca] = useState("");
+  const [grupoAl, setGrupoAl] = useState("");
+  const [ordem, setOrdem] = useState(falta ? "encaixe" : "pk");
+  const [aberto, setAberto] = useState(null);
+  const [base, setBase] = useState([]);
+  const [opA, setOpA] = useState(inicial ? { id: inicial.id, g: String(inicial.gr) } : null);
+  const [opB, setOpB] = useState(null);
+  const [escolhendo, setEscolhendo] = useState(null);
+  const [eBusca, setEBusca] = useState("");
+
+  const porId = (id) => ALIMENTOS_BR.find((x) => x.id === id) || null;
+  const item = (o) => { const a = o && porId(o.id); return a ? { a: a, g: Number(String(o.g).replace(",", ".")) || 0 } : null; };
+  const itensBase = base.map(item).filter(Boolean);
+  const iA = item(opA), iB = item(opB);
+  const cmp = iA && iB ? compararAlimentos(itensBase, iA, iB) : null;
+  const ver = cmp ? vereditoComparacao(cmp, falta) : null;
+  const temFalta = !!(falta && (falta.k > 0 || falta.p > 0 || falta.c > 0 || falta.g > 0));
+
+  const listaOrd = useMemo(() => ordenarCatalogo(buscarAlimentos(busca, grupoAl, recentes), ordem, falta), [busca, grupoAl, ordem, falta, recentes]);
+
+  const escolher = (a) => {
+    const novo = { id: a.id, g: String(a.gr) };
+    if (escolhendo === "base") setBase((b) => b.concat([novo]));
+    else if (escolhendo === "a") setOpA(novo);
+    else if (escolhendo === "b") setOpB(novo);
+    setEscolhendo(null); setEBusca("");
+  };
+  const mandarPara = (a, lado) => { (lado === "b" ? setOpB : setOpA)({ id: a.id, g: String(a.gr) }); setAba("comparar"); setAberto(null); };
+
+  const campoG = (o, set, cor) => (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      <input inputMode="decimal" value={o.g} onChange={(e) => set(Object.assign({}, o, { g: e.target.value }))}
+        onBlur={(e) => { if (!Number(String(e.target.value).replace(",", "."))) set(Object.assign({}, o, { g: String(porId(o.id).gr) })); }}
+        aria-label="Quantidade em gramas"
+        style={{ ...S.input, width: 62, padding: "7px 8px", textAlign: "right", fontWeight: 900, borderColor: cor }} />
+      <span style={{ fontSize: 12, fontWeight: 800, color: "var(--cinza)" }}>{porId(o.id) && porId(o.id).liq ? "ml" : "g"}</span>
+    </span>
+  );
+
+  const slot = (o, set, lado, cor, rot) => {
+    const a = o && porId(o.id);
+    return (
+      <div style={{ border: "1px solid " + (a ? cor : "var(--borda2)"), borderRadius: 14, padding: 10, background: a ? cor + "14" : "transparent" }}>
+        <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.6, color: cor, marginBottom: 6 }}>{rot}</div>
+        {a ? (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
+              <div style={{ fontWeight: 900, fontSize: 14, minWidth: 0 }}>{a.ic} {a.nome}</div>
+              {campoG(o, set, cor)}
+            </div>
+            <LinhaMacros v={alimentoEm(a, Number(String(o.g).replace(",", ".")) || 0)} />
+            <button onClick={() => setEscolhendo(lado)} style={{ ...S.btnGhost, width: "auto", padding: "6px 10px", fontSize: 12, marginTop: 8 }}>Trocar</button>
+          </div>
+        ) : (
+          <button onClick={() => setEscolhendo(lado)} style={{ ...S.btnGhost, width: "100%", padding: "12px 8px", fontWeight: 900 }}>+ Escolher a opção {lado.toUpperCase()}</button>
+        )}
+      </div>
+    );
+  };
+
+  const abaBtn = (id, rot) => (
+    <button key={id} onClick={() => { setAba(id); setEscolhendo(null); }} style={{ flex: 1, padding: "9px 4px", borderRadius: 10, border: "1px solid " + (aba === id ? "#E1306C" : "var(--borda2)"),
+      background: aba === id ? "#E1306C22" : "transparent", color: aba === id ? "#E1306C" : "var(--texto)", fontWeight: 900, fontSize: 12.5, cursor: "pointer" }}>{rot}</button>
+  );
+
+  // O que falta hoje, que é a régua do "encaixe" e do veredito
+  const faixaFalta = temFalta ? (
+    <div style={{ fontSize: 11.5, fontWeight: 800, color: "var(--cinza)", marginBottom: 10, lineHeight: 1.5 }}>
+      Falta hoje: <b style={{ color: "var(--texto)" }}>{fmtKcal(falta.k)} kcal</b>
+      {" · "}<span style={{ color: CORES_BALANCE.p }}>P {falta.p} g</span>
+      {" · "}<span style={{ color: CORES_BALANCE.c }}>C {falta.c} g</span>
+      {" · "}<span style={{ color: CORES_BALANCE.g }}>G {falta.g} g</span>
+    </div>
+  ) : null;
+
+  const telaEscolher = (
+    <div>
+      <button onClick={() => { setEscolhendo(null); setEBusca(""); }} style={{ ...S.btnGhost, width: "auto", padding: "6px 12px", fontSize: 13, marginBottom: 10 }}>← Voltar</button>
+      <input autoFocus value={eBusca} onChange={(e) => setEBusca(e.target.value)} placeholder="Buscar alimento ou suplemento" style={{ ...S.input, width: "100%", marginBottom: 10 }} />
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 8 }}>
+        {GRUPOS_ALIMENTO.map(([id, n]) => (
+          <button key={id} onClick={() => setGrupoAl(id)} style={{ padding: "6px 10px", borderRadius: 9, whiteSpace: "nowrap", cursor: "pointer", fontWeight: 800, fontSize: 12,
+            border: "1px solid " + (grupoAl === id ? "#E1306C" : "var(--borda2)"), background: grupoAl === id ? "#E1306C22" : "transparent", color: grupoAl === id ? "#E1306C" : "var(--texto)" }}>{n}</button>
+        ))}
+      </div>
+      {buscarAlimentos(eBusca, grupoAl, recentes).slice(0, 120).map((a) => (
+        <button key={a.id} onClick={() => escolher(a)} style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", borderBottom: "1px solid var(--borda)", padding: "9px 2px", cursor: "pointer", color: "var(--texto)" }}>
+          <div style={{ fontWeight: 800, fontSize: 13.5 }}>{a.ic} {a.nome}</div>
+          <LinhaMacros v={porCemAlimento(a)} por={a.liq ? "por 100 ml" : "por 100 g"} />
+        </button>
+      ))}
+    </div>
+  );
+
+  const telaLista = (
+    <div>
+      <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar alimento, suplemento ou farinha" style={{ ...S.input, width: "100%", marginBottom: 10 }} />
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 8 }}>
+        {GRUPOS_ALIMENTO.map(([id, n]) => (
+          <button key={id} onClick={() => setGrupoAl(id)} style={{ padding: "6px 10px", borderRadius: 9, whiteSpace: "nowrap", cursor: "pointer", fontWeight: 800, fontSize: 12,
+            border: "1px solid " + (grupoAl === id ? "#E1306C" : "var(--borda2)"), background: grupoAl === id ? "#E1306C22" : "transparent", color: grupoAl === id ? "#E1306C" : "var(--texto)" }}>{n}</button>
+        ))}
+      </div>
+      <label style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.6, color: "var(--rotulo)", display: "block", marginBottom: 4 }}>ORDENAR POR</label>
+      <select value={ordem} onChange={(e) => setOrdem(e.target.value)} style={{ ...S.input, width: "100%", marginBottom: 10, fontWeight: 800 }}>
+        {ORDENS_CATALOGO.filter((o) => !o.precisaMeta || temFalta).map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
+      </select>
+      {faixaFalta}
+      {ordem === "encaixe" && (
+        <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 10 }}>
+          A nota é o quanto a mistura do alimento se parece com o que ainda falta no seu dia. Ela não diz que é bom ou ruim: diz que encaixa no buraco de hoje.
+        </div>
+      )}
+      {listaOrd.slice(0, 150).map((a) => {
+        const c = porCemAlimento(a), e = temFalta ? encaixeAlimento(a, falta) : null;
+        const ab = aberto === a.id;
+        return (
+          <div key={a.id} style={{ borderBottom: "1px solid var(--borda)", padding: "9px 2px" }}>
+            <button onClick={() => setAberto(ab ? null : a.id)} style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", padding: 0, cursor: "pointer", color: "var(--texto)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                <div style={{ fontWeight: 800, fontSize: 13.5, minWidth: 0 }}>{a.ic} {a.nome}</div>
+                {e && ordem === "encaixe" ? <div style={{ fontWeight: 900, fontSize: 13, color: e.nota >= 70 ? "var(--ok)" : "var(--cinza)", whiteSpace: "nowrap" }}>{"\u{1F3AF} " + e.nota + "%"}</div> : null}
+              </div>
+              <LinhaMacros v={c} por={a.liq ? "por 100 ml" : "por 100 g"} />
+              {e && ordem === "encaixe" && e.cabe > 0 ? (
+                <div style={{ fontSize: 11.5, color: "var(--cinza)", fontWeight: 700 }}>
+                  cabem ~{fmtKcal(e.cabe)} {a.liq ? "ml" : "g"} no que falta{e.limite ? " (o limite é " + e.limite + ")" : ""}
+                  {e.cheios.length ? <span style={{ color: "#FFB21A" }}>{" · " + e.cheios.join(" e ") + (e.cheios.length > 1 ? " já estão" : " já está") + " na meta"}</span> : null}
+                </div>
+              ) : null}
+            </button>
+            {ab && (
+              <div style={{ marginTop: 8, padding: 10, borderRadius: 12, background: "var(--card2, rgba(255,255,255,.04))", border: "1px solid var(--borda2)" }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.6 }}>
+                  <div><b>{a.por}</b></div>
+                  <LinhaMacros v={alimentoEm(a, a.gr)} />
+                  <div style={{ marginTop: 6 }}>
+                    {c.k > 0 ? <span>Proteína por 100 kcal: <b>{fmtG(c.p / c.k * 100)} g</b><br /></span> : null}
+                    {c.fib != null ? <span>Fibra: <b>{fmtG(c.fib)} g</b> por 100 {a.liq ? "ml" : "g"}<br /></span> : <span style={{ color: "var(--cinza)" }}>Fibra: sem valor na tabela<br /></span>}
+                    {c.ig != null ? <span>{"\u{26A1}"} Índice glicêmico: <b>{c.ig}</b>{c.ig >= 70 ? " (rápido)" : c.ig >= 56 ? " (médio)" : " (lento)"}</span>
+                      : <span style={{ color: "var(--cinza)" }}>{"\u{26A1}"} Índice glicêmico: sem valor publicado confiável</span>}
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 10 }}>
+                  <button onClick={() => mandarPara(a, "a")} style={{ ...S.btnGhost, padding: "9px 6px", fontWeight: 900, fontSize: 12.5 }}>{"\u{2696}\uFE0F"} Pôr em A</button>
+                  <button onClick={() => mandarPara(a, "b")} style={{ ...S.btnGhost, padding: "9px 6px", fontWeight: 900, fontSize: 12.5 }}>{"\u{2696}\uFE0F"} Pôr em B</button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {!listaOrd.length && <div style={{ fontSize: 13, color: "var(--cinza)" }}>Não achei nada com esse nome.</div>}
+    </div>
+  );
+
+  const linhaDif = (rot, cor, a, b, dif, un, minimo) => {
+    const mudouAqui = Math.abs(dif) >= (minimo != null ? minimo : un === "kcal" ? DIF_KCAL : DIF_MACRO);
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr 1.1fr", gap: 4, padding: "7px 0", borderTop: "1px solid var(--borda)", fontSize: 12.5, alignItems: "center",
+        opacity: mudouAqui ? 1 : 0.45 }}>
+        <div style={{ fontWeight: 900, color: cor }}>{rot}</div>
+        <div style={{ textAlign: "right", fontWeight: 800 }}>{un === "kcal" ? Math.round(a) : fmtG(a)}</div>
+        <div style={{ textAlign: "right", fontWeight: 800 }}>{un === "kcal" ? Math.round(b) : fmtG(b)}</div>
+        <div style={{ textAlign: "right", fontWeight: 900, color: !mudouAqui ? "var(--cinza)" : dif > 0 ? "#FFB21A" : "var(--ok)" }}>
+          {!mudouAqui ? "igual" : (dif > 0 ? "+" : "−") + (un === "kcal" ? Math.abs(Math.round(dif)) : fmtG(Math.abs(dif)))}
+        </div>
+      </div>
+    );
+  };
+
+  const telaComparar = (
+    <div>
+      <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.6, marginBottom: 12 }}>
+        O que é igual nos dois lados entra na <b>base</b>; o que muda entra em <b>A</b> e <b>B</b>. Assim a diferença mede só o que você trocou.
+      </div>
+
+      <div style={{ border: "1px dashed var(--borda2)", borderRadius: 14, padding: 10, marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.6, color: "var(--rotulo)", marginBottom: 6 }}>BASE: IGUAL NOS DOIS LADOS</div>
+        {base.map((o, i) => {
+          const a = porId(o.id);
+          if (!a) return null;
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between", padding: "5px 0" }}>
+              <div style={{ fontWeight: 800, fontSize: 13, minWidth: 0 }}>{a.ic} {a.nome}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {campoG(o, (n) => setBase((b) => b.map((x, j) => (j === i ? n : x))), "var(--borda2)")}
+                <button onClick={() => setBase((b) => b.filter((x, j) => j !== i))} aria-label="Tirar da base" style={{ background: "transparent", border: "none", color: "var(--perigo)", fontSize: 18, cursor: "pointer", padding: "0 4px" }}>{"\u{00D7}"}</button>
+              </div>
+            </div>
+          );
+        })}
+        <button onClick={() => setEscolhendo("base")} style={{ ...S.btnGhost, width: "100%", padding: "9px 6px", fontWeight: 800, fontSize: 12.5, marginTop: base.length ? 6 : 0 }}>+ Adicionar à base</button>
+        {!base.length && <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 6 }}>Opcional. No seu exemplo, a base seria o whey.</div>}
+      </div>
+
+      <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+        {slot(opA, setOpA, "a", "#4DEBFF", "OPÇÃO A")}
+        {slot(opB, setOpB, "b", "#FFB21A", "OPÇÃO B")}
+      </div>
+
+      {cmp && (
+        <div>
+          <div style={{ ...S.card, marginBottom: 10, padding: 12 }}>
+            <div style={{ fontWeight: 900, fontSize: 14.5, marginBottom: 2 }}>
+              {!cmp.mudou.length ? "As duas dão quase a mesma coisa" :
+                cmp.mudou.length === 1 ? "A troca mexe só " + (cmp.mudou[0] === "proteína" ? "na proteína" : cmp.mudou[0] === "gordura" ? "na gordura" : "no carboidrato")
+                  : "A troca mexe em " + cmp.mudou.join(" e ")}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--cinza)", marginBottom: 8 }}>
+              {cmp.temBase ? "Com a base somada dos dois lados. " : ""}A coluna da direita é B menos A.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr 1.1fr", gap: 4, fontSize: 10.5, fontWeight: 900, letterSpacing: 0.4, color: "var(--rotulo)" }}>
+              <div></div><div style={{ textAlign: "right", color: "#4DEBFF" }}>A</div><div style={{ textAlign: "right", color: "#FFB21A" }}>B</div><div style={{ textAlign: "right" }}>B − A</div>
+            </div>
+            {linhaDif("Calorias", "var(--texto)", cmp.totA.k, cmp.totB.k, cmp.dif.k, "kcal")}
+            {linhaDif("Proteína", CORES_BALANCE.p, cmp.totA.p, cmp.totB.p, cmp.dif.p)}
+            {linhaDif("Carboidrato", CORES_BALANCE.c, cmp.totA.c, cmp.totB.c, cmp.dif.c)}
+            {linhaDif("Gordura", CORES_BALANCE.g, cmp.totA.g, cmp.totB.g, cmp.dif.g)}
+            {cmp.dif.fib != null ? linhaDif("Fibra", "#8FBF96", cmp.totA.fib || 0, cmp.totB.fib || 0, cmp.dif.fib, "", DIF_FIBRA) : null}
+          </div>
+
+          {(iA && iB) && (
+            <div style={{ ...S.card, marginBottom: 10, padding: 12 }}>
+              <div style={{ fontWeight: 900, fontSize: 13.5, marginBottom: 6 }}>{"\u{26A1}"} A velocidade do carboidrato</div>
+              <div style={{ fontSize: 12.5, lineHeight: 1.6 }}>
+                {[[iA.a, "A", "#4DEBFF"], [iB.a, "B", "#FFB21A"]].map(([a, l, cor]) => (
+                  <div key={l}><b style={{ color: cor }}>{l}</b> {a.nome}: {a.ig != null ? <b>índice glicêmico {a.ig}</b> : <span style={{ color: "var(--cinza)" }}>sem valor publicado confiável</span>}
+                    {a.ig != null ? (a.ig >= 70 ? " (rápido)" : a.ig >= 56 ? " (médio)" : " (lento)") : ""}</div>
+                ))}
+              </div>
+              <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.55, marginTop: 6 }}>
+                Média das tabelas internacionais (Atkinson, Brand-Miller e colegas, 2021), medida com o alimento sozinho e em jejum. Numa refeição misturada, com proteína, gordura ou fibra junto, o efeito muda. Farinha crua e waxy maize não têm valor publicado confiável, e por isso saem em branco em vez de sair com um número inventado.
+              </div>
+            </div>
+          )}
+
+          {ver ? (
+            <div style={{ ...S.card, marginBottom: 10, padding: 12, borderColor: "#4CD13766" }}>
+              <div style={{ fontWeight: 900, fontSize: 13.5, marginBottom: 6 }}>{"\u{1F3AF}"} No seu dia de hoje</div>
+              <div style={{ fontSize: 12.5, lineHeight: 1.7 }}>
+                {[["A", ver.sobraA, "#4DEBFF"], ["B", ver.sobraB, "#FFB21A"]].map(([l, so, cor]) => (
+                  <div key={l}><b style={{ color: cor }}>Com a {l}</b>, ainda falta:{" "}
+                    {[Math.max(0, so.k) + " kcal", "P " + Math.max(0, so.p) + " g", "C " + Math.max(0, so.c) + " g", "G " + Math.max(0, so.g) + " g"].map((x, i) => (
+                      <span key={i} style={{ whiteSpace: "nowrap" }}>{i ? " · " : ""}{x}</span>
+                    ))}
+                    {(so.k < 0 || so.p < 0 || so.c < 0 || so.g < 0) ? <span style={{ color: "#FFB21A" }}>{" (passa em " + [so.k < 0 ? Math.abs(so.k) + " kcal" : "", so.p < 0 ? "P " + Math.abs(so.p) + " g" : "", so.c < 0 ? "C " + Math.abs(so.c) + " g" : "", so.g < 0 ? "G " + Math.abs(so.g) + " g" : ""].filter(Boolean).join(", ") + ")"}</span> : null}
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontWeight: 900, fontSize: 13, marginTop: 8, color: ver.perto ? "var(--ok)" : "var(--cinza)" }}>
+                {!ver.perto ? "As duas deixam o dia praticamente no mesmo lugar." :
+                  "A opção " + ver.perto.toUpperCase() + " deixa o dia mais perto da sua meta."}
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.6, marginBottom: 10 }}>
+              Configure o perfil no Balance (e anote o dia) para o app dizer qual das duas chega mais perto da sua meta de hoje.
+            </div>
+          )}
+
+          {onAnotar && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {[["a", iA, "#4DEBFF"], ["b", iB, "#FFB21A"]].map(([l, it, cor]) => (
+                <button key={l} onClick={() => { onAnotar(itensBase.concat([it])); onFechar(); }}
+                  style={{ ...S.btnGhost, padding: "12px 6px", fontWeight: 900, fontSize: 12.5, borderColor: cor, color: cor }}>
+                  {"\u{2713}"} Anotar a {l.toUpperCase()}{cmp.temBase ? " com a base" : ""}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Catálogo de alimentos" onClick={onFechar} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(5,3,16,.8)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...S.card, width: "100%", maxWidth: 520, maxHeight: "92vh", overflowY: "auto", margin: 0, borderRadius: "20px 20px 0 0", padding: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ ...S.logo, fontSize: 19 }}>Catálogo</div>
+          <button onClick={onFechar} aria-label="Fechar" style={{ background: "transparent", border: "none", color: "var(--cinza)", fontSize: 24, cursor: "pointer", padding: "0 6px" }}>{"\u{00D7}"}</button>
+        </div>
+        {!escolhendo && (
+          <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+            {abaBtn("lista", "\u{1F50E} Procurar")}{abaBtn("comparar", "\u{2696}\uFE0F Comparar")}
+          </div>
+        )}
+        {escolhendo ? telaEscolher : aba === "lista" ? telaLista : telaComparar}
+        {!escolhendo && (
+          <div style={{ fontSize: 11, color: "var(--cinza2)", lineHeight: 1.55, marginTop: 14, borderTop: "1px solid var(--borda)", paddingTop: 10 }}>
+            Valores da tabela TACO e de rótulos: mudam com a marca e com o preparo. É informação geral para você comparar — montar a sua dieta é com o nutricionista.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function JanelaComida({ aba0, recentes, onAdd, onCatalogo, onFechar }) {
   const [aba, setAba] = useState(aba0 || "buscar");
   const [busca, setBusca] = useState("");
   const [grupoAl, setGrupoAl] = useState("");
@@ -37350,17 +37847,7 @@ function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
   const [ml, setMl] = useState("");
   const [ref, setRef] = useState(refeicaoDaHora(Date.now()));
   useEffect(() => () => { if (foto) URL.revokeObjectURL(foto); }, [foto]);
-  const lista = useMemo(() => {
-    const b = semAcento(busca.trim());
-    if (!b) {
-      const rec = (recentes || []).map((id) => ALIMENTOS_BR.find((a) => a.id === id)).filter(Boolean);
-      const resto = ALIMENTOS_BR.filter((a) => rec.indexOf(a) < 0);
-      return rec.concat(resto);
-    }
-    const pal = b.split(/\s+/);
-    return ALIMENTOS_BR.filter((a) => pal.every((p) => semAcento(a.nome + " " + a.cat + " " + (a.b || "")).indexOf(p) >= 0));
-  }, [busca, recentes]);
-  const listaGrupo = grupoAl ? lista.filter((a) => a.cat === grupoAl) : lista;
+  const listaGrupo = useMemo(() => buscarAlimentos(busca, grupoAl, recentes), [busca, grupoAl, recentes]);
   const doPrato = ALIMENTOS_BR.filter((a) => a.gPrato > 0);
   const itensPrato = itensDoPrato(Object.keys(partes).map((id) => ({ id: id, fr: partes[id] })), tam, oleo);
   const kPrato = itensPrato.reduce((a, it) => a + valorItem(it).k, 0);
@@ -37400,6 +37887,11 @@ function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
                   border: "1px solid " + (grupoAl === id ? "#E1306C" : "var(--borda2)"), background: grupoAl === id ? "#E1306C22" : "transparent", color: grupoAl === id ? "#E1306C" : "var(--texto)" }}>{rot}</button>
               ))}
             </div>
+            {onCatalogo && (
+              <button onClick={() => onCatalogo({})} style={{ ...S.btnGhost, width: "100%", padding: "9px 6px", fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>
+                🔎 Em dúvida entre dois? Abrir o catálogo e comparar
+              </button>
+            )}
             {!busca && recentes && recentes.length > 0 && <div style={{ ...S.label, marginBottom: 6 }}>Os que você mais usa vêm primeiro</div>}
             <div style={{ display: "grid", gap: 6 }}>
               {listaGrupo.slice(0, grupoAl || busca ? 200 : 80).map((a) => (
@@ -37423,6 +37915,7 @@ function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
           const un = escolhido.liq ? "ml" : "g";
           const chip = (on) => ({ padding: "9px 10px", minWidth: 40, borderRadius: 10, fontWeight: 900, cursor: "pointer",
             border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"), background: on ? "#E1306C22" : "transparent", color: on ? "#E1306C" : "var(--texto)" });
+          const irComparar = () => onCatalogo({ id: escolhido.id, gr: qt.gm || escolhido.gr });
           const podeGramas = numB(escolhido.gr) > 0;
           return (
             <div>
@@ -37472,6 +37965,7 @@ function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
                 <span style={{ color: CORES_BALANCE.p }}>P {v.p}g</span><span style={{ color: CORES_BALANCE.c }}>C {v.c}g</span><span style={{ color: CORES_BALANCE.g }}>G {v.g}g</span>
               </div>
               <button disabled={!(qt.q > 0)} onClick={() => onAdd([{ ...itemDeAlimento(escolhido, qt.q), vz: qt.vz, gm: qt.gm, qtx: qt.texto, md: modoQ === "gramas" && numB(escolhido.gr) > 0 ? "gramas" : "porcao" }], 0, ref)} style={{ ...S.btn, width: "100%", opacity: qt.q > 0 ? 1 : 0.5 }}>+ Adicionar</button>
+              {onCatalogo && <button onClick={irComparar} style={{ ...S.btnGhost, width: "100%", padding: "9px 6px", fontWeight: 800, fontSize: 12.5, marginTop: 8 }}>⚖️ Comparar com outro alimento</button>}
               <button onClick={() => setEscolhido(null)} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>← Outro alimento</button>
             </div>
           );
@@ -37658,6 +38152,7 @@ function CartaoPreparo({ preparo, hoje, cb, onMudar }) {
 function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pesoCorporal, medidas, corredor, avisar, pedirConfirmacao, onPercurso, onEsteira, sincronizarRelogio }) {
   const [secao, setSecao] = useState("hoje");
   const [janela, setJanela] = useState(null);
+  const [catalogo, setCatalogo] = useState(null);
   const [editando, setEditando] = useState(null);
   const [diaVer, setDiaVer] = useState(() => diaLocal(Date.now()));
   const [festa, setFesta] = useState(false);
@@ -37678,6 +38173,8 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
   const t = atual.tot;
   const pct = meta ? t.k / meta.k : 0;
   const passou = pct > 1.0;
+  // o que ainda falta no dia: a régua do catálogo (o encaixe e a comparação)
+  const faltaHoje = meta ? faltaDoDia(t, meta) : null;
   const macros = kcalMacros(t);
   const recentes = useMemo(() => {
     const cont = {};
@@ -37721,6 +38218,16 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
     setJanela(null);
     mostrar(aguaMl ? "💧 +" + aguaMl + " ml" : "✓ " + (itens.length === 1 ? itens[0].n : itens.length + " alimentos") + " anotado" + (itens.length === 1 ? "" : "s"));
     if (sincronizarRelogio && ehHoje) setTimeout(() => sincronizarRelogio(estadoRelogio.current), 120);
+  };
+  // O catálogo anota o que foi comparado: cada item vira porções a partir dos
+  // gramas escolhidos lá, com o mesmo texto de quantidade da janela de anotar.
+  const anotarDoCatalogo = (itens) => {
+    const bons = (itens || []).filter((x) => x && x.a && x.g > 0);
+    if (!bons.length) return;
+    adicionar(bons.map((x) => {
+      const qt = quantidadeComida(x.a, "gramas", 0, x.g, 1);
+      return Object.assign({}, itemDeAlimento(x.a, qt.q, "app"), { vz: 1, gm: qt.gm, qtx: qt.texto, md: "gramas" });
+    }));
   };
   const tirar = (id) => mudarDia(diaVer, (d) => Object.assign({}, d, { itens: (d.itens || []).filter((x) => x.id !== id) }));
   const salvarEdicao = (novo) => {
@@ -37842,6 +38349,9 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                 <button onClick={() => adicionar([], 250)} style={{ ...S.btnGhost, padding: "12px 6px", fontWeight: 900, color: "#35E0F0", borderColor: "#35E0F066" }}>💧 +250 ml</button>
                 <button onClick={() => setJanela("agua")} style={{ ...S.btnGhost, padding: "12px 6px", fontWeight: 900, color: "#35E0F0", borderColor: "#35E0F066" }}>💧 Outra água</button>
               </div>
+              <button onClick={() => setCatalogo({})} style={{ ...S.btnGhost, width: "100%", padding: "11px 6px", fontWeight: 900, fontSize: 13, marginBottom: 12 }}>
+                🔎 Catálogo: comparar alimentos e escolher
+              </button>
               {prepOk && cb.prep && cb.prep.usos && cb.prep.usos.diuretico && cb.prep.usos.diuretico.desde && (() => {
                 const lista = Array.isArray(cb.prep.diureticos) ? cb.prep.diureticos : [];
                 const marcado = lista.indexOf(diaVer) >= 0;
@@ -38107,7 +38617,9 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
           )}
         </div>
       )}
-      {janela && <JanelaComida aba0={janela} recentes={recentes} onAdd={adicionar} onFechar={() => setJanela(null)} />}
+      {janela && <JanelaComida aba0={janela} recentes={recentes} onAdd={adicionar} onCatalogo={(ini) => { setJanela(null); setCatalogo(ini || {}); }} onFechar={() => setJanela(null)} />}
+      {catalogo && <JanelaCatalogo falta={faltaHoje} recentes={recentes} inicial={catalogo.id ? catalogo : null}
+        onAnotar={ehHoje || diaVer ? anotarDoCatalogo : null} onFechar={() => setCatalogo(null)} />}
       {editando && <JanelaEditarComida item={editando} onSalvar={salvarEdicao} onTirar={(id) => { tirar(id); setEditando(null); }} onFechar={() => setEditando(null)} />}
       {toast && <div role="status" style={{ position: "fixed", left: "50%", bottom: 96, transform: "translateX(-50%)", zIndex: 70, padding: "10px 18px", borderRadius: 24,
         background: "#0b0418ee", border: "1px solid #4DEBFF", color: "#fff", fontWeight: 900, fontSize: 14, boxShadow: "0 0 18px #4DEBFF66", whiteSpace: "nowrap", maxWidth: "90vw", overflow: "hidden", textOverflow: "ellipsis" }}>{toast}</div>}

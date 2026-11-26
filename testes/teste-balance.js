@@ -24,12 +24,13 @@ const serieConta = (s) => !s.aquec;
 const ehCardio = (s) => !!s.mod;
 const medirCardio = (s, kg) => ({ min: s.segundos / 60, kcal: (8 * 3.5 * kg / 200) * (s.segundos / 60) });
 const b64UrlParaPadrao = (s) => s.replace(/-/g, "+").replace(/_/g, "/");
+const semAcento = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("// ---------------- JARVIS BODY BALANCE: AS CONTAS", "// ---------------- FIM DO BODY BALANCE") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -298,6 +299,98 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   [1, 2, 3].forEach((n) => { comendoBem[dd(n)] = { itens: [it(n + "c", 1200), it(n + "d", 1200)], agua: 0 }; });
   const okCan = B.contasDoBalance(Object.assign({ nutricao: { perfil: Object.assign({}, perfil, { preparo: { usos: { apetite: { desde: antes } } } }), dias: comendoBem } }, base, { preparo: true }));
   teste("comendo acima do repouso, nao avisa", null, okCan.apetiteAviso);
+}
+// ---- o catalogo: procurar pelos numeros e comparar duas opcoes (2026-11-26c)
+{
+  const ach = (id) => B.ALIMENTOS_BR.find((a) => a.id === id);
+  const whey = ach("whey"), malto = ach("maltodextrina"), farinha = ach("farinha-arroz");
+  teste("os tres alimentos do exemplo do dono existem", true, !!whey && !!malto && !!farinha);
+
+  // a regua de 100 g: os valores da tabela valem para a porcao, nao para 100 g
+  const c = B.porCemAlimento(farinha);   // porcao de 30 g, 109 kcal
+  teste("por 100 g sai da porcao", [363, 6], [Math.round(c.k), Math.round(c.p)]);
+  teste("por 100 g do whey", 80, Math.round(B.porCemAlimento(whey).p));
+  teste("alimento em 40 g", [145, 2.4], [Math.round(B.alimentoEm(farinha, 40).k), Math.round(B.alimentoEm(farinha, 40).p * 10) / 10]);
+  teste("alimento em 0 g nao quebra", 0, B.alimentoEm(farinha, 0).k);
+
+  // a comparacao do pedido: 50 g de whey nos dois lados, 40 g de carbo mudando
+  const cmp = B.compararAlimentos([{ a: whey, g: 50 }], { a: malto, g: 40 }, { a: farinha, g: 40 });
+  teste("a base entra nos dois totais", true, cmp.temBase && Math.round(cmp.base.k) === 200);
+  teste("o total de cada lado", [352, 345], [Math.round(cmp.totA.k), Math.round(cmp.totB.k)]);
+  teste("a diferenca e B menos A", [-7, 2.4, -6], [Math.round(cmp.dif.k), Math.round(cmp.dif.p * 10) / 10, Math.round(cmp.dif.c * 10) / 10]);
+  teste("so o carboidrato e a proteina mudaram", ["proteína", "carboidrato"], cmp.mudou);
+  teste("a base nao entra na diferenca da fibra", 0.9, Math.round(cmp.dif.fib * 10) / 10);
+
+  // a mesma troca sem base nenhuma tem de dar a mesma diferenca
+  const sem = B.compararAlimentos([], { a: malto, g: 40 }, { a: farinha, g: 40 });
+  teste("a base nao muda a diferenca", [Math.round(cmp.dif.k), Math.round(cmp.dif.c)], [Math.round(sem.dif.k), Math.round(sem.dif.c)]);
+  teste("sem base, o total e so a opcao", false, sem.temBase);
+
+  // dois alimentos iguais: nada mudou
+  const igual = B.compararAlimentos([], { a: malto, g: 40 }, { a: malto, g: 40 });
+  teste("comparar um alimento com ele mesmo nao acusa mudanca", [0, 0], [igual.mudou.length, Math.round(igual.dif.k)]);
+
+  // o que falta no dia
+  const meta = { k: 2000, p: 160, c: 200, g: 60 };
+  const falta = B.faltaDoDia({ k: 1500, p: 100, c: 150, g: 40 }, meta);
+  teste("o que falta", [500, 60, 50, 20], [falta.k, falta.p, falta.c, falta.g]);
+  teste("passou da meta nao vira falta negativa", 0, B.faltaDoDia({ k: 2500, p: 300, c: 300, g: 90 }, meta).k);
+
+  // o encaixe: a nota e o quanto a mistura do alimento se parece com o que falta
+  const soProt = B.faltaDoDia({ k: 0, p: 0, c: 200, g: 60 }, meta);   // falta so proteina
+  const eFrango = B.encaixeAlimento(ach("frango"), soProt);
+  const eArroz = B.encaixeAlimento(ach("arroz"), soProt);
+  teste("faltando so proteina, o frango encaixa mais que o arroz", true, eFrango.nota > eArroz.nota);
+  teste("a nota do frango e alta", true, eFrango.nota > 85);
+  const soCarbo = B.faltaDoDia({ k: 0, p: 160, c: 0, g: 60 }, meta);
+  teste("faltando so carboidrato, o arroz encaixa mais", true,
+    B.encaixeAlimento(ach("arroz"), soCarbo).nota > B.encaixeAlimento(ach("frango"), soCarbo).nota);
+  teste("o encaixe diz quanto cabe e o que limita", ["proteína", true], [eFrango.limite, eFrango.cabe > 0]);
+  teste("macro ja batido nao zera o encaixe, so e reportado", ["gordura"], eFrango.cheios);
+  // cabem 60 g de proteina; o frango tem 32 g por 100 g, entao uns 190 g
+  teste("quantos gramas cabem", true, Math.abs(eFrango.cabe - soProt.p / B.porCemAlimento(ach("frango")).p * 100) < 1);
+
+  // a ordenacao
+  const todos = B.ALIMENTOS_BR;
+  const porProt = B.ordenarCatalogo(todos, "pk", null);
+  teste("por proteina por 100 kcal, o primeiro e quase so proteina", true,
+    B.porCemAlimento(porProt[0]).p / B.porCemAlimento(porProt[0]).k * 100 > 15);
+  const porIg = B.ordenarCatalogo(todos, "ig", null);
+  teste("por indice glicemico, a maltodextrina vem na frente", "maltodextrina", porIg[0].id);
+  teste("quem nao tem indice glicemico fica de fora da ordem", -1, porIg.map((a) => a.id).indexOf("farinha-arroz"));
+  const porEnc = B.ordenarCatalogo(todos, "encaixe", soProt);
+  teste("a ordem do encaixe comeca pela maior nota", true,
+    B.encaixeAlimento(porEnc[0], soProt).nota >= B.encaixeAlimento(porEnc[5], soProt).nota);
+  teste("sem meta, o encaixe nao ordena nada", todos.length, B.ordenarCatalogo(todos, "encaixe", null).length);
+  teste("ordenar por nome", true, B.ordenarCatalogo(todos, "nome", null)[0].nome.localeCompare(B.ordenarCatalogo(todos, "nome", null)[1].nome, "pt-BR") <= 0);
+
+  // a busca
+  teste("buscar pelo apelido acha", true, B.buscarAlimentos("malto", "", null).some((a) => a.id === "maltodextrina"));
+  teste("buscar com o grupo filtra", true, B.buscarAlimentos("", "farinha", null).every((a) => a.cat === "farinha"));
+  teste("todas as palavras precisam casar", 0, B.buscarAlimentos("arroz cerveja", "", null).length);
+
+  // o veredito contra a meta do dia
+  const faltaP = B.faltaDoDia({ k: 1800, p: 100, c: 195, g: 58 }, meta);   // falta proteina
+  const cmp2 = B.compararAlimentos([], { a: malto, g: 40 }, { a: ach("frango"), g: 40 });
+  const v = B.vereditoComparacao(cmp2, faltaP);
+  teste("faltando proteina, o frango deixa o dia mais perto", "b", v.perto);
+  teste("o veredito mostra o que sobra de cada lado", true, v.sobraA.p > v.sobraB.p);
+  teste("duas opcoes iguais nao tem vencedora", "", B.vereditoComparacao(igual, faltaP).perto);
+  teste("sem nada faltando nao ha veredito", null, B.vereditoComparacao(cmp2, { k: 0, p: 0, c: 0, g: 0 }));
+  teste("a distancia da meta conta os tres macros", true,
+    B.distanciaDaMeta({ k: 0, p: 0, c: 0, g: 0 }, { k: 100, p: 10, c: 10, g: 10 }) === 10 * 4 + 10 * 4 + 10 * 9);
+
+  // os dados novos: fibra e indice glicemico
+  const comIg = B.ALIMENTOS_BR.filter((a) => a.ig != null);
+  teste("ha indice glicemico publicado em varios alimentos", true, comIg.length >= 30);
+  teste("todo indice glicemico esta numa faixa possivel", [], comIg.filter((a) => !(a.ig > 0 && a.ig <= 110)).map((a) => a.id));
+  teste("farinha crua e waxy maize ficam sem indice glicemico", [undefined, undefined, undefined],
+    ["farinha-arroz", "farinha-trigo", "waxy-maize"].map((id) => ach(id).ig));
+  const comFib = B.ALIMENTOS_BR.filter((a) => a.f != null);
+  teste("ha fibra em varios alimentos", true, comFib.length >= 60);
+  teste("nenhuma fibra passa do peso da porcao", [], comFib.filter((a) => a.f > a.gr).map((a) => a.id));
+  teste("a maltodextrina nao tem fibra e a farinha de arroz tem", [0, true], [malto.f, farinha.f > 0]);
+  teste("a fibra nunca e negativa", [], comFib.filter((a) => a.f < 0).map((a) => a.id));
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

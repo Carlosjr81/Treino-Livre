@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, MISSOES_BALANCE, XP_DIA_BALANCE, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -517,6 +517,60 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("a creatina nao soma caloria", 0, B.alimentoEm(B.ALIMENTOS_BR.find((a) => a.id === "creatina"), 5).k);
   const it = B.itemDeReceita(intra, 1);
   teste("vira um item so, com o nome da receita", ["Intra-treino com glicerina", 1, undefined], [it.n, it.q, it.a]);
+}
+// ---- o jogo do Balance (2026-11-26i) ----
+{
+  // um dia é montado com o que as missões leem: itens, água, proteína, treino
+  const dia = (d, o) => Object.assign({
+    d: d, dia: { itens: [], agua: 0 }, tot: { k: 2000, p: 150, c: 200, g: 60, alc: 0, agua: 3000, itens: 4 },
+    treino: { kcal: 300, min: 50 }, meta: { k: 2000, p: 150, c: 200, g: 60, agua: 3000 },
+    status: { id: "certo" }, comeu: 2000,
+  }, o || {});
+  const cheio = dia("2026-11-26");
+
+  teste("as cinco missoes somam 100 XP no dia", 100, B.XP_DIA_BALANCE);
+  teste("o dia inteiro cumpre as cinco", [5, 100], [B.missoesDoDia(cheio).filter((m) => m.pronto).length, B.xpDoDia(cheio)]);
+  teste("sem meta nao ha missao (perfil nao configurado)", [0, 0], [B.missoesDoDia(dia("2026-11-26", { meta: null })).length, B.xpDoDia(dia("2026-11-26", { meta: null }))]);
+
+  const pouco = dia("2026-11-26", { tot: { k: 900, p: 70, c: 90, g: 20, alc: 0, agua: 1000, itens: 2 }, treino: { kcal: 0, min: 0 }, status: { id: "perto" }, comeu: 900 });
+  teste("dia pela metade so ganha o que cumpriu", 0, B.xpDoDia(pouco));
+  teste("a agua conta o que o corpo da tela mostra (bebida + copo)", [1000, 3000, false],
+    (() => { const m = B.missoesDoDia(pouco).find((y) => y.id === "agua"); return [m.feito, m.alvo, m.pronto]; })());
+  teste("a missao de anotar pede 3 itens", [2, 3, false],
+    (() => { const m = B.missoesDoDia(pouco).find((y) => y.id === "anotar"); return [m.feito, m.alvo, m.pronto]; })());
+  teste("treino anotado no app cumpre a missao do treino", [true, false],
+    [B.missoesDoDia(cheio).find((y) => y.id === "treino").pronto, B.missoesDoDia(pouco).find((y) => y.id === "treino").pronto]);
+
+  // a sequencia: hoje so quebra depois de fechar
+  const seqDias = ["2026-11-22", "2026-11-23", "2026-11-24", "2026-11-25"].map((d) => dia(d)).concat([dia("2026-11-26", { status: { id: "perto" } })]);
+  teste("hoje em andamento nao quebra a sequencia", [4, 4], (() => { const s = B.sequenciaBalance(seqDias, "2026-11-26"); return [s.atual, s.melhor]; })());
+  teste("hoje fechado entra na sequencia", [5, true], (() => { const s = B.sequenciaBalance(seqDias.slice(0, 4).concat([dia("2026-11-26")]), "2026-11-26"); return [s.atual, s.hojeFeito]; })());
+  const furado = [dia("2026-11-22"), dia("2026-11-23", { status: { id: "errou" } }), dia("2026-11-24"), dia("2026-11-25"), dia("2026-11-26")];
+  teste("um dia fora zera a atual mas guarda a melhor", [3, 3], (() => { const s = B.sequenciaBalance(furado, "2026-11-26"); return [s.atual, s.melhor]; })());
+
+  teste("os pontos sao os dos ultimos 30 dias, e nunca passam do teto",
+    [470, 5, 500], (() => { const p = B.pontosBalance(seqDias.slice(0, 5)); return [p.pts, p.dias, p.teto]; })());
+  teste("o posto sobe pelos pontos da janela", ["Começando", "Na linha", "No controle"],
+    [B.nivelBalance(0).nome, B.nivelBalance(250).nome, B.nivelBalance(5000).nome]);
+  teste("o ultimo posto nao promete um proximo", [null, 0], [B.nivelBalance(5000).prox, B.nivelBalance(5000).faltam]);
+  teste("falta o que falta, sem arredondar para mais", 100, B.nivelBalance(150).faltam);
+
+  teste("a maior sequencia de uma missao", 5, B.maiorSeqMissao(seqDias, "agua"));
+  const nut = { dias: {} };
+  seqDias.forEach((x) => { nut.dias[x.d] = { itens: [1, 2, 3, 4], agua: 0 }; });
+  const cq = B.conquistasBalance(seqDias, nut);
+  teste("a medalha do primeiro dia sai de um dia anotado", true, cq.find((c) => c.id === "primeiro").ganha);
+  teste("o dia perfeito sai das cinco missoes num dia so", true, cq.find((c) => c.id === "dia100").ganha);
+  teste("a semana fechada ainda nao, com 4 dias", [false, 4], (() => { const c = cq.find((x) => x.id === "seq7"); return [c.ganha, c.quanto]; })());
+  teste("o progresso de uma medalha nunca passa do alvo", [30, false],
+    (() => { const c = B.conquistasBalance(seqDias, nut).find((x) => x.id === "anot30"); return [c.alvo, c.ganha]; })());
+  teste("dia quase sem anotacao nao conta como dia anotado", 0,
+    (() => { const n = { dias: { "2026-11-20": { itens: [1], agua: 0 } } }; return B.conquistasBalance([], n).find((c) => c.id === "primeiro").quanto; })());
+
+  // a regra que manda aqui: nenhum numero inventado
+  const fonte = html.slice(html.indexOf("// ---------------- O JOGO DO BALANCE"), html.indexOf("// ---------------- O CATÁLOGO"));
+  teste("o jogo nao inventa gente nem comparacao com os outros", [], 
+    ["outras pessoas", "outros usuários", "ranking geral", "média dos usuários", "Math.random"].filter((p) => fonte.indexOf(p) >= 0));
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

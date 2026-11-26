@@ -2286,7 +2286,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-26h";
+const VERSAO_APP = "2026-11-26i";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4705,6 +4705,112 @@ function resumoBalanceDia(cb, dia) {
   return { dia: dia, comeu: Math.round(x.comeu), meta: x.meta.k, gasto: Math.round(gasto), saldo: Math.round(x.comeu - gasto),
     status: x.status, objetivo: cb.ob.id, fase: cb.ob.nome, treino: Math.round(x.treino.kcal || 0),
     prot: Math.round(x.tot.p || 0), protMeta: x.meta.p };
+}
+// ---------------- O JOGO DO BALANCE ----------------
+// Pedido do dono (2026-11-26i): "gamefique a visão de controle da dieta para
+// ficar mais engajado e divertido de acompanhar".
+//
+// **A regra que vale mais que todas as outras aqui: todo número é verdade.**
+// Missão cumprida, sequência, pontos e medalha saem do que a própria pessoa
+// anotou — nada de contador fictício, de "outros já fizeram X" nem de meta
+// inflada para empurrar engajamento (a mesma regra do contador do *Apoie o
+// Treino Livre* e da vitrine: CDC, art. 37). Jogo que mente deixa de ser jogo
+// no dia em que alguém percebe, e aí o número honesto também perde o valor.
+//
+// E nada aqui vira cobrança: dia fora da meta não ganha bronca, só não ganha
+// ponto. O aviso de saúde do Balance continua valendo.
+const MISSOES_BALANCE = [
+  { id: "anotar", ic: "\u{1F4DD}", nome: "Anotar 3 vezes no dia", xp: 10, oque: "o que não é anotado não entra na conta",
+    alvo: (x) => 3, feito: (x) => x.tot.itens, un: "" },
+  { id: "agua", ic: "\u{1F4A7}", nome: "Bater a água do dia", xp: 15, oque: "a meta sai do seu peso e do treino de hoje",
+    alvo: (x) => (x.meta ? x.meta.agua : 0), feito: (x) => x.tot.agua, un: "ml" },
+  { id: "prot", ic: "\u{1F356}", nome: "Bater a proteína", xp: 25, oque: "é ela que segura o músculo no déficit",
+    alvo: (x) => (x.meta ? x.meta.p : 0), feito: (x) => Math.round(x.tot.p), un: "g" },
+  { id: "treino", ic: "\u{1F3CB}", nome: "Treinar hoje", xp: 20, oque: "qualquer treino anotado no app conta",
+    alvo: (x) => 1, feito: (x) => (x.treino && x.treino.kcal > 0 ? 1 : 0), un: "" },
+  { id: "meta", ic: "\u{1F3AF}", nome: "Fechar o dia na meta", xp: 30, oque: "a última, e a que mais vale",
+    alvo: (x) => 1, feito: (x) => (x.status && x.status.id === "certo" ? 1 : 0), un: "" },
+];
+const XP_DIA_BALANCE = MISSOES_BALANCE.reduce((a, m) => a + m.xp, 0);
+function missoesDoDia(x) {
+  if (!x || !x.meta) return [];
+  return MISSOES_BALANCE.map((m) => {
+    const alvo = Math.max(0, Math.round(m.alvo(x))), feito = Math.max(0, Math.round(m.feito(x)));
+    const pronto = alvo > 0 && feito >= alvo;
+    return Object.assign({}, m, { alvo: alvo, feito: feito, pronto: pronto, pct: alvo > 0 ? Math.min(1, feito / alvo) : 0 });
+  });
+}
+function xpDoDia(x) { return missoesDoDia(x).reduce((a, m) => a + (m.pronto ? m.xp : 0), 0); }
+// Os postos saem dos pontos dos ÚLTIMOS 30 DIAS, não de um total que só
+// cresce: assim o posto diz como está a rotina agora, e quem parou de anotar
+// vê o posto descer em vez de ficar com uma medalha de um mês atrás.
+const NIVEIS_BALANCE = [
+  { pts: 0, nome: "Começando", ic: "\u{1F331}", cor: "#8A8F9E" },
+  { pts: 250, nome: "Na linha", ic: "\u{1F525}", cor: "#35E0F0" },
+  { pts: 600, nome: "Constante", ic: "\u{1F4AA}", cor: "#4CD137" },
+  { pts: 1100, nome: "Afiado", ic: "\u{26A1}", cor: "#FFB21A" },
+  { pts: 1800, nome: "No controle", ic: "\u{1F451}", cor: "#E1306C" },
+];
+function nivelBalance(pts) {
+  const p = Math.max(0, Math.round(pts || 0));
+  let i = 0;
+  for (let k = 0; k < NIVEIS_BALANCE.length; k++) if (p >= NIVEIS_BALANCE[k].pts) i = k;
+  const atual = NIVEIS_BALANCE[i], prox = NIVEIS_BALANCE[i + 1] || null;
+  return { i: i, nome: atual.nome, ic: atual.ic, cor: atual.cor, pts: p, base: atual.pts, prox: prox,
+    faltam: prox ? prox.pts - p : 0, pct: prox ? Math.min(1, (p - atual.pts) / (prox.pts - atual.pts)) : 1 };
+}
+function pontosBalance(dias) {
+  const l = (dias || []).slice(-30);
+  return { pts: l.reduce((a, x) => a + xpDoDia(x), 0), dias: l.length, teto: l.length * XP_DIA_BALANCE };
+}
+// A sequência de dias fechados na meta. **Hoje só quebra depois de fechar**:
+// às 9 da manhã ninguém está na meta ainda, e zerar a sequência de quem
+// acabou de acordar seria mentira com cara de jogo.
+function sequenciaBalance(dias, hoje) {
+  const ord = (dias || []).slice().sort((a, b) => (a.d < b.d ? 1 : -1));
+  const naMeta = (x) => !!(x && x.status && x.status.id === "certo");
+  let i = 0;
+  if (ord.length && ord[0].d === hoje && !naMeta(ord[0])) i = 1;
+  let atual = 0;
+  for (; i < ord.length && naMeta(ord[i]); i++) atual++;
+  let melhor = 0, seq = 0;
+  ord.forEach((x) => { if (naMeta(x)) { seq++; if (seq > melhor) melhor = seq; } else seq = 0; });
+  return { atual: atual, melhor: Math.max(melhor, atual), hojeFeito: !!(ord.length && ord[0].d === hoje && naMeta(ord[0])) };
+}
+// A maior sequência de dias seguidos em que uma missão foi cumprida
+function maiorSeqMissao(dias, id) {
+  let melhor = 0, seq = 0;
+  (dias || []).forEach((x) => {
+    const m = missoesDoDia(x).find((y) => y.id === id);
+    if (m && m.pronto) { seq++; if (seq > melhor) melhor = seq; } else seq = 0;
+  });
+  return melhor;
+}
+// As medalhas. Cada uma é um fato do registro da pessoa, e o texto diz qual.
+const CONQUISTAS_BALANCE = [
+  { id: "primeiro", ic: "\u{1F4DD}", nome: "Primeiro dia", oque: "anotou um dia inteiro", quanto: (e) => Math.min(1, e.anotados), alvo: 1 },
+  { id: "dia100", ic: "\u{1F4AF}", nome: "Dia perfeito", oque: "as 5 missões num dia só", quanto: (e) => e.perfeitos, alvo: 1 },
+  { id: "seq7", ic: "\u{1F525}", nome: "Semana fechada", oque: "7 dias seguidos na meta", quanto: (e) => e.melhor, alvo: 7 },
+  { id: "seq30", ic: "\u{1F3C6}", nome: "Mês fechado", oque: "30 dias seguidos na meta", quanto: (e) => e.melhor, alvo: 30 },
+  { id: "agua7", ic: "\u{1F30A}", nome: "Hidratado", oque: "7 dias seguidos batendo a água", quanto: (e) => e.agua, alvo: 7 },
+  { id: "prot14", ic: "\u{1F356}", nome: "Proteína em dia", oque: "14 dias seguidos batendo a proteína", quanto: (e) => e.prot, alvo: 14 },
+  { id: "anot30", ic: "\u{1F4C6}", nome: "Um mês de registro", oque: "30 dias anotados", quanto: (e) => e.anotados, alvo: 30 },
+  { id: "anot100", ic: "\u{1F680}", nome: "Cem dias", oque: "100 dias anotados", quanto: (e) => e.anotados, alvo: 100 },
+];
+function conquistasBalance(dias, nutricao) {
+  const todos = Object.keys((nutricao && nutricao.dias) || {});
+  const anotados = todos.filter((d) => { const x = (nutricao.dias || {})[d] || {}; return (x.itens || []).length >= 2; }).length;
+  const e = {
+    anotados: anotados,
+    melhor: sequenciaBalance(dias, null).melhor,
+    agua: maiorSeqMissao(dias, "agua"),
+    prot: maiorSeqMissao(dias, "prot"),
+    perfeitos: (dias || []).filter((x) => xpDoDia(x) >= XP_DIA_BALANCE).length,
+  };
+  return CONQUISTAS_BALANCE.map((c) => {
+    const n = Math.max(0, Math.round(c.quanto(e)));
+    return Object.assign({}, c, { quanto: Math.min(n, c.alvo), ganha: n >= c.alvo, pct: Math.min(1, n / c.alvo) });
+  });
 }
 // ---------------- O CATÁLOGO: COMPARAR E ESCOLHER ----------------
 // Pedido do dono (2026-11-26c): "na dieta o que importa é a escolha; quero
@@ -38479,6 +38585,110 @@ function CartaoPreparo({ preparo, hoje, cb, onMudar }) {
     </div>
   );
 }
+// O quadro do jogo do Balance (2026-11-26i). Fica DEPOIS dos botões de anotar:
+// a ação principal da tela continua sendo pôr a comida no dia.
+function CartaoJogoBalance({ x, dias, nutricao, hoje, ehHoje }) {
+  const [abriu, setAbriu] = useState(false);
+  const [festa, setFesta] = useState(false);
+  const miss = missoesDoDia(x);
+  const xp = xpDoDia(x);
+  const completo = miss.length > 0 && xp >= XP_DIA_BALANCE;
+  const seq = sequenciaBalance(dias, hoje);
+  const pts = pontosBalance(dias);
+  const niv = nivelBalance(pts.pts);
+  const conq = conquistasBalance(dias, nutricao);
+  const ganhas = conq.filter((c) => c.ganha).length;
+  // a festa sai uma vez por dia, e fica guardada para não repetir a cada render
+  useEffect(() => {
+    if (!completo || !ehHoje) return;
+    let visto = "";
+    try { visto = localStorage.getItem("treinolivre:jogoFesta") || ""; } catch (e) { visto = ""; }
+    if (visto === x.d) return;
+    try { localStorage.setItem("treinolivre:jogoFesta", x.d); } catch (e) {}
+    setFesta(true);
+    try { if (navigator.vibrate) navigator.vibrate([18, 70, 18, 70, 40]); } catch (e) {}
+    const t = setTimeout(() => setFesta(false), 3400);
+    return () => clearTimeout(t);
+  }, [completo, ehHoje, x.d]);
+  if (!miss.length) return null;
+  return (
+    <div style={{ ...S.card, position: "relative", overflow: "hidden", borderColor: completo ? "#FFD23F" : "var(--borda)" }}>
+      {festa && <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.45 }}><TelaoFesta /></div>}
+      <div style={{ position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+          <div style={{ ...S.label, flex: 1, margin: 0 }}>🎮 Missões {ehHoje ? "de hoje" : "do dia"}</div>
+          <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 22, lineHeight: 1 }} grosso={5}>{xp}</Contorno>
+          <span style={{ fontSize: 11.5, fontWeight: 900, color: "#5CE1FF" }}>/ {XP_DIA_BALANCE} XP</span>
+        </div>
+        <div style={{ height: 6, borderRadius: 99, background: "var(--borda2)", margin: "6px 0 10px" }}>
+          <div style={{ height: 6, borderRadius: 99, width: Math.round((xp / XP_DIA_BALANCE) * 100) + "%", background: GRAD, transition: "width .4s" }} />
+        </div>
+        {completo && (
+          <div style={{ textAlign: "center", marginBottom: 10, padding: "8px 10px", borderRadius: 12, fontWeight: 900, fontSize: 13,
+            background: "#FFD23F22", border: "1px solid #FFD23F", color: "#FFD23F" }}>
+            {"💯 Dia perfeito: as 5 missões cumpridas"}
+          </div>
+        )}
+        {miss.map((m) => (
+          <div key={m.id} style={{ padding: "6px 0", borderTop: "1px solid var(--borda2)" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
+              <span aria-hidden="true" style={{ opacity: m.pronto ? 1 : 0.5 }}>{m.pronto ? "✅" : m.ic}</span>
+              <b style={{ fontSize: 13.5, flex: 1, minWidth: 0, color: m.pronto ? "var(--ok)" : "var(--texto)" }}>{m.nome}</b>
+              <span style={{ fontSize: 11.5, fontWeight: 900, color: m.pronto ? "var(--ok)" : "var(--cinza)" }}>+{m.xp} XP</span>
+            </div>
+            {!m.pronto && (
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 3 }}>
+                <div style={{ flex: 1, height: 4, borderRadius: 99, background: "var(--borda2)" }}>
+                  <div style={{ height: 4, borderRadius: 99, width: Math.round(m.pct * 100) + "%", background: "var(--marca)" }} />
+                </div>
+                <span style={{ fontSize: 11, color: "var(--cinza2)" }}>{m.alvo <= 1 ? m.oque : m.un === "ml" ? fmtLitros(m.feito) + " de " + fmtLitros(m.alvo) : m.feito + " de " + m.alvo + (m.un ? " " + m.un : "")}</span>
+              </div>
+            )}
+          </div>
+        ))}
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <div style={{ flex: 1, textAlign: "center", padding: "8px 4px", borderRadius: 12, border: "1px solid var(--borda2)" }}>
+            <div style={{ fontSize: 20, fontWeight: 900, color: seq.atual > 0 ? "#FFB21A" : "var(--texto)" }}>{"🔥"} {seq.atual}</div>
+            <div style={{ fontSize: 11, color: "var(--cinza)" }}>{plural(seq.atual, "dia seguido", "dias seguidos")} na meta</div>
+          </div>
+          <div style={{ flex: 1, textAlign: "center", padding: "8px 4px", borderRadius: 12, border: "1px solid " + niv.cor + "66" }}>
+            <div style={{ fontSize: 20, fontWeight: 900, color: niv.cor }}>{niv.ic}</div>
+            <div style={{ fontSize: 11.5, fontWeight: 900 }}>{niv.nome}</div>
+            <div style={{ fontSize: 10.5, color: "var(--cinza)" }}>{niv.pts} XP em 30 dias</div>
+          </div>
+        </div>
+        {niv.prox && (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ height: 5, borderRadius: 99, background: "var(--borda2)" }}>
+              <div style={{ height: 5, borderRadius: 99, width: Math.round(niv.pct * 100) + "%", background: niv.prox.cor }} />
+            </div>
+            <div style={{ fontSize: 11, color: "var(--cinza)", marginTop: 4 }}>Faltam {niv.faltam} XP para {niv.prox.ic} {niv.prox.nome}.</div>
+          </div>
+        )}
+        <button onClick={() => setAbriu(!abriu)} style={{ ...S.btnGhost, width: "100%", marginTop: 10, padding: "9px 6px", fontSize: 12.5, fontWeight: 900 }}>
+          {"🏅"} Medalhas: {ganhas} de {conq.length} {abriu ? "▴" : "▾"}
+        </button>
+        {abriu && (
+          <div style={{ marginTop: 8 }}>
+            {conq.map((c) => (
+              <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", opacity: c.ganha ? 1 : 0.6 }}>
+                <span aria-hidden="true" style={{ fontSize: 17, filter: c.ganha ? "none" : "grayscale(1)" }}>{c.ic}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <b style={{ fontSize: 13 }}>{c.nome}</b>
+                  <div style={{ fontSize: 11.5, color: "var(--cinza)" }}>{c.oque}</div>
+                </div>
+                <span style={{ fontSize: 11.5, fontWeight: 900, color: c.ganha ? "var(--ok)" : "var(--cinza2)" }}>{c.ganha ? "✓" : c.quanto + "/" + c.alvo}</span>
+              </div>
+            ))}
+            <div style={{ fontSize: 11, color: "var(--cinza2)", marginTop: 6, lineHeight: 1.5 }}>
+              Tudo aqui sai do que você anotou: nada é inventado, e nada compara você com ninguém. Dia fora da meta não tira ponto — só não ganha.
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pesoCorporal, medidas, corredor, avisar, pedirConfirmacao, onPercurso, onEsteira, sincronizarRelogio }) {
   const [secao, setSecao] = useState("hoje");
   const [janela, setJanela] = useState(null);
@@ -38697,6 +38907,8 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
               <button onClick={() => setCatalogo({})} style={{ ...S.btnGhost, width: "100%", padding: "11px 6px", fontWeight: 900, fontSize: 13, marginBottom: 12 }}>
                 🔎 Catálogo: comparar alimentos e escolher
               </button>
+
+              <CartaoJogoBalance x={atual} dias={dias} nutricao={nutricao} hoje={hoje} ehHoje={ehHoje} />
               {prepOk && cb.prep && cb.prep.usos && cb.prep.usos.diuretico && cb.prep.usos.diuretico.desde && (() => {
                 const lista = Array.isArray(cb.prep.diureticos) ? cb.prep.diureticos : [];
                 const marcado = lista.indexOf(diaVer) >= 0;

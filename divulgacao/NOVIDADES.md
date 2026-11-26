@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-26i — O controle da dieta virou jogo: missões, sequência e medalhas
+
+- **Em uma frase:** a aba Balance ganhou **missões do dia**, uma **sequência de dias na meta**, um **posto** que sobe com os pontos e **8 medalhas** — tudo feito só do que você anotou.
+- **O que mudou:** logo abaixo dos botões de anotar apareceu o quadro **🎮 Missões de hoje**, com cinco: anotar 3 vezes (+10 XP), bater a água (+15), bater a proteína (+25), treinar hoje (+20) e fechar o dia na meta (+30). Cada uma mostra quanto já foi e quanto falta. Cumprindo as cinco, o quadro explode em luz e sai **💯 Dia perfeito**. Embaixo: **🔥 dias seguidos na meta** (o dia de hoje só quebra a sequência depois de acabar — de manhã ninguém está na meta ainda) e o seu **posto**, de 🌱 Começando até 👑 No controle, pelos pontos dos últimos 30 dias. E o botão **🏅 Medalhas** abre as oito: Primeiro dia, Dia perfeito, Semana fechada, Mês fechado, Hidratado, Proteína em dia, Um mês de registro e Cem dias.
+- **Por que importa para quem treina:** dieta falha por falta de constância, não por falta de informação. O jogo dá um motivo para abrir o app e anotar **hoje**, e mostra a sequência que você não quer quebrar. E o dia que não fecha não leva bronca: só não ganha ponto.
+- **Como usar:** Balance › Hoje. O quadro fica logo abaixo do 🔎 Catálogo. Toque em 🏅 Medalhas para ver o que já ganhou e o que falta.
+- **Ideias de vídeo:** mostrar o quadro com 2 missões cumpridas, anotar a última comida do dia na frente da câmera e o quadro virando 💯 Dia perfeito com a luz; mostrar a sequência de 8 dias e dizer "não quero quebrar"; abrir as medalhas e mostrar as que faltam.
+- **Não prometer:** o jogo não compara você com ninguém e não tem ranking de outras pessoas. Todo número sai do que você mesmo anotou — nada é inventado. E nada aqui é dieta nem plano alimentar: o plano é com o nutricionista.
+
+---
+
 ## 2026-11-26h — No painel do criador: quem paga, quem não paga e quem é cortesia
 
 - **Em uma frase:** o painel de usuários agora mostra, num quadro só, que tipo de usuário é cada pessoa — e cada linha abre a lista dela.

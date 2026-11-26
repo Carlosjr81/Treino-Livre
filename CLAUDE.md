@@ -885,7 +885,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.524 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.545 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -970,7 +970,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v290) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v291) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6964,6 +6964,51 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
 - **O gasto pelo corpo prefere a pesagem da manhã** (em jejum, oscila menos) e
   o `CartaoPreparo` diz quantos dias faltam para o corpo assumir a conta (ou o
   que falta: dias anotados, pesagens, intervalo).
+
+### O jogo do Balance: missões, sequência e medalhas (`MISSOES_BALANCE`, `CartaoJogoBalance`, 2026-11-26i)
+
+Pedido do dono: "gamefique a visão de controle da dieta para ficar mais
+engajado e divertido de acompanhar". Bloco puro **O JOGO DO BALANCE**, logo
+depois do `resumoBalanceDia`, coberto por `teste-balance.js`.
+
+- **A regra que manda aqui: todo número é verdade.** Missão, sequência, ponto
+  e medalha saem do que a própria pessoa anotou — nada de contador fictício,
+  de "outros já fizeram X" nem de meta inflada para empurrar engajamento
+  (a mesma regra do contador do *Apoie o Treino Livre* e da vitrine: CDC,
+  art. 37). Jogo que mente deixa de ser jogo no dia em que alguém percebe, e
+  aí o número honesto também perde o valor. O teste procura as palavras.
+- **Cinco missões por dia** (`MISSOES_BALANCE`, 100 XP no total): anotar 3
+  vezes (10), bater a água (15), bater a proteína (25), treinar hoje (20) e
+  fechar o dia na meta (30). Cada uma é uma função do registro do dia
+  (`missoesDoDia(x)` sobre o `x` dos `dias` do `contasDoBalance`), então não
+  há um segundo lugar onde a conta possa divergir da tela. **Sem perfil
+  configurado não há missão nenhuma** (sem meta, não há o que cumprir).
+- **Nada vira cobrança**: dia fora da meta não ganha bronca, só não ganha
+  ponto. A tela diz isso, e o `AvisoSaude` do Balance continua valendo.
+- **A sequência** (`sequenciaBalance`): dias seguidos fechados na meta.
+  **Hoje só quebra depois de fechar** — às 9 da manhã ninguém está na meta
+  ainda, e zerar a sequência de quem acabou de acordar seria mentira com cara
+  de jogo.
+- **O posto** (`NIVEIS_BALANCE`, `nivelBalance`, `pontosBalance`): 🌱
+  Começando, 🔥 Na linha, 💪 Constante, ⚡ Afiado, 👑 No controle, pelos pontos
+  dos **últimos 30 dias**, não por um total que só cresce: assim o posto diz
+  como está a rotina agora, e quem parou de anotar vê o posto descer em vez de
+  ficar com uma medalha de um mês atrás.
+- **Oito medalhas** (`CONQUISTAS_BALANCE`, `conquistasBalance`), cada uma um
+  fato do registro, com o texto dizendo qual. Os dias anotados saem das chaves
+  de `nutricao.dias` (com 2 itens ou mais), e não da janela de 35 dias do
+  `contasDoBalance` — "Cem dias" não caberia nela.
+- **Onde fica**: Balance › Hoje, **depois** dos botões de anotar e do catálogo.
+  A ação principal da tela continua sendo pôr a comida no dia. Cumprindo as
+  cinco, o cartão acende com os efeitos de LED (`TelaoFesta`, a 0,45 de
+  opacidade para o texto continuar legível) e vibra — **uma vez por dia**
+  (`treinolivre:jogoFesta`), senão a festa sairia a cada render.
+- Coberto por `teste-balance.js` (210 checagens: as cinco missões, o dia sem
+  perfil, a água que conta o que o corpo da tela mostra, hoje que não quebra a
+  sequência, os pontos da janela, o posto, as medalhas e a procura pelas
+  palavras do número inventado). No navegador: o quadro com as missões pela
+  metade, o dia perfeito com a festa e as medalhas abertas. **Não validado num
+  aparelho.**
 
 ### O shake pronto (`RECEITAS_SUGERIDAS`, `somaReceita`, `itemDeReceita`, 2026-11-26e)
 

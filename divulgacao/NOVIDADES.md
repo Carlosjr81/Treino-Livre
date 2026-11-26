@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-26n — O link do app Android apontando para a versão certa
+
+- **Em uma frase:** o botão de baixar o app Android levava a um número de versão que não existia; agora leva ao 201, que é o publicado.
+- **O que mudou:** só o endereço do APK. Quem tocava em “atualizar o app” podia receber um erro em vez do arquivo.
+- **Por que importa para quem treina:** sem o app Android não chegam o relógio, a Conexão Saúde, o Jarvis com a tela travada nem os avisos das janelas de nutrientes — e um link quebrado deixava tudo isso fora de alcance.
+- **Como usar:** Ajustes › App Android › atualizar.
+- **Ideias de vídeo:** nenhuma; é conserto de link.
+- **Não prometer:** nada de novo no app — é a mesma versão de hoje, agora alcançável.
+
+---
+
 ## 2026-11-26m — Os avisos das janelas, no celular e no relógio (e dá para marcar à mão)
 
 - **Em uma frase:** ligue o 🔔 e o app avisa quando abre a janela de cada nutriente — no celular e, com o app do relógio, no pulso —, e agora dá para marcar “consumi, só não anotei” em qualquer uma delas.

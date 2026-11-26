@@ -970,7 +970,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v295) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v296) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -7018,8 +7018,15 @@ para todos"**.
 - **E nenhum cobra**: o de depois do treino abre com "sem pressa: você tem
   até 21:30", com o prazo de verdade. O teste gera as frases e procura
   "atrasado", "já passou da hora", "você deve", "precisa comer".
-- `APK_ATUAL` e o `LINK_APK` foram ao **198** (mexeu em `android/`), e o
-  link do app ganhou `janelas=1`: APK antigo não recebe o plano.
+- O link do app ganhou `janelas=1`: APK antigo não recebe o plano.
+- **O número do APK não é sequencial, e adivinhá-lo quebra o link** (achado
+  aqui: o `LINK_APK` dizia 197 quando o release já era o 199, e o desta
+  publicação saiu 201). Ele é o `run_number` do workflow **App Android**,
+  que conta TODOS os disparos — e como cada publicação é empurrada para o
+  branch **e** para o `main`, cada uma consome dois números. **Mexeu em
+  `android/`: publique, espere o Actions terminar, LEIA o `tag_name` do
+  release mais novo e só então acerte o `LINK_APK`** (é de lá que o
+  `APK_ATUAL` sai). Palpite vira erro no botão de atualizar.
 - Coberto por `teste-balance.js` (321 checagens). No navegador: o
   interruptor, a hora de dormir, e marcar a cafeína à mão levando o placar
   de 4/6 a 5/6. **Não validado num aparelho**: o alarme, a notificação e o

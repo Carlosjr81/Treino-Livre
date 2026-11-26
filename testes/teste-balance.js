@@ -501,5 +501,22 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   const dia4 = r4.nut.dias[diaLocal(t0)];
   teste("desfazer tira o shake e devolve a agua", [0, 0], [dia4.itens.length, dia4.agua]);
 }
+// ---- o shake intra-treino (2026-11-26g) ----
+{
+  const gli = B.ALIMENTOS_BR.find((a) => a.id === "glicerina");
+  teste("a glicerina esta no catalogo", ["suplemento", 10, 43, 10], [gli.cat, gli.gr, gli.k, gli.c]);
+  teste("a glicerina nao inventa indice glicemico", undefined, gli.ig);
+  teste("quem digita glicerol ou biodestilada acha", [true, true], ["glicerol", "biodestilada"].map((t) => B.buscarAlimentos(t, "", null).some((a) => a.id === "glicerina")));
+
+  const intra = B.RECEITAS_SUGERIDAS.find((r) => r.id === "s-intra");
+  teste("o intra-treino tem malto, glicerina e creatina", ["maltodextrina", "glicerina", "creatina"], intra.itens.map((i) => i.a));
+  teste("e um copo maior, pela glicerina", 600, intra.agua);
+  const z = B.somaReceita(intra);
+  const esperado = intra.itens.reduce((t, i) => t + B.alimentoEm(B.ALIMENTOS_BR.find((a) => a.id === i.a), i.g).k, 0);
+  teste("a soma sai da tabela, como nos outros shakes", Math.round(esperado), Math.round(z.k));
+  teste("a creatina nao soma caloria", 0, B.alimentoEm(B.ALIMENTOS_BR.find((a) => a.id === "creatina"), 5).k);
+  const it = B.itemDeReceita(intra, 1);
+  teste("vira um item so, com o nome da receita", ["Intra-treino com glicerina", 1, undefined], [it.n, it.q, it.a]);
+}
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

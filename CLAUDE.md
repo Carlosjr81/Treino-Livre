@@ -852,7 +852,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.501 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.509 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -937,7 +937,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v288) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v289) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6763,7 +6763,7 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
   (`gPrato` de cada alimento) e pergunta do óleo e do molho. Sem servidor
   nem chave de API, não há modelo de visão; se um dia houver, ele só
   preencheria as marcações.
-- **Os dados** (primeiro script): `ALIMENTOS_BR` (157 alimentos e suplementos: farinhas de arroz, mandioca, trigo, aveia, milho, amêndoas, coco e linhaça, polvilho e amido; maltodextrina, dextrose, waxy maize, palatinose, gel, hipercalórico, whey isolado, caseína, albumina, proteína vegetal, creatina, BCAA, glutamina e outros; mais carboidratos, proteínas, frutas, doces, pratos e bebidas; o campo `b` são palavras a mais para a busca, e `GRUPOS_ALIMENTO` são os filtros por grupo na janela de anotar, que `teste-balance.js` cobra que cubram todo `cat`. Antes eram 58 alimentos brasileiros,
+- **Os dados** (primeiro script): `ALIMENTOS_BR` (158 alimentos e suplementos: farinhas de arroz, mandioca, trigo, aveia, milho, amêndoas, coco e linhaça, polvilho e amido; maltodextrina, dextrose, waxy maize, palatinose, gel, hipercalórico, whey isolado, caseína, albumina, proteína vegetal, creatina, BCAA, glutamina e outros; mais carboidratos, proteínas, frutas, doces, pratos e bebidas; o campo `b` são palavras a mais para a busca, e `GRUPOS_ALIMENTO` são os filtros por grupo na janela de anotar, que `teste-balance.js` cobra que cubram todo `cat`. Antes eram 58 alimentos brasileiros,
   porção caseira, kcal e macros pela TACO; `liq` para as bebidas, `alc`
   para o álcool), `RAPIDOS_RELOGIO`, `CORES_BALANCE` (proteína #FF4D6D,
   carbo #FFB21A, gordura #B05BFF, álcool/outros #8A8F9E, água #35E0F0),
@@ -6990,6 +6990,33 @@ relógio também, dentro da parte da alimentação".
 - Coberto em `teste-balance.js` (o evento atravessando o link, os números
   vindos do celular, a água, a idempotência, a receita que não existe mais e
   o desfazer). **Não validado num relógio.**
+
+#### O intra-treino com glicerina (`s-intra`, 2026-11-26g)
+
+Pedido do dono: "nos shakes adicione o shake intra-treino com maltodextrina,
+glicerina biodestilada e creatina".
+
+- **A glicerina entrou no catálogo** (`glicerina`, "Glicerina (glicerol)"):
+  **4,32 kcal por grama**, o valor publicado do glicerol, então a dose de 10 g
+  dá 43 kcal; nos rótulos brasileiros o poliol conta dentro dos carboidratos, e
+  é assim que ela entra (`c`). **Sem `ig`**: não há valor nas tabelas
+  internacionais de índice glicêmico, e a regra do catálogo é que traço é
+  melhor que número inventado (como a farinha crua, o waxy maize e o
+  hipercalórico). O nome fica genérico e **"biodestilada" vai só no `b`**, as
+  palavras da busca, junto de "glicerol" — a mesma regra das marcas.
+- **A receita** (`s-intra`): 50 g de maltodextrina, 10 g de glicerina e 5 g de
+  creatina, com **600 ml de água** (o copo é maior por causa da glicerina, que
+  puxa água). A creatina soma 0 kcal, como no rótulo. Nada é fixo: é uma
+  sugestão, e escolher uma cria um shake novo para a pessoa ajustar.
+- **O nome no relógio** perde também o "Shake " do começo (`montarShakes` já
+  tirava "Shake de whey com"): "Intra-treino com glicerina" cabe no botão.
+- **O app não recomenda suplemento nenhum**: a tela registra o que a pessoa
+  tomou, e o rodapé do Balance continua dizendo que a dieta é do nutricionista
+  (Lei 8.234/1991).
+- Coberto em `teste-balance.js` (os valores da glicerina, o `ig` ausente, a
+  busca por glicerol e biodestilada, a composição, a água e a soma saindo da
+  tabela). No navegador: a sugestão na aba 🥤 Shake, com 233 kcal e 57,5 g de
+  carboidrato. **Não validado num aparelho.**
 
 ### O catálogo: comparar e escolher (`compararAlimentos`, `JanelaCatalogo`, 2026-11-26c)
 

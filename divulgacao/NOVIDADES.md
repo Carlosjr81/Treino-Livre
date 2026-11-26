@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-26g — O shake intra-treino pronto na lista
+
+- **Em uma frase:** quem toma shake no meio do treino agora tem ele pronto na lista: maltodextrina, glicerina e creatina, num toque.
+- **O que mudou:** em Balance › + Comida › 🥤 Shake apareceu o **Intra-treino com glicerina** (50 g de maltodextrina, 10 g de glicerina e 5 g de creatina, no copo de 600 ml). Como nos outros shakes, dá para mudar os gramas de cada um, trocar o carboidrato e salvar do seu jeito — e ele entra no dia como **um item só**. A **glicerina (glicerol)** entrou na lista de alimentos: quem digita "glicerol" ou "biodestilada" acha.
+- **Por que importa para quem treina:** o shake do meio do treino é o mais repetido da semana, e anotar três potes separados toda vez ninguém faz. Assim a conta do dia fica certa sem trabalho.
+- **Como usar:** Balance › Hoje › + Comida › 🥤 Shake › Intra-treino com glicerina. Ajuste os gramas, diga quantos tomou e toque em Anotar. Salvando, ele vai também para o relógio.
+- **Ideias de vídeo:** montar o copo do intra na bancada e anotar pelo app em dois toques, mostrando as calorias aparecendo no corpo que enche.
+- **Não prometer:** não é plano alimentar nem dieta, e o app não recomenda suplemento nenhum. Os valores mudam com a marca e com o preparo; a dieta e o uso de suplementos são com o nutricionista.
+
+---
+
 ## 2026-11-26f — O shake no relógio, e o lembrete de vencimento do plano
 
 - **Em uma frase:** o seu shake de whey agora é um toque no relógio, e o app avisa com antecedência quanto tempo ainda falta do seu plano, para ninguém ser pego de surpresa.

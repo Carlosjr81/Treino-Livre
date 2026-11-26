@@ -1989,6 +1989,7 @@ const ALIMENTOS_BR = [
   { id: "shake-pronto", nome: "Shake de proteína pronto", cat: "suplemento", por: "1 garrafinha (250 ml)", gr: 250, k: 150, p: 25.0, c: 9.0, g: 1.5, gPrato: 0, ic: "🧃", liq: 250, b: "whey bebida proteica" },
   { id: "barra-proteina", nome: "Barra de proteína", cat: "suplemento", por: "1 barra (45 g)", gr: 45, k: 180, p: 15.0, c: 18.0, g: 6.0, gPrato: 0, ic: "🍫", b: "protein bar" },
   { id: "colageno", nome: "Colágeno", cat: "suplemento", por: "1 dose (10 g)", gr: 10, k: 36, p: 9.0, c: 0, g: 0, gPrato: 0, ic: "🥄" },
+  { id: "glicerina", nome: "Glicerina (glicerol)", cat: "suplemento", por: "1 dose (10 g)", gr: 10, k: 43, p: 0, c: 10, g: 0, f: 0, gPrato: 0, ic: "\u{1F4A7}", b: "glicerol biodestilada bidestilada intra treino hidratacao" },
   { id: "creatina", nome: "Creatina", cat: "suplemento", por: "1 dose (3 a 5 g)", gr: 5, k: 0, p: 0, c: 0, g: 0, gPrato: 0, ic: "🥄" },
   { id: "bcaa", nome: "BCAA", cat: "suplemento", por: "1 dose (5 g)", gr: 5, k: 20, p: 5.0, c: 0, g: 0, gPrato: 0, ic: "🥄", b: "aminoacido" },
   { id: "glutamina", nome: "Glutamina", cat: "suplemento", por: "1 dose (5 g)", gr: 5, k: 20, p: 5.0, c: 0, g: 0, gPrato: 0, ic: "🥄", b: "aminoacido" },
@@ -2162,6 +2163,10 @@ const RECEITAS_SUGERIDAS = [
     itens: [{ a: "whey", g: 30 }, { a: "leite-po", g: 25 }, { a: "aveia", g: 40 }] },
   { id: "s-malto", n: "Shake de whey com maltodextrina", ic: "\u{26A1}", agua: 300,
     itens: [{ a: "whey", g: 30 }, { a: "leite-po", g: 25 }, { a: "maltodextrina", g: 40 }] },
+  // O intra-treino do dono: carboidrato rápido, glicerina (que puxa água para
+  // dentro da célula, por isso o copo é maior) e a creatina do dia.
+  { id: "s-intra", n: "Intra-treino com glicerina", ic: "\u{1F4A7}", agua: 600,
+    itens: [{ a: "maltodextrina", g: 50 }, { a: "glicerina", g: 10 }, { a: "creatina", g: 5 }] },
   { id: "s-banana", n: "Shake de whey com banana", ic: "\u{1F34C}", agua: 0,
     itens: [{ a: "whey", g: 30 }, { a: "leite", g: 200 }, { a: "banana", g: 100 }] },
 ];
@@ -2281,7 +2286,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-26f";
+const VERSAO_APP = "2026-11-26g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -38523,7 +38528,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
       // relógio precisa para mostrar e para a conta local até o celular contar.
       shk: receitasDisponiveis(nutricao.receitas || []).slice(0, 4).map((r) => {
         const z = somaReceita(r);
-        return { r: r.id, n: r.n.replace(/^Shake de whey com /i, "Whey + "), ic: r.ic, k: z.k, p: z.p, c: z.c, g: z.g, liq: Math.round(z.ml), ml: numB(r.agua) };
+        return { r: r.id, n: r.n.replace(/^Shake de whey com /i, "Whey + ").replace(/^Shake (com |de )?/i, ""), ic: r.ic, k: z.k, p: z.p, c: z.c, g: z.g, liq: Math.round(z.ml), ml: numB(r.agua) };
       }),
       vistos: (nutricao.vistos || []).slice(-80) } : null;
   }

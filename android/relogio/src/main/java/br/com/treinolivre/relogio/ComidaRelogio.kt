@@ -62,6 +62,14 @@ object ComidaPulso {
 
     data class Rapido(val a: String, val n: String, val ic: String, val k: Int, val p: Double, val c: Double, val g: Double, val liq: Int)
 
+    // O shake pronto no pulso (2026-11-26f, pedido do dono: "faça essa
+    // combinação do shake ficar de fácil acesso no relógio também, dentro da
+    // parte da alimentação"). Quem tem os gramas de cada alimento é o celular:
+    // daqui vai só o id da receita, e lá ela é somada de novo pela tabela. Os
+    // números abaixo são para a tela e para a conta local até o celular contar.
+    // ml é a água do copo, que entra na água do dia.
+    data class Shake(val r: String, val n: String, val ic: String, val k: Int, val p: Double, val c: Double, val g: Double, val liq: Int, val ml: Int)
+
     fun hoje(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
     private fun prefs(c: Context) = c.getSharedPreferences("comida", Context.MODE_PRIVATE)
@@ -149,6 +157,18 @@ object ComidaPulso {
         return Hoje(k, e?.optInt("meta") ?: 0, p, cc, g, agua, e?.optInt("magua") ?: 0, pendentes(c).length(), e?.optString("ob") ?: "")
     }
 
+    fun shakes(c: Context): List<Shake> {
+        val a = estado(c)?.optJSONArray("shk") ?: return emptyList()
+        val l = mutableListOf<Shake>()
+        for (i in 0 until a.length()) {
+            val x = a.optJSONObject(i) ?: continue
+            if (x.optString("r").isEmpty() || x.optInt("k") <= 0) continue
+            l.add(Shake(x.optString("r"), x.optString("n", "Shake"), x.optString("ic", "🥤"), x.optInt("k"),
+                x.optDouble("p", 0.0), x.optDouble("c", 0.0), x.optDouble("g", 0.0), x.optInt("liq"), x.optInt("ml")))
+        }
+        return l
+    }
+
     fun rapidos(c: Context): List<Rapido> {
         val fav = estado(c)?.optJSONArray("fav") ?: return PADRAO
         val l = mutableListOf<Rapido>()
@@ -165,6 +185,7 @@ class ComidaRelogio : ComponentActivity(), MessageClient.OnMessageReceivedListen
     private lateinit var anel: AnelComida
     private lateinit var linha: TextView
     private lateinit var lista: LinearLayout
+    private lateinit var shakes: LinearLayout
     private lateinit var aviso: TextView
     private val main = Handler(Looper.getMainLooper())
     private var letreiro: Typeface? = null
@@ -196,6 +217,8 @@ class ComidaRelogio : ComponentActivity(), MessageClient.OnMessageReceivedListen
         agua.addView(botao("💧 +200", intArrayOf(Color.parseColor("#1DD1A1"), Color.parseColor("#35E0F0"))) { anotarAgua(200) }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(4) })
         agua.addView(botao("💧 +500", intArrayOf(Color.parseColor("#35E0F0"), Color.parseColor("#2E7BFF"))) { anotarAgua(500) }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { leftMargin = dp(4) })
         raiz.addView(agua, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(6) })
+        shakes = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        raiz.addView(shakes, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(6) })
         lista = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         raiz.addView(lista, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(6) })
         raiz.addView(botao("↩ Desfazer o último", null) { desfazer() }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(44)).apply { topMargin = dp(8) })
@@ -204,6 +227,7 @@ class ComidaRelogio : ComponentActivity(), MessageClient.OnMessageReceivedListen
         }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(44)).apply { topMargin = dp(6) })
         val rolar = ScrollView(this).apply { isVerticalScrollBarEnabled = false; addView(raiz); setBackgroundColor(Cores.FUNDO_JOGO) }
         setContentView(rolar)
+        montarShakes()
         montarRapidos()
         mostrar()
     }
@@ -216,6 +240,22 @@ class ComidaRelogio : ComponentActivity(), MessageClient.OnMessageReceivedListen
         setOnClickListener {
             animate().scaleX(0.92f).scaleY(0.92f).setDuration(70).withEndAction { animate().scaleX(1f).scaleY(1f).setDuration(160).start() }.start()
             acao()
+        }
+    }
+
+    // Os shakes ficam em cima dos rápidos: é a bebida que a pessoa toma sempre,
+    // e no pulso o que importa é o toque que ela repete todo dia.
+    private fun montarShakes() {
+        shakes.removeAllViews()
+        val l = ComidaPulso.shakes(this)
+        if (l.isEmpty()) return
+        shakes.addView(TextView(this).apply {
+            text = "🥤 SEUS SHAKES"; setTextColor(Color.parseColor("#4DEBFF")); textSize = 11f
+            typeface = Typeface.DEFAULT_BOLD; gravity = Gravity.CENTER; letterSpacing = 0.12f
+        }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(4); bottomMargin = dp(3) })
+        l.forEach { sh ->
+            shakes.addView(botao(sh.ic + " " + sh.n + " · " + sh.k, intArrayOf(Cores.ROSA, Color.parseColor("#2E7BFF"))) { anotarShake(sh) },
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(46)).apply { topMargin = dp(5) })
         }
     }
 
@@ -241,6 +281,16 @@ class ComidaRelogio : ComponentActivity(), MessageClient.OnMessageReceivedListen
             .put("kc", r.k).put("p", r.p).put("c", r.c).put("g", r.g).put("liq", r.liq).put("d", ComidaPulso.hoje()))
         AlertaRelogio.vibrar(this, longArrayOf(0, 30))
         anel.comemorar(Cores.ROSA, "+${r.k} kcal")
+        ComidaPulso.mandar(this)
+        mostrar()
+    }
+
+    private fun anotarShake(sh: ComidaPulso.Shake) {
+        ComidaPulso.anotar(this, JSONObject().put("k", ComidaPulso.novoK()).put("t", System.currentTimeMillis()).put("tipo", "shake")
+            .put("rc", sh.r).put("q", 1).put("kc", sh.k).put("p", sh.p).put("c", sh.c).put("g", sh.g)
+            .put("liq", sh.liq + sh.ml).put("d", ComidaPulso.hoje()))
+        AlertaRelogio.vibrar(this, longArrayOf(0, 30))
+        anel.comemorar(Cores.ROSA, "+${sh.k} kcal")
         ComidaPulso.mandar(this)
         mostrar()
     }
@@ -297,7 +347,7 @@ class ComidaRelogio : ComponentActivity(), MessageClient.OnMessageReceivedListen
                 var achou: String? = null
                 for (i in itens) try { achou = DataMapItem.fromDataItem(i).dataMap.getString("json") } catch (e: Exception) { }
                 itens.release()
-                if (achou != null) { ComidaPulso.guardarEstado(this, achou); montarRapidos(); mostrar() }
+                if (achou != null) { ComidaPulso.guardarEstado(this, achou); montarShakes(); montarRapidos(); mostrar() }
             }
         } catch (e: Exception) { }
     }
@@ -307,7 +357,7 @@ class ComidaRelogio : ComponentActivity(), MessageClient.OnMessageReceivedListen
             if (e.dataItem.uri.path != ComidaPulso.ESTADO) continue
             val j = try { DataMapItem.fromDataItem(e.dataItem).dataMap.getString("json") } catch (x: Exception) { null } ?: continue
             ComidaPulso.guardarEstado(this, j)
-            main.post { montarRapidos(); mostrar() }
+            main.post { montarShakes(); montarRapidos(); mostrar() }
         }
     }
 

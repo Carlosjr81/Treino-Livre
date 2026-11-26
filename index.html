@@ -2281,7 +2281,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-26e";
+const VERSAO_APP = "2026-11-26f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3893,7 +3893,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-195/treino-livre-195.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-196/treino-livre-196.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -4528,12 +4528,13 @@ function lerPacoteComida(texto, decodificar) {
   return ev.slice(0, 200).map((e) => ({
     k: typeof (e && e.k) === "string" ? e.k.slice(0, 40) : "",
     t: num(e && e.t, 946684800000, 4102444800000),
-    tipo: e && (e.tipo === "agua" || e.tipo === "desfazer") ? e.tipo : "comida",
+    tipo: e && (e.tipo === "agua" || e.tipo === "desfazer" || e.tipo === "shake") ? e.tipo : "comida",
     a: typeof (e && e.a) === "string" ? e.a.slice(0, 40) : "",
+    rc: typeof (e && e.rc) === "string" ? e.rc.slice(0, 40) : "",
     ref: typeof (e && e.ref) === "string" ? e.ref.slice(0, 40) : "",
     ml: num(e && e.ml, 0, 3000),
     q: num(e && e.q, 0.1, 20) || 1,
-  })).filter((e) => e.k && e.t && (e.tipo === "agua" ? e.ml > 0 : e.tipo === "desfazer" ? !!e.ref : !!ALIMENTOS_BR.find((x) => x.id === e.a)));
+  })).filter((e) => e.k && e.t && (e.tipo === "agua" ? e.ml > 0 : e.tipo === "desfazer" ? !!e.ref : e.tipo === "shake" ? !!e.rc : !!ALIMENTOS_BR.find((x) => x.id === e.a)));
 }
 // Põe no dia certo o que veio do relógio, uma vez só (vistos)
 function aplicarComidaDoRelogio(nut, eventos) {
@@ -4562,6 +4563,17 @@ function aplicarComidaDoRelogio(nut, eventos) {
     const d = diaLocal(e.t);
     const dia = Object.assign({ itens: [], agua: 0 }, dias[d] || {});
     if (e.tipo === "agua") { dia.agua = numB(dia.agua) + e.ml; dia.aguaEv = (dia.aguaEv || []).concat([{ k: e.k, ml: e.ml }]).slice(-60); }
+    else if (e.tipo === "shake") {
+      // o relógio manda só o id: quem tem os gramas é o celular, então a conta
+      // nunca vem de fora. Receita apagada no meio do caminho: o toque se perde
+      // (como um alimento que não existe mais), e não vira número inventado.
+      const rec = (nut.receitas || []).find((r) => r.id === e.rc) || RECEITAS_SUGERIDAS.find((r) => r.id === e.rc);
+      const it = rec && itemDeReceita(rec, e.q || 1);
+      if (!it) { vistos.delete(e.k); return; }
+      dia.itens = (dia.itens || []).concat([Object.assign({}, it, { id: e.k, t: e.t, r: refeicaoDaHora(e.t), de: "relogio" })]);
+      const ml = numB(rec.agua) * (e.q || 1);
+      if (ml > 0) { dia.agua = numB(dia.agua) + ml; dia.aguaEv = (dia.aguaEv || []).concat([{ k: e.k, ml: ml }]).slice(-60); }
+    }
     else {
       const a = ALIMENTOS_BR.find((x) => x.id === e.a);
       dia.itens = (dia.itens || []).concat([Object.assign(itemDeAlimento(a, e.q, "relogio"), { id: e.k, t: e.t, r: refeicaoDaHora(e.t) })]);
@@ -38505,6 +38517,14 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
     const fav = recentes.filter((id) => { const a = ALIMENTOS_BR.find((x) => x.id === id); return a && !a.gPrato; }).concat(RAPIDOS_RELOGIO).filter((x, i, l) => l.indexOf(x) === i).slice(0, 10);
     estadoRelogio.current = h0 && h0.meta ? { d: h0.d, k: h0.tot.k, meta: h0.meta.k, p: h0.tot.p, c: h0.tot.c, g: h0.tot.g, mp: h0.meta.p, mc: h0.meta.c, mg: h0.meta.g,
       agua: h0.tot.agua, magua: h0.meta.agua, ob: ob.fase, fav: fav.map((id) => { const a = ALIMENTOS_BR.find((x) => x.id === id); return { a: a.id, n: a.nome.split(" (")[0], ic: a.ic, k: a.k, p: a.p, c: a.c, g: a.g, liq: a.liq || 0 }; }),
+      // os shakes no pulso (2026-11-26f): os que a pessoa salvou e, enquanto
+      // ela não salvou nenhum, as combinações sugeridas — senão a tela do
+      // relógio nasceria vazia. Vão com os números já somados, que é o que o
+      // relógio precisa para mostrar e para a conta local até o celular contar.
+      shk: receitasDisponiveis(nutricao.receitas || []).slice(0, 4).map((r) => {
+        const z = somaReceita(r);
+        return { r: r.id, n: r.n.replace(/^Shake de whey com /i, "Whey + "), ic: r.ic, k: z.k, p: z.p, c: z.c, g: z.g, liq: Math.round(z.ml), ml: numB(r.agua) };
+      }),
       vistos: (nutricao.vistos || []).slice(-80) } : null;
   }
   const limiteAntes = useRef(null);
@@ -38917,7 +38937,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                   <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 8 }}>
                     Abra o Treino Livre no relógio e escolha "Comida e água": água e os seus alimentos mais usados ficam a um toque, e entram aqui sozinhos.
                   </div>
-                  <button onClick={() => sincronizarRelogio(estadoRelogio.current, true)} style={{ ...S.btnGhost, width: "100%", fontWeight: 900 }}>⌚ Mandar metas e favoritos ao relógio</button>
+                  <button onClick={() => sincronizarRelogio(estadoRelogio.current, true)} style={{ ...S.btnGhost, width: "100%", fontWeight: 900 }}>⌚ Mandar metas, favoritos e shakes ao relógio</button>
                 </div>
               )}
               <div style={S.card}>
@@ -42300,6 +42320,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             {contaAuto > 0 ? "🤖 " + contaAuto + " " + plural(contaAuto, "conta nova entrou", "contas novas entraram") + " sozinha" + (contaAuto > 1 ? "s" : "") : ""} ▶
           </button>
         )}
+        <FaixaVencimento aba={aba} />
         {[["desafio", "🏁 Desafio em andamento"], ["intervalado", "⏱ Intervalado em andamento"], ["zumbi", "🧟 Missão em andamento"]].filter((v) => vivos[v[0]] && aba !== v[0]).map((v) => (
           <button key={v[0]} onClick={() => setAba(v[0])} style={{ ...S.btn, width: "100%", marginBottom: 12, padding: "12px 10px" }}>{v[1]} · voltar para ela ▶</button>
         ))}
@@ -43326,6 +43347,32 @@ function textoPlanoConta(p, cob) {
   const ate = p.ate > 0 ? (p.tipo === "pagar" ? " (venceu em " : " até ") + new Date(p.ate).toLocaleDateString("pt-BR") + (p.tipo === "pagar" ? ")" : "") : (p.tipo === "cortesia" ? " sem prazo" : "");
   return nome + ate + (p.motivo ? " · " + p.motivo : "");
 }
+// Quanto ainda resta do plano (2026-11-26f, pedido do dono: "faça um lembrete
+// de vencimento para os usuários não deixarem vencer o plano, e deixe aviso de
+// quanto tempo ainda resta"). O "ate" é sempre o fim do dia (fimDoDia), então
+// o dia de hoje conta inteiro: faltar 0 dia é vencer hoje, não ter vencido.
+function tempoDePlano(p, agora) {
+  if (!p || !(p.ate > 0)) return null;
+  const ms = p.ate - agora;
+  const dias = Math.floor(ms / 864e5);
+  const urg = ms <= 0 ? "venceu" : dias <= 1 ? "amanha" : dias <= 5 ? "perto" : dias <= 15 ? "atencao" : "ok";
+  const texto = ms <= 0 ? "o seu acesso venceu" : dias === 0 ? "vence hoje" : dias === 1 ? "vence amanhã" : "faltam " + dias + " dias";
+  // "faltam 3 dias" se lê solto; "O seu acesso vence amanhã" é a frase inteira
+  const frase = dias >= 2 && ms > 0 ? "Faltam " + dias + " dias de acesso" : "O seu acesso " + (ms <= 0 ? "venceu" : dias === 0 ? "vence hoje" : "vence amanhã");
+  return { dias: dias, ms: ms, urg: urg, texto: texto, frase: frase };
+}
+// De quanto em quanto tempo avisar. Longe do vencimento os avisos são raros
+// (15, 10 e 7 dias) e no fim viram diários: um aviso por dia o mês inteiro
+// vira paisagem, e aí no último dia ninguém mais vê. Um por dia, no máximo.
+const DIAS_AVISO_VENCE = [15, 10, 7];
+function avisoDeVencimento(p, agora, visto) {
+  const t = tempoDePlano(p, agora);
+  if (!t || t.ms <= 0 || t.dias > 15) return null;
+  if (t.dias > 5 && DIAS_AVISO_VENCE.indexOf(t.dias) < 0) return null;
+  const marca = new Date(agora).toDateString();
+  return visto === marca ? null : Object.assign({ marca: marca }, t);
+}
+function corDoVencimento(urg) { return urg === "ok" ? "var(--cinza)" : urg === "atencao" ? "var(--texto)" : urg === "perto" ? "#FFB21A" : "var(--perigo)"; }
 // O que um pagamento confirmado grava na conta. O período soma ao que ainda
 // vale: quem renova antes de vencer não perde os dias que faltavam.
 function acessoPago(d, plano, agora) {
@@ -43907,7 +43954,10 @@ function Porteiro({ children }) {
         const p = planoDaConta(conta, agora, cob);
         let visto = "";
         try { visto = localStorage.getItem("treinolivre:avisoVence") || ""; } catch (x) {}
-        if (["pago", "teste", "cortesia"].indexOf(p.tipo) >= 0 && p.ate > 0 && p.ate - agora < 5 * 864e5 && visto !== new Date(agora).toDateString()) setAvisoVence(p);
+        if (["pago", "teste", "cortesia"].indexOf(p.tipo) >= 0) {
+          const a = avisoDeVencimento(p, agora, visto);
+          if (a) setAvisoVence(Object.assign({}, p, { t: a }));
+        }
       }
       setFase(status === "liberado" ? "dentro" : status === "bloqueado" ? "bloqueado" : status === "vencido" ? "vencido" : status === "pagar" ? "pagar" : "aguardando");
     } catch (e) {
@@ -43961,10 +44011,16 @@ function Porteiro({ children }) {
           <div role="dialog" aria-label="O seu acesso vence logo" style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
             <div style={{ ...S.card, maxWidth: 360, width: "100%", marginBottom: 0, textAlign: "center" }}>
               <div style={{ fontSize: 36 }} aria-hidden="true">⏳</div>
-              <div style={{ fontSize: 17, fontWeight: 900, margin: "6px 0" }}>
+              <div style={{ fontSize: 26, fontWeight: 900, color: corDoVencimento(avisoVence.t ? avisoVence.t.urg : "perto"), marginTop: 4 }}>
+                {avisoVence.t ? avisoVence.t.texto.charAt(0).toUpperCase() + avisoVence.t.texto.slice(1) : ""}
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 900, margin: "4px 0" }}>
                 {avisoVence.tipo === "teste" ? "O seu período de teste" : avisoVence.tipo === "cortesia" ? "A sua cortesia" : "O seu plano"} acaba em {new Date(avisoVence.ate).toLocaleDateString("pt-BR")}
               </div>
-              <div style={{ fontSize: 14, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 14 }}>Renove antes para continuar treinando sem parar. Os seus treinos continuam no celular de qualquer jeito.</div>
+              <div style={{ fontSize: 14, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 14 }}>
+                {avisoVence.tipo === "pago" ? "A renovação não é automática: não há cartão guardado nem cobrança recorrente — quem renova é você. " : ""}
+                Renove antes para continuar treinando sem parar. Os seus treinos continuam no celular de qualquer jeito.
+              </div>
               <button onClick={() => { fecharAviso(); setAssinando(true); }} style={{ ...S.btn, width: "100%" }}>💳 Ver os planos</button>
               <button onClick={fecharAviso} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>Depois</button>
             </div>
@@ -44498,6 +44554,31 @@ function CartaoTermos() {
 
 // O cartão da conta nos Ajustes: quem está dentro, trocar a senha, sair,
 // apagar a conta e, só para o dono, o painel
+// A faixa do vencimento (2026-11-26f). Só quando falta pouco (5 dias ou
+// menos): antes disso o lugar de lembrar é o cartão da conta, e faixa que
+// aparece o mês inteiro deixa de ser lida. O ✕ some com ela por hoje.
+function FaixaVencimento({ aba }) {
+  const c = CONTA_ATUAL;
+  const hoje = new Date().toDateString();
+  const [fechada, setFechada] = useState(() => { try { return localStorage.getItem("treinolivre:faixaVence") === hoje; } catch (x) { return false; } });
+  if (!c || c.dono || !c.plano || !c.assinar || !(c.cob && c.cob.ligada)) return null;
+  if (["pago", "teste", "cortesia"].indexOf(c.plano.tipo) < 0) return null;
+  const t = tempoDePlano(c.plano, Date.now());
+  if (!t || t.ms <= 0 || ["perto", "amanha"].indexOf(t.urg) < 0) return null;
+  if (fechada || aba === "sessao") return null;
+  const fechar = () => { try { localStorage.setItem("treinolivre:faixaVence", hoje); } catch (x) {} setFechada(true); };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid " + corDoVencimento(t.urg), borderRadius: 12, padding: "10px 12px", marginBottom: 12 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 900, color: corDoVencimento(t.urg) }}>⏳ {t.frase}</div>
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 2 }}>Renove antes para não parar no meio da semana.</div>
+      </div>
+      <button onClick={c.assinar} style={{ ...S.btnGhost, padding: "8px 12px", fontSize: 13, whiteSpace: "nowrap" }}>Renovar</button>
+      <button onClick={fechar} aria-label="Esconder por hoje" style={{ background: "none", border: "none", color: "var(--cinza2)", fontSize: 18, cursor: "pointer", padding: "0 2px" }}>✕</button>
+    </div>
+  );
+}
+
 function CartaoConta({ onPainel }) {
   const c = CONTA_ATUAL;
   const [aviso, setAviso] = useState("");
@@ -44529,6 +44610,18 @@ function CartaoConta({ onPainel }) {
       {!c.dono && c.plano && ((c.cob && c.cob.ligada) || ["pago", "vitalicio", "cortesia"].indexOf(c.plano.tipo) >= 0) && (
         <div style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: "10px 12px", marginBottom: 10 }}>
           <div style={{ fontSize: 14, fontWeight: 800 }}>Seu plano: {textoPlanoConta(c.plano, c.cob)}</div>
+          {(() => {
+            // o tempo que resta fica à vista sempre, não só quando está acabando:
+            // é o que lembra de renovar antes, que foi o pedido
+            const t = tempoDePlano(c.plano, Date.now());
+            if (!t) return c.plano.tipo === "vitalicio" ? <div style={{ fontSize: 13, color: "var(--cinza)", marginTop: 6 }}>♾ Sem data para acabar.</div> : null;
+            return (
+              <div style={{ marginTop: 6 }}>
+                <div style={{ fontSize: 15, fontWeight: 900, color: corDoVencimento(t.urg) }}>⏳ {t.texto.charAt(0).toUpperCase() + t.texto.slice(1)}</div>
+                {c.plano.tipo === "pago" && <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 3, lineHeight: 1.5 }}>A renovação não é automática: renove antes do dia {new Date(c.plano.ate).toLocaleDateString("pt-BR")} para não ficar sem acesso. Renovando antes, os dias que faltam são somados.</div>}
+              </div>
+            );
+          })()}
           {c.cob && c.cob.ligada && c.assinar && (
             <button onClick={c.assinar} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>{c.plano.tipo === "vitalicio" ? "💳 Meus pagamentos" : "💳 Planos, renovar e meus pagamentos"}</button>
           )}

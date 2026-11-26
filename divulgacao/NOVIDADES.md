@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-26f — O shake no relógio, e o lembrete de vencimento do plano
+
+- **Em uma frase:** o seu shake de whey agora é um toque no relógio, e o app avisa com antecedência quanto tempo ainda falta do seu plano, para ninguém ser pego de surpresa.
+- **O que mudou:** no relógio, dentro de **Comida & água**, apareceu **🥤 SEUS SHAKES**: os shakes que você salvou no celular (ou as combinações prontas, enquanto você não salvou nenhum), com as calorias de cada um. Um toque anota o shake no dia e a água do copo junto — e quem faz a conta continua sendo o celular, com os gramas que você escolheu. E, para quem paga pelo app, o **cartão da sua conta** passou a mostrar **quanto tempo ainda resta** ("⏳ Faltam 12 dias"), com um lembrete que aparece faltando 15, 10 e 7 dias e todo dia na última semana. Faltando 5 dias ou menos, uma faixa no topo do app mostra o que falta e leva direto a **Renovar**.
+- **Por que importa para quem treina:** com as mãos ocupadas, pegar o celular para anotar o shake é o que faz a pessoa não anotar. E plano vencido no meio da semana para o treino sem aviso — agora o aviso vem antes, e renovando antes os dias que faltavam são somados.
+- **Como usar:** no celular, Balance › Perfil › "⌚ Mandar metas, favoritos e shakes ao relógio". No pulso, abra Comida & água e toque no shake. O tempo que resta fica em Ajustes › Sua conta.
+- **Ideias de vídeo:** bater o shake e anotar pelo relógio sem pegar o celular; e a faixa de "faltam 3 dias" levando ao Renovar em dois toques.
+- **Não prometer:** não é plano alimentar nem dieta, e os valores mudam com a marca e o preparo. A renovação **não é automática**: não há cartão guardado nem cobrança recorrente.
+
+---
+
 ## 2026-11-26e — O shake pronto: a sua bebida de whey vira um item só
 
 - **Em uma frase:** agora dá para montar a bebida que você bate em casa — whey, leite em pó e o carboidrato que você usa — e anotar tudo de uma vez, com os gramas do seu jeito.

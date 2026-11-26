@@ -123,7 +123,10 @@ async function doNpm(lib) {
 
   // --antes pode vir mais de uma vez: rodam na ordem
   for (let i = 0; i < args.length; i++) if (args[i] === "--antes" && args[i + 1]) await p.addInitScript({ content: fs.readFileSync(args[i + 1], "utf8") });
-  await p.goto(ENDERECO + "#teste");
+  // --parametros "app=android&comida=1" abre como o app Android abre (o site lê
+  // esses parâmetros para saber que está dentro do APK)
+  const par = opcao("--parametros");
+  await p.goto(ENDERECO + (par ? (ENDERECO.indexOf("?") >= 0 ? "&" : "?") + par : "") + "#teste");
   // o Babel compila o app no navegador: leva uns segundos
   await p.waitForFunction(() => !document.getElementById("carregando"), null, { timeout: 60000 }).catch(() => {});
   await p.waitForTimeout(800);

@@ -462,5 +462,44 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
     teste("lerNutricao guarda as receitas no registro", true, /r\.receitas = lerReceitas\(n\.receitas\)/.test(html1));
     teste("o backup leva as receitas junto (é o mesmo registro)", true, /receitas: \[\]/.test(html1)); }
 }
+// ---- o shake no relógio: o id vai, os gramas ficam no celular (2026-11-26f) ----
+{
+  const b64 = (o) => Buffer.from(JSON.stringify(o), "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const dec = (x) => Buffer.from(x, "base64").toString("utf8");
+  const minha = { id: "m9", n: "O meu shake", ic: "\u{1F964}", agua: 300, em: 9,
+    itens: [{ a: "whey", g: 30 }, { a: "leite-po", g: 25 }, { a: "farinha-arroz", g: 40 }] };
+  const t0 = Date.UTC(2026, 10, 26, 15, 0, 0);
+  const ev = (x) => ({ k: "k1", t: t0, tipo: "shake", rc: x, q: 1 });
+
+  const lido = B.lerPacoteComida(b64({ ev: [ev("m9")] }), dec);
+  teste("o evento de shake atravessa o link", ["shake", "m9"], [lido[0].tipo, lido[0].rc]);
+  teste("shake sem receita no pacote e descartado", 0, B.lerPacoteComida(b64({ ev: [ev("")] }), dec).length);
+
+  const nut = { perfil: {}, dias: {}, vistos: [], receitas: [minha] };
+  const r1 = B.aplicarComidaDoRelogio(nut, lido);
+  const dia = r1.nut.dias[diaLocal(t0)];
+  teste("o shake do relogio entra como um item", 1, dia.itens.length);
+  teste("os numeros sao os do celular, nao os do relogio", B.somaReceita(minha).k, dia.itens[0].k);
+  teste("o item diz de onde veio", ["relogio", "k1"], [dia.itens[0].de, dia.itens[0].id]);
+  teste("a agua do copo entra na agua do dia", 300, dia.agua);
+  teste("o mesmo toque nao entra duas vezes", 1, B.aplicarComidaDoRelogio(r1.nut, lido).nut.dias[diaLocal(t0)].itens.length);
+
+  // a sugestão também vale (o relógio pode mostrar as sugeridas antes de a pessoa salvar a dela)
+  const sug = B.RECEITAS_SUGERIDAS[0];
+  const r2 = B.aplicarComidaDoRelogio({ perfil: {}, dias: {}, vistos: [], receitas: [] },
+    B.lerPacoteComida(b64({ ev: [{ k: "k2", t: t0, tipo: "shake", rc: sug.id, q: 1 }] }), dec));
+  teste("a sugestao tambem e achada", B.somaReceita(sug).k, r2.nut.dias[diaLocal(t0)].itens[0].k);
+
+  // receita apagada entre o toque e a entrega: o toque se perde, sem inventar número
+  const r3 = B.aplicarComidaDoRelogio({ perfil: {}, dias: {}, vistos: [], receitas: [] },
+    B.lerPacoteComida(b64({ ev: [{ k: "k3", t: t0, tipo: "shake", rc: "nao-existe", q: 1 }] }), dec));
+  teste("receita que nao existe mais nao vira item", [0, 0], [Object.keys(r3.nut.dias).length ? (r3.nut.dias[diaLocal(t0)].itens || []).length : 0, r3.n]);
+  teste("e o toque perdido nao fica marcado como visto", -1, (r3.nut.vistos || []).indexOf("k3"));
+
+  // o desfazer do relógio tira o shake junto com a água do copo
+  const r4 = B.aplicarComidaDoRelogio(r1.nut, [{ k: "k4", t: t0, tipo: "desfazer", ref: "k1", a: "", rc: "", ml: 0, q: 1 }]);
+  const dia4 = r4.nut.dias[diaLocal(t0)];
+  teste("desfazer tira o shake e devolve a agua", [0, 0], [dia4.itens.length, dia4.agua]);
+}
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

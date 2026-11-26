@@ -10,7 +10,7 @@ function pedaco(de, ate) {
 const plural = (n, s, p) => (n === 1 ? s : p);
 eval(pedaco("const semAcento = (s) =>", ";\n") + ";\nglobalThis.semAcento = semAcento;");
 eval(pedaco("// ---------------- ACESSO: AS CONTAS", "// ---------------- FIM DAS CONTAS") +
-  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO, situacaoConta, prazoAte, recadoNovo, csvContas, filtroConta, entrouAutomatico, autoNovos, csvAceites, ordenarAceites, lerCobranca, planoDaConta, acessoPago, pixCopiaECola, crc16Pix, txidPagamento, planosAtivos, planoPorId, resumoPagamentos, csvPagamentos, ordenarPagamentos, fimDoDia, textoPlanoConta, precoTexto };");
+  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO, situacaoConta, prazoAte, recadoNovo, csvContas, filtroConta, entrouAutomatico, autoNovos, csvAceites, ordenarAceites, lerCobranca, planoDaConta, acessoPago, pixCopiaECola, crc16Pix, txidPagamento, planosAtivos, planoPorId, resumoPagamentos, csvPagamentos, ordenarPagamentos, fimDoDia, textoPlanoConta, precoTexto, tempoDePlano, avisoDeVencimento, DIAS_AVISO_VENCE };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -277,5 +277,33 @@ console.log("\n--- a cobrança (o app pago) ---");
   teste("a vitrine leva o aviso de saúde", true, /<AvisoSaude \/>\s*\n\s*<\/div>\s*\n\s*\);\s*\n\}\s*\nfunction TelaAssinatura/.test(html));
 }
 
+// ---- o lembrete de vencimento (2026-11-26f) ----
+{
+  const dia = 864e5;
+  const ag = Date.UTC(2026, 10, 26, 15, 0, 0);
+  const plano = (d) => ({ tipo: "pago", ate: A.fimDoDia(ag + d * dia), plano: "mensal" });
+
+  teste("vitalicio e dono nao tem tempo que resta", [null, null], [A.tempoDePlano({ tipo: "vitalicio", ate: 0 }, ag), A.tempoDePlano(null, ag)]);
+  teste("o dia de hoje conta inteiro: vence hoje, nao venceu", ["vence hoje", "amanha"], [A.tempoDePlano(plano(0), ag).texto, A.tempoDePlano(plano(0), ag).urg]);
+  teste("amanha", "vence amanhã", A.tempoDePlano(plano(1), ag).texto);
+  teste("faltam 12 dias", ["faltam 12 dias", "atencao"], [A.tempoDePlano(plano(12), ag).texto, A.tempoDePlano(plano(12), ag).urg]);
+  teste("longe do fim fica calmo", "ok", A.tempoDePlano(plano(40), ag).urg);
+  teste("perto do fim", "perto", A.tempoDePlano(plano(4), ag).urg);
+  teste("vencido", ["o seu acesso venceu", "venceu"], [A.tempoDePlano({ tipo: "pago", ate: ag - dia }, ag).texto, A.tempoDePlano({ tipo: "pago", ate: ag - dia }, ag).urg]);
+
+  teste("longe demais nao avisa", null, A.avisoDeVencimento(plano(40), ag, ""));
+  teste("avisa nos dias marcados", [true, true, true], A.DIAS_AVISO_VENCE.map((d) => !!A.avisoDeVencimento(plano(d), ag, "")));
+  teste("entre os marcados, fica quieto", [null, null], [A.avisoDeVencimento(plano(12), ag, ""), A.avisoDeVencimento(plano(8), ag, "")]);
+  teste("nos 5 ultimos dias avisa todo dia", [true, true, true, true, true, true], [5, 4, 3, 2, 1, 0].map((d) => !!A.avisoDeVencimento(plano(d), ag, "")));
+  teste("ja vencido nao e lembrete, e a tela de vencido", null, A.avisoDeVencimento({ tipo: "pago", ate: ag - dia }, ag, ""));
+  teste("um aviso por dia", null, A.avisoDeVencimento(plano(3), ag, new Date(ag).toDateString()));
+  teste("no dia seguinte avisa de novo", true, !!A.avisoDeVencimento(plano(2), ag + dia, new Date(ag).toDateString()));
+  teste("o aviso leva a marca do dia e quanto falta", [new Date(ag).toDateString(), 3], [A.avisoDeVencimento(plano(3), ag, "").marca, A.avisoDeVencimento(plano(3), ag, "").dias]);
+  teste("o teste e a cortesia tambem avisam", [true, true], [!!A.avisoDeVencimento({ tipo: "teste", ate: A.fimDoDia(ag + 2 * dia) }, ag, ""), !!A.avisoDeVencimento({ tipo: "cortesia", ate: A.fimDoDia(ag + 7 * dia) }, ag, "")]);
+
+  const fonte = require("fs").readFileSync(require("path").join(__dirname, "..", "index.html"), "utf8");
+  teste("o lembrete diz que a renovacao nao e automatica", true, /A renovação não é automática/.test(fonte));
+  teste("a faixa do vencimento so aparece quando falta pouco", true, /\["perto", "amanha"\]\.indexOf\(t\.urg\) < 0/.test(fonte));
+}
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

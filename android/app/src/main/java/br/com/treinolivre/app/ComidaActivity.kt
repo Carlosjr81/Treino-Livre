@@ -87,7 +87,9 @@ object Comida {
         val nomes = mutableListOf<String>()
         for (i in 0 until p.length()) {
             val e = p.optJSONObject(i) ?: continue
-            if (e.optString("tipo") == "agua") agua += e.optInt("ml") else if (e.optString("tipo") == "comida") nomes.add(e.optString("a"))
+            val tp = e.optString("tipo")
+            // o shake conta como alimento no aviso: é um item no dia, como os outros
+            if (tp == "agua") agua += e.optInt("ml") else if (tp == "comida" || tp == "shake") nomes.add(if (tp == "shake") "shake" else e.optString("a"))
         }
         val partes = mutableListOf<String>()
         if (agua > 0) partes.add("💧 +$agua ml")

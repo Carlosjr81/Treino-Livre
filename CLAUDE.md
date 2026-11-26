@@ -696,6 +696,42 @@ pagar". Ele pôs **zero dias de teste** no painel.
   "nesquik" ou "moça" acha, e o app não apresenta os números como sendo os da
   marca — eles mudam com o fabricante, e o rodapé do catálogo já diz isso.
 
+## O lembrete de vencimento (`tempoDePlano`, `avisoDeVencimento`, `FaixaVencimento`, 2026-11-26f)
+
+Pedido do dono: "faça um lembrete de vencimento para os usuários não deixarem
+vencer seu plano de uso, e deixe aviso de quanto tempo ainda resta na
+assinatura para ele lembrar de realizar o pagamento antes do vencimento".
+
+- **`tempoDePlano(p, agora)`** (bloco puro, ao lado do `textoPlanoConta`): o
+  `ate` é sempre o fim do dia (`fimDoDia`), então o dia de hoje conta
+  inteiro — faltar 0 dia é **vencer hoje**, não ter vencido. Devolve `dias`,
+  `texto` ("faltam 12 dias"), `frase` ("O seu acesso vence amanhã": a frase
+  solta não encaixa em toda tela) e `urg` (ok > 15, atencao ≤ 15, perto ≤ 5,
+  amanha ≤ 1, venceu). `corDoVencimento` traduz a urgência em cor, pela regra
+  de *A cor significa alguma coisa*: vermelho só no fim.
+- **Os avisos escalonam** (`avisoDeVencimento`, `DIAS_AVISO_VENCE` = 15, 10,
+  7, e depois todo dia de 5 a 0), **um por dia** (`treinolivre:avisoVence`,
+  a mesma chave de antes). Um aviso por dia o mês inteiro vira paisagem, e aí
+  no último dia ninguém mais vê. Antes só avisava nos 5 últimos dias.
+- **O tempo que resta fica à vista sempre**, no cartão da conta (Ajustes ›
+  Sua conta): "⏳ Faltam 12 dias", e no plano pago a linha que diz que a
+  **renovação não é automática** (não há cartão guardado nem cobrança
+  recorrente: é o que as `CONDICOES_ASSINATURA` já dizem) e que renovando
+  antes os dias que faltam são somados (`acessoPago`). Vitalício diz "♾ Sem
+  data para acabar".
+- **A faixa no topo** (`FaixaVencimento`) só aparece com 5 dias ou menos, fora
+  do treino, com "Renovar" e um ✕ que a esconde por hoje
+  (`treinolivre:faixaVence`). Faixa que aparece o mês inteiro deixa de ser
+  lida — e a tela inicial continua enxuta.
+- **Nada de pressa inventada**: não há contagem regressiva em segundos, oferta
+  que acaba nem desconto de última hora. O número é o do próprio plano da
+  pessoa, e é a mesma conta do painel do dono.
+- Coberto por `teste-acesso.js` (147 checagens: o dia de hoje inteiro, cada
+  faixa de urgência, os dias marcados, o aviso diário no fim, um por dia, o
+  vencido que não é lembrete e sim a tela de vencido). No navegador, com a
+  sessão guardada de um plano que vence em 3 dias: a faixa no topo e o cartão
+  da conta. **Não validado num aparelho.**
+
 ## Entrar com o Google (`entrarGoogle`, `googleClientId`)
 
 Pedido do dono (2026-10-30a): "cadastro a partir da conta do Google".
@@ -816,7 +852,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.472 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.501 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -901,7 +937,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v287) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v288) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6932,6 +6968,28 @@ exemplos whey + leite em pó + farinha de arroz, + amido de milho e + aveia.
   sugestão que some quando copiada). No navegador: a lista, montar do zero com
   a busca, mudar a aveia para 60 g e anotar (um item de 480 kcal e 300 ml na
   água do dia), e salvar com nome próprio. **Não validado num aparelho.**
+
+#### O shake no pulso (`shk`, `ComidaPulso.shakes`, 2026-11-26f)
+
+Pedido do dono: "faça essa combinação do shake ficar de fácil acesso no
+relógio também, dentro da parte da alimentação".
+
+- **Do celular vão os shakes já somados** (`shk` no `/treino/comida-estado`,
+  até 4, de `receitasDisponiveis`: os salvos primeiro e, enquanto não há
+  nenhum, as sugeridas — senão a tela do relógio nasceria vazia). Os números
+  servem para a tela e para a conta local até o celular contar.
+- **Do relógio volta só o id da receita** (`tipo: "shake"`, `rc`): quem tem
+  os gramas de cada alimento é o celular, e `aplicarComidaDoRelogio` soma de
+  novo pela tabela. Número nenhum atravessa o caminho como verdade.
+  **Receita apagada entre o toque e a entrega**: o toque se perde (sai dos
+  `vistos`), em vez de virar número inventado.
+- **A água do copo** (`agua` da receita) entra na água do dia, com o mesmo
+  `k` do item: o desfazer do relógio tira os dois juntos.
+- Na tela do relógio (`montarShakes`), a seção **🥤 SEUS SHAKES** fica
+  **acima** dos rápidos: é a bebida que a pessoa repete todo dia.
+- Coberto em `teste-balance.js` (o evento atravessando o link, os números
+  vindos do celular, a água, a idempotência, a receita que não existe mais e
+  o desfazer). **Não validado num relógio.**
 
 ### O catálogo: comparar e escolher (`compararAlimentos`, `JanelaCatalogo`, 2026-11-26c)
 

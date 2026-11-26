@@ -885,7 +885,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.552 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.591 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -970,7 +970,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v292) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v293) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6796,7 +6796,7 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
   (`gPrato` de cada alimento) e pergunta do óleo e do molho. Sem servidor
   nem chave de API, não há modelo de visão; se um dia houver, ele só
   preencheria as marcações.
-- **Os dados** (primeiro script): `ALIMENTOS_BR` (158 alimentos e suplementos: farinhas de arroz, mandioca, trigo, aveia, milho, amêndoas, coco e linhaça, polvilho e amido; maltodextrina, dextrose, waxy maize, palatinose, gel, hipercalórico, whey isolado, caseína, albumina, proteína vegetal, creatina, BCAA, glutamina e outros; mais carboidratos, proteínas, frutas, doces, pratos e bebidas; o campo `b` são palavras a mais para a busca, e `GRUPOS_ALIMENTO` são os filtros por grupo na janela de anotar, que `teste-balance.js` cobra que cubram todo `cat`. Antes eram 58 alimentos brasileiros,
+- **Os dados** (primeiro script): `ALIMENTOS_BR` (210 alimentos e suplementos: farinhas de arroz, mandioca, trigo, aveia, milho, amêndoas, coco e linhaça, polvilho e amido; maltodextrina, dextrose, waxy maize, palatinose, gel, hipercalórico, whey isolado, caseína, albumina, proteína vegetal, creatina, BCAA, glutamina e outros; mais carboidratos, proteínas, frutas, doces, pratos e bebidas; o campo `b` são palavras a mais para a busca, e `GRUPOS_ALIMENTO` são os filtros por grupo na janela de anotar, que `teste-balance.js` cobra que cubram todo `cat`. Antes eram 58 alimentos brasileiros,
   porção caseira, kcal e macros pela TACO; `liq` para as bebidas, `alc`
   para o álcool), `RAPIDOS_RELOGIO`, `CORES_BALANCE` (proteína #FF4D6D,
   carbo #FFB21A, gordura #B05BFF, álcool/outros #8A8F9E, água #35E0F0),
@@ -6964,6 +6964,74 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
 - **O gasto pelo corpo prefere a pesagem da manhã** (em jejum, oscila menos) e
   o `CartaoPreparo` diz quantos dias faltam para o corpo assumir a conta (ou o
   que falta: dias anotados, pesagens, intervalo).
+
+### Os lanches, tipo por tipo, e os macros lidos pelo objetivo (2026-11-26k)
+
+Três pedidos do dono numa publicação só.
+
+**1. "Cada tipo de lanche tem uma caloria específica"** (com a tabela de nove
+tipos de hambúrguer que ele mandou). Um item "Hambúrguer" com 500 kcal cobria
+de 380 (simples) a 980 (X-tudo): um item errado estragava a conta do dia.
+
+- **Cada linha é montada somando os ingredientes** pelos valores da própria
+  tabela (pão, carne, queijo, maionese, bacon…), e a soma fecha com
+  4p + 4c + 9g. **O `teste-balance.js` cobra isso no catálogo inteiro**: um
+  zero a mais ou uma vírgula fora do lugar aparece no teste, não no dia de
+  quem anotou. A tabela do dono foi conferida assim e bateu, com uma
+  ressalva: o X-salada passa do teto de 550 kcal quando a maionese é cheia
+  (fica em ~555), e o item usa 520.
+- **52 itens novos** (o catálogo foi a 210): os nove tipos da tabela, oito de
+  rede, nove de lanchonete e padaria, oito naturais, sete sabores de pizza,
+  sete salgados e três bebidas. Categoria nova `lanche` e o filtro 🍔 Lanches.
+- **Os de rede são TIPOS, não produtos.** A sessão na nuvem não alcança
+  `mcdonalds.com.br` nem `burgerking.com.br`, e as fontes de terceiros
+  divergem entre si (Big Mac de 494 a 540 kcal). Pôr "Big Mac" com um número
+  que não veio da tabela oficial seria **inventar um número na boca de uma
+  empresa real** — o contrário da regra do catálogo. Então o nome é o tipo, a
+  marca vai só no `b` (quem digita "big mac" ou "whopper" acha), e o campo
+  **`nota`** diz na tela que o número é do tipo. O teste reprova nome de
+  produto de marca em `nome`. **Com a tabela oficial em mãos, aí cabe um item
+  com o nome do produto.**
+
+**2. "Pão francês com ovos mexidos, e poder escolher quantos pães e quantos
+ovos"**. Virou o que já existia: a receita do shake, contando unidades.
+
+- **`un` e `unG`** no alimento (o nome da unidade e o peso de uma): 33
+  alimentos contáveis (pão, ovo, fatia, salsicha, fatia de pizza, coxinha…).
+  **O motor continua em gramas** — só o editor conta unidades, com − e +.
+- A aba **🥤 Shake** virou **🥤 Montar**, e vieram quatro combinações prontas
+  (pão com ovos mexidos, pão com ovo e queijo, tapioca com ovo, e o prato de
+  arroz, feijão e frango). A salsicha entrou no catálogo.
+
+**3. "A análise dos macros precisa ser avaliada pelo objetivo"** (`PAPEL_MACRO`,
+`lerMacro`, `leituraMacros`, bloco puro **O PAPEL DE CADA MACRO**). O dono
+mandou o print do Balance em cutting com o carbo em 54% e perguntou se estar
+abaixo ali é bom. **Está — e a tela não dizia.** As três barras eram iguais.
+
+- **Confirmado:** no cutting o carboidrato é a **sobra** (olhe o `metaDoDia`:
+  ele é o que resta depois da proteína e da gordura). Ficar abaixo é o déficit
+  acontecendo, e quem manda é a caloria do dia. No bulking ele vira **alvo**,
+  e passar dele com a caloria na meta joga a favor.
+- **Com ressalva:** "ultrapassar é mais vantagem" vale para o carbo dentro do
+  superávit, não para a caloria total — superávit grande não faz mais músculo,
+  faz mais gordura (Garthe 2013). E proteína acima de ~2,2 g/kg é neutra, não
+  vantagem (Morton 2018): a tela diz "não traz mais resultado, e não
+  atrapalha".
+- **O que faltava, e é o risco real: a gordura tem PISO.** Abaixo de ~0,5-0,6
+  g/kg (ou ~20% das kcal) há queda hormonal em treinados (Iraki 2019). Abaixo
+  de dois terços da meta ela deixa de ser "faltando" e vira alerta. Comer
+  pouca gordura não é virtude, e a tela de antes deixava isso passar calado.
+- **A proteína é piso nos quatro objetivos**, e faltar nela no déficit é o
+  primeiro aviso do cartão (Longland 2016: no mesmo déficit, 2,4 g/kg ganhou
+  músculo e 1,2 g/kg perdeu).
+- Na tela: a frase do topo diz o que decide o dia, cada barra ganhou o rótulo
+  ("no alvo", "abaixo, e tudo bem", "faltam 13 g") na cor do que aquilo
+  significa, a barra do carbo-sobra mostra onde a meta cai, e um toque abre o
+  porquê de cada um. **Nada ali prescreve** — o teste gera todas as frases e
+  procura "coma", "deve", "proibido", "dieta" e "prescri".
+- Coberto por `teste-balance.js` (256 checagens). No navegador, em cutting:
+  proteína "no alvo", carbo "abaixo, e tudo bem" e gordura "faltam 13 g".
+  **Não validado num aparelho.**
 
 ### O jogo do Balance: missões, sequência e medalhas (`MISSOES_BALANCE`, `CartaoJogoBalance`, 2026-11-26i)
 

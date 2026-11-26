@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, MISSOES_BALANCE, XP_DIA_BALANCE, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -596,6 +596,127 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("a tela do Balance pede a sincronia a cada toque, com guarda", true,
     /const puxarRelogio = \(\) => \{/.test(html) && /agora - sincEm\.current < 15000/.test(html) &&
     /useEffect\(\(\) => \{ puxarRelogio\(\); \}, \[secao\]\)/.test(html));
+}
+// ---- os lanches, tipo por tipo (2026-11-26k) ----
+{
+  const ach = (id) => B.ALIMENTOS_BR.find((a) => a.id === id);
+
+  // A rede de proteção do catálogo inteiro: as calorias têm de fechar com os
+  // macros (4 kcal por grama de proteína e de carboidrato, 9 por grama de
+  // gordura). Um zero a mais ou uma vírgula fora do lugar aparece aqui, e não
+  // no dia de quem anotou. O álcool fica de fora (7 kcal/g, campo à parte).
+  const fora = B.ALIMENTOS_BR.filter((a) => {
+    if (a.alc || !(a.k > 50)) return false;
+    const soma = 4 * (a.p || 0) + 4 * (a.c || 0) + 9 * (a.g || 0);
+    return Math.abs(soma - a.k) / a.k > 0.12;
+  }).map((a) => a.id);
+  teste("as kcal de todo alimento fecham com os macros", [], fora);
+  const ids = B.ALIMENTOS_BR.map((a) => a.id);
+  teste("nenhum id de alimento repetido", [], ids.filter((x, i) => ids.indexOf(x) !== i));
+
+  // os nove tipos da tabela, em ordem de caloria
+  const tipos = ["hamb-simples", "hamb-queijo", "hamb-salada", "hamb-smash", "hamb-frango", "hamb-veg", "hamb-bacon", "hamb-gourmet", "hamb-tudo"];
+  teste("os nove tipos de hamburguer existem", 9, tipos.filter(ach).length);
+  teste("o simples e o mais leve e o x-tudo o mais pesado", [380, 980],
+    [ach("hamb-simples").k, ach("hamb-tudo").k]);
+  teste("cada degrau da tabela pesa mais que o anterior", true,
+    ["hamb-simples", "hamb-queijo", "hamb-salada"].every((id, i, l) => i === 0 || ach(id).k > ach(l[i - 1]).k));
+  teste("o x-tudo passa de mil e nao de dois mil", true, ach("hamb-tudo").k > 900 && ach("hamb-tudo").k < 1300);
+
+  // **A regra das marcas**: nome de produto de rede nunca vira nome de item.
+  // O número não veio da tabela oficial da empresa, então pô-lo com o nome
+  // dela seria inventar um número na boca de uma marca real.
+  const marcas = ["big mac", "bigmac", "whopper", "mcchicken", "quarteirao", "big king", "mc lanche", "bk ", "habib", "giraffas", "mcdonald", "burger king"];
+  const nomesComMarca = B.ALIMENTOS_BR.filter((a) => marcas.some((m) => semAcento(a.nome).indexOf(m) >= 0)).map((a) => a.id);
+  teste("nenhum alimento leva nome de produto de marca", [], nomesComMarca);
+  teste("mas quem digita a marca acha o tipo", ["rede-duplo", "rede-grande"],
+    [B.buscarAlimentos("big mac", "", null)[0], B.buscarAlimentos("whopper", "", null)[0]].map((a) => a && a.id));
+  teste("e os de rede dizem na tela que o numero e do tipo", true,
+    ["rede-simples", "rede-duplo", "rede-grande", "rede-frango", "nuggets", "batata-rede"].every((id) => /M.dia do tipo/.test(ach(id).nota || "")));
+
+  teste("os lanches naturais sao mais leves que os de rede", true,
+    ach("natural-frango").k < ach("rede-duplo").k && ach("hamb-fit").k < ach("hamb-queijo").k);
+  teste("o natural de frango tem mais proteina que caloria por grama de pao", true, ach("natural-frango").p >= 20);
+  teste("a pizza por sabor: quatro queijos acima da marguerita", true, ach("pizza-4queijos").k > ach("pizza-marguerita").k);
+  teste("o salgado virou um por tipo, e o generico ficou", ["Coxinha", "Pastel de carne", "Salgado frito (média)"],
+    ["coxinha", "pastel-carne", "salgado"].map((id) => ach(id).nome));
+
+  // o grupo novo: os lanches saíram de "gordura" e "prato"
+  const grupos = B.GRUPOS_ALIMENTO.map((g) => g[0]);
+  teste("o grupo dos lanches existe", true, grupos.indexOf("lanche") >= 0);
+  teste("nenhuma categoria de alimento ficou sem grupo", [],
+    B.ALIMENTOS_BR.map((a) => a.cat).filter((c, i, l) => l.indexOf(c) === i && grupos.indexOf(c) < 0));
+  teste("o filtro de lanches traz os tipos todos", true, B.buscarAlimentos("", "lanche", null).length >= 50);
+
+  // nada aqui recomenda nem julga: é registro
+  const trechoLanches = html.slice(html.indexOf("OS LANCHES, TIPO POR TIPO"), html.indexOf("const GRUPOS_ALIMENTO"));
+  teste("o catalogo nao recomenda nem proibe comida", [],
+    ["evite", "proibido", "pode comer", "nao coma", "saudavel demais", "engorda"].filter((p) => semAcento(trechoLanches).indexOf(p) >= 0));
+}
+// ---- o papel de cada macro no objetivo (2026-11-26k) ----
+{
+  const ler = (m, v, meta, ob, kf) => B.lerMacro(m, v, meta, ob, kf === undefined ? 0.9 : kf);
+
+  // o que o dono pediu para confirmar: no cutting, abaixo do carbo nao e erro
+  teste("cutting: carbo abaixo da meta e tranquilo, nao falta", ["tranquilo", "sobra"],
+    [ler("c", 200, 400, "perder").id, ler("c", 200, 400, "perder").papel]);
+  teste("e a frase diz por que", true, /sobra/.test(ler("c", 200, 400, "perder").frase));
+  teste("mas passar do carbo COM a caloria estourada e atencao", "atencao", ler("c", 470, 400, "perder", 1.2).id);
+  teste("passar do carbo com a caloria ainda na meta nao e alarme", "ok", ler("c", 420, 400, "perder", 0.95).id);
+
+  // bulking: carbo vira alvo, e passar dentro da caloria joga a favor
+  teste("bulking: carbo e alvo, nao sobra", "alvo", ler("c", 300, 400, "ganhar").papel);
+  teste("bulking: faltar carbo e falta de verdade", "falta", ler("c", 300, 400, "ganhar").id);
+  teste("bulking: passar do carbo com a caloria ok e bonus", "bonus", ler("c", 460, 400, "ganhar", 1.0).id);
+  teste("bulking: passar do carbo E da caloria ja nao e vantagem", "atencao", ler("c", 460, 400, "ganhar", 1.3).id);
+  teste("e a frase diz que o excesso vira gordura, nao musculo", true,
+    /vira gordura, n.o m.sculo/.test(ler("c", 460, 400, "ganhar", 1.3).frase));
+
+  // a proteina e piso nos dois, e no deficit e o que mais importa
+  teste("a proteina e piso em todo objetivo", ["piso", "piso", "piso", "piso"],
+    ["perder", "ganhar", "manter", "recomp"].map((o) => ler("p", 100, 200, o).papel));
+  teste("faltar proteina no cutting e o que mais importa", "importa", ler("p", 120, 200, "perder").id);
+  teste("bater proteina fecha em ok", "ok", ler("p", 190, 200, "perder").id);
+  teste("acima da proteina nao vira alarme nem elogio extra", true,
+    ler("p", 300, 200, "perder").id === "ok" && /traz mais resultado/.test(ler("p", 300, 200, "perder").frase));
+
+  // o que o dono nao citou: a gordura tem piso
+  teste("gordura muito abaixo e alerta, nao virtude", "importa", ler("g", 40, 90, "perder").id);
+  teste("e a frase fala do hormonio", true, /horm.nio/.test(ler("g", 40, 90, "perder").frase));
+  teste("gordura so um pouco abaixo e falta leve", "falta", ler("g", 72, 90, "perder").id);
+  teste("gordura na faixa fecha em ok", "ok", ler("g", 88, 90, "perder").id);
+
+  // a frase de cima do cartao escolhe o que decide o dia
+  const meta = { k: 2500, p: 200, c: 300, g: 80 };
+  teste("a leitura poe a proteina que falta na frente", true,
+    /Falta o que importa/.test(B.leituraMacros({ p: 120, c: 150, g: 75 }, meta, "perder", 0.8).texto));
+  teste("so o carbo abaixo no cutting nao vira cobranca", true,
+    /onde o seu objetivo pede/.test(B.leituraMacros({ p: 195, c: 150, g: 76 }, meta, "perder", 0.8).texto));
+  teste("no bulking o mesmo carbo abaixo vira falta", true,
+    /falta carboidrato/.test(B.leituraMacros({ p: 195, c: 150, g: 76 }, meta, "ganhar", 0.8).texto));
+
+  // Nada do que VAI PARA A TELA manda comer nem proibe: são leituras do que a
+  // pessoa anotou. (O texto do bloco fica de fora da varredura de propósito —
+  // é lá que está escrito que isto não é prescrição.)
+  const todasAsFrases = [];
+  ["perder", "ganhar", "manter", "recomp"].forEach((o) => {
+    ["p", "c", "g"].forEach((m) => {
+      [0.3, 0.7, 0.95, 1.0, 1.4].forEach((r) => {
+        [0.8, 1.3].forEach((kf) => {
+          const x = B.lerMacro(m, 200 * r, 200, o, kf);
+          if (x) todasAsFrases.push(x.frase);
+        });
+      });
+    });
+    [{ p: 50, c: 50, g: 20 }, { p: 200, c: 300, g: 80 }].forEach((t) => {
+      const l = B.leituraMacros(t, { k: 2500, p: 200, c: 300, g: 80 }, o, 0.9);
+      if (l) todasAsFrases.push(l.texto);
+    });
+  });
+  teste("as frases dos macros nao prescrevem nem proibem", [],
+    ["voce deve", "coma ", "nao coma", "proibido", "dieta", "prescri", "personal"]
+      .filter((p) => todasAsFrases.some((fr) => semAcento(fr).indexOf(p) >= 0)));
+  teste("e sao muitas frases, nao uma so", true, todasAsFrases.length > 40);
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

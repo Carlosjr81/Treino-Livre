@@ -16,6 +16,20 @@
 
 ---
 
+## 2026-11-26k — Cada lanche com a sua caloria, e os macros lidos pelo seu objetivo
+
+- **Em uma frase:** o catálogo ganhou 52 lanches com a caloria de cada tipo (um X-tudo não é um X-burguer), dá para montar “pão com 3 ovos” contando as unidades, e as barras de proteína, carboidrato e gordura agora dizem o que cada número significa para quem está em cutting ou em bulking.
+- **O que mudou:**
+  - **Os lanches, um por um.** Antes havia “Hambúrguer” com um número só. Agora: hambúrguer simples, X-burguer, X-salada, smash duplo, de frango crispy, vegetariano, X-bacon, artesanal e X-tudo — de 380 a 980 kcal. Mais cachorro-quente (simples e completo), misto quente, bauru, beirute, americano, sanduíche de pernil, pão com ovo e pão na chapa. **Lanches de rede** (os tipos: simples, com queijo, duplo com molho especial, carne grande com salada, frango empanado, nuggets, batata média) — digite “big mac”, “whopper” ou “mcchicken” e o tipo aparece. **Lanches naturais**: sanduíche natural de frango, de atum e de peito de peru, wrap de frango, pão integral com ovo mexido, pão com pasta de amendoim e banana, hambúrguer fit e tapioca com frango. **Pizza por sabor** (muçarela, calabresa, portuguesa, marguerita, frango com catupiry, quatro queijos e doce) e **cada salgado** (coxinha, pastel de carne, pastel de queijo, empada, enroladinho, kibe, bolinho de queijo). E um filtro 🍔 Lanches na busca.
+  - **Montar contando unidades.** A aba 🥤 Shake virou **🥤 Montar**: o que se conta (pão, ovo, fatia, salsicha, fatia de pizza) entra com − e +, em unidades, e o resto continua em gramas. Já vêm prontos “Pão francês com ovos mexidos”, “Pão com ovo e queijo”, “Tapioca com ovo” e “Prato: arroz, feijão e frango” — escolha e ajuste quantos pães e quantos ovos você comeu.
+  - **Os macros lidos pelo seu objetivo.** No cutting, ficar abaixo do carboidrato **não é erro**: ele é a sobra depois da proteína e da gordura, e quem manda é a caloria do dia — a barra diz “abaixo, e tudo bem”. No bulking o carboidrato vira alvo, e passar dele com a caloria ainda na meta aparece como ponto a favor. A proteína é piso nos dois, e faltar nela no déficit é o que o app mostra em primeiro lugar. A gordura ganhou o alerta que faltava: abaixo de dois terços da meta ela deixa de ser “faltando” e vira aviso. Um toque em **“Por que cada macro conta assim no seu objetivo”** explica cada um.
+- **Por que importa para quem treina:** “comi um hambúrguer” podia ser 300 ou 1.200 kcal — a conta do dia inteiro saía errada por causa de um item. E ver três barras iguais fazia parecer que faltar carboidrato no cutting era tão ruim quanto faltar proteína; é o contrário.
+- **Como usar:** Balance › Hoje › + Comida. Busque pelo tipo (“x-tudo”, “coxinha”, “pizza calabresa”) ou use a aba 🥤 Montar para combinar. O filtro 🍔 Lanches mostra todos.
+- **Ideias de vídeo:** buscar “hambúrguer” e mostrar a lista com as calorias de cada tipo lado a lado; montar “2 pães e 3 ovos” no − e + e ver a caloria mudando; mostrar a barra de carboidrato dizendo “abaixo, e tudo bem” e explicar por que, no cutting, isso não é erro.
+- **Não prometer:** os números são médias montadas pelos ingredientes, não a tabela de nenhuma marca — os lanches de rede dizem isso na própria tela, e o valor exato de cada rede está no app ou no site dela. E o app continua registrando e informando: dieta é com o nutricionista.
+
+---
+
 ## 2026-11-26j — O que você marca no relógio chega ao celular na hora
 
 - **Em uma frase:** a comida e a água marcadas no relógio agora entram no app em segundos, sem você tocar em notificação nenhuma.

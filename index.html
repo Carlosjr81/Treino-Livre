@@ -1912,21 +1912,21 @@ const ALIMENTOS_BR = [
   { id: "salada", nome: "Salada de folhas e tomate", cat: "verdura", por: "1 prato de sobremesa (100 g)", gr: 100, k: 18, p: 1.2, c: 3.2, g: 0.2, f: 1.5, gPrato: 200, ic: "\u{1F957}" },
   { id: "legumes", nome: "Legumes cozidos (brócolis, cenoura)", cat: "verdura", por: "1 escumadeira (100 g)", gr: 100, k: 30, p: 1.6, c: 5.5, g: 0.3, f: 2.5, gPrato: 330, ic: "\u{1F966}" },
   // proteínas
-  { id: "bife", nome: "Bife grelhado", cat: "proteina", por: "1 bife médio (100 g)", gr: 100, k: 220, p: 32.0, c: 0, g: 10.0, gPrato: 520, ic: "\u{1F969}" },
+  { id: "bife", nome: "Bife grelhado", cat: "proteina", por: "1 bife médio (100 g)", gr: 100, k: 220, p: 32.0, c: 0, g: 10.0, gPrato: 520, ic: "\u{1F969}", un: "bife", unG: 100 },
   { id: "carne-moida", nome: "Carne moída refogada", cat: "proteina", por: "3 colheres de sopa (100 g)", gr: 100, k: 212, p: 26.7, c: 0, g: 10.9, gPrato: 520, ic: "\u{1F969}" },
-  { id: "frango", nome: "Frango grelhado (peito)", cat: "proteina", por: "1 filé médio (100 g)", gr: 100, k: 159, p: 32.0, c: 0, g: 2.5, gPrato: 480, ic: "\u{1F357}" },
+  { id: "frango", nome: "Frango grelhado (peito)", cat: "proteina", por: "1 filé médio (100 g)", gr: 100, k: 159, p: 32.0, c: 0, g: 2.5, gPrato: 480, ic: "\u{1F357}", un: "filé", unG: 100 },
   { id: "frango-frito", nome: "Frango frito (coxa ou sobrecoxa)", cat: "gordura", por: "1 pedaço (100 g)", gr: 100, k: 260, p: 26.0, c: 4.0, g: 15.0, gPrato: 480, ic: "\u{1F357}" },
   { id: "peixe", nome: "Peixe grelhado (tilápia)", cat: "proteina", por: "1 filé (100 g)", gr: 100, k: 128, p: 26.0, c: 0, g: 2.6, gPrato: 450, ic: "\u{1F41F}" },
-  { id: "ovo", nome: "Ovo cozido", cat: "proteina", por: "1 unidade (50 g)", gr: 50, k: 73, p: 6.7, c: 0.3, g: 4.8, gPrato: 0, ic: "\u{1F95A}" },
-  { id: "ovo-frito", nome: "Ovo frito", cat: "gordura", por: "1 unidade", gr: 50, k: 120, p: 7.0, c: 0.3, g: 10.0, gPrato: 0, ic: "\u{1F373}" },
-  { id: "linguica", nome: "Linguiça calabresa", cat: "gordura", por: "1 gomo (60 g)", gr: 60, k: 178, p: 9.6, c: 1.0, g: 15.0, gPrato: 450, ic: "\u{1F32D}" },
+  { id: "ovo", nome: "Ovo cozido", cat: "proteina", por: "1 unidade (50 g)", gr: 50, k: 73, p: 6.7, c: 0.3, g: 4.8, gPrato: 0, ic: "\u{1F95A}", un: "ovo", unG: 50 },
+  { id: "ovo-frito", nome: "Ovo frito", cat: "gordura", por: "1 unidade", gr: 50, k: 120, p: 7.0, c: 0.3, g: 10.0, gPrato: 0, ic: "\u{1F373}", un: "ovo", unG: 50 },
+  { id: "linguica", nome: "Linguiça calabresa", cat: "gordura", por: "1 gomo (60 g)", gr: 60, k: 178, p: 9.6, c: 1.0, g: 15.0, gPrato: 450, ic: "\u{1F32D}", un: "gomo", unG: 60 },
   { id: "feijoada", nome: "Feijoada", cat: "gordura", por: "1 concha cheia (200 g)", gr: 200, k: 345, p: 20.0, c: 20.0, g: 20.0, gPrato: 560, ic: "\u{1F372}" },
   // pães e café da manhã
-  { id: "pao", nome: "Pão francês", cat: "carbo", por: "1 unidade (50 g)", gr: 50, k: 150, p: 4.0, c: 29.3, g: 1.6, f: 1.2, ig: 75, gPrato: 0, ic: "\u{1F956}" },
-  { id: "pao-forma", nome: "Pão de forma integral", cat: "carbo", por: "2 fatias (50 g)", gr: 50, k: 126, p: 4.7, c: 24.0, g: 1.7, f: 1.2, ig: 75, gPrato: 0, ic: "\u{1F35E}" },
-  { id: "tapioca", nome: "Tapioca", cat: "carbo", por: "1 média (50 g de goma)", gr: 50, k: 120, p: 0, c: 30.0, g: 0, gPrato: 0, ic: "\u{1FAD3}" },
-  { id: "pao-queijo", nome: "Pão de queijo", cat: "gordura", por: "1 unidade (30 g)", gr: 30, k: 105, p: 2.0, c: 13.0, g: 5.0, gPrato: 0, ic: "\u{1F9C0}" },
-  { id: "queijo", nome: "Queijo muçarela", cat: "gordura", por: "1 fatia (20 g)", gr: 20, k: 66, p: 4.5, c: 0.6, g: 5.0, gPrato: 0, ic: "\u{1F9C0}" },
+  { id: "pao", nome: "Pão francês", cat: "carbo", por: "1 unidade (50 g)", gr: 50, k: 150, p: 4.0, c: 29.3, g: 1.6, f: 1.2, ig: 75, gPrato: 0, ic: "\u{1F956}", un: "pão", unG: 50 },
+  { id: "pao-forma", nome: "Pão de forma integral", cat: "carbo", por: "2 fatias (50 g)", gr: 50, k: 126, p: 4.7, c: 24.0, g: 1.7, f: 1.2, ig: 75, gPrato: 0, ic: "\u{1F35E}", un: "fatia", unG: 25 },
+  { id: "tapioca", nome: "Tapioca", cat: "carbo", por: "1 média (50 g de goma)", gr: 50, k: 120, p: 0, c: 30.0, g: 0, gPrato: 0, ic: "\u{1FAD3}", un: "unidade", unG: 50 },
+  { id: "pao-queijo", nome: "Pão de queijo", cat: "gordura", por: "1 unidade (30 g)", gr: 30, k: 105, p: 2.0, c: 13.0, g: 5.0, gPrato: 0, ic: "\u{1F9C0}", un: "unidade", unG: 30 },
+  { id: "queijo", nome: "Queijo muçarela", cat: "gordura", por: "1 fatia (20 g)", gr: 20, k: 66, p: 4.5, c: 0.6, g: 5.0, gPrato: 0, ic: "\u{1F9C0}", un: "fatia", unG: 20 },
   { id: "manteiga", nome: "Manteiga ou margarina", cat: "gordura", por: "1 ponta de faca (10 g)", gr: 10, k: 72, p: 0.1, c: 0, g: 8.2, gPrato: 0, ic: "\u{1F9C8}" },
   { id: "aveia", nome: "Aveia em flocos", cat: "carbo", por: "2 colheres de sopa (30 g)", gr: 30, k: 118, p: 4.2, c: 20.0, g: 2.6, f: 2.7, ig: 55, gPrato: 0, ic: "\u{1F963}" },
   { id: "granola", nome: "Granola", cat: "carbo", por: "3 colheres de sopa (30 g)", gr: 30, k: 130, p: 3.0, c: 20.0, g: 4.5, f: 1.8, gPrato: 0, ic: "\u{1F963}" },
@@ -1937,16 +1937,16 @@ const ALIMENTOS_BR = [
   { id: "castanhas", nome: "Castanhas e nozes", cat: "gordura", por: "1 punhado (30 g)", gr: 30, k: 190, p: 5.0, c: 5.0, g: 18.0, f: 1, gPrato: 0, ic: "\u{1F95C}" },
   { id: "azeite", nome: "Azeite ou óleo", cat: "gordura", por: "1 colher de sopa (13 ml)", gr: 13, k: 117, p: 0, c: 0, g: 13.0, gPrato: 0, ic: "\u{1FAD2}" },
   // frutas
-  { id: "banana", nome: "Banana", cat: "fruta", por: "1 média (70 g)", gr: 70, k: 69, p: 0.9, c: 18.0, g: 0.1, f: 1.4, ig: 51, gPrato: 0, ic: "\u{1F34C}" },
+  { id: "banana", nome: "Banana", cat: "fruta", por: "1 média (70 g)", gr: 70, k: 69, p: 0.9, c: 18.0, g: 0.1, f: 1.4, ig: 51, gPrato: 0, ic: "\u{1F34C}", un: "unidade", unG: 70 },
   { id: "maca", nome: "Maçã", cat: "fruta", por: "1 média (130 g)", gr: 130, k: 73, p: 0.4, c: 19.5, g: 0.2, f: 1.7, ig: 36, gPrato: 0, ic: "\u{1F34E}" },
   { id: "laranja", nome: "Laranja", cat: "fruta", por: "1 média (180 g)", gr: 180, k: 86, p: 1.8, c: 21.0, g: 0.2, f: 2, ig: 43, gPrato: 0, ic: "\u{1F34A}" },
   { id: "mamao", nome: "Mamão", cat: "fruta", por: "1 fatia (150 g)", gr: 150, k: 60, p: 0.7, c: 15.0, g: 0.2, f: 2.7, ig: 60, gPrato: 0, ic: "\u{1F348}" },
   { id: "abacate", nome: "Abacate", cat: "gordura", por: "2 colheres de sopa (60 g)", gr: 60, k: 58, p: 0.7, c: 3.6, g: 5.0, f: 3.8, gPrato: 0, ic: "\u{1F951}" },
   { id: "acai", nome: "Açaí na tigela (com granola)", cat: "doce", por: "1 tigela (300 ml)", gr: 300, k: 450, p: 6.0, c: 70.0, g: 16.0, gPrato: 0, ic: "\u{1F347}" },
   // lanches e doces
-  { id: "pizza", nome: "Pizza", cat: "gordura", por: "1 fatia (100 g)", gr: 100, k: 260, p: 11.0, c: 30.0, g: 10.0, gPrato: 0, ic: "\u{1F355}" },
-  { id: "hamburguer", nome: "Hambúrguer (sanduíche)", cat: "gordura", por: "1 unidade", gr: 200, k: 500, p: 25.0, c: 40.0, g: 26.0, gPrato: 0, ic: "\u{1F354}" },
-  { id: "salgado", nome: "Salgado frito (coxinha, pastel)", cat: "gordura", por: "1 unidade (80 g)", gr: 80, k: 225, p: 8.0, c: 26.0, g: 10.0, gPrato: 0, ic: "\u{1F95F}" },
+  { id: "pizza", nome: "Pizza (média dos sabores)", cat: "lanche", b: "pizza fatia sabores", por: "1 fatia (100 g)", gr: 100, k: 260, p: 11.0, c: 30.0, g: 10.0, gPrato: 0, ic: "\u{1F355}" },
+  { id: "hamburguer", nome: "Hambúrguer (média dos tipos)", cat: "lanche", b: "lanche sanduiche x burguer media", por: "1 unidade", gr: 200, k: 500, p: 25.0, c: 40.0, g: 26.0, gPrato: 0, ic: "\u{1F354}" },
+  { id: "salgado", nome: "Salgado frito (média)", cat: "lanche", b: "coxinha pastel salgadinho frito media", por: "1 unidade (80 g)", gr: 80, k: 225, p: 8.0, c: 26.0, g: 10.0, gPrato: 0, ic: "\u{1F95F}" },
   { id: "chocolate", nome: "Chocolate ao leite", cat: "doce", por: "1 barrinha (25 g)", gr: 25, k: 135, p: 2.0, c: 15.0, g: 7.5, f: 1.3, gPrato: 0, ic: "\u{1F36B}" },
   { id: "biscoito", nome: "Biscoito recheado", cat: "doce", por: "3 unidades (40 g)", gr: 40, k: 190, p: 2.4, c: 28.0, g: 8.0, gPrato: 0, ic: "\u{1F36A}" },
   { id: "bolo", nome: "Bolo simples", cat: "doce", por: "1 fatia (60 g)", gr: 60, k: 200, p: 3.0, c: 30.0, g: 7.5, gPrato: 0, ic: "\u{1F370}" },
@@ -1963,7 +1963,7 @@ const ALIMENTOS_BR = [
   // pratos prontos (para marcar rápido, inclusive no relógio)
   { id: "pf", nome: "Prato feito (arroz, feijão, bife e salada)", cat: "prato", por: "1 prato", gr: 450, k: 650, p: 42.0, c: 70.0, g: 20.0, gPrato: 0, ic: "\u{1F37D}" },
   { id: "marmita-fit", nome: "Marmita fit (frango, arroz integral, legumes)", cat: "prato", por: "1 marmita", gr: 400, k: 450, p: 40.0, c: 50.0, g: 9.0, gPrato: 0, ic: "\u{1F371}" },
-  { id: "lanche", nome: "Lanche (pão, queijo, presunto)", cat: "prato", por: "1 sanduíche", gr: 120, k: 320, p: 16.0, c: 32.0, g: 13.0, gPrato: 0, ic: "\u{1F96A}" },
+  { id: "lanche", nome: "Lanche (pão, queijo, presunto)", cat: "lanche", por: "1 sanduíche", gr: 120, k: 320, p: 16.0, c: 32.0, g: 13.0, gPrato: 0, ic: "\u{1F96A}" },
   // farinhas e amidos (2026-11-25e, pedido do dono: "farinhas, maltodextrina, dextrose, mais suplementos")
   { id: "farinha-arroz", nome: "Farinha de arroz", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 109, p: 1.8, c: 24.0, g: 0.4, f: 0.7, gPrato: 0, ic: "🌾" },
   { id: "farinha-mandioca", nome: "Farinha de mandioca", cat: "farinha", por: "2 colheres de sopa (30 g)", gr: 30, k: 110, p: 0.4, c: 26.7, g: 0.1, f: 1.9, gPrato: 250, ic: "🌾", b: "farinha de mesa torrada" },
@@ -2005,8 +2005,8 @@ const ALIMENTOS_BR = [
   { id: "quinoa", nome: "Quinoa cozida", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 120, p: 4.4, c: 21.3, g: 1.9, f: 2.8, ig: 53, gPrato: 480, ic: "🍚" },
   { id: "lentilha", nome: "Lentilha cozida", cat: "carbo", por: "1 concha (100 g)", gr: 100, k: 93, p: 6.3, c: 16.3, g: 0.5, f: 7.9, ig: 32, gPrato: 480, ic: "🫘" },
   { id: "grao-bico", nome: "Grão-de-bico cozido", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 164, p: 8.9, c: 27.0, g: 2.6, f: 7.6, ig: 28, gPrato: 480, ic: "🫘" },
-  { id: "pao-sirio", nome: "Pão sírio ou wrap", cat: "carbo", por: "1 unidade (60 g)", gr: 60, k: 165, p: 5.5, c: 33.0, g: 1.0, f: 1.6, ig: 57, gPrato: 0, ic: "🫓", b: "rap10 tortilha" },
-  { id: "torrada", nome: "Torrada", cat: "carbo", por: "3 unidades (30 g)", gr: 30, k: 120, p: 3.5, c: 22.0, g: 2.0, f: 1.1, ig: 70, gPrato: 0, ic: "🍞" },
+  { id: "pao-sirio", nome: "Pão sírio ou wrap", cat: "carbo", por: "1 unidade (60 g)", gr: 60, k: 165, p: 5.5, c: 33.0, g: 1.0, f: 1.6, ig: 57, gPrato: 0, ic: "🫓", b: "rap10 tortilha", un: "unidade", unG: 60 },
+  { id: "torrada", nome: "Torrada", cat: "carbo", por: "3 unidades (30 g)", gr: 30, k: 120, p: 3.5, c: 22.0, g: 2.0, f: 1.1, ig: 70, gPrato: 0, ic: "🍞", un: "torrada", unG: 10 },
   { id: "cereal", nome: "Cereal matinal", cat: "carbo", por: "1 xícara (30 g)", gr: 30, k: 115, p: 2.0, c: 26.0, g: 0.5, f: 0.9, gPrato: 0, ic: "🥣", b: "sucrilhos flocos de milho" },
   { id: "crepioca", nome: "Crepioca (ovo e tapioca)", cat: "carbo", por: "1 unidade", gr: 90, k: 180, p: 7.0, c: 25.0, g: 5.0, f: 0.5, gPrato: 0, ic: "🫓" },
   { id: "panqueca-aveia", nome: "Panqueca de aveia e banana", cat: "carbo", por: "1 unidade", gr: 100, k: 190, p: 9.0, c: 27.0, g: 5.0, f: 4, gPrato: 0, ic: "🥞" },
@@ -2019,9 +2019,9 @@ const ALIMENTOS_BR = [
   { id: "sardinha", nome: "Sardinha em lata", cat: "proteina", por: "1 lata drenada (85 g)", gr: 85, k: 180, p: 18.0, c: 0, g: 12.0, gPrato: 0, ic: "🐟" },
   { id: "salmao", nome: "Salmão grelhado", cat: "proteina", por: "1 filé (100 g)", gr: 100, k: 230, p: 25.0, c: 0, g: 14.0, gPrato: 450, ic: "🐟" },
   { id: "camarao", nome: "Camarão cozido", cat: "proteina", por: "1 porção (100 g)", gr: 100, k: 100, p: 21.0, c: 0, g: 1.5, gPrato: 450, ic: "🦐" },
-  { id: "peito-peru", nome: "Peito de peru", cat: "proteina", por: "4 fatias (40 g)", gr: 40, k: 45, p: 7.0, c: 1.0, g: 1.2, gPrato: 0, ic: "🥓" },
-  { id: "presunto", nome: "Presunto", cat: "proteina", por: "2 fatias (30 g)", gr: 30, k: 45, p: 5.0, c: 0.5, g: 2.5, gPrato: 0, ic: "🥓" },
-  { id: "clara", nome: "Clara de ovo", cat: "proteina", por: "1 clara (33 g)", gr: 33, k: 17, p: 3.6, c: 0.2, g: 0, gPrato: 0, ic: "🥚" },
+  { id: "peito-peru", nome: "Peito de peru", cat: "proteina", por: "4 fatias (40 g)", gr: 40, k: 45, p: 7.0, c: 1.0, g: 1.2, gPrato: 0, ic: "🥓", un: "fatia", unG: 10 },
+  { id: "presunto", nome: "Presunto", cat: "proteina", por: "2 fatias (30 g)", gr: 30, k: 45, p: 5.0, c: 0.5, g: 2.5, gPrato: 0, ic: "🥓", un: "fatia", unG: 15 },
+  { id: "clara", nome: "Clara de ovo", cat: "proteina", por: "1 clara (33 g)", gr: 33, k: 17, p: 3.6, c: 0.2, g: 0, gPrato: 0, ic: "🥚", un: "clara", unG: 33 },
   { id: "omelete", nome: "Omelete (2 ovos)", cat: "proteina", por: "1 omelete", gr: 110, k: 200, p: 13.0, c: 1.0, g: 16.0, gPrato: 0, ic: "🍳" },
   { id: "tofu", nome: "Tofu", cat: "proteina", por: "1 fatia (100 g)", gr: 100, k: 80, p: 8.0, c: 2.0, g: 4.5, f: 1, gPrato: 450, ic: "🧈", b: "vegano soja" },
   { id: "cottage", nome: "Queijo cottage", cat: "proteina", por: "2 colheres de sopa (50 g)", gr: 50, k: 49, p: 6.3, c: 1.6, g: 1.9, gPrato: 0, ic: "🧀" },
@@ -2050,7 +2050,7 @@ const ALIMENTOS_BR = [
   { id: "mel", nome: "Mel", cat: "doce", por: "1 colher de sopa (20 g)", gr: 20, k: 62, p: 0, c: 17.0, g: 0, f: 0.1, ig: 61, gPrato: 0, ic: "🍯" },
   { id: "pipoca", nome: "Pipoca", cat: "doce", por: "3 xícaras (25 g)", gr: 25, k: 110, p: 3.0, c: 16.0, g: 4.0, f: 3.6, ig: 65, gPrato: 0, ic: "🍿" },
   { id: "barra-cereal", nome: "Barra de cereal", cat: "doce", por: "1 barra (22 g)", gr: 22, k: 90, p: 1.2, c: 16.0, g: 2.4, f: 0.8, gPrato: 0, ic: "🍫" },
-  { id: "esfiha", nome: "Esfiha", cat: "gordura", por: "1 unidade (80 g)", gr: 80, k: 230, p: 8.0, c: 30.0, g: 8.0, gPrato: 0, ic: "🥟" },
+  { id: "esfiha", nome: "Esfiha (carne ou queijo)", cat: "lanche", b: "esfirra habibs bibs arabe", por: "1 unidade (80 g)", gr: 80, k: 230, p: 8.0, c: 30.0, g: 8.0, gPrato: 0, ic: "🥟", un: "unidade", unG: 80 },
   // mais pratos prontos
   { id: "lasanha", nome: "Lasanha", cat: "prato", por: "1 porção (250 g)", gr: 250, k: 400, p: 22.0, c: 35.0, g: 18.0, gPrato: 0, ic: "🍝" },
   { id: "yakisoba", nome: "Yakisoba", cat: "prato", por: "1 prato (350 g)", gr: 350, k: 450, p: 22.0, c: 60.0, g: 13.0, gPrato: 0, ic: "🍜" },
@@ -2074,9 +2074,77 @@ const ALIMENTOS_BR = [
   { id: "leite-condensado", nome: "Leite condensado", cat: "doce", por: "1 colher de sopa (20 g)", gr: 20, k: 63, p: 1.5, c: 11.4, g: 1.3, f: 0, ig: 61, gPrato: 0, ic: "\u{1F36E}", b: "moca condensado doce de leite lata" },
   { id: "destilado", nome: "Destilado (cachaça, vodka, uísque)", cat: "alcool", por: "1 dose (50 ml)", gr: 50, k: 112, p: 0, c: 0, g: 0, alc: 16.0, gPrato: 0, ic: "🥃", liq: 50 },
   { id: "caipirinha", nome: "Caipirinha", cat: "alcool", por: "1 copo (200 ml)", gr: 200, k: 250, p: 0, c: 25.0, g: 0, alc: 21.0, gPrato: 0, ic: "🍹", liq: 200 },
+  // ---------------- OS LANCHES, TIPO POR TIPO (2026-11-26k) ----------------
+  // Pedido do dono: "cada tipo de lanche tem uma caloria específica". Um
+  // "hambúrguer" ia de 300 a 1.200 kcal no mesmo item, e isso é o bastante
+  // para a conta do dia inteiro sair errada.
+  //
+  // **Cada linha é montada somando os ingredientes** pelos valores desta
+  // mesma tabela (pão, carne, queijo, maionese, bacon...), e a soma fecha com
+  // 4p + 4c + 9g. Não há número copiado de lugar nenhum nem chutado.
+  //
+  // **Os de rede são TIPOS, não produtos.** A sessão que escreveu isto não
+  // alcança os sites das redes, e pôr "Big Mac" com um número que não veio da
+  // tabela oficial do McDonald's seria inventar um número na boca de uma
+  // empresa real — o contrário da regra do catálogo. Então o nome é o tipo, a
+  // marca vai só no `b` (quem digita "big mac" ou "whopper" acha), e o campo
+  // `nota` diz na tela que o número é do tipo. **Se um dia houver a tabela
+  // oficial em mãos, aí sim cabe um item com o nome do produto.**
+  { id: "hamb-simples", nome: "Hambúrguer simples", cat: "lanche", por: "1 unidade (190 g)", gr: 190, k: 380, p: 24, c: 31.5, g: 17.3, f: 1.5, gPrato: 0, ic: "🍔", b: "x burguer pao carne molho simples lanchonete" },
+  { id: "hamb-queijo", nome: "X-burguer (com queijo)", cat: "lanche", por: "1 unidade (210 g)", gr: 210, k: 450, p: 28.5, c: 32, g: 22.8, f: 1.5, gPrato: 0, ic: "🍔", b: "cheeseburger xis burguer queijo cheddar" },
+  { id: "hamb-salada", nome: "X-salada", cat: "lanche", por: "1 unidade (250 g)", gr: 250, k: 520, p: 29, c: 34, g: 30, f: 2, gPrato: 0, ic: "🍔", b: "xis salada alface tomate maionese" },
+  { id: "hamb-smash", nome: "Smash burguer duplo", cat: "lanche", por: "1 unidade (260 g)", gr: 260, k: 660, p: 41, c: 32, g: 41, f: 1.5, gPrato: 0, ic: "🍔", b: "smashburger duas carnes brioche molho especial" },
+  { id: "hamb-frango", nome: "Hambúrguer de frango crispy", cat: "lanche", por: "1 unidade (260 g)", gr: 260, k: 590, p: 30, c: 48, g: 31, f: 2, gPrato: 0, ic: "🍔", b: "chicken crispy file empanado frito sanduiche" },
+  { id: "hamb-veg", nome: "Hambúrguer vegetariano ou vegano", cat: "lanche", por: "1 unidade (230 g)", gr: 230, k: 450, p: 22, c: 36, g: 24, f: 5, gPrato: 0, ic: "🍔", b: "veggie plant based grao de bico soja vegetal" },
+  { id: "hamb-bacon", nome: "X-bacon", cat: "lanche", por: "1 unidade (270 g)", gr: 270, k: 710, p: 39, c: 33, g: 47, f: 1.5, gPrato: 0, ic: "🍔", b: "xis bacon queijo maionese" },
+  { id: "hamb-gourmet", nome: "Hambúrguer artesanal (blend 180 g)", cat: "lanche", por: "1 unidade (400 g)", gr: 400, k: 910, p: 52, c: 41, g: 60, f: 2.5, gPrato: 0, ic: "🍔", b: "gourmet artesanal blend cheddar bacon cebola caramelizada brioche" },
+  { id: "hamb-tudo", nome: "X-tudo", cat: "lanche", por: "1 unidade (400 g)", gr: 400, k: 980, p: 52, c: 39, g: 68, f: 2.5, gPrato: 0, ic: "🍔", b: "xis tudo completo ovo presunto salsicha batata palha" },
+  { id: "rede-simples", nome: "Hambúrguer de rede: simples", cat: "lanche", por: "1 unidade (100 g)", gr: 100, k: 250, p: 13, c: 30, g: 9, f: 1.5, gPrato: 0, ic: "🍔", b: "fast food mcdonalds mc donalds burger king bk giraffas habibs bibs rede hamburguer simples picles", nota: "Média do tipo, montada pelos ingredientes. Cada rede tem o seu número: o exato está no app ou no site dela." },
+  { id: "rede-queijo", nome: "Hambúrguer de rede: com queijo", cat: "lanche", por: "1 unidade (115 g)", gr: 115, k: 290, p: 15, c: 31, g: 12, f: 1.5, gPrato: 0, ic: "🍔", b: "cheeseburger fast food mcdonalds burger king bk giraffas habibs rede queijo", nota: "Média do tipo, montada pelos ingredientes. Cada rede tem o seu número: o exato está no app ou no site dela." },
+  { id: "rede-duplo", nome: "Hambúrguer de rede: duplo com molho especial", cat: "lanche", por: "1 unidade (215 g)", gr: 215, k: 510, p: 26, c: 43, g: 26, f: 3, gPrato: 0, ic: "🍔", b: "big mac bigmac mcdonalds big king burger king duplo duas carnes molho especial fast food rede", nota: "Média do tipo, montada pelos ingredientes. Cada rede tem o seu número: o exato está no app ou no site dela." },
+  { id: "rede-grande", nome: "Hambúrguer de rede: carne grande com salada", cat: "lanche", por: "1 unidade (270 g)", gr: 270, k: 650, p: 28, c: 50, g: 38, f: 3, gPrato: 0, ic: "🍔", b: "whopper burger king bk mcdonalds grelhado na chama carne grande salada fast food rede", nota: "Média do tipo, montada pelos ingredientes. Cada rede tem o seu número: o exato está no app ou no site dela." },
+  { id: "rede-queijo-grande", nome: "Hambúrguer de rede: carne 110 g com queijo", cat: "lanche", por: "1 unidade (200 g)", gr: 200, k: 530, p: 30, c: 40, g: 27, f: 2, gPrato: 0, ic: "🍔", b: "quarteirao quarterao quarter pounder mcdonalds burger king rede carne grande queijo", nota: "Média do tipo, montada pelos ingredientes. Cada rede tem o seu número: o exato está no app ou no site dela." },
+  { id: "rede-frango", nome: "Sanduíche de rede: frango empanado", cat: "lanche", por: "1 unidade (180 g)", gr: 180, k: 400, p: 16, c: 40, g: 19, f: 2, gPrato: 0, ic: "🍔", b: "mcchicken chicken crispy burger king mcdonalds giraffas frango empanado rede fast food", nota: "Média do tipo, montada pelos ingredientes. Cada rede tem o seu número: o exato está no app ou no site dela." },
+  { id: "nuggets", nome: "Nuggets de frango (10 unidades)", cat: "lanche", por: "10 unidades (160 g)", gr: 160, k: 440, p: 23, c: 26, g: 27, f: 1.5, gPrato: 0, ic: "🍗", b: "mcnuggets chicken nuggets empanado frito rede", nota: "Média do tipo, montada pelos ingredientes. Cada rede tem o seu número: o exato está no app ou no site dela.", un: "unidade", unG: 16 },
+  { id: "batata-rede", nome: "Batata frita de rede (porção média)", cat: "lanche", por: "1 porção média (117 g)", gr: 117, k: 320, p: 4, c: 43, g: 15, f: 4, gPrato: 0, ic: "🍟", b: "mcfritas fritas media rede fast food acompanhamento", nota: "Média do tipo, montada pelos ingredientes. Cada rede tem o seu número: o exato está no app ou no site dela." },
+  { id: "salsicha", nome: "Salsicha", cat: "proteina", por: "1 unidade (50 g)", gr: 50, k: 130, p: 6.5, c: 1.5, g: 11, f: 0, gPrato: 0, ic: "\u{1F32D}", un: "salsicha", unG: 50, b: "salsicha viena hot dog" },
+  { id: "hotdog", nome: "Cachorro-quente simples", cat: "lanche", por: "1 unidade (160 g)", gr: 160, k: 300, p: 11, c: 33, g: 14, f: 1.5, gPrato: 0, ic: "🌭", b: "hot dog dogao salsicha pao molho" },
+  { id: "hotdog-completo", nome: "Cachorro-quente completo", cat: "lanche", por: "1 unidade (280 g)", gr: 280, k: 560, p: 18, c: 58, g: 29, f: 3, gPrato: 0, ic: "🌭", b: "hot dog completo dogao batata palha pure milho ervilha duas salsichas" },
+  { id: "misto", nome: "Misto quente", cat: "lanche", por: "1 unidade (110 g)", gr: 110, k: 280, p: 14, c: 27, g: 13, f: 1.5, gPrato: 0, ic: "🥪", b: "misto quente presunto queijo prensado pao de forma" },
+  { id: "bauru", nome: "Bauru", cat: "lanche", por: "1 unidade (170 g)", gr: 170, k: 350, p: 19, c: 36, g: 14, f: 1.8, gPrato: 0, ic: "🥪", b: "bauru habibs pao frances queijo derretido tomate presunto rosbife" },
+  { id: "beirute", nome: "Beirute", cat: "lanche", por: "1 unidade (280 g)", gr: 280, k: 520, p: 33, c: 47, g: 22, f: 3, gPrato: 0, ic: "🥪", b: "beirute pao sirio rosbife frango ovo queijo salada arabe" },
+  { id: "americano", nome: "Sanduíche americano", cat: "lanche", por: "1 unidade (300 g)", gr: 300, k: 620, p: 33, c: 36, g: 38, f: 2, gPrato: 0, ic: "🥪", b: "americano hamburguer ovo presunto queijo salada" },
+  { id: "pernil", nome: "Sanduíche de pernil", cat: "lanche", por: "1 unidade (200 g)", gr: 200, k: 420, p: 28, c: 36, g: 18, f: 2, gPrato: 0, ic: "🥪", b: "pernil porco vinagrete pao frances" },
+  { id: "pao-ovo", nome: "Pão francês com ovo frito", cat: "lanche", por: "1 unidade (110 g)", gr: 110, k: 230, p: 11, c: 27, g: 9, f: 1.2, gPrato: 0, ic: "🍳", b: "pao com ovo frances padaria" },
+  { id: "pao-chapa", nome: "Pão francês na chapa (com manteiga)", cat: "lanche", por: "1 unidade (65 g)", gr: 65, k: 220, p: 5, c: 27, g: 10, f: 1.2, gPrato: 0, ic: "🥖", b: "pao na chapa manteiga padaria" },
+  { id: "natural-frango", nome: "Sanduíche natural de frango", cat: "lanche", por: "1 unidade (160 g)", gr: 160, k: 280, p: 23, c: 30, g: 7, f: 4.5, gPrato: 0, ic: "🥪", b: "natural fit frango desfiado cenoura requeijao light pao integral saudavel" },
+  { id: "natural-atum", nome: "Sanduíche natural de atum", cat: "lanche", por: "1 unidade (160 g)", gr: 160, k: 260, p: 24, c: 29, g: 5, f: 4.5, gPrato: 0, ic: "🥪", b: "natural fit atum cenoura pao integral saudavel" },
+  { id: "natural-peru", nome: "Sanduíche natural de peito de peru", cat: "lanche", por: "1 unidade (150 g)", gr: 150, k: 250, p: 21, c: 28, g: 6, f: 4.5, gPrato: 0, ic: "🥪", b: "natural fit peito de peru queijo branco pao integral saudavel" },
+  { id: "wrap-frango", nome: "Wrap de frango com salada", cat: "lanche", por: "1 unidade (200 g)", gr: 200, k: 330, p: 28, c: 34, g: 9, f: 5, gPrato: 0, ic: "🌯", b: "wrap tortilha integral frango grelhado salada iogurte fit natural" },
+  { id: "pao-ovo-integral", nome: "Pão integral com ovo mexido", cat: "lanche", por: "2 fatias + 2 ovos (160 g)", gr: 160, k: 290, p: 19, c: 25, g: 13, f: 4.5, gPrato: 0, ic: "🍳", b: "fit integral ovo mexido cafe da manha saudavel" },
+  { id: "pao-pasta-banana", nome: "Pão integral com pasta de amendoim e banana", cat: "lanche", por: "2 fatias (180 g)", gr: 180, k: 390, p: 13, c: 48, g: 16, f: 6, gPrato: 0, ic: "🥖", b: "fit integral pasta de amendoim banana pre treino saudavel" },
+  { id: "hamb-fit", nome: "Hambúrguer fit (pão integral, patinho, sem maionese)", cat: "lanche", por: "1 unidade (230 g)", gr: 230, k: 400, p: 34, c: 28, g: 17, f: 5, gPrato: 0, ic: "🍔", b: "fit caseiro patinho pao integral queijo branco salada saudavel" },
+  { id: "tapioca-frango", nome: "Tapioca com frango e queijo branco", cat: "lanche", por: "1 unidade (160 g)", gr: 160, k: 290, p: 22, c: 35, g: 7, f: 1.2, gPrato: 0, ic: "🌯", b: "tapioca recheada frango desfiado queijo branco fit" },
+  { id: "pizza-mucarela", nome: "Pizza de muçarela (1 fatia)", cat: "lanche", por: "1 fatia grande (110 g)", gr: 110, k: 260, p: 12, c: 28, g: 11, f: 1.8, gPrato: 0, ic: "🍕", b: "muzzarela mussarela queijo fatia", un: "fatia", unG: 110 },
+  { id: "pizza-calabresa", nome: "Pizza de calabresa (1 fatia)", cat: "lanche", por: "1 fatia grande (110 g)", gr: 110, k: 290, p: 12, c: 27, g: 15, f: 1.8, gPrato: 0, ic: "🍕", b: "calabresa cebola fatia", un: "fatia", unG: 110 },
+  { id: "pizza-portuguesa", nome: "Pizza portuguesa (1 fatia)", cat: "lanche", por: "1 fatia grande (115 g)", gr: 115, k: 280, p: 14, c: 27, g: 13, f: 2, gPrato: 0, ic: "🍕", b: "portuguesa presunto ovo cebola ervilha fatia", un: "fatia", unG: 115 },
+  { id: "pizza-marguerita", nome: "Pizza marguerita (1 fatia)", cat: "lanche", por: "1 fatia grande (110 g)", gr: 110, k: 245, p: 11, c: 28, g: 10, f: 2, gPrato: 0, ic: "🍕", b: "marguerita margherita manjericao tomate fatia", un: "fatia", unG: 110 },
+  { id: "pizza-frango", nome: "Pizza de frango com catupiry (1 fatia)", cat: "lanche", por: "1 fatia grande (120 g)", gr: 120, k: 300, p: 15, c: 27, g: 15, f: 1.8, gPrato: 0, ic: "🍕", b: "frango com catupiry requeijao fatia", un: "fatia", unG: 120 },
+  { id: "pizza-4queijos", nome: "Pizza quatro queijos (1 fatia)", cat: "lanche", por: "1 fatia grande (115 g)", gr: 115, k: 335, p: 17, c: 26, g: 18, f: 1.6, gPrato: 0, ic: "🍕", b: "quatro queijos 4 queijos gorgonzola parmesao provolone fatia", un: "fatia", unG: 115 },
+  { id: "pizza-doce", nome: "Pizza doce (1 fatia)", cat: "lanche", por: "1 fatia grande (120 g)", gr: 120, k: 335, p: 7, c: 45, g: 14, f: 2, gPrato: 0, ic: "🍕", b: "pizza doce chocolate brigadeiro banana canela sobremesa fatia", un: "fatia", unG: 120 },
+  { id: "coxinha", nome: "Coxinha", cat: "lanche", por: "1 unidade (80 g)", gr: 80, k: 230, p: 8, c: 25, g: 11, f: 1.2, gPrato: 0, ic: "🥟", b: "coxinha frango salgado frito festa", un: "unidade", unG: 80 },
+  { id: "pastel-carne", nome: "Pastel de carne", cat: "lanche", por: "1 unidade (100 g)", gr: 100, k: 305, p: 10, c: 28, g: 17, f: 1.5, gPrato: 0, ic: "🥟", b: "pastel carne feira frito", un: "unidade", unG: 100 },
+  { id: "pastel-queijo", nome: "Pastel de queijo", cat: "lanche", por: "1 unidade (100 g)", gr: 100, k: 315, p: 10, c: 28, g: 18, f: 1.4, gPrato: 0, ic: "🥟", b: "pastel queijo feira frito", un: "unidade", unG: 100 },
+  { id: "empada", nome: "Empada", cat: "lanche", por: "1 unidade (80 g)", gr: 80, k: 250, p: 6, c: 25, g: 14, f: 1, gPrato: 0, ic: "🥟", b: "empada empadinha frango palmito assado", un: "unidade", unG: 80 },
+  { id: "enroladinho", nome: "Enroladinho de salsicha", cat: "lanche", por: "1 unidade (70 g)", gr: 70, k: 220, p: 7, c: 23, g: 11, f: 1, gPrato: 0, ic: "🥟", b: "enroladinho salsicha folhado salgado", un: "unidade", unG: 70 },
+  { id: "kibe", nome: "Kibe frito", cat: "lanche", por: "1 unidade (80 g)", gr: 80, k: 235, p: 10, c: 20, g: 13, f: 2.2, gPrato: 0, ic: "🥟", b: "quibe kibe carne trigo arabe habibs frito", un: "unidade", unG: 80 },
+  { id: "bolinho-queijo", nome: "Bolinho de queijo", cat: "lanche", por: "1 unidade (70 g)", gr: 70, k: 230, p: 8, c: 20, g: 13, f: 0.8, gPrato: 0, ic: "🥟", b: "bolinho queijo salgado frito", un: "unidade", unG: 70 },
+  { id: "cappuccino", nome: "Cappuccino", cat: "lanche", por: "1 xícara (200 ml)", gr: 200, k: 145, p: 5, c: 22, g: 4, f: 0, gPrato: 0, ic: "☕", b: "capuccino cafe com leite e chocolate padaria" },
+  { id: "acai-puro", nome: "Açaí puro (polpa batida)", cat: "lanche", por: "1 copo (200 ml)", gr: 200, k: 120, p: 1.6, c: 12.4, g: 7, f: 5, gPrato: 0, ic: "🍇", b: "acai polpa pura sem acucar batido" },
+  { id: "acai-grande", nome: "Açaí completo (tigela de 500 ml)", cat: "lanche", por: "1 tigela (500 ml)", gr: 500, k: 800, p: 10, c: 125, g: 28, f: 9, gPrato: 0, ic: "🍇", b: "acai tigela grande granola banana leite condensado paulista completo" },
 ];
 // Os grupos da busca de alimentos (2026-11-25e)
-const GRUPOS_ALIMENTO = [["", "Todos"], ["carbo", "🍚 Carboidratos"], ["proteina", "🍗 Proteínas"], ["farinha", "🌾 Farinhas"], ["suplemento", "🥤 Suplementos"], ["fruta", "🍎 Frutas"], ["verdura", "🥗 Verduras"], ["gordura", "🥑 Gorduras"], ["doce", "🍫 Doces e lanches"], ["prato", "🍽 Pratos"], ["bebida", "🥤 Bebidas"], ["alcool", "🍺 Álcool"]];
+const GRUPOS_ALIMENTO = [["", "Todos"], ["carbo", "🍚 Carboidratos"], ["proteina", "🍗 Proteínas"], ["farinha", "🌾 Farinhas"], ["suplemento", "🥤 Suplementos"], ["fruta", "🍎 Frutas"], ["verdura", "🥗 Verduras"], ["gordura", "🥑 Gorduras"], ["doce", "🍫 Doces"], ["lanche", "🍔 Lanches"], ["prato", "🍽 Pratos"], ["bebida", "🥤 Bebidas"], ["alcool", "🍺 Álcool"]];
 // A vitrine de quem ainda não tem acesso (2026-11-26d, pedido do dono: "na
 // tela deles que não estão autorizados só apareça informações sobre como ter
 // acesso mediante pagamento de algum plano existente... uma propaganda
@@ -2167,6 +2235,18 @@ const RECEITAS_SUGERIDAS = [
   // dentro da célula, por isso o copo é maior) e a creatina do dia.
   { id: "s-intra", n: "Intra-treino com glicerina", ic: "\u{1F4A7}", agua: 600,
     itens: [{ a: "maltodextrina", g: 50 }, { a: "glicerina", g: 10 }, { a: "creatina", g: 5 }] },
+  // As combinações do prato, não só do copo (2026-11-26k, pedido do dono:
+  // "pão francês com ovos mexidos; precisa poder selecionar quantos pães e
+  // quantos ovos"). É a mesma receita do shake: o que muda é que o editor
+  // conta em unidades quando o alimento tem `un`.
+  { id: "c-pao-ovo", n: "Pão francês com ovos mexidos", ic: "\u{1F373}", agua: 0,
+    itens: [{ a: "pao", g: 50 }, { a: "ovo", g: 100 }, { a: "manteiga", g: 5 }] },
+  { id: "c-pao-ovo-queijo", n: "Pão com ovo e queijo", ic: "\u{1F95A}", agua: 0,
+    itens: [{ a: "pao", g: 50 }, { a: "ovo", g: 100 }, { a: "queijo", g: 20 }] },
+  { id: "c-tapioca-ovo", n: "Tapioca com ovo", ic: "\u{1F95E}", agua: 0,
+    itens: [{ a: "tapioca", g: 50 }, { a: "ovo", g: 100 }] },
+  { id: "c-pf", n: "Prato: arroz, feijão e frango", ic: "\u{1F37D}", agua: 0,
+    itens: [{ a: "arroz", g: 150 }, { a: "feijao", g: 140 }, { a: "frango", g: 150 }, { a: "salada", g: 80 }] },
   { id: "s-banana", n: "Shake de whey com banana", ic: "\u{1F34C}", agua: 0,
     itens: [{ a: "whey", g: 30 }, { a: "leite", g: 200 }, { a: "banana", g: 100 }] },
 ];
@@ -2286,7 +2366,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-26j";
+const VERSAO_APP = "2026-11-26k";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4308,6 +4388,93 @@ function metaDoDia(perfil, gasto, kg, treinoMin) {
   const c = Math.max(0, Math.round((k - p * 4 - g * 9) / 4));
   const agua = Math.round((35 * kg + (numB(treinoMin) / 60) * 500) / 50) * 50;
   return { k: k, p: p, c: c, g: g, agua: agua, delta: Math.round(k - gasto), noPiso: noPiso, objetivo: ob.id };
+}
+// ---------------- O PAPEL DE CADA MACRO ----------------
+// Pedido do dono (2026-11-26k), com print do Balance: "meu objetivo é cutting;
+// confirme se estar abaixo da meta de carboidrato é bom, e que no bulking é
+// importante bater carbo e proteína, mas ultrapassar é mais vantagem".
+//
+// **Confirmado em parte, e a parte que falta é a que mais importa:**
+//
+// 1. **O carboidrato é mesmo a SOBRA no cutting.** Olhe o `metaDoDia`: o
+//    carbo é literalmente o que resta depois de tirar a proteína e a gordura
+//    das calorias do dia. Ficar abaixo dele não é erro — é o déficit
+//    acontecendo. Quem manda ali é a caloria total. ✔ a teoria do dono.
+// 2. **No bulking o carboidrato é ALVO**, e passar um pouco joga a favor:
+//    é o carbo que sustenta o volume de treino e o próprio superávit. ✔
+// 3. **A proteína é PISO nos dois.** No déficit ela é o que segura a massa
+//    magra (Longland 2016: no mesmo déficit, 2,4 g/kg ganhou músculo e
+//    1,2 g/kg perdeu; Helms 2014). Bater importa muito; passar não traz mais
+//    nada acima de ~2,2 g/kg (Morton 2018) e também não atrapalha — então
+//    acima da meta não é alarme, mas também não é "mais vantagem".
+// 4. **O que o dono não citou, e é o risco de verdade: a gordura tem PISO.**
+//    Abaixo de uns 0,5 a 0,6 g/kg (ou ~20% das calorias) há queda hormonal em
+//    homens treinados (Iraki 2019) — e a meta de gordura do app já nasce no
+//    maior entre 0,6 g/kg e 25% das kcal. Comer pouca gordura não é virtude,
+//    e era o que a tela de antes deixava passar em silêncio.
+// 5. **"Ultrapassar é mais vantagem" tem limite.** Superávit grande não faz
+//    mais músculo, faz mais gordura (Garthe 2013). Por isso o excesso de
+//    carbo só é lido como bom enquanto a CALORIA do dia ainda está na meta.
+//
+// Nada aqui vira prescrição: são leituras dos números que a pessoa anotou,
+// com a régua do objetivo que ela mesma escolheu (ver o aviso do Balance).
+const PAPEL_MACRO = {
+  perder: { p: "piso", c: "sobra", g: "piso" },
+  recomp: { p: "piso", c: "sobra", g: "piso" },
+  ganhar: { p: "piso", c: "alvo", g: "piso" },
+  manter: { p: "piso", c: "alvo", g: "piso" },
+};
+const BATEU_MACRO = 0.9;   // 90% da meta já conta como batido: a tabela é média
+const POUCA_GORDURA = 0.65; // abaixo disso a gordura deixa de ser "faltando" e vira alerta
+function lerMacro(macro, v, meta, objetivo, kcalFrac) {
+  if (!(meta > 0)) return null;
+  const papel = (PAPEL_MACRO[objetivo] || PAPEL_MACRO.manter)[macro] || "alvo";
+  const f = v / meta;
+  const falta = Math.max(0, Math.round(meta - v));
+  const sobra = Math.max(0, Math.round(v - meta));
+  const caloriaOk = !(kcalFrac > 1.05);
+  if (macro === "p") {
+    if (f >= BATEU_MACRO) return { id: "ok", papel: papel, cor: "var(--ok)", rot: "no alvo",
+      frase: f > 1.3 ? "Acima da meta. Não traz mais resultado que bater, e também não atrapalha." : "Bateu. É a proteína que segura o músculo." };
+    return { id: objetivo === "perder" || objetivo === "recomp" ? "importa" : "falta", papel: papel, cor: "#FFB21A", rot: "faltam " + falta + " g",
+      frase: objetivo === "perder" || objetivo === "recomp"
+        ? "No déficit é o macro que não pode faltar: é ele que segura a massa magra."
+        : "Faltou proteína: sem ela o superávit vira mais gordura que músculo." };
+  }
+  if (macro === "g") {
+    if (f < POUCA_GORDURA) return { id: "importa", papel: papel, cor: "#FFB21A", rot: "faltam " + falta + " g",
+      frase: "Gordura muito baixa. A meta já é o mínimo: abaixo dela o hormônio sente." };
+    if (f >= BATEU_MACRO && f <= 1.2) return { id: "ok", papel: papel, cor: "var(--ok)", rot: "no alvo", frase: "Na faixa." };
+    if (f > 1.2) return { id: caloriaOk ? "ok" : "atencao", papel: papel, cor: caloriaOk ? "var(--ok)" : "#FFB21A", rot: sobra + " g acima",
+      frase: caloriaOk ? "Acima da meta, mas a caloria do dia fechou: tudo bem." : "Acima da meta, e a caloria do dia também passou." };
+    return { id: "falta", papel: papel, cor: "var(--cinza)", rot: "faltam " + falta + " g", frase: "Um pouco abaixo. A meta de gordura é um mínimo, não um teto." };
+  }
+  // carboidrato
+  if (papel === "sobra") {
+    if (f < BATEU_MACRO) return { id: "tranquilo", papel: papel, cor: "#4DEBFF", rot: "abaixo, e tudo bem",
+      frase: "No " + (objetivo === "recomp" ? "seu objetivo" : "cutting") + " o carbo é a sobra: ele é o que resta depois da proteína e da gordura. Quem manda é a caloria do dia." };
+    if (f > 1.15 && !caloriaOk) return { id: "atencao", papel: papel, cor: "#FFB21A", rot: sobra + " g acima",
+      frase: "Passou do carbo e da caloria do dia. É aqui que o déficit some." };
+    return { id: "ok", papel: papel, cor: "var(--ok)", rot: "no alvo", frase: "Dentro do previsto." };
+  }
+  if (f < BATEU_MACRO) return { id: "falta", papel: papel, cor: "#FFB21A", rot: "faltam " + falta + " g",
+    frase: "No bulking o carbo é o combustível do treino e do superávit: faltar aqui custa o ganho." };
+  if (f > 1.1) return { id: caloriaOk ? "bonus" : "atencao", papel: papel, cor: caloriaOk ? "var(--ok)" : "#FFB21A", rot: sobra + " g acima",
+    frase: caloriaOk ? "Acima da meta e a caloria fechou: joga a favor do ganho." : "Acima do carbo e da caloria: passar muito do superávit vira gordura, não músculo." };
+  return { id: "ok", papel: papel, cor: "var(--ok)", rot: "no alvo", frase: "Bateu." };
+}
+// A frase de cima do cartão: o que realmente falta decidir hoje.
+function leituraMacros(t, meta, objetivo, kcalFrac) {
+  if (!meta || !meta.k) return null;
+  const l = ["p", "c", "g"].map((m) => Object.assign({ m: m }, lerMacro(m, t[m], meta[m], objetivo, kcalFrac)));
+    const nomes = { p: "proteína", c: "carboidrato", g: "gordura" };
+  const importa = l.filter((x) => x.id === "importa");
+  if (importa.length) return { cor: "#FFB21A", texto: "Falta o que importa hoje: " + importa.map((x) => nomes[x.m]).join(" e ") + "." };
+  const falta = l.filter((x) => x.id === "falta");
+  if (falta.length) return { cor: "var(--cinza)", texto: "Ainda falta " + falta.map((x) => nomes[x.m]).join(" e ") + ", mas nada crítico." };
+  const atencao = l.filter((x) => x.id === "atencao");
+  if (atencao.length) return { cor: "#FFB21A", texto: "Passou " + atencao.map((x) => nomes[x.m]).join(" e ") + " com a caloria do dia já estourada." };
+  return { cor: "var(--ok)", texto: "Os três macros estão onde o seu objetivo pede." };
 }
 // O dia acertou? Pela direção do objetivo: no cutting passar é o erro, no
 // bulking faltar também é. Dia quase sem anotação não é julgado.
@@ -37702,17 +37869,26 @@ function CorpoBalance({ id, camadas, cheio, passou, titulo, valor, sub, corBorda
     </div>
   );
 }
-function BarraMacro({ nome, cor, v, meta, un }) {
+// A barra de um macro, lida pela régua do objetivo (2026-11-26k). Antes as três
+// barras eram iguais, e "faltam 180 g de carbo" no cutting parecia um erro —
+// é o déficit acontecendo. `leitura` vem do lerMacro e diz o que aquilo é.
+function BarraMacro({ nome, cor, v, meta, un, leitura, aberto }) {
   const f = meta ? Math.min(1.2, v / meta) : 0;
   return (
-    <div style={{ marginBottom: 7 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 800 }}>
+    <div style={{ marginBottom: leitura ? 10 : 7 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 800, gap: 8 }}>
         <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 3, background: cor, marginRight: 6 }} />{nome}</span>
-        <span style={{ color: v > meta * 1.1 ? "#FF4D6D" : "var(--cinza)" }}>{Math.round(v)} / {meta} {un || "g"}</span>
+        <span style={{ color: leitura ? leitura.cor : (v > meta * 1.1 ? "#FF4D6D" : "var(--cinza)"), textAlign: "right" }}>
+          {Math.round(v)} / {meta} {un || "g"}
+          {leitura && <span style={{ display: "block", fontSize: 10.5, fontWeight: 900 }}>{leitura.rot}</span>}
+        </span>
       </div>
-      <div style={{ height: 7, borderRadius: 4, background: "var(--borda)", overflow: "hidden", marginTop: 3 }}>
+      <div style={{ height: 7, borderRadius: 4, background: "var(--borda)", overflow: "hidden", marginTop: 3, position: "relative" }}>
         <div style={{ width: Math.min(100, f * 100) + "%", height: "100%", background: cor, boxShadow: "0 0 8px " + cor, transition: "width .6s" }} />
+        {/* no carbo do cutting a meta é um limite, não um alvo: a marca mostra onde ela está */}
+        {leitura && leitura.papel === "sobra" && <div style={{ position: "absolute", left: "83%", top: 0, bottom: 0, width: 2, background: "var(--cinza2)" }} />}
       </div>
+      {leitura && aberto && <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 4, lineHeight: 1.45 }}>{leitura.frase}</div>}
     </div>
   );
 }
@@ -38179,7 +38355,7 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
           <button onClick={onFechar} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 14px" }}>✕</button>
         </div>
         <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-          {abaBtn("buscar", "🔎 Buscar")}{abaBtn("shake", "🥤 Shake")}{abaBtn("foto", "📷 Foto")}{abaBtn("manual", "✏️ Manual")}{abaBtn("agua", "💧 Água")}
+          {abaBtn("buscar", "🔎 Buscar")}{abaBtn("shake", "🥤 Montar")}{abaBtn("foto", "📷 Foto")}{abaBtn("manual", "✏️ Manual")}{abaBtn("agua", "💧 Água")}
         </div>
         {aba !== "agua" && (
           <div style={{ marginBottom: 12 }}>
@@ -38236,7 +38412,10 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
             <div>
               <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10 }}>
                 <span style={{ fontSize: 40 }}>{escolhido.ic}</span>
-                <div><div style={{ fontWeight: 900, fontSize: 16 }}>{escolhido.nome}</div><div style={{ fontSize: 12, color: "var(--cinza)" }}>1 porção = {escolhido.por}</div></div>
+                <div><div style={{ fontWeight: 900, fontSize: 16 }}>{escolhido.nome}</div><div style={{ fontSize: 12, color: "var(--cinza)" }}>1 porção = {escolhido.por}</div>
+                  {/* a nota do alimento (2026-11-26k): os tipos de rede dizem na tela que o número é da categoria, não do produto da marca */}
+                  {escolhido.nota && <div style={{ fontSize: 11.5, color: "var(--obs)", marginTop: 3, lineHeight: 1.4 }}>ℹ️ {escolhido.nota}</div>}
+                </div>
               </div>
               {podeGramas && (
                 <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
@@ -38406,10 +38585,10 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
             border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"), background: on ? "#E1306C22" : "transparent", color: on ? "#E1306C" : "var(--texto)" });
           return (
             <div>
-              <input value={recNome} onChange={(e) => setRecNome(e.target.value.slice(0, 60))} placeholder="Nome do shake (ex.: shake pós-treino)"
+              <input value={recNome} onChange={(e) => setRecNome(e.target.value.slice(0, 60))} placeholder="Nome (ex.: pão com 3 ovos, shake pós-treino)"
                 aria-label="Nome do shake" style={{ ...S.input, width: "100%", fontWeight: 900, marginBottom: 10, boxSizing: "border-box" }} />
-              <div style={{ ...S.label, marginBottom: 6 }}>O que vai dentro (os gramas de cada um)</div>
-              {!rec.itens.length && <div style={{ fontSize: 12.5, color: "var(--cinza)", marginBottom: 8 }}>Procure os alimentos aqui embaixo e vá juntando: whey, leite em pó, farinha de arroz…</div>}
+              <div style={{ ...S.label, marginBottom: 6 }}>O que vai dentro</div>
+              {!rec.itens.length && <div style={{ fontSize: 12.5, color: "var(--cinza)", marginBottom: 8 }}>Procure os alimentos aqui embaixo e vá juntando. O que se conta (pão, ovo, fatia) entra em unidades; o resto, em gramas.</div>}
               {rec.itens.map((i, n) => {
                 const a = ALIMENTOS_BR.find((x) => x.id === i.a);
                 if (!a) return null;
@@ -38421,9 +38600,28 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
                       <span style={{ display: "block", fontWeight: 800, fontSize: 13.5 }}>{a.nome}</span>
                       <span style={{ display: "block", fontSize: 11.5, color: "var(--cinza)" }}>{Math.round(v.k)} kcal · P {Math.round(v.p * 10) / 10} · C {Math.round(v.c * 10) / 10} · G {Math.round(v.g * 10) / 10}</span>
                     </span>
-                    <input inputMode="decimal" value={i.gTxt != null ? i.gTxt : String(i.g).replace(".", ",")} onChange={(e) => mudarG(n, e.target.value.replace(/[^0-9.,]/g, ""))}
-                      aria-label={"Quantidade de " + a.nome} style={{ ...S.input, width: 72, textAlign: "center", fontWeight: 900 }} />
-                    <span style={{ fontWeight: 900, fontSize: 13 }}>{a.liq ? "ml" : "g"}</span>
+                    {/* Contável (pão, ovo, fatia): conta em unidades, e os gramas
+                        continuam sendo a verdade por baixo — o motor não muda. */}
+                    {a.un && a.unG > 0 ? (() => {
+                      const u = Math.round((i.g / a.unG) * 10) / 10;
+                      const mudar = (d) => mudarG(n, String(Math.max(0, Math.round((u + d) * 10) / 10) * a.unG).replace(".", ","));
+                      return (
+                        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <button onClick={() => mudar(-1)} aria-label={"Menos um " + a.un} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 11px", fontWeight: 900 }}>−</button>
+                          <span style={{ minWidth: 54, textAlign: "center" }}>
+                            <b style={{ fontSize: 16 }}>{String(u).replace(".", ",")}</b>
+                            <span style={{ display: "block", fontSize: 10.5, color: "var(--cinza)" }}>{plural(u, a.un, a.un.replace(/ão$/, "ãe") + "s")}</span>
+                          </span>
+                          <button onClick={() => mudar(1)} aria-label={"Mais um " + a.un} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 11px", fontWeight: 900 }}>+</button>
+                        </span>
+                      );
+                    })() : (
+                      <>
+                        <input inputMode="decimal" value={i.gTxt != null ? i.gTxt : String(i.g).replace(".", ",")} onChange={(e) => mudarG(n, e.target.value.replace(/[^0-9.,]/g, ""))}
+                          aria-label={"Quantidade de " + a.nome} style={{ ...S.input, width: 72, textAlign: "center", fontWeight: 900 }} />
+                        <span style={{ fontWeight: 900, fontSize: 13 }}>{a.liq ? "ml" : "g"}</span>
+                      </>
+                    )}
                     <button onClick={() => tirar(n)} aria-label={"Tirar " + a.nome} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 10px" }}>✕</button>
                   </div>
                 );
@@ -38696,6 +38894,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
   const [editando, setEditando] = useState(null);
   const [diaVer, setDiaVer] = useState(() => diaLocal(Date.now()));
   const [festa, setFesta] = useState(false);
+  const [macrosAberto, setMacrosAberto] = useState(false);
   const [toast, setToast] = useState("");
   const toastT = useRef(null);
   const mostrar = (m) => { setToast(m); clearTimeout(toastT.current); toastT.current = setTimeout(() => setToast(""), 2200); };
@@ -38731,6 +38930,10 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
   // o que ainda falta no dia: a régua do catálogo (o encaixe e a comparação)
   const faltaHoje = meta ? faltaDoDia(t, meta) : null;
   const macros = kcalMacros(t);
+  // o quanto da caloria do dia já entrou: é o que decide se passar de um macro
+  // é a favor do objetivo ou se já é o déficit (ou o superávit) saindo do lugar
+  const kcalFrac = meta && meta.k ? t.k / meta.k : 0;
+  const leituraM = meta ? leituraMacros(t, meta, ob.id, kcalFrac) : null;
   const recentes = useMemo(() => {
     const cont = {};
     Object.values(nutricao.dias || {}).forEach((d) => (d.itens || []).forEach((it) => { if (it.a) cont[it.a] = (cont[it.a] || 0) + 1; }));
@@ -38940,10 +39143,19 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
 
               {meta && (
                 <div style={S.card}>
-                  <div style={{ ...S.label, marginBottom: 8 }}>Macros do dia</div>
-                  <BarraMacro nome="Proteína" cor={CORES_BALANCE.p} v={t.p} meta={meta.p} />
-                  <BarraMacro nome="Carboidrato" cor={CORES_BALANCE.c} v={t.c} meta={meta.c} />
-                  <BarraMacro nome="Gordura" cor={CORES_BALANCE.g} v={t.g} meta={meta.g} />
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+                    <div style={{ ...S.label, flex: 1, margin: 0 }}>Macros do dia</div>
+                    <span style={{ fontSize: 11, fontWeight: 900, color: "#4DEBFF" }}>{ob.fase}</span>
+                  </div>
+                  {leituraM && (
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: leituraM.cor, marginBottom: 9, lineHeight: 1.45 }}>{leituraM.texto}</div>
+                  )}
+                  <BarraMacro nome="Proteína" cor={CORES_BALANCE.p} v={t.p} meta={meta.p} leitura={lerMacro("p", t.p, meta.p, ob.id, kcalFrac)} aberto={macrosAberto} />
+                  <BarraMacro nome="Carboidrato" cor={CORES_BALANCE.c} v={t.c} meta={meta.c} leitura={lerMacro("c", t.c, meta.c, ob.id, kcalFrac)} aberto={macrosAberto} />
+                  <BarraMacro nome="Gordura" cor={CORES_BALANCE.g} v={t.g} meta={meta.g} leitura={lerMacro("g", t.g, meta.g, ob.id, kcalFrac)} aberto={macrosAberto} />
+                  <button onClick={() => setMacrosAberto(!macrosAberto)} style={{ ...S.btnGhost, width: "100%", marginTop: 4, padding: "7px 6px", fontSize: 12, fontWeight: 900 }}>
+                    {macrosAberto ? "▴ Esconder o porquê de cada macro" : "▾ Por que cada macro conta assim no seu objetivo"}
+                  </button>
                   {t.alc > 0 && <div style={{ fontSize: 11.5, color: "var(--cinza)" }}>🍺 Álcool: {t.alc} g ({t.alc * 7} kcal que não são nem carboidrato nem gordura).</div>}
                 </div>
               )}

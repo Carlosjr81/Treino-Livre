@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-26a — Quem usa caneta para emagrecer tem a conta certa
+
+- **Em uma frase:** contas liberadas pelo criador podem registrar o uso de caneta para emagrecer, e o app passa a tratar a conta do jeito certo para quem está nesse tratamento.
+- **O que mudou:** a caneta entra no registro com as datas, e o app deixa claro que ela não aumenta o gasto de calorias — ela tira a fome, e comer menos já aparece no que você anota. Quando a média dos últimos dias fica abaixo do que o corpo gasta só para existir, aparece um aviso lembrando da proteína e mandando levar os números ao médico ou nutricionista.
+- **Por que importa para quem treina:** na perda rápida vai músculo junto, e a proteína é o que segura. O app não empurra déficit maior em cima de quem já está comendo pouco.
+- **Como usar:** em Balance › Perfil, no cartão do modo preparação (só em contas liberadas pelo criador).
+- **Ideias de vídeo:** falar do cuidado com a proteína em fase de emagrecimento rápido, sem citar remédio nenhum.
+- **Não prometer:** não indicar, receitar nem orientar uso de remédio; é registro, e o tratamento é com o médico.
+
+---
+
 ## 2026-11-25l — O balanço do dia diz contra o quê cada número compara
 
 - **Em uma frase:** no Body Balance, o déficit ou superávit do dia agora diz se é em relação ao que você gastou ou à sua meta, para os dois números nunca mais parecerem contraditórios.

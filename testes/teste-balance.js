@@ -273,5 +273,31 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("diurético não mexe no gasto", 0, B.SUBSTANCIAS_PREPARO.find((x) => x.id === "diuretico").efeito);
   teste("antes do uso começar, nada muda", null, com.dias.find((d) => d.d < antes).preparo);
 }
+// ---- a caneta de apetite (GLP-1) nao muda o gasto, e avisa quem come pouco (2026-11-26a)
+{
+  const hoje = diaLocal(Date.now()), antes = diaLocal(Date.now() - 20 * 864e5);
+  const dd = (n) => diaLocal(Date.now() - n * 864e5);
+  const can = B.SUBSTANCIAS_PREPARO.find((x) => x.id === "apetite");
+  teste("a caneta esta na lista", true, !!can);
+  teste("a caneta nao mexe no gasto", [0, "nada", true], [can.efeito, can.sobre, !!can.apetite]);
+  const it = (id, k) => ({ id: "x" + id, t: Date.now(), n: "Comida", q: 1, k: k, p: 20, c: 30, g: 10, de: "manual" });
+  const perfil = { objetivo: "perder", sexo: "m", idade: 40, cm: 178, kg: 85, rotina: "sentado" };
+  const diasPoucos = {};
+  [1, 2, 3].forEach((n) => { diasPoucos[dd(n)] = { itens: [it(n + "a", 450), it(n + "b", 450)], agua: 0 }; });
+  diasPoucos[hoje] = { itens: [it("h1", 450), it("h2", 450)], agua: 0 };
+  const base = { historico: [], exPorId: () => null, saude: null, pesoCorporal: 85, medidas: [], corredor: {} };
+  const semCan = B.contasDoBalance(Object.assign({ nutricao: { perfil: perfil, dias: diasPoucos } }, base, { preparo: true }));
+  const comCan = B.contasDoBalance(Object.assign({ nutricao: { perfil: Object.assign({}, perfil, { preparo: { usos: { apetite: { desde: antes } } } }), dias: diasPoucos } }, base, { preparo: true }));
+  const xs = semCan.dias.find((d) => d.d === hoje), xc = comCan.dias.find((d) => d.d === hoje);
+  teste("com a caneta o gasto do dia nao muda", xs.gastoUsado, xc.gastoUsado);
+  teste("com a caneta a meta do dia nao muda", xs.meta.k, xc.meta.k);
+  teste("o dia sabe que a caneta estava em uso", [false, true], [!!xs.apetite, !!xc.apetite]);
+  teste("comendo abaixo do repouso, avisa", true, !!comCan.apetiteAviso && comCan.apetiteAviso.media < comCan.apetiteAviso.tmb);
+  teste("sem a caneta nao avisa", null, semCan.apetiteAviso);
+  const comendoBem = {};
+  [1, 2, 3].forEach((n) => { comendoBem[dd(n)] = { itens: [it(n + "c", 1200), it(n + "d", 1200)], agua: 0 }; });
+  const okCan = B.contasDoBalance(Object.assign({ nutricao: { perfil: Object.assign({}, perfil, { preparo: { usos: { apetite: { desde: antes } } } }), dias: comendoBem } }, base, { preparo: true }));
+  teste("comendo acima do repouso, nao avisa", null, okCan.apetiteAviso);
+}
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.377 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.385 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v282) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v283) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6870,6 +6870,17 @@ quem eu classificar como bodybuilder".
   (`corpoPrep`) pesa `dias/21`; com 21 dias anotados com pesagens, vale só o
   corpo. **Diurético não mexe no gasto**: o peso do dia marcado ("💧 Tomei
   diurético hoje", no Hoje) e dos 3 seguintes sai da conta (é água).
+- **A caneta de apetite (GLP-1) entrou em 2026-11-26a** (pergunta do dono:
+  "veja se está considerando as canetas como Ozempic e Mounjaro"). Ela é de
+  natureza diferente das outras da lista, e por isso **não tem
+  multiplicador**: semaglutida e tirzepatida não sobem o gasto, elas tiram a
+  fome — e o que a pessoa come a menos a conta já vê no que ela anota. Pôr um
+  bônus de gasto ali seria contar a mesma coisa duas vezes. O que ela muda no
+  app é outra coisa: com a perda rápida vai massa magra junto, então a linha
+  do balanço lembra a proteína da meta, e **`apetiteAviso`** (a média dos 7
+  dias anotados abaixo do próprio repouso, com 3 dias ou mais) abre o cartão
+  "Você está comendo muito pouco", que manda levar os números ao médico ou
+  nutricionista — nunca empurrar mais déficit em cima disso.
 - **Fica no aparelho** (`nutricao.perfil.preparo = { usos: { id: { desde, ate } }, diureticos }`).
   Os nomes não vão a resumo, story, amigos nem servidor; o resumo só leva os
   números do dia (já ajustados). O cartão diz que não recomenda nem orienta uso.

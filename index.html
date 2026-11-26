@@ -2068,6 +2068,9 @@ const SUBSTANCIAS_PREPARO = [
   { id: "estimulante", nome: "Estimulantes e termogênicos", ic: "\u26A1", sobre: "total", efeito: 0.04,
     diz: "Cafeína, efedrina, ioimbina, clembuterol e afins: sobem o gasto do dia em ~3 a 5% e tiram a fome (a fome não muda a conta: vale o que você anota).",
     fonte: "Astrup e colegas 1992: efedrina + cafeína, ~+4% no gasto do dia; Dulloo 1989: cafeína, ~+3%" },
+  { id: "apetite", nome: "Caneta para emagrecer (GLP-1)", ic: "\u{1F48A}", sobre: "nada", efeito: 0, apetite: true,
+    diz: "Semaglutida e tirzepatida (Ozempic, Wegovy, Mounjaro, Saxenda e afins). Não sobem o gasto: emagrecem porque tiram a fome, e a conta já vê isso no que você anota. Com a perda rápida vai músculo junto, e a proteína da meta é o que segura.",
+    fonte: "Wilding e colegas 2021 (NEJM, semaglutida) e Jastreboff e colegas 2022 (NEJM, tirzepatida): a perda vem de comer menos, e parte do peso perdido é massa magra" },
   { id: "diuretico", nome: "Diurético", ic: "\u{1F4A7}", sobre: "nada", efeito: 0, agua: true,
     diz: "Não queima gordura: tira água. O peso cai e volta, e isso enganaria a conta. Marque o dia de uso: o peso daquele dia e dos 3 seguintes fica fora.",
     fonte: "a água não é gordura: 1 kg de água pesa igual e não tem caloria" },
@@ -2149,7 +2152,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-25l";
+const VERSAO_APP = "2026-11-26a";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4525,12 +4528,24 @@ function contasDoBalance(o) {
       preparo = { estudos: estudos, peso: peso, corpo: corpoPrep ? corpoPrep.vies : null, dias: corpoPrep ? corpoPrep.dias : 0, usos: usos.map((u) => u.nome) };
     }
     const diuretico = diureticos.indexOf(x.d) >= 0;
+    const apetite = usosNoDia(x.d).some((u) => u.apetite);
     const g = x.gasto.totalMeta + ajuste;
     const m = metaDoDia(perfil, g, kg, x.treino.min);
-    return Object.assign({}, x, { gastoUsado: g, ajusteCorpo: ajuste, preparo: preparo, diuretico: diuretico, meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) });
+    return Object.assign({}, x, { gastoUsado: g, ajusteCorpo: ajuste, preparo: preparo, diuretico: diuretico, apetite: apetite, meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) });
   };
   const dias = ultimos.map(comMeta);
-  return { perfil: perfil, kg: kg, idade: idade, tmb: tmb, completo: completo, ob: ob, hoje: hoje, mediaAtivas: mediaAtivas, pesos: pesos,
+  // Com a caneta a fome some, e é comum comer bem abaixo do que o corpo gasta
+  // só para existir. Comer abaixo do próprio repouso por vários dias é o sinal
+  // que vale mostrar: não é diário ruim, é assunto de quem acompanha o tratamento.
+  const apetiteHoje = usosNoDia(hoje).some((u) => u.apetite);
+  const apetiteAviso = (() => {
+    if (!apetiteHoje || !tmb) return null;
+    const ult = dias.slice(-8, -1).filter((x) => x.tot.itens >= 2 && x.comeu >= 300);
+    if (ult.length < 3) return null;
+    const media = Math.round(ult.reduce((a, x) => a + x.comeu, 0) / ult.length);
+    return media < Math.round(tmb) ? { media: media, dias: ult.length, tmb: Math.round(tmb) } : null;
+  })();
+  return { perfil: perfil, kg: kg, idade: idade, tmb: tmb, apetiteHoje: apetiteHoje, apetiteAviso: apetiteAviso, completo: completo, ob: ob, hoje: hoje, mediaAtivas: mediaAtivas, pesos: pesos,
     calcDia: calcDia, ultimos: ultimos, corpo: corpo, comMeta: comMeta, dias: dias, prep: prep, corpoPrep: corpoPrep, inicioPrep: inicioPrep };
 }
 // O dia de um treino no Body Balance, para o resumo e o story. Dia sem
@@ -37881,8 +37896,21 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                     {atual.preparo && <span><br />🧪 Modo preparação ({atual.preparo.usos.join(", ")}): {atual.preparo.peso >= 1
                       ? "o ajuste é o que o seu corpo mostrou desde o começo do uso (" + atual.preparo.dias + " dias)."
                       : "começa pelos estudos (+" + fmtKcal(atual.preparo.estudos) + " kcal) e passa a valer o seu corpo aos poucos (" + atual.preparo.dias + " de 21 dias anotados com pesagens)."}</span>}
+                    {atual.apetite && <span><br />💊 Caneta (GLP-1): não muda o gasto deste quadro — ela tira a fome, e o que você come a menos já aparece no "Comeu". A proteína ({meta.p} g) é o que protege o músculo na perda rápida.</span>}
                     {atual.diuretico && <span><br />💧 Dia de diurético: o peso de hoje e dos 3 dias seguintes não entra na conta (é água, não gordura).</span>}
                     {meta.noPiso && <span><br />⚠ A meta parou no piso seguro ({fmtKcal(meta.k)} kcal): abaixo disso, só com nutricionista.</span>}
+                  </div>
+                </div>
+              )}
+
+              {cb.apetiteAviso && ehHoje && (
+                <div style={{ ...S.card, borderColor: "#FFB21A88", background: "linear-gradient(135deg,#2a1f05,var(--card))" }}>
+                  <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>💊 Você está comendo muito pouco</div>
+                  <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+                    Nos últimos {cb.apetiteAviso.dias} dias anotados a média foi de <b>{fmtKcal(cb.apetiteAviso.media)} kcal</b>, abaixo do que o seu corpo
+                    gasta só para existir ({fmtKcal(cb.apetiteAviso.tmb)} kcal em repouso). Com a caneta a fome some, mas a necessidade não:
+                    a proteína e o acompanhamento de quem cuida do seu tratamento são o que protegem o músculo.
+                    <br />Leve esses números ao seu médico ou nutricionista.
                   </div>
                 </div>
               )}

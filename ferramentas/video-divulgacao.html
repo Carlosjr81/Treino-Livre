@@ -1,0 +1,1154 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Vídeo de divulgação — Treino Livre</title>
+<style>
+  @font-face { font-family: "Jogo Resumo"; src: url("../fonte-resumo.woff2") format("woff2"); font-weight: 400; font-display: block; }
+  html, body { margin: 0; background: #000; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="tela" width="1080" height="1920"></canvas>
+<script>
+// =====================================================================
+// O vídeo de divulgação do Treino Livre, desenhado quadro a quadro.
+//
+// Pedido do dono (2026-11-26): um vídeo SEM áudio e sem narração falada,
+// mostrando o controle de ingestão e gasto calórico, a musculação, o
+// cardio, as funções do app, o relógio e as estatísticas; com a legenda
+// "como se alguém estivesse falando" (ele grava a voz depois), a mesma
+// identidade visual do app, a logo de intro, um gancho no começo e uma
+// enquete no fim.
+//
+// Tudo aqui é função do tempo (nada de sorteio): o quadro de cada
+// instante sai igual em qualquer máquina, e o render pode ser refeito.
+// As cores, a fonte de letreiro, o contorno preto ATRÁS do texto, os
+// efeitos de LED e o cenário são os mesmos do resumo animado do app.
+// =====================================================================
+
+// ---- a identidade visual (as mesmas constantes do index.html) ----
+var MARCA = "#E1306C";
+var GRAD = ["#F58529", "#DD2A7B", "#8134AF"];
+var CIANO = "#4DEBFF";
+var AMARELO = "#FFD23F";
+var XP = "#5CE1FF";
+var OK = "#3BFF5A";
+var BAL = { p: "#FF4D6D", c: "#FFB21A", g: "#B05BFF", agua: "#35E0F0" };
+var LED_AZUL = ["#7FD8FF", "#2E7BFF", "#0A2BD9"];
+var LED_FESTA = ["#2E7BFF", "#3BFF5A", "#FFB21A", "#E1306C", "#35E0F0", "#B05BFF"];
+var FONTE = "'Jogo Resumo', 'Arial Black', sans-serif";
+var ARTE = { w: 1086, h: 1448, topoFrente: 17 };
+var INSTAGRAM = "@carlos.jr.81";
+
+var W = 1080, H = 1920;
+var tela = document.getElementById("tela");
+var cx = tela.getContext("2d");
+var IMG = {};
+window.pronto = false;
+
+function carregar(nome, src) {
+  return new Promise(function (ok) {
+    var i = new Image();
+    i.onload = function () { IMG[nome] = i; ok(); };
+    i.onerror = function () { ok(); };
+    i.src = src;
+  });
+}
+
+// =====================================================================
+// O ROTEIRO
+// Cada cena tem a duração, a fala (que vira a legenda palavra a palavra)
+// e o tipo, que decide o desenho. "forte" acende a festa do LED.
+// =====================================================================
+var CENAS = [
+  { tipo: "gancho", ms: 3600, forte: true,
+    fala: "Você treina pesado há meses. E o espelho não muda." },
+  { tipo: "gancho2", ms: 2900, forte: true,
+    fala: "O problema quase nunca é o treino." },
+  { tipo: "vinheta", ms: 2600, fala: "Treino Livre." },
+  { tipo: "balanco", ms: 5200,
+    fala: "Aqui você vê o que entra e o que sai. No mesmo lugar, todo dia." },
+  { tipo: "fase", ms: 4400, forte: true,
+    fala: "E o app diz o que você está fazendo de verdade: cutting, bulking ou manutenção." },
+  { tipo: "comida", ms: 4200,
+    fala: "Foto do prato, porção caseira, ou os gramas da balança." },
+  { tipo: "catalogo", ms: 4000,
+    fala: "Na dúvida entre dois alimentos, ele mostra só o que a troca muda." },
+  { tipo: "treino", ms: 4800, forte: true,
+    fala: "No treino, a carga de cada série vem do seu histórico. Sobe quando você fecha." },
+  { tipo: "eyes", ms: 3900,
+    fala: "Apoie o celular: a câmera conta as repetições e mede a amplitude." },
+  { tipo: "cardio", ms: 4400,
+    fala: "Esteira, bicicleta ou rua, com mapa, ritmo e os números de quem corre." },
+  { tipo: "relogio", ms: 4200,
+    fala: "No pulso, você marca a série, vê o descanso e anota a água." },
+  { tipo: "jarvis", ms: 3300,
+    fala: "E dá para anotar falando, sem tocar no celular." },
+  { tipo: "stats", ms: 4700, forte: true,
+    fala: "No fim, o treino vira números. E os números viram o seu resultado." },
+  { tipo: "enquete", ms: 5600, falaAte: 0.56, fala: "Qual você quer dominar primeiro?" },
+];
+var TRANS = 520;     // a transição entre cenas
+var CREDITO_FORA = { vinheta: 1, enquete: 1 };
+
+// o começo de cada cena
+var INICIO = [];
+(function () {
+  var t = 0;
+  for (var i = 0; i < CENAS.length; i++) { INICIO.push(t); t += CENAS[i].ms; }
+  window.DURACAO = t;
+})();
+
+// =====================================================================
+// Desenho: as peças da identidade
+// =====================================================================
+function grad(c, x0, x1) {
+  var g = c.createLinearGradient(x0, 0, x1, 0);
+  g.addColorStop(0, GRAD[0]); g.addColorStop(0.5, GRAD[1]); g.addColorStop(1, GRAD[2]);
+  return g;
+}
+// o "quase sorteio": igual em toda máquina, porque é função do índice
+function qs(n) { var x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+function suave(x) { return x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x); }
+
+// O texto com o contorno preto ATRÁS do preenchimento (2026-11-21b): o
+// traço por cima risca por dentro das letras do itálico pesado.
+function texto(c, txt, x, y, tam, cor, op) {
+  op = op || {};
+  var italico = op.italico ? "italic " : "";
+  c.save();
+  c.textAlign = op.align || "center";
+  c.textBaseline = op.baseline || "alphabetic";
+  c.font = italico + "400 " + tam + "px " + FONTE;
+  if (op.largMax) {
+    var t = tam;
+    while (c.measureText(txt).width > op.largMax && t > 16) { t -= 2; c.font = italico + "400 " + t + "px " + FONTE; }
+    tam = t;
+  }
+  var larg = c.measureText(txt).width;
+  var x0 = op.align === "left" ? x : op.align === "right" ? x - larg : x - larg / 2;
+  if (op.contorno !== false) {
+    c.save();
+    c.lineJoin = "round"; c.miterLimit = 2;
+    c.strokeStyle = "#000"; c.lineWidth = Math.max(6, tam * (op.traco || 0.11));
+    c.strokeText(txt, x, y + tam * 0.05);
+    c.strokeText(txt, x, y);
+    c.restore();
+  }
+  if (op.brilho) { c.shadowColor = op.brilho; c.shadowBlur = op.brilhoR || 28; }
+  c.fillStyle = cor === "grad" ? grad(c, x0, x0 + larg) : cor;
+  c.fillText(txt, x, y);
+  c.restore();
+  return larg;
+}
+function rotulo(c, txt, y, cor) {
+  c.save();
+  if ("letterSpacing" in c) c.letterSpacing = "7px";
+  texto(c, txt.toUpperCase(), 540, y, 32, cor || CIANO, { brilho: "rgba(77,235,255,.55)", brilhoR: 18, largMax: 920 });
+  c.restore();
+}
+// a placa dos números: fundo escuro, sombra dura e a moldura no degradê
+function placa(c, x, y, w, h, r) {
+  r = r == null ? 26 : r;
+  c.save();
+  c.fillStyle = "rgba(0,0,0,.55)";
+  caminhoArredondado(c, x + 7, y + 8, w, h, r); c.fill();
+  var g = c.createLinearGradient(x, y, x + w, y + h);
+  g.addColorStop(0, "rgba(23,11,39,.93)"); g.addColorStop(1, "rgba(58,20,48,.93)");
+  c.fillStyle = g;
+  caminhoArredondado(c, x, y, w, h, r); c.fill();
+  c.strokeStyle = grad(c, x, x + w); c.lineWidth = 3;
+  c.shadowColor = "rgba(225,48,108,.55)"; c.shadowBlur = 16;
+  caminhoArredondado(c, x, y, w, h, r); c.stroke();
+  c.restore();
+}
+function caminhoArredondado(c, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+// ---- o fundo: a arte do dono, a câmera e os efeitos de LED ----
+var CAMERAS = [
+  { x: 0, y: -14, z: 0.98, g: 0.4 }, { x: 10, y: 8, z: 0.96, g: -0.5 },
+  { x: -12, y: -6, z: 0.97, g: 0.6 }, { x: 6, y: 12, z: 0.95, g: -0.3 },
+  { x: -8, y: 0, z: 0.98, g: 0.2 }, { x: 0, y: -10, z: 0.96, g: -0.6 },
+];
+var BORRADO = null;
+function borradoDaArte() {
+  if (BORRADO || !IMG.fundo) return BORRADO;
+  var p = document.createElement("canvas"); p.width = 36; p.height = 48;
+  p.getContext("2d").drawImage(IMG.fundo, 0, 0, 36, 48);
+  BORRADO = p;
+  return BORRADO;
+}
+function desenharArte(c, t, idx, escuro) {
+  var cam = CAMERAS[idx % CAMERAS.length];
+  var s = t / 1000;
+  // a sobra de cima e de baixo é a própria arte borrada (a arte nunca é cortada)
+  var b = borradoDaArte();
+  if (b) { c.save(); c.globalAlpha = 0.85; c.drawImage(b, 0, 0, W, H); c.restore(); }
+  else { c.fillStyle = "#170B27"; c.fillRect(0, 0, W, H); }
+  c.fillStyle = "rgba(8,3,16,.55)"; c.fillRect(0, 0, W, H);
+  if (!IMG.fundo) return;
+  var z = cam.z * Math.min(W / ARTE.w, H / ARTE.h) * (1 + 0.012 * Math.sin(s * 0.6 + idx));
+  var aw = ARTE.w * z, ah = ARTE.h * z;
+  var ax = (W - aw) / 2 + cam.x * Math.sin(s * 0.35 + idx) * 2.4;
+  var ay = (H - ah) / 2 + cam.y + Math.sin(s * 0.5 + idx * 1.3) * 7;
+  c.save();
+  c.translate(W / 2, H / 2);
+  c.rotate((cam.g * Math.PI) / 180 * (0.6 + 0.4 * Math.sin(s * 0.4)));
+  c.translate(-W / 2, -H / 2);
+  c.shadowColor = "rgba(0,0,0,.6)"; c.shadowBlur = 40;
+  c.drawImage(IMG.fundo, ax, ay, aw, ah);
+  c.shadowBlur = 0;
+  if (IMG.frente) {
+    // a pessoa anda um pouco mais que o fundo (profundidade) e respira
+    var dx = Math.sin(s * 0.35 + idx) * 4, dy = Math.sin(s * 1.75) * 3;
+    var topo = ARTE.topoFrente * z;
+    c.drawImage(IMG.frente, ax + dx, ay + topo + dy, aw, ah);
+  }
+  c.restore();
+  // o sol pulsando e o neon piscando (os pontos da arte)
+  c.save();
+  c.globalCompositeOperation = "lighter";
+  var sx = ax + 1042 * z, sy = ay + 372 * z;
+  var gs = c.createRadialGradient(sx, sy, 0, sx, sy, 200 * z);
+  gs.addColorStop(0, "rgba(255,170,60," + (0.22 + 0.06 * Math.sin(s * 1.4)) + ")");
+  gs.addColorStop(1, "rgba(255,120,40,0)");
+  c.fillStyle = gs; c.fillRect(sx - 220 * z, sy - 220 * z, 440 * z, 440 * z);
+  var pisca = qs(Math.floor(s * 9)) > 0.22 ? 1 : 0.3;
+  [[206, 118], [334, 150]].forEach(function (p, i) {
+    var nx = ax + p[0] * z, ny = ay + p[1] * z;
+    var gn = c.createRadialGradient(nx, ny, 0, nx, ny, 90 * z);
+    gn.addColorStop(0, "rgba(225,48,108," + 0.3 * pisca + ")");
+    gn.addColorStop(1, "rgba(225,48,108,0)");
+    c.fillStyle = gn; c.fillRect(nx - 100 * z, ny - 100 * z, 200 * z, 200 * z);
+  });
+  c.restore();
+  c.fillStyle = "rgba(6,2,12," + escuro + ")";
+  c.fillRect(0, 0, W, H);
+}
+
+// os efeitos de LED: barras correndo, varredura, lasers e a festa
+var LED_TELA = null;
+function desenharLed(c, t, p, forte) {
+  var s = t / 1000;
+  if (!LED_TELA) { LED_TELA = document.createElement("canvas"); LED_TELA.width = 540; LED_TELA.height = 960; }
+  var o = LED_TELA.getContext("2d");
+  o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, 540, 960);
+  o.setTransform(0.5, 0, 0, 0.5, 0, 0);
+  var festa = forte && p > 1200 && p < 3000 ? 1 - (p - 1200) / 1800 : 0;
+  var g = o.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "rgba(46,123,255,0)");
+  g.addColorStop(0.2, LED_AZUL[0]); g.addColorStop(0.55, LED_AZUL[1]);
+  g.addColorStop(1, "rgba(10,43,217,0)");
+  for (var i = 0; i < 16; i++) {
+    var larg = 26 + qs(i) * 70;
+    var x = ((i * 137 + s * (34 + qs(i + 9) * 46)) % (W + 240)) - 120;
+    var a = 0.1 + 0.16 * (0.5 + 0.5 * Math.sin(s * 1.5 + i * 1.7));
+    o.globalAlpha = a;
+    o.fillStyle = festa > 0 ? LED_FESTA[(i + Math.floor(s * 7)) % LED_FESTA.length] : g;
+    var y0 = qs(i + 3) * 300, y1 = H - qs(i + 5) * 300;
+    o.fillRect(x, y0, larg, y1 - y0);
+  }
+  // a textura de pontinhos de LED corta só as barras
+  o.globalAlpha = 1;
+  o.globalCompositeOperation = "destination-out";
+  o.fillStyle = "#000";
+  for (var y = 0; y < H; y += 10) o.fillRect(0, y, W, 4);
+  o.globalCompositeOperation = "source-over";
+  c.save();
+  c.globalCompositeOperation = "lighter";
+  c.globalAlpha = 0.34 + 0.3 * festa;
+  c.drawImage(LED_TELA, 0, 0, W, H);
+  // a varredura: uma faixa bem acesa nos primeiros 750 ms da cena
+  if (p < 750) {
+    var k = p / 750;
+    c.globalAlpha = (1 - k) * 0.5;
+    var gv = c.createLinearGradient(k * W - 260, 0, k * W + 260, 0);
+    gv.addColorStop(0, "rgba(127,216,255,0)");
+    gv.addColorStop(0.5, "rgba(190,235,255,.9)");
+    gv.addColorStop(1, "rgba(127,216,255,0)");
+    c.fillStyle = gv; c.fillRect(k * W - 260, 0, 520, H);
+  }
+  // os lasers verdes descendo do alto
+  c.globalAlpha = forte ? 0.11 : 0.055;
+  for (var L = 0; L < 3; L++) {
+    var bx = W * (0.26 + 0.24 * L) + Math.sin(s * 0.8 + L) * 180;
+    var gl = c.createLinearGradient(bx, 0, bx, H * 0.75);
+    gl.addColorStop(0, "rgba(59,255,90,.8)");
+    gl.addColorStop(1, "rgba(59,255,90,0)");
+    c.fillStyle = gl;
+    c.beginPath(); c.moveTo(bx - 3, -40); c.lineTo(bx + 3, -40);
+    c.lineTo(bx + 60 + L * 14, H * 0.75); c.lineTo(bx - 60 - L * 14, H * 0.75); c.closePath(); c.fill();
+  }
+  c.restore();
+}
+
+// o carimbo que bate de longe, passa do ponto e assenta torto
+function carimbo(c, txt, p, cor, y, giro) {
+  var IMP = 1000;
+  if (p < 120) return;
+  var k = clamp((p - 120) / IMP, 0, 1);
+  var e = k < 1 ? 1.28 - 0.42 * suave(k) + 0.1 * Math.sin(k * Math.PI * 2.2) * (1 - k) : 1;
+  var a = clamp((p - 120) / 180, 0, 1);
+  c.save();
+  c.globalAlpha = a;
+  c.translate(540, y);
+  c.rotate(((giro == null ? -4.5 : giro) * Math.PI) / 180 * suave(k));
+  c.scale(e, e);
+  c.filter = k < 0.45 ? "blur(" + (6 * (1 - k / 0.45)).toFixed(1) + "px)" : "none";
+  texto(c, txt.toUpperCase(), 0, 0, 56, cor || AMARELO, { italico: true, largMax: 790, traco: 0.14, brilho: "rgba(0,0,0,.8)", brilhoR: 10 });
+  c.restore();
+}
+
+// o número que sobe do zero
+function numeroSobe(c, de, ate, p, dur, x, y, tam, suf, pre) {
+  var k = suave(clamp(p / dur, 0, 1));
+  var v = de + (ate - de) * k;
+  var n = Math.abs(ate) >= 100 || ate % 1 === 0 ? Math.round(v) : Math.round(v * 10) / 10;
+  var txt = (pre || "") + n.toLocaleString("pt-BR", { minimumFractionDigits: ate % 1 === 0 ? 0 : 1, maximumFractionDigits: ate % 1 === 0 ? 0 : 1 }) + (suf || "");
+  var pulso = p > dur && p < dur + 260 ? 1 + 0.1 * Math.sin(((p - dur) / 260) * Math.PI) : 1;
+  c.save(); c.translate(x, y); c.scale(pulso, pulso);
+  texto(c, txt, 0, 0, tam, "grad", { italico: true, brilho: "rgba(225,48,108,.6)", brilhoR: 26 });
+  c.restore();
+}
+
+// =====================================================================
+// A legenda: palavra a palavra, como se alguém estivesse falando.
+// O dono grava a voz por cima depois; por isso ela abre no começo da
+// cena e fecha antes de o corte chegar.
+// =====================================================================
+function grupos(fala) {
+  var pal = fala.split(/\s+/).filter(Boolean);
+  var gs = [], atual = [], letras = 0;
+  for (var i = 0; i < pal.length; i++) {
+    atual.push(pal[i]); letras += pal[i].length + 1;
+    var fimFrase = /[.!?]$/.test(pal[i]);
+    if (atual.length >= 3 || letras >= 22 || fimFrase || i === pal.length - 1) {
+      gs.push(atual); atual = []; letras = 0;
+    }
+  }
+  return gs;
+}
+function legenda(c, fala, p, dur, ate) {
+  if (!fala) return;
+  if (ate) dur = dur * ate;
+  var entra = 220, sai = 280;
+  var util = dur - entra - sai;
+  if (p < entra || p > dur - sai * 0.4) return;
+  var gs = grupos(fala);
+  var pesos = gs.map(function (g) { return g.join(" ").length + 6; });
+  var soma = pesos.reduce(function (a, b) { return a + b; }, 0);
+  var k = clamp((p - entra) / util, 0, 0.999);
+  var acc = 0, gi = 0, dentro = 0;
+  for (var i = 0; i < gs.length; i++) {
+    var fr = pesos[i] / soma;
+    if (k < acc + fr) { gi = i; dentro = (k - acc) / fr; break; }
+    acc += fr;
+  }
+  var g = gs[gi];
+  var ativa = Math.min(g.length - 1, Math.floor(dentro * g.length));
+  var tam = 58;
+  c.save();
+  c.font = "400 " + tam + "px " + FONTE;
+  var larg = g.map(function (w) { return c.measureText(w + " ").width; });
+  var total = larg.reduce(function (a, b) { return a + b; }, 0) - c.measureText(" ").width;
+  while (total > 960 && tam > 34) {
+    tam -= 3; c.font = "400 " + tam + "px " + FONTE;
+    larg = g.map(function (w) { return c.measureText(w + " ").width; });
+    total = larg.reduce(function (a, b) { return a + b; }, 0) - c.measureText(" ").width;
+  }
+  c.restore();
+  var y = 1672;
+  // a tarja de leitura atrás da legenda
+  c.save();
+  var ent = clamp((p - entra) / 180, 0, 1);
+  c.globalAlpha = ent * clamp((dur - sai * 0.4 - p) / 180, 0, 1);
+  c.fillStyle = "rgba(6,2,12,.62)";
+  caminhoArredondado(c, 540 - total / 2 - 36, y - tam - 22, total + 72, tam + 48, 22);
+  c.fill();
+  var x = 540 - total / 2;
+  for (var j = 0; j < g.length; j++) {
+    var viva = j === ativa;
+    var pop = viva ? 1 + 0.07 * Math.sin(clamp(dentro * g.length - j, 0, 1) * Math.PI) : 1;
+    c.save();
+    var wx = x + larg[j] / 2 - c.measureText ? x + larg[j] / 2 : x;
+    c.translate(x + (larg[j] - (j === g.length - 1 ? 0 : 0)) / 2, y);
+    c.scale(pop, pop);
+    texto(c, g[j], 0, 0, tam, viva ? AMARELO : "#FFFFFF",
+      { traco: 0.13, brilho: viva ? "rgba(255,210,63,.55)" : null, brilhoR: 22 });
+    c.restore();
+    x += larg[j];
+  }
+  c.restore();
+}
+
+function credito(c, tipo) {
+  if (CREDITO_FORA[tipo]) return;
+  c.save();
+  c.globalAlpha = 0.72;
+  texto(c, "TREINO LIVRE  ·  " + INSTAGRAM, 540, 1838, 28, "#FFFFFF", { traco: 0.16 });
+  c.restore();
+}
+
+// =====================================================================
+// O logo
+// =====================================================================
+function desenharLogo(c, x, y, larg, alpha) {
+  if (!IMG.logo) return;
+  var prop = IMG.logo.naturalHeight / IMG.logo.naturalWidth;
+  c.save();
+  c.globalAlpha = alpha == null ? 1 : alpha;
+  c.shadowColor = "rgba(225,48,108,.6)"; c.shadowBlur = 40;
+  c.drawImage(IMG.logo, x - larg / 2, y - (larg * prop) / 2, larg, larg * prop);
+  c.restore();
+}
+
+// =====================================================================
+// AS CENAS
+// =====================================================================
+function cenaGancho(c, p, cena) {
+  desenharArte(c, p, 0, 0.62);
+  desenharLed(c, p, p, cena.forte);
+  var k = suave(clamp((p + 160) / 300, 0, 1));
+  c.save();
+  c.globalAlpha = k;
+  texto(c, "VOCÊ TREINA PESADO", 540, 560, 86, "#FFFFFF", { italico: true, largMax: 960, traco: 0.13 });
+  texto(c, "HÁ MESES", 540, 672, 86, "#FFFFFF", { italico: true, largMax: 960, traco: 0.13 });
+  c.restore();
+  if (p > 700) {
+    var k2 = suave(clamp((p - 700) / 450, 0, 1));
+    c.save(); c.globalAlpha = k2;
+    texto(c, "E O ESPELHO", 540, 880, 104, "grad", { italico: true, largMax: 980, traco: 0.13, brilho: "rgba(225,48,108,.7)" });
+    texto(c, "NÃO MUDA?", 540, 1006, 104, "grad", { italico: true, largMax: 980, traco: 0.13, brilho: "rgba(225,48,108,.7)" });
+    c.restore();
+  }
+  // o clarão do impacto
+  if (p > 700 && p < 960) {
+    c.save(); c.globalCompositeOperation = "lighter";
+    c.globalAlpha = 0.42 * (1 - (p - 700) / 260);
+    c.fillStyle = "#fff"; c.fillRect(0, 0, W, H); c.restore();
+  }
+  if (p > 2000) carimbo(c, "e não é falta de esforço", p - 1900, AMARELO, 1230, -3);
+}
+
+function cenaGancho2(c, p, cena) {
+  desenharArte(c, p + 4000, 1, 0.7);
+  desenharLed(c, p + 4000, p, cena.forte);
+  var k = suave(clamp(p / 500, 0, 1));
+  c.save(); c.globalAlpha = k;
+  texto(c, "O PROBLEMA", 540, 700, 92, "#FFFFFF", { italico: true, largMax: 940, traco: 0.13 });
+  texto(c, "QUASE NUNCA É", 540, 812, 92, "#FFFFFF", { italico: true, largMax: 940, traco: 0.13 });
+  c.restore();
+  if (p > 900) {
+    var k2 = suave(clamp((p - 900) / 420, 0, 1));
+    c.save(); c.globalAlpha = k2;
+    c.translate(540, 980); c.scale(1 + 0.1 * (1 - k2), 1 + 0.1 * (1 - k2)); c.translate(-540, -980);
+    texto(c, "O TREINO.", 540, 980, 122, "grad", { italico: true, largMax: 980, traco: 0.13, brilho: "rgba(225,48,108,.75)" });
+    c.restore();
+  }
+  if (p > 1500) {
+    var k3 = suave(clamp((p - 1500) / 450, 0, 1));
+    c.save(); c.globalAlpha = k3;
+    texto(c, "É O QUE ACONTECE", 540, 1180, 56, CIANO, { traco: 0.14, brilho: "rgba(77,235,255,.5)" });
+    texto(c, "FORA DA ACADEMIA.", 540, 1256, 56, CIANO, { traco: 0.14, brilho: "rgba(77,235,255,.5)" });
+    c.restore();
+  }
+}
+
+function cenaVinheta(c, p) {
+  // o fundo escuro da marca e as raias cruzando
+  var g = c.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, "#170B27"); g.addColorStop(0.6, "#2B0E3A"); g.addColorStop(1, "#3A1430");
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  var s = p / 1000;
+  c.save();
+  c.globalCompositeOperation = "lighter";
+  for (var i = 0; i < 9; i++) {
+    var y = 180 + i * 190 + Math.sin(s * 2 + i) * 20;
+    var x = -400 + ((s * (700 + i * 160) + i * 300) % (W + 900));
+    var gr = c.createLinearGradient(x - 300, 0, x + 300, 0);
+    gr.addColorStop(0, "rgba(245,133,41,0)");
+    gr.addColorStop(0.5, [GRAD[0], GRAD[1], GRAD[2]][i % 3]);
+    gr.addColorStop(1, "rgba(129,52,175,0)");
+    c.globalAlpha = 0.33;
+    c.fillStyle = gr; c.fillRect(x - 300, y, 600, 10);
+  }
+  c.restore();
+  desenharLed(c, p, p, true);
+  // o logo bate de longe, passa do ponto e assenta
+  var k = clamp(p / 900, 0, 1);
+  var e = k < 1 ? 3.2 - 2.3 * suave(k) + 0.14 * Math.sin(k * Math.PI * 2) * (1 - k) : 1;
+  c.save();
+  c.translate(540, 880);
+  c.scale(e, e);
+  c.filter = k < 0.5 ? "blur(" + (10 * (1 - k / 0.5)).toFixed(1) + "px)" : "none";
+  desenharLogo(c, 0, 0, 640, clamp(p / 250, 0, 1));
+  c.restore();
+  if (p > 880 && p < 1180) {
+    c.save(); c.globalCompositeOperation = "lighter";
+    c.globalAlpha = 0.65 * (1 - (p - 880) / 300);
+    c.fillStyle = "#fff"; c.fillRect(0, 0, W, H); c.restore();
+  }
+  // o brilho passando por cima do logo
+  if (p > 1000 && IMG.logo) {
+    var kb = ((p - 1000) % 1400) / 1400;
+    var prop = IMG.logo.naturalHeight / IMG.logo.naturalWidth;
+    var lw = 640, lh = 640 * prop;
+    var tmp = document.createElement("canvas"); tmp.width = lw; tmp.height = lh;
+    var o = tmp.getContext("2d");
+    o.drawImage(IMG.logo, 0, 0, lw, lh);
+    o.globalCompositeOperation = "source-atop";
+    var gb = o.createLinearGradient(kb * lw * 1.6 - 220, 0, kb * lw * 1.6 + 220, 0);
+    gb.addColorStop(0, "rgba(255,255,255,0)");
+    gb.addColorStop(0.5, "rgba(255,255,255,.55)");
+    gb.addColorStop(1, "rgba(255,255,255,0)");
+    o.fillStyle = gb; o.fillRect(0, 0, lw, lh);
+    c.save(); c.globalCompositeOperation = "lighter";
+    c.drawImage(tmp, 540 - lw / 2, 880 - lh / 2); c.restore();
+  }
+  if (p > 1250) {
+    c.save(); c.globalAlpha = suave(clamp((p - 1250) / 400, 0, 1));
+    rotulo(c, "o treino, a comida e o gasto do dia", 1290);
+    c.restore();
+  }
+}
+
+// ---- o corpo que enche (o mesmo desenho do Balance) ----
+var CORPO = [
+  ["c", 60, 25, 17], ["r", 53, 40, 14, 10, 4], ["r", 33, 48, 54, 92, 18],
+  ["r", 17, 52, 15, 88, 7.5], ["r", 88, 52, 15, 88, 7.5],
+  ["r", 36, 128, 22, 124, 10], ["r", 62, 128, 22, 124, 10],
+];
+function caminhoCorpo(c) {
+  c.beginPath();
+  for (var i = 0; i < CORPO.length; i++) {
+    var p = CORPO[i];
+    if (p[0] === "c") { c.moveTo(p[1] + p[3], p[2]); c.arc(p[1], p[2], p[3], 0, Math.PI * 2); }
+    else { caminhoArredondado2(c, p[1], p[2], p[3], p[4], p[5]); }
+  }
+}
+function caminhoArredondado2(c, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+// camadas: [{v, cor}] de baixo para cima; cheio 0..1+
+function corpoBalance(c, x, y, escala, camadas, cheio, cor, p) {
+  var TOPO = 8, BASE = 252, alt = BASE - TOPO;
+  c.save();
+  c.translate(x, y); c.scale(escala, escala); c.translate(-60, -130);
+  c.save();
+  caminhoCorpo(c);
+  c.fillStyle = "rgba(255,255,255,.07)"; c.fill();
+  c.clip();
+  var nivel = clamp(cheio, 0, 1.12);
+  var total = camadas.reduce(function (a, k) { return a + k.v; }, 0) || 1;
+  var yy = BASE;
+  for (var i = 0; i < camadas.length; i++) {
+    var h = (camadas[i].v / total) * nivel * alt;
+    yy -= h;
+    c.fillStyle = camadas[i].cor;
+    c.fillRect(0, yy, 120, h + 0.8);
+  }
+  // a onda do topo do líquido
+  c.fillStyle = camadas.length ? camadas[camadas.length - 1].cor : BAL.c;
+  c.beginPath();
+  c.moveTo(0, yy + 2);
+  for (var wx = 0; wx <= 120; wx += 4) c.lineTo(wx, yy - 3 * Math.sin(wx / 12 + p / 260));
+  c.lineTo(120, yy + 12); c.lineTo(0, yy + 12); c.closePath(); c.fill();
+  // os pontinhos de LED por dentro
+  c.globalCompositeOperation = "destination-out";
+  c.fillStyle = "#000";
+  for (var ly = 0; ly < BASE; ly += 7) c.fillRect(0, ly, 120, 2.2);
+  c.restore();
+  // a linha da meta e o contorno
+  c.save();
+  c.strokeStyle = cor; c.lineWidth = 2.4;
+  c.shadowColor = cor; c.shadowBlur = 14;
+  caminhoCorpo(c); c.stroke();
+  c.restore();
+  c.save();
+  c.setLineDash([7, 7]); c.strokeStyle = "rgba(255,255,255,.55)"; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(-14, TOPO); c.lineTo(134, TOPO); c.stroke();
+  c.restore();
+  c.restore();
+}
+
+function cenaBalanco(c, p, cena) {
+  desenharArte(c, p + 10000, 2, 0.76);
+  desenharLed(c, p + 10000, p, false);
+  rotulo(c, "jarvis body balance", 300);
+  var k = clamp((p - 300) / 2300, 0, 1);
+  // o que entra
+  corpoBalance(c, 300, 820, 1.9, [
+    { v: 2.2, cor: BAL.c }, { v: 1.5, cor: BAL.p }, { v: 1.0, cor: BAL.g },
+  ], k * 0.86, BAL.c, p);
+  // o que sai
+  corpoBalance(c, 780, 820, 1.9, [{ v: 1, cor: "rgba(77,235,255,.85)" }], k * 1.0, CIANO, p + 400);
+  texto(c, "COMEU", 300, 1120, 40, "#FFFFFF", { traco: 0.14 });
+  texto(c, "GASTOU", 780, 1120, 40, "#FFFFFF", { traco: 0.14 });
+  numeroSobe(c, 0, 2140, p - 400, 1800, 300, 1210, 76, "", "");
+  numeroSobe(c, 0, 2630, p - 400, 1800, 780, 1210, 76, "", "");
+  c.save(); c.globalAlpha = 0.85;
+  texto(c, "kcal", 300, 1262, 30, CIANO, { traco: 0.16 });
+  texto(c, "kcal", 780, 1262, 30, CIANO, { traco: 0.16 });
+  c.restore();
+  if (p > 2600) {
+    var k2 = suave(clamp((p - 2600) / 500, 0, 1));
+    c.save(); c.globalAlpha = k2;
+    placa(c, 150, 1320, 780, 150, 28);
+    texto(c, "DÉFICIT DE 490 kcal HOJE", 540, 1418, 50, "grad", { italico: true, largMax: 700, brilho: "rgba(225,48,108,.5)" });
+    c.restore();
+  }
+}
+
+function cenaFase(c, p, cena) {
+  desenharArte(c, p + 16000, 3, 0.74);
+  desenharLed(c, p + 16000, p, cena.forte);
+  rotulo(c, "o que você está fazendo de verdade", 320);
+  // a régua cutting · manutenção · bulking
+  var y = 760;
+  c.save();
+  c.fillStyle = "rgba(0,0,0,.45)";
+  caminhoArredondado(c, 110, y - 34, 860, 68, 34); c.fill();
+  var gr = c.createLinearGradient(110, 0, 970, 0);
+  gr.addColorStop(0, "#35E0F0"); gr.addColorStop(0.5, "#8A8F9E"); gr.addColorStop(1, "#FF4D6D");
+  c.fillStyle = gr; c.globalAlpha = 0.5;
+  caminhoArredondado(c, 110, y - 34, 860, 68, 34); c.fill();
+  c.restore();
+  var pos = 110 + 860 * (0.22 + 0.02 * Math.sin(p / 600));
+  var kk = suave(clamp((p - 500) / 900, 0, 1));
+  c.save();
+  c.globalAlpha = kk;
+  c.fillStyle = "#fff"; c.shadowColor = CIANO; c.shadowBlur = 24;
+  caminhoArredondado(c, pos - 9, y - 50, 18, 100, 9); c.fill();
+  c.restore();
+  texto(c, "CUTTING", 230, y + 120, 34, "#35E0F0", { traco: 0.15 });
+  texto(c, "MANUTENÇÃO", 540, y + 120, 34, "#8A8F9E", { traco: 0.15 });
+  texto(c, "BULKING", 860, y + 120, 34, "#FF4D6D", { traco: 0.15 });
+  if (p > 1000) {
+    var k2 = suave(clamp((p - 1000) / 450, 0, 1));
+    c.save(); c.globalAlpha = k2;
+    placa(c, 130, 1000, 820, 250, 30);
+    texto(c, "VOCÊ ESTÁ EM", 540, 1072, 36, CIANO, { traco: 0.15 });
+    texto(c, "CUTTING", 540, 1162, 92, "grad", { italico: true, brilho: "rgba(225,48,108,.6)" });
+    texto(c, "-0,45 kg por semana", 540, 1222, 36, "#FFFFFF", { traco: 0.15 });
+    c.restore();
+  }
+  if (p > 2100) carimbo(c, "sem achismo", p - 2100, AMARELO, 1400, -4);
+}
+
+function cenaComida(c, p) {
+  desenharArte(c, p + 21000, 4, 0.78);
+  desenharLed(c, p + 21000, p, false);
+  rotulo(c, "anotar leva segundos", 300);
+  var itens = [
+    ["FOTO DO PRATO", "você marca o que tem e quanto ocupa", BAL.c],
+    ["PORÇÃO CASEIRA", "1 concha, 2 colheres, 1 filé", BAL.p],
+    ["OS GRAMAS DA BALANÇA", "pesou? é só digitar", BAL.g],
+  ];
+  for (var i = 0; i < itens.length; i++) {
+    var ap = p - 300 - i * 620;
+    if (ap < 0) continue;
+    var k = suave(clamp(ap / 420, 0, 1));
+    var y = 560 + i * 250;
+    c.save();
+    c.globalAlpha = k;
+    c.translate(540 * (1 - k) * 0.5, 0);
+    placa(c, 110, y - 86, 860, 180, 28);
+    c.fillStyle = itens[i][2];
+    c.shadowColor = itens[i][2]; c.shadowBlur = 18;
+    caminhoArredondado(c, 140, y - 56, 12, 120, 6); c.fill();
+    c.shadowBlur = 0;
+    texto(c, itens[i][0], 185, y - 6, 46, "#FFFFFF", { align: "left", largMax: 740, traco: 0.13 });
+    c.globalAlpha = k * 0.85;
+    texto(c, itens[i][1], 185, y + 50, 31, CIANO, { align: "left", largMax: 740, traco: 0.16 });
+    c.restore();
+  }
+  if (p > 2400) {
+    var k2 = suave(clamp((p - 2400) / 450, 0, 1));
+    c.save(); c.globalAlpha = k2;
+    texto(c, "E O GASTO DO DIA", 540, 1400, 50, "#FFFFFF", { traco: 0.14, largMax: 900 });
+    texto(c, "VEM DO SEU PRÓPRIO CORPO", 540, 1472, 50, "grad", { italico: true, traco: 0.14, largMax: 940 });
+    c.restore();
+  }
+}
+
+function cenaCatalogo(c, p) {
+  desenharArte(c, p + 26000, 5, 0.8);
+  desenharLed(c, p + 26000, p, false);
+  rotulo(c, "catálogo: a troca que muda alguma coisa", 300);
+  var k = suave(clamp(p / 500, 0, 1));
+  c.save(); c.globalAlpha = k;
+  placa(c, 90, 430, 900, 640, 30);
+  texto(c, "MESMO WHEY NOS DOIS LADOS", 540, 510, 32, CIANO, { traco: 0.16, largMax: 820 });
+  // as duas colunas
+  var linhas = [
+    ["", "A: MALTO", "B: FARINHA"],
+    ["kcal", "352", "345"],
+    ["carbo", "40 g", "34 g"],
+    ["proteína", "40 g", "42 g"],
+    ["fibra", "0 g", "0,9 g"],
+  ];
+  for (var i = 0; i < linhas.length; i++) {
+    var y = 600 + i * 90;
+    var ap = suave(clamp((p - 500 - i * 180) / 380, 0, 1));
+    c.save(); c.globalAlpha = k * ap;
+    if (i === 0) {
+      texto(c, linhas[i][1], 490, y, 36, BAL.c, { traco: 0.16, largMax: 240 });
+      texto(c, linhas[i][2], 790, y, 36, OK, { traco: 0.16, largMax: 240 });
+    } else {
+      c.save(); c.globalAlpha = k * ap * 0.9;
+      texto(c, linhas[i][0], 150, y, 34, "#FFFFFF", { align: "left", traco: 0.16 });
+      c.restore();
+      texto(c, linhas[i][1], 490, y, 42, "#FFFFFF", { traco: 0.14 });
+      texto(c, linhas[i][2], 790, y, 42, i === 1 || i === 2 || i === 3 || i === 4 ? OK : "#FFFFFF", { traco: 0.14 });
+    }
+    c.restore();
+  }
+  c.restore();
+  if (p > 2300) {
+    var k2 = suave(clamp((p - 2300) / 450, 0, 1));
+    c.save(); c.globalAlpha = k2;
+    texto(c, "A TROCA MEXE SÓ", 540, 1200, 48, "#FFFFFF", { traco: 0.14, largMax: 920 });
+    texto(c, "NO CARBOIDRATO", 540, 1270, 56, "grad", { italico: true, traco: 0.14, largMax: 920 });
+    c.restore();
+  }
+}
+
+function cenaTreino(c, p, cena) {
+  desenharArte(c, p + 30000, 0, 0.74);
+  desenharLed(c, p + 30000, p, cena.forte);
+  rotulo(c, "musculação", 300);
+  texto(c, "SUPINO RETO", 540, 420, 62, "#FFFFFF", { traco: 0.13, largMax: 920 });
+  // a carga que sobe
+  var k = suave(clamp((p - 400) / 1100, 0, 1));
+  c.save();
+  c.globalAlpha = 1;
+  texto(c, "80", 360, 640, 120, "#8A8F9E", { italico: true, traco: 0.12 });
+  c.globalAlpha = k;
+  texto(c, "→", 540, 620, 70, "#FFFFFF", { traco: 0.14 });
+  c.restore();
+  numeroSobe(c, 80, 82.5, p - 400, 1100, 745, 640, 124, "", "");
+  c.save(); c.globalAlpha = suave(clamp((p - 1200) / 400, 0, 1));
+  texto(c, "kg", 740, 712, 38, CIANO, { traco: 0.16 });
+  c.restore();
+  if (p > 1500) {
+    var k2 = suave(clamp((p - 1500) / 450, 0, 1));
+    c.save(); c.globalAlpha = k2;
+    placa(c, 120, 820, 840, 170, 28);
+    texto(c, "FECHOU AS 12 REPETIÇÕES", 540, 890, 38, "#FFFFFF", { traco: 0.15, largMax: 760 });
+    texto(c, "A CARGA SOBE SOZINHA", 540, 952, 42, OK, { traco: 0.15, largMax: 760 });
+    c.restore();
+  }
+  // o ciclo de 5 semanas
+  if (p > 2400) {
+    var k3 = suave(clamp((p - 2400) / 500, 0, 1));
+    c.save(); c.globalAlpha = k3;
+    rotulo(c, "ciclo de 5 semanas", 1105);
+    for (var i = 0; i < 5; i++) {
+      var x = 210 + i * 165;
+      var viva = i === 2;
+      c.save();
+      c.fillStyle = viva ? "rgba(225,48,108,.9)" : "rgba(255,255,255,.14)";
+      if (viva) { c.shadowColor = MARCA; c.shadowBlur = 26; }
+      caminhoArredondado(c, x - 60, 1160, 120, 120, 24); c.fill();
+      c.restore();
+      texto(c, String(i + 1), x, 1242, 56, i === 4 ? CIANO : "#FFFFFF", { traco: 0.13 });
+    }
+    texto(c, "SEMANA 3 · ACÚMULO", 540, 1360, 42, AMARELO, { traco: 0.14, largMax: 880 });
+    c.restore();
+  }
+  if (p > 3600) carimbo(c, "progressão automática", p - 3400, AMARELO, 1470, -3);
+}
+
+function cenaEyes(c, p) {
+  // a tela da câmera: fundo escuro com o esqueleto contando
+  c.fillStyle = "#07040E"; c.fillRect(0, 0, W, H);
+  desenharArte(c, p + 36000, 1, 0.9);
+  desenharLed(c, p + 36000, p, false);
+  rotulo(c, "jarvis eyes scan", 300);
+  // o esqueleto agachando: só tronco e membros, como no scanner
+  var CICLO = 1500;
+  var ciclo = (p % CICLO) / CICLO;
+  var desce = 0.5 - 0.5 * Math.cos(ciclo * Math.PI * 2);
+  var cxp = 480, pe = 1340;
+  var joeY = pe - 300 + desce * 90;      // joelho
+  var quadY = pe - 580 + desce * 300;    // quadril
+  var ombY = quadY - 330 + desce * 60;   // ombro
+  var larg = 118, quadril = 86;
+  var maoY = ombY + 300 - desce * 120;
+  function osso(x1, y1, x2, y2) {
+    c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+  }
+  function no(x, y) { c.beginPath(); c.arc(x, y, 11, 0, Math.PI * 2); c.fill(); }
+  c.save();
+  c.strokeStyle = OK; c.fillStyle = OK; c.lineWidth = 9; c.lineCap = "round";
+  c.shadowColor = OK; c.shadowBlur = 24;
+  osso(cxp - larg, ombY, cxp + larg, ombY);
+  osso(cxp - quadril, quadY, cxp + quadril, quadY);
+  osso(cxp - larg, ombY, cxp - quadril, quadY);
+  osso(cxp + larg, ombY, cxp + quadril, quadY);
+  osso(cxp - quadril, quadY, cxp - quadril - 24, joeY);
+  osso(cxp + quadril, quadY, cxp + quadril + 24, joeY);
+  osso(cxp - quadril - 24, joeY, cxp - quadril - 8, pe);
+  osso(cxp + quadril + 24, joeY, cxp + quadril + 8, pe);
+  // os braços vão à frente conforme o quadril desce: é o que dá o agachamento
+  var cotX = larg + 54, cotY = ombY + 130 - desce * 36;
+  var maoX = larg + 96 + desce * 54, maoXY = ombY + 212 - desce * 170;
+  osso(cxp - larg, ombY, cxp - cotX, cotY);
+  osso(cxp + larg, ombY, cxp + cotX, cotY);
+  osso(cxp - cotX, cotY, cxp - maoX, maoXY);
+  osso(cxp + cotX, cotY, cxp + maoX, maoXY);
+  [[cxp - larg, ombY], [cxp + larg, ombY], [cxp - quadril, quadY], [cxp + quadril, quadY],
+   [cxp - quadril - 24, joeY], [cxp + quadril + 24, joeY], [cxp - quadril - 8, pe], [cxp + quadril + 8, pe],
+   [cxp - cotX, cotY], [cxp + cotX, cotY], [cxp - maoX, maoXY], [cxp + maoX, maoXY]].forEach(function (pt) { no(pt[0], pt[1]); });
+  c.lineWidth = 7;
+  c.beginPath(); c.arc(cxp, ombY - 92, 46, 0, Math.PI * 2); c.stroke();
+  c.restore();
+  // o contador grande no canto
+  var reps = Math.min(12, Math.floor(p / CICLO) + 1);
+  var novo = (p % CICLO) < 220;
+  c.save();
+  c.translate(866, 620);
+  c.scale(novo ? 1.14 : 1, novo ? 1.14 : 1);
+  texto(c, String(reps), 0, 0, 190, "grad", { italico: true, brilho: "rgba(225,48,108,.6)", brilhoR: 34 });
+  c.restore();
+  texto(c, "REPETIÇÕES", 866, 692, 30, CIANO, { traco: 0.16, largMax: 330 });
+  if (p > 1600) {
+    c.save(); c.globalAlpha = suave(clamp((p - 1600) / 400, 0, 1));
+    placa(c, 130, 1320, 820, 160, 28);
+    texto(c, "AMPLITUDE COMPLETA", 540, 1390, 44, OK, { traco: 0.14, largMax: 740 });
+    texto(c, "continue assim", 540, 1446, 32, "#FFFFFF", { traco: 0.16, largMax: 740 });
+    c.restore();
+  }
+}
+
+function cenaCardio(c, p) {
+  desenharArte(c, p + 41000, 2, 0.8);
+  desenharLed(c, p + 41000, p, false);
+  rotulo(c, "corrida, esteira, bicicleta, rua", 300);
+  // o traçado do percurso se desenhando
+  // um percurso de rua: vai e volta, com quarteirões, não um círculo
+  var pts = [];
+  for (var i = 0; i <= 160; i++) {
+    var u = i / 160;
+    var x = 200 + u * 680 + 130 * Math.sin(u * Math.PI * 3.4 + 0.3) + 52 * Math.sin(u * Math.PI * 8.1);
+    var y = 1035 - u * 210 - 230 * Math.sin(u * Math.PI) + 120 * Math.sin(u * Math.PI * 5.2 + 0.9) + 38 * Math.cos(u * Math.PI * 9.7);
+    pts.push([x, y]);
+  }
+  c.save();
+  c.lineWidth = 12; c.lineCap = "round"; c.lineJoin = "round";
+  c.setLineDash([10, 14]);
+  c.strokeStyle = "rgba(77,235,255,.35)";
+  c.beginPath(); pts.forEach(function (q, i) { i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); }); c.stroke();
+  c.setLineDash([]);
+  var ate = Math.floor(clamp((p - 300) / 2100, 0, 1) * pts.length);
+  c.strokeStyle = OK; c.shadowColor = OK; c.shadowBlur = 22;
+  c.beginPath();
+  for (var j = 0; j < ate; j++) { j ? c.lineTo(pts[j][0], pts[j][1]) : c.moveTo(pts[j][0], pts[j][1]); }
+  c.stroke();
+  if (ate > 0 && ate < pts.length) {
+    c.fillStyle = "#fff"; c.beginPath(); c.arc(pts[ate - 1][0], pts[ate - 1][1], 14, 0, Math.PI * 2); c.fill();
+  }
+  c.restore();
+  // os números
+  var dados = [["5,2", "km"], ["5:29", "/km"], ["48", "VO2máx"]];
+  for (var d = 0; d < dados.length; d++) {
+    var ap = suave(clamp((p - 1200 - d * 350) / 420, 0, 1));
+    c.save(); c.globalAlpha = ap;
+    var x = 230 + d * 310;
+    texto(c, dados[d][0], x, 1300, 76, "grad", { italico: true, brilho: "rgba(225,48,108,.5)" });
+    texto(c, dados[d][1], x, 1356, 30, CIANO, { traco: 0.16 });
+    c.restore();
+  }
+  if (p > 2700) {
+    c.save(); c.globalAlpha = suave(clamp((p - 2700) / 400, 0, 1));
+    texto(c, "TUDO NA MESMA CONTA DO DIA", 540, 1470, 42, "#FFFFFF", { traco: 0.14, largMax: 920 });
+    c.restore();
+  }
+}
+
+function cenaRelogio(c, p) {
+  desenharArte(c, p + 46000, 3, 0.82);
+  desenharLed(c, p + 46000, p, false);
+  rotulo(c, "no pulso, sem pegar o celular", 300);
+  // o relógio redondo
+  var rx = 540, ry = 880, R = 300;
+  c.save();
+  c.fillStyle = "#0B0418";
+  c.shadowColor = "rgba(0,0,0,.8)"; c.shadowBlur = 50;
+  c.beginPath(); c.arc(rx, ry, R, 0, Math.PI * 2); c.fill();
+  c.restore();
+  // o anel do descanso esvaziando, do verde ao vermelho
+  var frac = clamp(1 - (p % 4200) / 4200, 0, 1);
+  var cores = ["#35E0F0", "#3BFF5A", "#C8FF3B", "#FFD23F", "#FF8A1A", "#FF3B30"];
+  var ci = Math.min(cores.length - 1, Math.floor((1 - frac) * cores.length));
+  c.save();
+  c.lineWidth = 26; c.lineCap = "round";
+  c.strokeStyle = "rgba(255,255,255,.1)";
+  c.beginPath(); c.arc(rx, ry, R - 22, 0, Math.PI * 2); c.stroke();
+  c.strokeStyle = cores[ci]; c.shadowColor = cores[ci]; c.shadowBlur = 30;
+  c.beginPath(); c.arc(rx, ry, R - 22, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2); c.stroke();
+  c.restore();
+  var seg = Math.ceil(frac * 90);
+  texto(c, "DESCANSO", rx, ry - 110, 34, CIANO, { traco: 0.15 });
+  texto(c, Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0"), rx, ry + 30, 150, "grad", { italico: true, brilho: "rgba(225,48,108,.6)" });
+  texto(c, "SUPINO · SÉRIE 3 DE 4", rx, ry + 110, 32, "#FFFFFF", { traco: 0.15, largMax: 460 });
+  // os botões
+  c.save();
+  var pulso = 1 + 0.04 * Math.sin(p / 320);
+  c.translate(rx, ry + 200); c.scale(pulso, pulso);
+  var gb = c.createLinearGradient(-130, 0, 130, 0);
+  gb.addColorStop(0, GRAD[0]); gb.addColorStop(0.5, GRAD[1]); gb.addColorStop(1, GRAD[2]);
+  c.fillStyle = gb; c.shadowColor = "rgba(225,48,108,.6)"; c.shadowBlur = 20;
+  caminhoArredondado(c, -130, -34, 260, 68, 34); c.fill();
+  c.restore();
+  texto(c, "FEITO", rx, ry + 215, 40, "#FFFFFF", { traco: 0.14 });
+  if (p > 1800) {
+    c.save(); c.globalAlpha = suave(clamp((p - 1800) / 450, 0, 1));
+    placa(c, 110, 1370, 860, 170, 28);
+    texto(c, "SÉRIE, DESCANSO, ÁGUA E COMIDA", 540, 1438, 36, "#FFFFFF", { traco: 0.15, largMax: 780 });
+    texto(c, "a toques, no relógio", 540, 1496, 32, CIANO, { traco: 0.16, largMax: 780 });
+    c.restore();
+  }
+}
+
+function cenaJarvis(c, p) {
+  desenharArte(c, p + 51000, 4, 0.82);
+  desenharLed(c, p + 51000, p, false);
+  rotulo(c, "jarvis", 300);
+  // a onda de voz
+  c.save();
+  c.translate(540, 760);
+  for (var b = 0; b < 19; b++) {
+    var x = (b - 9) * 52;
+    var h = 60 + 300 * Math.abs(Math.sin(p / 190 + b * 0.7)) * (1 - Math.abs(b - 9) / 15);
+    var g2 = c.createLinearGradient(0, -h, 0, h);
+    g2.addColorStop(0, GRAD[0]); g2.addColorStop(0.5, GRAD[1]); g2.addColorStop(1, GRAD[2]);
+    c.fillStyle = g2;
+    c.shadowColor = "rgba(225,48,108,.5)"; c.shadowBlur = 16;
+    caminhoArredondado(c, x - 15, -h / 2, 30, h, 15); c.fill();
+  }
+  c.restore();
+  c.save(); c.globalAlpha = suave(clamp(p / 400, 0, 1));
+  texto(c, "“JARVIS, ANOTA", 540, 1020, 64, "#FFFFFF", { italico: true, traco: 0.13, largMax: 940 });
+  texto(c, "80 POR 10”", 540, 1100, 64, "#FFFFFF", { italico: true, traco: 0.13, largMax: 940 });
+  c.restore();
+  if (p > 1100) {
+    c.save(); c.globalAlpha = suave(clamp((p - 1100) / 420, 0, 1));
+    placa(c, 150, 1230, 780, 150, 28);
+    texto(c, "SÉRIE ANOTADA · DESCANSO ABERTO", 540, 1312, 34, OK, { traco: 0.15, largMax: 700 });
+    c.restore();
+  }
+}
+
+function cenaStats(c, p, cena) {
+  desenharArte(c, p + 55000, 5, 0.76);
+  desenharLed(c, p + 55000, p, cena.forte);
+  rotulo(c, "o resultado em números", 300);
+  // o gráfico de evolução
+  var gx = 140, gy = 900, gw = 800, gh = 380;
+  c.save();
+  c.strokeStyle = "rgba(255,255,255,.14)"; c.lineWidth = 2;
+  for (var i = 0; i <= 4; i++) {
+    c.beginPath(); c.moveTo(gx, gy - (gh / 4) * i); c.lineTo(gx + gw, gy - (gh / 4) * i); c.stroke();
+  }
+  var vals = [0.12, 0.2, 0.17, 0.31, 0.38, 0.35, 0.5, 0.58, 0.64, 0.74, 0.82, 0.95];
+  var ate = clamp((p - 300) / 2000, 0, 1) * (vals.length - 1);
+  c.lineWidth = 10; c.lineCap = "round"; c.lineJoin = "round";
+  c.strokeStyle = grad(c, gx, gx + gw);
+  c.shadowColor = "rgba(225,48,108,.6)"; c.shadowBlur = 24;
+  c.beginPath();
+  for (var v = 0; v <= Math.floor(ate); v++) {
+    var x = gx + (gw / (vals.length - 1)) * v, y = gy - vals[v] * gh;
+    v ? c.lineTo(x, y) : c.moveTo(x, y);
+  }
+  if (ate % 1 > 0 && Math.floor(ate) + 1 < vals.length) {
+    var f = ate % 1, v0 = Math.floor(ate);
+    var x0 = gx + (gw / (vals.length - 1)) * v0, y0 = gy - vals[v0] * gh;
+    var x1 = gx + (gw / (vals.length - 1)) * (v0 + 1), y1 = gy - vals[v0 + 1] * gh;
+    c.lineTo(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f);
+  }
+  c.stroke();
+  c.restore();
+  texto(c, "12 SEMANAS", 540, 980, 32, CIANO, { traco: 0.16 });
+  // os três números
+  var nums = [[8.4, "TONELADAS", 0], [196, "SÉRIES", 1], [7, "RECORDES", 2]];
+  for (var n = 0; n < nums.length; n++) {
+    var ap = suave(clamp((p - 1400 - n * 330) / 420, 0, 1));
+    c.save(); c.globalAlpha = ap;
+    var nx = 230 + n * 310;
+    numeroSobe(c, 0, nums[n][0], p - 1400 - n * 330, 900, nx, 1180, 74);
+    texto(c, nums[n][1], nx, 1242, 28, CIANO, { traco: 0.16 });
+    c.restore();
+  }
+  if (p > 2700) carimbo(c, "você mede, você muda", p - 2600, AMARELO, 1420, -3);
+}
+
+function cenaEnquete(c, p) {
+  var g = c.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, "#170B27"); g.addColorStop(0.6, "#2B0E3A"); g.addColorStop(1, "#3A1430");
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  desenharArte(c, p + 61000, 0, 0.88);
+  desenharLed(c, p + 61000, p, true);
+  desenharLogo(c, 540, 380, 380, suave(clamp(p / 400, 0, 1)));
+  var k = suave(clamp((p - 300) / 450, 0, 1));
+  c.save(); c.globalAlpha = k;
+  texto(c, "QUAL VOCÊ QUER", 540, 700, 72, "#FFFFFF", { italico: true, traco: 0.13, largMax: 960 });
+  texto(c, "DOMINAR PRIMEIRO?", 540, 790, 72, "grad", { italico: true, traco: 0.13, largMax: 960, brilho: "rgba(225,48,108,.6)" });
+  c.restore();
+  var ops = [
+    ["1", "CALORIAS", BAL.c],
+    ["2", "TREINO", MARCA],
+    ["3", "CARDIO", CIANO],
+  ];
+  for (var i = 0; i < ops.length; i++) {
+    var ap = suave(clamp((p - 800 - i * 380) / 430, 0, 1));
+    if (ap <= 0) continue;
+    var y = 970 + i * 180;
+    var vivo = (Math.floor(p / 700) % 3) === i && p > 2200;
+    c.save();
+    c.globalAlpha = ap;
+    c.translate(540, y);
+    var es = 1 + (1 - ap) * 0.12 + (vivo ? 0.035 : 0);
+    c.scale(es, es);
+    c.translate(-540, -y);
+    c.fillStyle = vivo ? "rgba(255,255,255,.14)" : "rgba(0,0,0,.5)";
+    caminhoArredondado(c, 150, y - 62, 780, 124, 62); c.fill();
+    c.strokeStyle = ops[i][2]; c.lineWidth = vivo ? 6 : 3;
+    c.shadowColor = ops[i][2]; c.shadowBlur = vivo ? 30 : 12;
+    caminhoArredondado(c, 150, y - 62, 780, 124, 62); c.stroke();
+    c.shadowBlur = 0;
+    texto(c, ops[i][0], 232, y + 18, 54, ops[i][2], { traco: 0.14 });
+    texto(c, ops[i][1], 580, y + 18, 54, "#FFFFFF", { traco: 0.14, largMax: 560 });
+    c.restore();
+  }
+  if (p > 2600) {
+    c.save(); c.globalAlpha = suave(clamp((p - 2600) / 450, 0, 1));
+    texto(c, "COMENTA O NÚMERO AQUI EMBAIXO", 540, 1588, 52, AMARELO, { italico: true, traco: 0.14, largMax: 950 });
+    c.restore();
+  }
+  if (p > 3400) {
+    c.save(); c.globalAlpha = suave(clamp((p - 3400) / 450, 0, 1));
+    texto(c, "TREINO LIVRE  ·  " + INSTAGRAM, 540, 1724, 42, "#FFFFFF", { traco: 0.15 });
+    c.globalAlpha *= 0.78;
+    texto(c, "Ferramenta de registro e informação geral.", 540, 1800, 25, "#C9C4D4", { traco: 0.2 });
+    texto(c, "Não substitui médico nem profissional de Educação Física.", 540, 1838, 25, "#C9C4D4", { traco: 0.2 });
+    texto(c, "Procure um antes de começar ou mudar o seu treino.", 540, 1876, 25, "#C9C4D4", { traco: 0.2 });
+    c.restore();
+  }
+}
+
+var DESENHOS = {
+  gancho: cenaGancho, gancho2: cenaGancho2, vinheta: cenaVinheta,
+  balanco: cenaBalanco, fase: cenaFase, comida: cenaComida, catalogo: cenaCatalogo,
+  treino: cenaTreino, eyes: cenaEyes, cardio: cenaCardio, relogio: cenaRelogio,
+  jarvis: cenaJarvis, stats: cenaStats, enquete: cenaEnquete,
+};
+
+function desenharCena(c, i, p) {
+  var cena = CENAS[i];
+  c.save();
+  (DESENHOS[cena.tipo] || cenaBalanco)(c, p, cena);
+  c.restore();
+  legenda(c, cena.fala, p, cena.ms, cena.falaAte);
+  credito(c, cena.tipo);
+}
+
+// =====================================================================
+// As transições (as mesmas quatro do resumo animado)
+// =====================================================================
+function recorteTransicao(c, tipo, k) {
+  c.beginPath();
+  if (tipo === 0) {        // corte em diagonal
+    var d = k * (W + H);
+    c.moveTo(0, 0); c.lineTo(d, 0); c.lineTo(0, d); c.closePath();
+  } else if (tipo === 1) { // íris
+    c.arc(540, 960, k * 1250, 0, Math.PI * 2);
+  } else if (tipo === 2) { // persiana de seis faixas
+    for (var i = 0; i < 6; i++) {
+      var h = H / 6;
+      c.rect(0, i * h, W, h * k);
+    }
+  } else {                 // zoom com clarão
+    c.rect(0, 0, W, H);
+  }
+}
+function faixaTransicao(c, tipo, k) {
+  c.save();
+  if (tipo === 0) {
+    var d = k * (W + H);
+    c.strokeStyle = grad(c, 0, W); c.lineWidth = 16;
+    c.shadowColor = "rgba(225,48,108,.8)"; c.shadowBlur = 30;
+    c.beginPath(); c.moveTo(d, 0); c.lineTo(0, d); c.stroke();
+  } else if (tipo === 1) {
+    c.strokeStyle = grad(c, 0, W); c.lineWidth = 14;
+    c.shadowColor = "rgba(77,235,255,.8)"; c.shadowBlur = 30;
+    c.beginPath(); c.arc(540, 960, k * 1250, 0, Math.PI * 2); c.stroke();
+  } else if (tipo === 3) {
+    c.globalCompositeOperation = "lighter";
+    c.globalAlpha = 0.3 * (1 - Math.abs(k - 0.3) / 0.7);
+    c.fillStyle = "#fff"; c.fillRect(0, 0, W, H);
+  }
+  c.restore();
+}
+
+window.quadro = function (t) {
+  var c = cx;
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.clearRect(0, 0, W, H);
+  c.fillStyle = "#07040E"; c.fillRect(0, 0, W, H);
+  var i = 0;
+  while (i < CENAS.length - 1 && t >= INICIO[i + 1]) i++;
+  var p = t - INICIO[i];
+  var ent = p < TRANS && i > 0;
+  if (ent) {
+    desenharCena(c, i - 1, CENAS[i - 1].ms + p);
+    var k = suave(p / TRANS);
+    var tipo = (i - 1) % 4;
+    c.save();
+    if (tipo === 3) { c.translate(540, 960); var e = 1 + 0.18 * (1 - k); c.scale(e, e); c.translate(-540, -960); c.globalAlpha = k; }
+    else { recorteTransicao(c, tipo, k); c.clip(); }
+    desenharCena(c, i, p);
+    c.restore();
+    faixaTransicao(c, tipo, k);
+  } else {
+    desenharCena(c, i, p);
+  }
+};
+window.quadroJpeg = function (t) {
+  window.quadro(t);
+  return tela.toDataURL("image/jpeg", 0.92).slice(23);
+};
+
+Promise.all([
+  carregar("fundo", "../resumo-fundo.webp"),
+  carregar("frente", "../resumo-frente.webp"),
+  carregar("logo", "../logo-treino-livre.webp"),
+  document.fonts.load("400 100px 'Jogo Resumo'").catch(function () {}),
+  document.fonts.load("italic 400 100px 'Jogo Resumo'").catch(function () {}),
+]).then(function () {
+  return document.fonts.ready;
+}).then(function () {
+  window.quadro(0);
+  window.pronto = true;
+});
+</script>
+</body>
+</html>

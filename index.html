@@ -2286,7 +2286,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-26g";
+const VERSAO_APP = "2026-11-26h";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -43133,6 +43133,36 @@ function ordenarContas(lista, agora, cob) {
     return (b.ultimoAcesso || 0) - (a.ultimoAcesso || 0);
   });
 }
+// Quantas contas de cada tipo (2026-11-26h, pedido do dono: "melhore minha
+// visão dos tipos de usuários: os pagos, os que não estão pagos, os
+// cortesia"). **Cada conta entra num tipo só**, e a soma dá o total da lista:
+// um quadro que não fecha não serve para decidir nada. Quem está aguardando
+// ou bloqueado é contado por aí (não tem plano para olhar); o resto vai pelo
+// `planoDaConta`, a mesma régua que deixa entrar ou barra.
+const TIPOS_PLANO = ["dono", "pago", "vitalicio", "cortesia", "teste", "gratis"];
+function tipoDaConta(c, agora, cob) {
+  const s = situacaoConta(c, agora, cob);
+  if (s === "pendente" || s === "bloqueado" || s === "pagar" || s === "vencido") return s;
+  return planoDaConta(c, agora, cob).tipo;
+}
+function resumoPlanos(lista, agora, cob) {
+  const r = { dono: 0, pago: 0, vitalicio: 0, cortesia: 0, teste: 0, gratis: 0,
+    pagar: 0, vencido: 0, pendente: 0, bloqueado: 0, vencendo7: 0, jaPagaram: 0, nunca: 0 };
+  (lista || []).forEach((c) => {
+    const t = tipoDaConta(c, agora, cob);
+    if (r[t] !== undefined) r[t]++;
+    const p = planoDaConta(c, agora, cob);
+    // vence nos próximos 7 dias: é a lista que vira cobrança na semana que vem
+    if (TIPOS_PLANO.indexOf(t) >= 0 && p.ate > 0 && p.ate - agora < 7 * 864e5) r.vencendo7++;
+    // em "precisa pagar", separar quem já pagou alguma vez (renovação atrasada)
+    // de quem nunca pagou: são duas conversas diferentes
+    if (t === "pagar") { if (c.pagoAte > 0) r.jaPagaram++; else r.nunca++; }
+  });
+  r.pagantes = r.pago + r.vitalicio;
+  r.dentro = r.dono + r.pagantes + r.cortesia + r.teste + r.gratis;
+  r.fora = r.pagar + r.vencido + r.pendente + r.bloqueado;
+  return r;
+}
 function resumoContas(lista, agora, cob) {
   const r = { total: lista.length, pendente: 0, liberado: 0, bloqueado: 0, vencido: 0, pagar: 0, ativos7: 0, hoje: 0, online: 0, auto: 0, sumidos: 0, vencendo: 0, pagantes: 0, cortesia: 0 };
   const inicioHoje = new Date(agora); inicioHoje.setHours(0, 0, 0, 0);
@@ -43157,6 +43187,11 @@ function filtroConta(c, filtro, agora, cob) {
   if (!filtro || filtro === "todos") return true;
   if (filtro === "pagantes") { const t = planoDaConta(c, agora, cob).tipo; return t === "pago" || t === "vitalicio"; }
   if (filtro === "cortesia") return planoDaConta(c, agora, cob).tipo === "cortesia";
+  // um filtro por tipo, com o mesmo nome do quadro dos tipos
+  if (TIPOS_PLANO.indexOf(filtro) >= 0) return tipoDaConta(c, agora, cob) === filtro;
+  if (filtro === "vencendo7") { const p = planoDaConta(c, agora, cob); return TIPOS_PLANO.indexOf(tipoDaConta(c, agora, cob)) >= 0 && p.ate > 0 && p.ate - agora < 7 * 864e5; }
+  if (filtro === "jaPagaram") return tipoDaConta(c, agora, cob) === "pagar" && c.pagoAte > 0;
+  if (filtro === "nunca") return tipoDaConta(c, agora, cob) === "pagar" && !(c.pagoAte > 0);
   if (filtro === "online") return onlineAgora(c, agora);
   if (filtro === "auto") return entrouAutomatico(c);
   if (filtro === "hoje") { const d = new Date(agora); d.setHours(0, 0, 0, 0); return !!c.ultimoAcesso && c.ultimoAcesso >= d.getTime(); }
@@ -45239,6 +45274,79 @@ function HistoricoAceites({ onVoltar, buscaInicial }) {
 
 // A cobrança no painel do dono: a chave grátis/pago, os planos e o Pix, e os
 // pagamentos que esperam confirmação.
+// O quadro dos tipos de conta (2026-11-26h). Cada linha é um botão que filtra
+// a lista embaixo: número sem caminho é relatório, não painel.
+const LINHAS_TIPO = [
+  { id: "pago", ic: "\u{1F4B3}", nome: "Pagando", oque: "plano pago valendo", cor: "var(--ok)", dentro: true },
+  { id: "vitalicio", ic: "\u{267E}", nome: "Vitalício", oque: "pagou uma vez, não vence", cor: "var(--ok)", dentro: true },
+  { id: "cortesia", ic: "\u{1F381}", nome: "Cortesia", oque: "usa sem pagar, por sua conta", cor: "#FFB21A", dentro: true },
+  { id: "teste", ic: "\u{1F9EA}", nome: "Em teste", oque: "janela grátis do começo", cor: "#FFB21A", dentro: true },
+  { id: "dono", ic: "\u{1F451}", nome: "Você", oque: "a sua conta", cor: "var(--cinza)", dentro: true },
+  { id: "gratis", ic: "\u{1F193}", nome: "Grátis", oque: "liberado com a cobrança desligada", cor: "var(--cinza)", dentro: true },
+  { id: "pagar", ic: "\u{1F6AB}", nome: "Precisa pagar", oque: "está vendo a tela de planos", cor: "var(--perigo)" },
+  { id: "vencido", ic: "\u{231B}", nome: "Prazo vencido", oque: "o prazo de acesso acabou", cor: "var(--perigo)" },
+  { id: "pendente", ic: "\u{23F3}", nome: "Aguardando", oque: "esperando a sua liberação", cor: "var(--obs)" },
+  { id: "bloqueado", ic: "\u{26D4}", nome: "Bloqueados", oque: "barrados por você", cor: "var(--cinza2)" },
+];
+function CartaoTiposConta({ rp, total, cob, filtro, onFiltrar }) {
+  const linhas = LINHAS_TIPO.filter((l) => rp[l.id] > 0 || (cob.ligada && (l.id === "pago" || l.id === "pagar")));
+  const maior = Math.max(1, ...linhas.map((l) => rp[l.id] || 0));
+  const pct = (n) => (total > 0 ? Math.round((n / total) * 100) : 0);
+  return (
+    <div style={S.card}>
+      <div style={S.label}>👥 Que tipo de usuário é cada um</div>
+      <div style={{ fontSize: 12.5, color: "var(--cinza)", margin: "4px 0 10px", lineHeight: 1.5 }}>
+        {cob.ligada ? "Com a cobrança ligada, só entram no app os de cima." : "A cobrança está desligada: todo mundo liberado entra."} Toque numa linha para ver a lista.
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <button onClick={() => onFiltrar("todos")} style={{ flex: 1, textAlign: "left", padding: "8px 10px", borderRadius: 12, border: "1px solid var(--borda2)", background: "none", color: "var(--texto)", cursor: "pointer" }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "var(--ok)" }}>{rp.dentro}</div>
+          <div style={{ fontSize: 11.5, color: "var(--cinza)" }}>com acesso hoje</div>
+        </button>
+        <button onClick={() => onFiltrar(cob.ligada ? "pagar" : "pendente")} style={{ flex: 1, textAlign: "left", padding: "8px 10px", borderRadius: 12, border: "1px solid var(--borda2)", background: "none", color: "var(--texto)", cursor: "pointer" }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: rp.fora > 0 ? "var(--perigo)" : "var(--texto)" }}>{rp.fora}</div>
+          <div style={{ fontSize: 11.5, color: "var(--cinza)" }}>sem acesso hoje</div>
+        </button>
+        <button onClick={() => onFiltrar("pagantes")} style={{ flex: 1, textAlign: "left", padding: "8px 10px", borderRadius: 12, border: "1px solid var(--borda2)", background: "none", color: "var(--texto)", cursor: "pointer" }}>
+          <div style={{ fontSize: 20, fontWeight: 900 }}>{rp.pagantes}</div>
+          <div style={{ fontSize: 11.5, color: "var(--cinza)" }}>pagaram</div>
+        </button>
+      </div>
+      {linhas.map((l) => (
+        <button key={l.id} onClick={() => onFiltrar(l.id)} aria-pressed={filtro === l.id}
+          style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 8px", marginBottom: 2, borderRadius: 10, cursor: "pointer", color: "var(--texto)",
+            background: filtro === l.id ? "rgba(225,48,108,0.12)" : "none", border: "1px solid " + (filtro === l.id ? "var(--marca)" : "transparent") }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span aria-hidden="true">{l.ic}</span>
+            <b style={{ fontSize: 13.5, flex: 1, minWidth: 0 }}>{l.nome}</b>
+            <b style={{ fontSize: 15, color: l.cor }}>{rp[l.id] || 0}</b>
+            <span style={{ fontSize: 11, color: "var(--cinza2)", minWidth: 32, textAlign: "right" }}>{pct(rp[l.id] || 0)}%</span>
+          </div>
+          <div style={{ height: 4, borderRadius: 99, background: "var(--borda2)", margin: "4px 0 3px" }}>
+            <div style={{ height: 4, borderRadius: 99, width: Math.round(((rp[l.id] || 0) / maior) * 100) + "%", background: l.cor }} />
+          </div>
+          <div style={{ fontSize: 11.5, color: "var(--cinza)" }}>{l.oque} ›</div>
+        </button>
+      ))}
+      {rp.vencendo7 > 0 && (
+        <button onClick={() => onFiltrar("vencendo7")} style={{ ...S.btnGhost, width: "100%", marginTop: 8, padding: "9px 8px", fontSize: 13 }}>
+          ⏳ {rp.vencendo7} {plural(rp.vencendo7, "conta vence", "contas vencem")} nos próximos 7 dias ›
+        </button>
+      )}
+      {rp.jaPagaram > 0 && (
+        <button onClick={() => onFiltrar("jaPagaram")} style={{ ...S.btnGhost, width: "100%", marginTop: 6, padding: "9px 8px", fontSize: 13 }}>
+          🔄 {rp.jaPagaram} já {plural(rp.jaPagaram, "pagou", "pagaram")} antes e {plural(rp.jaPagaram, "está", "estão")} sem plano ›
+        </button>
+      )}
+      {rp.nunca > 0 && (
+        <button onClick={() => onFiltrar("nunca")} style={{ ...S.btnGhost, width: "100%", marginTop: 6, padding: "9px 8px", fontSize: 13 }}>
+          🆕 {rp.nunca} nunca {plural(rp.nunca, "pagou", "pagaram")} ›
+        </button>
+      )}
+    </div>
+  );
+}
+
 function CartaoCobranca({ cob, carregado, lista, agora, semPlano, pagamentos, salvarCfg, pedirConfirmacao, cortesiaParaTodos, onVerPagamentos, onConfirmar, onRecusar, mexendo }) {
   const [editando, setEditando] = useState(false);
   const [recusando, setRecusando] = useState(null);
@@ -45649,9 +45757,12 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
       <div style={{ fontSize: 11, color: filtro === f ? "var(--marca)" : "var(--cinza)", fontWeight: filtro === f ? 800 : 400 }}>{rot} ›</div>
     </button>
   );
+  const rp = resumoPlanos(lista || [], agora, cob);
   const NOME_FILTRO = { todos: "Todas as contas", pendente: "Aguardando a sua liberação", liberado: "Liberadas", online: "Online agora", hoje: "Entraram hoje",
     ativos7: "Ativas nos últimos 7 dias", auto: "Entraram pela aprovação automática", sumidos: "Sumidas há 30 dias ou mais", vencendo: "Prazo vencendo ou vencido", bloqueado: "Bloqueadas",
-    pagantes: "Pagantes", cortesia: "Com cortesia", pagar: "Precisam pagar" };
+    pagantes: "Pagantes (pago ou vitalício)", cortesia: "Com cortesia", pagar: "Precisam pagar",
+    pago: "Com plano pago valendo", vitalicio: "Vitalícios", teste: "No período de teste", gratis: "Grátis (cobrança desligada)",
+    dono: "A sua conta", vencendo7: "Vencem nos próximos 7 dias", jaPagaram: "Já pagaram antes e estão sem plano", nunca: "Nunca pagaram" };
   const pequeno = { ...S.btnGhost, flex: "1 1 45%", padding: "8px 6px", fontSize: 12.5 };
   if (verAceites) return <HistoricoAceites buscaInicial={verAceites.busca} onVoltar={() => setVerAceites(null)} />;
   if (verPagamentos) return <HistoricoPagamentos lista={pagamentos} buscaInicial={verPagamentos.busca} onVoltar={() => setVerPagamentos(null)}
@@ -45673,6 +45784,8 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
         </div>
         <button onClick={carregar} style={{ ...S.btnGhost, width: "100%", marginTop: 6, fontSize: 13 }}>🔄 Atualizar a lista</button>
       </div>
+
+      {lista && <CartaoTiposConta rp={rp} total={r.total} cob={cob} filtro={filtro} onFiltrar={irParaLista} />}
 
       <CartaoCobranca cob={cob} carregado={cfgBruta !== null} lista={lista || []} agora={agora} semPlano={semPlano} pagamentos={pagamentos}
         salvarCfg={salvarCfg} pedirConfirmacao={pedirConfirmacao} cortesiaParaTodos={cortesiaParaTodos}
@@ -45737,6 +45850,8 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
         {(cob.ligada || r.pagantes > 0) && chip("pagantes", "💳 Pagantes", r.pagantes)}
         {(cob.ligada || r.cortesia > 0) && chip("cortesia", "🎁 Cortesia", r.cortesia)}
         {cob.ligada && chip("pagar", "Precisa pagar", r.pagar)}
+        {rp.teste > 0 && chip("teste", "🧪 Em teste", rp.teste)}
+        {rp.vitalicio > 0 && chip("vitalicio", "♾ Vitalício", rp.vitalicio)}
       </div>
       <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou e-mail" aria-label="Buscar por nome ou e-mail" style={{ ...S.input, marginBottom: 10 }} />
       {lista === null && <div style={{ ...S.card, color: "var(--cinza)" }}>Carregando…</div>}

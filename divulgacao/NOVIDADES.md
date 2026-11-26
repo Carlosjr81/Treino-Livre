@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-26h — No painel do criador: quem paga, quem não paga e quem é cortesia
+
+- **Em uma frase:** o painel de usuários agora mostra, num quadro só, que tipo de usuário é cada pessoa — e cada linha abre a lista dela.
+- **O que mudou:** apareceu o quadro **👥 Que tipo de usuário é cada um**, com três números em cima (com acesso hoje · sem acesso hoje · pagaram) e uma linha por tipo: **Pagando**, **Vitalício**, **Cortesia**, **Em teste**, **Você**, **Grátis**, **Precisa pagar**, **Prazo vencido**, **Aguardando** e **Bloqueados** — cada uma com o número, a fatia do total e uma frase dizendo o que aquilo quer dizer. Toque numa linha e a lista embaixo filtra. Abaixo vêm três atalhos: quantas contas **vencem nos próximos 7 dias**, quantas **já pagaram antes e estão sem plano** (é renovação atrasada) e quantas **nunca pagaram**. Os chips ganharam 🧪 Em teste e ♾ Vitalício.
+- **Por que importa para quem treina:** é a tela de quem cuida do app. Com uma olhada dá para saber quem está pagando, quem está só de cortesia e quem vai vencer na semana que vem — sem abrir conta por conta.
+- **Como usar:** Ajustes › 👑 Sua conta › 👥 Painel de usuários. O quadro fica logo abaixo dos números do topo.
+- **Ideias de vídeo:** não é uma tela de usuário — é só do criador, e não precisa aparecer nos vídeos.
+- **Não prometer:** os números são os das contas de verdade; o painel não mostra dinheiro arrecadado (isso fica no histórico de pagamentos).
+
+---
+
 ## 2026-11-26g — O shake intra-treino pronto na lista
 
 - **Em uma frase:** quem toma shake no meio do treino agora tem ele pronto na lista: maltodextrina, glicerina e creatina, num toque.

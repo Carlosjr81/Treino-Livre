@@ -696,6 +696,39 @@ pagar". Ele pôs **zero dias de teste** no painel.
   "nesquik" ou "moça" acha, e o app não apresenta os números como sendo os da
   marca — eles mudam com o fabricante, e o rodapé do catálogo já diz isso.
 
+### Os tipos de usuário no painel (`tipoDaConta`, `resumoPlanos`, `CartaoTiposConta`, 2026-11-26h)
+
+Pedido do dono: "no meu painel de controle melhore minha visão dos tipos de
+usuários: os pagos, os que não estão pagos, os cortesia".
+
+- **Cada conta entra num tipo só, e a soma fecha com o total da lista**
+  (`resumoPlanos`: `dentro + fora === total`). Quadro que não fecha não serve
+  para decidir nada, e o teste cobra isso. `tipoDaConta` devolve a situação
+  quando ela manda (pendente, bloqueado, vencido, pagar) e, fora disso, o tipo
+  do `planoDaConta` — **a mesma régua que deixa entrar ou barra**, e não uma
+  segunda contagem que podia divergir dela. Bloqueado com plano pago continua
+  contando como bloqueado: ele não entra.
+- **O quadro** (`CartaoTiposConta`, acima do de cobrança): três números em
+  cima (com acesso hoje, sem acesso hoje, pagaram) e uma linha por tipo
+  (`LINHAS_TIPO`) com o número, a fatia do total e **o que aquilo quer dizer**
+  — "está vendo a tela de planos", "usa sem pagar, por sua conta". Toda linha
+  é um botão que filtra a lista embaixo (`irParaLista`): número sem caminho é
+  relatório, não painel. Linha zerada some, menos Pagando e Precisa pagar com
+  a cobrança ligada (o zero ali é informação).
+- **Três recortes que viram trabalho**: quem **vence nos próximos 7 dias**
+  (inclui o teste que acaba: também vai cair na tela de planos), quem **já
+  pagou antes e está sem plano** (renovação atrasada — outra conversa) e quem
+  **nunca pagou**. Os filtros `vencendo7`, `jaPagaram` e `nunca`.
+- **Os filtros batem com os números**: todo tipo de `TIPOS_PLANO` virou filtro
+  com o mesmo nome, pelo mesmo `tipoDaConta`. O `pagantes` (pago + vitalício)
+  e o `pagar` de antes continuam como eram.
+- **Nada de dinheiro aqui**: o quadro conta contas. Quanto entrou no mês e no
+  ano continua no `HistoricoPagamentos`, que lê os pagamentos de verdade.
+- Coberto por `teste-acesso.js` (162 checagens: a soma que fecha, cada tipo, o
+  bloqueado com plano, a cobrança desligada, e cada filtro batendo com a sua
+  contagem). No navegador, com o Firebase de mentira e onze contas de todos os
+  tipos: o quadro inteiro e o filtro de cada linha.
+
 ## O lembrete de vencimento (`tempoDePlano`, `avisoDeVencimento`, `FaixaVencimento`, 2026-11-26f)
 
 Pedido do dono: "faça um lembrete de vencimento para os usuários não deixarem
@@ -852,7 +885,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.509 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.524 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -937,7 +970,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v289) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v290) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |

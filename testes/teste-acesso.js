@@ -10,7 +10,7 @@ function pedaco(de, ate) {
 const plural = (n, s, p) => (n === 1 ? s : p);
 eval(pedaco("const semAcento = (s) =>", ";\n") + ";\nglobalThis.semAcento = semAcento;");
 eval(pedaco("// ---------------- ACESSO: AS CONTAS", "// ---------------- FIM DAS CONTAS") +
-  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO, situacaoConta, prazoAte, recadoNovo, csvContas, filtroConta, entrouAutomatico, autoNovos, csvAceites, ordenarAceites, lerCobranca, planoDaConta, acessoPago, pixCopiaECola, crc16Pix, txidPagamento, planosAtivos, planoPorId, resumoPagamentos, csvPagamentos, ordenarPagamentos, fimDoDia, textoPlanoConta, precoTexto, tempoDePlano, avisoDeVencimento, DIAS_AVISO_VENCE };");
+  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO, situacaoConta, prazoAte, recadoNovo, csvContas, filtroConta, entrouAutomatico, autoNovos, csvAceites, ordenarAceites, lerCobranca, planoDaConta, acessoPago, pixCopiaECola, crc16Pix, txidPagamento, planosAtivos, planoPorId, resumoPagamentos, csvPagamentos, ordenarPagamentos, fimDoDia, textoPlanoConta, precoTexto, tempoDePlano, avisoDeVencimento, DIAS_AVISO_VENCE, tipoDaConta, resumoPlanos, TIPOS_PLANO, filtroConta };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -304,6 +304,49 @@ console.log("\n--- a cobrança (o app pago) ---");
   const fonte = require("fs").readFileSync(require("path").join(__dirname, "..", "index.html"), "utf8");
   teste("o lembrete diz que a renovacao nao e automatica", true, /A renovação não é automática/.test(fonte));
   teste("a faixa do vencimento so aparece quando falta pouco", true, /\["perto", "amanha"\]\.indexOf\(t\.urg\) < 0/.test(fonte));
+}
+// ---- os tipos de usuário no painel (2026-11-26h) ----
+{
+  const dia = 864e5;
+  const ag = Date.UTC(2026, 10, 26, 15, 0, 0);
+  const lig = A.lerCobranca({ cobranca: true, cobrancaDesde: ag - 90 * dia, testeDias: 7, planos: "[]" });
+  const desl = A.lerCobranca({});
+  const base = (x) => Object.assign({ uid: "u", email: "a@x.com", status: "liberado", criadoEm: ag - 90 * dia }, x);
+  const lista = [
+    base({ uid: "dono", email: "carlos.jr.81@hotmail.com" }),
+    base({ uid: "p1", pagoAte: ag + 30 * dia, plano: "mensal" }),
+    base({ uid: "p2", pagoAte: ag + 3 * dia, plano: "mensal" }),
+    base({ uid: "vit", vitalicio: true }),
+    base({ uid: "cor", cortesia: true, cortesiaAte: 0 }),
+    base({ uid: "tes", criadoEm: ag - 2 * dia }),
+    base({ uid: "sem" }),
+    base({ uid: "velho", pagoAte: ag - 10 * dia }),
+    base({ uid: "esp", status: "pendente" }),
+    base({ uid: "blo", status: "bloqueado" }),
+    base({ uid: "venc", ate: ag - dia }),
+  ];
+  const rp = A.resumoPlanos(lista, ag, lig);
+
+  teste("cada conta entra num tipo so, e a soma fecha com a lista", lista.length, rp.dentro + rp.fora);
+  teste("os pagos", [2, 1, 3], [rp.pago, rp.vitalicio, rp.pagantes]);
+  teste("cortesia e teste nao se misturam com os pagos", [1, 1], [rp.cortesia, rp.teste]);
+  teste("quem precisa pagar", 2, rp.pagar);
+  teste("aguardando e bloqueado contam por fora do plano", [1, 1, 1], [rp.pendente, rp.bloqueado, rp.vencido]);
+  teste("quem vence nos proximos 7 dias (o teste que acaba tambem)", 2, rp.vencendo7);
+  teste("ja pagou antes x nunca pagou", [1, 1], [rp.jaPagaram, rp.nunca]);
+
+  teste("o tipo do dono vence tudo", "dono", A.tipoDaConta(lista[0], ag, lig));
+  teste("bloqueado nao aparece como pagante mesmo com plano", "bloqueado",
+    A.tipoDaConta(base({ status: "bloqueado", pagoAte: ag + 30 * dia }), ag, lig));
+  teste("com a cobranca desligada todo liberado e gratis", [lista.length - 3, 0],
+    [A.resumoPlanos(lista, ag, desl).gratis + A.resumoPlanos(lista, ag, desl).dono + A.resumoPlanos(lista, ag, desl).cortesia + A.resumoPlanos(lista, ag, desl).vitalicio + A.resumoPlanos(lista, ag, desl).pago, A.resumoPlanos(lista, ag, desl).pagar]);
+
+  const filtrar = (f) => lista.filter((c) => A.filtroConta(c, f, ag, lig)).map((c) => c.uid);
+  teste("o filtro de cada tipo bate com a contagem", [2, 1, 1, 1], [filtrar("pago").length, filtrar("vitalicio").length, filtrar("cortesia").length, filtrar("teste").length]);
+  teste("o filtro dos que vencem em 7 dias", ["p2", "tes"], filtrar("vencendo7"));
+  teste("o filtro de quem ja pagou antes", ["velho"], filtrar("jaPagaram"));
+  teste("o filtro de quem nunca pagou", ["sem"], filtrar("nunca"));
+  teste("o filtro antigo de pagantes continua igual", 3, filtrar("pagantes").length);
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

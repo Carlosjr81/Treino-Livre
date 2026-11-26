@@ -885,7 +885,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.591 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.627 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -970,7 +970,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v293) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v294) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6964,6 +6964,87 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
 - **O gasto pelo corpo prefere a pesagem da manhã** (em jejum, oscila menos) e
   o `CartaoPreparo` diz quantos dias faltam para o corpo assumir a conta (ou o
   que falta: dias anotados, pesagens, intervalo).
+
+### O espaço que o treino abre, e as janelas dos nutrientes (2026-11-26l)
+
+Dois pedidos do dono. Os dois são blocos puros, cobertos por
+`teste-balance.js` (292 checagens).
+
+**1. "Quanto mais exercício, mais a pessoa pode comer e ainda bater as
+metas. Confirme essa teoria e gamifique"** (`espacoDoTreino`,
+`comidaNoEspaco`, `CartaoEspacoTreino`).
+
+- **Confirmado, e a conta já era essa — o que faltava era mostrar.** O
+  `gastoDoDia` soma o treino na atividade e o `metaDoDia` sai do gasto:
+  quem treinou hoje já recebeu uma meta maior hoje, e isso nunca apareceu
+  escrito. Então **nada de crédito inventado**: o espaço é a meta deste dia
+  menos a meta que o MESMO dia teria sem o treino (`gastoSem` no
+  `calcDia`, `metaSem` no `comMeta`), pela mesma função.
+- **Com o relógio, a comparação é com um dia comum.** As calorias ativas
+  medidas já contêm o treino, então o `gastoSem` troca as de hoje pela
+  média de 14 dias. Sem média (relógio novo), o espaço sai como zero e o
+  cartão não aparece — melhor que um número que não dá para separar.
+- **O espaço quase nunca é igual ao gasto do treino, e a tela diz por quê**
+  (`parte`): no cutting o `metaDoDia` limita o déficit a 25% do gasto, e
+  acima disso parte do treino vira déficit maior em vez de comida; e pode
+  passar de 100% porque digerir a comida a mais também gasta (uns 10%).
+  Sem essa linha, o número pareceria erro de conta.
+- **As duas ressalvas ficam na tela, não só no comentário**: toda conta de
+  caloria de exercício é otimista, e o gasto total não sobe na mesma
+  proporção do treino (Careau e colegas 2021; o "constrained total energy
+  expenditure" de Pontzer). Por isso o app mostra o espaço que a META
+  abriu, e nunca "você queimou X, pode comer X".
+- **O que nunca se escreve ali**: nada que trate o treino como moeda de
+  comida (ganhar para gastar, treinar para merecer a sobremesa, queimar
+  primeiro e comer depois). Treino como moeda é o caminho curto para a
+  compensação alimentar; o espaço é informação sobre a meta. O teste
+  procura essas frases.
+- **O que cabe no espaço** sai do catálogo (`COMIDAS_ESPACO`), e nenhuma
+  régua pede mais de 8 porções: ninguém come 13 ovos.
+
+**2. "Pesquise o timing e os intervalos para a ingestão dos nutrientes,
+deixe um intervalo para comer cada alimento na melhor janela, e gamifique"**
+(`JANELAS_NUTRIENTE`, `MITOS_TIMING`, `janelasDoDia`, `CartaoJanelas`).
+
+- **O achado que manda aqui: a "janela anabólica" de 30 minutos é mito**
+  (Aragon e Schoenfeld 2013; meta-análise de Schoenfeld e colegas 2013).
+  Igualando a proteína total do dia, a hora do shake deixa de ter efeito.
+  O app **desmente** isso em vez de repetir — é o que a maioria dos apps
+  de dieta ainda vende.
+- **O que sobrou com apoio real**: a distribuição da proteína (0,4 g/kg em
+  4 refeições; Schoenfeld e Aragon 2018), 25 a 40 g de proteína lenta antes
+  de dormir (Res 2012, Snijders 2015), cafeína 30 a 60 min antes (ISSN,
+  Guest 2021) e o carboidrato correndo depois do treino **só** com menos de
+  8 h até a sessão seguinte (ISSN, Kerksick 2017). Creatina: a hora quase
+  não importa (ISSN, Kreider 2017) — está ali para a pessoa não perder
+  tempo com isso.
+- **Cada janela carrega a força da evidência e a fonte na tela**
+  (`FORCA_JANELA`), e as que o app não tem como medir (cafeína, creatina)
+  **não valem ponto**: inventar acerto para o que não se mede é a mesma
+  coisa que inventar número.
+- **Os horários saem do dia da pessoa**, não de uma tabela fixa:
+  `horaDoTreino` tira o começo do treino do histórico (a data do registro
+  é o FIM, então o início é o fim menos a duração) ou da sessão aberta, e
+  a janela da noite sai de `perfil.dorme` (padrão 23 h). **Sem treino, as
+  janelas presas a ele não existem** — e não existir é diferente de ter
+  sido perdida (estado `semTreino`, fora do placar).
+- **O acerto é medido no que foi anotado** (`itensComHora` pelo `t` de cada
+  item): carboidrato ≥ 25 g na janela de antes, proteína ≥ 20 g na de
+  depois, ≥ 25 g na da noite, e 3 refeições de ≥ 20 g separadas por 2 h e
+  meia na distribuição — três shakes colados não são três refeições, e o
+  teste cobra isso.
+- **Nada vira obrigação.** Errar a janela não tira ponto nem recebe bronca,
+  e o cartão abre dizendo que o total do dia pesa muito mais que a hora.
+  Horário de comida virando regra moral é outro problema, não um shape.
+- **No jogo**: missão `timing` (+20 XP, "acertar 2 janelas", não todas) e a
+  medalha **No ritmo** (7 dias seguidos). O dia cheio foi de 100 para
+  120 XP.
+- Conferido no navegador com um dia de 7 refeições e treino das 17h55 às
+  19h: as quatro janelas com placar acenderam, o espaço deu +466 kcal para
+  419 gastas (a digestão), e o cartão explicou a diferença. **Não validado
+  num aparelho.**
+- **Falta o pedido das notificações** (celular e relógio) desses horários:
+  vai na publicação seguinte.
 
 ### Os lanches, tipo por tipo, e os macros lidos pelo objetivo (2026-11-26k)
 

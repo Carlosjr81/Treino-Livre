@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -524,15 +524,17 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   const dia = (d, o) => Object.assign({
     d: d, dia: { itens: [], agua: 0 }, tot: { k: 2000, p: 150, c: 200, g: 60, alc: 0, agua: 3000, itens: 4 },
     treino: { kcal: 300, min: 50 }, meta: { k: 2000, p: 150, c: 200, g: 60, agua: 3000 },
-    status: { id: "certo" }, comeu: 2000,
+    janelas: { acertos: 2, total: 4 }, status: { id: "certo" }, comeu: 2000,
   }, o || {});
   const cheio = dia("2026-11-26");
 
-  teste("as cinco missoes somam 100 XP no dia", 100, B.XP_DIA_BALANCE);
-  teste("o dia inteiro cumpre as cinco", [5, 100], [B.missoesDoDia(cheio).filter((m) => m.pronto).length, B.xpDoDia(cheio)]);
+  teste("as seis missoes somam 120 XP no dia", 120, B.XP_DIA_BALANCE);
+  teste("o dia inteiro cumpre as seis", [6, 120], [B.missoesDoDia(cheio).filter((m) => m.pronto).length, B.xpDoDia(cheio)]);
+  teste("a missao do timing pede 2 janelas, nao todas", [2, 2, true],
+    (() => { const m = B.missoesDoDia(cheio).find((y) => y.id === "timing"); return [m.feito, m.alvo, m.pronto]; })());
   teste("sem meta nao ha missao (perfil nao configurado)", [0, 0], [B.missoesDoDia(dia("2026-11-26", { meta: null })).length, B.xpDoDia(dia("2026-11-26", { meta: null }))]);
 
-  const pouco = dia("2026-11-26", { tot: { k: 900, p: 70, c: 90, g: 20, alc: 0, agua: 1000, itens: 2 }, treino: { kcal: 0, min: 0 }, status: { id: "perto" }, comeu: 900 });
+  const pouco = dia("2026-11-26", { tot: { k: 900, p: 70, c: 90, g: 20, alc: 0, agua: 1000, itens: 2 }, treino: { kcal: 0, min: 0 }, janelas: { acertos: 0, total: 2 }, status: { id: "perto" }, comeu: 900 });
   teste("dia pela metade so ganha o que cumpriu", 0, B.xpDoDia(pouco));
   teste("a agua conta o que o corpo da tela mostra (bebida + copo)", [1000, 3000, false],
     (() => { const m = B.missoesDoDia(pouco).find((y) => y.id === "agua"); return [m.feito, m.alvo, m.pronto]; })());
@@ -549,7 +551,7 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("um dia fora zera a atual mas guarda a melhor", [3, 3], (() => { const s = B.sequenciaBalance(furado, "2026-11-26"); return [s.atual, s.melhor]; })());
 
   teste("os pontos sao os dos ultimos 30 dias, e nunca passam do teto",
-    [470, 5, 500], (() => { const p = B.pontosBalance(seqDias.slice(0, 5)); return [p.pts, p.dias, p.teto]; })());
+    [570, 5, 600], (() => { const p = B.pontosBalance(seqDias.slice(0, 5)); return [p.pts, p.dias, p.teto]; })());
   teste("o posto sobe pelos pontos da janela", ["Começando", "Na linha", "No controle"],
     [B.nivelBalance(0).nome, B.nivelBalance(250).nome, B.nivelBalance(5000).nome]);
   teste("o ultimo posto nao promete um proximo", [null, 0], [B.nivelBalance(5000).prox, B.nivelBalance(5000).faltam]);
@@ -560,7 +562,7 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   seqDias.forEach((x) => { nut.dias[x.d] = { itens: [1, 2, 3, 4], agua: 0 }; });
   const cq = B.conquistasBalance(seqDias, nut);
   teste("a medalha do primeiro dia sai de um dia anotado", true, cq.find((c) => c.id === "primeiro").ganha);
-  teste("o dia perfeito sai das cinco missoes num dia so", true, cq.find((c) => c.id === "dia100").ganha);
+  teste("o dia perfeito sai de todas as missoes num dia so", true, cq.find((c) => c.id === "dia100").ganha);
   teste("a semana fechada ainda nao, com 4 dias", [false, 4], (() => { const c = cq.find((x) => x.id === "seq7"); return [c.ganha, c.quanto]; })());
   teste("o progresso de uma medalha nunca passa do alvo", [30, false],
     (() => { const c = B.conquistasBalance(seqDias, nut).find((x) => x.id === "anot30"); return [c.alvo, c.ganha]; })());
@@ -717,6 +719,108 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
     ["voce deve", "coma ", "nao coma", "proibido", "dieta", "prescri", "personal"]
       .filter((p) => todasAsFrases.some((fr) => semAcento(fr).indexOf(p) >= 0)));
   teste("e sao muitas frases, nao uma so", true, todasAsFrases.length > 40);
+}
+// ---- o espaco que o treino abre (2026-11-26l) ----
+{
+  const perfil = { kg: 92, idade: 44, sexo: "m", altura: 180, objetivo: "perder", ritmo: 0.75, rotina: "sentado", tmb: 1930 };
+  // o mesmo dia com e sem treino, pela conta do proprio app
+  const gCom = B.gastoDoDia({ tmb: 1930, comeu: 2000, treino: { kcal: 400, min: 60 }, rotina: "sentado", ativas: 0, mediaAtivas: 0, passos: 0, kg: 92, hoje: false });
+  const gSem = B.gastoDoDia({ tmb: 1930, comeu: 2000, treino: { kcal: 0, min: 0 }, rotina: "sentado", ativas: 0, mediaAtivas: 0, passos: 0, kg: 92, hoje: false });
+  const mCom = B.metaDoDia(perfil, gCom.totalMeta, 92, 60), mSem = B.metaDoDia(perfil, gSem.totalMeta, 92, 0);
+  const esp = B.espacoDoTreino(mCom, mSem, { kcal: 400, min: 60 });
+  teste("o treino abre espaco de verdade na meta do dia", true, esp && esp.kcal > 0);
+  teste("o espaco nao passa do treino alem da digestao dele", true, esp.kcal <= Math.round(400 * 10 / 9) + 1);
+  teste("e a tela sabe dizer que parte do treino virou comida", true, esp.parte > 0 && esp.parte <= 115);
+  teste("sem treino nao ha espaco nenhum", null, B.espacoDoTreino(mSem, mSem, { kcal: 0, min: 0 }));
+  teste("ruido de arredondamento nao vira espaco", null,
+    B.espacoDoTreino({ k: 2010, p: 1, c: 1, g: 1, agua: 1 }, { k: 2000, p: 1, c: 1, g: 1, agua: 1 }, { kcal: 20, min: 5 }));
+  teste("a agua tambem sobe com o treino", true, esp.agua >= 0);
+  // no cutting com o deficit no teto, parte do treino vira deficit maior:
+  // dizer isso e o que impede o numero de parecer erro de conta
+  teste("a parte e uma conta de verdade, nao um numero redondo", true, esp.parte === Math.round((esp.kcal / 400) * 100));
+
+  const cab = B.comidaNoEspaco(300);
+  teste("o espaco vira comida de verdade do catalogo", true, cab.length >= 1 && cab.length <= 3);
+  teste("e nenhuma regua pede dez porcoes", [], cab.filter((c) => c.n < 1 || c.n > 8));
+  teste("cada regua existe no catalogo com a caloria dela", [],
+    cab.filter((c) => !B.ALIMENTOS_BR.find((a) => a.id === c.a.id && a.k === c.a.k)));
+  teste("espaco zero nao sugere comida nenhuma", [], B.comidaNoEspaco(0));
+
+  const fonte = html.slice(html.indexOf("O ESPAÇO QUE O TREINO ABRE"), html.indexOf("O PAPEL DE CADA MACRO"));
+  teste("o espaco nao e vendido como licenca para comer", [],
+    ["ganhou para gastar", "pode comer a sobremesa", "queime antes"].filter((p) => semAcento(fonte).indexOf(semAcento(p)) >= 0));
+}
+// ---- as janelas dos nutrientes (2026-11-26l) ----
+{
+  const hora = (h, m) => h * 60 + (m || 0);
+  // um dia com treino as 18h: pre-treino as 16h, pos as 19h30, ceia as 22h30
+  const t = (h, m) => new Date(2026, 10, 26, h, m || 0).getTime();
+  const dia = { agua: 0, itens: [
+    { t: t(8), n: "Pão com ovo", q: 1, k: 300, p: 22, c: 30, g: 10 },
+    { t: t(12, 30), n: "Almoço", q: 1, k: 700, p: 45, c: 70, g: 20 },
+    { t: t(16), n: "Lanche", q: 1, k: 300, p: 10, c: 50, g: 5 },
+    { t: t(19, 30), n: "Shake", q: 1, k: 250, p: 35, c: 20, g: 3 },
+    { t: t(22, 30), n: "Iogurte", q: 1, k: 200, p: 28, c: 10, g: 5 },
+  ] };
+  const treino = { ini: hora(18), fim: hora(19), aberto: false };
+  const q = B.janelasDoDia({ dia: dia, treino: treino, dorme: 23, agoraMin: 1440 });
+
+  teste("a hora de cada item entra na conta", 5, B.itensComHora(dia).length);
+  const pega = (id) => q.lista.find((x) => x.j.id === id);
+  teste("o lanche de 16h cai na janela de antes do treino", true, pega("preTreino").feito);
+  teste("o shake de 19h30 cai na janela de depois", true, pega("posTreino").feito);
+  teste("a proteina espalhada em 3 blocos conta", true, pega("proteina").feito);
+  teste("o iogurte de 22h30 cai na janela de antes de dormir", true, pega("noite").feito);
+  teste("o placar conta so o que o app sabe medir", [4, 4], [q.acertos, q.total]);
+  teste("cafeina e creatina nao valem ponto (o app nao mede)", [null, null],
+    [pega("cafeina").acerto, pega("creatina").acerto]);
+
+  // sem treino, as janelas presas a ele nao existem: nao existir e diferente
+  // de ter sido perdida
+  const sem = B.janelasDoDia({ dia: dia, treino: null, dorme: 23, agoraMin: 1440 });
+  teste("sem treino a janela de antes nao e cobrada", ["semTreino", 2], [sem.lista.find((x) => x.j.id === "preTreino").estado, sem.total]);
+
+  // o estado pela hora de agora
+  const cedo = B.janelasDoDia({ dia: { agua: 0, itens: [] }, treino: treino, dorme: 23, agoraMin: hora(9) });
+  teste("de manha a janela de antes do treino ainda vem", "vem", cedo.lista.find((x) => x.j.id === "preTreino").estado);
+  const naHora = B.janelasDoDia({ dia: { agua: 0, itens: [] }, treino: treino, dorme: 23, agoraMin: hora(16, 30) });
+  teste("as 16h30 ela esta aberta", "agora", naHora.lista.find((x) => x.j.id === "preTreino").estado);
+  teste("e o app sabe qual janela esta aberta e ainda nao foi cumprida", true,
+    naHora.agora.some((x) => x.j.id === "preTreino"));
+  const tarde = B.janelasDoDia({ dia: { agua: 0, itens: [] }, treino: treino, dorme: 23, agoraMin: hora(22) });
+  teste("depois dela passar, passou", "passou", tarde.lista.find((x) => x.j.id === "preTreino").estado);
+
+  // a faixa sai do treino e do sono, nao de uma hora fixa
+  const fx = B.faixaDaJanela(B.JANELAS_NUTRIENTE.find((j) => j.id === "posTreino"), treino, 23);
+  teste("a janela de depois comeca no fim do treino", [hora(19), hora(21, 30)], [fx.de, fx.ate]);
+  const fn = B.faixaDaJanela(B.JANELAS_NUTRIENTE.find((j) => j.id === "noite"), treino, 22);
+  teste("quem dorme as 22h tem a janela da noite mais cedo", [hora(20), hora(21, 50)], [fn.de, fn.ate]);
+
+  // tres blocos de proteina colados nao sao tres refeicoes
+  const colado = { agua: 0, itens: [1, 2, 3].map((i) => ({ t: t(12, i * 10), n: "x", q: 1, k: 200, p: 30, c: 5, g: 5 })) };
+  teste("proteina toda junta nao conta como espalhada", false,
+    B.janelasDoDia({ dia: colado, treino: null, dorme: 23, agoraMin: 1440 }).lista.find((x) => x.j.id === "proteina").feito);
+
+  // a hora do treino sai do historico (a data do registro e o FIM)
+  const h = [{ data: new Date(2026, 10, 26, 19, 0).toISOString(), duracaoMin: 60 }];
+  teste("a hora do treino sai do fim menos a duracao", [hora(18), hora(19)],
+    (() => { const x = B.horaDoTreino(h, "2026-11-26", null); return [x.ini, x.fim]; })());
+  teste("dia sem treino nao inventa hora", null, B.horaDoTreino(h, "2026-11-25", null));
+  teste("o treino aberto agora tambem conta", true, !!(() => { const d = new Date(); const dd = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); return B.horaDoTreino([], dd, { inicio: Date.now() - 36e5 }); })());
+
+  // a literatura: o que o app diz e o que ele derruba
+  const fonte = html.slice(html.indexOf("AS JANELAS DOS NUTRIENTES"), html.indexOf("O CATÁLOGO: COMPARAR"));
+  teste("o app desmente a janela de 30 minutos, nao a repete", true,
+    /mito/.test(B.JANELAS_NUTRIENTE.find((j) => j.id === "posTreino").porque));
+  teste("cada janela diz a forca da evidencia e a fonte", [],
+    B.JANELAS_NUTRIENTE.filter((j) => !B.FORCA_JANELA[j.forca] || !j.fonte));
+  teste("os mitos vem com a resposta, nunca soltos", [],
+    B.MITOS_TIMING.filter((m) => !m.mito || !m.real || m.real.length < 40));
+  teste("nenhuma janela manda comer nem proibe", [],
+    B.JANELAS_NUTRIENTE.map((j) => j.oque + " " + j.porque + " " + j.quando)
+      .filter((f) => /voce deve|proibido|nao pode comer|dieta prescrita|prescri/.test(semAcento(f))));
+  teste("o timing nao e vendido como mais importante que o total do dia", true,
+    /total do dia/.test(fonte));
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

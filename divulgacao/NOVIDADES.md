@@ -16,6 +16,21 @@
 
 ---
 
+## 2026-11-26l — Treinou, comeu mais: o espaço que o treino abre, e as janelas dos nutrientes
+
+- **Em uma frase:** quando você treina, a sua meta de calorias do dia sobe sozinha — agora o app mostra quanto subiu e o que cabe nesse espaço —, e um quadro novo diz em que faixas de horário cada nutriente rende mais, com a literatura na mão (inclusive para derrubar o que a academia repete errado).
+- **O que mudou:**
+  - **“O treino de hoje abriu espaço.”** Depois de um treino anotado, o Balance mostra em verde quanto a sua meta subiu (“+466 kcal na meta”) e traduz isso em comida de verdade do catálogo: 6 bananas, 3 pães franceses, 3 doses de whey. **Não é um bônus inventado**: é a sua meta de hoje comparada com a meta que o mesmo dia teria sem o treino, pela mesma conta de sempre. Um toque abre o porquê de o número quase nunca ser igual ao que o treino gastou.
+  - **⏱ As janelas dos nutrientes.** Seis faixas, cada uma com o horário calculado a partir do **seu** treino e da **sua** hora de dormir: antes do treino, depois do treino, proteína espalhada no dia, antes de dormir, cafeína e creatina. O app marca ✓ no que você já cumpriu, mostra qual está aberta agora e diz, em cada uma, o que comer, por quê, a força da evidência e a fonte.
+  - **O que os estudos derrubaram vem junto.** A “janela anabólica de 30 minutos” é mito; carboidrato à noite não vira gordura; não é preciso comer de 3 em 3 horas para não perder músculo; treinar em jejum não queima mais no fim do dia. Está tudo escrito no cartão, com a resposta ao lado de cada frase.
+  - **Missão nova no jogo: ⏱ Acertar 2 janelas de nutriente (+20 XP)**, e a medalha **No ritmo** (7 dias seguidos acertando). O dia cheio passou de 100 para 120 XP. São 2 janelas e não todas de propósito: a hora pesa pouco perto do total do dia.
+- **Por que importa para quem treina:** muita gente treina pensando que dieta é só cortar, e não vê que o treino já aumentou o quanto ela pode comer naquele dia. E quase todo mundo ainda corre para o shake com medo de “perder a janela” — um medo que a pesquisa desmontou há mais de dez anos.
+- **Como usar:** Balance › Hoje. O cartão verde aparece no dia em que houver treino anotado; o das janelas aparece sempre, e os horários se ajustam sozinhos ao treino do dia.
+- **Ideias de vídeo:** mostrar a meta antes e depois de anotar o treino, com o “+466 kcal” e os 6 bananas ao lado; abrir o cartão das janelas e ler os 4 mitos; marcar o shake depois do treino e ver o ✓ acender; mostrar a missão nova somando XP.
+- **Não prometer:** o app não diz o que você deve comer nem a que horas — ele mostra faixas e o que a literatura sustenta, e deixa escrito que o total do dia pesa muito mais que a hora. Toda conta de caloria de exercício é otimista, inclusive a dele, e isso está dito na própria tela. Dieta é com o nutricionista.
+
+---
+
 ## 2026-11-26k — Cada lanche com a sua caloria, e os macros lidos pelo seu objetivo
 
 - **Em uma frase:** o catálogo ganhou 52 lanches com a caloria de cada tipo (um X-tudo não é um X-burguer), dá para montar “pão com 3 ovos” contando as unidades, e as barras de proteína, carboidrato e gordura agora dizem o que cada número significa para quem está em cutting ou em bulking.

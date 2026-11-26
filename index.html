@@ -2366,7 +2366,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-26k";
+const VERSAO_APP = "2026-11-26l";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4389,6 +4389,73 @@ function metaDoDia(perfil, gasto, kg, treinoMin) {
   const agua = Math.round((35 * kg + (numB(treinoMin) / 60) * 500) / 50) * 50;
   return { k: k, p: p, c: c, g: g, agua: agua, delta: Math.round(k - gasto), noPiso: noPiso, objetivo: ob.id };
 }
+// ---------------- O ESPAÇO QUE O TREINO ABRE ----------------
+// Pedido do dono (2026-11-26l): "muitas pessoas gostam de comer; se elas
+// perceberem que quanto mais exercício mais podem comer e ainda bater as
+// metas, isso seria excelente. Confirme essa teoria e gamifique".
+//
+// **Confirmado — e a conta já era essa. O que faltava era mostrar.** O
+// `gastoDoDia` soma o treino na atividade e o `metaDoDia` sai do gasto:
+// quem treinou hoje já recebeu uma meta maior hoje, e nunca viu isso
+// escrito em lugar nenhum. Então aqui **não se inventa crédito**: o espaço
+// é a meta deste dia menos a meta que o MESMO dia teria sem o treino, pela
+// mesma função (`gastoSem` no `calcDia`, `metaSem` no `comMeta`).
+//
+// **Duas ressalvas, e as duas ficam na tela, não só aqui:**
+//
+// 1. **O espaço quase nunca é igual ao gasto do treino, e isso está certo.**
+//    No cutting o `metaDoDia` limita o déficit a 25% do gasto: acima disso,
+//    parte do treino vira déficit maior em vez de comida. É o `parte` (o
+//    quanto do treino virou espaço), dito na tela — senão o número pareceria
+//    um erro de conta.
+// 2. **O gasto total não sobe na mesma proporção do treino** (Careau e
+//    colegas 2021; o "constrained total energy expenditure" de Pontzer): o
+//    corpo economiza no resto do dia. Somado a isso, toda conta de caloria
+//    de exercício — de app, de relógio ou de esteira — é otimista. Por isso
+//    o app mostra o espaço que a SUA meta abriu, e nunca "você queimou X,
+//    pode comer X".
+//
+// **O que nunca se escreve aqui**: nada que trate o treino como moeda de
+// comida — ganhar para gastar, treinar para merecer a sobremesa, queimar
+// primeiro e comer depois. Treino como moeda de
+// comida é o caminho curto para a compensação alimentar; o espaço é
+// informação sobre a meta do dia, não recompensa por comer.
+
+// Abaixo disso é ruído de arredondamento, não espaço
+const ESPACO_MINIMO = 40;
+// Os alimentos que servem de régua ("cabem 2 bananas"): coisas que todo
+// mundo reconhece de cabeça, com a caloria da própria tabela do app.
+const COMIDAS_ESPACO = ["banana", "pao", "whey", "pao-queijo", "arroz", "ovo", "aveia", "iogurte"];
+
+function espacoDoTreino(meta, metaSem, treino) {
+  if (!meta || !metaSem) return null;
+  const kcal = Math.round(meta.k - metaSem.k);
+  if (kcal < ESPACO_MINIMO) return null;
+  const t = treino || { kcal: 0, min: 0 };
+  return {
+    kcal: kcal,
+    p: Math.round(meta.p - metaSem.p),
+    c: Math.round(meta.c - metaSem.c),
+    g: Math.round(meta.g - metaSem.g),
+    agua: Math.round(meta.agua - metaSem.agua),
+    min: Math.round(numB(t.min)),
+    gasto: Math.round(numB(t.kcal)),
+    parte: numB(t.kcal) > 0 ? Math.round((kcal / numB(t.kcal)) * 100) : 0,
+  };
+}
+// O que cabe no espaço, em comida de verdade do catálogo. Até três réguas,
+// e nenhuma que precise de 13 porções para fechar (ninguém come 13 ovos).
+function comidaNoEspaco(kcal) {
+  if (!(kcal > 0)) return [];
+  const l = [];
+  COMIDAS_ESPACO.forEach((id) => {
+    const a = ALIMENTOS_BR.find((x) => x.id === id);
+    if (!a || !a.k) return;
+    const n = Math.floor(kcal / a.k);
+    if (n >= 1 && n <= 8) l.push({ a: a, n: n });
+  });
+  return l.slice(0, 3);
+}
 // ---------------- O PAPEL DE CADA MACRO ----------------
 // Pedido do dono (2026-11-26k), com print do Balance: "meu objetivo é cutting;
 // confirme se estar abaixo da meta de carboidrato é bom, e que no bulking é
@@ -4769,6 +4836,9 @@ function contasDoBalance(o) {
   const completo = !!(tmb && perfil.objetivo);
   const ob = OBJETIVOS_BALANCE.find((o) => o.id === perfil.objetivo) || OBJETIVOS_BALANCE[0];
   const hoje = diaLocal(Date.now());
+  // os minutos de hoje desde a meia-noite (por parâmetro nos testes: senão a
+  // suíte passaria de manhã e reprovaria à noite, como no mapa do ano)
+  const agoraMin = typeof o.agoraMin === "number" ? o.agoraMin : (() => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); })();
   // a média das calorias ativas dos dias inteiros com o relógio (14 dias)
   const mediaAtivas = (() => {
     const l = ((saude && saude.dias) || []).filter((d) => d.d !== hoje && d.kcal > 0).slice(-14);
@@ -4791,8 +4861,13 @@ function contasDoBalance(o) {
     const tot = totaisDoDia(dia);
     const treino = kcalTreinosDoDia(historico, d, kg || 75, exPorId);
     const sd = ((saude && saude.dias) || []).find((x) => x.d === d);
-    const gasto = tmb ? gastoDoDia({ tmb: tmb, comeu: tot.k, treino: treino, rotina: perfil.rotina, ativas: sd ? sd.kcal : 0, mediaAtivas: mediaAtivas, passos: sd ? sd.passos : 0, kg: kg, hoje: d === hoje }) : null;
-    return { d: d, dia: dia, tot: tot, comeu: tot.k, treino: treino, gasto: gasto };
+    const arg = { tmb: tmb, comeu: tot.k, treino: treino, rotina: perfil.rotina, ativas: sd ? sd.kcal : 0, mediaAtivas: mediaAtivas, passos: sd ? sd.passos : 0, kg: kg, hoje: d === hoje };
+    const gasto = tmb ? gastoDoDia(arg) : null;
+    // O mesmo dia sem o treino, que é o que mede o espaço que ele abriu (ver
+    // O ESPAÇO QUE O TREINO ABRE). Com o relógio, as calorias ativas de hoje
+    // já contêm o treino: ali a comparação é com um dia comum, a média.
+    const gastoSem = tmb ? gastoDoDia(Object.assign({}, arg, { treino: { kcal: 0, min: 0 }, ativas: mediaAtivas > 0 ? 0 : arg.ativas })) : null;
+    return { d: d, dia: dia, tot: tot, comeu: tot.k, treino: treino, gasto: gasto, gastoSem: gastoSem };
   };
   // os últimos 35 dias, para a semana, o mês e o gasto pelo corpo
   const ultimos = (() => {
@@ -4845,7 +4920,13 @@ function contasDoBalance(o) {
     const apetite = usosNoDia(x.d).some((u) => u.apetite);
     const g = x.gasto.totalMeta + ajuste;
     const m = metaDoDia(perfil, g, kg, x.treino.min);
-    return Object.assign({}, x, { gastoUsado: g, ajusteCorpo: ajuste, preparo: preparo, diuretico: diuretico, apetite: apetite, meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) });
+    const mSem = x.gastoSem ? metaDoDia(perfil, x.gastoSem.totalMeta + ajuste, kg, 0) : null;
+    // As janelas do dia (ver AS JANELAS DOS NUTRIENTES). O dia que já passou
+    // é medido inteiro; o de hoje, até a hora de agora.
+    const jan = janelasDoDia({ dia: x.dia, treino: horaDoTreino(historico, x.d, o.sessao), dorme: perfil.dorme,
+      agoraMin: x.d === hoje ? agoraMin : 1440 });
+    return Object.assign({}, x, { gastoUsado: g, ajusteCorpo: ajuste, preparo: preparo, diuretico: diuretico, apetite: apetite, meta: m,
+      espaco: espacoDoTreino(m, mSem, x.treino), janelas: jan, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) });
   };
   const dias = ultimos.map(comMeta);
   // Com a caneta a fome some, e é comum comer bem abaixo do que o corpo gasta
@@ -4859,7 +4940,7 @@ function contasDoBalance(o) {
     const media = Math.round(ult.reduce((a, x) => a + x.comeu, 0) / ult.length);
     return media < Math.round(tmb) ? { media: media, dias: ult.length, tmb: Math.round(tmb) } : null;
   })();
-  return { perfil: perfil, kg: kg, idade: idade, tmb: tmb, apetiteHoje: apetiteHoje, apetiteAviso: apetiteAviso, completo: completo, ob: ob, hoje: hoje, mediaAtivas: mediaAtivas, pesos: pesos,
+  return { perfil: perfil, kg: kg, idade: idade, tmb: tmb, apetiteHoje: apetiteHoje, apetiteAviso: apetiteAviso, completo: completo, ob: ob, hoje: hoje, agoraMin: agoraMin, mediaAtivas: mediaAtivas, pesos: pesos,
     calcDia: calcDia, ultimos: ultimos, corpo: corpo, comMeta: comMeta, dias: dias, prep: prep, corpoPrep: corpoPrep, inicioPrep: inicioPrep };
 }
 // O dia de um treino no Body Balance, para o resumo e o story. Dia sem
@@ -4895,6 +4976,8 @@ const MISSOES_BALANCE = [
     alvo: (x) => (x.meta ? x.meta.p : 0), feito: (x) => Math.round(x.tot.p), un: "g" },
   { id: "treino", ic: "\u{1F3CB}", nome: "Treinar hoje", xp: 20, oque: "qualquer treino anotado no app conta",
     alvo: (x) => 1, feito: (x) => (x.treino && x.treino.kcal > 0 ? 1 : 0), un: "" },
+  { id: "timing", ic: "\u{23F1}", nome: "Acertar 2 janelas de nutriente", xp: 20, oque: "a hora pesa pouco perto do total do dia: por isso são 2, e não todas",
+    alvo: (x) => Math.min(2, x.janelas ? x.janelas.total : 0), feito: (x) => (x.janelas ? x.janelas.acertos : 0), un: "" },
   { id: "meta", ic: "\u{1F3AF}", nome: "Fechar o dia na meta", xp: 30, oque: "a última, e a que mais vale",
     alvo: (x) => 1, feito: (x) => (x.status && x.status.id === "certo" ? 1 : 0), un: "" },
 ];
@@ -4956,18 +5039,20 @@ function maiorSeqMissao(dias, id) {
 // As medalhas. Cada uma é um fato do registro da pessoa, e o texto diz qual.
 const CONQUISTAS_BALANCE = [
   { id: "primeiro", ic: "\u{1F4DD}", nome: "Primeiro dia", oque: "anotou um dia inteiro", quanto: (e) => Math.min(1, e.anotados), alvo: 1 },
-  { id: "dia100", ic: "\u{1F4AF}", nome: "Dia perfeito", oque: "as 5 missões num dia só", quanto: (e) => e.perfeitos, alvo: 1 },
+  { id: "dia100", ic: "\u{1F4AF}", nome: "Dia perfeito", oque: "todas as missões num dia só", quanto: (e) => e.perfeitos, alvo: 1 },
   { id: "seq7", ic: "\u{1F525}", nome: "Semana fechada", oque: "7 dias seguidos na meta", quanto: (e) => e.melhor, alvo: 7 },
   { id: "seq30", ic: "\u{1F3C6}", nome: "Mês fechado", oque: "30 dias seguidos na meta", quanto: (e) => e.melhor, alvo: 30 },
   { id: "agua7", ic: "\u{1F30A}", nome: "Hidratado", oque: "7 dias seguidos batendo a água", quanto: (e) => e.agua, alvo: 7 },
   { id: "prot14", ic: "\u{1F356}", nome: "Proteína em dia", oque: "14 dias seguidos batendo a proteína", quanto: (e) => e.prot, alvo: 14 },
   { id: "anot30", ic: "\u{1F4C6}", nome: "Um mês de registro", oque: "30 dias anotados", quanto: (e) => e.anotados, alvo: 30 },
   { id: "anot100", ic: "\u{1F680}", nome: "Cem dias", oque: "100 dias anotados", quanto: (e) => e.anotados, alvo: 100 },
+  { id: "timing7", ic: "\u{23F1}", nome: "No ritmo", oque: "7 dias seguidos acertando as janelas", quanto: (e) => e.timing, alvo: 7 },
 ];
 function conquistasBalance(dias, nutricao) {
   const todos = Object.keys((nutricao && nutricao.dias) || {});
   const anotados = todos.filter((d) => { const x = (nutricao.dias || {})[d] || {}; return (x.itens || []).length >= 2; }).length;
   const e = {
+    timing: maiorSeqMissao(dias, "timing"),
     anotados: anotados,
     melhor: sequenciaBalance(dias, null).melhor,
     agua: maiorSeqMissao(dias, "agua"),
@@ -4978,6 +5063,164 @@ function conquistasBalance(dias, nutricao) {
     const n = Math.max(0, Math.round(c.quanto(e)));
     return Object.assign({}, c, { quanto: Math.min(n, c.alvo), ganha: n >= c.alvo, pct: Math.min(1, n / c.alvo) });
   });
+}
+// ---------------- AS JANELAS DOS NUTRIENTES ----------------
+// Pedido do dono (2026-11-26l): "pesquise na literatura de medicina e de
+// bodybuilder o timing e os intervalos recomendados para a ingestão dos
+// nutrientes, deixe um intervalo para a pessoa comer determinado alimento
+// na melhor janela, e gamifique para recompensar quem acerta".
+//
+// **O que a literatura sustenta, e o que ela derrubou.** Isto importa mais
+// que as janelas em si, porque o que circula na academia está desatualizado
+// em quase vinte anos:
+//
+// - **A "janela anabólica" de 30 minutos é mito.** A revisão de Aragon e
+//   Schoenfeld (2013) e a meta-análise de Schoenfeld e colegas (2013)
+//   mostraram que, igualando a proteína total do dia, o momento do shake
+//   deixa de ter efeito. A janela é de horas, não de minutos.
+// - **O que sobrou de verdade é a DISTRIBUIÇÃO**: o mesmo total rende mais
+//   repartido em 4 refeições de ~0,4 g/kg do que em 2 (Schoenfeld e Aragon,
+//   2018). É a única regra de timing com efeito claro em quem treina.
+// - **Carboidrato correndo depois do treino só importa com menos de 8 h até
+//   a sessão seguinte** (posição da ISSN, Kerksick e colegas 2017). Para
+//   quem treina uma vez por dia, o total do dia manda.
+// - **Antes de dormir, 30 a 40 g de proteína lenta** aumentam a síntese
+//   durante a noite (Res e colegas 2012; Snijders e colegas 2015).
+// - **Cafeína 30 a 60 min antes** é o tempo do pico no sangue (ISSN, Guest
+//   e colegas 2021). **Creatina: a hora quase não importa** — o que conta é
+//   a saturação, que vem de tomar todo dia (ISSN, Kreider e colegas 2017).
+//
+// Por isso cada janela carrega a FORÇA da evidência na própria tela, e as
+// que não têm placar (cafeína, creatina) não valem ponto: inventar acerto
+// para o que o app não mede seria o mesmo que inventar número.
+//
+// **E nada aqui vira obrigação.** Errar a janela não tira ponto nem recebe
+// bronca; o cartão diz, com todas as letras, que o total do dia pesa muito
+// mais que a hora. Quem transforma horário de comida em regra moral está
+// construindo outro problema, não um shape.
+
+const FORCA_JANELA = { forte: "bem estabelecido", media: "apoio moderado", fraca: "pouco apoio" };
+// A hora de dormir que o app assume quando não sabe (o perfil pode mudar)
+const HORA_SONO_PADRAO = 23;
+
+const JANELAS_NUTRIENTE = [
+  { id: "preTreino", ic: "\u{26FD}", nome: "Antes do treino", cor: "#FFB21A",
+    rel: "treino", de: -180, ate: -45, placar: "carbo", minG: 25,
+    oque: "uma refeição com carboidrato e proteína",
+    quando: "de 3 horas a 45 minutos antes",
+    porque: "perto demais e a comida ainda está no estômago; longe demais e o treino começa sem combustível. A faixa larga é de propósito: o que atrapalha é comer em cima da hora, não errar meia hora.",
+    forca: "media", fonte: "ISSN (Kerksick e colegas, 2017)" },
+  { id: "posTreino", ic: "\u{1F357}", nome: "Depois do treino", cor: "#FF4D6D",
+    rel: "treino", de: 0, ate: 150, placar: "prot", minG: 20,
+    oque: "proteína, uns 0,4 g por quilo do seu peso",
+    quando: "nas 2 horas e meia seguintes",
+    porque: "a janela de 30 minutos é mito: a síntese fica elevada por horas e o total do dia é o que manda. O que não serve é passar o dia inteiro sem proteína depois de treinar.",
+    forca: "forte", fonte: "Aragon e Schoenfeld (2013); Schoenfeld e colegas (2013)" },
+  { id: "proteina", ic: "\u{1F356}", nome: "Proteína espalhada no dia", cor: "#FF4D6D",
+    rel: "dia", placar: "blocos", minG: 20, blocos: 3, horas: 2.5,
+    oque: "3 ou mais refeições com proteína, separadas por umas 3 horas",
+    quando: "a cada 3 a 4 horas",
+    porque: "o mesmo total de proteína rende mais repartido em 4 refeições do que em 2. É a regra de timing com o apoio mais forte — e ela não é sobre o relógio, é sobre não concentrar tudo no jantar.",
+    forca: "forte", fonte: "Schoenfeld e Aragon (2018)" },
+  { id: "noite", ic: "\u{1F319}", nome: "Antes de dormir", cor: "#B05BFF",
+    rel: "sono", de: -120, ate: -10, placar: "prot", minG: 25,
+    oque: "25 a 40 g de proteína de digestão lenta (iogurte, queijo, ovo, caseína)",
+    quando: "nas 2 horas antes de deitar",
+    porque: "a noite são sete ou oito horas sem nada chegando; essa dose mantém a síntese durante o sono. Não engorda mais por ser à noite — isso é outro mito.",
+    forca: "media", fonte: "Res e colegas (2012); Snijders e colegas (2015)" },
+  { id: "cafeina", ic: "\u{2615}", nome: "Cafeína antes do treino", cor: "#8A8F9E",
+    rel: "treino", de: -60, ate: -30, placar: null,
+    oque: "3 a 6 mg por quilo (um café forte tem uns 80 mg)",
+    quando: "de 30 a 60 minutos antes",
+    porque: "é o tempo que ela leva para chegar ao pico no sangue. Sem placar aqui: o app não tem como saber quanta cafeína você tomou.",
+    forca: "forte", fonte: "ISSN (Guest e colegas, 2021)" },
+  { id: "creatina", ic: "\u{1F4A7}", nome: "Creatina: a hora não importa", cor: "#4DEBFF",
+    rel: "livre", placar: null,
+    oque: "3 a 5 g, em qualquer hora do dia",
+    quando: "todo dia, inclusive nos dias sem treino",
+    porque: "o que faz efeito é o músculo ficar saturado, e isso vem de tomar todo dia — não da hora. Está aqui justamente para você não perder tempo com isso.",
+    forca: "forte", fonte: "ISSN (Kreider e colegas, 2017)" },
+];
+
+// O que a academia repete e os estudos já derrubaram
+const MITOS_TIMING = [
+  { mito: "Se não tomar o shake em 30 minutos, o treino foi perdido",
+    real: "A síntese de proteína fica elevada por horas depois do treino. Igualando o total do dia, adiantar ou atrasar o shake não mudou o resultado nos estudos." },
+  { mito: "Carboidrato à noite vira gordura",
+    real: "O que decide é o total do dia, não o relógio. Comer o mesmo carboidrato de manhã ou à noite dá no mesmo." },
+  { mito: "Tem que comer de 3 em 3 horas ou o corpo entra em catabolismo",
+    real: "Ficar 4 ou 5 horas sem comer não derrete músculo. O que ajuda é não concentrar a proteína numa refeição só — e aí 3 ou 4 por dia já resolvem." },
+  { mito: "Treinar em jejum queima mais gordura",
+    real: "Queima mais gordura durante o treino e menos no resto do dia: no fim do dia dá quase no mesmo. Treine quando render mais para você." },
+];
+
+// A hora do treino do dia, em minutos desde a meia-noite. Vem do histórico
+// (a data do registro é o FIM do treino, então o começo é o fim menos a
+// duração) ou da sessão aberta agora.
+function horaDoTreino(historico, dia, sessao) {
+  if (sessao && sessao.inicio && diaLocal(sessao.inicio) === dia) {
+    const d = new Date(sessao.inicio);
+    return { ini: d.getHours() * 60 + d.getMinutes(), fim: Math.round((Date.now() - sessao.inicio) / 6e4) + d.getHours() * 60 + d.getMinutes(), aberto: true };
+  }
+  const h = (historico || []).filter((r) => diaLocal(new Date(r.data).getTime()) === dia).sort((a, b) => new Date(b.data) - new Date(a.data))[0];
+  if (!h) return null;
+  const f = new Date(h.data);
+  const fim = f.getHours() * 60 + f.getMinutes();
+  return { ini: Math.max(0, fim - Math.min(300, numB(h.duracaoMin))), fim: fim, aberto: false };
+}
+// Os minutos do dia em que cada item foi anotado
+function itensComHora(dia) {
+  return ((dia && dia.itens) || []).filter((it) => it && it.t).map((it) => {
+    const d = new Date(it.t), v = valorItem(it);
+    return { min: d.getHours() * 60 + d.getMinutes(), p: v.p, c: v.c, g: v.g, k: v.k, n: it.n || "", ic: it.ic || "" };
+  }).sort((a, b) => a.min - b.min);
+}
+// A faixa de cada janela hoje, em minutos do dia. Sem treino, as janelas
+// presas a ele não existem — e não existir é diferente de ter sido perdida.
+function faixaDaJanela(j, treino, dorme) {
+  if (j.rel === "treino") {
+    if (!treino) return null;
+    return { de: (j.de < 0 ? treino.ini : treino.fim) + j.de, ate: (j.ate <= 0 ? treino.ini : treino.fim) + j.ate };
+  }
+  if (j.rel === "sono") return { de: dorme * 60 + j.de, ate: dorme * 60 + j.ate };
+  return null;
+}
+// Quem acertou a janela: o que foi anotado dentro dela com nutriente
+// bastante. "blocos" é a distribuição da proteína, que não tem faixa.
+function acertoDaJanela(j, itens, faixa, horas) {
+  if (!j.placar) return null;
+  if (j.placar === "blocos") {
+    const bons = (itens || []).filter((i) => i.p >= j.minG);
+    const usados = [];
+    bons.forEach((i) => { if (!usados.length || i.min - usados[usados.length - 1].min >= (j.horas || 2.5) * 60) usados.push(i); });
+    return { feito: usados.length >= (j.blocos || 3), quantos: usados.length, alvo: j.blocos || 3, itens: usados };
+  }
+  if (!faixa) return null;
+  const dentro = (itens || []).filter((i) => i.min >= faixa.de && i.min <= faixa.ate);
+  const soma = dentro.reduce((a, i) => a + (j.placar === "prot" ? i.p : i.c), 0);
+  return { feito: soma >= j.minG, soma: Math.round(soma), alvo: j.minG, itens: dentro };
+}
+// O quadro de hoje: cada janela com a faixa, o estado e o acerto.
+// agoraMin = minutos desde a meia-noite (parâmetro: senão o teste passaria
+// de manhã e reprovaria à noite, como no mapa do ano).
+function janelasDoDia(o) {
+  const itens = itensComHora(o.dia);
+  const treino = o.treino || null;
+  const dorme = numB(o.dorme) || HORA_SONO_PADRAO;
+  const agora = typeof o.agoraMin === "number" ? o.agoraMin : 0;
+  const lista = JANELAS_NUTRIENTE.map((j) => {
+    const faixa = faixaDaJanela(j, treino, dorme);
+    const acerto = acertoDaJanela(j, itens, faixa, dorme);
+    let estado = "sempre";
+    if (j.rel === "treino" && !treino) estado = "semTreino";
+    else if (faixa) estado = agora < faixa.de ? "vem" : agora <= faixa.ate ? "agora" : "passou";
+    else if (j.rel === "dia") estado = "andando";
+    return { j: j, faixa: faixa, estado: estado, acerto: acerto, feito: !!(acerto && acerto.feito) };
+  });
+  const comPlacar = lista.filter((x) => x.acerto && x.estado !== "semTreino");
+  return { lista: lista, itens: itens, treino: treino, dorme: dorme,
+    acertos: comPlacar.filter((x) => x.feito).length, total: comPlacar.length,
+    agora: lista.filter((x) => x.estado === "agora" && x.acerto && !x.feito) };
 }
 // ---------------- O CATÁLOGO: COMPARAR E ESCOLHER ----------------
 // Pedido do dono (2026-11-26c): "na dieta o que importa é a escolha; quero
@@ -38785,6 +39028,125 @@ function CartaoPreparo({ preparo, hoje, cb, onMudar }) {
 }
 // O quadro do jogo do Balance (2026-11-26i). Fica DEPOIS dos botões de anotar:
 // a ação principal da tela continua sendo pôr a comida no dia.
+// O espaço que o treino de hoje abriu na meta (2026-11-26l). O número NÃO é
+// um bônus: é a meta de hoje menos a meta que o mesmo dia teria sem o treino
+// (ver O ESPAÇO QUE O TREINO ABRE). Por isso o cartão diz, na própria tela,
+// quanto do treino virou espaço e por que não é tudo.
+function CartaoEspacoTreino({ x }) {
+  const [aberto, setAberto] = useState(false);
+  const e = x && x.espaco;
+  if (!e) return null;
+  const cabe = comidaNoEspaco(e.kcal);
+  return (
+    <div style={{ ...S.card, border: "1px solid #4CD13766", background: "linear-gradient(160deg,#4CD1371A,transparent 70%)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ fontSize: 26 }}>🏋</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ ...S.label, margin: 0 }}>O treino de hoje abriu espaço</div>
+          <div style={{ fontSize: 11.5, color: "var(--cinza)" }}>
+            {e.min ? e.min + " min de treino" : "treino anotado"}
+            {e.gasto ? " · ~" + fmtKcal(e.gasto) + " kcal gastas" : ""}
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontFamily: FONTE_JOGO, fontSize: 26, color: "#4CD137", lineHeight: 1 }}>+{fmtKcal(e.kcal)}</div>
+          <div style={{ fontSize: 10, fontWeight: 900, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.6 }}>kcal na meta</div>
+        </div>
+      </div>
+      {cabe.length > 0 && (
+        <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {cabe.map((c) => (
+            <span key={c.a.id} style={{ fontSize: 11.5, fontWeight: 800, padding: "5px 9px", borderRadius: 999, background: "var(--input)", border: "1px solid var(--borda2)" }}>
+              {c.a.ic} {c.n}× {c.a.nome.toLowerCase()}
+            </span>
+          ))}
+        </div>
+      )}
+      <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 8, lineHeight: 1.5 }}>
+        Isso já está na sua meta de hoje: ela subiu sozinha quando o treino entrou.
+        {e.p > 0 ? " A proteína também (+" + e.p + " g)." : ""}
+      </div>
+      <button onClick={() => setAberto(!aberto)} style={{ ...S.btnGhost, width: "100%", marginTop: 8, padding: "7px 6px", fontSize: 12, fontWeight: 900 }}>
+        {aberto ? "▴ Esconder" : "▾ Por que não é igual ao que o treino gastou"}
+      </button>
+      {aberto && (
+        <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 7, lineHeight: 1.6 }}>
+          {e.parte < 100
+            ? "Do que o treino gastou, " + e.parte + "% virou espaço para comer. O resto foi para o seu objetivo: o app não deixa o déficit passar de um quarto do gasto do dia, então treinar mais não vira comida sem limite."
+            : e.parte > 105
+            ? "O espaço (" + fmtKcal(e.kcal) + " kcal) ficou um pouco acima do que o treino gastou (" + fmtKcal(e.gasto) + " kcal) porque digerir essa comida a mais também gasta energia: uns 10% dela."
+            : "Neste dia, o que o treino gastou virou espaço na meta."}
+          <br /><br />E duas verdades que quase nenhum app diz: toda conta de caloria de exercício (de app, relógio ou esteira) é otimista, e o corpo economiza no resto do dia quando você treina mais — o gasto total não sobe na mesma proporção do treino. Por isso aqui aparece o espaço que a sua meta abriu, e nunca "você queimou X, pode comer X".
+        </div>
+      )}
+    </div>
+  );
+}
+// As janelas dos nutrientes do dia (2026-11-26l). Cada uma traz a força da
+// evidência e a fonte, e o rodapé lembra que o total do dia pesa muito mais
+// que a hora: ver AS JANELAS DOS NUTRIENTES.
+function CartaoJanelas({ x, ehHoje }) {
+  const [aberta, setAberta] = useState(null);
+  const [mitos, setMitos] = useState(false);
+  const q = x && x.janelas;
+  if (!q || !x.meta) return null;
+  const hhmm = (m) => String(Math.floor(((m % 1440) + 1440) % 1440 / 60)).padStart(2, "0") + ":" + String(Math.round(m % 60)).padStart(2, "0");
+  const CHIP = { agora: ["AGORA", "#4CD137"], vem: ["mais tarde", "var(--cinza)"], passou: ["passou", "var(--cinza)"], semTreino: ["sem treino hoje", "var(--cinza)"], andando: ["o dia todo", "var(--cinza)"], sempre: ["todo dia", "var(--cinza)"] };
+  return (
+    <div style={S.card}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+        <div style={{ ...S.label, flex: 1, margin: 0 }}>⏱ As janelas dos nutrientes</div>
+        <span style={{ fontFamily: FONTE_JOGO, fontSize: 15, color: q.acertos >= 2 ? "#4CD137" : "#FFB21A" }}>{q.acertos}/{q.total}</span>
+      </div>
+      <div style={{ fontSize: 11.5, color: "var(--cinza)", marginBottom: 10, lineHeight: 1.5 }}>
+        O total do dia pesa muito mais que a hora. Estas são as faixas em que a literatura vê alguma diferença — e errar uma não é erro.
+      </div>
+      {q.lista.map((it) => {
+        const j = it.j, ab = aberta === j.id, chip = CHIP[it.estado] || CHIP.sempre;
+        return (
+          <div key={j.id} style={{ borderTop: "1px solid var(--borda)", padding: "8px 0" }}>
+            <button onClick={() => setAberta(ab ? null : j.id)} style={{ ...S.btnGhost, width: "100%", textAlign: "left", padding: 0, border: "none", background: "none", display: "flex", alignItems: "center", gap: 9 }}>
+              <span style={{ fontSize: 18, opacity: it.estado === "semTreino" ? 0.4 : 1 }}>{j.ic}</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 12.5, fontWeight: 900, color: it.feito ? "#4CD137" : "var(--texto)" }}>{it.feito ? "✓ " : ""}{j.nome}</span>
+                <span style={{ display: "block", fontSize: 11, color: "var(--cinza)" }}>
+                  {it.faixa ? hhmm(it.faixa.de) + " às " + hhmm(it.faixa.ate) : j.quando}
+                  {it.acerto && it.acerto.quantos !== undefined ? " · " + it.acerto.quantos + " de " + it.acerto.alvo + " refeições" : ""}
+                  {it.acerto && it.acerto.soma !== undefined ? " · " + it.acerto.soma + " de " + it.acerto.alvo + " g" : ""}
+                </span>
+              </span>
+              <span style={{ fontSize: 9.5, fontWeight: 900, color: chip[1], textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap" }}>{chip[0]}</span>
+            </button>
+            {ab && (
+              <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 7, lineHeight: 1.6, paddingLeft: 27 }}>
+                <b style={{ color: j.cor }}>{j.oque}</b><br />{j.porque}
+                <br /><span style={{ opacity: 0.8 }}>Evidência: {FORCA_JANELA[j.forca]} · {j.fonte}</span>
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <button onClick={() => setMitos(!mitos)} style={{ ...S.btnGhost, width: "100%", marginTop: 9, padding: "7px 6px", fontSize: 12, fontWeight: 900 }}>
+        {mitos ? "▴ Esconder" : "▾ " + MITOS_TIMING.length + " coisas que a academia repete e os estudos derrubaram"}
+      </button>
+      {mitos && (
+        <div style={{ marginTop: 7 }}>
+          {MITOS_TIMING.map((m) => (
+            <div key={m.mito} style={{ fontSize: 11.5, lineHeight: 1.55, marginBottom: 9 }}>
+              <span style={{ color: "#FF4D6D", fontWeight: 800 }}>“{m.mito}”</span>
+              <br /><span style={{ color: "var(--cinza)" }}>{m.real}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {ehHoje && q.agora.length > 0 && (
+        <div style={{ fontSize: 12, fontWeight: 800, color: "#4CD137", marginTop: 8, lineHeight: 1.5 }}>
+          🟢 Aberta agora: {q.agora.map((a) => a.j.nome.toLowerCase()).join(", ")}.
+        </div>
+      )}
+    </div>
+  );
+}
 function CartaoJogoBalance({ x, dias, nutricao, hoje, ehHoje }) {
   const [abriu, setAbriu] = useState(false);
   const [festa, setFesta] = useState(false);
@@ -38887,7 +39249,7 @@ function CartaoJogoBalance({ x, dias, nutricao, hoje, ehHoje }) {
     </div>
   );
 }
-function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pesoCorporal, medidas, corredor, avisar, pedirConfirmacao, onPercurso, onEsteira, sincronizarRelogio }) {
+function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pesoCorporal, medidas, corredor, sessao, avisar, pedirConfirmacao, onPercurso, onEsteira, sincronizarRelogio }) {
   const [secao, setSecao] = useState("hoje");
   const [janela, setJanela] = useState(null);
   const [catalogo, setCatalogo] = useState(null);
@@ -38917,8 +39279,8 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
   };
   const hojeTela = diaLocal(Date.now());
   const prepOk = preparoLiberado();
-  const cb = useMemo(() => contasDoBalance({ nutricao: nutricao, historico: historico, exPorId: exPorId, saude: saude, pesoCorporal: pesoCorporal, medidas: medidas, corredor: corredor, preparo: prepOk }),
-    [nutricao, historico, saude, pesoCorporal, medidas, corredor, hojeTela, prepOk]); // eslint-disable-line
+  const cb = useMemo(() => contasDoBalance({ nutricao: nutricao, historico: historico, exPorId: exPorId, saude: saude, pesoCorporal: pesoCorporal, medidas: medidas, corredor: corredor, preparo: prepOk, sessao: sessao }),
+    [nutricao, historico, saude, pesoCorporal, medidas, corredor, hojeTela, prepOk, sessao]); // eslint-disable-line
   const { perfil, kg, idade, tmb, completo, ob, hoje, mediaAtivas, pesos, calcDia, ultimos, corpo, comMeta, dias } = cb;
   const perfilG = nutricao.perfil || {};
   const atual = dias.find((x) => x.d === diaVer) || comMeta(calcDia(diaVer));
@@ -39129,7 +39491,9 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                 🔎 Catálogo: comparar alimentos e escolher
               </button>
 
+              <CartaoEspacoTreino x={atual} />
               <CartaoJogoBalance x={atual} dias={dias} nutricao={nutricao} hoje={hoje} ehHoje={ehHoje} />
+              <CartaoJanelas x={atual} ehHoje={ehHoje} />
               {prepOk && cb.prep && cb.prep.usos && cb.prep.usos.diuretico && cb.prep.usos.diuretico.desde && (() => {
                 const lista = Array.isArray(cb.prep.diureticos) ? cb.prep.diureticos : [];
                 const marcado = lista.indexOf(diaVer) >= 0;
@@ -42983,7 +43347,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
         )}
         {aba === "balance" && (
           <TelaBodyBalance nutricao={nutricao} setNutricao={setNutricao} historico={historico} exPorId={exPorId} saude={saude}
-            pesoCorporal={pesoCorporal} medidas={medidas} corredor={corredor} avisar={avisar} pedirConfirmacao={pedirConfirmacao}
+            pesoCorporal={pesoCorporal} medidas={medidas} corredor={corredor} sessao={sessao} avisar={avisar} pedirConfirmacao={pedirConfirmacao}
             onPercurso={() => setAba("percurso")} onEsteira={() => iniciarEsteira("esteira-caminhada")}
             sincronizarRelogio={NO_APP_ANDROID ? sincronizarComidaRelogio : null} />
         )}

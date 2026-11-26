@@ -62,10 +62,53 @@ object Comida {
         if (n.length() == 0) try { (c.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(NOTA) } catch (e: Exception) { }
     }
 
+    // A entrega na hora (2026-11-26j). Antes, o que era marcado no relógio
+    // ficava aqui até a pessoa tocar na notificação ou reabrir o app — podia
+    // levar horas. Agora, com a aba do Treino Livre na tela, o app leva
+    // sozinho; sem a permissão "Aparecer sobre outros apps" continua a
+    // notificação de sempre.
+    //
+    // Os ids já levados ficam guardados à parte da fila ("ent"): a fila só sai
+    // quando a página devolve os "vistos", e sem essa marca a mesma anotação
+    // seria entregue de novo a cada navegação — a própria entrega é uma
+    // navegação. Entregar duas vezes não duplica nada no site (os "vistos" do
+    // registro barram), mas abriria a tela sem parar.
+    private fun entregues(c: Context): MutableList<String> {
+        val l = mutableListOf<String>()
+        try { val a = JSONArray(prefs(c).getString("ent", "[]")); for (i in 0 until a.length()) l.add(a.optString(i)) } catch (e: Exception) { }
+        return l
+    }
+    fun temNovos(c: Context): Boolean {
+        val ent = HashSet(entregues(c))
+        val p = pendentes(c)
+        for (i in 0 until p.length()) { val k = p.optJSONObject(i)?.optString("k") ?: continue; if (k.isNotEmpty() && !ent.contains(k)) return true }
+        return false
+    }
+    private fun marcarEntregues(c: Context) {
+        val p = pendentes(c)
+        val l = entregues(c)
+        val tem = HashSet(l)
+        for (i in 0 until p.length()) p.optJSONObject(i)?.optString("k")?.let { if (it.isNotEmpty() && tem.add(it)) l.add(it) }
+        val a = JSONArray()
+        l.takeLast(300).forEach { a.put(it) }
+        prefs(c).edit().putString("ent", a.toString()).apply()
+    }
+
+    fun entregarSePuder(c: Context) {
+        if (!temNovos(c)) return
+        if (!Canal.aVista) { avisar(c); return }
+        if (Build.VERSION.SDK_INT >= 23 && !android.provider.Settings.canDrawOverlays(c)) { avisar(c); return }
+        try {
+            c.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("treinolivre://comida?entregar=1"))
+                .setPackage(c.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (e: Exception) { avisar(c) }
+    }
+
     // o pedaço do link: "comida=<base64>" (vazio sem nada a levar)
     fun fragmento(c: Context): String {
         val p = pendentes(c)
         if (p.length() == 0) return ""
+        marcarEntregues(c)
         return "comida=" + Site.codificar(JSONObject().put("ev", p).toString())
     }
 
@@ -132,6 +175,17 @@ class ComidaActivity : ComponentActivity() {
                 Comida.limpar(this, j.optJSONArray("vistos"))
                 Comida.publicarEstado(applicationContext, json)
             } catch (e: Exception) { }
+            // A volta traz o que o relógio marcou (2026-11-26j). A página já
+            // está pedindo a sincronia a cada toque na tela do Balance: se
+            // houver fila aqui, ela vai junto, e a anotação do pulso entra sem
+            // a pessoa tocar em notificação nenhuma. Sem fila, nada muda.
+            val volta = Comida.fragmento(this)
+            if (volta.isNotEmpty()) {
+                try {
+                    Site.abrir(this, Site.comFragmento(this, volta), { lancador = it }) { finish() }
+                    return
+                } catch (e: Exception) { }
+            }
             sair()
             return
         }

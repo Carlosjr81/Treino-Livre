@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-26j — O que você marca no relógio chega ao celular na hora
+
+- **Em uma frase:** a comida e a água marcadas no relógio agora entram no app em segundos, sem você tocar em notificação nenhuma.
+- **O que mudou:** antes, o que era marcado no pulso ficava guardado no celular até você tocar na notificação **⌚ Do relógio** ou reabrir o app — podia levar horas, e dava a impressão de que o relógio não tinha mandado nada. Agora: **com o Treino Livre aberto na tela do celular, a anotação entra sozinha**; abrir ou trocar de aba dentro do Balance (Hoje, Semana, Mês, Perfil) também busca o que está esperando; e o relógio, enquanto tem algo na fila, chama o celular **de 3 em 3 segundos** (antes eram 12). O relógio continua mostrando **⏳ esperando o celular** enquanto não chegou, e **✓ tudo no celular** quando chegou.
+- **Por que importa para quem treina:** marcar o copo de água no pulso e ver o número subir no celular na hora é o que faz a pessoa confiar no relógio. Anotação que some por horas vira anotação que ninguém faz.
+- **Como usar:** nada a configurar. Para a entrada automática com o app aberto, o celular precisa da permissão **Aparecer sobre outros apps** (a mesma do treino com a tela travada); sem ela, continua a notificação de um toque. **Atualize o app do celular e o do relógio** (Ajustes › App Android, e o assistente do relógio).
+- **Ideias de vídeo:** celular na mão mostrando o Balance, tocar em 💧 no relógio e a água subir na tela do celular em seguida, sem tocar em mais nada.
+- **Não prometer:** sem o app do celular (só pelo navegador) o relógio não anota; e se o celular estiver longe ou com o Bluetooth fora, a anotação fica no relógio até ele achar o celular — ela não se perde.
+
+---
+
 ## 2026-11-26i — O controle da dieta virou jogo: missões, sequência e medalhas
 
 - **Em uma frase:** a aba Balance ganhou **missões do dia**, uma **sequência de dias na meta**, um **posto** que sobe com os pontos e **8 medalhas** — tudo feito só do que você anotou.

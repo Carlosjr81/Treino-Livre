@@ -885,7 +885,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.545 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.552 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -970,7 +970,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v291) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v292) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -7068,6 +7068,41 @@ relógio também, dentro da parte da alimentação".
 - Coberto em `teste-balance.js` (o evento atravessando o link, os números
   vindos do celular, a água, a idempotência, a receita que não existe mais e
   o desfazer). **Não validado num relógio.**
+
+#### A sincronia com o relógio, mais rápida (2026-11-26j)
+
+Pedido do dono: "deixe o sincronismo entre as anotações do relógio e celular
+mais rápidos". O relógio já mandava na hora; o que demorava era o **app levar
+ao site** — a fila ficava no celular até a pessoa tocar na notificação ou
+reabrir o app. O Chrome não deixa a página chamar o app sem um gesto, então o
+conserto foi dar mais caminhos de entrada, não um relógio de fundo:
+
+- **O app sabe quando a aba do Treino Livre está na tela** (`Canal.aVista`,
+  pelos avisos `TAB_SHOWN` e `TAB_HIDDEN` do Chrome). Chegando comida do
+  relógio com a aba à vista, o app **entrega na hora** (`entregarSePuder`
+  abre a `ComidaActivity` com `entregar=1`, que reusa a sessão e só troca o
+  fragmento). Sem a aba à vista, ou sem a permissão **Aparecer sobre outros
+  apps** (a mesma do treino com a tela travada), continua a notificação de
+  antes: nada piora para quem não a deu.
+- **A mesma anotação não é entregue duas vezes.** A fila só sai do app quando
+  a página devolve os `vistos`, e a própria entrega é uma navegação — sem uma
+  marca à parte (`ent`, os ids já levados), o `TAB_SHOWN` da entrega abriria
+  a tela de novo, e de novo. Entregar duas vezes não duplicaria nada no site
+  (os `vistos` do registro barram), mas abriria a tela sem parar.
+- **A volta do estado traz a fila junto.** O `treinolivre://comida?d=` (que a
+  página chama para mandar a meta e os favoritos ao relógio) agora, se houver
+  fila, volta ao site com `#comida=`. É o caminho que **não depende de
+  permissão nenhuma**: a Activity foi aberta pela própria página.
+- **A tela do Balance pede a sincronia a cada toque** (`puxarRelogio`), e não
+  só ao anotar: ao abrir a tela e a cada troca de seção (o toque que trouxe a
+  pessoa até ali é o gesto que o Chrome exige). Com guarda de 15 s, porque
+  cada pedido abre a `ComidaActivity`.
+- **O relógio reenvia de 3 em 3 s enquanto há fila** (eram 12 s fixos), e de
+  15 em 15 s com a fila vazia — sem nada a mandar, a chamada só acorda o
+  Bluetooth à toa.
+- Coberto por `teste-balance.js` (217 checagens). **Não validado num aparelho**:
+  a entrega automática e a permissão de sobrepor foram conferidas só no código,
+  e o APK é montado pelo Actions.
 
 #### O intra-treino com glicerina (`s-intra`, 2026-11-26g)
 

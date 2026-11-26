@@ -304,7 +304,8 @@ class OuvinteRelogio : WearableListenerService() {
             val j = try { JSONObject(String(m.data, Charsets.UTF_8)) } catch (e: Exception) { return }
             val ks = Comida.guardar(contexto, j.optJSONArray("ev") ?: org.json.JSONArray())
             try { Wearable.getMessageClient(contexto).sendMessage(m.sourceNodeId, Comida.OK, JSONObject().put("ks", ks).toString().toByteArray(Charsets.UTF_8)) } catch (e: Exception) { }
-            Comida.avisar(contexto)
+            // com a aba do Treino Livre na tela, entra na hora; senão, o aviso
+            Comida.entregarSePuder(contexto)
             return
         }
         if (m.path != Relogio.ACAO) return

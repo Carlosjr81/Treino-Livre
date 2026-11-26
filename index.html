@@ -2286,7 +2286,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-26i";
+const VERSAO_APP = "2026-11-26j";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3898,7 +3898,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-196/treino-livre-196.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-197/treino-livre-197.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -38701,6 +38701,21 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
   const mostrar = (m) => { setToast(m); clearTimeout(toastT.current); toastT.current = setTimeout(() => setToast(""), 2200); };
   useEffect(() => () => clearTimeout(toastT.current), []);
   const estadoRelogio = useRef(null);
+  // A sincronia com o relógio (2026-11-26j). Ela leva o estado de hoje E traz
+  // de volta o que o relógio anotou (o app responde com #comida= quando há
+  // fila), então vale pedi-la em todo toque da tela, não só ao anotar. A
+  // guarda de 15 s existe porque cada pedido abre a ComidaActivity: sem ela,
+  // trocar de seção abriria o app a cada toque.
+  const sincarRef = useRef(null);
+  sincarRef.current = sincronizarRelogio;
+  const sincEm = useRef(0);
+  const puxarRelogio = () => {
+    if (!sincarRef.current || !estadoRelogio.current) return;
+    const agora = Date.now();
+    if (agora - sincEm.current < 15000) return;
+    sincEm.current = agora;
+    setTimeout(() => { if (sincarRef.current && estadoRelogio.current) sincarRef.current(estadoRelogio.current); }, 150);
+  };
   const hojeTela = diaLocal(Date.now());
   const prepOk = preparoLiberado();
   const cb = useMemo(() => contasDoBalance({ nutricao: nutricao, historico: historico, exPorId: exPorId, saude: saude, pesoCorporal: pesoCorporal, medidas: medidas, corredor: corredor, preparo: prepOk }),
@@ -38765,7 +38780,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
     }));
     setJanela(null);
     mostrar(aguaMl ? "💧 +" + aguaMl + " ml" : "✓ " + (itens.length === 1 ? itens[0].n : itens.length + " alimentos") + " anotado" + (itens.length === 1 ? "" : "s"));
-    if (sincronizarRelogio && ehHoje) setTimeout(() => sincronizarRelogio(estadoRelogio.current), 120);
+    if (sincronizarRelogio && ehHoje) { sincEm.current = Date.now(); setTimeout(() => sincronizarRelogio(estadoRelogio.current), 120); }
   };
   // O catálogo anota o que foi comparado: cada item vira porções a partir dos
   // gramas escolhidos lá, com o mesmo texto de quantidade da janela de anotar.
@@ -38789,10 +38804,13 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
     mudarDia(diaVer, (d) => Object.assign({}, d, { itens: (d.itens || []).map((x) => (x.id === novo.id ? novo : x)) }));
     setEditando(null);
     mostrar("✓ " + novo.n + " corrigido");
-    if (sincronizarRelogio && ehHoje) setTimeout(() => sincronizarRelogio(estadoRelogio.current), 120);
+    if (sincronizarRelogio && ehHoje) { sincEm.current = Date.now(); setTimeout(() => sincronizarRelogio(estadoRelogio.current), 120); }
   };
   const mudarPerfil = (m) => setNutricao((n) => Object.assign({}, n, { perfil: Object.assign({}, n.perfil || {}, m) }));
 
+  // Ao abrir a tela e a cada troca de seção: o toque que trouxe a pessoa até
+  // aqui é o gesto que o Chrome exige para a página falar com o app.
+  useEffect(() => { puxarRelogio(); }, [secao]); // eslint-disable-line
   const abaSec = (id, rot) => (
     <button key={id} onClick={() => setSecao(id)} style={{ flex: 1, padding: "10px 4px", borderRadius: 12, cursor: "pointer", fontWeight: 900, fontSize: 13,
       border: "1px solid " + (secao === id ? "transparent" : "var(--borda2)"), background: secao === id ? GRAD : "transparent", color: secao === id ? "#fff" : "var(--texto)" }}>{rot}</button>
@@ -38874,7 +38892,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                 <button onClick={() => setDiaVer(diaLocal(new Date(diaVer + "T12:00:00").getTime() - 864e5))} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 14px" }}>◀</button>
                 <div style={{ fontWeight: 900 }}>{ehHoje ? "Hoje" : new Date(diaVer + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}</div>
-                <button disabled={ehHoje} onClick={() => setDiaVer(diaLocal(new Date(diaVer + "T12:00:00").getTime() + 864e5))} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 14px", opacity: ehHoje ? 0.3 : 1 }}>▶</button>
+                <button disabled={ehHoje} onClick={() => { setDiaVer(diaLocal(new Date(diaVer + "T12:00:00").getTime() + 864e5)); puxarRelogio(); }} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 14px", opacity: ehHoje ? 0.3 : 1 }}>▶</button>
               </div>
 
               <div style={{ ...S.card, borderColor: passou ? "#FF4D6D" : "var(--borda)", position: "relative", overflow: "hidden" }}>

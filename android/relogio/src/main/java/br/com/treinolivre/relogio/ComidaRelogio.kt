@@ -190,8 +190,16 @@ class ComidaRelogio : ComponentActivity(), MessageClient.OnMessageReceivedListen
     private val main = Handler(Looper.getMainLooper())
     private var letreiro: Typeface? = null
     private var passouAntes = false
+    // O reenvio da fila (2026-11-26j). Com algo esperando o celular, de 3 em
+    // 3 s: é o tempo em que a pessoa ainda está olhando o pulso depois de
+    // tocar. Fila vazia, de 15 em 15 s — não há o que mandar, e a chamada só
+    // acorda o Bluetooth à toa.
     private val reenviar = object : Runnable {
-        override fun run() { ComidaPulso.mandar(this@ComidaRelogio); main.postDelayed(this, 12000L) }
+        override fun run() {
+            val tem = ComidaPulso.pendentes(this@ComidaRelogio).length() > 0
+            if (tem) ComidaPulso.mandar(this@ComidaRelogio)
+            main.postDelayed(this, if (tem) 3000L else 15000L)
+        }
     }
 
     private fun dp(v: Int) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics).toInt()

@@ -31,6 +31,11 @@ object Canal {
     @Volatile var sessao: CustomTabsSession? = null
     @Volatile var pronto = false
     @Volatile var aoMensagem: ((String) -> Unit)? = null
+    // A aba do Treino Livre está na tela? (2026-11-26j) O Chrome avisa quando
+    // ela aparece e quando some. É o que deixa a comida marcada no relógio
+    // entrar na hora, em vez de esperar um toque na notificação: com o app à
+    // vista, quem anotou está olhando a tela do Balance.
+    @Volatile var aVista = false
     private var conexao: CustomTabsServiceConnection? = null
     private val principal = Handler(Looper.getMainLooper())
     @Volatile private var contexto: Context? = null
@@ -47,9 +52,14 @@ object Canal {
             // quando o app abre do zero; voltar pelos recentes ou pelo ícone
             // traz a tarefa de volta sem passar por ele. O Chrome avisa aqui.
             if (navigationEvent == TAB_SHOWN || navigationEvent == NAVIGATION_FINISHED) {
+                aVista = true
                 val c = contexto
                 if (c != null) try { Relogio.chamarRelogio(c) } catch (e: Exception) { }
+                // a aba voltou: o que o relógio marcou enquanto ela estava
+                // fora entra agora, sem esperar a notificação
+                if (c != null) try { Comida.entregarSePuder(c) } catch (e: Exception) { }
             }
+            if (navigationEvent == TAB_HIDDEN) aVista = false
             // a cada página carregada, um canal novo (a página velha levou o dela)
             if (navigationEvent != NAVIGATION_FINISHED) return
             pronto = false

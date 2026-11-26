@@ -572,5 +572,30 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("o jogo nao inventa gente nem comparacao com os outros", [], 
     ["outras pessoas", "outros usuários", "ranking geral", "média dos usuários", "Math.random"].filter((p) => fonte.indexOf(p) >= 0));
 }
+// ---- a sincronia com o relógio mais rápida (2026-11-26j) ----
+{
+  const lerKt = (p) => fs.readFileSync(path.join(__dirname, "..", p), "utf8");
+  const comida = lerKt("android/app/src/main/java/br/com/treinolivre/app/ComidaActivity.kt");
+  const canal = lerKt("android/app/src/main/java/br/com/treinolivre/app/Canal.kt");
+  const rel = lerKt("android/app/src/main/java/br/com/treinolivre/app/Relogio.kt");
+  const pulso = lerKt("android/relogio/src/main/java/br/com/treinolivre/relogio/ComidaRelogio.kt");
+
+  teste("o app sabe quando a aba do Treino Livre esta na tela", true,
+    /@Volatile var aVista = false/.test(canal) && /navigationEvent == TAB_HIDDEN\) aVista = false/.test(canal));
+  teste("a comida do relogio tenta entrar na hora, nao so na notificacao", true,
+    /Comida\.entregarSePuder\(contexto\)/.test(rel) && /Comida\.entregarSePuder\(c\)/.test(canal));
+  teste("sem o app a vista, ou sem a permissao, continua a notificacao", true,
+    /if \(!Canal\.aVista\) \{ avisar\(c\); return \}/.test(comida) && /canDrawOverlays\(c\)\) \{ avisar\(c\); return \}/.test(comida));
+  teste("a mesma anotacao nao e entregue duas vezes (a entrega e uma navegacao)", true,
+    /fun temNovos/.test(comida) && /marcarEntregues\(c\)\n        return "comida="/.test(comida));
+  teste("a volta do estado traz a fila do relogio junto", true,
+    /val volta = Comida\.fragmento\(this\)/.test(comida));
+  teste("o relogio reenvia de 3 em 3 s com fila, e de 15 em 15 sem", true,
+    /if \(tem\) 3000L else 15000L/.test(pulso));
+
+  teste("a tela do Balance pede a sincronia a cada toque, com guarda", true,
+    /const puxarRelogio = \(\) => \{/.test(html) && /agora - sincEm\.current < 15000/.test(html) &&
+    /useEffect\(\(\) => \{ puxarRelogio\(\); \}, \[secao\]\)/.test(html));
+}
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

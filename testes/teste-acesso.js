@@ -194,6 +194,19 @@ console.log("\n--- a cobrança (o app pago) ---");
   teste("o dono nunca paga", ["liberado", "dono"], [A.situacaoConta({ status: "liberado", email: "carlos.jr.81@hotmail.com", criadoEm: 1 }, ag + 99 * dia, lig), A.planoDaConta({ email: "carlos.jr.81@hotmail.com" }, ag, lig).tipo]);
   teste("bloqueado continua bloqueado (não vira 'pagar')", "bloqueado", A.situacaoConta(Object.assign({}, conta, { status: "bloqueado" }), ag + 30 * dia, lig));
   teste("aguardando aprovação continua aguardando", "pendente", A.situacaoConta(Object.assign({}, conta, { status: "pendente" }), ag + 30 * dia, lig));
+  // Zero dias de teste (2026-11-26d, o dono: "não quero que ninguém acesse
+  // sem plano pago ou com minha cortesia concedida"). O zero tem de
+  // atravessar inteiro: lerCobranca não pode trocá-lo pelo padrão de 7.
+  const zero = A.lerCobranca({ cobranca: true, cobrancaDesde: ag, testeDias: 0 });
+  teste("zero dias de teste fica zero (não vira o padrão de 7)", [true, 0], [zero.ligada, zero.testeDias]);
+  teste("sem teste: quem já usava é barrado na hora", "pagar", A.situacaoConta(conta, ag, zero));
+  teste("sem teste: cadastro novo nasce barrado", "pagar", A.situacaoConta(Object.assign({}, conta, { criadoEm: ag }), ag + 60000, zero));
+  teste("sem teste: a aprovação automática não abre a porta", "pagar", A.situacaoConta(Object.assign({}, conta, { criadoEm: ag, decididoEm: 0 }), ag + 60000, zero));
+  teste("sem teste: cortesia e pago continuam entrando", ["liberado", "liberado", "liberado"],
+    [A.situacaoConta(Object.assign({}, conta, { cortesia: true }), ag, zero),
+     A.situacaoConta(Object.assign({}, conta, { pagoAte: ag + 30 * dia }), ag, zero),
+     A.situacaoConta(Object.assign({}, conta, { vitalicio: true }), ag, zero)]);
+  teste("sem teste e sem rede: não entra", false, A.liberadoSemRede({ status: "liberado", conferidoEm: ag, cob: zero, conta: conta }, ag + 60000));
   // sem rede: o plano que venceu também barra
   const cache = { status: "liberado", conferidoEm: ag + 9 * dia, cob: lig, conta: Object.assign({}, conta, { pagoAte: ag + 10 * dia }) };
   teste("sem rede: com plano valendo, entra", true, A.liberadoSemRede(cache, ag + 9.5 * dia));
@@ -239,6 +252,29 @@ console.log("\n--- a cobrança (o app pago) ---");
   teste("regras: a pessoa só avisa (informado), com a hora do servidor; só o dono confirma", true,
     /status == 'informado'/.test(bloco) && /servidorEm == request\.time/.test(bloco) && /allow update: if dono\(\);/.test(bloco) && /allow delete: if false;/.test(bloco));
   teste("regras: a pessoa não grava o próprio acesso pago", false, /pagoAte|vitalicio|cortesia/.test(regras.slice(regras.indexOf("allow update: if dono() || (eu(uid)"), regras.indexOf("allow delete: if dono() || eu(uid)"))));
+}
+
+// ---- a vitrine de quem ainda não tem acesso (2026-11-26d) ----
+{
+  eval(pedaco("const VITRINE_APP = {", "\n// O que o relógio oferece") + "\nglobalThis.VIT = VITRINE_APP;");
+  const V = globalThis.VIT;
+  const txt = [V.chamada, V.linha].concat(V.blocos.map((b) => b.titulo + " " + b.linha + " " + b.itens.join(" "))).join(" ");
+  teste("a vitrine tem os cinco assuntos que o dono pediu", true,
+    /Body Balance/.test(txt) && /[Tt]reino/.test(txt) && /Jarvis/.test(txt) && /[Aa]eróbico/.test(txt) && /relógio/.test(txt));
+  // propaganda é onde mais importa não mentir: nada de resultado prometido,
+  // número de gente inventado, depoimento nem pressa falsa (CDC, art. 37)
+  teste("a vitrine não promete resultado", [],
+    ["garantimos", "garantido", "resultado garantido", "emagreça", "emagrecer em", "perca ", "ganhe músculo", "em 30 dias", "comprovadamente"].filter((p) => txt.toLowerCase().indexOf(p) >= 0));
+  teste("a vitrine não inventa gente nem pressa", [],
+    ["mil pessoas", "milhares", "usuários já", "últimas vagas", "só hoje", "oferta expira", "corra", "aproveite agora"].filter((p) => txt.toLowerCase().indexOf(p) >= 0));
+  teste("a vitrine não vira profissional de saúde", [],
+    ["personal", "prescriç", "prescrev", "avaliação física", "liberado para treinar", "plano alimentar", "dieta person", "nutricionista virtual"].filter((p) => semAcento(txt).indexOf(semAcento(p)) >= 0));
+  teste("a vitrine não diz que o app é sem cadastro", -1, txt.toLowerCase().indexOf("sem cadastro"));
+  teste("a vitrine nao esconde que o app roda no celular da pessoa", true, /celular/.test(txt));
+  // a tela do barrado: a vitrine, os planos e o backup no mesmo lugar
+  teste("a tela de quem está barrado mostra a vitrine", true, /\{barrado && <VitrineApp/.test(html));
+  teste("quem está barrado continua podendo baixar os treinos", true, /Baixar meus treinos \(backup\)/.test(html));
+  teste("a vitrine leva o aviso de saúde", true, /<AvisoSaude \/>\s*\n\s*<\/div>\s*\n\s*\);\s*\n\}\s*\nfunction TelaAssinatura/.test(html));
 }
 
 console.log("\n" + ok + " passou / " + mal + " falhou");

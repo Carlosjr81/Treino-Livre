@@ -2046,11 +2046,86 @@ const ALIMENTOS_BR = [
   { id: "cafe-leite", nome: "Café com leite", cat: "bebida", por: "1 xícara (200 ml)", gr: 200, k: 70, p: 3.5, c: 5.5, g: 3.5, gPrato: 0, ic: "☕", liq: 200 },
   { id: "suco-uva", nome: "Suco de uva integral", cat: "bebida", por: "1 copo (200 ml)", gr: 200, k: 140, p: 0, c: 34.0, g: 0, gPrato: 0, ic: "🧃", liq: 200 },
   { id: "energetico", nome: "Energético", cat: "doce", por: "1 lata (250 ml)", gr: 250, k: 113, p: 0, c: 28.0, g: 0, gPrato: 0, ic: "⚡", liq: 250 },
+  // achocolatados e leite condensado (2026-11-26d)
+  { id: "achocolatado-po", nome: "Achocolatado em pó", cat: "doce", por: "2 colheres de sopa (20 g)", gr: 20, k: 78, p: 1.1, c: 17.0, g: 0.4, f: 0.7, gPrato: 0, ic: "\u{1F36B}", b: "nescau toddy nesquik quick achocolatado po chocolate" },
+  { id: "leite-achocolatado", nome: "Leite com achocolatado", cat: "bebida", por: "1 copo (200 ml + 2 colheres)", gr: 220, k: 201, p: 7.1, c: 26.0, g: 7.0, f: 0.7, gPrato: 0, ic: "\u{1F95B}", liq: 200, b: "nescau toddy nesquik quick leite chocolate achocolatado" },
+  { id: "leite-achocolatado-desnatado", nome: "Leite desnatado com achocolatado", cat: "bebida", por: "1 copo (200 ml + 2 colheres)", gr: 220, k: 148, p: 7.7, c: 27.0, g: 0.8, f: 0.7, gPrato: 0, ic: "\u{1F95B}", liq: 200, b: "nescau toddy light leite desnatado chocolate achocolatado" },
+  { id: "achocolatado-pronto", nome: "Achocolatado pronto (caixinha)", cat: "bebida", por: "1 caixinha (200 ml)", gr: 200, k: 160, p: 4.2, c: 26.0, g: 4.4, ig: 37, gPrato: 0, ic: "\u{1F9C3}", liq: 200, b: "toddynho nescau prontinho chocomilk achocolatado pronto caixinha" },
+  { id: "chocolate-quente", nome: "Chocolate quente com leite", cat: "bebida", por: "1 xícara (200 ml)", gr: 225, k: 222, p: 7.0, c: 30.0, g: 8.0, f: 0.8, gPrato: 0, ic: "\u{2615}", liq: 200, b: "alpino chocolate quente cremoso" },
+  { id: "leite-condensado", nome: "Leite condensado", cat: "doce", por: "1 colher de sopa (20 g)", gr: 20, k: 63, p: 1.5, c: 11.4, g: 1.3, f: 0, ig: 61, gPrato: 0, ic: "\u{1F36E}", b: "moca condensado doce de leite lata" },
   { id: "destilado", nome: "Destilado (cachaça, vodka, uísque)", cat: "alcool", por: "1 dose (50 ml)", gr: 50, k: 112, p: 0, c: 0, g: 0, alc: 16.0, gPrato: 0, ic: "🥃", liq: 50 },
   { id: "caipirinha", nome: "Caipirinha", cat: "alcool", por: "1 copo (200 ml)", gr: 200, k: 250, p: 0, c: 25.0, g: 0, alc: 21.0, gPrato: 0, ic: "🍹", liq: 200 },
 ];
 // Os grupos da busca de alimentos (2026-11-25e)
 const GRUPOS_ALIMENTO = [["", "Todos"], ["carbo", "🍚 Carboidratos"], ["proteina", "🍗 Proteínas"], ["farinha", "🌾 Farinhas"], ["suplemento", "🥤 Suplementos"], ["fruta", "🍎 Frutas"], ["verdura", "🥗 Verduras"], ["gordura", "🥑 Gorduras"], ["doce", "🍫 Doces e lanches"], ["prato", "🍽 Pratos"], ["bebida", "🥤 Bebidas"], ["alcool", "🍺 Álcool"]];
+// A vitrine de quem ainda não tem acesso (2026-11-26d, pedido do dono: "na
+// tela deles que não estão autorizados só apareça informações sobre como ter
+// acesso mediante pagamento de algum plano existente... uma propaganda
+// sedutora que desperte o desejo de pagar para usar o sistema").
+//
+// É propaganda, e por isso é a tela do app em que mais importa que cada frase
+// seja verdade: número inventado, depoimento de ninguém, "em breve acaba" e
+// promessa de resultado são propaganda enganosa (CDC, art. 37) — e o app não
+// tem nada disso em lugar nenhum. Todo item aqui é uma função que existe e
+// que a pessoa vai encontrar no primeiro dia. Nada de "personal",
+// "prescrição", "avaliação física" nem "plano alimentar": o que o app faz é
+// registrar, organizar e informar (ver *A defesa legal* e o Body Balance).
+const VITRINE_APP = {
+  chamada: "O treino, a comida e o gasto do dia — num app só",
+  linha: "Você levanta o peso. O resto o app anota, conta, fala e mostra.",
+  blocos: [
+    { ic: "\u{1F525}", titulo: "Body Balance: o que entra e o que sai",
+      linha: "O corpo na tela enche com o que você comeu e marca a sua meta do dia. Passou, ele diz quanto passou — e o que fecha a conta.",
+      itens: [
+        "O gasto não é uma tabela: com o tempo, o app aprende o seu, comparando o que você come com o que a balança faz.",
+        "Alimentos brasileiros em porção caseira, com proteína, carboidrato, gordura, fibra e índice glicêmico.",
+        "Foto do prato: marque o que tem e quanto ocupa, e vira gramas.",
+        "Catálogo: ponha dois alimentos lado a lado e veja só o que a troca muda de verdade.",
+        "Bulking, cutting ou manutenção: o app diz o que você está fazendo de verdade, pelo saldo médio e pela tendência da balança.",
+        "Água, sono e o acerto da semana e do mês, dia por dia.",
+      ] },
+    { ic: "\u{1F3CB}", titulo: "Treinos que se ajustam a você",
+      linha: "Fichas, programas e o treino de hoje já escolhido — e a carga de cada série vinda do seu histórico.",
+      itens: [
+        "A carga sugerida sobe quando você fecha as repetições e desce quando não fecha, exercício por exercício.",
+        "Ciclo de 5 semanas com a semana leve no lugar certo, e o volume por músculo revisto sozinho a cada ciclo.",
+        "Faltou um dia? junta duas fichas. Tem meia hora? o treino cabe nela. Já treinou tudo? treino extra no músculo descansado.",
+        "Eyes Scan: apoie o celular e a câmera conta as repetições, mede a amplitude e avisa o joelho que cai para dentro.",
+        "Treino com dor, funcional, mini band em casa e o catálogo de exercícios com o movimento animado.",
+      ] },
+    { ic: "\u{1F399}", titulo: "Jarvis: o treino sem tocar no celular",
+      linha: "\"Jarvis, anota 80 por 10.\" A série entra, o descanso começa e ele confirma falando o que entendeu.",
+      itens: [
+        "Pergunte o seu recorde, o que treinar hoje, quantas séries de peito na semana, quanto falta de descanso.",
+        "Com a tela travada no bolso, ele continua ouvindo, contando o descanso e chamando você de volta (no app Android).",
+        "Ele narra a série anotada, o recorde e o fim do descanso — dá para treinar de fone, sem olhar a tela.",
+        "Escola do Jarvis: treine os comandos sem gravar nada no histórico.",
+      ] },
+    { ic: "\u{1F3C3}", titulo: "Aeróbico com os números de quem corre",
+      linha: "Esteira, bicicleta, elíptico, escada, remo, corda e piscina — cada um com os números do painel dele.",
+      itens: [
+        "Rua com GPS: mapa, ritmo, parciais, subida e o percurso pintado pelo ritmo.",
+        "Painel do corredor: VO2máx estimado, ritmos de treino, carga da semana, previsão de prova e recordes por distância.",
+        "Intervalado guiado por voz, e o boletim falado de tempo em tempo ou a cada marca.",
+        "Desafio ao vivo com amigos, no mesmo lugar ou em dias diferentes, e o Monster, Run! com história narrada.",
+      ] },
+    { ic: "\u{231A}", titulo: "O relógio, a cinta e a esteira conversam com o app",
+      linha: "O que os seus aparelhos medem entra no treino sem você digitar.",
+      itens: [
+        "Wear OS (Galaxy Watch e outros): marque a série, ajuste a carga, veja o descanso e anote comida e água no pulso.",
+        "Cinta cardíaca e esteira por Bluetooth: o app lê o painel, guarda batimento, distância e calorias na série — e no intervalado ele conduz a velocidade da esteira.",
+        "Conexão Saúde: passos, sono, peso, oxigenação e o batimento que o relógio mediu dentro do treino, com a leitura do coração série a série.",
+        "Óculos Ray-Ban Meta: a câmera deles conta as repetições pelo espelho da academia.",
+      ] },
+    { ic: "\u{1F3AC}", titulo: "E no fim, o treino vira vídeo",
+      linha: "O resumo animado conta os seus números com narração, música e a sua arte — pronto para o story.",
+      itens: [
+        "Volume, séries, músculos, recordes, aeróbico, coração e a semana do ciclo, cena por cena.",
+        "Retrospectiva do ano, foto com os números e o ranking entre amigos.",
+        "Português ou inglês, modo escuro, e tudo funciona sem internet depois de instalado.",
+      ] },
+  ],
+};
 // O que o relógio oferece sem o celular ter mandado os favoritos
 const RAPIDOS_RELOGIO = ["cafe", "banana", "pao", "frango", "pf", "whey", "lanche", "chocolate", "refri", "cerveja"];
 // As cores do corpo que enche (as mesmas na tela e no relógio)
@@ -2167,7 +2242,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-26c";
+const VERSAO_APP = "2026-11-26d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -43884,6 +43959,35 @@ const QR_LIB = { url: "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcod
 // Os planos e o pagamento. "barrado": a cobrança está ligada e a pessoa não
 // tem plano (a tela fica no lugar do app e confere sozinha a cada 30 s);
 // sem ele, é a pessoa renovando por conta própria (abre por cima do app).
+// A vitrine: o que a pessoa ganha ao entrar. Sem botão em degradê aqui — o
+// primário desta tela é o pagamento, lá embaixo (a regra de uma ação
+// principal por tela).
+function VitrineApp({ onVerPlanos }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ ...S.card, textAlign: "center", background: "var(--card-grad)", borderColor: "var(--marca)" }}>
+        <div style={{ ...S.logo, fontSize: 21, lineHeight: 1.2 }}>{VITRINE_APP.chamada}</div>
+        <div style={{ fontSize: 14, color: "var(--cinza)", lineHeight: 1.55, marginTop: 6 }}>{VITRINE_APP.linha}</div>
+        {onVerPlanos && <button onClick={onVerPlanos} style={{ ...S.btnGhost, width: "100%", marginTop: 12, fontWeight: 900 }}>Ver os planos {"\u2193"}</button>}
+      </div>
+      {VITRINE_APP.blocos.map((b, i) => (
+        <div key={i} style={S.card}>
+          <div style={{ fontWeight: 900, fontSize: 15.5, lineHeight: 1.3 }}><span aria-hidden="true">{b.ic}</span> {b.titulo}</div>
+          <div style={{ fontSize: 13.5, color: "var(--cinza)", lineHeight: 1.55, margin: "5px 0 8px" }}>{b.linha}</div>
+          {b.itens.map((t, j) => (
+            <div key={j} style={{ fontSize: 13.5, lineHeight: 1.55, display: "flex", gap: 7, marginTop: 5 }}>
+              <span style={{ color: "var(--ok)", flex: "none", fontWeight: 900 }} aria-hidden="true">{"\u2713"}</span><span>{t}</span>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div style={{ ...S.card, fontSize: 13.5, lineHeight: 1.6, color: "var(--cinza)" }}>
+        <b style={{ color: "var(--texto)" }}>Os seus treinos são seus.</b> Eles ficam gravados no seu celular, com plano ou sem plano, e dá para baixar o backup aqui embaixo a qualquer momento. O plano é o acesso ao app.
+      </div>
+      <AvisoSaude />
+    </div>
+  );
+}
 function TelaAssinatura({ sessao, cob, barrado, onSair, onFechar, onConferir }) {
   const c = cob || lerCobranca(null);
   const planos = planosAtivos(c);
@@ -43952,12 +44056,13 @@ function TelaAssinatura({ sessao, cob, barrado, onSair, onFechar, onConferir }) 
     <div>
       <div style={{ textAlign: "center", margin: "6px 0 14px" }}>
         <div style={{ fontSize: 38 }} aria-hidden="true">💪</div>
-        <div style={{ fontSize: 20, fontWeight: 900 }}>{barrado ? "Continue treinando com o Treino Livre" : "Planos e pagamento"}</div>
+        <div style={{ fontSize: 20, fontWeight: 900 }}>{barrado ? "O Treino Livre é para quem tem plano" : "Planos e pagamento"}</div>
         <div style={{ color: "var(--cinza)", fontSize: 14, marginTop: 4, lineHeight: 1.5 }}>
-          {barrado ? (p && p.ate > 0 ? "O seu período gratuito terminou em " + new Date(p.ate).toLocaleDateString("pt-BR") + ". " : "O Treino Livre agora é pago. ") : (p ? "Hoje: " + textoPlanoConta(p, c) + ". " : "")}
+          {barrado ? (p && p.ate > 0 ? "O seu acesso terminou em " + new Date(p.ate).toLocaleDateString("pt-BR") + ". " : "O acesso ao app agora é por plano. ") : (p ? "Hoje: " + textoPlanoConta(p, c) + ". " : "")}
           Escolha um plano: os seus treinos continuam todos no seu celular.
         </div>
       </div>
+      {barrado && <VitrineApp onVerPlanos={() => { const el = document.getElementById("planos-da-vitrine"); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" }); }} />}
       {pendente && (
         <div style={{ ...S.card, borderColor: "var(--obs)" }}>
           <div style={{ fontWeight: 900, fontSize: 15 }}>⏳ Pagamento informado</div>
@@ -43969,7 +44074,7 @@ function TelaAssinatura({ sessao, cob, barrado, onSair, onFechar, onConferir }) 
         </div>
       )}
       {!planos.length && <div style={{ ...S.card, fontSize: 14, color: "var(--cinza)" }}>Nenhum plano disponível agora. Fale com o criador do app: Instagram @{INSTAGRAM}.</div>}
-      <div role="radiogroup" aria-label="Planos" style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+      <div id="planos-da-vitrine" role="radiogroup" aria-label="Planos" style={{ display: "grid", gap: 8, marginBottom: 12 }}>
         {planos.map((pl) => (
           <button key={pl.id} role="radio" aria-checked={escolhido === pl.id} onClick={() => setEscolhido(pl.id)}
             style={{ ...S.card, marginBottom: 0, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,

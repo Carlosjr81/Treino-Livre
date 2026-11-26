@@ -160,6 +160,14 @@ const rap = [...kt.matchAll(/Rapido\("([a-z-]+)", "[^"]*", "[^"]*", (\d+), ([\d.
 teste("o relógio tem os mesmos rápidos do site", B.RAPIDOS_RELOGIO, rap.map((x) => x.a));
 teste("e os mesmos números (kcal, macros, líquido)", [], rap.filter((x) => { const a = B.ALIMENTOS_BR.find((y) => y.id === x.a); return !a || a.k !== x.k || a.p !== x.p || a.c !== x.c || a.g !== x.g || (a.liq || 0) !== x.liq; }).map((x) => x.a));
 teste("as farinhas e os suplementos pedidos estão lá (2026-11-25e)", [], ["farinha-arroz", "farinha-mandioca", "farinha-trigo", "maltodextrina", "dextrose", "creatina", "caseina", "albumina", "hipercalorico"].filter((id) => !B.ALIMENTOS_BR.find((a) => a.id === id)));
+teste("os achocolatados e o leite condensado pedidos estão lá (2026-11-26d)", [], ["achocolatado-po", "leite-achocolatado", "leite-achocolatado-desnatado", "achocolatado-pronto", "chocolate-quente", "leite-condensado"].filter((id) => !B.ALIMENTOS_BR.find((a) => a.id === id)));
+teste("as marcas acham pela busca, sem estarem no nome", [true, true, true, true],
+  ["nescau", "toddy", "nesquik", "moca"].map((m) => B.buscarAlimentos(m, "", null).length > 0));
+teste("nenhum nome de alimento carrega marca", [], B.ALIMENTOS_BR.filter((a) => /nescau|toddy|nesquik|moça|moca|alpino/i.test(a.nome)).map((a) => a.id));
+teste("o leite com achocolatado soma o leite e o pó", true, (() => {
+  const ach = (id) => B.ALIMENTOS_BR.find((a) => a.id === id);
+  return Math.abs(ach("leite-achocolatado").k - (ach("leite").k + ach("achocolatado-po").k)) <= 2;
+})());
 teste("nenhum id repetido", [], B.ALIMENTOS_BR.map((a) => a.id).filter((x, i, l) => l.indexOf(x) !== i));
 { const html0 = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8"); const linhaG = html0.slice(html0.indexOf("const GRUPOS_ALIMENTO")).split("\n")[0];
   teste("todo grupo tem o seu filtro", [], [...new Set(B.ALIMENTOS_BR.map((a) => a.cat))].filter((c) => linhaG.indexOf("[\"" + c + "\"") < 0)); }

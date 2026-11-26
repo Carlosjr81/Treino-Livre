@@ -652,6 +652,50 @@ usuários". **A chave nasceu desligada**: ninguém foi afetado.
   o dono vê o aviso, confirma, e a conta ganha `pagoAte`; ligar a chave;
   cortesia; registrar vitalício à mão; o aviso de vencimento.
 
+## O acesso por plano e a vitrine de quem está de fora (`VITRINE_APP`, `VitrineApp`, 2026-11-26d)
+
+Pedido do dono: "vou ligar o sistema de cobrança e não quero que ninguém tenha
+acesso mais ao sistema, a não ser quem eu libere mediante pagamento ou
+cortesia... na tela deles que não estão autorizados só apareça informações
+sobre como ter acesso... uma propaganda sedutora que crie o desejo da pessoa
+pagar". Ele pôs **zero dias de teste** no painel.
+
+- **O zero atravessa inteiro.** `lerCobranca` só troca `testeDias` pelo padrão
+  de 7 quando ele é `undefined` ou `null`; um zero gravado continua zero, e
+  `planoDaConta` não abre janela nenhuma (`c.testeDias > 0 ? … : 0`). Com a
+  chave ligada entram, e só, o dono, a cortesia valendo, o vitalício e o
+  `pagoAte` no futuro. Cadastro novo — inclusive pela aprovação automática —
+  nasce em `pagar`, e **sem rede também não entra** (`liberadoSemRede` olha a
+  `cob` e a `conta` guardadas). Coberto em `teste-acesso.js`.
+- **O limite continua o de sempre, e foi dito ao dono de novo:** o código é
+  público e roda no aparelho, então quem programa pula a tela de planos na
+  própria cópia. O que o servidor garante é a lista de usuários, os pagamentos
+  e quem tem acesso pago. Quem já estava dentro com o app aberto só é barrado
+  na conferida seguinte (no máximo 15 min), e um liberado sem rede tem os 7
+  dias de `ACESSO_OFFLINE_MS` a partir da última conferida bem-sucedida.
+- **A vitrine** (`VITRINE_APP`, dado no primeiro script; `VitrineApp`, acima
+  da `TelaAssinatura`) aparece só com `barrado`, entre o cabeçalho e os
+  planos, com o "Ver os planos ↓" rolando até o `planos-da-vitrine`. Seis
+  blocos, na ordem que o dono pediu: Body Balance, treinos, Jarvis, aeróbico,
+  relógio e aparelhos, resumo animado.
+- **É a tela do app em que mais importa que cada frase seja verdade.** Número
+  de gente inventado, depoimento de ninguém, "últimas vagas" e promessa de
+  resultado são propaganda enganosa (CDC, art. 37) — a mesma regra do contador
+  do *Apoie o Treino Livre*. Todo item é uma função que existe e que a pessoa
+  encontra no primeiro dia, e nada ali diz "personal", "prescrição",
+  "avaliação física" nem "plano alimentar". O `teste-acesso.js` reprova cada
+  uma dessas palavras e as frases de pressa.
+- **Sem botão em degradê na vitrine**: o primário da tela é o pagamento, lá
+  embaixo (a regra de uma ação principal por tela). A vitrine leva o
+  `<AvisoSaude />`, e o **"💾 Baixar meus treinos (backup)"** continua no pé:
+  os treinos são de quem treina, com ou sem acesso.
+- **Os alimentos novos** (pedido do dono): achocolatado em pó, leite com
+  achocolatado (integral e desnatado), achocolatado pronto de caixinha,
+  chocolate quente e leite condensado. **O nome fica genérico e as marcas vão
+  só no `b`** (as palavras da busca): quem digita "nescau", "toddy",
+  "nesquik" ou "moça" acha, e o app não apresenta os números como sendo os da
+  marca — eles mudam com o fabricante, e o rodapé do catálogo já diz isso.
+
 ## Entrar com o Google (`entrarGoogle`, `googleClientId`)
 
 Pedido do dono (2026-10-30a): "cadastro a partir da conta do Google".
@@ -772,7 +816,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.427 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.446 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +901,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v285) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v286) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |

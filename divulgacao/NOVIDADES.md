@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-26d — O acesso é por plano, e a tela de quem não tem conta o que o app faz
+
+- **Em uma frase:** quem não tem plano pago ou cortesia não entra mais; no lugar do app ele vê o que o Treino Livre faz e os planos para escolher.
+- **O que mudou:** com a cobrança ligada e o teste grátis em zero dia, só entram quem tem plano pago, vitalício, cortesia do criador — e o criador. A tela de quem ainda não tem acesso virou uma vitrine: o Body Balance (o que você come e o que gasta, com o corpo enchendo até a meta), os treinos que se ajustam pelo seu histórico, o Jarvis anotando a série pela voz, o aeróbico com os números de quem corre, o relógio e a esteira conversando com o app, e o resumo animado no fim. Embaixo, os planos cadastrados com o preço, o Pix com QR e o "Já paguei". E o **leite com achocolatado**, o **achocolatado pronto**, o **chocolate quente**, o **achocolatado em pó** e o **leite condensado** entraram na lista de alimentos.
+- **Por que importa para quem treina:** quem já tem plano não sente nada — os treinos continuam todos no celular, com plano ou sem. E quem chega agora entende, antes de pagar, exatamente o que está levando.
+- **Como usar:** quem está sem acesso escolhe o plano na própria tela, paga no Pix e toca em "Já paguei"; a tela confere sozinha e o app abre quando o pagamento é confirmado. O backup dos treinos continua a um toque, mesmo sem acesso.
+- **Ideias de vídeo:** a tela de apresentação rolando de cima a baixo, bloco por bloco, terminando nos planos; e a busca de "nescau" achando o leite com achocolatado no Balance.
+- **Não prometer:** nenhum resultado, nenhum número de usuários, nenhuma pressa ("últimas vagas"); não é plano alimentar, dieta nem prescrição de treino, e os valores dos alimentos mudam com a marca e com o preparo.
+
+---
+
 ## 2026-11-26c — Catálogo de alimentos: compare dois e veja o que muda de verdade
 
 - **Em uma frase:** agora dá para procurar os alimentos pelos números e pôr dois lado a lado, com o que é igual nos dois lados fora da conta, para ver só o que a troca muda.

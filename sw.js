@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v294";
+const CACHE = "treinolivre-v295";
 const CACHE_VOZ = "treinolivre-voz";
 // As falas gravadas do Monster, Run! (vozes/*.mp3): baixadas quando a história
 // começa e guardadas fora do cache da versão, para não sumirem a cada atualização.
@@ -220,8 +220,46 @@ async function verificarLembrete() {
   } catch (e) {}
 }
 
+
+// Os avisos das janelas dos nutrientes (2026-11-26m). O app grava em
+// "/config-janelas" o plano do dia pronto -- cada aviso com o minuto em que
+// vale e o texto --, porque o service worker nao enxerga o localStorage e nao
+// tem como refazer as contas do Balance. Ele so escolhe o que ainda vale
+// agora e mostra. O plano e do DIA: se o dia virou, ele nao serve mais.
+async function verificarJanelas() {
+  try {
+    const c = await caches.open(CACHE_CONFIG);
+    const r = await c.match("/config-janelas");
+    if (!r) return;
+    const cfg = await r.json();
+    if (!cfg || !cfg.ativo || !Array.isArray(cfg.avisos) || !cfg.avisos.length) return;
+
+    const agora = new Date();
+    const hoje = agora.getFullYear() + "-" + String(agora.getMonth() + 1).padStart(2, "0") + "-" + String(agora.getDate()).padStart(2, "0");
+    // plano de ontem nao vale hoje: as janelas saem do treino e das refeicoes
+    // daquele dia, e mostrar um aviso velho seria pior que nao mostrar nenhum
+    if (cfg.dia !== hoje) return;
+    const agoraMin = agora.getHours() * 60 + agora.getMinutes();
+
+    const marca = await c.match("/janelas-enviadas");
+    let vistos = [];
+    try { const v = marca ? await marca.json() : null; if (v && v.dia === hoje && Array.isArray(v.ids)) vistos = v.ids; } catch (e) {}
+
+    const a = cfg.avisos.find((x) => agoraMin >= x.em && agoraMin <= Math.min(x.em + 40, x.ate) && vistos.indexOf(x.id) < 0);
+    if (!a) return;
+    await c.put("/janelas-enviadas", new Response(JSON.stringify({ dia: hoje, ids: vistos.concat([a.id]) }), { headers: { "Content-Type": "application/json" } }));
+    await self.registration.showNotification(a.titulo, {
+      body: a.corpo,
+      icon: "./icon-192.png",
+      badge: "./icon-192.png",
+      tag: "treino-livre-janela",
+      data: { url: "./" },
+    });
+  } catch (e) {}
+}
 self.addEventListener("periodicsync", (e) => {
   if (e.tag === "lembrete-treino") e.waitUntil(verificarLembrete());
+  if (e.tag === "janelas-nutriente") e.waitUntil(verificarJanelas());
 });
 
 // Tocar no aviso abre o app que ja estiver aberto, em vez de uma aba nova

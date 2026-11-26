@@ -16,6 +16,21 @@
 
 ---
 
+## 2026-11-26m — Os avisos das janelas, no celular e no relógio (e dá para marcar à mão)
+
+- **Em uma frase:** ligue o 🔔 e o app avisa quando abre a janela de cada nutriente — no celular e, com o app do relógio, no pulso —, e agora dá para marcar “consumi, só não anotei” em qualquer uma delas.
+- **O que mudou:**
+  - **🔔 Avisar quando uma janela abrir.** O interruptor fica no próprio cartão das janelas, junto da hora em que você costuma dormir (é dela que sai a janela da noite). Um aviso por janela, por dia, e **nunca durante um treino**.
+  - **No relógio também.** O mesmo aviso chega no pulso: duas vibrações curtas e a mensagem na tela. Precisa do app do relógio instalado e do app do celular atualizado (Ajustes › App Android).
+  - **“✓ Consumi, só não anotei.”** Cada janela ganhou esse botão. Você tomou o café meia hora antes do treino e não registrou na hora? Marque depois, e ela conta. Vale para **todas** — cafeína e creatina, que o app não tem como medir, agora só contam assim, e as outras aceitam a marcação por cima do que foi anotado. Quem sabe o que consumiu é você; a tela mostra, separado, o que o app mediu e o que você declarou.
+  - **Os avisos falam como gente que entende do assunto.** O de depois do treino começa com “sem pressa: você tem até 21:30” — porque a janela de 30 minutos é mito. Nenhum deles cobra, chama de atrasado ou manda comer nada.
+- **Por que importa para quem treina:** a melhor janela não serve de nada se ninguém lembrar dela na hora. E lembrar sem poder dizer “já tomei” transforma o aviso em cobrança — que é exatamente o que faz a pessoa desligar tudo.
+- **Como usar:** Balance › Hoje › ⏱ As janelas dos nutrientes › ligue o 🔔 e escolha a hora de dormir. Na primeira vez o celular pede permissão para mostrar avisos.
+- **Ideias de vídeo:** ligar o interruptor e mostrar a notificação chegando; marcar “consumi, só não anotei” na cafeína e ver o placar subir de 4/6 para 5/6; mostrar o aviso no relógio.
+- **Não prometer:** com o app fechado, quem decide se o navegador pode acordar é o celular — por isso o aviso na hora exata depende do app Android instalado. O app não diz o que você deve comer nem a que horas: ele mostra faixas, com a fonte de cada uma, e lembra que o total do dia pesa muito mais que a hora.
+
+---
+
 ## 2026-11-26l — Treinou, comeu mais: o espaço que o treino abre, e as janelas dos nutrientes
 
 - **Em uma frase:** quando você treina, a sua meta de calorias do dia sobe sozinha — agora o app mostra quanto subiu e o que cabe nesse espaço —, e um quadro novo diz em que faixas de horário cada nutriente rende mais, com a literatura na mão (inclusive para derrubar o que a academia repete errado).

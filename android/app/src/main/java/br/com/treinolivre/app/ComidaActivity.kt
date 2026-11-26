@@ -174,6 +174,10 @@ class ComidaActivity : ComponentActivity() {
                 val j = JSONObject(json)
                 Comida.limpar(this, j.optJSONArray("vistos"))
                 Comida.publicarEstado(applicationContext, json)
+                // os avisos das janelas dos nutrientes (2026-11-26m) vêm no
+                // mesmo pacote: o Chrome só abre outro app com um toque, e
+                // este já é o toque. Aqui eles viram alarme.
+                Janelas.agendar(applicationContext, json)
             } catch (e: Exception) { }
             // A volta traz o que o relógio marcou (2026-11-26j). A página já
             // está pedindo a sincronia a cada toque na tela do Balance: se

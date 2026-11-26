@@ -2366,7 +2366,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-26l";
+const VERSAO_APP = "2026-11-26m";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3978,7 +3978,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-197/treino-livre-197.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-198/treino-livre-198.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -4035,6 +4035,16 @@ const RELOGIO_DESATUALIZADO = RELOGIO_NO_PULSO > 0 && NUMERO_APK > RELOGIO_NO_PU
 const PACOTE_ANDROID = "br.com.treinolivre.app";
 // O app Android que conversa com o relógio sobre comida e água abre o site com
 // ?comida=1 (2026-11-25a). Sem isto, um APK antigo mandaria o Chrome à loja.
+// O app Android que sabe agendar os avisos das janelas (2026-11-26m): sem
+// isso a página não chama o intent, senão um APK antigo mandaria o Chrome à
+// loja. Mesmo arranjo do bolso=2 e do comida=1.
+const JANELAS_APP = (() => {
+  try {
+    const m = typeof location !== "undefined" && location.search.match(/[?&]janelas=(\d+)/);
+    if (m) localStorage.setItem("treinolivre:janelasApp", m[1]);
+    return parseInt(localStorage.getItem("treinolivre:janelasApp")) || 0;
+  } catch (e) { return 0; }
+})();
 const COMIDA_APP = (() => {
   try {
     const m = typeof location !== "undefined" && location.search.match(/[?&]comida=(\d+)/);
@@ -4050,7 +4060,7 @@ function lerNutricao(n) {
   r.receitas = lerReceitas(n.receitas);
   if (n.dias && typeof n.dias === "object") {
     const corte = new Date(Date.now() - 400 * 864e5).toISOString().slice(0, 10);
-    Object.keys(n.dias).forEach((d) => { if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d >= corte && n.dias[d] && typeof n.dias[d] === "object") r.dias[d] = { itens: Array.isArray(n.dias[d].itens) ? n.dias[d].itens.slice(0, 120) : [], agua: Number(n.dias[d].agua) || 0, sono: Number(n.dias[d].sono) || 0, aguaEv: Array.isArray(n.dias[d].aguaEv) ? n.dias[d].aguaEv.slice(-60) : [] }; });
+    Object.keys(n.dias).forEach((d) => { if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d >= corte && n.dias[d] && typeof n.dias[d] === "object") r.dias[d] = { itens: Array.isArray(n.dias[d].itens) ? n.dias[d].itens.slice(0, 120) : [], agua: Number(n.dias[d].agua) || 0, sono: Number(n.dias[d].sono) || 0, aguaEv: Array.isArray(n.dias[d].aguaEv) ? n.dias[d].aguaEv.slice(-60) : [], janelas: Array.isArray(n.dias[d].janelas) ? n.dias[d].janelas.filter((x) => typeof x === "string").slice(0, 12) : [] }; });
   }
   if (Array.isArray(n.vistos)) r.vistos = n.vistos.filter((x) => typeof x === "string").slice(-400);
   return r;
@@ -5109,33 +5119,37 @@ const JANELAS_NUTRIENTE = [
     oque: "uma refeição com carboidrato e proteína",
     quando: "de 3 horas a 45 minutos antes",
     porque: "perto demais e a comida ainda está no estômago; longe demais e o treino começa sem combustível. A faixa larga é de propósito: o que atrapalha é comer em cima da hora, não errar meia hora.",
+    aviso: { titulo: "\u{26FD} Janela de antes do treino", corpo: "Carboidrato com proteína até {ate}. Comer em cima da hora é o que atrapalha." },
     forca: "media", fonte: "ISSN (Kerksick e colegas, 2017)" },
   { id: "posTreino", ic: "\u{1F357}", nome: "Depois do treino", cor: "#FF4D6D",
     rel: "treino", de: 0, ate: 150, placar: "prot", minG: 20,
     oque: "proteína, uns 0,4 g por quilo do seu peso",
     quando: "nas 2 horas e meia seguintes",
     porque: "a janela de 30 minutos é mito: a síntese fica elevada por horas e o total do dia é o que manda. O que não serve é passar o dia inteiro sem proteína depois de treinar.",
+    aviso: { titulo: "\u{1F357} Proteína depois do treino", corpo: "Sem pressa: você tem até {ate}. A janela de 30 minutos é mito." },
     forca: "forte", fonte: "Aragon e Schoenfeld (2013); Schoenfeld e colegas (2013)" },
   { id: "proteina", ic: "\u{1F356}", nome: "Proteína espalhada no dia", cor: "#FF4D6D",
     rel: "dia", placar: "blocos", minG: 20, blocos: 3, horas: 2.5,
     oque: "3 ou mais refeições com proteína, separadas por umas 3 horas",
     quando: "a cada 3 a 4 horas",
     porque: "o mesmo total de proteína rende mais repartido em 4 refeições do que em 2. É a regra de timing com o apoio mais forte — e ela não é sobre o relógio, é sobre não concentrar tudo no jantar.",
+    aviso: { titulo: "\u{1F356} Proteína espalhada", corpo: "Ainda dá para encaixar mais uma refeição com proteína antes do fim do dia." },
     forca: "forte", fonte: "Schoenfeld e Aragon (2018)" },
   { id: "noite", ic: "\u{1F319}", nome: "Antes de dormir", cor: "#B05BFF",
     rel: "sono", de: -120, ate: -10, placar: "prot", minG: 25,
     oque: "25 a 40 g de proteína de digestão lenta (iogurte, queijo, ovo, caseína)",
     quando: "nas 2 horas antes de deitar",
     porque: "a noite são sete ou oito horas sem nada chegando; essa dose mantém a síntese durante o sono. Não engorda mais por ser à noite — isso é outro mito.",
+    aviso: { titulo: "\u{1F319} Proteína antes de dormir", corpo: "25 a 40 g de algo lento (iogurte, queijo, ovo) até {ate}. Não engorda mais por ser à noite." },
     forca: "media", fonte: "Res e colegas (2012); Snijders e colegas (2015)" },
-  { id: "cafeina", ic: "\u{2615}", nome: "Cafeína antes do treino", cor: "#8A8F9E",
-    rel: "treino", de: -60, ate: -30, placar: null,
+  { id: "cafeina", ic: "\u{2615}", nome: "Cafeína antes do treino", cor: "#A98157",
+    rel: "treino", de: -60, ate: -30, placar: "mao",
     oque: "3 a 6 mg por quilo (um café forte tem uns 80 mg)",
     quando: "de 30 a 60 minutos antes",
-    porque: "é o tempo que ela leva para chegar ao pico no sangue. Sem placar aqui: o app não tem como saber quanta cafeína você tomou.",
+    porque: "é o tempo que ela leva para chegar ao pico no sangue. O app não tem como medir isso sozinho: quem marca é você, e pode marcar depois.",
     forca: "forte", fonte: "ISSN (Guest e colegas, 2021)" },
   { id: "creatina", ic: "\u{1F4A7}", nome: "Creatina: a hora não importa", cor: "#4DEBFF",
-    rel: "livre", placar: null,
+    rel: "livre", placar: "mao",
     oque: "3 a 5 g, em qualquer hora do dia",
     quando: "todo dia, inclusive nos dias sem treino",
     porque: "o que faz efeito é o músculo ficar saturado, e isso vem de tomar todo dia — não da hora. Está aqui justamente para você não perder tempo com isso.",
@@ -5187,8 +5201,20 @@ function faixaDaJanela(j, treino, dorme) {
 }
 // Quem acertou a janela: o que foi anotado dentro dela com nutriente
 // bastante. "blocos" é a distribuição da proteína, que não tem faixa.
-function acertoDaJanela(j, itens, faixa, horas) {
+//
+// **Marcar à mão vale em TODAS** (2026-11-26m, pedido do dono: "preciso ter
+// a chance de dizer que consumi a cafeína antes do treino; mesmo que eu não
+// tenha anotado na hora exata, eu consumi e anoto depois"). Ele está certo:
+// quem sabe o que comeu é a pessoa, não o app. O que o app anotou e o que a
+// pessoa declarou continuam separados na tela (`mao`), porque medido e
+// declarado não são a mesma coisa — mas os dois contam.
+//
+// A cafeína e a creatina **só** têm o marcado à mão (`placar: "mao"`): não
+// há como medi-las pelo que foi anotado.
+function acertoDaJanela(j, itens, faixa, horas, mao) {
   if (!j.placar) return null;
+  if (mao) return { feito: true, mao: true };
+  if (j.placar === "mao") return { feito: false, mao: false, soMao: true };
   if (j.placar === "blocos") {
     const bons = (itens || []).filter((i) => i.p >= j.minG);
     const usados = [];
@@ -5208,19 +5234,71 @@ function janelasDoDia(o) {
   const treino = o.treino || null;
   const dorme = numB(o.dorme) || HORA_SONO_PADRAO;
   const agora = typeof o.agoraMin === "number" ? o.agoraMin : 0;
+  // o que a pessoa marcou à mão naquele dia (fica no próprio dia do Balance)
+  const marcadas = (o.dia && Array.isArray(o.dia.janelas) ? o.dia.janelas : []).filter((x) => typeof x === "string");
   const lista = JANELAS_NUTRIENTE.map((j) => {
     const faixa = faixaDaJanela(j, treino, dorme);
-    const acerto = acertoDaJanela(j, itens, faixa, dorme);
+    const acerto = acertoDaJanela(j, itens, faixa, dorme, marcadas.indexOf(j.id) >= 0);
     let estado = "sempre";
     if (j.rel === "treino" && !treino) estado = "semTreino";
     else if (faixa) estado = agora < faixa.de ? "vem" : agora <= faixa.ate ? "agora" : "passou";
     else if (j.rel === "dia") estado = "andando";
-    return { j: j, faixa: faixa, estado: estado, acerto: acerto, feito: !!(acerto && acerto.feito) };
+    return { j: j, faixa: faixa, estado: estado, acerto: acerto, mao: !!(acerto && acerto.mao), feito: !!(acerto && acerto.feito) };
   });
   const comPlacar = lista.filter((x) => x.acerto && x.estado !== "semTreino");
   return { lista: lista, itens: itens, treino: treino, dorme: dorme,
     acertos: comPlacar.filter((x) => x.feito).length, total: comPlacar.length,
     agora: lista.filter((x) => x.estado === "agora" && x.acerto && !x.feito) };
+}
+// Os avisos do dia (2026-11-26m, pedido do dono: "crie notificações para
+// lembrar das melhores janelas, no celular e no relógio").
+//
+// **Só avisa o que o app sabe medir e o que ainda não foi cumprido.** Janela
+// já cumprida não vira aviso (seria ruído), cafeína e creatina não viram
+// aviso nenhum (o app não tem como saber se a pessoa tomou), e janela presa a
+// um treino que não houve simplesmente não existe no dia.
+//
+// **E nunca é cobrança.** O texto diz o que cabe e até quando, com o prazo
+// de verdade — a janela de depois do treino avisa "sem pressa", que é o
+// contrário do que a academia repete.
+const AVISO_DEPOIS_MIN = 5;
+// A proteína espalhada não tem faixa: o aviso dela sai no meio da tarde, se
+// ainda faltar refeição para o dia fechar.
+const AVISO_PROTEINA_MIN = 16 * 60;
+function avisosDoDia(q) {
+  if (!q || !q.lista) return [];
+  const l = [];
+  q.lista.forEach((it) => {
+    const j = it.j;
+    if (!j.aviso || !it.acerto || it.feito || it.estado === "semTreino") return;
+    if (it.faixa) {
+      const em = Math.min(it.faixa.de + AVISO_DEPOIS_MIN, it.faixa.ate);
+      l.push({ id: j.id, ic: j.ic, em: em, ate: it.faixa.ate, titulo: j.aviso.titulo,
+        corpo: j.aviso.corpo.replace("{ate}", hhmmDoDia(it.faixa.ate)) });
+    } else if (j.id === "proteina") {
+      l.push({ id: j.id, ic: j.ic, em: AVISO_PROTEINA_MIN, ate: 23 * 60, titulo: j.aviso.titulo, corpo: j.aviso.corpo });
+    }
+  });
+  return l.sort((a, b) => a.em - b.em);
+}
+// O aviso que está na hora agora: aberto há pouco (até 40 min) e ainda não
+// mostrado hoje. Mais que isso e a pessoa recebe um aviso de uma janela que
+// já está acabando.
+const AVISO_VALE_MIN = 40;
+const CHAVE_JANELAS_VISTAS = "treinolivre:janelasVistas";
+function vistosDeHoje(dia) {
+  try { const v = JSON.parse(store.get(CHAVE_JANELAS_VISTAS) || "{}"); return v && v.dia === dia && Array.isArray(v.ids) ? v.ids : []; } catch (e) { return []; }
+}
+function marcarJanelaVista(dia, id) {
+  try { store.set(CHAVE_JANELAS_VISTAS, JSON.stringify({ dia: dia, ids: vistosDeHoje(dia).concat([id]) })); } catch (e) {}
+}
+function avisoDeAgora(q, agoraMin, jaVistos) {
+  const vistos = jaVistos || [];
+  return avisosDoDia(q).find((a) => agoraMin >= a.em && agoraMin <= Math.min(a.em + AVISO_VALE_MIN, a.ate) && vistos.indexOf(a.id) < 0) || null;
+}
+function hhmmDoDia(m) {
+  const x = ((Math.round(m) % 1440) + 1440) % 1440;
+  return String(Math.floor(x / 60)).padStart(2, "0") + ":" + String(x % 60).padStart(2, "0");
 }
 // ---------------- O CATÁLOGO: COMPARAR E ESCOLHER ----------------
 // Pedido do dono (2026-11-26c): "na dieta o que importa é a escolha; quero
@@ -7701,6 +7779,27 @@ async function guardarConfigLembrete(cfg) {
     const c = await caches.open(CACHE_CONFIG);
     await c.put("/config-lembrete", new Response(JSON.stringify(cfg), { headers: { "Content-Type": "application/json" } }));
   } catch (e) {}
+}
+// O plano de avisos das janelas, pronto, para o service worker (que não
+// enxerga o localStorage nem sabe refazer as contas do Balance). Vai o dia
+// junto: plano de ontem não vale hoje.
+async function guardarConfigJanelas(cfg) {
+  try {
+    const c = await caches.open(CACHE_CONFIG);
+    await c.put("/config-janelas", new Response(JSON.stringify(cfg), { headers: { "Content-Type": "application/json" } }));
+  } catch (e) {}
+}
+async function pedirAvisoJanelas(ativo) {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (!reg.periodicSync) return false;
+    if (!ativo) { await reg.periodicSync.unregister("janelas-nutriente").catch(() => {}); return false; }
+    const st = await navigator.permissions.query({ name: "periodic-background-sync" });
+    if (st.state !== "granted") return false;
+    // de hora em hora: é o que o Chrome aceita, e a janela mais curta dura 40 min
+    await reg.periodicSync.register("janelas-nutriente", { minInterval: 3600 * 1000 });
+    return true;
+  } catch (e) { return false; }
 }
 async function pedirVerificacaoPeriodica(ativo) {
   try {
@@ -39085,7 +39184,7 @@ function CartaoEspacoTreino({ x }) {
 // As janelas dos nutrientes do dia (2026-11-26l). Cada uma traz a força da
 // evidência e a fonte, e o rodapé lembra que o total do dia pesa muito mais
 // que a hora: ver AS JANELAS DOS NUTRIENTES.
-function CartaoJanelas({ x, ehHoje }) {
+function CartaoJanelas({ x, ehHoje, perfil, onPerfil, onMarcar }) {
   const [aberta, setAberta] = useState(null);
   const [mitos, setMitos] = useState(false);
   const q = x && x.janelas;
@@ -39111,12 +39210,25 @@ function CartaoJanelas({ x, ehHoje }) {
                 <span style={{ display: "block", fontSize: 12.5, fontWeight: 900, color: it.feito ? "#4CD137" : "var(--texto)" }}>{it.feito ? "✓ " : ""}{j.nome}</span>
                 <span style={{ display: "block", fontSize: 11, color: "var(--cinza)" }}>
                   {it.faixa ? hhmm(it.faixa.de) + " às " + hhmm(it.faixa.ate) : j.quando}
+                  {it.mao ? " · marcado por você" : ""}
                   {it.acerto && it.acerto.quantos !== undefined ? " · " + it.acerto.quantos + " de " + it.acerto.alvo + " refeições" : ""}
                   {it.acerto && it.acerto.soma !== undefined ? " · " + it.acerto.soma + " de " + it.acerto.alvo + " g" : ""}
                 </span>
               </span>
-              <span style={{ fontSize: 9.5, fontWeight: 900, color: chip[1], textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap" }}>{chip[0]}</span>
+              <span style={{ fontSize: 9.5, fontWeight: 900, color: chip[1], textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", flexShrink: 0 }}>{chip[0]}</span>
             </button>
+            {/* Marcar à mão vale em todas (pedido do dono): quem sabe o que
+                consumiu é a pessoa, e nem tudo é anotado na hora. O que o app
+                mediu e o que ela declarou continuam distintos na tela. */}
+            {onMarcar && it.acerto && it.estado !== "semTreino" && (!it.feito || it.mao) && (
+              <div style={{ paddingLeft: 27, marginTop: 5 }}>
+                <button onClick={() => onMarcar(j.id)} style={{
+                  ...S.btnGhost, padding: "4px 10px", fontSize: 11, fontWeight: 900, borderRadius: 999,
+                  color: it.mao ? "#4CD137" : "var(--cinza)", borderColor: it.mao ? "#4CD13766" : "var(--borda2)" }}>
+                  {it.mao ? "✓ marquei que consumi (toque para desfazer)" : "✓ consumi, só não anotei"}
+                </button>
+              </div>
+            )}
             {ab && (
               <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 7, lineHeight: 1.6, paddingLeft: 27 }}>
                 <b style={{ color: j.cor }}>{j.oque}</b><br />{j.porque}
@@ -39142,6 +39254,34 @@ function CartaoJanelas({ x, ehHoje }) {
       {ehHoje && q.agora.length > 0 && (
         <div style={{ fontSize: 12, fontWeight: 800, color: "#4CD137", marginTop: 8, lineHeight: 1.5 }}>
           🟢 Aberta agora: {q.agora.map((a) => a.j.nome.toLowerCase()).join(", ")}.
+        </div>
+      )}
+      {onPerfil && (
+        <div style={{ borderTop: "1px solid var(--borda)", marginTop: 10, paddingTop: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 900 }}>🔔 Avisar quando uma janela abrir</div>
+              <div style={{ fontSize: 11, color: "var(--cinza)" }}>no celular e, com o app do relógio, no pulso</div>
+            </div>
+            <button onClick={() => onPerfil({ avisos: !(perfil && perfil.avisos) })}
+              aria-pressed={!!(perfil && perfil.avisos)} aria-label={perfil && perfil.avisos ? "Desligar os avisos" : "Ligar os avisos"}
+              style={{ position: "relative", width: 52, height: 28, borderRadius: 999, cursor: "pointer", flexShrink: 0,
+                border: "1px solid " + (perfil && perfil.avisos ? "#E1306C" : "var(--borda2)"),
+                background: perfil && perfil.avisos ? GRAD : "var(--input)", transition: "background .2s" }}>
+              <span style={{ position: "absolute", top: 3, left: perfil && perfil.avisos ? 27 : 3, width: 22, height: 22, borderRadius: 999, background: "#fff", transition: "left .2s" }} />
+            </button>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 9 }}>
+            <span style={{ fontSize: 12, color: "var(--cinza)", flex: 1 }}>🌙 Costumo dormir às</span>
+            <select value={String(q.dorme)} onChange={(e) => onPerfil({ dorme: parseInt(e.target.value, 10) })} style={{ ...S.input, width: 92, padding: "6px 8px", fontSize: 12.5 }}>
+              {[20, 21, 22, 23, 24, 25].map((h) => <option key={h} value={h}>{String(h % 24).padStart(2, "0")}:00</option>)}
+            </select>
+          </div>
+          {perfil && perfil.avisos && (
+            <div style={{ fontSize: 11, color: "var(--cinza)", marginTop: 7, lineHeight: 1.5 }}>
+              Com o app fechado, o aviso depende do celular deixar o navegador acordar — no app Android ele é agendado na hora certa. Um aviso por janela, por dia, e nunca durante um treino.
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -39320,6 +39460,9 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
         const z = somaReceita(r);
         return { r: r.id, n: r.n.replace(/^Shake de whey com /i, "Whey + ").replace(/^Shake (com |de )?/i, ""), ic: r.ic, k: z.k, p: z.p, c: z.c, g: z.g, liq: Math.round(z.ml), ml: numB(r.agua) };
       }),
+      // o plano de avisos das janelas (2026-11-26m): o app agenda cada um na
+      // hora certa (AlarmManager) e manda ao relógio. Só com o aviso ligado.
+      jan: perfilG.avisos && h0.janelas ? avisosDoDia(h0.janelas).map((a) => ({ id: a.id, em: a.em, ate: a.ate, t: a.titulo, c: a.corpo })) : [],
       vistos: (nutricao.vistos || []).slice(-80) } : null;
   }
   const limiteAntes = useRef(null);
@@ -39493,7 +39636,14 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
 
               <CartaoEspacoTreino x={atual} />
               <CartaoJogoBalance x={atual} dias={dias} nutricao={nutricao} hoje={hoje} ehHoje={ehHoje} />
-              <CartaoJanelas x={atual} ehHoje={ehHoje} />
+              <CartaoJanelas x={atual} ehHoje={ehHoje} perfil={perfilG}
+                onPerfil={(m) => setNutricao(Object.assign({}, nutricao, { perfil: Object.assign({}, perfilG, m) }))}
+                onMarcar={(id) => setNutricao((p) => {
+                  const d = Object.assign({ itens: [], agua: 0 }, (p.dias || {})[diaVer]);
+                  const l = Array.isArray(d.janelas) ? d.janelas : [];
+                  d.janelas = l.indexOf(id) >= 0 ? l.filter((y) => y !== id) : l.concat([id]);
+                  return Object.assign({}, p, { dias: Object.assign({}, p.dias, { [diaVer]: d }) });
+                })} />
               {prepOk && cb.prep && cb.prep.usos && cb.prep.usos.diuretico && cb.prep.usos.diuretico.desde && (() => {
                 const lista = Array.isArray(cb.prep.diureticos) ? cb.prep.diureticos : [];
                 const marcado = lista.indexOf(diaVer) >= 0;
@@ -41480,6 +41630,46 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
       window.removeEventListener("pagehide", gravarJa);
     };
   }, []);
+
+  // Os avisos das janelas dos nutrientes (2026-11-26m). São três caminhos, e
+  // cada um alcança um aparelho diferente: com o app aberto, o aviso sai
+  // daqui; com ele fechado, quem avisa é o service worker pelo PLANO que este
+  // efeito deixa gravado (ele não enxerga o localStorage nem refaz as contas
+  // do Balance); e no app Android o mesmo plano vira alarme na hora certa, que
+  // é o único caminho que o celular não estrangula.
+  //
+  // Nunca durante um treino: ali a tela já é do treino, e um aviso de comida
+  // no meio da série é interrupção, não ajuda.
+  useEffect(() => {
+    if (!carregado) return;
+    const lig = !!(nutricao && nutricao.perfil && nutricao.perfil.avisos);
+    if ("serviceWorker" in navigator) pedirAvisoJanelas(lig);
+    if (!lig) { guardarConfigJanelas({ ativo: false, dia: "", avisos: [] }); return; }
+    let vivo = true;
+    const conferir = () => {
+      if (!vivo) return;
+      try {
+        const cb = contasDoBalance(Object.assign({}, BALANCE_RESUMO, { sessao: sessao }));
+        if (!cb.completo) return;
+        const x = cb.dias.find((y) => y.d === cb.hoje);
+        if (!x || !x.janelas) return;
+        const av = avisosDoDia(x.janelas);
+        guardarConfigJanelas({ ativo: true, dia: cb.hoje, avisos: av });
+        // o app Android recebe o mesmo plano pelo pacote do relógio, que já
+        // sai num toque (ver estadoRelogio): intent sem gesto o Chrome barra.
+        if (sessao) return;
+        const a = avisoDeAgora(x.janelas, cb.agoraMin, vistosDeHoje(cb.hoje));
+        if (!a) return;
+        marcarJanelaVista(cb.hoje, a.id);
+        avisarEmSegundoPlano(a.titulo, a.corpo);
+      } catch (e) {}
+    };
+    conferir();
+    const id = setInterval(conferir, 5 * 60000);
+    const aoVoltar = () => { if (!document.hidden) conferir(); };
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => { vivo = false; clearInterval(id); document.removeEventListener("visibilitychange", aoVoltar); };
+  }, [carregado, nutricao, historico, saude, sessao]); // eslint-disable-line
 
   // Mantém a configuração do lembrete onde o service worker consegue ler, e pede
   // ao sistema a verificação periódica (só o Android com o app instalado atende).

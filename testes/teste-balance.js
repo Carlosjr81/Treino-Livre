@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -771,14 +771,14 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("o shake de 19h30 cai na janela de depois", true, pega("posTreino").feito);
   teste("a proteina espalhada em 3 blocos conta", true, pega("proteina").feito);
   teste("o iogurte de 22h30 cai na janela de antes de dormir", true, pega("noite").feito);
-  teste("o placar conta so o que o app sabe medir", [4, 4], [q.acertos, q.total]);
-  teste("cafeina e creatina nao valem ponto (o app nao mede)", [null, null],
-    [pega("cafeina").acerto, pega("creatina").acerto]);
+  teste("o placar conta as quatro medidas e as duas de marcar a mao", [4, 6], [q.acertos, q.total]);
+  teste("cafeina e creatina so contam marcadas a mao", [true, true, false, false],
+    [pega("cafeina").acerto.soMao, pega("creatina").acerto.soMao, pega("cafeina").feito, pega("creatina").feito]);
 
   // sem treino, as janelas presas a ele nao existem: nao existir e diferente
   // de ter sido perdida
   const sem = B.janelasDoDia({ dia: dia, treino: null, dorme: 23, agoraMin: 1440 });
-  teste("sem treino a janela de antes nao e cobrada", ["semTreino", 2], [sem.lista.find((x) => x.j.id === "preTreino").estado, sem.total]);
+  teste("sem treino a janela de antes nao e cobrada", ["semTreino", 3], [sem.lista.find((x) => x.j.id === "preTreino").estado, sem.total]);
 
   // o estado pela hora de agora
   const cedo = B.janelasDoDia({ dia: { agua: 0, itens: [] }, treino: treino, dorme: 23, agoraMin: hora(9) });
@@ -821,6 +821,89 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
       .filter((f) => /voce deve|proibido|nao pode comer|dieta prescrita|prescri/.test(semAcento(f))));
   teste("o timing nao e vendido como mais importante que o total do dia", true,
     /total do dia/.test(fonte));
+}
+// ---- marcar a janela a mao, e os avisos (2026-11-26m) ----
+{
+  const t = (h, m) => new Date(2026, 10, 26, h, m || 0).getTime();
+  const treino = { ini: 18 * 60, fim: 19 * 60, aberto: false };
+  const vazio = { agua: 0, itens: [] };
+
+  // o pedido do dono: "consumi a cafeina antes do treino, mesmo sem ter
+  // anotado na hora; corrija isso para todos"
+  const comMao = B.janelasDoDia({ dia: { agua: 0, itens: [], janelas: ["cafeina"] }, treino: treino, dorme: 23, agoraMin: 1440 });
+  const caf = comMao.lista.find((x) => x.j.id === "cafeina");
+  teste("marcar a cafeina a mao conta no placar", [true, true, 1], [caf.feito, caf.mao, comMao.acertos]);
+
+  // vale para TODAS, nao so para a cafeina
+  const todas = B.janelasDoDia({ dia: { agua: 0, itens: [], janelas: B.JANELAS_NUTRIENTE.map((j) => j.id) }, treino: treino, dorme: 23, agoraMin: 1440 });
+  teste("marcar a mao vale em todas as janelas", [6, 6], [todas.acertos, todas.total]);
+  teste("e a tela sabe separar o medido do declarado", 6, todas.lista.filter((x) => x.mao).length);
+
+  // o que o app mediu nao precisa de marcacao
+  const dia = { agua: 0, itens: [{ t: t(19, 30), n: "Shake", q: 1, k: 250, p: 35, c: 20, g: 3 }] };
+  const medido = B.janelasDoDia({ dia: dia, treino: treino, dorme: 23, agoraMin: 1440 });
+  teste("o que foi anotado conta sem marcar nada", [true, false],
+    (() => { const x = medido.lista.find((y) => y.j.id === "posTreino"); return [x.feito, x.mao]; })());
+
+  // marcacao estranha no registro nao derruba nada
+  teste("janela marcada que nao existe e ignorada", 0,
+    B.janelasDoDia({ dia: { agua: 0, itens: [], janelas: ["xpto", 7, null] }, treino: null, dorme: 23, agoraMin: 1440 }).acertos);
+
+  // ---- os avisos ----
+  const q = B.janelasDoDia({ dia: vazio, treino: treino, dorme: 23, agoraMin: 8 * 60 });
+  const av = B.avisosDoDia(q);
+  teste("o dia sem nada anotado tem aviso para cada janela medivel", 4, av.length);
+  teste("os avisos saem em ordem de hora", true, av.every((a, i) => i === 0 || a.em >= av[i - 1].em));
+  teste("cada aviso tem titulo, corpo e prazo", [],
+    av.filter((a) => !a.titulo || !a.corpo || !(a.ate > a.em) === false ? false : true).filter((a) => !a.titulo || !a.corpo));
+  teste("o aviso de depois do treino diz que nao ha pressa", true,
+    /[Ss]em pressa/.test(av.find((a) => a.id === "posTreino").corpo));
+  teste("e traz o prazo de verdade na frase", true,
+    av.find((a) => a.id === "posTreino").corpo.indexOf(B.hhmmDoDia(19 * 60 + 150)) >= 0);
+
+  // janela ja cumprida nao vira aviso: seria ruido
+  const cumprida = B.janelasDoDia({ dia: dia, treino: treino, dorme: 23, agoraMin: 8 * 60 });
+  teste("janela ja cumprida nao avisa", [], B.avisosDoDia(cumprida).filter((a) => a.id === "posTreino"));
+  teste("marcada a mao tambem nao avisa", [],
+    B.avisosDoDia(B.janelasDoDia({ dia: { agua: 0, itens: [], janelas: ["noite"] }, treino: treino, dorme: 23, agoraMin: 8 * 60 })).filter((a) => a.id === "noite"));
+  // sem treino, nada do treino e cobrado
+  teste("sem treino nao ha aviso de pre nem de pos", [],
+    B.avisosDoDia(B.janelasDoDia({ dia: vazio, treino: null, dorme: 23, agoraMin: 8 * 60 })).filter((a) => a.id === "preTreino" || a.id === "posTreino"));
+
+  // a hora de mostrar: logo que abre, e nao quando ja esta acabando
+  const pre = av.find((a) => a.id === "preTreino");
+  teste("o aviso sai logo depois de a janela abrir", true, pre.em >= 15 * 60 && pre.em <= 15 * 60 + 10);
+  teste("na hora certa ele aparece", "preTreino", B.avisoDeAgora(q, pre.em + 2, []).id);
+  teste("meia hora depois do prazo dele, ele nao aparece mais", true, (B.avisoDeAgora(q, pre.em + 60, []) || { id: "" }).id !== "preTreino");
+  teste("e o que ja foi mostrado hoje nao volta", true,
+    (B.avisoDeAgora(q, pre.em + 2, ["preTreino"]) || { id: "" }).id !== "preTreino");
+
+  // o texto nao cobra nem manda
+  const frases = [];
+  B.JANELAS_NUTRIENTE.forEach((j) => { if (j.aviso) frases.push(j.aviso.titulo + " " + j.aviso.corpo); });
+  teste("os avisos nao mandam comer nem cobram", [],
+    frases.filter((x) => /voce deve|precisa comer|nao pode|proibido|ja passou da hora|atrasado/.test(semAcento(x))));
+  teste("e sao quatro, um por janela medivel", 4, frases.length);
+
+  // o service worker recebe o plano pronto (ele nao refaz conta nenhuma)
+  const sw = fs.readFileSync(path.join(__dirname, "..", "sw.js"), "utf8");
+  teste("o service worker so mostra o plano do DIA, nunca um de ontem", true,
+    /cfg.dia !== hoje/.test(sw) && /config-janelas/.test(sw));
+  teste("e nao mostra o mesmo aviso duas vezes no dia", true, /janelas-enviadas/.test(sw));
+  teste("o cache da config sobrevive a troca de versao", true, /k !== \"treinolivre-config\"/.test(sw));
+
+  // o lado Android: o alarme sai do plano, e o relogio recebe o mesmo aviso
+  const kt = (p) => { try { return fs.readFileSync(path.join(__dirname, "..", "android", p), "utf8"); } catch (e) { return ""; } };
+  const jan = kt("app/src/main/java/br/com/treinolivre/app/Janelas.kt");
+  teste("o app agenda os avisos com o AlarmManager", true, /setAndAllowWhileIdle/.test(jan));
+  teste("e nao pede a permissao de alarme exato por nada", true, kt("app/src/main/AndroidManifest.xml").indexOf("SCHEDULE_EXACT_ALARM") < 0);
+  teste("o alarme de cada janela substitui o do dia anterior", true, /FLAG_UPDATE_CURRENT/.test(jan) && /am.cancel/.test(jan));
+  teste("o mesmo aviso vai ao relogio", true, /\/treino\/janela/.test(jan) && /\/treino\/janela/.test(kt("relogio/src/main/java/br/com/treinolivre/relogio/AlertaRelogio.kt")));
+  teste("o plano chega pelo pacote que ja sai num toque", true,
+    /Janelas.agendar/.test(kt("app/src/main/java/br/com/treinolivre/app/ComidaActivity.kt")));
+  teste("o receiver do alarme nao e exportado", true,
+    /JanelaReceiver\" android:exported=\"false\"/.test(kt("app/src/main/AndroidManifest.xml")));
+  teste("a pagina so chama o app que sabe agendar", true, /janelas=1/.test(kt("app/src/main/java/br/com/treinolivre/app/Site.kt")));
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

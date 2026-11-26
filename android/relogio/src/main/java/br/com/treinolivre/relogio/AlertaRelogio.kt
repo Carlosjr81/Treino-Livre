@@ -33,6 +33,16 @@ class AlertaRelogio : WearableListenerService() {
             if (ks != null) ComidaPulso.confirmar(this, ks)
             return
         }
+        // A janela de um nutriente abriu (2026-11-26m). O celular manda
+        // "título|corpo" já pronto: o relógio vibra duas vezes (não é urgência
+        // como o fim do descanso) e mostra uma notificação própria do Wear,
+        // que o mostrador já sabe exibir. Nada é decidido aqui.
+        if (m.path == "/treino/janela") {
+            val txt = String(m.data, Charsets.UTF_8).split("|")
+            vibrar(this, longArrayOf(0, 140, 140, 140))
+            avisarJanela(this, txt.getOrElse(0) { "Treino Livre" }, txt.getOrElse(1) { "" })
+            return
+        }
         if (m.path != "/treino/alerta") return
         val tipo = String(m.data, Charsets.UTF_8)
         val padrao = if (tipo == "fim") longArrayOf(0, 450, 180, 450, 180, 700) else longArrayOf(0, 160)
@@ -40,6 +50,28 @@ class AlertaRelogio : WearableListenerService() {
     }
 
     companion object {
+        private const val CANAL_JANELA = "janelas"
+        private const val NOTA_JANELA = 861
+        fun avisarJanela(c: Context, titulo: String, corpo: String) {
+            try {
+                val nm = c.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(
+                    android.app.NotificationChannel(CANAL_JANELA, "Janelas dos nutrientes", android.app.NotificationManager.IMPORTANCE_DEFAULT))
+                val i = android.content.Intent(c, ComidaRelogio::class.java).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                val pi = android.app.PendingIntent.getActivity(c, NOTA_JANELA, i,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE)
+                val n = androidx.core.app.NotificationCompat.Builder(c, CANAL_JANELA)
+                    .setSmallIcon(android.R.drawable.ic_menu_today)
+                    .setContentTitle(titulo)
+                    .setContentText(corpo)
+                    .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(corpo))
+                    .setAutoCancel(true)
+                    .setContentIntent(pi)
+                    .build()
+                nm.notify(NOTA_JANELA, n)
+            } catch (e: Exception) { }
+        }
+
         fun vibrar(c: Context, padrao: LongArray) {
             try {
                 val v: Vibrator = if (Build.VERSION.SDK_INT >= 31)

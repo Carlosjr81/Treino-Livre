@@ -34,7 +34,8 @@ object Site {
     }
 
     // comida=1: e recebe do relógio comida e água para o Jarvis Body Balance (ComidaActivity)
-    const val PARAMETROS = "app=android&bolso=2&corrida=1&relogio=3&comida=1"
+    // janelas=1: e agenda os avisos das janelas dos nutrientes (Janelas.kt)
+    const val PARAMETROS = "app=android&bolso=2&corrida=1&relogio=3&comida=1&janelas=1"
 
     // o número deste app (o do build no GitHub), que o site mostra nos Ajustes
     var apk = 0L

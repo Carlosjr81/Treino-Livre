@@ -287,5 +287,9 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_treino_info" />
         </receiver>
+        <!-- Os avisos das janelas dos nutrientes (2026-11-26m): o alarme bate aqui,
+             mostra a notificação e manda o mesmo aviso ao relógio. Não é exportado:
+             só o AlarmManager deste app o aciona. -->
+        <receiver android:name=".JanelaReceiver" android:exported="false" />
     </application>
 </manifest>

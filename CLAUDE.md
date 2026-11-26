@@ -885,7 +885,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.627 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.656 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -970,7 +970,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v294) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v295) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6964,6 +6964,67 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
 - **O gasto pelo corpo prefere a pesagem da manhã** (em jejum, oscila menos) e
   o `CartaoPreparo` diz quantos dias faltam para o corpo assumir a conta (ou o
   que falta: dias anotados, pesagens, intervalo).
+
+### Os avisos das janelas, e marcar à mão (2026-11-26m)
+
+Pedido do dono: "crie notificações para lembrar das melhores janelas de
+consumo; esses lembretes têm que estar no celular e no relógio". E, vendo
+a primeira versão: **"preciso ter a chance de dizer que consumi a cafeína
+antes do treino, mesmo que eu não tenha anotado na hora exata; corrija isso
+para todos"**.
+
+**1. Marcar à mão vale em TODAS** (`acertoDaJanela(…, mao)`,
+`dia.janelas`, o botão "✓ consumi, só não anotei").
+
+- Ele está certo, e a primeira versão estava errada: **quem sabe o que
+  consumiu é a pessoa, não o app**. Antes, cafeína e creatina não tinham
+  placar ("o app não mede") e as outras só contavam o que fosse anotado na
+  hora — quem toma o café e registra à noite ficava sem a janela.
+- As duas que o app não mede têm `placar: "mao"`: **só** contam marcadas.
+  As outras aceitam a marcação por cima do que foi medido.
+- **Medido e declarado continuam separados na tela** (`mao`, "marcado por
+  você"): os dois contam, e a diferença fica visível. A marcação fica em
+  `nutricao.dias[dia].janelas` (no backup, com o resto do Balance), e id
+  que não existe é descartado na leitura.
+
+**2. Os avisos** (`avisosDoDia`, `avisoDeAgora`, `Janelas.kt`,
+`JanelaReceiver`, `/treino/janela`).
+
+- **São três caminhos, porque cada um alcança um aparelho diferente**, e o
+  plano do dia é o mesmo nos três: o site calcula (é quem sabe as contas do
+  Balance e a hora do treino) e os outros só mostram.
+  1. **App aberto**: o efeito no raiz confere a cada 5 min e ao voltar do
+     segundo plano, e chama o `avisarEmSegundoPlano` de sempre.
+  2. **App fechado, pelo navegador**: o plano fica em `/config-janelas`, no
+     cache `treinolivre-config` (o service worker não enxerga o
+     `localStorage` nem refaz conta nenhuma), e o `periodicSync`
+     `janelas-nutriente` escolhe o que ainda vale. **Plano de ontem não
+     vale hoje** (as janelas saem do treino daquele dia): o `sw.js` confere
+     a data antes de mostrar, e `/janelas-enviadas` impede o mesmo aviso
+     duas vezes no dia.
+  3. **App Android**: o mesmo plano vai no pacote que **já sai num toque**
+     (`treinolivre://comida?d=`, campo `jan`) e vira alarme. Intent sem
+     gesto o Chrome barra — por isso não há link novo.
+- **`setAndAllowWhileIdle`, não `setExact`**: o exato pede a permissão
+  `SCHEDULE_EXACT_ALARM` no Android 12+, e alguns minutos de folga não
+  mudam nada numa janela de 40 minutos. O teste cobra que o manifesto não
+  peça essa permissão.
+- **No relógio**: o `JanelaReceiver` manda `/treino/janela` ("título|corpo"
+  pronto) e o `AlertaRelogio` vibra duas vezes curtas (não é urgência como
+  o fim do descanso) e mostra a notificação. Nada é decidido lá.
+- **O que nunca vira aviso**: janela já cumprida (ou marcada à mão), janela
+  presa a um treino que não houve, e qualquer uma durante um treino — ali a
+  tela é do treino, e aviso de comida no meio da série é interrupção.
+- **E nenhum cobra**: o de depois do treino abre com "sem pressa: você tem
+  até 21:30", com o prazo de verdade. O teste gera as frases e procura
+  "atrasado", "já passou da hora", "você deve", "precisa comer".
+- `APK_ATUAL` e o `LINK_APK` foram ao **198** (mexeu em `android/`), e o
+  link do app ganhou `janelas=1`: APK antigo não recebe o plano.
+- Coberto por `teste-balance.js` (321 checagens). No navegador: o
+  interruptor, a hora de dormir, e marcar a cafeína à mão levando o placar
+  de 4/6 a 5/6. **Não validado num aparelho**: o alarme, a notificação e o
+  aviso no pulso foram conferidos só no código, e o APK é montado pelo
+  Actions.
 
 ### O espaço que o treino abre, e as janelas dos nutrientes (2026-11-26l)
 

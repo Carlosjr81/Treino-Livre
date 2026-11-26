@@ -28,7 +28,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("// ---------------- JARVIS BODY BALANCE: AS CONTAS", "// ---------------- FIM DO BODY BALANCE") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
-  " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO," +
+  " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
   " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps };");
 const B = globalThis.B;
 
@@ -109,6 +109,23 @@ const gc = B.gastoPeloCorpo(diasCorpo, pesos);
 // comendo 2000 e perdendo ~0,5 kg/semana: 2000 + 0,5 × 7700 / 7 ≈ 2550 (a tendência atrasa um pouco)
 teste("gasto pelo corpo ≈ 2.550 kcal (± 200)", true, !!gc && perto(gc.kcal, 2550, 200));
 teste("com menos de 14 dias anotados, não mede", null, B.gastoPeloCorpo(diasCorpo.slice(0, 10), pesos));
+// a prontidão diz o que falta, e zera quando o corpo já pode assumir
+{
+  const p0 = B.prontidaoCorpo(diasCorpo.slice(0, 8), pesos.slice(0, 1));
+  teste("faltam dias e pesagens quando há poucos", true, p0.faltamDias === 6 && p0.faltamPesagens === 2 && !p0.pronto);
+  const p1 = B.prontidaoCorpo(diasCorpo, pesos);
+  teste("pronto quando há dias, pesagens e intervalo", true, p1.pronto && p1.faltamDias === 0 && p1.faltamPesagens === 0);
+}
+// a pesagem da manhã é preferida quando há o bastante
+{
+  const d4 = (t) => { const x = new Date(t); x.setHours(7, 0, 0, 0); return x.getTime(); };
+  const manha = []; for (let i = 0; i <= 28; i += 2) manha.push({ t: d4(base + i * DIA), kg: 90 - (0.5 / 7) * i });
+  const gm = B.gastoPeloCorpo(diasCorpo, manha);
+  teste("usa a pesagem da manhã quando dá", true, !!gm && gm.soManha === true);
+  const tarde = pesos.map((p) => { const x = new Date(p.t); x.setHours(20); return { t: x.getTime(), kg: p.kg }; });
+  const gt = B.gastoPeloCorpo(diasCorpo, tarde);
+  teste("sem manhã suficiente, usa todas", true, !!gt && gt.soManha === false);
+}
 const fr = B.faseReal([1, 2, 3].map(() => ({ comeu: 2900, status: { id: "certo" }, gasto: { total: 2500 } })), 80);
 teste("comendo 400 acima do gasto: BULKING, ~0,36 kg/semana", ["bulking", 0.36], [fr.id, fr.kgSemana]);
 teste("sono do relógio pela manhã do dia", 7.5, B.sonoDoDia([{ ini: new Date("2026-11-24T23:00:00").getTime(), fim: new Date("2026-11-25T06:30:00").getTime() }], "2026-11-25", 0).h);

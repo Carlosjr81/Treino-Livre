@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-25k — Body Balance: anote a refeição certa, e o resumo mostra o aeróbico da semana
+
+- **Em uma frase:** ao anotar a comida você escolhe a refeição, o resumo animado mostra o resultado calórico do dia logo no começo, e o aeróbico da semana aparece pelos minutos que você fez.
+- **O que mudou:** a tela de anotar comida ganhou os botões de refeição (café, almoço, lanche, janta, ceia), então quem lança o dia inteiro de uma vez marca cada alimento na refeição certa; no resumo animado o Body Balance do dia (comeu, meta, déficit ou superávit) é uma das primeiras telas; e o cartão "Aeróbico na semana" mostra os minutos de aeróbico que você fez, com a nota de quanto conta para a meta de 150 minutos.
+- **Por que importa para quem treina:** dá para registrar a alimentação do dia sem tudo virar "lanche da tarde", e você vê de cara se fechou o dia no déficit ou superávit que queria.
+- **Como usar:** em Balance, toque em + Comida e escolha a refeição; no fim do treino, toque em "Ver resumo animado".
+- **Ideias de vídeo:** mostrar o resumo animado abrindo já com o resultado calórico do dia.
+- **Não prometer:** é registro e informação; não é dieta nem plano alimentar.
+
+---
+
 ## 2026-11-25j — Body Balance: ajuste fino do gasto para atletas acompanhados
 
 - **Em uma frase:** contas liberadas pelo criador do app ganham um ajuste fino do gasto calórico para fases de preparação de atleta, e a balança do dia de retenção ou perda de água para de enganar a conta.

@@ -772,7 +772,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.373 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.377 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v280) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v281) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6824,6 +6824,23 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
   e o corpo passando da meta. **Não validado num aparelho**: o relógio (a tela
   dividida, a de comida, a fila) e a parte nativa do celular foram só
   compilados pelo Actions.
+
+### Ajustes do Body Balance (2026-11-25k)
+
+- **A refeição é escolhida ao anotar** (pedido do dono: anotou o dia todo de
+  uma vez e tudo caiu em "Lanche da tarde"). A `JanelaComida` tem os chips de
+  refeição (`ref`, padrão `refeicaoDaHora`), passados ao `adicionar`; quem
+  lança o dia inteiro marca a refeição certa de cada alimento.
+- **O "Aeróbico na semana" do resumo mostra os minutos feitos** (pedido do
+  dono: caminhada leve abaixo de 3 MET dava "0" na meta da OMS e parecia que
+  não tinha feito nada). `cenaSemanaCardio` usa `semanaMin` como número; a
+  linha de baixo diz quanto conta como moderado (OMS, vigoroso vale dobrado).
+- **O "Body Balance do dia" vem logo no começo do resumo animado** (pedido do
+  dono: quer ver de cara se bateu a meta de déficit/superávit), antes do ciclo
+  e dos números, não mais no fim.
+- **O gasto pelo corpo prefere a pesagem da manhã** (em jejum, oscila menos) e
+  o `CartaoPreparo` diz quantos dias faltam para o corpo assumir a conta (ou o
+  que falta: dias anotados, pesagens, intervalo).
 
 ### O modo preparação (`SUBSTANCIAS_PREPARO`, `CartaoPreparo`, `preparoLiberado`, 2026-11-25j)
 

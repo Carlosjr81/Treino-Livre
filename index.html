@@ -2149,7 +2149,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-25j";
+const VERSAO_APP = "2026-11-25k";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4252,7 +4252,12 @@ function gastoPeloCorpo(dias, pesos) {
   const anot = (dias || []).filter((d) => d.status && d.status.id !== "vazio");
   if (anot.length < 14) return null;
   const ini = new Date(anot[0].d + "T12:00:00").getTime(), fim = new Date(anot[anot.length - 1].d + "T12:00:00").getTime();
-  const l = (pesos || []).filter((p) => p && p.kg > 20 && p.t >= ini - 2 * 864e5 && p.t <= fim + 864e5);
+  const naFaixa = (pesos || []).filter((p) => p && p.kg > 20 && p.t >= ini - 2 * 864e5 && p.t <= fim + 864e5);
+  // a pesagem da manhã (entre 4h e 11h) oscila menos: o corpo está sem comida
+  // e sem a água do dia. Só vale se sobrarem pesagens bastante; senão, todas.
+  const manha = naFaixa.filter((p) => { const h = new Date(p.t).getHours(); return h >= 4 && h <= 11; });
+  const spanM = manha.length ? (Math.max.apply(null, manha.map((p) => p.t)) - Math.min.apply(null, manha.map((p) => p.t))) / 864e5 : 0;
+  const l = manha.length >= 3 && spanM >= 10 ? manha : naFaixa;
   if (l.length < 3) return null;
   const span = (Math.max.apply(null, l.map((p) => p.t)) - Math.min.apply(null, l.map((p) => p.t))) / 864e5;
   if (span < 10) return null;
@@ -4266,7 +4271,20 @@ function gastoPeloCorpo(dias, pesos) {
   const media = anot.reduce((s, d) => s + d.comeu, 0) / anot.length;
   const kcal = Math.round(media - kgPorDia * KCAL_POR_KG);
   if (kcal < 1100 || kcal > 6000) return null;
-  return { kcal: kcal, dias: anot.length, span: Math.round(span) };
+  return { kcal: kcal, dias: anot.length, span: Math.round(span), pesagens: l.length, soManha: l === manha };
+}
+// O que ainda falta para o corpo assumir a conta (2026-11-25k): quantos dias
+// anotados, quantas pesagens e quantos dias entre a 1ª e a última pesagem, com
+// as metas de gastoPeloCorpo (14 dias, 3 pesagens, 10 dias de intervalo).
+function prontidaoCorpo(dias, pesos) {
+  const anot = (dias || []).filter((d) => d.status && d.status.id !== "vazio");
+  const ini = anot.length ? new Date(anot[0].d + "T12:00:00").getTime() : 0;
+  const fim = anot.length ? new Date(anot[anot.length - 1].d + "T12:00:00").getTime() : 0;
+  const l = (pesos || []).filter((p) => p && p.kg > 20 && (!anot.length || (p.t >= ini - 2 * 864e5 && p.t <= fim + 864e5)));
+  const span = l.length >= 2 ? Math.round((Math.max.apply(null, l.map((p) => p.t)) - Math.min.apply(null, l.map((p) => p.t))) / 864e5) : 0;
+  const pronto = anot.length >= 14 && l.length >= 3 && span >= 10;
+  return { dias: anot.length, pesagens: l.length, span: span, pronto: pronto,
+    faltamDias: Math.max(0, 14 - anot.length), faltamPesagens: Math.max(0, 3 - l.length), faltamSpan: Math.max(0, 10 - span) };
 }
 // O que a pessoa está fazendo de verdade, pelo saldo médio dos dias anotados
 function faseReal(dias, kg) {
@@ -4486,11 +4504,13 @@ function contasDoBalance(o) {
   const corpoPrep = (() => {
     if (!inicioPrep) return null;
     const pre = ultimos.slice(0, -1).filter((x) => x.d >= inicioPrep).map((x) => { const m = x.gasto ? metaDoDia(perfil, x.gasto.totalMeta, kg, x.treino.min) : null; return Object.assign({}, x, { meta: m, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) }); });
-    const c = gastoPeloCorpo(pre.slice(-28), pesos);
-    if (!c) return null;
-    const conta = pre.slice(-28).filter((x) => x.gasto && x.tot.itens >= 2 && x.comeu >= 300);
+    const pre28 = pre.slice(-28);
+    const pron = prontidaoCorpo(pre28, pesos);
+    const c = gastoPeloCorpo(pre28, pesos);
+    if (!c) return Object.assign({ kcal: null, dias: pron.dias, vies: 0, assumiu: 0 }, pron);
+    const conta = pre28.filter((x) => x.gasto && x.tot.itens >= 2 && x.comeu >= 300);
     const mediaConta = conta.length ? conta.reduce((a, x) => a + x.gasto.totalMeta, 0) / conta.length : 0;
-    return Object.assign({}, c, { vies: mediaConta ? Math.round(c.kcal - mediaConta) : 0 });
+    return Object.assign({ vies: mediaConta ? Math.round(c.kcal - mediaConta) : 0, assumiu: Math.round(Math.min(1, c.dias / 21) * 100), faltamAssumir: Math.max(0, 21 - c.dias) }, c, pron);
   })();
   const comMeta = (x) => {
     if (!x.gasto) return Object.assign({}, x, { meta: null, status: statusDoDia(0, null) });
@@ -4500,7 +4520,7 @@ function contasDoBalance(o) {
     if (usos.length) {
       // o ponto de partida dos estudos, trocado aos poucos pelo que o corpo mostrou
       const estudos = Math.round(usos.reduce((a, u) => a + u.efeito * (u.sobre === "total" ? x.gasto.totalMeta : tmb), 0));
-      const peso = corpoPrep ? Math.min(1, corpoPrep.dias / 21) : 0;
+      const peso = corpoPrep && corpoPrep.kcal ? Math.min(1, corpoPrep.dias / 21) : 0;
       ajuste = Math.round((1 - peso) * (estudos + geral) + peso * (corpoPrep ? corpoPrep.vies : 0));
       preparo = { estudos: estudos, peso: peso, corpo: corpoPrep ? corpoPrep.vies : null, dias: corpoPrep ? corpoPrep.dias : 0, usos: usos.map((u) => u.nome) };
     }
@@ -28780,14 +28800,21 @@ const DIAS_RESUMO = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta"
 const MESES_RESUMO = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 // As cenas: o que aparece e o que é dito. Cena que não tem número para mostrar
 // não entra — esteira sem velocidade não tem cena de ritmo.
-// O acumulado da semana: os minutos da meta da OMS (vigoroso vale dobrado),
-// e os minutos e as kcal de aeróbico feitos de segunda até o treino.
+// O acumulado da semana (2026-11-25k): o número é o aeróbico que a pessoa de
+// fato fez (minutos), para a cena nunca dizer "0" num treino com aeróbico leve
+// (uma caminhada abaixo de 3 MET não conta na meta da OMS, mas foi feita). A
+// linha de baixo diz quanto conta como moderado (a meta da OMS, vigoroso vale
+// dobrado).
 function cenaSemanaCardio(k) {
-  const extra = (k.semanaMin ? k.semanaMin + " min de aeróbico" : "") + (k.semanaKcal ? (k.semanaMin ? " · " : "") + "~" + fmtKcalResumo(k.semanaKcal) + " kcal" : "");
-  return { tipo: "semana", rotulo: "Aeróbico na semana", valor: k.semana, forte: k.semana >= META_CARDIO_SEMANA, extra: extra,
-    grito: k.semana >= META_CARDIO_SEMANA ? "Meta batida!" : "Faltam " + (META_CARDIO_SEMANA - k.semana) + " min", corGrito: k.semana >= META_CARDIO_SEMANA ? "#FEDA75" : null,
-    fala: (k.semana >= META_CARDIO_SEMANA ? "Meta da semana batida: " + k.semana + " minutos." : "Na semana, " + k.semana + " de " + META_CARDIO_SEMANA + " minutos da meta.") +
-      (k.semanaKcal ? " Cerca de " + k.semanaKcal + " calorias de aeróbico na semana." : "") };
+  const min = Math.round(k.semanaMin != null ? k.semanaMin : k.semana) || 0;
+  const mod = Math.round(k.semana) || 0, kcal = Math.round(k.semanaKcal || 0);
+  const bateu = min >= META_CARDIO_SEMANA;
+  const detMod = mod >= min ? "intensidade moderada ou mais" : mod > 0 ? mod + " min contam como moderado (OMS)" : "ritmo leve: não conta como moderado (OMS)";
+  const extra = detMod + (kcal ? " · ~" + fmtKcalResumo(kcal) + " kcal" : "");
+  return { tipo: "semana", rotulo: "Aeróbico na semana", valor: min, forte: bateu, extra: extra,
+    grito: bateu ? "Meta batida!" : min > 0 ? "Faltam " + (META_CARDIO_SEMANA - min) + " min" : "Bora se mexer", corGrito: bateu ? "#FEDA75" : null,
+    fala: (bateu ? "Meta da semana batida: " + min + " minutos de aeróbico." : "Na semana, " + min + " de " + META_CARDIO_SEMANA + " minutos de aeróbico.") +
+      (kcal ? " Cerca de " + kcal + " calorias." : "") };
 }
 function fmtKcalResumo(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
 function cenasResumo(d) {
@@ -28824,6 +28851,17 @@ function cenasResumo(d) {
     }
   } else c.push({ tipo: "abre", rotulo: "Resumo do treino", titulo: d.nome, dia: dia, sub: sub, grito: "Desafio aceito",
     fala: "Resumo do treino. " + nomeFalado(d.nome) + ". Desafio aceito." });
+  // O Body Balance do dia logo de cara (2026-11-25k, pedido do dono: quer saber
+  // já no começo se bateu a meta entre déficit e superávit): comeu, meta, gasto, saldo.
+  if (d.balance) {
+    const b = d.balance, fmtB = textoBalance(b).fmt, certo = b.status.id === "certo", passou = b.comeu > b.meta;
+    c.push({ tipo: "numero", rotulo: "Body Balance do dia", valor: b.comeu, casas: 0, unidade: "kcal",
+      sub: "meta " + fmtB(b.meta) + " · gastou ~" + fmtB(b.gasto) + " · " + (b.saldo < 0 ? "déficit " : "superávit ") + fmtB(b.saldo),
+      grito: certo ? "Na meta!" : b.status.id === "perto" ? "Quase na meta" : passou ? "Passou da meta" : "Abaixo da meta",
+      corGrito: certo ? "#7CFF3C" : b.status.id === "perto" ? "#FFB21A" : "#FF5A5F", forte: certo,
+      fala: "No Body Balance do dia, " + fmtB(b.comeu) + " de " + fmtB(b.meta) + " calorias da meta. Gasto de cerca de " + fmtB(b.gasto) +
+        (b.saldo < 0 ? ": déficit de " : ": superávit de ") + fmtB(b.saldo) + ". " + (certo ? "Na meta." : b.status.id === "perto" ? "Quase na meta." : passou ? "Passou da meta." : "Abaixo da meta.") });
+  }
   if (d.ciclo) {
     const ci = d.ciclo, x = ci.antes ? CICLO_ANTES_RESUMO : CICLO_RESUMO[ci.semana - 1];
     c.push({ tipo: "ciclo", rotulo: "Seu ciclo de treino", semana: ci.semana, total: MESOCICLO.length, antes: ci.antes, leve: ci.leve,
@@ -28977,17 +29015,6 @@ function cenasResumo(d) {
     c.push({ tipo: "recordes", icone: "🔥", rotulo: "A galera reagiu", valor: rx.length,
       nomes: rx.slice(0, 4).map((x) => x.e + " " + x.n + (x.c ? ": " + x.c : "")), grito: "Treino aplaudido", corGrito: "#FF9A3C",
       fala: plural(rx.length, "Uma reação", rx.length + " reações") + " dos amigos: " + rx.slice(0, 3).map((x) => x.n).join(", ") + "." });
-  }
-  // O Body Balance do dia do treino (2026-11-25i): comeu, meta, gasto e o saldo
-  if (d.balance) {
-    const b = d.balance, tb = textoBalance(b), fmtB = tb.fmt, certo = b.status.id === "certo";
-    const passou = b.comeu > b.meta;
-    c.push({ tipo: "numero", rotulo: "Body Balance do dia", valor: b.comeu, casas: 0, unidade: "kcal",
-      sub: "meta " + fmtB(b.meta) + " · gastou ~" + fmtB(b.gasto) + " · " + (b.saldo < 0 ? "déficit " : "superávit ") + fmtB(b.saldo),
-      grito: certo ? "Na meta!" : b.status.id === "perto" ? "Quase na meta" : passou ? "Passou da meta" : "Abaixo da meta",
-      corGrito: certo ? "#7CFF3C" : b.status.id === "perto" ? "#FFB21A" : "#FF5A5F", forte: certo,
-      fala: "No Body Balance do dia, " + fmtB(b.comeu) + " de " + fmtB(b.meta) + " calorias da meta. Gasto de cerca de " + fmtB(b.gasto) +
-        (b.saldo < 0 ? ": déficit de " : ": superávit de ") + fmtB(b.saldo) + ". " + (certo ? "Na meta." : b.status.id === "perto" ? "Quase na meta." : passou ? "Passou da meta." : "Abaixo da meta.") });
   }
   // O "Desafio vencido": as vitórias do dia numa lista só, com o que foi superado
   const vit = [];
@@ -30267,7 +30294,7 @@ function CenaResumo({ c }) {
           <text x="90" y="118" textAnchor="middle" fill="#8a8a8a" fontSize="13" fontWeight="700">de {META_CARDIO_SEMANA} min</text>
         </svg>
         <div style={{ color: "#BDBDBD", fontSize: 14, fontWeight: 700, marginTop: 8, padding: "0 24px" }}>
-          {v >= META_CARDIO_SEMANA ? "Meta da OMS cumprida" : "Meta da OMS: 150 min moderados (vigoroso vale dobrado)"}
+          {v >= META_CARDIO_SEMANA ? "Meta de 150 min cumprida" : "Meta: 150 min de aeróbico na semana (OMS)"}
         </div>
         {c.extra && <div style={{ color: "#4DEBFF", fontSize: 15, fontWeight: 900, marginTop: 6, padding: "0 24px" }}>{c.extra}</div>}
       </div>
@@ -30954,7 +30981,7 @@ function videoCena(c, cena, p) {
     }
     videoTexto(c, String(Math.round(v)), 540, 990, 130, "#F2F0EC", 900);
     videoTexto(c, "de " + META_CARDIO_SEMANA + " min", 540, 1060, 42, "#8a8a8a", 700);
-    videoParagrafo(c, v >= META_CARDIO_SEMANA ? "Meta da OMS cumprida" : "Meta da OMS: 150 min moderados", 1310, 44, "#BDBDBD", 700, 900, 2);
+    videoParagrafo(c, v >= META_CARDIO_SEMANA ? "Meta de 150 min cumprida" : "Meta: 150 min de aeróbico na semana", 1310, 44, "#BDBDBD", 700, 900, 2);
     if (cena.extra) videoTexto(c, cena.extra, 540, 1440, 44, "#4DEBFF", 800);
   } else if (t === "mapa") {
     videoRotulo(c, cena.rotulo, 560);
@@ -37299,6 +37326,7 @@ function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
   const [oleo, setOleo] = useState(0);
   const [man, setMan] = useState({ n: "", k: "", p: "", c: "", g: "" });
   const [ml, setMl] = useState("");
+  const [ref, setRef] = useState(refeicaoDaHora(Date.now()));
   useEffect(() => () => { if (foto) URL.revokeObjectURL(foto); }, [foto]);
   const lista = useMemo(() => {
     const b = semAcento(busca.trim());
@@ -37329,6 +37357,17 @@ function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
         <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
           {abaBtn("buscar", "🔎 Buscar")}{abaBtn("foto", "📷 Foto")}{abaBtn("manual", "✏️ Manual")}{abaBtn("agua", "💧 Água")}
         </div>
+        {aba !== "agua" && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ ...S.label, marginBottom: 6 }}>Em qual refeição? (anotando o dia todo de uma vez, marque a certa de cada alimento)</div>
+            <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
+              {REFEICOES_BALANCE.map((x) => (
+                <button key={x.id} onClick={() => setRef(x.id)} style={{ flex: "none", padding: "7px 11px", borderRadius: 16, fontSize: 12.5, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap",
+                  border: "1px solid " + (ref === x.id ? "#E1306C" : "var(--borda2)"), background: ref === x.id ? "#E1306C22" : "transparent", color: ref === x.id ? "#E1306C" : "var(--texto)" }}>{x.ic} {x.nome}</button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {aba === "buscar" && !escolhido && (
           <div>
@@ -37410,7 +37449,7 @@ function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
                 <span style={{ fontFamily: FONTE_JOGO, fontSize: 22 }}>{v.k} kcal</span>
                 <span style={{ color: CORES_BALANCE.p }}>P {v.p}g</span><span style={{ color: CORES_BALANCE.c }}>C {v.c}g</span><span style={{ color: CORES_BALANCE.g }}>G {v.g}g</span>
               </div>
-              <button disabled={!(qt.q > 0)} onClick={() => onAdd([{ ...itemDeAlimento(escolhido, qt.q), vz: qt.vz, gm: qt.gm, qtx: qt.texto, md: modoQ === "gramas" && numB(escolhido.gr) > 0 ? "gramas" : "porcao" }])} style={{ ...S.btn, width: "100%", opacity: qt.q > 0 ? 1 : 0.5 }}>+ Adicionar</button>
+              <button disabled={!(qt.q > 0)} onClick={() => onAdd([{ ...itemDeAlimento(escolhido, qt.q), vz: qt.vz, gm: qt.gm, qtx: qt.texto, md: modoQ === "gramas" && numB(escolhido.gr) > 0 ? "gramas" : "porcao" }], 0, ref)} style={{ ...S.btn, width: "100%", opacity: qt.q > 0 ? 1 : 0.5 }}>+ Adicionar</button>
               <button onClick={() => setEscolhido(null)} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>← Outro alimento</button>
             </div>
           );
@@ -37469,7 +37508,7 @@ function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
               <span style={{ fontFamily: FONTE_JOGO, fontSize: 26 }}>~{fmtKcal(kPrato)} kcal</span>
               <div style={{ fontSize: 11.5, color: "var(--cinza)" }}>{itensPrato.map((it) => it.n.split(" (")[0] + " " + Math.round(ALIMENTOS_BR.find((a) => a.id === it.a).gr * it.q) + " g").join(" · ")}</div>
             </div>
-            <button disabled={!itensPrato.length} onClick={() => onAdd(itensPrato)} style={{ ...S.btn, width: "100%", opacity: itensPrato.length ? 1 : 0.5 }}>+ Adicionar o prato</button>
+            <button disabled={!itensPrato.length} onClick={() => onAdd(itensPrato, 0, ref)} style={{ ...S.btn, width: "100%", opacity: itensPrato.length ? 1 : 0.5 }}>+ Adicionar o prato</button>
           </div>
         )}
 
@@ -37484,7 +37523,7 @@ function JanelaComida({ aba0, recentes, onAdd, onFechar }) {
               ))}
             </div>
             <div style={{ fontSize: 11.5, color: "var(--cinza)", margin: "8px 0 10px" }}>Só as kcal já bastam: sem os macros, entra como "outros" no corpo.</div>
-            <button disabled={!(numB(man.k) > 0)} onClick={() => onAdd([{ n: man.n.trim() || "Anotado à mão", ic: "\u{1F37D}", q: 1, k: numB(man.k), p: numB(man.p), c: numB(man.c), g: numB(man.g), alc: 0, liq: 0, de: "manual" }])}
+            <button disabled={!(numB(man.k) > 0)} onClick={() => onAdd([{ n: man.n.trim() || "Anotado à mão", ic: "\u{1F37D}", q: 1, k: numB(man.k), p: numB(man.p), c: numB(man.c), g: numB(man.g), alc: 0, liq: 0, de: "manual" }], 0, ref)}
               style={{ ...S.btn, width: "100%", opacity: numB(man.k) > 0 ? 1 : 0.5 }}>+ Adicionar</button>
           </div>
         )}
@@ -37541,8 +37580,23 @@ function CartaoPreparo({ preparo, hoje, cb, onMudar }) {
       <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.55, marginBottom: 10 }}>
         Marque o que você usa e desde quando. A conta do gasto começa pela faixa dos estudos e, conforme você anota a comida e se pesa, passa a usar
         o que o seu corpo mostrou desde o começo do uso (comida × balança): é ele que diz quanto o seu metabolismo mudou de verdade.
-        {cp ? " Hoje: o seu corpo mostra ~" + fmtKcal(cp.kcal) + " kcal por dia nesse período (" + cp.dias + " dias anotados)." : ""}
+        {cp && cp.kcal ? " Hoje: o seu corpo mostra ~" + fmtKcal(cp.kcal) + " kcal por dia nesse período (" + cp.dias + " dias anotados" + (cp.soManha ? ", pela pesagem da manhã" : "") + ")." : ""}
       </div>
+      {cp && (cp.kcal ? (cp.faltamAssumir > 0 && (
+        <div style={{ fontSize: 12, color: "#4DEBFF", fontWeight: 800, lineHeight: 1.5, marginBottom: 10 }}>
+          📈 O seu corpo já pesa {cp.assumiu}% na conta. Faltam {cp.faltamAssumir} {plural(cp.faltamAssumir, "dia anotado", "dias anotados")} com pesagem para valer só ele.
+        </div>
+      )) : (
+        <div style={{ fontSize: 12, color: "#FFB21A", fontWeight: 800, lineHeight: 1.5, marginBottom: 10 }}>
+          ⏳ Para o seu corpo assumir a conta, ainda falta{(() => {
+            const f = [];
+            if (cp.faltamDias) f.push(cp.faltamDias + " " + plural(cp.faltamDias, "dia de comida anotada", "dias de comida anotada"));
+            if (cp.faltamPesagens) f.push(cp.faltamPesagens + " " + plural(cp.faltamPesagens, "pesagem na balança", "pesagens na balança"));
+            else if (cp.faltamSpan) f.push("pesagens com mais dias entre elas (" + cp.faltamSpan + " a mais)");
+            return (f.length > 1 ? "m: " : " ") + f.join(" e ") + ".";
+          })()} Até lá, a conta usa a faixa dos estudos. Pese-se de manhã, em jejum: oscila menos.
+        </div>
+      ))}
       {SUBSTANCIAS_PREPARO.map((x) => {
         const u = usos[x.id] || {};
         const on = ativo(u);
@@ -37634,11 +37688,12 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
     dd[d] = f(Object.assign({ itens: [], agua: 0 }, dd[d] || {}));
     return Object.assign({}, n, { dias: dd });
   });
-  const adicionar = (itens, aguaMl) => {
+  const adicionar = (itens, aguaMl, refE) => {
     const agora = Date.now();
     const quando = ehHoje ? agora : new Date(diaVer + "T12:00:00").getTime();
+    const r = typeof refE === "string" && refE ? refE : refeicaoDaHora(quando);
     mudarDia(diaVer, (d) => Object.assign({}, d, {
-      itens: (d.itens || []).concat(itens.map((it, i) => Object.assign({}, it, { id: "b" + agora.toString(36) + i, t: quando, r: refeicaoDaHora(quando) }))),
+      itens: (d.itens || []).concat(itens.map((it, i) => Object.assign({}, it, { id: "b" + agora.toString(36) + i, t: quando, r: r }))),
       agua: numB(d.agua) + (aguaMl || 0),
     }));
     setJanela(null);

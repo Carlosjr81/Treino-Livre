@@ -67,6 +67,22 @@ O texto das falas e as cenas ficam em `ferramentas/video-divulgacao.html`
 
 ---
 
+## Postar no Reels
+
+- **Grave a voz antes de postar, ou escolha uma música dentro do Instagram.**
+  O arquivo não tem áudio nenhum, de propósito. Reels mudo o Instagram aceita,
+  mas entrega pior — e quem assiste com o som ligado estranha o silêncio.
+- **Nada importante encosta na interface do Reels.** O nome do perfil, a
+  legenda do post e os botões de curtir, comentar e compartilhar cobrem a faixa
+  de baixo da tela e uma coluna à direita. Por isso a legenda falada termina
+  acima disso, o crédito foi para o topo e o aviso de saúde do fim também. Se
+  você mexer no layout, confira com a zona segura antes de postar
+  (o script do scratchpad desenha as faixas por cima dos quadros).
+- A **capa** (`treino-livre-video-capa.jpg`) é o primeiro quadro, que já traz o
+  gancho escrito: o Reels mostra essa imagem antes de tocar.
+- **Comente o primeiro comentário você mesmo** com "1, 2 ou 3?" para puxar a
+  enquete — é o que faz a pergunta do fim virar comentário de verdade.
+
 ## As regras que o vídeo respeita (e que uma versão nova dele precisa respeitar)
 
 - **Nenhum número inventado**: não há contagem de usuários, depoimento,

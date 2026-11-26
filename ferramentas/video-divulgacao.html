@@ -43,6 +43,8 @@ var ARTE = { w: 1086, h: 1448, topoFrente: 17 };
 var INSTAGRAM = "@carlos.jr.81";
 
 var W = 1080, H = 1920;
+// o conteúdo sobe para caber acima da interface do Reels (ver a zona segura)
+var DESLOC = 150;
 var tela = document.getElementById("tela");
 var cx = tela.getContext("2d");
 var IMG = {};
@@ -191,6 +193,7 @@ function borradoDaArte() {
   return BORRADO;
 }
 function desenharArte(c, t, idx, escuro) {
+  c.save(); c.translate(0, DESLOC);
   var cam = CAMERAS[idx % CAMERAS.length];
   var s = t / 1000;
   // a sobra de cima e de baixo é a própria arte borrada (a arte nunca é cortada)
@@ -198,7 +201,7 @@ function desenharArte(c, t, idx, escuro) {
   if (b) { c.save(); c.globalAlpha = 0.85; c.drawImage(b, 0, 0, W, H); c.restore(); }
   else { c.fillStyle = "#170B27"; c.fillRect(0, 0, W, H); }
   c.fillStyle = "rgba(8,3,16,.55)"; c.fillRect(0, 0, W, H);
-  if (!IMG.fundo) return;
+  if (!IMG.fundo) { c.restore(); return; }
   var z = cam.z * Math.min(W / ARTE.w, H / ARTE.h) * (1 + 0.012 * Math.sin(s * 0.6 + idx));
   var aw = ARTE.w * z, ah = ARTE.h * z;
   var ax = (W - aw) / 2 + cam.x * Math.sin(s * 0.35 + idx) * 2.4;
@@ -236,11 +239,13 @@ function desenharArte(c, t, idx, escuro) {
   c.restore();
   c.fillStyle = "rgba(6,2,12," + escuro + ")";
   c.fillRect(0, 0, W, H);
+  c.restore();
 }
 
 // os efeitos de LED: barras correndo, varredura, lasers e a festa
 var LED_TELA = null;
 function desenharLed(c, t, p, forte) {
+  c.save(); c.translate(0, DESLOC);
   var s = t / 1000;
   if (!LED_TELA) { LED_TELA = document.createElement("canvas"); LED_TELA.width = 540; LED_TELA.height = 960; }
   var o = LED_TELA.getContext("2d");
@@ -291,6 +296,7 @@ function desenharLed(c, t, p, forte) {
     c.beginPath(); c.moveTo(bx - 3, -40); c.lineTo(bx + 3, -40);
     c.lineTo(bx + 60 + L * 14, H * 0.75); c.lineTo(bx - 60 - L * 14, H * 0.75); c.closePath(); c.fill();
   }
+  c.restore();
   c.restore();
 }
 
@@ -363,13 +369,13 @@ function legenda(c, fala, p, dur, ate) {
   c.font = "400 " + tam + "px " + FONTE;
   var larg = g.map(function (w) { return c.measureText(w + " ").width; });
   var total = larg.reduce(function (a, b) { return a + b; }, 0) - c.measureText(" ").width;
-  while (total > 960 && tam > 34) {
+  while (total > 780 && tam > 34) {
     tam -= 3; c.font = "400 " + tam + "px " + FONTE;
     larg = g.map(function (w) { return c.measureText(w + " ").width; });
     total = larg.reduce(function (a, b) { return a + b; }, 0) - c.measureText(" ").width;
   }
   c.restore();
-  var y = 1672;
+  var y = 1420;   // termina em ~1465: acima da interface do Reels
   // a tarja de leitura atrás da legenda
   c.save();
   var ent = clamp((p - entra) / 180, 0, 1);
@@ -396,8 +402,8 @@ function legenda(c, fala, p, dur, ate) {
 function credito(c, tipo) {
   if (CREDITO_FORA[tipo]) return;
   c.save();
-  c.globalAlpha = 0.72;
-  texto(c, "TREINO LIVRE  ·  " + INSTAGRAM, 540, 1838, 28, "#FFFFFF", { traco: 0.16 });
+  c.globalAlpha = 0.6;
+  texto(c, "TREINO LIVRE  ·  " + INSTAGRAM, 540, 206, 26, "#FFFFFF", { traco: 0.17 });
   c.restore();
 }
 
@@ -470,7 +476,7 @@ function cenaVinheta(c, p) {
   // o fundo escuro da marca e as raias cruzando
   var g = c.createLinearGradient(0, 0, W, H);
   g.addColorStop(0, "#170B27"); g.addColorStop(0.6, "#2B0E3A"); g.addColorStop(1, "#3A1430");
-  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  c.save(); c.translate(0, DESLOC); c.fillStyle = g; c.fillRect(0, 0, W, H); c.restore();
   var s = p / 1000;
   c.save();
   c.globalCompositeOperation = "lighter";
@@ -592,7 +598,7 @@ function corpoBalance(c, x, y, escala, camadas, cheio, cor, p) {
 function cenaBalanco(c, p, cena) {
   desenharArte(c, p + 10000, 2, 0.76);
   desenharLed(c, p + 10000, p, false);
-  rotulo(c, "jarvis body balance", 300);
+  rotulo(c, "jarvis body balance", 450);
   var k = clamp((p - 300) / 2300, 0, 1);
   // o que entra
   corpoBalance(c, 300, 820, 1.9, [
@@ -620,7 +626,7 @@ function cenaBalanco(c, p, cena) {
 function cenaFase(c, p, cena) {
   desenharArte(c, p + 16000, 3, 0.74);
   desenharLed(c, p + 16000, p, cena.forte);
-  rotulo(c, "o que você está fazendo de verdade", 320);
+  rotulo(c, "o que você está fazendo de verdade", 470);
   // a régua cutting · manutenção · bulking
   var y = 760;
   c.save();
@@ -656,7 +662,7 @@ function cenaFase(c, p, cena) {
 function cenaComida(c, p) {
   desenharArte(c, p + 21000, 4, 0.78);
   desenharLed(c, p + 21000, p, false);
-  rotulo(c, "anotar leva segundos", 300);
+  rotulo(c, "anotar leva segundos", 450);
   var itens = [
     ["FOTO DO PRATO", "você marca o que tem e quanto ocupa", BAL.c],
     ["PORÇÃO CASEIRA", "1 concha, 2 colheres, 1 filé", BAL.p],
@@ -692,11 +698,11 @@ function cenaComida(c, p) {
 function cenaCatalogo(c, p) {
   desenharArte(c, p + 26000, 5, 0.8);
   desenharLed(c, p + 26000, p, false);
-  rotulo(c, "catálogo: a troca que muda alguma coisa", 300);
+  rotulo(c, "catálogo: a troca que muda alguma coisa", 450);
   var k = suave(clamp(p / 500, 0, 1));
   c.save(); c.globalAlpha = k;
-  placa(c, 90, 430, 900, 640, 30);
-  texto(c, "MESMO WHEY NOS DOIS LADOS", 540, 510, 32, CIANO, { traco: 0.16, largMax: 820 });
+  placa(c, 90, 520, 900, 640, 30);
+  texto(c, "MESMO WHEY NOS DOIS LADOS", 540, 600, 32, CIANO, { traco: 0.16, largMax: 820 });
   // as duas colunas
   var linhas = [
     ["", "A: MALTO", "B: FARINHA"],
@@ -706,7 +712,7 @@ function cenaCatalogo(c, p) {
     ["fibra", "0 g", "0,9 g"],
   ];
   for (var i = 0; i < linhas.length; i++) {
-    var y = 600 + i * 90;
+    var y = 690 + i * 90;
     var ap = suave(clamp((p - 500 - i * 180) / 380, 0, 1));
     c.save(); c.globalAlpha = k * ap;
     if (i === 0) {
@@ -734,8 +740,8 @@ function cenaCatalogo(c, p) {
 function cenaTreino(c, p, cena) {
   desenharArte(c, p + 30000, 0, 0.74);
   desenharLed(c, p + 30000, p, cena.forte);
-  rotulo(c, "musculação", 300);
-  texto(c, "SUPINO RETO", 540, 420, 62, "#FFFFFF", { traco: 0.13, largMax: 920 });
+  rotulo(c, "musculação", 450);
+  texto(c, "SUPINO RETO", 540, 540, 62, "#FFFFFF", { traco: 0.13, largMax: 920 });
   // a carga que sobe
   var k = suave(clamp((p - 400) / 1100, 0, 1));
   c.save();
@@ -782,7 +788,7 @@ function cenaEyes(c, p) {
   c.fillStyle = "#07040E"; c.fillRect(0, 0, W, H);
   desenharArte(c, p + 36000, 1, 0.9);
   desenharLed(c, p + 36000, p, false);
-  rotulo(c, "jarvis eyes scan", 300);
+  rotulo(c, "jarvis eyes scan", 450);
   // o esqueleto agachando: só tronco e membros, como no scanner
   var CICLO = 1500;
   var ciclo = (p % CICLO) / CICLO;
@@ -842,7 +848,7 @@ function cenaEyes(c, p) {
 function cenaCardio(c, p) {
   desenharArte(c, p + 41000, 2, 0.8);
   desenharLed(c, p + 41000, p, false);
-  rotulo(c, "corrida, esteira, bicicleta, rua", 300);
+  rotulo(c, "corrida, esteira, bicicleta, rua", 450);
   // o traçado do percurso se desenhando
   // um percurso de rua: vai e volta, com quarteirões, não um círculo
   var pts = [];
@@ -887,7 +893,7 @@ function cenaCardio(c, p) {
 function cenaRelogio(c, p) {
   desenharArte(c, p + 46000, 3, 0.82);
   desenharLed(c, p + 46000, p, false);
-  rotulo(c, "no pulso, sem pegar o celular", 300);
+  rotulo(c, "no pulso, sem pegar o celular", 450);
   // o relógio redondo
   var rx = 540, ry = 880, R = 300;
   c.save();
@@ -922,9 +928,9 @@ function cenaRelogio(c, p) {
   texto(c, "FEITO", rx, ry + 215, 40, "#FFFFFF", { traco: 0.14 });
   if (p > 1800) {
     c.save(); c.globalAlpha = suave(clamp((p - 1800) / 450, 0, 1));
-    placa(c, 110, 1370, 860, 170, 28);
-    texto(c, "SÉRIE, DESCANSO, ÁGUA E COMIDA", 540, 1438, 36, "#FFFFFF", { traco: 0.15, largMax: 780 });
-    texto(c, "a toques, no relógio", 540, 1496, 32, CIANO, { traco: 0.16, largMax: 780 });
+    placa(c, 110, 1310, 860, 160, 28);
+    texto(c, "SÉRIE, DESCANSO, ÁGUA E COMIDA", 540, 1375, 36, "#FFFFFF", { traco: 0.15, largMax: 780 });
+    texto(c, "a toques, no relógio", 540, 1430, 32, CIANO, { traco: 0.16, largMax: 780 });
     c.restore();
   }
 }
@@ -932,7 +938,7 @@ function cenaRelogio(c, p) {
 function cenaJarvis(c, p) {
   desenharArte(c, p + 51000, 4, 0.82);
   desenharLed(c, p + 51000, p, false);
-  rotulo(c, "jarvis", 300);
+  rotulo(c, "jarvis", 450);
   // a onda de voz
   c.save();
   c.translate(540, 760);
@@ -961,7 +967,7 @@ function cenaJarvis(c, p) {
 function cenaStats(c, p, cena) {
   desenharArte(c, p + 55000, 5, 0.76);
   desenharLed(c, p + 55000, p, cena.forte);
-  rotulo(c, "o resultado em números", 300);
+  rotulo(c, "o resultado em números", 450);
   // o gráfico de evolução
   var gx = 140, gy = 900, gw = 800, gh = 380;
   c.save();
@@ -1004,10 +1010,10 @@ function cenaStats(c, p, cena) {
 function cenaEnquete(c, p) {
   var g = c.createLinearGradient(0, 0, W, H);
   g.addColorStop(0, "#170B27"); g.addColorStop(0.6, "#2B0E3A"); g.addColorStop(1, "#3A1430");
-  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  c.save(); c.translate(0, DESLOC); c.fillStyle = g; c.fillRect(0, 0, W, H); c.restore();
   desenharArte(c, p + 61000, 0, 0.88);
   desenharLed(c, p + 61000, p, true);
-  desenharLogo(c, 540, 380, 380, suave(clamp(p / 400, 0, 1)));
+  desenharLogo(c, 540, 470, 380, suave(clamp(p / 400, 0, 1)));
   var k = suave(clamp((p - 300) / 450, 0, 1));
   c.save(); c.globalAlpha = k;
   texto(c, "QUAL VOCÊ QUER", 540, 700, 72, "#FFFFFF", { italico: true, traco: 0.13, largMax: 960 });
@@ -1018,10 +1024,11 @@ function cenaEnquete(c, p) {
     ["2", "TREINO", MARCA],
     ["3", "CARDIO", CIANO],
   ];
+  // as três opções sobem um pouco para caber o rodapé acima da interface
   for (var i = 0; i < ops.length; i++) {
     var ap = suave(clamp((p - 800 - i * 380) / 430, 0, 1));
     if (ap <= 0) continue;
-    var y = 970 + i * 180;
+    var y = 940 + i * 170;
     var vivo = (Math.floor(p / 700) % 3) === i && p > 2200;
     c.save();
     c.globalAlpha = ap;
@@ -1030,27 +1037,26 @@ function cenaEnquete(c, p) {
     c.scale(es, es);
     c.translate(-540, -y);
     c.fillStyle = vivo ? "rgba(255,255,255,.14)" : "rgba(0,0,0,.5)";
-    caminhoArredondado(c, 150, y - 62, 780, 124, 62); c.fill();
+    caminhoArredondado(c, 165, y - 62, 740, 124, 62); c.fill();
     c.strokeStyle = ops[i][2]; c.lineWidth = vivo ? 6 : 3;
     c.shadowColor = ops[i][2]; c.shadowBlur = vivo ? 30 : 12;
-    caminhoArredondado(c, 150, y - 62, 780, 124, 62); c.stroke();
+    caminhoArredondado(c, 165, y - 62, 740, 124, 62); c.stroke();
     c.shadowBlur = 0;
-    texto(c, ops[i][0], 232, y + 18, 54, ops[i][2], { traco: 0.14 });
-    texto(c, ops[i][1], 580, y + 18, 54, "#FFFFFF", { traco: 0.14, largMax: 560 });
+    texto(c, ops[i][0], 243, y + 18, 54, ops[i][2], { traco: 0.14 });
+    texto(c, ops[i][1], 580, y + 18, 54, "#FFFFFF", { traco: 0.14, largMax: 520 });
     c.restore();
   }
   if (p > 2600) {
     c.save(); c.globalAlpha = suave(clamp((p - 2600) / 450, 0, 1));
-    texto(c, "COMENTA O NÚMERO AQUI EMBAIXO", 540, 1588, 52, AMARELO, { italico: true, traco: 0.14, largMax: 950 });
+    texto(c, "COMENTA O NÚMERO AQUI EMBAIXO", 540, 1448, 52, AMARELO, { italico: true, traco: 0.14, largMax: 950 });
     c.restore();
   }
   if (p > 3400) {
     c.save(); c.globalAlpha = suave(clamp((p - 3400) / 450, 0, 1));
-    texto(c, "TREINO LIVRE  ·  " + INSTAGRAM, 540, 1724, 42, "#FFFFFF", { traco: 0.15 });
+    texto(c, "TREINO LIVRE  ·  " + INSTAGRAM, 540, 1548, 42, "#FFFFFF", { traco: 0.15 });
     c.globalAlpha *= 0.78;
-    texto(c, "Ferramenta de registro e informação geral.", 540, 1800, 25, "#C9C4D4", { traco: 0.2 });
-    texto(c, "Não substitui médico nem profissional de Educação Física.", 540, 1838, 25, "#C9C4D4", { traco: 0.2 });
-    texto(c, "Procure um antes de começar ou mudar o seu treino.", 540, 1876, 25, "#C9C4D4", { traco: 0.2 });
+    texto(c, "Ferramenta de registro e informação geral. Não substitui médico", 540, 1612, 25, "#C9C4D4", { traco: 0.2 });
+    texto(c, "nem profissional de Educação Física: procure um antes de treinar.", 540, 1648, 25, "#C9C4D4", { traco: 0.2 });
     c.restore();
   }
 }
@@ -1065,6 +1071,7 @@ var DESENHOS = {
 function desenharCena(c, i, p) {
   var cena = CENAS[i];
   c.save();
+  c.translate(0, -DESLOC);
   (DESENHOS[cena.tipo] || cenaBalanco)(c, p, cena);
   c.restore();
   legenda(c, cena.fala, p, cena.ms, cena.falaAte);

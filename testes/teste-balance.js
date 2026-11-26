@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -399,6 +399,68 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("nenhuma fibra passa do peso da porcao", [], comFib.filter((a) => a.f > a.gr).map((a) => a.id));
   teste("a maltodextrina nao tem fibra e a farinha de arroz tem", [0, true], [malto.f, farinha.f > 0]);
   teste("a fibra nunca e negativa", [], comFib.filter((a) => a.f < 0).map((a) => a.id));
+}
+// ---- o shake pronto: a combinação que vira um item (2026-11-26e) ----
+{
+  const ach = (id) => B.ALIMENTOS_BR.find((a) => a.id === id);
+  teste("o leite em po entrou no catalogo", [true, true], [!!ach("leite-po"), !!ach("leite-po-desnatado")]);
+  teste("as tres combinacoes que o dono descreveu estao sugeridas", [],
+    [["whey", "leite-po", "farinha-arroz"], ["whey", "leite-po", "amido-milho"], ["whey", "leite-po", "aveia"]]
+      .filter((c) => !B.RECEITAS_SUGERIDAS.some((r) => r.itens.length === c.length && r.itens.every((i, n) => i.a === c[n]))));
+  teste("toda sugestao so usa alimento que existe", [],
+    B.RECEITAS_SUGERIDAS.reduce((l, r) => l.concat(r.itens.map((i) => i.a)), []).filter((id) => !ach(id)));
+
+  // a soma sai da mesma tabela do resto do app: whey 30 g + leite em po 25 g + aveia 40 g
+  const aveia = B.RECEITAS_SUGERIDAS.find((r) => r.id === "s-aveia");
+  const z = B.somaReceita(aveia);
+  const mao = ["whey", "leite-po", "aveia"].map((id, n) => B.alimentoEm(ach(id), [30, 25, 40][n]));
+  teste("a soma do shake bate com a soma dos alimentos", true,
+    Math.abs(z.k - mao.reduce((a, v) => a + v.k, 0)) < 1 && Math.abs(z.p - mao.reduce((a, v) => a + v.p, 0)) < 0.2);
+  teste("o shake de aveia da mais ou menos o esperado", [36, 39], [Math.round(z.p), Math.round(z.c)]);
+  teste("conta os gramas de po e nao confunde com liquido", [95, 0], [z.gm, z.ml]);
+  const comLeite = B.somaReceita(B.RECEITAS_SUGERIDAS.find((r) => r.id === "s-banana"));
+  teste("o leite liquido conta como ml, nao como grama", 200, comLeite.ml);
+
+  // o item que entra no dia
+  const it = B.itemDeReceita(aveia, 1);
+  teste("o shake entra como UM item, sem alimento da tabela", [undefined, 1], [it.a, it.q]);
+  teste("o item leva os macros somados", [z.k, z.p], [it.k, it.p]);
+  teste("o item guarda a composicao para reabrir", 3, it.rc.length);
+  teste("o texto do item diz o que tem dentro", true, /Whey protein 30 g/.test(it.qtx) && /Aveia em flocos 40 g/.test(it.qtx));
+  const dois = B.itemDeReceita(aveia, 2);
+  teste("dois shakes dobram tudo", [it.k * 2, Math.round(it.p * 2 * 10) / 10], [dois.k, dois.p]);
+  teste("vezes absurdo nao passa", 20, B.itemDeReceita(aveia, 999).vz);
+  teste("receita sem alimento nenhum nao vira item", null, B.itemDeReceita({ n: "x", itens: [] }, 1));
+
+  // o valor do item no dia é o mesmo que a soma (q = 1, sem multiplicar de novo)
+  teste("o dia soma o shake uma vez so", z.k, B.valorItem(it).k);
+
+  // a leitura do que estava guardado
+  const lidas = B.lerReceitas([
+    { id: "a", n: "Meu shake", itens: [{ a: "whey", g: 40 }, { a: "nao-existe", g: 10 }], agua: 300 },
+    { id: "b", n: "vazio", itens: [] },
+    { n: "sem nada" },
+    "lixo",
+  ]);
+  teste("so volta receita com alimento de verdade", 1, lidas.length);
+  teste("o alimento inventado e descartado", [1, 40], [lidas[0].itens.length, lidas[0].itens[0].g]);
+  teste("a agua do copo e guardada", 300, lidas[0].agua);
+  teste("grama absurda nao passa", 0, B.lerReceitas([{ id: "c", n: "x", itens: [{ a: "whey", g: 90000 }] }]).length);
+  teste("nome gigante e cortado", 60, B.lerReceitas([{ id: "d", n: "x".repeat(300), itens: [{ a: "whey", g: 30 }] }])[0].n.length);
+
+  // o que a pessoa vê: as dela primeiro, e a sugestão que ela já copiou sai
+  const minha = { id: "m1", n: "O meu", ic: "\u{1F964}", agua: 300, em: 2, itens: aveia.itens.map((i) => ({ a: i.a, g: i.g })) };
+  const disp = B.receitasDisponiveis([minha]);
+  teste("a minha receita vem na frente", "m1", disp[0].id);
+  teste("a sugestao igual a minha nao aparece duas vezes", -1, disp.slice(1).map((r) => r.id).indexOf("s-aveia"));
+  teste("as outras sugestoes continuam", true, disp.some((r) => r.id === "s-amido" && r.sug));
+  teste("sem receita minha, aparecem todas as sugeridas", B.RECEITAS_SUGERIDAS.length, B.receitasDisponiveis([]).length);
+
+  // o que o Balance guarda
+  // lerNutricao vive fora do bloco das contas: a checagem é no texto do app
+  { const html1 = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+    teste("lerNutricao guarda as receitas no registro", true, /r\.receitas = lerReceitas\(n\.receitas\)/.test(html1));
+    teste("o backup leva as receitas junto (é o mesmo registro)", true, /receitas: \[\]/.test(html1)); }
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

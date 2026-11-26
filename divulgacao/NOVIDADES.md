@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-26e — O shake pronto: a sua bebida de whey vira um item só
+
+- **Em uma frase:** agora dá para montar a bebida que você bate em casa — whey, leite em pó e o carboidrato que você usa — e anotar tudo de uma vez, com os gramas do seu jeito.
+- **O que mudou:** o Balance ganhou a aba **🥤 Shake** dentro do + Comida. Vêm cinco prontos (whey com **farinha de arroz**, com **amido de milho**, com **aveia**, com **maltodextrina** e com **banana**), e você muda os gramas de cada um, acrescenta o que faltar pela busca, diz a água do copo e quantos tomou. O total aparece na hora e o shake entra no dia como **um item só**, com o nome que você deu. **💾 Salvar este shake** guarda a receita: o próximo é um toque. E o **leite em pó** (integral e desnatado) entrou na lista de alimentos.
+- **Por que importa para quem treina:** quem toma shake toma quase sempre o mesmo, e anotar três alimentos separados toda vez cansa — então ninguém anota. Assim é um toque, e a conta do dia fica certa.
+- **Como usar:** Balance › Hoje › + Comida › 🥤 Shake. Escolha um pronto ou monte do zero, ajuste os gramas, e toque em Anotar.
+- **Ideias de vídeo:** montar o shake na tela trocando a farinha de arroz pelo amido de milho e mostrando os números mudando; e o shake salvo sendo anotado em dois toques no dia seguinte.
+- **Não prometer:** não é plano alimentar nem dieta; os valores mudam com a marca e com o preparo, e montar a dieta é com o nutricionista.
+
+---
+
 ## 2026-11-26d — O acesso é por plano, e a tela de quem não tem conta o que o app faz
 
 - **Em uma frase:** quem não tem plano pago ou cortesia não entra mais; no lugar do app ele vê o que o Treino Livre faz e os planos para escolher.

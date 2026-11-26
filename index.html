@@ -1627,6 +1627,21 @@ const AJUDA_APP = [
       "É informação geral: não substitui o nutricionista nem o médico.",
     ],
     ir: { destino: "balance", rotulo: "Abrir o Body Balance" } },
+  { id: "shake", cat: "cardio", icone: "\u{1F964}", titulo: "Shake: montar a sua bebida de whey",
+    resumo: "Whey, leite em pó e o carboidrato que você usa viram um item só no dia, com os gramas do seu jeito.",
+    passos: [
+      "Em **Balance → Hoje**, toque em **+ Comida** e depois na aba **🥤 Shake**.",
+      "Escolha um dos prontos (whey com farinha de arroz, com amido de milho, com aveia, com maltodextrina ou com banana) ou **+ Montar um shake do zero**.",
+      "Mude os gramas de cada alimento para o que você usa de verdade, e acrescente o que faltar pela busca.",
+      "Diga a água do copo (ela entra na água do dia) e quantos você tomou.",
+      "**+ Anotar o shake** lança tudo de uma vez. **💾 Salvar este shake** guarda com o seu nome, para o próximo ser um toque.",
+    ],
+    dicas: [
+      "O shake entra no dia como **um item só**, com o nome que você deu — e não como três linhas soltas.",
+      "Trocou a farinha de arroz pelo amido de milho? Os números mudam na hora, porque saem da mesma tabela do resto do app.",
+      "Em dúvida entre dois carboidratos, o **🔎 Catálogo** compara os dois isolando só o que a troca muda.",
+    ],
+    ir: { destino: "balance", rotulo: "Abrir o Body Balance" } },
   { id: "catalogo", cat: "cardio", icone: "\u{1F50E}", titulo: "Catálogo: comparar alimentos e escolher",
     resumo: "Procure os alimentos pelos números e ponha dois lado a lado para ver o que muda de verdade na troca.",
     passos: [
@@ -2046,6 +2061,9 @@ const ALIMENTOS_BR = [
   { id: "cafe-leite", nome: "Café com leite", cat: "bebida", por: "1 xícara (200 ml)", gr: 200, k: 70, p: 3.5, c: 5.5, g: 3.5, gPrato: 0, ic: "☕", liq: 200 },
   { id: "suco-uva", nome: "Suco de uva integral", cat: "bebida", por: "1 copo (200 ml)", gr: 200, k: 140, p: 0, c: 34.0, g: 0, gPrato: 0, ic: "🧃", liq: 200 },
   { id: "energetico", nome: "Energético", cat: "doce", por: "1 lata (250 ml)", gr: 250, k: 113, p: 0, c: 28.0, g: 0, gPrato: 0, ic: "⚡", liq: 250 },
+  // o leite em pó: a base do shake de quem bate whey em casa (2026-11-26e)
+  { id: "leite-po", nome: "Leite em pó integral", cat: "proteina", por: "2 colheres de sopa (25 g)", gr: 25, k: 124, p: 6.5, c: 9.5, g: 6.8, f: 0, gPrato: 0, ic: "\u{1F95B}", b: "leite po shake" },
+  { id: "leite-po-desnatado", nome: "Leite em pó desnatado", cat: "proteina", por: "2 colheres de sopa (25 g)", gr: 25, k: 90, p: 8.8, c: 13.0, g: 0.3, f: 0, gPrato: 0, ic: "\u{1F95B}", b: "leite po desnatado shake" },
   // achocolatados e leite condensado (2026-11-26d)
   { id: "achocolatado-po", nome: "Achocolatado em pó", cat: "doce", por: "2 colheres de sopa (20 g)", gr: 20, k: 78, p: 1.1, c: 17.0, g: 0.4, f: 0.7, gPrato: 0, ic: "\u{1F36B}", b: "nescau toddy nesquik quick achocolatado po chocolate" },
   { id: "leite-achocolatado", nome: "Leite com achocolatado", cat: "bebida", por: "1 copo (200 ml + 2 colheres)", gr: 220, k: 201, p: 7.1, c: 26.0, g: 7.0, f: 0.7, gPrato: 0, ic: "\u{1F95B}", liq: 200, b: "nescau toddy nesquik quick leite chocolate achocolatado" },
@@ -2126,6 +2144,27 @@ const VITRINE_APP = {
       ] },
   ],
 };
+// O shake pronto: uma combinação de alimentos que vira UM item no dia
+// (2026-11-26e, pedido do dono: "preparo whey com leite em pó e mais algum
+// item que dê carboidrato; quero a opção de bebida whey preparada onde eu
+// consiga pôr uma combinação de alimentos para formar o shake").
+//
+// São os alimentos do catálogo com os gramas de cada um — nada de valor
+// inventado: a soma sai da mesma tabela do resto do app, e trocar a farinha
+// pelo amido muda o que tem de mudar. As sugestões são ponto de partida:
+// a pessoa muda os gramas, salva com o nome dela e anota num toque.
+const RECEITAS_SUGERIDAS = [
+  { id: "s-arroz", n: "Shake de whey com farinha de arroz", ic: "\u{1F964}", agua: 300,
+    itens: [{ a: "whey", g: 30 }, { a: "leite-po", g: 25 }, { a: "farinha-arroz", g: 40 }] },
+  { id: "s-amido", n: "Shake de whey com amido de milho", ic: "\u{1F33D}", agua: 300,
+    itens: [{ a: "whey", g: 30 }, { a: "leite-po", g: 25 }, { a: "amido-milho", g: 30 }] },
+  { id: "s-aveia", n: "Shake de whey com aveia", ic: "\u{1F963}", agua: 300,
+    itens: [{ a: "whey", g: 30 }, { a: "leite-po", g: 25 }, { a: "aveia", g: 40 }] },
+  { id: "s-malto", n: "Shake de whey com maltodextrina", ic: "\u{26A1}", agua: 300,
+    itens: [{ a: "whey", g: 30 }, { a: "leite-po", g: 25 }, { a: "maltodextrina", g: 40 }] },
+  { id: "s-banana", n: "Shake de whey com banana", ic: "\u{1F34C}", agua: 0,
+    itens: [{ a: "whey", g: 30 }, { a: "leite", g: 200 }, { a: "banana", g: 100 }] },
+];
 // O que o relógio oferece sem o celular ter mandado os favoritos
 const RAPIDOS_RELOGIO = ["cafe", "banana", "pao", "frango", "pf", "whey", "lanche", "chocolate", "refri", "cerveja"];
 // As cores do corpo que enche (as mesmas na tela e no relógio)
@@ -2242,7 +2281,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-26d";
+const VERSAO_APP = "2026-11-26e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -3920,9 +3959,10 @@ const COMIDA_APP = (() => {
 })();
 // O que vem do backup ou do armazenamento, conferido
 function lerNutricao(n) {
-  const r = { perfil: {}, dias: {}, vistos: [] };
+  const r = { perfil: {}, dias: {}, vistos: [], receitas: [] };
   if (!n || typeof n !== "object") return r;
   if (n.perfil && typeof n.perfil === "object") r.perfil = n.perfil;
+  r.receitas = lerReceitas(n.receitas);
   if (n.dias && typeof n.dias === "object") {
     const corte = new Date(Date.now() - 400 * 864e5).toISOString().slice(0, 10);
     Object.keys(n.dias).forEach((d) => { if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d >= corte && n.dias[d] && typeof n.dias[d] === "object") r.dias[d] = { itens: Array.isArray(n.dias[d].itens) ? n.dias[d].itens.slice(0, 120) : [], agua: Number(n.dias[d].agua) || 0, sono: Number(n.dias[d].sono) || 0, aguaEv: Array.isArray(n.dias[d].aguaEv) ? n.dias[d].aguaEv.slice(-60) : [] }; });
@@ -4815,6 +4855,77 @@ function vereditoComparacao(cmp, falta) {
 }
 // ---------------- FIM DO CATÁLOGO ----------------
 
+// ---------------- O SHAKE PRONTO (a receita) ----------------
+// Uma receita é uma lista de alimentos do catálogo com os gramas de cada um.
+// Ela some no dia como UM item (a lista fica "Shake de whey com aveia", e não
+// três linhas soltas), mas guarda a composição (rc) para a pessoa reabrir,
+// mudar os gramas e anotar de novo. A soma sai de alimentoEm: os mesmos
+// números da tabela do resto do app.
+const MAX_RECEITAS = 40, MAX_ITENS_RECEITA = 12;
+function lerReceitas(x) {
+  if (!Array.isArray(x)) return [];
+  return x.map((r) => {
+    if (!r || typeof r !== "object") return null;
+    const itens = (Array.isArray(r.itens) ? r.itens : []).map((i) => {
+      const a = i && typeof i.a === "string" && ALIMENTOS_BR.find((z) => z.id === i.a);
+      const g = numB(i && i.g);
+      return a && g > 0 && g <= 5000 ? { a: a.id, g: Math.round(g * 10) / 10 } : null;
+    }).filter(Boolean).slice(0, MAX_ITENS_RECEITA);
+    if (!itens.length) return null;
+    return { id: String(r.id || "r" + Date.now().toString(36)).slice(0, 40),
+      n: String(r.n || "Shake").trim().slice(0, 60) || "Shake",
+      ic: typeof r.ic === "string" && r.ic ? r.ic.slice(0, 4) : "\u{1F964}",
+      agua: Math.max(0, Math.min(3000, Math.round(numB(r.agua)))),
+      itens: itens, em: numB(r.em) || 0 };
+  }).filter(Boolean).slice(0, MAX_RECEITAS);
+}
+// a soma da receita, em gramas e em macros
+function somaReceita(rec) {
+  const z = { k: 0, p: 0, c: 0, g: 0, fib: 0, gm: 0, ml: 0, n: 0 };
+  (((rec && rec.itens) || [])).forEach((i) => {
+    const a = ALIMENTOS_BR.find((x) => x.id === i.a);
+    if (!a || !(i.g > 0)) return;
+    const v = alimentoEm(a, i.g);
+    z.k += v.k; z.p += v.p; z.c += v.c; z.g += v.g;
+    if (v.fib != null) z.fib += v.fib;
+    if (a.liq) z.ml += i.g; else z.gm += i.g;
+    z.n++;
+  });
+  ["k", "p", "c", "g", "fib"].forEach((x) => { z[x] = Math.round(z[x] * 10) / 10; });
+  z.k = Math.round(z.k);
+  return z;
+}
+// "Whey protein 30 g · Leite em pó integral 25 g · Aveia em flocos 40 g"
+function textoReceita(rec) {
+  return (((rec && rec.itens) || [])).map((i) => {
+    const a = ALIMENTOS_BR.find((x) => x.id === i.a);
+    if (!a) return "";
+    return a.nome + " " + String(Math.round(i.g * 10) / 10).replace(".", ",") + (a.liq ? " ml" : " g");
+  }).filter(Boolean).join(" · ");
+}
+// O item que entra no dia. Vai sem `a` (não é um alimento da tabela), com os
+// totais já somados — o mesmo formato do "à mão", então corrigir os valores
+// depois continua funcionando. `rc` guarda a composição.
+function itemDeReceita(rec, vezes) {
+  const vz = Math.max(1, Math.min(20, Math.round(numB(vezes)) || 1));
+  const z = somaReceita(rec);
+  if (!(z.k > 0)) return null;
+  const nome = String((rec && rec.n) || "Shake").trim().slice(0, 60) || "Shake";
+  return { n: nome, ic: (rec && rec.ic) || "\u{1F964}", q: 1,
+    k: Math.round(z.k * vz), p: Math.round(z.p * vz * 10) / 10, c: Math.round(z.c * vz * 10) / 10,
+    g: Math.round(z.g * vz * 10) / 10, alc: 0, liq: Math.round(z.ml * vz),
+    rc: (rec.itens || []).map((i) => ({ a: i.a, g: i.g })), vz: vz,
+    qtx: textoReceita(rec) + (vz > 1 ? " × " + vz + " vezes" : ""), md: "receita", de: "app" };
+}
+// As receitas que a pessoa vê: as dela primeiro, e as sugeridas que ela ainda
+// não copiou (comparando a composição, não o nome).
+function receitasDisponiveis(minhas) {
+  const chave = (r) => (r.itens || []).map((i) => i.a + ":" + i.g).sort().join("|");
+  const tem = {};
+  (minhas || []).forEach((r) => { tem[chave(r)] = 1; });
+  return (minhas || []).slice().sort((a, b) => (b.em || 0) - (a.em || 0))
+    .concat(RECEITAS_SUGERIDAS.filter((r) => !tem[chave(r)]).map((r) => Object.assign({}, r, { sug: true })));
+}
 // ---------------- FIM DO BODY BALANCE ----------------
 
 // O que a tela de Saúde mostra. A noite de sono pertence ao dia em que a
@@ -37904,8 +38015,14 @@ function JanelaCatalogo({ falta, recentes, inicial, onAnotar, onFechar }) {
   );
 }
 
-function JanelaComida({ aba0, recentes, onAdd, onCatalogo, onFechar }) {
+function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarReceita, onAdd, onCatalogo, onFechar }) {
   const [aba, setAba] = useState(aba0 || "buscar");
+  // o shake: a receita que está sendo montada (null = a lista de receitas)
+  const [rec, setRec] = useState(null);
+  const [recVezes, setRecVezes] = useState(1);
+  const [recBusca, setRecBusca] = useState("");
+  const [recNome, setRecNome] = useState("");
+  const [recSalvo, setRecSalvo] = useState("");
   const [busca, setBusca] = useState("");
   const [grupoAl, setGrupoAl] = useState("");
   const [escolhido, setEscolhido] = useState(null);
@@ -37939,7 +38056,7 @@ function JanelaComida({ aba0, recentes, onAdd, onCatalogo, onFechar }) {
           <button onClick={onFechar} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 14px" }}>✕</button>
         </div>
         <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-          {abaBtn("buscar", "🔎 Buscar")}{abaBtn("foto", "📷 Foto")}{abaBtn("manual", "✏️ Manual")}{abaBtn("agua", "💧 Água")}
+          {abaBtn("buscar", "🔎 Buscar")}{abaBtn("shake", "🥤 Shake")}{abaBtn("foto", "📷 Foto")}{abaBtn("manual", "✏️ Manual")}{abaBtn("agua", "💧 Água")}
         </div>
         {aba !== "agua" && (
           <div style={{ marginBottom: 12 }}>
@@ -38118,6 +38235,127 @@ function JanelaComida({ aba0, recentes, onAdd, onCatalogo, onFechar }) {
               style={{ ...S.btn, width: "100%", opacity: numB(man.k) > 0 ? 1 : 0.5 }}>+ Adicionar</button>
           </div>
         )}
+
+        {aba === "shake" && !rec && (() => {
+          const lista = receitasDisponiveis(receitas || []);
+          return (
+            <div>
+              <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 10 }}>
+                Um shake é uma combinação de alimentos que entra no dia como <b>um item só</b>. Escolha um pronto, mude os gramas do seu jeito e salve com o seu nome.
+              </div>
+              {lista.map((r) => {
+                const z = somaReceita(r);
+                return (
+                  <button key={r.id} onClick={() => { const c = JSON.parse(JSON.stringify(r)); if (c.sug) { c.id = "r" + Date.now().toString(36); delete c.sug; } setRec(c); setRecNome(r.n); setRecVezes(1); setRecSalvo(""); }}
+                    style={{ ...S.card, width: "100%", textAlign: "left", cursor: "pointer", color: "var(--texto)", marginBottom: 8, padding: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 22 }} aria-hidden="true">{r.ic}</span>
+                      <span style={{ fontWeight: 900, fontSize: 14.5, flex: 1 }}>{r.n}</span>
+                      {r.sug && <span style={{ fontSize: 10.5, fontWeight: 900, color: CORES_BALANCE.c, border: "1px solid " + CORES_BALANCE.c + "66", borderRadius: 8, padding: "2px 6px" }}>SUGESTÃO</span>}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.45, margin: "5px 0 6px" }}>{textoReceita(r)}</div>
+                    <div style={{ display: "flex", gap: 10, fontSize: 12, fontWeight: 800 }}>
+                      <span style={{ fontFamily: FONTE_JOGO, fontSize: 16 }}>{z.k} kcal</span>
+                      <span style={{ color: CORES_BALANCE.p }}>P {z.p}g</span>
+                      <span style={{ color: CORES_BALANCE.c }}>C {z.c}g</span>
+                      <span style={{ color: CORES_BALANCE.g }}>G {z.g}g</span>
+                    </div>
+                  </button>
+                );
+              })}
+              <button onClick={() => { setRec({ id: "r" + Date.now().toString(36), n: "", ic: "\u{1F964}", agua: 0, itens: [] }); setRecNome(""); setRecVezes(1); setRecSalvo(""); }}
+                style={{ ...S.btnGhost, width: "100%", marginTop: 4 }}>+ Montar um shake do zero</button>
+            </div>
+          );
+        })()}
+
+        {aba === "shake" && rec && (() => {
+          const z = somaReceita(rec);
+          const achados = recBusca.trim().length > 1 ? buscarAlimentos(recBusca, "", recentes).slice(0, 8) : [];
+          const mudarG = (i, txt) => setRec((r) => {
+            const itens = r.itens.slice();
+            itens[i] = Object.assign({}, itens[i], { g: Math.max(0, Math.min(5000, numB(txt.replace(",", ".")))), gTxt: txt });
+            return Object.assign({}, r, { itens: itens });
+          });
+          const tirar = (i) => setRec((r) => Object.assign({}, r, { itens: r.itens.filter((x, j) => j !== i) }));
+          const por = (a) => setRec((r) => Object.assign({}, r, { itens: r.itens.concat([{ a: a.id, g: a.gr }]).slice(0, MAX_ITENS_RECEITA) }));
+          const chipR = (on) => ({ padding: "8px 11px", minWidth: 38, borderRadius: 10, fontWeight: 900, cursor: "pointer", fontSize: 13,
+            border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"), background: on ? "#E1306C22" : "transparent", color: on ? "#E1306C" : "var(--texto)" });
+          return (
+            <div>
+              <input value={recNome} onChange={(e) => setRecNome(e.target.value.slice(0, 60))} placeholder="Nome do shake (ex.: shake pós-treino)"
+                aria-label="Nome do shake" style={{ ...S.input, width: "100%", fontWeight: 900, marginBottom: 10, boxSizing: "border-box" }} />
+              <div style={{ ...S.label, marginBottom: 6 }}>O que vai dentro (os gramas de cada um)</div>
+              {!rec.itens.length && <div style={{ fontSize: 12.5, color: "var(--cinza)", marginBottom: 8 }}>Procure os alimentos aqui embaixo e vá juntando: whey, leite em pó, farinha de arroz…</div>}
+              {rec.itens.map((i, n) => {
+                const a = ALIMENTOS_BR.find((x) => x.id === i.a);
+                if (!a) return null;
+                const v = alimentoEm(a, i.g);
+                return (
+                  <div key={n} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderTop: n ? "1px solid var(--borda2)" : "none" }}>
+                    <span style={{ fontSize: 18 }} aria-hidden="true">{a.ic}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontWeight: 800, fontSize: 13.5 }}>{a.nome}</span>
+                      <span style={{ display: "block", fontSize: 11.5, color: "var(--cinza)" }}>{Math.round(v.k)} kcal · P {Math.round(v.p * 10) / 10} · C {Math.round(v.c * 10) / 10} · G {Math.round(v.g * 10) / 10}</span>
+                    </span>
+                    <input inputMode="decimal" value={i.gTxt != null ? i.gTxt : String(i.g).replace(".", ",")} onChange={(e) => mudarG(n, e.target.value.replace(/[^0-9.,]/g, ""))}
+                      aria-label={"Quantidade de " + a.nome} style={{ ...S.input, width: 72, textAlign: "center", fontWeight: 900 }} />
+                    <span style={{ fontWeight: 900, fontSize: 13 }}>{a.liq ? "ml" : "g"}</span>
+                    <button onClick={() => tirar(n)} aria-label={"Tirar " + a.nome} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 10px" }}>✕</button>
+                  </div>
+                );
+              })}
+              <input value={recBusca} onChange={(e) => setRecBusca(e.target.value)} placeholder="+ Procurar um alimento para pôr no shake"
+                aria-label="Procurar alimento para o shake" style={{ ...S.input, width: "100%", margin: "10px 0 6px", boxSizing: "border-box" }} />
+              {achados.map((a) => (
+                <button key={a.id} onClick={() => { por(a); setRecBusca(""); }} style={{ ...S.btnGhost, width: "100%", textAlign: "left", padding: "9px 12px", marginBottom: 5, fontSize: 13.5 }}>
+                  {a.ic} {a.nome} <span style={{ color: "var(--cinza)", fontWeight: 700 }}>· {a.por}</span>
+                </button>
+              ))}
+              <div style={{ ...S.label, margin: "10px 0 6px" }}>Água ou leite no copo (ml, opcional)</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 4 }}>
+                {[0, 200, 300, 400, 500].map((x) => (
+                  <button key={x} onClick={() => setRec((r) => Object.assign({}, r, { agua: x }))} style={chipR(numB(rec.agua) === x)}>{x === 0 ? "sem" : x}</button>
+                ))}
+              </div>
+              <div style={{ fontSize: 11.5, color: "var(--cinza)", marginBottom: 10 }}>A água do copo entra na água do dia. O leite líquido você põe como alimento, aí ele conta as calorias.</div>
+              <div style={{ ...S.label, marginBottom: 6 }}>Quantos tomou?</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
+                {[1, 2, 3, 4].map((x) => (<button key={x} onClick={() => setRecVezes(x)} style={chipR(recVezes === x)}>{x}×</button>))}
+              </div>
+              <div style={{ ...S.card, padding: 12, marginBottom: 10 }}>
+                <div style={{ display: "flex", gap: 10, justifyContent: "space-around", fontSize: 12.5, fontWeight: 800, alignItems: "baseline" }}>
+                  <span style={{ fontFamily: FONTE_JOGO, fontSize: 24 }}>{Math.round(z.k * recVezes)} kcal</span>
+                  <span style={{ color: CORES_BALANCE.p }}>P {Math.round(z.p * recVezes * 10) / 10}g</span>
+                  <span style={{ color: CORES_BALANCE.c }}>C {Math.round(z.c * recVezes * 10) / 10}g</span>
+                  <span style={{ color: CORES_BALANCE.g }}>G {Math.round(z.g * recVezes * 10) / 10}g</span>
+                </div>
+                <div style={{ fontSize: 11.5, color: "var(--cinza)", textAlign: "center", marginTop: 5 }}>
+                  {z.gm > 0 ? Math.round(z.gm * recVezes) + " g de pó e sólidos" : ""}{z.ml > 0 ? (z.gm > 0 ? " · " : "") + Math.round(z.ml * recVezes) + " ml de líquido" : ""}
+                  {numB(rec.agua) > 0 ? " · " + Math.round(numB(rec.agua) * recVezes) + " ml de água no copo" : ""}
+                </div>
+              </div>
+              <button disabled={!(z.k > 0)} onClick={() => {
+                const pronta = Object.assign({}, rec, { n: recNome.trim() || "Shake" });
+                const it = itemDeReceita(pronta, recVezes);
+                if (it) onAdd([it], numB(rec.agua) * recVezes, ref);
+              }} style={{ ...S.btn, width: "100%", opacity: z.k > 0 ? 1 : 0.5 }}>+ Anotar o shake</button>
+              {onSalvarReceita && (
+                <button disabled={!(z.k > 0)} onClick={() => {
+                  const pronta = Object.assign({}, rec, { n: recNome.trim() || "Shake", em: Date.now(),
+                    itens: rec.itens.map((i) => ({ a: i.a, g: i.g })) });
+                  onSalvarReceita(pronta);
+                  setRec(pronta); setRecSalvo("✓ Guardado nos seus shakes");
+                }} style={{ ...S.btnGhost, width: "100%", marginTop: 8, opacity: z.k > 0 ? 1 : 0.5 }}>💾 Salvar este shake</button>
+              )}
+              {recSalvo && <div role="status" style={{ fontSize: 12.5, fontWeight: 800, color: "var(--ok)", textAlign: "center", marginTop: 6 }}>{recSalvo}</div>}
+              {onApagarReceita && (receitas || []).some((r) => r.id === rec.id) && (
+                <button onClick={() => { onApagarReceita(rec.id); setRec(null); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8, color: "var(--perigo)", borderColor: "var(--perigo)" }}>🗑 Apagar este shake</button>
+              )}
+              <button onClick={() => { setRec(null); setRecBusca(""); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>← Outros shakes</button>
+            </div>
+          );
+        })()}
 
         {aba === "agua" && (
           <div>
@@ -38304,6 +38542,13 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
       return Object.assign({}, itemDeAlimento(x.a, qt.q, "app"), { vz: 1, gm: qt.gm, qtx: qt.texto, md: "gramas" });
     }));
   };
+  // Os shakes salvos (2026-11-26e). Ficam no mesmo registro do Balance, então
+  // entram no backup como o resto; a lista é normalizada por lerReceitas.
+  const salvarReceita = (r) => setNutricao((n) => {
+    const antes = lerReceitas(n.receitas).filter((x) => x.id !== r.id);
+    return Object.assign({}, n, { receitas: lerReceitas([r].concat(antes)) });
+  });
+  const apagarReceita = (id) => setNutricao((n) => Object.assign({}, n, { receitas: lerReceitas(n.receitas).filter((x) => x.id !== id) }));
   const tirar = (id) => mudarDia(diaVer, (d) => Object.assign({}, d, { itens: (d.itens || []).filter((x) => x.id !== id) }));
   const salvarEdicao = (novo) => {
     mudarDia(diaVer, (d) => Object.assign({}, d, { itens: (d.itens || []).map((x) => (x.id === novo.id ? novo : x)) }));
@@ -38692,7 +38937,8 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
           )}
         </div>
       )}
-      {janela && <JanelaComida aba0={janela} recentes={recentes} onAdd={adicionar} onCatalogo={(ini) => { setJanela(null); setCatalogo(ini || {}); }} onFechar={() => setJanela(null)} />}
+      {janela && <JanelaComida aba0={janela} recentes={recentes} receitas={nutricao.receitas || []} onSalvarReceita={salvarReceita} onApagarReceita={apagarReceita}
+        onAdd={adicionar} onCatalogo={(ini) => { setJanela(null); setCatalogo(ini || {}); }} onFechar={() => setJanela(null)} />}
       {catalogo && <JanelaCatalogo falta={faltaHoje} recentes={recentes} inicial={catalogo.id ? catalogo : null}
         onAnotar={ehHoje || diaVer ? anotarDoCatalogo : null} onFechar={() => setCatalogo(null)} />}
       {editando && <JanelaEditarComida item={editando} onSalvar={salvarEdicao} onTirar={(id) => { tirar(id); setEditando(null); }} onFechar={() => setEditando(null)} />}

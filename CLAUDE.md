@@ -816,7 +816,7 @@ quem publica.
 
 #### As duas conferidas, e o que cada uma pega
 
-`rodar.js` são 2.446 checagens e prova que a **lógica** não quebrou: o
+`rodar.js` são 2.472 checagens e prova que a **lógica** não quebrou: o
 interpretador de voz, a contagem de repetições, a postura, o enquadramento.
 
 `verificar.js` prova que o app ainda **abre** — que é outra coisa, e é a que
@@ -901,7 +901,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v286) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v287) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6727,7 +6727,7 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
   (`gPrato` de cada alimento) e pergunta do óleo e do molho. Sem servidor
   nem chave de API, não há modelo de visão; se um dia houver, ele só
   preencheria as marcações.
-- **Os dados** (primeiro script): `ALIMENTOS_BR` (149 alimentos e suplementos desde 2026-11-25e: farinhas de arroz, mandioca, trigo, aveia, milho, amêndoas, coco e linhaça, polvilho e amido; maltodextrina, dextrose, waxy maize, palatinose, gel, hipercalórico, whey isolado, caseína, albumina, proteína vegetal, creatina, BCAA, glutamina e outros; mais carboidratos, proteínas, frutas, doces, pratos e bebidas; o campo `b` são palavras a mais para a busca, e `GRUPOS_ALIMENTO` são os filtros por grupo na janela de anotar, que `teste-balance.js` cobra que cubram todo `cat`. Antes eram 58 alimentos brasileiros,
+- **Os dados** (primeiro script): `ALIMENTOS_BR` (157 alimentos e suplementos: farinhas de arroz, mandioca, trigo, aveia, milho, amêndoas, coco e linhaça, polvilho e amido; maltodextrina, dextrose, waxy maize, palatinose, gel, hipercalórico, whey isolado, caseína, albumina, proteína vegetal, creatina, BCAA, glutamina e outros; mais carboidratos, proteínas, frutas, doces, pratos e bebidas; o campo `b` são palavras a mais para a busca, e `GRUPOS_ALIMENTO` são os filtros por grupo na janela de anotar, que `teste-balance.js` cobra que cubram todo `cat`. Antes eram 58 alimentos brasileiros,
   porção caseira, kcal e macros pela TACO; `liq` para as bebidas, `alc`
   para o álcool), `RAPIDOS_RELOGIO`, `CORES_BALANCE` (proteína #FF4D6D,
   carbo #FFB21A, gordura #B05BFF, álcool/outros #8A8F9E, água #35E0F0),
@@ -6895,6 +6895,43 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
 - **O gasto pelo corpo prefere a pesagem da manhã** (em jejum, oscila menos) e
   o `CartaoPreparo` diz quantos dias faltam para o corpo assumir a conta (ou o
   que falta: dias anotados, pesagens, intervalo).
+
+### O shake pronto (`RECEITAS_SUGERIDAS`, `somaReceita`, `itemDeReceita`, 2026-11-26e)
+
+Pedido do dono: "na parte de whey protein eu preparo whey com leite em pó e
+mais algum item que dê carboidrato; quero a opção de bebida whey preparada
+onde eu consiga pôr uma combinação de alimentos para formar o shake" — com os
+exemplos whey + leite em pó + farinha de arroz, + amido de milho e + aveia.
+
+- **Uma receita é uma lista de alimentos do catálogo com os gramas de cada um**
+  (`{ id, n, ic, agua, itens: [{ a, g }] }`). Nada de valor digitado: a soma
+  sai de `alimentoEm`, a mesma tabela do resto do app, então trocar a farinha
+  pelo amido muda exatamente o que tem de mudar.
+- **Em gramas, não em porções**, porque quem bate shake pesa na balança ou
+  conta dosador — e o dosador de cada marca tem um tamanho.
+- **O shake entra no dia como UM item** (`itemDeReceita`): a lista do dia diz
+  "Shake de whey com aveia", e não três linhas soltas. O item vai sem `a` (não
+  é um alimento da tabela), com os totais somados — **o mesmo formato do "à
+  mão"**, então corrigir os valores depois continua funcionando. `rc` guarda a
+  composição, e `q` é 1: o dia não multiplica de novo.
+- **A água do copo** (`agua`) entra na água do dia, não nas calorias. Leite
+  líquido é alimento, e aí conta as calorias: a tela diz isso.
+- **As cinco sugestões** (`RECEITAS_SUGERIDAS`) são as três que o dono descreveu
+  mais maltodextrina e banana. Escolher uma **cria um shake novo** (id novo):
+  a sugestão continua inteira como modelo, e duas variações dela não se
+  sobrescrevem. `receitasDisponiveis` põe as da pessoa na frente e esconde a
+  sugestão que ela já copiou — comparando a **composição**, não o nome.
+- **Onde ficam**: `nutricao.receitas`, normalizadas por `lerReceitas` (até 40
+  receitas de 12 itens; alimento que não existe mais, grama absurda e nome
+  gigante são descartados). É o mesmo registro do Balance, então entram no
+  backup com o resto.
+- **O leite em pó** (integral e desnatado) entrou no catálogo: era o que
+  faltava para a base do shake.
+- Coberto por `teste-balance.js` (a soma batendo com a dos alimentos, o item
+  único, a composição guardada, as vezes, a leitura do que estava gravado, a
+  sugestão que some quando copiada). No navegador: a lista, montar do zero com
+  a busca, mudar a aveia para 60 g e anotar (um item de 480 kcal e 300 ml na
+  água do dia), e salvar com nome próprio. **Não validado num aparelho.**
 
 ### O catálogo: comparar e escolher (`compararAlimentos`, `JanelaCatalogo`, 2026-11-26c)
 

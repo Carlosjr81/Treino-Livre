@@ -6881,6 +6881,10 @@ quem eu classificar como bodybuilder".
   dias anotados abaixo do próprio repouso, com 3 dias ou mais) abre o cartão
   "Você está comendo muito pouco", que manda levar os números ao médico ou
   nutricionista — nunca empurrar mais déficit em cima disso.
+  **A caneta fica atrás da mesma trava dos hormônios, por decisão do dono**
+  (perguntado em 2026-11-26a se devia valer para todos, já que é remédio
+  receitado e comum em quem emagrece: ele disse não). **Não proponha tirar
+  da trava de novo sem falar com ele.**
 - **Fica no aparelho** (`nutricao.perfil.preparo = { usos: { id: { desde, ate } }, diureticos }`).
   Os nomes não vão a resumo, story, amigos nem servidor; o resumo só leva os
   números do dia (já ajustados). O cartão diz que não recomenda nem orienta uso.

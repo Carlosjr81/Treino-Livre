@@ -22,22 +22,28 @@ O texto das falas e as cenas ficam em `ferramentas/video-divulgacao.html`
 
 ## A fala, com o tempo de cada trecho
 
-| Começa | Até | O que aparece | O que você fala |
+Os tempos exatos, prontos para gravar, estão em **`treino-livre-video.txt`**
+(a tabela para ler), **`treino-livre-video.srt`** (a legenda com timecode, que
+CapCut, Premiere e o YouTube abrem) e **`treino-livre-video.csv`** (início, fim
+e duração de cada frase, para gerar a voz num programa). Os três saem de
+`node ferramentas/video-legendas.js`, com os tempos tirados do próprio vídeo.
+
+| # | Começa | Até | O que você fala |
 |---|---|---|---|
-| 0:00 | 0:03,6 | **Gancho.** "Você treina pesado há meses / E o espelho não muda?" | "Você treina pesado há meses. E o espelho não muda." |
-| 0:03,6 | 0:06,5 | "O problema quase nunca é o treino" | "O problema quase nunca é o treino." |
-| 0:06,5 | 0:09,1 | **Vinheta com a logo** | "Treino Livre." |
-| 0:09,1 | 0:14,3 | Os dois corpos enchendo: comeu 2.140 × gastou 2.630 | "Aqui você vê o que entra e o que sai. No mesmo lugar, todo dia." |
-| 0:14,3 | 0:18,7 | A régua cutting · manutenção · bulking | "E o app diz o que você está fazendo de verdade: cutting, bulking ou manutenção." |
-| 0:18,7 | 0:22,9 | Foto do prato · porção caseira · gramas da balança | "Foto do prato, porção caseira, ou os gramas da balança." |
-| 0:22,9 | 0:26,9 | O catálogo comparando malto × farinha de arroz | "Na dúvida entre dois alimentos, ele mostra só o que a troca muda." |
-| 0:26,9 | 0:31,7 | Supino 80 → 82,5 kg e o ciclo de 5 semanas | "No treino, a carga de cada série vem do seu histórico. Sobe quando você fecha." |
-| 0:31,7 | 0:35,6 | O Eyes Scan contando as repetições | "Apoie o celular: a câmera conta as repetições e mede a amplitude." |
-| 0:35,6 | 0:40,0 | O percurso se desenhando · 5,2 km · 5:29 /km · VO2máx 48 | "Esteira, bicicleta ou rua, com mapa, ritmo e os números de quem corre." |
-| 0:40,0 | 0:44,2 | O relógio com o descanso e o botão FEITO | "No pulso, você marca a série, vê o descanso e anota a água." |
-| 0:44,2 | 0:47,5 | "Jarvis, anota 80 por 10" | "E dá para anotar falando, sem tocar no celular." |
-| 0:47,5 | 0:52,2 | A evolução de 12 semanas · 8,4 t · 196 séries · 7 recordes | "No fim, o treino vira números. E os números viram o seu resultado." |
-| 0:52,2 | 0:57,8 | **A enquete** 1 Calorias · 2 Treino · 3 Cardio | "Qual você quer dominar primeiro? Comenta o número aqui embaixo." |
+| 1 | 0:00,2 | 0:03,5 | Você treina pesado há meses. E o espelho não muda. |
+| 2 | 0:03,8 | 0:06,4 | O problema quase nunca é o treino. |
+| 3 | 0:06,7 | 0:09,0 | Treino Livre. |
+| 4 | 0:09,3 | 0:14,2 | Aqui você vê o que entra e o que sai. No mesmo lugar, todo dia. |
+| 5 | 0:14,5 | 0:18,6 | E diz o que você está fazendo de verdade: cutting, bulking ou manutenção. |
+| 6 | 0:18,9 | 0:22,8 | Foto do prato, porção caseira, ou os gramas da balança. |
+| 7 | 0:23,1 | 0:26,8 | Na dúvida entre dois alimentos, ele mostra o que a troca muda. |
+| 8 | 0:27,1 | 0:31,6 | No treino, a carga de cada série vem do seu histórico. Sobe quando você fecha. |
+| 9 | 0:31,9 | 0:35,5 | Apoie o celular e a câmera conta as repetições. |
+| 10 | 0:35,8 | 0:39,9 | Esteira, bicicleta ou rua, com mapa, ritmo e os números de quem corre. |
+| 11 | 0:40,2 | 0:44,1 | No pulso, você marca a série e vê o descanso. |
+| 12 | 0:44,4 | 0:47,4 | E dá para anotar falando, sem tocar no celular. |
+| 13 | 0:47,7 | 0:52,1 | No fim, o treino vira números. E os números viram o seu resultado. |
+| 14 | 0:52,4 | 0:55,2 | Qual você quer dominar primeiro? |
 
 ---
 

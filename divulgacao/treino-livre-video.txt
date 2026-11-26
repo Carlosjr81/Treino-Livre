@@ -1,0 +1,54 @@
+A NARRAÇÃO DO VÍDEO — tempo de cada fala
+
+Vídeo: divulgacao/treino-livre-video.mp4 · 57.8 s · sem áudio.
+Os tempos são os mesmos em que a legenda está escrita na tela: falando
+nessa janela, a voz cai em cima da palavra.
+
+A coluna 'ritmo' é quantas palavras por minuto aquela frase pede. Até umas
+180 dá para falar com calma; acima de 220 fica corrido — nesse caso vale
+mais encurtar a frase (no ferramentas/video-divulgacao.html) e gerar o
+vídeo e este arquivo de novo do que acelerar a voz.
+
+ 1. 0:00,2 → 0:03,5   (3.3 s · 184 palavras/min)
+    Você treina pesado há meses. E o espelho não muda.
+
+ 2. 0:03,8 → 0:06,4   (2.6 s · 164 palavras/min)
+    O problema quase nunca é o treino.
+
+ 3. 0:06,7 → 0:09,0   (2.3 s · 53 palavras/min)
+    Treino Livre.
+
+ 4. 0:09,3 → 0:14,2   (4.9 s · 185 palavras/min)
+    Aqui você vê o que entra e o que sai. No mesmo lugar, todo dia.
+
+ 5. 0:14,5 → 0:18,6   (4.1 s · 192 palavras/min)
+    E diz o que você está fazendo de verdade: cutting, bulking ou manutenção.
+
+ 6. 0:18,9 → 0:22,8   (3.9 s · 155 palavras/min)
+    Foto do prato, porção caseira, ou os gramas da balança.
+
+ 7. 0:23,1 → 0:26,8   (3.7 s · 196 palavras/min)
+    Na dúvida entre dois alimentos, ele mostra o que a troca muda.
+
+ 8. 0:27,1 → 0:31,6   (4.5 s · 201 palavras/min)
+    No treino, a carga de cada série vem do seu histórico. Sobe quando você fecha.
+
+ 9. 0:31,9 → 0:35,5   (3.6 s · 151 palavras/min)
+    Apoie o celular e a câmera conta as repetições.
+
+10. 0:35,8 → 0:39,9   (4.1 s · 192 palavras/min)
+    Esteira, bicicleta ou rua, com mapa, ritmo e os números de quem corre.
+
+11. 0:40,2 → 0:44,1   (3.9 s · 155 palavras/min)
+    No pulso, você marca a série e vê o descanso.
+
+12. 0:44,4 → 0:47,4   (3.0 s · 182 palavras/min)
+    E dá para anotar falando, sem tocar no celular.
+
+13. 0:47,7 → 0:52,1   (4.4 s · 179 palavras/min)
+    No fim, o treino vira números. E os números viram o seu resultado.
+
+14. 0:52,4 → 0:55,2   (2.8 s · 107 palavras/min)
+    Qual você quer dominar primeiro?
+
+Depois da última fala sobram 2.6 s de enquete na tela, sem narração.

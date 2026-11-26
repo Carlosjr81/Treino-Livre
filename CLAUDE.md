@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v281) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v282) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6825,7 +6825,17 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
   dividida, a de comida, a fila) e a parte nativa do celular foram só
   compilados pelo Actions.
 
-### Ajustes do Body Balance (2026-11-25k)
+### Ajustes do Body Balance (2026-11-25k e 25l)
+
+- **Os dois números do balanço dizem contra o quê comparam** (2026-11-25l,
+  relato do dono: o quadro dizia "71 de superávit" e o cartão de baixo "você
+  passou 826"). Os dois estavam certos e mediam coisas diferentes: o saldo é
+  **comeu − gastou**, e o passou/faltou é **comeu − meta** (que já tem o
+  objetivo dentro; a diferença entre os dois é exatamente o `meta.delta`).
+  Hoje o quadro diz "Superávit · vs gasto", logo abaixo entram as duas linhas
+  ("▲ N kcal a mais do que você gastou" e "▲ N kcal acima da meta (X)", ou
+  "✓ Na meta do dia" com até 50 kcal de folga), e a compensação diz "passou N
+  kcal **da sua meta**". Nenhuma conta mudou.
 
 - **A refeição é escolhida ao anotar** (pedido do dono: anotou o dia todo de
   uma vez e tudo caiu em "Lanche da tarde"). A `JanelaComida` tem os chips de

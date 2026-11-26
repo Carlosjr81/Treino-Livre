@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-25l — O balanço do dia diz contra o quê cada número compara
+
+- **Em uma frase:** no Body Balance, o déficit ou superávit do dia agora diz se é em relação ao que você gastou ou à sua meta, para os dois números nunca mais parecerem contraditórios.
+- **O que mudou:** o quadro do balanço virou "Superávit · vs gasto", e logo abaixo aparecem duas linhas: quanto você comeu a mais (ou a menos) do que gastou, e quanto ficou acima ou abaixo da meta do dia. O cartão de compensação diz que o excesso é da meta.
+- **Por que importa para quem treina:** a meta já tem o seu objetivo embutido (o déficit que você escolheu), então os dois números são diferentes de propósito — e agora dá para ler os dois sem confusão.
+- **Como usar:** em Balance › Hoje, no cartão "O balanço do dia".
+- **Ideias de vídeo:** mostrar a diferença entre "comi menos do que gastei" e "fiquei dentro da meta".
+- **Não prometer:** é registro e informação; não é dieta nem plano alimentar.
+
+---
+
 ## 2026-11-25k — Body Balance: anote a refeição certa, e o resumo mostra o aeróbico da semana
 
 - **Em uma frase:** ao anotar a comida você escolhe a refeição, o resumo animado mostra o resultado calórico do dia logo no começo, e o aeróbico da semana aparece pelos minutos que você fez.

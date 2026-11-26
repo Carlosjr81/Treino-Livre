@@ -2149,7 +2149,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-25k";
+const VERSAO_APP = "2026-11-25l";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -37845,13 +37845,34 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                 <div style={S.card}>
                   <div style={{ ...S.label, marginBottom: 8 }}>O balanço do dia</div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, textAlign: "center", marginBottom: 10 }}>
-                    {[["Gastou", fmtKcal(atual.gastoUsado || atual.gasto.totalMeta), "#4DEBFF"], ["Comeu", fmtKcal(t.k), "#FFB21A"], [(t.k - (atual.gastoUsado || atual.gasto.totalMeta)) >= 0 ? "Superávit" : "Déficit", fmtKcal(Math.abs(t.k - (atual.gastoUsado || atual.gasto.totalMeta))), (t.k - (atual.gastoUsado || atual.gasto.totalMeta)) >= 0 ? "#FF4D6D" : "#4CD137"]].map(([r, v, c]) => (
+                    {[["Gastou", fmtKcal(atual.gastoUsado || atual.gasto.totalMeta), "#4DEBFF"], ["Comeu", fmtKcal(t.k), "#FFB21A"], [(t.k - (atual.gastoUsado || atual.gasto.totalMeta)) >= 0 ? "Superávit · vs gasto" : "Déficit · vs gasto", fmtKcal(Math.abs(t.k - (atual.gastoUsado || atual.gasto.totalMeta))), (t.k - (atual.gastoUsado || atual.gasto.totalMeta)) >= 0 ? "#FF4D6D" : "#4CD137"]].map(([r, v, c]) => (
                       <div key={r} style={{ padding: "8px 4px", borderRadius: 12, background: c + "14", border: "1px solid " + c + "55" }}>
                         <div style={{ fontFamily: FONTE_JOGO, fontSize: 19, color: c }}>{v}</div>
                         <div style={{ fontSize: 10.5, fontWeight: 900, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.6 }}>{r}</div>
                       </div>
                     ))}
                   </div>
+                  {(() => {
+                    // Os dois números da tela comparam coisas diferentes, e sem dizer
+                    // qual é qual um parece contradizer o outro (o dono viu "71 de
+                    // superávit" em cima e "passou 826" embaixo): o saldo é contra o
+                    // GASTO, e o passou/faltou é contra a META (que já tem o objetivo).
+                    const g = atual.gastoUsado || atual.gasto.totalMeta;
+                    const saldo = Math.round(t.k - g), vsMeta = Math.round(t.k - meta.k), naMeta = Math.abs(vsMeta) <= 50;
+                    return (
+                      <div style={{ fontSize: 12.5, fontWeight: 800, lineHeight: 1.5, marginBottom: 10 }}>
+                        <span style={{ color: saldo >= 0 ? "#FF4D6D" : "#4CD137" }}>
+                          {saldo >= 0 ? "▲ " + fmtKcal(saldo) + " kcal a mais do que você gastou" : "▼ " + fmtKcal(-saldo) + " kcal a menos do que você gastou"}
+                        </span>
+                        <br />
+                        <span style={{ color: naMeta ? "#4CD137" : vsMeta > 0 ? "#FF4D6D" : "#FFB21A" }}>
+                          {naMeta ? "✓ Na meta do dia (" + fmtKcal(meta.k) + " kcal)"
+                            : vsMeta > 0 ? "▲ " + fmtKcal(vsMeta) + " kcal acima da meta (" + fmtKcal(meta.k) + ")"
+                            : "▼ " + fmtKcal(-vsMeta) + " kcal abaixo da meta (" + fmtKcal(meta.k) + ")"}
+                        </span>
+                      </div>
+                    );
+                  })()}
                   <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.6 }}>
                     Repouso (metabolismo basal) {fmtKcal(atual.gasto.tmb)} + dia a dia e treino {fmtKcal(atual.gasto.atividade)}{atual.treino.kcal ? " (treinos do app " + fmtKcal(atual.treino.kcal) + ")" : ""} + digestão {fmtKcal(atual.gasto.tefMeta)}{atual.ajusteCorpo ? " " + (atual.ajusteCorpo > 0 ? "+" : "−") + " ajuste do seu corpo " + fmtKcal(Math.abs(atual.ajusteCorpo)) : ""} = {fmtKcal(atual.gastoUsado || atual.gasto.totalMeta)} kcal.
                     <br />A meta ({fmtKcal(meta.k)}) sai desse gasto e do seu objetivo{meta.delta ? " (" + (meta.delta > 0 ? "+" : "−") + fmtKcal(Math.abs(meta.delta)) + ")" : ""}, e o passou ou não passou compara o que você comeu com ela.
@@ -37870,7 +37891,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                 <div style={{ ...S.card, borderColor: "#FF4D6D88", background: "linear-gradient(135deg,#2a0a14,var(--card))" }}>
                   <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>🔥 Para compensar hoje</div>
                   <div style={{ fontSize: 13, lineHeight: 1.55 }}>
-                    Você passou {fmtKcal(compHoje.excesso)} kcal. Dá para equilibrar com <b>{compHoje.hojeMin} min de caminhada rápida</b> ou <b>{compHoje.corridaMin} min de corrida leve</b> hoje
+                    Você passou {fmtKcal(compHoje.excesso)} kcal <b>da sua meta</b> ({fmtKcal(meta.k)} kcal). Dá para equilibrar com <b>{compHoje.hojeMin} min de caminhada rápida</b> ou <b>{compHoje.corridaMin} min de corrida leve</b> hoje
                     {compHoje.sobra > 0 ? ", e o resto (" + fmtKcal(compHoje.sobra) + " kcal) entra nos próximos 3 dias, sem dia de fome." : "."}
                   </div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>

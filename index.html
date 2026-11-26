@@ -2152,7 +2152,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-26a";
+const VERSAO_APP = "2026-11-26b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -11144,12 +11144,18 @@ function GraficoEvolucao({ historico, exPorId }) {
 function unidadeCurta(metrica) { return metrica === "volume" ? "" : "kg"; }
 
 // ---------------- COMPONENTES ----------------
+// Sobra uns 200px para o título ao lado dos três botões: a 27px, nome de 14
+// letras já não cabe numa linha, e a 16 vira três. O tamanho acompanha o nome.
+function tamanhoTitulo(t) {
+  const n = String(t || "").length;
+  return n > 16 ? 19 : n > 13 ? 21 : n > 10 ? 24 : 27;
+}
 function Header({ titulo, tema, onTema, onAjustes, onAjuda }) {
   return (
     <div style={{ ...S.header, position: "sticky" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h1 style={{ ...S.logo, margin: 0, fontSize: 27 }}>{titulo}</h1>
-        <div style={{ display: "flex", gap: 8 }}>
+        <h1 style={{ ...S.logo, margin: 0, fontSize: tamanhoTitulo(titulo), lineHeight: 1.14, minWidth: 0 }}>{titulo}</h1>
+        <div style={{ display: "flex", gap: 8, flex: "none" }}>
           {onAjuda && (
             <button onClick={onAjuda} title="Ajuda e dicas" aria-label="Abrir a ajuda e as dicas" style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid var(--borda2)", background: "var(--card)", color: "var(--texto)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
               <Icone nome="ajuda" />
@@ -22694,7 +22700,8 @@ function TelaPercurso({ exPorId, vozCfg, som, pesoCorporal, pedirConfirmacao, on
       <div style={{ ...S.card, padding: 0, overflow: "hidden" }}>
         {/* isolation: as camadas do Leaflet usam z-index 400 a 1000 e, soltas, passavam
             por cima de qualquer janela do app aberta sobre o mapa */}
-        <div ref={divRef} style={{ height: fase === "fim" ? 300 : "44vh", minHeight: 240, background: "#1b2330", position: "relative", zIndex: 0, isolation: "isolate" }} />
+        {/* o mapa é a tela: ele passa por cima da margem lateral e vai de ponta a ponta */}
+        <div ref={divRef} style={{ height: fase === "fim" ? 300 : "44vh", minHeight: 240, background: "#1b2330", position: "relative", zIndex: 0, isolation: "isolate", margin: "0 -18px", width: "calc(100% + 36px)" }} />
         {!seguir && fase !== "fim" && (
           <button onClick={() => { setSeguir(true); if (leitura.current && mapaRef.current) mapaRef.current.panTo([leitura.current.lat, leitura.current.lng]); }}
             style={{ ...S.btnGhost, margin: "8px 12px 0", width: "calc(100% - 24px)", padding: "8px 12px", fontSize: 13 }}>
@@ -37774,12 +37781,12 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
 
   const sincronizado = mediaAtivas > 0 || (((saude && saude.dias) || []).some((d) => d.d === hoje && d.kcal > 0));
   return (
-    <div className="pg" style={{ paddingBottom: 30 }}>
+    <div className="pg" style={{ padding: "0 18px 30px" }}>
       {festa && <div style={{ position: "fixed", inset: 0, zIndex: 50, pointerEvents: "none" }}><TelaoFesta /></div>}
-      <div style={{ ...S.card, background: "linear-gradient(135deg,#1b0b33,#0b0418 60%,#2a0a1e)", borderColor: "#E1306C55", textAlign: "center", padding: "18px 14px 14px" }}>
-        <div style={{ ...ROTULO_RESUMO, fontSize: 11 }}>Jarvis</div>
-        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 30, lineHeight: 1.1, padding: "0 6px" }} grosso={6}>Body Balance</Contorno>
-        <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 4 }}>Comida, água, treino, relógio e sono na mesma conta</div>
+      <div style={{ ...S.card, background: "linear-gradient(135deg,#1b0b33,#0b0418 60%,#2a0a1e)", borderColor: "#E1306C55", textAlign: "center", padding: "14px 14px 12px" }}>
+        <div style={{ ...ROTULO_RESUMO, fontSize: 10.5 }}>Jarvis</div>
+        <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 28, lineHeight: 1.08, padding: "0 6px" }} grosso={6}>Body Balance</Contorno>
+        <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 3, lineHeight: 1.4 }}>Comida, água, treino, relógio e sono na mesma conta</div>
         {completo && <div style={{ marginTop: 8, display: "inline-block", padding: "5px 12px", borderRadius: 20, background: "#E1306C22", border: "1px solid #E1306C66", fontWeight: 900, fontSize: 12 }}>{ob.ic} {ob.nome} · {ob.fase}</div>}
       </div>
 
@@ -41399,7 +41406,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     { id: "historico", nome: "Histórico", icone: "historico" },
     { id: "balance", nome: "Balance", icone: "balanca" },
   ];
-  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", balance: "Jarvis Body Balance", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente", editarHistorico: "Corrigir treino", ajustes: "Ajustes", escolaVoz: "Escola do Jarvis", funcional: "Treino funcional" };
+  const titulos = { inicio: "Treino Livre", exercicios: "Exercícios", treinos: "Meus treinos", historico: "Histórico", balance: "Balance", editarTreino: "Editar ficha", sessao: "Treino", novoExercicio: "Novo exercício", assistente: "Assistente", editarHistorico: "Corrigir treino", ajustes: "Ajustes", escolaVoz: "Escola do Jarvis", funcional: "Treino funcional" };
 
   // a janela para seguir no Instagram: uma vez por abertura do app (JanelaSeguir)
   useEffect(() => {
@@ -41446,7 +41453,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
 
   return (
     <div style={S.app}>
-      <Header titulo={titulos[aba]} tema={tema}
+      <Header titulo={titulos[aba] || "Treino Livre"} tema={tema}
         onTema={() => setTema(tema === "escuro" ? "claro" : "escuro")}
         onAjustes={() => setAba(aba === "ajustes" ? "inicio" : "ajustes")}
         onAjuda={() => setAjuda("")} />
@@ -41522,6 +41529,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           <TelaAssistente onGerar={gerarTreinoAssistente} onCancelar={() => setAba("inicio")} />
         )}
         {aba === "percurso" && (
+          <div style={{ padding: "0 18px" }}>
           <TelaPercurso exPorId={exPorId} vozCfg={voz} som={som} pesoCorporal={pesoCorporal} historico={historico}
             bpm={bpm} onConectarCardio={conectarCardio} corredor={corredor} onPainel={() => setAba("corredor")} onZumbi={() => setAbrindoZumbi(true)} onIntervalado={() => setAba("intervalado")} onDesafio={() => setAba("desafio")}
             pedirConfirmacao={pedirConfirmacao}
@@ -41533,13 +41541,16 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
                 .catch(() => { registro.rota = Object.assign({}, registro.rota, { semTraco: true }); })
                 .then(() => guardarTreino(registro, "percurso-concluido"));
             }} />
+          </div>
         )}
         {aba === "amigos" && (
+          <div style={{ padding: "0 18px" }}>
           <TelaGrupo key={grupoChave} historico={historico} corredor={corredor} setCorredor={setCorredor} avisar={avisar} onDesafio={() => setAba("desafio")}
             onVoltar={() => { setSecaoHistorico("stats"); setAba("historico"); }} />
+          </div>
         )}
         {(aba === "desafio" || vivos.desafio) && (
-          <div style={{ display: aba === "desafio" ? "block" : "none" }}>
+          <div style={{ display: aba === "desafio" ? "block" : "none", padding: "0 18px" }}>
           <TelaDesafio key={desafioChave} vozCfg={voz} som={som} corredor={corredor} setCorredor={setCorredor}
             convite={conviteDesafio} onConviteUsado={() => setConviteDesafio(null)}
             onVoltar={() => setAba("inicio")} onVivo={marcarVivo("desafio")}
@@ -41550,7 +41561,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           </div>
         )}
         {(aba === "intervalado" || vivos.intervalado) && (
-          <div style={{ display: aba === "intervalado" ? "block" : "none" }}>
+          <div style={{ display: aba === "intervalado" ? "block" : "none", padding: "0 18px" }}>
           <TelaIntervalado historico={historico} exPorId={exPorId} vozCfg={voz} som={som} onVivo={marcarVivo("intervalado")}
             onVoltar={() => setAba("inicio")} onPainel={() => setAba("corredor")}
             onSalvar={(registro) => {
@@ -41560,7 +41571,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           </div>
         )}
         {(aba === "zumbi" || vivos.zumbi) && (
-          <div style={{ display: aba === "zumbi" ? "block" : "none" }}>
+          <div style={{ display: aba === "zumbi" ? "block" : "none", padding: "0 18px" }}>
           <TelaZumbi historico={historico} exPorId={exPorId} vozCfg={voz} som={som} onVivo={marcarVivo("zumbi")}
             onVoltar={() => setAba("inicio")}
             onSalvar={(registro) => {
@@ -41571,8 +41582,10 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           </div>
         )}
         {aba === "corredor" && (
+          <div style={{ padding: "0 18px" }}>
           <TelaCorredor historico={historico} exPorId={exPorId} corredor={corredor} setCorredor={setCorredor}
             onVoltar={() => setAba(sessao ? "sessao" : "historico")} onPercurso={() => setAba("percurso")} />
+          </div>
         )}
         {aba === "adaptado" && (
           <TelaAdaptado adaptado={adaptado} setAdaptado={setAdaptado} todos={todos} exPorId={exPorId}

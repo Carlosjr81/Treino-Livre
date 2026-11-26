@@ -857,7 +857,7 @@ GitHub e siga daí.
 | Arquivo | Papel |
 |---|---|
 | `index.html` | O app inteiro: HTML, CSS e um `<script type="text/babel">` com todo o React |
-| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v283) |
+| `sw.js` | Service worker: modo offline. Cache `treinolivre-vN` (hoje v284) |
 | `manifest.json` | Instalação como app (PWA), atalhos do ícone |
 | `versao.json` | Só `{"versao":"…"}`. É como o app descobre que saiu versão nova |
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
@@ -6928,6 +6928,38 @@ coberto por `teste-extra.js` (17 checagens).
   minutos e kcal no aeróbico, em vez de "0 kg de volume".
 - No navegador: a janela (Bíceps, Oblíquos, Trapézio e Adutores, com a A como
   próxima ficha) e o treino começando com `extra`. **Não validado num aparelho.**
+
+## As margens das telas e o nome uma vez só (`tamanhoTitulo`, 2026-11-26b)
+
+Relato do dono, com print do Balance: **"está escrito Jarvis Body Balance duas
+vezes grande nesta tela"**, e o pedido de ajustar o layout dessa e das outras em
+que isso acontecesse.
+
+- **O nome uma vez só.** `titulos.balance` era "Jarvis Body Balance": em letra
+  de letreiro a 27px, quebrava em **três linhas** no celular e comia um quarto
+  da tela, e logo abaixo o cartão da marca escrevia o mesmo nome maior. O topo
+  passou a dizer só **"Balance"** (a mesma palavra da barra de baixo), e o nome
+  inteiro ficou com o cartão, que é quem tem o visual do resumo.
+- **O título do topo encolhe em vez de virar torre** (`tamanhoTitulo`): sobram
+  uns 200px ao lado dos três botões, e o tamanho acompanha o nome (27, 24, 21,
+  19 pelo comprimento). Os botões não encolhem; o título sim. **Nome novo numa
+  tela é curto**: acima de 16 letras ele já sai pequeno.
+- **Tela sem nome na lista mostra o nome do app** (`titulos[aba] || "Treino
+  Livre"`). Desafio, Intervalado, Monster Run, corredor, amigos e percurso não
+  estão em `titulos`, e o topo ficava com três botões e a faixa da marca embaixo
+  de nada, com cara de defeito. Elas escrevem o próprio nome logo abaixo, então
+  o topo não pode repeti-lo: fica o nome do app.
+- **A margem lateral de 18px é de todas as telas** (`padding: "0 18px"`), e sete
+  tinham ficado de fora: Balance (o `className="pg"` não tinha regra de CSS
+  nenhuma), percurso, amigos, desafio, intervalado, Monster Run e o painel do
+  corredor. O texto e a borda dos cartões encostavam na beirada, e no Balance os
+  botões Hoje/Semana/Mês/Perfil passavam da tela. Essas telas têm várias etapas,
+  cada uma com o seu `return`, então **a margem entra onde a tela é montada**
+  (no raiz), e vale para todas as etapas de uma vez.
+- **O mapa do percurso continua de ponta a ponta**: ele é a tela, e passa por
+  cima da margem com `margin: "0 -18px"`.
+- Conferido no navegador em 390 e 360px: Balance, Desafio, Intervalado, Monster
+  Run e percurso, com os cartões em 18..372 e o título do topo numa linha.
 
 ## O descanso pela ciência (`DESCANSO_CIENCIA`, `tipoDescanso`, `descansoDoItem`)
 

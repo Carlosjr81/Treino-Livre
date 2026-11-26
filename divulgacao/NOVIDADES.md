@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-26b — As telas ganharam margem, e o nome deixou de aparecer duas vezes
+
+- **Em uma frase:** o Balance, o Desafio, o Intervalado, o Monster Run, o painel do corredor, o percurso na rua e o desafio entre amigos deixaram de encostar na beirada do celular, e nenhuma tela escreve o mesmo nome grande duas vezes.
+- **O que mudou:** no Balance, o nome aparecia enorme no alto e de novo logo abaixo, quebrado em três linhas — agora o alto diz só "Balance" e o nome completo fica no cartão. Sete telas que nasceram sem margem lateral passaram a ter a mesma de todas as outras: texto e cartões não ficam mais colados na borda, e os botões Hoje/Semana/Mês/Perfil cabem inteiros. As telas que não tinham nome no alto (Desafio, Intervalado, Monster Run e as outras) mostram o nome do app, no lugar de uma faixa colorida sem nada em cima.
+- **Por que importa para quem treina:** tela apertada cansa a vista no meio do treino, e botão cortado na borda é botão que não se acerta com a mão suada. No mapa da corrida na rua nada mudou: ele continua de ponta a ponta.
+- **Como usar:** é só abrir o app; não há nada para ligar.
+- **Ideias de vídeo:** um antes e depois do Balance no celular, mostrando quanto da tela a sobreposição do nome comia.
+- **Não prometer:** é ajuste de tela, não muda conta, treino nem número nenhum.
+
+---
+
 ## 2026-11-26a — Quem usa caneta para emagrecer tem a conta certa
 
 - **Em uma frase:** contas liberadas pelo criador podem registrar o uso de caneta para emagrecer, e o app passa a tratar a conta do jeito certo para quem está nesse tratamento.

@@ -99,11 +99,11 @@ responder que os testes passam, está garantido.
 
 ## Duas coisas que não são do Claude, mas que também não podem se perder
 
-- **A chave que assina o app Android.** Hoje ela vive no cache do GitHub
-  Actions (o `manter-chave.yml` a mantém viva). Para ela nunca mudar, guarde-a
-  como segredo `ANDROID_KEYSTORE_B64` no repositório (o passo a passo está no
-  `CLAUDE.md`, em *A chave do APK*). Chave nova obriga todo mundo a
-  desinstalar e instalar o app de novo.
+- **A chave que assina o app Android.** Desde 27/11/2026 ela está guardada
+  como segredo `ANDROID_KEYSTORE_B64` no repositório (copiada do cache do
+  Actions, a mesma de sempre; o histórico está no `CLAUDE.md`, em *A chave do
+  APK*). Nunca gere outra: chave nova obriga todo mundo a desinstalar e
+  instalar o app de novo.
 - **Os seus próprios treinos.** Eles ficam no seu celular (no Chrome). Baixe o
   backup em arquivo de vez em quando: Ajustes › Backup.
 

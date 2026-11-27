@@ -4280,21 +4280,19 @@ desinstalar o app antes de instalar a versão nova (os treinos ficam no
 Chrome e não se perdem; as permissões do Health Connect sim). **Nunca suba o
 `.jks`.**
 
-**Para fixar, copie a chave do cache; não gere outra.** Conferido em
-27/11/2026: o segredo não existia (o registro do App Android dizia
-`TEM_SEGREDO: nao` e `chave: a do cache`), e a chave do cache é a do
-`assetlinks.json` (`9B:1E:D2:74:…:D4:23`). Gerar uma com `keytool
--genkeypair` (o que este trecho mandava antes) trocaria a chave do app de todo
-mundo. O caminho é o `.github/workflows/guardar-chave.yml` (uso único, à mão):
-ele exige o segredo `TOKEN_SEGREDOS` (token *fine-grained* do dono, só o
-Treino-Livre, "Secrets: Read and write"; o `GITHUB_TOKEN` não grava segredo),
-recusa se o segredo já existir, confere a impressão digital do cache contra o
-`assetlinks.json` antes de gravar, grava os dois segredos (a senha é
-`treinolivre`, a mesma com que a chave do cache foi criada) e, num segundo job,
-abre a chave pelo segredo e confere a impressão de novo. Depois: o App Android
-seguinte tem de dizer `chave: segredo do repositório` com a mesma impressão; aí
-apagam-se o token, o segredo `TOKEN_SEGREDOS`, o `guardar-chave.yml` e o
-`manter-chave.yml`.
+**A chave está nos segredos desde 27/11/2026** (`ANDROID_KEYSTORE_B64` e
+`ANDROID_KEYSTORE_PASS`, senha `treinolivre`). Até ali ela vivia só no cache
+do Actions (o registro do App Android dizia `TEM_SEGREDO: nao`). Foi
+**copiada** do cache por um fluxo de uso único, e não gerada de novo: chave nova
+trocaria o app de todo mundo. Antes de gravar, ele conferiu a impressão digital
+do cache contra o `assetlinks.json` (`9B:1E:D2:74:…:D4:23`); depois, um job
+abriu a chave pelo segredo e conferiu a mesma impressão. **Nunca gere outra com
+`keytool -genkeypair`.** Lição do fluxo: o Actions tira a foto dos segredos
+quando a execução começa, então segredo gravado no meio de uma execução só
+aparece numa execução (ou repetição) seguinte. **Falta:** o primeiro App
+Android depois disso tem de dizer `chave: segredo do repositório` com a mesma
+impressão; aí o `manter-chave.yml` pode ser apagado. O token temporário
+(`TOKEN_SEGREDOS`, que expira em 3/12/2026) é para ser apagado pelo dono.
 
 **A barra de endereço.** Sem o `assetlinks.json` na raiz do domínio
 (`carlosjr81.github.io/.well-known/`, que é **outro repositório**,

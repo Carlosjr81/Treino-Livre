@@ -2454,7 +2454,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27r";
+const VERSAO_APP = "2026-11-27s";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5003,6 +5003,10 @@ function contasDoBalance(o) {
     const mediaConta = conta.length ? conta.reduce((a, x) => a + x.gasto.totalMeta, 0) / conta.length : 0;
     return Object.assign({ vies: mediaConta ? Math.round(c.kcal - mediaConta) : 0, assumiu: Math.round(Math.min(1, c.dias / 21) * 100), faltamAssumir: Math.max(0, 21 - c.dias) }, c, pron);
   })();
+  // o dia de treino de cada data e a rotina do histórico (para quem não
+  // cadastrou o horário de sempre): uma vez, para os 35 dias
+  const diasT = diasComTreino(historico, o.sessao);
+  const rotina = rotinaDoHistorico(historico, hoje);
   const comMeta = (x) => {
     if (!x.gasto) return Object.assign({}, x, { meta: null, status: statusDoDia(0, null) });
     const geral = corpo ? 0.5 * corpo.vies : 0;
@@ -5026,11 +5030,14 @@ function contasDoBalance(o) {
     // treino saem do dia (2026-11-27r)
     const jan = janelasDoDia({ dia: x.dia, treino: horaDoTreino(historico, x.d, o.sessao, x.d === hoje && !(x.dia && x.dia.semTreino) ? perfil.treinoPlano : null), dorme: perfil.dorme,
       agoraMin: x.d === hoje ? agoraMin : 1440 });
-    const situacao = situacaoTreinoDia({ historico: historico, dia: x.d, sessao: o.sessao, plano: perfil.treinoPlano, declarado: x.dia && x.dia.semTreino, hoje: hoje, agoraMin: agoraMin });
+    const sitDe = (d) => situacaoTreinoDia({ diasTreino: diasT, dia: d, plano: perfil.treinoPlano, rotina: rotina, declarado: ((nutricao.dias || {})[d] || {}).semTreino, hoje: hoje, agoraMin: agoraMin });
+    const situacao = sitDe(x.d);
+    let faltasSemana = 0;
+    if (situacao.id === "faltou") for (let k = 1; k <= 6; k++) { if (sitDe(diaLocal(new Date(x.d + "T12:00:00").getTime() - k * 864e5)).id === "faltou") faltasSemana++; }
     const r = Object.assign({}, x, { gastoUsado: g, ajusteCorpo: ajuste, preparo: preparo, diuretico: diuretico, apetite: apetite, meta: m,
       espaco: espacoDoTreino(m, mSem, x.treino), janelas: jan, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens), situacao: situacao });
     const sdP = ((saude && saude.dias) || []).find((y) => y.d === x.d);
-    r.semTreino = avaliarDiaSemTreino(r, situacao, { objetivo: perfil.objetivo, sono: sonoDoDia(saude && saude.sono, x.d, numB(x.dia && x.dia.sono)), passos: sdP ? sdP.passos : null });
+    r.semTreino = avaliarDiaSemTreino(r, situacao, { objetivo: perfil.objetivo, idade: idade, faltasSemana: faltasSemana, sono: sonoDoDia(saude && saude.sono, x.d, numB(x.dia && x.dia.sono)), passos: sdP ? sdP.passos : null });
     return r;
   };
   const dias = ultimos.map(comMeta);
@@ -5046,7 +5053,7 @@ function contasDoBalance(o) {
     return media < Math.round(tmb) ? { media: media, dias: ult.length, tmb: Math.round(tmb) } : null;
   })();
   return { perfil: perfil, kg: kg, idade: idade, tmb: tmb, apetiteHoje: apetiteHoje, apetiteAviso: apetiteAviso, completo: completo, ob: ob, hoje: hoje, agoraMin: agoraMin, mediaAtivas: mediaAtivas, pesos: pesos,
-    calcDia: calcDia, ultimos: ultimos, corpo: corpo, comMeta: comMeta, dias: dias, prep: prep, corpoPrep: corpoPrep, inicioPrep: inicioPrep };
+    calcDia: calcDia, ultimos: ultimos, corpo: corpo, rotina: rotina, comMeta: comMeta, dias: dias, prep: prep, corpoPrep: corpoPrep, inicioPrep: inicioPrep };
 }
 // O dia de um treino no Body Balance, para o resumo e o story. Dia sem
 // anotação (menos de 2 itens e 300 kcal) ou perfil sem configurar: nada.
@@ -5079,33 +5086,95 @@ const MOTIVOS_SEM_TREINO = {
 function lerSemTreino(o) {
   return o && typeof o === "object" && MOTIVOS_SEM_TREINO[o.tipo] ? { tipo: o.tipo, em: Number(o.em) || 0 } : undefined;
 }
+// As réguas, e de onde vem cada uma (2026-11-27s, pedido do dono: "faça tudo
+// baseado na literatura adotada"). A tela mostra a fonte de cada parte da nota.
+const FONTES_DIA_SEM_TREINO = {
+  dieta: "Balanço de energia: Hall e colegas 2011 (Lancet); 7.700 kcal por kg de gordura (Wishnofsky 1958)",
+  prot: "Proteína: Morton e colegas 2018 (1,6 g/kg ou mais); a síntese de músculo segue alta por 24 a 48 h depois do treino (Phillips e colegas 1997), então o dia de descanso pede a mesma proteína",
+  agua: "Água: EFSA 2010 (a meta sai do peso e do treino do dia)",
+  sono: "Sono: 7 h ou mais para adultos (Watson e colegas 2015, AASM e SRS); com 5,5 h de sono numa dieta, mais músculo e menos gordura saíram (Nedeltcheva e colegas 2010)",
+  passos: "Passos: o benefício cresce até 6 a 8 mil passos por dia a partir dos 60 anos e 8 a 10 mil antes disso (Paluch e colegas 2022, Lancet Public Health)",
+  descanso: "Descanso: o músculo se recupera e cresce nas 24 a 72 h depois do treino (Phillips 1997; Damas e colegas 2016); 2 vezes por semana por músculo bastam (Schoenfeld e colegas 2016)",
+  falta: "Treino perdido: a força e o músculo se mantêm por até 3 semanas sem treino (Mujika e Padilla 2000; Bosquet e colegas 2013); o que pesa é o volume da semana cair quando a falta se repete (Schoenfeld e colegas 2017)",
+};
+// Os dias com treino, de uma vez (Set), para não varrer o histórico a cada dia
+function diasComTreino(historico, sessao) {
+  const s = new Set();
+  (historico || []).forEach((r) => { if (r && r.data) s.add(diaLocal(new Date(r.data).getTime())); });
+  if (sessao && sessao.inicio) s.add(diaLocal(sessao.inicio));
+  return s;
+}
 function treinouNoDia(historico, dia, sessao) {
   if (sessao && sessao.inicio && diaLocal(sessao.inicio) === dia) return true;
   return (historico || []).some((r) => r && r.data && diaLocal(new Date(r.data).getTime()) === dia);
 }
+// A rotina tirada do histórico, para quem não cadastrou o horário de sempre
+// (2026-11-27s, pedido do dono: "caso ele não declare nada e não registre
+// treino, o app já entenda a situação do dia"). As 4 semanas antes do dia: o
+// dia da semana em que treinou em 2 delas ou mais é dia de costume, a hora é a
+// mediana do começo, e a frequência é a média por semana. Com menos de 4
+// treinos não há rotina para ler.
+function rotinaDoHistorico(historico, dia) {
+  const fimT = new Date(dia + "T00:00:00").getTime(), iniT = fimT - 28 * 864e5;
+  const porDia = {};
+  (historico || []).forEach((r) => {
+    if (!r || !r.data || r.extra) return;
+    const t = new Date(r.data).getTime();
+    if (!(t >= iniT && t < fimT)) return;
+    const d = diaLocal(t);
+    if (porDia[d]) return;
+    const f = new Date(t), dur = Math.max(15, Math.min(300, numB(r.duracaoMin) || 60));
+    porDia[d] = { wd: f.getDay(), ini: Math.max(0, f.getHours() * 60 + f.getMinutes() - dur), dur: dur };
+  });
+  const l = Object.keys(porDia).map((k) => porDia[k]);
+  if (l.length < 4) return null;
+  const cont = [0, 0, 0, 0, 0, 0, 0];
+  l.forEach((x) => cont[x.wd]++);
+  const med = (v) => { const a = v.slice().sort((x, y) => x - y); return a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2; };
+  return { dias: [0, 1, 2, 3, 4, 5, 6].filter((w) => cont[w] >= 2), porSemana: Math.round((l.length / 4) * 10) / 10,
+    hora: Math.round(med(l.map((x) => x.ini))), dur: Math.round(med(l.map((x) => x.dur))), treinos: l.length };
+}
+// Quantos dias com treino houve na semana (segunda a domingo) antes do dia
+function treinosNaSemanaAntes(diasT, dia) {
+  const wd = (diaDaSemana(dia) + 6) % 7;
+  const base = new Date(dia + "T12:00:00").getTime();
+  let n = 0;
+  for (let k = 1; k <= wd; k++) if (diasT.has(diaLocal(base - k * 864e5))) n++;
+  return n;
+}
 // A situação do treino no dia: treinou, descanso, faltou, previsto (hoje, com
-// o horário de sempre ainda pela frente), aberto (hoje, sem horário de sempre),
-// semSaber (dia passado sem horário de sempre e sem declaração) ou futuro.
+// o horário de costume ainda pela frente), aberto (hoje, sem saber), semSaber
+// (o dia acabou sem treino e sem rotina para ler) ou futuro. O treino anotado
+// sempre vence a declaração; a declaração vence a dedução; a agenda cadastrada
+// vence a rotina do histórico. E quem já fez os treinos de costume da semana
+// está descansando, não faltando.
 function situacaoTreinoDia(o) {
-  if (treinouNoDia(o.historico, o.dia, o.sessao)) return { id: "treinou" };
+  const diasT = o.diasTreino || diasComTreino(o.historico, o.sessao);
+  if (diasT.has(o.dia)) return { id: "treinou" };
   const dec = lerSemTreino(o.declarado);
   if (dec) return { id: dec.tipo === "descanso" ? "descanso" : "faltou", declarado: true };
+  if (o.dia > o.hoje) return { id: "futuro" };
   const temPlano = !!(o.plano && typeof o.plano.hora === "number");
-  const pl = treinoPlanejado(o.plano, o.dia);
-  if (o.dia > o.hoje) return { id: "futuro", plano: pl };
-  if (temPlano && !pl) return { id: "descanso", declarado: false, pelaAgenda: true };
-  if (o.dia === o.hoje) {
-    if (pl && (o.agoraMin || 0) > pl.fim + 120) return { id: "faltou", declarado: false, deduzido: true, plano: pl };
-    return { id: pl ? "previsto" : "aberto", plano: pl };
-  }
-  return pl ? { id: "faltou", declarado: false, deduzido: true, plano: pl } : { id: "semSaber" };
+  const rot = !temPlano && o.rotina && o.rotina.dias && o.rotina.dias.length ? o.rotina : null;
+  const fonte = temPlano ? "agenda" : rot ? "rotina" : null;
+  const plano = temPlano ? o.plano : rot ? { hora: rot.hora, dur: rot.dur, dias: rot.dias } : null;
+  const freq = temPlano ? (Array.isArray(o.plano.dias) && o.plano.dias.length ? o.plano.dias.length : 7) : rot ? Math.max(1, Math.round(rot.porSemana)) : 0;
+  const pl = plano ? treinoPlanejado(plano, o.dia) : null;
+  const agora = o.dia === o.hoje ? (o.agoraMin || 0) : 1440;
+  if (!fonte) return o.dia === o.hoje && agora < 22 * 60 ? { id: "aberto" } : { id: "semSaber" };
+  if (!pl) return { id: "descanso", declarado: false, pelaAgenda: true, fonte: fonte };
+  const feitos = treinosNaSemanaAntes(diasT, o.dia);
+  if (feitos >= freq) return { id: "descanso", declarado: false, pelaAgenda: true, fonte: fonte, semanaFeita: true, feitos: feitos, freq: freq };
+  if (o.dia === o.hoje && agora <= pl.fim + 120) return { id: "previsto", plano: pl, fonte: fonte };
+  return { id: "faltou", declarado: false, deduzido: true, plano: pl, fonte: fonte };
 }
 // A nota do dia sem treino (0 a 100) e o que pesou a favor e contra. Os pesos
 // dizem o que mais move o resultado num dia sem treino: a caloria do dia
-// primeiro (sem o treino para gastar, o excesso vira saldo), depois a proteína
-// (é no descanso que ela reconstrói o músculo), a água e o sono, e o movimento
-// leve. O que não foi medido (sono e passos sem relógio) fica fora da conta,
-// em vez de entrar como zero. Nada aqui é bronca: é o que o dia fez.
+// primeiro (sem o treino para gastar, o excesso vira saldo), depois a proteína,
+// a água e o sono, e o movimento leve. O que não foi medido (sono e passos sem
+// relógio) fica fora da conta, em vez de entrar como zero. A falta pesa pouco
+// quando é uma só e mais quando se repete na semana: é o que os estudos de
+// destreino mostram. Nada aqui é bronca: é o que o dia fez.
 const FAIXAS_DIA_SEM_TREINO = [
   { min: 80, id: "bom", nome: "Dia sem treino bem aproveitado", cor: "#4CD137", grito: "Descanso que constrói" },
   { min: 55, id: "medio", nome: "Dia razoável: dá para ajustar", cor: "#FFB21A", grito: "Quase lá" },
@@ -5116,7 +5185,7 @@ function avaliarDiaSemTreino(x, sit, ext) {
   const e = ext || {}, m = x.meta, t = x.tot, ob = e.objetivo;
   const anotou = t.itens >= 2 && t.k >= 300;
   const l = [];
-  const add = (id, ic, nome, peso, v, texto) => l.push({ id: id, ic: ic, nome: nome, peso: peso, v: v, bom: v >= 0.99, ruim: v <= 0.01, texto: texto });
+  const add = (id, ic, nome, peso, v, texto, fonte) => l.push({ id: id, ic: ic, nome: nome, peso: peso, v: v, bom: v >= 0.99, ruim: v <= 0.01, texto: texto, fonte: FONTES_DIA_SEM_TREINO[fonte || id] });
   const fmt = (n) => Math.round(Math.abs(n)).toLocaleString("pt-BR");
   if (!anotou) add("dieta", "\u{1F37D}", "Dieta", 40, 0, "Sem anotação: o dia fica fora da conta, e o que não é medido costuma passar da meta. Anote o que comeu, mesmo depois.");
   else {
@@ -5129,21 +5198,30 @@ function avaliarDiaSemTreino(x, sit, ext) {
     add("dieta", "\u{1F37D}", "Dieta", 40, v, tx);
   }
   const rp = m.p ? t.p / m.p : 0;
-  add("prot", "\u{1F356}", "Proteína", 20, rp >= 0.9 ? 1 : rp >= 0.7 ? 0.5 : 0, rp >= 0.9 ? Math.round(t.p) + " de " + m.p + " g: é no descanso que ela reconstrói o músculo."
-    : "Faltaram " + Math.max(0, Math.round(m.p - t.p)) + " g de proteína: no dia sem treino ela continua sendo o que segura o músculo.");
+  add("prot", "\u{1F356}", "Proteína", 20, rp >= 0.9 ? 1 : rp >= 0.7 ? 0.5 : 0, rp >= 0.9 ? Math.round(t.p) + " de " + m.p + " g: o músculo segue se reconstruindo até 48 h depois do treino, e a proteína estava lá."
+    : "Faltaram " + Math.max(0, Math.round(m.p - t.p)) + " g de proteína: o músculo segue se reconstruindo até 48 h depois do treino, e o dia de descanso pede a mesma proteína.");
   const ra = m.agua ? t.agua / m.agua : 0;
   add("agua", "\u{1F4A7}", "Água", 15, ra >= 0.9 ? 1 : ra >= 0.6 ? 0.5 : 0, ra >= 0.9 ? "Água em dia." : "Faltou " + Math.max(0, Math.round((m.agua - t.agua) / 100) / 10).toLocaleString("pt-BR") + " L de água para a meta do dia.");
   if (e.sono && e.sono.h > 0) {
-    const sh = e.sono.h;
-    add("sono", "\u{1F634}", "Sono", 15, sh >= 7 ? 1 : sh >= 6 ? 0.5 : 0, sh >= 7 ? String(sh).replace(".", ",") + " h: o descanso completo é o sono."
-      : String(sh).replace(".", ",") + " h: com sono curto a fome sobe e a recuperação cai, justo no dia de recuperar.");
+    const sh = e.sono.h, txh = String(sh).replace(".", ",");
+    add("sono", "\u{1F634}", "Sono", 15, sh >= 7 ? 1 : sh >= 6 ? 0.5 : 0, sh >= 7 ? txh + " h: o descanso completo é o sono, e ele veio."
+      : txh + " h, abaixo das 7 h recomendadas: com sono curto a fome sobe e a recuperação cai, justo no dia de recuperar.");
   }
   if (typeof e.passos === "number" && e.passos > 0) {
-    add("passos", "\u{1F45F}", "Movimento", 10, e.passos >= 7000 ? 1 : e.passos >= 4000 ? 0.5 : 0, e.passos.toLocaleString("pt-BR") + " passos" +
-      (e.passos >= 7000 ? ": andar no dia sem treino gasta sem cansar." : ": uma caminhada leve no dia sem treino ajuda o gasto sem atrapalhar a recuperação."));
+    const alvo = e.idade >= 60 ? 6000 : 8000;
+    add("passos", "\u{1F45F}", "Movimento", 10, e.passos >= alvo ? 1 : e.passos >= alvo / 2 ? 0.5 : 0, e.passos.toLocaleString("pt-BR") + " passos" +
+      (e.passos >= alvo ? ": andar no dia sem treino gasta sem cansar." : ": a referência para a sua idade é " + alvo.toLocaleString("pt-BR") + " por dia; uma caminhada leve ajuda o gasto sem atrapalhar a recuperação."));
   }
-  if (sit.id === "descanso") add("treino", "\u{1F6CC}", "Descanso", 10, 1, sit.pelaAgenda ? "Fora dos seus dias de treino: descanso planejado também é treino." : "Dia de descanso declarado: é na recuperação que o músculo cresce.");
-  if (sit.id === "faltou") add("treino", "\u{1F615}", "Treino perdido", 15, 0, "Treino perdido: junte com o próximo (🔗 Faltei um dia, na tela inicial) para a semana não perder o estímulo.");
+  if (sit.id === "descanso") add("treino", "\u{1F6CC}", "Descanso", 10, 1,
+    sit.semanaFeita ? "Você já fez os " + sit.feitos + " treinos de costume desta semana: hoje o músculo recupera, e é aí que ele cresce."
+    : sit.pelaAgenda ? "Fora dos seus dias de treino" + (sit.fonte === "rotina" ? " (pela rotina do seu histórico)" : "") + ": descanso planejado também é treino."
+    : "Dia de descanso declarado: é na recuperação que o músculo cresce.", "descanso");
+  if (sit.id === "faltou") {
+    const rep = (e.faltasSemana || 0) >= 1;
+    add("treino", "\u{1F615}", rep ? "Treinos perdidos na semana" : "Treino perdido", rep ? 20 : 8, 0, rep
+      ? (e.faltasSemana + 1) + " treinos perdidos em 7 dias: o volume da semana cai, e é ele que faz o músculo crescer. Junte o próximo com o que faltou (🔗 Faltei um dia, na tela inicial)."
+      : "Um treino perdido quase não muda o resultado: força e músculo se mantêm por semanas. Junte com o próximo (🔗 Faltei um dia) para a semana não perder o volume.", "falta");
+  }
   const soma = l.reduce((a, i) => a + i.peso, 0);
   const nota = soma ? Math.round((l.reduce((a, i) => a + i.peso * i.v, 0) / soma) * 100) : 0;
   const faixa = FAIXAS_DIA_SEM_TREINO.find((f) => nota >= f.min);
@@ -40193,6 +40271,7 @@ function CartaoDiaSemTreino({ x, ehHoje, onDeclarar, onResumo, onJuntar }) {
   if (!av) return null;
   const f = av.faixa;
   const perguntar = !sit.declarado && !sit.pelaAgenda;
+  const deducao = !sit.declarado && sit.pelaAgenda ? (sit.semanaFeita ? "O app entendeu como descanso: você já fez os " + sit.feitos + " treinos de costume desta semana." : "O app entendeu como descanso: " + (sit.fonte === "rotina" ? "pela rotina do seu histórico, " : "pela sua agenda, ") + "hoje não é dia de treino.") : null;
   return (
     <div style={{ ...S.card, borderColor: f.cor + "88", background: "radial-gradient(120% 100% at 100% 0%, " + f.cor + "1F 0%, transparent 60%), var(--card)" }}>
       <div style={S.label}>{sit.id === "descanso" ? "\u{1F6CC} Dia de descanso" : sit.id === "faltou" ? (sit.deduzido ? "\u{1F615} Parece que faltou ao treino" : "\u{1F615} Dia sem o treino") : "Dia sem treino"}</div>
@@ -40208,9 +40287,13 @@ function CartaoDiaSemTreino({ x, ehHoje, onDeclarar, onResumo, onJuntar }) {
           </div>
         </div>
       </div>
+      {deducao && (
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 10 }}>{deducao}{" "}
+          <button onClick={() => onDeclarar("faltei")} style={{ background: "none", border: "none", padding: 0, color: "var(--cinza)", fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}>Na verdade, faltei</button></div>
+      )}
       {perguntar && (
         <div style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: "9px 11px", marginTop: 10, fontSize: 13, lineHeight: 1.5 }}>
-          {sit.deduzido ? "Era dia do seu treino e nenhum foi anotado. Foi descanso ou falta?" : "Este dia não teve treino anotado. Foi descanso ou falta?"}
+          {sit.deduzido ? (sit.fonte === "rotina" ? "Pela rotina do seu histórico, era dia de treino e nenhum foi anotado. Foi descanso ou falta?" : "Era dia do seu treino e nenhum foi anotado. Foi descanso ou falta?") : "Este dia não teve treino anotado. Foi descanso ou falta?"}
           {botoes}
         </div>
       )}
@@ -40222,7 +40305,8 @@ function CartaoDiaSemTreino({ x, ehHoje, onDeclarar, onResumo, onJuntar }) {
           {av.itens.map((i) => (
             <div key={i.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 8 }}>
               <span style={{ flexShrink: 0, fontWeight: 900, color: i.bom ? "var(--ok)" : i.ruim ? "var(--perigo)" : "#FFB21A" }}>{i.bom ? "✓" : i.ruim ? "✗" : "~"}</span>
-              <div style={{ fontSize: 13, lineHeight: 1.45 }}><b>{i.ic} {i.nome}.</b> {i.texto}</div>
+              <div style={{ fontSize: 13, lineHeight: 1.45 }}><b>{i.ic} {i.nome}.</b> {i.texto}
+                {i.fonte && <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 2 }}>{"\u{1F4DA}"} {i.fonte}</div>}</div>
             </div>
           ))}
           {!av.anotou && <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5 }}>Sem a comida anotada, a nota mede só o que dá para medir.</div>}
@@ -42572,6 +42656,24 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     document.addEventListener("visibilitychange", aoVoltar);
     return () => document.removeEventListener("visibilitychange", aoVoltar);
   });
+
+  // Treinou num dia declarado sem treino (descanso ou falta): o treino vence, e
+  // a declaração sai sozinha (2026-11-27s, pedido do dono: "se a pessoa declarar
+  // que não vai haver treino e treinar, o sistema ajusta automaticamente").
+  useEffect(() => {
+    if (!carregado) return;
+    const dias = nutricao.dias || {};
+    const comDec = Object.keys(dias).filter((d) => dias[d] && dias[d].semTreino);
+    if (!comDec.length) return;
+    const diasT = diasComTreino(historico, sessao);
+    const treinados = comDec.filter((d) => diasT.has(d));
+    if (!treinados.length) return;
+    setNutricao((n) => {
+      const dd = Object.assign({}, n.dias || {});
+      treinados.forEach((d) => { if (dd[d]) dd[d] = Object.assign({}, dd[d], { semTreino: undefined }); });
+      return Object.assign({}, n, { dias: dd });
+    });
+  }, [historico, sessao && sessao.inicio, carregado]); // eslint-disable-line
 
   // Gravação com um respiro de 400ms: durante o treino cada tecla digitada muda o
   // estado, e escrever o histórico inteiro a cada tecla trava o aparelho.

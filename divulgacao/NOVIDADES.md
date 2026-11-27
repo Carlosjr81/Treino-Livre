@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27s — O dia sem treino, pelos estudos e sem precisar avisar
+
+- **Em uma frase:** o app entende sozinho se o dia sem treino foi descanso ou falta, e cada parte da nota do dia mostra o estudo de onde veio.
+- **O que mudou:** sem horário de treino cadastrado, o app aprende os seus dias de treino pelo próprio histórico. Se você já fez os treinos de costume da semana, o dia sem treino conta como descanso, não como falta. Uma falta só pesa pouco (força e músculo se mantêm por semanas); faltas repetidas na semana pesam mais. Os passos são avaliados pela sua idade. E se você disse que não ia treinar e treinou, o app ajusta sozinho.
+- **Por que importa para quem treina:** não precisa lembrar de avisar nada, e a nota do dia segue o que a ciência mostra, não um palpite.
+- **Como usar:** é só anotar a comida e a água. No Balance, toque em "O que ajudou e o que atrapalhou" para ver cada parte com a fonte. Se o app entender errado, toque em "Na verdade, faltei".
+- **Ideias de vídeo:** "faltei um treino, e agora?": a nota do dia mostrando que uma falta pesa pouco, e que repetir é o que atrapalha.
+- **Não prometer:** que a nota é avaliação de saúde ou de nutricionista (é informação geral a partir do que a pessoa anotou).
+
+---
+
 ## 2026-11-27r — O dia sem treino também conta
 
 - **Em uma frase:** no dia de descanso (ou no dia em que não deu para treinar), o app avalia o dia pela dieta, pela proteína, pela água, pelo sono e pelos passos, dá uma nota de 0 a 100 e mostra num resumo animado.

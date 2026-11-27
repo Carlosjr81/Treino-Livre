@@ -246,6 +246,26 @@ puro **O DIA SEM TREINO**, antes do jogo do Balance (coberto em `teste-balance.j
 - No navegador: a tela inicial declarada, o Balance com a nota 79 e a missão,
   a pergunta do previsto virando avaliação, e o resumo do dia. **Não validado
   num aparelho.**
+- **Pela literatura, e sem precisar declarar** (2026-11-27s, pedido do dono):
+  - Cada parte da nota mostra a fonte (`FONTES_DIA_SEM_TREINO`): Hall 2011
+    (balanço), Morton 2018 e Phillips 1997 (a proteína igual no descanso:
+    síntese alta por 24 a 48 h), EFSA 2010 (água), Watson 2015 (7 h de sono) e
+    Nedeltcheva 2010, Paluch 2022 (passos pela idade: 6 mil a partir dos 60, 8
+    mil antes), Schoenfeld 2016 e Damas 2016 (descanso), Mujika e Padilla 2000
+    e Bosquet 2013 (a falta: uma só pesa 8, repetida na semana pesa 20).
+  - **Sem agenda cadastrada, a rotina sai do histórico** (`rotinaDoHistorico`:
+    4 semanas, dia da semana com treino em 2 delas, hora mediana, frequência
+    média; menos de 4 treinos, sem rotina). A agenda cadastrada vence a rotina.
+  - **Semana já cumprida é descanso**: com os treinos de costume da semana
+    feitos (`treinosNaSemanaAntes` ≥ frequência), o dia de costume sem treino
+    vira descanso, não falta.
+  - Sem agenda e sem rotina, hoje fica "aberto" até as 22 h e depois é
+    avaliado como dia sem treino (`semSaber`).
+  - O descanso deduzido diz por quê ("O app entendeu como descanso…") com
+    "Na verdade, faltei".
+  - **Treinou num dia declarado sem treino**: um efeito no raiz tira a
+    declaração (o treino sempre vence), e a meta, a água e as janelas do dia já
+    seguiam o treino de verdade.
 
 ## Liberado, instale o app (`InstalarAposLiberar`, `PassosInstalar`, 2026-11-27p)
 

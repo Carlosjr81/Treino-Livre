@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas, prazoInsulina, acompanhamentoInsulina, PRAZOS_INSULINA };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, FONTES_DIA_SEM_TREINO, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas, prazoInsulina, acompanhamentoInsulina, PRAZOS_INSULINA };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -1051,6 +1051,28 @@ console.log("\n--- o dia sem treino (2026-11-27r) ---");
   teste("o descanso cumpre a missão do treino", [true, "Descansar (dia de descanso)"], [mt.pronto, mt.nome]);
   const mf = missoesDoDia(Object.assign({}, x, { situacao: { id: "faltou" } })).find((m) => m.id === "treino");
   teste("a falta não cumpre", false, mf.pronto);
+  // a literatura e a dedução sem declarar (2026-11-27s)
+  const histR = ["2026-11-03","2026-11-05","2026-11-10","2026-11-12","2026-11-17","2026-11-19","2026-11-24"].map((d) => ({ data: d + "T19:00:00", duracaoMin: 60 }));
+  const rot = rotinaDoHistorico(histR, hoje);
+  teste("a rotina sai do histórico: terça e quinta, às 18h, 1,8 por semana", [[2, 4], 1080, 1.8], [rot.dias, rot.hora, rot.porSemana]);
+  teste("com menos de 4 treinos não há rotina", null, rotinaDoHistorico(histR.slice(-3), hoje));
+  const sitR = (d, extra) => situacaoTreinoDia(Object.assign({ historico: histR, rotina: rot, plano: null, hoje: hoje, agoraMin: 600, dia: d }, extra || {}));
+  teste("sem agenda e sem declarar: quarta é descanso pela rotina", ["descanso", "rotina"], [sitR("2026-11-25").id, sitR("2026-11-25").fonte]);
+  teste("terça de rotina que passou sem treino: parece falta", ["faltou", true], [sitR("2026-11-24", { historico: histR.slice(0, -1) }).id, sitR("2026-11-24", { historico: histR.slice(0, -1) }).deduzido]);
+  const hist2 = histR.concat([{ data: "2026-11-25T19:00:00", duracaoMin: 60 }]);
+  teste("já fez os treinos de costume da semana: o dia de rotina vira descanso", ["descanso", true], [sitR("2026-11-26", { historico: hist2, rotina: Object.assign({}, rot, { dias: [2, 3, 4] }) }).id, sitR("2026-11-26", { historico: hist2, rotina: Object.assign({}, rot, { dias: [2, 3, 4] }) }).semanaFeita]);
+  teste("sem rotina nenhuma, hoje à noite (22h): o dia é avaliado assim mesmo", "semSaber", situacaoTreinoDia({ historico: [], dia: hoje, hoje: hoje, agoraMin: 22 * 60 + 10 }).id);
+  teste("e antes das 22h, ainda aberto", "aberto", situacaoTreinoDia({ historico: [], dia: hoje, hoje: hoje, agoraMin: 15 * 60 }).id);
+  const um = avaliarDiaSemTreino(dia(1980, 165, 3100, 6, "certo"), { id: "faltou" }, { objetivo: "perder" });
+  const varios = avaliarDiaSemTreino(dia(1980, 165, 3100, 6, "certo"), { id: "faltou" }, { objetivo: "perder", faltasSemana: 2 });
+  teste("uma falta pesa pouco (a força se mantém por semanas), a repetida pesa mais", true, um.nota > varios.nota && um.nota >= 80 && varios.nota < 80);
+  const p60 = avaliarDiaSemTreino(dia(1980, 165, 3100, 6, "certo"), { id: "descanso" }, { passos: 6500, idade: 65 });
+  const p30 = avaliarDiaSemTreino(dia(1980, 165, 3100, 6, "certo"), { id: "descanso" }, { passos: 6500, idade: 30 });
+  teste("passos pela idade (Paluch 2022): 6.500 bastam aos 65, não aos 30", [1, 0.5], [p60.itens.find((i) => i.id === "passos").v, p30.itens.find((i) => i.id === "passos").v]);
+  teste("cada parte da nota diz a fonte", [], bom.itens.filter((i) => !i.fonte).map((i) => i.id));
+  teste("as fontes citam os estudos", true, /Watson/.test(B.FONTES_DIA_SEM_TREINO.sono) && /Paluch/.test(B.FONTES_DIA_SEM_TREINO.passos) && /Mujika/.test(B.FONTES_DIA_SEM_TREINO.falta) && /Phillips/.test(B.FONTES_DIA_SEM_TREINO.prot));
+  const app = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  teste("treinou num dia declarado: a declaração sai sozinha", true, /treinados.forEach\(\(d\) => \{ if \(dd\[d\]\) dd\[d\] = Object.assign\(\{\}, dd\[d\], \{ semTreino: undefined \}\)/.test(app));
   const txt = JSON.stringify(ruim) + JSON.stringify(bom);
   teste("nada de prescrição nem bronca", [], ["prescri", "voce deve", "vergonha", "preguic"].filter((p) => semAcento(txt).indexOf(p) >= 0));
 }

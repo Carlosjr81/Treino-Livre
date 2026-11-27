@@ -2463,7 +2463,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27x";
+const VERSAO_APP = "2026-11-27y";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5578,10 +5578,23 @@ function acertoDaJanela(j, itens, faixa, horas, mao) {
     return { feito: false, mao: false, soMao: true };
   }
   if (j.placar === "blocos") {
-    const bons = (itens || []).filter((i) => i.p >= j.minG);
-    const usados = [];
-    bons.forEach((i) => { if (!usados.length || i.min - usados[usados.length - 1].min >= (j.horas || 2.5) * 60) usados.push(i); });
-    return { feito: usados.length >= (j.blocos || 3), quantos: usados.length, alvo: j.blocos || 3, itens: usados };
+    // Itens anotados com até 45 min de diferença são a mesma refeição, e a
+    // proteína deles soma (2026-11-27y, relato do dono: whey, leite em pó e
+    // farinha anotados soltos contavam cada um por si).
+    const refs = [];
+    (itens || []).forEach((i) => {
+      const u = refs[refs.length - 1];
+      if (u && i.min - u.ult <= 45) { u.p += i.p; u.ult = i.min; u.itens.push(i); }
+      else refs.push({ min: i.min, ult: i.min, p: i.p, itens: [i] });
+    });
+    const bons = refs.filter((r) => r.p >= j.minG);
+    const usados = [], perto = [];
+    bons.forEach((r) => {
+      const ant = usados[usados.length - 1];
+      if (!ant || r.min - ant.min >= (j.horas || 2.5) * 60) usados.push(r);
+      else perto.push({ min: r.min, depois: r.min - ant.min, p: Math.round(r.p) });
+    });
+    return { feito: usados.length >= (j.blocos || 3), quantos: usados.length, alvo: j.blocos || 3, itens: usados, perto: perto };
   }
   if (!faixa) return null;
   const dentro = (itens || []).filter((i) => i.min >= faixa.de && i.min <= faixa.ate);
@@ -40103,7 +40116,7 @@ function CartaoAgua({ bebeu, meta, ehHoje, dorme, noite, onAgua, onNoite }) {
       {lt.noite && (
         <div style={{ fontSize: 12, lineHeight: 1.55, marginTop: 7 }}>
           <b>🌙 Da madrugada: {fmtLitros(lt.noite.ml)}</b> <span style={{ color: "var(--cinza)" }}>(já dentro do total)</span>
-          {onNoite && <button onClick={() => onNoite(-250)} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 900, cursor: "pointer" }}>−250</button>}
+          {onNoite && <button onClick={() => onNoite(-250)} aria-label="Tirar 250 ml da água da madrugada" title="Marcou um copo a mais? Tira 250 ml" style={{ background: "none", border: "1.5px solid var(--borda)", borderRadius: 999, padding: "3px 10px", marginLeft: 8, color: "var(--texto)", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>↩ Tirar 250 ml</button>}
           {lt.noite.muita && (
             <div style={{ color: "var(--cinza)", marginTop: 3 }}>
               Levantar para beber e ir ao banheiro corta o sono — e é dormindo que o músculo se recupera. Se der, beba mais durante o dia e deixe só uns goles para as últimas 1 a 2 horas antes de deitar. Se acorda com sede toda noite ou levanta várias vezes para urinar, vale comentar com o médico.
@@ -40184,6 +40197,11 @@ function CartaoJanelas({ x, ehHoje, perfil, onPerfil, onMarcar }) {
                   {it.mao ? " · marcado por você" : ""}
                   {it.acerto && it.acerto.anotado ? " · anotado: " + it.acerto.itens.map((i) => i.n).filter(Boolean).slice(0, 2).join(", ") : ""}
                   {it.acerto && it.acerto.quantos !== undefined ? " · " + it.acerto.quantos + " de " + it.acerto.alvo + " refeições" : ""}
+                  {it.acerto && it.acerto.perto && it.acerto.perto.length > 0 && (
+                    <span style={{ display: "block", marginTop: 2 }}>
+                      {"↪ " + it.acerto.perto.map((x) => x.p + " g às " + hhmm(x.min)).join(", ") + (it.acerto.perto.length > 1 ? " vieram" : " veio") + " menos de 2 h e meia depois da refeição anterior: conta junto com ela. Com uns 3 h de intervalo, vira outra refeição."}
+                    </span>
+                  )}
                   {it.acerto && it.acerto.soma !== undefined ? " · " + it.acerto.soma + " de " + it.acerto.alvo + " g" : ""}
                 </span>
               </span>
@@ -40957,7 +40975,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                     </div>
                   );
                 })}
-                {numB(atual.dia.agua) > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginTop: 4 }}><span>💧 Água</span><span>{fmtLitros(numB(atual.dia.agua))} <button onClick={() => mudarDia(diaVer, (d) => Object.assign({}, d, { agua: Math.max(0, numB(d.agua) - 250) }))} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 900, cursor: "pointer" }}>−250</button></span></div>}
+                {numB(atual.dia.agua) > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginTop: 4 }}><span>💧 Água</span><span>{fmtLitros(numB(atual.dia.agua))} <button onClick={() => mudarDia(diaVer, (d) => Object.assign({}, d, { agua: Math.max(0, numB(d.agua) - 250) }))} aria-label="Tirar 250 ml da água do dia" title="Marcou um copo a mais? Tira 250 ml" style={{ background: "none", border: "1.5px solid var(--borda)", borderRadius: 999, padding: "3px 10px", marginLeft: 8, color: "var(--texto)", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>↩ Tirar 250 ml</button></span></div>}
               </div>
             </div>
           )}

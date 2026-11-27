@@ -867,6 +867,17 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("proteina toda junta nao conta como espalhada", false,
     B.janelasDoDia({ dia: colado, treino: null, dorme: 23, agoraMin: 1440 }).lista.find((x) => x.j.id === "proteina").feito);
 
+  // itens soltos anotados juntos somam numa refeicao (2026-11-27y)
+  const soltos = { agua: 0, itens: [
+    { t: t(8, 0), n: "leite", q: 1, k: 140, p: 12, c: 10, g: 7 }, { t: t(8, 2), n: "ovo", q: 1, k: 140, p: 12, c: 1, g: 10 },
+    { t: t(11, 0), n: "whey", q: 1, k: 200, p: 40, c: 3, g: 3 },
+    { t: t(14, 0), n: "frango", q: 1, k: 300, p: 35, c: 0, g: 8 } ] };
+  const ps = B.janelasDoDia({ dia: soltos, treino: null, dorme: 23, agoraMin: 1440 }).lista.find((x) => x.j.id === "proteina").acerto;
+  teste("leite e ovo juntos somam 24 g: cafe, whey e frango sao 3 refeicoes", 3, ps.quantos);
+  const doisWhey = { agua: 0, itens: [{ t: t(8, 0), n: "whey", q: 1, k: 200, p: 40, c: 3, g: 3 }, { t: t(9, 30), n: "shake", q: 1, k: 400, p: 45, c: 30, g: 10 }] };
+  const dw = B.janelasDoDia({ dia: doisWhey, treino: null, dorme: 23, agoraMin: 1440 }).lista.find((x) => x.j.id === "proteina").acerto;
+  teste("o 2o whey 1h30 depois conta junto, e a tela sabe por que", [1, 1, 90], [dw.quantos, dw.perto.length, dw.perto[0].depois]);
+
   // a hora do treino sai do historico (a data do registro e o FIM)
   const h = [{ data: new Date(2026, 10, 26, 19, 0).toISOString(), duracaoMin: 60 }];
   teste("a hora do treino sai do fim menos a duracao", [hora(18), hora(19)],

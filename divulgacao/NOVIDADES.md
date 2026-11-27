@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27y — O copo de água a mais, e a proteína espalhada que se explica
+
+- **Em uma frase:** no Balance, o "−250" ao lado da água virou o botão "↩ Tirar 250 ml", e a "Proteína espalhada no dia" agora junta o que foi anotado junto e diz por que uma dose não contou como outra refeição.
+- **O que mudou:** o número solto parecia um dado (como se 250 ml tivessem saído do corpo), quando na verdade era o botão para desfazer um copo marcado a mais. Agora ele tem contorno e diz o que faz, na lista "O que você comeu" e na água da madrugada. Na proteína espalhada, os itens anotados com até 45 minutos de diferença (whey, leite em pó, farinha) somam como uma refeição só, e quando uma dose vem menos de 2 h e meia depois da anterior a tela avisa que ela contou junto e que com uns 3 h de intervalo viraria outra refeição.
+- **Por que importa para quem treina:** quem marca um copo a mais sem querer corrige em um toque, e ninguém mais se confunde lendo a lista do dia.
+- **Como usar:** Balance › Hoje › na lista do dia, toque em "↩ Tirar 250 ml" ao lado da água.
+- **Ideias de vídeo:** marcar um copo a mais sem querer e desfazer na hora.
+- **Não prometer:** nada além de corrigir o que foi anotado.
+
+---
+
 ## 2026-11-27x — O dia de descanso avaliado na hora certa
 
 - **Em uma frase:** no Balance, o cartão do dia de descanso agora avalia o dia "até agora", e não como se ele já tivesse acabado.

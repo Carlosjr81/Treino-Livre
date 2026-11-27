@@ -2662,7 +2662,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28g";
+const VERSAO_APP = "2026-11-28h";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -39989,7 +39989,7 @@ const ERROS_FOTO_IA = {
   rede: "Sem internet para mandar a foto. Marque o prato abaixo, que funciona sem rede.",
   vazio: "A IA não reconheceu comida nessa foto. Tente com o prato inteiro à vista, de cima, com boa luz.",
   falhou: "A leitura falhou. Tente de novo, ou marque o prato abaixo.",
-  appcheck: "A proteção do Google (App Check) barrou a leitura neste aparelho. Tente de novo em alguns minutos; se continuar, use o jeito de marcar à mão.",
+  get appcheck() { return "A proteção do Google (App Check) barrou a leitura neste aparelho. Tente de novo em alguns minutos; se continuar, use o jeito de marcar à mão." + (typeof ERRO_APPCHECK !== "undefined" && ERRO_APPCHECK ? " (Motivo: " + ERRO_APPCHECK + ")" : ""); },
   vazioTexto: "A IA não achou comida no que você escreveu. Diga o alimento e a quantidade, como: 2 pães com manteiga e 1 café com leite.",
   rotulo: "Não deu para ler a tabela. Fotografe de perto, reta e com luz, só a tabela de informação nutricional.",
   edicao: "A IA não devolveu a imagem editada. Tente outro pedido, ou use um filtro (eles funcionam sem internet).",
@@ -40005,17 +40005,38 @@ const ERROS_FOTO_IA = {
 // Preenchido em 27/11/2026 (chave "Treino Livre site", domínio carlosjr81.github.io)
 const APP_CHECK = { siteKey: "6LeymjUuAAAAAAFOUsPTBQ7xSOnqpDiIsndllleg", appId: "1:668153886319:web:80b2484a05fd6421107f9a" };
 let tokenAppCheckGuardado = null;
+// 2026-11-28h, relato do dono: com o crachá ligado, a foto ficou em "Lendo o
+// prato…" para sempre. O reCAPTCHA pode não responder (o ready ou o execute
+// nunca terminam), e a espera não tinha prazo. Hoje são 8 s no máximo; falhou,
+// a leitura segue sem o crachá e não tenta de novo por 10 min. O motivo fica
+// guardado para o diagnóstico (ERRO_APPCHECK, treinolivre:appcheckErro).
+let ERRO_APPCHECK = "", appCheckFalhouEm = 0;
+function comPrazoAC(p, ms, nome) {
+  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(nome)), ms))]);
+}
 async function tokenAppCheck() {
   if (!APP_CHECK.siteKey || !APP_CHECK.appId) return null;
   if (tokenAppCheckGuardado && tokenAppCheckGuardado.ate - Date.now() > 120000) return tokenAppCheckGuardado.token;
+  if (Date.now() - appCheckFalhouEm < 600000) throw new Error("appcheck");
+  try { return await comPrazoAC(tokenAppCheckBuscar(), 8000, "demorou 8 s"); }
+  catch (e) {
+    appCheckFalhouEm = Date.now();
+    ERRO_APPCHECK = (e && e.message ? e.message : String(e)).slice(0, 200);
+    try { localStorage.setItem("treinolivre:appcheckErro", new Date().toISOString() + " " + ERRO_APPCHECK); } catch (e2) {}
+    throw e;
+  }
+}
+async function tokenAppCheckBuscar() {
+  if (tokenAppCheckGuardado && tokenAppCheckGuardado.ate - Date.now() > 120000) return tokenAppCheckGuardado.token;
   await carregarScript("https://www.google.com/recaptcha/enterprise.js?render=" + encodeURIComponent(APP_CHECK.siteKey));
   const ge = window.grecaptcha && window.grecaptcha.enterprise;
-  if (!ge) throw new Error("appcheck");
-  await new Promise((res) => ge.ready(res));
+  if (!ge) throw new Error("reCAPTCHA não carregou");
+  await comPrazoAC(new Promise((res) => ge.ready(res)), 6000, "reCAPTCHA não ficou pronto");
   const rc = await ge.execute(APP_CHECK.siteKey, { action: "fetch_app_check_token" });
+  if (!rc) throw new Error("reCAPTCHA sem token");
   const r = await fetch("https://content-firebaseappcheck.googleapis.com/v1/projects/" + FIREBASE_ACESSO.projectId + "/apps/" + APP_CHECK.appId +
     ":exchangeRecaptchaEnterpriseToken?key=" + FIREBASE_ACESSO.apiKey, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recaptcha_enterprise_token: rc }) });
-  if (!r.ok) throw new Error("appcheck");
+  if (!r.ok) throw new Error("troca " + r.status + " " + (await r.text().catch(() => "")).slice(0, 120));
   const j = await r.json();
   const ttl = parseFloat(String(j.ttl || "3600")) || 3600;
   tokenAppCheckGuardado = { token: j.token, ate: Date.now() + ttl * 1000 };
@@ -40028,7 +40049,7 @@ async function chamarIA(partes, config, opc) {
   if (!FIREBASE_ACESSO.apiKey) throw new Error("desligada");
   let s = lerSessaoConta();
   if (!s || !s.refresh) throw new Error("semConta");
-  try { s = await tokenValido(s); } catch (e) { throw new Error("rede"); }
+  try { s = await comPrazoAC(tokenValido(s), 15000, "conta"); } catch (e) { throw new Error("rede"); }
   const corpo = JSON.stringify({ contents: [{ role: "user", parts: partes }], generationConfig: config });
   let ac = null;
   // sem o crachá (reCAPTCHA bloqueado, sem rede para ele) tenta assim mesmo:

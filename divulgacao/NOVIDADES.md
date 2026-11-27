@@ -16,6 +16,25 @@
 
 ---
 
+## 2026-11-28h — A leitura da foto não fica mais presa em "Lendo o prato…"
+
+**Em uma frase:** se a proteção do Google demorar a responder, a leitura da foto
+segue assim mesmo, em vez de ficar esperando para sempre.
+
+**O que mudou:** na versão anterior, a foto do prato podia ficar parada em
+"Lendo o prato…". Agora a espera tem prazo, e a leitura continua sozinha.
+
+**Por que importa para quem treina:** anotar o almoço pela foto volta a levar
+segundos.
+
+**Como usar:** Balance › + Comida › 📷 Foto, como sempre.
+
+**Ideias de vídeo:** nenhuma; é um conserto.
+
+**Não prometer:** nada novo; é a correção da versão anterior.
+
+---
+
 ## 2026-11-28g — A IA do app protegida contra cópias
 
 **Em uma frase:** a leitura da foto do prato, do rótulo e da ficha agora mostra

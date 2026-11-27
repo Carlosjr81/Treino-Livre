@@ -7211,6 +7211,14 @@ remédio (ver *A defesa legal*): ali a IA seria o profissional que o app não é
   ela vai sem ele, e só a proteção aplicada a recusa. **Falta o dono voltar a
   Firebase AI Logic para Aplicado** e conferir no celular (a sessão não alcança
   o google.com para testar o reCAPTCHA de verdade).
+- **O crachá tem prazo** (2026-11-28h, relato do dono: a foto ficou em "Lendo
+  o prato…" para sempre na 28g). A espera pelo reCAPTCHA não tinha prazo: hoje
+  são 8 s no total (`comPrazoAC`; o `ready`, 6 s), e falhou, a leitura segue
+  sem o crachá e não tenta de novo por 10 min. O motivo fica em `ERRO_APPCHECK`
+  e `treinolivre:appcheckErro`, e aparece na mensagem "barrou a leitura"
+  (Motivo: …). A renovação da conta também ganhou 15 s. O `sw.js` deixa passar
+  o `www.gstatic.com/recaptcha/`. No navegador, com um reCAPTCHA que nunca fica
+  pronto: a lista apareceu em 6,5 s.
 - **Desaplicado pelo dono em 28/11/2026** (App Check › APIs › Firebase AI Logic
   › Configurar › "Não aplicado (somente monitoramento)"): a IA voltou a aceitar
   pedidos sem o token. **PRAZO: o Google aplica sozinho em 21 de janeiro de

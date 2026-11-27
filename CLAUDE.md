@@ -7051,6 +7051,15 @@ para todos"**.
   até 21:30", com o prazo de verdade. O teste gera as frases e procura
   "atrasado", "já passou da hora", "você deve", "precisa comer".
 - O link do app ganhou `janelas=1`: APK antigo não recebe o plano.
+- **O plano vai sozinho** (2026-11-27f, pedido do dono: "consegue fazer isso
+  por mim?", sobre o toque em "Mandar ao relógio"). O
+  `sincronizarComidaRelogio` sem relógio pareado (`RELOGIO_NO_PULSO`) também
+  sai quando a assinatura do plano do dia (dia + ids e horas dos avisos,
+  `treinolivre:janelasMandadas`) mudou; sai vazio só para cancelar o que foi
+  agendado antes (avisos desligados). Disparam: abrir o Balance (o
+  `puxarRelogio` da troca de seção, com a guarda de 15 s) e mudar avisos,
+  horário do treino ou hora de dormir (`mandarDepois`, no render seguinte,
+  ainda dentro do toque que o Chrome exige). Sem avisos e sem relógio, nada sai.
 - **O número do APK não é sequencial, e adivinhá-lo quebra o link** (achado
   aqui: o `LINK_APK` dizia 197 quando o release já era o 199, e o desta
   publicação saiu 201). Ele é o `run_number` do workflow **App Android**,

@@ -2396,7 +2396,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27e";
+const VERSAO_APP = "2026-11-27f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -39677,6 +39677,14 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
     if (sincronizarRelogio && ehHoje) { sincEm.current = Date.now(); setTimeout(() => sincronizarRelogio(estadoRelogio.current), 120); }
   };
   const mudarPerfil = (m) => setNutricao((n) => Object.assign({}, n, { perfil: Object.assign({}, n.perfil || {}, m) }));
+  // Depois de mudar o plano dos avisos, manda o estado novo já no render
+  // seguinte: ainda dentro do toque, que é o que o Chrome exige para abrir o app.
+  const mandarDepois = useRef(false);
+  useEffect(() => {
+    if (!mandarDepois.current) return;
+    mandarDepois.current = false;
+    if (sincarRef.current && estadoRelogio.current) { sincEm.current = Date.now(); setTimeout(() => sincarRef.current && sincarRef.current(estadoRelogio.current), 120); }
+  });
 
   // Ao abrir a tela e a cada troca de seção: o toque que trouxe a pessoa até
   // aqui é o gesto que o Chrome exige para a página falar com o app.
@@ -39799,7 +39807,12 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
               <CartaoEspacoTreino x={atual} />
               <CartaoJogoBalance x={atual} dias={dias} nutricao={nutricao} hoje={hoje} ehHoje={ehHoje} />
               <CartaoJanelas x={atual} ehHoje={ehHoje} perfil={perfilG}
-                onPerfil={(m) => setNutricao(Object.assign({}, nutricao, { perfil: Object.assign({}, perfilG, m) }))}
+                onPerfil={(m) => {
+                  setNutricao(Object.assign({}, nutricao, { perfil: Object.assign({}, perfilG, m) }));
+                  // mudou o horário, a hora de dormir ou os avisos: o plano novo
+                  // vai ao app Android neste mesmo toque (o efeito logo abaixo)
+                  if ("avisos" in m || "treinoPlano" in m || "dorme" in m) mandarDepois.current = true;
+                }}
                 onMarcar={(id) => setNutricao((p) => {
                   const d = Object.assign({ itens: [], agua: 0 }, (p.dias || {})[diaVer]);
                   const l = Array.isArray(d.janelas) ? d.janelas : [];
@@ -42891,7 +42904,17 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   const sincronizarComidaRelogio = (est, forcar) => {
     if (!est) return;
     if (!COMIDA_APP) { if (forcar) avisar("Atualize o app do celular (Ajustes › App Android) para o relógio receber comida e água."); return; }
-    if (!forcar && !RELOGIO_NO_PULSO) return;
+    // Os avisos das janelas também vão sozinhos, com ou sem relógio
+    // (2026-11-27f, pedido do dono: "consegue fazer isso por mim?" — era
+    // preciso tocar em "Mandar ao relógio" para o app Android agendar). Sai
+    // quando o plano do dia muda (ou é o primeiro do dia), e também quando os
+    // avisos são desligados, para o app cancelar os alarmes.
+    const assin = (est.d || "") + "|" + JSON.stringify((est.jan || []).map((a) => [a.id, a.em]));
+    let ultima = "";
+    try { ultima = localStorage.getItem("treinolivre:janelasMandadas") || ""; } catch (e) {}
+    const planoMudou = assin !== ultima && ((est.jan || []).length > 0 || (!!ultima && ultima.split("|")[1] !== "[]"));
+    if (!forcar && !RELOGIO_NO_PULSO && !planoMudou) return;
+    try { localStorage.setItem("treinolivre:janelasMandadas", assin); } catch (e) {}
     try { store.set(STORAGE_KEY, dadosRef.current); } catch (e) {}
     const d = padraoParaB64Url(b64Codificar(JSON.stringify(est)));
     window.location.href = "intent://comida?d=" + d + "#Intent;scheme=treinolivre;package=" + PACOTE_ANDROID +

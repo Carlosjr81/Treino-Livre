@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27f — Os avisos das janelas se agendam sozinhos
+
+- **Em uma frase:** não é mais preciso tocar em "Mandar ao relógio" para os avisos das janelas dos nutrientes funcionarem no app Android: eles se agendam sozinhos.
+- **O que mudou:** antes, depois de ligar os avisos ou mudar o horário do treino, era preciso tocar em **⌚ Mandar metas, favoritos e shakes ao relógio** para o app Android agendar os avisos do dia. Agora isso acontece sozinho quando você liga os avisos, muda o horário do treino, a duração, os dias ou a hora de dormir, e também na primeira vez que abre o Balance no dia. Desligar os avisos cancela os que estavam agendados. Funciona com ou sem relógio.
+- **Por que importa para quem treina:** aviso que depende de lembrar de apertar um botão é aviso que não chega.
+- **Como usar:** nada a fazer. Basta abrir o Balance uma vez por dia (no app Android) com os avisos ligados.
+- **Ideias de vídeo:** nenhuma específica; é um ajuste de bastidor.
+- **Não prometer:** pelo navegador, sem o app Android, o aviso continua dependendo do celular deixar o navegador acordar.
+
+---
+
 ## 2026-11-27e — O Balance em inglês
 
 - **Em uma frase:** quem usa o app em inglês agora vê o Body Balance inteiro em inglês: os 212 alimentos, as porções, os shakes, as vitaminas, as janelas dos nutrientes, as missões e as medalhas.

@@ -30,7 +30,7 @@ de navegador.
 node testes/rodar.js
 ```
 
-As suítes (2.798 checagens em 27/11/2026) contra o `index.html` da raiz. Prova que a
+As suítes (2.802 checagens em 27/11/2026) contra o `index.html` da raiz. Prova que a
 **lógica** não quebrou. Vale rodar **antes e depois** de qualquer mexida.
 
 ```bash

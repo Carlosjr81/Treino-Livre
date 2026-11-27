@@ -1078,6 +1078,13 @@ console.log("\n--- o dia sem treino (2026-11-27r) ---");
   teste("o que não foi medido (sono, passos) fica fora da conta", [100, false, false], [semMedir.nota, semMedir.itens.some((i) => i.id === "sono"), semMedir.itens.some((i) => i.id === "passos")]);
   const naoAnotou = avaliarDiaSemTreino(dia(0, 0, 3000, 0, "vazio"), { id: "descanso", declarado: true }, {});
   teste("sem anotar a comida, a dieta conta zero", [false, 0], [naoAnotou.anotou, naoAnotou.itens.find((i) => i.id === "dieta").v]);
+  // hoje, com o dia em andamento: comparado com o esperado até agora (2026-11-27x)
+  const meio = { meta: { k: 2200, p: 216, agua: 3500 }, tot: { k: 900, p: 99, agua: 2100, itens: 4 }, status: { id: "errou" } };
+  const agoraParcial = avaliarDiaSemTreino(meio, { id: "descanso", declarado: true }, { objetivo: "perder", fracao: 0.4 });
+  teste("meio do dia, no ritmo: não é \"atrapalhou\"", [true, "bom"], [agoraParcial.parcial, agoraParcial.faixa.id]);
+  teste("o mesmo dia, fechado, julga o dia inteiro", "ruim", avaliarDiaSemTreino(meio, { id: "descanso", declarado: true }, { objetivo: "perder" }).faixa.id);
+  teste("meio do dia, passou da meta: conta mesmo assim", 0, avaliarDiaSemTreino({ meta: meio.meta, tot: { k: 2600, p: 99, agua: 2100, itens: 4 }, status: { id: "errou" } }, { id: "descanso" }, { objetivo: "perder", fracao: 0.4 }).itens.find((i) => i.id === "dieta").v);
+  teste("a fração do dia acordado", [0, 0.5, 1], [fracaoDoDiaAcordado(6 * 60, 23), fracaoDoDiaAcordado(14.5 * 60, 23), fracaoDoDiaAcordado(23 * 60, 23)]);
   teste("dia de treino não é avaliado como dia sem treino", null, avaliarDiaSemTreino(dia(1980, 165, 3100, 6, "certo"), { id: "treinou" }, {}));
   const x = { meta: meta, tot: { itens: 3, agua: 0, p: 0 }, treino: { kcal: 0 }, situacao: { id: "descanso" }, janelas: { total: 0, acertos: 0 }, status: { id: "certo" } };
   const mt = missoesDoDia(x).find((m) => m.id === "treino");

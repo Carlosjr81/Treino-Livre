@@ -266,6 +266,13 @@ puro **O DIA SEM TREINO**, antes do jogo do Balance (coberto em `teste-balance.j
   - **Treinou num dia declarado sem treino**: um efeito no raiz tira a
     declaração (o treino sempre vence), e a meta, a água e as janelas do dia já
     seguiam o treino de verdade.
+- **Hoje é avaliado "até agora"** (`fracaoDoDiaAcordado`, `ext.fracao`,
+  `av.parcial`, 2026-11-27x, relato do dono: o cartão dizia "atrapalhou o
+  resultado" às 14h enquanto o da água dizia "no ritmo"). Com o dia em
+  andamento, proteína, água e passos são comparados com o esperado para a hora
+  (das 7h a uma hora antes de dormir, a régua da água); comer abaixo da meta
+  não conta contra (no bulking, compara com o esperado), passar da meta conta.
+  O cartão diz "Até agora…" e "até agora" no anel. O dia fechado é julgado inteiro.
 
 ## Liberado, instale o app (`InstalarAposLiberar`, `PassosInstalar`, 2026-11-27p)
 

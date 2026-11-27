@@ -2463,7 +2463,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27w";
+const VERSAO_APP = "2026-11-27x";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5084,7 +5084,7 @@ function contasDoBalance(o) {
     const r = Object.assign({}, x, { gastoUsado: g, ajusteCorpo: ajuste, preparo: preparo, diuretico: diuretico, apetite: apetite, meta: m,
       espaco: espacoDoTreino(m, mSem, x.treino), janelas: jan, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens), situacao: situacao });
     const sdP = ((saude && saude.dias) || []).find((y) => y.d === x.d);
-    r.semTreino = avaliarDiaSemTreino(r, situacao, { objetivo: perfil.objetivo, idade: idade, faltasSemana: faltasSemana, sono: sonoDoDia(saude && saude.sono, x.d, numB(x.dia && x.dia.sono)), passos: sdP ? sdP.passos : null });
+    r.semTreino = avaliarDiaSemTreino(r, situacao, { objetivo: perfil.objetivo, idade: idade, faltasSemana: faltasSemana, fracao: x.d === hoje ? fracaoDoDiaAcordado(agoraMin, perfil.dorme) : 1, sono: sonoDoDia(saude && saude.sono, x.d, numB(x.dia && x.dia.sono)), passos: sdP ? sdP.passos : null });
     return r;
   };
   const dias = ultimos.map(comMeta);
@@ -5222,6 +5222,14 @@ function situacaoTreinoDia(o) {
 // relógio) fica fora da conta, em vez de entrar como zero. A falta pesa pouco
 // quando é uma só e mais quando se repete na semana: é o que os estudos de
 // destreino mostram. Nada aqui é bronca: é o que o dia fez.
+// Quanto do dia acordado já passou (a mesma régua do ritmo da água: das 7h até
+// uma hora antes de dormir). Hoje, antes de o dia acabar, a nota do dia sem
+// treino compara com o esperado até agora (2026-11-27x, relato do dono: o
+// cartão do descanso dizia "atrapalhou" às 14h com a água em dia).
+function fracaoDoDiaAcordado(agoraMin, dorme) {
+  const ini = 7 * 60, fim = Math.max(ini + 60, Math.min(24 * 60, (numB(dorme) || 23) * 60) - 60);
+  return Math.max(0, Math.min(1, (numB(agoraMin) - ini) / (fim - ini)));
+}
 const FAIXAS_DIA_SEM_TREINO = [
   { min: 80, id: "bom", nome: "Dia sem treino bem aproveitado", cor: "#4CD137", grito: "Descanso que constrói" },
   { min: 55, id: "medio", nome: "Dia razoável: dá para ajustar", cor: "#FFB21A", grito: "Quase lá" },
@@ -5232,9 +5240,20 @@ function avaliarDiaSemTreino(x, sit, ext) {
   const e = ext || {}, m = x.meta, t = x.tot, ob = e.objetivo;
   const anotou = t.itens >= 2 && t.k >= 300;
   const l = [];
+  // Hoje, com o dia em andamento: as metas viram o esperado até agora
+  const fr = typeof e.fracao === "number" ? Math.max(0, Math.min(1, e.fracao)) : 1;
+  const parcial = fr < 1;
+  const ate = (v) => (parcial ? Math.max(1, v * Math.max(0.05, fr)) : v);
   const add = (id, ic, nome, peso, v, texto, fonte) => l.push({ id: id, ic: ic, nome: nome, peso: peso, v: v, bom: v >= 0.99, ruim: v <= 0.01, texto: texto, fonte: FONTES_DIA_SEM_TREINO[fonte || id] });
   const fmt = (n) => Math.round(Math.abs(n)).toLocaleString("pt-BR");
-  if (!anotou) add("dieta", "\u{1F37D}", "Dieta", 40, 0, "Sem anotação: o dia fica fora da conta, e o que não é medido costuma passar da meta. Anote o que comeu, mesmo depois.");
+  const passouJa = t.k > m.k * 1.05;
+  if (parcial && !passouJa && (!anotou || ob !== "ganhar")) {
+    // Abaixo da meta no meio do dia não é erro: o dia ainda não fechou
+    if (anotou) add("dieta", "\u{1F37D}", "Dieta", 40, 1, "Até agora, " + fmt(t.k) + " de " + fmt(m.k) + " kcal: dentro da meta. O dia ainda não fechou, e a conta final sai à noite.");
+  } else if (parcial && !passouJa && ob === "ganhar") {
+    const rk = t.k / ate(m.k);
+    add("dieta", "\u{1F37D}", "Dieta", 40, rk >= 0.85 ? 1 : rk >= 0.6 ? 0.6 : 0, "Até agora, " + fmt(t.k) + " de " + fmt(m.k) + " kcal (o esperado para esta hora era uns " + fmt(ate(m.k)) + "). No bulking, o dia de descanso também pede a comida da meta.");
+  } else if (!anotou) add("dieta", "\u{1F37D}", "Dieta", 40, 0, "Sem anotação: o dia fica fora da conta, e o que não é medido costuma passar da meta. Anote o que comeu, mesmo depois.");
   else {
     const st = x.status ? x.status.id : "errou", dif = t.k - m.k;
     const v = st === "certo" ? 1 : st === "perto" ? 0.6 : 0;
@@ -5244,20 +5263,24 @@ function avaliarDiaSemTreino(x, sit, ext) {
     else tx = "Ficou " + fmt(dif) + " kcal abaixo da meta" + (ob === "ganhar" ? ": no bulking, o músculo também cresce no dia de descanso, e faltou combustível." : ob === "perder" ? ": abaixo demais, a fome volta mais forte e o músculo sofre." : ".");
     add("dieta", "\u{1F37D}", "Dieta", 40, v, tx);
   }
-  const rp = m.p ? t.p / m.p : 0;
-  add("prot", "\u{1F356}", "Proteína", 20, rp >= 0.9 ? 1 : rp >= 0.7 ? 0.5 : 0, rp >= 0.9 ? Math.round(t.p) + " de " + m.p + " g: o músculo segue se reconstruindo até 48 h depois do treino, e a proteína estava lá."
+  const rp = m.p ? t.p / ate(m.p) : 0;
+  if (parcial) add("prot", "\u{1F356}", "Proteína", 20, rp >= 0.9 ? 1 : rp >= 0.7 ? 0.5 : 0, Math.round(t.p) + " de " + m.p + " g até agora (o esperado para esta hora era uns " + fmt(ate(m.p)) + " g)" +
+    (rp >= 0.9 ? ": no ritmo. O dia de descanso pede a mesma proteína, e ela está vindo." : ": o dia de descanso pede a mesma proteína; ainda dá para espalhar o que falta nas próximas refeições."));
+  else add("prot", "\u{1F356}", "Proteína", 20, rp >= 0.9 ? 1 : rp >= 0.7 ? 0.5 : 0, rp >= 0.9 ? Math.round(t.p) + " de " + m.p + " g: o músculo segue se reconstruindo até 48 h depois do treino, e a proteína estava lá."
     : "Faltaram " + Math.max(0, Math.round(m.p - t.p)) + " g de proteína: o músculo segue se reconstruindo até 48 h depois do treino, e o dia de descanso pede a mesma proteína.");
-  const ra = m.agua ? t.agua / m.agua : 0;
-  add("agua", "\u{1F4A7}", "Água", 15, ra >= 0.9 ? 1 : ra >= 0.6 ? 0.5 : 0, ra >= 0.9 ? "Água em dia." : "Faltou " + Math.max(0, Math.round((m.agua - t.agua) / 100) / 10).toLocaleString("pt-BR") + " L de água para a meta do dia.");
+  const ra = m.agua ? t.agua / ate(m.agua) : 0;
+  const litros = (ml) => (Math.round(ml / 100) / 10).toLocaleString("pt-BR");
+  if (parcial) add("agua", "\u{1F4A7}", "Água", 15, ra >= 0.9 ? 1 : ra >= 0.6 ? 0.5 : 0, litros(t.agua) + " de " + litros(m.agua) + " L até agora (o esperado para esta hora era uns " + litros(ate(m.agua)) + " L)" + (ra >= 0.9 ? ": no ritmo." : ": vale beber um pouco mais nas próximas horas."));
+  else add("agua", "\u{1F4A7}", "Água", 15, ra >= 0.9 ? 1 : ra >= 0.6 ? 0.5 : 0, ra >= 0.9 ? "Água em dia." : "Faltou " + Math.max(0, Math.round((m.agua - t.agua) / 100) / 10).toLocaleString("pt-BR") + " L de água para a meta do dia.");
   if (e.sono && e.sono.h > 0) {
     const sh = e.sono.h, txh = String(sh).replace(".", ",");
     add("sono", "\u{1F634}", "Sono", 15, sh >= 7 ? 1 : sh >= 6 ? 0.5 : 0, sh >= 7 ? txh + " h: o descanso completo é o sono, e ele veio."
       : txh + " h, abaixo das 7 h recomendadas: com sono curto a fome sobe e a recuperação cai, justo no dia de recuperar.");
   }
   if (typeof e.passos === "number" && e.passos > 0) {
-    const alvo = e.idade >= 60 ? 6000 : 8000;
+    const alvoDia = e.idade >= 60 ? 6000 : 8000, alvo = Math.round(ate(alvoDia));
     add("passos", "\u{1F45F}", "Movimento", 10, e.passos >= alvo ? 1 : e.passos >= alvo / 2 ? 0.5 : 0, e.passos.toLocaleString("pt-BR") + " passos" +
-      (e.passos >= alvo ? ": andar no dia sem treino gasta sem cansar." : ": a referência para a sua idade é " + alvo.toLocaleString("pt-BR") + " por dia; uma caminhada leve ajuda o gasto sem atrapalhar a recuperação."));
+      (e.passos >= alvo ? (parcial ? " até agora: no ritmo. Andar no dia sem treino gasta sem cansar." : ": andar no dia sem treino gasta sem cansar.") : ": a referência para a sua idade é " + alvoDia.toLocaleString("pt-BR") + " por dia" + (parcial ? " (uns " + alvo.toLocaleString("pt-BR") + " até esta hora)" : "") + "; uma caminhada leve ajuda o gasto sem atrapalhar a recuperação."));
   }
   if (sit.id === "descanso") add("treino", "\u{1F6CC}", "Descanso", 10, 1,
     sit.semanaFeita ? "Você já fez os " + sit.feitos + " treinos de costume desta semana: hoje o músculo recupera, e é aí que ele cresce."
@@ -5272,7 +5295,7 @@ function avaliarDiaSemTreino(x, sit, ext) {
   const soma = l.reduce((a, i) => a + i.peso, 0);
   const nota = soma ? Math.round((l.reduce((a, i) => a + i.peso * i.v, 0) / soma) * 100) : 0;
   const faixa = FAIXAS_DIA_SEM_TREINO.find((f) => nota >= f.min);
-  return { sit: sit, nota: nota, faixa: faixa, itens: l, anotou: anotou, bons: l.filter((i) => i.bom), ruins: l.filter((i) => i.ruim),
+  return { sit: sit, nota: nota, faixa: faixa, parcial: parcial, itens: l, anotou: anotou, bons: l.filter((i) => i.bom), ruins: l.filter((i) => i.ruim),
     comeu: Math.round(t.k), meta: m.k, prot: Math.round(t.p), protMeta: m.p, agua: Math.round(t.agua), aguaMeta: m.agua,
     sono: e.sono && e.sono.h > 0 ? e.sono.h : null, passos: typeof e.passos === "number" && e.passos > 0 ? e.passos : null, status: x.status };
 }
@@ -40421,12 +40444,15 @@ function CartaoDiaSemTreino({ x, ehHoje, onDeclarar, onResumo, onJuntar }) {
       <div style={{ display: "flex", gap: 14, alignItems: "center", marginTop: 6 }}>
         <div style={{ flexShrink: 0, width: 74, height: 74, borderRadius: 37, border: "5px solid " + f.cor, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
           <div style={{ ...S.numero, fontSize: 26, lineHeight: 1 }}>{av.nota}</div>
-          <div style={{ fontSize: 10, color: "var(--cinza)", fontWeight: 800 }}>de 100</div>
+          <div style={{ fontSize: 10, color: "var(--cinza)", fontWeight: 800 }}>{av.parcial ? "até agora" : "de 100"}</div>
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 900, fontSize: 15.5, color: f.cor, lineHeight: 1.3 }}>{f.nome}</div>
+          <div style={{ fontWeight: 900, fontSize: 15.5, color: f.cor, lineHeight: 1.3 }}>{av.parcial ? (f.id === "bom" ? "Até agora, o dia está no caminho" : f.id === "medio" ? "Até agora, dá para ajustar" : "Até agora, o dia está atrás") : f.nome}</div>
           <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.45, marginTop: 3 }}>
-            {f.id === "bom" ? "Sem treino, o resultado sai da dieta, da água e do sono, e eles ficaram no lugar." : f.id === "medio" ? "Parte do dia ajudou, parte atrapalhou: veja o que ajustar." : "Sem treino e sem seguir o resto, o dia jogou contra o resultado."}
+            {av.parcial ? (f.id === "bom" ? "Comparado com o esperado para esta hora, dieta, água e o resto estão no lugar. A nota final sai quando o dia fecha."
+              : f.id === "medio" ? "Comparado com o esperado para esta hora, parte está no ritmo e parte ficou para trás. Ainda dá tempo: veja o que ajustar."
+              : "Comparado com o esperado para esta hora, o dia ficou para trás. Ainda dá tempo: veja o que ajustar.")
+              : f.id === "bom" ? "Sem treino, o resultado sai da dieta, da água e do sono, e eles ficaram no lugar." : f.id === "medio" ? "Parte do dia ajudou, parte atrapalhou: veja o que ajustar." : "Sem treino e sem seguir o resto, o dia jogou contra o resultado."}
           </div>
         </div>
       </div>
@@ -40441,7 +40467,7 @@ function CartaoDiaSemTreino({ x, ehHoje, onDeclarar, onResumo, onJuntar }) {
         </div>
       )}
       <button onClick={() => setAberto((v) => !v)} aria-expanded={aberto} style={{ background: "none", border: "none", padding: "10px 0 0", color: "var(--marca)", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
-        {aberto ? "▴ Esconder" : "▾ O que ajudou e o que atrapalhou (" + av.itens.length + ")"}
+        {aberto ? "▴ Esconder" : (av.parcial ? "▾ Como está até agora (" : "▾ O que ajudou e o que atrapalhou (") + av.itens.length + ")"}
       </button>
       {aberto && (
         <div style={{ marginTop: 8 }}>

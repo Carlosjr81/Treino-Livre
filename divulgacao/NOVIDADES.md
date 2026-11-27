@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27x — O dia de descanso avaliado na hora certa
+
+- **Em uma frase:** no Balance, o cartão do dia de descanso agora avalia o dia "até agora", e não como se ele já tivesse acabado.
+- **O que mudou:** antes, quem marcava descanso de manhã ou à tarde via "Este dia atrapalhou o resultado", porque a água, a proteína e os passos eram comparados com a meta do dia inteiro. Hoje, enquanto o dia não fecha, cada coisa é comparada com o esperado para aquela hora (a mesma régua do cartão da água), e o cartão diz "Até agora…". Comer abaixo da meta no meio do dia não conta contra; passar da meta conta. A nota final sai quando o dia termina.
+- **Por que importa para quem treina:** o app não dá mais alarme falso no meio do dia, e os dois cartões (descanso e água) passam a dizer a mesma coisa.
+- **Como usar:** Balance › Hoje › marque "Hoje é descanso" e veja "Como está até agora".
+- **Ideias de vídeo:** o dia de descanso às 14h, com tudo no ritmo, e o mesmo dia à noite fechando a nota.
+- **Não prometer:** que a nota mede o resultado do corpo; ela mostra se o dia seguiu a meta.
+
+---
+
 ## 2026-11-27w — Pão e ovo contados, e as pastas de amendoim
 
 - **Em uma frase:** no Balance, o que se conta (pão, ovo, fatia, colher, dosador, pote, lata, copo) agora se anota em unidades, e a pasta de amendoim ganhou quatro tipos.

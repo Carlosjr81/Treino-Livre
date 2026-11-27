@@ -2396,7 +2396,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27d";
+const VERSAO_APP = "2026-11-27e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -38967,13 +38967,13 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
                 })}
               </div>
               {recTipo === "vitamina" && (
-                <button onClick={() => { setRec({ id: "r" + Date.now().toString(36), n: "", ic: "\u{1F379}", agua: 0, itens: [{ a: "leite", g: 250 }] }); setRecNome("Vitamina de "); setRecVezes(1); setRecSalvo(""); }}
+                <button onClick={() => { setRec({ id: "r" + Date.now().toString(36), n: "", ic: "\u{1F379}", agua: 0, itens: [{ a: "leite", g: 250 }] }); setRecNome(IDIOMA === "en" ? "Smoothie: " : "Vitamina de "); setRecVezes(1); setRecSalvo(""); }}
                   style={{ ...S.btnGhost, width: "100%", marginBottom: 8 }}>+ Montar a minha vitamina (começa com o leite)</button>
               )}
               {lista.map((r) => {
                 const z = somaReceita(r);
                 return (
-                  <button key={r.id} onClick={() => { const c = JSON.parse(JSON.stringify(r)); if (c.sug) { c.id = "r" + Date.now().toString(36); delete c.sug; } setRec(c); setRecNome(r.n); setRecVezes(1); setRecSalvo(""); }}
+                  <button key={r.id} onClick={() => { const c = JSON.parse(JSON.stringify(r)); if (c.sug) { c.id = "r" + Date.now().toString(36); delete c.sug; } setRec(c); setRecNome(r.sug && window.traduzirTexto ? window.traduzirTexto(r.n) : r.n); setRecVezes(1); setRecSalvo(""); }}
                     style={{ ...S.card, width: "100%", textAlign: "left", cursor: "pointer", color: "var(--texto)", marginBottom: 8, padding: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 22 }} aria-hidden="true">{r.ic}</span>

@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27e — O Balance em inglês
+
+- **Em uma frase:** quem usa o app em inglês agora vê o Body Balance inteiro em inglês: os 212 alimentos, as porções, os shakes, as vitaminas, as janelas dos nutrientes, as missões e as medalhas.
+- **O que mudou:** a aba Balance era a maior parte do app ainda em português para quem escolheu inglês. Agora estão traduzidos os nomes dos alimentos e das combinações prontas ("Banana smoothie with oats"), as porções ("2 tablespoons (30 g)"), a foto do prato, o catálogo de comparar, as janelas ("Before training", "17:00 to 17:30"), as missões, os níveis, as medalhas, o perfil e as fontes científicas.
+- **Por que importa para quem treina:** quem não lê português conseguia treinar, mas não conseguia controlar a comida. Agora consegue.
+- **Como usar:** ⚙ Ajustes › Preferências › idioma English.
+- **Ideias de vídeo:** nenhuma específica; serve para mostrar que o app também funciona em inglês.
+- **Não prometer:** os números continuam no formato brasileiro (1.566 kcal, 3,1 L); a Central de Ajuda, o painel do criador e algumas telas mais fundas ainda estão em português; a voz do Jarvis fala e ouve em português.
+
+---
+
 ## 2026-11-27d — Vitaminas prontas, o horário do seu treino e a creatina do shake contando
 
 - **Em uma frase:** dá para montar e anotar a vitamina do seu jeito, dizer a hora em que você costuma treinar para as janelas dos nutrientes aparecerem desde cedo, e a creatina que vai dentro do shake agora conta.

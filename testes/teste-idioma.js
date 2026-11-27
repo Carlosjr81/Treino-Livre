@@ -31,6 +31,12 @@ teste("a pergunta 2 do PAR-Q", "Do you feel pain in your chest when you do physi
 teste("as caixas do aceite", true, /^I have read and accept/.test(tr("Li e aceito os Termos de Uso e a Política de Privacidade, e tenho 18 anos ou mais.")));
 
 console.log("\n--- os moldes ---");
+teste("a porção do catálogo", ["2 tablespoons (30 g)", "1 medium (70 g)", "½ unit (70 g)"], [tr("2 colheres de sopa (30 g)"), tr("1 média (70 g)"), tr("½ unidade (70 g)")]);
+teste("porção com palavra sem tradução fica inteira", "3 séries de treino", tr("3 séries de treino") === "3 sets de treino" ? "meia" : tr("3 séries de treino"));
+teste("as partes de uma combinação", "Whole milk 250 ml · Banana 70 g", tr("Leite integral 250 ml · Banana 70 g"));
+teste("Corrigir com nome de alimento", "Fix French bread roll", tr("Corrigir Pão francês"));
+teste("Corrigir numa frase do app sem tradução não vira meia frase", "Corrigir a carga de hoje", tr("Corrigir a carga de hoje"));
+teste("a faixa da janela", "17:00 to 17:30", tr("17:00 às 17:30"));
 teste("contagem com plural", ["1 exercise", "8 exercises", "3 sets"], [tr("1 exercício"), tr("8 exercícios"), tr("3 séries")]);
 teste("o dia da semana", "· Today is Wednesday.", tr("· Hoje é quarta."));
 teste("há quanto tempo", "7 days ago", tr("há 7 dias"));

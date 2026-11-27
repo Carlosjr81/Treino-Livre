@@ -459,6 +459,22 @@ tela do app pelo resultado que a camada já dá.
   **Ainda não traduzidos**: os textos longos da Central de Ajuda, as histórias
   do Monster, Run!, as telas mais fundas (corredor, desafio, conectar
   aparelhos) e o painel do dono.
+- **O Balance em inglês** (2026-11-27e): os 212 alimentos (na mesma ordem do
+  catálogo), as combinações prontas, as porções (`porcaoEn`, `MEDIDAS_EN`:
+  troca as palavras de medida e desiste se sobrar palavra em português), as
+  partes de uma combinação ("Leite integral 250 ml" só com o nome traduzido),
+  janelas, missões, níveis, medalhas, perfil e fontes. "Corrigir X" e "Tirar X"
+  só valem com X traduzido ou nome com maiúscula (alimento), senão seria meia
+  frase. A combinação sugerida já abre com o nome em inglês no campo. **Limite
+  conhecido**: os números seguem o formato do Brasil (1.566 kcal, 3,1 L).
+  **Alimento novo no catálogo ganha a tradução em `TEXTOS_EN`.**
+- **A colheita do que falta** (`testes/colher-ingles.js`): com
+  `--antes testes/firebase-falso.js --antes testes/entrar-dono.js --antes
+  testes/colher-ingles.js`, o app abre em inglês e
+  `--mostrar "JSON.stringify(window.__faltaIngles())"` lista o que continuou em
+  português nas telas percorridas (o filtro pega acento e palavras comuns, então
+  sai também algum falso positivo em inglês). Foi assim que o Balance foi de 245
+  textos em português a zero.
 - Coberto por `teste-idioma.js` (o dicionário, os moldes, "nunca meia
   frase", o carregamento só em inglês, o `sw.js`). No navegador:
   `--antes ingles.js` com `localStorage.setItem("treinolivre:idioma","en")`

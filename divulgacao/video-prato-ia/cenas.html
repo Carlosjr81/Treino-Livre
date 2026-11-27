@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Vídeo: leia o prato com uma foto</title>
+<style>
+  @font-face { font-family: "Jogo"; src: url("../../fonte-resumo.woff2") format("woff2"); }
+  html, body { margin: 0; background: #000; }
+  canvas { display: block; width: 360px; height: 640px; }
+</style>
+</head>
+<body>
+<canvas id="tela" width="1080" height="1920"></canvas>
+<script>
+// As cenas do vídeo de divulgação da leitura do prato pela IA.
+// Tudo é função do tempo (desenhar(t)): o quadro de cada instante sai igual
+// sempre, e o gravar.js pede um por um. As falas e os tempos vêm do roteiro.json.
+const W = 1080, H = 1920;
+const c = document.getElementById("tela").getContext("2d");
+const FONTE = "Jogo, 'Arial Black', sans-serif";
+const EMOJI = "'Noto Color Emoji', 'Apple Color Emoji', sans-serif";
+const ROSA = "#E1306C", CIANO = "#4DEBFF", AMARELO = "#FFD23F", VERDE = "#4CFF8F", VERMELHO = "#FF4D6D";
+const COR = { p: "#FF4D6D", c: "#FFB21A", g: "#B05BFF" };
+let R, IMG = {}, INI = [];
+
+const lim = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const fase = (t, a, b) => lim((t - a) / (b - a));
+const sai = (x) => 1 - Math.pow(1 - x, 3);
+const vai = (x) => x * x * (3 - 2 * x);
+// Bate de longe, passa do ponto e assenta.
+function bate(x) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const e = 1 - Math.pow(2, -9 * x) * Math.cos(x * 11);
+  return e;
+}
+function sorte(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+
+function grad(y0, y1) {
+  const g = c.createLinearGradient(0, y0, 0, y1);
+  g.addColorStop(0, "#FFE45C"); g.addColorStop(0.5, "#FF9A1F"); g.addColorStop(1, "#FF3D8B");
+  return g;
+}
+// Texto no letreiro: o contorno preto atrás, o preenchimento limpo na frente.
+function letreiro(txt, x, y, tam, o = {}) {
+  c.save();
+  c.translate(x, y);
+  if (o.rot) c.rotate(o.rot);
+  if (o.esc != null) c.scale(o.esc, o.esc);
+  c.font = (o.peso || "") + " " + tam + "px " + (o.emoji ? EMOJI : FONTE);
+  c.textAlign = o.alinha || "center";
+  c.textBaseline = "middle";
+  c.globalAlpha *= o.alfa == null ? 1 : o.alfa;
+  if (!o.semContorno) {
+    c.lineJoin = "round";
+    c.lineWidth = tam * 0.22;
+    c.strokeStyle = "#000";
+    c.shadowColor = "rgba(0,0,0,0.6)"; c.shadowOffsetY = tam * 0.08;
+    c.strokeText(txt, 0, 0);
+    c.shadowColor = "transparent";
+  }
+  if (o.brilho) { c.shadowColor = o.brilho; c.shadowBlur = tam * 0.45; }
+  c.fillStyle = o.cor === "grad" ? grad(-tam / 2, tam / 2) : (o.cor || "#fff");
+  c.fillText(txt, 0, 0);
+  c.restore();
+}
+function emoji(e, x, y, tam, o = {}) { letreiro(e, x, y, tam, Object.assign({ emoji: true, semContorno: true }, o)); }
+function caixa(x, y, w, h, r, fill, borda, lw = 4) {
+  c.beginPath(); c.roundRect(x, y, w, h, r);
+  if (fill) { c.fillStyle = fill; c.fill(); }
+  if (borda) { c.lineWidth = lw; c.strokeStyle = borda; c.stroke(); }
+}
+function placa(x, y, w, h, alfa = 1) {
+  c.save(); c.globalAlpha *= alfa;
+  caixa(x + 10, y + 14, w, h, 34, "rgba(0,0,0,0.55)");
+  const g = c.createLinearGradient(x, y, x + w, y + h);
+  g.addColorStop(0, "#FFD23F"); g.addColorStop(0.5, "#FF7A2E"); g.addColorStop(1, ROSA);
+  caixa(x, y, w, h, 34, "#170828", g, 7);
+  c.restore();
+}
+
+// ---------- o fundo: luzes da marca, barras de LED e poeira ----------
+function fundo(t, forte) {
+  const g = c.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#1A0633"); g.addColorStop(0.55, "#0B0418"); g.addColorStop(1, "#05020C");
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  for (const [cx, cy, cor, f] of [[0.2, 0.25, "225,48,108", 0.7], [0.85, 0.7, "77,235,255", 0.9], [0.5, 0.95, "255,154,31", 0.5]]) {
+    const x = W * (cx + 0.12 * Math.sin(t * f)), y = H * (cy + 0.06 * Math.cos(t * f * 1.3));
+    const r = c.createRadialGradient(x, y, 0, x, y, 700);
+    r.addColorStop(0, "rgba(" + cor + ",0.35)"); r.addColorStop(1, "rgba(" + cor + ",0)");
+    c.fillStyle = r; c.fillRect(0, 0, W, H);
+  }
+  // barras de LED correndo de lado
+  c.save(); c.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 14; i++) {
+    const larg = 18 + sorte(i) * 60;
+    const x = ((sorte(i + 9) * W + t * (60 + sorte(i + 3) * 120)) % (W + 200)) - 100;
+    const onda = 0.5 + 0.5 * Math.sin(t * 3 + i);
+    const a = (forte ? 0.2 : 0.08) * onda;
+    const gb = c.createLinearGradient(0, 0, 0, H);
+    const cor = i % 3 === 0 ? "225,48,108" : "77,140,255";
+    gb.addColorStop(0, "rgba(" + cor + ",0)"); gb.addColorStop(0.5, "rgba(" + cor + "," + a + ")"); gb.addColorStop(1, "rgba(" + cor + ",0)");
+    c.fillStyle = gb; c.fillRect(x, 0, larg, H);
+  }
+  c.restore();
+  // pontinhos de LED por cima
+  c.save(); c.fillStyle = "rgba(0,0,0,0.18)";
+  for (let y = 0; y < H; y += 6) c.fillRect(0, y, W, 2);
+  c.restore();
+  // poeira subindo
+  for (let i = 0; i < 40; i++) {
+    const x = sorte(i) * W + 30 * Math.sin(t + i);
+    const y = H - ((sorte(i + 50) * H + t * (40 + sorte(i + 7) * 80)) % H);
+    c.fillStyle = "rgba(255,255,255," + (0.15 + 0.35 * sorte(i + 2)) + ")";
+    c.beginPath(); c.arc(x, y, 2 + 3 * sorte(i + 4), 0, 7); c.fill();
+  }
+}
+
+// raios girando atrás de algo forte
+function raios(x, y, t, alfa, cor = "255,210,63") {
+  c.save(); c.translate(x, y); c.rotate(t * 0.5); c.globalAlpha = alfa;
+  for (let i = 0; i < 16; i++) {
+    c.rotate(Math.PI / 8);
+    const g = c.createLinearGradient(0, 0, 0, -1100);
+    g.addColorStop(0, "rgba(" + cor + ",0.5)"); g.addColorStop(1, "rgba(" + cor + ",0)");
+    c.fillStyle = g; c.beginPath(); c.moveTo(0, 0); c.lineTo(-70, -1100); c.lineTo(70, -1100); c.fill();
+  }
+  c.restore();
+}
+function onda(x, y, lt, cor = "255,255,255") {
+  if (lt < 0 || lt > 0.8) return;
+  const p = lt / 0.8;
+  c.save(); c.strokeStyle = "rgba(" + cor + "," + (1 - p) + ")"; c.lineWidth = 30 * (1 - p) + 2;
+  c.beginPath(); c.arc(x, y, 80 + p * 600, 0, 7); c.stroke(); c.restore();
+}
+function confete(lt, n = 70) {
+  if (lt < 0) return;
+  const cores = [ROSA, AMARELO, CIANO, VERDE, "#FF9A1F", "#B05BFF"];
+  for (let i = 0; i < n; i++) {
+    const x = sorte(i) * W + Math.sin(lt * 3 + i) * 40;
+    const y = -60 + (lt * (500 + sorte(i + 1) * 600)) - sorte(i + 2) * 500;
+    if (y > H + 50 || y < -80) continue;
+    c.save(); c.translate(x, y); c.rotate(lt * (4 + sorte(i) * 6) + i);
+    c.fillStyle = cores[i % cores.length]; c.fillRect(-10, -6, 20, 12); c.restore();
+  }
+}
+function faiscas(x, y, lt, cor = AMARELO) {
+  if (lt < 0 || lt > 0.9) return;
+  for (let i = 0; i < 18; i++) {
+    const ang = i / 18 * Math.PI * 2 + sorte(i);
+    const d = sai(lt / 0.9) * (180 + sorte(i + 3) * 220);
+    c.fillStyle = cor; c.globalAlpha = 1 - lt / 0.9;
+    c.beginPath(); c.arc(x + Math.cos(ang) * d, y + Math.sin(ang) * d, 9 * (1 - lt), 0, 7); c.fill();
+    c.globalAlpha = 1;
+  }
+}
+// o selo "PASSO N" que bate no alto
+function selo(n, lt, titulo) {
+  const e = bate(fase(lt, 0, 0.5));
+  c.save(); c.translate(W / 2, 250); c.rotate(-0.05); c.scale(0.4 + 0.6 * e, 0.4 + 0.6 * e); c.globalAlpha = lim(lt * 4);
+  placa(-300, -78, 600, 156);
+  letreiro("PASSO " + n, 0, 0, 92, { cor: "grad" });
+  c.restore();
+  if (titulo) letreiro(titulo, W / 2, 400, 52, { cor: CIANO, alfa: fase(lt, 0.25, 0.6) });
+}
+
+// ---------- o celular desenhado ----------
+function celular(cx, cy, esc, desenhoTela, lt) {
+  const w = 620, h = 1240;
+  c.save(); c.translate(cx, cy); c.scale(esc, esc);
+  c.shadowColor = "rgba(225,48,108,0.6)"; c.shadowBlur = 80;
+  caixa(-w / 2, -h / 2, w, h, 80, "#0d0d12", "#3a3a48", 10);
+  c.shadowColor = "transparent";
+  c.save();
+  c.beginPath(); c.roundRect(-w / 2 + 22, -h / 2 + 22, w - 44, h - 44, 60); c.clip();
+  c.translate(-w / 2 + 22, -h / 2 + 22);
+  desenhoTela(w - 44, h - 44, lt);
+  c.restore();
+  caixa(-60, -h / 2 + 38, 120, 30, 15, "#000");
+  c.restore();
+}
+function dedo(x, y, lt, quando) {
+  // o dedo chega, aperta e solta
+  const chega = sai(fase(lt, quando - 0.6, quando - 0.1));
+  if (chega <= 0) return;
+  const aperta = lt > quando && lt < quando + 0.25;
+  const dx = x + (1 - chega) * 260, dy = y + (1 - chega) * 340;
+  onda(x, y, lt - quando, "255,255,255");
+  c.save(); c.translate(dx, dy); c.scale(aperta ? 0.88 : 1, aperta ? 0.88 : 1);
+  emoji("👆", 30, 70, 150);
+  c.restore();
+}
+function telaApp(w, h, conteudo, lt) {
+  c.fillStyle = "#0B0418"; c.fillRect(0, 0, w, h);
+  const g = c.createLinearGradient(0, 0, w, 0);
+  g.addColorStop(0, ROSA); g.addColorStop(1, "#FF9A1F");
+  c.fillStyle = "rgba(20,8,40,0.95)"; c.fillRect(0, 0, w, 150);
+  c.fillStyle = g; c.fillRect(0, 146, w, 5);
+  letreiro("Balance", 40, 95, 46, { alinha: "left", cor: "#fff" });
+  conteudo(w, h, lt);
+}
+function corpo(x, y, esc, cheio, camadas) {
+  const partes = [
+    ["c", 60, 25, 17], ["r", 53, 40, 14, 10, 4], ["r", 33, 48, 54, 92, 18], ["r", 17, 52, 15, 88, 7.5],
+    ["r", 88, 52, 15, 88, 7.5], ["r", 36, 128, 22, 124, 10], ["r", 62, 128, 22, 124, 10],
+  ];
+  c.save(); c.translate(x, y); c.scale(esc, esc);
+  const forma = () => { c.beginPath(); for (const p of partes) { if (p[0] === "c") { c.moveTo(p[1] + p[3], p[2]); c.arc(p[1], p[2], p[3], 0, 7); } else c.roundRect(p[1], p[2], p[3], p[4], p[5]); } };
+  forma(); c.fillStyle = "rgba(255,255,255,0.08)"; c.fill();
+  c.save(); forma(); c.clip();
+  const base = 252, topo = 8, alt = base - topo;
+  let yy = base;
+  const tot = camadas.reduce((a, k) => a + k.v, 0) || 1;
+  for (const k of camadas) {
+    const hh = k.v / tot * cheio * alt;
+    yy -= hh; c.fillStyle = k.cor; c.fillRect(0, yy, 120, hh + 0.6);
+  }
+  c.restore();
+  forma(); c.lineWidth = 3; c.strokeStyle = ROSA; c.shadowColor = ROSA; c.shadowBlur = 20; c.stroke();
+  c.restore();
+}
+
+// ---------- as cenas ----------
+const CENAS = {
+  gancho(lt, d) {
+    const e1 = bate(fase(lt, 0.1, 0.7));
+    c.save(); c.translate(W / 2, 640); c.rotate(-0.06); c.scale(e1 * 1, e1 * 1);
+    letreiro("ANOTAR", 0, -110, 150, { cor: "#fff" });
+    letreiro("COMIDA?", 0, 60, 150, { cor: "#fff" });
+    c.restore();
+    // "chato" carimbado em vermelho
+    const e2 = bate(fase(lt, 0.9, 1.4));
+    if (lt > 0.9) {
+      c.save(); c.translate(W / 2, 880); c.rotate(0.12); c.scale(e2, e2);
+      caixa(-230, -75, 460, 150, 20, null, VERMELHO, 12);
+      letreiro("CHATO!", 0, 0, 100, { cor: VERMELHO });
+      c.restore();
+    }
+    if (lt > 2.0) {
+      const l = lt - 2.0;
+      // o flash da câmera
+      c.fillStyle = "rgba(255,255,255," + lim(1 - l / 0.35) + ")"; c.fillRect(0, 0, W, H);
+      raios(W / 2, 1300, lt, 0.6 * lim(l * 2));
+      onda(W / 2, 1300, l);
+      const e3 = bate(fase(l, 0, 0.55));
+      emoji("📸", W / 2, 1180, 260 * e3);
+      c.save(); c.translate(W / 2, 1430); c.rotate(-0.04); c.scale(e3, e3);
+      letreiro("SÓ UMA FOTO!", 0, 0, 118, { cor: "grad", brilho: "rgba(255,61,139,0.8)" });
+      c.restore();
+      faiscas(W / 2, 1300, l);
+    }
+  },
+  problema(lt) {
+    letreiro("O jeito antigo", W / 2, 300, 80, { cor: CIANO, alfa: fase(lt, 0, 0.3) });
+    const itens = [["⚖️", "Pesar tudo"], ["🔎", "Procurar um por um"], ["⌨️", "Digitar no almoço"]];
+    itens.forEach(([ic, txt], i) => {
+      const a = 0.3 + i * 1.0;
+      const e = sai(fase(lt, a, a + 0.4));
+      if (e <= 0) return;
+      const y = 560 + i * 330;
+      c.save(); c.translate((1 - e) * (i % 2 ? 900 : -900), 0);
+      caixa(110, y - 120, 860, 240, 40, "rgba(30,12,50,0.92)", "rgba(255,255,255,0.25)", 4);
+      emoji(ic, 230, y, 130);
+      letreiro(txt, 320, y, 44, { alinha: "left" });
+      c.restore();
+      const x = bate(fase(lt, a + 0.55, a + 0.9));
+      if (x > 0) {
+        c.save(); c.translate(915, y); c.rotate(-0.2); c.scale(x * 0.7, x * 0.7);
+        c.strokeStyle = VERMELHO; c.lineWidth = 26; c.lineCap = "round";
+        c.beginPath(); c.moveTo(-70, -70); c.lineTo(70, 70); c.moveTo(70, -70); c.lineTo(-70, 70); c.stroke();
+        c.restore();
+      }
+    });
+    if (lt > 3.6) {
+      const l = lt - 3.6, e = bate(fase(l, 0, 0.5));
+      const tre = l < 0.5 ? Math.sin(l * 80) * 14 * (1 - l * 2) : 0;
+      emoji("😩", W / 2 + tre, 1620, 220 * e);
+    }
+  },
+  passo1(lt) {
+    selo(1, lt, "Abra o Balance");
+    const entra = sai(fase(lt, 0.2, 0.8));
+    celular(W / 2, 1200 + (1 - entra) * 900, 0.95, (w, h, l) => telaApp(w, h, (w, h) => {
+      // o corpo do dia e os botões
+      corpo(w / 2 - 120, 220, 1.0, 0.35, [{ v: 20, cor: COR.p }, { v: 50, cor: COR.c }, { v: 15, cor: COR.g }]);
+      letreiro("1.240 de 2.300 kcal", w / 2, 520, 34, { cor: "#fff" });
+      const ap = lt > 1.6 && lt < 1.9;
+      caixa(60, 600, w - 120, 120, 30, ap ? "#ff6b9d" : ROSA);
+      letreiro("+ Comida", w / 2, 660, 50, { cor: "#fff", semContorno: true });
+      caixa(60, 750, w - 120, 110, 30, "rgba(255,255,255,0.08)", "rgba(255,255,255,0.2)", 3);
+      letreiro("💧 +250 ml", w / 2, 805, 40, { cor: "#fff", semContorno: true });
+      // a janela de anotar sobe
+      const sob = sai(fase(lt, 2.0, 2.5));
+      if (sob > 0) {
+        c.fillStyle = "rgba(0,0,0," + 0.6 * sob + ")"; c.fillRect(0, 0, w, h);
+        const y0 = h - sob * 700;
+        caixa(0, y0, w, 760, 50, "#1A0A2E", ROSA, 4);
+        letreiro("Anotar", w / 2, y0 + 80, 50, { cor: "#fff" });
+        const abas = [["🔎", "Buscar"], ["📷", "Foto"], ["✏️", "Manual"]];
+        abas.forEach(([ic, nm], i) => {
+          const x = 30 + i * ((w - 60) / 3), ww = (w - 60) / 3 - 16;
+          const sel = i === 1 && lt > 3.6;
+          caixa(x, y0 + 160, ww, 200, 30, sel ? ROSA : "rgba(255,255,255,0.08)", sel ? "#fff" : "rgba(255,255,255,0.25)", sel ? 6 : 3);
+          emoji(ic, x + ww / 2, y0 + 230, 70);
+          letreiro(nm, x + ww / 2, y0 + 315, 30, { cor: "#fff", semContorno: true });
+        });
+      }
+    }, l), lt);
+    dedo(W / 2, 1200 - 620 * 0.95 + (22 + 660) * 0.95, lt, 1.6);
+    dedo(W / 2, 1200 + (1240 / 2 - 22 - 700 + 260 - 22) * 0.95 - 30, lt, 3.6);
+  },
+  passo2(lt) {
+    selo(2, lt, "Foto na hora ou da galeria");
+    const entra = sai(fase(lt, 0, 0.4));
+    celular(W / 2, 1200, 0.95 * (0.9 + 0.1 * entra), (w, h) => {
+      c.fillStyle = "#000"; c.fillRect(0, 0, w, h);
+      // o visor da câmera mostrando o prato, com zoom chegando
+      const z = 1.6 + 0.25 * Math.sin(lt * 0.8);
+      const iw = IMG.prato.width, ih = IMG.prato.height;
+      const sh = ih, sw = sh * (w / (h - 300));
+      c.save(); c.beginPath(); c.rect(0, 80, w, h - 380); c.clip();
+      const dw = w * z, dh = dw * ih / iw;
+      c.drawImage(IMG.prato, w / 2 - dw * 0.47, 80 + (h - 380) / 2 - dh / 2, dw, dh);
+      c.restore();
+      // a mira
+      c.strokeStyle = "rgba(255,255,255,0.8)"; c.lineWidth = 6;
+      const m = 70, x0 = 60, y0 = 160, x1 = w - 60, y1 = h - 380;
+      for (const [x, y, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) {
+        c.beginPath(); c.moveTo(x, y + sy * m); c.lineTo(x, y); c.lineTo(x + sx * m, y); c.stroke();
+      }
+      // os botões de baixo
+      const ap = lt > 2.2 && lt < 2.45;
+      c.fillStyle = "#fff"; c.beginPath(); c.arc(w / 2, h - 170, ap ? 70 : 82, 0, 7); c.fill();
+      c.strokeStyle = "#000"; c.lineWidth = 8; c.beginPath(); c.arc(w / 2, h - 170, 64, 0, 7); c.stroke();
+      const gal = lt > 3.4;
+      caixa(40, h - 230, 150, 120, 26, gal ? ROSA : "rgba(255,255,255,0.15)", gal ? "#fff" : null, 5);
+      emoji("🖼️", 115, h - 170, 60);
+      letreiro(gal ? "Galeria" : "", 115, h - 75, 26, { cor: "#fff", semContorno: true });
+      if (lt > 2.2) { c.fillStyle = "rgba(255,255,255," + lim(1 - (lt - 2.2) / 0.4) + ")"; c.fillRect(0, 0, w, h); }
+    }, lt);
+    dedo(W / 2, 1200 + (1240 / 2 - 22 - 170) * 0.95 - 22, lt, 2.2);
+    if (lt > 2.2) { letreiro("CLICK!", 820, 620, 90, { cor: "grad", rot: 0.15, esc: bate(fase(lt, 2.2, 2.7)) }); faiscas(W / 2, 1720, lt - 2.2, "#fff"); }
+    if (lt > 3.4) letreiro("ou escolha da galeria", W / 2, 1880 - 40, 44, { cor: CIANO, alfa: fase(lt, 3.4, 3.8) });
+  },
+  passo3(lt, d) {
+    selo(3, lt, "A IA lê o prato");
+    // a foto grande, tremendo de leve
+    const iw = IMG.prato.width, ih = IMG.prato.height;
+    const z = 1.0 + 0.04 * lt;
+    const dw = 1180 * z, dh = dw * ih / iw, x = W / 2 - dw / 2, y = 930 - dh / 2;
+    c.save();
+    caixa(x - 8, y - 8, dw + 16, dh + 16, 30, null, CIANO, 8);
+    c.beginPath(); c.roundRect(x, y, dw, dh, 24); c.clip();
+    c.drawImage(IMG.prato, x, y, dw, dh);
+    // a grade e a varredura
+    const vy = y + (((lt - 0.4) * 0.9) % 1) * dh;
+    if (lt > 0.4 && lt < 5.0) {
+      c.fillStyle = "rgba(77,235,255,0.10)";
+      for (let gx = x; gx < x + dw; gx += 60) c.fillRect(gx, y, 2, dh);
+      for (let gy = y; gy < y + dh; gy += 60) c.fillRect(x, gy, dw, 2);
+      const g = c.createLinearGradient(0, vy - 120, 0, vy);
+      g.addColorStop(0, "rgba(77,235,255,0)"); g.addColorStop(1, "rgba(77,235,255,0.55)");
+      c.fillStyle = g; c.fillRect(x, vy - 120, dw, 120);
+      c.fillStyle = "#fff"; c.fillRect(x, vy - 3, dw, 6);
+    }
+    c.restore();
+    if (lt > 0.4 && lt < 1.6) letreiro("✨ Lendo o prato…", W / 2, 1360, 60, { cor: "#fff", alfa: 0.6 + 0.4 * Math.sin(lt * 10) });
+    // as etiquetas de cada item
+    R.prato.forEach((it, i) => {
+      const a = 1.6 + i * 0.6;
+      const e = bate(fase(lt, a, a + 0.45));
+      if (e <= 0) return;
+      const px = x + it.x * dw, py = y + it.y * dh;
+      onda(px, py, lt - a, "77,235,255");
+      c.fillStyle = CIANO; c.beginPath(); c.arc(px, py, 14, 0, 7); c.fill();
+      const ly = 1330 + Math.floor(i / 2) * 115, lx = i % 2 ? 790 : 290;
+      if (lt > a + 0.2) {
+        c.strokeStyle = "rgba(77,235,255,0.7)"; c.lineWidth = 3;
+        c.beginPath(); c.moveTo(px, py); c.lineTo(lx, ly - 50); c.stroke();
+      }
+      c.save(); c.translate(lx, ly); c.scale(e, e);
+      caixa(-235, -50, 470, 100, 50, "rgba(11,4,24,0.94)", CIANO, 5);
+      emoji(it.ic, -170, 2, 58);
+      letreiro(it.nome.replace(" de porco assado", "").replace(" pronta", "").replace(" cozido", "").replace(" branco", ""), 25, 2, 40, { cor: "#fff" });
+      c.restore();
+    });
+    if (lt > 5.4) letreiro("6 ITENS!", W / 2, 560, 110, { cor: "grad", rot: -0.06, esc: bate(fase(lt, 5.4, 5.9)), brilho: "rgba(255,61,139,0.8)" });
+  },
+  passo4(lt) {
+    selo(4, lt, "Confira e ajuste os gramas");
+    R.prato.forEach((it, i) => {
+      const a = 0.3 + i * 0.25;
+      const e = sai(fase(lt, a, a + 0.4));
+      if (e <= 0) return;
+      const y = 520 + i * 160;
+      const edit = i === 0 && lt > 3.0 && lt < 5.2;
+      c.save(); c.translate((1 - e) * 1100, 0);
+      caixa(70, y - 70, 940, 140, 34, edit ? "rgba(225,48,108,0.25)" : "rgba(30,12,50,0.94)", edit ? ROSA : "rgba(255,255,255,0.22)", edit ? 6 : 3);
+      emoji("✅", 130, y, 54);
+      emoji(it.ic, 210, y, 62);
+      letreiro(it.nome.replace(" de porco assado", " de porco"), 260, y - 22, 30, { alinha: "left", cor: "#fff", semContorno: true });
+      // os gramas sobem do zero
+      let g = Math.round(it.g * sai(fase(lt, a + 0.2, a + 1.2)));
+      if (i === 0 && lt > 3.6) g = lt > 4.3 ? 200 : 190;
+      const k = Math.round(it.k / it.g * g);
+      letreiro(g + " g", 260, y + 28, 36, { alinha: "left", cor: CIANO, semContorno: true });
+      letreiro(k + " kcal", 980, y, 46, { alinha: "right", cor: "grad" });
+      if (edit) {
+        caixa(560, y - 40, 80, 80, 20, "rgba(255,255,255,0.15)"); letreiro("−", 600, y, 50, { cor: "#fff", semContorno: true });
+        caixa(660, y - 40, 80, 80, 20, ROSA); letreiro("+", 700, y, 50, { cor: "#fff", semContorno: true });
+      }
+      c.restore();
+    });
+    dedo(700, 560, lt, 3.6);
+    dedo(700, 560, lt, 4.3);
+    if (lt > 5.0) {
+      const e = bate(fase(lt, 5.0, 5.5));
+      c.save(); c.translate(W / 2, 1520); c.rotate(-0.04); c.scale(e, e);
+      placa(-450, -90, 900, 180);
+      letreiro("Calorias da tabela do app ✓", 0, 0, 50, { cor: "#fff" });
+      c.restore();
+    }
+  },
+  passo5(lt) {
+    selo(5, lt, "Um toque e está no seu dia");
+    const ap = lt > 1.0 && lt < 1.25;
+    const eb = sai(fase(lt, 0.2, 0.6));
+    c.save(); c.translate(W / 2, 600); c.globalAlpha = 1 - fase(lt, 3.4, 3.7); c.scale(eb * (ap ? 0.92 : 1), eb * (ap ? 0.92 : 1));
+    c.shadowColor = ROSA; c.shadowBlur = 50;
+    const g = c.createLinearGradient(-400, 0, 400, 0); g.addColorStop(0, ROSA); g.addColorStop(1, "#FF9A1F");
+    caixa(-400, -85, 800, 170, 85, g);
+    c.shadowColor = "transparent";
+    letreiro("✓ Anotar 6 itens", 0, 0, 62, { cor: "#fff" });
+    c.restore();
+    dedo(W / 2, 600, lt, 1.0);
+    if (lt > 1.0) {
+      const l = lt - 1.0;
+      const enche = sai(fase(l, 0.1, 2.4));
+      raios(380, 1270, lt, 0.35);
+      corpo(380 - 175, 880, 2.9 * 0.5 * 2, enche * 0.85, [{ v: R.total.p * 4, cor: COR.p }, { v: R.total.c * 4, cor: COR.c }, { v: R.total.g * 9, cor: COR.g }]);
+      // o número sobe
+      const k = Math.round(R.total.kcal * sai(fase(l, 0.1, 2.0)));
+      letreiro(k.toLocaleString("pt-BR"), 790, 1060, 150, { cor: "grad", rot: -0.06, brilho: "rgba(255,61,139,0.7)" });
+      letreiro("kcal", 790, 1170, 56, { cor: "#fff" });
+      const macros = [["Proteína", R.total.p, COR.p], ["Carbo", R.total.c, COR.c], ["Gordura", R.total.g, COR.g]];
+      macros.forEach(([n, v, cor], i) => {
+        const e = bate(fase(l, 1.0 + i * 0.35, 1.5 + i * 0.35));
+        if (e <= 0) return;
+        c.save(); c.translate(790, 1300 + i * 130); c.scale(e, e);
+        caixa(-210, -50, 420, 100, 50, "rgba(11,4,24,0.94)", cor, 6);
+        letreiro(v + " g " + n, 0, 2, 40, { cor: "#fff" });
+        c.restore();
+      });
+      confete(l - 1.8);
+      if (l > 2.6) letreiro("NO SEU DIA!", W / 2, 600, 110, { cor: "grad", rot: -0.05, esc: bate(fase(l, 2.6, 3.1)), brilho: "rgba(255,61,139,0.8)" });
+    }
+  },
+  vantagem(lt) {
+    letreiro("O que muda na sua vida", W / 2, 260, 62, { cor: CIANO, alfa: fase(lt, 0, 0.3) });
+    const ff = [["⏱️", "EM SEGUNDOS"], ["⚖️", "SEM BALANÇA"], ["🔎", "SEM BUSCA"]];
+    ff.forEach(([ic, txt], i) => {
+      const a = 0.2 + i * 0.7, e = bate(fase(lt, a, a + 0.5));
+      if (e <= 0) return;
+      const y = 470 + i * 230;
+      c.save(); c.translate(W / 2, y); c.rotate(i % 2 ? 0.03 : -0.03); c.scale(e, e);
+      placa(-420, -90, 840, 180);
+      emoji(ic, -300, 4, 100);
+      letreiro(txt, 70, 4, 72, { cor: "grad" });
+      c.restore();
+      faiscas(W / 2, y, lt - a);
+    });
+    // o medidor: déficit ou superávit
+    if (lt > 2.6) {
+      const l = lt - 2.6, e = sai(fase(l, 0, 0.5));
+      c.save(); c.globalAlpha = e;
+      letreiro("Seu dia:", W / 2, 1150, 56, { cor: "#fff" });
+      const x0 = 140, x1 = 940, y = 1270;
+      const g = c.createLinearGradient(x0, 0, x1, 0);
+      g.addColorStop(0, CIANO); g.addColorStop(0.5, VERDE); g.addColorStop(1, VERMELHO);
+      caixa(x0, y - 30, x1 - x0, 60, 30, g);
+      letreiro("DÉFICIT", x0, y + 90, 40, { alinha: "left", cor: CIANO });
+      letreiro("SUPERÁVIT", x1, y + 90, 40, { alinha: "right", cor: VERMELHO });
+      const p = 0.5 + 0.35 * Math.sin(l * 2.2) * Math.exp(-l * 0.5) - 0.12 * sai(fase(l, 2, 3.5));
+      const px = x0 + p * (x1 - x0);
+      c.fillStyle = "#fff"; c.beginPath(); c.moveTo(px, y - 40); c.lineTo(px - 30, y - 90); c.lineTo(px + 30, y - 90); c.fill();
+      c.restore();
+    }
+    if (lt > 5.0) {
+      const e = bate(fase(lt, 5.0, 5.5));
+      c.save(); c.translate(W / 2, 1560); c.rotate(-0.04); c.scale(e, e);
+      letreiro("NENHUMA REFEIÇÃO", 0, -55, 70, { cor: "#fff" });
+      letreiro("ESQUECIDA", 0, 45, 90, { cor: "grad", brilho: "rgba(255,61,139,0.7)" });
+      c.restore();
+    }
+  },
+  dica(lt) {
+    const e = bate(fase(lt, 0.1, 0.6));
+    c.save(); c.translate(W / 2, 380); c.rotate(-0.05); c.scale(e, e);
+    caixa(-300, -80, 600, 160, 30, AMARELO);
+    letreiro("⚠ DICA", 0, 4, 90, { cor: "#1A0633", semContorno: true });
+    c.restore();
+    // a gota de óleo caindo no prato
+    const iw = IMG.prato.width, ih = IMG.prato.height, dw = 900, dh = dw * ih / iw;
+    c.save(); c.globalAlpha = fase(lt, 0.3, 0.8);
+    c.beginPath(); c.roundRect(W / 2 - dw / 2, 1060 - dh / 2, dw, dh, 24); c.clip();
+    c.drawImage(IMG.prato, W / 2 - dw / 2, 1060 - dh / 2, dw, dh);
+    c.restore();
+    for (let i = 0; i < 3; i++) {
+      const l = (lt - 0.8 - i * 0.55);
+      if (l < 0) continue;
+      const q = (l % 1.6) / 1.6;
+      const y = 600 + sai(lim(q * 1.4)) * 420;
+      if (q < 0.72) emoji("💧", W / 2 - 120 + i * 120, y, 90);
+      else onda(W / 2 - 120 + i * 120, 1020, (q - 0.72) * 2, "255,210,63");
+    }
+    emoji("🫒", 180, 760, 140 * bate(fase(lt, 0.5, 1)));
+    if (lt > 1.6) {
+      const e2 = bate(fase(lt, 1.6, 2.1));
+      c.save(); c.translate(W / 2, 1390); c.scale(e2, e2);
+      letreiro("Óleo e molho", 0, -60, 90, { cor: "grad" });
+      letreiro("quase não aparecem na foto", 0, 40, 50, { cor: "#fff" });
+      c.restore();
+    }
+    if (lt > 2.8) {
+      const e3 = bate(fase(lt, 2.8, 3.3));
+      c.save(); c.translate(W / 2, 1570); c.rotate(-0.04); c.scale(e3, e3);
+      letreiro("CONFIRA E ACRESCENTE!", 0, 0, 66, { cor: AMARELO });
+      c.restore();
+    }
+  },
+  fim(lt) {
+    raios(W / 2, 760, lt, 0.55);
+    onda(W / 2, 760, lt - 0.2);
+    const e = bate(fase(lt, 0.15, 0.8));
+    const lw = 560 * e, lh = lw * IMG.logo.height / IMG.logo.width;
+    if (lw > 1) {
+      c.save(); c.shadowColor = "rgba(225,48,108,0.8)"; c.shadowBlur = 60;
+      c.drawImage(IMG.logo, W / 2 - lw / 2, 760 - lh / 2, lw, lh);
+      c.restore();
+    }
+    // o brilho passando por cima do logo
+    if (lt > 1.0) {
+      const p = ((lt - 1.0) % 2.0) / 0.8;
+      if (p < 1) {
+        c.save(); c.globalCompositeOperation = "lighter";
+        const x = W / 2 - 400 + p * 800;
+        const g = c.createLinearGradient(x - 80, 0, x + 80, 0);
+        g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(0.5, "rgba(255,255,255,0.35)"); g.addColorStop(1, "rgba(255,255,255,0)");
+        c.fillStyle = g; c.fillRect(W / 2 - 300, 760 - 400, 600, 800); c.restore();
+      }
+    }
+    const e2 = bate(fase(lt, 0.9, 1.4));
+    c.save(); c.translate(W / 2, 1240); c.rotate(-0.05); c.scale(e2, e2);
+    placa(-430, -90, 860, 180);
+    letreiro("BODY BALANCE", 0, 4, 96, { cor: "grad" });
+    c.restore();
+    letreiro("Leia o prato com uma foto", W / 2, 1400, 52, { cor: CIANO, alfa: fase(lt, 1.4, 1.8) });
+    if (lt > 2.0) {
+      const e3 = bate(fase(lt, 2.0, 2.5));
+      c.save(); c.translate(W / 2, 1580); c.scale(e3, e3);
+      const g = c.createLinearGradient(-380, 0, 380, 0); g.addColorStop(0, "#833AB4"); g.addColorStop(0.5, ROSA); g.addColorStop(1, "#FCAF45");
+      caixa(-380, -75, 760, 150, 75, g);
+      letreiro("Siga @carlos.jr.81", 0, 4, 58, { cor: "#fff" });
+      c.restore();
+    }
+    confete(lt - 0.3, 90);
+  },
+};
+
+// a legenda: as palavras acendem no ritmo da fala
+function legenda(txt, lt, dur) {
+  const palavras = txt.split(" ");
+  const fim = Math.max(0.5, dur - 0.7);
+  const n = Math.min(palavras.length, Math.floor(lim(lt / fim) * palavras.length) + 1);
+  c.font = "600 44px 'Arial', sans-serif";
+  const linhas = []; let l = "";
+  palavras.forEach((p, i) => { const tt = l ? l + " " + p : p; if (c.measureText(tt).width > 900) { linhas.push(l); l = p; } else l = tt; });
+  linhas.push(l);
+  const y0 = H - 100 - (linhas.length - 1) * 56;
+  c.save();
+  caixa(60, y0 - 50, W - 120, linhas.length * 56 + 44, 26, "rgba(0,0,0,0.62)");
+  let k = 0;
+  linhas.forEach((ln, j) => {
+    const ws = ln.split(" ");
+    let x = W / 2 - c.measureText(ln).width / 2;
+    c.textAlign = "left"; c.textBaseline = "middle";
+    ws.forEach((w) => {
+      c.fillStyle = k < n ? "#fff" : "rgba(255,255,255,0.35)";
+      if (k === n - 1) c.fillStyle = AMARELO;
+      c.fillText(w, x, y0 + j * 56);
+      x += c.measureText(w + " ").width; k++;
+    });
+  });
+  c.restore();
+}
+
+function cenaEm(t) {
+  let ini = 0;
+  for (let i = 0; i < R.cenas.length; i++) {
+    const d = R.cenas[i].dur;
+    if (t < ini + d || i === R.cenas.length - 1) return { i, lt: t - ini, d };
+    ini += d;
+  }
+}
+const FORTES = { gancho: 1, passo3: 1, passo5: 1, vantagem: 1, fim: 1 };
+window.desenhar = function (t) {
+  const { i, lt, d } = cenaEm(t);
+  const cena = R.cenas[i];
+  c.save();
+  // o tremor da entrada de cada cena
+  if (lt < 0.3) c.translate(Math.sin(lt * 90) * 18 * (1 - lt / 0.3), Math.cos(lt * 70) * 12 * (1 - lt / 0.3));
+  fundo(t, FORTES[cena.id]);
+  // a entrada: zoom de perto
+  const z = 1 + 0.12 * (1 - sai(fase(lt, 0, 0.35)));
+  c.translate(W / 2, H / 2); c.scale(z, z); c.translate(-W / 2, -H / 2);
+  CENAS[cena.id](lt, d);
+  c.restore();
+  // a cortina em diagonal na troca de cena
+  if (i > 0 && lt < 0.35) {
+    const p = lt / 0.35;
+    c.save(); c.fillStyle = ROSA; c.globalAlpha = 1 - p;
+    c.beginPath(); c.moveTo(p * W * 1.6 - 400, 0); c.lineTo(p * W * 1.6 + 200, 0); c.lineTo(p * W * 1.6 - 400 - 600, H); c.lineTo(p * W * 1.6 - 1600, H); c.fill();
+    c.fillStyle = "rgba(255,255,255," + (0.5 * (1 - p)) + ")"; c.fillRect(0, 0, W, H);
+    c.restore();
+  }
+  if (cena.fala && window.LEGENDA !== false) legenda(cena.legenda || cena.fala, lt, d);
+  // a marca no canto
+  c.save(); c.globalAlpha = cena.id === "fim" ? 0 : 0.9;
+  const lw = 150, lh = lw * IMG.logo.height / IMG.logo.width;
+  c.drawImage(IMG.logo, W - lw - 40, 40, lw, lh);
+  c.restore();
+};
+window.duracao = () => R.cenas.reduce((a, k) => a + k.dur, 0);
+function carregar(src) { return new Promise((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = erro; i.src = src; }); }
+window.pronto = (async () => {
+  R = await (await fetch("roteiro.json")).json();
+  IMG.prato = await carregar("prato.jpg");
+  IMG.logo = await carregar("../../logo-treino-livre.webp");
+  await document.fonts.load("80px Jogo");
+  await document.fonts.load("80px 'Noto Color Emoji'", "📸");
+  return true;
+})();
+// Aberto à mão, a página toca sozinha (para conferir).
+if (!navigator.webdriver) window.pronto.then(() => { const t0 = performance.now(); (function q() { desenhar(((performance.now() - t0) / 1000) % duracao()); requestAnimationFrame(q); })(); });
+</script>
+</body>
+</html>

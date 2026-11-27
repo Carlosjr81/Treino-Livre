@@ -1,0 +1,114 @@
+{
+  "titulo": "Leia o prato com uma foto · Treino Livre",
+  "cenas": [
+    {
+      "id": "gancho",
+      "dur": 4.5,
+      "fala": "Anotar o que você come é chato? Agora é só uma foto."
+    },
+    {
+      "id": "problema",
+      "dur": 6,
+      "fala": "Pesar tudo, procurar alimento por alimento, digitar no meio do almoço... ninguém aguenta isso todo dia."
+    },
+    {
+      "id": "passo1",
+      "dur": 5.5,
+      "fala": "Passo um: no Treino Livre, abra o Balance, toque em mais comida e depois em foto.",
+      "legenda": "Passo um: no Treino Livre, abra o Balance, toque em + Comida e depois em 📷 Foto."
+    },
+    {
+      "id": "passo2",
+      "dur": 5,
+      "fala": "Passo dois: tire a foto do prato na hora, ou escolha uma da galeria."
+    },
+    {
+      "id": "passo3",
+      "dur": 7.5,
+      "fala": "Passo três: a inteligência artificial olha o prato e reconhece cada item: arroz, lombo, batata palha, ovo, melão e gelatina."
+    },
+    {
+      "id": "passo4",
+      "dur": 7.5,
+      "fala": "Passo quatro: confira. Os gramas já vêm preenchidos, você ajusta se quiser, e as calorias saem da tabela do app."
+    },
+    {
+      "id": "passo5",
+      "dur": 6,
+      "fala": "Passo cinco: um toque em anotar. Setecentas e oitenta calorias e cinquenta e uma gramas de proteína, direto no seu dia.",
+      "legenda": "Passo cinco: um toque em Anotar. 782 calorias e 51 g de proteína, direto no seu dia."
+    },
+    {
+      "id": "vantagem",
+      "dur": 7.5,
+      "fala": "Em segundos, sem balança e sem busca, você sabe se o dia está no déficit ou no superávit, e não esquece nenhuma refeição."
+    },
+    {
+      "id": "dica",
+      "dur": 5.5,
+      "fala": "Uma dica: o óleo e o molho quase não aparecem na foto. Confira e acrescente."
+    },
+    {
+      "id": "fim",
+      "dur": 5.5,
+      "fala": "Treino Livre, Body Balance. Me segue no Instagram, arroba carlos ponto jr ponto oitenta e um.",
+      "legenda": "Treino Livre, Body Balance. Me segue no Instagram: @carlos.jr.81"
+    }
+  ],
+  "prato": [
+    {
+      "nome": "Arroz branco",
+      "ic": "🍚",
+      "g": 180,
+      "k": 230,
+      "x": 0.47,
+      "y": 0.7
+    },
+    {
+      "nome": "Lombo de porco assado",
+      "ic": "🍖",
+      "g": 100,
+      "k": 210,
+      "x": 0.53,
+      "y": 0.42
+    },
+    {
+      "nome": "Batata palha",
+      "ic": "🍟",
+      "g": 30,
+      "k": 163,
+      "x": 0.31,
+      "y": 0.5
+    },
+    {
+      "nome": "Ovo cozido",
+      "ic": "🥚",
+      "g": 50,
+      "k": 73,
+      "x": 0.42,
+      "y": 0.22
+    },
+    {
+      "nome": "Melão",
+      "ic": "🍈",
+      "g": 150,
+      "k": 44,
+      "x": 0.65,
+      "y": 0.13
+    },
+    {
+      "nome": "Gelatina pronta",
+      "ic": "🍮",
+      "g": 100,
+      "k": 62,
+      "x": 0.21,
+      "y": 0.15
+    }
+  ],
+  "total": {
+    "kcal": 782,
+    "p": 51,
+    "c": 92,
+    "g": 23
+  }
+}

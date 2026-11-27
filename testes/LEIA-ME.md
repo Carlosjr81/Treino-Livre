@@ -93,7 +93,9 @@ Precisa de Node.js. Nenhuma dependência: não há `package.json`, não há
 | `teste-alvo` | onde cai a próxima frase do Jarvis, e a alternância do bi-set |
 | `teste-rota` | o percurso na rua: filtro do GPS, distância em cordas, parciais, subida, pausa e tela apagada |
 
-Eles **não substituem** o roteiro manual do `CLAUDE.md`. Provam que a lógica
+Eles **não substituem** o teste no aparelho: o roteiro do que ainda não foi
+conferido num celular e num relógio está em **`testes/ROTEIRO-APARELHO.md`**,
+e o roteiro manual completo no `CLAUDE.md`. Provam que a lógica
 não quebrou; não provam que a tela funciona. Câmera, microfone e service
 worker continuam exigindo um aparelho de verdade.
 

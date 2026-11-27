@@ -7242,13 +7242,11 @@ remédio (ver *A defesa legal*): ali a IA seria o profissional que o app não é
   celular dele leu os 6 itens sem a linha 🛡 (o crachá chegou). **Daqui da
   sessão a IA não responde mais** (os testes não têm crachá): o teste de
   modelo novo é no celular do dono. O prazo de 21/01/2027 deixou de valer.
-- **Desaplicado pelo dono em 28/11/2026** (App Check › APIs › Firebase AI Logic
-  › Configurar › "Não aplicado (somente monitoramento)"): a IA voltou a aceitar
-  pedidos sem o token. **PRAZO: o Google aplica sozinho em 21 de janeiro de
-  2027.** Antes disso o dono precisa criar a chave do reCAPTCHA Enterprise,
-  registrar o app da Web no App Check e mandar o ID da chave e o ID do app (o
-  passo a passo está no `firebase/LEIA-ME.md`), e eles entram no `APP_CHECK`.
-  Sem isso, nesse dia toda a IA do app para de novo. Lembre o dono disso.
+- **Histórico**: antes da chave, o dono tinha desaplicado a proteção (a IA
+  voltou sem token, com o Google prometendo aplicar sozinho em 21/01/2027).
+  Isso foi resolvido: a chave e o app entraram no `APP_CHECK` (28g) e a
+  proteção foi **aplicada de novo** e conferida no celular do dono (a foto da
+  28k leu os 6 itens, ~715 kcal, com a proteção valendo).
 - O `sw.js` deixa a IA, o App Check e o reCAPTCHA passarem direto.
 - Coberto por `teste-balance.js` (o JSON embrulhado, o texto com teto, o
   rótulo que confere e o que não confere, a ficha com o que não existe).

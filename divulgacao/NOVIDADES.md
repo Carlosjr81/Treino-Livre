@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27z — Foto do prato que vira a lista do que você comeu
+
+- **Em uma frase:** no Balance, você fotografa o prato e a inteligência artificial estima os gramas de cada alimento e já preenche a lista para anotar.
+- **O que mudou:** em Anotar › 📷 Foto apareceu "✨ Ler o prato pela foto". A IA usa o prato e o talher como régua, reconhece o que tem dentro e fora do prato (a fruta, a sobremesa, o copo) e devolve cada alimento com os gramas. As calorias saem da tabela do próprio app. Antes de anotar, você confere a lista, corrige os gramas e tira o que não comeu; um toque anota tudo. O jeito de marcar o prato à mão continua embaixo, para quem não quer mandar foto. Entraram também lombo e pernil de porco assados, batata palha, melão e gelatina.
+- **Por que importa para quem treina:** anotar o almoço do refeitório deixa de ser procurar cinco alimentos um por um: é uma foto e uma conferida.
+- **Como usar:** Balance › Hoje › 📷 Foto do prato › "📷 Fotografar e ler o prato", confira os gramas e toque em "✓ Anotar no dia".
+- **Ideias de vídeo:** a bandeja do refeitório fotografada e a lista aparecendo com os gramas; corrigir um item e anotar.
+- **Não prometer:** que a foto acerta o peso exato (é uma estimativa, e a gordura do preparo não aparece na foto); que o app guarda a foto (não guarda); que é avaliação de nutricionista.
+
+---
+
 ## 2026-11-27y — O copo de água a mais, e a proteína espalhada que se explica
 
 - **Em uma frase:** no Balance, o "−250" ao lado da água virou o botão "↩ Tirar 250 ml", e a "Proteína espalhada no dia" agora junta o que foi anotado junto e diz por que uma dose não contou como outra refeição.

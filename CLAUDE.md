@@ -43,6 +43,8 @@ Leia esta seção antes de propor qualquer mudança de arquitetura.
    **Exceção única, decidida com o dono:** o ao vivo do *Desafio* passa por um
    retransmissor MQTT público e gratuito (sem conta, sem dados guardados por
    nós, sem localização). Tudo nele continua funcionando por link sem ele.
+   O Firebase do login (ver *Login com aprovação*) e o Gemini da foto do prato
+   (ver *A foto do prato lida pela IA*) foram as outras, também pedidas por ele.
 3. **Arquivos estáticos que abrem direto.** `index.html` precisa funcionar
    sozinho; nada de imports de módulos locais.
 4. **Português em tudo.** Nomes de variáveis, funções, comentários e textos de
@@ -6981,9 +6983,9 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
   Lose It, Cal AI e Appediet achou 250 a 345 kcal a menos por refeição, quase
   sempre na gordura. Aqui a foto é o **método do prato**: a pessoa marca o que
   tem e quanto do prato ocupa (⅛ a ¾, prato P/M/G), o app converte em gramas
-  (`gPrato` de cada alimento) e pergunta do óleo e do molho. Sem servidor
-  nem chave de API, não há modelo de visão; se um dia houver, ele só
-  preencheria as marcações.
+  (`gPrato` de cada alimento) e pergunta do óleo e do molho. **Desde
+  2026-11-27z há também a leitura pela IA** (ver *A foto do prato lida pela
+  IA*), acima do método do prato, que continua para quem não quer mandar foto.
 - **Os dados** (primeiro script): `ALIMENTOS_BR` (210 alimentos e suplementos: farinhas de arroz, mandioca, trigo, aveia, milho, amêndoas, coco e linhaça, polvilho e amido; maltodextrina, dextrose, waxy maize, palatinose, gel, hipercalórico, whey isolado, caseína, albumina, proteína vegetal, creatina, BCAA, glutamina e outros; mais carboidratos, proteínas, frutas, doces, pratos e bebidas; o campo `b` são palavras a mais para a busca, e `GRUPOS_ALIMENTO` são os filtros por grupo na janela de anotar, que `teste-balance.js` cobra que cubram todo `cat`. Antes eram 58 alimentos brasileiros,
   porção caseira, kcal e macros pela TACO; `liq` para as bebidas, `alc`
   para o álcool), `RAPIDOS_RELOGIO`, `CORES_BALANCE` (proteína #FF4D6D,
@@ -7125,6 +7127,44 @@ baixo** ("Balance", ícone `balanca`), e tudo cruzado com o resto do app.
   e o corpo passando da meta. **Não validado num aparelho**: o relógio (a tela
   dividida, a de comida, a fila) e a parte nativa do celular foram só
   compilados pelo Actions.
+
+### A foto do prato lida pela IA (`LeituraIAPrato`, `lerPratoPelaIA`, `FOTO_IA`, 2026-11-27z)
+
+Pedido do dono, com o print do Gemini estimando os gramas do prato dele pelo
+tamanho do prato: "quero isso na hora que envio a foto no app, e que já
+preencha o que eu comi". No Balance › Anotar › 📷 Foto, o quadro
+"✨ Ler o prato pela foto" vem antes do método do prato.
+
+- **Quem lê é o Gemini pelo Firebase AI Logic** (provedor Gemini Developer
+  API, plano Spark), por REST, sem o SDK: `firebasevertexai.googleapis.com/
+  v1beta/projects/<projeto>/models/<modelo>:generateContent`, com a chave
+  pública (`x-goog-api-key`) e o token da conta (`Authorization: Firebase`).
+  Sem conta aberta (porteiro desligado ou sem login), não há leitura.
+  **Ligar é passo do dono no console** (`firebase/LEIA-ME.md`); desligado, o
+  Google responde 403 e a tela diz "ainda não foi ligada". A sessão na nuvem
+  alcança o endereço: depois de ligado, dá para conferir com um pedido de
+  texto (sem foto) e acertar `FOTO_IA.modelos` (o 404 passa para o seguinte).
+- **A IA só diz o que é e quanto pesa**: a resposta é JSON com esquema
+  (`pedidoPratoIA`: o catálogo inteiro vai no pedido, com os ids), conferida
+  campo a campo (`lerRespostaPratoIA`: gramas de 1 a 1.500, até 12 itens,
+  id que não existe e sem kcal sai). **As calorias saem da tabela do app**
+  (`itensDaLeituraIA`, em gramas, `md: "gramas"`, `de: "foto-ia"`); só o
+  que não está no catálogo entra com os valores da IA, marcado "(estimado
+  pela foto)" e refeito na proporção se a pessoa mudar os gramas.
+- **Nada é anotado sem conferir**: a lista vem com os gramas editáveis, o ✓
+  de cada item, o aviso do que a IA não teve certeza e o lembrete do óleo e
+  do molho (o teste do NIH de 2026: foto erra para menos, na gordura). Um
+  toque em "✓ Anotar N itens no dia".
+- **A foto vai ao Google e não é guardada pelo app**: a tela e a
+  `privacidade.html` dizem isso (no plano gratuito o Google pode usar os
+  pedidos para melhorar os modelos). Quem não quer, usa o método do prato.
+- Entraram no catálogo os do prato do dono que faltavam: lombo e pernil de
+  porco assados, batata palha, melão, gelatina e gelatina diet.
+- Coberto por `teste-balance.js`. No navegador, com uma IA de mentira: a
+  foto vai com o token, a lista aparece (arroz 160 g, lombo 100 g, batata
+  palha 35 g, ovo, melão, gelatina, ~763 kcal) e os seis itens entram no dia.
+  **Não validado com o Gemini de verdade** (o Firebase AI Logic ainda não foi
+  ligado no projeto) **nem num celular.**
 
 ### Ajustes do Body Balance (2026-11-25k e 25l)
 

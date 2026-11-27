@@ -1930,6 +1930,9 @@ const ALIMENTOS_BR = [
   { id: "frango", nome: "Frango grelhado (peito)", cat: "proteina", por: "1 filé médio (100 g)", gr: 100, k: 159, p: 32.0, c: 0, g: 2.5, gPrato: 480, ic: "\u{1F357}", un: "filé", unG: 100 },
   { id: "frango-frito", nome: "Frango frito (coxa ou sobrecoxa)", cat: "gordura", por: "1 pedaço (100 g)", gr: 100, k: 260, p: 26.0, c: 4.0, g: 15.0, gPrato: 480, ic: "\u{1F357}", un: "pedaço", unG: 100 },
   { id: "peixe", nome: "Peixe grelhado (tilápia)", cat: "proteina", por: "1 filé (100 g)", gr: 100, k: 128, p: 26.0, c: 0, g: 2.6, gPrato: 450, ic: "\u{1F41F}", un: "filé", unG: 100 },
+  { id: "lombo-porco", nome: "Lombo de porco assado", cat: "proteina", por: "1 fatia média (100 g)", gr: 100, k: 210, p: 35.7, c: 0, g: 6.4, gPrato: 500, ic: "\u{1F356}", b: "suino carne de porco bisteca", un: "fatia", unG: 100 },
+  { id: "pernil-assado", nome: "Pernil de porco assado", cat: "proteina", por: "1 fatia média (100 g)", gr: 100, k: 262, p: 32.1, c: 0, g: 13.9, gPrato: 500, ic: "\u{1F356}", b: "suino carne de porco", un: "fatia", unG: 100 },
+  { id: "batata-palha", nome: "Batata palha", cat: "carbo", por: "1 punhado (25 g)", gr: 25, k: 136, p: 1.4, c: 12.8, g: 9.2, gPrato: 120, ic: "\u{1F35F}", b: "batata frita palha" },
   { id: "ovo", nome: "Ovo cozido", cat: "proteina", por: "1 unidade (50 g)", gr: 50, k: 73, p: 6.7, c: 0.3, g: 4.8, gPrato: 0, ic: "\u{1F95A}", un: "ovo", unG: 50 },
   // Mexido conta como o ovo: a manteiga ou o óleo da frigideira entra à parte
   // (na combinação "pão com ovos mexidos" ela já está), senão contaria em dobro.
@@ -1992,6 +1995,9 @@ const ALIMENTOS_BR = [
   { id: "oleo", nome: "Óleo (soja, milho, girassol)", cat: "gordura", por: "1 colher de sopa (13 ml)", gr: 13, k: 117, p: 0, c: 0, g: 13.0, gPrato: 0, ic: "\u{1FAD7}", b: "oleo de soja canola girassol milho fritura frigideira", un: "colher de sopa", unG: 13 },
   { id: "azeite", nome: "Azeite de oliva", cat: "gordura", por: "1 colher de sopa (13 ml)", gr: 13, k: 117, p: 0, c: 0, g: 13.0, gPrato: 0, ic: "\u{1FAD2}", b: "azeite oliva extra virgem oleo de oliva", un: "colher de sopa", unG: 13 },
   // frutas
+  { id: "melao", nome: "Melão", cat: "fruta", por: "1 fatia (100 g)", gr: 100, k: 29, p: 0.7, c: 7.5, g: 0, f: 0.3, ig: 65, gPrato: 0, ic: "\u{1F348}", un: "fatia", unG: 100 },
+  { id: "gelatina", nome: "Gelatina pronta", cat: "doce", por: "1 copinho (100 g)", gr: 100, k: 62, p: 1.5, c: 14.0, g: 0, gPrato: 0, ic: "\u{1F36E}", b: "sobremesa refeitorio", un: "copinho", unG: 100 },
+  { id: "gelatina-diet", nome: "Gelatina diet pronta", cat: "doce", por: "1 copinho (100 g)", gr: 100, k: 9, p: 1.5, c: 0.7, g: 0, gPrato: 0, ic: "\u{1F36E}", b: "zero sobremesa", un: "copinho", unG: 100 },
   { id: "banana", nome: "Banana", cat: "fruta", por: "1 média (70 g)", gr: 70, k: 69, p: 0.9, c: 18.0, g: 0.1, f: 1.4, ig: 51, gPrato: 0, ic: "\u{1F34C}", un: "unidade", unG: 70 },
   { id: "maca", nome: "Maçã", cat: "fruta", por: "1 média (130 g)", gr: 130, k: 73, p: 0.4, c: 19.5, g: 0.2, f: 1.7, ig: 36, gPrato: 0, ic: "\u{1F34E}" },
   { id: "laranja", nome: "Laranja", cat: "fruta", por: "1 média (180 g)", gr: 180, k: 86, p: 1.8, c: 21.0, g: 0.2, f: 2, ig: 43, gPrato: 0, ic: "\u{1F34A}" },
@@ -2463,7 +2469,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27y";
+const VERSAO_APP = "2026-11-27z";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4824,6 +4830,75 @@ function itensDoPrato(partes, tamanho, comOleo) {
   });
   if (comOleo && itens.length) itens.push(itemDeAlimento(ALIMENTOS_BR.find((x) => x.id === "oleo"), comOleo, "foto"));
   return itens;
+}
+// ---- A foto do prato lida pela IA (2026-11-27z, pedido do dono: "calcular a
+// quantidade de comida pelo tamanho do prato e já preencher o que eu comi").
+// A IA (Gemini, pelo Firebase AI Logic) olha a foto, usa o prato e o talher
+// como régua e devolve cada alimento com os gramas e o id do catálogo. O app
+// NÃO anota sozinho: mostra a lista para conferir e corrigir os gramas, e a
+// conta das calorias continua saindo da tabela do app (a IA só diz o que é e
+// quanto). Alimento fora do catálogo entra com o que a IA estimou, marcado.
+const FOTO_IA = { modelos: ["gemini-2.5-flash", "gemini-2.5-flash-lite"], ladoMax: 1024, qualidade: 0.8, maxItens: 12 };
+function pedidoPratoIA(catalogo) {
+  const lista = (catalogo || []).map((a) => a.id + " = " + a.nome + (a.por ? " [" + a.por + "]" : "")).join("\n");
+  const texto = "Você recebe a foto de uma refeição brasileira. Estime o peso em gramas de cada alimento visível, " +
+    "dentro e fora do prato (fruta, sobremesa, bebida na bandeja). Use o prato como régua de escala " +
+    "(prato raso comum: uns 26 cm de diâmetro, área útil de uns 20 cm) e o talher como régua de altura. " +
+    "Gramas do alimento como está (cozido, pronto), sem o recipiente. Para cada alimento, escolha o id do " +
+    "catálogo abaixo que mais combina (o jeito de preparo importa: frito, cozido, grelhado); se nenhum combina, " +
+    "deixe o id vazio e estime kcal, proteína (p), carboidrato (c) e gordura (g) para aqueles gramas. " +
+    "Não junte alimentos diferentes num item só. Se algo parece frito ou com molho, diga no campo obs. " +
+    "Responda só o JSON.\n\nCATÁLOGO (id = nome [porção]):\n" + lista;
+  return {
+    texto: texto,
+    config: { responseMimeType: "application/json", temperature: 0.2, responseSchema: {
+      type: "OBJECT", properties: {
+        prato: { type: "STRING" },
+        itens: { type: "ARRAY", items: { type: "OBJECT", properties: {
+          id: { type: "STRING" }, nome: { type: "STRING" }, gramas: { type: "NUMBER" },
+          kcal: { type: "NUMBER" }, p: { type: "NUMBER" }, c: { type: "NUMBER" }, g: { type: "NUMBER" },
+          certeza: { type: "STRING", enum: ["alta", "media", "baixa"] }, obs: { type: "STRING" } },
+          required: ["nome", "gramas"] } } },
+      required: ["itens"] } },
+  };
+}
+// A resposta é dado vindo de fora: conferida campo a campo, como todo link.
+function lerRespostaPratoIA(texto, catalogo) {
+  let j;
+  try { j = JSON.parse(String(texto || "").replace(/^\s*```(json)?/i, "").replace(/```\s*$/, "")); } catch (e) { return null; }
+  const brutos = Array.isArray(j) ? j : Array.isArray(j && j.itens) ? j.itens : null;
+  if (!brutos) return null;
+  const num = (x, mx) => { const v = typeof x === "number" ? x : parseFloat(String(x || "").replace(",", ".")); return isFinite(v) && v > 0 ? Math.min(mx, v) : 0; };
+  const txt = (x, n) => String(x == null ? "" : x).replace(/[<>]/g, "").trim().slice(0, n);
+  const out = [];
+  brutos.slice(0, FOTO_IA.maxItens).forEach((b) => {
+    if (!b || typeof b !== "object") return;
+    const gramas = Math.round(num(b.gramas, 1500));
+    if (!(gramas >= 1)) return;
+    const a = (catalogo || []).find((x) => x.id === txt(b.id, 40));
+    const certeza = ["alta", "media", "baixa"].indexOf(b.certeza) >= 0 ? b.certeza : "media";
+    if (a && numB(a.gr) > 0) { out.push({ a: a.id, nome: a.nome, ic: a.ic, gramas: gramas, certeza: certeza, obs: txt(b.obs, 80) }); return; }
+    const k = Math.round(num(b.kcal, 3000));
+    if (!(k > 0)) return;
+    out.push({ a: "", nome: txt(b.nome, 60) || "Alimento", ic: "\u{1F37D}", gramas: gramas, certeza: certeza, obs: txt(b.obs, 80),
+      k: k, p: Math.round(num(b.p, 300) * 10) / 10, c: Math.round(num(b.c, 500) * 10) / 10, g: Math.round(num(b.g, 300) * 10) / 10 });
+  });
+  return { prato: txt(j && j.prato, 80), itens: out };
+}
+// Os itens do dia a partir da lista conferida. Do catálogo, os gramas viram
+// porções pela tabela do app; fora dele, os valores da IA na proporção dos
+// gramas que a pessoa deixou (ela pode ter corrigido).
+function itensDaLeituraIA(lista, catalogo) {
+  return (lista || []).filter((x) => x && x.gramas > 0).map((x) => {
+    const a = x.a && (catalogo || []).find((c) => c.id === x.a);
+    if (a) {
+      const qt = quantidadeComida(a, "gramas", 0, x.gramas, 1);
+      return Object.assign({}, itemDeAlimento(a, qt.q, "foto-ia"), { vz: 1, gm: qt.gm, qtx: qt.texto, md: "gramas" });
+    }
+    const f = x.g0 > 0 ? x.gramas / x.g0 : 1;
+    return { n: x.nome + " (estimado pela foto)", ic: x.ic || "\u{1F37D}", q: 1, k: Math.round(numB(x.k) * f), p: Math.round(numB(x.p) * f * 10) / 10,
+      c: Math.round(numB(x.c) * f * 10) / 10, g: Math.round(numB(x.g) * f * 10) / 10, alc: 0, liq: 0, de: "foto-ia", qtx: Math.round(x.gramas) + " g (estimado)" };
+  });
 }
 function itemDeAlimento(a, q, de) {
   return { a: a.id, n: a.nome, ic: a.ic, q: Math.round(q * 100) / 100, k: a.k, p: a.p, c: a.c, g: a.g, alc: a.alc || 0, liq: a.liq || 0, por: a.por, de: de || "app" };
@@ -39379,6 +39454,123 @@ function JanelaCatalogo({ falta, recentes, inicial, onAnotar, onFechar }) {
   );
 }
 
+// A chamada à IA: Firebase AI Logic com o provedor Gemini Developer API (o
+// mesmo projeto e a mesma chave pública do login; quem protege é a restrição
+// da chave ao site e a conta logada). Ligar é passo do dono no console
+// (firebase/LEIA-ME.md). Sem conta, não há leitura: o porteiro é a régua.
+const ERROS_FOTO_IA = {
+  semConta: "A leitura pela foto precisa da sua conta do Treino Livre aberta neste aparelho.",
+  desligada: "A leitura pela foto ainda não foi ligada no app. Enquanto isso, marque o prato abaixo.",
+  limite: "A IA está com muitos pedidos agora. Tente de novo em um minuto, ou marque o prato abaixo.",
+  rede: "Sem internet para mandar a foto. Marque o prato abaixo, que funciona sem rede.",
+  vazio: "A IA não reconheceu comida nessa foto. Tente com o prato inteiro à vista, de cima, com boa luz.",
+  falhou: "A leitura falhou. Tente de novo, ou marque o prato abaixo.",
+};
+async function lerPratoPelaIA(blob) {
+  if (!FIREBASE_ACESSO.apiKey) throw new Error("desligada");
+  let s = lerSessaoConta();
+  if (!s || !s.refresh) throw new Error("semConta");
+  try { s = await tokenValido(s); } catch (e) { throw new Error("rede"); }
+  const b64 = await blobParaBase64(blob);
+  const ped = pedidoPratoIA(ALIMENTOS_BR);
+  const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ inlineData: { mimeType: "image/jpeg", data: b64 } }, { text: ped.texto }] }], generationConfig: ped.config });
+  let ultimo = "falhou";
+  for (const m of FOTO_IA.modelos) {
+    let r;
+    try {
+      r = await fetch("https://firebasevertexai.googleapis.com/v1beta/projects/" + FIREBASE_ACESSO.projectId + "/models/" + m + ":generateContent", {
+        method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": FIREBASE_ACESSO.apiKey, "Authorization": "Firebase " + s.idToken }, body: corpo });
+    } catch (e) { throw new Error("rede"); }
+    if (r.ok) {
+      const j = await r.json().catch(() => null);
+      const partes = (((j && j.candidates) || [])[0] || {}).content;
+      const texto = ((partes && partes.parts) || []).map((p) => p.text || "").join("");
+      const lido = lerRespostaPratoIA(texto, ALIMENTOS_BR);
+      if (!lido || !lido.itens.length) throw new Error("vazio");
+      return lido;
+    }
+    const msg = await r.text().catch(() => "");
+    if (r.status === 404) { ultimo = "falhou"; continue; }
+    if (r.status === 429) throw new Error("limite");
+    if (r.status === 403 && /disabled|not been used|not enabled|PERMISSION_DENIED/i.test(msg)) throw new Error("desligada");
+    ultimo = "falhou";
+  }
+  throw new Error(ultimo);
+}
+// A conferência: a lista vinda da foto, com os gramas para corrigir, antes de
+// ir para o dia. Nada é anotado sem o toque.
+function LeituraIAPrato({ refeicao, onAdd }) {
+  const [estado, setEstado] = useState("pronto");
+  const [erro, setErro] = useState("");
+  const [lista, setLista] = useState([]);
+  const [prato, setPrato] = useState("");
+  const [foto, setFoto] = useState(null);
+  useEffect(() => () => { if (foto) URL.revokeObjectURL(foto); }, [foto]);
+  const ler = async (arq) => {
+    if (!arq) return;
+    setErro(""); setEstado("lendo"); setLista([]);
+    try {
+      const b = await reduzirImagem(arq, FOTO_IA.ladoMax, FOTO_IA.qualidade);
+      if (foto) URL.revokeObjectURL(foto);
+      setFoto(URL.createObjectURL(b));
+      const r = await lerPratoPelaIA(b);
+      setPrato(r.prato || "");
+      setLista(r.itens.map((x, i) => Object.assign({}, x, { uid: i + "-" + x.nome, g0: x.gramas, ok: true })));
+      setEstado("lido");
+    } catch (e) {
+      setErro(ERROS_FOTO_IA[e && e.message] || ERROS_FOTO_IA.falhou);
+      setEstado("erro");
+    }
+  };
+  const marcados = lista.filter((x) => x.ok && x.gramas > 0);
+  const itens = itensDaLeituraIA(marcados, ALIMENTOS_BR);
+  const total = itens.reduce((a, it) => a + valorItem(it).k, 0);
+  const kDe = (x) => { const it = itensDaLeituraIA([x], ALIMENTOS_BR)[0]; return it ? valorItem(it).k : 0; };
+  const mudar = (uid, d) => setLista((l) => l.map((x) => (x.uid === uid ? Object.assign({}, x, d) : x)));
+  return (
+    <div style={{ borderRadius: 16, border: "1px solid #4DEBFF66", background: "linear-gradient(160deg, #4DEBFF14, #B05BFF14)", padding: 12, marginBottom: 14 }}>
+      <div style={{ fontWeight: 900, fontSize: 14.5, marginBottom: 4 }}>✨ Ler o prato pela foto</div>
+      <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 10 }}>
+        Fotografe o prato inteiro, de cima, com o talher ao lado: a IA usa o prato como régua, estima os gramas de cada alimento e preenche a lista. Você confere e corrige antes de anotar.
+      </div>
+      <label style={{ ...S.btn, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", cursor: estado === "lendo" ? "default" : "pointer", boxSizing: "border-box", opacity: estado === "lendo" ? 0.6 : 1 }}>
+        {estado === "lendo" ? "⏳ Lendo o prato…" : lista.length ? "📷 Ler outra foto" : "📷 Fotografar e ler o prato"}
+        <input type="file" accept="image/*" capture="environment" disabled={estado === "lendo"} style={{ display: "none" }}
+          onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; ler(f); }} />
+      </label>
+      {foto && <img src={foto} alt="O prato" style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 12, marginTop: 10, border: "1px solid var(--borda2)" }} />}
+      {estado === "erro" && <div style={{ fontSize: 12.5, color: "#FFB21A", fontWeight: 800, marginTop: 10, lineHeight: 1.45 }}>⚠ {erro}</div>}
+      {estado === "lido" && (
+        <div style={{ marginTop: 10 }}>
+          <div style={{ ...S.label, marginBottom: 6 }}>{prato ? "A IA viu: " + prato : "O que a IA viu"} · confira os gramas</div>
+          {lista.map((x) => (
+            <div key={x.uid} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderTop: "1px solid var(--borda)", opacity: x.ok ? 1 : 0.45 }}>
+              <button onClick={() => mudar(x.uid, { ok: !x.ok })} aria-label={(x.ok ? "Tirar " : "Pôr de volta ") + x.nome}
+                style={{ width: 26, height: 26, flex: "none", borderRadius: 8, border: "1.5px solid " + (x.ok ? "#4CD137" : "var(--borda2)"), background: x.ok ? "#4CD13722" : "transparent", color: "#4CD137", fontWeight: 900, cursor: "pointer" }}>{x.ok ? "✓" : ""}</button>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.3 }}>
+                {x.ic} {x.nome}{!x.a ? " (fora do catálogo: valores da IA)" : ""}
+                {x.certeza === "baixa" && <span style={{ display: "block", fontSize: 11, color: "#FFB21A", fontWeight: 800 }}>⚠ a IA não teve certeza: confira</span>}
+                {x.obs && <span style={{ display: "block", fontSize: 11, color: "var(--cinza)" }}>{x.obs}</span>}
+              </span>
+              <input inputMode="numeric" aria-label={"Gramas de " + x.nome} value={x.gramas || ""} onChange={(e) => mudar(x.uid, { gramas: Math.max(0, Math.min(1500, Math.round(numB(e.target.value)))) })}
+                style={{ ...S.input, width: 62, padding: "6px 6px", textAlign: "right", flex: "none" }} />
+              <span style={{ fontSize: 12, color: "var(--cinza)", width: 14, flex: "none" }}>g</span>
+              <span style={{ fontSize: 12, fontWeight: 900, width: 58, textAlign: "right", flex: "none" }}>{x.ok ? fmtKcal(kDe(x)) + " kcal" : ""}</span>
+            </div>
+          ))}
+          <div style={{ textAlign: "center", margin: "10px 0" }}>
+            <span style={{ fontFamily: FONTE_JOGO, fontSize: 24 }}>~{fmtKcal(total)} kcal</span>
+            <div style={{ fontSize: 11, color: "var(--cinza)", lineHeight: 1.45, marginTop: 4 }}>
+              Estimativa pela foto: confira os gramas, principalmente do óleo e do molho, que a foto não mostra (no teste do NIH de 2026, os apps de foto erraram para menos, quase sempre na gordura). As calorias saem da tabela do app.
+            </div>
+          </div>
+          <button disabled={!itens.length} onClick={() => onAdd(itens, 0, refeicao)} style={{ ...S.btn, width: "100%", opacity: itens.length ? 1 : 0.5 }}>✓ Anotar {itens.length} {itens.length === 1 ? "item" : "itens"} no dia</button>
+        </div>
+      )}
+      <div style={{ fontSize: 10.5, color: "var(--cinza)", lineHeight: 1.4, marginTop: 8 }}>A foto vai para a IA do Google (Gemini) só para esta leitura; o app não guarda a foto.</div>
+    </div>
+  );
+}
 function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarReceita, onAdd, onCatalogo, onFechar }) {
   const [aba, setAba] = useState(aba0 || "buscar");
   // o shake: a receita que está sendo montada (null = a lista de receitas)
@@ -39547,6 +39739,8 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
 
         {aba === "foto" && (
           <div>
+            {FIREBASE_ACESSO.apiKey && <LeituraIAPrato refeicao={ref} onAdd={onAdd} />}
+            {FIREBASE_ACESSO.apiKey && <div style={{ ...S.label, marginBottom: 8 }}>Ou marque você mesmo, pelo método do prato</div>}
             <label style={{ ...S.btnGhost, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", cursor: "pointer", marginBottom: 10, boxSizing: "border-box" }}>
               📷 {foto ? "Tirar outra foto" : "Fotografar o prato"}
               <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}

@@ -71,7 +71,7 @@ by Firebase)":
 - **Restrições de aplicativo**: "Sites" (referenciadores HTTP), e acrescente
   `https://carlosjr81.github.io/*`.
 - **Restrições de API**: "Restringir chave", e marque só **Identity Toolkit
-  API**, **Token Service API** e **Cloud Firestore API**.
+  API**, **Token Service API**, **Cloud Firestore API** e **Firebase AI Logic API** (a leitura do prato pela foto).
 - Salvar. Leva até 5 minutos para valer.
 
 Depois, abra o app e entre na sua conta: se entrar, deu certo. Se aparecer erro

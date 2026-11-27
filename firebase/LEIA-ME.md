@@ -46,6 +46,31 @@ O app pago (a chave "💰 Cobrança" no painel) guarda os avisos de pagamento em
 pagou e a lista de pagamentos do painel fica vazia. Com a cobrança desligada,
 nada disso aparece para ninguém.
 
+## Ligar a leitura do prato pela foto (IA)
+
+O "✨ Ler o prato pela foto" do Balance usa o Gemini pelo **Firebase AI Logic**,
+no mesmo projeto. Enquanto não estiver ligado, o app diz "ainda não foi ligada"
+e o método do prato continua funcionando embaixo.
+
+1. Abra https://console.firebase.google.com/project/treino-livre/ailogic
+   (Firebase › **Criação** ou **Build** › **AI Logic**) › **Começar** ou
+   **Get started**.
+2. Escolha **Gemini Developer API** (funciona no plano Spark, sem cartão) ›
+   **Ativar as APIs** ou **Enable APIs**. Se perguntar sobre o App Check, pode
+   seguir sem ele por agora.
+3. **Se você restringiu a chave da API** (passo 2 do `SEGURANCA.md`): no Google
+   Cloud › APIs e serviços › Credenciais › a "Browser key", em **Restrições de
+   API**, marque também **Firebase AI Logic API**. Sem isso o Google recusa a
+   leitura.
+4. Pronto. Espere uns 5 minutos e avise o Claude: ele confere daqui com um
+   pedido de teste, sem foto, e escolhe o modelo que estiver disponível.
+
+O limite gratuito do Gemini Developer API é por dia e por minuto; passou dele,
+o app diz "muitos pedidos agora" e o método do prato continua. A foto não é
+guardada pelo app; o que o Google faz com ela segue os termos do Gemini
+Developer API (no plano gratuito, o Google pode usar os pedidos para melhorar
+os modelos: está dito na política de privacidade do app).
+
 ## Ligar o "Continuar com o Google"
 
 1. Firebase › **Authentication** › **Método de login** › **Adicionar novo

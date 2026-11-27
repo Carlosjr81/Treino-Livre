@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, plUnidade, abreEmUnidades, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, FONTES_DIA_SEM_TREINO, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas, prazoInsulina, acompanhamentoInsulina, PRAZOS_INSULINA };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, FONTES_DIA_SEM_TREINO, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas, prazoInsulina, acompanhamentoInsulina, PRAZOS_INSULINA, FOTO_IA, pedidoPratoIA, lerRespostaPratoIA, itensDaLeituraIA };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -866,6 +866,31 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   const colado = { agua: 0, itens: [1, 2, 3].map((i) => ({ t: t(12, i * 10), n: "x", q: 1, k: 200, p: 30, c: 5, g: 5 })) };
   teste("proteina toda junta nao conta como espalhada", false,
     B.janelasDoDia({ dia: colado, treino: null, dorme: 23, agoraMin: 1440 }).lista.find((x) => x.j.id === "proteina").feito);
+
+  // a foto do prato lida pela IA (2026-11-27z): a resposta e dado de fora
+  const pedIA = B.pedidoPratoIA(B.ALIMENTOS_BR);
+  teste("o pedido leva o catalogo com os ids", true, /arroz = Arroz branco/.test(pedIA.texto) && /lombo-porco/.test(pedIA.texto));
+  teste("o pedido pede o JSON com o esquema", "application/json", pedIA.config.responseMimeType);
+  const resp = JSON.stringify({ prato: "Refeitorio", itens: [
+    { id: "arroz", nome: "Arroz", gramas: 160, certeza: "alta" }, { id: "lombo-porco", nome: "Lombo", gramas: 100 },
+    { id: "batata-palha", nome: "Batata palha", gramas: 35 }, { id: "ovo", nome: "Ovo", gramas: 52 },
+    { id: "melao", nome: "Melao", gramas: 100 }, { id: "gelatina", nome: "Gelatina", gramas: 85 },
+    { id: "", nome: "Farofa da casa", gramas: 30, kcal: 120, p: 1, c: 15, g: 6 },
+    { id: "nao-existe", nome: "Coisa", gramas: 50 }, { id: "arroz", nome: "x", gramas: -3 }, "lixo" ] });
+  const lido = B.lerRespostaPratoIA("\u0060\u0060\u0060json\n" + resp + "\n\u0060\u0060\u0060", B.ALIMENTOS_BR);
+  teste("a leitura fica com os 6 do catalogo e o estimado, e descarta o resto", 7, lido.itens.length);
+  teste("o id que nao existe e sem kcal sai", false, lido.itens.some((x) => x.nome === "Coisa"));
+  teste("resposta torta nao quebra", null, B.lerRespostaPratoIA("nao e json", B.ALIMENTOS_BR));
+  teste("gramas absurdos tem teto", 1500, B.lerRespostaPratoIA(JSON.stringify({ itens: [{ id: "arroz", nome: "a", gramas: 99999 }] }), B.ALIMENTOS_BR).itens[0].gramas);
+  const doIA = B.itensDaLeituraIA(lido.itens, B.ALIMENTOS_BR);
+  const arrozIA = doIA.find((x) => x.a === "arroz");
+  teste("o arroz da IA vira gramas pela tabela do app", [1.6, 160, "gramas"], [arrozIA.q, arrozIA.gm, arrozIA.md]);
+  teste("as calorias saem da tabela, nao da IA", 205, B.valorItem(arrozIA).k);
+  const fora = doIA.find((x) => !x.a);
+  teste("o de fora do catalogo entra com os valores da IA e marcado", [120, true], [B.valorItem(fora).k, /estimado/.test(fora.n)]);
+  const corrigido = B.itensDaLeituraIA([Object.assign({}, lido.itens.find((x) => !x.a), { g0: 30, gramas: 60 })], B.ALIMENTOS_BR)[0];
+  teste("corrigir os gramas do de fora refaz a conta na proporcao", 240, corrigido.k);
+  teste("o prato do dono no refeitorio fica perto de 1.000 kcal", true, (() => { const k = doIA.reduce((a, it) => a + B.valorItem(it).k, 0); return k > 700 && k < 1100; })());
 
   // itens soltos anotados juntos somam numa refeicao (2026-11-27y)
   const soltos = { agua: 0, itens: [

@@ -29,7 +29,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("// ---------------- JARVIS BODY BALANCE: AS CONTAS", "// ---------------- FIM DO BODY BALANCE") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
-  " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
+  " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, plUnidade, abreEmUnidades, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
   " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, FONTES_DIA_SEM_TREINO, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas, prazoInsulina, acompanhamentoInsulina, PRAZOS_INSULINA };");
 const B = globalThis.B;
 
@@ -227,6 +227,26 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("vezes absurdas ficam no teto", 20, B.quantidadeComida(far, "porcao", 1, "", 99).vz);
   const leite = B.ALIMENTOS_BR.find((a) => a.liq > 0);
   teste("bebida pesada em ml", true, / ml/.test(B.quantidadeComida(leite, "gramas", "", 300, 1).texto));
+}
+// ---- contar em unidades (2026-11-27w: "1 pão e 4 ovos, não peso")
+{
+  const ach = (id) => B.ALIMENTOS_BR.find((a) => a.id === id);
+  const ovo = ach("ovo-mexido"), pao = ach("pao"), whey = ach("whey");
+  const q4 = B.quantidadeComida(ovo, "unidades", 4, "", 1);
+  teste("4 ovos são 200 g e 4 porções", [200, 4], [q4.gm, q4.q]);
+  teste("o texto diz ovos", "4 ovos (200 g)", q4.texto);
+  teste("vezes multiplicam as unidades", "1 pão × 2 vezes = 2 pães (100 g)", B.quantidadeComida(pao, "unidades", 1, "", 2).texto);
+  teste("plural de colher", "colheres de sopa", B.plUnidade("colher de sopa", 2));
+  teste("plural de pão e filé", ["pães", "filés", "dosadores"], [B.plUnidade("pão", 3), B.plUnidade("filé", 2), B.plUnidade("dosador", 2)]);
+  teste("meia unidade fica no singular", "ovo", B.plUnidade("ovo", 0.5));
+  teste("1 pão e 4 ovos abrem em unidades", [true, true], [B.abreEmUnidades(pao, 50), B.abreEmUnidades(ovo, 200)]);
+  teste("50 g de whey abre em gramas", false, B.abreEmUnidades(whey, 50));
+  teste("alimento sem unidade nunca abre contando", false, B.abreEmUnidades(ach("feijao"), 140));
+  const it = B.itemEditado({ id: "x", t: 1, a: "ovo", q: 2 }, { modo: "unidades", unid: "3", vezes: 1 });
+  teste("corrigir em unidades guarda o modo e o peso", ["unidades", 150], [it.md, it.gm]);
+  const pas = ["pasta-amendoim", "pasta-amendoim-trad", "pasta-amendoim-whey", "pasta-amendoim-choc"].map(ach);
+  teste("as quatro pastas de amendoim existem e se contam em colheres", 4, pas.filter((a) => a && a.un === "colher de sopa").length);
+  teste("a com whey é a de mais proteína", "pasta-amendoim-whey", pas.slice().sort((a, b) => b.p - a.p)[0].id);
 }
 // ---- corrigir um item já anotado (2026-11-25g)
 {

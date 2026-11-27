@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27w — Pão e ovo contados, e as pastas de amendoim
+
+- **Em uma frase:** no Balance, o que se conta (pão, ovo, fatia, colher, dosador, pote, lata, copo) agora se anota em unidades, e a pasta de amendoim ganhou quatro tipos.
+- **O que mudou:** ao anotar ou corrigir um alimento que se conta, a primeira opção é contar ("4 ovos", "1 pão", "2 colheres de sopa"), com a balança e as porções ainda ao lado. Nas combinações (pão com ovos, shake), cada ingrediente aparece em unidades quando a conta é redonda e em gramas quando não é, e um toque troca entre os dois. A pasta de amendoim virou quatro: integral (só amendoim), tradicional (com açúcar e sal), com whey e com chocolate.
+- **Por que importa para quem treina:** ninguém pesa pão e ovo no café da manhã. Contar é o jeito real, e o app faz a conta dos gramas por trás.
+- **Como usar:** Balance › + Comida › escolha o alimento › 🔢 e o número. Na combinação, toque no ⚖️ para pesar ou no 🔢 para contar.
+- **Ideias de vídeo:** "1 pão e 4 ovos" anotados em 3 toques; a diferença de proteína entre a pasta integral e a com whey.
+- **Não prometer:** que os números são os da sua marca (são médias; o rótulo da marca é o que vale, e dá para anotar à mão).
+
+---
+
 ## 2026-11-27v — Corrigir o shake pelos gramas
 
 - **Em uma frase:** no Balance, corrigir um shake ou uma combinação anotada agora é mudar os gramas de cada ingrediente e a água do copo, e o app refaz a conta sozinho.

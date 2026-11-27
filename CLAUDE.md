@@ -7282,6 +7282,20 @@ passar muito, ou não bater por pouco, ou por muito". Bloco puro **A LEITURA DA
   total do dia (sem a hora de cada copo): o ritmo do dia não sabe a hora da
   água.
 
+### Contar em vez de pesar (`plUnidade`, `abreEmUnidades`, `QtdIngrediente`, 2026-11-27w)
+
+Pedido do dono: "pão e ovo eu não peso: 1 pão e 4 ovos; deixe as duas opções".
+- Alimento com `un`/`unG` (agora ~120: pães, ovos, fatias, colheres, dosadores,
+  potes, latas, copos, filés, lanches de "1 unidade") abre em **🔢 unidades** ao
+  anotar e ao corrigir (`quantidadeComida` modo "unidades", `md: "unidades"`).
+  "🥄 Porções" some quando a porção é exatamente uma unidade; ⚖️ Pesei fica sempre.
+- Na combinação (Montar e a correção do 27v), cada ingrediente abre em unidades
+  quando a conta é redonda ou meia (`abreEmUnidades`) e em gramas quando não é
+  (50 g de whey continua em gramas); o botão ⚖️/🔢 troca. Colher e ponta de faca
+  andam de meia em meia (`passoUnidade`). Os gramas continuam sendo a verdade.
+- **Pasta de amendoim em quatro tipos** (integral, tradicional, com whey, com
+  chocolate), médias de rótulo; o id `pasta-amendoim` virou a integral.
+
 ### O horário de sempre, a creatina do shake e as vitaminas (2026-11-27d)
 
 Três pedidos do dono feitos na sessão da conta corporativa, que acabou antes de

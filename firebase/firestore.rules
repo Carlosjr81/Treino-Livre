@@ -6,6 +6,7 @@ rules_version = '2';
 // Versão 3 (2026-10-29): a pessoa grava o aceite dos Termos de Uso (termos, termosEm).
 // Versão 4 (2026-10-29): o histórico de aceites (aceites/), que só o dono lê e ninguém altera.
 // Versão 5 (2026-10-30): os pagamentos (pagamentos/): a pessoa avisa que pagou, só o dono confirma.
+// Versão 6 (2026-11-27): o comprovante do pagamento (comprovantes/), que só a pessoa e o dono leem.
 service cloud.firestore {
   match /databases/{banco}/documents {
 
@@ -85,6 +86,26 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['conta', 'email', 'nome', 'plano', 'planoNome', 'valor', 'dias', 'metodo', 'txid', 'nota', 'condicoes', 'status', 'em', 'aparelho', 'versaoApp', 'servidorEm']));
       allow update: if dono();
       allow delete: if false;
+    }
+
+    // O comprovante do pagamento: a própria pessoa cria um por pagamento (o id
+    // é o do pagamento), com a imagem ou o PDF em texto (data URL, até ~900 mil
+    // letras: o documento cabe 1 MB). Só ela e o dono leem; ninguém altera; o
+    // dono pode apagar, para liberar espaço depois de conferir.
+    match /comprovantes/{id} {
+      allow get: if dono() || (request.auth != null && resource.data.conta == request.auth.uid);
+      allow list: if dono();
+      allow create: if request.auth != null
+        && request.resource.data.conta == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.pagamento == id
+        && request.resource.data.servidorEm == request.time
+        && id.matches(request.auth.uid + '_[0-9]+')
+        && request.resource.data.dados is string
+        && request.resource.data.dados.size() <= 900000
+        && request.resource.data.keys().hasOnly(['conta', 'email', 'pagamento', 'tipo', 'nome', 'dados', 'em', 'servidorEm']);
+      allow update: if false;
+      allow delete: if dono();
     }
 
     // qualquer outra coisa: ninguém

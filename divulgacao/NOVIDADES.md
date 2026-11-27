@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27n — O comprovante do pagamento vai junto do aviso
+
+- **Em uma frase:** quem assina um plano agora anexa o comprovante (foto, print ou PDF) na própria tela de pagamento, e ele chega junto do aviso de que pagou.
+- **O que mudou:** na tela de planos, no passo "Avise que pagou", há o botão **📎 Anexar o comprovante**. Se o comprovante não puder ir pelo app (arquivo grande ou falha), aparece o lembrete para mandar pela DM do Instagram, com um botão que copia a mensagem pronta (plano, valor e código do pagamento) e abre a conversa. (Junto, um ajuste interno numa área restrita do criador.)
+- **Por que importa para quem treina:** a liberação fica mais rápida, porque o criador do app confere o comprovante com o extrato sem precisar pedir nada.
+- **Como usar:** escolha o plano, pague pelo Pix ou pelo link, toque em 📎 Anexar o comprovante, marque que aceita as condições e toque em "Já paguei".
+- **Ideias de vídeo:** a tela do pagamento do começo ao fim em 15 segundos: pagar, anexar o print, "Já paguei", e o aviso de que o criador foi avisado.
+- **Não prometer:** liberação instantânea (a confirmação é feita à mão, normalmente em até 1 dia útil); renovação automática (não existe).
+
+---
+
 ## 2026-11-27m — Mais um ajuste na área restrita do criador (não divulgar)
 
 - **Em uma frase:** ajuste numa área que só o criador e contas classificadas por ele veem, e uma mudança interna no app Android.

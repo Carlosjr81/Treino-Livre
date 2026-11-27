@@ -2441,7 +2441,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27m";
+const VERSAO_APP = "2026-11-27n";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4053,7 +4053,7 @@ function sessaoDoRegistro(reg, guardada, treinos, agora, uid) {
 // run_number do Actions no main). Suba os dois números do link a cada
 // publicação que mexe em android/. O app abaixo dele é mandado atualizar (o
 // site se atualiza sozinho; o app do celular não).
-const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-202/treino-livre-202.apk";
+const LINK_APK = "https://github.com/carlosjr81/Treino-Livre/releases/download/android-203/treino-livre-203.apk";
 const APK_ATUAL = Number((LINK_APK.match(/android-(\d+)/) || [])[1]) || 0;
 // o app do relógio (Galaxy Watch, Wear OS): instalado no relógio, controla o
 // treino do celular pelo Jarvis da tela travada (BolsoService)
@@ -5684,6 +5684,24 @@ function insulinasAtivas(preparo, dia) {
   const usos = (preparo && preparo.usos) || {};
   return Object.keys(TIPOS_APLICACAO).filter((id) => { const u = usos[id]; return u && u.desde && u.desde <= dia && (!u.ate || u.ate >= dia); });
 }
+// O prazo da conferência "Já comeu?" é escolhido pela pessoa (o que o médico
+// dela orientou), entre os de PRAZOS_INSULINA; sem escolha, 90 minutos. O app
+// nunca diz quanto esperar nem o que comer: só lembra no prazo que ela marcou.
+const PRAZOS_INSULINA = [30, 45, 60, 90, 120];
+function prazoInsulina(preparo) {
+  const p = preparo && +preparo.prazoComida;
+  return PRAZOS_INSULINA.indexOf(p) >= 0 ? p : INSULINA_CONF_MIN;
+}
+// O acompanhamento da última aplicação de hoje: há quanto tempo, se já entrou
+// comida depois, e a hora do lembrete. Sem aplicação hoje, null.
+function acompanhamentoInsulina(preparo, dia, agora) {
+  const apl = ((dia && dia.insulina) || []).filter((x) => x && x.t && x.t <= agora).sort((a, b) => a.t - b.t);
+  if (!apl.length) return null;
+  const u = apl[apl.length - 1], prazo = prazoInsulina(preparo);
+  const comeu = ((dia && dia.itens) || []).filter((it) => it && it.t && it.t >= u.t).map((it) => it.t).sort((a, b) => a - b)[0] || null;
+  const min = Math.max(0, Math.floor((agora - u.t) / 60000));
+  return { t: u.t, tipo: u.tipo, min: min, prazo: prazo, avisoEm: u.t + prazo * 60000, comeu: comeu, passou: !comeu && min >= prazo };
+}
 function minutosDoDia(t) { const d = new Date(t); return d.getHours() * 60 + d.getMinutes(); }
 function avisosInsulina(o) {
   const preparo = (o && o.preparo) || {}, d = o.diaStr, dia = o.dia || {};
@@ -5701,8 +5719,9 @@ function avisosInsulina(o) {
   // a conferência depois da última aplicação marcada hoje
   const apl = (dia.insulina || []).map((x) => minutosDoDia(x.t)).sort((a, b) => a - b);
   const ult = apl.length ? apl[apl.length - 1] : null;
-  if (ult != null && !comidas.some((m) => m >= ult) && ult + INSULINA_CONF_MIN < 1440) {
-    out.push({ id: "insConf", em: ult + INSULINA_CONF_MIN, ate: Math.min(1439, ult + INSULINA_CONF_MIN + 60),
+  const prazo = prazoInsulina(preparo);
+  if (ult != null && !comidas.some((m) => m >= ult) && ult + prazo < 1440) {
+    out.push({ id: "insConf", em: ult + prazo, ate: Math.min(1439, ult + prazo + 60),
       titulo: "\u{1FA78} Já comeu?", corpo: "Você marcou insulina às " + hhmmDoDia(ult) + " e não anotou comida desde então. Tenha açúcar à mão: tremor, suor frio ou confusão são sinal de hipoglicemia." });
   }
   // a noite com a basal ou a NPH
@@ -39401,6 +39420,41 @@ function CartaoHipoglicemia() {
 // A insulina no dia (2026-11-27m): marcar a aplicação (para a conferência),
 // o botão dos sinais de hipoglicemia (o episódio fica anotado para o médico)
 // e os lembretes no horário que a própria pessoa define.
+// O atalho do topo do Balance › Hoje: um toque marca a aplicação, e a faixa
+// acompanha o tempo até a comida entrar (ou até o lembrete no prazo marcado).
+function FaixaInsulina({ preparo, hoje, diaHoje, onAplicar, onComida }) {
+  const [, setTic] = useState(0);
+  useEffect(() => { const t = setInterval(() => setTic((n) => n + 1), 30000); return () => clearInterval(t); }, []);
+  const ativas = insulinasAtivas(preparo, hoje);
+  if (!ativas.length) return null;
+  const a = acompanhamentoInsulina(preparo, diaHoje, Date.now());
+  const hh = (t) => hhmmDoDia(minutosDoDia(t));
+  const viva = a && !a.comeu && a.min < 6 * 60;
+  return (
+    <div style={{ border: "2px solid " + (viva ? (a.passou ? "#FF4D6D" : "#B05BFF") : "#B05BFF66"), borderRadius: 14, padding: 10, marginBottom: 10 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {ativas.map((id) => (
+          <button key={id} onClick={() => onAplicar(id)} style={{ ...S.btnGhost, width: "auto", flex: 1, padding: "11px 8px", fontWeight: 900, fontSize: 13.5, borderColor: "#B05BFF", color: "var(--texto)" }}>💉 Apliquei ({TIPOS_APLICACAO[id]})</button>
+        ))}
+      </div>
+      {a && a.min < 6 * 60 && (
+        <div role="status" style={{ fontSize: 13, lineHeight: 1.5, marginTop: 8 }}>
+          {a.comeu ? (
+            <span>✓ Insulina às {hh(a.t)}; comida anotada às {hh(a.comeu)}.</span>
+          ) : (
+            <>
+              <b>⏱ Insulina às {hh(a.t)} · há {a.min < 1 ? "menos de 1 min" : a.min < 60 ? a.min + " min" : Math.floor(a.min / 60) + " h " + String(a.min % 60).padStart(2, "0") + " min"}.</b> Ainda sem comida anotada.{" "}
+              {a.passou ? <b style={{ color: "#FF4D6D" }}>Passou do seu prazo de {a.prazo} min: já comeu?</b> : <span style={{ color: "var(--cinza)" }}>Lembrete às {hh(a.avisoEm)} ({a.prazo} min, o prazo que você marcou).</span>}
+              <button onClick={onComida} style={{ ...S.btnGhost, width: "100%", marginTop: 8, padding: "10px 6px", fontWeight: 900 }}>+ Anotar o que comi</button>
+            </>
+          )}
+        </div>
+      )}
+      {!a && <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 6 }}>Toque ao aplicar: o app acompanha o tempo até a comida e lembra no prazo que você marcou no Perfil. Não diz dose nem horário.</div>}
+    </div>
+  );
+}
+
 function InsulinaNoDia({ preparo, hoje, diaHoje, hipos, onMudar, onAplicar, onTirarAplicacao, onHipo }) {
   const [hipoAgora, setHipoAgora] = useState(false);
   const ativas = insulinasAtivas(preparo, hoje);
@@ -39426,7 +39480,13 @@ function InsulinaNoDia({ preparo, hoje, diaHoje, hipos, onMudar, onAplicar, onTi
             </div>
           )}
           <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 5 }}>
-            Marcando a aplicação, se você não anotar comida em {INSULINA_CONF_MIN} minutos o app pergunta se já comeu.
+            Marcando a aplicação, se você não anotar comida em {prazoInsulina(preparo)} minutos o app pergunta se já comeu. O prazo é o que o seu médico orientou:
+          </div>
+          <div role="radiogroup" aria-label="Prazo para o lembrete de comer" style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 5 }}>
+            {PRAZOS_INSULINA.map((m) => (
+              <button key={m} role="radio" aria-checked={prazoInsulina(preparo) === m} onClick={() => onMudar(Object.assign({}, preparo, { prazoComida: m }))}
+                style={{ ...S.btnGhost, width: "auto", padding: "6px 10px", fontSize: 12, fontWeight: 900, borderColor: prazoInsulina(preparo) === m ? "#B05BFF" : undefined, color: prazoInsulina(preparo) === m ? "#B05BFF" : undefined }}>{m} min</button>
+            ))}
           </div>
           <button onClick={() => { onHipo(); setHipoAgora(true); }} style={{ ...S.btnGhost, width: "100%", marginTop: 9, fontWeight: 900, color: "#FF4D6D", borderColor: "#FF4D6D88" }}>🩸 Tive sinais de hipoglicemia</button>
           {hipoAgora && (
@@ -40189,6 +40249,8 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                 </div>
               </div>
 
+              {prepOk && diaVer === hoje && <FaixaInsulina preparo={perfil.preparo || {}} hoje={hoje} diaHoje={(nutricao.dias || {})[hoje]}
+                onAplicar={(tipo) => { mudarDia(hoje, (d) => Object.assign({}, d, { insulina: (d.insulina || []).concat([{ t: Date.now(), tipo: tipo }]).slice(-20) })); mostrar("💉 Aplicação marcada"); mandarDepois.current = true; }} onComida={() => setJanela("buscar")} />}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
                 <button onClick={() => setJanela("buscar")} style={{ ...S.btn, padding: "14px 6px" }}>+ Comida</button>
                 <button onClick={() => setJanela("foto")} style={{ ...S.btnGhost, padding: "14px 6px", fontWeight: 900 }}>📷 Foto do prato</button>
@@ -45054,6 +45116,29 @@ const STATUS_PAGAMENTO = {
   recusado: { nome: "Recusado", icone: "✖", cor: "var(--perigo)" },
   devolvido: { nome: "Devolvido", icone: "↩", cor: "var(--cinza)" },
 };
+// O comprovante do pagamento (2026-11-27n). Vai num documento à parte
+// (comprovantes/<id do pagamento>), para o aviso do pagamento continuar valendo
+// com as regras antigas do servidor: sem as regras novas, só o comprovante é
+// recusado, e a tela manda pela DM do Instagram. Foto ou print viram JPEG
+// pequeno; PDF vai como está, até 650 KB (o documento do Firestore cabe 1 MB).
+const COMPROVANTE_MAX_CHARS = 900000;
+const COMPROVANTE_PDF_MAX = 650 * 1024;
+function conferirComprovante(tipo, bytes) {
+  const t = String(tipo || "").toLowerCase();
+  if (/^image\//.test(t)) return { ok: true, tipo: "imagem" };
+  if (t === "application/pdf") return bytes > COMPROVANTE_PDF_MAX ? { ok: false, motivo: "O PDF passou de 650 KB. Mande um print da tela do comprovante, ou pela DM do Instagram." } : { ok: true, tipo: "pdf" };
+  return { ok: false, motivo: "Escolha uma foto, um print ou um PDF do comprovante." };
+}
+function dadosComprovanteValidos(dados) {
+  const d = String(dados || "");
+  return /^data:(image\/(jpeg|png|webp)|application\/pdf);base64,[A-Za-z0-9+/=]+$/.test(d) && d.length <= COMPROVANTE_MAX_CHARS;
+}
+function linkDmInstagram(ig) { return "https://ig.me/m/" + String(ig || "").replace(/^@/, ""); }
+function textoDmComprovante(p, precoTxt) {
+  const x = p || {};
+  return "Olá! Segue o comprovante do meu pagamento do Treino Livre: " + (x.planoNome || x.plano || "plano") +
+    (precoTxt ? ", " + precoTxt : "") + (x.txid ? ", código " + x.txid : "") + (x.email ? ", conta " + x.email : "") + ".";
+}
 function ordenarPagamentos(l) {
   const peso = { informado: 0, confirmado: 1, devolvido: 2, recusado: 3 };
   return l.slice().sort((a, b) => (peso[a.status] || 0) - (peso[b.status] || 0) || (b.em || 0) - (a.em || 0));
@@ -45152,6 +45237,11 @@ const contaApi = {
   listar(token) { return this.listarColecao("usuarios", token); },
   listarAceites(token) { return this.listarColecao("aceites", token); },
   listarPagamentos(token) { return this.listarColecao("pagamentos", token); },
+  // o comprovante de um pagamento (comprovantes/<id do pagamento>): só o dono e a própria pessoa leem
+  async lerComprovante(id, token) {
+    try { return deFirestore(await chamarFirebase(this.doc("comprovantes/" + id), { headers: { Authorization: "Bearer " + token } })); }
+    catch (e) { if (e.status === 404) return null; throw e; }
+  },
   // Os pagamentos da própria pessoa. As regras só deixam ler os dela, e a
   // consulta tem de pedir exatamente isso (senão o Firestore recusa tudo).
   async meusPagamentos(uid, token) {
@@ -45945,6 +46035,10 @@ function TelaAssinatura({ sessao, cob, barrado, onSair, onFechar, onConferir }) 
   const [qr, setQr] = useState("");
   const [copiado, setCopiado] = useState(false);
   const [backup, setBackup] = useState("");
+  const [comp, setComp] = useState(null);
+  const [compMsg, setCompMsg] = useState("");
+  const [dm, setDm] = useState(null);
+  const [dmCopiado, setDmCopiado] = useState(false);
   // o código do pagamento fica o mesmo enquanto a tela está aberta: é ele que
   // vai no Pix e no aviso, e é por ele que o dono acha o pagamento no extrato
   const [emRef] = useState(() => Date.now());
@@ -45977,6 +46071,23 @@ function TelaAssinatura({ sessao, cob, barrado, onSair, onFechar, onConferir }) 
   const copiar = () => {
     try { navigator.clipboard.writeText(copia).then(() => setCopiado(true), () => setCopiado(false)); } catch (x) {}
   };
+  const escolherComprovante = async (arq) => {
+    setCompMsg("");
+    if (!arq) return;
+    const c0 = conferirComprovante(arq.type, arq.size);
+    if (!c0.ok) { setComp(null); setCompMsg(c0.motivo); return; }
+    try {
+      const blob = c0.tipo === "imagem" ? await reduzirImagem(arq, 1200, 0.62) : arq;
+      const dados = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = () => rej(fr.error); fr.readAsDataURL(blob); });
+      if (!dadosComprovanteValidos(dados)) { setComp(null); setCompMsg("O arquivo ficou grande demais para o app. Mande um print, ou pela DM do Instagram."); return; }
+      setComp({ dados: dados, tipo: c0.tipo, nome: String(arq.name || "comprovante").slice(0, 80) });
+    } catch (x) { setComp(null); setCompMsg("Não consegui ler este arquivo. Tente um print da tela do comprovante, ou mande pela DM do Instagram."); }
+  };
+  const abrirDm = (p) => {
+    const t = textoDmComprovante(p, precoTexto(p && p.valor));
+    try { navigator.clipboard.writeText(t).then(() => setDmCopiado(true), () => {}); } catch (x) {}
+    try { window.open(linkDmInstagram(INSTAGRAM), "_blank", "noopener"); } catch (x) { window.location.href = linkDmInstagram(INSTAGRAM); }
+  };
   const informar = async (metodo) => {
     if (!aceito) { setMsg("Marque que leu e aceita as condições da assinatura."); return; }
     setIndo(true); setMsg("");
@@ -45987,7 +46098,19 @@ function TelaAssinatura({ sessao, cob, barrado, onSair, onFechar, onConferir }) 
         metodo: metodo, txid: txid, nota: nota.trim().slice(0, 200), condicoes: CONDICOES_ASSINATURA.versao, status: "informado", em: em,
         aparelho: aparelhoDe(navigator.userAgent, NO_APP_ANDROID), versaoApp: VERSAO_APP };
       await contaApi.commit([contaApi.escrita("pagamentos/" + s.uid + "_" + em, campos, { existe: false, servidor: "servidorEm" })], s.idToken);
-      setMsg("✅ Pronto! O criador do app foi avisado. Assim que ele confirmar o pagamento, " + (barrado ? "o app abre sozinho aqui." : "o seu acesso é renovado."));
+      // o comprovante vai depois, num documento à parte: se ele for recusado
+      // (regras antigas, arquivo grande), o aviso do pagamento já está feito
+      let foi = false;
+      if (comp) {
+        try {
+          await contaApi.commit([contaApi.escrita("comprovantes/" + s.uid + "_" + em, { conta: s.uid, email: s.email, pagamento: s.uid + "_" + em,
+            tipo: comp.tipo, nome: comp.nome, dados: comp.dados, em: em }, { existe: false, servidor: "servidorEm" })], s.idToken);
+          foi = true;
+        } catch (x) { foi = false; }
+      }
+      setDm(foi ? null : { p: campos, falhou: !!comp });
+      if (foi) setComp(null);
+      setMsg("✅ Pronto! O criador do app foi avisado" + (foi ? ", com o comprovante" : "") + ". Assim que ele confirmar o pagamento, " + (barrado ? "o app abre sozinho aqui." : "o seu acesso é renovado."));
       carregarMeus();
     } catch (x) {
       setMsg(erroDeConta(x.message) + (/PERMISSION/.test(x.message) ? " (O criador do app ainda precisa atualizar as regras do servidor.)" : ""));
@@ -46016,6 +46139,7 @@ function TelaAssinatura({ sessao, cob, barrado, onSair, onFechar, onConferir }) 
             {barrado ? " Esta tela confere sozinha a cada 30 segundos." : ""}
           </div>
           {barrado && onConferir && <button onClick={() => { onConferir(); carregarMeus(); }} style={{ ...S.btnGhost, width: "100%", marginTop: 10 }}>🔄 Conferir agora</button>}
+          {!dm && <button onClick={() => abrirDm(pendente)} style={{ background: "none", border: "none", color: "var(--marca)", fontWeight: 800, cursor: "pointer", fontSize: 13, padding: "8px 0 0", textAlign: "left" }}>📩 Não anexou o comprovante? Mande pela DM do Instagram</button>}
         </div>
       )}
       {!planos.length && <div style={{ ...S.card, fontSize: 14, color: "var(--cinza)" }}>Nenhum plano disponível agora. Fale com o criador do app: Instagram @{INSTAGRAM}.</div>}
@@ -46064,6 +46188,27 @@ function TelaAssinatura({ sessao, cob, barrado, onSair, onFechar, onConferir }) 
             Observação (opcional: o nome de quem pagou, se for outra pessoa)
             <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} style={{ ...S.input, marginTop: 5 }} />
           </label>
+          <div style={{ fontSize: 13, fontWeight: 800, margin: "0 0 6px" }}>Comprovante do pagamento</div>
+          <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 8 }}>
+            Anexe a foto, o print ou o PDF do comprovante: ele chega junto do aviso, e o criador do app confere no extrato e libera mais rápido.
+          </div>
+          {comp ? (
+            <div style={{ display: "flex", gap: 10, alignItems: "center", border: "1px solid var(--ok)", borderRadius: 12, padding: 8, marginBottom: 10 }}>
+              {comp.tipo === "imagem" ? <img src={comp.dados} alt="Comprovante anexado" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8 }} />
+                : <div aria-hidden="true" style={{ width: 56, height: 56, borderRadius: 8, display: "grid", placeItems: "center", fontSize: 26, border: "1px solid var(--borda2)" }}>📄</div>}
+              <div style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.4 }}>
+                <b style={{ color: "var(--ok)" }}>✓ Comprovante anexado</b>
+                <div style={{ color: "var(--cinza)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{comp.nome}</div>
+              </div>
+              <button onClick={() => setComp(null)} aria-label="Tirar o comprovante" style={{ ...S.btnGhost, padding: "6px 10px", fontSize: 13 }}>✕</button>
+            </div>
+          ) : (
+            <label style={{ ...S.btnGhost, display: "block", textAlign: "center", cursor: "pointer", marginBottom: 10, boxSizing: "border-box" }}>
+              📎 Anexar o comprovante (foto, print ou PDF)
+              <input type="file" accept="image/*,application/pdf" onChange={(e) => { escolherComprovante(e.target.files && e.target.files[0]); e.target.value = ""; }} style={{ display: "none" }} />
+            </label>
+          )}
+          {compMsg && <div role="status" style={{ fontSize: 13, color: "var(--perigo)", lineHeight: 1.5, marginBottom: 8 }}>{compMsg}</div>}
           <div style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: "8px 12px", fontSize: 12, color: "var(--cinza)", lineHeight: 1.5 }}>
             <b style={{ color: "var(--texto)" }}>📜 Condições da assinatura</b>
             {CONDICOES_ASSINATURA.itens.map((t, i) => <div key={i} style={{ marginTop: 4 }}>• {t}</div>)}
@@ -46076,6 +46221,17 @@ function TelaAssinatura({ sessao, cob, barrado, onSair, onFechar, onConferir }) 
             {indo ? "Aguarde…" : "✅ Já paguei: avisar o criador do app"}
           </button>
           {msg && <div role="status" style={{ fontSize: 13.5, lineHeight: 1.5, marginTop: 8, color: /^✅/.test(msg) ? "var(--ok)" : "var(--perigo)" }}>{msg}</div>}
+          {dm && (
+            <div style={{ border: "2px solid var(--marca)", borderRadius: 12, padding: 12, marginTop: 10 }}>
+              <div style={{ fontWeight: 900, fontSize: 14.5 }}>📩 Falta o comprovante: mande pela DM do Instagram</div>
+              <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.5, marginTop: 4 }}>
+                {dm.falhou ? "Não consegui enviar o comprovante pelo app. " : "Você avisou sem anexar o comprovante. "}
+                Mande a foto ou o print para @{INSTAGRAM}: o botão copia a mensagem com o plano e o código do pagamento, é só colar e anexar.
+              </div>
+              <button onClick={() => abrirDm(dm.p)} style={{ ...S.btn, width: "100%", marginTop: 10 }}>📩 Abrir a DM do @{INSTAGRAM}</button>
+              {dmCopiado && <div role="status" style={{ fontSize: 12.5, color: "var(--ok)", marginTop: 6 }}>✓ Mensagem copiada: cole na conversa e anexe o comprovante.</div>}
+            </div>
+          )}
         </div>
       )}
       {meus && meus.length > 0 && (
@@ -46950,6 +47106,47 @@ function CartaoTiposConta({ rp, total, cob, filtro, onFiltrar }) {
   );
 }
 
+// O comprovante de cada pagamento para confirmar, lido de comprovantes/.
+// Sem ele (a pessoa não anexou, ou as regras do servidor são as antigas), o
+// painel lembra que pode ter chegado pela DM do Instagram.
+function ComprovantePagamento({ id }) {
+  const [c, setC] = useState(undefined);
+  const [aberto, setAberto] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      try { const s = await tokenValido(lerSessaoConta()); const d = await contaApi.lerComprovante(id, s.idToken); if (vivo) setC(d && dadosComprovanteValidos(d.dados) ? d : null); }
+      catch (x) { if (vivo) setC(x && x.status === 403 ? "regras" : null); }
+    })();
+    return () => { vivo = false; };
+  }, [id]);
+  const abrirPdf = () => {
+    try {
+      const b64 = String(c.dados).split(",")[1] || "", bin = atob(b64), u = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      window.open(URL.createObjectURL(new Blob([u], { type: "application/pdf" })), "_blank", "noopener");
+    } catch (x) {}
+  };
+  if (c === undefined) return <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 6 }}>🧾 Procurando o comprovante…</div>;
+  if (!c || c === "regras") return (
+    <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 6, lineHeight: 1.5 }}>
+      🧾 Sem comprovante pelo app{c === "regras" ? " (publique as regras versão 6 no Firebase para recebê-los)" : ""}. Veja se chegou pela DM do Instagram.
+    </div>
+  );
+  return (
+    <div style={{ marginTop: 6 }}>
+      <div style={{ fontSize: 12.5, fontWeight: 800, color: "var(--ok)" }}>🧾 Comprovante anexado{c.servidorEm || c.em ? " · " + dataHora(c.servidorEm || c.em) : ""}</div>
+      {c.tipo === "pdf" ? (
+        <button onClick={abrirPdf} style={{ ...S.btnGhost, width: "100%", marginTop: 6, padding: "8px", fontSize: 13 }}>📄 Abrir o PDF do comprovante</button>
+      ) : (
+        <button onClick={() => setAberto(!aberto)} aria-label={aberto ? "Diminuir o comprovante" : "Ampliar o comprovante"} style={{ background: "none", border: "none", padding: 0, marginTop: 6, cursor: "zoom-in", display: "block", width: "100%" }}>
+          <img src={c.dados} alt="Comprovante do pagamento" style={{ width: "100%", maxHeight: aberto ? "none" : 220, objectFit: aberto ? "contain" : "cover", objectPosition: "top", borderRadius: 10, border: "1px solid var(--borda2)" }} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 function CartaoCobranca({ cob, carregado, lista, agora, semPlano, pagamentos, salvarCfg, pedirConfirmacao, cortesiaParaTodos, onVerPagamentos, onConfirmar, onRecusar, mexendo }) {
   const [editando, setEditando] = useState(false);
   const [recusando, setRecusando] = useState(null);
@@ -47000,7 +47197,7 @@ function CartaoCobranca({ cob, carregado, lista, agora, semPlano, pagamentos, sa
       {pend.length > 0 && (
         <div style={{ ...S.card, borderColor: "var(--obs)" }}>
           <div style={S.label}>💳 Pagamentos para confirmar ({pend.length})</div>
-          <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 6 }}>Confira no extrato do banco (o código do Pix aparece na transação) antes de confirmar.</div>
+          <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 6 }}>Confira o comprovante com o extrato do banco (o código do Pix aparece na transação) antes de confirmar: confirmar libera o acesso pelo período do plano.</div>
           {pend.map((p) => (
             <div key={p.uid} style={{ borderTop: "1px solid var(--borda2)", padding: "8px 0" }}>
               <div style={{ fontWeight: 900, fontSize: 14 }}>{p.nome || p.email} · {precoTexto(p.valor)}</div>
@@ -47008,6 +47205,7 @@ function CartaoCobranca({ cob, carregado, lista, agora, semPlano, pagamentos, sa
                 {p.planoNome || p.plano} · {p.metodo === "link" ? "link de pagamento" : "Pix"} · {dataHora(p.servidorEm || p.em)}<br />
                 {p.email}{p.txid ? " · código " + p.txid : ""}{p.nota ? <><br />“{p.nota}”</> : null}
               </div>
+              <ComprovantePagamento id={p.uid} />
               {recusando && recusando.uid === p.uid ? (
                 <div style={{ marginTop: 6 }}>
                   <input value={recusando.motivo} onChange={(e) => setRecusando({ uid: p.uid, motivo: e.target.value })} placeholder="Motivo (a pessoa vê; ex.: pagamento não encontrado)" aria-label="Motivo da recusa" style={S.input} />

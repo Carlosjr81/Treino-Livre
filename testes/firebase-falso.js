@@ -77,7 +77,10 @@
       const dono = eu.email === DONO && eu.verificado;
       e.aceites = e.aceites || {};
       e.pagamentos = e.pagamentos || {};
+      e.comprovantes = e.comprovantes || {};
+      // e.regrasAntigas = true imita o servidor com as regras de antes da versão 6
       const colecoes = { aceites: e.aceites, pagamentos: e.pagamentos, usuarios: e.docs };
+      if (!e.regrasAntigas) colecoes.comprovantes = e.comprovantes;
       // As gravações em lote (tudo ou nada), com as regras de cada coleção:
       // aceites e pagamentos a pessoa só cria (com a hora do servidor); a conta
       // dela só nos campos de sempre; o dono, tudo.
@@ -96,6 +99,7 @@
           if (!dono) {
             const pode = col === "aceites" ? ["conta", "email", "nome", "termos", "em", "de", "caixas", "hash", "aparelho", "versaoApp", "navegador"]
               : col === "pagamentos" ? ["conta", "email", "nome", "plano", "planoNome", "valor", "dias", "metodo", "txid", "nota", "condicoes", "status", "em", "aparelho", "versaoApp"]
+              : col === "comprovantes" ? ["conta", "email", "pagamento", "tipo", "nome", "dados", "em"]
               : ["ultimoAcesso", "acessos", "aparelho", "versao", "avisoVisto", "termos", "termosEm"];
             if (Object.keys(novo).some((k) => pode.indexOf(k) < 0)) return erro(403, "PERMISSION_DENIED");
             if (col === "usuarios") { if (id !== eu.uid || !existe) return erro(403, "PERMISSION_DENIED"); }
@@ -117,6 +121,13 @@
           .map((id) => ({ document: { name: "x/documents/pagamentos/" + id, fields: daDoc(e.pagamentos[id]) } })));
       }
       const cam = u.split("/documents/")[1].split("?")[0];
+      if (cam.indexOf("comprovantes/") === 0) {
+        if (e.regrasAntigas) return erro(403, "PERMISSION_DENIED");
+        const d = e.comprovantes[cam.split("/")[1]];
+        if (!d) return erro(404, "NOT_FOUND");
+        if (!dono && d.conta !== eu.uid) return erro(403, "PERMISSION_DENIED");
+        return resp(200, { name: "x/documents/" + cam, fields: daDoc(d) });
+      }
       if (cam === "aceites" || cam.indexOf("aceites/") === 0 || cam === "pagamentos" || cam.indexOf("pagamentos/") === 0) {
         const col = cam.split("/")[0];
         if (!dono) return erro(403, "PERMISSION_DENIED");

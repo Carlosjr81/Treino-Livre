@@ -633,6 +633,26 @@ usuários". **A chave nasceu desligada**: ninguém foi afetado.
   pagamento e o acesso da conta juntos** (`acessoPago`: soma ao período que
   ainda vale; usa os dias gravados no pagamento, não o plano de hoje). A tela
   de quem espera confere sozinha a cada 30 s e abre o app.
+- **O comprovante** (2026-11-27n, pedido do dono: "um campo para anexarem o
+  comprovante, que vem junto com a notificação, para eu conferir no banco e
+  liberar"). Na tela de planos, "📎 Anexar o comprovante" (foto ou print viram
+  JPEG de 1200 px; PDF até 650 KB, `conferirComprovante`), guardado em
+  `comprovantes/<id do pagamento>` como data URL (até 900 mil letras,
+  `dadosComprovanteValidos`). **Documento à parte de propósito**: o aviso
+  do pagamento continua valendo com as regras antigas, e só o comprovante é
+  recusado. No painel, cada pagamento para confirmar mostra o comprovante
+  (`ComprovantePagamento`: a imagem, que amplia no toque, ou "Abrir o PDF").
+  **Sem comprovante pelo app** (não anexou, falhou, ou regras antigas), a
+  tela mostra "📩 Falta o comprovante: mande pela DM do Instagram", com o botão
+  que copia a mensagem pronta (`textoDmComprovante`: plano, valor, código,
+  conta) e abre `https://ig.me/m/<instagram>` (`linkDmInstagram`); o cartão
+  do pagamento informado também tem o atalho. **Regras versão 6** em
+  `firebase/firestore.rules`: a pessoa cria só o comprovante do próprio
+  pagamento, com a hora do servidor; só ela e o dono leem, só o dono lista e
+  apaga, ninguém altera. **O dono precisa publicá-las no console**; até lá o
+  painel diz "publique as regras versão 6" e tudo segue pela DM. O Firebase de
+  mentira tem `regrasAntigas` para ensaiar isso. Coberto em
+  `teste-acesso.js`. **Não validado no Firebase de verdade.**
 - **O QR do Pix** é o `qrcode-generator` 1.4.4 (MIT), do jsDelivr com SRI,
   só carregado na tela de planos; sem ele, o copia e cola continua.
 - **As regras (versão 5)**: a pessoa só **cria** o próprio aviso (status
@@ -7592,6 +7612,14 @@ quem eu classificar como bodybuilder".
   aparece no topo do modo: os sinais, a regra dos 15 (o primeiro socorro das
   sociedades de diabetes), emergência e o botão do SAMU (`tel:192`). No
   `NOVIDADES.md` a versão saiu como "ajuste na área restrita (não divulgar)".
+- **O atalho da aplicação** (2026-11-27n, pedido do dono: "um botão de fácil
+  acesso para quando eu aplicar a insulina"): `FaixaInsulina` no topo do
+  Balance › Hoje (só no modo preparação, com insulina em uso): "💉 Apliquei
+  (tipo)" e o acompanhamento da última aplicação (`acompanhamentoInsulina`:
+  há quanto tempo, se a comida já entrou, o lembrete). **O prazo do "Já
+  comeu?" é escolhido pela pessoa** (`preparo.prazoComida`, 30 a 120 min,
+  `PRAZOS_INSULINA`; padrão 90), dito na tela como o que o médico dela
+  orientou: o app continua sem dizer o que comer nem quando.
 - **O "timing" da insulina foi recusado** (2026-11-27m, pedido do dono: o app
   dizer quando aplicar em relação à comida). Isso é orientar o uso de remédio
   fora da indicação, e o horário errado é o que causa a hipoglicemia grave: o

@@ -10,7 +10,7 @@ function pedaco(de, ate) {
 const plural = (n, s, p) => (n === 1 ? s : p);
 eval(pedaco("const semAcento = (s) =>", ";\n") + ";\nglobalThis.semAcento = semAcento;");
 eval(pedaco("// ---------------- ACESSO: AS CONTAS", "// ---------------- FIM DAS CONTAS") +
-  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO, situacaoConta, prazoAte, recadoNovo, csvContas, filtroConta, entrouAutomatico, autoNovos, csvAceites, ordenarAceites, lerCobranca, planoDaConta, acessoPago, pixCopiaECola, crc16Pix, txidPagamento, planosAtivos, planoPorId, resumoPagamentos, csvPagamentos, ordenarPagamentos, fimDoDia, textoPlanoConta, precoTexto, tempoDePlano, avisoDeVencimento, DIAS_AVISO_VENCE, tipoDaConta, resumoPlanos, TIPOS_PLANO, filtroConta };");
+  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO, situacaoConta, prazoAte, recadoNovo, csvContas, filtroConta, entrouAutomatico, autoNovos, csvAceites, ordenarAceites, lerCobranca, planoDaConta, acessoPago, pixCopiaECola, crc16Pix, txidPagamento, planosAtivos, planoPorId, resumoPagamentos, csvPagamentos, ordenarPagamentos, fimDoDia, textoPlanoConta, precoTexto, tempoDePlano, avisoDeVencimento, DIAS_AVISO_VENCE, tipoDaConta, resumoPlanos, TIPOS_PLANO, filtroConta, conferirComprovante, dadosComprovanteValidos, linkDmInstagram, textoDmComprovante, COMPROVANTE_MAX_CHARS };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -252,6 +252,28 @@ console.log("\n--- a cobrança (o app pago) ---");
   teste("regras: a pessoa só avisa (informado), com a hora do servidor; só o dono confirma", true,
     /status == 'informado'/.test(bloco) && /servidorEm == request\.time/.test(bloco) && /allow update: if dono\(\);/.test(bloco) && /allow delete: if false;/.test(bloco));
   teste("regras: a pessoa não grava o próprio acesso pago", false, /pagoAte|vitalicio|cortesia/.test(regras.slice(regras.indexOf("allow update: if dono() || (eu(uid)"), regras.indexOf("allow delete: if dono() || eu(uid)"))));
+}
+
+// ---- o comprovante do pagamento (2026-11-27n) ----
+{
+  console.log("\n--- o comprovante do pagamento ---");
+  teste("foto e print valem", true, A.conferirComprovante("image/jpeg", 5e6).ok && A.conferirComprovante("image/png", 1).ok);
+  teste("PDF pequeno vale", "pdf", A.conferirComprovante("application/pdf", 300 * 1024).tipo);
+  teste("PDF grande não vale, e manda para a DM", true, !A.conferirComprovante("application/pdf", 900 * 1024).ok && /DM do Instagram/.test(A.conferirComprovante("application/pdf", 900 * 1024).motivo));
+  teste("outro arquivo não vale", false, A.conferirComprovante("text/plain", 10).ok);
+  teste("dados de imagem valem", true, A.dadosComprovanteValidos("data:image/jpeg;base64,/9j/AAA="));
+  teste("dados com outra coisa não valem", false, A.dadosComprovanteValidos("data:text/html;base64,PGI+"));
+  teste("dados grandes demais não valem", false, A.dadosComprovanteValidos("data:image/jpeg;base64," + "A".repeat(A.COMPROVANTE_MAX_CHARS)));
+  teste("o atalho abre a DM", "https://ig.me/m/carlos.jr.81", A.linkDmInstagram("@carlos.jr.81"));
+  const t = A.textoDmComprovante({ planoNome: "Mensal", txid: "TLABC", email: "ana@x.com" }, "R$ 19,90");
+  teste("a mensagem da DM leva plano, valor, código e conta", true, /Mensal/.test(t) && /R\$ 19,90/.test(t) && /TLABC/.test(t) && /ana@x\.com/.test(t));
+  const regras = require("fs").readFileSync(require("path").join(__dirname, "..", "firebase", "firestore.rules"), "utf8");
+  const bloco = regras.slice(regras.indexOf("match /comprovantes/{id}"), regras.indexOf("// qualquer outra coisa"));
+  teste("regras: o comprovante é da própria pessoa, do pagamento dela, com a hora do servidor", true,
+    /conta == request\.auth\.uid/.test(bloco) && /pagamento == id/.test(bloco) && /servidorEm == request\.time/.test(bloco) && /size\(\) <= 900000/.test(bloco));
+  teste("regras: ninguém altera o comprovante, e só o dono lista", true, /allow update: if false;/.test(bloco) && /allow list: if dono\(\);/.test(bloco));
+  teste("o comprovante vai num documento à parte do pagamento (as regras antigas continuam aceitando o aviso)", false,
+    /'dados'/.test(regras.slice(regras.indexOf("match /pagamentos/{id}"), regras.indexOf("match /comprovantes/{id}"))));
 }
 
 // ---- a vitrine de quem ainda não tem acesso (2026-11-26d) ----

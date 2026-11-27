@@ -283,6 +283,11 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("com a chave, a meta sobe junto", true, xc.meta.k > xs.meta.k);
   teste("o peso do dia de diurético sai da conta", [2, 1], [sem.pesos.length, com.pesos.length]);
   teste("diurético não mexe no gasto", 0, B.SUBSTANCIAS_PREPARO.find((x) => x.id === "diuretico").efeito);
+  // as insulinas (2026-11-27l): só registro, nunca dose
+  const ins = B.SUBSTANCIAS_PREPARO.filter((x) => x.insulina);
+  teste("as três insulinas estão na lista", ["insulinaRapida", "insulinaBasal", "insulinaNph"], ins.map((x) => x.id));
+  teste("insulina não mexe no gasto", [0, 0, 0], ins.map((x) => x.efeito));
+  teste("nenhum texto de insulina fala em dose, unidades ou carboidrato por unidade", [], ins.filter((x) => /\b\d+\s*(ui|u|unidades?)\b|por unidade|dose de|aplique \d/i.test(x.diz)).map((x) => x.id));
   teste("antes do uso começar, nada muda", null, com.dias.find((d) => d.d < antes).preparo);
 }
 // ---- a caneta de apetite (GLP-1) nao muda o gasto, e avisa quem come pouco (2026-11-26a)

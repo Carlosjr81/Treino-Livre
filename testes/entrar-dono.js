@@ -6,6 +6,6 @@
     localStorage.setItem("fb-falso", JSON.stringify({ contas: { "carlos.jr.81@hotmail.com": { uid: "udono", email: "carlos.jr.81@hotmail.com", senha: "123456", verificado: true } },
       docs: { udono: { email: "carlos.jr.81@hotmail.com", nome: "Carlos", status: "liberado", criadoEm: Date.now() - 864e6 } } }));
   }
-  localStorage.setItem("treinolivre:conta", JSON.stringify({ uid: "udono", email: "carlos.jr.81@hotmail.com", idToken: "tok:udono", refresh: "ref:udono", expira: Date.now() + 3e6, status: "liberado", conferidoEm: Date.now(), nome: "Carlos" }));
+  localStorage.setItem("treinolivre:conta", JSON.stringify({ uid: "udono", email: "carlos.jr.81@hotmail.com", idToken: "tok:udono", refresh: "ref:udono", expira: Date.now() + 3e6, status: "liberado", verificado: true, conferidoEm: Date.now(), nome: "Carlos" }));
   localStorage.setItem("treinolivre:prontidao", JSON.stringify({ v: "2026-11-02", em: Date.now(), r: [false,false,false,false,false,false,false], d: "nao" }));
 })();

@@ -7583,6 +7583,15 @@ quem eu classificar como bodybuilder".
   (perguntado em 2026-11-26a se devia valer para todos, já que é remédio
   receitado e comum em quem emagrece: ele disse não). **Não proponha tirar
   da trava de novo sem falar com ele.**
+- **As insulinas** (2026-11-27l, pedido do dono: rápida ou ultrarrápida,
+  basal ou lenta — glargina, Lantus —, e NPH; "só eu vou usar"). Na mesma
+  lista, `insulina: true`, `sobre: "nada"`, efeito 0: insulina não muda o gasto,
+  e por isso não entra na conta. **Decidido ao implementar, e dito ao dono:**
+  o app nunca sugere dose, nem carboidrato por unidade, nem muda a meta por
+  causa dela (o teste procura). Com qualquer uma em uso, o `CartaoHipoglicemia`
+  aparece no topo do modo: os sinais, a regra dos 15 (o primeiro socorro das
+  sociedades de diabetes), emergência e o botão do SAMU (`tel:192`). No
+  `NOVIDADES.md` a versão saiu como "ajuste na área restrita (não divulgar)".
 - **Fica no aparelho** (`nutricao.perfil.preparo = { usos: { id: { desde, ate } }, diureticos }`).
   Os nomes não vão a resumo, story, amigos nem servidor; o resumo só leva os
   números do dia (já ajustados). O cartão diz que não recomenda nem orienta uso.

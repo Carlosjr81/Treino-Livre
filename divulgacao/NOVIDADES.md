@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27l — Ajuste na área restrita do criador (não divulgar)
+
+- **Em uma frase:** um ajuste numa área do app que só o criador e contas classificadas por ele veem.
+- **O que mudou:** nada que o usuário comum veja ou use.
+- **Por que importa para quem treina:** não muda nada para quem usa o app.
+- **Como usar:** não se aplica.
+- **Ideias de vídeo:** nenhuma. **Não mencione esta versão em vídeo, legenda ou post.**
+- **Não prometer:** não se aplica.
+
+---
+
 ## 2026-11-27k — Os pães, um por um
 
 - **Em uma frase:** o catálogo de alimentos ganhou a seção **🥖 Pães**, com os mini pães (francês, de cenoura, de laranja, de mandioca, de mandioquinha, de batata e de queijo) e mais 15 pães de padaria e mercado.

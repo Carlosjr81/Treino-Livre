@@ -2345,6 +2345,21 @@ const SUBSTANCIAS_PREPARO = [
   { id: "apetite", nome: "Caneta para emagrecer (GLP-1)", ic: "\u{1F48A}", sobre: "nada", efeito: 0, apetite: true,
     diz: "Semaglutida e tirzepatida (Ozempic, Wegovy, Mounjaro, Saxenda e afins). Não sobem o gasto: emagrecem porque tiram a fome, e a conta já vê isso no que você anota. Com a perda rápida vai músculo junto, e a proteína da meta é o que segura.",
     fonte: "Wilding e colegas 2021 (NEJM, semaglutida) e Jastreboff e colegas 2022 (NEJM, tirzepatida): a perda vem de comer menos, e parte do peso perdido é massa magra" },
+  // As insulinas (2026-11-27l, pedido do dono: "a gente usa insulina no
+  // bulking e às vezes no cutting: rápida, ultrarrápida, basal, lenta").
+  // Só registro, como o resto desta lista: não mexem no gasto (insulina não
+  // queima nem poupa caloria), e o app NUNCA sugere dose, nem carboidrato por
+  // unidade, nem muda a meta por causa delas. Marcada qualquer uma, o cartão
+  // mostra a segurança contra hipoglicemia (CartaoHipoglicemia).
+  { id: "insulinaRapida", nome: "Insulina rápida ou ultrarrápida", ic: "\u{1F489}", sobre: "nada", efeito: 0, insulina: true,
+    diz: "Regular, lispro, asparte, glulisina. Começa a agir em 15 a 30 minutos (ultrarrápida) ou 30 a 60 (regular) e é a que mais derruba a glicose depressa: é a de maior risco de hipoglicemia.",
+    fonte: "SBD (Sociedade Brasileira de Diabetes), diretriz 2023, e a bula de cada insulina" },
+  { id: "insulinaBasal", nome: "Insulina basal ou lenta (glargina, Lantus)", ic: "\u{1F489}", sobre: "nada", efeito: 0, insulina: true,
+    diz: "Glargina (Lantus, Basaglar, Toujeo), detemir, degludeca (Tresiba). Age por 20 a 42 horas, quase sem pico: a hipoglicemia pode vir de madrugada, dormindo, ou num dia de jejum ou de treino longo.",
+    fonte: "SBD, diretriz 2023, e a bula de cada insulina" },
+  { id: "insulinaNph", nome: "Insulina NPH (intermediária)", ic: "\u{1F489}", sobre: "nada", efeito: 0, insulina: true,
+    diz: "Tem pico entre 4 e 10 horas depois da aplicação: é nesse intervalo que a glicose mais cai.",
+    fonte: "SBD, diretriz 2023, e a bula" },
   { id: "diuretico", nome: "Diurético", ic: "\u{1F4A7}", sobre: "nada", efeito: 0, agua: true,
     diz: "Não queima gordura: tira água. O peso cai e volta, e isso enganaria a conta. Marque o dia de uso: o peso daquele dia e dos 3 seguintes fica fora.",
     fonte: "a água não é gordura: 1 kg de água pesa igual e não tem caloria" },
@@ -2426,7 +2441,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27k";
+const VERSAO_APP = "2026-11-27l";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -39293,6 +39308,29 @@ function GraficoSemanaBalance({ dias }) {
 }
 
 // O modo preparação no Perfil do Balance (só com preparoLiberado())
+// A segurança da insulina (2026-11-27l). Aparece sempre que alguma está
+// marcada em uso. É o primeiro socorro da hipoglicemia (a "regra dos 15" das
+// sociedades de diabetes), não orientação de uso: nada de dose aqui.
+function CartaoHipoglicemia() {
+  return (
+    <div style={{ border: "1px solid #FF4D6D", borderRadius: 14, padding: 12, marginBottom: 10, background: "#FF4D6D14" }}>
+      <div style={{ fontWeight: 900, fontSize: 14, color: "#FF4D6D", marginBottom: 6 }}>🩸 Insulina em uso: o risco é a hipoglicemia</div>
+      <div style={{ fontSize: 12.5, lineHeight: 1.55 }}>
+        <b>Sinais:</b> tremor, suor frio, fome de repente, coração acelerado, tontura, visão embaçada, irritação, confusão. Dormindo: pesadelo, suor, acordar confuso.
+      </div>
+      <div style={{ fontSize: 12.5, lineHeight: 1.55, marginTop: 6 }}>
+        <b>A regra dos 15:</b> comer 15 g de açúcar rápido (meio copo de refrigerante comum ou de suco, 1 colher de sopa de açúcar ou de mel), esperar 15 minutos e, se não melhorar, repetir. Melhorou, faça uma refeição.
+      </div>
+      <div style={{ fontSize: 12.5, lineHeight: 1.55, marginTop: 6 }}>
+        <b>Confuso, sem conseguir engolir, convulsão ou desmaio:</b> é emergência. Quem estiver junto não deve dar nada pela boca a quem está desacordado.
+      </div>
+      <a href="tel:192" style={{ display: "block", textAlign: "center", marginTop: 9, padding: "10px 12px", borderRadius: 12, fontWeight: 900, color: "#fff", background: "#FF4D6D", textDecoration: "none" }}>📞 Ligar para o SAMU (192)</a>
+      <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 8 }}>
+        Tenha sempre açúcar à mão, não aplique e fique sem comer, cuidado redobrado antes de treinar, dirigir ou dormir, e avise alguém próximo de que você usa. Insulina sem diabetes é uso fora da indicação: faça com acompanhamento médico e com o medidor de glicose.
+      </div>
+    </div>
+  );
+}
 function CartaoPreparo({ preparo, hoje, cb, onMudar }) {
   const usos = (preparo && preparo.usos) || {};
   const mudarUso = (id, m) => onMudar(Object.assign({}, preparo, { usos: Object.assign({}, usos, { [id]: Object.assign({}, usos[id] || {}, m) }) }));
@@ -39321,6 +39359,7 @@ function CartaoPreparo({ preparo, hoje, cb, onMudar }) {
           })()} Até lá, a conta usa a faixa dos estudos. Pese-se de manhã, em jejum: oscila menos.
         </div>
       ))}
+      {SUBSTANCIAS_PREPARO.some((x) => x.insulina && ativo(usos[x.id])) && <CartaoHipoglicemia />}
       {SUBSTANCIAS_PREPARO.map((x) => {
         const u = usos[x.id] || {};
         const on = ativo(u);
@@ -39352,7 +39391,7 @@ function CartaoPreparo({ preparo, hoje, cb, onMudar }) {
       })}
       <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 8, borderTop: "1px solid var(--borda)", paddingTop: 8 }}>
         🔒 Fica só neste aparelho e não vai para o resumo, o story nem os amigos. É um registro pessoal: o app não indica, receita nem orienta o uso de
-        nenhuma substância. Hormônio, estimulante e diurético só com acompanhamento médico, com exames.
+        nenhuma substância. Hormônio, insulina, estimulante e diurético só com acompanhamento médico, com exames.
       </div>
     </div>
   );

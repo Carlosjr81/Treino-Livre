@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27p — Liberado? Instale o app primeiro
+
+- **Em uma frase:** quem acabou de ser liberado cai primeiro numa tela que leva a instalar o app, para tudo funcionar do jeito certo.
+- **O que mudou:** logo depois da liberação, o app abre com "Liberado!" e o primeiro passo: no Android, baixar o app Android; no iPhone, adicionar à tela de início; e, para quem abriu pelo navegador do Instagram, sair dele e abrir no navegador do celular. A tela de espera do cadastro já mostra esse caminho, e avisa quando a pessoa está dentro do Instagram (que apaga os dados ao fechar). No painel do criador, liberar ficou mais claro.
+- **Por que importa para quem treina:** instalado, o app guarda os treinos com segurança, avisa o fim do descanso, fala e conversa com os aparelhos. Pelo navegador do Instagram, os treinos e a conta somem.
+- **Como usar:** depois de criar a conta, toque nos ⋮ do Instagram e escolha abrir no navegador; quando for liberado, toque em "Baixar o app Android" (ou adicione à tela de início no iPhone) e abra sempre pelo ícone.
+- **Ideias de vídeo:** "abriu o link da bio? sai do Instagram antes": os ⋮, abrir no Chrome, criar a conta, e a tela de "Liberado" com o botão de baixar.
+- **Não prometer:** que o app está na Play Store ou na App Store (no Android é baixado do site; no iPhone é pela tela de início); liberação automática na hora (o cadastro passa pela aprovação do criador).
+
+---
+
 ## 2026-11-27o — Mais proteção para a sua conta
 
 - **Em uma frase:** o Treino Livre ficou mais protegido contra cópias falsas e contra quem tenta adivinhar a senha dos outros.

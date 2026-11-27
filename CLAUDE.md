@@ -207,6 +207,32 @@ retransmissor do Desafio). E-mail do dono: `EMAIL_DONO`.
   **Validado no Firebase de verdade (28/10/2026)**: o dono criou a conta dele
   (confirmou o e-mail e entrou como dono) e uma segunda conta de teste.
 
+## Liberado, instale o app (`InstalarAposLiberar`, `PassosInstalar`, 2026-11-27p)
+
+Relato do dono: deu "🎁 Cortesia sem prazo" ao Lucas, abriu o "Liberar por quanto
+tempo?" (o "Sem prazo" vinha em degradê, parecendo escolhido) e o Lucas continuou
+"Aguardando". **A cortesia só dispensa o pagamento; quem abre a porta é o
+`status`**, e o seletor só libera com o toque num prazo.
+
+- **Cortesia numa conta pendente ou vencida também libera** (`darCortesia`:
+  `status: "liberado"`, `ate` no prazo da cortesia, `decididoEm`). Conta
+  bloqueada continua bloqueada.
+- Conta pendente com cortesia mostra "⚠ Ainda aguardando" com "✅ Liberar agora,
+  sem prazo". O seletor de prazo tem todos os botões iguais (contornados, com ✅)
+  e a linha "Toque num prazo: a conta é liberada na hora".
+- **Pedido do dono: depois da liberação, a primeira coisa é instalar o app.** O
+  porteiro marca `treinolivre:esperouLiberacao` quando a conferida dá
+  "pendente"; ao entrar, quem tem a marca e precisa instalar
+  (`precisaInstalar`: no navegador do Instagram, ou no Android/iPhone fora do
+  app instalado) vê `InstalarAposLiberar`, uma vez: no Instagram, sair dele
+  (⋮ → abrir no navegador, e copiar o link); no Android, o APK (`LINK_APK`); no
+  iPhone, a tela de início. A tela de espera já mostra os mesmos passos
+  (`PassosInstalar compacto`), em vermelho dentro do Instagram: ali a conta e os
+  treinos somem quando fecha, e a pessoa nem chega a ver a liberação.
+- No navegador com o Firebase de mentira: a espera dentro do Instagram, a tela de
+  liberado no Android, e o "Liberar agora" gravando `status: "liberado"`.
+  **Não validado num aparelho.**
+
 ## A segurança (`origemOficial`, `CopiaNaoOficial`, `falhaLogin`, regras v7, `SEGURANCA.md`)
 
 Pedido do dono (2026-11-27o): "dispositivos que dificultem ações maliciosas,

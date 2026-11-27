@@ -2454,7 +2454,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27o";
+const VERSAO_APP = "2026-11-27p";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -41203,6 +41203,79 @@ function ComoInstalar({ onFechar, onCopiarLink }) {
   );
 }
 
+// Instalar o app, o primeiro passo depois da liberação (pedido do dono,
+// 2026-11-27p: "uma das primeiras ações após a liberação seja induzir a instalar
+// o app pra tudo funcionar corretamente"). Três casos, e cada um tem um caminho:
+// no navegador do Instagram (que apaga os dados e a conta) é sair dele primeiro;
+// no Android, o app Android (relógio, Samsung Health, Jarvis com a tela travada);
+// no iPhone, a tela de início. No computador e com o app já aberto, nada.
+const CHAVE_ESPEROU = "treinolivre:esperouLiberacao";
+function precisaInstalar() { return NAVEGADOR_INAPP || (!JA_INSTALADO && !NO_APP_ANDROID && (EH_ANDROID || EH_IOS)); }
+function PassosInstalar({ compacto }) {
+  const [copiado, setCopiado] = useState(false);
+  const copiar = async () => { try { await navigator.clipboard.writeText(LINK_APP); setCopiado(true); } catch (e) { setCopiado(true); } };
+  const passo = (i, t) => (
+    <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8, alignItems: "flex-start", textAlign: "left" }}>
+      <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 11, background: "#E1306C", color: "#FFFFFF", fontSize: 12, fontWeight: 900, textAlign: "center", lineHeight: "22px" }}>{i}</span>
+      <span style={{ fontSize: 13.5, lineHeight: 1.5 }}>{t}</span>
+    </div>
+  );
+  if (NAVEGADOR_INAPP) return (
+    <div>
+      <div style={{ fontSize: 14, lineHeight: 1.55, marginBottom: 10, textAlign: "left" }}>
+        Você está no <b>navegador do Instagram</b>. Ele <b>apaga os seus treinos e a sua conta</b> quando fecha. Abra no navegador do celular:
+      </div>
+      {passo(1, "Toque nos ⋮ (ou ···) no canto de cima desta tela.")}
+      {passo(2, EH_IOS ? "Escolha “Abrir no navegador externo” (Safari)." : "Escolha “Abrir no Chrome” (ou “Abrir no navegador”).")}
+      {passo(3, EH_ANDROID ? "Lá, entre de novo e baixe o app Android." : "Lá, entre de novo e instale na tela de início.")}
+      <button onClick={copiar} style={{ ...S.btnGhost, width: "100%", marginTop: 4 }}>{copiado ? "✓ Link copiado: cole no navegador" : "📋 Copiar o link do app"}</button>
+    </div>
+  );
+  if (EH_ANDROID && !NO_APP_ANDROID) return (
+    <div>
+      {!compacto && (
+        <div style={{ fontSize: 13.5, lineHeight: 1.65, marginBottom: 10, textAlign: "left" }}>
+          <div>⌚ Relógio, anel e Samsung Health</div>
+          <div>🔒 O Jarvis ouvindo com a tela travada</div>
+          <div>📱 Abre pelo ícone, em tela cheia</div>
+        </div>
+      )}
+      <a href={LINK_APK} onClick={() => registrarEvento("apk-apos-liberar")} style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none" }}>⬇ Baixar o app Android (grátis)</a>
+      <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 8, textAlign: "left" }}>
+        Abra o arquivo baixado e toque em <b>Instalar</b>. Se o celular perguntar, permita instalar do Chrome; se o Play Protect avisar, <b>Mais detalhes → Instalar mesmo assim</b>. Depois, abra sempre pelo ícone do app.
+      </div>
+    </div>
+  );
+  if (EH_IOS) return (
+    <div>
+      {passo(1, "Toque no botão de compartilhar (o quadrado com a seta para cima).")}
+      {passo(2, "Escolha “Adicionar à Tela de Início”.")}
+      {passo(3, "Toque em “Adicionar” e abra sempre pelo ícone.")}
+    </div>
+  );
+  return null;
+}
+function InstalarAposLiberar({ nome, onFechar }) {
+  const primeiro = String(nome || "").trim().split(" ")[0];
+  useEffect(() => { registrarEvento("instalar-apos-liberar"); }, []);
+  return (
+    <div role="dialog" aria-label="Instale o app" style={{ fontFamily: S.app.fontFamily, color: "var(--texto)", position: "fixed", inset: 0, zIndex: 420, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+      <div style={{ ...S.card, maxWidth: 400, width: "100%", marginBottom: 0, maxHeight: "90vh", overflowY: "auto", textAlign: "center" }}>
+        <div style={{ fontSize: 40 }} aria-hidden="true">🎉</div>
+        <div style={{ fontSize: 20, fontWeight: 900, margin: "4px 0" }}>{primeiro ? "Liberado, " + primeiro + "!" : "Acesso liberado!"}</div>
+        <div style={{ fontSize: 14.5, fontWeight: 800, marginBottom: 6 }}>Primeiro passo: {NAVEGADOR_INAPP ? "saia do Instagram" : "instale o app"}</div>
+        <div style={{ fontSize: 13.5, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 12 }}>
+          É o que faz tudo funcionar direito: os treinos guardados com segurança, o aviso do descanso, a voz e os aparelhos.
+        </div>
+        <PassosInstalar />
+        <button onClick={onFechar} style={{ background: "none", border: "none", color: "var(--cinza)", cursor: "pointer", fontSize: 13.5, marginTop: 12, padding: 6 }}>
+          {NAVEGADOR_INAPP ? "Continuar aqui mesmo assim" : "Já instalei / agora não"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ---------------- PORTARIA ----------------
 // A tela que pede para seguir antes de entrar.
 //
@@ -45647,6 +45720,16 @@ function Porteiro({ children }) {
   const [pagPend, setPagPend] = useState(0);
   const [assinando, setAssinando] = useState(false);
   const [avisoVence, setAvisoVence] = useState(null);
+  // Quem esperou a liberação, ao entrar, cai primeiro no "instale o app"
+  // (pedido do dono, 2026-11-27p). Uma vez só.
+  const [instalarAposLiberar, setInstalarAposLiberar] = useState(false);
+  useEffect(() => {
+    if (fase !== "dentro") return;
+    let esperou = false;
+    try { esperou = localStorage.getItem(CHAVE_ESPEROU) === "1"; } catch (x) {}
+    if (esperou && precisaInstalar()) setInstalarAposLiberar(true);
+    else if (esperou) { try { localStorage.removeItem(CHAVE_ESPEROU); } catch (x) {} }
+  }, [fase]);
   const vistoEm = useRef(0);
   const conferindo = useRef(false);
   const contou = useRef(false);
@@ -45724,6 +45807,7 @@ function Porteiro({ children }) {
           if (a) setAvisoVence(Object.assign({}, p, { t: a }));
         }
       }
+      if (status === "pendente" && !dono) { try { localStorage.setItem(CHAVE_ESPEROU, "1"); } catch (x) {} }
       setFase(status === "liberado" ? "dentro" : status === "bloqueado" ? "bloqueado" : status === "vencido" ? "vencido" : status === "pagar" ? "pagar" : "aguardando");
     } catch (e) {
       if (e.semRede) {
@@ -45765,9 +45849,11 @@ function Porteiro({ children }) {
       bodybuilder: !!(s.conta && s.conta.bodybuilder) } : null;
     const app = CONTA_ATUAL && CONTA_ATUAL.dono ? React.cloneElement(children, { contaPendentes: pendentes, contaPagamentos: pagPend, contaAuto: autoNov, onContaVista: () => { setPendentes(0); setPagPend(0); setAutoNov(0); } }) : children;
     const fecharAviso = () => { try { localStorage.setItem("treinolivre:avisoVence", new Date().toDateString()); } catch (x) {} setAvisoVence(null); };
+    const mostrarInstalar = instalarAposLiberar && CONTA_ATUAL && !CONTA_ATUAL.dono;
     return (
       <React.Fragment>
         {app}
+        {mostrarInstalar && <InstalarAposLiberar nome={s && s.nome} onFechar={() => { try { localStorage.removeItem(CHAVE_ESPEROU); } catch (x) {} setInstalarAposLiberar(false); }} />}
         {recado && <RecadoDoDono texto={recado.texto} onOk={async () => {
           setRecado(null);
           try { const t2 = await tokenValido(lerSessaoConta()); await contaApi.gravar(recado.uid, { avisoVisto: Date.now() }, t2.idToken); } catch (x) {}
@@ -46336,6 +46422,12 @@ function TelaEsperaConta({ fase, sessao, msg, onConferir, onConferirQuieto, onSa
         <div style={{ fontSize: 42 }} aria-hidden="true">{t[0]}</div>
         <div style={{ fontSize: 19, fontWeight: 900, margin: "6px 0 8px" }}>{t[1]}</div>
         {t[2] && <div style={{ fontSize: 14, color: "var(--cinza)", lineHeight: 1.55 }}>{t[2]}</div>}
+        {fase === "aguardando" && precisaInstalar() && (
+          <div style={{ border: "1px solid " + (NAVEGADOR_INAPP ? "var(--perigo)" : "var(--marca)"), borderRadius: 12, padding: "10px 12px", marginTop: 14, textAlign: "left" }}>
+            <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 8 }}>{NAVEGADOR_INAPP ? "⚠ Antes de tudo: saia do Instagram" : "📲 Já deixe o app instalado"}</div>
+            <PassosInstalar compacto />
+          </div>
+        )}
         {fase === "aguardando" && (
           <div style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: "10px 12px", marginTop: 14, textAlign: "left", fontSize: 13.5, lineHeight: 1.55 }}>
             <b>Enquanto isso:</b> siga o criador do app no Instagram. É por lá que saem as novidades do app.
@@ -47576,9 +47668,18 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
     } catch (x) { setErro(erroDeConta(x.message)); }
     setMexendo(null);
   };
+  // Relato do dono (2026-11-27p): deu cortesia sem prazo ao Lucas, que esperava a
+  // liberação, e ele continuou "Aguardando". A cortesia só dispensa o pagamento;
+  // quem abre a porta é o status. Numa conta que espera (ou venceu), dar cortesia
+  // também libera, pelo mesmo prazo.
   const darCortesia = async (c, dias, motivo) => {
-    const ok = await gravar(c, { cortesia: true, cortesiaAte: prazoAte(dias, Date.now()), cortesiaMotivo: String(motivo || "").slice(0, 120), cortesiaEm: Date.now() },
-      "🎁 Cortesia dada" + (dias ? " por " + dias + " dias" : " sem prazo") + ".");
+    const ag = Date.now(), ateC = prazoAte(dias, ag);
+    const sitC = situacaoConta(c, ag, null);
+    const abre = sitC === "pendente" || sitC === "vencido";
+    const campos = { cortesia: true, cortesiaAte: ateC, cortesiaMotivo: String(motivo || "").slice(0, 120), cortesiaEm: ag };
+    if (abre) Object.assign(campos, { status: "liberado", ate: ateC, motivo: "", decididoEm: ag });
+    const ok = await gravar(c, campos,
+      "🎁 Cortesia dada" + (dias ? " por " + dias + " dias" : " sem prazo") + (abre ? " e acesso liberado: a pessoa entra sozinha em até 30 s." : "."));
     if (ok) setAcao(null);
   };
   const semPlano = (c) => situacaoConta(c, agora) === "liberado" && !ehEmailDono(c.email) && planoDaConta(c, agora, Object.assign({}, cob, { ligada: false })).tipo === "gratis";
@@ -47769,6 +47870,12 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
             )}
             {c.nota ? <div style={{ fontSize: 12.5, color: "var(--obs)", fontStyle: "italic", marginTop: 6 }}>📝 {c.nota}</div> : null}
 
+            {!souEu && sit === "pendente" && c.cortesia && escolhendoPrazo !== c.uid && (
+              <div style={{ marginTop: 10, border: "1px solid var(--obs)", borderRadius: 12, padding: "9px 11px", fontSize: 13, lineHeight: 1.5 }}>
+                ⚠ <b>Ainda aguardando.</b> A cortesia dispensa o pagamento, mas não abre o cadastro: falta liberar.
+                <button disabled={mexendo === c.uid} onClick={() => liberar(c, 0)} style={{ ...S.btn, width: "100%", padding: "9px 8px", fontSize: 13.5, marginTop: 8 }}>✅ Liberar agora, sem prazo</button>
+              </div>
+            )}
             {!souEu && escolhendoPrazo !== c.uid && !ed && (
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                 {sit !== "liberado" && (
@@ -47784,10 +47891,11 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
             )}
             {escolhendoPrazo === c.uid && (
               <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>Liberar por quanto tempo?</div>
+                <div style={{ fontSize: 13, fontWeight: 800 }}>Liberar por quanto tempo?</div>
+                <div style={{ fontSize: 12, color: "var(--cinza)", marginBottom: 6 }}>Toque num prazo: a conta é liberada na hora.</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {PRAZOS_ACESSO.map((p) => (
-                    <button key={p.dias} onClick={() => liberar(c, p.dias)} style={{ ...(p.dias ? S.btnGhost : S.btn), flex: "1 1 30%", padding: "9px 6px", fontSize: 13 }}>{p.nome}</button>
+                    <button key={p.dias} disabled={mexendo === c.uid} onClick={() => liberar(c, p.dias)} style={{ ...S.btnGhost, flex: "1 1 30%", padding: "9px 6px", fontSize: 13, color: "var(--marca)", borderColor: "var(--marca)", fontWeight: 800 }}>✅ {p.nome}</button>
                   ))}
                   <button onClick={() => setEscolhendoPrazo(null)} style={{ background: "none", border: "none", color: "var(--cinza)", cursor: "pointer", fontSize: 13, flex: "1 1 100%", padding: 6 }}>Cancelar</button>
                 </div>

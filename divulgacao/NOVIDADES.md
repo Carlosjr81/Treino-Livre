@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-28a — Quase o dobro de alimentos: o prato do Brasil inteiro
+
+- **Em uma frase:** o Balance passou de 243 para 419 alimentos, com o que se come no dia a dia em todas as regiões.
+- **O que mudou:** entraram os cortes de carne (contrafilé, filé-mignon, maminha, fraldinha, vazio, cupim, costela, carne de panela, carne-seca, carne de sol, fígado), frango (coxa, sobrecoxa, asa, à passarinho, empanado, coração, parmegiana), porco (bisteca, costelinha, torresmo, bacon, linguiça toscana), peixes e pratos baianos (moqueca, bobó, vatapá, caruru, acarajé), arroz e misturas (à grega, carreteiro, baião de dois, galinhada, tropeiro, tutu), grãos e sementes (feijão branco e fradinho, ervilha, soja, chia, linhaça, cuscuz marroquino, amaranto), batatas (chips, rústica, sauté, mandioca e polenta fritas, mandioquinha), verduras e saladas, frutas (mexerica, maracujá, caju, acerola, jabuticaba, graviola, cupuaçu, caqui, pitaia...), sobremesas e doces (doce de leite, goiabada, cocada, pé de moleque, quindim, pavê, mousse, brownie, sonho, churros, bolos, pamonha, curau, canjica), salgados (pastel, quibe, bolinho de bacalhau, sanduíche de mortadela), bebidas (caldo de cana, mate gelado, limonada, suco de caixinha) e molhos (maionese, ketchup, creme de leite). No jeito de marcar o prato à mão, a lista ganhou uma busca.
+- **Por que importa para quem treina:** o almoço do dia a dia passa a estar inteiro no catálogo, e a leitura do prato pela foto acha o alimento certo em vez de estimar por fora.
+- **Como usar:** Balance › + Comida › busque pelo nome (vale "ruffles", "aipim", "mexerica", "fraldão").
+- **Ideias de vídeo:** buscar o prato de cada região (baião de dois, moqueca, virado à paulista, tropeiro) e mostrar as calorias.
+- **Não prometer:** que os números são os de uma marca ou de um restaurante; são médias da tabela brasileira (TACO) e de rótulos.
+
+---
+
 ## 2026-11-27z — Foto do prato que vira a lista do que você comeu
 
 - **Em uma frase:** no Balance, você fotografa o prato e a inteligência artificial estima os gramas de cada alimento e já preenche a lista para anotar.

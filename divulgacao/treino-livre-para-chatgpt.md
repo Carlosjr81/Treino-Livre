@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-27z**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-28a**.
 
 ---
 
@@ -60,7 +60,7 @@
   volume menor é do método, para recuperar, e não preguiça. Na tela e no vídeo do story.
 - **Jarvis Body Balance** (novo em 2026-11-25a): a aba **Balance** controla comida, água e o balanço de energia. Dois corpos
   enchem por cor (proteína vermelha, carboidrato amarelo, gordura roxa; água azul) até a meta do dia; passou, o corpo fica
-  vermelho. Anota por busca de alimentos brasileiros, foto do prato (desde 2026-11-27z a inteligência artificial lê a foto, estima os gramas de cada alimento
+  vermelho. Anota por busca de alimentos brasileiros (419, de todas as regiões, desde 2026-11-28a), foto do prato (desde 2026-11-27z a inteligência artificial lê a foto, estima os gramas de cada alimento
   e preenche a lista, que a pessoa confere antes de anotar; ou ela marca à mão o que tem e quanto do prato ocupa: é sempre
   estimativa, e o app não guarda a foto) ou toque na água. Escolhido o alimento, porções ou os gramas da balança, e quantas vezes no dia (para anotar o dia inteiro de uma vez; desde 2026-11-25f). Tocar num alimento já anotado abre a correção (quantidade, valores, refeição ou tirar; desde 2026-11-25g). Mostra gastou × comeu (com o relógio, o gasto medido por ele), se o dia está em cutting ou
   bulking, os minutos de caminhada que compensam o excesso e um plano leve de 3 dias, o acerto da semana e do mês, e o sono.

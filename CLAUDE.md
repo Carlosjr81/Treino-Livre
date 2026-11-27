@@ -7112,6 +7112,19 @@ passar muito, ou não bater por pouco, ou por muito". Bloco puro **A LEITURA DA
   urina), Hew-Butler (2015). Quem tem doença nos rins ou no coração segue o
   médico.
 - Os textos têm tradução em `idioma-en.js`.
+- **O efeito no shape** (2026-11-27j, pedido do dono): cada faixa tem `shape`
+  (`ef`: ajuda, neutro, piora, cuidado; `EFEITOS_SHAPE` dá o ícone e a cor).
+  Nunca promete músculo ou gordura pela água (o teste procura): a água deixa o
+  treino e a dieta funcionarem. ("Shake" no pedido do dono, ditado por voz, era
+  "shape".)
+- **A água da madrugada** (2026-11-27j, relato do dono: levanta à noite, bebe
+  e volta a dormir): `dia.aguaNoite` (soma também no `agua`; o `lerNutricao`
+  guarda o campo), o botão "🌙 Bebi de madrugada" e o −250. Anota-se ao
+  acordar: depois da meia-noite já é o dia novo; antes, volta-se um dia com ◀.
+  A partir de 500 ml (`AGUA_NOITE_MUITA`), a leitura fala do sono e de
+  comentar com o médico se a sede for toda noite. A água continua sendo só o
+  total do dia (sem a hora de cada copo): o ritmo do dia não sabe a hora da
+  água.
 
 ### O horário de sempre, a creatina do shake e as vitaminas (2026-11-27d)
 

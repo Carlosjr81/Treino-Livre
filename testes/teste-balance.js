@@ -855,6 +855,11 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("o dia que passou é julgado pela meta inteira", "abaixo", B.leituraAgua({ bebeu: 2000, meta: 3000 }).faixa.id);
   teste("bateu a meta: não há ritmo a cobrar", null, B.leituraAgua({ bebeu: 3100, meta: 3000, agoraMin: hora(15), dorme: 23 }).ritmo);
   teste("sem meta não há leitura", null, B.leituraAgua({ bebeu: 1000, meta: 0 }));
+  teste("cada faixa diz o efeito no shape", ["piora", "piora", "neutro", "ajuda", "neutro", "cuidado"],
+    ["muitoAbaixo", "abaixo", "quase", "meta", "acima", "muitoAcima"].map((id) => B.FAIXAS_AGUA.find((f) => f.id === id).shape.ef));
+  teste("nenhum efeito promete músculo ou gordura queimada pela água", [], B.FAIXAS_AGUA.filter((f) => /queima mais|ganha mais músculo|emagrece/i.test(f.shape.texto)).map((f) => f.id));
+  teste("a água da madrugada vem separada", [750, true], (() => { const x = B.leituraAgua({ bebeu: 2500, meta: 3000, noite: 750 }).noite; return [x.ml, x.muita]; })());
+  teste("um copo à noite não vira alerta de sono", false, B.leituraAgua({ bebeu: 2500, meta: 3000, noite: 250 }).noite.muita);
   teste("nenhuma faixa cobra nem manda a pessoa beber à força", [], B.FAIXAS_AGUA.filter((f) => /obrigat|você deve|tem que beber|errou|falhou/i.test(f.diz + f.faca)).map((f) => f.id));
 
   // a creatina dentro do shake conta (relato do dono, 2026-11-27d)

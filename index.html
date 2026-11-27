@@ -2396,7 +2396,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27i";
+const VERSAO_APP = "2026-11-27j";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4090,7 +4090,7 @@ function lerNutricao(n) {
   r.receitas = lerReceitas(n.receitas);
   if (n.dias && typeof n.dias === "object") {
     const corte = new Date(Date.now() - 400 * 864e5).toISOString().slice(0, 10);
-    Object.keys(n.dias).forEach((d) => { if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d >= corte && n.dias[d] && typeof n.dias[d] === "object") r.dias[d] = { itens: Array.isArray(n.dias[d].itens) ? n.dias[d].itens.slice(0, 120) : [], agua: Number(n.dias[d].agua) || 0, sono: Number(n.dias[d].sono) || 0, aguaEv: Array.isArray(n.dias[d].aguaEv) ? n.dias[d].aguaEv.slice(-60) : [], janelas: Array.isArray(n.dias[d].janelas) ? n.dias[d].janelas.filter((x) => typeof x === "string").slice(0, 12) : [] }; });
+    Object.keys(n.dias).forEach((d) => { if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d >= corte && n.dias[d] && typeof n.dias[d] === "object") r.dias[d] = { itens: Array.isArray(n.dias[d].itens) ? n.dias[d].itens.slice(0, 120) : [], agua: Number(n.dias[d].agua) || 0, aguaNoite: Math.max(0, Number(n.dias[d].aguaNoite) || 0), sono: Number(n.dias[d].sono) || 0, aguaEv: Array.isArray(n.dias[d].aguaEv) ? n.dias[d].aguaEv.slice(-60) : [], janelas: Array.isArray(n.dias[d].janelas) ? n.dias[d].janelas.filter((x) => typeof x === "string").slice(0, 12) : [] }; });
   }
   if (Array.isArray(n.vistos)) r.vistos = n.vistos.filter((x) => typeof x === "string").slice(-400);
   return r;
@@ -5638,28 +5638,40 @@ function receitasDisponiveis(minhas) {
 // coração pode ter limite de líquidos, e a tela diz para seguir o médico.
 const FAIXAS_AGUA = [
   { id: "muitoAcima", de: 1.5, nome: "Bem acima da meta", ic: "\u{1F30A}", cor: "#FFB21A",
+    shape: { ef: "cuidado", nome: "Não ajuda, e pode atrapalhar", texto: "Água a mais não faz músculo nem queima gordura. E muita água leva ao banheiro, inclusive de madrugada, cortando o sono — que é onde o músculo se recupera. A balança também oscila mais por água." },
     diz: "Mais do que o corpo precisa hoje. O que sobra sai na urina — o rim dá conta de uns 0,8 a 1 litro por hora.",
     faca: "Não precisa beber mais. Se bebeu muito em pouco tempo (num treino longo, por exemplo), o risco é baixar o sódio do sangue: espalhe ao longo do dia e reponha o sal com a comida. Náusea, dor de cabeça forte ou confusão depois de beber muito pedem atendimento." },
   { id: "acima", de: 1.2, nome: "Um pouco acima", ic: "\u{1F4A7}", cor: "#4CD137",
+    shape: { ef: "neutro", nome: "Não muda", texto: "Passar um pouco da meta não ajuda nem atrapalha o shape. A balança pode oscilar uns 0,5 a 1 kg de um dia para outro só por água: por isso o app olha a tendência, não o dia." },
     diz: "Tudo bem: passou um pouco da meta. Em dia quente, de suor ou de treino longo, é até o esperado.",
     faca: "Pode seguir como está. Não há ganho em beber muito além disso." },
   { id: "meta", de: 1.0, nome: "Na meta", ic: "\u{2705}", cor: "#4CD137",
+    shape: { ef: "ajuda", nome: "Ajuda", texto: "O treino rende o que pode render e a recuperação segue normal. A água não constrói músculo nem queima gordura sozinha: ela deixa o treino e a dieta funcionarem." },
     diz: "Água do dia em ordem, já contando o treino. A urina clara ou amarelo-claro confirma.",
     faca: "É só manter. Daqui em diante, beba conforme a sede." },
   { id: "quase", de: 0.85, nome: "Quase lá", ic: "\u{1F538}", cor: "#FFB21A",
+    shape: { ef: "neutro", nome: "Não muda", texto: "Essa diferença não muda nada que dê para medir no treino nem no shape." },
     diz: "Um pouquinho abaixo: a diferença para o corpo é pequena.",
     faca: "Um ou dois copos fecham o dia." },
   { id: "abaixo", de: 0.6, nome: "Abaixo da meta", ic: "\u{26A0}\u{FE0F}", cor: "#FF8A3D",
+    shape: { ef: "piora", nome: "Piora um pouco", texto: "O treino pode render menos (menos repetições, cansaço antes) e a recuperação fica mais lenta. Um dia assim não estraga nada; muitos dias seguidos, sim." },
     diz: "Desidratação leve: perder uns 2% do peso em água já tira força e rendimento no treino, e dá cansaço e dor de cabeça.",
     faca: "Beba aos poucos, um copo a cada meia hora ou hora. Repare na urina: amarelo-escuro é sinal de que falta água." },
   { id: "muitoAbaixo", de: 0, nome: "Bem abaixo da meta", ic: "\u{1F6A9}", cor: "#FF4D6D",
+    shape: { ef: "piora", nome: "Piora", texto: "Com 2% ou mais do peso em água a menos, força, repetições e resistência caem, e o treino rende menos — e o shape vem do treino bem feito somado nas semanas. A balança engana: o peso cai por água, não por gordura." },
     diz: "Pouca água para o dia: sede, urina escura, tontura e queda de rendimento são o esperado assim — e o treino rende menos.",
     faca: "Não tente compensar tudo de uma vez: uns 250 ml a cada 30 a 60 minutos até a hora de dormir. Tontura forte, confusão ou desmaio pedem atendimento." },
 ];
 // o dia em andamento, com a água em dia para a hora
 const FAIXA_NO_RITMO = { id: "noRitmo", de: null, nome: "No ritmo", ic: "\u{1F7E2}", cor: "#4CD137",
   diz: "Para a hora do dia, a água está em dia.",
-  faca: "Siga bebendo aos poucos, conforme a sede, até a hora de dormir." };
+  faca: "Siga bebendo aos poucos, conforme a sede, até a hora de dormir.",
+  shape: { ef: "ajuda", nome: "Em dia", texto: "Nada atrapalhando o treino de hoje. É manter o ritmo." } };
+// A água da madrugada (2026-11-27j, relato do dono: "levanto do sono, bebo
+// água, vou ao banheiro e volto a dormir"). Conta no total do dia; a partir de
+// meio litro, a leitura fala do sono, que é onde o músculo se recupera.
+const AGUA_NOITE_MUITA = 500;
+const EFEITOS_SHAPE = { ajuda: ["\u{1F7E2}", "#4CD137"], neutro: ["\u{26AA}", "var(--cinza)"], piora: ["\u{1F53B}", "#FF4D6D"], cuidado: ["\u{1F7E0}", "#FFB21A"] };
 // o dia acordado vai das 7h até uma hora antes de dormir
 const ACORDA_AGUA_MIN = 7 * 60;
 function leituraAgua(o) {
@@ -5667,7 +5679,9 @@ function leituraAgua(o) {
   if (!meta) return null;
   const pct = bebeu / meta;
   const faixa = FAIXAS_AGUA.find((f) => pct >= f.de) || FAIXAS_AGUA[FAIXAS_AGUA.length - 1];
-  const r = { pct: pct, faixa: faixa, falta: Math.max(0, Math.round(meta - bebeu)), sobra: Math.max(0, Math.round(bebeu - meta)), ritmo: null };
+  const r = { pct: pct, faixa: faixa, falta: Math.max(0, Math.round(meta - bebeu)), sobra: Math.max(0, Math.round(bebeu - meta)), ritmo: null, noite: null };
+  const noite = Math.max(0, numB(o && o.noite));
+  if (noite > 0) r.noite = { ml: noite, muita: noite >= AGUA_NOITE_MUITA };
   // Hoje, antes de o dia acabar: o que já devia ter entrado até agora
   if (typeof o.agoraMin === "number") {
     const fim = Math.max(ACORDA_AGUA_MIN + 60, Math.min(24 * 60, (numB(o.dorme) || 23) * 60) - 60);
@@ -39374,10 +39388,10 @@ function CartaoEspacoTreino({ x }) {
 // que a hora: ver AS JANELAS DOS NUTRIENTES.
 // A água do dia em faixas, e não só "bateu ou não" (2026-11-27i, ver A
 // LEITURA DA ÁGUA): o que cada faixa quer dizer para o corpo e o que fazer.
-function CartaoAgua({ bebeu, meta, ehHoje, dorme, onAgua }) {
+function CartaoAgua({ bebeu, meta, ehHoje, dorme, noite, onAgua, onNoite }) {
   const [aberto, setAberto] = useState(false);
   const agora = new Date();
-  const lt = leituraAgua({ bebeu: bebeu, meta: meta, dorme: dorme, agoraMin: ehHoje ? agora.getHours() * 60 + agora.getMinutes() : undefined });
+  const lt = leituraAgua({ bebeu: bebeu, meta: meta, dorme: dorme, noite: noite, agoraMin: ehHoje ? agora.getHours() * 60 + agora.getMinutes() : undefined });
   if (!lt) return null;
   const f = lt.faixa;
   const larg = Math.min(100, (lt.pct / 1.5) * 100);
@@ -39401,6 +39415,24 @@ function CartaoAgua({ bebeu, meta, ehHoje, dorme, onAgua }) {
       <div style={{ fontSize: 12.5, lineHeight: 1.55, marginTop: 5, color: "var(--cinza)" }}>
         <b style={{ color: "var(--texto)" }}>O que fazer: </b>{f.faca}
       </div>
+      {f.shape && (
+        <div style={{ fontSize: 12.5, lineHeight: 1.55, marginTop: 6, padding: "8px 10px", borderRadius: 10, border: "1px solid var(--borda2)" }}>
+          <b>🏋 No treino e no shape: </b>
+          <b style={{ color: EFEITOS_SHAPE[f.shape.ef][1] }}>{EFEITOS_SHAPE[f.shape.ef][0]} {f.shape.nome}.</b>{" "}
+          <span style={{ color: "var(--cinza)" }}>{f.shape.texto}</span>
+        </div>
+      )}
+      {lt.noite && (
+        <div style={{ fontSize: 12, lineHeight: 1.55, marginTop: 7 }}>
+          <b>🌙 Da madrugada: {fmtLitros(lt.noite.ml)}</b> <span style={{ color: "var(--cinza)" }}>(já dentro do total)</span>
+          {onNoite && <button onClick={() => onNoite(-250)} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 900, cursor: "pointer" }}>−250</button>}
+          {lt.noite.muita && (
+            <div style={{ color: "var(--cinza)", marginTop: 3 }}>
+              Levantar para beber e ir ao banheiro corta o sono — e é dormindo que o músculo se recupera. Se der, beba mais durante o dia e deixe só uns goles para as últimas 1 a 2 horas antes de deitar. Se acorda com sede toda noite ou levanta várias vezes para urinar, vale comentar com o médico.
+            </div>
+          )}
+        </div>
+      )}
       {lt.ritmo && (
         <div style={{ fontSize: 12, lineHeight: 1.5, marginTop: 7, fontWeight: 800, color: lt.ritmo.emDia ? "#4CD137" : "#FFB21A" }}>
           {lt.ritmo.emDia
@@ -39410,6 +39442,9 @@ function CartaoAgua({ bebeu, meta, ehHoje, dorme, onAgua }) {
       )}
       {ehHoje && onAgua && lt.falta > 0 && (
         <button onClick={() => onAgua(250)} style={{ ...S.btnGhost, width: "100%", marginTop: 9, fontWeight: 900, color: "#35E0F0", borderColor: "#35E0F066" }}>💧 Bebi um copo (+250 ml)</button>
+      )}
+      {onNoite && (
+        <button onClick={() => onNoite(250)} style={{ ...S.btnGhost, width: "100%", marginTop: 7, fontWeight: 900, color: "#B05BFF", borderColor: "#B05BFF66" }}>🌙 Bebi de madrugada (+250 ml)</button>
       )}
       <button onClick={() => setAberto(!aberto)} style={{ ...S.btnGhost, width: "100%", marginTop: 8, padding: "7px 6px", fontSize: 12, fontWeight: 900 }}>
         {aberto ? "▴ Esconder" : "▾ O que cada faixa quer dizer"}
@@ -39426,6 +39461,9 @@ function CartaoAgua({ bebeu, meta, ehHoje, dorme, onAgua }) {
               </div>
             );
           })}
+          <div style={{ fontSize: 11.5, lineHeight: 1.55, marginBottom: 8 }}>
+            <b>🌙 A água da madrugada:</b> <span style={{ color: "var(--cinza)" }}>anote quando acordar, com "Bebi de madrugada". Ela entra no dia de hoje (depois da meia-noite já é o dia novo) e fica separada, para o app saber que foi à noite. Se bebeu antes da meia-noite, volte um dia com ◀ e anote lá.</span>
+          </div>
           <div style={{ fontSize: 11, color: "var(--cinza)", lineHeight: 1.55 }}>
             A meta conta 35 ml por kg mais meio litro por hora de treino, e inclui todos os líquidos anotados (água, leite, suco, café). Fontes: ACSM (Sawka e colegas, 2007), EFSA (2010), Armstrong e colegas (1994, a cor da urina) e o consenso sobre hiponatremia no exercício (Hew-Butler e colegas, 2015). Quem tem doença nos rins ou no coração pode ter limite de líquidos: siga o que o médico orientar.
           </div>
@@ -39975,7 +40013,16 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
               })()}
 
               {meta && meta.agua > 0 && (
-                <CartaoAgua bebeu={t.agua} meta={meta.agua} ehHoje={ehHoje} dorme={perfilG.dorme} onAgua={(ml) => adicionar([], ml)} />
+                <CartaoAgua bebeu={t.agua} meta={meta.agua} ehHoje={ehHoje} dorme={perfilG.dorme} noite={numB(atual.dia.aguaNoite)} onAgua={(ml) => adicionar([], ml)}
+                  onNoite={(ml) => {
+                    // a da madrugada entra no total do dia e fica contada à parte
+                    mudarDia(diaVer, (d) => {
+                      const tira = ml < 0 ? Math.min(-ml, numB(d.aguaNoite)) : 0;
+                      return Object.assign({}, d, { agua: Math.max(0, numB(d.agua) + (ml > 0 ? ml : -tira)), aguaNoite: Math.max(0, numB(d.aguaNoite) + (ml > 0 ? ml : -tira)) });
+                    });
+                    mostrar(ml > 0 ? "🌙 +" + ml + " ml da madrugada" : "🌙 −" + (-ml) + " ml");
+                    if (sincronizarRelogio && ehHoje) { sincEm.current = Date.now(); setTimeout(() => sincronizarRelogio(estadoRelogio.current), 120); }
+                  }} />
               )}
               {meta && (
                 <div style={S.card}>

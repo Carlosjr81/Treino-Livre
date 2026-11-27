@@ -16,6 +16,19 @@
 
 ---
 
+## 2026-11-27j — Água e shape, e a água da madrugada
+
+- **Em uma frase:** o cartão da água agora diz se a água do dia ajuda, não muda ou piora o seu treino e o seu shape, e tem um botão para anotar a água que você bebe de madrugada.
+- **O que mudou:**
+  - **🏋 No treino e no shape**, em cada faixa: bem abaixo **piora** (força, repetições e resistência caem; a balança cai por água, não por gordura); abaixo **piora um pouco** (um dia não estraga nada, muitos seguidos sim); quase lá **não muda**; na meta **ajuda** (o treino rende o que pode; água não constrói músculo nem queima gordura sozinha, ela deixa o treino e a dieta funcionarem); um pouco acima **não muda**; bem acima **não ajuda e pode atrapalhar** (banheiro de madrugada cortando o sono, balança oscilando).
+  - **🌙 Bebi de madrugada (+250 ml):** quem acorda à noite para beber água anota quando levantar de manhã. Entra no dia de hoje (depois da meia-noite já é o dia novo), soma no total e fica separada. A partir de meio litro, o app explica que levantar à noite corta o sono — e é dormindo que o músculo se recupera — e sugere beber mais de dia. Se a sede à noite é toda noite, vale comentar com o médico.
+- **Por que importa para quem treina:** água não é só "bateu a meta": abaixo tira rendimento, e muito acima, à noite, tira sono.
+- **Como usar:** Balance › Hoje › 💧 A água do dia.
+- **Ideias de vídeo:** a mesma tela em três dias (bem abaixo, na meta, bem acima) mostrando o "No treino e no shape" mudando; anotar a água da madrugada ao acordar.
+- **Não prometer:** água não faz músculo nem emagrece sozinha. É informação geral; quem tem doença nos rins ou no coração segue o médico.
+
+---
+
 ## 2026-11-27i — A água do dia, explicada
 
 - **Em uma frase:** o Balance agora diz o que significa a sua água do dia — bem abaixo, abaixo, quase lá, na meta, um pouco acima ou bem acima — e o que fazer em cada caso.

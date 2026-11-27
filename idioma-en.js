@@ -14,6 +14,25 @@
 var TEXTOS_EN = {
   // o Balance de novembro (2026-11-27e): janelas, missões, medalhas, perfil e fontes
   // a leitura da água (2026-11-27i)
+  "Não ajuda, e pode atrapalhar": "Doesn’t help, and can get in the way",
+  "Água a mais não faz músculo nem queima gordura. E muita água leva ao banheiro, inclusive de madrugada, cortando o sono — que é onde o músculo se recupera. A balança também oscila mais por água.": "Extra water doesn’t build muscle or burn fat. And a lot of water means bathroom trips, including at night, cutting into sleep — which is when muscle recovers. The scale also swings more from water.",
+  "Não muda": "No change",
+  "Passar um pouco da meta não ajuda nem atrapalha o shape. A balança pode oscilar uns 0,5 a 1 kg de um dia para outro só por água: por isso o app olha a tendência, não o dia.": "Going a little over the target neither helps nor hurts your physique. The scale can swing 0.5 to 1 kg from one day to the next from water alone: that’s why the app looks at the trend, not the day.",
+  "Ajuda": "Helps",
+  "O treino rende o que pode render e a recuperação segue normal. A água não constrói músculo nem queima gordura sozinha: ela deixa o treino e a dieta funcionarem.": "Your workout performs as it should and recovery stays normal. Water doesn’t build muscle or burn fat on its own: it lets training and diet do their job.",
+  "Essa diferença não muda nada que dê para medir no treino nem no shape.": "This difference changes nothing measurable in your training or physique.",
+  "Piora um pouco": "Slightly worse",
+  "O treino pode render menos (menos repetições, cansaço antes) e a recuperação fica mais lenta. Um dia assim não estraga nada; muitos dias seguidos, sim.": "Your workout may perform less (fewer reps, tiring sooner) and recovery slows down. One day like this ruins nothing; many in a row do.",
+  "Piora": "Worse",
+  "Com 2% ou mais do peso em água a menos, força, repetições e resistência caem, e o treino rende menos — e o shape vem do treino bem feito somado nas semanas. A balança engana: o peso cai por água, não por gordura.": "With 2% or more of body weight missing in water, strength, reps and endurance drop and the workout performs less — and your physique comes from good training added up over weeks. The scale misleads: weight drops from water, not fat.",
+  "Em dia": "On track",
+  "Nada atrapalhando o treino de hoje. É manter o ritmo.": "Nothing holding back today’s workout. Just keep the pace.",
+  "🏋 No treino e no shape:": "🏋 For training and physique:",
+  "(já dentro do total)": "(already in the total)",
+  "Levantar para beber e ir ao banheiro corta o sono — e é dormindo que o músculo se recupera. Se der, beba mais durante o dia e deixe só uns goles para as últimas 1 a 2 horas antes de deitar. Se acorda com sede toda noite ou levanta várias vezes para urinar, vale comentar com o médico.": "Getting up to drink and go to the bathroom cuts into sleep — and muscle recovers while you sleep. If you can, drink more during the day and keep just a few sips for the last 1 to 2 hours before bed. If you wake up thirsty every night or get up several times to urinate, it’s worth mentioning to your doctor.",
+  "🌙 Bebi de madrugada (+250 ml)": "🌙 Drank during the night (+250 ml)",
+  "🌙 A água da madrugada:": "🌙 Water during the night:",
+  "anote quando acordar, com \"Bebi de madrugada\". Ela entra no dia de hoje (depois da meia-noite já é o dia novo) e fica separada, para o app saber que foi à noite. Se bebeu antes da meia-noite, volte um dia com ◀ e anote lá.": "log it when you wake up, with \"Drank during the night\". It goes into today (after midnight it’s already the new day) and is kept separate, so the app knows it was at night. If you drank before midnight, go back a day with ◀ and log it there.",
   "Bem acima da meta": "Well above target",
   "Mais do que o corpo precisa hoje. O que sobra sai na urina — o rim dá conta de uns 0,8 a 1 litro por hora.": "More than your body needs today. The excess leaves in urine — the kidneys handle about 0.8 to 1 liter an hour.",
   "Não precisa beber mais. Se bebeu muito em pouco tempo (num treino longo, por exemplo), o risco é baixar o sódio do sangue: espalhe ao longo do dia e reponha o sal com a comida. Náusea, dor de cabeça forte ou confusão depois de beber muito pedem atendimento.": "No need to drink more. If you drank a lot in a short time (during a long workout, for example), the risk is lowering your blood sodium: spread it through the day and replace salt with food. Nausea, a strong headache or confusion after drinking a lot call for medical care.",
@@ -998,6 +1017,7 @@ var MOLDES_EN = [
   [/^Mais um .+$/, function () { return "One more"; }],
   [/^Menos um .+$/, function () { return "One less"; }],
   // Balance (2026-11-27e)
+  [/^🌙 Da madrugada: ([\d,]+ L)$/, function (m) { return "🌙 During the night: " + m[1].replace(",", "."); }],
   [/^🟠 Atrás do ritmo: até agora o esperado era uns ([\d,]+ L)\. Uns (\d+) ml por hora até as (\d{1,2}:\d{2}) fecham o dia\.$/, function (m) { return "🟠 Behind pace: by now about " + m[1].replace(",", ".") + " was expected. About " + m[2] + " ml an hour until " + m[3] + " closes the day."; }],
   [/^(\d+)% a (\d+)% da meta\)$/, function (m) { return m[1] + "% to " + m[2] + "% of target)"; }],
   [/^\((\d+)% a (\d+)% da meta\)$/, function (m) { return "(" + m[1] + "% to " + m[2] + "% of target)"; }],

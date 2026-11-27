@@ -2662,7 +2662,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28f";
+const VERSAO_APP = "2026-11-28g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -40002,7 +40002,8 @@ const ERROS_FOTO_IA = {
 // troca pelo do App Check (vale ~1 h). Vazio = não manda nada (proteção
 // desligada no console). Os dois valores são públicos: quem protege é o site
 // cadastrado na chave do reCAPTCHA.
-const APP_CHECK = { siteKey: "", appId: "" };
+// Preenchido em 27/11/2026 (chave "Treino Livre site", domínio carlosjr81.github.io)
+const APP_CHECK = { siteKey: "6LeymjUuAAAAAAFOUsPTBQ7xSOnqpDiIsndllleg", appId: "1:668153886319:web:80b2484a05fd6421107f9a" };
 let tokenAppCheckGuardado = null;
 async function tokenAppCheck() {
   if (!APP_CHECK.siteKey || !APP_CHECK.appId) return null;
@@ -40030,7 +40031,9 @@ async function chamarIA(partes, config, opc) {
   try { s = await tokenValido(s); } catch (e) { throw new Error("rede"); }
   const corpo = JSON.stringify({ contents: [{ role: "user", parts: partes }], generationConfig: config });
   let ac = null;
-  try { ac = await tokenAppCheck(); } catch (e) { throw new Error("appcheck"); }
+  // sem o crachá (reCAPTCHA bloqueado, sem rede para ele) tenta assim mesmo:
+  // com a proteção aplicada o Google recusa (401) e a tela explica; sem ela, passa
+  try { ac = await tokenAppCheck(); } catch (e) { ac = null; }
   const cabecalhos = { "Content-Type": "application/json", "x-goog-api-key": FIREBASE_ACESSO.apiKey, "Authorization": "Firebase " + s.idToken };
   if (ac) cabecalhos["X-Firebase-AppCheck"] = ac;
   let ultimo = "falhou";

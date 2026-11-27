@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-11-28g — A IA do app protegida contra cópias
+
+**Em uma frase:** a leitura da foto do prato, do rótulo e da ficha agora mostra
+ao Google que vem do Treino Livre oficial.
+
+**O que mudou:** por trás, sem nada novo na tela: o app passou a usar a
+proteção do Google (App Check com reCAPTCHA), que separa o app oficial de uma
+cópia. É o que vai liberar, em seguida, a edição da foto do resumo pela IA.
+
+**Por que importa para quem treina:** a IA do app continua funcionando para
+quem usa o app de verdade, e não se esgota com cópias usando no lugar.
+
+**Como usar:** nada muda: a foto do prato, o "escreva o que comeu", o rótulo e
+a ficha de papel funcionam como antes.
+
+**Ideias de vídeo:** nenhuma; é um ajuste de bastidor.
+
+**Não prometer:** a edição da foto pela IA ainda não está liberada; ela chega
+numa próxima versão.
+
+---
+
 ## 2026-11-28f — A ficha de papel lida pela foto traz também as repetições
 
 **Em uma frase:** ao fotografar a ficha de papel (ou um print), o app agora

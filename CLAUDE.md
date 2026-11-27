@@ -7203,6 +7203,14 @@ remédio (ver *A defesa legal*): ali a IA seria o profissional que o app não é
   "Desaplicado". O passo a passo do dono está no `firebase/LEIA-ME.md`; quando
   ele mandar o ID da chave do reCAPTCHA e o ID do app da Web, eles entram no
   `APP_CHECK` e a leitura precisa ser conferida de novo daqui.
+- **Preenchido em 27/11/2026 (2026-11-28g)**: chave "Treino Livre site"
+  (`6LeymjUu…lleg`, Web, domínio carlosjr81.github.io) e o app da Web
+  `1:668153886319:web:80b2484a05fd6421107f9a`. Conferido daqui: o Google
+  responde "App attestation failed" a um token falso (o app está registrado com
+  o reCAPTCHA Enterprise). O crachá que falha ao carregar não barra a chamada:
+  ela vai sem ele, e só a proteção aplicada a recusa. **Falta o dono voltar a
+  Firebase AI Logic para Aplicado** e conferir no celular (a sessão não alcança
+  o google.com para testar o reCAPTCHA de verdade).
 - **Desaplicado pelo dono em 28/11/2026** (App Check › APIs › Firebase AI Logic
   › Configurar › "Não aplicado (somente monitoramento)"): a IA voltou a aceitar
   pedidos sem o token. **PRAZO: o Google aplica sozinho em 21 de janeiro de

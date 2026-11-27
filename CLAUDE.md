@@ -7211,6 +7211,44 @@ remédio (ver *A defesa legal*): ali a IA seria o profissional que o app não é
   editor com o supino e o aviso do tríceps francês. **Não validado com o Gemini
   de verdade** (o App Check passou a barrar antes do teste) **nem num celular.**
 
+### A foto do resumo com filtros e edição pela IA, e mais gíria (`FILTROS_FOTO`, `EditorFotoResumo`, 2026-11-28d)
+
+Pedido do dono: filtros, estilos, roupas, itens, pessoas e ambiente na foto do
+resumo; "pegar os números do crachá automaticamente"; e vozes mais naturais,
+mais vocabulário e "os jargões de famosos com a voz deles, ou dublado".
+
+- **Os filtros** (`FILTROS_FOTO`, `aplicarFiltroFoto`): canvas no aparelho
+  (`ctx.filter`, uma cor por cima com modo de mistura, vinheta), sem internet
+  e sem mandar a foto. A **original fica guardada** (`resumo-foto-original`,
+  `trocarFotoResumo(blob, deFiltro)`): o filtro sempre parte dela.
+- **A edição pela IA** (`EDICOES_FOTO_IA`, `editarFotoIA`, modelos de imagem
+  em `MODELOS_IMAGEM_IA`, `chamarIA(..., { partes, modelos })`): estilo,
+  ambiente, roupa, itens, pessoas fictícias e o pedido escrito, com prévia antes
+  de usar. **Regras em toda edição** (`REGRAS_EDICAO_IA`): rosto, identidade e
+  forma do corpo ficam como estão (o resumo mostra quem treinou, e um corpo
+  inventado seria resultado inventado), nenhuma pessoa real ou famosa, nenhuma
+  marca ou personagem, nada sexual. O pedido escrito passa por
+  `pedidoEdicaoBarrado` (corpo, rosto, nudez, "famoso"); nome próprio de
+  famoso não dá para listar, e fica com a regra mandada e o filtro do Google.
+  **Os nomes dos modelos de imagem não foram testados** (o App Check barrava
+  tudo): conferir daqui assim que a IA voltar, e acertar a lista.
+- **O crachá do App Check não dá para pegar daqui**: criar a chave do reCAPTCHA
+  e ler o ID do app pedem a conta Google do dono no console, e a sessão não
+  alcança nem o console nem a hospedagem do Firebase (`treino-livre.firebaseapp.com`
+  responde 000 pelo proxy). Dito a ele: desaplicar já, ou mandar os dois IDs.
+- **Vozes de famosos: recusado, e dito ao dono.** Copiar ou imitar a voz de uma
+  pessoa real num produto é usar a voz dela sem autorização (Código Civil, art.
+  20, e o direito de imagem que já barrou os nomes em *O jeito de falar da
+  academia*), e induz quem ouve a achar que ela participa do app. Com a
+  autorização por escrito de alguém, a voz dela pode entrar. O que foi feito: o
+  vocabulário cresceu (mais 40 frases de gíria, sem nome, nas mesmas regras) e
+  a voz natural fica para quando a IA voltar: gerar uma vez as frases fixas com
+  a voz de IA do Gemini, numa voz original e expressiva, e tocar pelo mesmo
+  caminho do `vozes/indice.json` do Monster Run.
+- Coberto por `teste-foto-ia.js` (os filtros, o crivo, as regras). No
+  navegador: os oito filtros num canvas. **Não validado num celular, e a edição
+  pela IA não foi testada com o Gemini de verdade.**
+
 ### Ajustes do Body Balance (2026-11-25k e 25l)
 
 - **Os dois números do balanço dizem contra o quê comparam** (2026-11-25l,

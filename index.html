@@ -930,6 +930,20 @@ const FRASES_MAROMBA = {
   // o trapézio (o encolhimento)
   trapezio: ["Trapézio descendente!", "Olha o trapézio descendente, monstro!"],
 };
+// Mais vocabulário de academia (2026-11-28d, pedido do dono: "amplie o
+// vocabulário"). Gíria de quem treina, sem o nome de ninguém, com as mesmas
+// regras: sem palavrão, remédio, dor ou promessa de resultado.
+[["anotou", ["Pagou a série!", "Que pump!", "Execução limpa!", "Carga honesta!", "Isso é progressão!", "Tá no shape!", "Mandou bem demais!", "Tá monstrão!", "Série no capricho!"]],
+ ["volta", ["Descanso acabou, bora pro ferro!", "Respira e vai!", "Partiu próxima série!", "Agora é com você, campeão!", "Bora que o treino tá rendendo!", "Pega a carga e bora!"]],
+ ["fimEx", ["Mais um pro caderno!", "Fechou com chave de ouro!", "O músculo agradece!", "Riscado da lista!"]],
+ ["aula", ["Segura o ritmo!", "Respira e mantém!", "Tá quase, não larga!", "Mais rápido, tá voando!"]],
+ ["tecnico", ["Controla a descida.", "Execução de respeito.", "Isso, sem pressa."]],
+ ["cobranca", ["Treino de ontem não paga o de hoje.", "Shape é construção, tijolo por tijolo.", "A academia não fecha pra desculpa.", "Um treino hoje vale mais que três amanhã."]],
+ ["fecho", ["Treino feito, missão cumprida.", "Hoje teve ferro. Amanhã tem mais.", "Mais um tijolo no shape. Até a próxima."]],
+ ["inicio", ["Aquece bem e bora!", "Partiu ferro!", "Bora fazer o dia valer!", "Cheguei, academia!"]],
+ ["ultima", ["Última, capricha na execução!", "Fecha bonito essa última!"]],
+ ["pesada", ["Subiu a carga, subiu o nível!", "Mais anilha, mais respeito!"]],
+ ["recorde", ["Novo patamar, monstro!", "Recorde na conta!"]]].forEach(([k, l]) => { FRASES_MAROMBA[k] = (FRASES_MAROMBA[k] || []).concat(l); });
 // O bordão do momento: o recorde, o trapézio, a série mais pesada e a última
 // série, nessa ordem. Sem momento especial, nada (vale a frase de sempre).
 function bordaoDoMomento(c) {
@@ -2648,7 +2662,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28c";
+const VERSAO_APP = "2026-11-28d";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -31120,9 +31134,107 @@ function carregarFotoResumo() {
   }
   return FOTO_RESUMO.pedido;
 }
+// Os filtros da foto do resumo (2026-11-28d, pedido do dono: "aplicar filtros,
+// mudar estilos"). Feitos no aparelho, num canvas: rápidos, sem internet e sem
+// mandar a foto a ninguém. css é o filtro do canvas; tom é uma cor por cima
+// (com o modo de mistura); vinheta escurece as bordas. A original fica guardada
+// à parte, então trocar de filtro nunca empilha um sobre o outro.
+const FILTROS_FOTO = [
+  { id: "original", nome: "Original", ic: "🖼", css: "none" },
+  { id: "neon", nome: "Neon", ic: "🌆", css: "contrast(1.15) saturate(1.5)", tom: ["rgba(225,48,108,.35)", "rgba(77,235,255,.30)"], modo: "soft-light", vinheta: 0.45 },
+  { id: "capa", nome: "Capa de jogo", ic: "🎮", css: "contrast(1.3) saturate(1.35) brightness(1.03)", tom: ["rgba(255,140,30,.30)", "rgba(176,91,255,.32)"], modo: "overlay", vinheta: 0.55 },
+  { id: "pb", nome: "P&B dramático", ic: "🖤", css: "grayscale(1) contrast(1.45) brightness(.95)", vinheta: 0.5 },
+  { id: "ouro", nome: "Ouro", ic: "🏆", css: "sepia(.35) saturate(1.3) contrast(1.1)", tom: ["rgba(255,196,60,.30)", "rgba(255,120,20,.20)"], modo: "soft-light", vinheta: 0.35 },
+  { id: "vintage", nome: "Vintage", ic: "📼", css: "sepia(.55) contrast(.95) brightness(1.05) saturate(.85)", vinheta: 0.4 },
+  { id: "gelo", nome: "Frio", ic: "🧊", css: "saturate(.9) contrast(1.1) hue-rotate(-10deg)", tom: ["rgba(60,140,255,.30)", "rgba(77,235,255,.20)"], modo: "soft-light", vinheta: 0.3 },
+  { id: "fogo", nome: "Fogo", ic: "🔥", css: "contrast(1.25) saturate(1.6)", tom: ["rgba(255,60,40,.35)", "rgba(255,180,40,.25)"], modo: "overlay", vinheta: 0.5 },
+];
+const filtroFotoPorId = (id) => FILTROS_FOTO.find((f) => f.id === id) || FILTROS_FOTO[0];
+function aplicarFiltroFoto(img, id) {
+  const f = filtroFotoPorId(id);
+  const cv = document.createElement("canvas");
+  cv.width = img.naturalWidth || img.width; cv.height = img.naturalHeight || img.height;
+  const c = cv.getContext("2d");
+  c.filter = f.css || "none";
+  c.drawImage(img, 0, 0, cv.width, cv.height);
+  c.filter = "none";
+  if (f.tom) {
+    const g = c.createLinearGradient(0, 0, cv.width, cv.height);
+    g.addColorStop(0, f.tom[0]); g.addColorStop(1, f.tom[1]);
+    c.globalCompositeOperation = f.modo || "soft-light";
+    c.fillStyle = g; c.fillRect(0, 0, cv.width, cv.height);
+    c.globalCompositeOperation = "source-over";
+  }
+  if (f.vinheta) {
+    const r = Math.max(cv.width, cv.height);
+    const v = c.createRadialGradient(cv.width / 2, cv.height / 2, r * 0.3, cv.width / 2, cv.height / 2, r * 0.75);
+    v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0," + f.vinheta + ")");
+    c.fillStyle = v; c.fillRect(0, 0, cv.width, cv.height);
+  }
+  return new Promise((res, rej) => cv.toBlob((b) => (b ? res(b) : rej(new Error("filtro"))), "image/jpeg", 0.88));
+}
+const blobParaImagem = (b) => new Promise((res, rej) => { const u = URL.createObjectURL(b); const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; });
+// A edição pela IA (2026-11-28d, pedido do dono: "mudar estilos, roupas,
+// adicionar itens e pessoas, mudar o ambiente"). As regras vão em toda edição:
+// o rosto e o corpo da pessoa ficam como estão (o resumo mostra quem treinou,
+// não um corpo inventado), nada de pessoa real ou famosa acrescentada, nada de
+// marca, e nada sexual. O pedido escrito passa pelo mesmo crivo.
+const EDICOES_FOTO_IA = [
+  { grupo: "Estilo", itens: [
+    { id: "jogo", ic: "🎮", nome: "Capa de jogo", pede: "Transforme a foto numa capa de videogame de ação, estilo ilustração digital com cores neon e iluminação dramática" },
+    { id: "anime", ic: "🌸", nome: "Anime", pede: "Redesenhe a foto no estilo de anime japonês, cores vivas e traço limpo" },
+    { id: "hq", ic: "💥", nome: "Quadrinhos", pede: "Redesenhe a foto como página de história em quadrinhos de super-herói, com retícula e contorno forte" },
+    { id: "oleo", ic: "🖌", nome: "Pintura", pede: "Transforme a foto numa pintura a óleo clássica" },
+  ] },
+  { grupo: "Ambiente", itens: [
+    { id: "arena", ic: "🏟", nome: "Arena lotada", pede: "Troque o fundo por uma arena de competição de fisiculturismo, com luzes de palco" },
+    { id: "praia", ic: "🌅", nome: "Praia ao pôr do sol", pede: "Troque o fundo por uma praia brasileira ao pôr do sol, com palmeiras" },
+    { id: "montanha", ic: "🏔", nome: "Topo da montanha", pede: "Troque o fundo pelo topo de uma montanha ao amanhecer, com nuvens abaixo" },
+    { id: "academia-neon", ic: "🌆", nome: "Academia neon", pede: "Troque o fundo por uma academia futurista com luzes neon rosa e azul" },
+    { id: "cidade", ic: "🌃", nome: "Cidade à noite", pede: "Troque o fundo por um terraço com a cidade iluminada à noite" },
+  ] },
+  { grupo: "Roupa", itens: [
+    { id: "regata", ic: "🎽", nome: "Regata de treino", pede: "Troque a roupa da pessoa por uma regata preta de treino e bermuda esportiva, sem logos nem marcas" },
+    { id: "heroi", ic: "🦸", nome: "Traje de herói", pede: "Troque a roupa da pessoa por um traje de super-herói original, sem símbolo de nenhum personagem existente" },
+    { id: "terno", ic: "🤵", nome: "Terno", pede: "Troque a roupa da pessoa por um terno escuro elegante" },
+  ] },
+  { grupo: "Itens", itens: [
+    { id: "cinturao", ic: "🥇", nome: "Cinturão de campeão", pede: "Acrescente um cinturão de campeão dourado no ombro ou na cintura da pessoa" },
+    { id: "trofeu", ic: "🏆", nome: "Troféu", pede: "Acrescente um troféu dourado na mão da pessoa" },
+    { id: "halteres", ic: "🏋", nome: "Halteres dourados", pede: "Acrescente um par de halteres dourados perto da pessoa" },
+    { id: "coroa", ic: "👑", nome: "Coroa", pede: "Acrescente uma coroa dourada na cabeça da pessoa" },
+  ] },
+  { grupo: "Pessoas", itens: [
+    { id: "torcida", ic: "📣", nome: "Torcida ao fundo", pede: "Acrescente ao fundo uma torcida de pessoas comemorando, desfocada" },
+    { id: "parceiro", ic: "🤝", nome: "Parceiro de treino", pede: "Acrescente ao lado um parceiro de treino fictício, comemorando junto" },
+  ] },
+];
+const REGRAS_EDICAO_IA = "Edite a foto enviada. Mantenha o rosto, a identidade, o tom de pele e a forma do corpo da pessoa exatamente como estão: não mude músculos, peso, altura nem traços. " +
+  "Não acrescente nenhuma pessoa real ou famosa, nem logotipos, marcas ou personagens existentes. Nada sexual ou de nudez. Formato vertical, foto nítida. Responda com a imagem editada.";
+// O que o pedido escrito não pode pedir: mudar o corpo (o resumo deixaria de
+// mostrar quem treinou), nudez, e gente de verdade que não está na foto.
+function pedidoEdicaoBarrado(texto) {
+  const t = String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (/\b(nua?|pelad\w*|nudez|sensual|sexy|lingerie|seminua?)\b|sem roupa/.test(t)) return "Esse pedido não é aceito.";
+  if (/(mais|menos) (musculos|forte|magr|gord|definid|grand|alt|baix)|musculos? maior|barriga|abdomen trincad|emagrec|engord|meu shape|meu corpo|(mude|troque|mudar|trocar) (o |meu )?(rosto|corpo|cabelo)|cara de/.test(t))
+    return "O corpo e o rosto ficam como estão: o resumo mostra você de verdade. Peça estilo, ambiente, roupa ou itens.";
+  if (/famos|celebridad|ator|atriz|jogador|cantor|presidente|influenc/.test(t)) return "Pessoas reais ou famosas não são acrescentadas. Peça uma torcida ou um parceiro fictício.";
+  return "";
+}
+const MODELOS_IMAGEM_IA = ["gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview", "gemini-2.5-flash-image"];
+async function editarFotoIA(blob, pede) {
+  const partes = await chamarIA([{ inlineData: { mimeType: "image/jpeg", data: await blobParaBase64(blob) } }, { text: REGRAS_EDICAO_IA + " Pedido: " + String(pede).slice(0, 300) }],
+    { responseModalities: ["TEXT", "IMAGE"], temperature: 0.6 }, { partes: true, modelos: MODELOS_IMAGEM_IA });
+  const img = (partes || []).find((p) => p && p.inlineData && /^image\//.test(p.inlineData.mimeType || ""));
+  if (!img) throw new Error("edicao");
+  return base64ParaBlob(img.inlineData.data, img.inlineData.mimeType);
+}
 // arquivo: a foto escolhida; null volta à arte do Treino Livre
-async function trocarFotoResumo(arquivo) {
-  const blob = arquivo ? await reduzirImagem(arquivo, 1440, 0.86) : null;
+const CHAVE_FOTO_RESUMO_ORIG = "resumo-foto-original";
+async function trocarFotoResumo(arquivo, deFiltro) {
+  const blob = arquivo ? (deFiltro ? arquivo : await reduzirImagem(arquivo, 1440, 0.86)) : null;
+  if (blob && !deFiltro) { try { await guardarFoto(CHAVE_FOTO_RESUMO_ORIG, blob); } catch (e) {} }
+  if (!blob) { try { await apagarFoto(CHAVE_FOTO_RESUMO_ORIG); } catch (e) {} }
   if (blob) await guardarFoto(CHAVE_FOTO_RESUMO, blob);
   else { try { await apagarFoto(CHAVE_FOTO_RESUMO); } catch (e) {} }
   if (FOTO_RESUMO.url) { delete IMAGENS_MONSTRO[FOTO_RESUMO.url]; try { URL.revokeObjectURL(FOTO_RESUMO.url); } catch (e) {} }
@@ -33910,6 +34022,98 @@ function useMusicaResumo(ligada, parada) {
 }
 
 // Escolher o fundo do resumo: a foto da pessoa ou a arte do Treino Livre
+// Os filtros (no aparelho) e a edição pela IA (2026-11-28d). Os dois partem da
+// foto original guardada, e o resultado vira a foto do fundo do resumo.
+function EditorFotoResumo({ ocupado, setOcupado, onTrocou }) {
+  const [filtro, setFiltro] = useState("original");
+  const [aba, setAba] = useState("filtros");
+  const [texto, setTexto] = useState("");
+  const [msg, setMsg] = useState("");
+  const [previa, setPrevia] = useState(null);   // { blob, url } da IA, antes de usar
+  useEffect(() => () => { if (previa) URL.revokeObjectURL(previa.url); }, [previa]);
+  const original = async () => (await lerFoto(CHAVE_FOTO_RESUMO_ORIG)) || (await lerFoto(CHAVE_FOTO_RESUMO));
+  const usarFiltro = async (id) => {
+    setFiltro(id); setMsg(""); setOcupado(true);
+    try {
+      const b = await original();
+      if (!b) throw new Error("sem");
+      const nova = id === "original" ? b : await aplicarFiltroFoto(await blobParaImagem(b), id);
+      await trocarFotoResumo(nova, true);
+      onTrocou();
+    } catch (e) { setMsg("Não consegui aplicar o filtro nesta foto."); }
+    setOcupado(false);
+  };
+  const editar = async (pede) => {
+    const barrado = pedidoEdicaoBarrado(pede);
+    if (barrado) { setMsg(barrado); return; }
+    setMsg(""); setOcupado(true);
+    try {
+      const b = await original();
+      if (!b) throw new Error("sem");
+      const nova = await editarFotoIA(await reduzirImagem(b, 1024, 0.86), pede);
+      if (previa) URL.revokeObjectURL(previa.url);
+      setPrevia({ blob: nova, url: URL.createObjectURL(nova) });
+    } catch (e) { setMsg(ERROS_FOTO_IA[e && e.message] || ERROS_FOTO_IA.edicao); }
+    setOcupado(false);
+  };
+  const usarPrevia = async () => {
+    if (!previa) return;
+    setOcupado(true);
+    try { await trocarFotoResumo(await reduzirImagem(previa.blob, 1440, 0.86), true); onTrocou(); setPrevia(null); } catch (e) { setMsg("Não consegui usar essa imagem."); }
+    setOcupado(false);
+  };
+  const chip = (on, onClick, rot, key) => (
+    <button key={key} disabled={ocupado} onClick={onClick} style={{ flex: "none", padding: "7px 11px", borderRadius: 16, fontSize: 12.5, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap",
+      border: "1px solid " + (on ? "#E1306C" : "#444444"), background: on ? "#E1306C22" : "transparent", color: "#F2F0EC" }}>{rot}</button>
+  );
+  return (
+    <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+        {chip(aba === "filtros", () => setAba("filtros"), "🎨 Filtros", "f")}
+        {FIREBASE_ACESSO.apiKey && chip(aba === "ia", () => setAba("ia"), "✨ Editar com IA", "i")}
+      </div>
+      {aba === "filtros" && (
+        <div>
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6 }}>
+            {FILTROS_FOTO.map((f) => chip(filtro === f.id, () => usarFiltro(f.id), f.ic + " " + f.nome, f.id))}
+          </div>
+          <div style={{ fontSize: 11.5, color: "#8a8494", lineHeight: 1.4, marginTop: 4 }}>Feito no aparelho, sem internet. A original fica guardada: dá para trocar de filtro quantas vezes quiser.</div>
+        </div>
+      )}
+      {aba === "ia" && (
+        <div>
+          {EDICOES_FOTO_IA.map((g) => (
+            <div key={g.grupo} style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 900, color: "#4DEBFF", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>{g.grupo}</div>
+              <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
+                {g.itens.map((x) => chip(false, () => editar(x.pede), x.ic + " " + x.nome, x.id))}
+              </div>
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+            <input value={texto} onChange={(e) => setTexto(e.target.value)} maxLength={200} placeholder="Ou peça: me coloque num ringue de boxe" aria-label="Pedido de edição"
+              style={{ ...S.input, flex: 1, minWidth: 0, background: "#0d0a14", color: "#F2F0EC", borderColor: "#444" }} />
+            <button disabled={ocupado || texto.trim().length < 4} onClick={() => editar(texto.trim())} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "8px 12px", color: "#F2F0EC", borderColor: "#444444" }}>✨</button>
+          </div>
+          {ocupado && <div style={{ fontSize: 12.5, color: "#F2F0EC", marginTop: 8 }}>⏳ A IA está editando a foto (pode levar uns 20 segundos)…</div>}
+          {previa && (
+            <div style={{ marginTop: 10 }}>
+              <img src={previa.url} alt="A foto editada pela IA" style={{ width: "100%", maxHeight: 320, objectFit: "contain", borderRadius: 12, border: "1px solid #444" }} />
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button disabled={ocupado} onClick={usarPrevia} style={{ ...S.btn, flex: 1 }}>✓ Usar no resumo</button>
+                <button disabled={ocupado} onClick={() => setPrevia(null)} style={{ ...S.btnGhost, flex: 1, color: "#F2F0EC", borderColor: "#444444" }}>Descartar</button>
+              </div>
+            </div>
+          )}
+          <div style={{ fontSize: 11.5, color: "#8a8494", lineHeight: 1.4, marginTop: 8 }}>
+            O rosto e o corpo ficam como estão: o resumo mostra você de verdade. Use uma foto sua; quem mais aparecer nela precisa concordar. Para editar, a foto vai para a IA do Google (Gemini); o app guarda só a que você escolher usar.
+          </div>
+        </div>
+      )}
+      {msg && <div style={{ fontSize: 12.5, color: "#FFB21A", fontWeight: 800, marginTop: 8, lineHeight: 1.45 }}>⚠ {msg}</div>}
+    </div>
+  );
+}
 function JanelaFotoResumo({ onFechar, onTrocou }) {
   const [tem, setTem] = useState(temFotoResumo);
   const [ocupado, setOcupado] = useState(false);
@@ -33940,6 +34144,7 @@ function JanelaFotoResumo({ onFechar, onTrocou }) {
             style={{ ...S.btnGhost, width: "100%", marginBottom: 10, color: "#F2F0EC", borderColor: "#444444" }}>↩ Voltar à arte do Treino Livre</button>
         )}
         {erro && <div style={{ color: "var(--perigo)", fontSize: 13, marginBottom: 10 }}>{erro}</div>}
+        {tem && <EditorFotoResumo ocupado={ocupado} setOcupado={setOcupado} onTrocou={onTrocou} />}
         <button onClick={onFechar} style={{ ...S.btnGhost, width: "100%", color: "#F2F0EC", borderColor: "#444444" }}>{tem ? "Pronto" : "Agora não"}</button>
         <div style={{ fontSize: 11.5, color: "#8a8494", marginTop: 10, lineHeight: 1.4 }}>A foto fica só neste aparelho. Ela só sai daqui se você postar o vídeo.</div>
       </div>
@@ -39737,6 +39942,7 @@ const ERROS_FOTO_IA = {
   appcheck: "A proteção do Google (App Check) barrou a leitura neste aparelho. Tente de novo em alguns minutos; se continuar, use o jeito de marcar à mão.",
   vazioTexto: "A IA não achou comida no que você escreveu. Diga o alimento e a quantidade, como: 2 pães com manteiga e 1 café com leite.",
   rotulo: "Não deu para ler a tabela. Fotografe de perto, reta e com luz, só a tabela de informação nutricional.",
+  edicao: "A IA não devolveu a imagem editada. Tente outro pedido, ou use um filtro (eles funcionam sem internet).",
   ficha: "Não achei exercícios nessa imagem. Fotografe a ficha inteira, reta e com luz (um print também serve).",
   lento: "A IA do Google está demorando demais agora. Tente de novo em um minuto, ou marque o prato abaixo.",
 };
@@ -39766,7 +39972,8 @@ async function tokenAppCheck() {
 }
 // A chamada comum a todos os usos da IA (2026-11-28c): o mesmo prazo, a mesma
 // troca de modelo e os mesmos erros. Devolve o texto da resposta.
-async function chamarIA(partes, config) {
+async function chamarIA(partes, config, opc) {
+  const o = opc || {};
   if (!FIREBASE_ACESSO.apiKey) throw new Error("desligada");
   let s = lerSessaoConta();
   if (!s || !s.refresh) throw new Error("semConta");
@@ -39777,7 +39984,7 @@ async function chamarIA(partes, config) {
   const cabecalhos = { "Content-Type": "application/json", "x-goog-api-key": FIREBASE_ACESSO.apiKey, "Authorization": "Firebase " + s.idToken };
   if (ac) cabecalhos["X-Firebase-AppCheck"] = ac;
   let ultimo = "falhou";
-  for (const m of FOTO_IA.modelos) {
+  for (const m of (o.modelos || FOTO_IA.modelos)) {
     let r;
     // Cada modelo tem um prazo: com o Google sobrecarregado (500 "high demand")
     // ou lento, passa para o seguinte em vez de deixar a tela esperando.
@@ -39795,6 +40002,7 @@ async function chamarIA(partes, config) {
     if (r.ok) {
       const j = await r.json().catch(() => null);
       const conteudo = (((j && j.candidates) || [])[0] || {}).content;
+      if (o.partes) return (conteudo && conteudo.parts) || [];
       return ((conteudo && conteudo.parts) || []).map((p) => p.text || "").join("");
     }
     const msg = await r.text().catch(() => "");

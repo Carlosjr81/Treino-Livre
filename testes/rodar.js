@@ -58,6 +58,7 @@ const SUITES = [
   ["teste-lixeira", "a lixeira do historico: guardar 30 dias, recuperar sem duplicar e o backup que so acrescenta"],
   ["teste-seguir", "a janela para seguir no Instagram: quando abre, o adiar e o fim"],
   ["teste-adaptado", "o treino adaptado: o que cada exercicio carrega, os alertas, a escala de dor e o plano"],
+  ["teste-foto-ia", "a foto do resumo: os filtros e o crivo da edicao pela IA"],
 ];
 
 console.log("app: " + caminhoDoApp() + "\n");

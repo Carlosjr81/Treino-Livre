@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-28d — Filtros e edição na foto do resumo, e o Jarvis com mais gíria de academia
+
+- **Em uma frase:** a sua foto no fundo do resumo animado ganhou oito filtros e a edição pela inteligência artificial (estilo, ambiente, roupa e itens), e o Jarvis ganhou dezenas de frases novas de academia.
+- **O que mudou:** no 🖼 do resumo animado, com a sua foto escolhida, apareceram "🎨 Filtros" (Neon, Capa de jogo, P&B dramático, Ouro, Vintage, Frio e Fogo, feitos no próprio celular, sem internet; a original fica guardada) e "✨ Editar com IA": virar capa de jogo, anime, quadrinho ou pintura; trocar o fundo por arena, praia, montanha, academia neon ou cidade à noite; trocar a roupa; pôr cinturão de campeão, troféu, coroa ou halteres dourados; pôr uma torcida ou um parceiro de treino fictício; ou escrever o pedido. Antes de usar, a prévia. O rosto e o corpo ficam como estão. O Jarvis ganhou frases novas para a série anotada, a volta do descanso, o fim do exercício, a última série, o recorde e o fim do treino.
+- **Por que importa para quem treina:** o resumo que vai para o story fica com a cara de quem treinou, no estilo que a pessoa quiser.
+- **Como usar:** no fim do treino, ▶ Ver resumo animado › 🖼 › escolha a sua foto › 🎨 Filtros ou ✨ Editar com IA.
+- **Ideias de vídeo:** a mesma foto passando pelos filtros; a foto da academia virando capa de jogo numa arena lotada.
+- **Não prometer:** mudar o corpo ou o rosto na foto (não muda, de propósito: o resumo mostra você de verdade); pôr gente famosa na foto (não põe); que a edição pela IA funciona sem internet (só os filtros funcionam).
+
+---
+
 ## 2026-11-28c — A inteligência artificial em mais lugares: escrever o que comeu, ler rótulo e ler ficha de papel
 
 - **Em uma frase:** a mesma IA que lê a foto do prato agora monta a lista do que você comeu a partir de uma frase, lê a tabela nutricional de um rótulo e transforma a foto da ficha de papel (ou o print do professor) numa ficha do app.

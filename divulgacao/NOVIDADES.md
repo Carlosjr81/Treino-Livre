@@ -16,6 +16,24 @@
 
 ---
 
+## 2026-11-27i — A água do dia, explicada
+
+- **Em uma frase:** o Balance agora diz o que significa a sua água do dia — bem abaixo, abaixo, quase lá, na meta, um pouco acima ou bem acima — e o que fazer em cada caso.
+- **O que mudou:** antes era só "bateu a meta ou não". Agora o cartão **💧 A água do dia** mostra a faixa, o que ela quer dizer para o corpo e o que fazer:
+  - **Bem abaixo:** sede, urina escura, tontura e o treino rendendo menos; beba aos poucos, sem compensar tudo de uma vez.
+  - **Abaixo:** desidratação leve; perder 2% do peso em água já tira força e rendimento.
+  - **Quase lá:** a diferença é pequena; um ou dois copos fecham o dia.
+  - **Na meta:** em ordem, já contando o treino.
+  - **Um pouco acima:** tudo bem, em dia quente ou de treino longo é até o esperado.
+  - **Bem acima:** o corpo elimina o que sobra, mas beber muito em pouco tempo pode baixar o sódio do sangue; espalhe ao longo do dia.
+  - **Durante o dia, o ritmo:** às 15h, ter bebido metade da meta é estar em dia. Atrás do ritmo, o app diz quantos ml por hora fecham o dia até a hora de dormir.
+- **Por que importa para quem treina:** água abaixo da meta tira força no treino, e beber demais de uma vez também tem risco. Agora dá para saber de qual lado você está.
+- **Como usar:** Balance › Hoje, logo acima dos macros. Toque em "O que cada faixa quer dizer" para ver todas, com as fontes.
+- **Ideias de vídeo:** mostrar o cartão de manhã ("No ritmo"), à tarde atrás do ritmo com os ml por hora, e no fim do dia na meta.
+- **Não prometer:** é informação geral, não prescrição. Quem tem doença nos rins ou no coração pode ter limite de líquidos e deve seguir o médico.
+
+---
+
 ## 2026-11-27h — O app Android 202 no ar
 
 - **Em uma frase:** o botão de atualizar o app Android agora leva à versão 202, a que agenda os avisos da semana inteira.

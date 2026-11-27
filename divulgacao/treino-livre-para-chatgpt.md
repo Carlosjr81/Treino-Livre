@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-27h**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-27i**.
 
 ---
 
@@ -74,6 +74,10 @@
   dia, antes de dormir, cafeína e creatina, calculadas pelo treino e pela hora de dormir. Dá para dizer **o horário em que
   costuma treinar** (e os dias e a duração): as janelas e os avisos aparecem desde cedo, antes do treino. A creatina e a
   cafeína contam pelo que foi anotado, inclusive dentro de um shake, ou marcadas à mão.
+- **A leitura da água** (novo em 2026-11-27i): em vez de só "bateu ou não bateu", o cartão 💧 A água do dia diz em que
+  faixa a pessoa está (bem abaixo, abaixo, quase lá, na meta, um pouco acima, bem acima), o que isso quer dizer para o
+  corpo e o que fazer. Durante o dia mede o ritmo (às 15h, metade da meta é estar em dia). Cita ACSM, EFSA, a cor da urina
+  e o consenso sobre excesso de água no exercício; quem tem doença nos rins ou no coração segue o médico.
 - **Alimentos e suplementos** (2026-11-25e): 149 itens com porção caseira, entre eles farinhas (arroz, mandioca, trigo, aveia, milho, amêndoas, coco, linhaça), maltodextrina, dextrose, whey, caseína, albumina, creatina e outros suplementos, com filtros por grupo na hora de anotar. Os valores são médias de tabela e de rótulos comuns; o app não recomenda suplemento.
 - **Os efeitos de LED** (novo em 2026-11-24a): o resumo animado (tela e vídeo do story) ganhou efeitos de luz
   futuristas, como os de telão de arena: barras de luz azuis correndo e acendendo em ondas, com textura de pontinhos de

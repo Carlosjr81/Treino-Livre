@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -841,6 +841,21 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("a proteína espalhada não vai adiante", false, adiante.some((x) => x.a.some((a) => a.id === "proteina")));
   teste("o aviso de antes do treino da segunda às 15h05", 905, adiante.find((x) => x.d === "2026-11-30").a.find((a) => a.id === "preTreino").em);
   teste("sem plano de treino, só a noite", true, B.avisosAdiante(null, 23, new Date(2026, 10, 27, 10, 0).getTime()).every((x) => x.a.every((a) => a.id === "noite")));
+
+  // a leitura da água (2026-11-27i): seis faixas e o ritmo de hoje
+  const faixaAgua = (b) => B.leituraAgua({ bebeu: b, meta: 3000 }).faixa.id;
+  teste("as seis faixas pelo dia inteiro", ["muitoAbaixo", "abaixo", "quase", "meta", "acima", "muitoAcima"], [1500, 2000, 2700, 3000, 3900, 4600].map(faixaAgua));
+  teste("quanto falta e quanto sobrou", [300, 0, 0, 600], [B.leituraAgua({ bebeu: 2700, meta: 3000 }).falta, B.leituraAgua({ bebeu: 2700, meta: 3000 }).sobra, B.leituraAgua({ bebeu: 3600, meta: 3000 }).falta, B.leituraAgua({ bebeu: 3600, meta: 3000 }).sobra]);
+  teste("às 15h com metade da meta, está em dia", true, B.leituraAgua({ bebeu: 1500, meta: 3000, agoraMin: hora(15), dorme: 23 }).ritmo.emDia);
+  teste("às 15h com 500 ml, está atrás do ritmo", false, B.leituraAgua({ bebeu: 500, meta: 3000, agoraMin: hora(15), dorme: 23 }).ritmo.emDia);
+  teste("e diz quanto por hora até a hora de dormir", 350, B.leituraAgua({ bebeu: 500, meta: 3000, agoraMin: hora(15), dorme: 23 }).ritmo.porHora);
+  teste("de manhã cedo, pouca água ainda é 'no ritmo', não alarme", "noRitmo", B.leituraAgua({ bebeu: 200, meta: 3000, agoraMin: hora(7, 30), dorme: 23 }).faixa.id);
+  teste("às 15h com 500 ml, a faixa é 'bem abaixo' contra o esperado", "muitoAbaixo", B.leituraAgua({ bebeu: 500, meta: 3000, agoraMin: hora(15), dorme: 23 }).faixa.id);
+  teste("às 15h com 1,1 L, está um pouco atrás", "abaixo", B.leituraAgua({ bebeu: 1100, meta: 3000, agoraMin: hora(15), dorme: 23 }).faixa.id);
+  teste("o dia que passou é julgado pela meta inteira", "abaixo", B.leituraAgua({ bebeu: 2000, meta: 3000 }).faixa.id);
+  teste("bateu a meta: não há ritmo a cobrar", null, B.leituraAgua({ bebeu: 3100, meta: 3000, agoraMin: hora(15), dorme: 23 }).ritmo);
+  teste("sem meta não há leitura", null, B.leituraAgua({ bebeu: 1000, meta: 0 }));
+  teste("nenhuma faixa cobra nem manda a pessoa beber à força", [], B.FAIXAS_AGUA.filter((f) => /obrigat|você deve|tem que beber|errou|falhou/i.test(f.diz + f.faca)).map((f) => f.id));
 
   // a creatina dentro do shake conta (relato do dono, 2026-11-27d)
   const intra = B.itemDeReceita(B.RECEITAS_SUGERIDAS.find((r) => r.id === "s-intra"), 1);

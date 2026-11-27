@@ -2396,7 +2396,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27h";
+const VERSAO_APP = "2026-11-27i";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5620,6 +5620,70 @@ function receitasDisponiveis(minhas) {
   (minhas || []).forEach((r) => { tem[chave(r)] = 1; });
   return (minhas || []).slice().sort((a, b) => (b.em || 0) - (a.em || 0))
     .concat(RECEITAS_SUGERIDAS.filter((r) => !tem[chave(r)]).map((r) => Object.assign({}, r, { sug: true })));
+}
+// ---------------- A LEITURA DA ÁGUA ----------------
+// Pedido do dono (2026-11-27i): "só tem bater a meta ou não; não sei o que
+// acontece se eu passar muito, ou se não bater por pouco, ou por muito".
+// Seis faixas, cada uma com o que quer dizer para o corpo e o que fazer. Hoje
+// também conta o RITMO: às 15h, metade da meta é estar em dia, não "abaixo".
+//
+// O que sustenta: perder 2% do peso em água já tira força e rendimento e dá
+// dor de cabeça (ACSM, Sawka e colegas, 2007); a cor da urina é o termômetro
+// mais simples (Armstrong e colegas, 1994); a meta do dia é perto da da EFSA
+// (2010) mais a reposição do treino; o rim elimina uns 0,8 a 1 L por hora, e o
+// risco do excesso (hiponatremia) é beber muito em pouco tempo, sobretudo em
+// treino longo sem repor sal (consenso de Hew-Butler e colegas, 2015).
+//
+// Nunca vira cobrança e nunca é prescrição: quem tem doença nos rins ou no
+// coração pode ter limite de líquidos, e a tela diz para seguir o médico.
+const FAIXAS_AGUA = [
+  { id: "muitoAcima", de: 1.5, nome: "Bem acima da meta", ic: "\u{1F30A}", cor: "#FFB21A",
+    diz: "Mais do que o corpo precisa hoje. O que sobra sai na urina — o rim dá conta de uns 0,8 a 1 litro por hora.",
+    faca: "Não precisa beber mais. Se bebeu muito em pouco tempo (num treino longo, por exemplo), o risco é baixar o sódio do sangue: espalhe ao longo do dia e reponha o sal com a comida. Náusea, dor de cabeça forte ou confusão depois de beber muito pedem atendimento." },
+  { id: "acima", de: 1.2, nome: "Um pouco acima", ic: "\u{1F4A7}", cor: "#4CD137",
+    diz: "Tudo bem: passou um pouco da meta. Em dia quente, de suor ou de treino longo, é até o esperado.",
+    faca: "Pode seguir como está. Não há ganho em beber muito além disso." },
+  { id: "meta", de: 1.0, nome: "Na meta", ic: "\u{2705}", cor: "#4CD137",
+    diz: "Água do dia em ordem, já contando o treino. A urina clara ou amarelo-claro confirma.",
+    faca: "É só manter. Daqui em diante, beba conforme a sede." },
+  { id: "quase", de: 0.85, nome: "Quase lá", ic: "\u{1F538}", cor: "#FFB21A",
+    diz: "Um pouquinho abaixo: a diferença para o corpo é pequena.",
+    faca: "Um ou dois copos fecham o dia." },
+  { id: "abaixo", de: 0.6, nome: "Abaixo da meta", ic: "\u{26A0}\u{FE0F}", cor: "#FF8A3D",
+    diz: "Desidratação leve: perder uns 2% do peso em água já tira força e rendimento no treino, e dá cansaço e dor de cabeça.",
+    faca: "Beba aos poucos, um copo a cada meia hora ou hora. Repare na urina: amarelo-escuro é sinal de que falta água." },
+  { id: "muitoAbaixo", de: 0, nome: "Bem abaixo da meta", ic: "\u{1F6A9}", cor: "#FF4D6D",
+    diz: "Pouca água para o dia: sede, urina escura, tontura e queda de rendimento são o esperado assim — e o treino rende menos.",
+    faca: "Não tente compensar tudo de uma vez: uns 250 ml a cada 30 a 60 minutos até a hora de dormir. Tontura forte, confusão ou desmaio pedem atendimento." },
+];
+// o dia em andamento, com a água em dia para a hora
+const FAIXA_NO_RITMO = { id: "noRitmo", de: null, nome: "No ritmo", ic: "\u{1F7E2}", cor: "#4CD137",
+  diz: "Para a hora do dia, a água está em dia.",
+  faca: "Siga bebendo aos poucos, conforme a sede, até a hora de dormir." };
+// o dia acordado vai das 7h até uma hora antes de dormir
+const ACORDA_AGUA_MIN = 7 * 60;
+function leituraAgua(o) {
+  const bebeu = Math.max(0, numB(o && o.bebeu)), meta = Math.max(0, numB(o && o.meta));
+  if (!meta) return null;
+  const pct = bebeu / meta;
+  const faixa = FAIXAS_AGUA.find((f) => pct >= f.de) || FAIXAS_AGUA[FAIXAS_AGUA.length - 1];
+  const r = { pct: pct, faixa: faixa, falta: Math.max(0, Math.round(meta - bebeu)), sobra: Math.max(0, Math.round(bebeu - meta)), ritmo: null };
+  // Hoje, antes de o dia acabar: o que já devia ter entrado até agora
+  if (typeof o.agoraMin === "number") {
+    const fim = Math.max(ACORDA_AGUA_MIN + 60, Math.min(24 * 60, (numB(o.dorme) || 23) * 60) - 60);
+    const fr = Math.max(0, Math.min(1, (o.agoraMin - ACORDA_AGUA_MIN) / (fim - ACORDA_AGUA_MIN)));
+    const esperado = Math.round(meta * fr);
+    if (pct < 1 && fr < 1) {
+      const emDia = bebeu >= esperado * 0.9;
+      const horas = Math.max(1, (fim - o.agoraMin) / 60);
+      r.ritmo = { esperado: esperado, emDia: emDia, porHora: Math.round(r.falta / horas / 50) * 50, ateMin: fim };
+      // Com o dia em andamento, abaixo da meta é medido contra o esperado até
+      // agora: de manhã, "bem abaixo da meta" seria alarme falso.
+      if (emDia) r.faixa = FAIXA_NO_RITMO;
+      else r.faixa = bebeu / Math.max(1, esperado) >= 0.6 ? FAIXAS_AGUA.find((f) => f.id === "abaixo") : FAIXAS_AGUA.find((f) => f.id === "muitoAbaixo");
+    }
+  }
+  return r;
 }
 // ---------------- FIM DO BODY BALANCE ----------------
 
@@ -39308,6 +39372,68 @@ function CartaoEspacoTreino({ x }) {
 // As janelas dos nutrientes do dia (2026-11-26l). Cada uma traz a força da
 // evidência e a fonte, e o rodapé lembra que o total do dia pesa muito mais
 // que a hora: ver AS JANELAS DOS NUTRIENTES.
+// A água do dia em faixas, e não só "bateu ou não" (2026-11-27i, ver A
+// LEITURA DA ÁGUA): o que cada faixa quer dizer para o corpo e o que fazer.
+function CartaoAgua({ bebeu, meta, ehHoje, dorme, onAgua }) {
+  const [aberto, setAberto] = useState(false);
+  const agora = new Date();
+  const lt = leituraAgua({ bebeu: bebeu, meta: meta, dorme: dorme, agoraMin: ehHoje ? agora.getHours() * 60 + agora.getMinutes() : undefined });
+  if (!lt) return null;
+  const f = lt.faixa;
+  const larg = Math.min(100, (lt.pct / 1.5) * 100);
+  return (
+    <div style={S.card}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
+        <div style={{ ...S.label, flex: 1, margin: 0 }}>💧 A água do dia</div>
+        <span style={{ fontSize: 12.5, fontWeight: 900 }}>{fmtLitros(bebeu)} <span style={{ color: "var(--cinza)", fontWeight: 700 }}>de {fmtLitros(meta)}</span></span>
+      </div>
+      {/* a régua vai até 1,5× a meta: a linha é a meta, e o que passa dela continua aparecendo */}
+      <div style={{ position: "relative", height: 8, borderRadius: 99, background: "var(--borda2)", margin: "4px 0 10px" }}>
+        <div style={{ height: 8, borderRadius: 99, width: larg + "%", background: f.cor, transition: "width .4s" }} />
+        <div style={{ position: "absolute", top: -3, bottom: -3, left: (100 / 1.5) + "%", width: 2, background: "var(--texto)", opacity: 0.6 }} />
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 18 }} aria-hidden="true">{f.ic}</span>
+        <b style={{ fontSize: 14, color: f.cor, flex: 1 }}>{f.nome}</b>
+        <span style={{ fontSize: 11.5, color: "var(--cinza)", fontWeight: 800 }}>{Math.round(lt.pct * 100)}%</span>
+      </div>
+      <div style={{ fontSize: 12.5, lineHeight: 1.55, marginTop: 6 }}>{f.diz}</div>
+      <div style={{ fontSize: 12.5, lineHeight: 1.55, marginTop: 5, color: "var(--cinza)" }}>
+        <b style={{ color: "var(--texto)" }}>O que fazer: </b>{f.faca}
+      </div>
+      {lt.ritmo && (
+        <div style={{ fontSize: 12, lineHeight: 1.5, marginTop: 7, fontWeight: 800, color: lt.ritmo.emDia ? "#4CD137" : "#FFB21A" }}>
+          {lt.ritmo.emDia
+            ? (lt.ritmo.esperado > 0 ? "Até agora o esperado era uns " + fmtLitros(lt.ritmo.esperado) + "." : "O dia está começando.") + " Faltam " + fmtLitros(lt.falta) + " até a hora de dormir."
+            : "🟠 Atrás do ritmo: até agora o esperado era uns " + fmtLitros(lt.ritmo.esperado) + ". Uns " + lt.ritmo.porHora + " ml por hora até as " + hhmmDoDia(lt.ritmo.ateMin) + " fecham o dia."}
+        </div>
+      )}
+      {ehHoje && onAgua && lt.falta > 0 && (
+        <button onClick={() => onAgua(250)} style={{ ...S.btnGhost, width: "100%", marginTop: 9, fontWeight: 900, color: "#35E0F0", borderColor: "#35E0F066" }}>💧 Bebi um copo (+250 ml)</button>
+      )}
+      <button onClick={() => setAberto(!aberto)} style={{ ...S.btnGhost, width: "100%", marginTop: 8, padding: "7px 6px", fontSize: 12, fontWeight: 900 }}>
+        {aberto ? "▴ Esconder" : "▾ O que cada faixa quer dizer"}
+      </button>
+      {aberto && (
+        <div style={{ marginTop: 8 }}>
+          {FAIXAS_AGUA.slice().reverse().map((x, i, l) => {
+            const ate = i + 1 < l.length ? l[i + 1].de : null;
+            const faixaTxt = x.de === 0 ? "abaixo de " + Math.round(ate * 100) + "%" : ate == null ? "acima de " + Math.round(x.de * 100) + "%" : Math.round(x.de * 100) + "% a " + Math.round(ate * 100) + "%";
+            return (
+              <div key={x.id} style={{ fontSize: 11.5, lineHeight: 1.55, marginBottom: 8, opacity: x.id === f.id ? 1 : 0.85 }}>
+                <b style={{ color: x.cor }}>{x.ic} {x.nome}</b> <span style={{ color: "var(--cinza)" }}>({faixaTxt} da meta)</span>
+                <br /><span>{x.diz}</span> <span style={{ color: "var(--cinza)" }}>{x.faca}</span>
+              </div>
+            );
+          })}
+          <div style={{ fontSize: 11, color: "var(--cinza)", lineHeight: 1.55 }}>
+            A meta conta 35 ml por kg mais meio litro por hora de treino, e inclui todos os líquidos anotados (água, leite, suco, café). Fontes: ACSM (Sawka e colegas, 2007), EFSA (2010), Armstrong e colegas (1994, a cor da urina) e o consenso sobre hiponatremia no exercício (Hew-Butler e colegas, 2015). Quem tem doença nos rins ou no coração pode ter limite de líquidos: siga o que o médico orientar.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 function CartaoJanelas({ x, ehHoje, perfil, onPerfil, onMarcar }) {
   const [aberta, setAberta] = useState(null);
   const [mitos, setMitos] = useState(false);
@@ -39848,6 +39974,9 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                 );
               })()}
 
+              {meta && meta.agua > 0 && (
+                <CartaoAgua bebeu={t.agua} meta={meta.agua} ehHoje={ehHoje} dorme={perfilG.dorme} onAgua={(ml) => adicionar([], ml)} />
+              )}
               {meta && (
                 <div style={S.card}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>

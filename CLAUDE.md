@@ -7090,6 +7090,29 @@ para todos"**.
   aviso no pulso foram conferidos só no código, e o APK é montado pelo
   Actions.
 
+### A leitura da água (`leituraAgua`, `FAIXAS_AGUA`, `CartaoAgua`, 2026-11-27i)
+
+Pedido do dono: "só tem bater a meta ou não; não sei o que acontece se eu
+passar muito, ou não bater por pouco, ou por muito". Bloco puro **A LEITURA DA
+ÁGUA** (antes do fim do Body Balance), coberto por `teste-balance.js`.
+
+- **Seis faixas** pela fração da meta: bem abaixo (< 60%), abaixo (60–85%),
+  quase lá (85–100%), na meta (100–120%), um pouco acima (120–150%), bem acima
+  (≥ 150%). Cada uma com `diz` (o que quer dizer para o corpo) e `faca`.
+- **Hoje, o ritmo**: o dia acordado vai das 7h até uma hora antes de dormir
+  (`perfil.dorme`); abaixo da meta, a faixa é medida contra o **esperado até
+  agora** (`FAIXA_NO_RITMO` quando está em dia; senão abaixo ou bem abaixo
+  contra o esperado), e a tela diz quantos ml por hora fecham o dia. Achado no
+  ensaio: de madrugada, sem isso, o cartão dizia "bem abaixo" com o dia
+  começando.
+- **O excesso** é dito como o que é: o rim elimina uns 0,8 a 1 L por hora, e o
+  risco é beber muito em pouco tempo (hiponatremia, Hew-Butler 2015). Sintoma
+  sério pede atendimento. Nenhuma frase cobra (o teste procura).
+- Fontes na tela: ACSM (Sawka 2007), EFSA (2010), Armstrong (1994, cor da
+  urina), Hew-Butler (2015). Quem tem doença nos rins ou no coração segue o
+  médico.
+- Os textos têm tradução em `idioma-en.js`.
+
 ### O horário de sempre, a creatina do shake e as vitaminas (2026-11-27d)
 
 Três pedidos do dono feitos na sessão da conta corporativa, que acabou antes de

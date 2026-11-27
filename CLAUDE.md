@@ -7228,6 +7228,14 @@ remédio (ver *A defesa legal*): ali a IA seria o profissional que o app não é
 - **"✕ Não anotar"** (2026-11-28j, pedido do dono: só havia o Anotar): a
   lista da IA (`ConferirIA`, prop `onDescartar`) descarta a leitura; na foto,
   some também a imagem, e a janela de anotar continua aberta.
+- **A lista que veio com 1 item** (2026-11-28k, relato do dono: "A IA viu"
+  descreveu o prato inteiro e só o arroz entrou). Não reproduzido daqui (o
+  `flash-lite` e o `3-flash-preview` leram os 6 itens), então a leitura ficou
+  tolerante: o id que não existe casa pelo nome do catálogo, `peso` e
+  `quantidade` valem como gramas, o que não dá para contar vai para `fora` (e a
+  tela diz "Ficou de fora (anote pelo Buscar)"), e com a lista menor que a
+  descrição, ou algo de fora, o `lerPratoPelaIA` pede de novo uma vez e fica
+  com a leitura mais completa.
 - **Desaplicado pelo dono em 28/11/2026** (App Check › APIs › Firebase AI Logic
   › Configurar › "Não aplicado (somente monitoramento)"): a IA voltou a aceitar
   pedidos sem o token. **PRAZO: o Google aplica sozinho em 21 de janeiro de

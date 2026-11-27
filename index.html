@@ -2662,7 +2662,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28j";
+const VERSAO_APP = "2026-11-28k";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5067,22 +5067,33 @@ function lerRespostaPratoIA(texto, catalogo) {
   if (!brutos) return null;
   const num = (x, mx) => { const v = typeof x === "number" ? x : parseFloat(String(x || "").replace(",", ".")); return isFinite(v) && v > 0 ? Math.min(mx, v) : 0; };
   const txt = (x, n) => String(x == null ? "" : x).replace(/[<>]/g, "").trim().slice(0, n);
-  const out = [];
+  const out = [], fora = [];
+  // 2026-11-28k, relato do dono: a IA descreveu o prato inteiro e só o arroz
+  // entrou na lista. O que não casava (id diferente, gramas com outro nome) era
+  // descartado calado. Hoje: id, depois o nome; os gramas por outros nomes; e o
+  // que não dá para contar volta em "fora", para a tela dizer.
+  const sem = (x) => String(x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  const porNome = (n) => {
+    const s = sem(n); if (!s) return null;
+    const cat = catalogo || [];
+    return cat.find((x) => sem(x.nome) === s) || cat.find((x) => sem(x.nome).split(" (")[0] === s) ||
+      cat.find((x) => sem(x.id).replace(/ /g, " ") === s) || cat.find((x) => s.length >= 4 && sem(x.nome).indexOf(s) === 0) || null;
+  };
   brutos.slice(0, FOTO_IA.maxItens).forEach((b) => {
     if (!b || typeof b !== "object") return;
-    const gramas = Math.round(num(b.gramas, 1500));
-    if (!(gramas >= 1)) return;
-    const a = (catalogo || []).find((x) => x.id === txt(b.id, 40));
+    const gramas = Math.round(num(b.gramas != null ? b.gramas : b.g_total != null ? b.g_total : b.peso != null ? b.peso : b.quantidade, 1500));
+    if (!(gramas >= 1)) { if (b.nome) fora.push(txt(b.nome, 40)); return; }
+    const a = (catalogo || []).find((x) => x.id === txt(b.id, 40)) || porNome(b.nome) || porNome(String(b.id || "").replace(/-/g, " "));
     const certeza = ["alta", "media", "baixa"].indexOf(b.certeza) >= 0 ? b.certeza : "media";
     if (a && numB(a.gr) > 0) { out.push({ a: a.id, nome: a.nome, ic: a.ic, gramas: gramas, certeza: certeza, obs: txt(b.obs, 80) }); return; }
     const k = Math.round(num(b.kcal, 3000));
-    if (!(k > 0)) return;
+    if (!(k > 0)) { fora.push(txt(b.nome, 40) || "um alimento"); return; }
     out.push({ a: "", nome: txt(b.nome, 60) || "Alimento", ic: "\u{1F37D}", gramas: gramas, certeza: certeza, obs: txt(b.obs, 80),
       k: k, p: Math.round(num(b.p, 300) * 10) / 10, c: Math.round(num(b.c, 500) * 10) / 10, g: Math.round(num(b.g, 300) * 10) / 10 });
   });
   let prato = txt(j && j.prato, 400);
   if (prato.length > 160) prato = prato.slice(0, 160).replace(/\s+\S*$/, "") + "…";
-  return { prato: prato, itens: out };
+  return { prato: prato, itens: out, fora: fora };
 }
 // Os itens do dia a partir da lista conferida. Do catálogo, os gramas viram
 // porções pela tabela do app; fora dele, os valores da IA na proporção dos
@@ -40110,7 +40121,16 @@ async function chamarIA(partes, config, opc) {
 async function lerPratoPelaIA(blob) {
   const ped = pedidoPratoIA(ALIMENTOS_BR);
   const texto = await chamarIA([{ inlineData: { mimeType: "image/jpeg", data: await blobParaBase64(blob) } }, { text: ped.texto }], ped.config);
-  const lido = lerRespostaPratoIA(texto, ALIMENTOS_BR);
+  let lido = lerRespostaPratoIA(texto, ALIMENTOS_BR);
+  // Lista menor que a descrição (vírgulas e "e" no "A IA viu") ou com itens que
+  // não entraram: pede de novo uma vez e fica com a leitura mais completa.
+  const partes = lido ? String(lido.prato || "").split(/,| e /).length : 0;
+  if (!lido || !lido.itens.length || (lido.fora || []).length || lido.itens.length < Math.min(3, partes)) {
+    try {
+      const outro = lerRespostaPratoIA(await chamarIA([{ inlineData: { mimeType: "image/jpeg", data: await blobParaBase64(blob) } }, { text: ped.texto }], ped.config), ALIMENTOS_BR);
+      if (outro && (!lido || outro.itens.length > lido.itens.length)) lido = outro;
+    } catch (e) { if (!lido) throw e; }
+  }
   if (!lido || !lido.itens.length) throw new Error("vazio");
   return lido;
 }
@@ -40183,7 +40203,7 @@ function EscreverComidaIA({ refeicao, onAdd }) {
     setErro(""); setEstado("lendo"); setLista([]);
     try {
       const r = await lerComidaEscritaIA(texto.trim());
-      setPrato(r.prato || "");
+      setPrato((r.prato || "") + ((r.fora || []).length ? " · Ficou de fora (anote pelo Buscar): " + r.fora.join(", ") : ""));
       setLista(r.itens.map((x, i) => Object.assign({}, x, { uid: i + "-" + x.nome, g0: x.gramas, ok: true })));
       setEstado("lido");
     } catch (e) { setErro(ERROS_FOTO_IA[e && e.message] || ERROS_FOTO_IA.falhou); setEstado("erro"); }
@@ -40324,7 +40344,7 @@ function LeituraIAPrato({ refeicao, onAdd }) {
       if (foto) URL.revokeObjectURL(foto);
       setFoto(URL.createObjectURL(b));
       const r = await lerPratoPelaIA(b);
-      setPrato(r.prato || "");
+      setPrato((r.prato || "") + ((r.fora || []).length ? " · Ficou de fora (anote pelo Buscar): " + r.fora.join(", ") : ""));
       setLista(r.itens.map((x, i) => Object.assign({}, x, { uid: i + "-" + x.nome, g0: x.gramas, ok: true })));
       setEstado("lido");
     } catch (e) {

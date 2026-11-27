@@ -881,6 +881,11 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("a leitura fica com os 6 do catalogo e o estimado, e descarta o resto", 7, lido.itens.length);
   teste("o id que nao existe e sem kcal sai", false, lido.itens.some((x) => x.nome === "Coisa"));
   teste("resposta torta nao quebra", null, B.lerRespostaPratoIA("nao e json", B.ALIMENTOS_BR));
+  // 2026-11-28k: id diferente casa pelo nome; gramas com outro nome; o resto vai para "fora"
+  const tort = B.lerRespostaPratoIA(JSON.stringify({ itens: [{ id: "arroz", nome: "Arroz", gramas: 150 }, { id: "lombo", nome: "Lombo de porco assado", gramas: 70 },
+    { id: "", nome: "Melão", peso: 120 }, { id: "x-y", nome: "Coisa estranha", gramas: 50 }] }), B.ALIMENTOS_BR);
+  teste("id errado casa pelo nome, e peso vale como gramas", ["arroz", "lombo-porco", "melao"], tort.itens.map((x) => x.a));
+  teste("o que nao da para contar vai para fora", ["Coisa estranha"], tort.fora);
   teste("gramas absurdos tem teto", 1500, B.lerRespostaPratoIA(JSON.stringify({ itens: [{ id: "arroz", nome: "a", gramas: 99999 }] }), B.ALIMENTOS_BR).itens[0].gramas);
   const doIA = B.itensDaLeituraIA(lido.itens, B.ALIMENTOS_BR);
   const arrozIA = doIA.find((x) => x.a === "arroz");

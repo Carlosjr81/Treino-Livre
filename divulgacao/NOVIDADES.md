@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-28k — A foto do prato não deixa mais alimento para trás
+
+**Em uma frase:** quando a IA vê o prato inteiro mas a lista vem incompleta, o
+app lê de novo sozinho e diz o que ficou de fora.
+
+**O que mudou:** a lista podia vir com menos alimentos do que a IA descreveu.
+Agora o app reconhece os alimentos também pelo nome, lê a foto de novo quando a
+lista vem menor que a descrição, e avisa o que não conseguiu contar ("Ficou de
+fora: anote pelo Buscar").
+
+**Por que importa para quem treina:** o almoço entra inteiro, e nada some calado
+da conta do dia.
+
+**Como usar:** Balance › + Comida › 📷 Foto, como sempre. Às vezes a leitura
+leva uns segundos a mais: é o app conferindo.
+
+**Ideias de vídeo:** nenhuma; é um conserto.
+
+**Não prometer:** que a IA acerta sempre: os gramas são estimativa e é preciso
+conferir.
+
+---
+
 ## 2026-11-28j — "Não anotar" na leitura da IA
 
 **Em uma frase:** a lista que a IA monta pela foto ou pela frase agora tem um

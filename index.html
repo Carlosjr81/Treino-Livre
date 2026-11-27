@@ -2396,7 +2396,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27f";
+const VERSAO_APP = "2026-11-27g";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5335,6 +5335,23 @@ function avisosDoDia(q) {
     }
   });
   return l.sort((a, b) => a.em - b.em);
+}
+// Os avisos dos próximos dias (2026-11-27g, pedido do dono: "faça isso
+// acontecer de forma automática", sem precisar abrir o Balance todo dia). Vão
+// ao app Android junto com os de hoje, calculados pelo horário de sempre do
+// treino e pela hora de dormir — sem nada comido, então ficam de fora os que
+// dependem do que entrou no dia (a proteína espalhada). Quando a pessoa abre o
+// app, o plano é refeito com o que ela anotou.
+const DIAS_AVISO_ADIANTE = 6;
+function avisosAdiante(plano, dorme, hojeMs) {
+  const out = [];
+  for (let k = 1; k <= DIAS_AVISO_ADIANTE; k++) {
+    const d = diaLocal(hojeMs + k * 864e5);
+    const q = janelasDoDia({ dia: { itens: [] }, treino: treinoPlanejado(plano, d), dorme: dorme, agoraMin: 0 });
+    const a = avisosDoDia(q).filter((x) => x.id !== "proteina").map((x) => ({ id: x.id, em: x.em, ate: x.ate, t: x.titulo, c: x.corpo }));
+    if (a.length) out.push({ d: d, a: a });
+  }
+  return out;
 }
 // O aviso que está na hora agora: aberto há pouco (até 40 min) e ainda não
 // mostrado hoje. Mais que isso e a pessoa recebe um aviso de uma janela que
@@ -39625,6 +39642,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
       // o plano de avisos das janelas (2026-11-26m): o app agenda cada um na
       // hora certa (AlarmManager) e manda ao relógio. Só com o aviso ligado.
       jan: perfilG.avisos && h0.janelas ? avisosDoDia(h0.janelas).map((a) => ({ id: a.id, em: a.em, ate: a.ate, t: a.titulo, c: a.corpo })) : [],
+      jan7: perfilG.avisos ? avisosAdiante(perfilG.treinoPlano, perfilG.dorme, Date.now()) : [],
       vistos: (nutricao.vistos || []).slice(-80) } : null;
   }
   const limiteAntes = useRef(null);

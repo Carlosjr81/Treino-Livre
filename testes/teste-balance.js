@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -832,6 +832,15 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   const comPlano = B.janelasDoDia({ dia: { agua: 0, itens: [] }, treino: B.horaDoTreino([], "2026-11-27", null, plano), dorme: 23, agoraMin: hora(9) });
   teste("com o plano, a janela de antes do treino já existe de manhã", "vem", comPlano.lista.find((x) => x.j.id === "preTreino").estado);
   teste("e vira aviso antes do treino", true, B.avisosDoDia(comPlano).some((a) => a.id === "preTreino"));
+
+  // os avisos dos próximos dias (2026-11-27g): pelo plano, sem a proteína espalhada
+  const adiante = B.avisosAdiante(plano, 23, new Date(2026, 10, 27, 10, 0).getTime());
+  teste("os próximos 6 dias saem do plano (seg a sex: sem sábado e domingo)", ["2026-11-30", "2026-12-01", "2026-12-02", "2026-12-03"],
+    adiante.filter((x) => x.a.some((a) => a.id === "preTreino")).map((x) => x.d));
+  teste("no fim de semana só a janela da noite", ["noite"], adiante.find((x) => x.d === "2026-11-28").a.map((a) => a.id));
+  teste("a proteína espalhada não vai adiante", false, adiante.some((x) => x.a.some((a) => a.id === "proteina")));
+  teste("o aviso de antes do treino da segunda às 15h05", 905, adiante.find((x) => x.d === "2026-11-30").a.find((a) => a.id === "preTreino").em);
+  teste("sem plano de treino, só a noite", true, B.avisosAdiante(null, 23, new Date(2026, 10, 27, 10, 0).getTime()).every((x) => x.a.every((a) => a.id === "noite")));
 
   // a creatina dentro do shake conta (relato do dono, 2026-11-27d)
   const intra = B.itemDeReceita(B.RECEITAS_SUGERIDAS.find((r) => r.id === "s-intra"), 1);

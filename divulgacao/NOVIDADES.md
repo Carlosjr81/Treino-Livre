@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27g — Os avisos da semana inteira, sem abrir o app
+
+- **Em uma frase:** com o app Android atualizado, os avisos das janelas dos nutrientes ficam agendados para os próximos 7 dias, pelo seu horário de treino e de sono — mesmo que você não abra o app.
+- **O que mudou:** antes, os avisos eram de um dia só, e era preciso abrir o Balance todo dia para agendar os do dia seguinte. Agora, cada vez que o plano vai ao app Android (abrindo o Balance, mudando o horário, anotando comida), vão junto os avisos dos próximos 6 dias: antes do treino, depois do treino e antes de dormir, nos dias em que você marcou que treina. Se o celular reiniciar, o app agenda tudo de novo sozinho. E nenhum aviso toca com o Jarvis do treino ligado.
+- **Por que importa para quem treina:** o aviso de antes do treino chega mesmo no dia em que você ainda não abriu o app.
+- **Como usar:** atualize o app Android (Ajustes › App Android) e abra o Balance uma vez com os avisos ligados. Daí em diante, é automático.
+- **Ideias de vídeo:** nenhuma específica; é um ajuste de bastidor.
+- **Não prometer:** os avisos dos dias adiante seguem o horário de sempre; se você treinar em outro horário e não abrir o app, o aviso chega no horário de sempre. O aviso da proteína espalhada depende do que você comeu, então só vem no dia em que você abre o app.
+
+---
+
 ## 2026-11-27f — Os avisos das janelas se agendam sozinhos
 
 - **Em uma frase:** não é mais preciso tocar em "Mandar ao relógio" para os avisos das janelas dos nutrientes funcionarem no app Android: eles se agendam sozinhos.

@@ -35,6 +35,8 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- os avisos das janelas voltam a ser agendados quando o celular liga -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- O desafio de corrida com a tela travada (CorridaService): o GPS do Android -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -291,5 +293,12 @@
              mostra a notificação e manda o mesmo aviso ao relógio. Não é exportado:
              só o AlarmManager deste app o aciona. -->
         <receiver android:name=".JanelaReceiver" android:exported="false" />
+        <receiver android:name=".JanelasAoLigar" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

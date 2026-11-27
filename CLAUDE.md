@@ -7060,6 +7060,17 @@ para todos"**.
   `puxarRelogio` da troca de seção, com a guarda de 15 s) e mudar avisos,
   horário do treino ou hora de dormir (`mandarDepois`, no render seguinte,
   ainda dentro do toque que o Chrome exige). Sem avisos e sem relógio, nada sai.
+- **A semana inteira agendada** (2026-11-27g, pedido do dono: "faça isso
+  acontecer de forma automática", sem abrir o Balance todo dia). O pacote leva
+  `jan7` (`avisosAdiante`: os próximos 6 dias pelo `treinoPlanejado` e pela
+  hora de dormir, sem nada comido, e sem a proteína espalhada, que depende do
+  dia). No Android, `Janelas.agendar` agenda hoje e os 6 dias, cada um com o
+  código `NOTA_BASE + dia × 10 + id` (hoje continua com o código de antes),
+  guarda o plano em `janelas/plano`, e `JanelasAoLigar` (BOOT_COMPLETED,
+  QUICKBOOT_POWERON, MY_PACKAGE_REPLACED; permissão RECEIVE_BOOT_COMPLETED)
+  agenda de novo ao ligar o celular. O `JanelaReceiver` cala com o Jarvis do
+  treino ligado (`BolsoService.instancia`): nunca aviso no meio do treino.
+  **Não validado num aparelho.**
 - **O número do APK não é sequencial, e adivinhá-lo quebra o link** (achado
   aqui: o `LINK_APK` dizia 197 quando o release já era o 199, e o desta
   publicação saiu 201). Ele é o `run_number` do workflow **App Android**,

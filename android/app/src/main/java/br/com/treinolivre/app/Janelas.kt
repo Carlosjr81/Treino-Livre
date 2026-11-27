@@ -40,11 +40,28 @@ object Janelas {
 
     private fun prefs(c: Context) = c.getSharedPreferences("janelas", Context.MODE_PRIVATE)
 
-    private fun alarme(c: Context, id: String, titulo: String, corpo: String): PendingIntent {
+    // Os dias adiante (2026-11-27g): hoje e mais 6, cada dia com o seu código
+    // (dia * 10 + o id). Hoje (dia 0) tem o mesmo código de antes.
+    const val DIAS = 7
+
+    private fun alarme(c: Context, id: String, titulo: String, corpo: String, dia: Int = 0): PendingIntent {
         val i = Intent(c, JanelaReceiver::class.java).setAction(ACAO)
             .putExtra("id", id).putExtra("t", titulo).putExtra("c", corpo)
-        return PendingIntent.getBroadcast(c, NOTA_BASE + IDS.indexOf(id).coerceAtLeast(0), i,
+        return PendingIntent.getBroadcast(c, NOTA_BASE + dia * 10 + IDS.indexOf(id).coerceAtLeast(0), i,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    }
+
+    // "AAAA-MM-DD" → o começo daquele dia, na hora do celular
+    private fun inicioDoDia(d: String): Calendar? = try {
+        val p = d.split("-").map { it.toInt() }
+        Calendar.getInstance().apply { clear(); set(p[0], p[1] - 1, p[2], 0, 0, 0) }
+    } catch (e: Exception) { null }
+
+    // Agendado de novo quando o celular liga: reiniciar apaga todo alarme do
+    // Android, e sem isto os avisos sumiriam até a pessoa abrir o Balance.
+    fun reagendar(c: Context) {
+        val e = prefs(c).getString("plano", null) ?: return
+        agendar(c, e)
     }
 
     // O plano que veio do site. Cancela os de antes e agenda os de hoje que
@@ -52,27 +69,38 @@ object Janelas {
     fun agendar(c: Context, estado: String) {
         try {
             val j = JSONObject(estado)
-            val av = j.optJSONArray("jan") ?: JSONArray()
             val am = c.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            IDS.forEach { id -> try { am.cancel(alarme(c, id, "", "")) } catch (e: Exception) { } }
-            val agora = Calendar.getInstance()
-            val minAgora = agora.get(Calendar.HOUR_OF_DAY) * 60 + agora.get(Calendar.MINUTE)
-            var n = 0
-            for (i in 0 until av.length()) {
-                val a = av.optJSONObject(i) ?: continue
-                val id = a.optString("id")
-                val em = a.optInt("em", -1)
-                if (id.isEmpty() || em < 0 || em <= minAgora) continue
-                val quando = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, em / 60); set(Calendar.MINUTE, em % 60)
-                    set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-                }
-                val pi = alarme(c, id, a.optString("t"), a.optString("c"))
-                if (Build.VERSION.SDK_INT >= 23) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, quando.timeInMillis, pi)
-                else am.set(AlarmManager.RTC_WAKEUP, quando.timeInMillis, pi)
-                n++
+            for (dia in 0 until DIAS) IDS.forEach { id -> try { am.cancel(alarme(c, id, "", "", dia)) } catch (e: Exception) { } }
+            // hoje ("jan", com o que foi anotado) e os próximos dias ("jan7",
+            // pelo horário de sempre), cada um na data dele
+            val dias = mutableListOf<Pair<String, JSONArray>>()
+            dias.add(Pair(j.optString("d"), j.optJSONArray("jan") ?: JSONArray()))
+            val adiante = j.optJSONArray("jan7") ?: JSONArray()
+            for (i in 0 until adiante.length()) {
+                val x = adiante.optJSONObject(i) ?: continue
+                dias.add(Pair(x.optString("d"), x.optJSONArray("a") ?: JSONArray()))
             }
-            prefs(c).edit().putInt("agendados", n).putString("dia", j.optString("d")).apply()
+            val agora = System.currentTimeMillis()
+            val hoje = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
+            var n = 0
+            for ((d, av) in dias) {
+                val base = inicioDoDia(d) ?: continue
+                val offset = Math.round((base.timeInMillis - hoje.timeInMillis) / 86_400_000.0).toInt()
+                if (offset < 0 || offset >= DIAS) continue
+                for (i in 0 until av.length()) {
+                    val a = av.optJSONObject(i) ?: continue
+                    val id = a.optString("id")
+                    val em = a.optInt("em", -1)
+                    if (id.isEmpty() || em < 0) continue
+                    val quando = (base.clone() as Calendar).apply { add(Calendar.MINUTE, em) }
+                    if (quando.timeInMillis <= agora) continue
+                    val pi = alarme(c, id, a.optString("t"), a.optString("c"), offset)
+                    if (Build.VERSION.SDK_INT >= 23) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, quando.timeInMillis, pi)
+                    else am.set(AlarmManager.RTC_WAKEUP, quando.timeInMillis, pi)
+                    n++
+                }
+            }
+            prefs(c).edit().putInt("agendados", n).putString("dia", j.optString("d")).putString("plano", estado).apply()
         } catch (e: Exception) { }
     }
 
@@ -113,12 +141,23 @@ object Janelas {
     }
 }
 
+// O celular ligou (ou o app foi atualizado): os alarmes do Android não
+// sobrevivem a isso, então o último plano guardado é agendado de novo.
+class JanelasAoLigar : BroadcastReceiver() {
+    override fun onReceive(c: Context, i: Intent) {
+        val a = i.action ?: return
+        if (a == Intent.ACTION_BOOT_COMPLETED || a == Intent.ACTION_MY_PACKAGE_REPLACED || a == "android.intent.action.QUICKBOOT_POWERON") Janelas.reagendar(c)
+    }
+}
+
 class JanelaReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
         if (i.action != Janelas.ACAO) return
         val id = i.getStringExtra("id") ?: return
         val t = i.getStringExtra("t") ?: return
         val corpo = i.getStringExtra("c") ?: ""
+        // nunca no meio de um treino: com o Jarvis do treino ligado, cala
+        if (BolsoService.instancia != null) return
         Janelas.mostrar(c, id, t, corpo)
         Janelas.avisarRelogio(c.applicationContext, t, corpo)
     }

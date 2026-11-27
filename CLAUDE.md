@@ -7171,6 +7171,46 @@ preencha o que eu comi". No Balance › Anotar › 📷 Foto, o quadro
   Para testar outro modelo: um `generateContent` de texto com a chave e o
   `Referer` do site oficial. **Não validado num celular.**
 
+### A IA em mais lugares, e o App Check (`chamarIA`, `APP_CHECK`, 2026-11-28c)
+
+Pedido do dono: "aproveite a ligação com a IA e amplie a capacidade do app".
+Escolhidos os usos em que a IA **lê** o que existe (comida, rótulo, ficha) e o app
+confere pela própria tabela, e **nenhum** em que ela orientaria treino, dieta ou
+remédio (ver *A defesa legal*): ali a IA seria o profissional que o app não é.
+
+- **Uma chamada só** (`chamarIA(partes, config)`): o token da conta, o
+  App Check, o prazo por modelo, a troca de modelo e os erros
+  (`ERROS_FOTO_IA`). Uso novo chama ela.
+- **✍️ Escreva o que comeu** (`EscreverComidaIA`, no topo do 🔎 Buscar;
+  `pedidoComidaEscritaIA`): a frase vira a lista no mesmo esquema da foto, e
+  a mesma conferência (`ConferirIA`, que a foto também usa).
+- **📷 Ler o rótulo** (`BotaoRotuloIA`, no ✏️ Manual; `pedidoRotuloIA`,
+  `lerRespostaRotuloIA`): os valores por porção, ½ a 3 porções, e o aviso
+  quando a conta 4/4/9 não fecha com as kcal (vírgula lida no lugar errado).
+- **📷 A ficha de papel ou o print** (`LerFichaIA`, botão "Tenho a ficha no
+  papel ou num print" dentro de um treino em Fichas; `pedidoFichaIA`,
+  `lerRespostaFichaIA`): exercícios na ordem, séries e repetições como
+  escritas, casados com o catálogo; abre no **editor de ficha**, e só o Salvar de
+  lá grava. O que não está no catálogo fica de fora, com o aviso.
+- **O App Check** (`APP_CHECK = { siteKey, appId }`, `tokenAppCheck`): o
+  dono ligou a proteção em **Aplicado** no console em 28/11/2026, e a partir daí
+  **toda chamada voltou 401 "App Check token is invalid"** (conferido daqui).
+  Sem o SDK: o reCAPTCHA Enterprise (`www.google.com/recaptcha/enterprise.js`,
+  na CSP) dá um token, trocado em
+  `content-firebaseappcheck…/apps/<appId>:exchangeRecaptchaEnterpriseToken` pelo
+  do App Check, que vai no `X-Firebase-AppCheck` (guardado ~1 h). **Com o
+  `APP_CHECK` vazio nada é mandado**: só funciona com a proteção em
+  "Desaplicado". O passo a passo do dono está no `firebase/LEIA-ME.md`; quando
+  ele mandar o ID da chave do reCAPTCHA e o ID do app da Web, eles entram no
+  `APP_CHECK` e a leitura precisa ser conferida de novo daqui.
+- O `sw.js` deixa a IA, o App Check e o reCAPTCHA passarem direto.
+- Coberto por `teste-balance.js` (o JSON embrulhado, o texto com teto, o
+  rótulo que confere e o que não confere, a ficha com o que não existe). No
+  navegador, com uma IA de mentira: escrever (pão, manteiga e ovo, ~591 kcal),
+  o rótulo da pasta de amendoim preenchendo o Manual, e a ficha abrindo no
+  editor com o supino e o aviso do tríceps francês. **Não validado com o Gemini
+  de verdade** (o App Check passou a barrar antes do teste) **nem num celular.**
+
 ### Ajustes do Body Balance (2026-11-25k e 25l)
 
 - **Os dois números do balanço dizem contra o quê comparam** (2026-11-25l,

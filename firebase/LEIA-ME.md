@@ -71,6 +71,30 @@ guardada pelo app; o que o Google faz com ela segue os termos do Gemini
 Developer API (no plano gratuito, o Google pode usar os pedidos para melhorar
 os modelos: está dito na política de privacidade do app).
 
+## O App Check da IA (o "crachá" do site)
+
+Se o App Check da **Firebase AI Logic** estiver em **Aplicado** (enforced), o
+Google recusa toda leitura da IA que não traga o crachá do site oficial, e o app
+mostra "A proteção do Google (App Check) barrou a leitura". Dois caminhos:
+
+**Para voltar a funcionar já** (sem a proteção extra): Firebase › **App Check**
+› **APIs** › **Firebase AI Logic** › menu ⋮ › **Desaplicar** (Unenforce). A
+chave da API continua restrita ao site oficial (passo do `SEGURANCA.md`).
+
+**Para ligar a proteção de verdade** (só o site oficial usa a sua cota de IA):
+1. Google Cloud › **Segurança** › **reCAPTCHA**
+   (https://console.cloud.google.com/security/recaptcha?project=treino-livre) ›
+   **Criar chave** › tipo **Site** (Web), domínio `carlosjr81.github.io` ›
+   criar, e copie o **ID da chave**.
+2. Firebase › **App Check** › **Apps** › o app da Web › **reCAPTCHA Enterprise**
+   › cole o ID da chave › **Salvar**.
+3. Firebase › ⚙ **Configurações do projeto** › **Seus apps** › o app da Web ›
+   copie o **ID do app** (começa com `1:668153886319:web:`).
+4. Se a chave da API tem restrição de APIs, marque também **Firebase App Check
+   API**.
+5. Mande ao Claude o ID da chave e o ID do app (os dois são públicos). Ele põe
+   no `APP_CHECK` do app e confere; aí o App Check pode ficar em Aplicado.
+
 ## Ligar o "Continuar com o Google"
 
 1. Firebase › **Authentication** › **Método de login** › **Adicionar novo

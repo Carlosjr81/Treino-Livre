@@ -6,7 +6,7 @@
      script destes endereços, nada de plugin, e nenhum formulário ou <base> manda
      para outro lugar. 'unsafe-inline' e 'unsafe-eval' são o preço do Babel no
      navegador (não há etapa de build): sem eles o app não abre. -->
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://accounts.google.com https://apis.google.com https://www.gstatic.com https://gc.zgo.at https://storage.googleapis.com https://huggingface.co; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://accounts.google.com https://apis.google.com https://www.google.com https://www.gstatic.com https://gc.zgo.at https://storage.googleapis.com https://huggingface.co; object-src 'none'; base-uri 'self'; form-action 'self'" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <!--
@@ -2648,7 +2648,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28b";
+const VERSAO_APP = "2026-11-28c";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5023,7 +5023,7 @@ function itensDoPrato(partes, tamanho, comOleo) {
 // Google (404). Modelo novo: teste daqui (CLAUDE.md, *A foto do prato*).
 const FOTO_IA = { modelos: ["gemini-3.5-flash-lite", "gemini-3-flash-preview"], prazoMs: 30000, ladoMax: 1024, qualidade: 0.8, maxItens: 12 };
 function pedidoPratoIA(catalogo) {
-  const lista = (catalogo || []).map((a) => a.id + " = " + a.nome + (a.por ? " [" + a.por + "]" : "")).join("\n");
+  const lista = listaCatalogoIA(catalogo);
   const texto = "Você recebe a foto de uma refeição brasileira. Estime o peso em gramas de cada alimento visível, " +
     "dentro e fora do prato (fruta, sobremesa, bebida na bandeja). Use o prato como régua de escala " +
     "(prato raso comum: uns 26 cm de diâmetro, área útil de uns 20 cm) e o talher como régua de altura. " +
@@ -5071,6 +5071,91 @@ function lerRespostaPratoIA(texto, catalogo) {
 // Os itens do dia a partir da lista conferida. Do catálogo, os gramas viram
 // porções pela tabela do app; fora dele, os valores da IA na proporção dos
 // gramas que a pessoa deixou (ela pode ter corrigido).
+// O JSON da IA, mesmo embrulhado em cerca de código ou com texto em volta
+function jsonDaIA(texto) {
+  const s = String(texto || "");
+  const i = Math.min.apply(null, [s.indexOf("{"), s.indexOf("[")].filter((x) => x >= 0).concat([s.length]));
+  const j = Math.max(s.lastIndexOf("}"), s.lastIndexOf("]"));
+  if (i >= s.length || j < i) return null;
+  try { return JSON.parse(s.slice(i, j + 1)); } catch (e) { return null; }
+}
+function listaCatalogoIA(catalogo) {
+  return (catalogo || []).map((a) => a.id + " = " + a.nome + (a.por ? " [" + a.por + "]" : "")).join("\n");
+}
+// "Comi 2 pães com manteiga e um café com leite" (2026-11-28c): o mesmo
+// esquema da foto, então a mesma conferência e a mesma conta pela tabela.
+function pedidoComidaEscritaIA(descricao, catalogo) {
+  const base = pedidoPratoIA(catalogo);
+  return {
+    texto: "A pessoa descreveu, em português do Brasil, o que comeu: \u00AB" + String(descricao || "").slice(0, 600) + "\u00BB. " +
+      "Liste cada alimento dito, separado, com os gramas pela medida caseira que ela usou (colher, concha, fatia, unidade, copo, prato); " +
+      "sem quantidade dita, use a porção média brasileira. Não acrescente alimento que ela não disse. " +
+      "Escolha o id do catálogo que mais combina (o preparo importa: frito, cozido, grelhado); sem nenhum que combine, deixe o id vazio e estime kcal, proteína (p), carboidrato (c) e gordura (g) para aqueles gramas. Responda só o JSON.\n\nCATÁLOGO (id = nome [porção]):\n" + listaCatalogoIA(catalogo),
+    config: base.config,
+  };
+}
+// O rótulo (2026-11-28c, a pasta de amendoim que o dono fotografou): os
+// valores POR PORÇÃO, conferidos pela conta 4/4/9.
+function pedidoRotuloIA() {
+  return {
+    texto: "Foto da tabela de informação nutricional de um rótulo brasileiro. Leia os valores POR PORÇÃO (não por 100 g, a não ser que só exista por 100 g; aí informe porcaoG 100). " +
+      "Dê o nome do produto se aparecer, a porção como está escrita (ex.: '1 colher de sopa (15 g)'), os gramas da porção, valor energético em kcal, proteínas (p), carboidratos (c), gorduras totais (g) e fibra. Se não conseguir ler, legivel = false. Responda só o JSON.",
+    config: { responseMimeType: "application/json", temperature: 0.1, responseSchema: {
+      type: "OBJECT", properties: {
+        legivel: { type: "BOOLEAN" }, nome: { type: "STRING" }, porcao: { type: "STRING" }, porcaoG: { type: "NUMBER" },
+        kcal: { type: "NUMBER" }, p: { type: "NUMBER" }, c: { type: "NUMBER" }, g: { type: "NUMBER" }, fibra: { type: "NUMBER" } },
+      required: ["legivel"] } },
+  };
+}
+function lerRespostaRotuloIA(texto) {
+  const j = jsonDaIA(texto);
+  if (!j || typeof j !== "object" || j.legivel === false) return null;
+  const num = (x, mx) => { const v = typeof x === "number" ? x : parseFloat(String(x == null ? "" : x).replace(",", ".")); return isFinite(v) && v >= 0 ? Math.min(mx, v) : 0; };
+  const txt = (x, n) => String(x == null ? "" : x).replace(/[<>]/g, "").trim().slice(0, n);
+  const p = Math.round(num(j.p, 200) * 10) / 10, c = Math.round(num(j.c, 300) * 10) / 10, g = Math.round(num(j.g, 200) * 10) / 10;
+  const conta = 4 * p + 4 * c + 9 * g;
+  let k = Math.round(num(j.kcal, 3000));
+  if (!(k > 0) && conta > 0) k = Math.round(conta);
+  if (!(k > 0)) return null;
+  // Rótulo mal lido costuma vir com a vírgula no lugar errado: a conta acusa
+  const confere = conta > 0 ? Math.abs(conta - k) / k <= 0.25 : false;
+  return { nome: txt(j.nome, 60), porcao: txt(j.porcao, 60), porcaoG: Math.round(num(j.porcaoG, 2000)), k: k, p: p, c: c, g: g,
+    f: Math.round(num(j.fibra, 100) * 10) / 10, confere: confere };
+}
+// A ficha de papel ou o print do professor (2026-11-28c): vira as linhas do
+// editor de ficha, que a pessoa confere e salva. O app não inventa a ficha:
+// lê o que está escrito.
+function pedidoFichaIA(exercicios) {
+  const lista = (exercicios || []).map((e) => e.id + " = " + e.nome).join("\n");
+  return {
+    texto: "Foto ou print de uma ficha de treino de academia, em português. Liste os exercícios NA ORDEM em que estão escritos: para cada um, o texto lido, o id do catálogo abaixo que é o mesmo exercício (o mesmo movimento e o mesmo aparelho; na dúvida, deixe o id vazio), as séries (número) e as repetições como estão escritas (ex.: '12', '8-12', '30s', 'falha'). " +
+      "Observação curta só se estiver escrita (carga, bi-set, cadência). Dê também o título da ficha, se houver (ex.: 'Treino A - Peito'). Não acrescente exercício que não está escrito. Responda só o JSON.\n\nCATÁLOGO (id = nome):\n" + lista,
+    config: { responseMimeType: "application/json", temperature: 0.1, responseSchema: {
+      type: "OBJECT", properties: {
+        nome: { type: "STRING" },
+        itens: { type: "ARRAY", items: { type: "OBJECT", properties: {
+          id: { type: "STRING" }, lido: { type: "STRING" }, series: { type: "NUMBER" }, reps: { type: "STRING" }, obs: { type: "STRING" } },
+          required: ["lido"] } } },
+      required: ["itens"] } },
+  };
+}
+function lerRespostaFichaIA(texto, exercicios) {
+  const j = jsonDaIA(texto);
+  const brutos = Array.isArray(j) ? j : Array.isArray(j && j.itens) ? j.itens : null;
+  if (!brutos) return null;
+  const txt = (x, n) => String(x == null ? "" : x).replace(/[<>]/g, "").trim().slice(0, n);
+  const ids = new Set((exercicios || []).map((e) => e.id));
+  const itens = [];
+  brutos.slice(0, 25).forEach((b) => {
+    if (!b || typeof b !== "object") return;
+    const lido = txt(b.lido, 80);
+    const id = txt(b.id, 60);
+    if (!lido && !ids.has(id)) return;
+    const s = Math.round(typeof b.series === "number" ? b.series : parseFloat(b.series));
+    itens.push({ exercicioId: ids.has(id) ? id : "", lido: lido, series: s >= 1 && s <= 10 ? s : 3, reps: txt(b.reps, 12) || "12", obs: txt(b.obs, 80) });
+  });
+  return { nome: txt(j && j.nome, 60), itens: itens };
+}
 function itensDaLeituraIA(lista, catalogo) {
   return (lista || []).filter((x) => x && x.gramas > 0).map((x) => {
     const a = x.a && (catalogo || []).find((c) => c.id === x.a);
@@ -20510,7 +20595,7 @@ function CartaoAutoAjuste({ prog, onLigar, onReanalisar, onDesfazer }) {
 function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, onTreinar, onNovaFicha,
   onEditar, onExcluirFicha, onCompartilharFicha, onNovoPrograma, onRenomearPrograma, onExcluirPrograma,
   onCompartilharPrograma, onDuplicarFicha, onDuplicarPrograma, onLevarFicha, onMoverFicha, onAssistente, onTreinoLivre, pedirConfirmacao, historico, onAdaptado, nAdaptado,
-  onAutoAjuste, onReanalisar, onDesfazerAjuste, onAjustarTempo, onJuntar, onExtra }) {
+  onAutoAjuste, onReanalisar, onDesfazerAjuste, onAjustarTempo, onJuntar, onExtra, onFichaPorFoto }) {
   // Dentro de um treino: lista de fichas. Se o programa aberto foi excluído,
   // cai de volta na lista em vez de alterar estado durante o render.
   const prog = progAberto ? programas.find((p) => p.id === progAberto) : null;
@@ -20521,7 +20606,8 @@ function TelaTreinos({ programas, treinos, exPorId, progAberto, setProgAberto, o
         <button style={S.voltar} onClick={() => setProgAberto(null)}>← Todos os treinos</button>
         <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 12 }}>{prog.nome}</div>
         {onAutoAjuste && fichas.length > 0 && <CartaoAutoAjuste prog={prog} onLigar={onAutoAjuste} onReanalisar={onReanalisar} onDesfazer={onDesfazerAjuste} />}
-        <button style={{ ...S.btn, marginBottom: 14 }} onClick={() => onNovaFicha(prog.id)}><ComIcone nome="mais">Nova ficha neste treino</ComIcone></button>
+        <button style={{ ...S.btn, marginBottom: onFichaPorFoto ? 8 : 14 }} onClick={() => onNovaFicha(prog.id)}><ComIcone nome="mais">Nova ficha neste treino</ComIcone></button>
+        {onFichaPorFoto && <button style={{ ...S.btnGhost, width: "100%", marginBottom: 14, fontWeight: 900 }} onClick={() => onFichaPorFoto(prog.id)}>📷 Tenho a ficha no papel ou num print</button>}
         {onJuntar && fichas.filter((t) => t.itens.length).length > 1 && (
           <button style={{ ...S.btnGhost, marginTop: -6, marginBottom: 14, fontWeight: 800 }} onClick={() => onJuntar(null)}>🔗 Faltei um dia: juntar fichas num treino só</button>
         )}
@@ -39648,16 +39734,48 @@ const ERROS_FOTO_IA = {
   rede: "Sem internet para mandar a foto. Marque o prato abaixo, que funciona sem rede.",
   vazio: "A IA não reconheceu comida nessa foto. Tente com o prato inteiro à vista, de cima, com boa luz.",
   falhou: "A leitura falhou. Tente de novo, ou marque o prato abaixo.",
+  appcheck: "A proteção do Google (App Check) barrou a leitura neste aparelho. Tente de novo em alguns minutos; se continuar, use o jeito de marcar à mão.",
+  vazioTexto: "A IA não achou comida no que você escreveu. Diga o alimento e a quantidade, como: 2 pães com manteiga e 1 café com leite.",
+  rotulo: "Não deu para ler a tabela. Fotografe de perto, reta e com luz, só a tabela de informação nutricional.",
+  ficha: "Não achei exercícios nessa imagem. Fotografe a ficha inteira, reta e com luz (um print também serve).",
   lento: "A IA do Google está demorando demais agora. Tente de novo em um minuto, ou marque o prato abaixo.",
 };
-async function lerPratoPelaIA(blob) {
+// O App Check do Firebase (2026-11-28c): com a proteção ligada no console,
+// só quem mostra o token do site oficial usa a IA (uma cópia do app não gasta a
+// cota do dono). Sem o SDK: o reCAPTCHA Enterprise dá um token, e o Firebase o
+// troca pelo do App Check (vale ~1 h). Vazio = não manda nada (proteção
+// desligada no console). Os dois valores são públicos: quem protege é o site
+// cadastrado na chave do reCAPTCHA.
+const APP_CHECK = { siteKey: "", appId: "" };
+let tokenAppCheckGuardado = null;
+async function tokenAppCheck() {
+  if (!APP_CHECK.siteKey || !APP_CHECK.appId) return null;
+  if (tokenAppCheckGuardado && tokenAppCheckGuardado.ate - Date.now() > 120000) return tokenAppCheckGuardado.token;
+  await carregarScript("https://www.google.com/recaptcha/enterprise.js?render=" + encodeURIComponent(APP_CHECK.siteKey));
+  const ge = window.grecaptcha && window.grecaptcha.enterprise;
+  if (!ge) throw new Error("appcheck");
+  await new Promise((res) => ge.ready(res));
+  const rc = await ge.execute(APP_CHECK.siteKey, { action: "fetch_app_check_token" });
+  const r = await fetch("https://content-firebaseappcheck.googleapis.com/v1/projects/" + FIREBASE_ACESSO.projectId + "/apps/" + APP_CHECK.appId +
+    ":exchangeRecaptchaEnterpriseToken?key=" + FIREBASE_ACESSO.apiKey, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recaptcha_enterprise_token: rc }) });
+  if (!r.ok) throw new Error("appcheck");
+  const j = await r.json();
+  const ttl = parseFloat(String(j.ttl || "3600")) || 3600;
+  tokenAppCheckGuardado = { token: j.token, ate: Date.now() + ttl * 1000 };
+  return j.token;
+}
+// A chamada comum a todos os usos da IA (2026-11-28c): o mesmo prazo, a mesma
+// troca de modelo e os mesmos erros. Devolve o texto da resposta.
+async function chamarIA(partes, config) {
   if (!FIREBASE_ACESSO.apiKey) throw new Error("desligada");
   let s = lerSessaoConta();
   if (!s || !s.refresh) throw new Error("semConta");
   try { s = await tokenValido(s); } catch (e) { throw new Error("rede"); }
-  const b64 = await blobParaBase64(blob);
-  const ped = pedidoPratoIA(ALIMENTOS_BR);
-  const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ inlineData: { mimeType: "image/jpeg", data: b64 } }, { text: ped.texto }] }], generationConfig: ped.config });
+  const corpo = JSON.stringify({ contents: [{ role: "user", parts: partes }], generationConfig: config });
+  let ac = null;
+  try { ac = await tokenAppCheck(); } catch (e) { throw new Error("appcheck"); }
+  const cabecalhos = { "Content-Type": "application/json", "x-goog-api-key": FIREBASE_ACESSO.apiKey, "Authorization": "Firebase " + s.idToken };
+  if (ac) cabecalhos["X-Firebase-AppCheck"] = ac;
   let ultimo = "falhou";
   for (const m of FOTO_IA.modelos) {
     let r;
@@ -39667,7 +39785,7 @@ async function lerPratoPelaIA(blob) {
     const prazo = ctl ? setTimeout(() => ctl.abort(), FOTO_IA.prazoMs) : null;
     try {
       r = await fetch("https://firebasevertexai.googleapis.com/v1beta/projects/" + FIREBASE_ACESSO.projectId + "/models/" + m + ":generateContent", {
-        method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": FIREBASE_ACESSO.apiKey, "Authorization": "Firebase " + s.idToken }, body: corpo, signal: ctl ? ctl.signal : undefined });
+        method: "POST", headers: cabecalhos, body: corpo, signal: ctl ? ctl.signal : undefined });
     } catch (e) {
       if (prazo) clearTimeout(prazo);
       if (e && e.name === "AbortError") { ultimo = "lento"; continue; }
@@ -39676,19 +39794,203 @@ async function lerPratoPelaIA(blob) {
     if (prazo) clearTimeout(prazo);
     if (r.ok) {
       const j = await r.json().catch(() => null);
-      const partes = (((j && j.candidates) || [])[0] || {}).content;
-      const texto = ((partes && partes.parts) || []).map((p) => p.text || "").join("");
-      const lido = lerRespostaPratoIA(texto, ALIMENTOS_BR);
-      if (!lido || !lido.itens.length) throw new Error("vazio");
-      return lido;
+      const conteudo = (((j && j.candidates) || [])[0] || {}).content;
+      return ((conteudo && conteudo.parts) || []).map((p) => p.text || "").join("");
     }
     const msg = await r.text().catch(() => "");
     if (r.status === 404) { ultimo = "falhou"; continue; }
     if (r.status === 429) throw new Error("limite");
+    if (r.status === 401 && /App Check/i.test(msg)) { tokenAppCheckGuardado = null; throw new Error("appcheck"); }
     if (r.status === 403 && /disabled|not been used|not enabled|PERMISSION_DENIED/i.test(msg)) throw new Error("desligada");
     ultimo = "falhou";
   }
   throw new Error(ultimo);
+}
+async function lerPratoPelaIA(blob) {
+  const ped = pedidoPratoIA(ALIMENTOS_BR);
+  const texto = await chamarIA([{ inlineData: { mimeType: "image/jpeg", data: await blobParaBase64(blob) } }, { text: ped.texto }], ped.config);
+  const lido = lerRespostaPratoIA(texto, ALIMENTOS_BR);
+  if (!lido || !lido.itens.length) throw new Error("vazio");
+  return lido;
+}
+async function lerComidaEscritaIA(descricao) {
+  const ped = pedidoComidaEscritaIA(descricao, ALIMENTOS_BR);
+  const lido = lerRespostaPratoIA(await chamarIA([{ text: ped.texto }], ped.config), ALIMENTOS_BR);
+  if (!lido || !lido.itens.length) throw new Error("vazioTexto");
+  return lido;
+}
+async function lerRotuloIA(blob) {
+  const ped = pedidoRotuloIA();
+  const r = lerRespostaRotuloIA(await chamarIA([{ inlineData: { mimeType: "image/jpeg", data: await blobParaBase64(blob) } }, { text: ped.texto }], ped.config));
+  if (!r) throw new Error("rotulo");
+  return r;
+}
+async function lerFichaIA(blob, exercicios) {
+  const ped = pedidoFichaIA(exercicios);
+  const r = lerRespostaFichaIA(await chamarIA([{ inlineData: { mimeType: "image/jpeg", data: await blobParaBase64(blob) } }, { text: ped.texto }], ped.config), exercicios);
+  if (!r || !r.itens.length) throw new Error("ficha");
+  return r;
+}
+// A lista para conferir (da foto ou do texto): gramas editáveis, o ✓ de cada
+// item, e um toque para anotar. Nada vai ao dia sem esse toque.
+function ConferirIA({ lista, setLista, prato, refeicao, onAdd }) {
+  const marcados = lista.filter((x) => x.ok && x.gramas > 0);
+  const itens = itensDaLeituraIA(marcados, ALIMENTOS_BR);
+  const total = itens.reduce((a, it) => a + valorItem(it).k, 0);
+  const kDe = (x) => { const it = itensDaLeituraIA([x], ALIMENTOS_BR)[0]; return it ? valorItem(it).k : 0; };
+  const mudar = (uid, d) => setLista((l) => l.map((x) => (x.uid === uid ? Object.assign({}, x, d) : x)));
+  return (
+      <div style={{ marginTop: 10 }}>
+        <div style={{ ...S.label, marginBottom: 6 }}>{prato ? "A IA viu: " + prato : "O que a IA viu"} · confira os gramas</div>
+        {lista.map((x) => (
+          <div key={x.uid} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderTop: "1px solid var(--borda)", opacity: x.ok ? 1 : 0.45 }}>
+            <button onClick={() => mudar(x.uid, { ok: !x.ok })} aria-label={(x.ok ? "Tirar " : "Pôr de volta ") + x.nome}
+              style={{ width: 26, height: 26, flex: "none", borderRadius: 8, border: "1.5px solid " + (x.ok ? "#4CD137" : "var(--borda2)"), background: x.ok ? "#4CD13722" : "transparent", color: "#4CD137", fontWeight: 900, cursor: "pointer" }}>{x.ok ? "✓" : ""}</button>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.3 }}>
+              {x.ic} {x.nome}{!x.a ? " (fora do catálogo: valores da IA)" : ""}
+              {x.certeza === "baixa" && <span style={{ display: "block", fontSize: 11, color: "#FFB21A", fontWeight: 800 }}>⚠ a IA não teve certeza: confira</span>}
+              {x.obs && <span style={{ display: "block", fontSize: 11, color: "var(--cinza)" }}>{x.obs}</span>}
+            </span>
+            <input inputMode="numeric" aria-label={"Gramas de " + x.nome} value={x.gramas || ""} onChange={(e) => mudar(x.uid, { gramas: Math.max(0, Math.min(1500, Math.round(numB(e.target.value)))) })}
+              style={{ ...S.input, width: 62, padding: "6px 6px", textAlign: "right", flex: "none" }} />
+            <span style={{ fontSize: 12, color: "var(--cinza)", width: 14, flex: "none" }}>g</span>
+            <span style={{ fontSize: 12, fontWeight: 900, width: 58, textAlign: "right", flex: "none" }}>{x.ok ? fmtKcal(kDe(x)) + " kcal" : ""}</span>
+          </div>
+        ))}
+        <div style={{ textAlign: "center", margin: "10px 0" }}>
+          <span style={{ fontFamily: FONTE_JOGO, fontSize: 24 }}>~{fmtKcal(total)} kcal</span>
+          <div style={{ fontSize: 11, color: "var(--cinza)", lineHeight: 1.45, marginTop: 4 }}>
+            É uma estimativa: confira os gramas, principalmente do óleo e do molho, que quase nunca aparecem (no teste do NIH de 2026, os apps de foto erraram para menos, quase sempre na gordura). As calorias saem da tabela do app.
+          </div>
+        </div>
+        <button disabled={!itens.length} onClick={() => onAdd(itens, 0, refeicao)} style={{ ...S.btn, width: "100%", opacity: itens.length ? 1 : 0.5 }}>✓ Anotar {itens.length} {itens.length === 1 ? "item" : "itens"} no dia</button>
+      </div>
+  );
+}
+// Escrever o que comeu (2026-11-28c): "2 pães com manteiga e um café com
+// leite" vira a lista para conferir, pela mesma tabela do app.
+function EscreverComidaIA({ refeicao, onAdd }) {
+  const [texto, setTexto] = useState("");
+  const [estado, setEstado] = useState("pronto");
+  const [erro, setErro] = useState("");
+  const [lista, setLista] = useState([]);
+  const [prato, setPrato] = useState("");
+  const ler = async () => {
+    if (texto.trim().length < 3 || estado === "lendo") return;
+    setErro(""); setEstado("lendo"); setLista([]);
+    try {
+      const r = await lerComidaEscritaIA(texto.trim());
+      setPrato(r.prato || "");
+      setLista(r.itens.map((x, i) => Object.assign({}, x, { uid: i + "-" + x.nome, g0: x.gramas, ok: true })));
+      setEstado("lido");
+    } catch (e) { setErro(ERROS_FOTO_IA[e && e.message] || ERROS_FOTO_IA.falhou); setEstado("erro"); }
+  };
+  return (
+    <div style={{ borderRadius: 16, border: "1px solid #B05BFF66", background: "linear-gradient(160deg, #B05BFF14, #4DEBFF10)", padding: 12, marginBottom: 12 }}>
+      <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 4 }}>✍️ Escreva o que comeu</div>
+      <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.45, marginBottom: 8 }}>Do seu jeito, com as quantidades: a IA monta a lista com os gramas, e você confere antes de anotar.</div>
+      <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={2} maxLength={600} aria-label="O que você comeu"
+        placeholder="Ex.: 2 pães franceses com manteiga, 3 ovos mexidos e um café com leite"
+        style={{ ...S.input, width: "100%", boxSizing: "border-box", resize: "vertical", marginBottom: 8, fontFamily: "inherit" }} />
+      <button disabled={texto.trim().length < 3 || estado === "lendo"} onClick={ler}
+        style={{ ...S.btnGhost, width: "100%", fontWeight: 900, opacity: texto.trim().length < 3 ? 0.5 : 1 }}>{estado === "lendo" ? "⏳ Montando a lista…" : "✨ Montar a lista"}</button>
+      {estado === "erro" && <div style={{ fontSize: 12.5, color: "#FFB21A", fontWeight: 800, marginTop: 10, lineHeight: 1.45 }}>⚠ {erro}</div>}
+      {estado === "lido" && <ConferirIA lista={lista} setLista={setLista} prato={prato} refeicao={refeicao} onAdd={(it, ag, rf) => { onAdd(it, ag, rf); setTexto(""); setLista([]); setEstado("pronto"); }} />}
+      <div style={{ fontSize: 10.5, color: "var(--cinza)", lineHeight: 1.4, marginTop: 8 }}>O texto vai para a IA do Google (Gemini) só para montar a lista.</div>
+    </div>
+  );
+}
+// Ler o rótulo (2026-11-28c): preenche o anotar à mão com os valores da porção.
+function BotaoRotuloIA({ onLido }) {
+  const [estado, setEstado] = useState("pronto");
+  const [erro, setErro] = useState("");
+  const ler = async (arq) => {
+    if (!arq) return;
+    setErro(""); setEstado("lendo");
+    try {
+      const b = await reduzirImagem(arq, 1400, 0.85);
+      onLido(await lerRotuloIA(b));
+      setEstado("pronto");
+    } catch (e) { setErro(ERROS_FOTO_IA[e && e.message] || ERROS_FOTO_IA.falhou); setEstado("erro"); }
+  };
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <label style={{ ...S.btnGhost, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", cursor: estado === "lendo" ? "default" : "pointer", boxSizing: "border-box", fontWeight: 900, opacity: estado === "lendo" ? 0.6 : 1 }}>
+        {estado === "lendo" ? "⏳ Lendo o rótulo…" : "📷 Ler o rótulo (a IA preenche)"}
+        <input type="file" accept="image/*" capture="environment" disabled={estado === "lendo"} style={{ display: "none" }}
+          onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; ler(f); }} />
+      </label>
+      {estado === "erro" && <div style={{ fontSize: 12, color: "#FFB21A", fontWeight: 800, marginTop: 6, lineHeight: 1.45 }}>⚠ {erro}</div>}
+    </div>
+  );
+}
+// A ficha de papel ou o print (2026-11-28c): a IA lê, a pessoa confere, e as
+// linhas abrem no editor de ficha de sempre. Nada é salvo sem o Salvar dele.
+function LerFichaIA({ exercicios, onAbrir, onFechar }) {
+  const [estado, setEstado] = useState("pronto");
+  const [erro, setErro] = useState("");
+  const [nome, setNome] = useState("");
+  const [lista, setLista] = useState([]);
+  const porId = (id) => (exercicios || []).find((e) => e.id === id);
+  const ler = async (arq) => {
+    if (!arq) return;
+    setErro(""); setEstado("lendo"); setLista([]);
+    try {
+      const b = await reduzirImagem(arq, 1600, 0.85);
+      const r = await lerFichaIA(b, exercicios);
+      setNome(r.nome || "");
+      setLista(r.itens.map((x, i) => Object.assign({}, x, { k: i, ok: !!x.exercicioId })));
+      setEstado("lido");
+    } catch (e) { setErro(ERROS_FOTO_IA[e && e.message] || ERROS_FOTO_IA.falhou); setEstado("erro"); }
+  };
+  const bons = lista.filter((x) => x.ok && x.exercicioId);
+  const fora = lista.filter((x) => !x.exercicioId);
+  return (
+    <div role="dialog" aria-modal="true" onClick={onFechar} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(5,3,16,.8)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...S.card, width: "100%", maxWidth: 520, maxHeight: "92vh", overflowY: "auto", margin: 0, borderRadius: "20px 20px 0 0", padding: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <div style={{ ...S.logo, fontSize: 18 }}>Ficha pela foto</div>
+          <button onClick={onFechar} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 14px" }}>✕</button>
+        </div>
+        <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 10 }}>
+          Fotografe a ficha de papel (ou mande o print da ficha): a IA lê os exercícios, as séries e as repetições, e tudo abre no editor de ficha para você conferir e salvar.
+        </div>
+        <label style={{ ...S.btn, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", cursor: estado === "lendo" ? "default" : "pointer", boxSizing: "border-box", opacity: estado === "lendo" ? 0.6 : 1 }}>
+          {estado === "lendo" ? "⏳ Lendo a ficha…" : lista.length ? "📷 Ler outra foto" : "📷 Fotografar ou escolher a ficha"}
+          <input type="file" accept="image/*" disabled={estado === "lendo"} style={{ display: "none" }}
+            onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; ler(f); }} />
+        </label>
+        {estado === "erro" && <div style={{ fontSize: 12.5, color: "#FFB21A", fontWeight: 800, marginTop: 10, lineHeight: 1.45 }}>⚠ {erro}</div>}
+        {estado === "lido" && (
+          <div style={{ marginTop: 12 }}>
+            <label style={{ fontSize: 12, fontWeight: 800, color: "var(--cinza)" }}>Nome da ficha
+              <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Treino A" style={{ ...S.input, width: "100%", marginTop: 4, boxSizing: "border-box" }} />
+            </label>
+            <div style={{ ...S.label, margin: "12px 0 6px" }}>O que a IA leu · confira</div>
+            {lista.map((x) => {
+              const ex = porId(x.exercicioId);
+              return (
+                <div key={x.k} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderTop: "1px solid var(--borda)", opacity: x.ok ? 1 : 0.45 }}>
+                  <button disabled={!x.exercicioId} onClick={() => setLista((l) => l.map((y) => (y.k === x.k ? Object.assign({}, y, { ok: !y.ok }) : y)))} aria-label={(x.ok ? "Tirar " : "Pôr de volta ") + (ex ? ex.nome : x.lido)}
+                    style={{ width: 26, height: 26, flex: "none", borderRadius: 8, border: "1.5px solid " + (x.ok ? "#4CD137" : "var(--borda2)"), background: x.ok ? "#4CD13722" : "transparent", color: "#4CD137", fontWeight: 900, cursor: x.exercicioId ? "pointer" : "default" }}>{x.ok ? "✓" : ""}</button>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.3 }}>
+                    {ex ? ex.nome : x.lido}
+                    {ex && x.lido && ex.nome.toLowerCase() !== x.lido.toLowerCase() && <span style={{ display: "block", fontSize: 11, color: "var(--cinza)" }}>na ficha: {x.lido}</span>}
+                    {!ex && <span style={{ display: "block", fontSize: 11, color: "#FFB21A", fontWeight: 800 }}>não achei no catálogo: fica de fora (acrescente no editor)</span>}
+                    {x.obs && <span style={{ display: "block", fontSize: 11, color: "var(--cinza)" }}>{x.obs}</span>}
+                  </span>
+                  <span style={{ fontSize: 12.5, fontWeight: 900, flex: "none" }}>{x.series} × {x.reps}</span>
+                </div>
+              );
+            })}
+            <button disabled={!bons.length} onClick={() => onAbrir(nome.trim(), bons, fora.map((x) => x.lido).filter(Boolean))}
+              style={{ ...S.btn, width: "100%", marginTop: 12, opacity: bons.length ? 1 : 0.5 }}>✓ Abrir no editor ({bons.length} {bons.length === 1 ? "exercício" : "exercícios"})</button>
+          </div>
+        )}
+        <div style={{ fontSize: 10.5, color: "var(--cinza)", lineHeight: 1.4, marginTop: 10 }}>A foto vai para a IA do Google (Gemini) só para esta leitura; o app não guarda a foto. A ficha é a de quem a montou: o app só a registra.</div>
+      </div>
+    </div>
+  );
 }
 // A conferência: a lista vinda da foto, com os gramas para corrigir, antes de
 // ir para o dia. Nada é anotado sem o toque.
@@ -39715,11 +40017,6 @@ function LeituraIAPrato({ refeicao, onAdd }) {
       setEstado("erro");
     }
   };
-  const marcados = lista.filter((x) => x.ok && x.gramas > 0);
-  const itens = itensDaLeituraIA(marcados, ALIMENTOS_BR);
-  const total = itens.reduce((a, it) => a + valorItem(it).k, 0);
-  const kDe = (x) => { const it = itensDaLeituraIA([x], ALIMENTOS_BR)[0]; return it ? valorItem(it).k : 0; };
-  const mudar = (uid, d) => setLista((l) => l.map((x) => (x.uid === uid ? Object.assign({}, x, d) : x)));
   return (
     <div style={{ borderRadius: 16, border: "1px solid #4DEBFF66", background: "linear-gradient(160deg, #4DEBFF14, #B05BFF14)", padding: 12, marginBottom: 14 }}>
       <div style={{ fontWeight: 900, fontSize: 14.5, marginBottom: 4 }}>✨ Ler o prato pela foto</div>
@@ -39733,33 +40030,7 @@ function LeituraIAPrato({ refeicao, onAdd }) {
       </label>
       {foto && <img src={foto} alt="O prato" style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 12, marginTop: 10, border: "1px solid var(--borda2)" }} />}
       {estado === "erro" && <div style={{ fontSize: 12.5, color: "#FFB21A", fontWeight: 800, marginTop: 10, lineHeight: 1.45 }}>⚠ {erro}</div>}
-      {estado === "lido" && (
-        <div style={{ marginTop: 10 }}>
-          <div style={{ ...S.label, marginBottom: 6 }}>{prato ? "A IA viu: " + prato : "O que a IA viu"} · confira os gramas</div>
-          {lista.map((x) => (
-            <div key={x.uid} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderTop: "1px solid var(--borda)", opacity: x.ok ? 1 : 0.45 }}>
-              <button onClick={() => mudar(x.uid, { ok: !x.ok })} aria-label={(x.ok ? "Tirar " : "Pôr de volta ") + x.nome}
-                style={{ width: 26, height: 26, flex: "none", borderRadius: 8, border: "1.5px solid " + (x.ok ? "#4CD137" : "var(--borda2)"), background: x.ok ? "#4CD13722" : "transparent", color: "#4CD137", fontWeight: 900, cursor: "pointer" }}>{x.ok ? "✓" : ""}</button>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.3 }}>
-                {x.ic} {x.nome}{!x.a ? " (fora do catálogo: valores da IA)" : ""}
-                {x.certeza === "baixa" && <span style={{ display: "block", fontSize: 11, color: "#FFB21A", fontWeight: 800 }}>⚠ a IA não teve certeza: confira</span>}
-                {x.obs && <span style={{ display: "block", fontSize: 11, color: "var(--cinza)" }}>{x.obs}</span>}
-              </span>
-              <input inputMode="numeric" aria-label={"Gramas de " + x.nome} value={x.gramas || ""} onChange={(e) => mudar(x.uid, { gramas: Math.max(0, Math.min(1500, Math.round(numB(e.target.value)))) })}
-                style={{ ...S.input, width: 62, padding: "6px 6px", textAlign: "right", flex: "none" }} />
-              <span style={{ fontSize: 12, color: "var(--cinza)", width: 14, flex: "none" }}>g</span>
-              <span style={{ fontSize: 12, fontWeight: 900, width: 58, textAlign: "right", flex: "none" }}>{x.ok ? fmtKcal(kDe(x)) + " kcal" : ""}</span>
-            </div>
-          ))}
-          <div style={{ textAlign: "center", margin: "10px 0" }}>
-            <span style={{ fontFamily: FONTE_JOGO, fontSize: 24 }}>~{fmtKcal(total)} kcal</span>
-            <div style={{ fontSize: 11, color: "var(--cinza)", lineHeight: 1.45, marginTop: 4 }}>
-              Estimativa pela foto: confira os gramas, principalmente do óleo e do molho, que a foto não mostra (no teste do NIH de 2026, os apps de foto erraram para menos, quase sempre na gordura). As calorias saem da tabela do app.
-            </div>
-          </div>
-          <button disabled={!itens.length} onClick={() => onAdd(itens, 0, refeicao)} style={{ ...S.btn, width: "100%", opacity: itens.length ? 1 : 0.5 }}>✓ Anotar {itens.length} {itens.length === 1 ? "item" : "itens"} no dia</button>
-        </div>
-      )}
+      {estado === "lido" && <ConferirIA lista={lista} setLista={setLista} prato={prato} refeicao={refeicao} onAdd={onAdd} />}
       <div style={{ fontSize: 10.5, color: "var(--cinza)", lineHeight: 1.4, marginTop: 8 }}>A foto vai para a IA do Google (Gemini) só para esta leitura; o app não guarda a foto.</div>
     </div>
   );
@@ -39786,6 +40057,8 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
   const [tam, setTam] = useState("m");
   const [oleo, setOleo] = useState(0);
   const [man, setMan] = useState({ n: "", k: "", p: "", c: "", g: "" });
+  const [rotulo, setRotulo] = useState(null);
+  const [rotuloX, setRotuloX] = useState(1);
   const [ml, setMl] = useState("");
   const [ref, setRef] = useState(refeicaoDaHora(Date.now()));
   useEffect(() => () => { if (foto) URL.revokeObjectURL(foto); }, [foto]);
@@ -39832,6 +40105,7 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
 
         {aba === "buscar" && !escolhido && (
           <div>
+            {FIREBASE_ACESSO.apiKey && <EscreverComidaIA refeicao={ref} onAdd={onAdd} />}
             <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Arroz, frango, farinha, malto, whey..." aria-label="Buscar alimento" style={{ ...S.input, width: "100%", marginBottom: 8 }} />
             <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 6 }}>
               {GRUPOS_ALIMENTO.map(([id, rot]) => (
@@ -40002,6 +40276,21 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
 
         {aba === "manual" && (
           <div>
+            {FIREBASE_ACESSO.apiKey && <BotaoRotuloIA onLido={(r) => { setRotulo(r); setRotuloX(1); setMan({ n: r.nome || "Do rótulo", k: String(r.k), p: String(r.p), c: String(r.c), g: String(r.g) }); }} />}
+            {rotulo && (
+              <div style={{ borderRadius: 12, border: "1px solid var(--borda2)", padding: 10, marginBottom: 10, fontSize: 12, lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 900 }}>Do rótulo: {rotulo.porcao || (rotulo.porcaoG ? rotulo.porcaoG + " g" : "1 porção")}</div>
+                {!rotulo.confere && <div style={{ color: "#FFB21A", fontWeight: 800 }}>⚠ As calorias não batem com os macros: confira os números com o rótulo.</div>}
+                <div style={{ color: "var(--cinza)", margin: "4px 0 6px" }}>Comeu quanto?</div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[[0.5, "½"], [1, "1"], [1.5, "1½"], [2, "2"], [3, "3"]].map(([f, r]) => (
+                    <button key={f} onClick={() => { setRotuloX(f); const q = (v) => String(Math.round(v * f * 10) / 10); setMan({ n: man.n, k: String(Math.round(rotulo.k * f)), p: q(rotulo.p), c: q(rotulo.c), g: q(rotulo.g) }); }}
+                      style={{ flex: 1, padding: "6px 0", borderRadius: 9, fontWeight: 900, fontSize: 12.5, cursor: "pointer", border: "1px solid " + (rotuloX === f ? "#E1306C" : "var(--borda2)"), background: rotuloX === f ? "#E1306C22" : "transparent", color: "var(--texto)" }}>{r}</button>
+                  ))}
+                </div>
+                <div style={{ color: "var(--cinza)", marginTop: 4 }}>porção(ões)</div>
+              </div>
+            )}
             <input value={man.n} onChange={(e) => setMan({ ...man, n: e.target.value })} placeholder="Nome (ex.: barra de proteína)" style={{ ...S.input, width: "100%", marginBottom: 8 }} />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {[["k", "kcal"], ["p", "Proteína (g)"], ["c", "Carboidrato (g)"], ["g", "Gordura (g)"]].map(([c, r]) => (
@@ -44625,6 +44914,15 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     setTimeout(() => avisar('Treino copiado com ' + copias.length + ' ' + plural(copias.length, "ficha", "fichas") + '. Os nomes ganharam "(cópia)".'), 150);
   };
 
+  const [fichaFoto, setFichaFoto] = useState(null);
+  const abrirFichaLida = (nome, lidos, fora) => {
+    const pid = fichaFoto;
+    setFichaFoto(null);
+    setEditandoTreino({ id: String(Date.now()), nome: nome || "Ficha da foto", programaId: pid,
+      itens: lidos.map((x) => ({ uid: novoUid(), exercicioId: x.exercicioId, series: x.series, reps: x.reps, obs: x.obs || "", descanso: null, conjunto: null })) });
+    setAba("editarTreino");
+    if (fora && fora.length) setTimeout(() => avisar("Ficou de fora (não está no catálogo): " + fora.join(", ") + ". Acrescente no editor, ou crie o exercício em Exercícios."), 400);
+  };
   const novaFicha = (progId) => {
     setEditandoTreino({ id: String(Date.now()), nome: "", programaId: progId, itens: [] });
     setAba("editarTreino");
@@ -45171,6 +45469,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
             onJuntar={abrirJuntar}
             onExtra={abrirExtra}
             onNovaFicha={novaFicha}
+            onFichaPorFoto={FIREBASE_ACESSO.apiKey ? (pid) => setFichaFoto(pid) : null}
             onEditar={(t, ordem) => { setEditandoTreino(JSON.parse(JSON.stringify(t))); setEditarOrdem(!!ordem); setAba("editarTreino"); }}
             onExcluirFicha={(id) => setTreinos(treinos.filter((x) => x.id !== id))}
             onCompartilharFicha={compartilharFicha}
@@ -45514,6 +45813,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
         onDiagnostico={() => { setAjudaVoz(false); setDiagVoz(true); }}
         falaLigada={voz.falar} onAlternarFala={() => setVoz((v) => ({ ...v, falar: !v.falar }))} />
       {emergencia && <JanelaEmergencia onFechar={() => setEmergencia(false)} />}
+      {fichaFoto && <LerFichaIA exercicios={todos} onAbrir={abrirFichaLida} onFechar={() => setFichaFoto(null)} />}
       {ajuda !== null && <CentralAjuda inicial={ajuda} onFechar={() => setAjuda(null)} onIr={(d) => {
         if (d.indexOf("guia:") === 0) { setProblemaGuia(""); setGuia(d.slice(5)); return; }
         if (d === "backup") { baixarBackup(); return; }

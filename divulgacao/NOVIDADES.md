@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-28c — A inteligência artificial em mais lugares: escrever o que comeu, ler rótulo e ler ficha de papel
+
+- **Em uma frase:** a mesma IA que lê a foto do prato agora monta a lista do que você comeu a partir de uma frase, lê a tabela nutricional de um rótulo e transforma a foto da ficha de papel (ou o print do professor) numa ficha do app.
+- **O que mudou:** em Balance › + Comida › 🔎 Buscar, o quadro "✍️ Escreva o que comeu": "2 pães com manteiga e 3 ovos mexidos" vira a lista com os gramas, para conferir e anotar. Em ✏️ Manual, "📷 Ler o rótulo" preenche calorias, proteína, carboidrato e gordura da porção, com os botões ½, 1, 1½, 2 e 3 porções, e avisa quando os números do rótulo não batem entre si. Em Fichas, dentro de um treino, "📷 Tenho a ficha no papel ou num print": a IA lê os exercícios, as séries e as repetições na ordem, e tudo abre no editor de ficha para conferir e salvar; o que não está no catálogo fica avisado. As calorias continuam saindo da tabela do próprio app.
+- **Por que importa para quem treina:** anotar a comida e passar a ficha do professor para o app deixa de ser digitar item por item.
+- **Como usar:** Balance › + Comida (escrever ou rótulo) e Fichas › abra um treino › "📷 Tenho a ficha no papel ou num print".
+- **Ideias de vídeo:** a ficha de papel da academia virando ficha no app em segundos; "comi 2 pães e 3 ovos" virando a lista; o rótulo da pasta de amendoim.
+- **Não prometer:** número exato (é leitura e estimativa: sempre conferir); que o app monta treino ou dieta por IA (ele lê o que está escrito e registra); que a foto ou o texto ficam guardados (não ficam).
+
+---
+
 ## 2026-11-28b — A leitura do prato pela foto está funcionando
 
 - **Em uma frase:** a inteligência artificial que lê a foto do prato foi ligada e responde em uns 2 segundos.

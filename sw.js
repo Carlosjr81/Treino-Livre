@@ -1,5 +1,5 @@
 // Treino Livre - Service Worker (modo offline)
-const CACHE = "treinolivre-v324";
+const CACHE = "treinolivre-v325";
 const CACHE_VOZ = "treinolivre-voz";
 // As falas gravadas do Monster, Run! (vozes/*.mp3): baixadas quando a história
 // começa e guardadas fora do cache da versão, para não sumirem a cada atualização.
@@ -97,6 +97,8 @@ self.addEventListener("fetch", (e) => {
   // As contas (login, chave e o status liberado/bloqueado) nunca vêm do cache:
   // um bloqueio guardado como "liberado" deixaria a pessoa entrando para sempre.
   if (url.hostname === "identitytoolkit.googleapis.com" || url.hostname === "securetoken.googleapis.com" || url.hostname === "firestore.googleapis.com") return;
+  // A IA (foto do prato, rótulo, ficha) e o crachá do App Check: sempre da rede.
+  if (url.hostname === "firebasevertexai.googleapis.com" || url.hostname === "content-firebaseappcheck.googleapis.com" || url.hostname === "www.google.com") return;
   // O login com o Google (o botão e a configuração do projeto): sempre da rede
   if (url.hostname === "accounts.google.com" || url.hostname === "www.googleapis.com") return;
   // O reconhecimento de movimento (biblioteca, WASM e modelo) sao uns 8 MB.

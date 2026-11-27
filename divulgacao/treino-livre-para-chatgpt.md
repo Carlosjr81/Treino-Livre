@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-27c**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-27d**.
 
 ---
 
@@ -65,6 +65,15 @@
   bulking, os minutos de caminhada que compensam o excesso e um plano leve de 3 dias, o acerto da semana e do mês, e o sono.
   No relógio, o ícone abre a tela dividida TREINO / COMIDA & ÁGUA, e cada toque chega sozinho ao celular. É registro e
   informação geral, não dieta nem plano alimentar (isso é do nutricionista).
+- **Montar: shakes, vitaminas e pratos** (2026-11-26e a 2026-11-27d): em + Comida › 🥤 Montar, combinações prontas que entram
+  no dia como um item só, com os gramas e as unidades ajustáveis: shakes de whey, o intra-treino, **vitaminas** (banana com
+  aveia, banana e maçã, com leite em pó e água, mamão, abacate, morango, manga, banana com pasta de amendoim) e pratos (pão
+  com ovos mexidos, tapioca com ovo, arroz-feijão-frango). Filtro Shakes / Vitaminas / Pratos, e a gordura da frigideira
+  troca num toque entre manteiga, óleo e azeite.
+- **As janelas dos nutrientes** (2026-11-26l a 2026-11-27d): faixas de horário para antes e depois do treino, proteína no
+  dia, antes de dormir, cafeína e creatina, calculadas pelo treino e pela hora de dormir. Dá para dizer **o horário em que
+  costuma treinar** (e os dias e a duração): as janelas e os avisos aparecem desde cedo, antes do treino. A creatina e a
+  cafeína contam pelo que foi anotado, inclusive dentro de um shake, ou marcadas à mão.
 - **Alimentos e suplementos** (2026-11-25e): 149 itens com porção caseira, entre eles farinhas (arroz, mandioca, trigo, aveia, milho, amêndoas, coco, linhaça), maltodextrina, dextrose, whey, caseína, albumina, creatina e outros suplementos, com filtros por grupo na hora de anotar. Os valores são médias de tabela e de rótulos comuns; o app não recomenda suplemento.
 - **Os efeitos de LED** (novo em 2026-11-24a): o resumo animado (tela e vídeo do story) ganhou efeitos de luz
   futuristas, como os de telão de arena: barras de luz azuis correndo e acendendo em ondas, com textura de pontinhos de

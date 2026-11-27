@@ -16,6 +16,20 @@
 
 ---
 
+## 2026-11-27d — Vitaminas prontas, o horário do seu treino e a creatina do shake contando
+
+- **Em uma frase:** dá para montar e anotar a vitamina do seu jeito, dizer a hora em que você costuma treinar para as janelas dos nutrientes aparecerem desde cedo, e a creatina que vai dentro do shake agora conta.
+- **O que mudou:**
+  - **🍹 Vitaminas.** Em + Comida › 🥤 Montar, um filtro novo — **Shakes · Vitaminas · Pratos e lanches** — e oito vitaminas prontas: banana com aveia, banana e maçã, com leite em pó e água, mamão, abacate, morango, manga, e banana com pasta de amendoim. Cada uma ajusta os gramas, ganha ou perde ingrediente, e entra no dia como um item só. E **"+ Montar a minha vitamina"** começa com o leite: é só ir juntando o resto.
+  - **🏋 O horário em que você costuma treinar.** No cartão das janelas dos nutrientes, escolha a hora, quanto dura o treino e os dias. Nesses dias, as janelas de antes e depois do treino aparecem desde cedo — e o aviso de "antes do treino" chega **antes** de você treinar. Treinou em outro horário, vale a hora de verdade.
+  - **A creatina e o café contam pelo que você anotou.** A creatina dentro do shake intra-treino (ou solta) já marca a janela dela; o café, o pré-treino ou a cafeína anotados de 30 a 60 minutos antes do treino marcam a da cafeína. O "consumi, só não anotei" continua para o que não foi anotado.
+- **Por que importa para quem treina:** vitamina é o café da manhã de muita gente e varia todo dia — agora anota em segundos. E a janela de antes do treino só serve se aparecer antes do treino.
+- **Como usar:** Balance › + Comida › 🥤 Montar › 🍹 Vitaminas. O horário do treino fica em Balance › Hoje › ⏱ As janelas dos nutrientes, embaixo de "Costumo dormir às".
+- **Ideias de vídeo:** bater a vitamina e anotar trocando a banana pela maçã; mostrar o "Treino previsto às 18:00" e a janela de antes do treino acesa de manhã; anotar o intra-treino e ver a creatina ganhar ✓ sozinha.
+- **Não prometer:** os valores são médias da tabela e mudam com a marca e a fruta. As janelas são faixas da literatura, não regra: o total do dia pesa muito mais. Dieta é com o nutricionista.
+
+---
+
 ## 2026-11-27c — Manteiga, óleo ou azeite: escolha o que foi na frigideira
 
 - **Em uma frase:** na combinação, a gordura da frigideira agora troca com um toque entre **manteiga**, **óleo** e **azeite**, e o óleo virou um alimento próprio.

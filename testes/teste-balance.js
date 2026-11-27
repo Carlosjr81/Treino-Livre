@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -414,6 +414,14 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
     B.RECEITAS_SUGERIDAS.reduce((l, r) => l.concat(r.itens.map((i) => i.a)), []).filter((id) => !ach(id)));
 
   // a soma sai da mesma tabela do resto do app: whey 30 g + leite em po 25 g + aveia 40 g
+  // as vitaminas (2026-11-27d)
+  const vits = B.RECEITAS_SUGERIDAS.filter((r) => B.tipoReceita(r) === "vitamina");
+  teste("há vitaminas prontas", true, vits.length >= 6);
+  teste("toda vitamina soma calorias pela tabela", [], vits.filter((r) => !(B.somaReceita(r).k > 0)).map((r) => r.id));
+  teste("vitamina com água no copo continua sendo vitamina", "vitamina", B.tipoReceita(B.RECEITAS_SUGERIDAS.find((r) => r.id === "v-leite-po")));
+  teste("o shake é shake e o pão com ovos é prato", ["shake", "prato"],
+    [B.tipoReceita(B.RECEITAS_SUGERIDAS.find((r) => r.id === "s-aveia")), B.tipoReceita(B.RECEITAS_SUGERIDAS.find((r) => r.id === "c-pao-ovo"))]);
+  teste("todo tipo tem filtro", ["prato", "shake", "vitamina"], [...new Set(B.RECEITAS_SUGERIDAS.map(B.tipoReceita))].sort());
   const aveia = B.RECEITAS_SUGERIDAS.find((r) => r.id === "s-aveia");
   const z = B.somaReceita(aveia);
   const mao = ["whey", "leite-po", "aveia"].map((id, n) => B.alimentoEm(ach(id), [30, 25, 40][n]));
@@ -812,6 +820,33 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   // data fixa: com Date.now(), "uma hora atras" caia no dia anterior entre 0h e 1h, e o teste reprovava de madrugada
   teste("o treino aberto agora tambem conta", true, !!B.horaDoTreino([], "2026-11-26", { inicio: new Date(2026, 10, 26, 17, 0).getTime() }));
   teste("treino aberto ontem nao vira o treino de hoje", null, B.horaDoTreino([], "2026-11-27", { inicio: new Date(2026, 10, 26, 23, 30).getTime() }));
+
+  // o horário de sempre do treino (2026-11-27d): sem treino registrado, vale o plano
+  const plano = { hora: hora(18), dur: 60, dias: [1, 2, 3, 4, 5] };
+  teste("sem treino, o horário de sempre vale (sexta 27/11)", [hora(18), hora(19), true],
+    (() => { const x = B.horaDoTreino([], "2026-11-27", null, plano); return [x.ini, x.fim, x.planejado]; })());
+  teste("e não vale num dia fora do plano (domingo)", null, B.horaDoTreino([], "2026-11-29", null, plano));
+  teste("o treino de verdade vence o plano", [hora(18), hora(19), undefined],
+    (() => { const x = B.horaDoTreino(h, "2026-11-26", null, { hora: hora(7), dias: [4] }); return [x.ini, x.fim, x.planejado]; })());
+  teste("plano sem hora não inventa nada", null, B.horaDoTreino([], "2026-11-27", null, { dias: [5] }));
+  const comPlano = B.janelasDoDia({ dia: { agua: 0, itens: [] }, treino: B.horaDoTreino([], "2026-11-27", null, plano), dorme: 23, agoraMin: hora(9) });
+  teste("com o plano, a janela de antes do treino já existe de manhã", "vem", comPlano.lista.find((x) => x.j.id === "preTreino").estado);
+  teste("e vira aviso antes do treino", true, B.avisosDoDia(comPlano).some((a) => a.id === "preTreino"));
+
+  // a creatina dentro do shake conta (relato do dono, 2026-11-27d)
+  const intra = B.itemDeReceita(B.RECEITAS_SUGERIDAS.find((r) => r.id === "s-intra"), 1);
+  intra.t = t(15, 0);
+  const comShake = B.janelasDoDia({ dia: { agua: 0, itens: [intra] }, treino: treino, dorme: 23, agoraMin: hora(22) });
+  const cr = comShake.lista.find((x) => x.j.id === "creatina");
+  teste("creatina dentro do shake intra-treino conta", [true, false, true], [cr.feito, cr.mao, !!cr.acerto.anotado]);
+  teste("creatina solta também conta", true,
+    B.janelasDoDia({ dia: { agua: 0, itens: [{ t: t(8, 0), a: "creatina", n: "Creatina", q: 1, k: 0, p: 0, c: 0, g: 0 }] }, treino: null, dorme: 23, agoraMin: hora(22) })
+      .lista.find((x) => x.j.id === "creatina").feito);
+  const cafe = (hh, mm) => ({ t: t(hh, mm), a: "cafe", n: "Café", q: 1, k: 2, p: 0, c: 0, g: 0 });
+  teste("café 45 min antes do treino conta como cafeína", true,
+    B.janelasDoDia({ dia: { agua: 0, itens: [cafe(17, 15)] }, treino: treino, dorme: 23, agoraMin: hora(22) }).lista.find((x) => x.j.id === "cafeina").feito);
+  teste("café de manhã não conta para a janela de antes do treino", false,
+    B.janelasDoDia({ dia: { agua: 0, itens: [cafe(7, 0)] }, treino: treino, dorme: 23, agoraMin: hora(22) }).lista.find((x) => x.j.id === "cafeina").feito);
 
   // a literatura: o que o app diz e o que ele derruba
   const fonte = html.slice(html.indexOf("AS JANELAS DOS NUTRIENTES"), html.indexOf("O CATÁLOGO: COMPARAR"));

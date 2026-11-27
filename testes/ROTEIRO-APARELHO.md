@@ -5,7 +5,7 @@ relógio, app Android instalado. Cada bloco diz **o que fazer**, **o que tem de
 acontecer** e **o que mandar ao Claude** se der diferente (de preferência com
 print). Um bloco por vez, na ordem: os de cima preparam os de baixo.
 
-Montado em 27/11/2026 para a versão **2026-11-27b** (app Android 201). Marque
+Montado em 27/11/2026 para a versão **2026-11-27d** (app Android 201). Marque
 o resultado na última coluna de cada bloco (✅ funcionou · ❌ deu diferente ·
 ⏭ não deu para testar) e anote a data.
 
@@ -54,6 +54,8 @@ Faça num dia em que você **treinou e finalizou o treino no app**.
 |---|---|
 | Balance › Hoje, logo depois de finalizar o treino. | Cartão verde **"O treino de hoje abriu espaço"** com "+N kcal na meta" e exemplos de comida. |
 | Desça até **⏱ As janelas dos nutrientes**. | Seis janelas com horário **calculado pelo seu treino** (antes, depois, proteína no dia, antes de dormir, cafeína, creatina). |
+| Embaixo de "Costumo dormir às", escolha **🏋 Costumo treinar às** (sua hora), a duração e os dias. | No dia marcado, aparece "Treino previsto às …" e a janela de antes do treino já existe de manhã. |
+| Anote o **Intra-treino com glicerina** (tem creatina dentro). | A janela da creatina ganha ✓ sozinha, com "anotado: Intra-treino com glicerina". |
 | Na **cafeína**, toque em **✓ consumi, só não anotei**. | Ela fica marcada como "marcado por você" e o placar sobe um. |
 | Anote 25 g de proteína ou mais logo depois do treino. | A janela "depois do treino" ganha ✓ sozinha. |
 

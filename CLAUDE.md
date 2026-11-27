@@ -7049,6 +7049,33 @@ para todos"**.
   aviso no pulso foram conferidos só no código, e o APK é montado pelo
   Actions.
 
+### O horário de sempre, a creatina do shake e as vitaminas (2026-11-27d)
+
+Três pedidos do dono feitos na sessão da conta corporativa, que acabou antes de
+publicar (conferido no GitHub em 27/11: nada daquilo tinha chegado).
+
+- **O horário em que costuma treinar** (`perfil.treinoPlano = { hora, dur,
+  dias }`, `treinoPlanejado`, o 4º parâmetro de `horaDoTreino`). Sem treino
+  registrado no dia, vale o plano — **só hoje** (`x.d === hoje` no
+  `contasDoBalance`): num dia que já passou sem treino, o plano faria as
+  janelas parecerem perdidas. O treino de verdade (sessão aberta ou
+  histórico) sempre vence. É o que faz a janela de antes do treino existir de
+  manhã e virar aviso **antes** do treino. Na tela, embaixo de "Costumo dormir
+  às": hora (de meia em meia, "varia" desliga), duração e os dias; e o cartão
+  diz "Treino previsto às 18:00".
+- **A creatina dentro do shake conta** (relato do dono: anotou o intra-treino
+  com creatina e a janela não acendeu). `itensComHora` leva `ids` (o `a` do
+  item e os `rc` do shake), e as janelas `placar: "mao"` ganharam `contem`:
+  creatina em qualquer hora; cafeína (café, café com açúcar, café com leite,
+  pré-treino, cafeína) só dentro da faixa dela. O acerto vem com `anotado`
+  ("anotado: Intra-treino com glicerina" na tela), separado do `mao`.
+- **Vitaminas** (oito em `RECEITAS_SUGERIDAS`, `v-*`), e o filtro do Montar
+  (`TIPOS_RECEITA`, `tipoReceita`: vitamina pelo nome; shake pelo nome ou
+  pelo copo; o resto é prato). "+ Montar a minha vitamina" começa com 250 ml
+  de leite e o nome "Vitamina de ".
+- Coberto por `teste-balance.js` (339). No navegador: o filtro, o "Treino
+  previsto" e a creatina do intra acesa. **Não validado num aparelho.**
+
 ### O espaço que o treino abre, e as janelas dos nutrientes (2026-11-26l)
 
 Dois pedidos do dono. Os dois são blocos puros, cobertos por

@@ -136,7 +136,10 @@ console.log("--- a foto do prato ---");
 const prato = B.itensDoPrato([{ id: "arroz", fr: 0.25 }, { id: "bife", fr: 0.25 }], "m", 1);
 // arroz: 520 g o prato inteiro × ¼ = 130 g; bife 520 × ¼ = 130 g; e 1 colher de óleo
 teste("¼ de arroz num prato médio = 130 g", 130, Math.round(B.ALIMENTOS_BR.find((a) => a.id === "arroz").gr * prato[0].q));
-teste("o óleo entra à parte", "azeite", prato[2].a);
+teste("o óleo entra à parte", "oleo", prato[2].a);
+// a gordura da combinação troca entre manteiga, óleo e azeite (2026-11-27c)
+teste("manteiga, óleo e azeite existem no catálogo", 3, ["manteiga", "oleo", "azeite"].filter((id) => B.ALIMENTOS_BR.some((a) => a.id === id && a.cat === "gordura")).length);
+teste("óleo e azeite têm a mesma conta por grama", true, (() => { const o = B.ALIMENTOS_BR.find((a) => a.id === "oleo"), z = B.ALIMENTOS_BR.find((a) => a.id === "azeite"); return o.k / o.gr === z.k / z.gr; })());
 teste("as kcal do prato (166 + 286 + 117)", 569, prato.reduce((a, it) => a + B.valorItem(it).k, 0));
 teste("prato grande pesa mais", true, B.itensDoPrato([{ id: "arroz", fr: 0.25 }], "g", 0)[0].q > B.itensDoPrato([{ id: "arroz", fr: 0.25 }], "m", 0)[0].q);
 

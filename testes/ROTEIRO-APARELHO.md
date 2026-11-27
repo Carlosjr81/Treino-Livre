@@ -31,6 +31,7 @@ Resultado: versão e App Android ✅ (27/11, print do dono: 2026-11-27a · App A
 |---|---|
 | Balance › Hoje › **+ Comida** › aba **🥤 Montar**. | Aparecem as sugestões (whey com farinha de arroz, amido, aveia, maltodextrina, banana, intra-treino com glicerina, pão com ovos...). |
 | Escolha **Pão francês com ovos mexidos**, mude para 2 pães e 3 ovos no − e +. | As calorias mudam na hora. |
+| Embaixo da manteiga, toque em **🫗 Óleo**. | As calorias sobem um pouco (332 → 341 kcal), e a quantidade continua 5 g. |
 | Toque em **+ Anotar no dia**. Os textos falam em comer, não em shake ("Quantas vezes comeu?"), e o ingrediente é **Ovo mexido**. | Entra **um item só** na lista do dia, com o nome da combinação. |
 | Toque no item anotado. | Abre a correção; dá para mudar ou tirar do dia. |
 

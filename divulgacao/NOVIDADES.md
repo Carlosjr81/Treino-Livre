@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27c — Manteiga, óleo ou azeite: escolha o que foi na frigideira
+
+- **Em uma frase:** na combinação, a gordura da frigideira agora troca com um toque entre **manteiga**, **óleo** e **azeite**, e o óleo virou um alimento próprio.
+- **O que mudou:** em Balance › + Comida › 🥤 Montar, embaixo da manteiga do "Pão francês com ovos mexidos" (e de qualquer combinação que tenha manteiga, óleo ou azeite) aparecem três botões: **🧈 Manteiga · 🫗 Óleo · 🫒 Azeite**. A quantidade continua a mesma e as calorias se ajustam na hora. Na lista de alimentos, "Azeite ou óleo" virou dois: **Óleo (soja, milho, girassol)** e **Azeite de oliva**. E no 📷 Foto do prato, a pergunta do óleo agora conta como óleo.
+- **Por que importa para quem treina:** a maioria das casas faz o ovo no óleo, não na manteiga. Anotar o que realmente foi usado deixa a conta do dia certa — e gordura é o que mais some das anotações.
+- **Como usar:** Balance › Hoje › + Comida › 🥤 Montar › Pão francês com ovos mexidos › toque em 🫗 Óleo.
+- **Ideias de vídeo:** fazer o ovo mexido no óleo, montar no app e trocar de manteiga para óleo num toque, mostrando as calorias mudando.
+- **Não prometer:** os valores são médias da tabela; a quantidade de óleo que fica no prato depende do preparo. Dieta é com o nutricionista.
+
+---
+
 ## 2026-11-27b — Pão com ovos mexidos tem ovo mexido, e o prato não fala mais em shake
 
 - **Em uma frase:** a combinação "Pão francês com ovos mexidos" agora traz o ovo mexido (antes aparecia "ovo cozido"), e a tela de montar só fala em copo e shake quando é bebida.

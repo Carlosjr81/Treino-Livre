@@ -7176,6 +7176,13 @@ ovos"**. Virou o que já existia: a receita do shake, contando unidades.
   frigideira entra à parte (a combinação já traz a manteiga), senão contaria em
   dobro. Combinação que a pessoa já tinha salvo com "Ovo cozido" fica como
   está: é dela.
+- **A gordura da frigideira troca num toque** (2026-11-27c, pedido do dono:
+  "além de manteiga, óleo"): `GORDURAS_TROCA` (manteiga, óleo, azeite) e
+  `NOME_GORDURA`, logo depois do `ALIMENTOS_BR`. Embaixo de cada uma delas na
+  combinação, três botões trocam o alimento e mantêm os gramas. "Azeite ou
+  óleo" virou dois alimentos (`oleo`, novo, e `azeite`, agora "Azeite de
+  oliva"; mesma conta, 9 kcal/g), e o óleo da 📷 Foto do prato passou a ser o
+  `oleo`. O id `azeite` continuou o mesmo: o que já foi anotado não muda.
 
 **3. "A análise dos macros precisa ser avaliada pelo objetivo"** (`PAPEL_MACRO`,
 `lerMacro`, `leituraMacros`, bloco puro **O PAPEL DE CADA MACRO**). O dono

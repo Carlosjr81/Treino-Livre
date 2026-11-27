@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-11-28f — A ficha de papel lida pela foto traz também as repetições
+
+**Em uma frase:** ao fotografar a ficha de papel (ou um print), o app agora
+preenche as séries **e as repetições** de cada exercício, como estavam escritas.
+
+**O que mudou:** a leitura da ficha pela foto já achava os exercícios certos,
+mas as repetições vinham todas como 12. Agora "4 x 8-10" vira 4 séries de 8 a
+10, "3 x 20" vira 3 de 20, e "3x 30s" vira 3 de 30 segundos. O nome de cada
+exercício também chega limpo, sem os pontinhos e o número da linha.
+
+**Por que importa para quem treina:** quem recebeu a ficha no papel passa para
+o app numa foto, sem digitar série por série — e sem corrigir as repetições
+depois.
+
+**Como usar:** Fichas › dentro de um treino › "📷 Tenho a ficha no papel ou num
+print" › Câmera ou Galeria. Confira e toque em Salvar no editor da ficha.
+
+**Ideias de vídeo:** a ficha de papel amassada na mão, a foto, e a ficha
+pronta no app em segundos, com as séries e as repetições iguais às do papel.
+
+**Não prometer:** que lê qualquer letra à mão (letra muito ruim pode falhar),
+nem que cria o treino: o app só passa para o celular o que está escrito, e
+quem confere e salva é a pessoa.
+
+---
+
 ## 2026-11-28e — Foto do prato da galeria, e filtros de mundo de blocos, cidade do crime, galáxia, desenho, herói e vilão
 
 - **Em uma frase:** a foto do prato e do rótulo agora pode vir da galeria (não só da câmera), e a foto do resumo ganhou filtros e edições no clima de jogo de blocos, cidade do crime, galáxia distante, desenho de TV, herói, vilão e filme clássico.

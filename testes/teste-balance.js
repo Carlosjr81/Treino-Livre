@@ -911,6 +911,12 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("a ficha lida: o do catalogo fica, o que nao existe fica sem id, o lixo sai", [3, "supino-reto", "", 3, "12"],
     [fl.itens.length, fl.itens[0].exercicioId, fl.itens[1].exercicioId, fl.itens[2].series, fl.itens[2].reps]);
   teste("o nome da ficha vem junto", "Treino A", fl.nome);
+  // o que o Gemini mandou de verdade (28/11/2026): séries sim, repetições não
+  const real = B.lerRespostaFichaIA(JSON.stringify({ itens: [{ lido: "1. Supino reto barra ........ 4 x 8-10", id: "supino-reto", series: 4 },
+    { lido: "6. Abdominal supra ............. 3 x 20", id: "leg-press", series: 3 }, { lido: "Prancha 3x 30s", id: "leg-press" }] }), cat);
+  teste("sem as repeticoes, elas saem do texto lido", ["8-10", "20", "30s"], real.itens.map((x) => x.reps));
+  teste("o texto lido fica limpo (sem numero, pontos e series)", ["Supino reto barra", "Abdominal supra", "Prancha"], real.itens.map((x) => x.lido));
+  teste("sem as series, elas tambem saem do texto", 3, real.itens[2].series);
   teste("ficha torta nao quebra", null, B.lerRespostaFichaIA("nao e json", cat));
 
   // itens soltos anotados juntos somam numa refeicao (2026-11-27y)

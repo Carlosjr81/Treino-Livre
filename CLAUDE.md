@@ -7212,7 +7212,12 @@ remédio (ver *A defesa legal*): ali a IA seria o profissional que o app não é
   Sem isso, nesse dia toda a IA do app para de novo. Lembre o dono disso.
 - O `sw.js` deixa a IA, o App Check e o reCAPTCHA passarem direto.
 - Coberto por `teste-balance.js` (o JSON embrulhado, o texto com teto, o
-  rótulo que confere e o que não confere, a ficha com o que não existe). No
+  rótulo que confere e o que não confere, a ficha com o que não existe).
+- **Conferido com o Gemini de verdade (28/11/2026, `gemini-3.5-flash-lite`)**:
+  a escrita (pão, manteiga, ovo mexido, café com leite, 1,2 s), o rótulo (90
+  kcal, confere) e a ficha (os 6 exercícios casados). A ficha veio sem o campo
+  `reps`: desde a 28f as séries e as repetições também saem do texto lido
+  ("4 x 8-10"), e o nome chega limpo. No
   navegador, com uma IA de mentira: escrever (pão, manteiga e ovo, ~591 kcal),
   o rótulo da pasta de amendoim preenchendo o Manual, e a ficha abrindo no
   editor com o supino e o aviso do tríceps francês. **Não validado com o Gemini
@@ -7237,8 +7242,13 @@ mais vocabulário e "os jargões de famosos com a voz deles, ou dublado".
   marca ou personagem, nada sexual. O pedido escrito passa por
   `pedidoEdicaoBarrado` (corpo, rosto, nudez, "famoso"); nome próprio de
   famoso não dá para listar, e fica com a regra mandada e o filtro do Google.
-  **Os nomes dos modelos de imagem não foram testados** (o App Check barrava
-  tudo): conferir daqui assim que a IA voltar, e acertar a lista.
+  **Os modelos de imagem exigem o App Check APLICADO** (testado em
+  28/11/2026: os três da lista respondem 403 "To access this model, you must
+  enforce Firebase App Check"). Então a edição pela IA só funciona depois do
+  passo 2 do dono (a chave do reCAPTCHA e o ID do app no `APP_CHECK`) e de
+  voltar a proteção para Aplicado; até lá a tela mostra o erro da edição, e os
+  filtros no aparelho continuam. Os modelos de texto (prato, escrita, rótulo,
+  ficha) funcionaram com ele desaplicado.
 - **O crachá do App Check não dá para pegar daqui**: criar a chave do reCAPTCHA
   e ler o ID do app pedem a conta Google do dono no console, e a sessão não
   alcança nem o console nem a hospedagem do Firebase (`treino-livre.firebaseapp.com`

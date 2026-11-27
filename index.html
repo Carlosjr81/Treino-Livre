@@ -2662,7 +2662,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28e";
+const VERSAO_APP = "2026-11-28f";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5149,7 +5149,7 @@ function pedidoFichaIA(exercicios) {
         nome: { type: "STRING" },
         itens: { type: "ARRAY", items: { type: "OBJECT", properties: {
           id: { type: "STRING" }, lido: { type: "STRING" }, series: { type: "NUMBER" }, reps: { type: "STRING" }, obs: { type: "STRING" } },
-          required: ["lido"] } } },
+          required: ["lido", "series", "reps"] } } },
       required: ["itens"] } },
   };
 }
@@ -5165,8 +5165,14 @@ function lerRespostaFichaIA(texto, exercicios) {
     const lido = txt(b.lido, 80);
     const id = txt(b.id, 60);
     if (!lido && !ids.has(id)) return;
-    const s = Math.round(typeof b.series === "number" ? b.series : parseFloat(b.series));
-    itens.push({ exercicioId: ids.has(id) ? id : "", lido: lido, series: s >= 1 && s <= 10 ? s : 3, reps: txt(b.reps, 12) || "12", obs: txt(b.obs, 80) });
+    // A IA às vezes manda só as séries; o "4 x 8-10" está no texto lido
+    // (testado com o Gemini em 28/11/2026: as repetições vieram vazias)
+    const m = lido.match(/(\d{1,2})\s*[x\u00D7]\s*(\d{1,3}(?:\s*[-\u2013a]\s*\d{1,3})?\s*(?:s|seg|min)?|falha)/i);
+    let s = Math.round(typeof b.series === "number" ? b.series : parseFloat(b.series));
+    if (!(s >= 1 && s <= 10) && m) s = parseInt(m[1], 10);
+    const reps = txt(b.reps, 12) || (m ? m[2].replace(/\s+/g, "").replace("\u2013", "-").slice(0, 12) : "") || "12";
+    const limpo = lido.replace(/^\s*\d{1,2}\s*[.)\-]\s*/, "").replace(/\s*\.{2,}.*$/, "").replace(/\s+\d{1,2}\s*[x\u00D7]\s*.*$/i, "").trim() || lido;
+    itens.push({ exercicioId: ids.has(id) ? id : "", lido: limpo, series: s >= 1 && s <= 10 ? s : 3, reps: reps, obs: txt(b.obs, 80) });
   });
   return { nome: txt(j && j.nome, 60), itens: itens };
 }

@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27v — Corrigir o shake pelos gramas
+
+- **Em uma frase:** no Balance, corrigir um shake ou uma combinação anotada agora é mudar os gramas de cada ingrediente e a água do copo, e o app refaz a conta sozinho.
+- **O que mudou:** ao tocar num shake da lista do dia, a correção abre com cada ingrediente (whey, farinha de arroz, leite em pó...) em gramas e a água do copo em ml, em vez de pedir os totais. Ingrediente com 0 sai do shake. Mudar a água corrige também a água do dia, e tirar o shake do dia tira a água dele junto. Os totais à mão continuam em "✏️ Valores".
+- **Por que importa para quem treina:** é assim que se monta o shake na balança; ninguém precisa fazer conta de caloria para corrigir.
+- **Como usar:** Balance › Hoje › O que você comeu › toque no shake › mude os gramas › Salvar a correção.
+- **Ideias de vídeo:** a balança da cozinha com o dosador de whey, e a correção no app em 5 segundos.
+- **Não prometer:** que os valores são os da marca do seu whey (são os da tabela do app; a marca muda os números).
+
+---
+
 ## 2026-11-27u — O balanço do dia diz o que é cada número
 
 - **Em uma frase:** no Balance, os três números do balanço do dia mostram "kcal" e dizem o que medem.

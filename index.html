@@ -2454,7 +2454,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27u";
+const VERSAO_APP = "2026-11-27v";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4826,6 +4826,16 @@ function itemDeAlimento(a, q, de) {
 // anotou (de); a refeição pode mudar.
 function itemEditado(it, ed) {
   const base = { id: it.id, t: it.t, de: it.de || "app", r: ed.r || it.r };
+  // O shake e a combinação se corrigem pelos ingredientes em gramas e pela água
+  // do copo (pedido do dono, 2026-11-27v: "o ajuste mais fácil é pôr os gramas
+  // de whey, farinha de arroz, leite em pó e a água"). A conta sai da tabela,
+  // como ao montar.
+  if (ed.modo === "receita") {
+    const itens = (ed.rc || []).map((i) => ({ a: i.a, g: Math.max(0, Math.min(5000, numB(i.g))) })).filter((i) => i.g > 0);
+    const novo = itemDeReceita({ n: it.n, ic: it.ic, itens: itens, agua: Math.max(0, Math.min(3000, numB(ed.agua))) }, ed.vezes);
+    if (!novo) return null;
+    return Object.assign(novo, base);
+  }
   const a = ed.modo !== "mao" && it.a ? ALIMENTOS_BR.find((x) => x.id === it.a) : null;
   if (a) {
     const qt = quantidadeComida(a, ed.modo === "gramas" ? "gramas" : "porcao", ed.porcoes, ed.gramas, ed.vezes);
@@ -5834,7 +5844,7 @@ function itemDeReceita(rec, vezes) {
   return { n: nome, ic: (rec && rec.ic) || "\u{1F964}", q: 1,
     k: Math.round(z.k * vz), p: Math.round(z.p * vz * 10) / 10, c: Math.round(z.c * vz * 10) / 10,
     g: Math.round(z.g * vz * 10) / 10, alc: 0, liq: Math.round(z.ml * vz),
-    rc: (rec.itens || []).map((i) => ({ a: i.a, g: i.g })), vz: vz,
+    rc: (rec.itens || []).map((i) => ({ a: i.a, g: i.g })), vz: vz, ag: Math.round(numB(rec && rec.agua) * vz),
     qtx: textoReceita(rec) + (vz > 1 ? " × " + vz + " vezes" : ""), md: "receita", de: "app" };
 }
 // O tipo de cada combinação, para o filtro do Montar (2026-11-27d): vitamina
@@ -38779,12 +38789,24 @@ const fmtKcal = (n) => Math.round(n).toLocaleString("pt-BR");
 const fmtLitros = (ml) => (ml / 1000).toFixed(1).replace(".", ",") + " L";
 
 // A janela de anotar: buscar, foto do prato, manual e água
-function JanelaEditarComida({ item, onSalvar, onTirar, onFechar }) {
+// A água do copo de um shake anotado antes de 2026-11-27v (sem "ag"): a da
+// receita de mesmo nome, vezes as vezes. É a que entrou na água do dia ao anotar.
+function aguaDoItem(item, receitas) {
+  if (item && typeof item.ag === "number") return item.ag;
+  if (!item || !Array.isArray(item.rc)) return 0;
+  const r = receitasDisponiveis(receitas || []).concat(RECEITAS_SUGERIDAS).find((x) => x.n === item.n);
+  return r ? Math.round(numB(r.agua) * Math.max(1, Math.round(numB(item.vz)) || 1)) : 0;
+}
+function JanelaEditarComida({ item, receitas, onSalvar, onTirar, onFechar }) {
   const a = item.a ? ALIMENTOS_BR.find((x) => x.id === item.a) : null;
   const vz0 = Math.max(1, Math.round(numB(item.vz)) || 1);
+  const temRc = Array.isArray(item.rc) && item.rc.some((i) => ALIMENTOS_BR.find((x) => x.id === i.a));
+  const ag0 = aguaDoItem(item, receitas);
+  const [rcEd, setRcEd] = useState(() => (item.rc || []).filter((i) => ALIMENTOS_BR.find((x) => x.id === i.a)).map((i) => ({ a: i.a, g: String(Math.round(numB(i.g) * 10) / 10).replace(".", ",") })));
+  const [aguaEd, setAguaEd] = useState(String(Math.round(ag0 / vz0)));
   const fmt = (x) => String(Math.round(x * 100) / 100).replace(".", ",");
   const v0 = valorItem(item);
-  const [modo, setModo] = useState(a ? (item.md === "gramas" && numB(a.gr) > 0 ? "gramas" : "porcao") : "mao");
+  const [modo, setModo] = useState(temRc && item.qtx !== "corrigido à mão" ? "receita" : a ? (item.md === "gramas" && numB(a.gr) > 0 ? "gramas" : "porcao") : "mao");
   const [porcoes, setPorcoes] = useState(fmt((numB(item.q) || 1) / vz0));
   const [gramas, setGramas] = useState(numB(item.gm) > 0 ? fmt(numB(item.gm) / vz0) : a && numB(a.gr) > 0 ? fmt((numB(item.q) || 1) * numB(a.gr) / vz0) : "");
   const [vezes, setVezes] = useState(vz0);
@@ -38792,7 +38814,8 @@ function JanelaEditarComida({ item, onSalvar, onTirar, onFechar }) {
   const [mao, setMao] = useState({ n: item.n || "", k: String(v0.k), p: String(v0.p), c: String(v0.c), g: String(v0.g) });
   const [certeza, setCerteza] = useState(false);
   const num = (x) => String(x || "").replace(",", ".");
-  const ed = { modo: modo, porcoes: num(porcoes), gramas: num(gramas), vezes: vezes, r: r, n: mao.n, k: num(mao.k), p: num(mao.p), c: num(mao.c), g: num(mao.g) };
+  const ed = { modo: modo, porcoes: num(porcoes), gramas: num(gramas), vezes: vezes, r: r, n: mao.n, k: num(mao.k), p: num(mao.p), c: num(mao.c), g: num(mao.g),
+    rc: rcEd.map((i) => ({ a: i.a, g: num(i.g) })), agua: num(aguaEd) };
   const novo = itemEditado(item, ed);
   const v = novo ? valorItem(novo) : null;
   const un = a && a.liq ? "ml" : "g";
@@ -38809,6 +38832,41 @@ function JanelaEditarComida({ item, onSalvar, onTirar, onFechar }) {
           <span style={{ fontSize: 36 }}>{item.ic || "🍽"}</span>
           <div><div style={{ fontWeight: 900, fontSize: 16 }}>{item.n}</div>{a && <div style={{ fontSize: 12, color: "var(--cinza)" }}>1 porção = {a.por}</div>}</div>
         </div>
+        {temRc && (
+          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+            <button onClick={() => setModo("receita")} style={{ ...chip(modo === "receita"), flex: 1 }}>⚖️ Ingredientes (g)</button>
+            <button onClick={() => setModo("mao")} style={{ ...chip(modo === "mao"), flex: 1 }}>✏️ Valores</button>
+          </div>
+        )}
+        {modo === "receita" && (
+          <div>
+            <div style={{ ...S.label, marginBottom: 6 }}>Quanto de cada, em cada {/shake|whey|intra|vitamina|suco/i.test(item.n || "") ? "shake" : "vez"}?</div>
+            {rcEd.map((i, j) => {
+              const al = ALIMENTOS_BR.find((x) => x.id === i.a);
+              return (
+                <div key={j} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 20 }}>{al.ic}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 800 }}>{al.nome}</span>
+                  <input inputMode="decimal" value={i.g} aria-label={"Gramas de " + al.nome}
+                    onChange={(e) => { const v2 = e.target.value.replace(/[^0-9.,]/g, ""); setRcEd((l) => l.map((x, k) => (k === j ? { a: x.a, g: v2 } : x))); }}
+                    style={{ ...S.input, width: 78, textAlign: "center", fontWeight: 900 }} />
+                  <span style={{ fontWeight: 800, width: 22 }}>{al.liq ? "ml" : "g"}</span>
+                  <button aria-label={"Tirar " + al.nome} onClick={() => setRcEd((l) => l.filter((x, k) => k !== j))}
+                    style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 900, cursor: "pointer" }}>✕</button>
+                </div>
+              );
+            })}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 20 }}>{"\u{1F4A7}"}</span>
+              <span style={{ flex: 1, fontSize: 13, fontWeight: 800 }}>Água do copo</span>
+              <input inputMode="numeric" value={aguaEd} aria-label="Água do copo em ml" onChange={(e) => setAguaEd(e.target.value.replace(/[^0-9]/g, ""))}
+                style={{ ...S.input, width: 78, textAlign: "center", fontWeight: 900 }} />
+              <span style={{ fontWeight: 800, width: 22 }}>ml</span>
+              <span style={{ width: 14 }} />
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", marginBottom: 6 }}>A água entra na água do dia, não nas calorias. Ingrediente com 0 sai do shake.</div>
+          </div>
+        )}
         {a && (
           <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
             <button onClick={() => setModo("porcao")} style={{ ...chip(modo === "porcao"), flex: 1 }}>🥄 Porções</button>
@@ -38873,8 +38931,8 @@ function JanelaEditarComida({ item, onSalvar, onTirar, onFechar }) {
           </div>
         )}
         {v && v.k !== v0.k && <div style={{ fontSize: 11.5, color: "var(--cinza)", textAlign: "center", marginBottom: 8 }}>Antes: {v0.k} kcal</div>}
-        <button disabled={!novo} onClick={() => onSalvar(novo)} style={{ ...S.btn, width: "100%", opacity: novo ? 1 : 0.5 }}>✓ Salvar a correção</button>
-        <button onClick={() => (certeza ? onTirar(item.id) : setCerteza(true))} style={{ ...S.btnGhost, width: "100%", marginTop: 8, color: certeza ? "var(--perigo)" : "var(--texto)" }}>
+        <button disabled={!novo} onClick={() => onSalvar(novo, modo === "receita" ? numB(novo.ag) - ag0 : 0)} style={{ ...S.btn, width: "100%", opacity: novo ? 1 : 0.5 }}>✓ Salvar a correção</button>
+        <button onClick={() => (certeza ? onTirar(item.id, ag0) : setCerteza(true))} style={{ ...S.btnGhost, width: "100%", marginTop: 8, color: certeza ? "var(--perigo)" : "var(--texto)" }}>
           {certeza ? "Toque de novo para tirar do dia" : "🗑 Tirar do dia"}
         </button>
       </div>
@@ -40444,9 +40502,11 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
     return Object.assign({}, n, { receitas: lerReceitas([r].concat(antes)) });
   });
   const apagarReceita = (id) => setNutricao((n) => Object.assign({}, n, { receitas: lerReceitas(n.receitas).filter((x) => x.id !== id) }));
-  const tirar = (id) => mudarDia(diaVer, (d) => Object.assign({}, d, { itens: (d.itens || []).filter((x) => x.id !== id) }));
-  const salvarEdicao = (novo) => {
-    mudarDia(diaVer, (d) => Object.assign({}, d, { itens: (d.itens || []).map((x) => (x.id === novo.id ? novo : x)) }));
+  const tirar = (id, agua) => mudarDia(diaVer, (d) => Object.assign({}, d, { itens: (d.itens || []).filter((x) => x.id !== id),
+    agua: Math.max(0, numB(d.agua) - (numB(agua) || 0)) }));
+  const salvarEdicao = (novo, deltaAgua) => {
+    mudarDia(diaVer, (d) => Object.assign({}, d, { itens: (d.itens || []).map((x) => (x.id === novo.id ? novo : x)),
+      agua: Math.max(0, numB(d.agua) + (numB(deltaAgua) || 0)) }));
     setEditando(null);
     mostrar("✓ " + novo.n + " corrigido");
     if (sincronizarRelogio && ehHoje) { sincEm.current = Date.now(); setTimeout(() => sincronizarRelogio(estadoRelogio.current), 120); }
@@ -40780,7 +40840,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                           <span style={{ fontWeight: 800, whiteSpace: "nowrap" }}>{valorItem(it).k} <span style={{ fontWeight: 600, fontSize: 11, color: "var(--cinza)" }}>kcal</span></span>
                           <span aria-hidden="true" style={{ color: "var(--cinza)", fontSize: 12 }}>✎</span>
                           </button>
-                          <button aria-label={"Tirar " + it.n} onClick={() => tirar(it.id)} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 900, cursor: "pointer" }}>✕</button>
+                          <button aria-label={"Tirar " + it.n} onClick={() => tirar(it.id, aguaDoItem(it, nutricao.receitas || []))} style={{ background: "none", border: "none", color: "var(--cinza)", fontWeight: 900, cursor: "pointer" }}>✕</button>
                         </div>
                       ))}
                     </div>
@@ -40905,7 +40965,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
         onAdd={adicionar} onCatalogo={(ini) => { setJanela(null); setCatalogo(ini || {}); }} onFechar={() => setJanela(null)} />}
       {catalogo && <JanelaCatalogo falta={faltaHoje} recentes={recentes} inicial={catalogo.id ? catalogo : null}
         onAnotar={ehHoje || diaVer ? anotarDoCatalogo : null} onFechar={() => setCatalogo(null)} />}
-      {editando && <JanelaEditarComida item={editando} onSalvar={salvarEdicao} onTirar={(id) => { tirar(id); setEditando(null); }} onFechar={() => setEditando(null)} />}
+      {editando && <JanelaEditarComida item={editando} receitas={nutricao.receitas || []} onSalvar={salvarEdicao} onTirar={(id, ag) => { tirar(id, ag); setEditando(null); }} onFechar={() => setEditando(null)} />}
       {toast && <div role="status" style={{ position: "fixed", left: "50%", bottom: 96, transform: "translateX(-50%)", zIndex: 70, padding: "10px 18px", borderRadius: 24,
         background: "#0b0418ee", border: "1px solid #4DEBFF", color: "#fff", fontWeight: 900, fontSize: 14, boxShadow: "0 0 18px #4DEBFF66", whiteSpace: "nowrap", maxWidth: "90vw", overflow: "hidden", textOverflow: "ellipsis" }}>{toast}</div>}
     </div>

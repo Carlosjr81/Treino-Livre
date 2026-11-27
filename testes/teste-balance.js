@@ -1018,6 +1018,19 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
     /JanelaReceiver\" android:exported=\"false\"/.test(kt("app/src/main/AndroidManifest.xml")));
   teste("a pagina so chama o app que sabe agendar", true, /janelas=1/.test(kt("app/src/main/java/br/com/treinolivre/app/Site.kt")));
 }
+console.log("\n--- corrigir o shake pelos gramas (2026-11-27v) ---");
+{
+  const rec = { n: "Shake de whey com farinha de arroz", ic: "x", agua: 250, itens: [{ a: "whey", g: 50 }, { a: "farinha-arroz", g: 20 }, { a: "leite-po", g: 28 }] };
+  const ok = rec.itens.every((i) => B.ALIMENTOS_BR.find((x) => x.id === i.a));
+  if (ok) {
+    const it = Object.assign(B.itemDeReceita(rec, 1), { id: "s1", t: 1, r: "cafe" });
+    teste("o shake guarda a água do copo", 250, it.ag);
+    const e = B.itemEditado(it, { modo: "receita", rc: [{ a: "whey", g: "60" }, { a: "farinha-arroz", g: "40" }, { a: "leite-po", g: "0" }], agua: "300", vezes: 1, r: "cafe" });
+    const esperado = B.itemDeReceita({ n: rec.n, itens: [{ a: "whey", g: 60 }, { a: "farinha-arroz", g: 40 }], agua: 300 }, 1);
+    teste("corrigido pelos gramas: a conta sai da tabela, e o ingrediente com 0 sai", [esperado.k, esperado.p, 2, 300, "s1", "cafe"], [e.k, e.p, e.rc.length, e.ag, e.id, e.r]);
+    teste("sem ingrediente nenhum, não salva", null, B.itemEditado(it, { modo: "receita", rc: [{ a: "whey", g: "0" }], agua: "0", vezes: 1 }));
+  } else teste("os ingredientes do teste existem no catálogo", true, false);
+}
 console.log("\n--- o dia sem treino (2026-11-27r) ---");
 {
   const hoje = "2026-11-27"; // sexta

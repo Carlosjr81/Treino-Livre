@@ -7556,6 +7556,19 @@ exemplos whey + leite em pó + farinha de arroz, + amido de milho e + aveia.
   a busca, mudar a aveia para 60 g e anotar (um item de 480 kcal e 300 ml na
   água do dia), e salvar com nome próprio. **Não validado num aparelho.**
 
+#### Corrigir o shake pelos gramas (`itemEditado` modo "receita", `aguaDoItem`, 2026-11-27v)
+
+Pedido do dono: "o ajuste mais fácil é pôr os gramas de whey, farinha de arroz,
+leite em pó e a água". Item com `rc` abre a correção em **⚖️ Ingredientes (g)**:
+os gramas de cada um (por shake), a água do copo e as vezes; a conta sai de
+`itemDeReceita` (a tabela), e ingrediente com 0 sai. O item do shake passou a
+guardar a água do copo (`ag`), e a correção e o tirar (da janela e do ✕ da
+lista) acertam a água do dia pela diferença. Shake anotado antes, sem `ag`:
+vale a água da receita de mesmo nome × vezes (`aguaDoItem`), que é a que
+entrou ao anotar. "✏️ Valores" continua para os totais à mão. Coberto em
+`teste-balance.js`; no navegador, o shake corrigido para 60 g e a água de 300
+para 400 ml somando só 100 ao dia.
+
 #### O shake no pulso (`shk`, `ComidaPulso.shakes`, 2026-11-26f)
 
 Pedido do dono: "faça essa combinação do shake ficar de fácil acesso no

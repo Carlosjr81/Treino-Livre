@@ -4312,6 +4312,9 @@ aparece numa execução (ou repetição) seguinte. **Falta:** o primeiro App
 Android depois disso tem de dizer `chave: segredo do repositório` com a mesma
 impressão; aí o `manter-chave.yml` pode ser apagado. O token temporário
 (`TOKEN_SEGREDOS`, que expira em 3/12/2026) é para ser apagado pelo dono.
+**Confirmado em 27/11/2026**: o App Android 202 saiu com `TEM_SEGREDO: sim`,
+`chave: segredo do repositório` e a impressão `9B:1E:D2:74…D4:23`; o
+`manter-chave.yml` foi apagado e o dono apagou o token.
 
 **A barra de endereço.** Sem o `assetlinks.json` na raiz do domínio
 (`carlosjr81.github.io/.well-known/`, que é **outro repositório**,
@@ -4321,8 +4324,10 @@ impressão digital da chave atual, o `.nojekyll` sem o qual o Pages esconde o
 `.well-known`, e um `index.html` que leva ao app). A sessão na nuvem não
 consegue **criar** repositório na conta do dono (403): ele cria o
 `carlosjr81.github.io`, público, e os arquivos de `dominio/` vão para lá.
-**A chave não pode mudar**: o `manter-chave.yml` lê o cache duas vezes por
-semana para ele não expirar; o definitivo é o segredo `ANDROID_KEYSTORE_B64`.
+**A chave não pode mudar**: desde 27/11/2026 ela está no segredo
+`ANDROID_KEYSTORE_B64` (o `manter-chave.yml`, que mantinha o cache vivo, foi
+apagado). O `android.yml` ainda cai numa chave de cache se o segredo sumir:
+se um dia o registro disser `TEM_SEGREDO: nao`, o segredo foi apagado.
 
 **Validado no celular do dono (Galaxy + Watch8, 21/10/2026)**: permissão,
 leitura (passos, distância, kcal, batimento, repouso, SpO2, sono, peso,

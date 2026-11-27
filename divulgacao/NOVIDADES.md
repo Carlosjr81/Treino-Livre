@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27h — O app Android 202 no ar
+
+- **Em uma frase:** o botão de atualizar o app Android agora leva à versão 202, a que agenda os avisos da semana inteira.
+- **O que mudou:** só o endereço do app Android, que passou do 201 para o 202 (os avisos dos próximos 7 dias e o reagendamento quando o celular reinicia, da versão 2026-11-27g).
+- **Por que importa para quem treina:** sem o app novo, os avisos continuam sendo de um dia só.
+- **Como usar:** Ajustes › App Android › atualizar (ou espere: o app se atualiza sozinho com a tela apagada).
+- **Ideias de vídeo:** nenhuma; é a publicação do app.
+- **Não prometer:** nada de novo além do que a 2026-11-27g descreve.
+
+---
+
 ## 2026-11-27g — Os avisos da semana inteira, sem abrir o app
 
 - **Em uma frase:** com o app Android atualizado, os avisos das janelas dos nutrientes ficam agendados para os próximos 7 dias, pelo seu horário de treino e de sono — mesmo que você não abra o app.

@@ -7090,6 +7090,18 @@ para todos"**.
   aviso no pulso foram conferidos só no código, e o APK é montado pelo
   Actions.
 
+### Os pães (categoria `pao`, 2026-11-27k)
+
+Pedido do dono: "uma variação de pães: normal, mini pães, mini pão de cenoura,
+de laranja, de mandioca, de mandioquinha, e aonde mais der". A categoria nova
+`pao` (filtro "🥖 Pães" no `GRUPOS_ALIMENTO`) recebeu os que já existiam
+(francês, de forma integral, sírio, torrada; com "carbo" no `b`, para a busca
+por "carbo" continuar achando) e 22 novos, todos com `un`/`unG` (contados em
+unidades). Médias de padaria e de rótulo, com os macros fechando as kcal; sem
+`ig` onde não há valor publicado. Duas combinações no Montar (mini pães de
+mandioquinha com requeijão, bisnaguinha com requeijão) e os nomes em inglês.
+Coberto em `teste-balance.js` (a seção, as unidades, "aipim" e "batata baroa").
+
 ### A leitura da água (`leituraAgua`, `FAIXAS_AGUA`, `CartaoAgua`, 2026-11-27i)
 
 Pedido do dono: "só tem bater a meta ou não; não sei o que acontece se eu

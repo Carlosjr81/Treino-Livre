@@ -1925,9 +1925,35 @@ const ALIMENTOS_BR = [
   { id: "linguica", nome: "Linguiça calabresa", cat: "gordura", por: "1 gomo (60 g)", gr: 60, k: 178, p: 9.6, c: 1.0, g: 15.0, gPrato: 450, ic: "\u{1F32D}", un: "gomo", unG: 60 },
   { id: "feijoada", nome: "Feijoada", cat: "gordura", por: "1 concha cheia (200 g)", gr: 200, k: 345, p: 20.0, c: 20.0, g: 20.0, gPrato: 560, ic: "\u{1F372}" },
   // pães e café da manhã
-  { id: "pao", nome: "Pão francês", cat: "carbo", por: "1 unidade (50 g)", gr: 50, k: 150, p: 4.0, c: 29.3, g: 1.6, f: 1.2, ig: 75, gPrato: 0, ic: "\u{1F956}", un: "pão", unG: 50 },
-  { id: "pao-forma", nome: "Pão de forma integral", cat: "carbo", por: "2 fatias (50 g)", gr: 50, k: 126, p: 4.7, c: 24.0, g: 1.7, f: 1.2, ig: 75, gPrato: 0, ic: "\u{1F35E}", un: "fatia", unG: 25 },
+  { id: "pao", nome: "Pão francês", cat: "pao", por: "1 unidade (50 g)", gr: 50, k: 150, p: 4.0, c: 29.3, g: 1.6, f: 1.2, ig: 75, gPrato: 0, b: "carbo padaria", ic: "\u{1F956}", un: "pão", unG: 50 },
+  { id: "pao-forma", nome: "Pão de forma integral", cat: "pao", por: "2 fatias (50 g)", gr: 50, k: 126, p: 4.7, c: 24.0, g: 1.7, f: 1.2, ig: 75, gPrato: 0, b: "carbo padaria", ic: "\u{1F35E}", un: "fatia", unG: 25 },
   { id: "tapioca", nome: "Tapioca", cat: "carbo", por: "1 média (50 g de goma)", gr: 50, k: 120, p: 0, c: 30.0, g: 0, gPrato: 0, ic: "\u{1FAD3}", un: "unidade", unG: 50 },
+  // Os pães (2026-11-27k, pedido do dono: "uma variação de pães: normal, mini
+  // pães, mini pão de cenoura, de laranja, de mandioca, de mandioquinha"). Médias
+  // de padaria e de rótulo, com os macros fechando as kcal; mudam de uma padaria
+  // para outra, como o rodapé do catálogo já diz. Contados em unidades.
+  { id: "pao-mini", nome: "Mini pão francês", cat: "pao", por: "1 unidade (25 g)", gr: 25, k: 75, p: 2.0, c: 14.7, g: 0.8, f: 0.6, ig: 75, gPrato: 0, ic: "\u{1F956}", b: "carbo padaria pao frances pequeno paozinho", un: "pão", unG: 25 },
+  { id: "pao-forma-branco", nome: "Pão de forma tradicional", cat: "pao", por: "2 fatias (50 g)", gr: 50, k: 127, p: 4.0, c: 24.6, g: 1.4, f: 1.2, ig: 75, gPrato: 0, ic: "\u{1F35E}", b: "carbo pao de forma branco fatiado", un: "fatia", unG: 25 },
+  { id: "bisnaguinha", nome: "Bisnaguinha", cat: "pao", por: "2 unidades (40 g)", gr: 40, k: 120, p: 3.2, c: 21.0, g: 2.6, gPrato: 0, ic: "\u{1F956}", b: "carbo pao bisnaga mini", un: "unidade", unG: 20 },
+  { id: "pao-leite", nome: "Pão de leite (sovado)", cat: "pao", por: "1 unidade (50 g)", gr: 50, k: 150, p: 4.3, c: 26.3, g: 3.0, gPrato: 0, ic: "\u{1F35E}", b: "carbo padaria sovado pao de leite", un: "unidade", unG: 50 },
+  { id: "pao-doce", nome: "Pão doce", cat: "pao", por: "1 unidade (50 g)", gr: 50, k: 165, p: 4.0, c: 29.0, g: 3.6, gPrato: 0, ic: "\u{1F35E}", b: "carbo padaria pao doce de coco", un: "unidade", unG: 50 },
+  { id: "pao-hamburguer", nome: "Pão de hambúrguer", cat: "pao", por: "1 unidade (60 g)", gr: 60, k: 165, p: 5.4, c: 29.0, g: 3.0, gPrato: 0, ic: "\u{1F354}", b: "carbo pao de hamburguer bola", un: "pão", unG: 60 },
+  { id: "pao-hotdog", nome: "Pão de cachorro-quente", cat: "pao", por: "1 unidade (50 g)", gr: 50, k: 140, p: 4.5, c: 25.0, g: 2.4, gPrato: 0, ic: "\u{1F32D}", b: "carbo pao de hot dog cachorro quente", un: "pão", unG: 50 },
+  { id: "pao-cenoura", nome: "Pão de cenoura", cat: "pao", por: "1 fatia (50 g)", gr: 50, k: 135, p: 3.6, c: 24.5, g: 2.5, gPrato: 0, ic: "\u{1F955}", b: "carbo padaria", un: "fatia", unG: 50 },
+  { id: "pao-mini-cenoura", nome: "Mini pão de cenoura", cat: "pao", por: "1 unidade (25 g)", gr: 25, k: 68, p: 1.8, c: 12.3, g: 1.3, gPrato: 0, ic: "\u{1F955}", b: "carbo padaria mini pao pequeno", un: "pão", unG: 25 },
+  { id: "pao-mini-laranja", nome: "Mini pão de laranja", cat: "pao", por: "1 unidade (25 g)", gr: 25, k: 75, p: 1.6, c: 13.4, g: 1.6, gPrato: 0, ic: "\u{1F34A}", b: "carbo padaria mini pao pequeno doce", un: "pão", unG: 25 },
+  { id: "pao-mini-mandioca", nome: "Mini pão de mandioca", cat: "pao", por: "1 unidade (25 g)", gr: 25, k: 72, p: 1.5, c: 13.0, g: 1.6, gPrato: 0, ic: "\u{1F35E}", b: "carbo padaria mini pao pequeno aipim macaxeira", un: "pão", unG: 25 },
+  { id: "pao-mini-mandioquinha", nome: "Mini pão de mandioquinha", cat: "pao", por: "1 unidade (25 g)", gr: 25, k: 70, p: 1.7, c: 12.6, g: 1.5, gPrato: 0, ic: "\u{1F35E}", b: "carbo padaria mini pao pequeno batata baroa batata salsa", un: "pão", unG: 25 },
+  { id: "pao-mini-batata", nome: "Mini pão de batata", cat: "pao", por: "1 unidade (25 g)", gr: 25, k: 75, p: 1.9, c: 12.8, g: 1.8, gPrato: 0, ic: "\u{1F954}", b: "carbo padaria mini pao pequeno", un: "pão", unG: 25 },
+  { id: "pao-batata", nome: "Pão de batata", cat: "pao", por: "1 unidade (50 g)", gr: 50, k: 150, p: 3.8, c: 25.5, g: 3.6, gPrato: 0, ic: "\u{1F954}", b: "carbo padaria", un: "pão", unG: 50 },
+  { id: "pao-queijo-mini", nome: "Mini pão de queijo", cat: "gordura", por: "3 unidades (30 g)", gr: 30, k: 105, p: 2.1, c: 12.9, g: 5.1, gPrato: 0, ic: "\u{1F9C0}", b: "pao de queijo pequeno coquetel", un: "unidade", unG: 10 },
+  { id: "pao-milho", nome: "Pão de milho", cat: "pao", por: "1 fatia (50 g)", gr: 50, k: 140, p: 3.5, c: 26.0, g: 2.4, gPrato: 0, ic: "\u{1F33D}", b: "carbo padaria broa fuba", un: "fatia", unG: 50 },
+  { id: "pao-australiano", nome: "Pão australiano", cat: "pao", por: "1 fatia (50 g)", gr: 50, k: 140, p: 4.0, c: 26.0, g: 2.2, gPrato: 0, ic: "\u{1F35E}", b: "carbo outback escuro", un: "fatia", unG: 50 },
+  { id: "pao-italiano", nome: "Pão italiano", cat: "pao", por: "1 fatia (50 g)", gr: 50, k: 130, p: 4.4, c: 26.0, g: 0.8, gPrato: 0, ic: "\u{1F35E}", b: "carbo padaria fermentacao natural", un: "fatia", unG: 50 },
+  { id: "baguete", nome: "Baguete", cat: "pao", por: "1 pedaço (50 g)", gr: 50, k: 135, p: 4.5, c: 27.0, g: 0.8, gPrato: 0, ic: "\u{1F956}", b: "carbo padaria pao frances comprido", un: "pedaço", unG: 50 },
+  { id: "ciabatta", nome: "Ciabatta", cat: "pao", por: "1 unidade (80 g)", gr: 80, k: 210, p: 7.0, c: 41.0, g: 1.8, gPrato: 0, ic: "\u{1F956}", b: "carbo padaria pao italiano", un: "pão", unG: 80 },
+  { id: "pao-centeio", nome: "Pão de centeio", cat: "pao", por: "1 fatia (40 g)", gr: 40, k: 100, p: 3.4, c: 19.0, g: 1.1, f: 2.3, gPrato: 0, ic: "\u{1F35E}", b: "carbo integral escuro", un: "fatia", unG: 40 },
+  { id: "pao-sem-gluten", nome: "Pão sem glúten", cat: "pao", por: "2 fatias (50 g)", gr: 50, k: 130, p: 1.5, c: 24.0, g: 3.2, gPrato: 0, ic: "\u{1F35E}", b: "carbo celiaco sem gluten", un: "fatia", unG: 25 },
   { id: "pao-queijo", nome: "Pão de queijo", cat: "gordura", por: "1 unidade (30 g)", gr: 30, k: 105, p: 2.0, c: 13.0, g: 5.0, gPrato: 0, ic: "\u{1F9C0}", un: "unidade", unG: 30 },
   { id: "queijo", nome: "Queijo muçarela", cat: "gordura", por: "1 fatia (20 g)", gr: 20, k: 66, p: 4.5, c: 0.6, g: 5.0, gPrato: 0, ic: "\u{1F9C0}", un: "fatia", unG: 20 },
   { id: "manteiga", nome: "Manteiga ou margarina", cat: "gordura", por: "1 ponta de faca (10 g)", gr: 10, k: 72, p: 0.1, c: 0, g: 8.2, gPrato: 0, ic: "\u{1F9C8}" },
@@ -2012,8 +2038,8 @@ const ALIMENTOS_BR = [
   { id: "quinoa", nome: "Quinoa cozida", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 120, p: 4.4, c: 21.3, g: 1.9, f: 2.8, ig: 53, gPrato: 480, ic: "🍚" },
   { id: "lentilha", nome: "Lentilha cozida", cat: "carbo", por: "1 concha (100 g)", gr: 100, k: 93, p: 6.3, c: 16.3, g: 0.5, f: 7.9, ig: 32, gPrato: 480, ic: "🫘" },
   { id: "grao-bico", nome: "Grão-de-bico cozido", cat: "carbo", por: "4 colheres de sopa (100 g)", gr: 100, k: 164, p: 8.9, c: 27.0, g: 2.6, f: 7.6, ig: 28, gPrato: 480, ic: "🫘" },
-  { id: "pao-sirio", nome: "Pão sírio ou wrap", cat: "carbo", por: "1 unidade (60 g)", gr: 60, k: 165, p: 5.5, c: 33.0, g: 1.0, f: 1.6, ig: 57, gPrato: 0, ic: "🫓", b: "rap10 tortilha", un: "unidade", unG: 60 },
-  { id: "torrada", nome: "Torrada", cat: "carbo", por: "3 unidades (30 g)", gr: 30, k: 120, p: 3.5, c: 22.0, g: 2.0, f: 1.1, ig: 70, gPrato: 0, ic: "🍞", un: "torrada", unG: 10 },
+  { id: "pao-sirio", nome: "Pão sírio ou wrap", cat: "pao", por: "1 unidade (60 g)", gr: 60, k: 165, p: 5.5, c: 33.0, g: 1.0, f: 1.6, ig: 57, gPrato: 0, ic: "🫓", b: "carbo padaria rap10 tortilha", un: "unidade", unG: 60 },
+  { id: "torrada", nome: "Torrada", cat: "pao", por: "3 unidades (30 g)", gr: 30, k: 120, p: 3.5, c: 22.0, g: 2.0, f: 1.1, ig: 70, gPrato: 0, b: "carbo padaria", ic: "🍞", un: "torrada", unG: 10 },
   { id: "cereal", nome: "Cereal matinal", cat: "carbo", por: "1 xícara (30 g)", gr: 30, k: 115, p: 2.0, c: 26.0, g: 0.5, f: 0.9, gPrato: 0, ic: "🥣", b: "sucrilhos flocos de milho" },
   { id: "crepioca", nome: "Crepioca (ovo e tapioca)", cat: "carbo", por: "1 unidade", gr: 90, k: 180, p: 7.0, c: 25.0, g: 5.0, f: 0.5, gPrato: 0, ic: "🫓" },
   { id: "panqueca-aveia", nome: "Panqueca de aveia e banana", cat: "carbo", por: "1 unidade", gr: 100, k: 190, p: 9.0, c: 27.0, g: 5.0, f: 4, gPrato: 0, ic: "🥞" },
@@ -2155,7 +2181,7 @@ const ALIMENTOS_BR = [
 const GORDURAS_TROCA = ["manteiga", "oleo", "azeite"];
 const NOME_GORDURA = { manteiga: "Manteiga", oleo: "Óleo", azeite: "Azeite" };
 // Os grupos da busca de alimentos (2026-11-25e)
-const GRUPOS_ALIMENTO = [["", "Todos"], ["carbo", "🍚 Carboidratos"], ["proteina", "🍗 Proteínas"], ["farinha", "🌾 Farinhas"], ["suplemento", "🥤 Suplementos"], ["fruta", "🍎 Frutas"], ["verdura", "🥗 Verduras"], ["gordura", "🥑 Gorduras"], ["doce", "🍫 Doces"], ["lanche", "🍔 Lanches"], ["prato", "🍽 Pratos"], ["bebida", "🥤 Bebidas"], ["alcool", "🍺 Álcool"]];
+const GRUPOS_ALIMENTO = [["", "Todos"], ["carbo", "🍚 Carboidratos"], ["pao", "🥖 Pães"], ["proteina", "🍗 Proteínas"], ["farinha", "🌾 Farinhas"], ["suplemento", "🥤 Suplementos"], ["fruta", "🍎 Frutas"], ["verdura", "🥗 Verduras"], ["gordura", "🥑 Gorduras"], ["doce", "🍫 Doces"], ["lanche", "🍔 Lanches"], ["prato", "🍽 Pratos"], ["bebida", "🥤 Bebidas"], ["alcool", "🍺 Álcool"]];
 // A vitrine de quem ainda não tem acesso (2026-11-26d, pedido do dono: "na
 // tela deles que não estão autorizados só apareça informações sobre como ter
 // acesso mediante pagamento de algum plano existente... uma propaganda
@@ -2254,6 +2280,10 @@ const RECEITAS_SUGERIDAS = [
     itens: [{ a: "pao", g: 50 }, { a: "ovo-mexido", g: 100 }, { a: "manteiga", g: 5 }] },
   { id: "c-pao-ovo-queijo", n: "Pão com ovo e queijo", ic: "\u{1F95A}", agua: 0,
     itens: [{ a: "pao", g: 50 }, { a: "ovo", g: 100 }, { a: "queijo", g: 20 }] },
+  { id: "c-mini-mandioquinha", n: "Mini pães de mandioquinha com requeijão", ic: "\u{1F35E}", agua: 0,
+    itens: [{ a: "pao-mini-mandioquinha", g: 75 }, { a: "requeijao", g: 30 }] },
+  { id: "c-bisnaguinha", n: "Bisnaguinha com requeijão", ic: "\u{1F956}", agua: 0,
+    itens: [{ a: "bisnaguinha", g: 60 }, { a: "requeijao", g: 30 }] },
   { id: "c-tapioca-ovo", n: "Tapioca com ovo", ic: "\u{1F95E}", agua: 0,
     itens: [{ a: "tapioca", g: 50 }, { a: "ovo", g: 100 }] },
   { id: "c-pf", n: "Prato: arroz, feijão e frango", ic: "\u{1F37D}", agua: 0,
@@ -2396,7 +2426,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27j";
+const VERSAO_APP = "2026-11-27k";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".

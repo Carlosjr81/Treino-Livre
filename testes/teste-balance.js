@@ -842,6 +842,15 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("o aviso de antes do treino da segunda às 15h05", 905, adiante.find((x) => x.d === "2026-11-30").a.find((a) => a.id === "preTreino").em);
   teste("sem plano de treino, só a noite", true, B.avisosAdiante(null, 23, new Date(2026, 10, 27, 10, 0).getTime()).every((x) => x.a.every((a) => a.id === "noite")));
 
+  // os pães (2026-11-27k): a seção, os mini pães e a busca pelos outros nomes
+  const paes = B.ALIMENTOS_BR.filter((x) => x.cat === "pao").map((x) => x.id);
+  teste("a seção Pães tem o francês e os mini pães pedidos", [], ["pao", "pao-mini", "pao-mini-cenoura", "pao-mini-laranja", "pao-mini-mandioca", "pao-mini-mandioquinha"].filter((id) => paes.indexOf(id) < 0));
+  teste("todo pão se conta em unidades", [], B.ALIMENTOS_BR.filter((x) => x.cat === "pao" && !(x.un && x.unG > 0)).map((x) => x.id));
+  teste("aipim acha o mini pão de mandioca", true, B.buscarAlimentos("aipim", "", []).some((x) => x.id === "pao-mini-mandioca"));
+  teste("batata baroa acha o de mandioquinha", true, B.buscarAlimentos("batata baroa", "", []).some((x) => x.id === "pao-mini-mandioquinha"));
+  teste("carbo ainda acha o pão francês", true, B.buscarAlimentos("carbo", "", []).some((x) => x.id === "pao"));
+  teste("o filtro Pães existe", true, B.GRUPOS_ALIMENTO.some((g) => g[0] === "pao"));
+
   // a leitura da água (2026-11-27i): seis faixas e o ritmo de hoje
   const faixaAgua = (b) => B.leituraAgua({ bebeu: b, meta: 3000 }).faixa.id;
   teste("as seis faixas pelo dia inteiro", ["muitoAbaixo", "abaixo", "quase", "meta", "acima", "muitoAcima"], [1500, 2000, 2700, 3000, 3900, 4600].map(faixaAgua));

@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27k — Os pães, um por um
+
+- **Em uma frase:** o catálogo de alimentos ganhou a seção **🥖 Pães**, com os mini pães (francês, de cenoura, de laranja, de mandioca, de mandioquinha, de batata e de queijo) e mais 15 pães de padaria e mercado.
+- **O que mudou:** os pães agora têm o seu próprio filtro na hora de anotar. Entraram: mini pão francês, mini pão de cenoura, mini pão de laranja, mini pão de mandioca, mini pão de mandioquinha, mini pão de batata, mini pão de queijo, pão de forma tradicional, bisnaguinha, pão de leite, pão doce, pão de hambúrguer, pão de cachorro-quente, pão de cenoura, pão de batata, pão de milho, pão australiano, pão italiano, baguete, ciabatta, pão de centeio e pão sem glúten. Todos se contam em unidades (− e +), como o pão francês. Quem digita "aipim" acha o de mandioca, e "batata-baroa" acha o de mandioquinha. No 🥤 Montar, duas combinações novas: mini pães de mandioquinha com requeijão e bisnaguinha com requeijão.
+- **Por que importa para quem treina:** um mini pão tem metade das calorias de um pão francês. Anotar "pão" genérico errava a conta do café da manhã.
+- **Como usar:** Balance › + Comida › filtro 🥖 Pães.
+- **Ideias de vídeo:** a vitrine da padaria e o app mostrando a caloria de cada pão; contar 3 mini pães no − e +.
+- **Não prometer:** os números são médias de padaria e de rótulo; mudam de uma padaria para outra. Dieta é com o nutricionista.
+
+---
+
 ## 2026-11-27j — Água e shape, e a água da madrugada
 
 - **Em uma frase:** o cartão da água agora diz se a água do dia ajuda, não muda ou piora o seu treino e o seu shape, e tem um botão para anotar a água que você bebe de madrugada.

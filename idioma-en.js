@@ -12,6 +12,7 @@
    tela diz isso) e a voz do Jarvis (fala e ouve em português).
    Texto sem tradução continua em português: nunca vira meia frase. */
 var TEXTOS_EN = {
+  "✕ Não anotar: descartar esta leitura": "✕ Don't log: discard this reading",
   // a trava contra cópias (2026-11-27o)
   "Esta não é a página oficial do Treino Livre": "This is not the official Treino Livre page",
   "Acesso liberado!": "Access granted!",

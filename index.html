@@ -2662,7 +2662,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28i";
+const VERSAO_APP = "2026-11-28j";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -40134,7 +40134,7 @@ async function lerFichaIA(blob, exercicios) {
 }
 // A lista para conferir (da foto ou do texto): gramas editáveis, o ✓ de cada
 // item, e um toque para anotar. Nada vai ao dia sem esse toque.
-function ConferirIA({ lista, setLista, prato, refeicao, onAdd }) {
+function ConferirIA({ lista, setLista, prato, refeicao, onAdd, onDescartar }) {
   const marcados = lista.filter((x) => x.ok && x.gramas > 0);
   const itens = itensDaLeituraIA(marcados, ALIMENTOS_BR);
   const total = itens.reduce((a, it) => a + valorItem(it).k, 0);
@@ -40165,6 +40165,8 @@ function ConferirIA({ lista, setLista, prato, refeicao, onAdd }) {
           </div>
         </div>
         <button disabled={!itens.length} onClick={() => onAdd(itens, 0, refeicao)} style={{ ...S.btn, width: "100%", opacity: itens.length ? 1 : 0.5 }}>✓ Anotar {itens.length} {itens.length === 1 ? "item" : "itens"} no dia</button>
+        {/* 2026-11-28j, pedido do dono: "falta um botão de voltar ou não anotar" */}
+        {onDescartar && <button type="button" onClick={onDescartar} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>✕ Não anotar: descartar esta leitura</button>}
       </div>
   );
 }
@@ -40196,7 +40198,7 @@ function EscreverComidaIA({ refeicao, onAdd }) {
       <button disabled={texto.trim().length < 3 || estado === "lendo"} onClick={ler}
         style={{ ...S.btnGhost, width: "100%", fontWeight: 900, opacity: texto.trim().length < 3 ? 0.5 : 1 }}>{estado === "lendo" ? "⏳ Montando a lista…" : "✨ Montar a lista"}</button>
       {estado === "erro" && <div style={{ fontSize: 12.5, color: "#FFB21A", fontWeight: 800, marginTop: 10, lineHeight: 1.45 }}>⚠ {erro}</div>}
-      {estado === "lido" && <ConferirIA lista={lista} setLista={setLista} prato={prato} refeicao={refeicao} onAdd={(it, ag, rf) => { onAdd(it, ag, rf); setTexto(""); setLista([]); setEstado("pronto"); }} />}
+      {estado === "lido" && <ConferirIA lista={lista} setLista={setLista} prato={prato} refeicao={refeicao} onAdd={(it, ag, rf) => { onAdd(it, ag, rf); setTexto(""); setLista([]); setEstado("pronto"); }} onDescartar={() => { setLista([]); setEstado("pronto"); }} />}
       {estado === "lido" && <AvisoAppCheck />}
       <div style={{ fontSize: 10.5, color: "var(--cinza)", lineHeight: 1.4, marginTop: 8 }}>O texto vai para a IA do Google (Gemini) só para montar a lista.</div>
     </div>
@@ -40339,7 +40341,7 @@ function LeituraIAPrato({ refeicao, onAdd }) {
       <CameraOuGaleria principal ocupado={estado === "lendo"} rotuloOcupado="⏳ Lendo o prato…" rotuloCamera={lista.length ? "📷 Outra foto" : "📷 Fotografar"} onArquivo={ler} />
       {foto && <img src={foto} alt="O prato" style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 12, marginTop: 10, border: "1px solid var(--borda2)" }} />}
       {estado === "erro" && <div style={{ fontSize: 12.5, color: "#FFB21A", fontWeight: 800, marginTop: 10, lineHeight: 1.45 }}>⚠ {erro}</div>}
-      {estado === "lido" && <ConferirIA lista={lista} setLista={setLista} prato={prato} refeicao={refeicao} onAdd={onAdd} />}
+      {estado === "lido" && <ConferirIA lista={lista} setLista={setLista} prato={prato} refeicao={refeicao} onAdd={onAdd} onDescartar={() => { setLista([]); setPrato(""); if (foto) URL.revokeObjectURL(foto); setFoto(null); setEstado("pronto"); }} />}
       {estado === "lido" && <AvisoAppCheck />}
       <div style={{ fontSize: 10.5, color: "var(--cinza)", lineHeight: 1.4, marginTop: 8 }}>A foto vai para a IA do Google (Gemini) só para esta leitura; o app não guarda a foto.</div>
     </div>

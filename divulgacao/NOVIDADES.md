@@ -16,6 +16,26 @@
 
 ---
 
+## 2026-11-28j — "Não anotar" na leitura da IA
+
+**Em uma frase:** a lista que a IA monta pela foto ou pela frase agora tem um
+botão para descartar, além do de anotar.
+
+**O que mudou:** embaixo de "✓ Anotar no dia" apareceu "✕ Não anotar: descartar
+esta leitura". A lista some e dá para tirar outra foto ou escrever de novo.
+
+**Por que importa para quem treina:** foto errada, prato de outra pessoa ou
+leitura que não ficou boa não entram no dia por falta de saída.
+
+**Como usar:** Balance › + Comida › 📷 Foto (ou "Escreva o que comeu") › depois
+da leitura, "✕ Não anotar".
+
+**Ideias de vídeo:** nenhuma; é um ajuste.
+
+**Não prometer:** nada novo.
+
+---
+
 ## 2026-11-28i — A frase "A IA viu" inteira
 
 **Em uma frase:** a descrição do prato que a IA faz agora aparece inteira, sem

@@ -7225,6 +7225,9 @@ remédio (ver *A defesa legal*): ali a IA seria o profissional que o app não é
   no celular do dono: a foto do prato leu os 6 itens (~660 kcal). A frase "A
   IA viu" passou de 80 letras cortadas no meio para até 160, cortando numa
   palavra inteira.
+- **"✕ Não anotar"** (2026-11-28j, pedido do dono: só havia o Anotar): a
+  lista da IA (`ConferirIA`, prop `onDescartar`) descarta a leitura; na foto,
+  some também a imagem, e a janela de anotar continua aberta.
 - **Desaplicado pelo dono em 28/11/2026** (App Check › APIs › Firebase AI Logic
   › Configurar › "Não aplicado (somente monitoramento)"): a IA voltou a aceitar
   pedidos sem o token. **PRAZO: o Google aplica sozinho em 21 de janeiro de

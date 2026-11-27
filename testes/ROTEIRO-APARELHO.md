@@ -60,7 +60,8 @@ Mandar ao Claude se: o cartão verde não aparecer depois de um treino, os
 horários não baterem com a hora do treino, ou o placar não subir.
 
 Ensaio no navegador (27/11): o cartão verde apareceu (60 min de treino,
-+326 kcal na meta).
++326 kcal na meta), e "✓ consumi, só não anotei" levou o placar de 0/6 a 1/6
+("marcado por você").
 
 Resultado: ___
 
@@ -137,5 +138,10 @@ Resultado: ___
 
 Mandar ao Claude se: alguma ficha mudar sozinha, ou o tempo prometido estiver
 muito longe do real.
+
+Ensaio no navegador (27/11): juntar "Sexta" (13) com "Quinta" (11) deu 8
+exercícios e 26 séries, sem mudar ficha nenhuma; o extra deixou de fora o peito
+treinado no dia e montou costas, bíceps, abdômen e lombar em ~39 min; o "menos
+tempo" pôs a ficha de 1 h 59 em 1 h 30 com 4 bi-sets e descanso mais curto.
 
 Resultado: ___

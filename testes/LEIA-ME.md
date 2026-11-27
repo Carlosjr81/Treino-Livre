@@ -29,7 +29,7 @@ de navegador.
 node testes/rodar.js
 ```
 
-As 29 suítes (1.179 checagens) contra o `index.html` da raiz. Prova que a
+As suítes (2.657 checagens em 27/11/2026) contra o `index.html` da raiz. Prova que a
 **lógica** não quebrou. Vale rodar **antes e depois** de qualquer mexida.
 
 ```bash
@@ -95,7 +95,9 @@ Precisa de Node.js. Nenhuma dependência: não há `package.json`, não há
 
 Eles **não substituem** o teste no aparelho: o roteiro do que ainda não foi
 conferido num celular e num relógio está em **`testes/ROTEIRO-APARELHO.md`**,
-e o roteiro manual completo no `CLAUDE.md`. Provam que a lógica
+e o roteiro manual completo no `CLAUDE.md`. Para ensaiar essas telas no
+navegador com o porteiro ligado, `--antes testes/firebase-falso.js --antes
+testes/entrar-dono.js` entra como o dono, direto na tela inicial. Provam que a lógica
 não quebrou; não provam que a tela funciona. Câmera, microfone e service
 worker continuam exigindo um aparelho de verdade.
 

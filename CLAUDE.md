@@ -7236,6 +7236,12 @@ remédio (ver *A defesa legal*): ali a IA seria o profissional que o app não é
   tela diz "Ficou de fora (anote pelo Buscar)"), e com a lista menor que a
   descrição, ou algo de fora, o `lerPratoPelaIA` pede de novo uma vez e fica
   com a leitura mais completa.
+- **O App Check foi APLICADO pelo dono em 27/11/2026** (Firebase AI Logic:
+  "Básico: aplicado"; a proteção contra repetição ficou **Desativada** de
+  propósito, porque o app reaproveita o crachá por até 1 h). A foto da 28k no
+  celular dele leu os 6 itens sem a linha 🛡 (o crachá chegou). **Daqui da
+  sessão a IA não responde mais** (os testes não têm crachá): o teste de
+  modelo novo é no celular do dono. O prazo de 21/01/2027 deixou de valer.
 - **Desaplicado pelo dono em 28/11/2026** (App Check › APIs › Firebase AI Logic
   › Configurar › "Não aplicado (somente monitoramento)"): a IA voltou a aceitar
   pedidos sem o token. **PRAZO: o Google aplica sozinho em 21 de janeiro de

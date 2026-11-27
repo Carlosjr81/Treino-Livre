@@ -7203,6 +7203,13 @@ remédio (ver *A defesa legal*): ali a IA seria o profissional que o app não é
   "Desaplicado". O passo a passo do dono está no `firebase/LEIA-ME.md`; quando
   ele mandar o ID da chave do reCAPTCHA e o ID do app da Web, eles entram no
   `APP_CHECK` e a leitura precisa ser conferida de novo daqui.
+- **Desaplicado pelo dono em 28/11/2026** (App Check › APIs › Firebase AI Logic
+  › Configurar › "Não aplicado (somente monitoramento)"): a IA voltou a aceitar
+  pedidos sem o token. **PRAZO: o Google aplica sozinho em 21 de janeiro de
+  2027.** Antes disso o dono precisa criar a chave do reCAPTCHA Enterprise,
+  registrar o app da Web no App Check e mandar o ID da chave e o ID do app (o
+  passo a passo está no `firebase/LEIA-ME.md`), e eles entram no `APP_CHECK`.
+  Sem isso, nesse dia toda a IA do app para de novo. Lembre o dono disso.
 - O `sw.js` deixa a IA, o App Check e o reCAPTCHA passarem direto.
 - Coberto por `teste-balance.js` (o JSON embrulhado, o texto com teto, o
   rótulo que confere e o que não confere, a ficha com o que não existe). No

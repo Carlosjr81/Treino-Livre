@@ -1018,5 +1018,41 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
     /JanelaReceiver\" android:exported=\"false\"/.test(kt("app/src/main/AndroidManifest.xml")));
   teste("a pagina so chama o app que sabe agendar", true, /janelas=1/.test(kt("app/src/main/java/br/com/treinolivre/app/Site.kt")));
 }
+console.log("\n--- o dia sem treino (2026-11-27r) ---");
+{
+  const hoje = "2026-11-27"; // sexta
+  const plano = { hora: 18 * 60, dur: 60, dias: [1, 3, 5] }; // seg, qua, sex
+  const hist = [{ data: "2026-11-25T19:10:00", duracaoMin: 60 }];
+  const sit = (o) => situacaoTreinoDia(Object.assign({ historico: hist, plano: plano, hoje: hoje, agoraMin: 600 }, o));
+  teste("treinou no dia: a declaração não vale", "treinou", sit({ dia: "2026-11-25", declarado: { tipo: "faltei" } }).id);
+  teste("declarado descanso", ["descanso", true], [sit({ dia: hoje, declarado: { tipo: "descanso" } }).id, sit({ dia: hoje, declarado: { tipo: "descanso" } }).declarado]);
+  teste("declarado falta", "faltou", sit({ dia: hoje, declarado: { tipo: "faltei" } }).id);
+  teste("fora da agenda: descanso pela agenda", [true, "descanso"], [sit({ dia: "2026-11-26" }).pelaAgenda, sit({ dia: "2026-11-26" }).id]);
+  teste("dia da agenda que passou sem treino: parece falta", [true, "faltou"], [sit({ dia: "2026-11-23" }).deduzido, sit({ dia: "2026-11-23" }).id]);
+  teste("hoje antes do horário: previsto", "previsto", sit({ dia: hoje, agoraMin: 600 }).id);
+  teste("hoje, duas horas depois do fim previsto: parece falta", "faltou", sit({ dia: hoje, agoraMin: 21 * 60 + 5 }).id);
+  teste("sem horário de sempre, hoje: aberto; dia passado: sem saber", ["aberto", "semSaber"], [sit({ dia: hoje, plano: null }).id, sit({ dia: "2026-11-24", plano: null }).id]);
+  teste("declaração torta não vale", undefined, lerSemTreino({ tipo: "xyz" }));
+  const meta = { k: 2000, p: 160, agua: 3000 };
+  const dia = (k, p, agua, itens, st) => ({ meta: meta, tot: { k: k, p: p, agua: agua, itens: itens }, status: { id: st } });
+  const bom = avaliarDiaSemTreino(dia(1980, 165, 3100, 6, "certo"), { id: "descanso", declarado: true }, { objetivo: "perder", sono: { h: 7.5 }, passos: 9000 });
+  teste("descanso com tudo no lugar: nota 100, bem aproveitado", [100, "bom"], [bom.nota, bom.faixa.id]);
+  const ruim = avaliarDiaSemTreino(dia(2900, 80, 1000, 5, "errou"), { id: "faltou", declarado: true }, { objetivo: "perder", sono: { h: 5 }, passos: 2000 });
+  teste("falta sem seguir nada: nota 0, atrapalhou o resultado", [0, "ruim"], [ruim.nota, ruim.faixa.id]);
+  teste("no cutting, o excesso vira gramas no balanço (900 kcal ≈ 117 g)", true, /117 g/.test(ruim.itens.find((i) => i.id === "dieta").texto));
+  teste("a falta pesa contra, o descanso a favor", [false, true], [!!ruim.itens.find((i) => i.id === "treino").bom, !!bom.itens.find((i) => i.id === "treino").bom]);
+  const semMedir = avaliarDiaSemTreino(dia(1980, 165, 3100, 6, "certo"), { id: "semSaber" }, { objetivo: "manter" });
+  teste("o que não foi medido (sono, passos) fica fora da conta", [100, false, false], [semMedir.nota, semMedir.itens.some((i) => i.id === "sono"), semMedir.itens.some((i) => i.id === "passos")]);
+  const naoAnotou = avaliarDiaSemTreino(dia(0, 0, 3000, 0, "vazio"), { id: "descanso", declarado: true }, {});
+  teste("sem anotar a comida, a dieta conta zero", [false, 0], [naoAnotou.anotou, naoAnotou.itens.find((i) => i.id === "dieta").v]);
+  teste("dia de treino não é avaliado como dia sem treino", null, avaliarDiaSemTreino(dia(1980, 165, 3100, 6, "certo"), { id: "treinou" }, {}));
+  const x = { meta: meta, tot: { itens: 3, agua: 0, p: 0 }, treino: { kcal: 0 }, situacao: { id: "descanso" }, janelas: { total: 0, acertos: 0 }, status: { id: "certo" } };
+  const mt = missoesDoDia(x).find((m) => m.id === "treino");
+  teste("o descanso cumpre a missão do treino", [true, "Descansar (dia de descanso)"], [mt.pronto, mt.nome]);
+  const mf = missoesDoDia(Object.assign({}, x, { situacao: { id: "faltou" } })).find((m) => m.id === "treino");
+  teste("a falta não cumpre", false, mf.pronto);
+  const txt = JSON.stringify(ruim) + JSON.stringify(bom);
+  teste("nada de prescrição nem bronca", [], ["prescri", "voce deve", "vergonha", "preguic"].filter((p) => semAcento(txt).indexOf(p) >= 0));
+}
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

@@ -2454,7 +2454,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27q";
+const VERSAO_APP = "2026-11-27r";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4148,7 +4148,8 @@ function lerNutricao(n) {
   r.receitas = lerReceitas(n.receitas);
   if (n.dias && typeof n.dias === "object") {
     const corte = new Date(Date.now() - 400 * 864e5).toISOString().slice(0, 10);
-    Object.keys(n.dias).forEach((d) => { if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d >= corte && n.dias[d] && typeof n.dias[d] === "object") r.dias[d] = { itens: Array.isArray(n.dias[d].itens) ? n.dias[d].itens.slice(0, 120) : [], agua: Number(n.dias[d].agua) || 0, aguaNoite: Math.max(0, Number(n.dias[d].aguaNoite) || 0), insulina: Array.isArray(n.dias[d].insulina) ? n.dias[d].insulina.filter((x) => x && x.t).slice(-20) : [], hipo: Array.isArray(n.dias[d].hipo) ? n.dias[d].hipo.filter((x) => x && x.t).slice(-20) : [], sono: Number(n.dias[d].sono) || 0, aguaEv: Array.isArray(n.dias[d].aguaEv) ? n.dias[d].aguaEv.slice(-60) : [], janelas: Array.isArray(n.dias[d].janelas) ? n.dias[d].janelas.filter((x) => typeof x === "string").slice(0, 12) : [] }; });
+    Object.keys(n.dias).forEach((d) => { if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d >= corte && n.dias[d] && typeof n.dias[d] === "object") r.dias[d] = { itens: Array.isArray(n.dias[d].itens) ? n.dias[d].itens.slice(0, 120) : [], agua: Number(n.dias[d].agua) || 0, aguaNoite: Math.max(0, Number(n.dias[d].aguaNoite) || 0), insulina: Array.isArray(n.dias[d].insulina) ? n.dias[d].insulina.filter((x) => x && x.t).slice(-20) : [], hipo: Array.isArray(n.dias[d].hipo) ? n.dias[d].hipo.filter((x) => x && x.t).slice(-20) : [], sono: Number(n.dias[d].sono) || 0, aguaEv: Array.isArray(n.dias[d].aguaEv) ? n.dias[d].aguaEv.slice(-60) : [], janelas: Array.isArray(n.dias[d].janelas) ? n.dias[d].janelas.filter((x) => typeof x === "string").slice(0, 12) : [],
+      semTreino: lerSemTreino(n.dias[d].semTreino) }; });
   }
   if (Array.isArray(n.vistos)) r.vistos = n.vistos.filter((x) => typeof x === "string").slice(-400);
   return r;
@@ -5021,10 +5022,16 @@ function contasDoBalance(o) {
     const mSem = x.gastoSem ? metaDoDia(perfil, x.gastoSem.totalMeta + ajuste, kg, 0) : null;
     // As janelas do dia (ver AS JANELAS DOS NUTRIENTES). O dia que já passou
     // é medido inteiro; o de hoje, até a hora de agora.
-    const jan = janelasDoDia({ dia: x.dia, treino: horaDoTreino(historico, x.d, o.sessao, x.d === hoje ? perfil.treinoPlano : null), dorme: perfil.dorme,
+    // Declarado sem treino, o horário de sempre não vale: as janelas presas ao
+    // treino saem do dia (2026-11-27r)
+    const jan = janelasDoDia({ dia: x.dia, treino: horaDoTreino(historico, x.d, o.sessao, x.d === hoje && !(x.dia && x.dia.semTreino) ? perfil.treinoPlano : null), dorme: perfil.dorme,
       agoraMin: x.d === hoje ? agoraMin : 1440 });
-    return Object.assign({}, x, { gastoUsado: g, ajusteCorpo: ajuste, preparo: preparo, diuretico: diuretico, apetite: apetite, meta: m,
-      espaco: espacoDoTreino(m, mSem, x.treino), janelas: jan, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens) });
+    const situacao = situacaoTreinoDia({ historico: historico, dia: x.d, sessao: o.sessao, plano: perfil.treinoPlano, declarado: x.dia && x.dia.semTreino, hoje: hoje, agoraMin: agoraMin });
+    const r = Object.assign({}, x, { gastoUsado: g, ajusteCorpo: ajuste, preparo: preparo, diuretico: diuretico, apetite: apetite, meta: m,
+      espaco: espacoDoTreino(m, mSem, x.treino), janelas: jan, status: statusDoDia(x.comeu, m, perfil.objetivo, x.tot.itens), situacao: situacao });
+    const sdP = ((saude && saude.dias) || []).find((y) => y.d === x.d);
+    r.semTreino = avaliarDiaSemTreino(r, situacao, { objetivo: perfil.objetivo, sono: sonoDoDia(saude && saude.sono, x.d, numB(x.dia && x.dia.sono)), passos: sdP ? sdP.passos : null });
+    return r;
   };
   const dias = ultimos.map(comMeta);
   // Com a caneta a fome some, e é comum comer bem abaixo do que o corpo gasta
@@ -5052,6 +5059,98 @@ function resumoBalanceDia(cb, dia) {
     status: x.status, objetivo: cb.ob.id, fase: cb.ob.nome, treino: Math.round(x.treino.kcal || 0),
     prot: Math.round(x.tot.p || 0), protMeta: x.meta.p };
 }
+// ---------------- O DIA SEM TREINO ----------------
+// Pedido do dono (2026-11-27r): "quando não for dia de treino ou faltar no
+// treino, mesmo assim anotar a dieta e a água; o app deve reconhecer que não
+// houve treino e avaliar como foi o dia sem treino perante a dieta e os outros
+// parâmetros. Isso também gera resultado, e não seguir nada prejudica".
+//
+// **Por que declarar importa**: sem a declaração o app não separa descanso de
+// falta, e as duas coisas pesam ao contrário. Descanso planejado é parte do
+// treino (o músculo cresce na recuperação); falta é estímulo perdido. E com o
+// dia declarado as janelas presas ao treino saem do dia (não ficam "perdidas")
+// e a missão do treino conta o descanso. Sem declarar, o app deduz pelo
+// horário de sempre (o dia fora da agenda é descanso; o dia da agenda que
+// passou sem treino "parece falta"), e a tela pede para confirmar.
+const MOTIVOS_SEM_TREINO = {
+  descanso: { ic: "\u{1F6CC}", nome: "Dia de descanso", diz: "planejado: é na recuperação que o músculo cresce" },
+  faltei: { ic: "\u{1F615}", nome: "Faltei ao treino", diz: "a vida acontece; o dia ainda conta pela dieta, pela água e pelo sono" },
+};
+function lerSemTreino(o) {
+  return o && typeof o === "object" && MOTIVOS_SEM_TREINO[o.tipo] ? { tipo: o.tipo, em: Number(o.em) || 0 } : undefined;
+}
+function treinouNoDia(historico, dia, sessao) {
+  if (sessao && sessao.inicio && diaLocal(sessao.inicio) === dia) return true;
+  return (historico || []).some((r) => r && r.data && diaLocal(new Date(r.data).getTime()) === dia);
+}
+// A situação do treino no dia: treinou, descanso, faltou, previsto (hoje, com
+// o horário de sempre ainda pela frente), aberto (hoje, sem horário de sempre),
+// semSaber (dia passado sem horário de sempre e sem declaração) ou futuro.
+function situacaoTreinoDia(o) {
+  if (treinouNoDia(o.historico, o.dia, o.sessao)) return { id: "treinou" };
+  const dec = lerSemTreino(o.declarado);
+  if (dec) return { id: dec.tipo === "descanso" ? "descanso" : "faltou", declarado: true };
+  const temPlano = !!(o.plano && typeof o.plano.hora === "number");
+  const pl = treinoPlanejado(o.plano, o.dia);
+  if (o.dia > o.hoje) return { id: "futuro", plano: pl };
+  if (temPlano && !pl) return { id: "descanso", declarado: false, pelaAgenda: true };
+  if (o.dia === o.hoje) {
+    if (pl && (o.agoraMin || 0) > pl.fim + 120) return { id: "faltou", declarado: false, deduzido: true, plano: pl };
+    return { id: pl ? "previsto" : "aberto", plano: pl };
+  }
+  return pl ? { id: "faltou", declarado: false, deduzido: true, plano: pl } : { id: "semSaber" };
+}
+// A nota do dia sem treino (0 a 100) e o que pesou a favor e contra. Os pesos
+// dizem o que mais move o resultado num dia sem treino: a caloria do dia
+// primeiro (sem o treino para gastar, o excesso vira saldo), depois a proteína
+// (é no descanso que ela reconstrói o músculo), a água e o sono, e o movimento
+// leve. O que não foi medido (sono e passos sem relógio) fica fora da conta,
+// em vez de entrar como zero. Nada aqui é bronca: é o que o dia fez.
+const FAIXAS_DIA_SEM_TREINO = [
+  { min: 80, id: "bom", nome: "Dia sem treino bem aproveitado", cor: "#4CD137", grito: "Descanso que constrói" },
+  { min: 55, id: "medio", nome: "Dia razoável: dá para ajustar", cor: "#FFB21A", grito: "Quase lá" },
+  { min: 0, id: "ruim", nome: "Este dia atrapalhou o resultado", cor: "#FF4D6D", grito: "Amanhã é outro dia" },
+];
+function avaliarDiaSemTreino(x, sit, ext) {
+  if (!x || !x.meta || !sit || ["descanso", "faltou", "semSaber"].indexOf(sit.id) < 0) return null;
+  const e = ext || {}, m = x.meta, t = x.tot, ob = e.objetivo;
+  const anotou = t.itens >= 2 && t.k >= 300;
+  const l = [];
+  const add = (id, ic, nome, peso, v, texto) => l.push({ id: id, ic: ic, nome: nome, peso: peso, v: v, bom: v >= 0.99, ruim: v <= 0.01, texto: texto });
+  const fmt = (n) => Math.round(Math.abs(n)).toLocaleString("pt-BR");
+  if (!anotou) add("dieta", "\u{1F37D}", "Dieta", 40, 0, "Sem anotação: o dia fica fora da conta, e o que não é medido costuma passar da meta. Anote o que comeu, mesmo depois.");
+  else {
+    const st = x.status ? x.status.id : "errou", dif = t.k - m.k;
+    const v = st === "certo" ? 1 : st === "perto" ? 0.6 : 0;
+    let tx;
+    if (st === "certo") tx = "Na meta: " + fmt(t.k) + " de " + fmt(m.k) + " kcal. Sem o treino, é a dieta que segura o resultado, e ela segurou.";
+    else if (dif > 0) tx = "Passou " + fmt(dif) + " kcal da meta" + (ob === "perder" ? ": sem o treino para gastar, o excesso fica no saldo (cerca de " + fmt(dif / 7.7) + " g a mais no balanço, a 7.700 kcal por kg)." : ob === "ganhar" ? ": no bulking, passar muito vira mais gordura, não mais músculo." : ": o peso sobe aos poucos quando isso se repete.");
+    else tx = "Ficou " + fmt(dif) + " kcal abaixo da meta" + (ob === "ganhar" ? ": no bulking, o músculo também cresce no dia de descanso, e faltou combustível." : ob === "perder" ? ": abaixo demais, a fome volta mais forte e o músculo sofre." : ".");
+    add("dieta", "\u{1F37D}", "Dieta", 40, v, tx);
+  }
+  const rp = m.p ? t.p / m.p : 0;
+  add("prot", "\u{1F356}", "Proteína", 20, rp >= 0.9 ? 1 : rp >= 0.7 ? 0.5 : 0, rp >= 0.9 ? Math.round(t.p) + " de " + m.p + " g: é no descanso que ela reconstrói o músculo."
+    : "Faltaram " + Math.max(0, Math.round(m.p - t.p)) + " g de proteína: no dia sem treino ela continua sendo o que segura o músculo.");
+  const ra = m.agua ? t.agua / m.agua : 0;
+  add("agua", "\u{1F4A7}", "Água", 15, ra >= 0.9 ? 1 : ra >= 0.6 ? 0.5 : 0, ra >= 0.9 ? "Água em dia." : "Faltou " + Math.max(0, Math.round((m.agua - t.agua) / 100) / 10).toLocaleString("pt-BR") + " L de água para a meta do dia.");
+  if (e.sono && e.sono.h > 0) {
+    const sh = e.sono.h;
+    add("sono", "\u{1F634}", "Sono", 15, sh >= 7 ? 1 : sh >= 6 ? 0.5 : 0, sh >= 7 ? String(sh).replace(".", ",") + " h: o descanso completo é o sono."
+      : String(sh).replace(".", ",") + " h: com sono curto a fome sobe e a recuperação cai, justo no dia de recuperar.");
+  }
+  if (typeof e.passos === "number" && e.passos > 0) {
+    add("passos", "\u{1F45F}", "Movimento", 10, e.passos >= 7000 ? 1 : e.passos >= 4000 ? 0.5 : 0, e.passos.toLocaleString("pt-BR") + " passos" +
+      (e.passos >= 7000 ? ": andar no dia sem treino gasta sem cansar." : ": uma caminhada leve no dia sem treino ajuda o gasto sem atrapalhar a recuperação."));
+  }
+  if (sit.id === "descanso") add("treino", "\u{1F6CC}", "Descanso", 10, 1, sit.pelaAgenda ? "Fora dos seus dias de treino: descanso planejado também é treino." : "Dia de descanso declarado: é na recuperação que o músculo cresce.");
+  if (sit.id === "faltou") add("treino", "\u{1F615}", "Treino perdido", 15, 0, "Treino perdido: junte com o próximo (🔗 Faltei um dia, na tela inicial) para a semana não perder o estímulo.");
+  const soma = l.reduce((a, i) => a + i.peso, 0);
+  const nota = soma ? Math.round((l.reduce((a, i) => a + i.peso * i.v, 0) / soma) * 100) : 0;
+  const faixa = FAIXAS_DIA_SEM_TREINO.find((f) => nota >= f.min);
+  return { sit: sit, nota: nota, faixa: faixa, itens: l, anotou: anotou, bons: l.filter((i) => i.bom), ruins: l.filter((i) => i.ruim),
+    comeu: Math.round(t.k), meta: m.k, prot: Math.round(t.p), protMeta: m.p, agua: Math.round(t.agua), aguaMeta: m.agua,
+    sono: e.sono && e.sono.h > 0 ? e.sono.h : null, passos: typeof e.passos === "number" && e.passos > 0 ? e.passos : null, status: x.status };
+}
 // ---------------- O JOGO DO BALANCE ----------------
 // Pedido do dono (2026-11-26i): "gamefique a visão de controle da dieta para
 // ficar mais engajado e divertido de acompanhar".
@@ -5073,7 +5172,7 @@ const MISSOES_BALANCE = [
   { id: "prot", ic: "\u{1F356}", nome: "Bater a proteína", xp: 25, oque: "é ela que segura o músculo no déficit",
     alvo: (x) => (x.meta ? x.meta.p : 0), feito: (x) => Math.round(x.tot.p), un: "g" },
   { id: "treino", ic: "\u{1F3CB}", nome: "Treinar hoje", xp: 20, oque: "qualquer treino anotado no app conta",
-    alvo: (x) => 1, feito: (x) => (x.treino && x.treino.kcal > 0 ? 1 : 0), un: "" },
+    alvo: (x) => 1, feito: (x) => ((x.treino && x.treino.kcal > 0) || (x.situacao && x.situacao.id === "descanso") ? 1 : 0), un: "" },
   { id: "timing", ic: "\u{23F1}", nome: "Acertar 2 janelas de nutriente", xp: 20, oque: "a hora pesa pouco perto do total do dia: por isso são 2, e não todas",
     alvo: (x) => Math.min(2, x.janelas ? x.janelas.total : 0), feito: (x) => (x.janelas ? x.janelas.acertos : 0), un: "" },
   { id: "meta", ic: "\u{1F3AF}", nome: "Fechar o dia na meta", xp: 30, oque: "a última, e a que mais vale",
@@ -5085,7 +5184,9 @@ function missoesDoDia(x) {
   return MISSOES_BALANCE.map((m) => {
     const alvo = Math.max(0, Math.round(m.alvo(x))), feito = Math.max(0, Math.round(m.feito(x)));
     const pronto = alvo > 0 && feito >= alvo;
-    return Object.assign({}, m, { alvo: alvo, feito: feito, pronto: pronto, pct: alvo > 0 ? Math.min(1, feito / alvo) : 0 });
+    const desc = m.id === "treino" && x.situacao && x.situacao.id === "descanso" && !(x.treino && x.treino.kcal > 0)
+      ? { nome: "Descansar (dia de descanso)", oque: "o descanso planejado também conta" } : {};
+    return Object.assign({}, m, desc, { alvo: alvo, feito: feito, pronto: pronto, pct: alvo > 0 ? Math.min(1, feito / alvo) : 0 });
   });
 }
 function xpDoDia(x) { return missoesDoDia(x).reduce((a, m) => a + (m.pronto ? m.xp : 0), 0); }
@@ -17146,7 +17247,7 @@ function CartaoAppAndroid({ onDepois }) {
 function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo, onAbrirProgresso,
   avisoBackup, onBaixarBackup, onTreinar, onCriarPrograma, onAssistente, onTreinoLivre, onFuncional,
   convite, onSeguir, onDispensarConvite, onCopiarLink, onInstalar, instalado, onEscolaVoz, onPercurso, onZumbi, onIntervalado, onDesafio, onEsteira, onAjustarTempo, onJuntar,
-  saude, onRetrospectiva, retroDepois, onRetroDepois, onExtra }) {
+  saude, onRetrospectiva, retroDepois, onRetroDepois, onExtra, semTreinoHoje, treinouHoje, onSemTreino, onVerDia }) {
   const ultima = historico[0];
   const est = useMemo(() => calcularEstatisticas(historico), [historico]);
   const temFichas = treinos.length > 0;
@@ -17275,6 +17376,19 @@ function TelaInicio({ programas, treinos, historico, meta, exPorId, onAbrirGrupo
             {onExtra && historico.length > 0 && (
               <button style={{ ...S.btnGhost, marginTop: 8, fontWeight: 800 }} onClick={onExtra}>➕ Já treinei tudo: fazer um treino extra</button>
             )}
+            {onSemTreino && !treinouHoje && (semTreinoHoje ? (
+              <div style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: "9px 11px", marginTop: 10, fontSize: 13, lineHeight: 1.5 }}>
+                <b>{semTreinoHoje === "descanso" ? "\u{1F6CC} Hoje é dia de descanso." : "\u{1F615} Hoje ficou sem o treino."}</b>{" "}
+                O dia é avaliado pela dieta, pela água e pelo sono.{" "}
+                <button onClick={onVerDia} style={{ background: "none", border: "none", padding: 0, color: "var(--marca)", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>Ver o dia ›</button>{" "}
+                <button onClick={() => onSemTreino(null)} style={{ background: "none", border: "none", padding: 0, color: "var(--cinza)", fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}>vou treinar</button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button style={{ ...S.btnGhost, flex: 1, fontWeight: 800, fontSize: 13, padding: "10px 6px" }} onClick={() => onSemTreino("descanso")}>{"\u{1F6CC}"} Hoje é descanso</button>
+                <button style={{ ...S.btnGhost, flex: 1, fontWeight: 800, fontSize: 13, padding: "10px 6px" }} onClick={() => onSemTreino("faltei")}>{"\u{1F615}"} Não vou conseguir</button>
+              </div>
+            ))}
             {novato && (
               <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 10, lineHeight: 1.5 }}>
                 Um treino de iniciante, pronto para usar. Quer outro objetivo ou mais dias?{" "}
@@ -30072,6 +30186,49 @@ function cenasRetrospectiva(r, historico) {
   c.forEach((x) => { x.ms = x.tipo === "vinheta" ? VIDEO_VINHETA_MS : Math.max(3400, x.fala.split(" ").length * 420 + 900); });
   return c;
 }
+// O resumo animado do dia sem treino (2026-11-27r): as mesmas cenas e o mesmo
+// visual do resumo do treino, com o que o dia fez sem ele.
+function cenasDiaSemTreino(av, dia) {
+  const c = [];
+  imagemMonstro(LOGO_APP); imagemMonstro(ARTE_RESUMO.fundo); imagemMonstro(ARTE_RESUMO.frente);
+  const dt = new Date(dia + "T12:00:00");
+  const quando = DIAS_RESUMO[dt.getDay()] + ", " + dt.getDate() + " de " + MESES_RESUMO[dt.getMonth()];
+  const desc = av.sit.id === "descanso", falt = av.sit.id === "faltou";
+  const titulo = desc ? "Dia de descanso" : falt ? "Dia sem o treino" : "Dia sem treino";
+  c.push({ tipo: "vinheta", rotulo: titulo, fala: "Treino Livre." });
+  c.push({ tipo: "abre", rotulo: "Resumo do dia", titulo: titulo, dia: quando,
+    sub: desc ? "O músculo cresce no descanso. Veja como o dia ajudou." : falt ? "O treino ficou para trás, mas o dia continuou contando." : "Sem treino, a dieta, a água e o sono decidem o resultado.",
+    grito: desc ? "Recuperar é treinar" : "O dia conta", fala: titulo + ". " + (desc ? "O músculo cresce no descanso. Veja como o dia ajudou." : "Sem treino, a dieta, a água e o sono decidem o resultado.") });
+  if (av.anotou) {
+    const certo = av.status && av.status.id === "certo", passou = av.comeu > av.meta;
+    c.push({ tipo: "numero", rotulo: "Body Balance do dia", valor: av.comeu, casas: 0, unidade: "kcal",
+      sub: "meta " + av.meta.toLocaleString("pt-BR") + " kcal", grito: certo ? "Na meta!" : passou ? "Passou da meta" : "Abaixo da meta",
+      corGrito: certo ? "#7CFF3C" : av.status && av.status.id === "perto" ? "#FFB21A" : "#FF5A5F", forte: certo,
+      fala: av.comeu.toLocaleString("pt-BR") + " de " + av.meta.toLocaleString("pt-BR") + " calorias da meta. " + (certo ? "Na meta." : passou ? "Passou da meta." : "Abaixo da meta.") });
+    c.push({ tipo: "numero", rotulo: "Proteína do dia", valor: av.prot, casas: 0, unidade: "g", sub: "meta " + av.protMeta + " g",
+      grito: av.prot >= av.protMeta * 0.9 ? "Músculo protegido" : "Faltou proteína", corGrito: av.prot >= av.protMeta * 0.9 ? null : "#FF5A5F",
+      fala: av.prot + " gramas de proteína, de " + av.protMeta + " da meta." });
+  }
+  const litros = av.agua / 1000;
+  c.push({ tipo: "numero", rotulo: "Água do dia", valor: litros, casas: 1, unidade: "L", sub: "meta " + (av.aguaMeta / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " L",
+    grito: av.agua >= av.aguaMeta * 0.9 ? "Hidratado" : "Faltou água", corGrito: av.agua >= av.aguaMeta * 0.9 ? null : "#FF5A5F",
+    fala: litros.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " litros de água." });
+  if (av.passos) c.push({ tipo: "numero", rotulo: "Passos do dia", valor: av.passos, casas: 0, unidade: "passos", sub: "",
+    grito: av.passos >= 7000 ? "Em movimento" : "Dá para andar mais", fala: av.passos.toLocaleString("pt-BR") + " passos." });
+  const bons = av.bons.filter((i) => i.id !== "treino" || desc).map((i) => i.ic + " " + i.nome);
+  if (bons.length >= 2) c.push({ tipo: "superacao", rotulo: "O que o dia acertou", titulo: "Dia vencido", itens: bons.slice(0, 4), forte: av.nota >= 80, impactoMs: 750,
+    sub: desc ? "Descanso com a dieta no lugar é resultado." : "Mesmo sem treino, o resto ficou no lugar.", fala: "O que o dia acertou: " + av.bons.slice(0, 3).map((i) => i.nome.toLowerCase()).join(", ") + "." });
+  if (av.ruins.length) c.push({ tipo: "texto", rotulo: "O que pesou contra", texto: av.ruins.slice(0, 2).map((i) => i.nome).join(" e "), sub: av.ruins[0].texto,
+    grito: "Ajuste amanhã", corGrito: "#FF5A5F", fala: "O que pesou contra: " + av.ruins.slice(0, 2).map((i) => i.nome.toLowerCase()).join(" e ") + ". " + av.ruins[0].texto });
+  c.push({ tipo: "numero", rotulo: "Nota do dia", valor: av.nota, casas: 0, unidade: "de 100", sub: av.faixa.nome, grito: av.faixa.grito,
+    corGrito: av.faixa.id === "bom" ? "#7CFF3C" : av.faixa.id === "medio" ? "#FFB21A" : "#FF5A5F", forte: av.nota >= 80,
+    fala: "Nota do dia: " + av.nota + " de 100. " + av.faixa.nome + "." });
+  c.push({ tipo: "fecho", medalha: av.nota >= 80 ? "ouro" : av.nota >= 55 ? "prata" : "bronze", pts: 0,
+    fala: desc ? "Descansou, cuidou da dieta. Amanhã tem treino." : "Amanhã é outro dia. Bora treinar." });
+  c.forEach((x) => { if (x.forte && x.tipo !== "fecho") x.bonus = "Bônus do dia"; });
+  c.forEach((x) => { x.ms = x.tipo === "vinheta" ? VIDEO_VINHETA_MS : Math.max(3400, x.fala.split(" ").length * 420 + 900); });
+  return c;
+}
 // O ano que a retrospectiva mostra: o de agora, e na primeira quinzena de
 // janeiro o que acabou de terminar
 function anoDaRetrospectiva(agora) {
@@ -40009,7 +40166,80 @@ function CartaoJogoBalance({ x, dias, nutricao, hoje, ehHoje }) {
     </div>
   );
 }
-function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pesoCorporal, medidas, corredor, sessao, avisar, pedirConfirmacao, onPercurso, onEsteira, sincronizarRelogio }) {
+// O cartão do dia sem treino no Balance (2026-11-27r): pergunta se o dia tem
+// treino (quando o app não sabe), e com o dia sem treino mostra a nota, o que
+// ajudou, o que atrapalhou e o resumo animado.
+function CartaoDiaSemTreino({ x, ehHoje, onDeclarar, onResumo, onJuntar }) {
+  const sit = x && x.situacao, av = x && x.semTreino;
+  const [aberto, setAberto] = useState(false);
+  if (!sit || sit.id === "treinou" || sit.id === "futuro") return null;
+  const hhmm = (mn) => String(Math.floor(mn / 60)).padStart(2, "0") + ":" + String(mn % 60).padStart(2, "0");
+  const botoes = (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+      <button onClick={() => onDeclarar("descanso")} style={{ ...S.btnGhost, padding: "10px 6px", fontWeight: 900, fontSize: 13 }}>{"\u{1F6CC}"} Dia de descanso</button>
+      <button onClick={() => onDeclarar("faltei")} style={{ ...S.btnGhost, padding: "10px 6px", fontWeight: 900, fontSize: 13 }}>{"\u{1F615}"} {ehHoje ? "Faltei / não vai dar" : "Faltei"}</button>
+    </div>
+  );
+  const porque = <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.5, marginTop: 8 }}>Declarar separa descanso de falta (pesam ao contrário), tira do dia as janelas do treino e conta o descanso na missão.</div>;
+  if (sit.id === "previsto" || sit.id === "aberto") return (
+    <div style={{ ...S.card }}>
+      <div style={{ fontWeight: 900, fontSize: 15 }}>{"\u{1F3CB}"} Hoje tem treino?</div>
+      <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.5, marginTop: 4 }}>
+        {sit.plano ? "O seu treino está previsto para as " + hhmm(sit.plano.ini) + ". Se não for treinar hoje, diga: o dia passa a ser avaliado pela dieta, pela água e pelo sono." : "Se hoje não tiver treino, diga: o dia passa a ser avaliado pela dieta, pela água e pelo sono."}
+      </div>
+      {botoes}{porque}
+    </div>
+  );
+  if (!av) return null;
+  const f = av.faixa;
+  const perguntar = !sit.declarado && !sit.pelaAgenda;
+  return (
+    <div style={{ ...S.card, borderColor: f.cor + "88", background: "radial-gradient(120% 100% at 100% 0%, " + f.cor + "1F 0%, transparent 60%), var(--card)" }}>
+      <div style={S.label}>{sit.id === "descanso" ? "\u{1F6CC} Dia de descanso" : sit.id === "faltou" ? (sit.deduzido ? "\u{1F615} Parece que faltou ao treino" : "\u{1F615} Dia sem o treino") : "Dia sem treino"}</div>
+      <div style={{ display: "flex", gap: 14, alignItems: "center", marginTop: 6 }}>
+        <div style={{ flexShrink: 0, width: 74, height: 74, borderRadius: 37, border: "5px solid " + f.cor, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ ...S.numero, fontSize: 26, lineHeight: 1 }}>{av.nota}</div>
+          <div style={{ fontSize: 10, color: "var(--cinza)", fontWeight: 800 }}>de 100</div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 900, fontSize: 15.5, color: f.cor, lineHeight: 1.3 }}>{f.nome}</div>
+          <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.45, marginTop: 3 }}>
+            {f.id === "bom" ? "Sem treino, o resultado sai da dieta, da água e do sono, e eles ficaram no lugar." : f.id === "medio" ? "Parte do dia ajudou, parte atrapalhou: veja o que ajustar." : "Sem treino e sem seguir o resto, o dia jogou contra o resultado."}
+          </div>
+        </div>
+      </div>
+      {perguntar && (
+        <div style={{ border: "1px solid var(--borda2)", borderRadius: 12, padding: "9px 11px", marginTop: 10, fontSize: 13, lineHeight: 1.5 }}>
+          {sit.deduzido ? "Era dia do seu treino e nenhum foi anotado. Foi descanso ou falta?" : "Este dia não teve treino anotado. Foi descanso ou falta?"}
+          {botoes}
+        </div>
+      )}
+      <button onClick={() => setAberto((v) => !v)} aria-expanded={aberto} style={{ background: "none", border: "none", padding: "10px 0 0", color: "var(--marca)", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+        {aberto ? "▴ Esconder" : "▾ O que ajudou e o que atrapalhou (" + av.itens.length + ")"}
+      </button>
+      {aberto && (
+        <div style={{ marginTop: 8 }}>
+          {av.itens.map((i) => (
+            <div key={i.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 8 }}>
+              <span style={{ flexShrink: 0, fontWeight: 900, color: i.bom ? "var(--ok)" : i.ruim ? "var(--perigo)" : "#FFB21A" }}>{i.bom ? "✓" : i.ruim ? "✗" : "~"}</span>
+              <div style={{ fontSize: 13, lineHeight: 1.45 }}><b>{i.ic} {i.nome}.</b> {i.texto}</div>
+            </div>
+          ))}
+          {!av.anotou && <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5 }}>Sem a comida anotada, a nota mede só o que dá para medir.</div>}
+          {sit.declarado && <button onClick={() => onDeclarar(null)} style={{ background: "none", border: "none", padding: 0, color: "var(--cinza)", fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}>Desfazer: não era {sit.id === "descanso" ? "descanso" : "falta"}</button>}
+          {sit.declarado && <span style={{ color: "var(--cinza)", fontSize: 12.5 }}> · </span>}
+          {sit.declarado && <button onClick={() => onDeclarar(sit.id === "descanso" ? "faltei" : "descanso")} style={{ background: "none", border: "none", padding: 0, color: "var(--cinza)", fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}>Era {sit.id === "descanso" ? "falta" : "descanso"}</button>}
+        </div>
+      )}
+      {sit.id === "faltou" && ehHoje && onJuntar && (
+        <button onClick={onJuntar} style={{ ...S.btnGhost, width: "100%", marginTop: 10, fontWeight: 800, fontSize: 13 }}>{"\u{1F517}"} Recuperar: juntar este treino com o próximo</button>
+      )}
+      {onResumo && <button onClick={onResumo} style={{ ...S.btnGhost, width: "100%", marginTop: 10, fontWeight: 900, color: "var(--marca)", borderColor: "var(--marca)" }}>▶ Resumo animado do dia</button>}
+    </div>
+  );
+}
+
+function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pesoCorporal, medidas, corredor, sessao, avisar, pedirConfirmacao, onPercurso, onEsteira, sincronizarRelogio, onResumoDia, onJuntar }) {
   const [secao, setSecao] = useState("hoje");
   const [janela, setJanela] = useState(null);
   const [catalogo, setCatalogo] = useState(null);
@@ -40274,6 +40504,10 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                 🔎 Catálogo: comparar alimentos e escolher
               </button>
 
+              <CartaoDiaSemTreino x={atual} ehHoje={ehHoje} onJuntar={onJuntar}
+                onDeclarar={(tipo) => { mudarDia(diaVer, (d) => Object.assign({}, d, { semTreino: tipo ? { tipo: tipo, em: Date.now() } : undefined }));
+                  mostrar(tipo === "descanso" ? "\u{1F6CC} Dia de descanso marcado" : tipo ? "Treino perdido marcado" : "Declaração desfeita"); if (ehHoje) mandarDepois.current = true; }}
+                onResumo={onResumoDia && atual.semTreino ? () => onResumoDia(cenasDiaSemTreino(atual.semTreino, diaVer)) : null} />
               <CartaoEspacoTreino x={atual} />
               <CartaoJogoBalance x={atual} dias={dias} nutricao={nutricao} hoje={hoje} ehHoje={ehHoje} />
               <CartaoJanelas x={atual} ehHoje={ehHoje} perfil={perfilG}
@@ -44082,6 +44316,11 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
         ))}
         {aba === "inicio" && (
           <TelaInicio programas={programas} treinos={treinos} historico={historico}
+            semTreinoHoje={(() => { const d = (nutricao.dias || {})[diaLocal(Date.now())]; return d && d.semTreino ? d.semTreino.tipo : null; })()}
+            treinouHoje={treinouNoDia(historico, diaLocal(Date.now()), sessao)}
+            onSemTreino={(tipo) => setNutricao((n) => { const hj = diaLocal(Date.now()); const dd = Object.assign({}, n.dias || {});
+              dd[hj] = Object.assign({ itens: [], agua: 0 }, dd[hj] || {}, { semTreino: tipo ? { tipo: tipo, em: Date.now() } : undefined }); return Object.assign({}, n, { dias: dd }); })}
+            onVerDia={() => setAba("balance")}
             saude={saude} onRetrospectiva={abrirRetrospectiva} retroDepois={retroDepois}
             onRetroDepois={(a) => { setRetroDepois(a); try { localStorage.setItem("treinolivre:retroDepois", a); } catch (e) {} }}
             meta={meta} exPorId={exPorId} avisoBackup={avisoBackup} onBaixarBackup={baixarBackup}
@@ -44294,7 +44533,9 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
           <TelaBodyBalance nutricao={nutricao} setNutricao={setNutricao} historico={historico} exPorId={exPorId} saude={saude}
             pesoCorporal={pesoCorporal} medidas={medidas} corredor={corredor} sessao={sessao} avisar={avisar} pedirConfirmacao={pedirConfirmacao}
             onPercurso={() => setAba("percurso")} onEsteira={() => iniciarEsteira("esteira-caminhada")}
-            sincronizarRelogio={NO_APP_ANDROID ? sincronizarComidaRelogio : null} />
+            sincronizarRelogio={NO_APP_ANDROID ? sincronizarComidaRelogio : null}
+            onResumoDia={(cenas) => setResumoAnim({ cenas: cenas })}
+            onJuntar={() => { const f = fichaDeHoje(programas, treinos, historico); if (f) abrirJuntar(f.ficha); }} />
         )}
         {aba === "historico" && (
           <TelaHistorico historico={historico} exPorId={exPorId} onRetrospectiva={abrirRetrospectiva}

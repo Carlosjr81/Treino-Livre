@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27r — O dia sem treino também conta
+
+- **Em uma frase:** no dia de descanso (ou no dia em que não deu para treinar), o app avalia o dia pela dieta, pela proteína, pela água, pelo sono e pelos passos, dá uma nota de 0 a 100 e mostra num resumo animado.
+- **O que mudou:** na tela inicial e no Balance dá para dizer "🛌 Hoje é descanso" ou "😕 Não vou conseguir". O descanso planejado conta a favor (cumpre a missão do treino), a falta conta contra e oferece juntar o treino perdido com o próximo. O app também percebe sozinho: dia fora dos seus dias de treino vira descanso, e o dia de treino que passou sem treino pergunta se foi descanso ou falta. As janelas do treino saem do dia sem treino.
+- **Por que importa para quem treina:** o resultado não vem só do treino. Num dia sem treino, comer acima da meta vira saldo sem nada para gastar, e o app mostra isso em números (no cutting, quantos gramas a mais no balanço). E quem descansa direito vê que descanso também é parte do treino.
+- **Como usar:** no dia sem treino, toque em "🛌 Hoje é descanso" na tela inicial e anote a comida e a água normalmente no Balance. No fim do dia, toque em "▶ Resumo animado do dia".
+- **Ideias de vídeo:** "dia de descanso não é dia livre": a nota do dia subindo com a dieta na meta e a proteína batida; o contraste com um dia que "atrapalhou o resultado".
+- **Não prometer:** que a nota é avaliação de saúde ou de nutricionista (é informação geral, a partir do que a pessoa anotou); que descansar substitui o treino.
+
+---
+
 ## 2026-11-27q — Os textos do app acompanham os planos
 
 - **Em uma frase:** o app deixou de se apresentar como grátis em todas as telas, nos textos de compartilhar e nos Termos de Uso, porque o acesso agora é por plano.

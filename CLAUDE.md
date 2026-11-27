@@ -213,6 +213,40 @@ retransmissor do Desafio). E-mail do dono: `EMAIL_DONO`.
   **Validado no Firebase de verdade (28/10/2026)**: o dono criou a conta dele
   (confirmou o e-mail e entrou como dono) e uma segunda conta de teste.
 
+## O dia sem treino (`situacaoTreinoDia`, `avaliarDiaSemTreino`, `CartaoDiaSemTreino`, 2026-11-27r)
+
+Pedido do dono: "quando não for dia de treino ou faltar no treino, o app deve
+reconhecer que não houve treino e avaliar o dia pela dieta e pelos outros
+parâmetros; isso também gera resultado, e não seguir nada prejudica". Bloco
+puro **O DIA SEM TREINO**, antes do jogo do Balance (coberto em `teste-balance.js`).
+
+- **Declarar importa, e por isso existe**: `nutricao.dias[dia].semTreino =
+  { tipo: "descanso" | "faltei", em }` (`lerSemTreino`, no backup com o
+  Balance). Descanso e falta pesam ao contrário; com o dia declarado as janelas
+  do treino saem do dia (o horário de sempre não vale) e o descanso cumpre a
+  missão do treino ("Descansar (dia de descanso)"). Treino anotado no dia
+  vence qualquer declaração.
+- **Sem declarar, o app deduz** (`situacaoTreinoDia`): dia fora da agenda
+  (`perfil.treinoPlano.dias`) é descanso pela agenda; dia da agenda que
+  passou sem treino (ou hoje, 2 h depois do fim previsto) "parece falta", e a
+  tela pergunta; hoje antes do horário é "previsto"; sem agenda, "aberto"
+  (hoje) ou "sem saber" (passado).
+- **A nota do dia** (`avaliarDiaSemTreino`, 0 a 100): dieta 40 (pela
+  direção do objetivo; no cutting o excesso vira gramas no balanço), proteína
+  20, água 15, sono 15 e passos 10 (só se medidos: o que não foi medido sai
+  da conta), descanso +10 a favor ou treino perdido 15 contra. Faixas
+  `FAIXAS_DIA_SEM_TREINO` (80 bom, 55 razoável, abaixo "atrapalhou o
+  resultado"). Nada de bronca nem de prescrição (o teste procura).
+- **Onde aparece**: Balance › Hoje (`CartaoDiaSemTreino`: a pergunta, a nota, o
+  que ajudou e atrapalhou, desfazer, "Recuperar: juntar com o próximo" na
+  falta de hoje, e "▶ Resumo animado do dia", `cenasDiaSemTreino`, com as
+  cenas de sempre: Body Balance, proteína, água, passos, o que acertou, o que
+  pesou contra, a nota e o fecho), e a tela inicial ("🛌 Hoje é descanso" /
+  "😕 Não vou conseguir" no cartão do treino de hoje; declarado, "Ver o dia ›").
+- No navegador: a tela inicial declarada, o Balance com a nota 79 e a missão,
+  a pergunta do previsto virando avaliação, e o resumo do dia. **Não validado
+  num aparelho.**
+
 ## Liberado, instale o app (`InstalarAposLiberar`, `PassosInstalar`, 2026-11-27p)
 
 Relato do dono: deu "🎁 Cortesia sem prazo" ao Lucas, abriu o "Liberar por quanto

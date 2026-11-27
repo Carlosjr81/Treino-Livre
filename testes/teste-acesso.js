@@ -10,7 +10,7 @@ function pedaco(de, ate) {
 const plural = (n, s, p) => (n === 1 ? s : p);
 eval(pedaco("const semAcento = (s) =>", ";\n") + ";\nglobalThis.semAcento = semAcento;");
 eval(pedaco("// ---------------- ACESSO: AS CONTAS", "// ---------------- FIM DAS CONTAS") +
-  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO, situacaoConta, prazoAte, recadoNovo, csvContas, filtroConta, entrouAutomatico, autoNovos, csvAceites, ordenarAceites, lerCobranca, planoDaConta, acessoPago, pixCopiaECola, crc16Pix, txidPagamento, planosAtivos, planoPorId, resumoPagamentos, csvPagamentos, ordenarPagamentos, fimDoDia, textoPlanoConta, precoTexto, tempoDePlano, avisoDeVencimento, DIAS_AVISO_VENCE, tipoDaConta, resumoPlanos, TIPOS_PLANO, filtroConta, conferirComprovante, dadosComprovanteValidos, linkDmInstagram, textoDmComprovante, COMPROVANTE_MAX_CHARS };");
+  "\nglobalThis.A = { paraFirestore, deFirestore, aparelhoDe, liberadoSemRede, ordenarContas, resumoContas, filtrarContas, erroDeConta, ehEmailDono, sugerirEmail, FIREBASE_ACESSO, EMAIL_DONO, situacaoConta, prazoAte, recadoNovo, csvContas, filtroConta, entrouAutomatico, autoNovos, csvAceites, ordenarAceites, lerCobranca, planoDaConta, acessoPago, pixCopiaECola, crc16Pix, txidPagamento, planosAtivos, planoPorId, resumoPagamentos, csvPagamentos, ordenarPagamentos, fimDoDia, textoPlanoConta, precoTexto, tempoDePlano, avisoDeVencimento, DIAS_AVISO_VENCE, tipoDaConta, resumoPlanos, TIPOS_PLANO, filtroConta, conferirComprovante, dadosComprovanteValidos, linkDmInstagram, textoDmComprovante, COMPROVANTE_MAX_CHARS, origemOficial, esperaLogin, falhaLogin, LOGIN_LIVRES, textoEspera };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -274,6 +274,34 @@ console.log("\n--- a cobrança (o app pago) ---");
   teste("regras: ninguém altera o comprovante, e só o dono lista", true, /allow update: if false;/.test(bloco) && /allow list: if dono\(\);/.test(bloco));
   teste("o comprovante vai num documento à parte do pagamento (as regras antigas continuam aceitando o aviso)", false,
     /'dados'/.test(regras.slice(regras.indexOf("match /pagamentos/{id}"), regras.indexOf("match /comprovantes/{id}"))));
+}
+
+// ---- a segurança (2026-11-27o) ----
+{
+  console.log("\n--- a segurança ---");
+  teste("o endereço oficial abre", true, A.origemOficial("carlosjr81.github.io") && A.origemOficial("CarlosJr81.GitHub.io"));
+  teste("o computador de quem desenvolve abre", true, A.origemOficial("localhost") && A.origemOficial("127.0.0.1"));
+  teste("cópia em outro endereço não abre", false, A.origemOficial("treinolivre-gratis.netlify.app") || A.origemOficial("carlosjr81.github.io.golpe.com") || A.origemOficial(""));
+  const ag = 1e12;
+  let t = null;
+  for (let i = 0; i < A.LOGIN_LIVRES - 1; i++) t = A.falhaLogin(t, ag);
+  teste("até 4 senhas erradas, sem espera", 0, A.esperaLogin(t, ag));
+  t = A.falhaLogin(t, ag);
+  teste("a 5ª senha errada pede 30 s", 30, A.esperaLogin(t, ag));
+  t = A.falhaLogin(t, ag);
+  teste("a 6ª dobra", 60, A.esperaLogin(t, ag));
+  for (let i = 0; i < 10; i++) t = A.falhaLogin(t, ag);
+  teste("e nunca passa de 15 min", 900, A.esperaLogin(t, ag));
+  teste("passado o tempo, libera", 0, A.esperaLogin(t, ag + 16 * 60000));
+  teste("o texto da espera", ["30 s", "2 min"], [A.textoEspera(30), A.textoEspera(90)]);
+  const html2 = require("fs").readFileSync(require("path").join(__dirname, "..", "index.html"), "utf8");
+  teste("a página só roda script dos endereços conhecidos, e sem plugin", true,
+    /Content-Security-Policy" content="script-src 'self'[^"]*https:\/\/cdnjs\.cloudflare\.com[^"]*object-src 'none'; base-uri 'self'/.test(html2));
+  teste("o app não abre dentro de moldura nem fora do oficial", true, /NUMA_MOLDURA \|\| FORA_DO_OFICIAL \? <CopiaNaoOficial/.test(html2));
+  const regras = require("fs").readFileSync(require("path").join(__dirname, "..", "firebase", "firestore.rules"), "utf8");
+  teste("regras v7: tipo e tamanho na conta, no aceite e no pagamento", true,
+    (regras.match(/&& contaValida\(request\.resource\.data\)/g) || []).length === 2 && /&& aceiteValido\(request\.resource\.data\)/.test(regras) && /&& pagamentoValido\(request\.resource\.data\)/.test(regras));
+  teste("regras v7: o que o app grava cabe nos limites", true, /txt\(d, 'navegador', 400\)/.test(regras) && /txt\(d, 'nota', 200\)/.test(regras) && /txt\(d, 'nome', 120\)/.test(regras));
 }
 
 // ---- a vitrine de quem ainda não tem acesso (2026-11-26d) ----

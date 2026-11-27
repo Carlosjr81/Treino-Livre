@@ -12,6 +12,12 @@
    tela diz isso) e a voz do Jarvis (fala e ouve em português).
    Texto sem tradução continua em português: nunca vira meia frase. */
 var TEXTOS_EN = {
+  // a trava contra cópias (2026-11-27o)
+  "Esta não é a página oficial do Treino Livre": "This is not the official Treino Livre page",
+  "O app foi aberto dentro de outro site.": "The app was opened inside another website.",
+  "Você está numa cópia publicada em outro endereço.": "You are on a copy published at another address.",
+  "Para proteger a sua conta, os seus treinos e os seus pagamentos, ele só abre no endereço oficial. Nunca pague nem digite a sua senha numa cópia.": "To protect your account, your workouts and your payments, it only opens at the official address. Never pay or type your password on a copy.",
+  "Abrir o Treino Livre oficial": "Open the official Treino Livre",
   // o Balance de novembro (2026-11-27e): janelas, missões, medalhas, perfil e fontes
   // os pães (2026-11-27k)
   "🥖 Pães": "🥖 Breads",

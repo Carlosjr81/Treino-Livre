@@ -4,7 +4,9 @@
 // Deixa um registro "Teste regras" no histórico de aceites (ninguém apaga pelo app; é a regra).
 const KEY = "AIzaSyAVDR8x4atODWVJdUoHIO3cm3VKovCD0Wo", P = "treino-livre";
 const DOCS = "https://firestore.googleapis.com/v1/projects/" + P + "/databases/(default)/documents";
-const j = async (url, op) => { const r = await fetch(url, op); let b = null; try { b = await r.json(); } catch (e) {} return { s: r.status, b }; };
+// Com a chave da API restrita ao site oficial (SEGURANCA.md), o pedido tem de
+// dizer de onde vem, como o navegador diz.
+const j = async (url, op) => { const o = Object.assign({}, op || {}); o.headers = Object.assign({ Referer: "https://carlosjr81.github.io/" }, o.headers || {}); const r = await fetch(url, o); let b = null; try { b = await r.json(); } catch (e) {} return { s: r.status, b }; };
 const auth = (fn, corpo) => j("https://identitytoolkit.googleapis.com/v1/accounts:" + fn + "?key=" + KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
 const campos = (o) => { const f = {}; for (const k in o) f[k] = typeof o[k] === "number" ? { integerValue: String(o[k]) } : { stringValue: o[k] }; return f; };
 (async () => {

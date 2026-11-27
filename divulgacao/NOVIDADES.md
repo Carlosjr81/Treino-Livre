@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27o — Mais proteção para a sua conta
+
+- **Em uma frase:** o Treino Livre ficou mais protegido contra cópias falsas e contra quem tenta adivinhar a senha dos outros.
+- **O que mudou:** o app só abre no endereço oficial: uma cópia publicada em outro site mostra que não é a página oficial e leva ao app de verdade. Depois de 5 senhas erradas seguidas no mesmo celular, o app pede uma pausa antes de tentar de novo. E o servidor confere tudo o que cada conta grava.
+- **Por que importa para quem treina:** protege a sua conta e o seu pagamento de golpes com a cara do Treino Livre.
+- **Como usar:** nada muda para quem usa o app pelo endereço oficial ou pelo app Android. Se um dia abrir uma página dizendo que não é a oficial, toque em "Abrir o Treino Livre oficial" e nunca pague nem digite a senha ali.
+- **Ideias de vídeo:** um aviso curto: "o Treino Livre só existe em carlosjr81.github.io e no app oficial; desconfie de cópia pedindo Pix".
+- **Não prometer:** que é impossível copiar ou invadir (nenhum app pode prometer isso); não dar detalhes de como a proteção funciona.
+
+---
+
 ## 2026-11-27n — O comprovante do pagamento vai junto do aviso
 
 - **Em uma frase:** quem assina um plano agora anexa o comprovante (foto, print ou PDF) na própria tela de pagamento, e ele chega junto do aviso de que pagou.

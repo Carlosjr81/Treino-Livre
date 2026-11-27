@@ -18,6 +18,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Só lê o repositório: um passo comprometido não consegue mudar nada.
+permissions:
+  contents: read
+
 jobs:
   conferir:
     runs-on: ubuntu-latest

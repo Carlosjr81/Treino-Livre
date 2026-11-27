@@ -7,6 +7,7 @@ rules_version = '2';
 // Versão 4 (2026-10-29): o histórico de aceites (aceites/), que só o dono lê e ninguém altera.
 // Versão 5 (2026-10-30): os pagamentos (pagamentos/): a pessoa avisa que pagou, só o dono confirma.
 // Versão 6 (2026-11-27): o comprovante do pagamento (comprovantes/), que só a pessoa e o dono leem.
+// Versão 7 (2026-11-27): tipo e tamanho conferidos em toda gravação de quem não é o dono.
 service cloud.firestore {
   match /databases/{banco}/documents {
 
@@ -19,6 +20,33 @@ service cloud.firestore {
     }
     function eu(uid) {
       return request.auth != null && request.auth.uid == uid;
+    }
+    // Versão 7: o que a pessoa grava tem o tipo e o tamanho que o app manda,
+    // e nada além. Sem isso, uma conta qualquer podia encher o banco com texto
+    // gigante pelo REST (o código do app é público) e estourar a cota do dono.
+    // Campo ausente passa: quem manda quais campos é o hasOnly de cada coleção.
+    function txt(d, c, n) {
+      return !(c in d) || (d[c] is string && d[c].size() <= n);
+    }
+    function num(d, c) {
+      return !(c in d) || d[c] is number;
+    }
+    function contaValida(d) {
+      return txt(d, 'email', 200) && txt(d, 'nome', 120) && txt(d, 'status', 20)
+        && num(d, 'criadoEm') && num(d, 'ultimoAcesso') && num(d, 'acessos')
+        && txt(d, 'aparelho', 200) && txt(d, 'versao', 30)
+        && num(d, 'avisoVisto') && txt(d, 'termos', 30) && num(d, 'termosEm');
+    }
+    function aceiteValido(d) {
+      return txt(d, 'conta', 128) && txt(d, 'nome', 120) && txt(d, 'termos', 60) && num(d, 'em')
+        && txt(d, 'de', 30) && txt(d, 'caixas', 5000) && txt(d, 'hash', 100)
+        && txt(d, 'aparelho', 200) && txt(d, 'versaoApp', 30) && txt(d, 'navegador', 400);
+    }
+    function pagamentoValido(d) {
+      return txt(d, 'conta', 128) && txt(d, 'nome', 120) && txt(d, 'plano', 30) && txt(d, 'planoNome', 60)
+        && num(d, 'valor') && num(d, 'dias') && txt(d, 'metodo', 20) && txt(d, 'txid', 40)
+        && txt(d, 'nota', 200) && txt(d, 'condicoes', 30) && num(d, 'em')
+        && txt(d, 'aparelho', 200) && txt(d, 'versaoApp', 30);
     }
     // a aprovação automática, ligada pelo dono no painel
     function autoLiberar() {
@@ -42,13 +70,15 @@ service cloud.firestore {
       allow create: if dono() || (eu(uid)
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.keys().hasOnly(['email', 'nome', 'status', 'criadoEm', 'ultimoAcesso', 'acessos', 'aparelho', 'versao'])
+        && contaValida(request.resource.data)
         && (request.resource.data.status == 'pendente'
             || (request.resource.data.status == 'liberado' && autoLiberar())));
 
       // a pessoa só atualiza quando entrou, de onde, que viu o recado e que
       // aceitou os termos; o status, o prazo e as notas, nunca
       allow update: if dono() || (eu(uid)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ultimoAcesso', 'acessos', 'aparelho', 'versao', 'avisoVisto', 'termos', 'termosEm']));
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ultimoAcesso', 'acessos', 'aparelho', 'versao', 'avisoVisto', 'termos', 'termosEm'])
+        && contaValida(request.resource.data));
 
       // o dono remove da lista; a pessoa apaga a própria conta
       allow delete: if dono() || eu(uid);
@@ -66,7 +96,8 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.servidorEm == request.time
         && id.matches(request.auth.uid + '_[0-9]+')
-        && request.resource.data.keys().hasOnly(['conta', 'email', 'nome', 'termos', 'em', 'de', 'caixas', 'hash', 'aparelho', 'versaoApp', 'navegador', 'servidorEm']);
+        && request.resource.data.keys().hasOnly(['conta', 'email', 'nome', 'termos', 'em', 'de', 'caixas', 'hash', 'aparelho', 'versaoApp', 'navegador', 'servidorEm'])
+        && aceiteValido(request.resource.data);
       allow update, delete: if false;
     }
 
@@ -83,7 +114,8 @@ service cloud.firestore {
         && request.resource.data.status == 'informado'
         && request.resource.data.servidorEm == request.time
         && id.matches(request.auth.uid + '_[0-9]+')
-        && request.resource.data.keys().hasOnly(['conta', 'email', 'nome', 'plano', 'planoNome', 'valor', 'dias', 'metodo', 'txid', 'nota', 'condicoes', 'status', 'em', 'aparelho', 'versaoApp', 'servidorEm']));
+        && request.resource.data.keys().hasOnly(['conta', 'email', 'nome', 'plano', 'planoNome', 'valor', 'dias', 'metodo', 'txid', 'nota', 'condicoes', 'status', 'em', 'aparelho', 'versaoApp', 'servidorEm'])
+        && pagamentoValido(request.resource.data));
       allow update: if dono();
       allow delete: if false;
     }

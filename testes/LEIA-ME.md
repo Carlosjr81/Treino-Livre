@@ -22,14 +22,15 @@ Abre o app num Chromium de verdade (Playwright) e diz se a tela desenhou sem
 erro. React, ReactDOM e Babel vêm do npm, então funciona na sessão do Claude
 na nuvem. Opções: `--dados arq.json`, `--clicar "Histórico"` (repetível),
 `--foto tela.png`, `--altura 700`, `--esperar 5000` (entre os cliques, para o
-que só acontece depois de um tempo). Não entra no `rodar.js` porque precisa
+que só acontece depois de um tempo), `--endereco http://outro.site/` (a página
+como se estivesse publicada em outro lugar: a trava contra cópias). Não entra no `rodar.js` porque precisa
 de navegador.
 
 ```bash
 node testes/rodar.js
 ```
 
-As suítes (2.739 checagens em 27/11/2026) contra o `index.html` da raiz. Prova que a
+As suítes (2.752 checagens em 27/11/2026) contra o `index.html` da raiz. Prova que a
 **lógica** não quebrou. Vale rodar **antes e depois** de qualquer mexida.
 
 ```bash

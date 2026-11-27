@@ -2,6 +2,12 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8" />
+<!-- A segurança da página (2026-11-27o, ver "A segurança" no CLAUDE.md): só roda
+     script destes endereços, nada de plugin, e nenhum formulário ou <base> manda
+     para outro lugar. 'unsafe-inline' e 'unsafe-eval' são o preço do Babel no
+     navegador (não há etapa de build): sem eles o app não abre. -->
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://accounts.google.com https://apis.google.com https://www.gstatic.com https://gc.zgo.at https://storage.googleapis.com https://huggingface.co; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <!--
   Treino Livre — Copyright (c) 2026 Carlos Jr (github.com/Carlosjr81). Todos os direitos reservados.
@@ -449,6 +455,13 @@
 var IDIOMA = (function () { try { return localStorage.getItem("treinolivre:idioma") === "en" ? "en" : "pt"; } catch (e) { return "pt"; } })();
 function mudarIdioma(id) { try { localStorage.setItem("treinolivre:idioma", id === "en" ? "en" : "pt"); } catch (e) {} location.reload(); }
 if (IDIOMA === "en") { document.documentElement.lang = "en"; document.write('<script src="idioma-en.js"><\/script>'); }
+/* O aviso do console (2026-11-27o): o golpe mais comum contra app de login é
+   pedir à pessoa que cole um código aqui "para liberar o acesso". */
+try {
+  console.log("%cPare!", "color:#E1306C;font-size:42px;font-weight:900");
+  console.log("%cEsta área é para programadores. Se alguém pediu para você colar ou digitar algo aqui para liberar o acesso, ganhar plano ou ver a conta de outra pessoa, é golpe: quem colar entrega a própria conta.", "font-size:15px");
+  console.log("Treino Livre © Carlos Jr. Todos os direitos reservados (Leis 9.609/98 e 9.610/98). Copiar, redistribuir ou publicar este código, no todo ou em parte, depende de autorização por escrito.");
+} catch (e) {}
 
 /* A outra exceção a "só dados aqui": o ouvido do canal com o app Android.
    O app (Canal.kt) entrega uma porta de mensagens logo que a página termina de
@@ -2441,7 +2454,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27n";
+const VERSAO_APP = "2026-11-27o";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -45166,6 +45179,25 @@ function csvPagamentos(lista) {
     (STATUS_PAGAMENTO[p.status] || {}).nome || p.status || "", dataHora(p.em), dataHora(p.servidorEm), dataHora(p.confirmadoEm), p.nota || "", p.motivo || "", p.condicoes || ""]));
   return "\uFEFF" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
 }
+// A trava contra cópias (2026-11-27o). O app só abre no endereço oficial (e no
+// computador de quem desenvolve). Quem pega a página e a publica em outro lugar
+// (um espelho, um golpe de "Treino Livre grátis", uma cópia com o Pix trocado)
+// cai na tela que leva ao oficial. Quem programa tira isso da própria cópia: é
+// uma barreira, não um cofre; o cofre de verdade são as regras do servidor e a
+// chave da API restrita ao endereço oficial (SEGURANCA.md).
+const ORIGENS_OFICIAIS = ["carlosjr81.github.io", "localhost", "127.0.0.1", "[::1]"];
+function origemOficial(host) { return ORIGENS_OFICIAIS.indexOf(String(host || "").toLowerCase()) >= 0; }
+// O freio das senhas: a 5ª senha errada seguida neste aparelho pede 30 s de
+// espera, e cada erro seguinte dobra (até 15 min). O Firebase tem o freio dele
+// no servidor; este poupa a conta de quem treina de um curioso no celular dela.
+const LOGIN_LIVRES = 5;
+const CHAVE_TENTATIVAS = "treinolivre:tentativasLogin";
+function esperaLogin(t, agora) { return t && t.ate > agora ? Math.ceil((t.ate - agora) / 1000) : 0; }
+function falhaLogin(t, agora) {
+  const n = ((t && t.n) || 0) + 1;
+  return { n: n, ate: n >= LOGIN_LIVRES ? agora + Math.min(15 * 60000, 30000 * Math.pow(2, n - LOGIN_LIVRES)) : 0 };
+}
+function textoEspera(seg) { return seg >= 60 ? Math.ceil(seg / 60) + " min" : seg + " s"; }
 // ---------------- FIM DAS CONTAS
 
 // ---- A conversa com o Firebase (REST) ----
@@ -45861,9 +45893,13 @@ function TelaConta({ onEntrou, msgInicial }) {
     }
     if (senha.length < 6) { setMsg(modo === "criar" ? "Crie uma senha com pelo menos 6 caracteres." : erroDeConta("MISSING_PASSWORD")); return; }
     if (modo === "criar" && !(marcas[0] && marcas[1])) { setMsg("Para criar a conta, leia e aceite os Termos de Uso: marque as duas caixas logo acima do botão."); return; }
+    const lerTent = () => { try { return JSON.parse(localStorage.getItem(CHAVE_TENTATIVAS) || "null"); } catch (e) { return null; } };
+    const espera = modo === "entrar" ? esperaLogin(lerTent(), Date.now()) : 0;
+    if (espera > 0) { setMsg("Muitas senhas erradas seguidas neste aparelho. Espere " + textoEspera(espera) + " para tentar de novo, ou use \"Esqueci a senha\"."); setErrou(true); return; }
     setIndo(true);
     try {
       const j = modo === "criar" ? await contaApi.criar(em, senha) : await contaApi.entrar(em, senha);
+      try { localStorage.removeItem(CHAVE_TENTATIVAS); } catch (e) {}
       const s = sessaoDeResposta(j, { nome: modo === "criar" ? nome.trim().slice(0, 60) : "" });
       gravarSessaoConta(s);
       try { localStorage.setItem(CHAVE_EMAIL_CONTA, em); } catch (x) {}
@@ -45873,8 +45909,17 @@ function TelaConta({ onEntrou, msgInicial }) {
     } catch (x) {
       // e-mail já cadastrado no "Criar": leva para o Entrar com o e-mail pronto
       if (/EMAIL_EXISTS/.test(x.message)) { setModo("entrar"); setSenha(""); }
-      if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND/.test(x.message)) setErrou(true);
-      setMsg(erroDeConta(x.message));
+      let extra = "";
+      if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND/.test(x.message)) {
+        setErrou(true);
+        try {
+          const t = falhaLogin(JSON.parse(localStorage.getItem(CHAVE_TENTATIVAS) || "null"), Date.now());
+          localStorage.setItem(CHAVE_TENTATIVAS, JSON.stringify(t));
+          if (t.ate) extra = " Por segurança, espere " + textoEspera(esperaLogin(t, Date.now())) + " antes de tentar de novo.";
+          else if (t.n >= LOGIN_LIVRES - 2) extra = " Restam " + (LOGIN_LIVRES - t.n) + " tentativas antes de uma pausa.";
+        } catch (e) {}
+      }
+      setMsg(erroDeConta(x.message) + extra);
     }
     setIndo(false);
   };
@@ -47803,7 +47848,33 @@ function TelaPainelUsuarios({ onVoltar, pedirConfirmacao }) {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(MODO_OCULOS ? <TelaOculosNativa /> : MODO_BOLSO || MODO_CORRIDA ? <div /> : <Porteiro><TreinoLivre /></Porteiro>);
+// Dentro de uma moldura (iframe) de outro site, ou fora do endereço oficial, o
+// app não abre: é como se rouba o toque de alguém (clickjacking) e como se
+// monta um golpe com a cara do Treino Livre. A tela leva ao oficial, e o
+// endereço da cópia vai para a contagem de visitas: é assim que o dono descobre
+// que alguém publicou o app em outro lugar.
+function CopiaNaoOficial({ moldura }) {
+  useEffect(() => { try { registrarEvento((moldura ? "moldura-" : "copia-") + String(location.hostname || "sem-endereco").slice(0, 60)); } catch (e) {} }, []);
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, boxSizing: "border-box", background: "#060606", color: "#F2F0EC", textAlign: "center", fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif" }}>
+      <div style={{ maxWidth: 380 }}>
+        <div style={{ fontSize: 46 }} aria-hidden="true">🛡</div>
+        <div style={{ fontSize: 22, fontWeight: 900, margin: "8px 0" }}>Esta não é a página oficial do Treino Livre</div>
+        <div style={{ fontSize: 14.5, lineHeight: 1.55, color: "#B8B3AC" }}>
+          {moldura ? "O app foi aberto dentro de outro site." : "Você está numa cópia publicada em outro endereço."} Para proteger a sua conta, os seus treinos e os seus pagamentos, ele só abre no endereço oficial. Nunca pague nem digite a sua senha numa cópia.
+        </div>
+        <a href={LINK_APP} target="_top" rel="noopener" style={{ ...S.btn, display: "block", textDecoration: "none", marginTop: 18, boxSizing: "border-box" }}>Abrir o Treino Livre oficial</a>
+        <div style={{ fontSize: 12, color: "#8A857E", marginTop: 14, lineHeight: 1.5 }}>
+          {LINK_APP}<br />Treino Livre © Carlos Jr. (Instagram @{INSTAGRAM}). Todos os direitos reservados.
+        </div>
+      </div>
+    </div>
+  );
+}
+const NUMA_MOLDURA = (() => { try { return window.top !== window.self; } catch (e) { return true; } })();
+const FORA_DO_OFICIAL = (() => { try { return !origemOficial(location.hostname); } catch (e) { return false; } })();
+ReactDOM.createRoot(document.getElementById("root")).render(NUMA_MOLDURA || FORA_DO_OFICIAL ? <CopiaNaoOficial moldura={NUMA_MOLDURA} />
+  : MODO_OCULOS ? <TelaOculosNativa /> : MODO_BOLSO || MODO_CORRIDA ? <div /> : <Porteiro><TreinoLivre /></Porteiro>);
 
 // Modo offline: depois da primeira visita, o app abre mesmo sem internet.
 // (localhost entra na lista para dar pra testar o modo offline antes de publicar)

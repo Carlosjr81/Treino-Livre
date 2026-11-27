@@ -207,6 +207,44 @@ retransmissor do Desafio). E-mail do dono: `EMAIL_DONO`.
   **Validado no Firebase de verdade (28/10/2026)**: o dono criou a conta dele
   (confirmou o e-mail e entrou como dono) e uma segunda conta de teste.
 
+## A segurança (`origemOficial`, `CopiaNaoOficial`, `falhaLogin`, regras v7, `SEGURANCA.md`)
+
+Pedido do dono (2026-11-27o): "dispositivos que dificultem ações maliciosas,
+tentativas de acesso e cópias do sistema". **Leia o `SEGURANCA.md`**: ele tem
+as camadas, o que o app faz e o passo a passo do que só o dono faz nos consoles.
+
+- **Dito ao dono, e não mude o discurso**: site entrega o código a quem abre;
+  nada no app impede cópia por quem programa. Bloquear botão direito ou ofuscar
+  **não entra** (atrapalha quem usa, não quem copia, e ofuscar quebra o fluxo
+  sem build). A proteção real é a lei (`LICENSE`), o servidor (regras) e a
+  **chave da API restrita ao site oficial** (passo do dono no Google Cloud).
+- **Só abre no endereço oficial** (`ORIGENS_OFICIAIS`: carlosjr81.github.io,
+  localhost, 127.0.0.1) e **fora de moldura** (`NUMA_MOLDURA`); senão
+  `CopiaNaoOficial` leva ao oficial e conta `copia-<host>` ou
+  `moldura-<host>` no GoatCounter. **Endereço novo do app entra em
+  `ORIGENS_OFICIAIS`**, senão o app não abre lá. O `navegador.js` ganhou
+  `--endereco http://outro.site/` para ensaiar a cópia.
+- **A política de scripts** (`Content-Security-Policy` no topo do `index.html`):
+  script só de 'self', cdnjs, jsDelivr, unpkg, Google (login), GoatCounter,
+  storage.googleapis e Hugging Face; `object-src 'none'`, `base-uri` e
+  `form-action` 'self'. `unsafe-inline`/`unsafe-eval` ficam por causa do Babel.
+  **Biblioteca de uma CDN nova entra na lista**, senão é barrada calada. Conferido
+  no navegador escutando `securitypolicyviolation`: nada barrado no uso normal.
+  **Não validado num aparelho** (o Eyes Scan, a narração do story e o login do
+  Google carregam scripts que o teste não alcança).
+- **O freio de senha** (`falhaLogin`, `esperaLogin`, `treinolivre:tentativasLogin`):
+  a 5ª errada seguida pede 30 s, dobrando até 15 min; acertar zera.
+- **O aviso "Pare!" no console**, no primeiro script.
+- **Regras versão 7** (`txt`, `num`, `contaValida`, `aceiteValido`,
+  `pagamentoValido`): tipo e tamanho de tudo o que quem não é o dono grava.
+  Limites folgados sobre o que o app manda (nome 120, navegador 400, caixas
+  5000, nota 200): **campo novo gravado pela pessoa entra no hasOnly e no
+  validador**, senão a gravação é recusada. O dono publica no console (a v7
+  já leva a v6). O `prova-regras-firebase.js` manda o Referer do site oficial,
+  para continuar funcionando com a chave restrita.
+- O `conferir.yml` só lê o repositório (`permissions: contents: read`).
+- Coberto por `teste-acesso.js` (a origem, o freio, a política, as regras).
+
 ## Direitos: público para ver, não livre para usar (`LICENSE`)
 
 Pedido do dono: proteger o projeto de cópia para poder monetizar no futuro.

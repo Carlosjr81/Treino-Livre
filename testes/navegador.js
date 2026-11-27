@@ -83,7 +83,9 @@ async function doNpm(lib) {
 
   const nav = await playwright.chromium.launch();
   const ctx = await nav.newContext({ viewport: { width: parseInt(opcao("--largura")) || 390, height: parseInt(opcao("--altura")) || 844 }, serviceWorkers: "block" });
-  const ENDERECO = "http://localhost:8765/";
+  // --endereco http://outro.site/ abre a página como se estivesse publicada
+  // em outro endereço (é como se confere a trava contra cópias)
+  const ENDERECO = opcao("--endereco") || "http://localhost:8765/";
   await ctx.route("**/*", (r) => {
     const u = r.request().url();
     if (u.split("?")[0].split("#")[0] === ENDERECO) return r.fulfill({ status: 200, contentType: "text/html", body: html });

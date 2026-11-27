@@ -2648,7 +2648,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28a";
+const VERSAO_APP = "2026-11-28b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5017,7 +5017,11 @@ function itensDoPrato(partes, tamanho, comOleo) {
 // NÃO anota sozinho: mostra a lista para conferir e corrigir os gramas, e a
 // conta das calorias continua saindo da tabela do app (a IA só diz o que é e
 // quanto). Alimento fora do catálogo entra com o que a IA estimou, marcado.
-const FOTO_IA = { modelos: ["gemini-2.5-flash", "gemini-2.5-flash-lite"], ladoMax: 1024, qualidade: 0.8, maxItens: 12 };
+// Os modelos, testados no projeto em 28/11/2026 com a foto real do almoço do
+// dono: o 3.5-flash-lite leu o prato inteiro em 2 s; o 3-flash-preview e o 3.8
+// passaram de 55 s (o 3.8 com "high demand"). Os 2.5 foram aposentados pelo
+// Google (404). Modelo novo: teste daqui (CLAUDE.md, *A foto do prato*).
+const FOTO_IA = { modelos: ["gemini-3.5-flash-lite", "gemini-3-flash-preview"], prazoMs: 30000, ladoMax: 1024, qualidade: 0.8, maxItens: 12 };
 function pedidoPratoIA(catalogo) {
   const lista = (catalogo || []).map((a) => a.id + " = " + a.nome + (a.por ? " [" + a.por + "]" : "")).join("\n");
   const texto = "Você recebe a foto de uma refeição brasileira. Estime o peso em gramas de cada alimento visível, " +
@@ -39644,6 +39648,7 @@ const ERROS_FOTO_IA = {
   rede: "Sem internet para mandar a foto. Marque o prato abaixo, que funciona sem rede.",
   vazio: "A IA não reconheceu comida nessa foto. Tente com o prato inteiro à vista, de cima, com boa luz.",
   falhou: "A leitura falhou. Tente de novo, ou marque o prato abaixo.",
+  lento: "A IA do Google está demorando demais agora. Tente de novo em um minuto, ou marque o prato abaixo.",
 };
 async function lerPratoPelaIA(blob) {
   if (!FIREBASE_ACESSO.apiKey) throw new Error("desligada");
@@ -39656,10 +39661,19 @@ async function lerPratoPelaIA(blob) {
   let ultimo = "falhou";
   for (const m of FOTO_IA.modelos) {
     let r;
+    // Cada modelo tem um prazo: com o Google sobrecarregado (500 "high demand")
+    // ou lento, passa para o seguinte em vez de deixar a tela esperando.
+    const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const prazo = ctl ? setTimeout(() => ctl.abort(), FOTO_IA.prazoMs) : null;
     try {
       r = await fetch("https://firebasevertexai.googleapis.com/v1beta/projects/" + FIREBASE_ACESSO.projectId + "/models/" + m + ":generateContent", {
-        method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": FIREBASE_ACESSO.apiKey, "Authorization": "Firebase " + s.idToken }, body: corpo });
-    } catch (e) { throw new Error("rede"); }
+        method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": FIREBASE_ACESSO.apiKey, "Authorization": "Firebase " + s.idToken }, body: corpo, signal: ctl ? ctl.signal : undefined });
+    } catch (e) {
+      if (prazo) clearTimeout(prazo);
+      if (e && e.name === "AbortError") { ultimo = "lento"; continue; }
+      throw new Error("rede");
+    }
+    if (prazo) clearTimeout(prazo);
     if (r.ok) {
       const j = await r.json().catch(() => null);
       const partes = (((j && j.candidates) || [])[0] || {}).content;

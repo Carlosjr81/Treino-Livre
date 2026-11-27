@@ -7163,8 +7163,13 @@ preencha o que eu comi". No Balance › Anotar › 📷 Foto, o quadro
 - Coberto por `teste-balance.js`. No navegador, com uma IA de mentira: a
   foto vai com o token, a lista aparece (arroz 160 g, lombo 100 g, batata
   palha 35 g, ovo, melão, gelatina, ~763 kcal) e os seis itens entram no dia.
-  **Não validado com o Gemini de verdade** (o Firebase AI Logic ainda não foi
-  ligado no projeto) **nem num celular.**
+  **Ligado pelo dono em 28/11/2026** e testado daqui com a foto real do almoço
+  dele (arroz, lombo, batata palha, ovo, melão, gelatina): o
+  `gemini-3.5-flash-lite` acertou os seis em 2 s; o `gemini-3-flash-preview`
+  e o `gemini-3.8-flash` passaram de 55 s; os 2.5 deram 404 (aposentados).
+  Cada modelo tem prazo (`FOTO_IA.prazoMs`, 30 s) e o seguinte é tentado.
+  Para testar outro modelo: um `generateContent` de texto com a chave e o
+  `Referer` do site oficial. **Não validado num celular.**
 
 ### Ajustes do Body Balance (2026-11-25k e 25l)
 

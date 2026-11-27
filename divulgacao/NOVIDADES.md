@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-28b — A leitura do prato pela foto está funcionando
+
+- **Em uma frase:** a inteligência artificial que lê a foto do prato foi ligada e responde em uns 2 segundos.
+- **O que mudou:** a leitura do prato pela foto (Balance › 📷 Foto do prato › "✨ Ler o prato pela foto") passou a usar o modelo mais novo e rápido do Google. Num almoço de refeitório de verdade, reconheceu arroz, lombo, batata palha, ovo, melão e gelatina, com os gramas, em 2 segundos. Se o Google estiver lento, o app tenta outro modelo e, no fim, avisa e deixa marcar o prato à mão.
+- **Por que importa para quem treina:** anotar o almoço vira foto, conferida e um toque.
+- **Como usar:** Balance › Hoje › 📷 Foto do prato › "📷 Fotografar e ler o prato", confira os gramas, "✓ Anotar no dia".
+- **Ideias de vídeo:** a bandeja do refeitório e a lista aparecendo em segundos.
+- **Não prometer:** peso exato (é estimativa; o óleo do preparo não aparece na foto); que a foto fica guardada (não fica).
+
+---
+
 ## 2026-11-28a — Quase o dobro de alimentos: o prato do Brasil inteiro
 
 - **Em uma frase:** o Balance passou de 243 para 419 alimentos, com o que se come no dia a dia em todas as regiões.

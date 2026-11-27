@@ -379,9 +379,11 @@ const CENAS = {
         c.beginPath(); c.moveTo(px, py); c.lineTo(lx, ly - 50); c.stroke();
       }
       c.save(); c.translate(lx, ly); c.scale(e, e);
-      caixa(-235, -50, 470, 100, 50, "rgba(11,4,24,0.94)", CIANO, 5);
+      caixa(-235, -50, 470, 100, 50, "rgba(11,4,24,0.94)", it.sobremesa ? AMARELO : CIANO, 5);
       emoji(it.ic, -170, 2, 58);
-      letreiro(it.nome.replace(" de porco assado", "").replace(" pronta", "").replace(" cozido", "").replace(" branco", ""), 25, 2, 40, { cor: "#fff" });
+      const curto = it.nome.replace(" de porco assado", "").replace(" pronta", "").replace(" cozido", "").replace(" branco", "");
+      if (it.sobremesa) { letreiro(curto, -110, -16, 34, { alinha: "left", cor: "#fff" }); letreiro("SOBREMESA", -110, 26, 24, { alinha: "left", cor: AMARELO, semContorno: true }); }
+      else letreiro(curto, 25, 2, 40, { cor: "#fff" });
       c.restore();
     });
     if (lt > 5.4) letreiro("6 ITENS!", W / 2, 560, 110, { cor: "grad", rot: -0.06, esc: bate(fase(lt, 5.4, 5.9)), brilho: "rgba(255,61,139,0.8)" });
@@ -404,6 +406,7 @@ const CENAS = {
       if (i === 0 && lt > 3.6) g = lt > 4.3 ? 200 : 190;
       const k = Math.round(it.k / it.g * g);
       letreiro(g + " g", 260, y + 28, 36, { alinha: "left", cor: CIANO, semContorno: true });
+      if (it.sobremesa) { caixa(390, y + 8, 200, 42, 21, AMARELO); letreiro("SOBREMESA", 490, y + 30, 24, { cor: "#1A0633", semContorno: true }); }
       letreiro(k + " kcal", 980, y, 46, { alinha: "right", cor: "grad" });
       if (edit) {
         caixa(560, y - 40, 80, 80, 20, "rgba(255,255,255,0.15)"); letreiro("−", 600, y, 50, { cor: "#fff", semContorno: true });

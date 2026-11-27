@@ -25,7 +25,7 @@
     {
       "id": "passo3",
       "dur": 7.5,
-      "fala": "Passo três: a inteligência artificial olha o prato e reconhece cada item: arroz, lombo, batata palha, ovo, melão e gelatina."
+      "fala": "Passo três: a inteligência artificial olha o prato e reconhece cada item: arroz, lombo, batata palha, ovo, e de sobremesa, melão e gelatina."
     },
     {
       "id": "passo4",
@@ -35,7 +35,7 @@
     {
       "id": "passo5",
       "dur": 6,
-      "fala": "Passo cinco: um toque em anotar. Setecentas e oitenta calorias e cinquenta e uma gramas de proteína, direto no seu dia.",
+      "fala": "Passo cinco: um toque em anotar. Setecentas e oitenta e duas calorias e cinquenta e uma gramas de proteína, direto no seu dia.",
       "legenda": "Passo cinco: um toque em Anotar. 782 calorias e 51 g de proteína, direto no seu dia."
     },
     {
@@ -94,7 +94,8 @@
       "g": 150,
       "k": 44,
       "x": 0.65,
-      "y": 0.13
+      "y": 0.13,
+      "sobremesa": true
     },
     {
       "nome": "Gelatina pronta",
@@ -102,7 +103,8 @@
       "g": 100,
       "k": 62,
       "x": 0.21,
-      "y": 0.15
+      "y": 0.15,
+      "sobremesa": true
     }
   ],
   "total": {

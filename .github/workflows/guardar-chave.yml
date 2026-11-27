@@ -1,0 +1,93 @@
+# Uso único: copia a chave que assina o APK do cache do Actions para os
+# segredos do repositório (ANDROID_KEYSTORE_B64 e ANDROID_KEYSTORE_PASS).
+#
+# Por que copiar e não gerar outra: o app instalado no celular de todo mundo
+# e o assetlinks.json do carlosjr81.github.io estão presos a ESTA chave. Chave
+# nova obrigaria todos a desinstalar e instalar de novo.
+#
+# Precisa do segredo TOKEN_SEGREDOS: um token "fine-grained" do GitHub com
+# acesso só ao Treino-Livre e a permissão "Secrets: Read and write". O
+# GITHUB_TOKEN do Actions não pode gravar segredos. Depois de rodar com
+# sucesso: apague o token no GitHub, o segredo TOKEN_SEGREDOS, e este arquivo.
+#
+# Não monta nada, não publica nada, e nunca escreve a chave no registro.
+name: Guardar a chave do APK (uso único)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guardar:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.TOKEN_SEGREDOS }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Conferir o token
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Falta o segredo TOKEN_SEGREDOS (o token com permissão de gravar segredos)."
+            exit 1
+          fi
+          gh secret list --repo "$REPO" > segredos.txt || {
+            echo "::error::O token não consegue ler os segredos. Confira: acesso ao Treino-Livre e 'Secrets: Read and write'."
+            exit 1
+          }
+          if grep -q '^ANDROID_KEYSTORE_B64\b' segredos.txt; then
+            echo "::error::ANDROID_KEYSTORE_B64 já existe. Nada foi alterado (este fluxo não substitui uma chave cadastrada)."
+            exit 1
+          fi
+
+      - name: Ler a chave do cache
+        uses: actions/cache/restore@v4
+        with:
+          path: android/app/treinolivre.jks
+          key: chave-treinolivre-v1
+          fail-on-cache-miss: true
+
+      # A impressão digital tem de ser a que está no assetlinks.json: é a
+      # prova de que esta é a chave do app que está nos celulares.
+      - name: Conferir que é a chave do app publicado
+        run: |
+          DIGITAL=$(keytool -list -v -keystore android/app/treinolivre.jks -storepass treinolivre -alias treinolivre | grep -m1 "SHA256:" | sed 's/.*SHA256: *//')
+          ESPERADA=$(grep -oE '([0-9A-F]{2}:){31}[0-9A-F]{2}' dominio/.well-known/assetlinks.json | head -1)
+          echo "da chave do cache: $DIGITAL"
+          echo "do assetlinks:     $ESPERADA"
+          if [ -z "$DIGITAL" ] || [ "$DIGITAL" != "$ESPERADA" ]; then
+            echo "::error::A chave do cache não é a do app publicado. Nada foi gravado."
+            exit 1
+          fi
+
+      - name: Gravar os segredos
+        run: |
+          base64 -w0 android/app/treinolivre.jks | gh secret set ANDROID_KEYSTORE_B64 --repo "$REPO"
+          printf 'treinolivre' | gh secret set ANDROID_KEYSTORE_PASS --repo "$REPO"
+          rm -f android/app/treinolivre.jks
+          gh secret list --repo "$REPO" | grep -E '^ANDROID_KEYSTORE_(B64|PASS)\b'
+
+  # Um job novo lê os segredos de novo ao começar: é aqui que se prova que o
+  # que ficou gravado abre e é a mesma chave.
+  conferir:
+    needs: guardar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Abrir a chave pelo segredo
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > chave.jks
+          DIGITAL=$(keytool -list -v -keystore chave.jks -storepass "$KEYSTORE_PASS" -alias treinolivre | grep -m1 "SHA256:" | sed 's/.*SHA256: *//')
+          rm -f chave.jks
+          ESPERADA=$(grep -oE '([0-9A-F]{2}:){31}[0-9A-F]{2}' dominio/.well-known/assetlinks.json | head -1)
+          echo "pelo segredo:  $DIGITAL"
+          echo "do assetlinks: $ESPERADA"
+          [ -n "$DIGITAL" ] && [ "$DIGITAL" = "$ESPERADA" ] || { echo "::error::O segredo gravado não abre a mesma chave."; exit 1; }
+          echo "### ✓ Chave guardada nos segredos, a mesma do app publicado" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`$DIGITAL\`" >> "$GITHUB_STEP_SUMMARY"

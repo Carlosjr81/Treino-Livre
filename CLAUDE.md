@@ -4277,9 +4277,24 @@ pelo Actions, e os erros se leem no log do job.
 base64) e `ANDROID_KEYSTORE_PASS` no repositório, o Actions gera uma chave e
 a guarda no cache, que some depois de 7 dias sem uso. Chave nova obriga a
 desinstalar o app antes de instalar a versão nova (os treinos ficam no
-Chrome e não se perdem; as permissões do Health Connect sim). Para fixar:
-`keytool -genkeypair -keystore treinolivre.jks -alias treinolivre -keyalg RSA -validity 10000`,
-e o `base64` dele em Settings › Secrets › Actions. **Nunca suba o `.jks`.**
+Chrome e não se perdem; as permissões do Health Connect sim). **Nunca suba o
+`.jks`.**
+
+**Para fixar, copie a chave do cache; não gere outra.** Conferido em
+27/11/2026: o segredo não existia (o registro do App Android dizia
+`TEM_SEGREDO: nao` e `chave: a do cache`), e a chave do cache é a do
+`assetlinks.json` (`9B:1E:D2:74:…:D4:23`). Gerar uma com `keytool
+-genkeypair` (o que este trecho mandava antes) trocaria a chave do app de todo
+mundo. O caminho é o `.github/workflows/guardar-chave.yml` (uso único, à mão):
+ele exige o segredo `TOKEN_SEGREDOS` (token *fine-grained* do dono, só o
+Treino-Livre, "Secrets: Read and write"; o `GITHUB_TOKEN` não grava segredo),
+recusa se o segredo já existir, confere a impressão digital do cache contra o
+`assetlinks.json` antes de gravar, grava os dois segredos (a senha é
+`treinolivre`, a mesma com que a chave do cache foi criada) e, num segundo job,
+abre a chave pelo segredo e confere a impressão de novo. Depois: o App Android
+seguinte tem de dizer `chave: segredo do repositório` com a mesma impressão; aí
+apagam-se o token, o segredo `TOKEN_SEGREDOS`, o `guardar-chave.yml` e o
+`manter-chave.yml`.
 
 **A barra de endereço.** Sem o `assetlinks.json` na raiz do domínio
 (`carlosjr81.github.io/.well-known/`, que é **outro repositório**,

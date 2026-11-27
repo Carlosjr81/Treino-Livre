@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27m — Mais um ajuste na área restrita do criador (não divulgar)
+
+- **Em uma frase:** ajuste numa área que só o criador e contas classificadas por ele veem, e uma mudança interna no app Android.
+- **O que mudou:** nada que o usuário comum veja ou use.
+- **Por que importa para quem treina:** não muda nada para quem usa o app.
+- **Como usar:** não se aplica.
+- **Ideias de vídeo:** nenhuma. **Não mencione esta versão em vídeo, legenda ou post.**
+- **Não prometer:** não se aplica.
+
+---
+
 ## 2026-11-27l — Ajuste na área restrita do criador (não divulgar)
 
 - **Em uma frase:** um ajuste numa área do app que só o criador e contas classificadas por ele veem.

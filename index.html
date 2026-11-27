@@ -2441,7 +2441,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27l";
+const VERSAO_APP = "2026-11-27m";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4135,7 +4135,7 @@ function lerNutricao(n) {
   r.receitas = lerReceitas(n.receitas);
   if (n.dias && typeof n.dias === "object") {
     const corte = new Date(Date.now() - 400 * 864e5).toISOString().slice(0, 10);
-    Object.keys(n.dias).forEach((d) => { if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d >= corte && n.dias[d] && typeof n.dias[d] === "object") r.dias[d] = { itens: Array.isArray(n.dias[d].itens) ? n.dias[d].itens.slice(0, 120) : [], agua: Number(n.dias[d].agua) || 0, aguaNoite: Math.max(0, Number(n.dias[d].aguaNoite) || 0), sono: Number(n.dias[d].sono) || 0, aguaEv: Array.isArray(n.dias[d].aguaEv) ? n.dias[d].aguaEv.slice(-60) : [], janelas: Array.isArray(n.dias[d].janelas) ? n.dias[d].janelas.filter((x) => typeof x === "string").slice(0, 12) : [] }; });
+    Object.keys(n.dias).forEach((d) => { if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d >= corte && n.dias[d] && typeof n.dias[d] === "object") r.dias[d] = { itens: Array.isArray(n.dias[d].itens) ? n.dias[d].itens.slice(0, 120) : [], agua: Number(n.dias[d].agua) || 0, aguaNoite: Math.max(0, Number(n.dias[d].aguaNoite) || 0), insulina: Array.isArray(n.dias[d].insulina) ? n.dias[d].insulina.filter((x) => x && x.t).slice(-20) : [], hipo: Array.isArray(n.dias[d].hipo) ? n.dias[d].hipo.filter((x) => x && x.t).slice(-20) : [], sono: Number(n.dias[d].sono) || 0, aguaEv: Array.isArray(n.dias[d].aguaEv) ? n.dias[d].aguaEv.slice(-60) : [], janelas: Array.isArray(n.dias[d].janelas) ? n.dias[d].janelas.filter((x) => typeof x === "string").slice(0, 12) : [] }; });
   }
   if (Array.isArray(n.vistos)) r.vistos = n.vistos.filter((x) => typeof x === "string").slice(-400);
   return r;
@@ -5665,6 +5665,73 @@ function receitasDisponiveis(minhas) {
   (minhas || []).forEach((r) => { tem[chave(r)] = 1; });
   return (minhas || []).slice().sort((a, b) => (b.em || 0) - (a.em || 0))
     .concat(RECEITAS_SUGERIDAS.filter((r) => !tem[chave(r)]).map((r) => Object.assign({}, r, { sug: true })));
+}
+// ---------------- OS AVISOS DA INSULINA ----------------
+// Pedido do dono (2026-11-27m), depois de recusado o "timing" (o app dizer
+// quando aplicar em relação à comida é orientar o uso de remédio fora da
+// indicação, e o horário errado é o que causa a hipoglicemia grave). O que o
+// app faz é o que um despertador de remédio faz, mais a segurança:
+//  - os LEMBRETES com o horário e o texto que a própria pessoa define;
+//  - a CONFERÊNCIA: marcou a aplicação e não anotou comida em 90 minutos, o
+//    app pergunta se já comeu;
+//  - a NOITE: com a basal ou a NPH em uso e sem comida anotada depois das
+//    17h, uma hora antes de dormir, lembra de não dormir sem jantar.
+// Nenhum aviso diz quando aplicar nem quanto. Só no modo preparação.
+const INSULINA_CONF_MIN = 90;
+const MAX_LEMBRETES_INSULINA = 4;
+const TIPOS_APLICACAO = { insulinaRapida: "rápida", insulinaBasal: "basal", insulinaNph: "NPH" };
+function insulinasAtivas(preparo, dia) {
+  const usos = (preparo && preparo.usos) || {};
+  return Object.keys(TIPOS_APLICACAO).filter((id) => { const u = usos[id]; return u && u.desde && u.desde <= dia && (!u.ate || u.ate >= dia); });
+}
+function minutosDoDia(t) { const d = new Date(t); return d.getHours() * 60 + d.getMinutes(); }
+function avisosInsulina(o) {
+  const preparo = (o && o.preparo) || {}, d = o.diaStr, dia = o.dia || {};
+  const ativas = insulinasAtivas(preparo, d);
+  const out = [];
+  // os lembretes da pessoa: valem nos dias marcados (todos, sem marcação)
+  (Array.isArray(preparo.lembretes) ? preparo.lembretes : []).slice(0, MAX_LEMBRETES_INSULINA).forEach((l, i) => {
+    if (!l || typeof l.hora !== "number" || l.hora < 0 || l.hora >= 1440) return;
+    if (Array.isArray(l.dias) && l.dias.length && l.dias.indexOf(diaDaSemana(d)) < 0) return;
+    const txt = String(l.texto || "").trim().slice(0, 60) || "Lembrete";
+    out.push({ id: "ins" + i, em: l.hora, ate: Math.min(1439, l.hora + 30), titulo: "\u{1F489} " + txt, corpo: "O lembrete que você criou no modo preparação." });
+  });
+  if (!ativas.length) return out;
+  const comidas = (dia.itens || []).filter((it) => it && it.t).map((it) => minutosDoDia(it.t));
+  // a conferência depois da última aplicação marcada hoje
+  const apl = (dia.insulina || []).map((x) => minutosDoDia(x.t)).sort((a, b) => a - b);
+  const ult = apl.length ? apl[apl.length - 1] : null;
+  if (ult != null && !comidas.some((m) => m >= ult) && ult + INSULINA_CONF_MIN < 1440) {
+    out.push({ id: "insConf", em: ult + INSULINA_CONF_MIN, ate: Math.min(1439, ult + INSULINA_CONF_MIN + 60),
+      titulo: "\u{1FA78} Já comeu?", corpo: "Você marcou insulina às " + hhmmDoDia(ult) + " e não anotou comida desde então. Tenha açúcar à mão: tremor, suor frio ou confusão são sinal de hipoglicemia." });
+  }
+  // a noite com a basal ou a NPH
+  if (ativas.some((id) => id !== "insulinaRapida") && !comidas.some((m) => m >= 17 * 60)) {
+    const em = Math.max(17 * 60, Math.min(23 * 60, (numB(o.dorme) || 23) * 60 - 60));
+    out.push({ id: "insNoite", em: em, ate: Math.min(1439, em + 60), titulo: "\u{1F319} Antes de dormir",
+      corpo: "Insulina basal ou NPH em uso: se ainda não jantou, coma antes de deitar, e deixe açúcar ao lado da cama." });
+  }
+  return out;
+}
+// os próximos dias: os lembretes e a noite (sem comida anotada, a noite vale
+// como "se ainda não jantou"); a conferência só existe no dia da aplicação
+function insulinaAdiante(preparo, dorme, hojeMs) {
+  const out = [];
+  for (let k = 1; k <= DIAS_AVISO_ADIANTE; k++) {
+    const d = diaLocal(hojeMs + k * 864e5);
+    const a = avisosInsulina({ preparo: preparo, diaStr: d, dia: {}, dorme: dorme }).map((x) => ({ id: x.id, em: x.em, ate: x.ate, t: x.titulo, c: x.corpo }));
+    if (a.length) out.push({ d: d, a: a });
+  }
+  return out;
+}
+function juntarAdiante(a, b) {
+  const m = {};
+  (a || []).concat(b || []).forEach((x) => { m[x.d] = (m[x.d] || []).concat(x.a); });
+  return Object.keys(m).sort().map((d) => ({ d: d, a: m[d] }));
+}
+function insulinaNaHora(lista, agoraMin, jaVistos) {
+  const vistos = jaVistos || [];
+  return (lista || []).find((a) => agoraMin >= a.em && agoraMin <= a.ate && vistos.indexOf(a.id) < 0) || null;
 }
 // ---------------- A LEITURA DA ÁGUA ----------------
 // Pedido do dono (2026-11-27i): "só tem bater a meta ou não; não sei o que
@@ -39331,7 +39398,71 @@ function CartaoHipoglicemia() {
     </div>
   );
 }
-function CartaoPreparo({ preparo, hoje, cb, onMudar }) {
+// A insulina no dia (2026-11-27m): marcar a aplicação (para a conferência),
+// o botão dos sinais de hipoglicemia (o episódio fica anotado para o médico)
+// e os lembretes no horário que a própria pessoa define.
+function InsulinaNoDia({ preparo, hoje, diaHoje, hipos, onMudar, onAplicar, onTirarAplicacao, onHipo }) {
+  const [hipoAgora, setHipoAgora] = useState(false);
+  const ativas = insulinasAtivas(preparo, hoje);
+  const lemb = Array.isArray(preparo.lembretes) ? preparo.lembretes : [];
+  const mudarLemb = (l) => onMudar(Object.assign({}, preparo, { lembretes: l }));
+  const apl = ((diaHoje && diaHoje.insulina) || []).slice().sort((a, b) => a.t - b.t);
+  const hh = (t) => hhmmDoDia(minutosDoDia(t));
+  return (
+    <div style={{ border: "1px solid #B05BFF66", borderRadius: 14, padding: 12, marginBottom: 10 }}>
+      <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 6 }}>💉 Insulina no dia</div>
+      {ativas.length > 0 && (
+        <>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {ativas.map((id) => (
+              <button key={id} onClick={() => onAplicar(id)} style={{ ...S.btnGhost, width: "auto", flex: 1, padding: "9px 8px", fontWeight: 900, fontSize: 12.5 }}>💉 Apliquei agora ({TIPOS_APLICACAO[id]})</button>
+            ))}
+          </div>
+          {apl.length > 0 && (
+            <div style={{ fontSize: 12, marginTop: 6 }}>
+              Hoje: {apl.map((a, i) => (
+                <span key={i} style={{ marginRight: 8 }}>{hh(a.t)} {TIPOS_APLICACAO[a.tipo] || ""} <button onClick={() => onTirarAplicacao(a.t)} aria-label="Tirar esta aplicação" style={{ background: "none", border: "none", color: "var(--cinza)", cursor: "pointer", fontWeight: 900 }}>✕</button></span>
+              ))}
+            </div>
+          )}
+          <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 5 }}>
+            Marcando a aplicação, se você não anotar comida em {INSULINA_CONF_MIN} minutos o app pergunta se já comeu.
+          </div>
+          <button onClick={() => { onHipo(); setHipoAgora(true); }} style={{ ...S.btnGhost, width: "100%", marginTop: 9, fontWeight: 900, color: "#FF4D6D", borderColor: "#FF4D6D88" }}>🩸 Tive sinais de hipoglicemia</button>
+          {hipoAgora && (
+            <div role="status" style={{ fontSize: 12.5, lineHeight: 1.5, marginTop: 7, fontWeight: 800, color: "#FF4D6D" }}>
+              Anotado. Agora: 15 g de açúcar rápido, espere 15 minutos e repita se não melhorar. Confusão, desmaio ou convulsão: SAMU 192.
+            </div>
+          )}
+          {hipos.length > 0 && (
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 6 }}>
+              {hipos.length} {plural(hipos.length, "episódio", "episódios")} nos últimos 30 dias: {hipos.slice(-5).map((t) => new Date(t).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " " + hh(t)).join(" · ")}. Leve ao seu médico.
+            </div>
+          )}
+        </>
+      )}
+      <div style={{ fontWeight: 900, fontSize: 12.5, marginTop: ativas.length ? 12 : 0, marginBottom: 4 }}>⏰ Os seus lembretes</div>
+      <div style={{ fontSize: 11.5, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 6 }}>
+        O horário e o texto são seus (os que você combinou com o seu médico): o app não sugere horário nem dose. Toca no celular e no relógio, todo dia.
+      </div>
+      {lemb.map((l, i) => (
+        <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+          <input type="time" aria-label="Horário do lembrete" value={typeof l.hora === "number" ? hhmmDoDia(l.hora) : ""}
+            onChange={(e) => { const [h, m] = (e.target.value || "").split(":").map(Number); if (isNaN(h)) return; const n = lemb.slice(); n[i] = Object.assign({}, l, { hora: h * 60 + (m || 0) }); mudarLemb(n); }}
+            style={{ ...S.input, width: 100, padding: "6px 8px" }} />
+          <input aria-label="Texto do lembrete" value={l.texto || ""} placeholder="Texto do lembrete" maxLength={60}
+            onChange={(e) => { const n = lemb.slice(); n[i] = Object.assign({}, l, { texto: e.target.value.slice(0, 60) }); mudarLemb(n); }}
+            style={{ ...S.input, flex: 1, minWidth: 0, padding: "6px 8px" }} />
+          <button onClick={() => mudarLemb(lemb.filter((x, j) => j !== i))} aria-label="Apagar este lembrete" style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 10px" }}>✕</button>
+        </div>
+      ))}
+      {lemb.length < MAX_LEMBRETES_INSULINA && (
+        <button onClick={() => mudarLemb(lemb.concat([{ hora: 8 * 60, texto: "" }]))} style={{ ...S.btnGhost, width: "100%", padding: "8px 6px", fontWeight: 900, fontSize: 12.5 }}>+ Lembrete com o seu horário</button>
+      )}
+    </div>
+  );
+}
+function CartaoPreparo({ preparo, hoje, cb, onMudar, diaHoje, hipos, onAplicar, onTirarAplicacao, onHipo }) {
   const usos = (preparo && preparo.usos) || {};
   const mudarUso = (id, m) => onMudar(Object.assign({}, preparo, { usos: Object.assign({}, usos, { [id]: Object.assign({}, usos[id] || {}, m) }) }));
   const ativo = (u) => u && u.desde && u.desde <= hoje && (!u.ate || u.ate >= hoje);
@@ -39360,6 +39491,10 @@ function CartaoPreparo({ preparo, hoje, cb, onMudar }) {
         </div>
       ))}
       {SUBSTANCIAS_PREPARO.some((x) => x.insulina && ativo(usos[x.id])) && <CartaoHipoglicemia />}
+      {onAplicar && (SUBSTANCIAS_PREPARO.some((x) => x.insulina && ativo(usos[x.id])) || (preparo && (preparo.lembretes || []).length > 0)) && (
+        <InsulinaNoDia preparo={preparo || {}} hoje={hoje} diaHoje={diaHoje} hipos={hipos || []} onMudar={onMudar}
+          onAplicar={onAplicar} onTirarAplicacao={onTirarAplicacao} onHipo={onHipo} />
+      )}
       {SUBSTANCIAS_PREPARO.map((x) => {
         const u = usos[x.id] || {};
         const on = ativo(u);
@@ -39874,8 +40009,10 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
       }),
       // o plano de avisos das janelas (2026-11-26m): o app agenda cada um na
       // hora certa (AlarmManager) e manda ao relógio. Só com o aviso ligado.
-      jan: perfilG.avisos && h0.janelas ? avisosDoDia(h0.janelas).map((a) => ({ id: a.id, em: a.em, ate: a.ate, t: a.titulo, c: a.corpo })) : [],
-      jan7: perfilG.avisos ? avisosAdiante(perfilG.treinoPlano, perfilG.dorme, Date.now()) : [],
+      jan: (perfilG.avisos && h0.janelas ? avisosDoDia(h0.janelas).map((a) => ({ id: a.id, em: a.em, ate: a.ate, t: a.titulo, c: a.corpo })) : [])
+        .concat(prepOk ? avisosInsulina({ preparo: perfilG.preparo, diaStr: h0.d, dia: h0.dia, dorme: perfilG.dorme }).map((a) => ({ id: a.id, em: a.em, ate: a.ate, t: a.titulo, c: a.corpo })) : []),
+      jan7: juntarAdiante(perfilG.avisos ? avisosAdiante(perfilG.treinoPlano, perfilG.dorme, Date.now()) : [],
+        prepOk ? insulinaAdiante(perfilG.preparo, perfilG.dorme, Date.now()) : []),
       vistos: (nutricao.vistos || []).slice(-80) } : null;
   }
   const limiteAntes = useRef(null);
@@ -39931,11 +40068,18 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
   // Depois de mudar o plano dos avisos, manda o estado novo já no render
   // seguinte: ainda dentro do toque, que é o que o Chrome exige para abrir o app.
   const mandarDepois = useRef(false);
+  const mandarT = useRef(null);
   useEffect(() => {
     if (!mandarDepois.current) return;
     mandarDepois.current = false;
-    if (sincarRef.current && estadoRelogio.current) { sincEm.current = Date.now(); setTimeout(() => sincarRef.current && sincarRef.current(estadoRelogio.current), 120); }
+    // espera a pessoa parar de digitar (o texto de um lembrete): um envio só,
+    // ainda dentro dos segundos em que o Chrome considera o toque válido
+    clearTimeout(mandarT.current);
+    mandarT.current = setTimeout(() => {
+      if (sincarRef.current && estadoRelogio.current) { sincEm.current = Date.now(); sincarRef.current(estadoRelogio.current); }
+    }, 1200);
   });
+  useEffect(() => () => clearTimeout(mandarT.current), []);
 
   // Ao abrir a tela e a cada troca de seção: o toque que trouxe a pessoa até
   // aqui é o gesto que o Chrome exige para a página falar com o app.
@@ -40329,7 +40473,13 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
           {secao === "perfil" && (
             <div>
               {perfilForm}
-              {prepOk && <CartaoPreparo preparo={perfil.preparo || {}} hoje={hoje} cb={cb} onMudar={(p) => mudarPerfil({ preparo: p })} />}
+              {prepOk && <CartaoPreparo preparo={perfil.preparo || {}} hoje={hoje} cb={cb}
+                onMudar={(p) => { mudarPerfil({ preparo: p }); mandarDepois.current = true; }}
+                diaHoje={(nutricao.dias || {})[hoje]}
+                hipos={Object.keys(nutricao.dias || {}).filter((d) => d >= diaLocal(Date.now() - 30 * 864e5)).sort().reduce((l, d) => l.concat(((nutricao.dias[d] || {}).hipo || []).map((x) => x.t)), [])}
+                onAplicar={(tipo) => { mudarDia(hoje, (d) => Object.assign({}, d, { insulina: (d.insulina || []).concat([{ t: Date.now(), tipo: tipo }]).slice(-20) })); mostrar("💉 Aplicação marcada"); mandarDepois.current = true; }}
+                onTirarAplicacao={(t) => { mudarDia(hoje, (d) => Object.assign({}, d, { insulina: (d.insulina || []).filter((x) => x.t !== t) })); mandarDepois.current = true; }}
+                onHipo={() => mudarDia(hoje, (d) => Object.assign({}, d, { hipo: (d.hipo || []).concat([{ t: Date.now() }]).slice(-20) }))} />}
               {sincronizarRelogio && (
                 <div style={S.card}>
                   <div style={{ ...S.label, marginBottom: 6 }}>⌚ No relógio</div>
@@ -42081,8 +42231,11 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
   useEffect(() => {
     if (!carregado) return;
     const lig = !!(nutricao && nutricao.perfil && nutricao.perfil.avisos);
-    if ("serviceWorker" in navigator) pedirAvisoJanelas(lig);
-    if (!lig) { guardarConfigJanelas({ ativo: false, dia: "", avisos: [] }); return; }
+    // os avisos da insulina valem mesmo com os das janelas desligados
+    const pr = nutricao && nutricao.perfil && nutricao.perfil.preparo;
+    const comInsulina = preparoLiberado() && !!pr && ((pr.lembretes || []).length > 0 || insulinasAtivas(pr, diaLocal(Date.now())).length > 0);
+    if ("serviceWorker" in navigator) pedirAvisoJanelas(lig || comInsulina);
+    if (!lig && !comInsulina) { guardarConfigJanelas({ ativo: false, dia: "", avisos: [] }); return; }
     let vivo = true;
     const conferir = () => {
       if (!vivo) return;
@@ -42091,6 +42244,12 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
         if (!cb.completo) return;
         const x = cb.dias.find((y) => y.d === cb.hoje);
         if (!x || !x.janelas) return;
+        // a insulina: mesmo no meio do treino (a conferência é segurança)
+        if (comInsulina) {
+          const ai = insulinaNaHora(avisosInsulina({ preparo: pr, diaStr: cb.hoje, dia: x.dia, dorme: nutricao.perfil.dorme }), cb.agoraMin, vistosDeHoje(cb.hoje));
+          if (ai) { marcarJanelaVista(cb.hoje, ai.id); avisarEmSegundoPlano(ai.titulo, ai.corpo); }
+        }
+        if (!lig) return;
         const av = avisosDoDia(x.janelas);
         guardarConfigJanelas({ ativo: true, dia: cb.hoje, avisos: av });
         // o app Android recebe o mesmo plano pelo pacote do relógio, que já
@@ -43172,7 +43331,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     // preciso tocar em "Mandar ao relógio" para o app Android agendar). Sai
     // quando o plano do dia muda (ou é o primeiro do dia), e também quando os
     // avisos são desligados, para o app cancelar os alarmes.
-    const assin = (est.d || "") + "|" + JSON.stringify((est.jan || []).map((a) => [a.id, a.em]));
+    const assin = (est.d || "") + "|" + JSON.stringify((est.jan || []).map((a) => [a.id, a.em, a.t]));
     let ultima = "";
     try { ultima = localStorage.getItem("treinolivre:janelasMandadas") || ""; } catch (e) {}
     const planoMudou = assin !== ultima && ((est.jan || []).length > 0 || (!!ultima && ultima.split("|")[1] !== "[]"));

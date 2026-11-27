@@ -36,18 +36,22 @@ object Janelas {
     private const val NOTA_BASE = 820
     // os ids possíveis, na ordem: o código do alarme sai daqui (estável entre
     // um dia e outro, então reagendar substitui em vez de acumular)
-    private val IDS = listOf("preTreino", "posTreino", "proteina", "noite", "cafeina", "creatina")
+    // e os da insulina (2026-11-27m): os 4 lembretes da pessoa, a conferência
+    // "já comeu?" e a noite com a basal ou a NPH
+    private val IDS = listOf("preTreino", "posTreino", "proteina", "noite", "cafeina", "creatina",
+        "ins0", "ins1", "ins2", "ins3", "insConf", "insNoite")
 
     private fun prefs(c: Context) = c.getSharedPreferences("janelas", Context.MODE_PRIVATE)
 
     // Os dias adiante (2026-11-27g): hoje e mais 6, cada dia com o seu código
-    // (dia * 10 + o id). Hoje (dia 0) tem o mesmo código de antes.
+    // (dia * 20 + o id; eram 10 até chegarem os 12 ids). Hoje (dia 0) tem o
+    // mesmo código de antes.
     const val DIAS = 7
 
     private fun alarme(c: Context, id: String, titulo: String, corpo: String, dia: Int = 0): PendingIntent {
         val i = Intent(c, JanelaReceiver::class.java).setAction(ACAO)
             .putExtra("id", id).putExtra("t", titulo).putExtra("c", corpo)
-        return PendingIntent.getBroadcast(c, NOTA_BASE + dia * 10 + IDS.indexOf(id).coerceAtLeast(0), i,
+        return PendingIntent.getBroadcast(c, NOTA_BASE + dia * 20 + IDS.indexOf(id).coerceAtLeast(0), i,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
@@ -70,7 +74,12 @@ object Janelas {
         try {
             val j = JSONObject(estado)
             val am = c.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            // cancela também os códigos do jeito antigo (dia * 10), de quem atualizou o app com avisos agendados
             for (dia in 0 until DIAS) IDS.forEach { id -> try { am.cancel(alarme(c, id, "", "", dia)) } catch (e: Exception) { } }
+            for (k in 0 until DIAS * 10) try {
+                am.cancel(PendingIntent.getBroadcast(c, NOTA_BASE + k, Intent(c, JanelaReceiver::class.java).setAction(ACAO),
+                    PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE) ?: continue)
+            } catch (e: Exception) { }
             // hoje ("jan", com o que foi anotado) e os próximos dias ("jan7",
             // pelo horário de sempre), cada um na data dele
             val dias = mutableListOf<Pair<String, JSONArray>>()
@@ -156,8 +165,9 @@ class JanelaReceiver : BroadcastReceiver() {
         val id = i.getStringExtra("id") ?: return
         val t = i.getStringExtra("t") ?: return
         val corpo = i.getStringExtra("c") ?: ""
-        // nunca no meio de um treino: com o Jarvis do treino ligado, cala
-        if (BolsoService.instancia != null) return
+        // nunca no meio de um treino: com o Jarvis do treino ligado, cala — menos
+        // os da insulina, que são segurança (o "já comeu?" vale mais no treino)
+        if (BolsoService.instancia != null && !id.startsWith("ins")) return
         Janelas.mostrar(c, id, t, corpo)
         Janelas.avisarRelogio(c.applicationContext, t, corpo)
     }

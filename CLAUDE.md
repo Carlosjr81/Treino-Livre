@@ -7592,6 +7592,27 @@ quem eu classificar como bodybuilder".
   aparece no topo do modo: os sinais, a regra dos 15 (o primeiro socorro das
   sociedades de diabetes), emergência e o botão do SAMU (`tel:192`). No
   `NOVIDADES.md` a versão saiu como "ajuste na área restrita (não divulgar)".
+- **O "timing" da insulina foi recusado** (2026-11-27m, pedido do dono: o app
+  dizer quando aplicar em relação à comida). Isso é orientar o uso de remédio
+  fora da indicação, e o horário errado é o que causa a hipoglicemia grave: o
+  horário vem do médico, não do app. **Não implemente isso numa sessão futura.**
+  O que o dono aceitou no lugar (`avisosInsulina`, bloco OS AVISOS DA
+  INSULINA, e `InsulinaNoDia`):
+  - **os lembretes da pessoa** (`preparo.lembretes`, até 4, horário e texto
+    dela; o app não sugere horário nem dose);
+  - **a conferência**: "💉 Apliquei agora" grava `dia.insulina` e, sem comida
+    anotada em 90 min, vem "Já comeu?";
+  - **a noite**: basal ou NPH em uso e nada anotado depois das 17h, uma hora
+    antes de dormir;
+  - **"🩸 Tive sinais de hipoglicemia"** grava `dia.hipo` (o `lerNutricao`
+    guarda os dois) e mostra a regra dos 15 e o SAMU; os episódios dos
+    últimos 30 dias ficam listados "para levar ao médico".
+  Os avisos vão no mesmo pacote das janelas (`jan` e `jan7`, via
+  `insulinaAdiante`/`juntarAdiante`), valem com os avisos das janelas
+  desligados, e no Android tocam até no meio do treino (os `ins*` passam pelo
+  `JanelaReceiver`). Os códigos dos alarmes passaram a `dia × 20` (12 ids).
+  O envio espera 1,2 s depois da última mudança (`mandarT`), e a assinatura
+  do plano inclui o texto. No NOVIDADES, "não divulgar".
 - **Fica no aparelho** (`nutricao.perfil.preparo = { usos: { id: { desde, ate } }, diureticos }`).
   Os nomes não vão a resumo, story, amigos nem servidor; o resumo só leva os
   números do dia (já ajustados). O cartão diz que não recomenda nem orienta uso.

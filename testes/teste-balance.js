@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -283,6 +283,26 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("com a chave, a meta sobe junto", true, xc.meta.k > xs.meta.k);
   teste("o peso do dia de diurético sai da conta", [2, 1], [sem.pesos.length, com.pesos.length]);
   teste("diurético não mexe no gasto", 0, B.SUBSTANCIAS_PREPARO.find((x) => x.id === "diuretico").efeito);
+  // os avisos da insulina (2026-11-27m): lembretes da pessoa, a conferência e a noite
+  {
+    const tm = (h, m) => new Date(2026, 10, 27, h, m || 0).getTime();
+    const prep = { usos: { insulinaRapida: { desde: "2026-11-01", ate: "" } }, lembretes: [{ hora: 7 * 60 + 30, texto: "Aplicação da manhã" }] };
+    const sem = B.avisosInsulina({ preparo: prep, diaStr: "2026-11-27", dia: { itens: [], insulina: [{ t: tm(14, 0), tipo: "insulinaRapida" }] }, dorme: 23 });
+    teste("o lembrete da pessoa, no horário dela", [450, "💉 Aplicação da manhã"], [sem.find((x) => x.id === "ins0").em, sem.find((x) => x.id === "ins0").titulo]);
+    teste("aplicou às 14h sem comida: pergunta às 15h30", 15 * 60 + 30, sem.find((x) => x.id === "insConf").em);
+    const comeu = B.avisosInsulina({ preparo: prep, diaStr: "2026-11-27", dia: { itens: [{ t: tm(14, 20), n: "Arroz" }], insulina: [{ t: tm(14, 0) }] }, dorme: 23 });
+    teste("comeu depois da aplicação: sem conferência", false, comeu.some((x) => x.id === "insConf"));
+    teste("só a rápida: sem o aviso da noite", false, sem.some((x) => x.id === "insNoite"));
+    const basal = { usos: { insulinaBasal: { desde: "2026-11-01", ate: "" } } };
+    teste("basal sem jantar anotado: aviso uma hora antes de dormir", 22 * 60, (B.avisosInsulina({ preparo: basal, diaStr: "2026-11-27", dia: { itens: [] }, dorme: 23 }).find((x) => x.id === "insNoite") || {}).em);
+    teste("basal com jantar anotado: sem aviso", false, B.avisosInsulina({ preparo: basal, diaStr: "2026-11-27", dia: { itens: [{ t: tm(19, 0) }] }, dorme: 23 }).some((x) => x.id === "insNoite"));
+    teste("parou de usar: só os lembretes", ["ins0"], B.avisosInsulina({ preparo: Object.assign({}, prep, { usos: { insulinaRapida: { desde: "2026-11-01", ate: "2026-11-10" } } }), diaStr: "2026-11-27", dia: { insulina: [{ t: tm(14, 0) }] }, dorme: 23 }).map((x) => x.id));
+    teste("os próximos dias levam os lembretes", 6, B.insulinaAdiante(prep, 23, tm(10, 0)).length);
+    teste("e se juntam aos das janelas no mesmo dia", 2, B.juntarAdiante([{ d: "2026-11-28", a: [{ id: "noite" }] }], [{ d: "2026-11-28", a: [{ id: "ins0" }] }])[0].a.length);
+    teste("nenhum aviso de insulina diz quando aplicar nem quanto", [], sem.concat(B.avisosInsulina({ preparo: basal, diaStr: "2026-11-27", dia: {}, dorme: 23 }))
+      .filter((x) => /aplique|antes de comer|depois de comer|unidades|\bUI\b|dose/i.test(x.titulo + " " + x.corpo) && x.id.indexOf("ins") === 0 && x.id !== "ins0").map((x) => x.id));
+  }
+
   // as insulinas (2026-11-27l): só registro, nunca dose
   const ins = B.SUBSTANCIAS_PREPARO.filter((x) => x.insulina);
   teste("as três insulinas estão na lista", ["insulinaRapida", "insulinaBasal", "insulinaNph"], ins.map((x) => x.id));

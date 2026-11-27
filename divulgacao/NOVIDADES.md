@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27t — A lista do dia diz que o número é caloria
+
+- **Em uma frase:** no Balance, cada alimento anotado mostra "kcal" ao lado do número.
+- **O que mudou:** a lista "O que você comeu" mostrava só o número, e um suplemento sem calorias, como a creatina, aparecia com um "0" que parecia erro. Agora aparece "0 kcal".
+- **Por que importa para quem treina:** dá para conferir o dia sem dúvida sobre o que cada número quer dizer.
+- **Como usar:** nada muda; é só abrir o Balance › Hoje.
+- **Ideias de vídeo:** nenhuma específica (ajuste pequeno de tela).
+- **Não prometer:** que suplemento sem caloria muda a meta do dia (não muda).
+
+---
+
 ## 2026-11-27s — O dia sem treino, pelos estudos e sem precisar avisar
 
 - **Em uma frase:** o app entende sozinho se o dia sem treino foi descanso ou falta, e cada parte da nota do dia mostra o estudo de onde veio.

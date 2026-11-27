@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-27p**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-27q**.
 
 ---
 
@@ -93,19 +93,19 @@
 
 ## 1. Em uma frase
 
-**Treino Livre é o app gratuito, sem anúncio e que funciona offline para registrar o treino de
+**Treino Livre é o app sem anúncio e que funciona offline para registrar o treino de
 academia — e que deixa você treinar sem tocar no celular: fala com o Jarvis por voz e a câmera conta
 as repetições.**
 
 - **Endereço:** https://carlosjr81.github.io/Treino-Livre/
 - **Criador:** Carlos Jr — "O Zeus" — Instagram **@carlos.jr.81** (https://instagram.com/carlos.jr.81)
-- **Preço:** grátis. Sem assinatura e sem anúncio. Precisa criar uma conta (liberada pelo criador do app; dá para
+- **Preço:** o app **não é mais gratuito** (desde 27/11/2026): o acesso é por plano pago (mensal, anual, único ou vitalício, pelo Pix ou link de pagamento) ou por cortesia do criador. Sem anúncio e sem renovação automática. **Nunca diga que é grátis.** Precisa criar uma conta (liberada pelo criador do app; dá para
   entrar com a conta do Google) e aceitar os Termos de Uso, que o app resume em 8 cartões simples.
 - **Onde funciona:** em qualquer celular (Android e iPhone) e no computador, pelo navegador. Pode ser
   "baixado" (instalado na tela inicial) e aí abre em tela cheia, com ícone, como um app comum.
 
 ### Os quatro pilares (use como argumento em qualquer peça)
-1. **Gratuito e sem anúncio** — cria a conta grátis (ou entra com o Google) e usa.
+1. **Sem anúncio** — cria a conta (ou entra com o Google), escolhe o plano e usa, sem propaganda atrapalhando o treino.
 2. **Privado** — os treinos, medidas e fotos ficam **no próprio celular**. O servidor guarda só a conta
    de acesso (nome, e-mail e se está liberada), nunca os treinos.
    A câmera roda no aparelho: **nenhuma imagem sai do celular**.
@@ -643,7 +643,7 @@ qualquer peça (e sem falar da formação de ninguém, nem para dizer que tem ne
 - "Meu celular conta minhas repetições. Sozinho."
 - "Eu não toco no celular durante o treino. Olha isso:"
 - "Faltou ao treino de perna? O Marombeiro vai te achar."
-- "Um app de academia grátis e sem anúncio. Sério."
+- "Um app de academia sem anúncio. Sério."
 - "Corri de um lobisomem na esteira hoje."
 - "Seu app de treino sabe seu VO2máx? O meu sabe."
 - "Corri contra meu amigo que mora em outra cidade. Ao vivo."
@@ -662,7 +662,7 @@ qualquer peça (e sem falar da formação de ninguém, nem para dizer que tem ne
 10. **Treino em casa sem equipamento:** aula Express de 7 minutos com o bonequinho.
 
 ### CTA padrão
-- "Link na bio. Grátis e sem anúncio."
+- "Link na bio. Sem anúncio."
 - "Segue **@carlos.jr.81** para mais."
 - "Manda para aquele amigo que anota treino no papel."
 

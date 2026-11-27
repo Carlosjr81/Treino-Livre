@@ -1,8 +1,14 @@
 # Treino Livre
 
-App de registro de treinos de academia, em português e gratuito. Desde 2026-10-28f
+App de registro de treinos de academia, em português. Desde 2026-10-28f
 tem cadastro com aprovação (ver *Login com aprovação*); os treinos continuam no
 aparelho. **Não escreva "sem cadastro" em texto do app nem da divulgação.**
+**O app não é mais grátis** (pedido do dono, 2026-11-27q: o acesso é por plano
+pago ou cortesia). **Não escreva "grátis", "gratuito" nem "de graça" sobre o
+app** em tela, compartilhamento, termos ou divulgação. Continua valendo para
+serviço de terceiro que é grátis (o retransmissor, o instalador do relógio) e nos
+botões do painel do dono que ligam e desligam a cobrança. Os Termos foram para a
+versão 2026-11-27p (o acesso pode depender de plano pago).
 Publicado em https://carlosjr81.github.io/Treino-Livre/ (GitHub Pages).
 
 ## Dois scripts no `index.html`, de propósito

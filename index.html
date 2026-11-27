@@ -16,7 +16,7 @@
 -->
 <meta name="theme-color" content="#111111" />
 <title>Treino Livre</title>
-<meta name="description" content="Monte suas fichas, registre séries e cargas e acompanhe sua evolução na academia. Gratuito, sem anúncio e funciona offline." />
+<meta name="description" content="Monte suas fichas, registre séries e cargas e acompanhe sua evolução na academia. Sem anúncio e funciona offline." />
 
 <!-- Instalação como app (PWA) -->
 <link rel="manifest" href="manifest.json" />
@@ -31,7 +31,7 @@
 <!-- Prévia ao compartilhar o link no WhatsApp, Instagram etc. -->
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Treino Livre" />
-<meta property="og:description" content="Monte suas fichas, registre séries e cargas e acompanhe sua evolução na academia. Gratuito e sem anúncio." />
+<meta property="og:description" content="Monte suas fichas, registre séries e cargas e acompanhe sua evolução na academia. Sem anúncio." />
 <meta property="og:image" content="https://carlosjr81.github.io/Treino-Livre/icon-512.png" />
 <meta property="og:url" content="https://carlosjr81.github.io/Treino-Livre/" />
 <meta property="og:locale" content="pt_BR" />
@@ -1121,15 +1121,15 @@ const TEXTOS_ADAPTADO = {
 // todo mundo vê os termos de novo e precisa aceitar outra vez.
 // Não é parecer jurídico: é o que dá para escrever sem um advogado.
 const TERMOS_USO = {
-  versao: "2026-11-02b",
+  versao: "2026-11-27p",
   resumo: [
-    ["\u{1F193}", "Grátis, com acesso liberado", "O app é gratuito. A conta precisa da liberação do criador do app, que pode pôr prazo ou bloquear quem descumprir estas regras. Se um dia houver plano pago, você é avisado antes, e nada é cobrado sem o seu aceite."],
+    ["\u{1F511}", "Acesso liberado pelo criador", "A conta precisa da liberação do criador do app, que pode pôr prazo ou bloquear quem descumprir estas regras. O acesso pode depender de um plano pago: o preço e as condições aparecem antes, e nada é cobrado sem o seu aceite."],
     ["\u{1FA7A}", "Saúde em primeiro lugar", "Antes de usar, você responde 7 perguntas de saúde. Consulte um médico antes de começar ou mudar o seu treino. Sentiu dor no peito, tontura ou falta de ar, pare na hora e ligue 192."],
     ["\u{1F916}", "Uma ferramenta, não um profissional", "O app registra e organiza o seu treino. As sugestões são automáticas, feitas com auxílio de IA a partir de estudos: informação educativa, não prescrição. Não substituem o médico nem o profissional de Educação Física."],
     ["\u{1F4F1}", "Os seus treinos são seus", "Eles ficam no seu celular, não num servidor. Faça backup: se o aparelho se perder, o app não tem como recuperar."],
     ["\u{1F3C3}", "Atenção na rua e na esteira", "Na rua, o trânsito vem antes do app. Na esteira conectada, você define a velocidade máxima, e o botão de parar da máquina é sempre seu."],
     ["\u{1F91D}", "Respeito", "Nada de conta falsa, apelido ofensivo ou usar os desafios para incomodar alguém."],
-    ["\u{00A9}\u{FE0F}", "O app tem dono", "Usar é livre. Copiar, revender ou tentar burlar a liberação, não."],
+    ["\u{00A9}\u{FE0F}", "O app tem dono", "Usar com a sua conta, sim. Copiar, revender ou tentar burlar a liberação ou o pagamento, não."],
     ["\u{1F504}", "Termos novos, aceite novo", "Se estas regras mudarem, o app mostra a versão nova e pede o seu aceite outra vez."],
   ],
   secoes: [
@@ -1159,7 +1159,7 @@ const TERMOS_USO = {
     ["6. A sua conta", [
       "Para entrar é preciso criar uma conta com nome, e-mail e senha. Dê informações verdadeiras, guarde a sua senha e não a compartilhe: o que for feito com a sua conta é de sua responsabilidade. Se perceber uso indevido, troque a senha e avise o criador do app.",
       "O acesso é liberado pelo criador do app, que pode liberar com prazo, renovar, bloquear ou recusar contas, em especial quando estes termos não forem cumpridos. Quando houver um motivo para o bloqueio, ele aparece para você.",
-      "Hoje o app é gratuito. Se um dia houver recursos ou planos pagos, as condições serão mostradas antes, e nada será cobrado sem que você aceite.",
+      "O acesso ao app pode depender de um plano pago ou de uma cortesia do criador do app. O preço, o prazo e as condições de cada plano aparecem na tela antes do pagamento, e nada é cobrado sem que você aceite. Não há renovação automática: quem renova é você.",
     ]],
     ["7. Os seus dados e os seus treinos", [
       "Os seus treinos, medidas, fotos e dados de saúde ficam guardados no seu aparelho, e não num servidor do app. Por isso, apagar os dados do navegador, desinstalar o app ou perder o celular pode apagar o seu histórico. Use o backup em Ajustes: guardar as cópias é responsabilidade sua.",
@@ -1177,7 +1177,7 @@ const TERMOS_USO = {
       "Os treinos, as fichas e as fotos que você cria são seus.",
     ]],
     ["11. Disponibilidade e responsabilidade", [
-      "O app é oferecido como está, de graça, e pode ter falhas, ficar fora do ar, mudar ou deixar de oferecer recursos, com ou sem aviso. O criador do app trabalha para que ele funcione bem, mas não garante que funcione sempre e sem erro.",
+      "O app é oferecido como está, e pode ter falhas, ficar fora do ar, mudar ou deixar de oferecer recursos, com ou sem aviso. O criador do app trabalha para que ele funcione bem, mas não garante que funcione sempre e sem erro.",
       "Na medida permitida pela lei, o criador do app não responde por lesões, danos ou perdas que resultem do uso das sugestões sem orientação médica ou profissional, do descumprimento destes termos, da perda de dados guardados só no aparelho ou de falhas de serviços de terceiros. Nada nestes termos tira os direitos que a lei garante a você, como os do Código de Defesa do Consumidor.",
     ]],
     ["12. Sair e apagar a conta", [
@@ -2454,7 +2454,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27p";
+const VERSAO_APP = "2026-11-27q";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -7939,7 +7939,7 @@ function gerarImagemStory(linhas) {
   });
   faixa(1680);
   c.fillStyle = "#E1306C"; c.font = "bold 40px sans-serif"; c.fillText("carlosjr81.github.io/Treino-Livre", 540, 1764);
-  c.fillStyle = "#A8A8A9"; c.font = "28px sans-serif"; c.fillText("App gratuito, feito por", 540, 1818);
+  c.fillStyle = "#A8A8A9"; c.font = "28px sans-serif"; c.fillText("App feito por", 540, 1818);
   c.fillStyle = "#F2F0EC"; c.font = "900 52px sans-serif"; c.fillText("@" + INSTAGRAM, 540, 1878);
   return new Promise((res) => cv.toBlob(res, "image/png"));
 }
@@ -17124,7 +17124,7 @@ function CartaoAppAndroid({ onDepois }) {
   return (
     <div style={{ ...S.card, borderColor: "#E1306C99" }}>
       <div style={{ fontWeight: 900, fontSize: 17, marginBottom: 4 }}>📲 Baixe o app Android do Treino Livre</div>
-      <div style={{ fontSize: 13, color: "var(--cinza)", marginBottom: 10 }}>Grátis, com os mesmos treinos — e com o que o navegador não alcança:</div>
+      <div style={{ fontSize: 13, color: "var(--cinza)", marginBottom: 10 }}>Com os mesmos treinos — e com o que o navegador não alcança:</div>
       <div style={{ fontSize: 14, lineHeight: 1.7, marginBottom: 12 }}>
         <div>⌚ <b>Relógio, anel e Samsung Health</b>: passos, sono e batimento no app</div>
         <div>❤ O batimento do relógio entra em <b>cada treino</b></div>
@@ -18370,7 +18370,7 @@ function TelaAjustes({ tema, onTema, som, setSom, descanso, setDescanso, descans
           Textos, dicas, animação e mapa muscular: conteúdo original do app.
         </div>
         <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.7, marginTop: 10 }}>
-          © 2026 Carlos Jr. Todos os direitos reservados. O app é gratuito para usar; o código, os textos, as histórias
+          © 2026 Carlos Jr. Todos os direitos reservados. O código, os textos, as histórias
           e a marca Treino Livre não podem ser copiados nem usados em outro app sem autorização.
         </div>
       </div>
@@ -27134,7 +27134,7 @@ function linkDesafioDoTreino(reg, d, nome, rnd) {
   const url = linkDesafio(sala, [{ id: "t" + reg.id, nome: nome, trilha: d.trilha, fim: d.fim, dt: Date.parse(reg.data) || null }]);
   const texto = "🏁 Te desafio: fiz " + nomeMetaDesafio(d.meta) + " de " + d.atividade + (d.rua ? " na rua" : " na esteira") +
     " em " + fmtTempoRota(d.fim.ms) + ". Consegue fazer mais rápido? Corre de onde estiver, na rua ou na esteira: o app põe você na pista contra o meu resultado." +
-    " (Treino Livre, app gratuito do @" + INSTAGRAM + ")";
+    " (Treino Livre, app do @" + INSTAGRAM + ")";
   return { url: url, texto: texto, sala: sala };
 }
 function lerLinkDesafio(b64) {
@@ -28370,7 +28370,7 @@ function TelaGrupo({ historico, corredor, setCorredor, avisar, onVoltar, onDesaf
     const texto = (g.foco === "academia" ? "🏟 Entra no ranking \"" + g.nome + "\" no Treino Livre: quem treina aqui na academia! Código " + g.codigo + ". "
       : "⚔️ Entra no meu desafio \"" + g.nome + "\" no Treino Livre! Código " + g.codigo + ". ") +
       (g.foco === "corrida" ? "Ranking de km na rua e na esteira, ritmo e quem está correndo agora, ao vivo." : "Ranking de treinos da semana, sequência, volume e km, ao vivo.") +
-      " (app gratuito do @" + INSTAGRAM + ")";
+      " (app do @" + INSTAGRAM + ")";
     if (navigator.share) {
       try { await navigator.share({ text: texto, url: url }); return; }
       catch (e) { if (e && e.name === "AbortError") return; }
@@ -29219,7 +29219,7 @@ function TelaDesafio({ vozCfg, som, corredor, setCorredor, convite, onConviteUsa
       : comResultado && e && e.fim
       ? "🏁 Fiz " + (meta.tipo === "distancia" ? nomeMetaDesafio(meta) + " em " + fmtTempoRota(e.fim.ms) : num1(e.fim.m / 1000) + " km em " + nomeMetaDesafio(meta)) + " no desafio. Consegue me passar?"
       : "🏁 Te desafio: " + nomeMetaDesafio(meta) + " de " + (sala.atividade === "caminhada" ? "caminhada" : "corrida") + ". Sala " + sala.codigo + ".") +
-      " Corre de onde estiver, agora ou depois: o app compara pelo mesmo tempo de prova. (Treino Livre, app gratuito do @" + INSTAGRAM + ")";
+      " Corre de onde estiver, agora ou depois: o app compara pelo mesmo tempo de prova. (Treino Livre, app do @" + INSTAGRAM + ")";
     if (navigator.share) {
       try { await navigator.share({ text: texto, url: url }); return; } catch (x) { if (x && x.name === "AbortError") return; }
     }
@@ -33123,7 +33123,7 @@ function GerarStoryResumo({ cenas, onVoltar }) {
     return () => { vivo = false; };
   }, []);
 
-  const texto = "Meu treino no Treino Livre 💪 App gratuito do @" + INSTAGRAM + ": " + LINK_APP;
+  const texto = "Meu treino no Treino Livre 💪 App do @" + INSTAGRAM + ": " + LINK_APP;
   const compartilhar = async () => {
     if (!res) return;
     if (res.imagem) { await compartilharImagem(res.blob, texto, setAviso); return; }
@@ -41240,7 +41240,7 @@ function PassosInstalar({ compacto }) {
           <div>📱 Abre pelo ícone, em tela cheia</div>
         </div>
       )}
-      <a href={LINK_APK} onClick={() => registrarEvento("apk-apos-liberar")} style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none" }}>⬇ Baixar o app Android (grátis)</a>
+      <a href={LINK_APK} onClick={() => registrarEvento("apk-apos-liberar")} style={{ ...S.btn, display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none" }}>⬇ Baixar o app Android</a>
       <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 8, textAlign: "left" }}>
         Abra o arquivo baixado e toque em <b>Instalar</b>. Se o celular perguntar, permita instalar do Chrome; se o Play Protect avisar, <b>Mais detalhes → Instalar mesmo assim</b>. Depois, abra sempre pelo ícone do app.
       </div>
@@ -41350,7 +41350,7 @@ function Portaria({ temDados, podeInstalar, onInstalar, onCopiarLink, onEntrar }
         Siga para liberar o app
       </div>
       <div style={{ fontSize: 14.5, color: "var(--cinza)", lineHeight: 1.7, maxWidth: 350, marginBottom: 24 }}>
-        O Treino Livre é gratuito e sem anúncio. Em troca, siga
+        O Treino Livre é sem anúncio. Siga
         @{INSTAGRAM} no Instagram: é por lá que saem as atualizações, os treinos
         novos e as dicas.
       </div>
@@ -43777,7 +43777,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     const b64 = b64Codificar(JSON.stringify(payload));
     const url = LINK_APP + "#prog=" + b64;
     registrarEvento("treino-compartilhado");
-    const texto = 'Te enviei o treino completo "' + p.nome + '" (' + fichas.length + " fichas) no Treino Livre 💪 (app gratuito do @" + INSTAGRAM + ") Toque no link para adicionar:";
+    const texto = 'Te enviei o treino completo "' + p.nome + '" (' + fichas.length + " fichas) no Treino Livre 💪 (app do @" + INSTAGRAM + ") Toque no link para adicionar:";
     if (navigator.share) {
       try { await navigator.share({ text: texto, url: url }); return; }
       catch (e) { if (e && e.name === "AbortError") return; }
@@ -43822,7 +43822,7 @@ function TreinoLivre({ contaPendentes, contaPagamentos, contaAuto, onContaVista 
     registrarEvento("ficha-compartilhada");
     // O crédito viaja junto com o link: quem recebe a ficha de um amigo descobre
     // o app e quem o fez no mesmo instante.
-    const texto = 'Te enviei a ficha de treino "' + t.nome + '" no Treino Livre 💪 (app gratuito do @' + INSTAGRAM + ') Toque no link para adicionar:';
+    const texto = 'Te enviei a ficha de treino "' + t.nome + '" no Treino Livre 💪 (app do @' + INSTAGRAM + ') Toque no link para adicionar:';
     if (navigator.share) {
       try { await navigator.share({ text: texto, url: url }); return; }
       catch (e) { if (e && e.name === "AbortError") return; }
@@ -46019,7 +46019,7 @@ function TelaConta({ onEntrou, msgInicial }) {
   const link = (txt, onClick) => (
     <button type="button" onClick={onClick} style={{ background: "none", border: "none", color: "var(--marca)", fontWeight: 800, cursor: "pointer", fontSize: 14, padding: "6px 4px" }}>{txt}</button>
   );
-  const titulo = modo === "criar" ? "Crie a sua conta grátis" : modo === "esqueci" ? "Criar uma senha nova" : "Bem-vindo de volta";
+  const titulo = modo === "criar" ? "Crie a sua conta" : modo === "esqueci" ? "Criar uma senha nova" : "Bem-vindo de volta";
   const sub = modo === "criar" ? "Leva 30 segundos. Depois é só esperar a liberação do criador do app."
     : modo === "esqueci" ? "Digite o seu e-mail: mandamos um link para você criar outra senha."
     : "Entre com o e-mail e a senha da sua conta.";
@@ -46075,7 +46075,7 @@ function TelaConta({ onEntrou, msgInicial }) {
               <button type="button" onClick={() => setLendoTermos(true)} style={{ background: "none", border: "none", color: "var(--marca)", fontWeight: 800, fontSize: 13, cursor: "pointer", padding: "4px 0" }}>Ler os termos</button>
             </div>
             <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.45, margin: "2px 0 4px" }}>
-              Grátis, com acesso liberado pelo criador · sugestões feitas com IA, que não substituem o médico · os treinos ficam no seu celular.
+              Acesso liberado pelo criador · sugestões feitas com IA, que não substituem o médico · os treinos ficam no seu celular.
             </div>
             <CaixasAceite marcas={marcas} setMarcas={(m) => { setMarcas(m); if (m[0] && m[1] && /Termos/.test(msg)) setMsg(""); }} />
           </div>
@@ -46700,8 +46700,8 @@ function SimulacaoApoio({ onDoar }) {
       {fim ? (
         <div style={{ marginTop: 12, animation: "simBate .6s ease both" }}>
           <img src={LOGO_APP} alt="" style={{ height: 52 }} />
-          <div style={{ fontSize: 19, fontWeight: 900, marginTop: 2 }}>{"\u{1F389}"} Treino Livre <span style={{ color: "var(--marca)" }}>grátis</span> para todo mundo!</div>
-          <div style={{ fontSize: 13, color: "var(--cinza)", marginTop: 4, lineHeight: 1.45 }}>Pouco de cada um mantém o app no ar, sem anúncio e sem mensalidade.</div>
+          <div style={{ fontSize: 19, fontWeight: 900, marginTop: 2 }}>{"\u{1F389}"} Treino Livre <span style={{ color: "var(--marca)" }}>no ar</span> para todo mundo!</div>
+          <div style={{ fontSize: 13, color: "var(--cinza)", marginTop: 4, lineHeight: 1.45 }}>Pouco de cada um mantém o app no ar, sem anúncio e com novidades.</div>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10 }}>
             {onDoar && <button onClick={onDoar} style={{ ...S.btnGhost, width: "auto", padding: "9px 14px", borderColor: "var(--marca)", color: "var(--marca)", fontWeight: 900 }}>{"\u{1F49B}"} Quero ser um deles</button>}
             <button onClick={() => setVez((v) => v + 1)} style={{ ...S.btnGhost, width: "auto", padding: "9px 14px" }}>↻ Ver de novo</button>
@@ -46791,7 +46791,7 @@ function TelaApoio({ onFechar }) {
   };
   const abrir = (url) => { try { window.open(url, "_blank", "noopener"); } catch (x) { location.href = url; } };
   const compartilhar = () => {
-    const texto = "Uso o Treino Livre para anotar meus treinos, de graça. Experimenta: " + LINK_APP + " (feito por @" + INSTAGRAM + ")";
+    const texto = "Uso o Treino Livre para anotar meus treinos. Experimenta: " + LINK_APP + " (feito por @" + INSTAGRAM + ")";
     if (navigator.share) navigator.share({ title: "Treino Livre", text: texto }).catch(() => {});
     else copiar(texto, "convite");
   };
@@ -46820,7 +46820,7 @@ function TelaApoio({ onFechar }) {
             </div>
           </div>
           <div style={{ fontWeight: 900, fontSize: 26, lineHeight: 1.05, marginTop: 14, textTransform: "uppercase" }}>
-            Ajude a manter o Treino Livre<br /><span style={{ color: "#FF6B93" }}>ativo e gratuito</span>
+            Ajude a manter o Treino Livre<br /><span style={{ color: "#FF6B93" }}>ativo e sem anúncio</span>
           </div>
           <div style={{ fontSize: 14, marginTop: 8, opacity: 0.92, lineHeight: 1.45 }}>
             Doe qualquer valor pelo Pix, ou faça as compras que você já ia fazer pelos meus links: você não paga nada a mais.
@@ -46863,7 +46863,7 @@ function TelaApoio({ onFechar }) {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1.2 }}>Seja um dos primeiros apoiadores.</div>
               <div style={{ fontSize: 16.5, fontWeight: 700, lineHeight: 1.45, marginTop: 6 }}>
-                Todo o apoio vai para manter o app <span style={{ color: "var(--marca)", fontWeight: 900 }}>no ar, gratuito, sem propagandas que atrapalham o uso do app durante o treino, e com novidades toda semana.</span>
+                Todo o apoio vai para manter o app <span style={{ color: "var(--marca)", fontWeight: 900 }}>no ar, sem propagandas que atrapalham o uso do app durante o treino, e com novidades toda semana.</span>
               </div>
             </div>
           )}
@@ -46958,7 +46958,7 @@ function TelaApoio({ onFechar }) {
 }
 function abrirVideoApoio() { try { window.open(APOIO.video, "_blank", "noopener"); } catch (x) { location.href = APOIO.video; } }
 function compartilharApp(avisar) {
-  const texto = "Uso o Treino Livre para anotar meus treinos, de graça: tem voz, câmera que conta as repetições e muito mais. Experimenta: " + LINK_APP + " (feito por @" + INSTAGRAM + ")";
+  const texto = "Uso o Treino Livre para anotar meus treinos: tem voz, câmera que conta as repetições e muito mais. Experimenta: " + LINK_APP + " (feito por @" + INSTAGRAM + ")";
   if (navigator.share) { navigator.share({ title: "Treino Livre", text: texto }).catch(() => {}); return; }
   try { navigator.clipboard.writeText(texto).then(() => avisar && avisar("Convite copiado: cole no WhatsApp ou no Instagram."), () => {}); } catch (x) {}
 }
@@ -46973,9 +46973,9 @@ function CartaoApoioInicio({ onDepois }) {
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
         <span aria-hidden="true" style={{ fontSize: 30, lineHeight: 1 }}>💛</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 900, fontSize: 17, lineHeight: 1.25 }}>O Treino Livre é grátis. Ajude a continuar assim!</div>
+          <div style={{ fontWeight: 900, fontSize: 17, lineHeight: 1.25 }}>Ajude o Treino Livre a crescer!</div>
           <div style={{ fontSize: 13.5, color: "var(--cinza)", lineHeight: 1.5, marginTop: 6 }}>
-            Sem mensalidade e sem anúncio. Fazendo as <b style={{ color: "var(--texto)" }}>compras do dia a dia</b> pelo meu link no
+            Sem anúncio. Fazendo as <b style={{ color: "var(--texto)" }}>compras do dia a dia</b> pelo meu link no
             Mercado Livre, na Shopee ou na Shein, a loja manda uma parte para o app, e <b style={{ color: "var(--texto)" }}>você não paga nada a mais</b>.
           </div>
           {ap.total > 0 && (
@@ -47007,7 +47007,7 @@ function CartaoApoioResumo({ onStory, onApoiar, avisar }) {
       background: "radial-gradient(130% 120% at 100% 0%, #E1306C22 0%, transparent 60%)" }}>
       <div style={{ fontWeight: 900, fontSize: 15 }}>🔥 Curtiu? Ajude o app a crescer</div>
       <div style={{ fontSize: 12.5, color: "var(--cinza)", lineHeight: 1.45, margin: "4px 0 10px" }}>
-        Poste o seu treino marcando <b style={{ color: "var(--texto)" }}>@{INSTAGRAM}</b>, curta e compartilhe. É assim que o Treino Livre continua gratuito para todo mundo.
+        Poste o seu treino marcando <b style={{ color: "var(--texto)" }}>@{INSTAGRAM}</b>, curta e compartilhe. É assim que o Treino Livre continua crescendo.
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {onStory && <button style={b} onClick={onStory}>📸 Postar no story</button>}

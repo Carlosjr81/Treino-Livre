@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27q — Os textos do app acompanham os planos
+
+- **Em uma frase:** o app deixou de se apresentar como grátis em todas as telas, nos textos de compartilhar e nos Termos de Uso, porque o acesso agora é por plano.
+- **O que mudou:** o botão do app Android, o cadastro, os créditos, a tela de apoio e os textos que vão junto quando alguém compartilha uma ficha ou um treino não dizem mais "grátis". Os Termos de Uso ganharam uma versão nova que diz que o acesso pode depender de um plano pago, com o preço e as condições mostrados antes, e sem renovação automática. Todo mundo vê os termos de novo uma vez e aceita.
+- **Por que importa para quem treina:** o que o app diz bate com o que ele cobra, sem surpresa.
+- **Como usar:** na próxima vez que abrir o app, leia o resumo dos termos e toque em aceitar.
+- **Ideias de vídeo:** nenhuma específica; nos vídeos, troque "grátis" por "sem anúncio".
+- **Não prometer:** que o app é grátis ou "de graça" (não é mais); renovação automática (não existe).
+
+---
+
 ## 2026-11-27p — Liberado? Instale o app primeiro
 
 - **Em uma frase:** quem acabou de ser liberado cai primeiro numa tela que leva a instalar o app, para tudo funcionar do jeito certo.

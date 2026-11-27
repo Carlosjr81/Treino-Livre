@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-28l — O filtro "Mundo de blocos" com cara de blocos
+
+**Em uma frase:** o filtro "Mundo de blocos" da foto do resumo agora parece
+feito de cubos de verdade, e o "8 bits" ficou mais nítido.
+
+**O que mudou:** antes o filtro só deixava a foto quadriculada e escura. Agora
+cada bloco tem luz em cima e sombra embaixo, como um cubo, e as cores ficaram
+mais vivas. O "8 bits" ganhou mais detalhe.
+
+**Por que importa para quem treina:** a foto do resumo animado fica com cara de
+jogo de blocos, pronta para o story.
+
+**Como usar:** no resumo animado, 🖼 › escolha a sua foto › 🎨 Filtros ›
+Mundo de blocos (ou 8 bits).
+
+**Ideias de vídeo:** a mesma foto passando pelos filtros, com o "Mundo de
+blocos" no fim.
+
+**Não prometer:** a edição pela IA (trocar o fundo, a roupa) ainda está sendo
+liberada pelo Google; os filtros funcionam sem internet.
+
+---
+
 ## 2026-11-28k — A foto do prato não deixa mais alimento para trás
 
 **Em uma frase:** quando a IA vê o prato inteiro mas a lista vem incompleta, o

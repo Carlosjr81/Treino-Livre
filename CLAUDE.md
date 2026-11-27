@@ -7316,6 +7316,15 @@ mais vocabulário e "os jargões de famosos com a voz deles, ou dublado".
   "laboratório" que o crivo lia como "ator"). No navegador: os 16 filtros num
   canvas, e os dois botões na foto do prato. **Não validado num celular, e a edição
   pela IA não foi testada com o Gemini de verdade.**
+- **Primeiro teste no celular, com a proteção aplicada (2026-11-28l)**: a
+  edição pela IA voltou "muitos pedidos" (429). O `chamarIA` agora passa ao
+  modelo seguinte no 429 e guarda o motivo do Google (`ULTIMO_ERRO_IA`, o
+  modelo, o código e o começo da mensagem), que a tela da edição mostra como
+  "Detalhe para o Claude": é por ele que se sabe se é cota zero do plano
+  grátis para imagem ou só pressa. O filtro "Mundo de blocos" (o dono: "muito
+  ruim": era a foto só pixelada e escurecida) ganhou relevo de cubo em cada
+  bloco (`relevo`: luz em cima e à esquerda, sombra embaixo e à direita) e
+  mais cor; o 8 bits ficou mais fino (150).
 
 ### Ajustes do Body Balance (2026-11-25k e 25l)
 

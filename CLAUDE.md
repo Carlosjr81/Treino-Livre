@@ -7167,6 +7167,15 @@ ovos"**. Virou o que já existia: a receita do shake, contando unidades.
 - A aba **🥤 Shake** virou **🥤 Montar**, e vieram quatro combinações prontas
   (pão com ovos mexidos, pão com ovo e queijo, tapioca com ovo, e o prato de
   arroz, feijão e frango). A salsicha entrou no catálogo.
+- **Prato não é shake** (2026-11-27b, achado no ensaio e pelo dono): a tela de
+  montar dizia "pôr no shake", "Quantos tomou?" e "Anotar o shake" no pão com
+  ovos, e o ingrediente era "Ovo cozido". Hoje `bebe` (água no copo, algum
+  líquido, ou shake/whey/intra/vitamina/suco no nome) escolhe os textos: o prato
+  diz "Quantas vezes comeu?", "+ Anotar no dia" e "Salvar esta combinação". E
+  entrou o **Ovo mexido** com os números do próprio ovo: a gordura da
+  frigideira entra à parte (a combinação já traz a manteiga), senão contaria em
+  dobro. Combinação que a pessoa já tinha salvo com "Ovo cozido" fica como
+  está: é dela.
 
 **3. "A análise dos macros precisa ser avaliada pelo objetivo"** (`PAPEL_MACRO`,
 `lerMacro`, `leituraMacros`, bloco puro **O PAPEL DE CADA MACRO**). O dono

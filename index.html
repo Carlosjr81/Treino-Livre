@@ -1631,7 +1631,7 @@ const AJUDA_APP = [
     resumo: "Whey, leite em pó e o carboidrato que você usa viram um item só no dia, com os gramas do seu jeito.",
     passos: [
       "Em **Balance → Hoje**, toque em **+ Comida** e depois na aba **🥤 Shake**.",
-      "Escolha um dos prontos (whey com farinha de arroz, com amido de milho, com aveia, com maltodextrina ou com banana) ou **+ Montar um shake do zero**.",
+      "Escolha um dos prontos (whey com farinha de arroz, com amido de milho, com aveia, com maltodextrina ou com banana) ou **+ Montar do zero**.",
       "Mude os gramas de cada alimento para o que você usa de verdade, e acrescente o que faltar pela busca.",
       "Diga a água do copo (ela entra na água do dia) e quantos você tomou.",
       "**+ Anotar o shake** lança tudo de uma vez. **💾 Salvar este shake** guarda com o seu nome, para o próximo ser um toque.",
@@ -1918,6 +1918,9 @@ const ALIMENTOS_BR = [
   { id: "frango-frito", nome: "Frango frito (coxa ou sobrecoxa)", cat: "gordura", por: "1 pedaço (100 g)", gr: 100, k: 260, p: 26.0, c: 4.0, g: 15.0, gPrato: 480, ic: "\u{1F357}" },
   { id: "peixe", nome: "Peixe grelhado (tilápia)", cat: "proteina", por: "1 filé (100 g)", gr: 100, k: 128, p: 26.0, c: 0, g: 2.6, gPrato: 450, ic: "\u{1F41F}" },
   { id: "ovo", nome: "Ovo cozido", cat: "proteina", por: "1 unidade (50 g)", gr: 50, k: 73, p: 6.7, c: 0.3, g: 4.8, gPrato: 0, ic: "\u{1F95A}", un: "ovo", unG: 50 },
+  // Mexido conta como o ovo: a manteiga ou o óleo da frigideira entra à parte
+  // (na combinação "pão com ovos mexidos" ela já está), senão contaria em dobro.
+  { id: "ovo-mexido", nome: "Ovo mexido", cat: "proteina", por: "1 unidade (50 g), sem a manteiga", gr: 50, k: 73, p: 6.7, c: 0.3, g: 4.8, gPrato: 0, ic: "\u{1F373}", un: "ovo", unG: 50, b: "ovos mexidos mexidinho" },
   { id: "ovo-frito", nome: "Ovo frito", cat: "gordura", por: "1 unidade", gr: 50, k: 120, p: 7.0, c: 0.3, g: 10.0, gPrato: 0, ic: "\u{1F373}", un: "ovo", unG: 50 },
   { id: "linguica", nome: "Linguiça calabresa", cat: "gordura", por: "1 gomo (60 g)", gr: 60, k: 178, p: 9.6, c: 1.0, g: 15.0, gPrato: 450, ic: "\u{1F32D}", un: "gomo", unG: 60 },
   { id: "feijoada", nome: "Feijoada", cat: "gordura", por: "1 concha cheia (200 g)", gr: 200, k: 345, p: 20.0, c: 20.0, g: 20.0, gPrato: 560, ic: "\u{1F372}" },
@@ -2240,7 +2243,7 @@ const RECEITAS_SUGERIDAS = [
   // quantos ovos"). É a mesma receita do shake: o que muda é que o editor
   // conta em unidades quando o alimento tem `un`.
   { id: "c-pao-ovo", n: "Pão francês com ovos mexidos", ic: "\u{1F373}", agua: 0,
-    itens: [{ a: "pao", g: 50 }, { a: "ovo", g: 100 }, { a: "manteiga", g: 5 }] },
+    itens: [{ a: "pao", g: 50 }, { a: "ovo-mexido", g: 100 }, { a: "manteiga", g: 5 }] },
   { id: "c-pao-ovo-queijo", n: "Pão com ovo e queijo", ic: "\u{1F95A}", agua: 0,
     itens: [{ a: "pao", g: 50 }, { a: "ovo", g: 100 }, { a: "queijo", g: 20 }] },
   { id: "c-tapioca-ovo", n: "Tapioca com ovo", ic: "\u{1F95E}", agua: 0,
@@ -2366,7 +2369,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27a";
+const VERSAO_APP = "2026-11-27b";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -38908,13 +38911,18 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
                 );
               })}
               <button onClick={() => { setRec({ id: "r" + Date.now().toString(36), n: "", ic: "\u{1F964}", agua: 0, itens: [] }); setRecNome(""); setRecVezes(1); setRecSalvo(""); }}
-                style={{ ...S.btnGhost, width: "100%", marginTop: 4 }}>+ Montar um shake do zero</button>
+                style={{ ...S.btnGhost, width: "100%", marginTop: 4 }}>+ Montar do zero</button>
             </div>
           );
         })()}
 
         {aba === "shake" && rec && (() => {
           const z = somaReceita(rec);
+          // Bebida (shake, intra, vitamina) fala em copo e "tomou"; prato (pão
+          // com ovos, tapioca) não: a mesma tela serve aos dois (2026-11-27b).
+          const bebe = numB(rec.agua) > 0 || /shake|whey|intra|vitamina|suco|bebida/i.test((recNome || rec.n || "")) ||
+            rec.itens.some((i) => { const a = ALIMENTOS_BR.find((x) => x.id === i.a); return a && a.liq; });
+          const nomePadrao = bebe ? "Shake" : "Combinação";
           const achados = recBusca.trim().length > 1 ? buscarAlimentos(recBusca, "", recentes).slice(0, 8) : [];
           const mudarG = (i, txt) => setRec((r) => {
             const itens = r.itens.slice();
@@ -38928,7 +38936,7 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
           return (
             <div>
               <input value={recNome} onChange={(e) => setRecNome(e.target.value.slice(0, 60))} placeholder="Nome (ex.: pão com 3 ovos, shake pós-treino)"
-                aria-label="Nome do shake" style={{ ...S.input, width: "100%", fontWeight: 900, marginBottom: 10, boxSizing: "border-box" }} />
+                aria-label="Nome da combinação" style={{ ...S.input, width: "100%", fontWeight: 900, marginBottom: 10, boxSizing: "border-box" }} />
               <div style={{ ...S.label, marginBottom: 6 }}>O que vai dentro</div>
               {!rec.itens.length && <div style={{ fontSize: 12.5, color: "var(--cinza)", marginBottom: 8 }}>Procure os alimentos aqui embaixo e vá juntando. O que se conta (pão, ovo, fatia) entra em unidades; o resto, em gramas.</div>}
               {rec.itens.map((i, n) => {
@@ -38968,21 +38976,21 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
                   </div>
                 );
               })}
-              <input value={recBusca} onChange={(e) => setRecBusca(e.target.value)} placeholder="+ Procurar um alimento para pôr no shake"
-                aria-label="Procurar alimento para o shake" style={{ ...S.input, width: "100%", margin: "10px 0 6px", boxSizing: "border-box" }} />
+              <input value={recBusca} onChange={(e) => setRecBusca(e.target.value)} placeholder={bebe ? "+ Procurar um alimento para pôr no shake" : "+ Procurar mais um alimento"}
+                aria-label={bebe ? "Procurar alimento para o shake" : "Procurar alimento para acrescentar"} style={{ ...S.input, width: "100%", margin: "10px 0 6px", boxSizing: "border-box" }} />
               {achados.map((a) => (
                 <button key={a.id} onClick={() => { por(a); setRecBusca(""); }} style={{ ...S.btnGhost, width: "100%", textAlign: "left", padding: "9px 12px", marginBottom: 5, fontSize: 13.5 }}>
                   {a.ic} {a.nome} <span style={{ color: "var(--cinza)", fontWeight: 700 }}>· {a.por}</span>
                 </button>
               ))}
-              <div style={{ ...S.label, margin: "10px 0 6px" }}>Água ou leite no copo (ml, opcional)</div>
+              <div style={{ ...S.label, margin: "10px 0 6px" }}>{bebe ? "Água ou leite no copo (ml, opcional)" : "Bebeu água junto? (ml, opcional)"}</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 4 }}>
                 {[0, 200, 300, 400, 500].map((x) => (
                   <button key={x} onClick={() => setRec((r) => Object.assign({}, r, { agua: x }))} style={chipR(numB(rec.agua) === x)}>{x === 0 ? "sem" : x}</button>
                 ))}
               </div>
-              <div style={{ fontSize: 11.5, color: "var(--cinza)", marginBottom: 10 }}>A água do copo entra na água do dia. O leite líquido você põe como alimento, aí ele conta as calorias.</div>
-              <div style={{ ...S.label, marginBottom: 6 }}>Quantos tomou?</div>
+              <div style={{ fontSize: 11.5, color: "var(--cinza)", marginBottom: 10 }}>{bebe ? "A água do copo entra na água do dia. O leite líquido você põe como alimento, aí ele conta as calorias." : "A água entra na água do dia. Leite, suco ou café com leite você põe como alimento, aí contam as calorias."}</div>
+              <div style={{ ...S.label, marginBottom: 6 }}>{bebe ? "Quantos tomou?" : "Quantas vezes comeu?"}</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
                 {[1, 2, 3, 4].map((x) => (<button key={x} onClick={() => setRecVezes(x)} style={chipR(recVezes === x)}>{x}×</button>))}
               </div>
@@ -38999,23 +39007,23 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
                 </div>
               </div>
               <button disabled={!(z.k > 0)} onClick={() => {
-                const pronta = Object.assign({}, rec, { n: recNome.trim() || "Shake" });
+                const pronta = Object.assign({}, rec, { n: recNome.trim() || nomePadrao });
                 const it = itemDeReceita(pronta, recVezes);
                 if (it) onAdd([it], numB(rec.agua) * recVezes, ref);
-              }} style={{ ...S.btn, width: "100%", opacity: z.k > 0 ? 1 : 0.5 }}>+ Anotar o shake</button>
+              }} style={{ ...S.btn, width: "100%", opacity: z.k > 0 ? 1 : 0.5 }}>{bebe ? "+ Anotar o shake" : "+ Anotar no dia"}</button>
               {onSalvarReceita && (
                 <button disabled={!(z.k > 0)} onClick={() => {
-                  const pronta = Object.assign({}, rec, { n: recNome.trim() || "Shake", em: Date.now(),
+                  const pronta = Object.assign({}, rec, { n: recNome.trim() || nomePadrao, em: Date.now(),
                     itens: rec.itens.map((i) => ({ a: i.a, g: i.g })) });
                   onSalvarReceita(pronta);
-                  setRec(pronta); setRecSalvo("✓ Guardado nos seus shakes");
-                }} style={{ ...S.btnGhost, width: "100%", marginTop: 8, opacity: z.k > 0 ? 1 : 0.5 }}>💾 Salvar este shake</button>
+                  setRec(pronta); setRecSalvo(bebe ? "✓ Guardado nos seus shakes" : "✓ Guardado nas suas combinações");
+                }} style={{ ...S.btnGhost, width: "100%", marginTop: 8, opacity: z.k > 0 ? 1 : 0.5 }}>{bebe ? "💾 Salvar este shake" : "💾 Salvar esta combinação"}</button>
               )}
               {recSalvo && <div role="status" style={{ fontSize: 12.5, fontWeight: 800, color: "var(--ok)", textAlign: "center", marginTop: 6 }}>{recSalvo}</div>}
               {onApagarReceita && (receitas || []).some((r) => r.id === rec.id) && (
-                <button onClick={() => { onApagarReceita(rec.id); setRec(null); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8, color: "var(--perigo)", borderColor: "var(--perigo)" }}>🗑 Apagar este shake</button>
+                <button onClick={() => { onApagarReceita(rec.id); setRec(null); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8, color: "var(--perigo)", borderColor: "var(--perigo)" }}>{bebe ? "🗑 Apagar este shake" : "🗑 Apagar esta combinação"}</button>
               )}
-              <button onClick={() => { setRec(null); setRecBusca(""); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>← Outros shakes</button>
+              <button onClick={() => { setRec(null); setRecBusca(""); }} style={{ ...S.btnGhost, width: "100%", marginTop: 8 }}>← Outras combinações</button>
             </div>
           );
         })()}

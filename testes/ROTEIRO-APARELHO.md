@@ -5,7 +5,7 @@ relógio, app Android instalado. Cada bloco diz **o que fazer**, **o que tem de
 acontecer** e **o que mandar ao Claude** se der diferente (de preferência com
 print). Um bloco por vez, na ordem: os de cima preparam os de baixo.
 
-Montado em 27/11/2026 para a versão **2026-11-27a** (app Android 201). Marque
+Montado em 27/11/2026 para a versão **2026-11-27b** (app Android 201). Marque
 o resultado na última coluna de cada bloco (✅ funcionou · ❌ deu diferente ·
 ⏭ não deu para testar) e anote a data.
 
@@ -21,7 +21,7 @@ o resultado na última coluna de cada bloco (✅ funcionou · ❌ deu diferente 
 | No assistente do relógio (Ajustes › Conectar aparelhos › ⌚ Instalar o app no relógio), veja o topo. | Se aparecer **⬆ Atualizar o relógio** em destaque, atualize antes de seguir. |
 | Configurações do celular › Apps › Treino Livre › **Aparecer sobre outros apps**: ligado. | É o que deixa o relógio entregar a comida sozinho (bloco 4). |
 
-Resultado: ___
+Resultado: versão e App Android ✅ (27/11, print do dono: 2026-11-27a · App Android 201). Relógio e permissão: ___
 
 ---
 
@@ -31,11 +31,15 @@ Resultado: ___
 |---|---|
 | Balance › Hoje › **+ Comida** › aba **🥤 Montar**. | Aparecem as sugestões (whey com farinha de arroz, amido, aveia, maltodextrina, banana, intra-treino com glicerina, pão com ovos...). |
 | Escolha **Pão francês com ovos mexidos**, mude para 2 pães e 3 ovos no − e +. | As calorias mudam na hora. |
-| Toque em **Anotar**. | Entra **um item só** na lista do dia, com o nome da combinação. |
+| Toque em **+ Anotar no dia**. Os textos falam em comer, não em shake ("Quantas vezes comeu?"), e o ingrediente é **Ovo mexido**. | Entra **um item só** na lista do dia, com o nome da combinação. |
 | Toque no item anotado. | Abre a correção; dá para mudar ou tirar do dia. |
 
 Mandar ao Claude se: o total não mudar com o − e +, entrarem vários itens
 soltos, ou a correção não abrir.
+
+Ensaio no navegador (27/11): a tela dizia "shake" num prato e o ingrediente era
+"ovo cozido" (achado também pelo dono) — corrigido na 2026-11-27b. Anotou um
+item só, 332 kcal.
 
 Resultado: ___
 
@@ -54,6 +58,9 @@ Faça num dia em que você **treinou e finalizou o treino no app**.
 
 Mandar ao Claude se: o cartão verde não aparecer depois de um treino, os
 horários não baterem com a hora do treino, ou o placar não subir.
+
+Ensaio no navegador (27/11): o cartão verde apareceu (60 min de treino,
++326 kcal na meta).
 
 Resultado: ___
 

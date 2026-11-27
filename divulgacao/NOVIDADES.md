@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27b — Pão com ovos mexidos tem ovo mexido, e o prato não fala mais em shake
+
+- **Em uma frase:** a combinação "Pão francês com ovos mexidos" agora traz o ovo mexido (antes aparecia "ovo cozido"), e a tela de montar só fala em copo e shake quando é bebida.
+- **O que mudou:** entrou **Ovo mexido** na lista de alimentos — com as calorias do próprio ovo, porque a manteiga da frigideira entra à parte (na combinação ela já está). E em Balance › + Comida › 🥤 Montar, quando o que você monta é comida (pão com ovos, tapioca, prato), os botões dizem **"Quantas vezes comeu?"**, **"+ Anotar no dia"** e **"💾 Salvar esta combinação"**. No shake continuam **"Quantos tomou?"** e **"+ Anotar o shake"**.
+- **Por que importa para quem treina:** quando a tela diz uma coisa e mostra outra, a pessoa desconfia de todos os números. Agora o que está escrito é o que está sendo contado.
+- **Como usar:** Balance › Hoje › + Comida › 🥤 Montar › Pão francês com ovos mexidos.
+- **Ideias de vídeo:** montar o café da manhã — 2 pães e 3 ovos mexidos no − e + — e anotar num toque.
+- **Não prometer:** os números são médias da tabela; o óleo ou a manteiga que você usar a mais conta à parte. Dieta é com o nutricionista.
+
+---
+
 ## 2026-11-27a — Conserto interno nos testes do app
 
 - **Em uma frase:** nada muda no app; foi corrigida uma conferida interna que falhava quando rodava entre meia-noite e 1h da manhã.

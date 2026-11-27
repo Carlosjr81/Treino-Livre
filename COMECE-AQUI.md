@@ -17,7 +17,7 @@ Dois caminhos, conforme o aparelho:
 
 Abra **`claude.ai/code`** no navegador do celular, entre na sua conta e conecte
 a conta do GitHub. A sessão trabalha num clone do repositório na nuvem: lê,
-edita, roda os testes (2.842 checagens) e publica.
+edita, roda os testes (2.844 checagens) e publica.
 
 **Não precisa do Google Drive no celular.** O Drive é a conveniência de quem
 está num computador; no celular o GitHub é o caminho, e é por isso que tudo —
@@ -221,7 +221,7 @@ projeto foi publicado até aqui.
 node testes/rodar.js
 ```
 
-As suítes (2.842 checagens em 27/11/2026). Prova que a **lógica** não quebrou. Rode antes e
+As suítes (2.844 checagens em 27/11/2026). Prova que a **lógica** não quebrou. Rode antes e
 depois de mexer no app.
 
 ```bash

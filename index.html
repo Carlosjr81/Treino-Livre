@@ -2662,7 +2662,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28d";
+const VERSAO_APP = "2026-11-28e";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -31148,6 +31148,17 @@ const FILTROS_FOTO = [
   { id: "vintage", nome: "Vintage", ic: "📼", css: "sepia(.55) contrast(.95) brightness(1.05) saturate(.85)", vinheta: 0.4 },
   { id: "gelo", nome: "Frio", ic: "🧊", css: "saturate(.9) contrast(1.1) hue-rotate(-10deg)", tom: ["rgba(60,140,255,.30)", "rgba(77,235,255,.20)"], modo: "soft-light", vinheta: 0.3 },
   { id: "fogo", nome: "Fogo", ic: "🔥", css: "contrast(1.25) saturate(1.6)", tom: ["rgba(255,60,40,.35)", "rgba(255,180,40,.25)"], modo: "overlay", vinheta: 0.5 },
+  // 2026-11-28e (pedido do dono: filtros no clima de jogo de blocos, cidade do
+  // crime, galáxia, desenho de TV, heróis e vilões). Só o gênero, sem o nome
+  // nem o visual próprio de uma franquia, como no resto do app.
+  { id: "blocos", nome: "Mundo de blocos", ic: "🧱", css: "saturate(1.4) contrast(1.15)", pixel: 64, niveis: 7 },
+  { id: "pixel", nome: "8 bits", ic: "👾", css: "saturate(1.6) contrast(1.2)", pixel: 110, niveis: 5 },
+  { id: "cartum", nome: "Desenho de TV", ic: "📺", css: "saturate(1.9) contrast(1.25) brightness(1.06)", niveis: 5, tom: ["rgba(255,220,40,.22)", "rgba(80,160,255,.18)"], modo: "soft-light" },
+  { id: "crime", nome: "Cidade do crime", ic: "🌴", css: "contrast(1.3) saturate(1.5) brightness(1.04)", tom: ["rgba(255,90,170,.32)", "rgba(255,170,60,.30)"], modo: "overlay", vinheta: 0.55 },
+  { id: "galaxia", nome: "Galáxia distante", ic: "🌌", css: "contrast(1.25) saturate(.9) brightness(.92)", tom: ["rgba(40,60,200,.38)", "rgba(200,40,60,.22)"], modo: "overlay", vinheta: 0.65 },
+  { id: "heroi", nome: "Herói", ic: "🦸", css: "contrast(1.35) saturate(1.45)", tom: ["rgba(30,90,255,.30)", "rgba(255,40,40,.28)"], modo: "overlay", vinheta: 0.45 },
+  { id: "vilao", nome: "Vilão", ic: "🦹", css: "contrast(1.4) saturate(.7) brightness(.85)", tom: ["rgba(120,0,40,.40)", "rgba(40,200,80,.18)"], modo: "overlay", vinheta: 0.7 },
+  { id: "noir", nome: "Filme clássico", ic: "🎬", css: "grayscale(1) contrast(1.6) brightness(.9)", vinheta: 0.7, grao: 18 },
 ];
 const filtroFotoPorId = (id) => FILTROS_FOTO.find((f) => f.id === id) || FILTROS_FOTO[0];
 function aplicarFiltroFoto(img, id) {
@@ -31156,8 +31167,27 @@ function aplicarFiltroFoto(img, id) {
   cv.width = img.naturalWidth || img.width; cv.height = img.naturalHeight || img.height;
   const c = cv.getContext("2d");
   c.filter = f.css || "none";
-  c.drawImage(img, 0, 0, cv.width, cv.height);
+  if (f.pixel) {
+    // blocos: a foto encolhida a "pixel" de largura e esticada sem suavizar
+    const pw = Math.max(16, f.pixel), ph = Math.max(16, Math.round(f.pixel * cv.height / cv.width));
+    const peq = document.createElement("canvas"); peq.width = pw; peq.height = ph;
+    const pc = peq.getContext("2d"); pc.filter = f.css || "none"; pc.drawImage(img, 0, 0, pw, ph);
+    c.filter = "none"; c.imageSmoothingEnabled = false; c.drawImage(peq, 0, 0, cv.width, cv.height);
+  } else c.drawImage(img, 0, 0, cv.width, cv.height);
   c.filter = "none";
+  if (f.niveis || f.grao) {
+    // poucas cores (o jeito de desenho) e o grão de filme antigo
+    const d = c.getImageData(0, 0, cv.width, cv.height), p = d.data, n = f.niveis ? 255 / (f.niveis - 1) : 0;
+    for (let i = 0; i < p.length; i += 4) {
+      for (let k = 0; k < 3; k++) {
+        let v = p[i + k];
+        if (n) v = Math.round(v / n) * n;
+        if (f.grao) v += ((i * 2654435761) % 997 / 997 - 0.5) * f.grao;
+        p[i + k] = v < 0 ? 0 : v > 255 ? 255 : v;
+      }
+    }
+    c.putImageData(d, 0, 0);
+  }
   if (f.tom) {
     const g = c.createLinearGradient(0, 0, cv.width, cv.height);
     g.addColorStop(0, f.tom[0]); g.addColorStop(1, f.tom[1]);
@@ -31186,6 +31216,20 @@ const EDICOES_FOTO_IA = [
     { id: "hq", ic: "💥", nome: "Quadrinhos", pede: "Redesenhe a foto como página de história em quadrinhos de super-herói, com retícula e contorno forte" },
     { id: "oleo", ic: "🖌", nome: "Pintura", pede: "Transforme a foto numa pintura a óleo clássica" },
   ] },
+  // 2026-11-28e (pedido do dono). Cada um é o gênero, com elementos originais:
+  // personagem, logo, nome e visual próprio de uma franquia não entram.
+  { grupo: "Universos", itens: [
+    { id: "u-blocos", ic: "🧱", nome: "Mundo de blocos", pede: "Recrie a cena inteira, com a pessoa, num mundo de videogame feito de blocos cúbicos e texturas pixeladas (voxel), com personagem de blocos original" },
+    { id: "u-crime", ic: "🌴", nome: "Cidade do crime", pede: "Transforme a foto numa arte de capa de jogo de ação em mundo aberto: ilustração pintada, cidade de praia ao pôr do sol, palmeiras, carros esportivos, letreiros de neon, com a pessoa em pose de protagonista" },
+    { id: "u-galaxia", ic: "🌌", nome: "Galáxia distante", pede: "Coloque a pessoa num cenário de ópera espacial: nave estelar, planetas no céu, armadura futurista original e uma espada de energia luminosa" },
+    { id: "u-cartum", ic: "📺", nome: "Desenho de TV", pede: "Redesenhe a foto como um desenho animado de comédia para TV: traço simples, cores chapadas, contorno preto, sala de estar de família ao fundo, personagem original" },
+    { id: "u-heroi", ic: "🦸", nome: "Herói", pede: "Transforme a pessoa num super-herói original de filme: capa, traje com símbolo inventado, pose heroica no topo de um prédio, cidade ao fundo" },
+    { id: "u-vilao", ic: "🦹", nome: "Vilão", pede: "Transforme a pessoa num vilão original de filme clássico: roupa escura dramática, olhar ameaçador, castelo sombrio com raios ao fundo" },
+    { id: "u-faroeste", ic: "🤠", nome: "Faroeste", pede: "Coloque a pessoa num filme de faroeste clássico: chapéu de cowboy, cidade do velho oeste, poeira e sol de fim de tarde" },
+    { id: "u-samurai", ic: "⚔", nome: "Samurai", pede: "Transforme a pessoa num samurai de filme épico: armadura tradicional, templo japonês e cerejeiras ao fundo" },
+    { id: "u-cyber", ic: "🤖", nome: "Cyberpunk", pede: "Coloque a pessoa numa cidade cyberpunk à noite: chuva, letreiros de neon, implantes luminosos discretos e jaqueta futurista" },
+    { id: "u-terror", ic: "🧟", nome: "Terror clássico", pede: "Transforme a foto num pôster de filme de terror dos anos 50: laboratório antigo, raios, cores desbotadas e letreiro de cinema sem nome de filme existente" },
+  ] },
   { grupo: "Ambiente", itens: [
     { id: "arena", ic: "🏟", nome: "Arena lotada", pede: "Troque o fundo por uma arena de competição de fisiculturismo, com luzes de palco" },
     { id: "praia", ic: "🌅", nome: "Praia ao pôr do sol", pede: "Troque o fundo por uma praia brasileira ao pôr do sol, com palmeiras" },
@@ -31210,7 +31254,7 @@ const EDICOES_FOTO_IA = [
   ] },
 ];
 const REGRAS_EDICAO_IA = "Edite a foto enviada. Mantenha o rosto, a identidade, o tom de pele e a forma do corpo da pessoa exatamente como estão: não mude músculos, peso, altura nem traços. " +
-  "Não acrescente nenhuma pessoa real ou famosa, nem logotipos, marcas ou personagens existentes. Nada sexual ou de nudez. Formato vertical, foto nítida. Responda com a imagem editada.";
+  "Não acrescente nenhuma pessoa real ou famosa, nem logotipos, marcas, personagens ou elementos visuais próprios de franquias existentes de jogos, filmes ou desenhos (tudo original, só o gênero). Nada sexual ou de nudez. Formato vertical, foto nítida. Responda com a imagem editada.";
 // O que o pedido escrito não pode pedir: mudar o corpo (o resumo deixaria de
 // mostrar quem treinou), nudez, e gente de verdade que não está na foto.
 function pedidoEdicaoBarrado(texto) {
@@ -31218,7 +31262,7 @@ function pedidoEdicaoBarrado(texto) {
   if (/\b(nua?|pelad\w*|nudez|sensual|sexy|lingerie|seminua?)\b|sem roupa/.test(t)) return "Esse pedido não é aceito.";
   if (/(mais|menos) (musculos|forte|magr|gord|definid|grand|alt|baix)|musculos? maior|barriga|abdomen trincad|emagrec|engord|meu shape|meu corpo|(mude|troque|mudar|trocar) (o |meu )?(rosto|corpo|cabelo)|cara de/.test(t))
     return "O corpo e o rosto ficam como estão: o resumo mostra você de verdade. Peça estilo, ambiente, roupa ou itens.";
-  if (/famos|celebridad|ator|atriz|jogador|cantor|presidente|influenc/.test(t)) return "Pessoas reais ou famosas não são acrescentadas. Peça uma torcida ou um parceiro fictício.";
+  if (/\b(famos\w*|celebridad\w*|ator|atores|atriz|jogador\w*|cantor\w*|presidente|influenc\w*)\b/.test(t)) return "Pessoas reais ou famosas não são acrescentadas. Peça uma torcida ou um parceiro fictício.";
   return "";
 }
 const MODELOS_IMAGEM_IA = ["gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview", "gemini-2.5-flash-image"];
@@ -40108,6 +40152,20 @@ function EscreverComidaIA({ refeicao, onAdd }) {
     </div>
   );
 }
+function CameraOuGaleria({ ocupado, rotuloCamera, rotuloOcupado, principal, onArquivo }) {
+  const base = { display: "flex", alignItems: "center", justifyContent: "center", gap: 6, boxSizing: "border-box", fontWeight: 900, cursor: ocupado ? "default" : "pointer", opacity: ocupado ? 0.6 : 1, margin: 0 };
+  const entrada = (cam) => (
+    <input type="file" accept="image/*" capture={cam ? "environment" : undefined} disabled={ocupado} style={{ display: "none" }}
+      onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) onArquivo(f); }} />
+  );
+  if (ocupado) return <div style={{ ...(principal ? S.btn : S.btnGhost), ...base, width: "100%" }}>{rotuloOcupado || "⏳ Lendo…"}</div>;
+  return (
+    <div style={{ display: "flex", gap: 8 }}>
+      <label style={{ ...(principal ? S.btn : S.btnGhost), ...base, flex: 1.4 }}>{rotuloCamera || "📷 Câmera"}{entrada(true)}</label>
+      <label style={{ ...S.btnGhost, ...base, flex: 1 }}>🖼 Galeria{entrada(false)}</label>
+    </div>
+  );
+}
 // Ler o rótulo (2026-11-28c): preenche o anotar à mão com os valores da porção.
 function BotaoRotuloIA({ onLido }) {
   const [estado, setEstado] = useState("pronto");
@@ -40123,11 +40181,8 @@ function BotaoRotuloIA({ onLido }) {
   };
   return (
     <div style={{ marginBottom: 10 }}>
-      <label style={{ ...S.btnGhost, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", cursor: estado === "lendo" ? "default" : "pointer", boxSizing: "border-box", fontWeight: 900, opacity: estado === "lendo" ? 0.6 : 1 }}>
-        {estado === "lendo" ? "⏳ Lendo o rótulo…" : "📷 Ler o rótulo (a IA preenche)"}
-        <input type="file" accept="image/*" capture="environment" disabled={estado === "lendo"} style={{ display: "none" }}
-          onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; ler(f); }} />
-      </label>
+      <div style={{ fontSize: 12, fontWeight: 900, marginBottom: 6 }}>📷 Ler o rótulo (a IA preenche)</div>
+      <CameraOuGaleria ocupado={estado === "lendo"} rotuloOcupado="⏳ Lendo o rótulo…" rotuloCamera="📷 Fotografar" onArquivo={ler} />
       {estado === "erro" && <div style={{ fontSize: 12, color: "#FFB21A", fontWeight: 800, marginTop: 6, lineHeight: 1.45 }}>⚠ {erro}</div>}
     </div>
   );
@@ -40231,11 +40286,7 @@ function LeituraIAPrato({ refeicao, onAdd }) {
       <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 10 }}>
         Fotografe o prato inteiro, de cima, com o talher ao lado: a IA usa o prato como régua, estima os gramas de cada alimento e preenche a lista. Você confere e corrige antes de anotar.
       </div>
-      <label style={{ ...S.btn, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", cursor: estado === "lendo" ? "default" : "pointer", boxSizing: "border-box", opacity: estado === "lendo" ? 0.6 : 1 }}>
-        {estado === "lendo" ? "⏳ Lendo o prato…" : lista.length ? "📷 Ler outra foto" : "📷 Fotografar e ler o prato"}
-        <input type="file" accept="image/*" capture="environment" disabled={estado === "lendo"} style={{ display: "none" }}
-          onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; ler(f); }} />
-      </label>
+      <CameraOuGaleria principal ocupado={estado === "lendo"} rotuloOcupado="⏳ Lendo o prato…" rotuloCamera={lista.length ? "📷 Outra foto" : "📷 Fotografar"} onArquivo={ler} />
       {foto && <img src={foto} alt="O prato" style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 12, marginTop: 10, border: "1px solid var(--borda2)" }} />}
       {estado === "erro" && <div style={{ fontSize: 12.5, color: "#FFB21A", fontWeight: 800, marginTop: 10, lineHeight: 1.45 }}>⚠ {erro}</div>}
       {estado === "lido" && <ConferirIA lista={lista} setLista={setLista} prato={prato} refeicao={refeicao} onAdd={onAdd} />}
@@ -40426,11 +40477,9 @@ function JanelaComida({ aba0, recentes, receitas, onSalvarReceita, onApagarRecei
           <div>
             {FIREBASE_ACESSO.apiKey && <LeituraIAPrato refeicao={ref} onAdd={onAdd} />}
             {FIREBASE_ACESSO.apiKey && <div style={{ ...S.label, marginBottom: 8 }}>Ou marque você mesmo, pelo método do prato</div>}
-            <label style={{ ...S.btnGhost, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", cursor: "pointer", marginBottom: 10, boxSizing: "border-box" }}>
-              📷 {foto ? "Tirar outra foto" : "Fotografar o prato"}
-              <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
-                onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) { if (foto) URL.revokeObjectURL(foto); setFoto(URL.createObjectURL(f)); } }} />
-            </label>
+            <div style={{ marginBottom: 10 }}>
+              <CameraOuGaleria rotuloCamera={foto ? "📷 Outra foto" : "📷 Fotografar"} onArquivo={(f) => { if (foto) URL.revokeObjectURL(foto); setFoto(URL.createObjectURL(f)); }} />
+            </div>
             {foto && <img src={foto} alt="O prato" style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 14, marginBottom: 10, border: "1px solid var(--borda2)" }} />}
             <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.5, marginBottom: 10 }}>
               Olhando a foto, toque no que tem no prato e diga quanto do prato cada um ocupa: o app converte em gramas pelo

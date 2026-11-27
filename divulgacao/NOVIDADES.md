@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-28e — Foto do prato da galeria, e filtros de mundo de blocos, cidade do crime, galáxia, desenho, herói e vilão
+
+- **Em uma frase:** a foto do prato e do rótulo agora pode vir da galeria (não só da câmera), e a foto do resumo ganhou filtros e edições no clima de jogo de blocos, cidade do crime, galáxia distante, desenho de TV, herói, vilão e filme clássico.
+- **O que mudou:** onde antes só abria a câmera, agora há "📷 Fotografar" e "🖼 Galeria". Na foto do resumo, oito filtros novos feitos no celular (Mundo de blocos e 8 bits, que pixelizam a foto; Desenho de TV, com poucas cores; Cidade do crime; Galáxia distante; Herói; Vilão; Filme clássico, em preto e branco com grão), e na edição pela IA o grupo "Universos": mundo de blocos, cidade do crime, galáxia distante, desenho de TV, herói, vilão, faroeste, samurai, cyberpunk e terror clássico. Tudo original: o clima do gênero, sem personagem, nome ou logo de nenhum jogo, filme ou desenho.
+- **Por que importa para quem treina:** a foto do almoço tirada mais cedo entra na hora, e o story do treino sai com a cara que a pessoa quiser.
+- **Como usar:** Balance › 📷 Foto do prato › 🖼 Galeria; e no resumo animado › 🖼 › 🎨 Filtros ou ✨ Editar com IA › Universos.
+- **Ideias de vídeo:** a mesma foto de treino passando por mundo de blocos, galáxia e vilão.
+- **Não prometer:** personagens ou o visual exato de jogos, filmes e desenhos conhecidos (é o clima do gênero, com tudo original); a edição pela IA sem internet (só os filtros funcionam sem).
+
+---
+
 ## 2026-11-28d — Filtros e edição na foto do resumo, e o Jarvis com mais gíria de academia
 
 - **Em uma frase:** a sua foto no fundo do resumo animado ganhou oito filtros e a edição pela inteligência artificial (estilo, ambiente, roupa e itens), e o Jarvis ganhou dezenas de frases novas de academia.

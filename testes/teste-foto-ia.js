@@ -17,16 +17,18 @@ function teste(nome, esperado, obtido) {
 teste("o primeiro filtro é a original, sem efeito", ["original", "none"], [P.FILTROS_FOTO[0].id, P.FILTROS_FOTO[0].css]);
 teste("filtro que não existe volta à original", "original", P.filtroFotoPorId("xyz").id);
 teste("nenhum id de filtro repetido", true, new Set(P.FILTROS_FOTO.map((f) => f.id)).size === P.FILTROS_FOTO.length);
+teste("as regras barram elementos de franquia", true, /franquias existentes/.test(P.REGRAS_EDICAO_IA));
 teste("as regras mandam manter rosto e corpo, sem famosos e sem nudez", true,
   /rosto/.test(P.REGRAS_EDICAO_IA) && /forma do corpo/.test(P.REGRAS_EDICAO_IA) && /real ou famosa/.test(P.REGRAS_EDICAO_IA) && /nudez/.test(P.REGRAS_EDICAO_IA));
 const todos = [].concat.apply([], P.EDICOES_FOTO_IA.map((g) => g.itens));
 teste("nenhuma edição pronta pede para mudar o corpo", [], todos.filter((x) => P.pedidoEdicaoBarrado(x.pede)).map((x) => x.id));
-teste("nenhuma edição pronta cita marca ou personagem", [], todos.filter((x) => /marvel|dc |nike|adidas|superman|batman|homem-aranha|goku/i.test(x.pede)).map((x) => x.id));
+teste("nenhuma edição pronta cita marca ou personagem", [], todos.filter((x) => /marvel|dc |nike|adidas|superman|batman|homem-aranha|goku|minecraft|gta|grand theft|star wars|jedi|sabre de luz|simpson|darth|vader|creeper/i.test(x.pede)).map((x) => x.id));
 teste("ambiente e item passam", "", P.pedidoEdicaoBarrado("me coloque num ringue de boxe levantando peso"));
 teste("mudar o corpo não passa", true, !!P.pedidoEdicaoBarrado("me deixa mais musculoso"));
 teste("emagrecer não passa", true, !!P.pedidoEdicaoBarrado("quero emagrecer na foto"));
 teste("trocar o rosto não passa", true, !!P.pedidoEdicaoBarrado("troque o rosto"));
 teste("nudez não passa", true, !!P.pedidoEdicaoBarrado("sem roupa") && !!P.pedidoEdicaoBarrado("pelada na praia") && !!P.pedidoEdicaoBarrado("fique nu"));
+teste("laboratório não é confundido com ator", "", P.pedidoEdicaoBarrado("num laboratório antigo"));
 teste("famoso pelo nome genérico não passa", true, !!P.pedidoEdicaoBarrado("coloque um jogador famoso do meu lado"));
 teste("'num' não é confundido com nudez", "", P.pedidoEdicaoBarrado("num ginásio lotado"));
 teste("os filtros mexem só no aparelho (nenhum chama a IA)", false, /chamarIA/.test(pedaco("function aplicarFiltroFoto", "const blobParaImagem")));

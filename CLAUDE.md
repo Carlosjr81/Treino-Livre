@@ -7245,8 +7245,22 @@ mais vocabulário e "os jargões de famosos com a voz deles, ou dublado".
   a voz natural fica para quando a IA voltar: gerar uma vez as frases fixas com
   a voz de IA do Gemini, numa voz original e expressiva, e tocar pelo mesmo
   caminho do `vozes/indice.json` do Monster Run.
-- Coberto por `teste-foto-ia.js` (os filtros, o crivo, as regras). No
-  navegador: os oito filtros num canvas. **Não validado num celular, e a edição
+- **Os universos** (2026-11-28e, pedido do dono: "estilo Minecraft, GTA, Star
+  Wars, Simpsons, heróis e vilões"): **só o gênero, com nomes genéricos** (Mundo
+  de blocos, 8 bits, Desenho de TV, Cidade do crime, Galáxia distante, Herói,
+  Vilão, Filme clássico), a mesma regra do visual de jogo e das paródias:
+  nome, logo, personagem e visual próprio de franquia não entram (marca
+  registrada e direito autoral num app que cobra). Filtros no aparelho com
+  pixel (`pixel`: a foto encolhida e esticada sem suavizar), poucas cores
+  (`niveis`) e grão (`grao`); na IA, o grupo "Universos", e a regra manda
+  tudo original. O teste reprova nome de franquia nos pedidos prontos.
+- **Câmera ou galeria** (`CameraOuGaleria`, 2026-11-28e, relato do dono: "só
+  abre a câmera"): o `capture="environment"` força a câmera no Android, então
+  há dois botões (com e sem ele) na foto do prato, no método do prato e no
+  rótulo.
+- Coberto por `teste-foto-ia.js` (os filtros, o crivo, as regras, a palavra
+  "laboratório" que o crivo lia como "ator"). No navegador: os 16 filtros num
+  canvas, e os dois botões na foto do prato. **Não validado num celular, e a edição
   pela IA não foi testada com o Gemini de verdade.**
 
 ### Ajustes do Body Balance (2026-11-25k e 25l)

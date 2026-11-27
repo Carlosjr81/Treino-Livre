@@ -2454,7 +2454,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-27t";
+const VERSAO_APP = "2026-11-27u";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -40653,13 +40653,15 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                 <div style={S.card}>
                   <div style={{ ...S.label, marginBottom: 8 }}>O balanço do dia</div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, textAlign: "center", marginBottom: 10 }}>
-                    {[["Gastou", fmtKcal(atual.gastoUsado || atual.gasto.totalMeta), "#4DEBFF"], ["Comeu", fmtKcal(t.k), "#FFB21A"], [(t.k - (atual.gastoUsado || atual.gasto.totalMeta)) >= 0 ? "Superávit · vs gasto" : "Déficit · vs gasto", fmtKcal(Math.abs(t.k - (atual.gastoUsado || atual.gasto.totalMeta))), (t.k - (atual.gastoUsado || atual.gasto.totalMeta)) >= 0 ? "#FF4D6D" : "#4CD137"]].map(([r, v, c]) => (
+                    {[[ehHoje ? "Gasto previsto do dia" : "Gastou no dia", fmtKcal(atual.gastoUsado || atual.gasto.totalMeta), "#4DEBFF"], ["Comeu", fmtKcal(t.k), "#FFB21A"], [(t.k - (atual.gastoUsado || atual.gasto.totalMeta)) >= 0 ? "Superávit (comeu − gasto)" : "Déficit (gasto − comeu)", fmtKcal(Math.abs(t.k - (atual.gastoUsado || atual.gasto.totalMeta))), (t.k - (atual.gastoUsado || atual.gasto.totalMeta)) >= 0 ? "#FF4D6D" : "#4CD137"]].map(([r, v, c]) => (
                       <div key={r} style={{ padding: "8px 4px", borderRadius: 12, background: c + "14", border: "1px solid " + c + "55" }}>
                         <div style={{ fontFamily: FONTE_JOGO, fontSize: 19, color: c }}>{v}</div>
-                        <div style={{ fontSize: 10.5, fontWeight: 900, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.6 }}>{r}</div>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: c, marginTop: -2 }}>kcal</div>
+                        <div style={{ fontSize: 10.5, fontWeight: 900, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.6, marginTop: 2 }}>{r}</div>
                       </div>
                     ))}
                   </div>
+                  {ehHoje && <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.45, marginBottom: 8 }}>Todos em calorias (kcal). Hoje o gasto é a previsão do dia inteiro: o déficit diminui a cada refeição que você anota.</div>}
                   {(() => {
                     // Os dois números da tela comparam coisas diferentes, e sem dizer
                     // qual é qual um parece contradizer o outro (o dono viu "71 de

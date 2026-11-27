@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27u — O balanço do dia diz o que é cada número
+
+- **Em uma frase:** no Balance, os três números do balanço do dia mostram "kcal" e dizem o que medem.
+- **O que mudou:** os quadros agora dizem "Gasto previsto do dia", "Comeu" e "Déficit (gasto − comeu)", cada um com "kcal" embaixo, e uma linha explica que, durante o dia, o gasto é a previsão do dia inteiro, então o déficit diminui a cada refeição anotada.
+- **Por que importa para quem treina:** de manhã, com só o café anotado, o déficit parece enorme; agora a tela explica que é porque o dia ainda não acabou.
+- **Como usar:** nada muda; é só abrir o Balance › Hoje.
+- **Ideias de vídeo:** nenhuma específica (ajuste pequeno de tela).
+- **Não prometer:** que o gasto é medido em tempo real (é uma previsão do dia, pelo relógio e pela conta do app).
+
+---
+
 ## 2026-11-27t — A lista do dia diz que o número é caloria
 
 - **Em uma frase:** no Balance, cada alimento anotado mostra "kcal" ao lado do número.

@@ -7325,6 +7325,15 @@ mais vocabulário e "os jargões de famosos com a voz deles, ou dublado".
   ruim": era a foto só pixelada e escurecida) ganhou relevo de cubo em cada
   bloco (`relevo`: luz em cima e à esquerda, sombra embaixo e à direita) e
   mais cor; o 8 bits ficou mais fino (150).
+- **A edição pela IA está DESLIGADA (2026-11-28m, decisão do dono)**. O
+  detalhe do Google foi "You exceeded your current quota, please check your
+  plan and billing": no plano Spark a cota dos modelos de imagem é zero. Com o
+  Blaze, cada edição custaria uns US$ 0,04 do cartão do dono (e a leitura do
+  prato passaria a ser cobrada, em frações de centavo). Ele escolheu desligar:
+  "o importante é a leitura do prato". `EDICAO_IA_LIGADA = false` esconde a
+  aba "✨ Editar com IA"; os filtros continuam. **Não religue sem falar com
+  ele**: se um dia voltar, com o Blaze, um teto de gasto no Google Cloud e um
+  limite de edições por pessoa por dia (ou só para quem paga).
 
 ### Ajustes do Body Balance (2026-11-25k e 25l)
 

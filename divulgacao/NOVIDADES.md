@@ -16,6 +16,26 @@
 
 ---
 
+## 2026-11-28m — A foto do resumo fica com os filtros
+
+**Em uma frase:** a foto do resumo animado continua com os 16 filtros; a edição
+pela IA (trocar fundo, roupa) saiu por enquanto.
+
+**O que mudou:** a aba "Editar com IA" saiu da foto do resumo. Os filtros
+(neon, capa, mundo de blocos, 8 bits, herói, vilão e os outros) continuam, e
+funcionam sem internet. A leitura do prato pela IA continua igual.
+
+**Por que importa para quem treina:** nada de botão que não funciona; o que
+está na tela funciona.
+
+**Como usar:** resumo animado › 🖼 › sua foto › 🎨 Filtros.
+
+**Ideias de vídeo:** nenhuma nova.
+
+**Não prometer:** trocar o fundo, a roupa ou pôr pessoas na foto pela IA.
+
+---
+
 ## 2026-11-28l — O filtro "Mundo de blocos" com cara de blocos
 
 **Em uma frase:** o filtro "Mundo de blocos" da foto do resumo agora parece
@@ -34,8 +54,8 @@ Mundo de blocos (ou 8 bits).
 **Ideias de vídeo:** a mesma foto passando pelos filtros, com o "Mundo de
 blocos" no fim.
 
-**Não prometer:** a edição pela IA (trocar o fundo, a roupa) ainda está sendo
-liberada pelo Google; os filtros funcionam sem internet.
+**Não prometer:** a edição pela IA (trocar o fundo, a roupa); ela saiu na
+2026-11-28m. Os filtros funcionam sem internet.
 
 ---
 

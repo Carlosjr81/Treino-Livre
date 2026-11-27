@@ -2662,7 +2662,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28l";
+const VERSAO_APP = "2026-11-28m";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -31294,6 +31294,12 @@ function pedidoEdicaoBarrado(texto) {
   if (/\b(famos\w*|celebridad\w*|ator|atores|atriz|jogador\w*|cantor\w*|presidente|influenc\w*)\b/.test(t)) return "Pessoas reais ou famosas não são acrescentadas. Peça uma torcida ou um parceiro fictício.";
   return "";
 }
+// Desligada em 2026-11-28m, decisão do dono: no plano grátis do Firebase
+// (Spark) a cota de imagem é zero ("You exceeded your current quota"), e no
+// Blaze cada edição custa uns US$ 0,04 do cartão dele. "O importante é a
+// leitura do prato." O código fica: para religar, true aqui (com o Blaze, um
+// teto de gasto e um limite de edições por pessoa).
+const EDICAO_IA_LIGADA = false;
 const MODELOS_IMAGEM_IA = ["gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview", "gemini-2.5-flash-image"];
 async function editarFotoIA(blob, pede) {
   const partes = await chamarIA([{ inlineData: { mimeType: "image/jpeg", data: await blobParaBase64(blob) } }, { text: REGRAS_EDICAO_IA + " Pedido: " + String(pede).slice(0, 300) }],
@@ -34147,7 +34153,7 @@ function EditorFotoResumo({ ocupado, setOcupado, onTrocou }) {
     <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginBottom: 12 }}>
       <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
         {chip(aba === "filtros", () => setAba("filtros"), "🎨 Filtros", "f")}
-        {FIREBASE_ACESSO.apiKey && chip(aba === "ia", () => setAba("ia"), "✨ Editar com IA", "i")}
+        {EDICAO_IA_LIGADA && FIREBASE_ACESSO.apiKey && chip(aba === "ia", () => setAba("ia"), "✨ Editar com IA", "i")}
       </div>
       {aba === "filtros" && (
         <div>

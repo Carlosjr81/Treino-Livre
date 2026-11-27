@@ -2662,7 +2662,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28h";
+const VERSAO_APP = "2026-11-28i";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -5080,7 +5080,9 @@ function lerRespostaPratoIA(texto, catalogo) {
     out.push({ a: "", nome: txt(b.nome, 60) || "Alimento", ic: "\u{1F37D}", gramas: gramas, certeza: certeza, obs: txt(b.obs, 80),
       k: k, p: Math.round(num(b.p, 300) * 10) / 10, c: Math.round(num(b.c, 500) * 10) / 10, g: Math.round(num(b.g, 300) * 10) / 10 });
   });
-  return { prato: txt(j && j.prato, 80), itens: out };
+  let prato = txt(j && j.prato, 400);
+  if (prato.length > 160) prato = prato.slice(0, 160).replace(/\s+\S*$/, "") + "…";
+  return { prato: prato, itens: out };
 }
 // Os itens do dia a partir da lista conferida. Do catálogo, os gramas viram
 // porções pela tabela do app; fora dele, os valores da IA na proporção dos
@@ -40026,6 +40028,23 @@ async function tokenAppCheck() {
     throw e;
   }
 }
+// O motivo de o crachá não ter chegado, à vista e copiável (2026-11-28i): sem
+// ele não dá para consertar a proteção, e a sessão na nuvem não alcança o
+// reCAPTCHA para testar. Só aparece quando o crachá falhou.
+function AvisoAppCheck() {
+  const [copiado, setCopiado] = React.useState(false);
+  let m = ERRO_APPCHECK;
+  if (!m) { try { const g = localStorage.getItem("treinolivre:appcheckErro") || ""; if (g && Date.now() - Date.parse(g.slice(0, 24)) < 3600000) m = g.slice(25); } catch (e) {} }
+  if (!m || !APP_CHECK.siteKey) return null;
+  const texto = "Treino Livre " + VERSAO_APP + " · App Check: " + m + " · " + navigator.userAgent;
+  return (
+    <div style={{ fontSize: 11, color: "var(--cinza)", lineHeight: 1.45, marginTop: 10, padding: "8px 10px", border: "1px dashed var(--borda2)", borderRadius: 10 }}>
+      🛡 A proteção do Google (reCAPTCHA) não respondeu neste aparelho: a leitura seguiu sem ela. Motivo: {m}.
+      <button type="button" onClick={() => { try { navigator.clipboard.writeText(texto); setCopiado(true); } catch (e) {} }}
+        style={{ ...S.btnGhost, padding: "4px 10px", fontSize: 11, marginLeft: 6 }}>{copiado ? "✓ Copiado" : "Copiar para o Claude"}</button>
+    </div>
+  );
+}
 async function tokenAppCheckBuscar() {
   if (tokenAppCheckGuardado && tokenAppCheckGuardado.ate - Date.now() > 120000) return tokenAppCheckGuardado.token;
   await carregarScript("https://www.google.com/recaptcha/enterprise.js?render=" + encodeURIComponent(APP_CHECK.siteKey));
@@ -40178,6 +40197,7 @@ function EscreverComidaIA({ refeicao, onAdd }) {
         style={{ ...S.btnGhost, width: "100%", fontWeight: 900, opacity: texto.trim().length < 3 ? 0.5 : 1 }}>{estado === "lendo" ? "⏳ Montando a lista…" : "✨ Montar a lista"}</button>
       {estado === "erro" && <div style={{ fontSize: 12.5, color: "#FFB21A", fontWeight: 800, marginTop: 10, lineHeight: 1.45 }}>⚠ {erro}</div>}
       {estado === "lido" && <ConferirIA lista={lista} setLista={setLista} prato={prato} refeicao={refeicao} onAdd={(it, ag, rf) => { onAdd(it, ag, rf); setTexto(""); setLista([]); setEstado("pronto"); }} />}
+      {estado === "lido" && <AvisoAppCheck />}
       <div style={{ fontSize: 10.5, color: "var(--cinza)", lineHeight: 1.4, marginTop: 8 }}>O texto vai para a IA do Google (Gemini) só para montar a lista.</div>
     </div>
   );
@@ -40320,6 +40340,7 @@ function LeituraIAPrato({ refeicao, onAdd }) {
       {foto && <img src={foto} alt="O prato" style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 12, marginTop: 10, border: "1px solid var(--borda2)" }} />}
       {estado === "erro" && <div style={{ fontSize: 12.5, color: "#FFB21A", fontWeight: 800, marginTop: 10, lineHeight: 1.45 }}>⚠ {erro}</div>}
       {estado === "lido" && <ConferirIA lista={lista} setLista={setLista} prato={prato} refeicao={refeicao} onAdd={onAdd} />}
+      {estado === "lido" && <AvisoAppCheck />}
       <div style={{ fontSize: 10.5, color: "var(--cinza)", lineHeight: 1.4, marginTop: 8 }}>A foto vai para a IA do Google (Gemini) só para esta leitura; o app não guarda a foto.</div>
     </div>
   );

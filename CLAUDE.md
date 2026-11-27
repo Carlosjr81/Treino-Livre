@@ -7219,6 +7219,12 @@ remédio (ver *A defesa legal*): ali a IA seria o profissional que o app não é
   (Motivo: …). A renovação da conta também ganhou 15 s. O `sw.js` deixa passar
   o `www.gstatic.com/recaptcha/`. No navegador, com um reCAPTCHA que nunca fica
   pronto: a lista apareceu em 6,5 s.
+- **O motivo à vista** (2026-11-28i): com o crachá falhado na última hora,
+  a lista da IA (foto e escrita) mostra `AvisoAppCheck` com o motivo e
+  "Copiar para o Claude" (versão, motivo e o navegador). A 28h foi conferida
+  no celular do dono: a foto do prato leu os 6 itens (~660 kcal). A frase "A
+  IA viu" passou de 80 letras cortadas no meio para até 160, cortando numa
+  palavra inteira.
 - **Desaplicado pelo dono em 28/11/2026** (App Check › APIs › Firebase AI Logic
   › Configurar › "Não aplicado (somente monitoramento)"): a IA voltou a aceitar
   pedidos sem o token. **PRAZO: o Google aplica sozinho em 21 de janeiro de

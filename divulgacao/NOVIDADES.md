@@ -16,6 +16,26 @@
 
 ---
 
+## 2026-11-28i — A frase "A IA viu" inteira
+
+**Em uma frase:** a descrição do prato que a IA faz agora aparece inteira, sem
+cortar no meio da palavra.
+
+**O que mudou:** a linha "A IA viu: …" em cima da lista do prato cortava a frase
+("fatia de me…"). Agora cabe mais, e quando precisa cortar, corta numa palavra
+inteira. Por trás, um aviso discreto ajuda a acertar a proteção do Google.
+
+**Por que importa para quem treina:** dá para ler o que a IA entendeu da foto
+antes de conferir os gramas.
+
+**Como usar:** Balance › + Comida › 📷 Foto, como sempre.
+
+**Ideias de vídeo:** nenhuma; é um ajuste.
+
+**Não prometer:** nada novo.
+
+---
+
 ## 2026-11-28h — A leitura da foto não fica mais presa em "Lendo o prato…"
 
 **Em uma frase:** se a proteção do Google demorar a responder, a leitura da foto

@@ -117,6 +117,10 @@ worker continuam exigindo um aparelho de verdade.
   no mesmo ponto onde o ciclo começa. Se descansa em pé e o ciclo começa
   agachado, o primeiro quadro da série é uma descida inteira de uma vez — e o
   contador conta, com razão.
+- **Teste não lê o relógio.** "Um treino começado há 1 hora" com `Date.now()`
+  caía no dia anterior entre 0h e 1h, e o `teste-balance` reprovava toda
+  publicação de madrugada (achado em 27/11/2026). Use data fixa, como o
+  `contarAnoDeTreino` recebe `agora` por parâmetro.
 - **O ruído é semeado**, não `Math.random`. Com sorteio livre o teste falhava
   uma vez a cada trinta execuções, e teste que falha às vezes é teste que se
   aprende a ignorar.

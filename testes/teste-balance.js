@@ -806,7 +806,9 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("a hora do treino sai do fim menos a duracao", [hora(18), hora(19)],
     (() => { const x = B.horaDoTreino(h, "2026-11-26", null); return [x.ini, x.fim]; })());
   teste("dia sem treino nao inventa hora", null, B.horaDoTreino(h, "2026-11-25", null));
-  teste("o treino aberto agora tambem conta", true, !!(() => { const d = new Date(); const dd = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); return B.horaDoTreino([], dd, { inicio: Date.now() - 36e5 }); })());
+  // data fixa: com Date.now(), "uma hora atras" caia no dia anterior entre 0h e 1h, e o teste reprovava de madrugada
+  teste("o treino aberto agora tambem conta", true, !!B.horaDoTreino([], "2026-11-26", { inicio: new Date(2026, 10, 26, 17, 0).getTime() }));
+  teste("treino aberto ontem nao vira o treino de hoje", null, B.horaDoTreino([], "2026-11-27", { inicio: new Date(2026, 10, 26, 23, 30).getTime() }));
 
   // a literatura: o que o app diz e o que ele derruba
   const fonte = html.slice(html.indexOf("AS JANELAS DOS NUTRIENTES"), html.indexOf("O CATÁLOGO: COMPARAR"));

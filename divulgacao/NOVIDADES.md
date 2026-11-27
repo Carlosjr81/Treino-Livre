@@ -16,6 +16,17 @@
 
 ---
 
+## 2026-11-27a — Conserto interno nos testes do app
+
+- **Em uma frase:** nada muda no app; foi corrigida uma conferida interna que falhava quando rodava entre meia-noite e 1h da manhã.
+- **O que mudou:** um dos testes automáticos que o criador roda antes de cada publicação dependia da hora do relógio e reprovava de madrugada, mesmo com o app certo. Agora ele usa uma data fixa.
+- **Por que importa para quem treina:** publicação de madrugada não fica mais travada por um alarme falso, e o conserto que precisa chegar ao seu celular chega.
+- **Como usar:** nada a fazer.
+- **Ideias de vídeo:** nenhuma; é conserto de bastidor.
+- **Não prometer:** nada de novo no app — é a mesma versão de ontem.
+
+---
+
 ## 2026-11-26n — O link do app Android apontando para a versão certa
 
 - **Em uma frase:** o botão de baixar o app Android levava a um número de versão que não existia; agora leva ao 201, que é o publicado.

@@ -41,6 +41,9 @@ Leia esta seção antes de propor qualquer mudança de arquitetura.
    sozinho; nada de imports de módulos locais.
 4. **Português em tudo.** Nomes de variáveis, funções, comentários e textos de
    interface são em português. Mantenha o padrão.
+   **E a conversa com o dono também** (pedido dele, 27/11/2026): toda mensagem,
+   inclusive os comentários curtos entre uma ferramenta e outra, em português
+   do Brasil. Nada em inglês.
 
 ## Publicar: três lugares para subir a versão
 

@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-28s**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-28t**.
 
 ---
 
@@ -58,7 +58,7 @@
 - **A semana do ciclo no resumo animado** (novo em 2026-11-23c): com o treino ajustado (ciclo de 5 semanas), o resumo
   mostra "Semana N de 5", a fase e o que ela pede. Na semana de descanso (e na leve antes de trocar de treino), explica que o
   volume menor é do método, para recuperar, e não preguiça. Na tela e no vídeo do story.
-- **Categorias do Balance** (novo em 2026-11-28s): dentro de cada objetivo, a pessoa escolhe a categoria (Modo praia, Corredor de rua, Modo atleta, Modo open no ganho de massa, e as categorias de campeonato: Men's Physique, Classic Physique, Bodybuilding (Open), Biquíni, Wellness, Figure, Women's Physique), cada uma com uma silhueta ilustrativa do formato. Ela muda o ritmo de partida e os macros. A silhueta não é promessa de resultado, e o app não conduz preparação de campeonato.
+- **Categorias do Balance** (novo em 2026-11-28s): dentro de cada objetivo, a pessoa escolhe a categoria (Modo praia, Corredor de rua, Modo atleta, Modo open no ganho de massa, e as categorias de campeonato: Men's Physique, Classic Physique, Bodybuilding (Open), Biquíni, Wellness, Figure, Women's Physique), cada uma com uma silhueta anatômica ilustrativa (desde 2026-11-28t: músculos, definição e veias pelo percentual de gordura da categoria, e a régua da gordura). Ela muda o ritmo de partida e os macros. A silhueta não é promessa de resultado, e o app não conduz preparação de campeonato.
 - **Jarvis Body Balance** (novo em 2026-11-25a): a aba **Balance** controla comida, água e o balanço de energia. Dois corpos
   enchem por cor (proteína vermelha, carboidrato amarelo, gordura roxa; água azul) até a meta do dia; passou, o corpo fica
   vermelho. Anota por busca de alimentos brasileiros (419, de todas as regiões, desde 2026-11-28a), foto do prato (desde 2026-11-27z a inteligência artificial lê a foto, estima os gramas de cada alimento

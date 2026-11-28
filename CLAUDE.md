@@ -7405,9 +7405,18 @@ escolheu passa por tudo de uma vez". Fiz os dois.
   campeonato a gordura fica bem mais baixa, que isso é condição de um dia, e que
   semana de pico, corte de água e dieta de competição são do nutricionista e do
   médico. **Não acrescente isso ao app.**
-- **A silhueta** (`SilhuetaCategoria`, SVG feito aqui pelos números da forma,
-  com as linhas de definição pelo `d`): neutra, sem roupa nem rosto, sempre
-  com `AVISO_SILHUETA` (ilustração, não promessa de resultado).
+- **A silhueta** (`SilhuetaCategoria`, SVG feito aqui; anatômica desde
+  2026-11-28t, pedido do dono: "mais realista, com a musculatura, a definição,
+  o percentual de gordura e a vasodilatação"): o corpo pelos números da forma
+  (`contornoMembro`, `curvaFechada`), com trapézio, deltoide, peitoral,
+  serrátil, abdômen, oblíquos, bíceps, antebraço, quadríceps e panturrilha. **O
+  que aparece sai da gordura da categoria** (`bfDaCategoria`, o meio da faixa
+  `bf`; `corpoPelaGordura`: `def`, `abd`, `veias`, `gordura`; a mulher na
+  mesma régua 8 pontos acima): abdômen some perto de 20% (homem), veias abaixo
+  de ~13%, e a gordura incha e alisa o contorno. Pele neutra, bermuda (e top
+  com cabelo na mulher), sem rosto, e sempre com `AVISO_SILHUETA`. Na
+  categoria escolhida, `FaixaGordura` mostra a faixa numa régua (palco,
+  definido, fitness, média). Referência visual, não medida.
 - **Escolher de novo**: `perfil.sub`. A tela (`TelaBodyBalance`) só abre as
   abas com a categoria valendo para o objetivo e o sexo de agora; sem ela volta à
   configuração ("✨ Escolha a sua categoria"). Trocar de objetivo apaga o

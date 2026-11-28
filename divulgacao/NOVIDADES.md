@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-11-28t — As silhuetas ficaram realistas
+
+**Em uma frase:** as silhuetas das categorias do Balance agora mostram o corpo
+de verdade: músculos, definição, veias e o percentual de gordura de cada uma.
+
+**O que mudou:** cada categoria desenha um corpo anatômico, de frente, com
+ombro, peitoral, abdômen, oblíquos, bíceps, antebraço, quadríceps e panturrilha.
+Quanto menos gordura a categoria tem, mais aparecem as separações dos músculos,
+o abdômen e as veias do braço, do baixo-ventre e da coxa; com mais gordura (o
+modo open, por exemplo), o contorno fica mais liso. Na categoria escolhida, uma
+régua mostra onde aquele percentual de gordura fica, do físico de palco até a
+média.
+
+**Por que importa para quem treina:** ajuda a enxergar a diferença entre um
+corpo com 9% e um com 15% de gordura, e a escolher a meta com os pés no chão.
+
+**Como usar:** aba Balance › Perfil › Sua categoria (ou na primeira escolha da
+categoria).
+
+**Ideias de vídeo:** rolar pelas categorias mostrando o abdômen e as veias
+aparecendo conforme a gordura cai; comparar Modo praia e Bodybuilding lado a
+lado; mostrar a régua da gordura.
+
+**Não prometer:** a silhueta é uma ilustração do formato, não o resultado de
+ninguém, e o percentual é de referência, não medido. Nada de preparação de
+campeonato pelo app.
+
+---
+
 ## 2026-11-28s — Categorias dentro do objetivo, com a silhueta de cada uma
 
 **Em uma frase:** no Balance, perder gordura, ganhar massa, recomposição e

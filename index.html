@@ -2782,7 +2782,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28s";
+const VERSAO_APP = "2026-11-28t";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4811,6 +4811,28 @@ function categoriaDoPerfil(perfil) {
 function formaDaCategoria(cat, sexo) {
   const sx = sexo === "f" ? "f" : "m";
   return Object.assign({}, FORMA_BASE[sx], (cat && cat.forma && (cat.forma[sx] || cat.forma.m || cat.forma.f)) || {});
+}
+// O percentual de gordura da categoria: o meio da faixa de referência
+function bfDaCategoria(cat, sexo) {
+  const sx = sexo === "f" ? "f" : "m";
+  const t = cat && cat.bf && (cat.bf[sx] || cat.bf.m || cat.bf.f);
+  const n = String(t || "").match(/\d+/g);
+  if (!n) return sx === "f" ? 25 : 18;
+  return n.length > 1 ? (Number(n[0]) + Number(n[1])) / 2 : Number(n[0]);
+}
+// Quanto da musculatura aparece e quanto as veias aparecem, pela gordura.
+// Homem: abdômen some perto de 20%, aparece todo perto de 10%, e as veias
+// começam abaixo de uns 13%. Mulher: a mesma régua uns 8 pontos acima
+// (a gordura essencial dela é maior). Referência visual, não medida.
+function corpoPelaGordura(bf, sexo) {
+  const des = sexo === "f" ? 8 : 0;
+  const lim = (v) => Math.max(0, Math.min(1, v));
+  return {
+    def: lim((24 + des - bf) / 14),
+    abd: lim((20 + des - bf) / 9),
+    veias: lim((14 + des - bf) / 6),
+    gordura: lim((bf - 8 - des) / 20),
+  };
 }
 // Os números que a categoria escolhe para o objetivo (o ritmo de partida)
 function ritmoDaCategoria(cat, obId) {
@@ -41765,62 +41787,218 @@ function CartaoDiaSemTreino({ x, ehHoje, onDeclarar, onResumo, onJuntar }) {
   );
 }
 
-// A silhueta da categoria (2026-11-28s): o corpo de frente, desenhado pelos
-// números da forma (ombro, peito, cintura, quadril, braço e coxa) e as linhas
-// da definição tanto mais visíveis quanto maior o d. Neutra de propósito: sem
-// roupa, sem rosto, só o formato.
-function SilhuetaCategoria({ forma, cor, altura }) {
+// A silhueta da categoria (2026-11-28s; anatômica desde 2026-11-28t, pedido do
+// dono: "mais realista, mostrando a musculatura, a definição, o percentual de
+// gordura e a vascularização"). O corpo de frente desenhado pelos números da
+// forma (ombro, peito, cintura, quadril, braço, coxa) e pela gordura da
+// categoria (corpoPelaGordura): quanto menos gordura, mais aparecem as
+// separações, o abdômen e as veias; com mais gordura, o contorno fica liso.
+// Neutra de propósito: sem rosto, com bermuda (e top na mulher).
+function curvaFechada(p) {
+  const m = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const n = p.length;
+  let d = "M " + m(p[n - 1], p[0]).map((v) => v.toFixed(1)).join(" ");
+  for (let i = 0; i < n; i++) {
+    const q = p[i], r = m(p[i], p[(i + 1) % n]);
+    d += " Q " + q[0].toFixed(1) + " " + q[1].toFixed(1) + " " + r[0].toFixed(1) + " " + r[1].toFixed(1);
+  }
+  return d + " Z";
+}
+// Um membro que afina: pontos [x, y, largura] ao longo do eixo
+function contornoMembro(pts) {
+  const L = [], R = [];
+  pts.forEach((p, i) => {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+    let dx = b[0] - a[0], dy = b[1] - a[1];
+    const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+    L.push([p[0] - dy * p[2] / 2, p[1] + dx * p[2] / 2]);
+    R.push([p[0] + dy * p[2] / 2, p[1] - dx * p[2] / 2]);
+  });
+  return curvaFechada(L.concat(R.reverse()));
+}
+// Um ponto ao longo do segmento a→b, deslocado de lado
+function aoLongo(a, b, t, lado) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+  return [a[0] + dx * t - (dy / l) * lado, a[1] + dy * t + (dx / l) * lado];
+}
+const ptS = (p) => p[0].toFixed(1) + " " + p[1].toFixed(1);
+function SilhuetaCategoria({ forma, sexo, bf, altura, cor }) {
   const f = forma || FORMA_BASE.m;
-  const c = cor || "#E1306C";
-  const id = useMemo(() => "sil" + Math.random().toString(36).slice(2, 8), []);
-  const x = (d) => 50 + d, y0 = 36;
-  const meio = (a, b) => (a + b) / 2;
-  const torso = "M " + x(-5) + " 30 L " + x(5) + " 30 " +
-    "Q " + x(f.o * 0.6) + " " + (y0 - 1) + " " + x(f.o) + " " + (y0 + 4) +
-    " Q " + x(f.c + 1) + " 52 " + x(f.c) + " 60" +
-    " Q " + x(meio(f.c, f.w)) + " 78 " + x(f.w) + " 92" +
-    " Q " + x(f.w + 0.5) + " 102 " + x(f.h) + " 112" +
-    " L " + x(f.h - 1) + " 124 L " + x(-f.h + 1) + " 124 L " + x(-f.h) + " 112" +
-    " Q " + x(-f.w - 0.5) + " 102 " + x(-f.w) + " 92" +
-    " Q " + x(-meio(f.c, f.w)) + " 78 " + x(-f.c) + " 60" +
-    " Q " + x(-f.c - 1) + " 52 " + x(-f.o) + " " + (y0 + 4) +
-    " Q " + x(-f.o * 0.6) + " " + (y0 - 1) + " " + x(-5) + " 30 Z";
-  const pernaX = Math.max(5, f.h - f.t / 2 - 0.5);
-  const braco = (lado) => {
-    const ox = x(lado * (f.o - f.a * 0.25)), cx = x(lado * (f.o + f.a * 0.15)), mx = x(lado * (f.w + f.a * 0.9 + 2));
-    return { sup: "M " + ox + " " + (y0 + 5) + " L " + cx + " 70", inf: "M " + cx + " 70 L " + mx + " 100" };
+  const fem = sexo === "f";
+  const g = corpoPelaGordura(typeof bf === "number" ? bf : (fem ? 24 : 16), fem ? "f" : "m");
+  const id = useMemo(() => "sl" + Math.random().toString(36).slice(2, 8), []);
+  const marca = cor || "#E1306C";
+  const k = 2, X = 100;
+  // a gordura alisa e incha um pouco o contorno
+  const inch = 1 + g.gordura * 0.08;
+  const O = f.o * k, C = f.c * k * inch, W = f.w * k * inch * (1 + g.gordura * 0.06), H = f.h * k * inch, A = f.a * k * inch, T = f.t * k * inch;
+  const pesc = fem ? 9.5 : 12.5;
+  const lado = (s) => [
+    [s * pesc, 50], [s * (pesc + 2), 62], [s * O * 0.55, 70], [s * O, 84], [s * (O - 1), 98], [s * C, 114], [s * (C - 1), 134],
+    [s * (C + W) / 2, 158], [s * W, 180], [s * (W + (H - W) * 0.6), 200], [s * H, 220], [s * (H - 2), 238], [s * 10, 250]];
+  const torso = curvaFechada(lado(1).map((p) => [X + p[0], p[1]]).concat(lado(-1).reverse().map((p) => [X + p[0], p[1]])));
+  // braços: ombro, cotovelo, antebraço, punho
+  const braco = (s) => {
+    const om = [X + s * (O - A * 0.35), 86], co = [X + s * (W + A * 0.9 + 8), 152], an = [X + s * (W + A * 0.95 + 12), 178], pu = [X + s * (W + A * 0.9 + 17), 212];
+    return { om, co, an, pu, d: contornoMembro([[om[0], om[1], A * 1.4], [(om[0] + co[0]) / 2, 120, A * 1.22], [co[0], co[1], A * 0.9], [an[0], an[1], A * 1.0], [pu[0], pu[1], A * 0.58]]) };
   };
-  const bd = braco(1), be = braco(-1);
-  const d = Math.max(0, Math.min(1, f.d || 0));
-  const linha = { stroke: "rgba(0,0,0," + (0.18 + 0.5 * d).toFixed(2) + ")", strokeWidth: 0.9, fill: "none", strokeLinecap: "round" };
-  return (
-    <svg viewBox="0 0 100 200" style={{ height: altura || 150, width: "auto", display: "block", overflow: "visible" }} aria-hidden="true">
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={c} stopOpacity="0.95" /><stop offset="1" stopColor="#8134AF" stopOpacity="0.85" />
-        </linearGradient>
-        <filter id={id + "b"} x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" /></filter>
-      </defs>
-      <ellipse cx="50" cy="196" rx="26" ry="3" fill={c} opacity="0.25" filter={"url(#" + id + "b)"} />
-      <g fill={"url(#" + id + ")"} stroke={"url(#" + id + ")"} strokeLinecap="round">
-        <circle cx="50" cy="17" r="10" stroke="none" />
-        <rect x="45.5" y="24" width="9" height="9" rx="3" stroke="none" />
-        <path d={torso} stroke="none" />
-        <path d={bd.sup} fill="none" strokeWidth={f.a} /><path d={be.sup} fill="none" strokeWidth={f.a} />
-        <path d={bd.inf} fill="none" strokeWidth={f.a * 0.78} /><path d={be.inf} fill="none" strokeWidth={f.a * 0.78} />
-        <path d={"M " + x(pernaX) + " 120 L " + x(pernaX - 0.5) + " 158"} fill="none" strokeWidth={f.t} />
-        <path d={"M " + x(-pernaX) + " 120 L " + x(-pernaX + 0.5) + " 158"} fill="none" strokeWidth={f.t} />
-        <path d={"M " + x(pernaX - 0.5) + " 158 L " + x(pernaX - 1) + " 192"} fill="none" strokeWidth={f.t * 0.62} />
-        <path d={"M " + x(-pernaX + 0.5) + " 158 L " + x(-pernaX + 1) + " 192"} fill="none" strokeWidth={f.t * 0.62} />
+  const perna = (s) => {
+    const lx = X + s * Math.max(11, H * 0.52);
+    return { lx, d: contornoMembro([[lx + s * 1, 224, T * 1.75], [lx, 266, T * 1.5], [lx - s * 2, 318, T * 0.82], [lx - s * 2, 344, T * 0.98], [lx - s * 3, 386, T * 0.46]]) };
+  };
+  const bD = braco(1), bE = braco(-1), pD = perna(1), pE = perna(-1);
+  const sombra = (o) => ({ fill: "none", stroke: "#3A1D10", strokeOpacity: o, strokeWidth: 1.3, strokeLinecap: "round" });
+  const luz = { fill: "url(#" + id + "l)" };
+  const det = 0.15 + 0.85 * g.def;
+  const musculoBraco = (b, s) => {
+    const ang = Math.atan2(b.co[1] - b.om[1], b.co[0] - b.om[0]) * 180 / Math.PI - 90;
+    const c1 = aoLongo(b.om, b.co, 0.55, s * A * 0.12);
+    const ang2 = Math.atan2(b.pu[1] - b.co[1], b.pu[0] - b.co[0]) * 180 / Math.PI - 90;
+    const c2 = aoLongo(b.co, b.pu, 0.3, 0);
+    return (
+      <g key={"mb" + s}>
+        <ellipse cx={X + s * (O - 3)} cy={92} rx={A * 0.68} ry={A * 0.92} transform={"rotate(" + (-s * 18) + " " + (X + s * (O - 3)) + " 92)"} {...luz} opacity={0.45 + 0.4 * g.def} />
+        <path d={"M " + ptS([X + s * (O - 3 - A * 0.5), 104]) + " Q " + ptS([X + s * (O + 2), 108]) + " " + ptS([X + s * (O + A * 0.2), 96])} {...sombra(det * 0.7)} />
+        <ellipse cx={c1[0]} cy={c1[1]} rx={A * 0.36} ry={A * 1.25} transform={"rotate(" + ang + " " + c1[0] + " " + c1[1] + ")"} {...luz} opacity={0.35 + 0.45 * g.def} />
+        <ellipse cx={c2[0]} cy={c2[1]} rx={A * 0.3} ry={A * 0.95} transform={"rotate(" + ang2 + " " + c2[0] + " " + c2[1] + ")"} {...luz} opacity={0.3 + 0.4 * g.def} />
+        <path d={"M " + ptS(aoLongo(b.om, b.co, 0.2, -s * A * 0.25)) + " Q " + ptS(aoLongo(b.om, b.co, 0.6, -s * A * 0.42)) + " " + ptS(aoLongo(b.om, b.co, 0.95, -s * A * 0.15))} {...sombra(det * 0.6)} />
       </g>
-      {d > 0.15 && <g style={linha}>
-        <path d={"M " + x(-f.c + 3) + " 55 Q 50 " + (60 + 2 * d) + " " + x(f.c - 3) + " 55"} />
-        <path d="M 50 50 L 50 108" />
-        {d > 0.4 && [70, 80, 90].map((yy) => <path key={yy} d={"M " + x(-f.w + 4) + " " + yy + " L " + x(f.w - 4) + " " + yy} />)}
-        {d > 0.6 && <path d={"M " + x(-f.w + 1) + " 98 Q " + x(-3) + " 112 50 118 Q " + x(3) + " 112 " + x(f.w - 1) + " 98"} />}
-      </g>}
-      <ellipse cx="44" cy="40" rx="10" ry="4" fill="#fff" opacity="0.18" />
+    );
+  };
+  const musculoPerna = (p, s) => {
+    const lx = p.lx;
+    return (
+      <g key={"mp" + s}>
+        <ellipse cx={lx + s * T * 0.02} cy={266} rx={T * 0.24} ry={34} {...luz} opacity={0.35 + 0.4 * g.def} />
+        <ellipse cx={lx + s * T * 0.36} cy={268} rx={T * 0.24} ry={36} transform={"rotate(" + (-s * 4) + " " + (lx + s * T * 0.36) + " 268)"} {...luz} opacity={0.3 + 0.4 * g.def} />
+        <ellipse cx={lx - s * T * 0.3} cy={300} rx={T * 0.22} ry={14} transform={"rotate(" + (s * 25) + " " + (lx - s * T * 0.3) + " 300)"} {...luz} opacity={0.35 + 0.45 * g.def} />
+        <path d={"M " + ptS([lx + s * T * 0.18, 238]) + " Q " + ptS([lx + s * T * 0.2, 272]) + " " + ptS([lx + s * T * 0.06, 306])} {...sombra(det * 0.6)} />
+        <path d={"M " + ptS([lx - s * T * 0.12, 250]) + " Q " + ptS([lx - s * T * 0.18, 285]) + " " + ptS([lx - s * T * 0.42, 300])} {...sombra(det * 0.5)} />
+        <path d={"M " + ptS([lx - s * 2 - T * 0.14, 322]) + " Q " + ptS([lx - s * 2, 328]) + " " + ptS([lx - s * 2 + T * 0.14, 322])} {...sombra(0.25 + 0.3 * g.def)} />
+        <ellipse cx={lx - s * (2 + T * 0.12)} cy={346} rx={T * 0.26} ry={17} {...luz} opacity={0.35 + 0.4 * g.def} />
+        <path d={"M " + ptS([lx + s * T * 0.12, 334]) + " Q " + ptS([lx + s * T * 0.06, 362]) + " " + ptS([lx - s * 1, 380])} {...sombra(det * 0.45)} />
+      </g>
+    );
+  };
+  const veiaBraco = (b, s) => {
+    const v = g.veias;
+    if (v <= 0.02) return null;
+    const p1 = aoLongo(b.co, b.pu, 0.05, -s * A * 0.12), p2 = aoLongo(b.co, b.pu, 0.5, s * A * 0.12), p3 = aoLongo(b.co, b.pu, 0.97, -s * A * 0.05);
+    const r1 = aoLongo(b.co, b.pu, 0.35, s * A * 0.05), r2 = aoLongo(b.co, b.pu, 0.8, s * A * 0.26);
+    const c1 = aoLongo(b.om, b.co, 0.35, s * A * 0.05), c2 = aoLongo(b.om, b.co, 0.75, s * A * 0.22), c3 = aoLongo(b.om, b.co, 1.0, -s * A * 0.08);
+    const ve = { fill: "none", stroke: "#4E6A8C", strokeOpacity: 0.85 * v, strokeLinecap: "round" };
+    return (
+      <g key={"v" + s}>
+        <path d={"M " + ptS(p1) + " Q " + ptS(p2) + " " + ptS(p3)} {...ve} strokeWidth={1.4} />
+        <path d={"M " + ptS(r1) + " Q " + ptS(aoLongo(b.co, b.pu, 0.55, s * A * 0.3)) + " " + ptS(r2)} {...ve} strokeWidth={1} />
+        {v > 0.35 && <path d={"M " + ptS(c1) + " Q " + ptS(c2) + " " + ptS(c3)} {...ve} strokeWidth={1.1} />}
+        <path d={"M " + ptS(p1) + " Q " + ptS(p2) + " " + ptS(p3)} fill="none" stroke="#FFE2CC" strokeOpacity={0.35 * v} strokeWidth={0.45} transform="translate(-0.5 -0.4)" />
+      </g>
+    );
+  };
+  const abs = g.abd;
+  return (
+    <svg viewBox="0 0 200 400" style={{ height: altura || 150, width: "auto", display: "block", overflow: "visible" }} aria-hidden="true">
+      <defs>
+        <linearGradient id={id + "p"} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#7A4528" /><stop offset="0.3" stopColor="#B87A50" /><stop offset="0.5" stopColor="#C98C60" /><stop offset="0.7" stopColor="#B87A50" /><stop offset="1" stopColor="#7A4528" />
+        </linearGradient>
+        <radialGradient id={id + "l"} cx="0.4" cy="0.35" r="0.7">
+          <stop offset="0" stopColor="#F2C49C" stopOpacity="0.95" /><stop offset="0.6" stopColor="#D9A074" stopOpacity="0.4" /><stop offset="1" stopColor="#D9A074" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id={id + "r"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={marca} /><stop offset="1" stopColor="#4DEBFF" />
+        </linearGradient>
+        <filter id={id + "b"} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.5" /></filter>
+      </defs>
+      <ellipse cx="100" cy="392" rx="58" ry="6" fill={marca} opacity="0.28" filter={"url(#" + id + "b)"} />
+      {fem && <path d="M 82 26 Q 78 70 86 92 L 114 92 Q 122 70 118 26 Z" fill="#2A1710" />}
+      <g fill={"url(#" + id + "p)"}>
+        <path d={pD.d} /><path d={pE.d} />
+        <ellipse cx={pD.lx - 3} cy="391" rx={T * 0.34} ry="5" /><ellipse cx={pE.lx + 3} cy="391" rx={T * 0.34} ry="5" />
+        <path d={bD.d} /><path d={bE.d} />
+        <ellipse cx={bD.pu[0] + 1} cy={bD.pu[1] + 9} rx={A * 0.3} ry="9" /><ellipse cx={bE.pu[0] - 1} cy={bE.pu[1] + 9} rx={A * 0.3} ry="9" />
+        <path d={torso} />
+        <ellipse cx="100" cy="30" rx="17" ry="21" />
+      </g>
+      <path d={fem ? "M 82 32 Q 80 9 100 8 Q 120 9 118 32 Q 112 18 100 19 Q 88 18 82 32 Z" : "M 84 26 Q 84 9 100 9 Q 116 9 116 26 Q 110 17 100 17 Q 90 17 84 26 Z"} fill="#2A1710" />
+      <path d="M 88 42 Q 100 52 112 42" fill="none" stroke="#3A1D10" strokeOpacity="0.35" strokeWidth="1.2" />
+      {/* a luz de contorno nas cores da marca: antes dos detalhes e da roupa */}
+      <g fill="none" stroke={"url(#" + id + "r)"} strokeOpacity="0.5" strokeWidth="1.2">
+        <path d={torso} /><path d={bD.d} /><path d={bE.d} /><path d={pD.d} /><path d={pE.d} />
+      </g>
+      {/* o tronco: trapézio, peito, serrátil */}
+      <path d={"M " + (X - 13) + " 58 Q " + (X - O * 0.5) + " 66 " + (X - O + 4) + " 80 M " + (X + 13) + " 58 Q " + (X + O * 0.5) + " 66 " + (X + O - 4) + " 80"} {...sombra(det * 0.5)} />
+      {!fem && [1, -1].map((s2) => (
+        <g key={"pe" + s2}>
+          <path d={"M " + X + " 90 Q " + (X + s2 * C * 0.55) + " 82 " + (X + s2 * (C - 4)) + " 98 Q " + (X + s2 * (C - 2)) + " 120 " + (X + s2 * (C - 10)) + " 128 Q " + (X + s2 * 14) + " 133 " + X + " 127 Z"} {...luz} opacity={0.4 + 0.45 * g.def} />
+          <path d={"M " + (X + s2 * (C - 3)) + " 110 Q " + (X + s2 * (C - 8)) + " 128 " + (X + s2 * 12) + " 131 Q " + (X + s2 * 4) + " 130 " + X + " 127"} {...sombra(0.25 + 0.6 * g.def)} />
+        </g>
+      ))}
+      {[1, -1].map((s2) => [124, 133, 142].map((yy, i) => (
+        <path key={"sr" + s2 + i} d={"M " + (X + s2 * (C - 4 - i)) + " " + yy + " l " + (-s2 * 6) + " 4"} {...sombra(0.6 * g.def)} />
+      )))}
+      {/* o abdômen: aparece com a gordura baixa */}
+      <g opacity={0.1 + 0.9 * abs}>
+        <path d={"M " + X + " 132 L " + X + " 222"} {...sombra(0.8)} />
+        {[148, 166, 186].map((yy) => (
+          <path key={"ab" + yy} d={"M " + (X - W * 0.52) + " " + (yy + 2) + " Q " + X + " " + (yy - 2) + " " + (X + W * 0.52) + " " + (yy + 2)} {...sombra(0.7)} />
+        ))}
+        {[[138, 147], [156, 165], [174, 184], [194, 212]].map(([a, b2], i) => [1, -1].map((s2) => (
+          <ellipse key={"bl" + i + s2} cx={X + s2 * W * 0.27} cy={(a + b2) / 2} rx={W * 0.22} ry={(b2 - a) / 2 + 1} {...luz} opacity={0.5 + 0.4 * abs} />
+        )))}
+        {[1, -1].map((s2) => <path key={"vl" + s2} d={"M " + (X + s2 * (W - 2)) + " 192 Q " + (X + s2 * (W * 0.55)) + " 222 " + (X + s2 * 9) + " 244"} {...sombra(0.8)} />)}
+      </g>
+      {/* oblíquos e o contorno da cintura */}
+      {[1, -1].map((s2) => <path key={"ob" + s2} d={"M " + (X + s2 * (C - 4)) + " 140 Q " + (X + s2 * (W + 2)) + " 168 " + (X + s2 * (W - 2)) + " 196"} {...sombra(0.4 * g.def)} />)}
+      {musculoBraco(bD, 1)}{musculoBraco(bE, -1)}
+      {musculoPerna(pD, 1)}{musculoPerna(pE, -1)}
+      {/* as veias, só com a gordura baixa */}
+      {veiaBraco(bD, 1)}{veiaBraco(bE, -1)}
+      {g.veias > 0.3 && [1, -1].map((s2) => (
+        <path key={"vb" + s2} d={"M " + (X + s2 * (W * 0.45)) + " 210 Q " + (X + s2 * (W * 0.3)) + " 226 " + (X + s2 * 13) + " 238"} fill="none" stroke="#4E6A8C" strokeOpacity={0.7 * g.veias} strokeWidth={1} strokeLinecap="round" />
+      ))}
+      {g.veias > 0.5 && [pD, pE].map((p, i) => {
+        const s2 = i ? -1 : 1;
+        return <path key={"vp" + i} d={"M " + (p.lx - s2 * T * 0.2) + " 240 Q " + (p.lx - s2 * T * 0.32) + " 262 " + (p.lx - s2 * T * 0.22) + " 286"} fill="none" stroke="#4E6A8C" strokeOpacity={0.55 * g.veias} strokeWidth={1} strokeLinecap="round" />;
+      })}
+      {/* a roupa: bermuda (e top na mulher) */}
+      <path d={"M " + (X - H - 2) + " 212 L " + (X + H + 2) + " 212 L " + (X + H + 4) + " 238 L " + (pD.lx + T * 0.72) + " 262 L " + (X + 5) + " 258 L " + X + " 248 L " + (X - 5) + " 258 L " + (pE.lx - T * 0.72) + " 262 L " + (X - H - 4) + " 238 Z"} fill="#15111C" />
+      <path d={"M " + (X - H - 2) + " 213 L " + (X + H + 2) + " 213"} stroke={"url(#" + id + "r)"} strokeWidth="3" />
+      {fem && (
+        <g>
+          <path d={"M " + (X - C + 3) + " 98 Q " + X + " 90 " + (X + C - 3) + " 98 L " + (X + C - 4) + " 128 Q " + X + " 134 " + (X - C + 4) + " 128 Z"} fill="#15111C" />
+          <path d={"M " + (X - C + 4) + " 127 Q " + X + " 133 " + (X + C - 4) + " 127"} fill="none" stroke={"url(#" + id + "r)"} strokeWidth="2.5" />
+          <path d={"M " + (X - C + 6) + " 98 L " + (X - O * 0.45) + " 70 M " + (X + C - 6) + " 98 L " + (X + O * 0.45) + " 70"} stroke="#15111C" strokeWidth="4" strokeLinecap="round" />
+        </g>
+      )}
     </svg>
+  );
+}
+// A régua do percentual de gordura: onde a categoria fica, entre o seco e o mais macio
+function FaixaGordura({ cat, sexo }) {
+  const fem = sexo === "f";
+  const t = cat && cat.bf && (cat.bf[fem ? "f" : "m"] || cat.bf.m || cat.bf.f);
+  const n = (String(t || "").match(/\d+/g) || []).map(Number);
+  if (!n.length) return null;
+  const min = fem ? 10 : 4, max = fem ? 38 : 30;
+  const pos = (v) => Math.max(0, Math.min(100, ((v - min) / (max - min)) * 100));
+  const a = n[0], b = n.length > 1 ? n[1] : n[0];
+  const marcas = fem ? [[14, "palco"], [20, "atlética"], [25, "fitness"], [32, "média"]] : [[6, "palco"], [11, "definido"], [16, "fitness"], [24, "média"]];
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, color: "var(--cinza)", marginBottom: 4 }}>
+        <span>Gordura corporal</span><span style={{ color: "#4DEBFF" }}>~{a === b ? a : a + " a " + b}%</span>
+      </div>
+      <div style={{ position: "relative", height: 10, borderRadius: 6, background: "linear-gradient(90deg,#4DEBFF,#7CFF3C 30%,#FFD23F 60%,#FF8A3D 85%,#FF4D6D)" }}>
+        <div style={{ position: "absolute", top: -3, bottom: -3, left: pos(a) + "%", width: Math.max(2.5, pos(b) - pos(a)) + "%", borderRadius: 6, border: "2px solid #fff", boxShadow: "0 0 10px rgba(255,255,255,.6)" }} />
+      </div>
+      <div style={{ position: "relative", height: 26, marginTop: 3 }}>
+        {marcas.map(([v, r]) => (
+          <div key={v} style={{ position: "absolute", left: pos(v) + "%", transform: "translateX(-50%)", fontSize: 9.5, color: "var(--cinza)", textAlign: "center", lineHeight: 1.15 }}>{v}%<br />{r}</div>
+        ))}
+      </div>
+    </div>
   );
 }
 // A escolha da categoria: os estilos primeiro, depois o palco do sexo escolhido
@@ -41842,7 +42020,7 @@ function EscolhaCategoria({ perfil, mudarPerfil }) {
             return (
               <button key={c.id} onClick={() => mudarPerfil({ sub: c.id, ritmo: ritmoDaCategoria(c, ob.id) })} style={{ textAlign: "left", padding: "10px 10px 12px", borderRadius: 14, cursor: "pointer",
                 border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"), background: on ? "#E1306C18" : "var(--superficie)", color: "var(--texto)", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                <SilhuetaCategoria forma={formaDaCategoria(c, sx)} cor={on ? "#E1306C" : c.tipo === "palco" ? "#F58529" : "#4DEBFF"} altura={110} />
+                <SilhuetaCategoria forma={formaDaCategoria(c, sx)} sexo={sx} bf={bfDaCategoria(c, sx)} cor={on ? "#E1306C" : c.tipo === "palco" ? "#F58529" : "#4DEBFF"} altura={140} />
                 <div style={{ fontWeight: 800, fontSize: 13.5, textAlign: "center" }}>{c.ic} {c.nome}</div>
                 <div style={{ fontSize: 10.5, color: "#4DEBFF", fontWeight: 700, letterSpacing: 0.5, textAlign: "center" }}>{(c.bf && (c.bf[sx] || c.bf.m || c.bf.f)) ? "gordura ~" + (c.bf[sx] || c.bf.m || c.bf.f) : ""}</div>
               </button>
@@ -41861,11 +42039,12 @@ function EscolhaCategoria({ perfil, mudarPerfil }) {
         : <div style={{ fontSize: 12, color: "var(--cinza)", marginBottom: 10 }}>Diga se é homem ou mulher (logo abaixo) para ver as categorias de campeonato.</div>}
       {escolhida && (
         <div style={{ display: "flex", gap: 12, alignItems: "center", padding: 12, borderRadius: 14, border: "1px solid #E1306C55", background: "#E1306C0F" }}>
-          <SilhuetaCategoria forma={formaDaCategoria(escolhida, sx)} altura={130} />
+          <SilhuetaCategoria forma={formaDaCategoria(escolhida, sx)} sexo={sx} bf={bfDaCategoria(escolhida, sx)} altura={200} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: 15 }}>{escolhida.ic} {escolhida.nome}</div>
             <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 4, lineHeight: 1.45 }}>{escolhida.diz}</div>
-            <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 6, lineHeight: 1.4 }}>{AVISO_SILHUETA}</div>
+            <FaixaGordura cat={escolhida} sexo={sx} />
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 2, lineHeight: 1.4 }}>{AVISO_SILHUETA}</div>
           </div>
         </div>
       )}

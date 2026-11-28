@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-28p — O shake e a vitamina num toque, no celular
+
+**Em uma frase:** os seus shakes e vitaminas salvos viraram botões na tela Hoje
+do Balance: um toque e a dose entra no dia, igual no relógio.
+
+**O que mudou:** logo abaixo de "+ Comida" e da água aparece o quadro "🥤 Shakes
+e vitaminas · 1 toque", com até 6 combinações (as mais usadas no último mês
+primeiro), cada uma com as calorias e a proteína. Um toque anota a dose inteira,
+como um item só, com a água do copo somada à água do dia. "Montar ›" leva para
+criar ou ajustar uma combinação. Quem ainda não salvou nenhuma vê as sugeridas.
+
+**Por que importa para quem treina:** quem toma o mesmo shake todo dia não
+precisa mais procurar ingrediente por ingrediente: é um toque, no meio do treino
+ou na saída da academia.
+
+**Como usar:** Balance › Hoje › toque no shake. Errou a dose? Toque no item da
+lista do dia para corrigir os gramas.
+
+**Ideias de vídeo:** a mão segurando a coqueteleira e o dedo tocando o botão; o
+corpo do Balance enchendo na hora; "do relógio ou do celular, um toque".
+
+**Não prometer:** que o app sugere suplemento (ele só registra o que você toma).
+
 ## 2026-11-28o — A voz diz o próximo exercício
 
 **Em uma frase:** acabou um exercício, a voz já diz qual é o próximo, com o

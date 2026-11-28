@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, plUnidade, abreEmUnidades, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, FONTES_DIA_SEM_TREINO, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas, prazoInsulina, acompanhamentoInsulina, PRAZOS_INSULINA, FOTO_IA, pedidoPratoIA, lerRespostaPratoIA, itensDaLeituraIA, jsonDaIA, pedidoComidaEscritaIA, pedidoRotuloIA, lerRespostaRotuloIA, pedidoFichaIA, lerRespostaFichaIA };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, FONTES_DIA_SEM_TREINO, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, atalhosReceitas, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas, prazoInsulina, acompanhamentoInsulina, PRAZOS_INSULINA, FOTO_IA, pedidoPratoIA, lerRespostaPratoIA, itensDaLeituraIA, jsonDaIA, pedidoComidaEscritaIA, pedidoRotuloIA, lerRespostaRotuloIA, pedidoFichaIA, lerRespostaFichaIA };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -521,6 +521,17 @@ teste("as mensagens dizem o que fazer", true, /Permissões/.test(B.textoErroGps(
   teste("a sugestao igual a minha nao aparece duas vezes", -1, disp.slice(1).map((r) => r.id).indexOf("s-aveia"));
   teste("as outras sugestoes continuam", true, disp.some((r) => r.id === "s-amido" && r.sug));
   teste("sem receita minha, aparecem todas as sugeridas", B.RECEITAS_SUGERIDAS.length, B.receitasDisponiveis([]).length);
+
+  // os atalhos de um toque (2026-11-28p): só bebidas, as mais anotadas primeiro
+  const vit = { id: "m2", n: "Vitamina de banana", ic: "x", agua: 0, em: 1, itens: [{ a: "whey", g: 30 }] };
+  const prato = { id: "m3", n: "Pao com ovos", ic: "x", agua: 0, em: 3, itens: [{ a: "whey", g: 10 }] };
+  const usoDias = { "2026-11-27": { itens: [{ n: "Vitamina de banana", rc: [{ a: "whey", g: 30 }] }, { n: "Vitamina de banana", rc: [{ a: "whey", g: 30 }] }] } };
+  const at = B.atalhosReceitas([minha, vit, prato], usoDias, "2026-11-28", 6);
+  teste("atalho: a mais anotada vem primeiro", "m2", at[0].id);
+  teste("atalho: prato fica de fora", false, at.some((r) => r.id === "m3"));
+  teste("atalho: com receitas salvas, as sugeridas nao entram", false, at.some((r) => r.sug));
+  teste("atalho: sem nada salvo, entram as sugeridas (bebidas)", true, B.atalhosReceitas([], {}, "2026-11-28", 6).every((r) => r.sug && B.tipoReceita(r) !== "prato"));
+  teste("atalho: no maximo 6", true, B.atalhosReceitas([], {}, "2026-11-28", 6).length <= 6);
 
   // o que o Balance guarda
   // lerNutricao vive fora do bloco das contas: a checagem é no texto do app

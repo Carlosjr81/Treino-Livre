@@ -7865,6 +7865,18 @@ conserto foi dar mais caminhos de entrada, não um relógio de fundo:
   a entrega automática e a permissão de sobrepor foram conferidas só no código,
   e o APK é montado pelo Actions.
 
+#### O shake num toque no celular (`atalhosReceitas`, 2026-11-28p)
+
+Pedido do dono: "no relógio lanço o shake num toque; no celular só achei pelos
+itens". Balance › Hoje ganhou o quadro "🥤 Shakes e vitaminas · 1 toque" (logo
+abaixo de "+ Comida" e da água): até 6 combinações que não são prato
+(`tipoReceita`), as da pessoa e, sem nenhuma salva, as sugeridas; as mais
+anotadas nos últimos 30 dias primeiro (contadas pelo nome dos itens com `rc`).
+Um toque é `adicionar([itemDeReceita(r, 1)], r.agua)`, na refeição da hora;
+"Montar ›" abre a aba de montar. O aviso do `adicionar` passou a dizer o item
+e a água juntos (antes, com água, só "💧 +300 ml"). Coberto em
+`teste-balance.js`. No navegador: um toque anotou 265 kcal e 300 ml.
+
 #### O intra-treino com glicerina (`s-intra`, 2026-11-26g)
 
 Pedido do dono: "nos shakes adicione o shake intra-treino com maltodextrina,

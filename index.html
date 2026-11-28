@@ -2688,7 +2688,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28o";
+const VERSAO_APP = "2026-11-28p";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -6342,6 +6342,23 @@ function receitasDisponiveis(minhas) {
   (minhas || []).forEach((r) => { tem[chave(r)] = 1; });
   return (minhas || []).slice().sort((a, b) => (b.em || 0) - (a.em || 0))
     .concat(RECEITAS_SUGERIDAS.filter((r) => !tem[chave(r)]).map((r) => Object.assign({}, r, { sug: true })));
+}
+// Os atalhos de um toque na tela Hoje (2026-11-28p, pedido do dono: "no
+// relógio lanço o shake num toque; no celular só achei pelos itens"). As
+// bebidas (shakes e vitaminas) da pessoa, as mais anotadas nos últimos 30 dias
+// primeiro (pelo nome do item no dia); sem nenhuma salva, as sugeridas.
+function atalhosReceitas(minhas, dias, hoje, max) {
+  const lista = receitasDisponiveis(minhas).filter((r) => tipoReceita(r) !== "prato");
+  const proprias = lista.filter((r) => !r.sug);
+  const base = proprias.length ? proprias : lista;
+  const usos = {};
+  const lim = hoje ? new Date(hoje + "T12:00:00").getTime() - 30 * 864e5 : 0;
+  Object.keys(dias || {}).forEach((d) => {
+    if (hoje && new Date(d + "T12:00:00").getTime() < lim) return;
+    ((dias[d] && dias[d].itens) || []).forEach((it) => { if (it && it.rc && it.n) usos[it.n] = (usos[it.n] || 0) + 1; });
+  });
+  return base.map((r, i) => ({ r: r, u: usos[String(r.n || "").trim()] || 0, i: i }))
+    .sort((a, b) => b.u - a.u || a.i - b.i).slice(0, max || 6).map((x) => x.r);
 }
 // ---------------- OS AVISOS DA INSULINA ----------------
 // Pedido do dono (2026-11-27m), depois de recusado o "timing" (o app dizer
@@ -41727,7 +41744,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
       agua: numB(d.agua) + (aguaMl || 0),
     }));
     setJanela(null);
-    mostrar(aguaMl ? "💧 +" + aguaMl + " ml" : "✓ " + (itens.length === 1 ? itens[0].n : itens.length + " alimentos") + " anotado" + (itens.length === 1 ? "" : "s"));
+    mostrar(!itens.length ? "💧 +" + aguaMl + " ml" : "✓ " + (itens.length === 1 ? itens[0].n : itens.length + " alimentos") + " anotado" + (itens.length === 1 ? "" : "s") + (aguaMl ? " · 💧 +" + aguaMl + " ml" : ""));
     if (sincronizarRelogio && ehHoje) { sincEm.current = Date.now(); setTimeout(() => sincronizarRelogio(estadoRelogio.current), 120); }
   };
   // O catálogo anota o que foi comparado: cada item vira porções a partir dos
@@ -41889,6 +41906,34 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                 <button onClick={() => adicionar([], 250)} style={{ ...S.btnGhost, padding: "12px 6px", fontWeight: 900, color: "#35E0F0", borderColor: "#35E0F066" }}>💧 +250 ml</button>
                 <button onClick={() => setJanela("agua")} style={{ ...S.btnGhost, padding: "12px 6px", fontWeight: 900, color: "#35E0F0", borderColor: "#35E0F066" }}>💧 Outra água</button>
               </div>
+              {(() => {
+                const atalhos = atalhosReceitas(nutricao.receitas || [], nutricao.dias || {}, hoje, 6);
+                if (!atalhos.length) return null;
+                return (
+                  <div style={{ ...S.card, padding: 12, marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div style={{ ...S.label, margin: 0 }}>🥤 Shakes e vitaminas · 1 toque</div>
+                      <button onClick={() => setJanela("shake")} style={{ background: "none", border: "none", color: "var(--marca)", fontWeight: 800, fontSize: 12, cursor: "pointer", padding: 0, whiteSpace: "nowrap", flex: "none" }}>Montar ›</button>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+                      {atalhos.map((r) => {
+                        const z = somaReceita(r);
+                        return (
+                          <button key={r.id} onClick={() => { const it = itemDeReceita(r, 1); if (it) { adicionar([it], numB(r.agua)); } }}
+                            style={{ ...S.btnGhost, padding: "9px 8px", textAlign: "left", display: "flex", gap: 7, alignItems: "center" }}>
+                            <span style={{ fontSize: 20 }}>{r.ic || "\u{1F964}"}</span>
+                            <span style={{ minWidth: 0 }}>
+                              <span style={{ fontWeight: 800, fontSize: 12, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{r.n}</span>
+                              <span style={{ display: "block", fontSize: 11, color: "var(--cinza)", fontWeight: 700 }}>{fmtKcal(z.k)} kcal · {fmtNum(Math.round(z.p))} g prot.</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--cinza)", marginTop: 7 }}>Entra 1 dose agora, na refeição da hora. Errou? Toque no item da lista do dia para corrigir.</div>
+                  </div>
+                );
+              })()}
               <button onClick={() => setCatalogo({})} style={{ ...S.btnGhost, width: "100%", padding: "11px 6px", fontWeight: 900, fontSize: 13, marginBottom: 12 }}>
                 🔎 Catálogo: comparar alimentos e escolher
               </button>

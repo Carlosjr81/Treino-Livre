@@ -6630,6 +6630,19 @@ tela:
 - Conferido no navegador nos dois temas: início, fichas, histórico, Balance,
   treino, exercícios, ajustes, ajuda e uma confirmação. **Não validado num
   celular.**
+- **O visual futurista** (2026-11-28r, pedido do dono: "futurista, profissional,
+  automatizado e sofisticado"):
+  - **A borda acesa do cartão** mora no `--card-grad`: o fundo em
+    `padding-box` e um degradê da marca em `border-box`, com `S.card`
+    de borda transparente. Cartão que troca o `background` tem de trocar o
+    `borderColor` junto (todos os de hoje trocam), senão fica sem borda.
+  - **A grade de painel** está no `--fundo-app` (linhas de 1 px a cada 46).
+  - **Os cartões entram subindo** (`--anim-card`, `cardEntra`) e **um brilho
+    cruza o botão principal** a cada 5,5 s (`--anim-brilho`, `btnBrilho`, a
+    primeira camada do `backgroundImage` de `S.btn`). As duas são variáveis
+    para o movimento reduzido zerar (`:root { --anim-card: none }`). Botão que
+    troca o fundo com `background:` perde o brilho, de propósito.
+  - **Sem desfoque nos cartões**: em 180 cartões pesaria na rolagem e na bateria.
 
 ## O jeito de falar da academia (`FRASES_MAROMBA`, 2026-11-22c)
 

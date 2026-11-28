@@ -60,12 +60,14 @@
   :root {
     --bg: #07040C; --bg2: #0D0815; --card: #140E1C;
     --borda: #261C30; --borda2: #372A44;
-    --card-grad: linear-gradient(180deg, rgba(255,255,255,.028) 0%, rgba(255,255,255,0) 38%), linear-gradient(165deg, #1B1226 0%, #130D1A 62%, #100A16 100%);
+    --card-grad: linear-gradient(180deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,0) 38%) padding-box, linear-gradient(165deg, rgba(27,18,38,.94) 0%, rgba(19,13,26,.94) 62%, rgba(16,10,22,.95) 100%) padding-box, linear-gradient(150deg, rgba(245,133,41,.45) 0%, rgba(225,48,108,.32) 14%, rgba(255,255,255,.07) 34%, rgba(255,255,255,.04) 68%, rgba(77,235,255,.22) 88%, rgba(129,52,175,.45) 100%) border-box;
     --sombra-card: inset 0 1px 0 rgba(255,255,255,.055), 0 1px 2px rgba(0,0,0,.4), 0 14px 34px -14px rgba(0,0,0,.75);
     --superficie: rgba(255,255,255,.035); --superficie2: rgba(255,255,255,.065);
     --brilho-marca: 0 12px 28px -12px rgba(221,42,123,.75);
     --foco: 0 0 0 1px #E1306C, 0 0 0 4px rgba(225,48,108,.2);
-    --fundo-app: radial-gradient(900px 520px at 105% -8%, rgba(221,42,123,.18), transparent 62%), radial-gradient(760px 480px at -12% 108%, rgba(129,52,175,.20), transparent 62%), #07040C;
+    --fundo-app: radial-gradient(900px 520px at 105% -8%, rgba(221,42,123,.18), transparent 62%), radial-gradient(760px 480px at -12% 108%, rgba(129,52,175,.20), transparent 62%), radial-gradient(600px 300px at 50% 0%, rgba(77,235,255,.05), transparent 70%), linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px) 0 0 / 100% 46px, linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px) 0 0 / 46px 100%, #07040C;
+    --anim-card: cardEntra .5s cubic-bezier(.2,.8,.2,1) both;
+    --anim-brilho: btnBrilho 5.5s ease-in-out infinite;
     --topo: rgba(7,4,12,.86);
     --rotulo: #4DEBFF; --rotulo-brilho: 0 0 10px rgba(77,235,255,.35);
     --sombra-letreiro: drop-shadow(0 3px 0 rgba(0,0,0,.6));
@@ -81,12 +83,12 @@
   [data-tema="claro"] {
     --bg: #FBF8FD; --bg2: #FFFFFF; --card: #FFFFFF;
     --borda: #ECE4F1; --borda2: #D8CCE2;
-    --card-grad: linear-gradient(165deg, #FFFFFF 0%, #FFFFFF 55%, #FBF5FE 100%);
+    --card-grad: linear-gradient(165deg, #FFFFFF 0%, #FFFFFF 55%, #FBF5FE 100%) padding-box, linear-gradient(150deg, rgba(245,133,41,.45) 0%, rgba(194,30,88,.3) 14%, #ECE4F1 34%, #ECE4F1 68%, rgba(10,116,137,.25) 88%, rgba(129,52,175,.4) 100%) border-box;
     --sombra-card: 0 1px 2px rgba(60,20,80,.06), 0 12px 30px -14px rgba(80,24,100,.18);
     --superficie: rgba(70,20,100,.03); --superficie2: rgba(70,20,100,.06);
     --brilho-marca: 0 12px 26px -12px rgba(194,30,88,.55);
     --foco: 0 0 0 1px #C21E58, 0 0 0 4px rgba(194,30,88,.16);
-    --fundo-app: radial-gradient(900px 520px at 105% -8%, rgba(221,42,123,.10), transparent 62%), radial-gradient(760px 480px at -12% 108%, rgba(129,52,175,.10), transparent 62%), #FBF8FD;
+    --fundo-app: radial-gradient(900px 520px at 105% -8%, rgba(221,42,123,.10), transparent 62%), radial-gradient(760px 480px at -12% 108%, rgba(129,52,175,.10), transparent 62%), linear-gradient(rgba(70,20,100,.04) 1px, transparent 1px) 0 0 / 100% 46px, linear-gradient(90deg, rgba(70,20,100,.04) 1px, transparent 1px) 0 0 / 46px 100%, #FBF8FD;
     --topo: rgba(251,248,253,.88);
     --rotulo: #0A7489; --rotulo-brilho: none;
     --sombra-letreiro: drop-shadow(0 2px 0 rgba(60,10,60,.18));
@@ -120,6 +122,9 @@
   button { transition: transform .12s ease, filter .12s ease, background-color .15s ease, border-color .15s ease; }
   button:active:not(:disabled) { transform: scale(.97); filter: brightness(1.08); }
   @media (hover: hover) { button:hover:not(:disabled) { filter: brightness(1.1); } }
+  @keyframes cardEntra { 0% { opacity: 0; transform: translateY(10px) scale(.985); } 100% { opacity: 1; transform: none; } }
+  @keyframes btnBrilho { 0%, 70% { background-position: 160% 0, 0 0; } 100% { background-position: -60% 0, 0 0; } }
+  @media (prefers-reduced-motion: reduce) { :root { --anim-card: none; --anim-brilho: none; } }
   @media (prefers-reduced-motion: reduce) { button:active:not(:disabled) { transform: none; } }
   .medalha-gira { animation: medalhaGira 3.2s ease-in-out infinite; }
   @keyframes medalhaGira { 0%, 60% { transform: rotateY(0); } 80% { transform: rotateY(180deg); } 100% { transform: rotateY(360deg); } }
@@ -2711,7 +2716,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28q";
+const VERSAO_APP = "2026-11-28r";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -8986,9 +8991,9 @@ const S = {
   logo: { fontSize: 27, fontFamily: FONTE_LETREIRO, fontStyle: "italic", fontWeight: 400, letterSpacing: 0.2, display: "inline-block", backgroundImage: GRAD, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
     filter: "var(--sombra-letreiro)", paddingRight: 4 },
   faixa: { height: 3, width: 56, marginTop: 9, background: GRAD, borderRadius: 3, boxShadow: "0 0 12px rgba(221,42,123,.5)" },
-  card: { background: "var(--card-grad)", borderRadius: 20, padding: 18, marginBottom: 14, border: "1px solid var(--borda)", boxShadow: "var(--sombra-card)" },
+  card: { background: "var(--card-grad)", borderRadius: 20, padding: 18, marginBottom: 14, border: "1px solid transparent", boxShadow: "var(--sombra-card)", animation: "var(--anim-card)" },
   label: { fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--rotulo)", fontWeight: 700, textShadow: "var(--rotulo-brilho)" },
-  btn: { background: GRAD, color: "#FFFFFF", border: "none", borderRadius: 16, padding: "14px 18px", fontFamily: FONTE_LETREIRO, fontStyle: "italic", fontWeight: 400, fontSize: 16,
+  btn: { backgroundImage: "linear-gradient(105deg, transparent 38%, rgba(255,255,255,.34) 50%, transparent 62%), " + GRAD, backgroundSize: "250% 100%, 100% 100%", backgroundRepeat: "no-repeat", animation: "var(--anim-brilho)", color: "#FFFFFF", border: "none", borderRadius: 16, padding: "14px 18px", fontFamily: FONTE_LETREIRO, fontStyle: "italic", fontWeight: 400, fontSize: 16,
     letterSpacing: 0.3, width: "100%", cursor: "pointer", textShadow: "0 2px 0 rgba(0,0,0,.3)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.28), 0 3px 0 rgba(90,10,60,.45), var(--brilho-marca)" },
   btnGhost: { background: "var(--superficie)", color: "var(--texto)", border: "1px solid var(--borda2)", borderRadius: 14, padding: "12px 16px", fontWeight: 650, fontSize: 14, letterSpacing: "-0.01em", width: "100%", cursor: "pointer" },
   numero: { fontFamily: FONTE_LETREIRO, fontStyle: "italic", fontWeight: 400, textShadow: "var(--num-sombra)" },

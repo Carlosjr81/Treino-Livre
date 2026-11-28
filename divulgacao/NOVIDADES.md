@@ -16,6 +16,29 @@
 
 ---
 
+## 2026-11-28r — O visual futurista
+
+**Em uma frase:** o app ganhou cara de painel de controle do futuro, com as
+mesmas cores e o mesmo letreiro de sempre.
+
+**O que mudou:** cada cartão virou um painel de vidro com a borda acesa nas
+cores da marca (laranja e rosa num canto, ciano e roxo no outro); o fundo ganhou
+uma grade fina de tela de controle; os cartões entram na tela subindo um a um
+quando você abre uma página; e um brilho cruza o botão principal de tempos em
+tempos, como um sistema que está sempre ligado. Quem pede menos movimento no
+celular vê tudo parado.
+
+**Por que importa para quem treina:** o app passa a sensação de tecnologia de
+ponta trabalhando por você, sem atrapalhar a leitura no meio do treino.
+
+**Como usar:** nada a fazer: o app atualiza sozinho.
+
+**Ideias de vídeo:** abrir o app e mostrar os cartões entrando em sequência;
+close no botão "Começar este treino" com o brilho passando; a borda acesa dos
+cartões no escuro da academia.
+
+**Não prometer:** nada de função nova: é o visual.
+
 ## 2026-11-28q — Um acabamento mais refinado no app inteiro
 
 **Em uma frase:** o Treino Livre ganhou um acabamento mais sofisticado, com as

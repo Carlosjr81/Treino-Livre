@@ -2782,7 +2782,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28u";
+const VERSAO_APP = "2026-11-28v";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -6317,6 +6317,143 @@ function encaixeAlimento(a, falta) {
   return { nota: nota, cabe: isFinite(cabe) ? Math.round(cabe) : 0, limite: limite, cheios: cheios, por100: c };
 }
 
+// ---------------- O PAINEL DOS MACROS ----------------
+// Pedido do dono (2026-11-28v): tocar num macro do "Macros do dia" e ver o que
+// fazer. Faltando: opções que somam aquele macro sem pesar nos outros que já
+// estão cheios. Passou: o que mais pesou no dia, e as trocas que fazem o mesmo
+// prato pesar menos. Tudo sai do catálogo do app e do que foi anotado; nada
+// aqui manda comer (informação geral, como o resto do Balance).
+const NOMES_MACRO = { p: "proteína", c: "carboidrato", g: "gordura" };
+const KCAL_MACRO = { p: 4, c: 4, g: 9 };
+// a parte das calorias do alimento que vem do macro, a partir da qual ele conta como fonte
+const FONTE_MINIMA = { p: 0.3, c: 0.55, g: 0.6 };
+// As fontes de cada macro que vêm primeiro (comida do dia a dia, pouco processada)
+const FONTES_PREFERIDAS = {
+  p: ["frango", "ovo", "clara", "iogurte-grego", "cottage", "peixe", "carne-moida", "alcatra", "whey", "queijo-minas", "lagarto", "iogurte-proteico"],
+  c: ["arroz", "arroz-int", "batata-doce", "batata-cozida", "mandioca", "aveia", "macarrao-integral", "tapioca", "banana", "mandioquinha"],
+  g: ["castanhas", "abacate", "azeite", "amendoim", "pasta-amendoim", "ovo", "queijo-minas"],
+};
+const familiaAlimento = (a) => semAcento(String((a && a.nome) || "").split(/[\s(,]/)[0]);
+const qtdAlimento = (a, gramas) => {
+  if (a.un && a.unG > 0) {
+    const n = Math.max(1, Math.round(gramas / a.unG));
+    return { gramas: n * a.unG, texto: n + " " + plUnidade(a.un, n) + " (" + Math.round(n * a.unG) + (a.liq ? " ml" : " g") + ")" };
+  }
+  const g = gramas < 60 ? Math.max(5, Math.round(gramas / 5) * 5) : Math.round(gramas / 10) * 10;
+  return { gramas: g, texto: g + (a.liq ? " ml" : " g") };
+};
+// O que entra nas opções: comida de verdade. Suplemento só os de proteína
+// completa (whey, caseína, albumina, proteína vegetal); doce, lanche, farinha
+// crua e bebida açucarada ficam de fora (a bebida só vale na proteína: leite).
+function serveDeOpcao(a, m) {
+  if (a.cat === "suplemento") return m === "p" && /whey|case|albumin|proteina vegetal|proteína vegetal/i.test(a.id + " " + a.nome);
+  if (["doce", "lanche", "alcool", "farinha", "prato"].indexOf(a.cat) >= 0) return false;
+  if (a.cat === "bebida") return m === "p";
+  if (m === "c" && a.cat === "verdura") return false;
+  if (m === "p" && a.cat === "gordura" && FONTES_PREFERIDAS.p.indexOf(a.id) < 0) return false;
+  if (m === "g" && a.cat !== "gordura" && FONTES_PREFERIDAS.g.indexOf(a.id) < 0) return false;
+  return true;
+}
+// As fontes do macro que faltam, na quantidade que fecha a falta (até 3 porções)
+function opcoesParaMacro(m, falta, tot, meta, max) {
+  if (!(falta > 0) || !meta || !NOMES_MACRO[m]) return [];
+  const cheio = { p: tot.p >= meta.p * 0.95, c: tot.c >= meta.c * 0.95, g: tot.g >= meta.g * 0.95 };
+  const kcalLivre = Math.max(0, meta.k - tot.k);
+  const parte = (a, x) => (numB(a[x]) * KCAL_MACRO[x]) / Math.max(1, a.k);
+  const l = ALIMENTOS_BR.filter((a) => a.gr > 0 && a.k > 15 && !a.alc && numB(a[m]) > 0 && parte(a, m) >= FONTE_MINIMA[m] && serveDeOpcao(a, m))
+    .map((a) => {
+      // fibra conta a favor no carboidrato; proteína junto conta a favor no carbo e na gordura
+      const extra = (m !== "p" ? Math.min(0.12, (numB(a.f) * 100 / Math.max(1, a.k)) * 0.03) : 0) + (m !== "p" ? Math.min(0.1, parte(a, "p") * 0.4) : 0);
+      const pena = ["p", "c", "g"].filter((x) => x !== m && cheio[x]).reduce((s2, x) => s2 + parte(a, x), 0) - extra - (FONTES_PREFERIDAS[m].indexOf(a.id) >= 0 ? 0.35 : 0);
+      const porG = numB(a[m]) / a.gr;
+      const q = qtdAlimento(a, Math.min(falta / porG, a.gr * 3));
+      const soma = alimentoEm(a, q.gramas);
+      return { a: a, nota: parte(a, m) - pena * 0.8 - (soma.k > kcalLivre && kcalLivre > 0 ? 0.15 : 0), gramas: q.gramas, texto: q.texto,
+        soma: { k: Math.round(soma.k), p: Math.round(soma.p), c: Math.round(soma.c), g: Math.round(soma.g) },
+        cobre: Math.min(100, Math.round((soma[m] / falta) * 100)), passaKcal: kcalLivre > 0 ? soma.k > kcalLivre + 30 : false };
+    })
+    .filter((o) => o.soma[m] >= Math.min(10, falta * 0.3))
+    .sort((x, y) => y.nota - x.nota);
+  const vistas = {}, out = [];
+  for (const o of l) {
+    const fam = familiaAlimento(o.a);
+    if (vistas[fam] || (vistas["cat:" + o.a.cat] || 0) >= (m === "c" ? 2 : o.a.cat === "suplemento" ? 1 : 4)) continue;
+    vistas[fam] = 1; vistas["cat:" + o.a.cat] = (vistas["cat:" + o.a.cat] || 0) + 1; out.push(o);
+    if (out.length >= (max || 6)) break;
+  }
+  return out;
+}
+// O que mais pesou no dia naquele macro
+function quemMaisPesou(m, itens, max) {
+  const l = (itens || []).map((it) => ({ it: it, v: valorItem(it) })).filter((x) => x.v[m] > 0.5);
+  const total = l.reduce((s2, x) => s2 + x.v[m], 0);
+  return l.sort((x, y) => y.v[m] - x.v[m]).slice(0, max || 4)
+    .map((x) => ({ n: x.it.n, g: Math.round(x.v[m]), parte: total > 0 ? Math.round((x.v[m] / total) * 100) : 0, k: x.v.k }));
+}
+// As trocas: o mesmo peso de um parecido (mesma família ou grupo) com menos daquele macro,
+// sem subir as calorias e, fora a proteína, sem perder a proteína do prato.
+function trocasParaMacro(m, itens, max) {
+  const out = [], feitas = {};
+  if (m === "p") return out;   // proteína acima não atrapalha: não há o que trocar por ela
+  (itens || []).map((it) => ({ it: it, v: valorItem(it) })).sort((x, y) => y.v[m] - x.v[m]).forEach(({ it, v }) => {
+    if (out.length >= (max || 3)) return;
+    const a = it.a && ALIMENTOS_BR.find((x) => x.id === it.a);
+    if (!a || v[m] < 4 || feitas[a.id]) return;
+    feitas[a.id] = 1;
+    const gramas = numB(it.gm) > 0 ? numB(it.gm) * Math.max(1, numB(it.vz) || 1) : (numB(it.q) || 1) * a.gr;
+    const fam = familiaAlimento(a);
+    let melhor = null;
+    const composto = / com /i.test(a.nome);
+    ALIMENTOS_BR.forEach((b) => {
+      if (b.id === a.id || !(b.gr > 0) || b.alc || !!b.liq !== !!a.liq) return;
+      const mesmaFam = familiaAlimento(b) === fam;
+      // carbo de prato (arroz, massa, pão, batata): trocar METADE por verdura
+      const metade = !mesmaFam && m === "c" && VERDURAS_TROCA.indexOf(b.id) >= 0 && (a.cat === "carbo" || a.cat === "pao") && !/^(feijao|lentilha|grao|ervilha)/.test(fam);
+      if (!composto && / com /i.test(b.nome)) return;
+      if (!mesmaFam && !metade && (b.cat !== a.cat || ["suplemento", "doce", "lanche", "prato"].indexOf(b.cat) >= 0)) return;
+      const e = metade ? (() => { const x = alimentoEm(a, gramas / 2), y = alimentoEm(b, gramas / 2); return { k: x.k + y.k, p: x.p + y.p, c: x.c + y.c, g: x.g + y.g }; })() : alimentoEm(b, gramas);
+      const menos = v[m] - e[m];
+      if (menos < Math.max(3, v[m] * 0.2)) return;
+      if (e.k > v.k + 5) return;
+      if (m !== "p" && v.p >= 5 && e.p < v.p * 0.75) return;
+      const nota = menos + (v.k - e.k) / 40 + (mesmaFam ? 6 : 0) + (metade ? 30 : 0);
+      if (!melhor || nota > melhor.nota) melhor = { nota: nota, b: b, e: e, menos: Math.round(menos), metade: metade };
+    });
+    if (melhor) out.push({ de: it.n, para: melhor.b.nome, ic: melhor.b.ic, gramas: Math.round(gramas), liq: !!a.liq, metade: melhor.metade,
+      menos: melhor.menos, kcal: Math.round(melhor.e.k - v.k), p: Math.round(melhor.e.p - v.p) });
+  });
+  return out;
+}
+// A troca clássica do carbo do prato: metade por verdura
+const VERDURAS_TROCA = ["abobrinha", "couve-flor", "brocolis", "salada"];
+// O painel inteiro de um macro: o que fazer com o que falta ou com o que passou
+function painelDoMacro(m, tot, meta, objetivo, itens, kcalFrac) {
+  if (!meta || !(meta[m] > 0)) return null;
+  const leitura = lerMacro(m, tot[m], meta[m], objetivo, kcalFrac);
+  const papel = (PAPEL_MACRO[objetivo] || PAPEL_MACRO.manter)[m];
+  const falta = Math.max(0, Math.round(meta[m] - tot[m])), passou = Math.max(0, Math.round(tot[m] - meta[m]));
+  const fontes = quemMaisPesou(m, itens, 4);
+  const nome = NOMES_MACRO[m];
+  if (falta > 0 && tot[m] < meta[m] * 0.97) {
+    const opcional = papel === "sobra";
+    return { tipo: "falta", falta: falta, opcional: opcional, fontes: fontes,
+      titulo: opcional ? "Faltam " + falta + " g de " + nome + ", e no seu objetivo isso é opcional" : "Faltam " + falta + " g de " + nome + " para a meta",
+      texto: opcional ? "O carboidrato é a sobra do cutting: ficar abaixo é o déficit acontecendo. Se quiser usar, estas são as fontes que somam sem passar das outras metas:"
+        : "Opções que somam " + nome + " sem pesar nos macros que já estão cheios. A quantidade é a que fecha o que falta (até 3 porções):",
+      opcoes: opcoesParaMacro(m, falta, tot, meta, 6) };
+  }
+  if (passou > 0 && tot[m] > meta[m] * (m === "p" ? 1.3 : 1.08)) {
+    const semProblema = m === "p" || (leitura && (leitura.id === "ok" || leitura.id === "bonus"));
+    return { tipo: "passou", passou: passou, semProblema: semProblema, fontes: fontes,
+      titulo: "Passou " + passou + " g de " + nome,
+      texto: semProblema
+        ? (m === "p" ? "Proteína acima da meta não traz mais resultado e também não atrapalha. Se a caloria do dia apertou, olhe o carboidrato e a gordura." : "A caloria do dia fechou, então isso não atrapalha. Para a próxima vez, dá para equilibrar assim:")
+        : "O que mais pesou hoje, e as trocas que fazem o mesmo prato pesar menos na próxima vez:",
+      trocas: trocasParaMacro(m, itens, 3),
+      metade: fontes[0] ? { n: fontes[0].n, g: Math.round(fontes[0].g / 2) } : null };
+  }
+  return { tipo: "ok", fontes: fontes, titulo: "Na meta de " + nome, texto: "De onde veio a " + nome + " de hoje:" };
+}
 const DIF_MACRO = 1, DIF_KCAL = 5, DIF_FIBRA = 0.3;
 const ORDENS_CATALOGO = [
   { id: "encaixe", nome: "🎯 Encaixa no que falta hoje", precisaMeta: true },
@@ -39705,12 +39842,15 @@ function CorpoBalance({ id, camadas, cheio, passou, titulo, valor, sub, corBorda
 // A barra de um macro, lida pela régua do objetivo (2026-11-26k). Antes as três
 // barras eram iguais, e "faltam 180 g de carbo" no cutting parecia um erro —
 // é o déficit acontecendo. `leitura` vem do lerMacro e diz o que aquilo é.
-function BarraMacro({ nome, cor, v, meta, un, leitura, aberto }) {
+function BarraMacro({ nome, cor, v, meta, un, leitura, aberto, onToque, ativo }) {
   const f = meta ? Math.min(1.2, v / meta) : 0;
   return (
-    <div style={{ marginBottom: leitura ? 10 : 7 }}>
+    <div onClick={onToque} role={onToque ? "button" : undefined} className={onToque ? "vivo" : undefined}
+      style={{ marginBottom: leitura ? 10 : 7, cursor: onToque ? "pointer" : undefined, padding: onToque ? "6px 8px" : 0, margin: onToque ? "0 -8px " + (leitura ? 6 : 4) + "px" : undefined,
+        borderRadius: 12, background: ativo ? cor + "14" : "transparent", border: onToque ? "1px solid " + (ativo ? cor + "66" : "transparent") : undefined }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, gap: 8 }}>
-        <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 3, background: cor, marginRight: 6 }} />{nome}</span>
+        <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 3, background: cor, marginRight: 6 }} />{nome}
+          {onToque && <span style={{ fontSize: 10.5, color: ativo ? cor : "var(--cinza2)", fontWeight: 800, marginLeft: 6 }}>{ativo ? "▴" : "💡 ▾"}</span>}</span>
         <span style={{ color: leitura ? leitura.cor : (v > meta * 1.1 ? "#FF4D6D" : "var(--cinza)"), textAlign: "right" }}>
           {Math.round(v)} / {meta} {un || "g"}
           {leitura && <span style={{ display: "block", fontSize: 10.5, fontWeight: 800 }}>{leitura.rot}</span>}
@@ -39722,6 +39862,62 @@ function BarraMacro({ nome, cor, v, meta, un, leitura, aberto }) {
         {leitura && leitura.papel === "sobra" && <div style={{ position: "absolute", left: "83%", top: 0, bottom: 0, width: 2, background: "var(--cinza2)" }} />}
       </div>
       {leitura && aberto && <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 4, lineHeight: 1.45 }}>{leitura.frase}</div>}
+    </div>
+  );
+}
+// O painel de um macro (2026-11-28v): o que falta e como chegar, ou o que passou e as trocas
+function PainelMacro({ m, cor, tot, meta, objetivo, itens, kcalFrac, onAnotar }) {
+  const pn = painelDoMacro(m, tot, meta, objetivo, itens, kcalFrac);
+  if (!pn) return null;
+  const linha = { display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 10, background: "var(--superficie)", border: "1px solid var(--borda)", marginBottom: 5 };
+  const corT = pn.tipo === "passou" && !pn.semProblema ? "#FFB21A" : pn.tipo === "ok" ? "var(--ok)" : cor;
+  return (
+    <div style={{ margin: "-2px 0 12px", padding: 10, borderRadius: 14, border: "1px solid " + cor + "55", background: "linear-gradient(160deg," + cor + "12, transparent 70%)" }}>
+      <div style={{ fontWeight: 800, fontSize: 13.5, color: corT }}>{pn.tipo === "falta" ? "💡 " : pn.tipo === "passou" ? "⚠ " : "✓ "}{pn.titulo}</div>
+      <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.45, margin: "4px 0 8px" }}>{pn.texto}</div>
+      {pn.tipo === "falta" && (pn.opcoes.length ? pn.opcoes.map((o) => (
+        <div key={o.a.id} style={linha}>
+          <span style={{ fontSize: 20 }}>{o.a.ic || "🍽"}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.a.nome}</div>
+            <div style={{ fontSize: 11, color: "var(--cinza)" }}>{o.texto} · <b style={{ color: cor }}>+{o.soma[m]} g</b> · {o.soma.k} kcal{o.cobre < 100 ? " · cobre " + o.cobre + "%" : ""}{o.passaKcal ? " · passa das calorias de hoje" : ""}</div>
+          </div>
+          {onAnotar && <button onClick={(e) => { e.stopPropagation(); onAnotar(o.a, o.gramas); }} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 10px", fontSize: 11.5, fontWeight: 800 }}>+ Anotar</button>}
+        </div>
+      )) : <div style={{ fontSize: 12, color: "var(--cinza)" }}>Nenhuma fonte do catálogo cabe sem passar das outras metas hoje.</div>)}
+      {pn.tipo !== "falta" && pn.fontes.length > 0 && (
+        <div style={{ marginBottom: pn.tipo === "passou" ? 8 : 0 }}>
+          {pn.tipo === "passou" && <div style={{ fontSize: 11, fontWeight: 800, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.8, margin: "2px 0 5px" }}>O que mais pesou hoje</div>}
+          {pn.fontes.map((x, i) => (
+            <div key={i} style={{ marginBottom: 5 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, gap: 8 }}>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.n}</span>
+                <b style={{ color: cor, flex: "none" }}>{x.g} g · {x.parte}%</b>
+              </div>
+              <div style={{ height: 4, borderRadius: 3, background: "var(--borda)", marginTop: 2 }}><div style={{ width: x.parte + "%", height: "100%", borderRadius: 3, background: cor }} /></div>
+            </div>
+          ))}
+        </div>
+      )}
+      {pn.tipo === "passou" && pn.metade && !pn.semProblema && (
+        <div style={{ fontSize: 12, color: "var(--texto)", lineHeight: 1.45, margin: "2px 0 8px" }}>✂ Metade de <b>{pn.metade.n}</b> teria tirado <b>{pn.metade.g} g</b> de {NOMES_MACRO[m]}.</div>
+      )}
+      {pn.tipo === "passou" && m !== "p" && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--cinza)", textTransform: "uppercase", letterSpacing: 0.8, margin: "2px 0 5px" }}>🔁 Trocas inteligentes</div>
+          {pn.trocas.length ? pn.trocas.map((x, i) => (
+            <div key={i} style={{ ...linha, alignItems: "flex-start" }}>
+              <span style={{ fontSize: 18 }}>{x.ic || "🔁"}</span>
+              <div style={{ flex: 1, minWidth: 0, fontSize: 12, lineHeight: 1.4 }}>
+                {x.metade ? <span>Metade de <b>{x.de}</b> por <b>{x.para}</b> ({Math.round(x.gramas / 2)} g de cada)</span> : <span><b>{x.de}</b> → <b>{x.para}</b> ({x.gramas} {x.liq ? "ml" : "g"})</span>}
+                <div style={{ fontSize: 11, color: "var(--cinza)" }}>
+                  <b style={{ color: "var(--ok)" }}>−{x.menos} g de {NOMES_MACRO[m]}</b>{x.kcal ? " · " + (x.kcal < 0 ? "−" + (-x.kcal) : "+" + x.kcal) + " kcal" : ""}{m !== "p" && x.p ? " · " + (x.p > 0 ? "+" : "") + x.p + " g de proteína" : ""}
+                </div>
+              </div>
+            </div>
+          )) : <div style={{ fontSize: 12, color: "var(--cinza)" }}>Não achei no catálogo uma versão parecida mais leve do que você anotou hoje. A porção menor é o caminho.</div>}
+        </div>
+      )}
     </div>
   );
 }
@@ -42133,6 +42329,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
   const [diaVer, setDiaVer] = useState(() => diaLocal(Date.now()));
   const [festa, setFesta] = useState(false);
   const [macrosAberto, setMacrosAberto] = useState(false);
+  const [macroPainel, setMacroPainel] = useState(null);
   const [toast, setToast] = useState("");
   const toastT = useRef(null);
   const mostrar = (m) => { setToast(m); clearTimeout(toastT.current); toastT.current = setTimeout(() => setToast(""), 2200); };
@@ -42478,9 +42675,17 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                   {leituraM && (
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: leituraM.cor, marginBottom: 9, lineHeight: 1.45 }}>{leituraM.texto}</div>
                   )}
-                  <BarraMacro nome="Proteína" cor={CORES_BALANCE.p} v={t.p} meta={meta.p} leitura={lerMacro("p", t.p, meta.p, ob.id, kcalFrac)} aberto={macrosAberto} />
-                  <BarraMacro nome="Carboidrato" cor={CORES_BALANCE.c} v={t.c} meta={meta.c} leitura={lerMacro("c", t.c, meta.c, ob.id, kcalFrac)} aberto={macrosAberto} />
-                  <BarraMacro nome="Gordura" cor={CORES_BALANCE.g} v={t.g} meta={meta.g} leitura={lerMacro("g", t.g, meta.g, ob.id, kcalFrac)} aberto={macrosAberto} />
+                  <div style={{ fontSize: 11, color: "var(--cinza2)", marginBottom: 6 }}>💡 Toque num macro para ver como chegar na meta, ou o que trocar se passou.</div>
+                  {[["p", "Proteína"], ["c", "Carboidrato"], ["g", "Gordura"]].map(([m, nome]) => (
+                    <div key={m}>
+                      <BarraMacro nome={nome} cor={CORES_BALANCE[m]} v={t[m]} meta={meta[m]} leitura={lerMacro(m, t[m], meta[m], ob.id, kcalFrac)} aberto={macrosAberto}
+                        ativo={macroPainel === m} onToque={() => setMacroPainel(macroPainel === m ? null : m)} />
+                      {macroPainel === m && (
+                        <PainelMacro m={m} cor={CORES_BALANCE[m]} tot={t} meta={meta} objetivo={ob.id} itens={(atual.dia && atual.dia.itens) || []} kcalFrac={kcalFrac}
+                          onAnotar={ehHoje ? (a, g) => anotarDoCatalogo([{ a: a, g: g }]) : null} />
+                      )}
+                    </div>
+                  ))}
                   <button onClick={() => setMacrosAberto(!macrosAberto)} style={{ ...S.btnGhost, width: "100%", marginTop: 4, padding: "7px 6px", fontSize: 12, fontWeight: 800 }}>
                     {macrosAberto ? "▴ Esconder o porquê de cada macro" : "▾ Por que cada macro conta assim no seu objetivo"}
                   </button>

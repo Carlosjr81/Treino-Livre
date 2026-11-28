@@ -7438,6 +7438,37 @@ escolheu passa por tudo de uma vez". Fiz os dois.
   antigo, a categoria abrindo o Hoje, e o Perfil com a silhueta e o aviso do
   palco. **Não validado num celular.**
 
+### O painel dos macros (`painelDoMacro`, `PainelMacro`, 2026-11-28v)
+
+Pedido do dono, com print do "Macros do dia": "que vire um dashboard: tocar em
+proteína dá insights do que comer para bater a meta; passou, o que deveria ter
+comido, evitado ou trocado. Para todos os parâmetros". Bloco puro **O PAINEL
+DOS MACROS** (antes do `DIF_MACRO`), coberto por `teste-balance.js`.
+
+- **Cada barra é um botão** (`BarraMacro` com `onToque`/`ativo`), e o
+  painel abre logo embaixo dela (`macroPainel`, um aberto por vez).
+- **Faltando** (`opcoesParaMacro`): fontes do catálogo em que o macro é a
+  maior parte das calorias (`FONTE_MINIMA`: proteína 30%, carbo 55%, gordura
+  60%), com pena para quem carrega os macros que já estão cheios, bônus para
+  fibra, proteína junto e as `FONTES_PREFERIDAS` (comida do dia a dia), uma
+  por família de nome, no máximo 2 por grupo no carbo e 1 suplemento. Quantidade
+  que fecha a falta, até 3 porções, em unidade quando o alimento é contado; diz
+  quanto cobre e se passa das calorias de hoje. **Fica de fora**
+  (`serveDeOpcao`): doce, lanche, farinha crua, prato pronto, álcool, bebida
+  (menos na proteína), suplemento que não é proteína completa (BCAA, colágeno,
+  glutamina), verdura como fonte de carbo, e gordura fora do grupo gordura e
+  das preferidas. Carbo abaixo no cutting aparece como opcional (é a sobra).
+- **Passou** (`quemMaisPesou`, `trocasParaMacro`): o que mais pesou (com a
+  parte de cada um), "metade de X teria tirado Y g", e as trocas: o mesmo peso
+  de outro da mesma família ou grupo com menos daquele macro, **sem subir as
+  calorias** e sem tirar a proteína do prato (fora da proteína); no carbo de
+  prato, **metade por verdura** (`VERDURAS_TROCA`). Proteína acima não tem
+  troca: não atrapalha (a mesma leitura do `lerMacro`).
+- "+ Anotar" em cada opção (só hoje), pelo `anotarDoCatalogo`.
+- **Nada manda comer**: o teste procura "coma", "deve", "dieta", "prescri".
+- No navegador: proteína faltando (6 opções), carbo que passou (o que pesou e 3
+  trocas). **Não validado num celular.**
+
 ### Ajustes do Body Balance (2026-11-25k e 25l)
 
 - **Os dois números do balanço dizem contra o quê comparam** (2026-11-25l,

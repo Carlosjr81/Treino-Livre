@@ -8,7 +8,7 @@
 >
 > **O que mudou em cada versão** está em **`divulgacao/NOVIDADES.md`**, atualizado a cada
 > publicação (a mais nova no topo). Leia os dois: este guia é o retrato do app; o NOVIDADES é o
-> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-28u**.
+> que há de novo para mostrar. Este guia está atualizado até a versão **2026-11-28v**.
 
 ---
 
@@ -58,6 +58,7 @@
 - **A semana do ciclo no resumo animado** (novo em 2026-11-23c): com o treino ajustado (ciclo de 5 semanas), o resumo
   mostra "Semana N de 5", a fase e o que ela pede. Na semana de descanso (e na leve antes de trocar de treino), explica que o
   volume menor é do método, para recuperar, e não preguiça. Na tela e no vídeo do story.
+- **O painel dos macros** (novo em 2026-11-28v): no Balance › Hoje, tocar em proteína, carboidrato ou gordura abre o painel daquele macro. Faltando, mostra alimentos do catálogo que somam aquele macro sem pesar nos outros, já na quantidade que fecha a meta, com "+ Anotar". Passou, mostra o que mais pesou no dia, quanto metade do maior teria tirado, e trocas inteligentes (a versão mais leve do mesmo alimento, ou metade do arroz por verdura). Informação geral, não plano alimentar.
 - **Categorias do Balance** (novo em 2026-11-28s): dentro de cada objetivo, a pessoa escolhe a categoria (Modo praia, Corredor de rua, Modo atleta, Modo open no ganho de massa, e as categorias de campeonato: Men's Physique, Classic Physique, Bodybuilding (Open), Biquíni, Wellness, Figure, Women's Physique), cada uma com um corpo em músculos, de frente e de costas, no estilo das pranchas de anatomia (desde 2026-11-28u: cada músculo em feixes, o volume pela categoria, a gordura cobrindo e as veias aparecendo conforme o percentual de gordura, e a régua da gordura). Ela muda o ritmo de partida e os macros. A silhueta não é promessa de resultado, e o app não conduz preparação de campeonato.
 - **Jarvis Body Balance** (novo em 2026-11-25a): a aba **Balance** controla comida, água e o balanço de energia. Dois corpos
   enchem por cor (proteína vermelha, carboidrato amarelo, gordura roxa; água azul) até a meta do dia; passou, o corpo fica

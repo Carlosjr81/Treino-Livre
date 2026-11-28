@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-11-28v — Os macros viraram um painel: o que comer para chegar, e o que trocar se passou
+
+**Em uma frase:** no Balance, tocar em proteína, carboidrato ou gordura abre o
+painel daquele macro, com o caminho para bater a meta.
+
+**O que mudou:** faltando, o painel mostra alimentos do catálogo que somam
+aquele macro sem estourar os outros, já na quantidade que fecha o que falta
+(por exemplo, "Frango grelhado, 3 filés: +96 g de proteína, 477 kcal"), e cada
+um tem "+ Anotar". Passou da meta, ele mostra o que mais pesou no dia (com a
+parte de cada alimento), quanto metade do maior teria tirado, e as trocas
+inteligentes: a versão mais leve do mesmo alimento (frango frito por frango
+grelhado), metade do arroz por couve-flor, banana por morango, com quanto cada
+troca economiza.
+
+**Por que importa para quem treina:** a dieta é escolha. Em vez de só ver a
+barra vermelha, a pessoa vê o que fazer agora e o que fazer diferente amanhã.
+
+**Como usar:** Balance › Hoje › Macros do dia › toque no macro.
+
+**Ideias de vídeo:** tocar na proteína que falta e anotar o frango direto dali;
+um dia que passou do carboidrato e as trocas que apareceram; "a troca que
+economiza 200 kcal sem tirar a proteína".
+
+**Não prometer:** são opções e trocas do catálogo do app, informação geral,
+não plano alimentar. Os valores são médias de tabela.
+
+---
+
 ## 2026-11-28u — O corpo em músculos, de frente e de costas
 
 **Em uma frase:** as silhuetas das categorias do Balance viraram um corpo em

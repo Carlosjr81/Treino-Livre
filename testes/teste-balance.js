@@ -30,8 +30,9 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, plUnidade, abreEmUnidades, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, FONTES_DIA_SEM_TREINO, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, atalhosReceitas, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas, prazoInsulina, acompanhamentoInsulina, PRAZOS_INSULINA, FOTO_IA, pedidoPratoIA, lerRespostaPratoIA, itensDaLeituraIA, jsonDaIA, pedidoComidaEscritaIA, pedidoRotuloIA, lerRespostaRotuloIA, pedidoFichaIA, lerRespostaFichaIA, CATEGORIAS_BALANCE, categoriasDoObjetivo, categoriaDoPerfil, formaDaCategoria, ritmoDaCategoria, bfDaCategoria, corpoPelaGordura };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, FONTES_DIA_SEM_TREINO, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, atalhosReceitas, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas, prazoInsulina, acompanhamentoInsulina, PRAZOS_INSULINA, FOTO_IA, pedidoPratoIA, lerRespostaPratoIA, itensDaLeituraIA, jsonDaIA, pedidoComidaEscritaIA, pedidoRotuloIA, lerRespostaRotuloIA, pedidoFichaIA, lerRespostaFichaIA, CATEGORIAS_BALANCE, categoriasDoObjetivo, categoriaDoPerfil, formaDaCategoria, ritmoDaCategoria, bfDaCategoria, corpoPelaGordura, opcoesParaMacro, quemMaisPesou, trocasParaMacro, painelDoMacro };");
 const B = globalThis.B;
+B.semAcentoT = (t) => semAcento(t);
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -1229,6 +1230,35 @@ console.log("--- as categorias dentro do objetivo (2026-11-28s) ---");
   teste("22%: abdômen e veias somem", true, macio.abd === 0 && macio.veias === 0);
   teste("a mulher na mesma régua, uns 8 pontos acima", B.corpoPelaGordura(10, "m").def, B.corpoPelaGordura(18, "f").def);
   teste("sem nome de campeonato nem promessa nas categorias", false, /olympia|garant|prescri|plano alimentar/i.test(txt));
+}
+
+console.log("--- o painel dos macros (2026-11-28v) ---");
+{
+  const A = (id) => B.ALIMENTOS_BR.find((a) => a.id === id);
+  const item = (id, q) => B.itemDeAlimento(A(id), q || 1);
+  const meta = { k: 2300, p: 235, c: 210, g: 66 };
+  const itens = [item("arroz", 3), item("frango-frito", 2), item("pao", 2), item("banana", 2)];
+  const tot = B.totaisDoDia({ itens: itens });
+  const opc = B.opcoesParaMacro("p", 101, tot, meta, 6);
+  teste("faltando proteína: opções que são fonte de proteína", true, opc.length >= 4 && opc.every((o) => o.a.p * 4 / o.a.k >= 0.3));
+  teste("cada opção soma proteína e diz a quantidade", true, opc.every((o) => o.soma.p > 0 && /\d/.test(o.texto)));
+  teste("no máximo 3 porções", true, opc.every((o) => o.gramas <= o.a.gr * 3 + 1));
+  teste("uma de cada família (não 5 tipos de frango)", true, new Set(opc.map((o) => o.a.nome.split(/[\s(,]/)[0])).size === opc.length);
+  const opG = B.opcoesParaMacro("g", 20, tot, meta, 6);
+  teste("faltando gordura: só fontes de gordura", true, opG.length > 0 && opG.every((o) => o.a.g * 9 / o.a.k >= 0.6));
+  const pesou = B.quemMaisPesou("c", itens, 4);
+  teste("o que mais pesou: ordenado e com a parte do total", true, pesou[0].g >= pesou[1].g && pesou.reduce((x, y) => x + y.parte, 0) <= 101);
+  const tr = B.trocasParaMacro("g", itens, 3);
+  teste("passou gordura: o frango frito vira uma versão mais leve", true, tr.some((x) => /frito/i.test(x.de) && x.menos > 0 && x.kcal <= 0));
+  teste("a troca não tira a proteína do prato", true, tr.every((x) => x.p >= -Math.max(3, 0.25 * 52)));
+  const pn = B.painelDoMacro("p", tot, meta, "perder", itens, 1);
+  teste("o painel da proteína que falta", ["falta", false], [pn.tipo, pn.opcional]);
+  const pc = B.painelDoMacro("c", Object.assign({}, tot, { c: 60 }), meta, "perder", itens, 0.8);
+  teste("carbo abaixo no cutting: opcional", true, pc.tipo === "falta" && pc.opcional);
+  const pp = B.painelDoMacro("c", Object.assign({}, tot, { c: 260 }), meta, "perder", itens, 1.1);
+  teste("carbo passou: trocas e metade do que mais pesou", true, pp.tipo === "passou" && !!pp.metade && Array.isArray(pp.trocas));
+  const txt = JSON.stringify([pn, pc, pp].map((x) => x.titulo + x.texto));
+  teste("nada de mandar comer nem prescrever", [], ["coma ", "deve", "dieta", "prescri", "proibido"].filter((w) => B.semAcentoT(txt).indexOf(w) >= 0));
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

@@ -16,6 +16,36 @@
 
 ---
 
+## 2026-11-28u — O corpo em músculos, de frente e de costas
+
+**Em uma frase:** as silhuetas das categorias do Balance viraram um corpo em
+músculos, como as pranchas de anatomia, de frente e de costas.
+
+**O que mudou:** cada categoria mostra o corpo músculo por músculo, com as
+fibras desenhadas: trapézio, ombro, peitoral, serrátil, abdômen, oblíquos,
+dorsal, bíceps, tríceps, antebraço, glúteos, quadríceps, posteriores da coxa e
+panturrilha, com os tendões claros entre eles. O volume muda com a categoria
+(o Bodybuilding é bem maior que o Corredor de rua), e a gordura muda o resto:
+com pouca, o abdômen e as veias aparecem; com mais, uma camada de pele cobre e
+as separações se apagam. A categoria escolhida aparece de frente e de costas,
+lado a lado, com a régua da gordura embaixo.
+
+**Por que importa para quem treina:** dá para ver de costas também, onde estão
+a dorsal, o glúteo e os posteriores, que são o que separa uma categoria da
+outra.
+
+**Como usar:** aba Balance › Perfil › Sua categoria.
+
+**Ideias de vídeo:** girar entre frente e costas do Bodybuilding; comparar o
+corpo do Modo open com o do Men's Physique; mostrar o abdômen sumindo conforme
+a gordura sobe.
+
+**Não prometer:** é uma ilustração do formato, não o resultado de ninguém, e o
+percentual de gordura é de referência. Nada de preparação de campeonato pelo
+app.
+
+---
+
 ## 2026-11-28t — As silhuetas ficaram realistas
 
 **Em uma frase:** as silhuetas das categorias do Balance agora mostram o corpo

@@ -7417,6 +7417,17 @@ escolheu passa por tudo de uma vez". Fiz os dois.
   com cabelo na mulher), sem rosto, e sempre com `AVISO_SILHUETA`. Na
   categoria escolhida, `FaixaGordura` mostra a faixa numa régua (palco,
   definido, fitness, média). Referência visual, não medida.
+  **Em músculos, de frente e de costas** (2026-11-28u, pedido do dono, com
+  pranchas de anatomia como referência: "ajusta a musculatura, o volume
+  muscular"): cada músculo é um fuso (`fusoMuscular`) ou um contorno, com as
+  fibras na direção dele (`ANGULOS_FIBRA`, `anguloFibra`, um padrão por
+  ângulo), sobre a base clara dos tendões e fáscias; `lado="costas"` desenha
+  trapézio, infraespinhal, dorsal, eretores, glúteos, tríceps, posteriores e
+  gastrocnêmio. A gordura borra os músculos (`feGaussianBlur`), põe uma
+  camada de pele por cima e apaga o abdômen; as veias aparecem com ela baixa.
+  Sunga de pose (e top na mulher). **Desenho próprio**: as pranchas mandadas
+  pelo dono são de livro de anatomia e não entram no app. A categoria
+  escolhida aparece de frente e de costas lado a lado.
 - **Escolher de novo**: `perfil.sub`. A tela (`TelaBodyBalance`) só abre as
   abas com a categoria valendo para o objetivo e o sexo de agora; sem ela volta à
   configuração ("✨ Escolha a sua categoria"). Trocar de objetivo apaga o

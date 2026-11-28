@@ -33,7 +33,7 @@ const fonte = [
 ].join("\n");
 const memoria = {};
 globalThis.localStorage = { getItem: (k) => (k in memoria ? memoria[k] : null), setItem: (k, v) => { memoria[k] = String(v); }, removeItem: (k) => { delete memoria[k]; } };
-eval(fonte + "\nglobalThis.B = { criarBolso, aplicarEventosBolso, snapshotBolso, lerPacoteBolso, linkBolso, marcarIdsBolso, novosEventosBolso, eventosBolsoValidos, canalBolso, canalBolsoValido, cifrarBolso, decifrarBolso, criarRecuperacaoFc, fcDoRelogio };");
+eval(fonte + "\nglobalThis.B = { comecoDoExercicio, falaProximoExercicio, criarBolso, aplicarEventosBolso, snapshotBolso, lerPacoteBolso, linkBolso, marcarIdsBolso, novosEventosBolso, eventosBolsoValidos, canalBolso, canalBolsoValido, cifrarBolso, decifrarBolso, criarRecuperacaoFc, fcDoRelogio };");
 
 let ok = 0, mal = 0;
 function teste(nome, esperado, obtido) {
@@ -76,6 +76,20 @@ teste("vira um acontecimento para voltar ao treino", [{ t: "a", u: "u1", i: 1, p
 contem("no fim do descanso: chama e diz a proxima serie", b.fimDescanso(T0 + 90000), "série 3 de 3 de Supino");
 contem("... com a referencia da anterior", (() => { const b2 = criarBolso(snap(), EXERCICIOS); b2.ouvir(["Jarvis, 80 por 10"], T0); return b2.fimDescanso(T0 + 90000); })(), "Na anterior: 80 quilos por 10");
 teste("fim do descanso so uma vez", "", b.fimDescanso(T0 + 91000));
+
+console.log("--- o proximo exercicio, dito na troca (2026-11-28o) ---");
+b = criarBolso(snap(), EXERCICIOS);
+b.ouvir(["Jarvis, 80 por 10"], T0);
+b.ouvir(["Jarvis, 80 por 10"], T0 + 100000);
+contem("acabou o supino: diz o proximo exercicio", b.fimDescanso(T0 + 200000), "Próximo exercício: Prancha isométrica. 2 séries de 30 segundos.");
+teste("frase da rosca: series, repeticoes e peso", "Próximo exercício: Rosca direta. 1 série de 12 repetições, com 20 quilos.",
+  falaProximoExercicio({ series: [{ peso: "20", reps: "12" }] }, "Rosca direta"));
+teste("plano de volume: diz a primeira carga", "Próximo exercício: Leg press. 3 séries de 12 repetições, começando com 200 quilos. Primeiro o aquecimento.",
+  falaProximoExercicio({ series: [{ peso: "100", reps: "10", aquec: true }, { peso: "200", reps: "12" }, { peso: "200", reps: "12" }, { peso: "180", reps: "12" }, { peso: "150", reps: "12", drop: true }] }, "Leg press"));
+teste("sem carga: so as series e repeticoes", "Próximo exercício: Barra fixa. 3 séries de 8 repetições.",
+  falaProximoExercicio({ series: [{ reps: "8" }, { reps: "8" }, { reps: "8" }] }, "Barra fixa"));
+teste("aerobico: os minutos", "Próximo exercício: Esteira. 30 minutos.", falaProximoExercicio({ cardio: true, series: [{ segundos: "1800" }] }, "Esteira"));
+teste("exercicio ja comecado nao e o comeco", false, comecoDoExercicio({ series: [{ reps: "8", feito: true }, { reps: "8" }] }));
 
 console.log("--- a palavra de ativacao ---");
 b = criarBolso(snap(), EXERCICIOS);

@@ -6306,6 +6306,15 @@ avisos do treino:
 - **Fim do descanso** — "Descanso fechado. Próxima: série 1 de agachamento sumô."
 - O recorde, quando acontece.
 
+**O próximo exercício é dito na troca** (`falaProximoExercicio`,
+`comecoDoExercicio`, no bloco do bolso; 2026-11-28o, pedido do dono): ao
+marcar a última série de um exercício, a confirmação termina com "Próximo
+exercício: X. N séries de R repetições, com P quilos" (só as séries de
+trabalho; carga ou repetições variando, "começando com"; aquecimento por
+fazer, "primeiro o aquecimento"; aeróbico, os minutos), e o fim do descanso
+repete. Vale na página, na frase que vai ao app no ✓ e no motor do bolso.
+Coberto em `teste-bolso.js`.
+
 `textoDuracao` existe para isso: "90 segundos" é como se escreve, "um minuto e
 meio" é como se fala.
 

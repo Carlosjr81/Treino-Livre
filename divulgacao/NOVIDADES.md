@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-11-28o — A voz diz o próximo exercício
+
+**Em uma frase:** acabou um exercício, a voz já diz qual é o próximo, com o
+peso e quantas séries.
+
+**O que mudou:** ao marcar a última série de um exercício, a confirmação
+falada termina com "Próximo exercício: Leg press. 3 séries de 12 repetições,
+com 200 quilos". No fim do descanso, a voz repete. Vale também com o celular
+travado no bolso (app Android). Quando o peso muda de uma série para outra, ela
+diz "começando com"; quando há aquecimento, avisa "primeiro o aquecimento"; no
+aeróbico, diz os minutos.
+
+**Por que importa para quem treina:** dá para ir montando o próximo aparelho
+durante o descanso, sem tirar o celular do bolso para ver a ficha.
+
+**Como usar:** é só treinar com a voz ligada ("Avisar o treino em voz", nos
+ajustes do Jarvis) e marcar as séries.
+
+**Ideias de vídeo:** fone no ouvido, a última série do supino e a voz já
+mandando ir para o leg press com o peso; a pessoa trocando de aparelho sem
+olhar o celular.
+
+**Não prometer:** que o peso dito é o ideal: é o que está na ficha (ou o que o
+app sugeriu pelo histórico).
+
+---
+
 ## 2026-11-28n — Uma gama de sucos no Balance
 
 **Em uma frase:** o Balance ganhou 26 sucos, de melancia a cupuaçu, com e sem açúcar.

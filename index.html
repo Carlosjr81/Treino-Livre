@@ -2688,7 +2688,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28n";
+const VERSAO_APP = "2026-11-28o";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -7559,6 +7559,40 @@ function aplicarEventosBolso(itens, eventos) {
   return out;
 }
 
+// O próximo exercício, dito na troca (2026-11-28o, pedido do dono: "quando
+// terminar o exercício e for para o próximo, fale qual é, o peso e quantas
+// séries"). Vale para a página e para o Jarvis do bolso. Conta só as séries de
+// trabalho (sem aquecimento e sem drop); com cargas diferentes no plano de
+// volume, diz a da primeira.
+function comecoDoExercicio(it) {
+  const trab = ((it && it.series) || []).filter((x) => !x.aquec && !ehDrop(x));
+  return trab.length > 0 && !trab.some((x) => x.feito);
+}
+function falaProximoExercicio(it, nome) {
+  const series = (it && it.series) || [];
+  const trab = series.filter((x) => !x.aquec && !ehDrop(x));
+  const n = trab.length;
+  if (!n) return "";
+  const s = trab[0];
+  let t = "Próximo exercício: " + nome + ". ";
+  if (it.cardio) {
+    const min = Math.round(segundosDe(s) / 60);
+    return t + (min ? min + " minutos." : "Aeróbico.");
+  }
+  t += n + " " + plural(n, "série", "séries");
+  if (ehTempo(s)) t += " de " + segundosDe(s) + " segundos";
+  else {
+    const reps = repsDe(s), peso = parseFloat(s.peso) || 0;
+    const variaPeso = trab.some((x) => (parseFloat(x.peso) || 0) !== peso);
+    const variaReps = trab.some((x) => repsDe(x) !== reps);
+    if (reps) t += (variaReps ? ", começando com " : " de ") + reps + " repetições";
+    if (peso) t += (variaPeso ? (reps && variaReps ? " e " : ", começando com ") : reps ? ", com " : " com ") + fmtNum(peso) + " quilos";
+  }
+  t += ".";
+  if (series.some((x) => x.aquec && !x.feito)) t += " Primeiro o aquecimento.";
+  return t;
+}
+
 // O motor do bolso: frase entra, resposta sai. O relógio vem de fora (agora),
 // como no motor zumbi: o app agenda o fim do descanso no Android, porque com a
 // tela travada o relógio da página dorme.
@@ -7591,6 +7625,7 @@ function criarBolso(snapInicial, catalogo) {
     const a = alvoDaSessao(itens, foco);
     if (!a) return "";
     const it = itens[a.ei], s = it.series[a.si] || {};
+    if (comecoDoExercicio(it) && !s.aquec) return falaProximoExercicio(it, nomeI(a.ei));
     const trab = it.series.filter((x) => !ehDrop(x));
     const n = trab.indexOf(s) + 1;
     let t = (ehDrop(s) ? "Agora o drop de " : "Agora: série " + n + " de " + trab.length + " de ") + nomeI(a.ei) + ".";
@@ -35029,7 +35064,10 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       // Essa é a frase que evita tirar o telefone do bolso entre as séries — e
       // ela não pode depender do microfone estar ligado: falar e ouvir são
       // coisas diferentes, e quem treina de fone quer o retorno de qualquer jeito.
-      let prox = alvo ? " Próxima: série " + (alvo.si + 1) + " de " + nomeDoItem(alvo.ei) + "." : "";
+      const itProx = alvo ? sessao.itens[alvo.ei] : null;
+      let prox = !alvo ? ""
+        : comecoDoExercicio(itProx) ? " " + falaProximoExercicio(Object.assign({ cardio: !!(exPorId(itProx.exercicioId) || {}).cardio }, itProx), nomeDoItem(alvo.ei))
+        : " Próxima: série " + (alvo.si + 1) + " de " + nomeDoItem(alvo.ei) + ".";
       // a última série, ou mais pesada que a de antes, ganha o bordão dela
       if (alvo && vozAnimado) {
         const itA = sessao.itens[alvo.ei], sA = itA && itA.series[alvo.si];
@@ -35396,10 +35434,18 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
     // o número da série não conta os drops ("série 2 de 3", com ou sem drop)
     const ordem = item.series.slice(0, si + 1).filter((x) => !ehDrop(x)).length;
     const deTrabalho = item.series.filter((x) => !ehDrop(x)).length || quantas;
+    let depois = "";
+    if (!acabou && !vaiDrop && !item.series.some((x, j) => j !== si && !x.feito)) {
+      const novosD = sessao.itens.map((it, k) => (k !== ei ? it
+        : Object.assign({}, it, { series: it.series.map((x, j) => (j === si ? Object.assign({}, x, { feito: true }) : x)) })));
+      const pD = alvoDaSessao(novosD, ei);
+      const itD = pD && pD.ei !== ei ? novosD[pD.ei] : null;
+      if (itD && comecoDoExercicio(itD)) depois = " " + falaProximoExercicio(Object.assign({ cardio: !!(exPorId(itD.exercicioId) || {}).cardio }, itD), nomeDoItem(pD.ei));
+    }
     const fraseSerie = (ehDrop(serie) ? "Drop anotado." : "Série " + ordem + " de " + deTrabalho + " anotada.") + relato +
       (acabou ? " Treino completo! Toque em Finalizar treino."
         : vaiDrop ? " Agora o drop" + (proxSerie.peso ? ": " + fmtNum(proxSerie.peso) + " quilos" : "") + ", sem descanso."
-        : seg ? " Descanso de " + textoDuracao(seg) + "." : " Emenda no próximo.");
+        : seg ? " Descanso de " + textoDuracao(seg) + "." : " Emenda no próximo.") + depois;
     // O ✓ na tela também merece a comemoração falada quando o Jarvis está ouvindo
     const recorde = conferirRecorde(item, serie);
     let toque = false;
@@ -35413,7 +35459,9 @@ function TelaSessao({ sessao, setSessao, exPorId, todos, historico, celebrar, de
       const pend = novos.reduce((n, it) => n + it.series.filter((s) => !s.feito).length, 0);
       const fimFala = !pend ? "Todas as séries feitas! Destrave a tela e finalize o treino."
         : animo(ANIMO_VOLTA, "volta") + " Descanso acabou." + (prox && novos[prox.ei] && novos[prox.ei].series[prox.si]
-          ? " Agora: série " + (prox.si + 1) + " de " + nomeDoItem(prox.ei) + "." : "");
+          ? (comecoDoExercicio(novos[prox.ei])
+            ? " " + falaProximoExercicio(Object.assign({ cardio: !!(exPorId(novos[prox.ei].exercicioId) || {}).cardio }, novos[prox.ei]), nomeDoItem(prox.ei))
+            : " Agora: série " + (prox.si + 1) + " de " + nomeDoItem(prox.ei) + ".") : "");
       descansoNoBolso.current = ate;
       ligarBolso(novos, ei, (recorde ? recorde + " " : "") + fraseSerie, fimFala, ate);
       return;

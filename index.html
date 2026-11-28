@@ -2782,7 +2782,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28v";
+const VERSAO_APP = "2026-11-28w";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -6424,10 +6424,99 @@ function trocasParaMacro(m, itens, max) {
   });
   return out;
 }
+// Distribuir o que falta nas refeições que ainda restam (2026-11-28w, pedido
+// do dono: "distribuído no dia que ainda falta, não acumulado nem desordenado").
+// Cada refeição tem a sua hora de referência, o seu peso na divisão e os
+// alimentos que combinam com ela (ninguém janta whey nem toma café com arroz).
+const HORARIOS_REFEICAO = { cafe: 8, almoco: 12.5, lanche: 16, jantar: 20, ceia: 22 };
+const PESO_REFEICAO = {
+  p: { cafe: 1, almoco: 1.2, lanche: 0.8, jantar: 1.2, ceia: 0.8 },
+  c: { cafe: 1, almoco: 1.3, lanche: 0.9, jantar: 1, ceia: 0.4 },
+  g: { cafe: 1, almoco: 1, lanche: 1, jantar: 1, ceia: 0.8 },
+};
+const MINIMO_REFEICAO = { p: 15, c: 20, g: 8 };
+const CARDAPIO_REFEICAO = {
+  cafe: { p: ["ovo", "iogurte-grego", "queijo-minas", "cottage", "iogurte-proteico", "whey", "clara"], c: ["aveia", "pao", "tapioca", "banana", "mamao"], g: ["pasta-amendoim", "ovo", "abacate", "castanhas"] },
+  almoco: { p: ["frango", "peixe", "carne-moida", "alcatra", "lagarto", "ovo"], c: ["arroz", "arroz-int", "batata-doce", "mandioca", "macarrao-integral", "batata-cozida", "feijao"], g: ["azeite", "abacate"] },
+  lanche: { p: ["iogurte-grego", "whey", "iogurte-proteico", "cottage", "ovo", "queijo-minas"], c: ["banana", "tapioca", "aveia", "pao", "maca", "pera"], g: ["castanhas", "amendoim", "pasta-amendoim", "abacate"] },
+  jantar: { p: ["peixe", "frango", "alcatra", "lagarto", "carne-moida", "ovo"], c: ["arroz", "batata-doce", "mandioca", "arroz-int", "batata-cozida", "feijao"], g: ["azeite", "abacate"] },
+  ceia: { p: ["caseina", "cottage", "iogurte-grego", "ovo", "queijo-minas"], c: ["aveia", "banana", "morango"], g: ["castanhas", "pasta-amendoim", "abacate"] },
+};
+const fmtHora = (h) => Math.floor(h) + ":" + String(Math.round((h % 1) * 60)).padStart(2, "0");
+// As refeições que ainda cabem hoje, a partir de agora (horas com fração)
+function refeicoesQueRestam(agoraH, dorme) {
+  let fimDia = numB(dorme) || HORA_SONO_PADRAO;
+  if (fimDia < 12) fimDia = 24;   // quem dorme depois da meia-noite: o dia vai até ela
+  fimDia = Math.min(24, fimDia);
+  const out = [];
+  REFEICOES_BALANCE.forEach((r, i) => {
+    let h = HORARIOS_REFEICAO[r.id];
+    if (r.id === "ceia") h = Math.min(h, fimDia - 1);
+    const ini = i ? REFEICOES_BALANCE[i - 1].ate : 0;
+    if (r.ate <= agoraH || h > fimDia - 0.5) return;            // a refeição já passou, ou é depois de dormir
+    if (r.id === "ceia" && out.some((x) => x.id === "jantar" && h - x.h < 1.5)) return;
+    const agora = agoraH >= ini && agoraH < r.ate;
+    out.push({ id: r.id, nome: r.nome, ic: r.ic, h: agora ? Math.max(h, agoraH) : h, hora: agora ? "agora" : fmtHora(h), agora: agora });
+  });
+  return out;
+}
+function notaOpcao(a, m, tot, meta) {
+  const cheio = { p: tot.p >= meta.p * 0.95, c: tot.c >= meta.c * 0.95, g: tot.g >= meta.g * 0.95 };
+  const parte = (x) => (numB(a[x]) * KCAL_MACRO[x]) / Math.max(1, a.k);
+  const extra = (m !== "p" ? Math.min(0.12, (numB(a.f) * 100 / Math.max(1, a.k)) * 0.03) : 0) + (m !== "p" ? Math.min(0.1, parte("p") * 0.4) : 0);
+  return parte(m) - ["p", "c", "g"].filter((x) => x !== m && cheio[x]).reduce((s2, x) => s2 + parte(x), 0) * 0.8 + extra;
+}
+// O plano do dia: o que falta repartido nas refeições que restam, com 1 ou 2 alimentos em cada
+function planoDoMacroNoDia(m, falta, tot, meta, agoraH, dorme) {
+  if (!(falta > 0) || !meta || !NOMES_MACRO[m]) return null;
+  let refs = refeicoesQueRestam(agoraH, dorme);
+  if (!refs.length) return { refeicoes: [], tarde: true };
+  const peso = (r) => PESO_REFEICAO[m][r.id] || 1;
+  // poucas gramas não se espalham: cada refeição fica com pelo menos o mínimo
+  while (refs.length > 1) {
+    const soma = refs.reduce((x, r) => x + peso(r), 0);
+    if (refs.every((r) => (falta * peso(r)) / soma >= MINIMO_REFEICAO[m])) break;
+    const menor = refs.slice().sort((x, y) => peso(x) - peso(y) || y.h - x.h)[0];
+    refs = refs.filter((r) => r !== menor);
+  }
+  const somaP = refs.reduce((x, r) => x + peso(r), 0);
+  const usados = {};
+  const refeicoes = refs.map((r) => {
+    const alvo = Math.round((falta * peso(r)) / somaP);
+    const cand = (CARDAPIO_REFEICAO[r.id][m] || []).map((id) => ALIMENTOS_BR.find((a) => a.id === id))
+      .filter((a) => a && serveDeOpcao(a, m) && numB(a[m]) > 0)
+      .map((a, i) => ({ a: a, nota: notaOpcao(a, m, tot, meta) - (usados[a.id] ? 0.5 : 0) - i * 0.02 }))
+      .sort((x, y) => y.nota - x.nota);
+    // um alimento que cubra a parte da refeição sozinho vem primeiro; o segundo
+    // só entra para completar uma falta que valha a pena (nada de "+7 g")
+    const porcao = (a2, quanto) => {
+      let q = qtdAlimento(a2, Math.min(quanto / (numB(a2[m]) / a2.gr), a2.gr * 3));
+      // a unidade arredondada para cima não pode passar muito da parte da refeição
+      if (a2.un && a2.unG > 0 && q.gramas > a2.unG && alimentoEm(a2, q.gramas)[m] > quanto * 1.2) q = qtdAlimento(a2, q.gramas - a2.unG);
+      const e = alimentoEm(a2, q.gramas);
+      return { a: a2, gramas: q.gramas, texto: q.texto, soma: { k: Math.round(e.k), p: Math.round(e.p), c: Math.round(e.c), g: Math.round(e.g) } };
+    };
+    const itens = [];
+    if (cand.length) {
+      const prov = cand.map((c) => ({ c: c, o: porcao(c.a, alvo) }));
+      const cobre = prov.filter((x) => x.o.soma[m] >= alvo * 0.7);
+      const prim = (cobre.length ? cobre : prov.sort((x, y) => y.o.soma[m] - x.o.soma[m]))[0];
+      itens.push(prim.o); usados[prim.c.a.id] = 1;
+      const resta = alvo - prim.o.soma[m];
+      if (resta >= Math.max(MINIMO_REFEICAO[m] * 0.6, alvo * 0.3)) {
+        const seg = cand.filter((c) => c.a.id !== prim.c.a.id).map((c) => porcao(c.a, resta)).filter((o) => o.soma[m] >= resta * 0.6)[0];
+        if (seg) { itens.push(seg); usados[seg.a.id] = 1; }
+      }
+    }
+    const soma = itens.reduce((x, i2) => ({ k: x.k + i2.soma.k, v: x.v + i2.soma[m] }), { k: 0, v: 0 });
+    return Object.assign({}, r, { alvo: alvo, itens: itens, soma: soma });
+  });
+  return { refeicoes: refeicoes, tarde: false };
+}
 // A troca clássica do carbo do prato: metade por verdura
 const VERDURAS_TROCA = ["abobrinha", "couve-flor", "brocolis", "salada"];
 // O painel inteiro de um macro: o que fazer com o que falta ou com o que passou
-function painelDoMacro(m, tot, meta, objetivo, itens, kcalFrac) {
+function painelDoMacro(m, tot, meta, objetivo, itens, kcalFrac, agoraH, dorme) {
   if (!meta || !(meta[m] > 0)) return null;
   const leitura = lerMacro(m, tot[m], meta[m], objetivo, kcalFrac);
   const papel = (PAPEL_MACRO[objetivo] || PAPEL_MACRO.manter)[m];
@@ -6440,7 +6529,8 @@ function painelDoMacro(m, tot, meta, objetivo, itens, kcalFrac) {
       titulo: opcional ? "Faltam " + falta + " g de " + nome + ", e no seu objetivo isso é opcional" : "Faltam " + falta + " g de " + nome + " para a meta",
       texto: opcional ? "O carboidrato é a sobra do cutting: ficar abaixo é o déficit acontecendo. Se quiser usar, estas são as fontes que somam sem passar das outras metas:"
         : "Opções que somam " + nome + " sem pesar nos macros que já estão cheios. A quantidade é a que fecha o que falta (até 3 porções):",
-      opcoes: opcoesParaMacro(m, falta, tot, meta, 6) };
+      opcoes: opcoesParaMacro(m, falta, tot, meta, 6),
+      plano: typeof agoraH === "number" ? planoDoMacroNoDia(m, falta, tot, meta, agoraH, dorme) : null };
   }
   if (passou > 0 && tot[m] > meta[m] * (m === "p" ? 1.3 : 1.08)) {
     const semProblema = m === "p" || (leitura && (leitura.id === "ok" || leitura.id === "bonus"));
@@ -39866,16 +39956,52 @@ function BarraMacro({ nome, cor, v, meta, un, leitura, aberto, onToque, ativo })
   );
 }
 // O painel de um macro (2026-11-28v): o que falta e como chegar, ou o que passou e as trocas
-function PainelMacro({ m, cor, tot, meta, objetivo, itens, kcalFrac, onAnotar }) {
-  const pn = painelDoMacro(m, tot, meta, objetivo, itens, kcalFrac);
+function PainelMacro({ m, cor, tot, meta, objetivo, itens, kcalFrac, onAnotar, agoraH, dorme }) {
+  const [maisOpcoes, setMaisOpcoes] = useState(false);
+  const pn = painelDoMacro(m, tot, meta, objetivo, itens, kcalFrac, agoraH, dorme);
   if (!pn) return null;
+  const plano = pn.tipo === "falta" && pn.plano && pn.plano.refeicoes.length ? pn.plano : null;
   const linha = { display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 10, background: "var(--superficie)", border: "1px solid var(--borda)", marginBottom: 5 };
   const corT = pn.tipo === "passou" && !pn.semProblema ? "#FFB21A" : pn.tipo === "ok" ? "var(--ok)" : cor;
   return (
     <div style={{ margin: "-2px 0 12px", padding: 10, borderRadius: 14, border: "1px solid " + cor + "55", background: "linear-gradient(160deg," + cor + "12, transparent 70%)" }}>
       <div style={{ fontWeight: 800, fontSize: 13.5, color: corT }}>{pn.tipo === "falta" ? "💡 " : pn.tipo === "passou" ? "⚠ " : "✓ "}{pn.titulo}</div>
-      <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.45, margin: "4px 0 8px" }}>{pn.texto}</div>
-      {pn.tipo === "falta" && (pn.opcoes.length ? pn.opcoes.map((o) => (
+      <div style={{ fontSize: 12, color: "var(--cinza)", lineHeight: 1.45, margin: "4px 0 8px" }}>{plano
+        ? (pn.opcional ? "Se quiser usar o carboidrato que sobra, assim ele cabe nas refeições que ainda restam hoje:" : "Repartido nas refeições que ainda restam hoje, com o que combina com cada horário:")
+        : pn.texto}</div>
+      {plano && (
+        <div style={{ position: "relative", paddingLeft: 16, marginBottom: 8 }}>
+          <div style={{ position: "absolute", left: 5, top: 6, bottom: 6, width: 2, borderRadius: 2, background: "linear-gradient(" + cor + ", " + cor + "22)" }} />
+          {plano.refeicoes.map((r) => (
+            <div key={r.id} style={{ position: "relative", marginBottom: 8 }}>
+              <div style={{ position: "absolute", left: -15, top: 4, width: 10, height: 10, borderRadius: 5, background: r.agora ? cor : "var(--bg)", border: "2px solid " + cor, boxShadow: r.agora ? "0 0 8px " + cor : "none" }} />
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
+                <span style={{ fontWeight: 800, fontSize: 13 }}>{r.ic} {r.nome}</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: r.agora ? cor : "var(--cinza)" }}>{r.hora === "agora" ? "agora" : "~" + r.hora}</span>
+                <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 800, color: cor }}>~{r.alvo} g</span>
+              </div>
+              {r.itens.map((o) => (
+                <div key={o.a.id} style={{ ...linha, marginBottom: 4, padding: "6px 8px" }}>
+                  <span style={{ fontSize: 18 }}>{o.a.ic || "🍽"}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.a.nome}</div>
+                    <div style={{ fontSize: 11, color: "var(--cinza)" }}>{o.texto} · <b style={{ color: cor }}>+{o.soma[m]} g</b> · {o.soma.k} kcal</div>
+                  </div>
+                  {onAnotar && r.agora && <button onClick={(e) => { e.stopPropagation(); onAnotar(o.a, o.gramas); }} style={{ ...S.btnGhost, width: "auto", flex: "none", padding: "6px 10px", fontSize: 11.5, fontWeight: 800 }}>+ Anotar</button>}
+                </div>
+              ))}
+              {!r.itens.length && <div style={{ fontSize: 11.5, color: "var(--cinza)" }}>Nenhuma fonte do catálogo cabe aqui sem passar das outras metas.</div>}
+            </div>
+          ))}
+          <div style={{ fontSize: 11, color: "var(--cinza)", lineHeight: 1.4 }}>Somando: ~{plano.refeicoes.reduce((x, r) => x + r.soma.v, 0)} g de {NOMES_MACRO[m]} e ~{plano.refeicoes.reduce((x, r) => x + r.soma.k, 0)} kcal até a hora de dormir. O "+ Anotar" aparece na refeição de agora; as outras você anota quando comer.</div>
+        </div>
+      )}
+      {pn.tipo === "falta" && plano && (
+        <button onClick={(e) => { e.stopPropagation(); setMaisOpcoes(!maisOpcoes); }} style={{ ...S.btnGhost, width: "100%", padding: "6px", fontSize: 11.5, fontWeight: 800, marginBottom: maisOpcoes ? 6 : 0 }}>
+          {maisOpcoes ? "▴ Esconder as outras opções" : "▾ Outras opções de " + NOMES_MACRO[m]}
+        </button>
+      )}
+      {pn.tipo === "falta" && (!plano || maisOpcoes) && (pn.opcoes.length ? pn.opcoes.map((o) => (
         <div key={o.a.id} style={linha}>
           <span style={{ fontSize: 20 }}>{o.a.ic || "🍽"}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -42682,6 +42808,7 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
                         ativo={macroPainel === m} onToque={() => setMacroPainel(macroPainel === m ? null : m)} />
                       {macroPainel === m && (
                         <PainelMacro m={m} cor={CORES_BALANCE[m]} tot={t} meta={meta} objetivo={ob.id} itens={(atual.dia && atual.dia.itens) || []} kcalFrac={kcalFrac}
+                          agoraH={ehHoje ? (() => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; })() : null} dorme={perfilG.dorme}
                           onAnotar={ehHoje ? (a, g) => anotarDoCatalogo([{ a: a, g: g }]) : null} />
                       )}
                     </div>

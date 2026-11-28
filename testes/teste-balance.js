@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, plUnidade, abreEmUnidades, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, FONTES_DIA_SEM_TREINO, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, atalhosReceitas, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas, prazoInsulina, acompanhamentoInsulina, PRAZOS_INSULINA, FOTO_IA, pedidoPratoIA, lerRespostaPratoIA, itensDaLeituraIA, jsonDaIA, pedidoComidaEscritaIA, pedidoRotuloIA, lerRespostaRotuloIA, pedidoFichaIA, lerRespostaFichaIA, CATEGORIAS_BALANCE, categoriasDoObjetivo, categoriaDoPerfil, formaDaCategoria, ritmoDaCategoria, bfDaCategoria, corpoPelaGordura, opcoesParaMacro, quemMaisPesou, trocasParaMacro, painelDoMacro };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, FONTES_DIA_SEM_TREINO, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, atalhosReceitas, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas, prazoInsulina, acompanhamentoInsulina, PRAZOS_INSULINA, FOTO_IA, pedidoPratoIA, lerRespostaPratoIA, itensDaLeituraIA, jsonDaIA, pedidoComidaEscritaIA, pedidoRotuloIA, lerRespostaRotuloIA, pedidoFichaIA, lerRespostaFichaIA, CATEGORIAS_BALANCE, categoriasDoObjetivo, categoriaDoPerfil, formaDaCategoria, ritmoDaCategoria, bfDaCategoria, corpoPelaGordura, opcoesParaMacro, quemMaisPesou, trocasParaMacro, painelDoMacro, planoDoMacroNoDia, refeicoesQueRestam };");
 const B = globalThis.B;
 B.semAcentoT = (t) => semAcento(t);
 
@@ -1259,6 +1259,26 @@ console.log("--- o painel dos macros (2026-11-28v) ---");
   teste("carbo passou: trocas e metade do que mais pesou", true, pp.tipo === "passou" && !!pp.metade && Array.isArray(pp.trocas));
   const txt = JSON.stringify([pn, pc, pp].map((x) => x.titulo + x.texto));
   teste("nada de mandar comer nem prescrever", [], ["coma ", "deve", "dieta", "prescri", "proibido"].filter((w) => B.semAcentoT(txt).indexOf(w) >= 0));
+}
+
+console.log("--- o que falta, repartido nas refeições que restam (2026-11-28w) ---");
+{
+  const A = (id) => B.ALIMENTOS_BR.find((a) => a.id === id);
+  const tot = B.totaisDoDia({ itens: [B.itemDeAlimento(A("arroz"), 2), B.itemDeAlimento(A("frango"), 1)] });
+  const meta = { k: 2300, p: 235, c: 210, g: 66 };
+  teste("às 14h: almoço (agora), lanche, jantar e ceia", "almoco,lanche,jantar,ceia", B.refeicoesQueRestam(14, 23).map((r) => r.id).join(","));
+  teste("às 9h30 o café é agora", true, B.refeicoesQueRestam(9.5, 23)[0].agora);
+  teste("dormindo às 21h, sem ceia nem jantar depois da hora", "almoco,lanche,jantar", B.refeicoesQueRestam(11, 21.5).map((r) => r.id).join(","));
+  const pl = B.planoDoMacroNoDia("p", 101, tot, meta, 14, 23);
+  const soma = pl.refeicoes.reduce((x, r) => x + r.alvo, 0);
+  teste("a falta toda repartida (101 g)", true, Math.abs(soma - 101) <= 2);
+  teste("na ordem do dia", true, pl.refeicoes.every((r, i, l) => !i || l[i - 1].h <= r.h));
+  teste("cada refeição com 1 ou 2 alimentos", true, pl.refeicoes.every((r) => r.itens.length >= 1 && r.itens.length <= 2));
+  teste("nada de arroz no café nem whey no jantar", true, !B.planoDoMacroNoDia("c", 200, tot, meta, 7, 23).refeicoes.some((r) => r.id === "cafe" && r.itens.some((i) => i.a.id === "arroz"))
+    && !pl.refeicoes.some((r) => r.id === "jantar" && r.itens.some((i) => i.a.id === "whey")));
+  const pouco = B.planoDoMacroNoDia("p", 20, tot, meta, 10, 23);
+  teste("pouca falta não se espalha: uma refeição só", 1, pouco.refeicoes.length);
+  teste("sem refeição pela frente: o plano diz", true, B.planoDoMacroNoDia("p", 50, tot, meta, 24.2, 23).tarde);
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

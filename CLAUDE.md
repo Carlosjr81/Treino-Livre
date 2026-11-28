@@ -7464,6 +7464,18 @@ DOS MACROS** (antes do `DIF_MACRO`), coberto por `teste-balance.js`.
   calorias** e sem tirar a proteína do prato (fora da proteína); no carbo de
   prato, **metade por verdura** (`VERDURAS_TROCA`). Proteína acima não tem
   troca: não atrapalha (a mesma leitura do `lerMacro`).
+- **Repartido nas refeições que restam** (`planoDoMacroNoDia`,
+  `refeicoesQueRestam`, 2026-11-28w, pedido do dono: "distribuído no dia que
+  ainda falta, não acumulado nem desordenado"). Só hoje (`agoraH`): as
+  refeições cuja janela (`REFEICOES_BALANCE.ate`) ainda não passou, nos
+  horários de `HORARIOS_REFEICAO` (a de agora diz "agora"), a ceia uma hora
+  antes de dormir (e fora se cair a menos de 1h30 do jantar); a falta é
+  dividida pelo `PESO_REFEICAO` (almoço e jantar pesam mais), e pouca falta
+  não se espalha (`MINIMO_REFEICAO`: tira a refeição de menor peso até cada
+  uma ter o mínimo). Os alimentos saem do `CARDAPIO_REFEICAO` (o que combina
+  com cada horário), um que cubra a parte sozinho e um segundo só se faltar
+  algo que valha a pena; a unidade arredondada não passa muito da parte. O
+  "+ Anotar" fica na refeição de agora; a lista solta vira "Outras opções".
 - "+ Anotar" em cada opção (só hoje), pelo `anotarDoCatalogo`.
 - **Nada manda comer**: o teste procura "coma", "deve", "dieta", "prescri".
 - No navegador: proteína faltando (6 opções), carbo que passou (o que pesou e 3

@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-11-28w — O que falta, repartido nas refeições que ainda restam
+
+**Em uma frase:** quando falta proteína, carboidrato ou gordura, o painel
+reparte o que falta nas refeições que ainda restam no dia, cada uma no seu
+horário.
+
+**O que mudou:** em vez de uma lista solta de alimentos, o painel mostra a
+linha do dia a partir de agora: por exemplo, às 16h, "Lanche da tarde (agora):
+~36 g, whey", "Jantar ~20:00: ~54 g, peixe grelhado" e "Ceia ~22:00: ~36 g,
+caseína". Cada refeição recebe a sua parte (almoço e jantar pesam mais, a ceia
+menos), com alimentos que combinam com aquele horário (ovo e iogurte no café,
+frango e arroz no almoço, castanhas no lanche). Pouca falta não se espalha:
+vai numa refeição só. A ceia respeita a hora em que você dorme. As outras
+opções continuam a um toque.
+
+**Por que importa para quem treina:** 100 g de proteína às 21h não cabem numa
+refeição só. Repartido, vira um plano que dá para cumprir.
+
+**Como usar:** Balance › Hoje › Macros do dia › toque no macro que falta.
+
+**Ideias de vídeo:** abrir a proteína às 14h e mostrar o dia se montando até a
+ceia; a mesma falta às 20h, com menos refeições pela frente.
+
+**Não prometer:** são sugestões do catálogo do app, informação geral, não
+plano alimentar.
+
+---
+
 ## 2026-11-28v — Os macros viraram um painel: o que comer para chegar, e o que trocar se passou
 
 **Em uma frase:** no Balance, tocar em proteína, carboidrato ou gordura abre o

@@ -16,6 +16,42 @@
 
 ---
 
+## 2026-11-28s — Categorias dentro do objetivo, com a silhueta de cada uma
+
+**Em uma frase:** no Balance, perder gordura, ganhar massa, recomposição e
+manter o peso ganharam categorias: modo praia, corredor de rua, modo atleta,
+modo open e as categorias de campeonato, cada uma com a silhueta do formato.
+
+**O que mudou:** depois de escolher o objetivo, você escolhe onde quer chegar.
+Estilo de vida: 🏖️ Modo praia (barriga sequinha, sem sofrimento), 🏃 Corredor de
+rua (bem seco e leve, com carboidrato para correr), 🏅 Modo atleta (o mais rígido,
+proteína mais alta) e, no ganho de massa, 🦍 Modo open (o máximo de volume no
+ritmo seguro). Categorias de campeonato: Men's Physique, Classic Physique e
+Bodybuilding (Open) para homens; Biquíni, Wellness, Figure e Women's Physique
+para mulheres. Cada uma mostra uma silhueta desenhada do formato e a faixa de
+gordura de referência, e muda o ritmo de partida, a proteína e a divisão entre
+carboidrato e gordura. Quem já usava o Balance escolhe a categoria na próxima
+vez que abrir; quem chega agora faz tudo de uma vez.
+
+**Por que importa para quem treina:** "perder gordura" é diferente para quem
+quer ficar bem na praia e para quem quer correr leve ou subir num palco. A meta
+do dia passa a seguir o formato que você quer.
+
+**Como usar:** aba Balance › escolha o objetivo › escolha a categoria (e diga
+se é homem ou mulher para ver as de campeonato). Para trocar depois: Balance ›
+Perfil.
+
+**Ideias de vídeo:** passar pelas silhuetas de cada categoria lado a lado; "qual
+é a sua: praia, corredor, atleta ou palco?"; mostrar como a proteína do dia muda
+do modo praia para o modo atleta.
+
+**Não prometer:** a silhueta é uma ilustração do formato, não o resultado de
+ninguém. O app não conduz a preparação de campeonato (semana de pico, corte de
+água, dieta de competição): isso é com nutricionista e médico. Não citar nome de
+campeonato.
+
+---
+
 ## 2026-11-28r — O visual futurista
 
 **Em uma frase:** o app ganhou cara de painel de controle do futuro, com as

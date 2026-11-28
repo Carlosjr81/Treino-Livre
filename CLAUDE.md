@@ -7381,6 +7381,43 @@ mais vocabulário e "os jargões de famosos com a voz deles, ou dublado".
   ele**: se um dia voltar, com o Blaze, um teto de gasto no Google Cloud e um
   limite de edições por pessoa por dia (ou só para quem paga).
 
+### As categorias dentro do objetivo (`CATEGORIAS_BALANCE`, `SilhuetaCategoria`, 2026-11-28s)
+
+Pedido do dono: "cutting, bulking e manutenção estão genéricos demais; criar
+subcategorias (modo praia, modo atleta, corredor de rua bem seco, modo open no
+bulking) ou as categorias do campeonato, homem e mulher, com as silhuetas
+aproximadas de como a pessoa ficaria; quem já escolheu escolhe de novo, quem não
+escolheu passa por tudo de uma vez". Fiz os dois.
+
+- **Os dados** (primeiro script): `CATEGORIAS_BALANCE`, `tipo` estilo
+  (praia, corredor, atleta, open só no ganhar) ou palco (Men's Physique,
+  Classic Physique, Bodybuilding (Open) para homem; Biquíni, Wellness, Figure,
+  Women's Physique para mulher), com `obj`, `ritmo`/`prot`/`gord` por
+  objetivo, a gordura de referência (`bf`) e a `forma` da silhueta sobre
+  `FORMA_BASE`. **Nome genérico da categoria, nunca o nome de um campeonato**
+  (Olympia é marca: o teste procura).
+- **A conta** (`metaDoDia`, `categoriaDoPerfil`): a categoria muda a
+  proteína (teto 2,4 g/kg) e o piso da gordura (nunca abaixo de 20% das kcal;
+  continua o de 0,6 g/kg), e escolher a categoria põe o ritmo de partida dela
+  (`ritmoDaCategoria`, sempre um dos `ritmos` do objetivo, que a pessoa pode
+  mudar). Tudo dentro das faixas que o Balance já usava (Helms 2014, Iraki 2019).
+- **O palco não ganha conta de competição**: `AVISO_PALCO` diz que no dia do
+  campeonato a gordura fica bem mais baixa, que isso é condição de um dia, e que
+  semana de pico, corte de água e dieta de competição são do nutricionista e do
+  médico. **Não acrescente isso ao app.**
+- **A silhueta** (`SilhuetaCategoria`, SVG feito aqui pelos números da forma,
+  com as linhas de definição pelo `d`): neutra, sem roupa nem rosto, sempre
+  com `AVISO_SILHUETA` (ilustração, não promessa de resultado).
+- **Escolher de novo**: `perfil.sub`. A tela (`TelaBodyBalance`) só abre as
+  abas com a categoria valendo para o objetivo e o sexo de agora; sem ela volta à
+  configuração ("✨ Escolha a sua categoria"). Trocar de objetivo apaga o
+  `sub`. As contas fora da tela (`contasDoBalance.completo`: resumo, missões,
+  relógio) não exigem a categoria: os números de quem ainda não escolheu
+  continuam aparecendo no resto do app.
+- Coberto por `teste-balance.js` (485). No navegador: a escolha com um perfil
+  antigo, a categoria abrindo o Hoje, e o Perfil com a silhueta e o aviso do
+  palco. **Não validado num celular.**
+
 ### Ajustes do Body Balance (2026-11-25k e 25l)
 
 - **Os dois números do balanço dizem contra o quê comparam** (2026-11-25l,

@@ -2650,6 +2650,72 @@ const OBJETIVOS_BALANCE = [
   { id: "manter", nome: "Manter o peso", fase: "MANUTENÇÃO", ic: "\u{1F3AF}", ritmo: 0, ritmos: [0], prot: 1.6,
     diz: "Comer o mesmo que gasta. Bom para descansar de uma fase de dieta ou de ganho." },
 ];
+// As categorias dentro de cada objetivo (2026-11-28s, pedido do dono: "cutting,
+// bulking e manutenção estão genéricos demais"). Dois tipos:
+//   estilo: o jeito de viver o objetivo (praia, corredor, atleta, open);
+//   palco:  as categorias dos campeonatos de fisiculturismo, por sexo, com o
+//           nome genérico da categoria (nunca o nome de um campeonato: é marca).
+// Os números ficam DENTRO das faixas que o app já usa (Helms 2014, Iraki 2019):
+// ritmo do cutting de 0,5 a 1% do peso por semana, do bulking de 0,25 a 0,5%,
+// proteína até 2,4 g/kg e gordura nunca abaixo de 20% das kcal nem de 0,6 g/kg.
+// **O palco não ganha conta de competição**: semana de pico, corte de água e
+// "secar para o palco" ficam fora (é a fase com mais risco, e é do
+// nutricionista). A silhueta é ilustração do formato, não promessa de resultado.
+// obj: os objetivos onde aparece; ritmo/prot/gord por objetivo (sem o objetivo,
+// vale o do objetivo); forma: a silhueta (o ombro, o peito, a cintura, o
+// quadril, a largura do braço e da coxa, e d = o quanto aparece a definição).
+const FORMA_BASE = { m: { o: 22, c: 19, w: 14.5, h: 15, a: 7, t: 11, d: 0.3 }, f: { o: 17.5, c: 15.5, w: 12, h: 18, a: 5.5, t: 11, d: 0.2 } };
+const CATEGORIAS_BALANCE = [
+  { id: "praia", tipo: "estilo", nome: "Modo praia", ic: "\u{1F3D6}\uFE0F", sexo: "ambos", obj: ["perder", "ganhar", "recomp", "manter"],
+    diz: "Barriga sequinha, ombro e braço desenhados, sem sofrimento: o corpo de verão que dá para manter o ano todo.",
+    bf: { m: "12 a 15%", f: "20 a 24%" }, ritmo: { perder: 0.5, ganhar: 0.25 },
+    forma: { m: { o: 23, c: 19.5, w: 13.5, a: 7.5, t: 11.5, d: 0.55 }, f: { o: 18, w: 11.5, h: 18.5, t: 11.5, d: 0.4 } } },
+  { id: "corredor", tipo: "estilo", nome: "Corredor de rua", ic: "\u{1F3C3}", sexo: "ambos", obj: ["perder", "ganhar", "recomp", "manter"],
+    diz: "Bem seco e leve para correr: menos peso para carregar a cada passo, com carboidrato sobrando para o treino de corrida.",
+    bf: { m: "8 a 12%", f: "16 a 20%" }, ritmo: { perder: 0.7, ganhar: 0.25 }, prot: { perder: 2.0, ganhar: 1.6, recomp: 2.0, manter: 1.6 }, gord: { perder: 0.2, ganhar: 0.2, recomp: 0.2, manter: 0.2 },
+    forma: { m: { o: 20, c: 17, w: 12.5, h: 13.5, a: 5.8, t: 9.5, d: 0.6 }, f: { o: 16, c: 14.5, w: 11, h: 16, a: 4.8, t: 9.8, d: 0.5 } } },
+  { id: "atleta", tipo: "estilo", nome: "Modo atleta", ic: "\u{1F3C5}", sexo: "ambos", obj: ["perder", "ganhar", "recomp", "manter"],
+    diz: "O mais rígido: proteína mais alta, ritmo mais forte e pouca margem para o dia livre. Para quem já tem a rotina na mão.",
+    bf: { m: "9 a 12%", f: "17 a 21%" }, ritmo: { perder: 1.0, ganhar: 0.35 }, prot: { perder: 2.4, ganhar: 2.0, recomp: 2.4, manter: 2.0 },
+    forma: { m: { o: 24, c: 20.5, w: 13.5, a: 8.2, t: 12.5, d: 0.75 }, f: { o: 18.5, c: 16, w: 11.3, h: 18, a: 6, t: 12, d: 0.6 } } },
+  { id: "open", tipo: "estilo", nome: "Modo open", ic: "\u{1F98D}", sexo: "ambos", obj: ["ganhar"],
+    diz: "Volume máximo: comer bem acima do gasto, no topo do ritmo seguro, para crescer o mais rápido que dá sem virar só gordura.",
+    bf: { m: "15 a 20%", f: "24 a 28%" }, ritmo: { ganhar: 0.5 }, prot: { ganhar: 2.0 },
+    forma: { m: { o: 27, c: 23, w: 17, h: 17, a: 10, t: 14.5, d: 0.25 }, f: { o: 20, c: 17.5, w: 14, h: 20, a: 7, t: 13.5, d: 0.2 } } },
+  // O palco, homem
+  { id: "physique", tipo: "palco", nome: "Men's Physique", ic: "\u{1F3C4}", sexo: "m", obj: ["perder", "ganhar", "recomp", "manter"],
+    diz: "Ombro largo, cintura fina e abdômen marcado, de bermuda: o formato em V, sem perna em destaque.",
+    bf: { m: "8 a 11% fora do palco" }, ritmo: { perder: 0.7, ganhar: 0.25 }, prot: { perder: 2.4, ganhar: 2.0, recomp: 2.4, manter: 2.0 }, gord: { perder: 0.2 },
+    forma: { m: { o: 26, c: 21, w: 12.5, h: 14, a: 8.5, t: 11, d: 0.85 } } },
+  { id: "classic", tipo: "palco", nome: "Classic Physique", ic: "\u{1F3DB}\uFE0F", sexo: "m", obj: ["perder", "ganhar", "recomp", "manter"],
+    diz: "O físico das estátuas: muita massa com proporção, cintura fina e perna forte, com limite de peso pela altura.",
+    bf: { m: "8 a 11% fora do palco" }, ritmo: { perder: 0.7, ganhar: 0.35 }, prot: { perder: 2.4, ganhar: 2.0, recomp: 2.4, manter: 2.0 }, gord: { perder: 0.2 },
+    forma: { m: { o: 26.5, c: 22, w: 13, h: 15, a: 9.2, t: 13.5, d: 0.85 } } },
+  { id: "bodybuilding", tipo: "palco", nome: "Bodybuilding (Open)", ic: "\u{1F981}", sexo: "m", obj: ["perder", "ganhar", "recomp", "manter"],
+    diz: "A categoria sem limite de massa: o máximo de músculo em todo o corpo, com densidade e separação.",
+    bf: { m: "9 a 13% fora do palco" }, ritmo: { perder: 0.7, ganhar: 0.5 }, prot: { perder: 2.4, ganhar: 2.0, recomp: 2.4, manter: 2.0 }, gord: { perder: 0.2 },
+    forma: { m: { o: 29, c: 24.5, w: 15, h: 16.5, a: 11, t: 16, d: 0.9 } } },
+  // O palco, mulher
+  { id: "bikini", tipo: "palco", nome: "Biquíni", ic: "\u{1F459}", sexo: "f", obj: ["perder", "ganhar", "recomp", "manter"],
+    diz: "Corpo atlético e suave: glúteo arredondado, cintura fina e pouca separação muscular.",
+    bf: { f: "16 a 20% fora do palco" }, ritmo: { perder: 0.5, ganhar: 0.25 }, prot: { perder: 2.4, ganhar: 2.0, recomp: 2.4, manter: 2.0 }, gord: { perder: 0.22 },
+    forma: { f: { o: 17.5, c: 15, w: 10.8, h: 18.5, a: 5.3, t: 11.5, d: 0.4 } } },
+  { id: "wellness", tipo: "palco", nome: "Wellness", ic: "\u{1F351}", sexo: "f", obj: ["perder", "ganhar", "recomp", "manter"],
+    diz: "Mais massa na parte de baixo: glúteo e coxa em destaque, com o tronco mais leve.",
+    bf: { f: "17 a 21% fora do palco" }, ritmo: { perder: 0.5, ganhar: 0.35 }, prot: { perder: 2.4, ganhar: 2.0, recomp: 2.4, manter: 2.0 }, gord: { perder: 0.22 },
+    forma: { f: { o: 17.5, c: 15, w: 11.5, h: 21, a: 5.8, t: 14, d: 0.45 } } },
+  { id: "figure", tipo: "palco", nome: "Figure", ic: "\u{1F938}", sexo: "f", obj: ["perder", "ganhar", "recomp", "manter"],
+    diz: "Formato em V: costas largas, ombro redondo e cintura fina, com mais músculo que o biquíni.",
+    bf: { f: "15 a 19% fora do palco" }, ritmo: { perder: 0.7, ganhar: 0.35 }, prot: { perder: 2.4, ganhar: 2.0, recomp: 2.4, manter: 2.0 }, gord: { perder: 0.2 },
+    forma: { f: { o: 20.5, c: 16.5, w: 11, h: 17.5, a: 6.6, t: 12.5, d: 0.65 } } },
+  { id: "womens-physique", tipo: "palco", nome: "Women's Physique", ic: "\u{1F4AA}", sexo: "f", obj: ["perder", "ganhar", "recomp", "manter"],
+    diz: "A mulher com mais massa muscular entre as categorias: separação visível em todo o corpo.",
+    bf: { f: "14 a 18% fora do palco" }, ritmo: { perder: 0.7, ganhar: 0.5 }, prot: { perder: 2.4, ganhar: 2.0, recomp: 2.4, manter: 2.0 }, gord: { perder: 0.2 },
+    forma: { f: { o: 22, c: 18, w: 12.5, h: 18, a: 7.5, t: 13.5, d: 0.8 } } },
+];
+// O que a tela diz de toda categoria de palco (e de toda silhueta)
+const AVISO_PALCO = "Os números da categoria valem para o dia a dia. No dia do campeonato a gordura fica bem mais baixa, e isso é condição de um dia, não de viver: o app não conduz semana de pico, corte de água nem a dieta de competição. Para subir ao palco, o acompanhamento é de nutricionista e médico.";
+const AVISO_SILHUETA = "Silhueta aproximada, para mostrar o formato: cada corpo responde de um jeito, e não é promessa de resultado.";
 // As referências que sustentam as contas (aparecem na tela "De onde vêm os números")
 const FONTES_BALANCE = [
   "Mifflin, St Jeor e colegas (1990, Am J Clin Nutr): a fórmula do gasto em repouso, a mais precisa entre as de uso comum (revisão de Frankenfield, 2005, J Am Diet Assoc).",
@@ -2716,7 +2782,7 @@ const APOIO = {
 // diagnóstico do Jarvis — sem isso não há como saber, olhando um relato, se o
 // defeito ainda existe ou se o conserto só não chegou. Já custou caro uma vez.
 // SOBE A CADA PUBLICAÇÃO, junto com o versao.json e o cache do sw.js.
-const VERSAO_APP = "2026-11-28r";
+const VERSAO_APP = "2026-11-28s";
 // Navegadores embutidos (Instagram, Facebook, WhatsApp etc.) costumam apagar os dados salvos
 // Rodando como app instalado: nao faz sentido oferecer instalacao a quem ja
 // instalou, e e o unico jeito de saber, porque nao existe API de "esta instalado".
@@ -4731,9 +4797,31 @@ function gastoDoDia(o) {
 }
 // A meta do dia pelo objetivo. piso: nunca abaixo do repouso nem de
 // 1.200 (mulher) / 1.500 (homem), as menores que dispensam acompanhamento.
+// As categorias que cabem num objetivo e num sexo (sem sexo: só os estilos)
+function categoriasDoObjetivo(obId, sexo) {
+  return CATEGORIAS_BALANCE.filter((c) => c.obj.indexOf(obId) >= 0 && (c.sexo === "ambos" || c.sexo === sexo));
+}
+// A categoria escolhida, só se ela ainda cabe no objetivo e no sexo de agora
+// (trocou de objetivo ou de sexo: precisa escolher de novo)
+function categoriaDoPerfil(perfil) {
+  if (!perfil || !perfil.objetivo || !perfil.sub) return null;
+  return categoriasDoObjetivo(perfil.objetivo, perfil.sexo).find((c) => c.id === perfil.sub) || null;
+}
+// A silhueta de uma categoria: a forma base do sexo com o que a categoria muda
+function formaDaCategoria(cat, sexo) {
+  const sx = sexo === "f" ? "f" : "m";
+  return Object.assign({}, FORMA_BASE[sx], (cat && cat.forma && (cat.forma[sx] || cat.forma.m || cat.forma.f)) || {});
+}
+// Os números que a categoria escolhe para o objetivo (o ritmo de partida)
+function ritmoDaCategoria(cat, obId) {
+  const ob = OBJETIVOS_BALANCE.find((o) => o.id === obId) || OBJETIVOS_BALANCE[0];
+  const r = cat && cat.ritmo && typeof cat.ritmo[obId] === "number" ? cat.ritmo[obId] : ob.ritmo;
+  return ob.ritmos.indexOf(r) >= 0 ? r : ob.ritmo;
+}
 function metaDoDia(perfil, gasto, kg, treinoMin) {
   const ob = OBJETIVOS_BALANCE.find((o) => o.id === (perfil && perfil.objetivo)) || OBJETIVOS_BALANCE[0];
   if (!gasto || !kg) return null;
+  const cat = categoriaDoPerfil(perfil);
   const ritmo = perfil && typeof perfil.ritmo === "number" ? perfil.ritmo : ob.ritmo;
   const porDia = (kg * ritmo / 100 * KCAL_POR_KG) / 7;
   let delta = 0;
@@ -4744,11 +4832,14 @@ function metaDoDia(perfil, gasto, kg, treinoMin) {
   let k = Math.round(gasto + delta);
   const noPiso = k < piso;
   if (noPiso) k = piso;
-  const p = Math.round(kg * ob.prot);
-  const g = Math.round(Math.max(0.6 * kg, (0.25 * k) / 9));
+  // a categoria muda a proteína (até 2,4) e o piso da gordura (nunca abaixo de 20%)
+  const prot = cat && cat.prot && typeof cat.prot[ob.id] === "number" ? Math.min(2.4, cat.prot[ob.id]) : ob.prot;
+  const gpct = cat && cat.gord && typeof cat.gord[ob.id] === "number" ? Math.max(0.2, cat.gord[ob.id]) : 0.25;
+  const p = Math.round(kg * prot);
+  const g = Math.round(Math.max(0.6 * kg, (gpct * k) / 9));
   const c = Math.max(0, Math.round((k - p * 4 - g * 9) / 4));
   const agua = Math.round((35 * kg + (numB(treinoMin) / 60) * 500) / 50) * 50;
-  return { k: k, p: p, c: c, g: g, agua: agua, delta: Math.round(k - gasto), noPiso: noPiso, objetivo: ob.id };
+  return { k: k, p: p, c: c, g: g, agua: agua, delta: Math.round(k - gasto), noPiso: noPiso, objetivo: ob.id, sub: cat ? cat.id : null };
 }
 // ---------------- O ESPAÇO QUE O TREINO ABRE ----------------
 // Pedido do dono (2026-11-26l): "muitas pessoas gostam de comer; se elas
@@ -41674,6 +41765,114 @@ function CartaoDiaSemTreino({ x, ehHoje, onDeclarar, onResumo, onJuntar }) {
   );
 }
 
+// A silhueta da categoria (2026-11-28s): o corpo de frente, desenhado pelos
+// números da forma (ombro, peito, cintura, quadril, braço e coxa) e as linhas
+// da definição tanto mais visíveis quanto maior o d. Neutra de propósito: sem
+// roupa, sem rosto, só o formato.
+function SilhuetaCategoria({ forma, cor, altura }) {
+  const f = forma || FORMA_BASE.m;
+  const c = cor || "#E1306C";
+  const id = useMemo(() => "sil" + Math.random().toString(36).slice(2, 8), []);
+  const x = (d) => 50 + d, y0 = 36;
+  const meio = (a, b) => (a + b) / 2;
+  const torso = "M " + x(-5) + " 30 L " + x(5) + " 30 " +
+    "Q " + x(f.o * 0.6) + " " + (y0 - 1) + " " + x(f.o) + " " + (y0 + 4) +
+    " Q " + x(f.c + 1) + " 52 " + x(f.c) + " 60" +
+    " Q " + x(meio(f.c, f.w)) + " 78 " + x(f.w) + " 92" +
+    " Q " + x(f.w + 0.5) + " 102 " + x(f.h) + " 112" +
+    " L " + x(f.h - 1) + " 124 L " + x(-f.h + 1) + " 124 L " + x(-f.h) + " 112" +
+    " Q " + x(-f.w - 0.5) + " 102 " + x(-f.w) + " 92" +
+    " Q " + x(-meio(f.c, f.w)) + " 78 " + x(-f.c) + " 60" +
+    " Q " + x(-f.c - 1) + " 52 " + x(-f.o) + " " + (y0 + 4) +
+    " Q " + x(-f.o * 0.6) + " " + (y0 - 1) + " " + x(-5) + " 30 Z";
+  const pernaX = Math.max(5, f.h - f.t / 2 - 0.5);
+  const braco = (lado) => {
+    const ox = x(lado * (f.o - f.a * 0.25)), cx = x(lado * (f.o + f.a * 0.15)), mx = x(lado * (f.w + f.a * 0.9 + 2));
+    return { sup: "M " + ox + " " + (y0 + 5) + " L " + cx + " 70", inf: "M " + cx + " 70 L " + mx + " 100" };
+  };
+  const bd = braco(1), be = braco(-1);
+  const d = Math.max(0, Math.min(1, f.d || 0));
+  const linha = { stroke: "rgba(0,0,0," + (0.18 + 0.5 * d).toFixed(2) + ")", strokeWidth: 0.9, fill: "none", strokeLinecap: "round" };
+  return (
+    <svg viewBox="0 0 100 200" style={{ height: altura || 150, width: "auto", display: "block", overflow: "visible" }} aria-hidden="true">
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={c} stopOpacity="0.95" /><stop offset="1" stopColor="#8134AF" stopOpacity="0.85" />
+        </linearGradient>
+        <filter id={id + "b"} x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" /></filter>
+      </defs>
+      <ellipse cx="50" cy="196" rx="26" ry="3" fill={c} opacity="0.25" filter={"url(#" + id + "b)"} />
+      <g fill={"url(#" + id + ")"} stroke={"url(#" + id + ")"} strokeLinecap="round">
+        <circle cx="50" cy="17" r="10" stroke="none" />
+        <rect x="45.5" y="24" width="9" height="9" rx="3" stroke="none" />
+        <path d={torso} stroke="none" />
+        <path d={bd.sup} fill="none" strokeWidth={f.a} /><path d={be.sup} fill="none" strokeWidth={f.a} />
+        <path d={bd.inf} fill="none" strokeWidth={f.a * 0.78} /><path d={be.inf} fill="none" strokeWidth={f.a * 0.78} />
+        <path d={"M " + x(pernaX) + " 120 L " + x(pernaX - 0.5) + " 158"} fill="none" strokeWidth={f.t} />
+        <path d={"M " + x(-pernaX) + " 120 L " + x(-pernaX + 0.5) + " 158"} fill="none" strokeWidth={f.t} />
+        <path d={"M " + x(pernaX - 0.5) + " 158 L " + x(pernaX - 1) + " 192"} fill="none" strokeWidth={f.t * 0.62} />
+        <path d={"M " + x(-pernaX + 0.5) + " 158 L " + x(-pernaX + 1) + " 192"} fill="none" strokeWidth={f.t * 0.62} />
+      </g>
+      {d > 0.15 && <g style={linha}>
+        <path d={"M " + x(-f.c + 3) + " 55 Q 50 " + (60 + 2 * d) + " " + x(f.c - 3) + " 55"} />
+        <path d="M 50 50 L 50 108" />
+        {d > 0.4 && [70, 80, 90].map((yy) => <path key={yy} d={"M " + x(-f.w + 4) + " " + yy + " L " + x(f.w - 4) + " " + yy} />)}
+        {d > 0.6 && <path d={"M " + x(-f.w + 1) + " 98 Q " + x(-3) + " 112 50 118 Q " + x(3) + " 112 " + x(f.w - 1) + " 98"} />}
+      </g>}
+      <ellipse cx="44" cy="40" rx="10" ry="4" fill="#fff" opacity="0.18" />
+    </svg>
+  );
+}
+// A escolha da categoria: os estilos primeiro, depois o palco do sexo escolhido
+function EscolhaCategoria({ perfil, mudarPerfil }) {
+  const ob = OBJETIVOS_BALANCE.find((o) => o.id === perfil.objetivo);
+  if (!ob) return null;
+  const lista = categoriasDoObjetivo(ob.id, perfil.sexo);
+  const escolhida = categoriaDoPerfil(perfil);
+  const sx = perfil.sexo === "f" ? "f" : "m";
+  const bloco = (tipo, titulo) => {
+    const l = lista.filter((c) => c.tipo === tipo);
+    if (!l.length) return null;
+    return (
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 11.5, color: "var(--cinza)", fontWeight: 700, margin: "4px 0 8px" }}>{titulo}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {l.map((c) => {
+            const on = escolhida && escolhida.id === c.id;
+            return (
+              <button key={c.id} onClick={() => mudarPerfil({ sub: c.id, ritmo: ritmoDaCategoria(c, ob.id) })} style={{ textAlign: "left", padding: "10px 10px 12px", borderRadius: 14, cursor: "pointer",
+                border: "1px solid " + (on ? "#E1306C" : "var(--borda2)"), background: on ? "#E1306C18" : "var(--superficie)", color: "var(--texto)", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                <SilhuetaCategoria forma={formaDaCategoria(c, sx)} cor={on ? "#E1306C" : c.tipo === "palco" ? "#F58529" : "#4DEBFF"} altura={110} />
+                <div style={{ fontWeight: 800, fontSize: 13.5, textAlign: "center" }}>{c.ic} {c.nome}</div>
+                <div style={{ fontSize: 10.5, color: "#4DEBFF", fontWeight: 700, letterSpacing: 0.5, textAlign: "center" }}>{(c.bf && (c.bf[sx] || c.bf.m || c.bf.f)) ? "gordura ~" + (c.bf[sx] || c.bf.m || c.bf.f) : ""}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ ...S.label, marginBottom: 4 }}>Sua categoria em {ob.fase}</div>
+      {!escolhida && <div style={{ fontSize: 12.5, color: "#FFD23F", fontWeight: 700, marginBottom: 6 }}>✨ Novo: escolha onde você quer chegar dentro de {ob.nome.toLowerCase()}.</div>}
+      {bloco("estilo", "Estilo de vida")}
+      {perfil.sexo ? bloco("palco", "Categorias de campeonato (" + (sx === "f" ? "feminino" : "masculino") + ")")
+        : <div style={{ fontSize: 12, color: "var(--cinza)", marginBottom: 10 }}>Diga se é homem ou mulher (logo abaixo) para ver as categorias de campeonato.</div>}
+      {escolhida && (
+        <div style={{ display: "flex", gap: 12, alignItems: "center", padding: 12, borderRadius: 14, border: "1px solid #E1306C55", background: "#E1306C0F" }}>
+          <SilhuetaCategoria forma={formaDaCategoria(escolhida, sx)} altura={130} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>{escolhida.ic} {escolhida.nome}</div>
+            <div style={{ fontSize: 12.5, color: "var(--cinza)", marginTop: 4, lineHeight: 1.45 }}>{escolhida.diz}</div>
+            <div style={{ fontSize: 11.5, color: "var(--cinza)", marginTop: 6, lineHeight: 1.4 }}>{AVISO_SILHUETA}</div>
+          </div>
+        </div>
+      )}
+      {escolhida && escolhida.tipo === "palco" && <div style={{ fontSize: 11.5, color: "#FFB21A", marginTop: 8, lineHeight: 1.45 }}>⚠ {AVISO_PALCO}</div>}
+    </div>
+  );
+}
 function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pesoCorporal, medidas, corredor, sessao, avisar, pedirConfirmacao, onPercurso, onEsteira, sincronizarRelogio, onResumoDia, onJuntar }) {
   const [secao, setSecao] = useState("hoje");
   const [janela, setJanela] = useState(null);
@@ -41706,7 +41905,11 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
   const prepOk = preparoLiberado();
   const cb = useMemo(() => contasDoBalance({ nutricao: nutricao, historico: historico, exPorId: exPorId, saude: saude, pesoCorporal: pesoCorporal, medidas: medidas, corredor: corredor, preparo: prepOk, sessao: sessao }),
     [nutricao, historico, saude, pesoCorporal, medidas, corredor, hojeTela, prepOk, sessao]); // eslint-disable-line
-  const { perfil, kg, idade, tmb, completo, ob, hoje, mediaAtivas, pesos, calcDia, ultimos, corpo, comMeta, dias } = cb;
+  const { perfil, kg, idade, tmb, completo: completoConta, ob, hoje, mediaAtivas, pesos, calcDia, ultimos, corpo, comMeta, dias } = cb;
+  // Desde 2026-11-28s, sem a categoria a tela volta para a configuração: quem
+  // já tinha objetivo escolhe a categoria, e quem chega passa por tudo de uma vez.
+  const categoria = categoriaDoPerfil(perfil);
+  const completo = completoConta && !!categoria;
   const perfilG = nutricao.perfil || {};
   const atual = dias.find((x) => x.d === diaVer) || comMeta(calcDia(diaVer));
   const ehHoje = diaVer === hoje;
@@ -41838,13 +42041,14 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
       <div style={{ ...S.label, marginBottom: 8 }}>Seu objetivo</div>
       <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
         {OBJETIVOS_BALANCE.map((o) => (
-          <button key={o.id} onClick={() => mudarPerfil({ objetivo: o.id, ritmo: o.ritmo })} style={{ textAlign: "left", padding: "12px 14px", borderRadius: 14, cursor: "pointer",
+          <button key={o.id} onClick={() => mudarPerfil(perfil.objetivo === o.id ? { objetivo: o.id } : { objetivo: o.id, ritmo: o.ritmo, sub: null })} style={{ textAlign: "left", padding: "12px 14px", borderRadius: 14, cursor: "pointer",
             border: "1px solid " + (perfil.objetivo === o.id ? "#E1306C" : "var(--borda2)"), background: perfil.objetivo === o.id ? "#E1306C18" : "transparent", color: "var(--texto)" }}>
             <div style={{ fontWeight: 800, fontSize: 15 }}>{o.ic} {o.nome} <span style={{ fontSize: 10.5, color: "#4DEBFF", letterSpacing: 1 }}>{o.fase}</span></div>
             <div style={{ fontSize: 12, color: "var(--cinza)", marginTop: 3, lineHeight: 1.4 }}>{o.diz}</div>
           </button>
         ))}
       </div>
+      {perfil.objetivo && <EscolhaCategoria perfil={perfil} mudarPerfil={mudarPerfil} />}
       {ob.ritmos.length > 1 && perfil.objetivo && (
         <div style={{ marginBottom: 14 }}>
           <div style={{ ...S.label, marginBottom: 6 }}>Ritmo ({ob.id === "perder" ? "perder" : "ganhar"} por semana)</div>
@@ -41880,14 +42084,16 @@ function TelaBodyBalance({ nutricao, setNutricao, historico, exPorId, saude, pes
         <div style={{ ...ROTULO_RESUMO, fontSize: 10.5 }}>Jarvis</div>
         <Contorno estilo={{ ...NUMERO_RESUMO, fontSize: 28, lineHeight: 1.08, padding: "0 6px" }} grosso={6}>Body Balance</Contorno>
         <div style={{ fontSize: 12, color: "#B9B2C2", marginTop: 3, lineHeight: 1.4 }}>Comida, água, treino, relógio e sono na mesma conta</div>
-        {completo && <div style={{ marginTop: 8, display: "inline-block", padding: "5px 12px", borderRadius: 20, background: "#E1306C22", border: "1px solid #E1306C66", fontWeight: 800, fontSize: 12 }}>{ob.ic} {ob.nome} · {ob.fase}</div>}
+        {completo && <div style={{ marginTop: 8, display: "inline-block", padding: "5px 12px", borderRadius: 20, background: "#E1306C22", border: "1px solid #E1306C66", fontWeight: 800, fontSize: 12 }}>{ob.ic} {ob.nome} · {ob.fase} · {categoria.ic} {categoria.nome}</div>}
       </div>
 
       {!completo && (
         <div>
           <div style={{ ...S.card, borderColor: "#4DEBFF66" }}>
-            <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>⚡ Configure em 30 segundos</div>
-            <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.5 }}>Diga o objetivo, a idade, a altura e o peso. Com isso o app calcula o seu gasto (e usa o relógio quando houver) e a meta de cada dia.</div>
+            <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{completoConta ? "✨ Escolha a sua categoria" : "⚡ Configure em 30 segundos"}</div>
+            <div style={{ fontSize: 13, color: "var(--cinza)", lineHeight: 1.5 }}>{completoConta
+              ? "O Balance ganhou categorias dentro de cada objetivo: modo praia, corredor de rua, modo atleta, modo open e as categorias de campeonato. Escolha a sua para a meta seguir o formato que você quer."
+              : "Diga o objetivo, a categoria, a idade, a altura e o peso. Com isso o app calcula o seu gasto (e usa o relógio quando houver) e a meta de cada dia."}</div>
           </div>
           {perfilForm}
           <AvisoSaude />

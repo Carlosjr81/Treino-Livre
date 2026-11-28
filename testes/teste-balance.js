@@ -30,7 +30,7 @@ eval(pedaco("// ---------------- JARVIS BODY BALANCE: OS DADOS", "</script>") +
   pedaco("const GPS_ESPERA_MS", "function TelaPercurso(") +
   "\nglobalThis.B = { ALIMENTOS_BR, RAPIDOS_RELOGIO, OBJETIVOS_BALANCE, FONTES_BALANCE, tmbMifflin, valorItem, totaisDoDia, kcalMacros, kcalTreinosDoDia, gastoDoDia, metaDoDia, statusDoDia," +
   " minutosParaGastar, compensacaoDeHoje, planoCompensacao, tendenciaPeso, gastoPeloCorpo, faseReal, sonoDoDia, conselhoSono, resumoDias, itensDoPrato, itemDeAlimento, quantidadeComida, itemEditado, plUnidade, abreEmUnidades, contasDoBalance, resumoBalanceDia, SUBSTANCIAS_PREPARO, prontidaoCorpo," +
-  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, FONTES_DIA_SEM_TREINO, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, atalhosReceitas, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas, prazoInsulina, acompanhamentoInsulina, PRAZOS_INSULINA, FOTO_IA, pedidoPratoIA, lerRespostaPratoIA, itensDaLeituraIA, jsonDaIA, pedidoComidaEscritaIA, pedidoRotuloIA, lerRespostaRotuloIA, pedidoFichaIA, lerRespostaFichaIA };");
+  " lerPacoteComida, aplicarComidaDoRelogio, vigiarGps, textoErroGps, RECEITAS_SUGERIDAS, FONTES_DIA_SEM_TREINO, lerReceitas, somaReceita, textoReceita, itemDeReceita, receitasDisponiveis, atalhosReceitas, porCemAlimento, alimentoEm, buscarAlimentos, faltaDoDia, encaixeAlimento, ORDENS_CATALOGO, ordenarCatalogo, compararAlimentos, sobraDepois, distanciaDaMeta, vereditoComparacao, GRUPOS_ALIMENTO, lerMacro, leituraMacros, PAPEL_MACRO, MISSOES_BALANCE, XP_DIA_BALANCE, espacoDoTreino, comidaNoEspaco, ESPACO_MINIMO, JANELAS_NUTRIENTE, MITOS_TIMING, FORCA_JANELA, horaDoTreino, itensComHora, faixaDaJanela, acertoDaJanela, janelasDoDia, HORA_SONO_PADRAO, avisosDoDia, avisoDeAgora, hhmmDoDia, missoesDoDia, xpDoDia, NIVEIS_BALANCE, nivelBalance, pontosBalance, sequenciaBalance, maiorSeqMissao, CONQUISTAS_BALANCE, conquistasBalance, treinoPlanejado, tipoReceita, TIPOS_RECEITA, avisosAdiante, leituraAgua, FAIXAS_AGUA, avisosInsulina, insulinaAdiante, juntarAdiante, insulinasAtivas, prazoInsulina, acompanhamentoInsulina, PRAZOS_INSULINA, FOTO_IA, pedidoPratoIA, lerRespostaPratoIA, itensDaLeituraIA, jsonDaIA, pedidoComidaEscritaIA, pedidoRotuloIA, lerRespostaRotuloIA, pedidoFichaIA, lerRespostaFichaIA, CATEGORIAS_BALANCE, categoriasDoObjetivo, categoriaDoPerfil, formaDaCategoria, ritmoDaCategoria };");
 const B = globalThis.B;
 
 let ok = 0, mal = 0;
@@ -1194,6 +1194,34 @@ console.log("\n--- o dia sem treino (2026-11-27r) ---");
   teste("treinou num dia declarado: a declaração sai sozinha", true, /treinados.forEach\(\(d\) => \{ if \(dd\[d\]\) dd\[d\] = Object.assign\(\{\}, dd\[d\], \{ semTreino: undefined \}\)/.test(app));
   const txt = JSON.stringify(ruim) + JSON.stringify(bom);
   teste("nada de prescrição nem bronca", [], ["prescri", "voce deve", "vergonha", "preguic"].filter((p) => semAcento(txt).indexOf(p) >= 0));
+}
+
+console.log("--- as categorias dentro do objetivo (2026-11-28s) ---");
+{
+  const est = (o, sx) => B.categoriasDoObjetivo(o, sx).map((c) => c.id).join(",");
+  teste("cutting, homem: estilos e palco masculino", "praia,corredor,atleta,physique,classic,bodybuilding", est("perder", "m"));
+  teste("cutting, mulher: estilos e palco feminino", "praia,corredor,atleta,bikini,wellness,figure,womens-physique", est("perder", "f"));
+  teste("bulking tem o modo open", true, est("ganhar", "m").indexOf("open") >= 0);
+  teste("sem sexo: só os estilos", "praia,corredor,atleta", est("manter", undefined));
+  teste("sem categoria escolhida: nenhuma", null, B.categoriaDoPerfil({ objetivo: "perder", sexo: "m" }));
+  teste("categoria de outro sexo não vale (escolhe de novo)", null, B.categoriaDoPerfil({ objetivo: "perder", sexo: "f", sub: "physique" }));
+  teste("modo open fora do bulking não vale", null, B.categoriaDoPerfil({ objetivo: "perder", sexo: "m", sub: "open" }));
+  const seguro = B.CATEGORIAS_BALANCE.every((c) => Object.keys(c.ritmo || {}).every((o) => {
+    const ob = B.OBJETIVOS_BALANCE.find((x) => x.id === o); return ob.ritmos.indexOf(c.ritmo[o]) >= 0; })
+    && Object.values(c.prot || {}).every((v) => v <= 2.4) && Object.values(c.gord || {}).every((g) => g >= 0.2));
+  teste("todo ritmo, proteína e gordura dentro das faixas dos estudos", true, seguro);
+  const base = { objetivo: "perder", ritmo: 1.0, sexo: "m", tmb: 1758 };
+  const sem = B.metaDoDia(base, 2554, 86, 0);
+  const atl = B.metaDoDia(Object.assign({ sub: "atleta" }, base), 2554, 86, 0);
+  teste("modo atleta: proteína 2,4 g/kg", 206, atl.p);
+  teste("modo atleta: mesma caloria, só os macros mudam", sem.k, atl.k);
+  const cor = B.metaDoDia(Object.assign({ sub: "corredor" }, base), 2554, 86, 0);
+  teste("corredor: gordura no piso de 20% e mais carboidrato", true, cor.g < sem.g && cor.c > sem.c && cor.g * 9 >= 0.2 * cor.k - 9);
+  teste("ritmo de partida da categoria (open no bulking: 0,5%)", 0.5, B.ritmoDaCategoria(B.CATEGORIAS_BALANCE.find((c) => c.id === "open"), "ganhar"));
+  teste("a silhueta do bodybuilding é mais larga que a do corredor", true,
+    B.formaDaCategoria(B.CATEGORIAS_BALANCE.find((c) => c.id === "bodybuilding"), "m").o > B.formaDaCategoria(B.CATEGORIAS_BALANCE.find((c) => c.id === "corredor"), "m").o);
+  const txt = JSON.stringify(B.CATEGORIAS_BALANCE);
+  teste("sem nome de campeonato nem promessa nas categorias", false, /olympia|garant|prescri|plano alimentar/i.test(txt));
 }
 console.log("\n" + ok + " passou / " + mal + " falhou");
 process.exit(mal ? 1 : 0);

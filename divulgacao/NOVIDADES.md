@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-11-28n — Uma gama de sucos no Balance
+
+**Em uma frase:** o Balance ganhou 26 sucos, de melancia a cupuaçu, com e sem açúcar.
+
+**O que mudou:** melancia, abacaxi (e com hortelã), acerola, caju, manga,
+maracujá sem açúcar, goiaba, morango, melão, tangerina, laranja com cenoura,
+beterraba com laranja e cenoura, suco verde, limonada sem açúcar, uva natural,
+graviola, cupuaçu, tamarindo, tomate, os integrais de caixinha (laranja e maçã)
+e o refresco em pó (com açúcar e diet). Cada um conta em copos, e a água do
+copo entra na água do dia.
+
+**Por que importa para quem treina:** o suco do almoço tem caloria, e às vezes
+mais que a sobremesa. Achar o suco certo, com ou sem açúcar, deixa a conta do
+dia honesta.
+
+**Como usar:** Balance › + Comida › 🔎 Buscar, digite "suco" ou o nome da fruta
+e escolha quantos copos.
+
+**Ideias de vídeo:** o mesmo copo de melancia com e sem açúcar, lado a lado na
+conta do dia; "quantas calorias tem o seu suco?".
+
+**Não prometer:** número de marca nenhuma (os valores são médias de suco feito
+em casa e de rótulo, e mudam com a receita).
+
+---
+
 ## 2026-11-28m — A foto do resumo fica com os filtros
 
 **Em uma frase:** a foto do resumo animado continua com os 16 filtros; a edição

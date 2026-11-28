@@ -45,7 +45,9 @@ A fonte dos números da hora no app do relógio é a Bodoni Moda (© The Bodoni
 Moda Project Authors, SIL Open Font License 1.1, texto em
 android/relogio/FONTE-OFL.txt), usada sem modificação. A fonte de letreiro do
 resumo animado é a Rammetto One (© The Rammetto Project Authors, SIL Open Font
-License 1.1, texto em fonte-resumo-OFL.txt), usada sem modificação.
+License 1.1, texto em fonte-resumo-OFL.txt), usada sem modificação. A letra do
+texto do app é a Inter (© The Inter Project Authors, SIL Open Font License 1.1,
+texto em fonte-texto-OFL.txt), usada sem modificação.
 
 Só no APK direto (o do GitHub, não o da Play Store), o instalador do app do
 relógio usa a libadb-android (© Muntashir Al-Islam, usada pela licença

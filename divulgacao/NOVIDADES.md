@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-11-28q — Um acabamento mais refinado no app inteiro
+
+**Em uma frase:** o Treino Livre ganhou um acabamento mais sofisticado, com as
+mesmas cores, a mesma letra dos títulos e o mesmo jeito de sempre.
+
+**O que mudou:** o texto do app passou para uma letra mais limpa e fácil de ler
+(os títulos, os botões principais e os números continuam no letreiro de sempre).
+Os cartões ganharam cantos mais suaves, sombra em camadas e um brilho discreto
+no alto; os botões secundários viraram superfícies leves em vez de só um
+contorno; os botões do topo, os campos de digitar (que acendem na cor da marca
+quando você toca), as janelas que abrem por cima (com o fundo desfocado) e a
+barra de baixo ficaram mais finos e alinhados. O texto em destaque ficou um
+pouco menos pesado. No tema claro, o cartão do Body Balance voltou a ter o texto
+legível.
+
+**Por que importa para quem treina:** a tela fica mais fácil de ler no meio do
+treino, e o app passa a cara de produto bem acabado.
+
+**Como usar:** nada a fazer: o app atualiza sozinho.
+
+**Ideias de vídeo:** passar pelas telas (início, treino, Balance, histórico)
+em sequência, devagar, com a mesma música do resumo; antes e depois lado a lado.
+
+**Não prometer:** nada de função nova aqui: é o visual.
+
 ## 2026-11-28p — O shake e a vitamina num toque, no celular
 
 **Em uma frase:** os seus shakes e vitaminas salvos viraram botões na tela Hoje

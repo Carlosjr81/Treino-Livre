@@ -1148,6 +1148,7 @@ GitHub e siga daí.
 | `idioma-en.js` | O inglês: dicionário, moldes e o motor que troca o texto da tela. Só baixado por quem escolheu inglês (ver *Português ou inglês*) |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Ícones gerados por script (gradiente da marca + halter) |
 | `resumo-fundo.webp`, `resumo-frente.webp` | As duas camadas da arte do dono na academia, no estilo de capa de jogo, que o resumo animado e o vídeo do story animam (ver *O pôr do sol neon e o visual do relógio*) |
+| `fonte-texto.woff2` | A letra do texto do app (Inter, SIL OFL, 48 KB; licença em `fonte-texto-OFL.txt`) |
 | `fonte-resumo.woff2` | A fonte de letreiro do resumo animado (Rammetto One, SIL OFL, 22 KB; licença em `fonte-resumo-OFL.txt`) |
 | `resumo-musica-v1.m4a` | A música do resumo animado e do vídeo do story (85 s, AAC 128k, 1,4 MB), no cache de mídia do `sw.js` (ver *A música do resumo*) |
 | `logo-treino-livre.webp` | O logo do app (halter, TREINO em vermelho na placa cromada, LIVRE cromado), recortado do último quadro da `abertura-v2.mp4` com fundo transparente (604×800, 48 KB). Usado na vinheta e no fim do resumo animado e do vídeo do story |
@@ -6606,6 +6607,29 @@ Pedido do dono: "melhore a identidade visual de todo o app baseado no resumo ani
 - O aviso da sequência à noite no relógio ficou de fora (precisaria de um agendamento no app do relógio).
 
 Coberto por `teste-medalha.js` (anilhas, esforço, medalha, sequência). No navegador: os dois temas, a calculadora, o esforço da série, os cartões da medalha e da sequência, as cenas da evolução.
+
+## A repaginada do acabamento (2026-11-28q)
+
+Pedido do dono: "deixar tudo mais profissional, mais sofisticado, sem mudar a
+identidade visual". Feita pela base que todas as telas usam, sem mexer tela por
+tela:
+
+- **A letra do texto é a Inter** (`fonte-texto.woff2`, 48 KB, SIL OFL em
+  `fonte-texto-OFL.txt`, no `sw.js`; `FONTE_TEXTO`, `@font-face "Texto
+  App"`). Os títulos, os botões principais e os números continuam no letreiro
+  (`FONTE_LETREIRO`). `button, input, select, textarea` herdam a letra.
+- **Os pesos desceram um degrau** no arquivo inteiro (900 → 800, 800 → 700):
+  na Inter o 900 e o 800 ficavam pesados demais. Texto novo: 700 para
+  destaque, 800 só para número grande.
+- **Variáveis novas**: `--superficie`, `--superficie2` (o fundo dos botões
+  secundários e do topo), `--brilho-marca` (a sombra do botão principal) e
+  `--foco` (o anel dos campos com o toque, por CSS). Bordas mais discretas,
+  sombra dos cartões em camadas, cartões com 20 de raio e 18 de respiro.
+- **As janelas por cima** (fundo escuro em tela cheia) ganharam desfoque.
+- O cartão do Body Balance (fundo escuro fixo) tem o texto claro nos dois temas.
+- Conferido no navegador nos dois temas: início, fichas, histórico, Balance,
+  treino, exercícios, ajustes, ajuda e uma confirmação. **Não validado num
+  celular.**
 
 ## O jeito de falar da academia (`FRASES_MAROMBA`, 2026-11-22c)
 
